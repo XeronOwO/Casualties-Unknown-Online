@@ -466,7 +466,134 @@ Recorded but NOT fixed (pre-existing; none of them made worse by this increment)
   a host only, no layer boundary resets the enemy/fluid/player tables at all, and those reset
   commands stay wire-reachable. Scoping notes for the fix are below (reading, no adversarial pass yet).
 
-### Gap 4 scoping notes (2026-09-12, reading only — NOT a fix, NOT adversarially verified)
+### The sibling-domain layer reset — gap 4 (2026-09-13)
+
+Recorded gap 4 is closed. The defect was not "a dead command": the kernel's enemy and fluid tables
+describe ONE layer (a live enemy row names a position in that layer's layout, and the host's enemy-id
+counter keeps allocating from a per-session sequence; a fluid chunk is a coarse total of that layer's
+grid), no layer boundary reset them, and the rows therefore survived into a world that was no longer
+that layer. Two consumers saw them: a late joiner's checkpoint, and a `layer-end` restore, which reads
+the archive back into the kernel before the regenerated layer exists.
+
+**The seam, and why the archive carries the rule too.** The whole layer-scoped family resets at the
+WORLD-ENTRY seam (`WorldEventSync.TryCaptureWorldBaseline` -> `WorldService.ResetWorldLayerTables`),
+which is also the generation the mid-run restore's pending-replay gate already skips. The layer-end
+cut's own kernel commit is deliberately NOT a seam anything may depend on, and this section's first
+draft got the reason wrong (an adversarial pass caught it): the reset and the cut run inside ONE call
+stack (`WorldParamsService.CaptureAtBoundary` resets, then `PublishWorldParams` commits the advance that
+takes the cut), so the reset DOES run before the cut — while the per-frame enemy projection
+(`EnemyKernelProjection.Sync`, a mirror of the LIVE scene) can write the old layer's rows back into the
+kernel before the checkpoint is read, because the game destroys those entities over the following frames
+(`WorldGeneration.Clear`, `reversing/.../WorldGeneration.cs:1077-1104`). Which of the two wins is a
+frame-timing fact, so the ARCHIVE states the rule on its own side instead: `WorldSnapshotEncoder` now
+drops a layer-end cut's live enemy rows and fluid chunks — keeping the tombstones — exactly as it
+already drops the world-rooted item rows, the per-entity rows, the block diff and the transients, and it
+names what it dropped. The reset, the encoder rule and the restore prune below therefore agree whichever
+of them runs first.
+
+**The family.** The reset names its four members in one place — the world-rooted item rows, the
+world-entity facts, the enemy live rows and the fluid chunks — because the membership rule is one rule:
+a fact about the layer being LEFT must not survive into the layer being entered. The seam is
+`WorldService.ResetWorldLayerTables` (reached through the adapter's world-entry baseline capture); the
+first two members were already reset there, and the two new ones are issued by `LayerScopedTableReset`,
+the RULE as its own type so the seam stays readable. The PLAYER table is deliberately not a member (every
+`PlayerState` fact is cross-layer, so a reset would erase injuries and carry relations on every
+descent), and its reset command family is DELETED rather than left as dead vocabulary. The enemy
+TOMBSTONES are kept: `EnemyStateTable.WithoutLiveEnemies` drops the live rows and leaves the terminal
+facts standing, so "the enemy standing here was killed" still stops a stale live row from resurrecting
+it — the same acceptance rule the restore suite pins.
+
+**The wire.** The layer-scoped `Reset*Command`s were removed from `KernelWireMapper` and from
+`WireCommandKind`/`WirePayloadType`/`ProtocolFrameValidator`, closing the "wire-reachable but no
+caller" half of the gap: `TryResetEnemies` and `TryResetFluids` are now driven by the host's own
+boundary, `TryResetWorldEntities` by its registries, and `TryResetPlayers` is gone. That is not
+bookkeeping: the received-command path carries no role check (`KernelProtocolCommandHandler` executes
+what the envelope names, and the kernel's `CommandContext` carries no role), so the wire mapping IS the
+gate — an unmapped kind cannot be reconstructed by `KernelWireMapper.FromWireCommand` at all. Their
+EVENTS keep their wire form, which is load-bearing: the host's committed batch is how a guest's replay
+kernel learns that the boundary happened (it is how the world-item and world-entity resets already reach
+a guest). Removing the event forms was tried and reverted — `KernelProtocolService.BroadcastCommittedBatch`
+encodes every committed event, so an unmappable one throws out of the host's own reset.
+`PlayersResetEvent` is gone entirely, because nothing can produce it once the command family is deleted.
+
+**The adversarial pass (fresh context, 2026-09-13) falsified two claims of the first cut.** Both are
+fixed here rather than recorded, because both were real:
+
+- **`ResetWorldEntities` was still wire-mapped and reachable by a guest.** The first cut removed three
+  of the four layer-scoped reset commands and the docs claimed all four were host-local; the fourth was
+  live: `WireCommandKind.ResetWorldEntities = 13` + `ProtocolFrameValidator.cs:322` +
+  `KernelWireMapper.cs:495-499` (reconstructing the command with `actor = header.SenderId`) +
+  `KernelProtocolCommandHandler.cs:65-66` executing it after only an epoch check, with no actor/authority
+  validation anywhere in the kernel. A guest could therefore wipe the host's consumed-trap / opened-lockable
+  / building-health table at will — the exact "family, not the reported case" miss this cycle exists to
+  avoid. Its wire identity is gone, so the command is host-local like its three siblings, and the E7 row
+  plus decision 174 now state the mechanism correctly.
+- **The seam rationale was wrong.** The first cut argued a reset at the layer-end cut would be "undone
+  frame by frame"; the reset and the cut actually run inside one call stack, with the reset before the
+  cut, and whether the projection re-writes the rows in between is frame timing. The rationale (decision
+  174, this ticket, `LayerScopedTableReset`) is restated in those terms, and the encoder-side rule above
+  is what makes the archive correct regardless of that timing.
+
+The pass also produced three findings that are recorded rather than fixed, and one nit that is fixed:
+
+- The guest-gate test drove the HOST's `WorldService` while seeding the guest's kernel, so it could not
+  fail on the gate it names. **Fixed**: it now drives the guest's own `WorldService`.
+- `WorldSaveService` captured `session.LocalSteamId` once at construction (the repo's documented "late
+  Steam init captured as 0" shape). **Fixed**: the applier takes a `Func<ulong>` and resolves the actor
+  at call time. (The other three resets resolve theirs at call time already.)
+- The seam's reachability in a live session is static-review only; the per-frame ordering around the
+  game's `Clear`/`InstantiateWorld` is read from `reversing/`, not observed.
+- `ProtocolVersion` is deliberately NOT bumped although the wire kind space changed (three command kinds
+  and six payload members removed). A bump would be the honest signal, but `SaveArchiveReader` refuses an
+  archive whose protocol version differs, so bumping it invalidates every existing save — a product
+  decision about save compatibility that this consistency fix must not make on its own. It is recorded
+  here for the version-policy cycle (the project's stated stance is a hard version refusal at release,
+  which is the same switch).
+
+**Red, recorded on the pre-fix source** (the fix's `src/` changes stashed, tests in their final shape):
+`WorldSaveContinueTests.LayerEndRestore_LendsNoReplacedLayerEnemyRowToTheNewLayer` and
+`.LayerEndRestore_LendsNoReplacedLayerFluidRowToTheNewLayer` both failed with
+`Assert.Empty() Failure: Collection was not empty` — 2 failed / 0 passed of 2. The enemy case is the
+harm directly: a layer-end restore handed the replaced layer's `spider (epoch 1, counter 7)` row to the
+new layer's kernel. The same pair was re-checked AFTER the encoder rule landed (the encoder now drops the
+rows this fixture used to write, so the pair reaches the restore half only through a hand-patched
+archive): with `DropReplacedLayerKernelTables` commented out they fail again with
+`Collection: [FluidRegionState { ChunkX = 1, ChunkY = 2, TotalAmount = 7, MainType = 1, UpdatedAtMs = 50 }]`,
+which is what pins the restore-side prune as load-bearing rather than decorative.
+
+**Green:** the targeted families, the full suite and the normative gates in the commit's own run. New
+coverage: the two layer-end restore cases above plus their mid-run counterpart
+(`WorldSaveContinueTests.MidRunRestore_KeepsTheLayerScopedRowsTheCutNames`); the encoder rule and its
+mid-run half (`WorldSnapshotWorldFactsTests.Encode_LayerEndCut_DropsTheLiveEnemyAndFluidRowsButKeepsTheTombstone`,
+`.Encode_MidRunCut_KeepsTheLiveEnemyAndFluidRows`); `LayerBoundaryKernelResetTests` (the boundary drops
+both families, keeps the player table and the tombstones, and leaves a GUEST's kernel alone — driven
+through the guest's own service); `EnemyDomainKernelTests` now pins the reset's scope (live rows cleared,
+tombstone kept, the killed id still not resurrectable). `RemovedEnemy_StaysTerminalAfterRestore` keeps
+passing unchanged, which is what forced the tombstone rule in the first place.
+
+**What is NOT proven:** the seam's own branch (that the adapter reaches `TryCaptureWorldBaseline`) is
+Game-Adapter code the test host cannot instantiate, so the wiring is pinned at the Runtime port
+(`WorldService.ResetDamagedBlocks`) plus static review — the same limit the rest of this stage's adapter
+bodies carry. The per-frame ordering between the host's generation boundary and the game's scene teardown
+is read from the decompiled game paths, not observed (which is exactly why the archive rule does not
+depend on it). The user's dual-client pass is what shows that entering a layer starts with a clean table:
+no enemy of the previous layer appearing on the new one, and no stale fluid blob.
+
+**Residuals recorded, not fixed here:**
+
+- A guest's kernel keeps the previous layer's rows for the window between the host's boundary and the
+  arrival of the host's reset batch, and its own `FluidKernelReadProjection` / `EnemySyncService`
+  buffers are only cleared by the removal events and the new layer's snapshot. The window closes by
+  itself (the `EnemiesReset`/`FluidsReset` batch, then the world-entry checkpoint fan-out); making it
+  synchronous would need a second wire path for a state that is already converging. The reset EVENTS
+  therefore keep their wire form even though the commands have none — the guest's replay kernel has to
+  learn that the host's table restarted.
+- `EnemySyncCoordinator._idByEntity` / `_mappingEstablished` survive a layer boundary (they are cleared
+  only by `Unbind`), so the new layer's enemies are allocated as `runtimeSpawn: true` and the stale
+  bindings linger until the scene swap. Adapter-side identity, a different owner from this reset, and
+  not made worse here — it is recorded for its own ticket rather than patched in this cycle.
+
+### Gap 4 scoping notes (2026-09-12, reading only - SUPERSEDED by the fix above)
 
 Reading the code before choosing a fix separates the recorded bullet into three parts:
 
@@ -749,7 +876,7 @@ Read this table as TWO claims per row, because they are proven in different plac
 |---|---|---|---|
 | 1 | Mid-run save with mined/placed/quaked blocks + partial damage | Reload reproduces the same block diff exactly (compare against the pinned post-restore dump) | **machine**: both row shapes (a cell diff and the game's own `native-block-damage` row) round-trip (`WorldSnapshotWorldFactsTests.Codec_RoundTripsBothBlockRowShapes`, `.Codec_RoundTripsTheGameDamageRow`); a mid-run cut writes one typed row per fact while a layer-end cut writes both world files empty (`.Encode_MidRunCut_WritesOneTypedRowPerFact`, `.Encode_LayerEndCut_WritesBothWorldFilesEmpty`); the restored tables are applied ABSOLUTELY, never merged onto leftovers (`WorldSnapshotWorldFactsTests.TryContinue_AppliesTheRestoredWorldFactsAbsolutely`); a restored air row arrives with `SupportLossSettled` so a receiver does not re-roll the drops the saved world already rolled (`WorldRestoreSupportLossTests.RestoredBlockStateRows_ArriveMarkedAsSupportLossSettled`); and every row the game's own bounded 128-entry table refuses is named in the outcome (`WorldSnapshotWorldFactsTests.Restore_NamesTheRowsTheBoundedTableRefusedInTheOutcome`). **in-game: user pass** — that the replayed per-cell diff yields the same block map in the regenerated layer, and that the cracked/damaged sprites match |
 | 2 | Mid-run save with world items on the ground, in containers, carried, worn | Same identities, locations, container trees; no duplicates, no loss | **machine**: identity/location/revision survive encode → decode for the whole item domain and the characters (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters`); a container tree keeps exactly one parent per child after a restore (`WorldSaveContinueTests.ContainerTree_AfterRestore_HasExactlyOneParentPerChild`); a CARRIED record is the one that crosses a layer boundary (its `SaveLayerEnd` helper seeds a carried bag, and `TryContinue_Twice_KeepsTheSameFingerprintAndFacts` compares identity/location/revision per item); a terminal record is never resurrected (`WorldSaveContinueTests.RemovedEnemy_StaysTerminalAfterRestore`); a region the game regenerated at a restored item's spot binds to the restored id instead of being published beside it (`HostRestoreItemReconcileTests.ARegeneratedItemAtARestoredItemsSpot_DoesNotBecomeASecondWorldItem`, `RestoredWorldItemContractTests.ARestoredCut_ArmsTheReconcileAndPublishesTheRestoredSet`). **in-game: user pass** — the four restings as the player sees them (on the ground, inside a container, in hand, WORN — the kernel has no separate worn location, so the worn case is a scene-side claim), no duplicate beside a restored ground copy, and the corpse-loot bind in `CorpseScript.Start` |
-| 3 | Mid-run save with opened/damaged buildings, consumed traps, fluids, enemies | Same facts; no re-trigger; no resurrection | **machine**: a consumed trap stays consumed across a restore (`WorldSaveContinueTests.ConsumedTrap_StaysConsumedAfterRestore`); the kernel's per-entity table reaches the host's own world-entry write instead of being dropped with the replaced layer (`WorldEntityProjectionTests.HostCheckpointRestore_ArmsTheWorldEntryWriteWithTheFactsTheGuestProjects`, `.SoloCheckpointRestore_ArmsTheWorldEntryWriteToo`), through the same three appliers the guest path uses, whose refusals reach the restore account (`RestoredWorldFactReplayTests.ApplyIfPending_WorldEntityRowsTheLayerDoesNotHave_ReachTheRestoreAccount`) — including a trap row whose entity IS there and cannot carry the fact, which the shared action verdict refuses (`TrapActionVerdictTests`); a restored death is applied as a REMOTE death, so the saved world's drops are not rolled twice (decision 172 + `WorldRestoreSupportLossTests`); opened entities, fluid regions and enemies round-trip (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters`). **in-game: user pass** — that the regenerated world actually shows the consumed traps, opened lockables and damaged buildings, and that no corpse/building drop was re-rolled. The appliers' game-typed bodies are static-reviewed only |
+| 3 | Mid-run save with opened/damaged buildings, consumed traps, fluids, enemies | Same facts; no re-trigger; no resurrection | **machine**: a consumed trap stays consumed across a restore (`WorldSaveContinueTests.ConsumedTrap_StaysConsumedAfterRestore`); the kernel's per-entity table reaches the host's own world-entry write instead of being dropped with the replaced layer (`WorldEntityProjectionTests.HostCheckpointRestore_ArmsTheWorldEntryWriteWithTheFactsTheGuestProjects`, `.SoloCheckpointRestore_ArmsTheWorldEntryWriteToo`), through the same three appliers the guest path uses, whose refusals reach the restore account (`RestoredWorldFactReplayTests.ApplyIfPending_WorldEntityRowsTheLayerDoesNotHave_ReachTheRestoreAccount`) — including a trap row whose entity IS there and cannot carry the fact, which the shared action verdict refuses (`TrapActionVerdictTests`); a restored death is applied as a REMOTE death, so the saved world's drops are not rolled twice (decision 172 + `WorldRestoreSupportLossTests`); opened entities, fluid regions and enemies round-trip (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters`); the layer boundary drops the two layer-scoped tables of the layer being left while the player table and the enemy tombstones survive it (`LayerBoundaryKernelResetTests`, decision 174), and a `layer-end` restore lends none of those rows to the layer it regenerates (`WorldSaveContinueTests.LayerEndRestore_LendsNoReplacedLayerEnemyRowToTheNewLayer`, `.LayerEndRestore_LendsNoReplacedLayerFluidRowToTheNewLayer`) while a mid-run restore still restores them (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters` runs that shape, and `WorldSaveContinueTests.RemovedEnemy_StaysTerminalAfterRestore` pins the terminal half). **in-game: user pass** — that the regenerated world actually shows the consumed traps, opened lockables and damaged buildings, and that no corpse/building drop was re-rolled. The appliers' game-typed bodies are static-reviewed only |
 | 4 | Save during each in-flight state in the table above | The chosen policy applies and is logged; no silent loss, no duplication | **machine**: the policy is a real table with one verdict per class, pinned row by row (`WorldTransientPolicyTests.Rows_CoverEveryInFlightClassTheTicketNames`, `.Verdicts_PerRow_AreTheDecidedOnes`, `.Rows_AreUniqueAndEveryOneCarriesItsOwnerUnitAndReason`, `.Detection_DeclaresTheRowsNoObserverCanCount`); the seam defers the three frame windows with the request still armed (`WorldSaveCutSeamTests.BreakWindow_DefersTheCutAndKeepsItArmed`), takes the cut once the state resolves (`.BreakWindow_Resolved_TakesTheCutOnTheNextFrame`), names a window that outlasts `MaxCutDeferralFrames` instead of starving the request (`.BreakWindow_OutlastingTheDeadline_IsNamedInTheReport`), names counted drops (`.DroppedState_IsNamedWhileTheCutStillSucceeds`) and the game-owned `Standing` classes without claiming a count nobody has (`.StandingRows_AreNamedEvenThoughNoCounterCanSeeThem`), REFUSES an undeclared class (`.UndeclaredTransientClass_RefusesTheCutAndWritesNothing`) and refuses to write a clean-looking snapshot from an unreadable native table (`.UnreadableNativeTable_RefusesTheCutAndWritesNothing`); the runtime half of the observation is merged with the adapter half (`.RuntimeHalfOfTheObservation_IsMergedIntoTheCutReport`, `.Observation_MergesBothHalvesOfTheSameClass`), and the player-facing report is printed for a cut the player asked for (`CommandConsoleSaveTests.CutReport_IsPrintedForTheCutsThePlayerAskedFor`). **in-game: user pass** — that the deferral is invisible in play and the reported class list matches what the player saw |
 | 5 | Save → load → save → load | Byte-comparable domain tables (modulo timestamps/revisions); world fingerprint stable | **machine**: restoring the same snapshot twice converges on the same item identity/location/revision, the same revision counter and the same run id (`WorldSaveContinueTests.TryContinue_Twice_KeepsTheSameFingerprintAndFacts`); a salvaged snapshot opens identically twice and leaves the live files untouched (`SaveArchiveSalvageTests.SalvagedSnapshot_OpensTwiceIdentically_AndLeavesTheLiveFilesUntouched`); the folder recovery pass is idempotent (`WorldFolderRecoveryTests.RecoveryIsIdempotent_ASecondPassHasNothingLeftToDo`); a manifest that lists the same file twice is not applied twice (`SaveArchiveContractFixesTests.ManifestListingTheSameFileTwice_IsNotAppliedTwice`); a float condition survives the text format exactly (`WorldSnapshotCodecTests.Encode_FloatCondition_RoundTripsExactly`). **Not machine-proven**: byte-level reproducibility of the produced JSON/archive itself — no test asserts that two encodes of the same checkpoint are byte-identical. **in-game: user pass** — a real save → load → save → load cycle in one session leaves the world fingerprint stable |
 | 6 | Save taken mid-frame while a command batch is pending | The cut is consistent: no half-applied operation in the snapshot, revision matches the payload | **machine**: the manifest's `globalRevision` equals the checkpoint the payload was written from (`WorldSaveCaptureTests.MenuReturnCut_MenuReturnPhaseIsRecordedOnTheManifest`); the manifest records which seam took the cut (`WorldSaveCaptureTests.MenuReturnCut_WritesTheHostCharacterUnderTheSteamKey`, `WorldSaveCutSeamTests.ArmedCut_IsTakenAtTheSeamAndClearsTheRequest`); a layer-end-class cut cannot be armed at the frame-end seam (`WorldSaveCutSeamTests.LayerEndTrigger_CannotBeArmedAtTheSeam`); a request armed for a world a new run superseded is dropped (`.NewRun_DropsARequestArmedForThePreviousWorld`); a menu return supersedes a queued command cut with one snapshot and one reason (`.MenuReturn_SupersedesAQueuedCommandCut_OneSnapshotOneReason`). **Structural, not testable in this host**: "no half-applied batch" is the seam's POSITION — the CUO pump's last step, after every domain update and the frame's drop/break flushes (`docs/architecture/save-archive-format.md` §4, decision 167) — and the trigger only ARMS, so no cut runs inside the console callback. **in-game: user pass** — that nothing the player did appears half-applied after the restore |
@@ -817,7 +944,10 @@ in-game rows open.
          `TrapActionVerdict`; the red/green pair, the family audit and the verification limits are in
          *the shared action verdict* above).
       4. the sibling-domain reset family: host-only kernel resets, no layer boundary reset for the
-         enemy/fluid/player tables, and those reset commands stay wire-reachable.
+         enemy/fluid/player tables, and those reset commands stay wire-reachable. — **FIXED 2026-09-13**
+         (the layer-boundary reset family: enemy and fluid join the world-entry reset, the player table
+         is not in the family, and the three dead commands lost their wire form; the red/green pair, the
+         family audit and the residuals are in *the sibling-domain layer reset* below).
 - [ ] **Development verification trail is on `master` for the commit being moved**: the named suites
       pass on it, `dotnet format` is clean, and the full suite + normative gates are green.
 - [ ] **Deployment identity**: the plugin folder on the machine carries that commit's build (plugin

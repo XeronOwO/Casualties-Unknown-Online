@@ -48,18 +48,6 @@ public class PlayerDomainKernelTests
 	}
 
 	[Fact]
-	public void ResetPlayers_ClearsTable()
-	{
-		var kernel = new GameStateKernel(Epoch);
-		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
-		Assert.True(kernel.Execute(
-			new ResetPlayersCommand(new OperationId(2), Host, Epoch, AuthorityKind.HostOnly),
-			new CommandContext(Epoch, Host)).IsAccepted);
-
-		Assert.Empty(kernel.QueryPlayers()!.Players);
-	}
-
-	[Fact]
 	public void UpdateStatus_UpsertsLimbFacts()
 	{
 		var kernel = new GameStateKernel(Epoch);

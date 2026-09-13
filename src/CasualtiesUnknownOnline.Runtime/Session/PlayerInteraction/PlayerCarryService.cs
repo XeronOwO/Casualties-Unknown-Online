@@ -267,7 +267,7 @@ internal sealed class PlayerCarryService : IDisposable
 		CarryStateChanged?.Invoke(msg);
 	}
 
-	/// <summary>Clear the carry mirror without raising presentation events (players reset / session reset).</summary>
+	/// <summary>Clear the carry mirror without raising presentation events — the checkpoint rebuild's first step.</summary>
 	internal void ResetCarryMirror()
 	{
 		_carriedBy.Clear();

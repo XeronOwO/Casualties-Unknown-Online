@@ -71,7 +71,7 @@ internal sealed class EnemyDomainModule : IDomainModule
 		{
 			EnemyUpsertedEvent upserted => current.Upsert(upserted.State),
 			EnemyRemovedEvent removed => current.Remove(removed.EntityId),
-			EnemiesResetEvent => EnemyStateTable.Empty,
+			EnemiesResetEvent => current.WithoutLiveEnemies(),
 			EnemyBiteResultEvent or EnemyLungeResultEvent or EnemyEffectResultEvent => current,
 			_ => throw new InvalidOperationException($"unknown entity event {@event.GetType().Name}"),
 		};

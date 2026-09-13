@@ -116,6 +116,10 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			_binder,
 			items,
 			audit,
+			// The restore's host-local kernel resets (a layer-end cut's enemy/fluid rows)
+			// run as the LOCAL peer, resolved at call time — see
+			// WorldRestoreApplier.DropReplacedLayerKernelTables.
+			() => session.LocalSteamId,
 			loggerFactory,
 			loggerFactory.CreateLogger<WorldRestoreApplier>(),
 			worldEntities);

@@ -41,6 +41,7 @@ internal sealed class WorldRestoreApplier(
 	WorldCharacterBinder binder,
 	IItemControl? items,
 	WorldRestoreAudit? audit,
+	Func<ulong> layerActor,
 	ILoggerFactory loggerFactory,
 	ILogger<WorldRestoreApplier> log,
 	IRestoredWorldEntitySource? worldEntities = null)
@@ -53,6 +54,16 @@ internal sealed class WorldRestoreApplier(
 
 	/// <summary>The world-entity half: the kernel's restored per-entity facts are written at the world-entry seam; a layer-end cut's rows are dropped here.</summary>
 	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
+
+	/// <summary>
+	/// Reads the LOCAL peer a host-local kernel reset runs as (see
+	/// <see cref="DropReplacedLayerKernelTables"/>). A delegate rather than a captured
+	/// value because the session identity is not final when the composition root is
+	/// built — the Steam id is 0 until Steam initializes and this applier outlives that
+	/// moment — and it is not a session handle: the reset needs the actor, and this type
+	/// must stay constructible without a session at all.
+	/// </summary>
+	private readonly Func<ulong> _layerActor = layerActor;
 
 	/// <summary>
 	/// What one applied archive produced. The identity fields are meaningful only
@@ -189,6 +200,7 @@ internal sealed class WorldRestoreApplier(
 			// begins, exactly like the item half, because a dropped half this cut never
 			// owed is not a lost one.
 			_worldEntities?.CancelPendingRestore("the cut is a layer-end cut: its world-entity facts describe the layer being replaced");
+			DropReplacedLayerKernelTables();
 			DropReplacedLayerPositions(decode.UsableCharacters);
 		}
 
@@ -271,6 +283,59 @@ internal sealed class WorldRestoreApplier(
 					character.PlayerKey, stale.X, stale.Y);
 			}
 		}
+	}
+
+	/// <summary>
+	/// A layer-end cut's LAYER-SCOPED kernel rows describe the layer being LEFT, so the
+	/// restore must not carry them into the layer it regenerates — the same rule the two
+	/// halves above apply to the item rows and the world-entity facts, and the same rule
+	/// the layer-boundary reset applies on the live path (<c>WorldService.ResetWorldLayerTables</c>,
+	/// which resets exactly this family when a new layer is generated).
+	///
+	/// The two tables are the enemy rows and the fluid chunks. They are kernel table
+	/// state rather than a handover, so the only way to drop them is the layer-boundary
+	/// reset: the checkpoint restore put them in, and these two resets take them out.
+	/// The ENEMY TOMBSTONES deliberately SURVIVE (the reset's own semantics — see
+	/// <c>EnemyStateTable.WithoutLiveEnemies</c>): a tombstone is a terminal fact the
+	/// killer earned, and the acceptance rule is that a killed enemy never comes back.
+	/// What must not survive is a LIVE row, because it names a position and an id of the
+	/// replaced layer. A MID-RUN cut keeps both tables: the layer it names is the one the
+	/// restore rebuilds, so its enemies and its fluid chunks are that layer's own facts.
+	/// </summary>
+	private void DropReplacedLayerKernelTables()
+	{
+		var liveEnemyRows = kernel.QueryEnemies()?.Enemies.Count ?? 0;
+		var fluidRows = kernel.QueryFluids()?.Regions.Count ?? 0;
+		if (liveEnemyRows == 0 && fluidRows == 0)
+		{
+			return;
+		}
+
+		// A refused reset is logged rather than thrown: the live path resets the same
+		// family again at the world-entry seam, and aborting a restore over one table
+		// would lose the whole archive. It is never silent, though — an un-dropped
+		// foreign-layer row is exactly the leak this method exists to close.
+		// Resolved once per attempt, at the moment the resets run: the local identity is
+		// read from the session rather than captured, so a late Steam init cannot leave a
+		// 0 actor stamped on the committed reset batch.
+		var actor = _layerActor();
+		if (!kernel.TryResetEnemies(actor, out _, out var enemyRejection))
+		{
+			log.LogWarning(
+				"The layer-end cut's {Count} live enemy row(s) could not be dropped ({Reason}: {Message}); the world-entry layer reset is the remaining guard.",
+				liveEnemyRows, enemyRejection!.Reason, enemyRejection.Message);
+		}
+
+		if (!kernel.TryResetFluids(actor, out _, out var fluidRejection))
+		{
+			log.LogWarning(
+				"The layer-end cut's {Count} fluid chunk(s) could not be dropped ({Reason}: {Message}); the world-entry layer reset is the remaining guard.",
+				fluidRows, fluidRejection!.Reason, fluidRejection.Message);
+		}
+
+		log.LogInformation(
+			"A layer-end cut names the layer being ENTERED, so its {Enemies} live enemy row(s) and {Fluids} fluid chunk(s) describe the layer being replaced and are not restored; its enemy tombstones stay terminal.",
+			liveEnemyRows, fluidRows);
 	}
 
 	private Result Refuse(string worldId, string summary, SalvageResult? salvage = null) =>

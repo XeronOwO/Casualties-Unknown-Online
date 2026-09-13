@@ -30,6 +30,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	private readonly PendingReportFallback _blockReportFallback;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly IWorldItemLayerReset _itemLayerReset;
+	private readonly LayerScopedTableReset _layerTables;
 	private readonly FluidKernelProjection _fluidKernel;
 	private readonly FluidKernelReadProjection _fluidKernelRead;
 	private readonly ProjectionHealthCoordinator _projectionHealth;
@@ -86,6 +87,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		_startGate = new WorldStartGate(session, sender, time, log);
 		_kernelAuthority = kernelAuthority;
 		_itemLayerReset = itemLayerReset;
+		_layerTables = new LayerScopedTableReset(session, kernelAuthority, log);
 		_fluidKernel = fluidKernel;
 		_fluidKernelRead = fluidKernelRead;
 		_projectionHealth = projectionHealth;
@@ -408,12 +410,18 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	/// lifecycle (which the save layer also reads and rewrites); the
 	/// runtime-created entity table is the sibling registration table of the same
 	/// generation boundary (its entities are gone with the old scene).
+	///
+	/// This is the SEAM of the layer-boundary reset family; the RULE that decides the
+	/// family's membership — and the reason the two kernel tables it owns are reset at
+	/// this seam and not at the layer-end cut's kernel commit — lives in
+	/// <see cref="LayerScopedTableReset"/>.
 	/// </summary>
 	private void ResetWorldLayerTables()
 	{
 		_facts.ResetWorldDomainTables();
 		_channels.ResetRuntimeEntities();
 		_itemLayerReset.ResetForNewLayer();
+		_layerTables.Reset();
 	}
 
 	public void SendBlockStateSnapshot(ulong targetSteamId) => _messages.SendBlockStateSnapshot(targetSteamId);

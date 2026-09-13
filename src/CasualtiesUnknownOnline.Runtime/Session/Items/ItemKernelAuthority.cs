@@ -225,8 +225,11 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	public bool TryUpdatePlayerStatus(ulong actor, PlayerState state, out CommittedBatch? batch, out Rejection? rejection) =>
 		TryExecute(new UpdatePlayerStatusCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, state), actor, "update-player-status", out batch, out rejection);
 
-	public bool TryResetPlayers(ulong actor, out CommittedBatch? batch, out Rejection? rejection) =>
-		TryExecute(new ResetPlayersCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly), actor, "reset-players", out batch, out rejection);
+	// The player table has NO reset, and that is a design statement rather than an
+	// omission: PlayerState carries the durable CROSS-LAYER facts (alive/conscious,
+	// the carry relation, the limb latches, body state, skills — see PlayerState), so
+	// a layer boundary must keep them. The family that DOES reset at a boundary is
+	// enumerated in WorldService.ResetWorldLayerTables; players are not in it.
 
 	public bool TrySetPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>
 		TryExecute(new SetPlayerCarryCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, carrierSteamId, carriedSteamId), actor, "set-player-carry", out batch, out rejection);
@@ -258,6 +261,25 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 		return TryExecute(command, actor, "remove-enemy", out batch, out rejection);
 	}
 
+	/// <summary>
+	/// Host only: the kernel's LAYER-SCOPED enemy table drops its LIVE rows for the layer
+	/// being entered. A live enemy row is a fact about the layout it stands in AND about
+	/// the id the host allocated for it (<c>EnemySyncCoordinator</c> keeps allocating from
+	/// a per-session counter), so a row that survived the boundary would describe an enemy
+	/// of a layer the world no longer is — a fact that leaks to a late joiner's checkpoint
+	/// and whose id can be re-minted for a different enemy.
+	///
+	/// The TOMBSTONES survive: <c>EnemyStateTable.WithoutLiveEnemies</c> states why.
+	///
+	/// Host-local by construction, like the world-item and world-entity resets: a remotely
+	/// triggerable "wipe every enemy" is a destructive trigger no peer may have, so this
+	/// command has no wire form (<see cref="KernelWireMapper"/> does not map it) and the
+	/// guests converge from the committed batch and the checkpoints.
+	///
+	/// <paramref name="actor"/> is the LOCAL peer — the host acting as itself. It is a
+	/// parameter rather than a session lookup because this authority is also driven by
+	/// the save layer, which is not the session.
+	/// </summary>
 	public bool TryResetEnemies(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
 	{
 		var command = new ResetEnemiesCommand(
@@ -281,6 +303,7 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 		return TryExecute(command, actor, "update-fluid-region", out batch, out rejection);
 	}
 
+	/// <inheritdoc cref="TryResetEnemies"/>
 	public bool TryResetFluids(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
 	{
 		var command = new ResetFluidsCommand(

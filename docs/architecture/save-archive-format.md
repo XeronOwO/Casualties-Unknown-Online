@@ -154,10 +154,12 @@ two can never disagree about what "in the layer" means, and a later guest join c
 kernel checkpoint whose per-entity facts describe a layer the world no longer is. A produced
 `layer-end` archive therefore holds only boundary-crossing item records and no in-layer fact at all,
 which is exactly what a restore of one can give back. The enemy and fluid tables are deliberately NOT
-part of that rule: no layer boundary resets them (their reset commands exist but nothing issues them
-per layer), so a layer-end cut carrying them is consistent with what the kernel itself keeps — the
-asymmetry is recorded in `docs/backlog/todo/save-mid-run-consistent-cut.md` as the sibling-domain
-reset gap.
+part of that rule: a layer boundary resets their LIVE rows (§3.4), and a live enemy row and a fluid
+chunk both describe the layer being replaced, so a `layer-end` restore drops them the same way it drops
+the world-rooted item rows and the per-entity facts (the enemy TOMBSTONES are terminal facts and stay —
+a killed enemy never comes back). A `layer-end` restore therefore also runs the two host-local kernel
+resets; the mechanism and its red/green pair for the live path are in
+`docs/backlog/todo/save-mid-run-consistent-cut.md`, and decision 174 records the rule.
 
 The game's own `WorldGeneration.world.blockDamages` list is the ONLY partial-damage table there is:
 CUO keeps no registry beside it, and the partial block damage has no Runtime half in the fact port

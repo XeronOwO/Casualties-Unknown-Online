@@ -8,14 +8,19 @@ namespace CasualtiesUnknownOnline.GameState.Domains.Players;
 
 /// <summary>
 /// Players domain module: terminal player status (alive/conscious), the
-/// cross-player carry relation, and reset. High-frequency motion remains
-/// outside the kernel.
+/// cross-player carry relation, and the cross-player result facts. High-frequency
+/// motion remains outside the kernel.
+///
+/// There is no reset command here on purpose: every fact this module reduces is
+/// either a cross-layer terminal fact (alive/conscious, the carry relation, the
+/// limb latches, body state, skills) or a result of one player acting on another,
+/// so a layer boundary must keep all of it — see
+/// <c>WorldService.ResetWorldLayerTables</c> for the family that DOES reset.
 /// </summary>
 internal sealed class PlayerDomainModule : IDomainModule
 {
 	public bool CanHandle(GameCommand command) =>
 		command is UpdatePlayerStatusCommand
-			or ResetPlayersCommand
 			or SetPlayerCarryCommand
 			or ClearPlayerCarryCommand
 			or RecordPlayerInventoryTransferCommand
@@ -28,7 +33,6 @@ internal sealed class PlayerDomainModule : IDomainModule
 		command switch
 		{
 			UpdatePlayerStatusCommand c => DomainDecision.Accept(new PlayerStatusUpdatedEvent(c.State)),
-			ResetPlayersCommand => DomainDecision.Accept(new PlayersResetEvent()),
 			SetPlayerCarryCommand c => DecideSetCarry(c, state),
 			ClearPlayerCarryCommand c => DomainDecision.Accept(new PlayerCarryClearedEvent(c.CarrierSteamId, c.CarriedSteamId)),
 			RecordPlayerInventoryTransferCommand c => DomainDecision.Accept(new PlayerInventoryTransferEvent(c.FromSteamId, c.ToSteamId, c.Item, c.TargetParentItemId)),
@@ -61,7 +65,6 @@ internal sealed class PlayerDomainModule : IDomainModule
 		state.Players = @event switch
 		{
 			PlayerStatusUpdatedEvent updated => current.Upsert(updated.State),
-			PlayersResetEvent => PlayerStateTable.Empty,
 			PlayerCarrySetEvent carry => ApplyCarry(current, carry.CarrierSteamId, carry.CarriedSteamId),
 			PlayerCarryClearedEvent carry => ClearCarry(current, carry.CarrierSteamId, carry.CarriedSteamId),
 			PlayerInventoryTransferEvent or PlayerHealResultEvent or PlayerItemUseResultEvent => current,

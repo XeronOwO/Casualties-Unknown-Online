@@ -40,10 +40,12 @@ public class EnemyDomainKernelTests
 		Assert.True(kernel.Execute(
 			new ResetEnemiesCommand(new OperationId(5), Host, Epoch, AuthorityKind.HostOnly),
 			new CommandContext(Epoch, Host)).IsAccepted);
+		// The reset's scope is the LIVE rows: a tombstone is a terminal fact, so it
+		// survives (EnemyStateTable.WithoutLiveEnemies) and the killed id still cannot
+		// be resurrected after it.
 		Assert.Empty(kernel.QueryEnemies()!.Enemies);
-		Assert.Empty(kernel.QueryEnemies()!.Removed);
-
-		Assert.True(Upsert(kernel, 6, new EnemyState(EnemyId, "crystal", 3f, true, false)).IsAccepted);
+		Assert.Equal(EnemyId, Assert.Single(kernel.QueryEnemies()!.Removed));
+		Assert.False(Upsert(kernel, 6, new EnemyState(EnemyId, "crystal", 3f, true, false)).IsAccepted);
 	}
 
 	[Fact]

@@ -191,10 +191,6 @@ public static class KernelWireMapper
 				Kind = WireEventKind.PlayerStatusUpdated,
 				PlayerState = KernelDomainWireMapper.ToWirePlayerState(updated.State),
 			},
-			PlayersResetEvent => new WireEvent
-			{
-				Kind = WireEventKind.PlayersReset,
-			},
 			PlayerCarrySetEvent carrySet => new WireEvent
 			{
 				Kind = WireEventKind.PlayerCarrySet,
@@ -361,7 +357,6 @@ public static class KernelWireMapper
 			WireEventKind.TrapStateChanged => KernelDomainWireMapper.FromWireTrapStateEvent(@event),
 			WireEventKind.PlayerStatusUpdated => new PlayerStatusUpdatedEvent(
 				KernelDomainWireMapper.FromWirePlayerState(@event.PlayerState ?? throw new InvalidOperationException("PlayerStatusUpdated event lacks player state"))),
-			WireEventKind.PlayersReset => new PlayersResetEvent(),
 			WireEventKind.PlayerCarrySet => new PlayerCarrySetEvent(
 				@event.CarrierSteamId,
 				@event.CarriedSteamId),
@@ -497,22 +492,12 @@ public static class KernelWireMapper
 				authority,
 				KernelDomainWireMapper.FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordOpenedEntity command lacks position"))),
 			WireCommandKind.RecordTrapState => KernelDomainWireMapper.FromWireRecordTrapStateCommand(command, operation, actor, epoch, authority),
-			WireCommandKind.ResetWorldEntities => new ResetWorldEntitiesCommand(
-				operation,
-				actor,
-				epoch,
-				authority),
 			WireCommandKind.UpdatePlayerStatus => new UpdatePlayerStatusCommand(
 				operation,
 				actor,
 				epoch,
 				authority,
 				KernelDomainWireMapper.FromWirePlayerState(command.PlayerState ?? throw new InvalidOperationException("UpdatePlayerStatus command lacks player state"))),
-			WireCommandKind.ResetPlayers => new ResetPlayersCommand(
-				operation,
-				actor,
-				epoch,
-				authority),
 			WireCommandKind.SetPlayerCarry => new SetPlayerCarryCommand(
 				operation,
 				actor,
@@ -557,22 +542,12 @@ public static class KernelWireMapper
 				epoch,
 				authority,
 				KernelDomainWireMapper.FromWireEntityId(command.EntityId ?? throw new InvalidOperationException("RemoveEnemy command lacks entity id"))),
-			WireCommandKind.ResetEnemies => new ResetEnemiesCommand(
-				operation,
-				actor,
-				epoch,
-				authority),
 			WireCommandKind.UpdateFluidRegion => new UpdateFluidRegionCommand(
 				operation,
 				actor,
 				epoch,
 				authority,
 				KernelDomainWireMapper.FromWireFluidRegionState(command.FluidState ?? throw new InvalidOperationException("UpdateFluidRegion command lacks fluid state"))),
-			WireCommandKind.ResetFluids => new ResetFluidsCommand(
-				operation,
-				actor,
-				epoch,
-				authority),
 			_ => throw new ArgumentOutOfRangeException(nameof(command.Kind), command.Kind, "unknown wire command kind"),
 		};
 	}

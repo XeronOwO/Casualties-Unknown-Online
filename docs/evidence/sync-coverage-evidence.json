@@ -637,7 +637,7 @@
     {
       "cluster": "fluids",
       "row": "F4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:273",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:295",
       "quote": "public bool TryUpdateFluidRegion(ulong actor, FluidRegionState state, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -655,7 +655,7 @@
     {
       "cluster": "fluids",
       "row": "F4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:284",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:307",
       "quote": "public bool TryResetFluids(ulong actor, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -763,7 +763,7 @@
     {
       "cluster": "items",
       "row": "I1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:444",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:439",
       "quote": "WireCommandKind.ItemTransfer => new TransferItemCommand("
     },
     {
@@ -1459,7 +1459,7 @@
     {
       "cluster": "players",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:50",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:46",
       "quote": "PlayerStatusUpdatedEvent = 111,"
     },
     {
@@ -1645,7 +1645,7 @@
     {
       "cluster": "players",
       "row": "P6",
-      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:57",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:50",
       "quote": "PlayerCarrySetEvent = 118,"
     },
     {
@@ -1693,7 +1693,7 @@
     {
       "cluster": "players",
       "row": "P7",
-      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:59",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:52",
       "quote": "PlayerInventoryTransferEvent = 120,"
     },
     {
@@ -1747,7 +1747,7 @@
     {
       "cluster": "players",
       "row": "P8",
-      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:60",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:53",
       "quote": "PlayerHealResultEvent = 121,"
     },
     {
@@ -2023,7 +2023,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:456",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:464",
       "quote": "if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))"
     },
     {
@@ -2281,19 +2281,19 @@
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:92",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:94",
       "quote": "_projectionHealth.Register(new ProjectionDomain(\"run\", RebuildRunFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
     },
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:484",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:492",
       "quote": "_projectionHealth.Run(\"run\", batch.GlobalRevision, () =>"
     },
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:512",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:520",
       "quote": "private void RebuildRunFromKernel()"
     },
     {
@@ -3079,7 +3079,7 @@
     {
       "cluster": "inline",
       "row": "K1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:547",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:552",
       "quote": "BatchCommitted?.Invoke(batch!);"
     },
     {
@@ -3169,7 +3169,7 @@
     {
       "cluster": "inline",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:313",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:309",
       "quote": "batch.RunEpoch == 0 ? fallbackEpoch : new RunEpoch(batch.RunEpoch),"
     },
     {
@@ -3181,7 +3181,7 @@
     {
       "cluster": "inline",
       "row": "K5",
-      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:78",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:71",
       "quote": "PlayerStateStream = 304,"
     },
     {
@@ -3781,7 +3781,7 @@
     {
       "cluster": "inline",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:25",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:24",
       "quote": "UpdatePlayerStatusCommand = 14,"
     },
     {
@@ -3793,7 +3793,7 @@
     {
       "cluster": "inline",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerDomainModule.cs:30",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerDomainModule.cs:35",
       "quote": "UpdatePlayerStatusCommand c => DomainDecision.Accept(new PlayerStatusUpdatedEvent(c.State)),"
     },
     {
@@ -3949,7 +3949,7 @@
     {
       "cluster": "inline",
       "row": "P6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:231",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:234",
       "quote": "public bool TrySetPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>"
     },
     {
@@ -3985,7 +3985,7 @@
     {
       "cluster": "inline",
       "row": "P7",
-      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerDomainModule.cs:67",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerDomainModule.cs:70",
       "quote": "PlayerInventoryTransferEvent or PlayerHealResultEvent or PlayerItemUseResultEvent => current,"
     },
     {
@@ -4255,13 +4255,13 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:441",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:449",
       "quote": "public void PublishWorldParams(WorldStartParams parameters)"
     },
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:447",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:455",
       "quote": "private void CommitRunBaseline(WorldStartParams parameters)"
     },
     {
@@ -4285,13 +4285,13 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:44",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:40",
       "quote": "RunStartedEvent = 105,"
     },
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:346",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:342",
       "quote": "WireEventKind.RunStarted => new RunStartedEvent("
     },
     {
@@ -4483,7 +4483,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:123",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:125",
       "quote": "_blockReportFallback.Pump(nowMs, _messages.PendingBlockReportCount, _messages.ResendPendingBlockReports);"
     },
     {
@@ -4675,7 +4675,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:415",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:422",
       "quote": "_channels.ResetRuntimeEntities();"
     },
     {

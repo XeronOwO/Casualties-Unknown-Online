@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Persistence;
@@ -32,6 +34,9 @@ namespace CasualtiesUnknownOnline.Tests.Persistence;
 public class WorldSnapshotWorldFactsTests
 {
 	private const ulong RunId = 42UL;
+
+	/// <summary>The local peer of the fixtures below — a host, which is the only role that writes a cut.</summary>
+	private const ulong HostId = 1001UL;
 
 	// ---- encoded shape ----
 
@@ -64,6 +69,49 @@ public class WorldSnapshotWorldFactsTests
 
 		Assert.Empty(Entries(files, SaveArchiveFormat.WorldBlocksFileName));
 		Assert.Empty(Entries(files, SaveArchiveFormat.WorldTransientsFileName));
+	}
+
+	[Fact]
+	public void Encode_LayerEndCut_DropsTheLiveEnemyAndFluidRowsButKeepsTheTombstone()
+	{
+		// The two LAYER-SCOPED kernel tables (decision 174) follow the same rule as the
+		// files above, and it has to be written HERE as well as in the layer-boundary
+		// reset: the reset and the layer-end cut run inside one call stack, and the
+		// per-frame enemy projection mirrors the LIVE scene back into the kernel, so which
+		// of the two runs first is a frame-timing fact a snapshot must not depend on. The
+		// tombstone is NOT in the dropped set — "this enemy was killed" is terminal and
+		// names no position of the replaced layer.
+		using var fixture = WorldSaveFixture.Create("layer-end-enemy-fluid-rows", hostId: HostId);
+		var killed = new EntityId(1UL, 5U, 0);
+		var live = new EntityId(1UL, 7U, 0);
+		Assert.True(fixture.Kernel.TryUpsertEnemy(HostId, new EnemyState(killed, "spider", 4f, false, false), out _, out _));
+		Assert.True(fixture.Kernel.TryRemoveEnemy(HostId, killed, out _, out _));
+		Assert.True(fixture.Kernel.TryUpsertEnemy(HostId, new EnemyState(live, "crystal", 3f, false, false), out _, out _));
+		Assert.True(fixture.Kernel.TryUpdateFluidRegion(HostId, new FluidRegionState(1, 2, 7, 1, 50), out _, out _));
+
+		var payload = Payload(Kind: WorldCutKind.LayerEnd, checkpoint: CheckpointWithRun(fixture));
+		var files = Encoder().Encode(payload);
+
+		var enemyRows = Entries(files, SaveArchiveFormat.EnemiesFileName);
+		Assert.Equal(SaveEnemyRow.RemovedKind, Assert.Single(enemyRows).GetProperty("kind").GetString());
+		Assert.Empty(Entries(files, SaveArchiveFormat.FluidsFileName));
+	}
+
+	[Fact]
+	public void Encode_MidRunCut_KeepsTheLiveEnemyAndFluidRows()
+	{
+		// The other half of the rule: a mid-run cut names the layer its bodies stand in,
+		// so that layer's own enemy rows and fluid chunks are its facts and must be written.
+		using var fixture = WorldSaveFixture.Create("mid-run-enemy-fluid-rows", hostId: HostId);
+		var live = new EntityId(1UL, 7U, 0);
+		Assert.True(fixture.Kernel.TryUpsertEnemy(HostId, new EnemyState(live, "crystal", 3f, false, false), out _, out _));
+		Assert.True(fixture.Kernel.TryUpdateFluidRegion(HostId, new FluidRegionState(1, 2, 7, 1, 50), out _, out _));
+
+		var payload = Payload(Kind: WorldCutKind.MidRun, checkpoint: CheckpointWithRun(fixture));
+		var files = Encoder().Encode(payload);
+
+		Assert.Equal(SaveEnemyRow.EnemyKind, Assert.Single(Entries(files, SaveArchiveFormat.EnemiesFileName)).GetProperty("kind").GetString());
+		Assert.Single(Entries(files, SaveArchiveFormat.FluidsFileName));
 	}
 
 	[Fact]
@@ -844,12 +892,21 @@ public class WorldSnapshotWorldFactsTests
 
 	private static WorldSnapshotEncoder Encoder() => new(NullLogger<WorldSnapshotEncoder>.Instance);
 
+	/// <summary>
+	/// The fixture kernel's checkpoint WITH a run baseline: the encoder refuses a payload
+	/// whose checkpoint names no run (it could not restore into any layer), and a bare
+	/// <c>CreateCheckpoint()</c> on a kernel that never started one has none.
+	/// </summary>
+	private static GameCheckpoint CheckpointWithRun(WorldSaveFixture fixture) =>
+		fixture.Kernel.CreateCheckpoint() with { Run = WorldSnapshotCodecTests.StartedAuthority(RunId).CreateCheckpoint().Run };
+
 	private static WorldSnapshotPayload Payload(
 		WorldCutKind Kind = WorldCutKind.LayerEnd,
 		IReadOnlyList<SaveWorldBlockRow>? blocks = null,
-		IReadOnlyList<SaveWorldTransientRow>? transients = null) =>
+		IReadOnlyList<SaveWorldTransientRow>? transients = null,
+		GameCheckpoint? checkpoint = null) =>
 		new(
-			WorldSnapshotCodecTests.StartedAuthority(RunId).CreateCheckpoint(),
+			checkpoint ?? WorldSnapshotCodecTests.StartedAuthority(RunId).CreateCheckpoint(),
 			[],
 			"Test World",
 			"command",

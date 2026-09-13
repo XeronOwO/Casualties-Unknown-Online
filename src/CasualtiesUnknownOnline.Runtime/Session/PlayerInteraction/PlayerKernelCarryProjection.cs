@@ -96,10 +96,6 @@ internal sealed class PlayerKernelCarryProjection : IDisposable
 					_carry.ApplyCommittedCarry(clear.CarrierSteamId, 0);
 					_log.LogDebug("[CarryKernel] projected carry clear {Carrier}.", clear.CarrierSteamId);
 					break;
-				case PlayersResetEvent:
-					_carry.ResetCarryMirror();
-					_log.LogDebug("[CarryKernel] projected players reset; carry mirror cleared.");
-					break;
 			}
 		}
 	}

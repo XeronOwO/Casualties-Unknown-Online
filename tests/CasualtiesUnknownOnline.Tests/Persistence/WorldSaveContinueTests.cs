@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Persistence;
@@ -369,6 +370,70 @@ public class WorldSaveContinueTests
 		Assert.Contains("no CUO world", outcome.Summary, StringComparison.Ordinal);
 	}
 
+	// ---- the layer-scoped kernel tables (enemies, fluids) ----
+
+	[Fact]
+	public void LayerEndRestore_LendsNoReplacedLayerEnemyRowToTheNewLayer()
+	{
+		// A live enemy row is a fact about ONE layer: the layout it stands in and the
+		// id the host allocated for it belong to that layer. A layer-end cut names the
+		// layer being ENTERED — regenerated from the run baseline with its own enemies
+		// — so the rows describe the layer being LEFT. Restoring them puts a foreign
+		// layer's fact into the kernel, where a late-joining guest's checkpoint carries
+		// it and the guest's position pairing can hand it to a freshly generated enemy.
+		// The tombstone is NOT in this set (a terminal fact must stay terminal).
+		using var fixture = WorldSaveFixture.Create("continue-layer-end-enemy");
+		var enemyId = new EntityId(1UL, 7U, 0);
+		Assert.True(fixture.Kernel.TryUpsertEnemy(
+			HostId, new EnemyState(enemyId, "spider", 4f, false, false), out _, out _));
+		SaveMidRunAsLayerEnd(fixture, "continue-layer-end-enemy");
+
+		using var restarted = fixture.Restart("continue-layer-end-enemy-restart");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.Empty(restarted.Kernel.QueryEnemies()!.Enemies);
+	}
+
+	[Fact]
+	public void LayerEndRestore_LendsNoReplacedLayerFluidRowToTheNewLayer()
+	{
+		// The fluid table is the same shape of fact: coarse per-chunk totals of ONE
+		// layer's grid. The regenerated layer runs its own 5 s aggregation, so a
+		// restored chunk total would be stale truth about a grid that no longer exists.
+		using var fixture = WorldSaveFixture.Create("continue-layer-end-fluid");
+		Assert.True(fixture.Kernel.TryUpdateFluidRegion(
+			HostId, new FluidRegionState(1, 2, 7, 1, 50), out _, out _));
+		SaveMidRunAsLayerEnd(fixture, "continue-layer-end-fluid");
+
+		using var restarted = fixture.Restart("continue-layer-end-fluid-restart");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.Empty(restarted.Kernel.QueryFluids()?.Regions ?? []);
+	}
+
+	[Fact]
+	public void MidRunRestore_KeepsTheLayerScopedRowsTheCutNames()
+	{
+		// The other half of the rule above: a mid-run cut names the layer its bodies
+		// stand in, and the restore REBUILDS that layer — so its enemy rows and its fluid
+		// chunks are that layer's own facts and must come back. Only a cut that names the
+		// layer being ENTERED drops them, which is what makes the drop a rule about the
+		// cut kind rather than a blanket "never restore these tables".
+		using var fixture = WorldSaveFixture.Create("continue-mid-run-layer-tables");
+		var enemyId = new EntityId(1UL, 7U, 0);
+		Assert.True(fixture.Kernel.TryUpsertEnemy(
+			HostId, new EnemyState(enemyId, "spider", 4f, false, false), out _, out _));
+		Assert.True(fixture.Kernel.TryUpdateFluidRegion(
+			HostId, new FluidRegionState(1, 2, 7, 1, 50), out _, out _));
+		SaveMidRun(fixture);
+
+		using var restarted = fixture.Restart("continue-mid-run-layer-tables-restart");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.Equal(enemyId, Assert.Single(restarted.Kernel.QueryEnemies()!.Enemies).EntityId);
+		Assert.Equal(7, Assert.Single(restarted.Kernel.QueryFluids()!.Regions).TotalAmount);
+	}
+
 	// ---- helpers ----
 
 	/// <summary>
@@ -408,6 +473,27 @@ public class WorldSaveContinueTests
 		// The cut is written by the kernel's commit event; the world pointer makes
 		// the continue deterministic.
 		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+	}
+
+	/// <summary>
+	/// Cuts the fixture's kernel MID-RUN — so the archive carries the layer-scoped enemy
+	/// and fluid rows — and then patches the manifest to name a LAYER-END cut. That is
+	/// the shape a layer-end restore has to be robust against: an archive written by a
+	/// build that still let those rows through, or by a hand-edited/white-box one. The
+	/// encoder drops them for a layer-end cut it writes itself (pinned by
+	/// <see cref="WorldSnapshotWorldFactsTests.Encode_LayerEndCut_DropsTheLiveEnemyAndFluidRowsButKeepsTheTombstone"/>),
+	/// which is exactly why the restore half cannot be proven through the service's own
+	/// cut path. The manifest is not covered by the payload digests, so the patch is the
+	/// only edit the loader will not notice — and the restore's job is to be right anyway.
+	/// </summary>
+	private static void SaveMidRunAsLayerEnd(WorldSaveFixture fixture, string label)
+	{
+		_ = label;
+		SaveMidRun(fixture);
+		var manifestPath = Path.Combine(fixture.Repository.Workspace.LiveDirectory(fixture.WorldId), "manifest.json");
+		var manifest = File.ReadAllText(manifestPath);
+		Assert.Contains("\"mid-run\"", manifest, StringComparison.Ordinal);
+		File.WriteAllText(manifestPath, manifest.Replace("\"mid-run\"", "\"layer-end\""));
 	}
 
 	/// <summary>

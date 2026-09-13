@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
@@ -49,8 +50,8 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 			Json(SaveArchiveFormat.PlayersFileName, (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState).ToList()),
 			Json(SaveArchiveFormat.ItemsFileName, ItemRows(checkpoint, payload.Kind)),
 			Json(SaveArchiveFormat.WorldEntitiesFileName, WorldEntityRows(checkpoint.WorldEntities ?? WorldEntityState.Empty, payload.Kind)),
-			Json(SaveArchiveFormat.EnemiesFileName, EnemyRows(checkpoint.Enemies ?? EnemyStateTable.Empty)),
-			Json(SaveArchiveFormat.FluidsFileName, (checkpoint.Fluids?.Regions ?? []).Select(KernelDomainWireMapper.ToWireFluidRegionState).ToList()),
+			Json(SaveArchiveFormat.EnemiesFileName, EnemyRows(checkpoint.Enemies ?? EnemyStateTable.Empty, payload.Kind)),
+			Json(SaveArchiveFormat.FluidsFileName, FluidRows(checkpoint.Fluids, payload.Kind)),
 
 			// A layer-end cut has no in-layer deviations: the blocks the player
 			// changed and the transient world facts are DROPPED here, because the
@@ -210,11 +211,69 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 		return [];
 	}
 
-	private static List<SaveEnemyRow> EnemyRows(EnemyStateTable table) =>
-	[
-		.. table.Enemies.Select(SaveEnemyRow.OfEnemy),
-		.. table.Removed.Select(SaveEnemyRow.OfRemoved),
-	];
+	/// <summary>
+	/// <c>enemies.json</c>'s rows: the LIVE enemy facts plus the terminal tombstones.
+	///
+	/// A layer-end cut writes the tombstones but NONE of the live rows — the same rule
+	/// the item, world-entity, world-block and transient files already apply, and the
+	/// one the layer-boundary reset applies to the kernel's own copy: a live enemy row
+	/// names a position in the layer being LEFT and an id the host allocated from a
+	/// per-session counter, so the layer the cut NAMES (the one being entered,
+	/// regenerated from the run baseline, with its own enemies) has no such fact to
+	/// restore and a row that reached it could be bound to a different enemy. The rule
+	/// is written here as well as in the reset because the two have to agree even if a
+	/// caller hands the encoder a kernel whose table the boundary has not cleared yet:
+	/// the reset and the layer-end cut run inside ONE call stack (the generation
+	/// boundary resets, then publishes the params that commit the advance that takes the
+	/// cut), and the per-frame enemy projection mirrors the LIVE scene back into the
+	/// kernel, so which of the two runs first is a frame-timing fact a snapshot must not
+	/// depend on. A caller's live rows are NAMED, never silently trimmed.
+	///
+	/// A tombstone is NOT in that set: "this enemy was killed" is a terminal fact the
+	/// player earned, it stops a stale live row from resurrecting the id, and it names no
+	/// position of the replaced layer.
+	/// </summary>
+	private List<SaveEnemyRow> EnemyRows(EnemyStateTable table, WorldCutKind kind)
+	{
+		if (kind != WorldCutKind.LayerEnd)
+		{
+			return [.. table.Enemies.Select(SaveEnemyRow.OfEnemy), .. table.Removed.Select(SaveEnemyRow.OfRemoved)];
+		}
+
+		if (table.Enemies.Count > 0)
+		{
+			_log.LogWarning(
+				"A layer-end cut carries {Count} live enemy row(s), and a layer-end cut writes none of them: they name positions and ids of the layer being replaced, and the layer it names is regenerated from the run baseline with its own enemies. They are not written (§3.4); the {Tombstones} terminal tombstone(s) are.",
+				table.Enemies.Count, table.Removed.Count);
+		}
+
+		return [.. table.Removed.Select(SaveEnemyRow.OfRemoved)];
+	}
+
+	/// <summary>
+	/// <c>fluids.json</c>'s rows, on the same rule as <see cref="EnemyRows"/>: a fluid
+	/// chunk is a coarse total of ONE layer's grid, so a layer-end cut writes none of
+	/// them — the regenerated layer runs its own aggregation, and a restored chunk total
+	/// would be stale truth about a grid that no longer exists. There is no tombstone
+	/// shape here, so a layer-end cut simply writes the empty array.
+	/// </summary>
+	private List<WireFluidRegionState> FluidRows(FluidStateTable? table, WorldCutKind kind)
+	{
+		var regions = table?.Regions ?? [];
+		if (kind != WorldCutKind.LayerEnd)
+		{
+			return [.. regions.Select(KernelDomainWireMapper.ToWireFluidRegionState)];
+		}
+
+		if (regions.Count > 0)
+		{
+			_log.LogWarning(
+				"A layer-end cut carries {Count} fluid chunk(s), and a layer-end cut writes none of them: they are totals of the replaced layer's grid, and the layer it names is regenerated from the run baseline. They are not written (§3.4).",
+				regions.Count);
+		}
+
+		return [];
+	}
 
 	/// <summary>
 	/// The world facts one cut writes, or none. The kind owns the decision: a

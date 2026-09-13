@@ -4,6 +4,12 @@ namespace CasualtiesUnknownOnline.Protocol.Wire;
 /// Discriminator for the typed kernel item facts carried by
 /// <see cref="CommittedBatchEnvelope"/>. These are domain facts, not Harmony
 /// hook names.
+///
+/// A layer-boundary reset has a wire form here even though its COMMAND does not (see
+/// <see cref="WireCommandKind"/>): only the host may trigger one, but the guests must
+/// still learn that the host's layer-scoped tables started empty — their kernels are
+/// the host's replay. Without these the guest would keep applying foreign-layer rows
+/// until its next checkpoint.
 /// </summary>
 public enum WireEventKind
 {
@@ -18,7 +24,6 @@ public enum WireEventKind
 	OpenedEntity = 9,
 	WorldEntitiesReset = 10,
 	PlayerStatusUpdated = 11,
-	PlayersReset = 12,
 	EnemyUpserted = 13,
 	EnemyRemoved = 14,
 	EnemiesReset = 15,

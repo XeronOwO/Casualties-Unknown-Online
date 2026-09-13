@@ -1,5 +1,6 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -144,9 +145,14 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 
 	/// <summary>A state-family event: apply the shared action to the host's
 	/// entity at the position (the transition itself; the entity animates).
-	/// The action reports whether it APPLIED — a false (the host's copy already
-	/// consumed the one-shot: the two-trigger race) is DROPPED with a trace.</summary>
-	private void ApplyState<T>(Vector2 position, EntityEventKind kind, Func<T, bool> action) where T : Component
+	/// The action reports its verdict (<see cref="TrapActionOutcome"/>): a state the
+	/// host's copy already carries is a duplicate from the two-trigger race and is
+	/// DROPPED with a trace, while a copy that cannot represent the fact at all is
+	/// the generation divergence the log has to name. This path feeds no restore
+	/// account (the host applies a relayed event, it does not restore a cut), so the
+	/// distinction is observability — <see cref="TrapActionVerdict"/> is what the
+	/// restore path reads.</summary>
+	private void ApplyState<T>(Vector2 position, EntityEventKind kind, Func<T, TrapActionOutcome> action) where T : Component
 	{
 		var entity = FindTrap<T>(position);
 		if (entity == null) // Unity object — ==
@@ -155,13 +161,17 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 			return;
 		}
 
-		if (action(entity))
+		switch (action(entity))
 		{
-			_log.LogInformation("[TrapEvent] host applied {Kind} at {Pos}.", kind, position);
-		}
-		else
-		{
-			_log.LogWarning("[TrapEvent] {Kind} at {Pos} already consumed locally — duplicate dropped.", kind, position);
+			case TrapActionOutcome.Applied:
+				_log.LogInformation("[TrapEvent] host applied {Kind} at {Pos}.", kind, position);
+				break;
+			case TrapActionOutcome.AlreadyInState:
+				_log.LogWarning("[TrapEvent] {Kind} at {Pos} already consumed locally — duplicate dropped.", kind, position);
+				break;
+			default:
+				_log.LogWarning("[TrapEvent] {Kind} at {Pos} cannot be represented on the host's copy — the fact is NOT in the world.", kind, position);
+				break;
 		}
 	}
 

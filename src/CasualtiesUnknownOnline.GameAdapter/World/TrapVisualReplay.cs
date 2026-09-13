@@ -28,14 +28,17 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	/// Replay one trap fact onto the local world.
 	///
 	/// Returns whether the row reached the live world, which is what the restore's
-	/// live-write account counts: a row that found no entity of its kind is a
-	/// REFUSED row (the regenerated layer diverged from the cut, and the fact is not
-	/// represented anywhere), while a row the guard dropped because the local copy
-	/// already carries that state counts as applied — the state IS in the world. The
-	/// destructive families follow the same rule: their entity is normally there and
-	/// the replay consumes it, and when it is NOT there the explosion is still
-	/// replayed as presentation but the consumption fact is missing from the world,
-	/// so the row is refused.
+	/// live-write account counts (<see cref="TrapActionVerdict"/> is the rule): a row
+	/// that found no entity of its kind is a REFUSED row (the regenerated layer
+	/// diverged from the cut, and the fact is not represented anywhere), a row the
+	/// guard dropped because the local copy already carries that state counts as
+	/// applied — the state IS in the world — and a row whose entity cannot carry the
+	/// fact at all (the action's NOT APPLICABLE verdict: e.g. a crystal with no mimic
+	/// effect at all) is REFUSED like a missing entity, because the fact exists
+	/// nowhere. The destructive families follow the same rule: their entity is
+	/// normally there and the replay consumes it, and when it is NOT there the
+	/// explosion is still replayed as presentation but the consumption fact is
+	/// missing from the world, so the row is refused.
 	/// </summary>
 	internal bool Replay(EntityEventKind kind, Vector2 position, byte extra, float elapsedSeconds = 0f)
 	{
@@ -131,29 +134,47 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 
 	/// <summary>A state-family replay: run the shared action on the local entity
 	/// at the position (the transition itself; the entity animates). Returns
-	/// whether the entity this fact names exists: the action reports whether it
-	/// APPLIED — a false (the local copy already consumed the one-shot: the
-	/// two-trigger race) is DROPPED with a trace, but the state it names IS in the
-	/// world, so it is not a lost row.</summary>
-	private bool ReplayState<T>(Vector2 position, EntityEventKind kind, Func<T, bool> action) where T : Component
+	/// whether the row reached the live world, which is the restore account's
+	/// currency — an entity the layer does not have is REFUSED, a copy that already
+	/// carries the state is NOT (the state IS in the world), and a copy that cannot
+	/// carry the fact at all is REFUSED; the decision itself is
+	/// <see cref="TrapActionVerdict"/>, so the adapter only reports what it
+	/// observed.</summary>
+	private bool ReplayState<T>(Vector2 position, EntityEventKind kind, Func<T, TrapActionOutcome> action) where T : Component
 	{
 		var entity = TrapEffectApplier.FindTrap<T>(position);
 		if (entity == null) // Unity object — ==
 		{
 			LogGoneWithNearest<T>(kind, position);
-			return false;
+			return TrapActionVerdict.ReachedTheLiveWorld(null);
 		}
 
-		if (action(entity))
-		{
-			_log.LogInformation("[TrapEvent] replayed {Kind} at {Pos}.", kind, position);
-		}
-		else
-		{
-			_log.LogWarning("[TrapEvent] {Kind} at {Pos} already consumed locally — duplicate dropped.", kind, position);
-		}
+		var outcome = action(entity);
+		LogOutcome(kind, position, outcome);
+		return TrapActionVerdict.ReachedTheLiveWorld(outcome);
+	}
 
-		return true;
+	/// <summary>One trace per verdict: the applied transition, the duplicate the
+	/// local copy already carried, or the copy that cannot represent the fact (the
+	/// divergence the restore report has to name instead of counting the row as
+	/// restored). <paramref name="marker"/> is the shuttle door live relay's
+	/// "(live)" tag — the trigger sound is part of that transition, and the elapsed
+	/// branch of <see cref="ReplayShuttleDoor"/> names the late-joiner case in its
+	/// own line.</summary>
+	private void LogOutcome(EntityEventKind kind, Vector2 position, TrapActionOutcome outcome, string marker = "")
+	{
+		switch (outcome)
+		{
+			case TrapActionOutcome.Applied:
+				_log.LogInformation("[TrapEvent] replayed {Kind} at {Pos}{Marker}.", kind, position, marker);
+				break;
+			case TrapActionOutcome.AlreadyInState:
+				_log.LogWarning("[TrapEvent] {Kind} at {Pos} already consumed locally — duplicate dropped.", kind, position);
+				break;
+			default:
+				_log.LogWarning("[TrapEvent] {Kind} at {Pos} cannot be represented on the local entity — the fact is NOT in the world.", kind, position);
+				break;
+		}
 	}
 
 	/// <summary>
@@ -172,7 +193,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		if (door == null) // Unity object — ==
 		{
 			LogGoneWithNearest<ShuttleStartOpen>(EntityEventKind.ShuttleDoorOpened, position);
-			return false;
+			return TrapActionVerdict.ReachedTheLiveWorld(null);
 		}
 
 		// Live relay (elapsed == 0): the trigger side just opened the door, so
@@ -184,16 +205,9 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		// guest replay.
 		if (ShuttleDoorReplayState.ShouldReplayTriggerSound(elapsedSeconds))
 		{
-			if (TrapStateActions.ApplyShuttleDoor(door))
-			{
-				_log.LogInformation("[TrapEvent] replayed ShuttleDoorOpened at {Pos} (live).", position);
-			}
-			else
-			{
-				_log.LogWarning("[TrapEvent] ShuttleDoorOpened at {Pos} already consumed locally — duplicate dropped.", position);
-			}
-
-			return true;
+			var outcome = TrapStateActions.ApplyShuttleDoor(door);
+			LogOutcome(EntityEventKind.ShuttleDoorOpened, position, outcome, marker: " (live)");
+			return TrapActionVerdict.ReachedTheLiveWorld(outcome);
 		}
 
 		// Late-joiner snapshot: jump to the current elapsed point — no sounds

@@ -387,7 +387,11 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   lockables applied as `health = 0` plus a REMOTE death mark, and the building-health rows written
   with that same remote-death marking, so a death the saved world already rolled does not roll its
   drops a second time. Each applier counts what the live world took, so an entity the regenerated
-  layer does not have (divergence) reaches the restore report instead of the log alone. Without the
+  layer does not have (divergence) reaches the restore report instead of the log alone — and so does
+  an entity that IS there and cannot carry the fact: the trap action library answers a tri-state
+  verdict (`TrapActionOutcome`), and "this copy cannot represent the row" is a REFUSED row while "the
+  local copy already carries the state" is not (`TrapActionVerdict`), because the second one's state
+  really is in the world. Without the
   write, a host that restored a mid-run cut kept those facts in the kernel and shipped them to its
   guests while its own fresh world showed every trap untouched. A `layer-end` cut's rows describe
   the layer being replaced and are dropped before the audit begins, exactly like its world-item rows

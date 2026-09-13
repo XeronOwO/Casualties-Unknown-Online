@@ -37,8 +37,14 @@ internal sealed class WorldFactRestore(
 	/// half's own refusals land later, at the world-entry replay, and reach the log
 	/// today rather than the outcome — the restore-report gap tracked in
 	/// `todo/save-mid-run-consistent-cut.md` (scope 6).
+	///
+	/// <paramref name="restoreSequence"/> is the restore attempt these values belong
+	/// to (the kernel restore that produced them): the Runtime arm stamps it, and the
+	/// world-entry contribution carries it, so the account opened for a LATER restore
+	/// cannot count this attempt's write as its own.
 	/// </summary>
 	internal List<string> Apply(
+		ulong restoreSequence,
 		IReadOnlyList<SaveWorldBlockRow> blocks,
 		IReadOnlyList<SaveWorldTransientRow> transients,
 		SaveNativeRunFields? nativeRunFields = null)
@@ -98,7 +104,7 @@ internal sealed class WorldFactRestore(
 			}
 		}
 
-		var report = worldFacts.ApplyFacts(blockStates, radiationLine);
+		var report = worldFacts.ApplyFacts(blockStates, radiationLine, restoreSequence);
 		if (report.Describe() is { } refused)
 		{
 			// The bounded tables refused rows: a restore that reported success

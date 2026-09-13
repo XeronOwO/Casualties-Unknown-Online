@@ -102,6 +102,16 @@ internal sealed class RestoredWorldFactReplay(
 		var runtimePending = _facts.HasPendingLiveReplay;
 		var nativePending = _nativeFacts?.HasPendingRestore ?? false;
 		var entitiesPending = _worldEntities?.HasPendingRestore ?? false;
+
+		// The ATTEMPT each arm belongs to, captured BEFORE anything is written or
+		// committed: a contribution is attributed to the restore that armed the data it
+		// describes, never to whatever account happens to be open when it arrives. The
+		// world-fact half (the Runtime tables and the adapter's native handover) is one
+		// attempt's work — WorldFactRestore applies both in one call — so it carries the
+		// sequence the tables were applied with, pending or not, and the world-entity
+		// half carries its own arm's.
+		var factSequence = _facts.AppliedRestoreSequence;
+		var entitySequence = entitiesPending ? _worldEntities!.PendingRestoreSequence : 0;
 		if (!runtimePending && !nativePending && !entitiesPending)
 		{
 			// A restored cut that carried no live-world fact at all (a layer-end cut)
@@ -113,7 +123,7 @@ internal sealed class RestoredWorldFactReplay(
 			// finished.
 			if (_audit is { AwaitingLiveWrite: true })
 			{
-				_audit.LiveWriteFinished(complete: true, refused: [], summary: "the restored cut carried no live-world fact to write");
+				_audit.LiveWriteFinished(factSequence, complete: true, refused: [], summary: "the restored cut carried no live-world fact to write");
 			}
 
 			return;
@@ -174,12 +184,14 @@ internal sealed class RestoredWorldFactReplay(
 			// prevent. Every half that was owed reports, so the audit never waits for a
 			// contribution that this path just made impossible.
 			_audit?.LiveWriteFinished(
+				factSequence,
 				complete: false,
 				refused: [$"the live-world write threw ({ex.Message})"],
 				summary: $"the live-world write threw: {ex.Message}");
 			if (entitiesPending)
 			{
 				_audit?.LiveWriteFinished(
+					entitySequence,
 					complete: false,
 					refused: ["the world-entity facts were not written (the live-world write threw)"],
 					summary: "the restored world-entity facts were not written: the live-world write threw");
@@ -231,6 +243,7 @@ internal sealed class RestoredWorldFactReplay(
 		}
 
 		_audit?.LiveWriteFinished(
+			factSequence,
 			liveWorldComplete,
 			refusedDetail,
 			liveWorldComplete
@@ -267,6 +280,7 @@ internal sealed class RestoredWorldFactReplay(
 			// divergence), and a refusal there says nothing about the rows above.
 			var entitiesComplete = entityWrite.Refused == 0;
 			_audit?.LiveWriteFinished(
+				entitySequence,
 				entitiesComplete,
 				entitiesComplete ? [] : [$"{entityWrite.Refused} world-entity row(s)"],
 				entitiesComplete

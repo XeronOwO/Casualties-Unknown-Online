@@ -17,6 +17,13 @@ internal sealed class FakeRestoredWorldEntitySource : IRestoredWorldEntitySource
 	/// <summary>Whether a restore is waiting for the world-entry seam.</summary>
 	internal bool Armed { get; set; }
 
+	/// <summary>
+	/// The restore attempt the armed facts belong to (the kernel restore sequence).
+	/// The suites set it to the sequence the account under test was opened for; a
+	/// mismatched value models a half that outlived the restore it was armed by.
+	/// </summary>
+	internal ulong Sequence { get; set; }
+
 	/// <summary>How many times the replay read the pending facts (more than one read would mean a take, not a read).</summary>
 	internal int Reads { get; private set; }
 
@@ -27,6 +34,8 @@ internal sealed class FakeRestoredWorldEntitySource : IRestoredWorldEntitySource
 	internal List<string> Cancels { get; } = [];
 
 	public bool HasPendingRestore => Armed;
+
+	public ulong PendingRestoreSequence => Armed ? Sequence : 0;
 
 	public RestoredWorldEntityFacts ReadPendingFacts()
 	{

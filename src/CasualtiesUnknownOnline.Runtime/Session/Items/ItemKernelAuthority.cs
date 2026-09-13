@@ -76,6 +76,7 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			return result;
 		}
 
+		RestoreSequence++;
 		_appliedOperations.Clear();
 		CheckpointRestored?.Invoke(checkpoint);
 		return result;
@@ -102,6 +103,30 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 	/// <summary>The current authoritative global revision (checkpoint-derived).</summary>
 	public ulong CurrentGlobalRevision => _kernel.CreateCheckpoint().GlobalRevision;
+
+	/// <summary>
+	/// WHICH restore produced the kernel state this authority holds: bumped by every
+	/// successful <see cref="Restore"/>, 0 while the kernel was never restored.
+	///
+	/// It is the identity of a restore ATTEMPT. The restore's live-world halves are
+	/// not written at the Continue click — they are armed here and written later (the
+	/// world-fact tables and the adapter's native handover at the world-entry seam, the
+	/// restored world-item set at the generation reconcile) — so every arm stamps
+	/// itself with this value when it is armed, and the save layer's restore account
+	/// (<c>WorldRestoreAudit</c>) is opened with the same value. A contribution that
+	/// reaches an account opened for a LATER attempt is then attributable to the
+	/// attempt that armed it instead of being counted toward the new one.
+	///
+	/// The counter is per authority (one per process) and counts ATTEMPTS, not
+	/// archives: restoring the same snapshot twice makes two different writes into the
+	/// live world, so the two must not share an identity. It is deliberately NOT reset
+	/// by <see cref="ResetForSession"/> — it only has to distinguish attempts, and a
+	/// counter that restarted would let a previous session's straggler collide with the
+	/// next session's first restore. A peer's checkpoint cannot move it either: the
+	/// wire checkpoint path is guest-only, and a guest never opens a restore account
+	/// (<c>RunSaveCoordinator.OnContinueRequested</c> refuses one).
+	/// </summary>
+	public ulong RestoreSequence { get; private set; }
 
 	// ===== World / Run =====
 

@@ -50,9 +50,12 @@ public sealed class RestoredWorldItemContractTests
 		var audit = w.Host.Services.GetRequiredService<WorldRestoreAudit>();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-1", expectedContributions: 2);
+		// The production order: the click restores the kernel (which arms the item set
+		// with that attempt's sequence) and THEN opens the restore's account for the
+		// same attempt.
 		RestoreOneShell(kernel, 100, 5f, 5f);
-		audit.LiveWriteFinished(complete: true, refused: [], summary: "the world facts landed");
+		audit.BeginRestore("w-1", kernel.RestoreSequence, expectedContributions: 2);
+		audit.LiveWriteFinished(kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
 
 		items.CompleteRestoredWorldItems(applied: 1, refused: []);
 
@@ -72,9 +75,9 @@ public sealed class RestoredWorldItemContractTests
 		var audit = w.Host.Services.GetRequiredService<WorldRestoreAudit>();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-2", expectedContributions: 2);
 		RestoreOneShell(kernel, 100, 5f, 5f);
-		audit.LiveWriteFinished(complete: true, refused: [], summary: "the world facts landed");
+		audit.BeginRestore("w-2", kernel.RestoreSequence, expectedContributions: 2);
+		audit.LiveWriteFinished(kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
 
 		items.CompleteRestoredWorldItems(applied: 0, refused: ["item #100 (shell) at (5.0,5.0)"]);
 
@@ -92,9 +95,9 @@ public sealed class RestoredWorldItemContractTests
 		var audit = w.Host.Services.GetRequiredService<WorldRestoreAudit>();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-3", expectedContributions: 2);
 		RestoreOneShell(kernel, 100, 5f, 5f);
-		audit.LiveWriteFinished(complete: true, refused: [], summary: "the world facts landed");
+		audit.BeginRestore("w-3", kernel.RestoreSequence, expectedContributions: 2);
+		audit.LiveWriteFinished(kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
 
 		items.CancelRestoredWorldItems("the session ended before the generation reconcile ran");
 

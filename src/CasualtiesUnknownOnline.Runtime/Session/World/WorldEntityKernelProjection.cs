@@ -42,6 +42,9 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 	/// <summary>Host/solo: the restored cut's world-entity facts, waiting for the world-entry seam. Null everywhere else.</summary>
 	private WorldEntityState? _pendingRestore;
 
+	/// <summary>Which restore attempt armed <see cref="_pendingRestore"/> (see <see cref="PendingRestoreSequence"/>).</summary>
+	private ulong _pendingRestoreSequence;
+
 	public WorldEntityKernelProjection(
 		ItemKernelAuthority kernelAuthority,
 		ISessionControl session,
@@ -80,6 +83,9 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 
 	/// <inheritdoc />
 	public bool HasPendingRestore => _pendingRestore is not null;
+
+	/// <inheritdoc />
+	public ulong PendingRestoreSequence => _pendingRestore is not null ? _pendingRestoreSequence : 0;
 
 	/// <inheritdoc />
 	public RestoredWorldEntityFacts ReadPendingFacts() =>
@@ -139,9 +145,10 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 		}
 
 		_pendingRestore = state;
+		_pendingRestoreSequence = _kernelAuthority.RestoreSequence;
 		_log.LogInformation(
-			"[WorldEntityKernel] the restored world-entity facts are armed for the world-entry seam (revision {Revision}): {Consumptions} consumption(s), {Opened} opened entit(ies), {Health} health row(s).",
-			revision, state.Consumptions.Count, state.OpenedEntities.Count, state.BuildingHealth.Count);
+			"[WorldEntityKernel] the restored world-entity facts are armed for the world-entry seam (revision {Revision}, kernel restore {Sequence}): {Consumptions} consumption(s), {Opened} opened entit(ies), {Health} health row(s).",
+			revision, _pendingRestoreSequence, state.Consumptions.Count, state.OpenedEntities.Count, state.BuildingHealth.Count);
 	}
 
 	/// <summary>Whether the projection of this table produces any row at all (see <see cref="IsProjectableTrapState"/>).</summary>

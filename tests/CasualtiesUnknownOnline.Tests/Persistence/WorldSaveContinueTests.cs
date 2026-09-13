@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
@@ -6,7 +7,10 @@ using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Persistence;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Persistence;
@@ -60,6 +64,92 @@ public class WorldSaveContinueTests
 		Assert.NotNull(run);
 		Assert.Equal(1, run!.LayerIndex);
 		Assert.Equal(1, Assert.Single(restarted.Kernel.QueryItems()).Value.Revision > 0 ? 1 : 0);
+	}
+
+	[Fact]
+	public void TryContinue_ReleasesTheHalvesThePreviousAttemptLeftArmed()
+	{
+		// A restore that never reached its seam leaves its arms behind, and BOTH the
+		// world-entry seam and this restore's expectation act on PRESENCE while a
+		// contribution is attributed by the arm's STAMP. Kept, the dead attempt's arm
+		// would be written into this layer and counted as a half this restore owes whose
+		// identity can never match — the account would await a contribution the audit
+		// refuses, forever. A mid-run cut is the case where nothing else releases it
+		// (a layer-end cut cancels the world-entity half on its own).
+		using var fixture = WorldSaveFixture.Create("continue-supersede");
+		SaveMidRun(fixture);
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Sequence = 7, Facts = EntityFacts() };
+		var native = new FakeNativeWorldFacts();
+		native.SeedKeypad(5f, 6f, "1234");
+		native.ApplyKeypadCodes(native.Keypads);
+		Assert.True(native.HasPendingRestore);
+		var audit = new WorldRestoreAudit();
+		using var restarted = WorldSaveFixture.Create(
+			"continue-supersede-restart", repository: fixture.Repository, nativeWorldFacts: native, worldEntities: entities, audit: audit);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// The dead attempt's arms are released, with the reason named...
+		Assert.False(entities.Armed);
+		Assert.Contains("superseded", Assert.Single(entities.Cancels), StringComparison.Ordinal);
+		Assert.Contains("cancel-pending", native.Calls);
+		// ...including the adapter's native handover, which carries no stamp of its own:
+		// the dead attempt's keypad code must not ride this restore's world-fact half.
+		Assert.False(native.HasPendingRestore);
+
+		// ...and it is NOT one of the halves the new restore owes: the writers armed for
+		// THIS attempt are the world-fact half alone (the fixture composes no item control).
+		Assert.Equal(1, audit.ExpectedContributions);
+		Assert.True(audit.AwaitingLiveWrite);
+
+		// The world the new attempt replaced is still the one its own halves belong to.
+		audit.LiveWriteFinished(restarted.Kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
+		Assert.False(audit.AwaitingLiveWrite);
+		Assert.Equal(fixture.WorldId, audit.Last!.WorldId);
+	}
+
+	private static RestoredWorldEntityFacts EntityFacts() => new(
+		[
+			new EntityEventMsg
+			{
+				Kind = EntityEventKind.BearTrapClamped,
+				Extra = 3,
+				Position = new NetVector2Msg(1.5f, 2.5f),
+			},
+		],
+		[new NetVector2Msg(3.5f, 4.5f)],
+		[new BuildingEntityHealthEntryMsg { X = 5.5f, Y = 6.5f, Health = 12f }]);
+
+	[Fact]
+	public void TryContinue_OpensTheAccountForTheSameRestoreItStampedTheFactTablesWith()
+	{
+		// The identity the restore account attributes by: the click restores the kernel,
+		// every arm it creates is stamped with THAT restore's sequence, and the account
+		// is opened for the same value. A drift here would make the restore's own halves
+		// unattributable — they would be ignored as stragglers and the restore would
+		// never report.
+		using var fixture = WorldSaveFixture.Create("continue-audit-identity");
+		SaveLayerEnd(fixture, withCharacter: false);
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		using var restarted = WorldSaveFixture.Create("continue-audit-identity-restart", repository: fixture.Repository, audit: audit);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// The attempt this continue applied: the world-fact tables carry it...
+		Assert.Equal(restarted.Kernel.RestoreSequence, restarted.WorldFacts.AppliedRestoreSequence);
+
+		// ...and a half carrying it is THIS restore's half, not a straggler.
+		audit.LiveWriteFinished(restarted.Kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
+
+		var report = Assert.Single(reports);
+		Assert.True(report.Complete);
+		Assert.Equal(fixture.WorldId, report.WorldId);
 	}
 
 	[Fact]

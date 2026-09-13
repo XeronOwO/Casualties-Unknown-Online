@@ -157,11 +157,15 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	/// <inheritdoc cref="CaptureBlockStates"/>
 	public WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
-		RadiationLineStateMsg? radiationLine) =>
-		_facts.ApplyFacts(blockStates, radiationLine);
+		RadiationLineStateMsg? radiationLine,
+		ulong restoreSequence) =>
+		_facts.ApplyFacts(blockStates, radiationLine, restoreSequence);
 
 	/// <inheritdoc cref="CaptureBlockStates"/>
 	public bool HasPendingLiveReplay => _facts.HasPendingLiveReplay;
+
+	/// <inheritdoc cref="CaptureBlockStates"/>
+	public ulong AppliedRestoreSequence => _facts.AppliedRestoreSequence;
 
 	/// <inheritdoc cref="CaptureBlockStates"/>
 	public void ClearPendingLiveReplay() => _facts.ClearPendingLiveReplay();

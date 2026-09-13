@@ -433,7 +433,8 @@ public class WorldSnapshotWorldFactsTests
 		// as the cut recorded it.
 		facts.ApplyFacts(
 			[new BlockStateEntryMsg { X = 3, Y = 4, Block = 0 }],
-			Radiation(active: false, timeGone: 9f));
+			Radiation(active: false, timeGone: 9f),
+			restoreSequence: 1);
 
 		var restored = facts.CaptureBlockStates();
 		Assert.True(Assert.Single(restored) is { X: 3, Y: 4, Block: 0 }, "the cell the cut does not name survived the restore");
@@ -446,7 +447,7 @@ public class WorldSnapshotWorldFactsTests
 		Assert.Empty(facts.CaptureBlockStates());
 		Assert.NotNull(facts.CaptureRadiationLine());
 
-		facts.ApplyFacts([], radiationLine: null);
+		facts.ApplyFacts([], radiationLine: null, restoreSequence: 1);
 		Assert.Null(facts.CaptureRadiationLine());
 	}
 
@@ -467,7 +468,7 @@ public class WorldSnapshotWorldFactsTests
 
 		// A live table with content, so the restore's reset really has work to do.
 		control.ReportBlockState(3, 4, 0);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 9, Y = 9, Block = 1 }], radiationLine: null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 9, Y = 9, Block = 1 }], radiationLine: null, restoreSequence: 1);
 
 		Assert.Equal((9, 9), (Assert.Single(facts.CaptureBlockStates()).X, facts.CaptureBlockStates()[0].Y));
 		Assert.True(
@@ -484,7 +485,7 @@ public class WorldSnapshotWorldFactsTests
 
 		Assert.False(facts.HasPendingLiveReplay, "a fresh world has nothing to replay");
 
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 3, Y = 4, Block = 0 }], radiationLine: null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 3, Y = 4, Block = 0 }], radiationLine: null, restoreSequence: 1);
 		Assert.True(facts.HasPendingLiveReplay, "a restored cut owns the next generation's cache state");
 
 		// The adapter's world-entry replay clears the marker when the live world has
@@ -496,7 +497,7 @@ public class WorldSnapshotWorldFactsTests
 
 		// A LAYER reset ends a pending replay as well: the facts it was waiting for
 		// went with the reset, so a later generation must not be handed them.
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 7, Y = 8, Block = 0 }], radiationLine: null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 7, Y = 8, Block = 0 }], radiationLine: null, restoreSequence: 1);
 		Assert.True(facts.HasPendingLiveReplay);
 		control.ResetDamagedBlocks();
 		Assert.False(facts.HasPendingLiveReplay);

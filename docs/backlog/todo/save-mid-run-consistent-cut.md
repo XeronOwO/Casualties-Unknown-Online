@@ -51,7 +51,11 @@
   world-fact files, with the layer-boundary reset's own subtree rule
   (`ItemLocationChain.IsWorldRooted`); `world-entities.json` obeys the same rule, so a produced
   layer-end archive holds no in-layer fact at all. Scope 7 and scope 9 are NOT part of this
-  increment; scope 9 moved to its own stage ticket (S3.6).
+  increment; scope 9 moved to its own stage ticket (S3.6). **A third pass (2026-09-12) closed recorded
+  gap 1**: the restore account now carries the restore ATTEMPT's identity
+  (`ItemKernelAuthority.RestoreSequence`, stamped by every arm and echoed by every contribution), so a
+  half of an earlier attempt can no longer be counted toward a newer restore's account — see *the
+  restore ATTEMPT identity* below.
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
@@ -448,12 +452,10 @@ loss is silent at report level). No blocker and no major; its minors and nits ar
 
 Recorded but NOT fixed (pre-existing; none of them made worse by this increment):
 
-- **`WorldRestoreAudit` carries no restore IDENTITY**: a contribution that arrives after a NEW
-  restore has opened its account is counted toward the new one, so a very late writer could raise the
-  new restore's report one half early. Every writer is gated today (each reports once, behind its own
-  pending flag, and a completed or abandoned account ignores stragglers), so the window needs a
-  writer that reports late ACROSS a `BeginRestore`; the fix is an epoch on the account (worldId +
-  revision, or an id the contributors echo).
+- **`WorldRestoreAudit` carries no restore IDENTITY** — **FIXED 2026-09-12** (the restore ATTEMPT
+  identity: `ItemKernelAuthority.RestoreSequence` is stamped by every arm and echoed by every
+  contribution, and an account ignores a half of another attempt; the red/green pair and the
+  verification limits are in *the restore ATTEMPT identity* below).
 - **An action that returns `false` for a reason other than "already in that state"** (e.g.
   `CrystalStateActions.ApplyCrystalMimic` on a crystal with no mimic effect) is counted as applied by
   `TrapVisualReplay.ReplayState`, so that divergence can be under-reported. Distinguishing the two
@@ -492,6 +494,143 @@ The fix is therefore a design choice, not a mechanical one: wire `ResetEnemies` 
 layer boundary (and then decide whether a layer-end cut must drop those rows from the archive too, to
 keep F3's rule coherent), or delete the three dead commands and keep relying on the projections —
 `ResetPlayers` being redundant in either case while the player table stays cross-layer.
+
+
+## S3.5 increment follow-up — the restore ATTEMPT identity (2026-09-12, third pass)
+
+Recorded gap 1 is closed: the restore account could not attribute a contribution, so a live-world half
+that reported after a NEW restore had reopened the account was counted toward the new one.
+
+**The identity.** The kernel already knows which restore produced the state every arm is armed from, so
+`ItemKernelAuthority.RestoreSequence` now counts them (bumped by every successful `Restore`,
+`ItemKernelAuthority.cs:79`; 0 = the kernel was never restored, `:129`). It is the value a writer stamps
+onto the arm it creates, and the value the account is opened for:
+
+| writer | stamp (arm time) | carried by |
+|---|---|---|
+| the Runtime world-fact tables | `WorldFactLifecycle.ApplyFacts(..., restoreSequence)` (`WorldFactLifecycle.cs:126`), handed down by `WorldFactRestore.Apply` | `IWorldFactSource.AppliedRestoreSequence` (`IWorldFactSource.cs:69`) → the world-fact contribution, and also the "carried no live-world fact" report, which is a statement about the same attempt |
+| the restored world-entity facts | armed inside the kernel restore (`WorldEntityKernelProjection.cs:148`) | `IRestoredWorldEntitySource.PendingRestoreSequence` (`:88`) |
+| the restored world-item set | armed inside the kernel restore (`RestoredWorldItemSet.cs:48`) | internal — the set is its own reporter (`:83`, `:105`) |
+
+`WorldRestoreApplier` reads `kernel.RestoreSequence` ONCE after `kernel.Restore`
+(`WorldRestoreApplier.cs:167`) and passes it both to `WorldFactRestore.Apply` (`:174`) and to
+`BeginRestore` (`:208`), so the arms and the account cannot disagree.
+`WorldRestoreAudit.LiveWriteFinished` ignores a contribution whose sequence is not the open account's
+and logs it at warning level (`WorldRestoreAudit.cs:130`; `LiveWriteAbandoned` takes the identity too,
+`:163`). The audit now takes the composition's logger (optional, so a test host may omit it;
+`WorldSaveCompositionTests` pins that the production root registers it). The identity rule binds an OPEN
+account only: a write that reaches the seam with no account at all still reports itself, which is the
+documented no-Begin diagnostic path (`WorldRestoreAuditTests.LiveWriteFinished_WithoutABegin_StillReportsTheWrite`).
+
+The adapter's NATIVE handover carries no stamp of its own — it is handed to the live world by
+`WorldFactRestore` in the same call that applies the Runtime tables, and the world-fact half is what
+reports both. That is why the supersession below has to release it too: an attempt that leaves native
+values armed while a new attempt's apply stamps the Runtime half would otherwise have its rows written
+into the new layer under the new attempt's identity.
+
+**A new restore SUPERSEDES the previous attempt** (`WorldRestoreApplier.cs:145-149`, before the kernel
+restore that arms this attempt's own halves): the account is closed (`AbandonRestore`, so a dead
+attempt's arm releases cannot report into it) and every handover it left armed is released — the Runtime
+world-fact marker, the world-entity facts, the adapter's native handover and the restored world-item set
+— so that NOTHING is armed while this attempt's arms are created. The world-fact marker is released even
+though `ApplyFacts` would replace it: that replacement needs the restore to APPLY, and the refusal paths
+below must not leave a dead attempt's "the live world still owes these facts" marker behind for the next
+generation to act on.
+
+This is not tidiness, and it is the fix for the MAJOR the adversarial pass found (below): the seam and
+the generation reconcile act on PRESENCE, and the expectation counts the writers that are armed, while a
+contribution is attributed by the arm's STAMP. An arm a dead attempt left behind therefore has to go —
+kept, its rows are written into THIS layer, and the half is counted as one the new restore owes while its
+identity can never match the new account's, which leaves that account awaiting a contribution the audit
+refuses, forever. (The same release closes the pre-existing leftover-handover leak for a cut that carries
+no native values and for a checkpoint that projects no world-entity fact.)
+
+- **Red, recorded on the pre-fix source**: the three new cases in `WorldRestoreAuditTests` were written
+  in the pre-fix call shape (`BeginRestore(worldId, expected)` / `LiveWriteFinished(complete, refused,
+  summary)`) and run with the `src/` changes stashed, which is the only form that compiles against them;
+  they FAILED with `Assert.Empty() Failure: Collection was not empty` — 3 failed / 15 passed of 18.
+  `AStragglerFromAnEarlierRestore_DoesNotStandInForAHalfTheNewRestoreOwes` produced
+  `[WorldRestoreLiveWriteReport { WorldId = w-new, Complete = False, Summary = "a straggler from the
+  previous restore; the new restore's world facts" }]`: the new restore's report was raised one half
+  early, with the previous attempt's row inside it. `AStragglerFromAnEarlierRestore_
+  DoesNotCompleteTheNewAccount` and `AnAbandonedStragglerFromAnEarlierRestore_IsIgnoredToo` failed the
+  same way, so the gap was demonstrated as an assertion failure, not as a compile error.
+- **Red for the supersession**: `WorldSaveContinueTests.TryContinue_ReleasesTheHalvesThePreviousAttempt
+  LeftArmed` FAILED with `Assert.False() Failure: Expected: False, Actual: True` (the dead attempt's
+  world-entity arm was still armed after the second Continue) when the release hunk alone was reverted —
+  the whole-tree pre-fix state no longer compiles, because the committed test files use the identified
+  call shape. 1 failed of 1.
+- **Green**: `WorldRestoreAuditTests` 18/18; the restore families (audit, replay, item contract, continue,
+  composition, entity projection, world-fact port, run start, console) 116/116; full suite and gates
+  below. `LiveWorldHalves_CountTheWritersThatAreActuallyArmed`, every pre-existing audit case and the
+  whole restore family passed UNCHANGED around the new identity, which is what says the plumbing is
+  behaviour-preserving.
+- **The wiring is pinned where a test host can see it**:
+  `WorldSaveContinueTests.TryContinue_OpensTheAccountForTheSameRestoreItStampedTheFactTablesWith` (a
+  half carrying the kernel's restore sequence is counted, and the fact arm carries the same value),
+  `WorldSaveContinueTests.TryContinue_ReleasesTheHalvesThePreviousAttemptLeftArmed` (the supersession:
+  a world-entity arm stamped `7` and a native keypad armed by a dead attempt are both released with their
+  reasons named, the stale entity half is NOT one of the halves the new restore owes, and the native arm
+  does not ride this attempt's world-fact half), and `RestoredWorldItemContractTests` (its three audit
+  cases now open the account for `kernel.RestoreSequence` AFTER the kernel restore, which is the order
+  production runs; an arm stamped with anything else would leave the case without its report).
+- **Adversarial pass (fresh context, no stake in the change)**: it could NOT falsify the attribution
+  chain (every contribution is stamped before the write/commit, including the throw path and the "carried
+  nothing" report), the account/arm agreement (one read of the counter, the wire checkpoint path is
+  guest-only and cannot move a host counter, `ResetForSession` deliberately keeps it), the pre-existing
+  audit guarantees (report-once, closed accounts, the no-Begin path, `LiveWriteAbandoned` completeness
+  inside the audit) or the structure/gate claims. It DID find one MAJOR and three minors, all handled:
+  the MAJOR is the presence-vs-identity hang fixed by the supersession above; MINOR (native handover
+  attributed to the new attempt) is closed by the same release; MINOR (a session end releases the
+  entity/native arms without a contribution, so an account that owed them stays awaiting — pre-existing,
+  see the residuals) and MINOR (the red's stated form) are recorded below.
+
+**NOT proven by the above**: that the window is reachable in a live session. The suite proves the
+accounting is ATTRIBUTABLE, not that a straggler occurs in play — every writer is gated behind its own
+pending flag and the seam runs on the main-thread pump, so a stale half needs a second restore to open
+its account between another restore's arms and its report. The episode is defensive correctness for a
+narrow window, and this ticket does not claim it was ever observed.
+
+**Why the expectation did not have to become identity-aware.** The adversarial pass offered two fixes for
+the hang: filter the expected halves by the arm's stamp, or release a stale arm before the account opens.
+The release was chosen because the stamp filter would leave the OTHER half of the defect in place — the
+seam writes whatever is armed, so a dead attempt's rows would still land in the new layer (the exact
+thing the layer-end cancels exist to prevent) — and because after the release presence and identity agree
+by construction: nothing is armed when the kernel restore arms this attempt's own halves. The count stays
+"the writers actually armed" (`WorldRestoreApplier.LiveWorldHalves`), which is the contract its own test
+pins.
+
+
+
+**Recorded, NOT fixed — the residuals this pass leaves** (each with the scenario, so a later cycle can pick
+one up without re-deriving it):
+
+- **A session end releases the world-entity and native arms without a contribution**, so an account that
+  owed them stays awaiting: `WorldEntityKernelProjection.OnSessionEnded`
+  (`WorldEntityKernelProjection.cs:72-73`) and `GameAdapterSessionBinding`'s session-end cancel release
+  the arms with no report, while `ItemService.ResetSessionState` (`ItemService.cs:358`) does report its
+  half. An account that expected three halves receives one and never completes. PRE-EXISTING (found by
+  this pass's adversarial review, not caused by the identity change, and no worse with it: the next
+  restore's `BeginRestore` reopens the account). Closing it needs the audit reachable from the
+  projection (or the release routed through the save layer, which already has it).
+- **A mismatch is silent once the account is closed** (`WorldRestoreAudit.cs:125-128`): the identity
+  warning only fires while an account is OPEN, because a closed or abandoned account ignores every
+  contribution by design. A late writer after a completed restore is therefore not named. Accepted: the
+  rule that a straggler must not invent a report for a restore that already reported is the stronger one.
+- **The supersession releases the arms only when a restore actually applies.** The release sits after the
+  two content refusals (an unreadable or absent archive) and before the kernel restore, so a refused
+  Continue leaves whatever the previous attempt armed in place; the next applying attempt releases it,
+  and the pre-existing `AbandonRestore` paths cover a new run. Not a regression (a refusal never armed
+  anything new), recorded so the invariant is stated exactly: "a new APPLIED restore supersedes the
+  previous attempt". (The kernel-rejection branch below the release is unreachable today —
+  `GameStateKernel.Restore` returns `Ok()` unconditionally — so the release's asymmetry there has no
+  current trigger.)
+- **The item release has no test of its own.** The entity and native releases are pinned by
+  `WorldSaveContinueTests.TryContinue_ReleasesTheHalvesThePreviousAttemptLeftArmed`; the item half needs an
+  `IItemControl` in the save fixture (the narrow `IRestoredWorldItemSource` port the gate reads is not the
+  surface the release calls), and no test double for that interface exists — the release is the same
+  statement as its two neighbours in the same block, verified by reading.
+
 
 
 ## Acceptance
@@ -564,7 +703,10 @@ in-game rows open.
       be reclassified to justify the move):
       1. `WorldRestoreAudit` carries no restore identity (an epoch on the account), so a very late
          writer could credit a newer restore's account; the window needs a writer that reports across
-         a `BeginRestore`.
+         a `BeginRestore`. — **FIXED 2026-09-12** (the restore ATTEMPT identity: the kernel's
+         `RestoreSequence` is stamped by every arm and echoed by every contribution, and an account
+         ignores a half of another attempt; red/green and the wiring pins are in *the restore ATTEMPT
+         identity* above).
       2. the world-entry seam's `HasPending` gate does not consult the ITEM arm — **FIXED 2026-09-12**
          (the narrow `IRestoredWorldItemSource` port, the red/green pair and the family check are in the
          follow-up section above).

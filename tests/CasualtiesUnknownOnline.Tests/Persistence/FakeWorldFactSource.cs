@@ -30,6 +30,9 @@ internal sealed class FakeWorldFactSource : IWorldFactSource
 	/// <summary>Set by <see cref="ApplyFacts"/> when the cut carried a fact, cleared by <see cref="ClearPendingLiveReplay"/>.</summary>
 	public bool HasPendingLiveReplay { get; private set; }
 
+	/// <summary>The restore attempt the tables were last applied by (stamped on every apply, armed or not).</summary>
+	public ulong AppliedRestoreSequence { get; private set; }
+
 	internal void SeedBlockState(int x, int y, ushort block) => _blocks.Add(new BlockStateEntryMsg { X = x, Y = y, Block = block });
 
 	public IReadOnlyList<BlockStateEntryMsg> CaptureBlockStates()
@@ -46,12 +49,14 @@ internal sealed class FakeWorldFactSource : IWorldFactSource
 
 	public WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
-		RadiationLineStateMsg? radiationLine)
+		RadiationLineStateMsg? radiationLine,
+		ulong restoreSequence)
 	{
 		// The port's contract is an absolute replace, and the fake models it as ONE
 		// call: the production lifecycle resets through WorldStateMessageService
 		// before applying, which is exactly the behavior under test.
 		Calls.Add("apply");
+		AppliedRestoreSequence = restoreSequence;
 		_blocks.Clear();
 		_blocks.AddRange(blockStates);
 		RadiationLine = radiationLine;

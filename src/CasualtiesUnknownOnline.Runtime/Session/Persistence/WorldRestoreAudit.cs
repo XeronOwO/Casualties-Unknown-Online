@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 
@@ -28,14 +29,23 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// arrive is accounted for explicitly (<see cref="LiveWriteAbandoned"/>) rather
 /// than silently dropping the expectation.
 ///
+/// An account is opened for ONE restore ATTEMPT, and every contribution echoes the
+/// attempt it belongs to: the writers stamp the kernel restore sequence onto the arm
+/// they take it from, <see cref="BeginRestore"/> opens the account with the same
+/// value, and a half of any other attempt is ignored rather than counted
+/// (<see cref="LiveWriteFinished"/>). Without that identity a half of the previous
+/// restore could stand in for one the new restore still owes and raise its report
+/// early — the account is reopened by the next restore, not closed by it.
+///
 /// Both halves are Runtime state, so this audit is a plain service — the adapter
 /// only calls it (Begin at the click, the contribution calls at the seam) and
 /// subscribes to the report.
 /// </summary>
-public sealed class WorldRestoreAudit
+public sealed class WorldRestoreAudit(ILogger<WorldRestoreAudit>? log = null)
 {
 	private readonly List<WorldRestoreLiveWriteReport> _contributions = [];
 	private string _worldId = string.Empty;
+	private ulong _restoreSequence;
 	private bool _awaiting;
 	private bool _closed;
 	private int _expected = 1;
@@ -63,10 +73,18 @@ public sealed class WorldRestoreAudit
 	/// Resets <see cref="Last"/>, because a completed restore's report must never be
 	/// read as the new one's outcome, and reopens the account a previous report or
 	/// abandonment closed.
+	///
+	/// <paramref name="restoreSequence"/> is the ATTEMPT this account is for (the
+	/// kernel restore that produced the restored state). Every writer stamps the same
+	/// value onto the arm it creates, and every contribution echoes it, so a write
+	/// that belongs to an earlier attempt is not counted here (see
+	/// <see cref="LiveWriteFinished"/>) — without it a straggler could stand in for a
+	/// half this restore still owes and raise the report early.
 	/// </summary>
-	public void BeginRestore(string worldId, int expectedContributions = 1)
+	public void BeginRestore(string worldId, ulong restoreSequence, int expectedContributions = 1)
 	{
 		_worldId = worldId;
+		_restoreSequence = restoreSequence;
 		_awaiting = true;
 		_closed = false;
 		_expected = Math.Max(1, expectedContributions);
@@ -88,14 +106,38 @@ public sealed class WorldRestoreAudit
 	/// contract that makes this safe: it names the writers that WILL report, so a
 	/// straggler is a producer bug, and inventing a report for it would hide the bug
 	/// rather than surface it.
+	///
+	/// <paramref name="restoreSequence"/> is the ATTEMPT this half belongs to — the
+	/// value its writer stamped on the arm when it took it. While an account is open
+	/// that value is the only thing that makes the contribution attributable: a half of
+	/// an EARLIER attempt can still be in flight when a new restore opens its own
+	/// account (<see cref="BeginRestore"/> REOPENS the account, it does not close it),
+	/// and counting it would let it stand in for a half the new restore still owes —
+	/// raising that restore's report before its own writers ran, with the previous
+	/// world's outcome in it. A mismatched half is therefore IGNORED and logged, which
+	/// is the same producer-bug verdict the count gives a straggler. Only an OPEN
+	/// account enforces the identity: a contribution that arrives with no account at
+	/// all still reports itself (the documented path where a write reaches the seam
+	/// without the click).
 	/// </summary>
-	public void LiveWriteFinished(bool complete, IReadOnlyList<string> refused, string summary)
+	public void LiveWriteFinished(ulong restoreSequence, bool complete, IReadOnlyList<string> refused, string summary)
 	{
 		if (_closed)
 		{
 			return;
 		}
 
+		if (_awaiting && restoreSequence != _restoreSequence)
+		{
+			log?.LogWarning(
+				"[Restore] a live-world half of restore {Sequence} reached the account open for restore {Open} (world {WorldId}); it is NOT counted toward it: {Summary}",
+				restoreSequence, _restoreSequence, _worldId, summary);
+			return;
+		}
+
+		log?.LogDebug(
+			"[Restore] a live-world half reported for restore {Sequence} (world {WorldId}, complete={Complete}): {Summary}",
+			restoreSequence, _worldId, complete, summary);
 		_contributions.Add(new WorldRestoreLiveWriteReport(_worldId, complete, refused, summary));
 		if (_contributions.Count < _expected)
 		{
@@ -114,16 +156,18 @@ public sealed class WorldRestoreAudit
 	/// superseded, the session ended, the generation reconcile was cancelled). It is
 	/// accounted as an incomplete contribution — never silently dropped — and
 	/// completes the restore's report when it was the last one outstanding. A call
-	/// with no restore in flight is a no-op (a layer-end cut's own cancellation).
+	/// with no restore in flight is a no-op (a layer-end cut's own cancellation), and a
+	/// cancellation of an EARLIER attempt's arm is ignored like any other straggler: a
+	/// dead attempt's release is not this restore's half.
 	/// </summary>
-	public void LiveWriteAbandoned(string reason)
+	public void LiveWriteAbandoned(ulong restoreSequence, string reason)
 	{
 		if (!_awaiting)
 		{
 			return;
 		}
 
-		LiveWriteFinished(complete: false, refused: [reason], summary: $"a restored half never reached the live world: {reason}");
+		LiveWriteFinished(restoreSequence, complete: false, refused: [reason], summary: $"a restored half never reached the live world: {reason}");
 	}
 
 	/// <summary>

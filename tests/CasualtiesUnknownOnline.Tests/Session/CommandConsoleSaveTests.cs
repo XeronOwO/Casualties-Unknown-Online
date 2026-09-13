@@ -99,9 +99,10 @@ public class CommandConsoleSaveTests
 		var (host, _) = Session(saves);
 		var console = FileConsole(host);
 		var audit = host.Services.GetRequiredService<WorldRestoreAudit>();
-		audit.BeginRestore("w-9");
+		audit.BeginRestore("w-9", restoreSequence: 1);
 
 		audit.LiveWriteFinished(
+			restoreSequence: 1,
 			complete: false,
 			refused: ["1 partial-damage row(s)"],
 			summary: "the live world did not take 1 partial-damage row(s)");

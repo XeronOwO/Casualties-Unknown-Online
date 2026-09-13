@@ -11,12 +11,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// guests (TrapVisualReplay): find the entity at the event position, apply the
 /// transition, the entity's own Update/animation drives the rest. Each action
 /// mirrors the game's own code path for the transition (the trigger side ran
-/// the original) and returns whether it APPLIED — false means the local copy
-/// already consumed the one-shot transition (a duplicate event — the
-/// two-trigger race: two guests trip the same mine/shower/terminal almost
-/// simultaneously; both report, both receive the other's relay; the receiver
-/// must DROP what it already did locally, never re-apply it). The caller logs
-/// the drop (留痕 — a duplicate that reaches the apply step is evidence).
+/// the original) and returns <see cref="TrapActionOutcome"/>: APPLIED when it
+/// wrote the transition, ALREADY IN STATE when the local copy had consumed the
+/// one-shot transition (a duplicate event — the two-trigger race: two guests
+/// trip the same mine/shower/terminal almost simultaneously; both report, both
+/// receive the other's relay; the receiver must DROP what it already did
+/// locally, never re-apply it), and NOT APPLICABLE when this copy cannot carry
+/// the fact at all (the divergence case — a restore must not count such a row as
+/// reached; see <see cref="TrapActionVerdict"/>). The caller logs the drop
+/// (留痕 — a duplicate that reaches the apply step is evidence).
 /// </summary>
 internal static class TrapStateActions
 {
@@ -26,23 +29,27 @@ internal static class TrapStateActions
 	/// sound (shuttleOpen at 2 s, ShuttleStartOpen.cs:26-30) from the same start
 	/// moment on both sides. The 50 % talk is the trigger-side player's local
 	/// UI, not replayed.</summary>
-	internal static bool ApplyShuttleDoor(ShuttleStartOpen door)
+	internal static TrapActionOutcome ApplyShuttleDoor(ShuttleStartOpen door)
 	{
 		if (Traverse.Create(door).Field("activated").GetValue<bool>())
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		Traverse.Create(door).Field("activated").SetValue(true);
 		Sound.Play("shuttleNotice", door.transform.position, false, false, null, 1f, 1f, false, false);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Heat button: toggle the controller's heat state until it matches
 	/// the trigger side's (ToggleHeatState cycles 0→1→2→0 and writes heater/
 	/// desiredTemp/enabled/sprite/description — the game's own write path).
-	/// Repeatable — every toggle applies.</summary>
-	internal static bool ApplyHeat(LifepodController controller, byte target)
+	/// Repeatable — every toggle applies. A target the cycle cannot reach (the
+	/// trigger side sends 0..2, so this is a corrupt or foreign Extra) leaves the
+	/// controller on a state the row does not name: that is NOT APPLICABLE, never
+	/// an applied row — `LifepodHeatChanged` is durable projectable state, so the
+	/// restore account reads this answer.</summary>
+	internal static TrapActionOutcome ApplyHeat(LifepodController controller, byte target)
 	{
 		var guard = 0;
 		while (controller.heatState != target && guard++ < 4)
@@ -50,28 +57,30 @@ internal static class TrapStateActions
 			controller.ToggleHeatState();
 		}
 
-		return true;
+		return controller.heatState == target
+			? TrapActionOutcome.Applied
+			: TrapActionOutcome.NotApplicable; // the requested heat state is not representable here
 	}
 
 	/// <summary>Shower button: activate (ActivateShower → shower.Activate + the
 	/// disinfect sprite; the shower's own Update cleanses the local real body
 	/// for 3 s). The shower's activated flag is the consumption mark.</summary>
-	internal static bool ApplyShower(LifepodController controller)
+	internal static TrapActionOutcome ApplyShower(LifepodController controller)
 	{
 		if (controller.shower != null && controller.shower.activated) // Unity object — ==
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		controller.ActivateShower();
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Blood terminal unlocked: Backgroundify the terminal and every
 	/// reinforceddoor in a 6 m radius (BioTerminalScript.cs:33-43, minus the
 	/// blood consumption — that already happened on the trigger side). The
 	/// terminal's disabled collider is the consumption mark.</summary>
-	internal static bool ApplyBioTerminal(BioTerminalScript terminal)
+	internal static TrapActionOutcome ApplyBioTerminal(BioTerminalScript terminal)
 	{
 		var building = terminal.GetComponent<BuildingEntity>(); // the private field's value (BioTerminalScript.Start)
 		if (building != null) // Unity object — ==
@@ -79,7 +88,7 @@ internal static class TrapStateActions
 			var collider = building.GetComponent<Collider2D>();
 			if (collider != null && !collider.enabled) // Unity object — ==
 			{
-				return false; // already consumed — a duplicate event
+				return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 			}
 
 			building.Backgroundify();
@@ -87,7 +96,7 @@ internal static class TrapStateActions
 
 		Sound.Play("beep", terminal.transform.position, false, true, null, 1f, 1f, false, false);
 		BackgroundifyNearbyDoors(terminal.transform.position, 6f);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Scrap eater fed: write the progress (the Update writes the
@@ -95,12 +104,12 @@ internal static class TrapStateActions
 	/// (Backgroundify + the 2 m doors + beep — ScrapEaterScript.cs:27-39).
 	/// A PROGRESS event always applies (every feed reports the new gauge);
 	/// the unlock part is idempotent (Backgroundify re-runs are no-ops).</summary>
-	internal static bool ApplyScrapEater(ScrapEaterScript eater, byte progress)
+	internal static TrapActionOutcome ApplyScrapEater(ScrapEaterScript eater, byte progress)
 	{
 		eater.scrapAmount = progress / 100f * ScrapEaterScript.target;
 		if (progress < 100)
 		{
-			return true;
+			return TrapActionOutcome.Applied;
 		}
 
 		if (eater.build != null) // Unity object — ==
@@ -110,7 +119,7 @@ internal static class TrapStateActions
 
 		Sound.Play("beep", eater.transform.position, false, true, null, 1f, 1f, false, false);
 		BackgroundifyNearbyDoors(eater.transform.position, 2f);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Med station triggered: mark didHeal + sound + Backgroundify
@@ -118,11 +127,11 @@ internal static class TrapStateActions
 	/// gets the same treatment as the trigger side's (the laser anim + heal —
 	/// copied from HealBody, MedStationScript.cs:32-61; the station is a shared
 	/// one-shot, both sides' players in it benefit together).</summary>
-	internal static bool ApplyMedStation(MedStationScript station)
+	internal static TrapActionOutcome ApplyMedStation(MedStationScript station)
 	{
 		if (Traverse.Create(station).Field("didHeal").GetValue<bool>())
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		Traverse.Create(station).Field("didHeal").SetValue(true);
@@ -138,50 +147,50 @@ internal static class TrapStateActions
 			station.StartCoroutine(HealAnimation(station, body));
 		}
 
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Battery charger used: consume the firstTime mp3 gift and replay
 	/// the insert sound (the insert itself rides the item domain — the battery
 	/// IS a world item, its position/condition sync there; only the one-shot
 	/// gift and the sound need the event).</summary>
-	internal static bool ApplyBattery(BatteryRecharger recharger)
+	internal static TrapActionOutcome ApplyBattery(BatteryRecharger recharger)
 	{
 		if (!Traverse.Create(recharger).Field("firstTime").GetValue<bool>())
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		Traverse.Create(recharger).Field("firstTime").SetValue(false);
 		Sound.Play("batteryinsert", recharger.transform.position, false, true, null, 1f, 1f, false, false);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Spikestabber: run the one-shot Stab() — the game's own anim/sound/
 	/// activated; the CheckStab frame callback then hurts the local real bodies
 	/// above, exactly like the trigger side.</summary>
-	internal static bool ApplySpike(SpikeStabberScript spike)
+	internal static TrapActionOutcome ApplySpike(SpikeStabberScript spike)
 	{
 		if (Traverse.Create(spike).Field("activated").GetValue<bool>())
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		spike.Stab();
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Stalactite: run the one-shot Drop() — the spike falls; its
 	/// DamagingCrate hurts whatever it lands on (the local real bodies).</summary>
-	internal static bool ApplyStalactite(StalactiteDropper dropper)
+	internal static TrapActionOutcome ApplyStalactite(StalactiteDropper dropper)
 	{
 		if (Traverse.Create(dropper).Field("dropped").GetValue<bool>())
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		dropper.Drop();
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Geyser (repeatable — the game's OWN cooldown gate is the check:
@@ -193,10 +202,10 @@ internal static class TrapStateActions
 	/// together — this is the sync, not a re-rumble. The liquid type is NOT
 	/// part of the event: it was bound at generation time by the host
 	/// (GeyserStateSnapshot, #128) — the spout just runs.</summary>
-	internal static bool ApplyGeyser(GeyserScript geyser)
+	internal static TrapActionOutcome ApplyGeyser(GeyserScript geyser)
 	{
 		geyser.TryRumble();
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Mine pressed: the transient 0.8 s pre-explosion visual —
@@ -207,19 +216,19 @@ internal static class TrapStateActions
 	/// already replays. The MinePressReplayMarker owns the duplicate guard for
 	/// this transient event (a second guest's report of the same press must not
 	/// replay the sprite/sound again).</summary>
-	internal static bool ApplyMinePressed(MineScript mine)
+	internal static TrapActionOutcome ApplyMinePressed(MineScript mine)
 	{
 		if (Traverse.Create(mine).Field("pressed").GetValue<bool>()
 			|| Traverse.Create(mine).Field("exploded").GetValue<bool>()
 			|| mine.GetComponent<MinePressReplayMarker>() != null) // Unity object — ==
 		{
-			return false; // already triggered/consumed/replayed — a duplicate
+			return TrapActionOutcome.AlreadyInState; // already triggered/consumed/replayed — a duplicate
 		}
 
 		mine.GetComponent<SpriteRenderer>().sprite = mine.pressedSprite;
 		Sound.Play("mine", mine.transform.position, false, true, null, 1f, 1f, false, false);
 		mine.gameObject.AddComponent<MinePressReplayMarker>();
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Sound cannon: consume the one-shot spent + cancel the charge,
@@ -228,27 +237,27 @@ internal static class TrapStateActions
 	/// blast DAMAGE is not replayed: it is the trigger-side player's
 	/// single-target effect and rides the CharacterData report. The deafening
 	/// UI (hearing loss etc.) happened on the triggering side.</summary>
-	internal static bool ApplySoundCannon(SoundCannon cannon)
+	internal static TrapActionOutcome ApplySoundCannon(SoundCannon cannon)
 	{
 		if (Traverse.Create(cannon).Field("spent").GetValue<bool>())
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		Traverse.Create(cannon).Field("spent").SetValue(true);
 		Traverse.Create(cannon).Field("charging").SetValue(false);
 		Sound.Play("sonarouch", cannon.transform.position, true, false, null, 1f, 1f, false, true);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Cave-tick nest: consume the one-shot started — stop the particles
 	/// and kill the nest (the 16 spiders ride the EntitySpawned channel + runtime
 	/// enemy binding).</summary>
-	internal static bool ApplyCaveTicks(CaveTickSpawner nest)
+	internal static TrapActionOutcome ApplyCaveTicks(CaveTickSpawner nest)
 	{
 		if (Traverse.Create(nest).Field("started").GetValue<bool>())
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		Traverse.Create(nest).Field("started").SetValue(true);
@@ -260,18 +269,18 @@ internal static class TrapStateActions
 
 		Object.Destroy(nest.gameObject, 10f);
 		Sound.Play("caveticks", Vector2.zero, true, false, null, 0.7f, 1f, false, false);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Beartrap CLAMPED (repeatable — the activated flag is the current-
 	/// clamp mark, cleared on release): close the visual (closeSprite + sound +
 	/// shake + the child teeth). The clamp's limb damage happened on the
 	/// triggering side (its OWN limb is clamped); the peers see the closed trap.</summary>
-	internal static bool ApplyBearTrapClamped(BearTrap trap)
+	internal static TrapActionOutcome ApplyBearTrapClamped(BearTrap trap)
 	{
 		if (Traverse.Create(trap).Field("activated").GetValue<bool>())
 		{
-			return false; // already clamped — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already clamped — a duplicate event
 		}
 
 		Traverse.Create(trap).Field("activated").SetValue(true);
@@ -283,16 +292,16 @@ internal static class TrapStateActions
 		}
 
 		PlayerCamera.main.shaker.Shake(50f);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Beartrap RELEASED (the caught body stood up on the trigger side):
 	/// restore the visual (origSprite + unlatch sound).</summary>
-	internal static bool ApplyBearTrapReleased(BearTrap trap)
+	internal static TrapActionOutcome ApplyBearTrapReleased(BearTrap trap)
 	{
 		if (!Traverse.Create(trap).Field("activated").GetValue<bool>())
 		{
-			return false; // already open — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already open — a duplicate event
 		}
 
 		Traverse.Create(trap).Field("activated").SetValue(false);
@@ -303,52 +312,52 @@ internal static class TrapStateActions
 			trap.GetComponent<SpriteRenderer>().sprite = orig;
 		}
 
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	// ---- Visual family (repeatable — the game's own cooldown gates are the
 	// checks; a duplicate application is a harmless re-sound/re-sprite) ----
 
 	/// <summary>Barbed fence hit: hitSprite + fence sound.</summary>
-	internal static bool ApplyBarbedFence(BarbedFence fence)
+	internal static TrapActionOutcome ApplyBarbedFence(BarbedFence fence)
 	{
 		fence.GetComponent<SpriteRenderer>().sprite = fence.hitSprite;
 		Sound.Play("fence", fence.transform.position, false, true, null, 1f, 1f, false, false);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Coil shock: zap + light flash (the intensity decays back on its
 	/// own) + shake.</summary>
-	internal static bool ApplyCoil(CoilScript coil)
+	internal static TrapActionOutcome ApplyCoil(CoilScript coil)
 	{
 		SetLightIntensity(coil, 1f);
 		Sound.Play("zap", coil.transform.position, false, true, null, 1f, 1f, false, false);
 		PlayerCamera.main.shaker.Shake(200f);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Cactus hit: the gore sound (the cactus's own self-damage stays
 	/// local, a recorded small divergence).</summary>
-	internal static bool ApplyCactus(CactusScript cactus)
+	internal static TrapActionOutcome ApplyCactus(CactusScript cactus)
 	{
 		Sound.Play($"gore{Random.Range(1, 6)}", cactus.transform.position, false, true, null, 1f, 1f, false, false);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Jump pad launch: light flash + jumppad sound + shake.</summary>
-	internal static bool ApplyJumpPad(JumpPadScript pad)
+	internal static TrapActionOutcome ApplyJumpPad(JumpPadScript pad)
 	{
 		SetLightIntensity(pad, 1f);
 		Sound.Play("jumppad", pad.transform.position, false, true, null, 1f, 1f, false, false);
 		PlayerCamera.main.shaker.Shake(70f);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Banana slip: the plantslip sound.</summary>
-	internal static bool ApplyBananaSlip(BananaPlantSlip plant)
+	internal static TrapActionOutcome ApplyBananaSlip(BananaPlantSlip plant)
 	{
 		Sound.Play("plantslip", plant.transform.position, false, true, null, 1f, 1f, false, false);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Turret fired: the rifleshot sound, then consume the fire state on
@@ -357,7 +366,7 @@ internal static class TrapStateActions
 	/// but NOT shot during the reload, matching the triggering side. The tracer
 	/// beam and the lightSprite flicker are both replayed at the firing moment
 	/// (the latter via TurretLightSpriteGate).</summary>
-	internal static bool ApplyTurretFired(TurretScript turret)
+	internal static TrapActionOutcome ApplyTurretFired(TurretScript turret)
 	{
 		// The timeline decision (warning → 3 s / firing → 0 s / 15 s reload) is
 		// the pure TurretReplayTimeline — the #131 timing fix, locked by tests;
@@ -376,7 +385,7 @@ internal static class TrapStateActions
 		Traverse.Create(turret).Field("didBeep").SetValue(timeline.DidBeep);
 		TurretLightSpriteGate.Begin(turret); // keep lightSprite steady until the shot — TurretScript.cs:29 would otherwise flicker it 0.5 s early
 		turret.StartCoroutine(DelayedFireVisuals(turret));
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>The shot visual 0.5 s after the warning — the trigger side's

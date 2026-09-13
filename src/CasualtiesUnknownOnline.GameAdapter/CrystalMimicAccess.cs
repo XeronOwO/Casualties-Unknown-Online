@@ -1,4 +1,5 @@
 using System.Collections;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -52,22 +53,36 @@ internal static class CrystalMimicAccess
 		return activated.FieldExists() && activated.GetValue<bool>();
 	}
 
-	/// <summary>Set the latch exactly once. False when there is no mimic or the latch was already consumed (the duplicate/divergence case).</summary>
-	internal static bool TryActivate(CrystalBehaviour crystal)
+	/// <summary>Set the latch exactly once, reporting WHICH way it did not apply:
+	/// <see cref="TrapActionOutcome.Applied"/> when the latch was written,
+	/// <see cref="TrapActionOutcome.AlreadyInState"/> when it was already consumed
+	/// (the duplicate case — the state the row names IS in the world), and
+	/// <see cref="TrapActionOutcome.NotApplicable"/> when this crystal carries no
+	/// mimic effect at all or the latch member is missing — the two reasons a bool
+	/// used to conflate, and the divergence a restore must count as a refused row
+	/// (CrystalBehaviour.SetUpEffects rolls the list per crystal — the mimic is one
+	/// of seventeen weighted effects, and about seven crystals in ten are destroyed
+	/// before any effect is set, CrystalBehaviour.cs:83-102).</summary>
+	internal static TrapActionOutcome TryActivate(CrystalBehaviour crystal)
 	{
 		var mimic = Find(crystal);
 		if (mimic is null)
 		{
-			return false;
+			return TrapActionOutcome.NotApplicable; // no mimic effect on this crystal
 		}
 
 		var activated = Traverse.Create(mimic).Field(ActivatedFieldName);
-		if (!activated.FieldExists() || activated.GetValue<bool>())
+		if (!activated.FieldExists())
 		{
-			return false;
+			return TrapActionOutcome.NotApplicable; // the latch member the contract expects is gone
+		}
+
+		if (activated.GetValue<bool>())
+		{
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		activated.SetValue(true);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 }

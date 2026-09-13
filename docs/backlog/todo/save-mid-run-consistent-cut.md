@@ -457,9 +457,11 @@ Recorded but NOT fixed (pre-existing; none of them made worse by this increment)
   contribution, and an account ignores a half of another attempt; the red/green pair and the
   verification limits are in *the restore ATTEMPT identity* below).
 - **An action that returns `false` for a reason other than "already in that state"** (e.g.
-  `CrystalStateActions.ApplyCrystalMimic` on a crystal with no mimic effect) is counted as applied by
-  `TrapVisualReplay.ReplayState`, so that divergence can be under-reported. Distinguishing the two
-  needs a tri-state verdict from the shared action library.
+  `CrystalStateActions.ApplyCrystalMimic` on a crystal with no mimic effect) was counted as applied by
+  `TrapVisualReplay.ReplayState`, so that divergence could be under-reported. Distinguishing the two
+  needed a tri-state verdict from the shared action library — **FIXED 2026-09-13** (`TrapActionOutcome`
+  plus the Runtime's one verdict rule; the red/green pair, the family audit and the verification limits
+  are in *the shared action verdict* below).
 - **Sibling-domain gaps** (recorded above): the world-entity registries reset their kernel tables for
   a host only, no layer boundary resets the enemy/fluid/player tables at all, and those reset
   commands stay wire-reachable. Scoping notes for the fix are below (reading, no adversarial pass yet).
@@ -633,6 +635,105 @@ one up without re-deriving it):
 
 
 
+## S3.5 increment follow-up — the shared action verdict (2026-09-13)
+
+Recorded gap 3 is closed: the shared trap/entity action library answered with a `bool`, so
+`TrapVisualReplay.ReplayState` could not tell "the local copy already carries this state" (a duplicate
+from the two-trigger race — the state the row names IS in the world) from "this copy cannot carry the
+fact at all" (a divergence — the fact exists nowhere), and counted BOTH as a row the restore had
+written. The adapter now returns a tri-state verdict and the Runtime owns the single rule that turns
+it into the account's currency.
+
+**The verdict** (`src/CasualtiesUnknownOnline.Runtime/Session/World/TrapActionOutcome.cs`):
+`Applied` (the action wrote the transition), `AlreadyInState` (the local copy already carried it), and
+`NotApplicable` (this entity cannot carry the fact). Every `return` in `TrapStateActions` /
+`CrystalStateActions` names its reason, and the tri-state is COMPILE-enforced at both call sites —
+`TrapVisualReplay.ReplayState` and `TrapEffectApplier.ApplyState` take `Func<T, TrapActionOutcome>`,
+so a future action cannot quietly fall back to a bool. `CrystalMimicAccess.TryActivate` is where the
+conflated case lived and now answers all three: no mimic effect on this crystal (or the latch member
+the field contract expects is gone) is `NotApplicable`, an already-set latch is `AlreadyInState`, and
+`ApplyCrystalMimic` passes that verdict through unchanged.
+
+**The rule** (`Runtime/Session/World/TrapActionVerdict.cs`): `ReachedTheLiveWorld(outcome)`, where the
+outcome is the action's verdict or NULL for "no entity of the expected kind at the position" — the two
+observations every caller actually has. `Applied` and `AlreadyInState` reached the world; everything
+else is REFUSED, and the reached set is written POSITIVELY so a follow-up outcome fails closed (counted
+as refused, never as restored) and has to be classified deliberately. It lives in the Runtime because
+that is where the account's currency lives
+(`EntityEventSync.OnTrapStateProjected` → `LiveWorldWriteOutcome` → `WorldRestoreAudit`), and because
+the rule is then machine-checkable without a game. A refused trap row reaches the report as that
+half's refused COUNT (`GameRestoredWorldFactSink.ApplyWorldEntities` folds the three appliers'
+counts), and the row itself — kind and position — is what the log line names; the adapter keeps only
+what it OBSERVED (was an entity there, what did the action answer) and logs one line per verdict —
+including the new "cannot be represented on the local entity — the fact is NOT in the world" warning,
+which used to be mislabelled as a duplicate. The DESTRUCTIVE families (mine/turret/unstable-crystal
+explosions) keep their consumption checks inline because they do not go through the action library, so
+a future change to what "reached" means has to be applied there too (the review's nit 3).
+
+| mechanism | change | evidence |
+|---|---|---|
+| the Runtime rule (the account's currency) | `TrapActionVerdict.ReachedTheLiveWorld(outcome)` — the action's verdict, or NULL for a missing entity: applied and already-in-state reach, everything else (cannot-carry, no entity, an undeclared verdict) refuses | `TrapActionVerdictTests` (7 cases: applied, duplicate, cannot-carry, no entity, two undeclared-verdict rows that must fail closed, and a `Enum.GetValues` sweep pinning that every declared member carries a deliberate verdict) |
+| the shared action library's verdict | `bool` → `TrapActionOutcome` on all 29 actions (`TrapStateActions` 21, `CrystalStateActions` 8), each `return` naming its own reason | the type system (both call sites take `Func<T, TrapActionOutcome>`); the actions' game-typed bodies are read-only reviewed (see the limits below) |
+| the conflated case | `CrystalMimicAccess.TryActivate` returns `NotApplicable` for "no mimic effect / missing latch member" vs `AlreadyInState` for "already consumed"; `ApplyCrystalMimic` passes it through | `CrystalBehaviour.SetUpEffects` rolls the effect list per crystal — the mimic is one of seventeen weighted effects (weight 8 of 139) and about seven crystals in ten are destroyed before any effect is set (`CrystalBehaviour.cs:83-102`, the mimic weight row at `:196`), so a crystal of the expected kind at the expected position CAN carry no mimic; the mimic's latch is `CrystalMimic.cs:52` |
+| the over-claim the review found | `ApplyHeat` answered `Applied` after its toggle loop could not reach the requested state (an out-of-range `Extra` — the trigger side sends 0..2, `TrapLifepodButtonPatch.cs:25`); `LifepodHeatChanged` IS projectable durable state, so the account read that as restored | `TrapStateActions.ApplyHeat` now answers `NotApplicable` when `heatState != target` after the loop; read-only reviewed (the action needs a live `LifepodController`) |
+| the replay path's verdict | `TrapVisualReplay.ReplayState` / `ReplayShuttleDoor` return the rule's answer instead of "an entity was found" | `TrapVisualReplay.cs` (`ReplayState`, `LogOutcome`, `ReplayShuttleDoor`); the restore account reads it through `EntityEventSync.OnTrapStateProjected` |
+| the host apply path | `TrapEffectApplier.ApplyState` logs the three verdicts distinctly (it feeds no account — it applies a relayed event) | `TrapEffectApplier.cs` (`ApplyState`) |
+| the row can actually reach the replay path | `CrystalMimicTriggered` IS a one-shot consumption (`EntityEventProfiles.cs:36`) → `WorldEntityState.Consumptions` → `WorldEntityKernelProjection.BuildFacts` (`:210-219`) for both roles | `EntityEventProfiles.cs`, `WorldEntityKernelProjection.cs`; `EntityEventProfilesTests` pins the classification table |
+| the whole family | the two action libraries are the ONLY shared-action verdicts; the other appliers that feed the same account (`WorldBuildingEntitySync.OnOpenedEntitiesProjected` / `OnBuildingHealthProjected`) are idempotent by construction (health = 0 again / the same health rewritten), so their `false` is only "no entity there" — the case the account already refuses | grep for `Func<…, bool>` action parameters and `internal static class …Actions` in the adapter; `WorldBuildingEntitySync.cs:188-254` |
+
+- **Red (recorded) — the gap itself**: the verdict type and the rule were threaded in FIRST as a
+  behaviour-preserving step — the rule still answered `entityFound` (the old bool behaviour) while the
+  outcome was already carried — so the red was a real assertion failure rather than a compile error.
+  `TrapActionVerdictTests.ACopyThatCannotCarryTheFact_IsRefusedEvenThoughTheEntityExists` FAILED with
+  `Assert.True() Failure: "an entity that exists but cannot carry the fact must be a REFUSED row the
+  restore report names, never a restored one"` — 1 failed / 4 passed of 5 — and the four other cases
+  passed, so the gap was demonstrated as the divergence case alone.
+- **Red (recorded) — the review's fail-open finding**: after the adversarial pass, the same file gained
+  `AVerdictTheRuleDoesNotKnow_IsRefused` first and was run against the still-fail-open rule:
+  `(TrapActionOutcome)(-1)` and `(TrapActionOutcome)99` both FAILED with
+  `Assert.True() Failure: "an undeclared verdict (99) must fail CLOSED — refused, not counted as
+  restored"` — 2 failed / 5 passed of 7 — because `entityFound && outcome is not NotApplicable` counts
+  every unknown value as reached while both log arms say it is not in the world. The reached set is now
+  written positively (`is Applied or AlreadyInState`), and the entity/no-entity arm became the rule's
+  own nullable input so the no-entity case flows through it instead of around it.
+- **Green**: 7/7; full suite 3018/3018; normative gates 32/32; `dotnet format` exit 0 (the repo's
+  `--verify-no-changes` is never clean — see `AGENTS.local.md`).
+- **Adversarial pass (fresh context, no stake in the change)**: it could NOT falsify the live-path
+  behaviour preservation (the live relay discards `Replay`'s bool — `EntityEventSync.cs:157` — and the
+  only consumer is the restore path at `:185`; `ReplayShuttleDoor`'s live branch can only see
+  `Applied`/`AlreadyInState` and both old log lines survive byte-comparable), the 22 `false →
+  AlreadyInState` conversions (each checked against the decompile), the family audit, the account
+  arithmetic (counted once, no double count, no forever-awaiting), the REACHABILITY of the fixed case
+  (`EntityEventProfiles.cs:36` → `TrapStateRegistry.cs:70-81` → `WorldEntityKernelProjection.cs:210-219`
+  → `ReplayState` — so the fix is not decoration), the mechanism cites, or the structure/wire claims.
+  It DID falsify the absolute "every return is classified right": `ApplyHeat` could answer `Applied`
+  without reaching the requested state (fixed above), plus three over-claims that stay recorded as
+  residuals (below) and two doc-level nits (the "three of seventeen effects" bound; the "ONE rule"
+  wording now naming the destructive family's inline checks). The no-entity rows it called
+  unreachable are gone with the nullable input — that arm is now the production path.
+- **Deployed identity**: the plugin folder on the machine carries this build — 34 DLLs, all 32
+  build-produced ones hash-equal the build output and the two reference DLLs hash-equal `references/`;
+  main `CasualtiesUnknownOnline.dll` `6E9BAE81`, `Runtime` `9204EC3B`, `GameAdapter` `CED4D909` (no
+  sandbox copy of the plugin exists, so no shadow can serve an older build).
+- **NOT proven**: the adapter's game-typed bodies cannot be instantiated in the test host, so WHICH
+  reason each converted `AlreadyInState` names is pinned by reading the decompiled game paths and by
+  the type system, not by a test — the same limit the rest of this domain carries. What a real
+  regenerated layer does with a restored mimic row is the user's dual-client pass.
+- **Recorded, NOT fixed here — moved to its own ticket** (`todo/trap-action-divergence-hardening.md`):
+  the adversarial pass restated three over-claims of the same family with their reachability.
+  `ApplyShower` would throw through `LifepodController.ActivateShower` (`LifepodController.cs:45-47`)
+  if the controller had no shower (a serialized lifepod prefab member) instead of answering
+  `NotApplicable` — and on the restore path that throw reaches `RestoredWorldFactReplay`'s catch,
+  which marks the WHOLE live-world half incomplete and releases every handover (block/damage/keypad/
+  geyser/recipe rows too), not just the shower row. `ApplyBioTerminal` answers `Applied` when the
+  terminal's `BuildingEntity` component is missing, although the unlock itself is then not written.
+  `ApplyCrystalShy` answers `Applied` when its 64-unit scan finds no neighbour, although no swap
+  happened — that one is a different defect shape (a `true` that did nothing rather than a conflated
+  `false`) AND it needs its own evidence question answered first: what the row's position means after
+  a swap, and whether a late-joiner replay re-swaps the right pair. None is demonstrated reachable
+  today, which is why they are recorded rather than patched in this cycle.
+
+
 ## Acceptance
 
 Read this table as TWO claims per row, because they are proven in different places:
@@ -648,7 +749,7 @@ Read this table as TWO claims per row, because they are proven in different plac
 |---|---|---|---|
 | 1 | Mid-run save with mined/placed/quaked blocks + partial damage | Reload reproduces the same block diff exactly (compare against the pinned post-restore dump) | **machine**: both row shapes (a cell diff and the game's own `native-block-damage` row) round-trip (`WorldSnapshotWorldFactsTests.Codec_RoundTripsBothBlockRowShapes`, `.Codec_RoundTripsTheGameDamageRow`); a mid-run cut writes one typed row per fact while a layer-end cut writes both world files empty (`.Encode_MidRunCut_WritesOneTypedRowPerFact`, `.Encode_LayerEndCut_WritesBothWorldFilesEmpty`); the restored tables are applied ABSOLUTELY, never merged onto leftovers (`WorldSnapshotWorldFactsTests.TryContinue_AppliesTheRestoredWorldFactsAbsolutely`); a restored air row arrives with `SupportLossSettled` so a receiver does not re-roll the drops the saved world already rolled (`WorldRestoreSupportLossTests.RestoredBlockStateRows_ArriveMarkedAsSupportLossSettled`); and every row the game's own bounded 128-entry table refuses is named in the outcome (`WorldSnapshotWorldFactsTests.Restore_NamesTheRowsTheBoundedTableRefusedInTheOutcome`). **in-game: user pass** — that the replayed per-cell diff yields the same block map in the regenerated layer, and that the cracked/damaged sprites match |
 | 2 | Mid-run save with world items on the ground, in containers, carried, worn | Same identities, locations, container trees; no duplicates, no loss | **machine**: identity/location/revision survive encode → decode for the whole item domain and the characters (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters`); a container tree keeps exactly one parent per child after a restore (`WorldSaveContinueTests.ContainerTree_AfterRestore_HasExactlyOneParentPerChild`); a CARRIED record is the one that crosses a layer boundary (its `SaveLayerEnd` helper seeds a carried bag, and `TryContinue_Twice_KeepsTheSameFingerprintAndFacts` compares identity/location/revision per item); a terminal record is never resurrected (`WorldSaveContinueTests.RemovedEnemy_StaysTerminalAfterRestore`); a region the game regenerated at a restored item's spot binds to the restored id instead of being published beside it (`HostRestoreItemReconcileTests.ARegeneratedItemAtARestoredItemsSpot_DoesNotBecomeASecondWorldItem`, `RestoredWorldItemContractTests.ARestoredCut_ArmsTheReconcileAndPublishesTheRestoredSet`). **in-game: user pass** — the four restings as the player sees them (on the ground, inside a container, in hand, WORN — the kernel has no separate worn location, so the worn case is a scene-side claim), no duplicate beside a restored ground copy, and the corpse-loot bind in `CorpseScript.Start` |
-| 3 | Mid-run save with opened/damaged buildings, consumed traps, fluids, enemies | Same facts; no re-trigger; no resurrection | **machine**: a consumed trap stays consumed across a restore (`WorldSaveContinueTests.ConsumedTrap_StaysConsumedAfterRestore`); the kernel's per-entity table reaches the host's own world-entry write instead of being dropped with the replaced layer (`WorldEntityProjectionTests.HostCheckpointRestore_ArmsTheWorldEntryWriteWithTheFactsTheGuestProjects`, `.SoloCheckpointRestore_ArmsTheWorldEntryWriteToo`), through the same three appliers the guest path uses, whose refusals reach the restore account (`RestoredWorldFactReplayTests.ApplyIfPending_WorldEntityRowsTheLayerDoesNotHave_ReachTheRestoreAccount`); a restored death is applied as a REMOTE death, so the saved world's drops are not rolled twice (decision 172 + `WorldRestoreSupportLossTests`); opened entities, fluid regions and enemies round-trip (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters`). **in-game: user pass** — that the regenerated world actually shows the consumed traps, opened lockables and damaged buildings, and that no corpse/building drop was re-rolled. The appliers' game-typed bodies are static-reviewed only |
+| 3 | Mid-run save with opened/damaged buildings, consumed traps, fluids, enemies | Same facts; no re-trigger; no resurrection | **machine**: a consumed trap stays consumed across a restore (`WorldSaveContinueTests.ConsumedTrap_StaysConsumedAfterRestore`); the kernel's per-entity table reaches the host's own world-entry write instead of being dropped with the replaced layer (`WorldEntityProjectionTests.HostCheckpointRestore_ArmsTheWorldEntryWriteWithTheFactsTheGuestProjects`, `.SoloCheckpointRestore_ArmsTheWorldEntryWriteToo`), through the same three appliers the guest path uses, whose refusals reach the restore account (`RestoredWorldFactReplayTests.ApplyIfPending_WorldEntityRowsTheLayerDoesNotHave_ReachTheRestoreAccount`) — including a trap row whose entity IS there and cannot carry the fact, which the shared action verdict refuses (`TrapActionVerdictTests`); a restored death is applied as a REMOTE death, so the saved world's drops are not rolled twice (decision 172 + `WorldRestoreSupportLossTests`); opened entities, fluid regions and enemies round-trip (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters`). **in-game: user pass** — that the regenerated world actually shows the consumed traps, opened lockables and damaged buildings, and that no corpse/building drop was re-rolled. The appliers' game-typed bodies are static-reviewed only |
 | 4 | Save during each in-flight state in the table above | The chosen policy applies and is logged; no silent loss, no duplication | **machine**: the policy is a real table with one verdict per class, pinned row by row (`WorldTransientPolicyTests.Rows_CoverEveryInFlightClassTheTicketNames`, `.Verdicts_PerRow_AreTheDecidedOnes`, `.Rows_AreUniqueAndEveryOneCarriesItsOwnerUnitAndReason`, `.Detection_DeclaresTheRowsNoObserverCanCount`); the seam defers the three frame windows with the request still armed (`WorldSaveCutSeamTests.BreakWindow_DefersTheCutAndKeepsItArmed`), takes the cut once the state resolves (`.BreakWindow_Resolved_TakesTheCutOnTheNextFrame`), names a window that outlasts `MaxCutDeferralFrames` instead of starving the request (`.BreakWindow_OutlastingTheDeadline_IsNamedInTheReport`), names counted drops (`.DroppedState_IsNamedWhileTheCutStillSucceeds`) and the game-owned `Standing` classes without claiming a count nobody has (`.StandingRows_AreNamedEvenThoughNoCounterCanSeeThem`), REFUSES an undeclared class (`.UndeclaredTransientClass_RefusesTheCutAndWritesNothing`) and refuses to write a clean-looking snapshot from an unreadable native table (`.UnreadableNativeTable_RefusesTheCutAndWritesNothing`); the runtime half of the observation is merged with the adapter half (`.RuntimeHalfOfTheObservation_IsMergedIntoTheCutReport`, `.Observation_MergesBothHalvesOfTheSameClass`), and the player-facing report is printed for a cut the player asked for (`CommandConsoleSaveTests.CutReport_IsPrintedForTheCutsThePlayerAskedFor`). **in-game: user pass** — that the deferral is invisible in play and the reported class list matches what the player saw |
 | 5 | Save → load → save → load | Byte-comparable domain tables (modulo timestamps/revisions); world fingerprint stable | **machine**: restoring the same snapshot twice converges on the same item identity/location/revision, the same revision counter and the same run id (`WorldSaveContinueTests.TryContinue_Twice_KeepsTheSameFingerprintAndFacts`); a salvaged snapshot opens identically twice and leaves the live files untouched (`SaveArchiveSalvageTests.SalvagedSnapshot_OpensTwiceIdentically_AndLeavesTheLiveFilesUntouched`); the folder recovery pass is idempotent (`WorldFolderRecoveryTests.RecoveryIsIdempotent_ASecondPassHasNothingLeftToDo`); a manifest that lists the same file twice is not applied twice (`SaveArchiveContractFixesTests.ManifestListingTheSameFileTwice_IsNotAppliedTwice`); a float condition survives the text format exactly (`WorldSnapshotCodecTests.Encode_FloatCondition_RoundTripsExactly`). **Not machine-proven**: byte-level reproducibility of the produced JSON/archive itself — no test asserts that two encodes of the same checkpoint are byte-identical. **in-game: user pass** — a real save → load → save → load cycle in one session leaves the world fingerprint stable |
 | 6 | Save taken mid-frame while a command batch is pending | The cut is consistent: no half-applied operation in the snapshot, revision matches the payload | **machine**: the manifest's `globalRevision` equals the checkpoint the payload was written from (`WorldSaveCaptureTests.MenuReturnCut_MenuReturnPhaseIsRecordedOnTheManifest`); the manifest records which seam took the cut (`WorldSaveCaptureTests.MenuReturnCut_WritesTheHostCharacterUnderTheSteamKey`, `WorldSaveCutSeamTests.ArmedCut_IsTakenAtTheSeamAndClearsTheRequest`); a layer-end-class cut cannot be armed at the frame-end seam (`WorldSaveCutSeamTests.LayerEndTrigger_CannotBeArmedAtTheSeam`); a request armed for a world a new run superseded is dropped (`.NewRun_DropsARequestArmedForThePreviousWorld`); a menu return supersedes a queued command cut with one snapshot and one reason (`.MenuReturn_SupersedesAQueuedCommandCut_OneSnapshotOneReason`). **Structural, not testable in this host**: "no half-applied batch" is the seam's POSITION — the CUO pump's last step, after every domain update and the frame's drop/break flushes (`docs/architecture/save-archive-format.md` §4, decision 167) — and the trigger only ARMS, so no cut runs inside the console callback. **in-game: user pass** — that nothing the player did appears half-applied after the restore |
@@ -711,7 +812,10 @@ in-game rows open.
          (the narrow `IRestoredWorldItemSource` port, the red/green pair and the family check are in the
          follow-up section above).
       3. a shared-action `false` that means "not applicable" is counted as applied by
-         `TrapVisualReplay.ReplayState`, so that divergence can be under-reported.
+         `TrapVisualReplay.ReplayState`, so that divergence can be under-reported. — **FIXED
+         2026-09-13** (the shared action verdict: `TrapActionOutcome` plus the Runtime's
+         `TrapActionVerdict`; the red/green pair, the family audit and the verification limits are in
+         *the shared action verdict* above).
       4. the sibling-domain reset family: host-only kernel resets, no layer boundary reset for the
          enemy/fluid/player tables, and those reset commands stay wire-reachable.
 - [ ] **Development verification trail is on `master` for the commit being moved**: the named suites

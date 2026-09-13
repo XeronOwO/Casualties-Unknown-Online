@@ -35,7 +35,8 @@ side:
   the world effects that the `MineExploded` event already replays.
 - A tiny `MinePressReplayMarker` component (added by the replay action) owns the
   duplicate guard for this transient one-way edge: a second guest's report of
-  the same press returns false and is dropped with the standard trace. The
+  the same press answers `TrapActionOutcome.AlreadyInState` (the state IS in the
+  world, so it is not a lost row) and is dropped with the standard trace. The
   marker lives on the mine and dies with it when the `MineExploded` replay
   consumes the entity.
 - `MinePressed` is deliberately **not** a one-shot consumption in
@@ -52,7 +53,7 @@ side:
 | `MineScript.OnCollisionEnter2D` | Native press (sound + sprite + `pressed=true`) stays the single source of truth on the trigger side | Decompiled `MineScript.cs:44-51` |
 | `MineScript.Update` | Native explosion timing unchanged; peers never receive a natural `pressed=true`, so they cannot locally double-explode | `MineScript.cs:28-39`; `TrapStateActions.ApplyMinePressed` |
 | `TrapMinePressPatch` | Reports `MinePressed` on the false→true `pressed` edge | `TrapMinePressPatch.cs` |
-| `TrapStateActions.ApplyMinePressed` | Replays `pressedSprite` + `"mine"` sound; adds `MinePressReplayMarker`; returns false on already-pressed / exploded / marker | `TrapStateActions.ApplyMinePressed` |
+| `TrapStateActions.ApplyMinePressed` | Replays `pressedSprite` + `"mine"` sound; adds `MinePressReplayMarker`; answers `AlreadyInState` on already-pressed / exploded / marker (never `NotApplicable` — the action cannot be unrepresentable here) | `TrapStateActions.ApplyMinePressed`, `TrapActionOutcome` |
 | `MinePressReplayMarker` | Inert CUO-owned duplicate guard on the mine object | `MinePressReplayMarker.cs` |
 | Event classification | `MinePressed` stays repeatable-classified / non-snapshot; `MineExploded` remains the durable one-shot consumption | `EntityEventArchives`, `EntityEventProfiles`, `EntityEventSimulationTests.MinePressed_DoesNotClobberMineExplodedSnapshotFact` |
 | Late joiner | MineExploded remains the only snapshot fact; a late joiner still sees the explosion replay, not a stale press | `EntityEventSimulationTests.MinePressed_TransientEdge_NotInLateJoinerSnapshot` |

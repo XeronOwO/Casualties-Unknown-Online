@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
@@ -9,9 +10,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// guests (TrapVisualReplay): find the crystal at the event position, apply the
 /// transition, the crystal's own Update/animation drives the rest. Each action
 /// mirrors the game's own code path (the trigger side ran the original) and
-/// returns whether it APPLIED — false means the local copy already consumed the
-/// transition (a duplicate event — the two-trigger race: both sides touched
-/// the same crystal almost simultaneously). The caller logs the drop.
+/// returns <see cref="TrapActionOutcome"/>: APPLIED when it wrote the
+/// transition, ALREADY IN STATE when the local copy had consumed it (a
+/// duplicate event — the two-trigger race: both sides touched the same crystal
+/// almost simultaneously), and NOT APPLICABLE when this copy cannot carry the
+/// fact at all (the divergence case — a restore must not count such a row as
+/// reached; see <see cref="TrapActionVerdict"/>).
 /// </summary>
 internal static class CrystalStateActions
 {
@@ -20,26 +24,26 @@ internal static class CrystalStateActions
 	/// already located the crystal (CrystalEffect is a plain class, not a
 	/// component — the CrystalBehaviour carries the transform); the health
 	/// check drops duplicates.</summary>
-	internal static bool ApplyCrystalFragile(CrystalBehaviour crystal)
+	internal static TrapActionOutcome ApplyCrystalFragile(CrystalBehaviour crystal)
 	{
 		if (crystal.build.health < 0.5f)
 		{
-			return false; // already consumed — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
 
 		Sound.Play("glass", crystal.transform.position, false, true, null, 1f, 1f, false, false);
 		crystal.build.health = 0f;
 		crystal.gameObject.AddComponent<RemoteEntityDeath>();
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Electric crystal shock: zap + shake (the ring animation runs on
 	/// the crystal's own Update everywhere).</summary>
-	internal static bool ApplyCrystalElectric(CrystalBehaviour crystal)
+	internal static TrapActionOutcome ApplyCrystalElectric(CrystalBehaviour crystal)
 	{
 		Sound.Play("zap", crystal.transform.position, false, true, null, 1f, 1f, false, false);
 		PlayerCamera.main.shaker.Shake(200f);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Teleport crystal touched (CrystalTeleport.cs:14-38): the
@@ -48,11 +52,11 @@ internal static class CrystalStateActions
 	/// the exact 2D observerlaugh + FlashBrief the trigger side played; this
 	/// event is repeatable (no crystal latch) and does not write any entity
 	/// state.</summary>
-	internal static bool ApplyCrystalTeleport(CrystalBehaviour crystal)
+	internal static TrapActionOutcome ApplyCrystalTeleport(CrystalBehaviour crystal)
 	{
 		Sound.Play("observerlaugh", Vector2.zero, true, false, null, 1f, 1f, true, true);
 		PlayerCamera.main.StartCoroutine("FlashBrief");
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Unstable crystal ticked (transient): THIS side's copy now replays
@@ -65,16 +69,16 @@ internal static class CrystalStateActions
 	/// CrystalUnstableExploded event already replays (the mine-press rule). A
 	/// copy already ticking natively (its local player touched it — the
 	/// two-trigger race) or already replaying drops.</summary>
-	internal static bool ApplyCrystalUnstableTicked(CrystalBehaviour crystal)
+	internal static TrapActionOutcome ApplyCrystalUnstableTicked(CrystalBehaviour crystal)
 	{
 		if (CrystalUnstableAccess.IsTimerStarted(crystal) || CrystalTickingReplay.IsPresent(crystal))
 		{
-			return false; // already ticking natively / already replaying — a duplicate event
+			return TrapActionOutcome.AlreadyInState; // already ticking natively / already replaying — a duplicate event
 		}
 
 		Sound.Play("crystaltick", crystal.transform.position, true, false, crystal.transform, 1f, 1f, false, false);
 		CrystalTickingReplay.Begin(crystal);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Mimic crystal triggered: consume the one-shot latch (the
@@ -82,12 +86,17 @@ internal static class CrystalStateActions
 	/// spawned enemies ride EntitySpawned + EnemyRuntimeSpawn, never here).
 	/// Live replays play the SAME 2D observerlaugh call as the trigger side
 	/// (CrystalMimic.cs:29/43); a late-joiner snapshot replay passes
-	/// playSound=false — an old laugh must not fire over the joiner.</summary>
-	internal static bool ApplyCrystalMimic(CrystalBehaviour crystal, bool playSound)
+	/// playSound=false — an old laugh must not fire over the joiner. The access
+	/// helper's verdict is passed through UNCHANGED: "the latch was already
+	/// consumed" and "this crystal carries no mimic effect" are different answers
+	/// (see the class doc), and only the second is a row the restore must count as
+	/// refused.</summary>
+	internal static TrapActionOutcome ApplyCrystalMimic(CrystalBehaviour crystal, bool playSound)
 	{
-		if (!CrystalMimicAccess.TryActivate(crystal))
+		var outcome = CrystalMimicAccess.TryActivate(crystal);
+		if (outcome is not TrapActionOutcome.Applied)
 		{
-			return false; // already consumed, or no mimic at this position
+			return outcome; // already consumed (a duplicate) or no mimic on this copy (not applicable)
 		}
 
 		if (playSound)
@@ -95,7 +104,7 @@ internal static class CrystalStateActions
 			Sound.Play("observerlaugh", Vector2.zero, true, false, null, 1f, 1f, true, true);
 		}
 
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Metamorphic crystal triggered (the death rides BuildingEntityDamaged,
@@ -103,11 +112,11 @@ internal static class CrystalStateActions
 	/// the white screen flash + the laugh, exactly the trigger side's path
 	/// (CrystalMetamorphic.cs:25, :32). Re-applying is harmless — the death
 	/// consumption is what guards duplicates.</summary>
-	internal static bool ApplyCrystalMetamorphic(CrystalBehaviour crystal)
+	internal static TrapActionOutcome ApplyCrystalMetamorphic(CrystalBehaviour crystal)
 	{
 		PlayerCamera.main.StartCoroutine("FlashBrief");
 		Sound.Play("crystalenemylaugh", crystal.transform.position, false, true, null, 1f, 1f, false, false);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>Shy crystal swapped: re-run the trigger side's scan — the first
@@ -115,7 +124,7 @@ internal static class CrystalStateActions
 	/// positions, the observerlaugh the swap's audible cue. The scan order has
 	/// no formal guarantee, but the crystals are generation-static and the world
 	/// is deterministic (recorded in the entity-features matrix).</summary>
-	internal static bool ApplyCrystalShy(CrystalBehaviour crystal)
+	internal static TrapActionOutcome ApplyCrystalShy(CrystalBehaviour crystal)
 	{
 		foreach (var collider in Physics2D.OverlapCircleAll(crystal.transform.position, 64f, LayerMask.GetMask("Ground")))
 		{
@@ -134,18 +143,18 @@ internal static class CrystalStateActions
 			}
 		}
 
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 
 	/// <summary>EMP crystal activated (the battery drain rides the item domain):
 	/// the white flash + the crystalemp sound + the shake — the darkening runs on
 	/// the crystal's own Update once it is white (CrystalEMP.cs:54-64), so the
 	/// black-state transition is what the update drives afterwards.</summary>
-	internal static bool ApplyCrystalEMP(CrystalBehaviour crystal)
+	internal static TrapActionOutcome ApplyCrystalEMP(CrystalBehaviour crystal)
 	{
 		crystal.SetColor(Color.white);
 		Sound.Play("crystalemp", crystal.transform.position, false, true, null, 1f, 1f, false, false);
 		PlayerCamera.main.shaker.Shake(200f);
-		return true;
+		return TrapActionOutcome.Applied;
 	}
 }

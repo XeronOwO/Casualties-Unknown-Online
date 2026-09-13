@@ -846,7 +846,8 @@ a future change to what "reached" means has to be applied there too (the review'
   reason each converted `AlreadyInState` names is pinned by reading the decompiled game paths and by
   the type system, not by a test — the same limit the rest of this domain carries. What a real
   regenerated layer does with a restored mimic row is the user's dual-client pass.
-- **Recorded, NOT fixed here — moved to its own ticket** (`todo/trap-action-divergence-hardening.md`):
+- **Recorded, NOT fixed here — moved to its own ticket** (`review/trap-action-divergence-hardening.md`,
+  closed by that ticket's own cycle and decisions 175):
   the adversarial pass restated three over-claims of the same family with their reachability.
   `ApplyShower` would throw through `LifepodController.ActivateShower` (`LifepodController.cs:45-47`)
   if the controller had no shower (a serialized lifepod prefab member) instead of answering

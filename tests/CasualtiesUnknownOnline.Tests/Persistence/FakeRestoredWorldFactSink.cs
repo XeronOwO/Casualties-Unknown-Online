@@ -28,6 +28,13 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 	/// </summary>
 	internal bool ThrowOnBlockWrite { get; set; }
 
+	/// <summary>Simulate a WORLD-ENTITY ROW throwing (the trap replay's one shared action
+	/// reaching an engine call the local copy cannot serve): the write that threw is the
+	/// entity half's, and the halves that had already landed must keep their accounting
+	/// instead of being reported as not taken — see <c>RestoredWorldFactReplayTests</c>.
+	/// </summary>
+	internal bool ThrowOnWorldEntityWrite { get; set; }
+
 	/// <summary>Every call this sink received, in order.</summary>
 	internal List<string> Calls { get; } = [];
 
@@ -148,6 +155,11 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 	public LiveWorldWriteOutcome ApplyWorldEntities(RestoredWorldEntityFacts facts)
 	{
 		Calls.Add("apply-world-entities");
+		if (ThrowOnWorldEntityWrite)
+		{
+			throw new InvalidOperationException("a restored world-entity row reached an engine call it cannot serve");
+		}
+
 		if (!WorldReady || RefuseWorldEntities)
 		{
 			return new LiveWorldWriteOutcome(0, facts.Count);

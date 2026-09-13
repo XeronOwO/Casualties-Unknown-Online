@@ -346,6 +346,53 @@ public sealed class RestoredWorldFactReplayTests
 	}
 
 	[Fact]
+	public void ApplyIfPending_WhenAWorldEntityRowThrows_DoesNotBlameTheHalvesThatLanded()
+	{
+		// A throwing ROW lives in the world-entity half, so it is that half's failure and
+		// nothing else's: the block diff, the partial damage and the decided values were
+		// written AND counted before the throw, and a report that names them as not taken
+		// is a false alarm — while releasing their handover discards the record that they
+		// did land. The half that threw is named, reported incomplete and released, exactly
+		// like a REFUSED entity row (the row the regenerated layer has no entity for).
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { ThrowOnWorldEntityWrite = true };
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Sequence = Attempt, Facts = EntityFacts() };
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-entity-threw", Attempt, expectedContributions: 2);
+		var replay = new RestoredWorldFactReplay(
+			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
+		native.SeedKeypad(5f, 6f, "1234");
+		native.ApplyKeypadCodes(native.Keypads); // arm this half's handover: its COMMIT is what the throw must not take away
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+		Assert.Contains("threw", string.Join("; ", report.Refused), StringComparison.Ordinal);
+		Assert.DoesNotContain(
+			report.Refused,
+			entry => entry.IndexOf("the live-world write threw", StringComparison.Ordinal) >= 0);
+
+		// The half that landed says so and stays committed: its rows ARE in the live world.
+		Assert.Contains("took every restored fact", report.Summary, StringComparison.Ordinal);
+		Assert.Contains("commit-pending", native.Calls);
+		Assert.DoesNotContain("cancel-pending", native.Calls);
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.False(native.HasPendingRestore);
+
+		// The half that threw is the one released — no leak into the next generation's layer.
+		Assert.Equal(1, entities.Reads);
+		Assert.Single(entities.Cancels);
+		Assert.Equal(0, entities.Commits);
+		Assert.False(entities.Armed);
+		Assert.False(replay.HasPending);
+	}
+
+	[Fact]
 	public void ApplyIfPending_NothingToWrite_CompletesAnAwaitingAudit()
 	{
 		// A layer-end cut carries no live-world fact, so its restore reaches the

@@ -49,7 +49,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// Each half reports to <see cref="WorldRestoreAudit"/> on its own, because each
 /// one can land or be refused independently: a refused entity row is not evidence
 /// that the block diff did not land, and the restore's account must be complete
-/// either way.
+/// either way. A half that THROWS is scoped the same way — the world-entity half's
+/// write is contained in its own step, so a row of it reaching an engine call the
+/// local copy cannot serve is reported (and released) as that half's loss instead
+/// of discarding the accounting and the commit of the halves that had already
+/// landed; only a throw in the world-fact steps themselves fails both.
 /// </summary>
 internal sealed class RestoredWorldFactReplay(
 	IWorldFactSource facts,
@@ -137,6 +141,10 @@ internal sealed class RestoredWorldFactReplay(
 		LiveWorldWriteOutcome geysers;
 		LiveWorldWriteOutcome recipes;
 		LiveWorldWriteOutcome? entities = null;
+
+		// The world-entity half's own failure, when its write threw: it is reported as
+		// that half's loss (with the throw as the reason) instead of as every half's.
+		string? entityThrow = null;
 		RadiationLineStateMsg? radiation;
 		bool radiationApplied;
 		try
@@ -166,23 +174,16 @@ internal sealed class RestoredWorldFactReplay(
 			// publish would silently overwrite a restored value with it.
 			radiation = _facts.CaptureRadiationLine();
 			radiationApplied = radiation is not null && _sink.ApplyRadiationLine(radiation);
-
-			// 6. The per-entity facts. They land last because they name objects that
-			// have to stand in a world whose cells are already the restored ones.
-			if (entitiesPending)
-			{
-				entities = _sink.ApplyWorldEntities(_worldEntities!.ReadPendingFacts());
-			}
 		}
 		catch (Exception ex)
 		{
-			// An engine call threw: nothing about this replay can be trusted — not the
+			// An engine call threw: nothing about THIS half can be trusted — not the
 			// rows written before the throw, not the ones after it. "The write threw" is
-			// the verdict the restore report carries AND the reason EVERY handover is
+			// the verdict the restore report carries AND the reason both handovers are
 			// released here: keeping one would replay this layer's rows into the next
 			// generation, which is the one thing the replay's read-then-commit exists to
-			// prevent. Every half that was owed reports, so the audit never waits for a
-			// contribution that this path just made impossible.
+			// prevent. The world-ENTITY half never ran, so it reports that too rather than
+			// leaving the audit waiting for a contribution this path just made impossible.
 			_audit?.LiveWriteFinished(
 				factSequence,
 				complete: false,
@@ -202,6 +203,27 @@ internal sealed class RestoredWorldFactReplay(
 			_worldEntities?.CancelPendingRestore($"the live-world write threw ({ex.Message})");
 			_log.LogError(ex, "[SaveFacts] the live-world write threw — the restored state is INCOMPLETE and every handover is released.");
 			return;
+		}
+
+		// 6. The per-entity facts. They land last because they name objects that have to
+		// stand in a world whose cells are already the restored ones — and they are
+		// contained as their OWN half here, throw included. The rows above were written
+		// AND counted before this call; a row of THIS half reaching an engine call the
+		// local copy cannot serve is this half's failure, not evidence about theirs, and
+		// the account of a half that already landed must survive it (the same rule the
+		// refused-row path below carries: a refused entity row is not evidence that the
+		// block diff did not land).
+		if (entitiesPending)
+		{
+			try
+			{
+				entities = _sink.ApplyWorldEntities(_worldEntities!.ReadPendingFacts());
+			}
+			catch (Exception ex)
+			{
+				entityThrow = ex.Message;
+				_log.LogError(ex, "[SaveFacts] the restored world-entity write threw — that half is reported incomplete and released; the halves that already landed keep their account.");
+			}
 		}
 
 		var refused = blocks.Refused + damages.Refused + keypads.Refused + geysers.Refused + recipes.Refused;
@@ -272,7 +294,21 @@ internal sealed class RestoredWorldFactReplay(
 				radiation is null ? "absent" : radiationApplied ? "applied" : "no live line");
 		}
 
-		if (entities is { } entityWrite)
+		if (entityThrow is not null)
+		{
+			// The half that threw is accounted exactly like a half whose rows were
+			// REFUSED: the throw left no way to know how far its row loop got, so the
+			// rows it was handed are named as NOT FULLY written, and the handover is
+			// released rather than left armed for another generation's layer. The halves
+			// above keep their own account and their commit — they had already landed.
+			_audit?.LiveWriteFinished(
+				entitySequence,
+				complete: false,
+				refused: [$"the world-entity facts were not fully written (the write threw: {entityThrow})"],
+				summary: $"the restored world-entity facts were not fully written: the write threw ({entityThrow})");
+			_worldEntities?.CancelPendingRestore($"the world-entity write threw ({entityThrow})");
+		}
+		else if (entities is { } entityWrite)
 		{
 			// The world-entity half is accounted on its own: it is the one half whose
 			// rows can be refused individually (the regenerated layer is expected to
@@ -306,8 +342,12 @@ internal sealed class RestoredWorldFactReplay(
 			keypads.Applied, restore.Keypads.Count, geysers.Applied, restore.Geysers.Count,
 			recipes.Applied, restore.Recipes.Count,
 			radiation is null ? "absent" : radiationApplied ? "applied" : "no live line",
-			entities is { } written ? $"{written.Applied} applied / {written.Refused} refused" : "not carried",
+			entities is { } written
+				? $"{written.Applied} applied / {written.Refused} refused"
+				: entityThrow is not null ? $"refused (the write threw: {entityThrow})" : "not carried",
 			refused + (entities?.Refused ?? 0),
-			liveWorldComplete && (entities?.Refused ?? 0) == 0 ? "complete" : "INCOMPLETE (reported at error level, not retried)");
+			liveWorldComplete && entityThrow is null && (entities?.Refused ?? 0) == 0
+				? "complete"
+				: "INCOMPLETE (reported at error level, not retried)");
 	}
 }

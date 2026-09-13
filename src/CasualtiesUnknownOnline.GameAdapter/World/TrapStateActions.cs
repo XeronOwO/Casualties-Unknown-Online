@@ -48,9 +48,33 @@ internal static class TrapStateActions
 	/// trigger side sends 0..2, so this is a corrupt or foreign Extra) leaves the
 	/// controller on a state the row does not name: that is NOT APPLICABLE, never
 	/// an applied row — `LifepodHeatChanged` is durable projectable state, so the
-	/// restore account reads this answer.</summary>
+	/// restore account reads this answer.
+	///
+	/// The row carries the heat state the toggle REACHED, so a copy with no heater
+	/// cannot represent a state it does not already hold: every step of the cycle writes
+	/// `heater.desiredTemp` / `heater.enabled` (LifepodController.cs:25-26/33-34/39),
+	/// and `heater` is one of the two inspector members the controller's own Start
+	/// never touches (it writes heatSprite, disinfectSprite and heatButton,
+	/// LifepodController.cs:8-13) — nothing else in the game's lifecycle would have
+	/// noticed its absence. The state the row names is checked FIRST, though: a copy
+	/// already AT the row's state is APPLIED with no heater needed (the heater is only
+	/// the way to REACH a state), and only a copy that would have to toggle refuses.
+	/// That refusal is what keeps the unguarded game call out of the restore path: the
+	/// exception would escape the replay's row loop, discard the rest of the entity
+	/// half's rows and report that whole half as not written (before the half-scoped
+	/// containment it discarded the live-world half's account and every handover).</summary>
 	internal static TrapActionOutcome ApplyHeat(LifepodController controller, byte target)
 	{
+		if (controller.heatState == target)
+		{
+			return TrapActionOutcome.Applied; // already at the row's state — nothing to toggle (a duplicate, or a no-op)
+		}
+
+		if (controller.heater == null) // Unity object — ==
+		{
+			return TrapActionOutcome.NotApplicable; // no heater on this copy: the state cannot be REACHED here
+		}
+
 		var guard = 0;
 		while (controller.heatState != target && guard++ < 4)
 		{
@@ -64,10 +88,25 @@ internal static class TrapStateActions
 
 	/// <summary>Shower button: activate (ActivateShower → shower.Activate + the
 	/// disinfect sprite; the shower's own Update cleanses the local real body
-	/// for 3 s). The shower's activated flag is the consumption mark.</summary>
+	/// for 3 s). The shower's activated flag is the consumption mark.
+	///
+	/// The row names the shower ACTIVATION, so a copy whose prefab carries no
+	/// shower cannot carry the fact: `ActivateShower` dereferences `this.shower`
+	/// unconditionally (LifepodController.cs:45-49), and `shower` is an inspector
+	/// member the controller's own Start never touches — the same silent absence as
+	/// the heater. NOT APPLICABLE keeps that unguarded game call out of the restore
+	/// path, where its exception would escape the replay's row loop, discard the rest
+	/// of the entity half's rows and report that half as not written (before the
+	/// half-scoped containment it discarded the live-world half's account and every
+	/// handover): one row's divergence must not cost the rows behind it.</summary>
 	internal static TrapActionOutcome ApplyShower(LifepodController controller)
 	{
-		if (controller.shower != null && controller.shower.activated) // Unity object — ==
+		if (controller.shower == null) // Unity object — ==
+		{
+			return TrapActionOutcome.NotApplicable; // no shower on this copy: the activation exists nowhere
+		}
+
+		if (controller.shower.activated)
 		{
 			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
 		}
@@ -79,21 +118,30 @@ internal static class TrapStateActions
 	/// <summary>Blood terminal unlocked: Backgroundify the terminal and every
 	/// reinforceddoor in a 6 m radius (BioTerminalScript.cs:33-43, minus the
 	/// blood consumption — that already happened on the trigger side). The
-	/// terminal's disabled collider is the consumption mark.</summary>
+	/// terminal's disabled collider is the consumption mark.
+	///
+	/// The trigger patch reports the collider's enabled → disabled transition
+	/// (TrapBioTerminalPatch.cs:21-32), so the Backgroundify IS the fact this row
+	/// carries: a copy that has no BuildingEntity to backgroundify cannot carry it
+	/// at all, and the unlock is REFUSED rather than answered APPLIED off the sound
+	/// alone. The refusal writes nothing — the beep and the neighbouring doors are
+	/// parts of the same unlock, and half of it would leave the terminal
+	/// interactive while the account calls the row restored.</summary>
 	internal static TrapActionOutcome ApplyBioTerminal(BioTerminalScript terminal)
 	{
 		var building = terminal.GetComponent<BuildingEntity>(); // the private field's value (BioTerminalScript.Start)
-		if (building != null) // Unity object — ==
+		if (building == null) // Unity object — ==
 		{
-			var collider = building.GetComponent<Collider2D>();
-			if (collider != null && !collider.enabled) // Unity object — ==
-			{
-				return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
-			}
-
-			building.Backgroundify();
+			return TrapActionOutcome.NotApplicable; // no building to backgroundify: the unlock exists nowhere
 		}
 
+		var collider = building.GetComponent<Collider2D>();
+		if (collider != null && !collider.enabled) // Unity object — ==
+		{
+			return TrapActionOutcome.AlreadyInState; // already consumed — a duplicate event
+		}
+
+		building.Backgroundify();
 		Sound.Play("beep", terminal.transform.position, false, true, null, 1f, 1f, false, false);
 		BackgroundifyNearbyDoors(terminal.transform.position, 6f);
 		return TrapActionOutcome.Applied;
@@ -103,7 +151,17 @@ internal static class TrapStateActions
 	/// description from scrapAmount every frame); at 100 % run the unlock
 	/// (Backgroundify + the 2 m doors + beep — ScrapEaterScript.cs:27-39).
 	/// A PROGRESS event always applies (every feed reports the new gauge);
-	/// the unlock part is idempotent (Backgroundify re-runs are no-ops).</summary>
+	/// the unlock part is idempotent (Backgroundify re-runs are no-ops).
+	///
+	/// The gauge IS the fact this row carries — the trigger patch reports every
+	/// successful feed with the progress it reached (TrapScrapEaterPatch.cs:21-27),
+	/// and the kernel row is overwritten by the next feed — and `scrapAmount` is a
+	/// plain field this action always writes, so the verdict stays APPLIED when the
+	/// entity's own building is missing: the 100 % unlock is a CONSEQUENCE of the
+	/// gauge, and a null `build` would already be throwing in the game's own
+	/// ScrapEaterScript.Update (ScrapEaterScript.cs:16) on that copy. (The bio
+	/// terminal's row is the opposite case: its patch reports the unlock itself, so
+	/// there the missing building refuses the row.)</summary>
 	internal static TrapActionOutcome ApplyScrapEater(ScrapEaterScript eater, byte progress)
 	{
 		eater.scrapAmount = progress / 100f * ScrapEaterScript.target;
@@ -126,7 +184,12 @@ internal static class TrapStateActions
 	/// (MedStationScript.cs:24-27). A LOCAL real body standing in the station
 	/// gets the same treatment as the trigger side's (the laser anim + heal —
 	/// copied from HealBody, MedStationScript.cs:32-61; the station is a shared
-	/// one-shot, both sides' players in it benefit together).</summary>
+	/// one-shot, both sides' players in it benefit together).
+	///
+	/// The `didHeal` latch IS the fact this row carries (the trigger patch reports
+	/// that rise, TrapMedStationPatch.cs:17-22), and it is written unconditionally
+	/// before anything else, so the verdict stays APPLIED — same rule as the scrap
+	/// eater's gauge, and the opposite of the bio terminal's unlock.</summary>
 	internal static TrapActionOutcome ApplyMedStation(MedStationScript station)
 	{
 		if (Traverse.Create(station).Field("didHeal").GetValue<bool>())

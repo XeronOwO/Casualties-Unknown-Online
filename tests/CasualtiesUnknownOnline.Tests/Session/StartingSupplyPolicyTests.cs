@@ -108,34 +108,49 @@ public class StartingSupplyPolicyTests
 		// WorldGeneration.cs:1891 verbatim: totalTraveled <= 0 && biomeOverride == None
 		// && debugStartDepth == 0. On that layer the game itself hands the supplies out,
 		// so CUO handing them out again is the duplicate this rule exists to prevent.
-		Assert.True(Probe.NativeGrantCovers(Baseline(Full), restoredGeneration: false));
+		Assert.True(Probe.NativeGrantCovers(Baseline(Full)));
 
 	[Fact]
-	public void NativeGrantCovers_ARestoredGeneration_IsFalse() =>
-		// The half the game cannot see: a restored run frozen on its starting layer has
-		// the same totalTraveled/biomeOverride as a fresh one, so the game's own test
-		// answers "already supplied" for a world whose supplies were never handed out by
-		// that path. Treating it as covered is exactly the gap S4.3 closes.
-		Assert.False(Probe.NativeGrantCovers(Baseline(Full), restoredGeneration: true));
+	public void NativeGrantCovers_ARestoredStartingLayer_IsStillTrue() =>
+		// The S4.3 adversarial review's BLOCKER, pinned. A CUO continue lets the native
+		// PreRunScript.LoadRun run (PreRunScriptLoadRunPatch), which loads the scene and walks
+		// WorldGeneration.GenerateWorld → WorldPlacePlayer, while CUO blocks
+		// SaveSystem.TryLoadGame — the only thing that ever wrote a non-zero totalTraveled on
+		// a load. So a restored run frozen on its starting layer reaches the game's grant with
+		// the archive's own totalTraveled == 0 and the game DOES hand the supplies out.
+		//
+		// The rule's first version carried an extra "unless the generation came from an
+		// archive" clause, which flipped exactly this case to Granted: the native grant had
+		// just filled the slots, Body.PickUpItem refused every one of them silently, and a
+		// second set of items was left on the ground as world items. No Runtime fact may be
+		// allowed back into this condition — it is the game's own.
+		Assert.True(Probe.NativeGrantCovers(Baseline(Full)));
 
 	[Fact]
 	public void NativeGrantCovers_AfterTheFirstLayer_IsFalse() =>
-		Assert.False(Probe.NativeGrantCovers(Baseline(Full, totalTraveled: 120), restoredGeneration: false));
+		Assert.False(Probe.NativeGrantCovers(Baseline(Full, totalTraveled: 120)));
 
 	[Fact]
 	public void NativeGrantCovers_TheTutorial_IsFalse() =>
 		// biomeOverride == Tutorial (1) fails the game's own test, so the game hands out
 		// nothing — and neither does CUO (its decision reports Disabled for a run with no
 		// settings, which the tutorial always is).
-		Assert.False(Probe.NativeGrantCovers(Baseline(Full, biomeOverride: 1), restoredGeneration: false));
+		Assert.False(Probe.NativeGrantCovers(Baseline(Full, biomeOverride: 1)));
+
+	[Fact]
+	public void NativeGrantCovers_ARunStartedAtADebugDepth_IsFalse() =>
+		// The third clause of the game's own test (WorldGeneration.cs:1891): a run the player
+		// started from the debug console is not the run's first layer, so the game hands out
+		// nothing and CUO must supply rather than report AlreadyOwned.
+		Assert.False(Probe.NativeGrantCovers(Baseline(Full, debugStartDepth: 2)));
 
 	[Fact]
 	public void NativeGrantCovers_AStoredRun_IsFalse() =>
-		Assert.False(Probe.NativeGrantCovers(Baseline(Full, loadedRun: true), restoredGeneration: false));
+		Assert.False(Probe.NativeGrantCovers(Baseline(Full, loadedRun: true)));
 
 	[Fact]
 	public void NativeGrantCovers_NoBaseline_IsFalse() =>
-		Assert.False(Probe.NativeGrantCovers(null, restoredGeneration: false));
+		Assert.False(Probe.NativeGrantCovers(null));
 
 	// ---- the decision itself ----
 
@@ -148,8 +163,7 @@ public class StartingSupplyPolicyTests
 		var decision = Probe.Decide(
 			restoredPending: true,
 			Baseline(Full, totalTraveled: 500),
-			setting: 2,
-			restoredGeneration: true);
+			setting: 2);
 
 		Assert.Equal("CharacterRestored", decision.Reason);
 		Assert.False(decision.ShouldGrant);
@@ -162,28 +176,46 @@ public class StartingSupplyPolicyTests
 		// NoBaseline is the one reason that must stay retryable: nothing describes this
 		// generation yet, and the coordinator holds the body unjudged so a later frame can
 		// decide it. Every other reason is final for the body.
-		var decision = Probe.Decide(restoredPending: false, baseline: null, setting: 2, restoredGeneration: false);
+		var decision = Probe.Decide(restoredPending: false, baseline: null, setting: 2);
 
 		Assert.Equal("NoBaseline", decision.Reason);
 		Assert.False(decision.ShouldGrant);
 	}
 
 	[Fact]
-	public void Decide_ARestoredWorld_SuppliesThePlayerTheArchiveOmitted()
+	public void Decide_AnOmittedPlayerInARestoredWorldPastTheFirstLayer_IsGranted()
 	{
-		// The acceptance case of S4.3: a guest who was not in the package joins a restored
-		// world. They are a new player (no restore queued), and the game's first-layer
-		// grant does not cover a restored generation — so they get the run's supplies.
+		// The acceptance case of S4.3: a player who was not in the package joins a restored
+		// world. They are a new player (no restore queued for the body) and the game's own
+		// grant does not cover this generation — the restored run is past its starting layer
+		// — so the run's supplies are theirs.
 		var decision = Probe.Decide(
 			restoredPending: false,
-			Baseline(Full),
-			setting: 2,
-			restoredGeneration: true);
+			Baseline(Full, totalTraveled: 4200, biomeDepth: 3),
+			setting: 2);
 
 		Assert.Equal("Granted", decision.Reason);
 		Assert.True(decision.ShouldGrant);
 		Assert.Equal("full", decision.Setting);
 		Assert.Equal(4, decision.Plan.Count);
+	}
+
+	[Fact]
+	public void Decide_ARestoredStartingLayer_IsAlreadyOwned()
+	{
+		// The BLOCKER's other half: on a restored run's OWN starting layer the game's grant
+		// runs (see NativeGrantCovers_ARestoredStartingLayer_IsStillTrue), so CUO must report
+		// AlreadyOwned rather than hand out a second set into slots that are already full.
+		// The first version of this rule returned Granted here, and the items ended up on the
+		// ground at the player's feet.
+		var decision = Probe.Decide(
+			restoredPending: false,
+			Baseline(Full),
+			setting: 2);
+
+		Assert.Equal("AlreadyOwned", decision.Reason);
+		Assert.False(decision.ShouldGrant);
+		Assert.Empty(decision.Plan);
 	}
 
 	[Fact]
@@ -194,8 +226,7 @@ public class StartingSupplyPolicyTests
 		var decision = Probe.Decide(
 			restoredPending: false,
 			Baseline(Full, totalTraveled: 3000, biomeDepth: 4),
-			setting: 1,
-			restoredGeneration: false);
+			setting: 1);
 
 		Assert.Equal("Granted", decision.Reason);
 		Assert.Equal("light", decision.Setting);
@@ -210,8 +241,7 @@ public class StartingSupplyPolicyTests
 		var decision = Probe.Decide(
 			restoredPending: false,
 			Baseline(Full),
-			setting: 2,
-			restoredGeneration: false);
+			setting: 2);
 
 		Assert.Equal("AlreadyOwned", decision.Reason);
 		Assert.False(decision.ShouldGrant);
@@ -226,8 +256,7 @@ public class StartingSupplyPolicyTests
 		var decision = Probe.Decide(
 			restoredPending: false,
 			Baseline(Full, totalTraveled: 900),
-			setting: 0,
-			restoredGeneration: true);
+			setting: 0);
 
 		Assert.Equal("Disabled", decision.Reason);
 		Assert.Equal("none", decision.Setting);
@@ -243,8 +272,7 @@ public class StartingSupplyPolicyTests
 		var decision = Probe.Decide(
 			restoredPending: false,
 			baseline,
-			Probe.SettingOf(baseline),
-			restoredGeneration: false);
+			Probe.SettingOf(baseline));
 
 		Assert.Equal("Disabled", decision.Reason);
 		Assert.Equal("unset", decision.Setting);
@@ -259,8 +287,7 @@ public class StartingSupplyPolicyTests
 		var decision = Probe.Decide(
 			restoredPending: false,
 			Baseline(Full),
-			setting: 0,
-			restoredGeneration: false);
+			setting: 0);
 
 		Assert.Equal("Disabled", decision.Reason);
 	}
@@ -276,6 +303,7 @@ public class StartingSupplyPolicyTests
 		int totalTraveled = 0,
 		byte biomeOverride = 0,
 		byte biomeDepth = 0,
+		int debugStartDepth = 0,
 		bool loadedRun = false) =>
 		new()
 		{
@@ -283,6 +311,7 @@ public class StartingSupplyPolicyTests
 			BiomeOverride = biomeOverride,
 			BiomeDepth = biomeDepth,
 			TotalTraveled = totalTraveled,
+			DebugStartDepth = (byte)debugStartDepth,
 			LoadedRun = loadedRun,
 			RunSettings = settings,
 		};
@@ -320,12 +349,12 @@ public class StartingSupplyPolicyTests
 
 		internal static int? SettingOf(WorldStartParams? baseline) => (int?)Method("SettingOf").Invoke(null, [baseline]);
 
-		internal static bool NativeGrantCovers(WorldStartParams? baseline, bool restoredGeneration) =>
-			(bool)Method("NativeGrantCovers").Invoke(null, [baseline, restoredGeneration])!;
+		internal static bool NativeGrantCovers(WorldStartParams? baseline) =>
+			(bool)Method("NativeGrantCovers").Invoke(null, [baseline])!;
 
-		internal static DecisionView Decide(bool restoredPending, WorldStartParams? baseline, int? setting, bool restoredGeneration)
+		internal static DecisionView Decide(bool restoredPending, WorldStartParams? baseline, int? setting)
 		{
-			var decision = Method("Decide").Invoke(null, [restoredPending, baseline, setting, restoredGeneration])!;
+			var decision = Method("Decide").Invoke(null, [restoredPending, baseline, setting])!;
 			var plan = ((IEnumerable)DecisionType.GetProperty("Plan")!.GetValue(decision)!)
 				.Cast<object>()
 				.Select(entry => ((string)EntryType.GetProperty("ItemId")!.GetValue(entry)!, (int)EntryType.GetProperty("Slot")!.GetValue(entry)!))

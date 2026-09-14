@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using BepInEx.Logging;
@@ -133,6 +134,27 @@ public class WorldSaveCompositionTests
 		// The publisher and the subscriber are the SAME object in production — a second
 		// audit instance would leave the adapter's reports reaching nobody.
 		Assert.Same(provider.GetRequiredService<StartingSupplyAudit>(), provider.GetRequiredService<IStartingSupplyControl>());
+	}
+
+	[Fact]
+	public void ProductionRoot_ResolvesTheStartingSupplyAuditForTheAdapter()
+	{
+		// The Game Adapter's constructor takes IStartingSupplyPublisher, so a root that
+		// registered only the subscriber side would fail the plugin's Awake — the awake-time
+		// catch turns that into a silently dead mod, which is the failure this suite exists
+		// for. The audit is one instance for both directions.
+		var savesRoot = Path.Combine(Path.GetTempPath(), "cuo-compose-tests", Guid.NewGuid().ToString("N"), "cuo", "saves");
+		using var provider = Build(savesRoot);
+
+		var publisher = provider.GetRequiredService<IStartingSupplyPublisher>();
+		var audit = provider.GetRequiredService<StartingSupplyAudit>();
+		Assert.Same(audit, publisher);
+
+		var reports = new List<StartingSupplyGrantReport>();
+		provider.GetRequiredService<IStartingSupplyControl>().Reported += reports.Add;
+		audit.Publish(new StartingSupplyGrantReport(StartingSupplyGrantReport.Disposition.Disabled, "none", [], []));
+
+		Assert.Single(reports);
 	}
 
 	private static ServiceProvider Build(string? savesRoot) =>

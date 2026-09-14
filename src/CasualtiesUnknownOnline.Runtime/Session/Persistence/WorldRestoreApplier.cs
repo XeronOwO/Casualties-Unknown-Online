@@ -66,27 +66,6 @@ internal sealed class WorldRestoreApplier(
 	private readonly Func<ulong> _layerActor = layerActor;
 
 	/// <summary>
-	/// True = the generation this session is inside (or about to consume) came out of an
-	/// ARCHIVE rather than from a run started here (see
-	/// <see cref="IWorldSaveControl.RestoredGeneration"/>). It lives here because a restore
-	/// is what produces it and this type owns every point it changes: <see cref="TryApply"/>
-	/// takes the claim (releasing the previous attempt's first, since a new attempt
-	/// supersedes it), and <see cref="ReleaseGeneration"/> gives it up when no generation
-	/// will consume it. The service that drives this one only relays the value.
-	/// </summary>
-	private bool _restoredGeneration;
-
-	/// <summary>The archive's claim on the current generation — see <see cref="_restoredGeneration"/>.</summary>
-	internal bool RestoredGeneration => _restoredGeneration;
-
-	/// <summary>
-	/// No generation belongs to an archive any more: the attempt was abandoned (nothing will
-	/// consume what it applied) or a new run this client OWNS is taking over (its generation
-	/// is its own, and its first layer is exactly the one the game's own grant covers).
-	/// </summary>
-	internal void ReleaseGeneration() => _restoredGeneration = false;
-
-	/// <summary>
 	/// What one applied archive produced. The identity fields are meaningful only
 	/// when <see cref="Started"/> is true: a refusal applied nothing and must not
 	/// move the session's write target.
@@ -146,13 +125,9 @@ internal sealed class WorldRestoreApplier(
 	/// </summary>
 	internal Result TryApply(string? worldId)
 	{
-		// A new attempt SUPERSEDES the previous one, whose arms are all released below — so
-		// the archive's claim on a generation ends here too, and is re-taken at the end of
-		// this method only if THIS attempt applies. A refused click must not leave the
-		// previous attempt's restored generation claimed by an archive: the game's own
-		// first-layer grant reads that claim to decide whether it already supplied everyone.
-		_restoredGeneration = false;
-
+		// A new attempt SUPERSEDES the previous one, whose arms are all released below —
+		// nothing of the attempt that did not apply may survive into the generation this
+		// one arms.
 		if (repository is null)
 		{
 			return Refuse(string.Empty, "this composition root has no world repository");
@@ -267,10 +242,6 @@ internal sealed class WorldRestoreApplier(
 		// caller: a restore is not "successful" until the live world took every row.
 		// The count comes from the writers that are armed RIGHT NOW — the layer-end
 		// cancels above have already run — see LiveWorldHalves.
-		//
-		// The attempt has APPLIED (every refusal path returned above): the generation it
-		// armed belongs to this archive from here on.
-		_restoredGeneration = true;
 		audit?.BeginRestore(
 			worldId,
 			restoreSequence,

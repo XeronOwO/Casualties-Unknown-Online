@@ -33,8 +33,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 ///
 /// The cut is also where the transient policy is applied: an in-flight state the
 /// policy resolves first defers the cut for a bounded number of frames
-/// (<see cref="MaxCutDeferralFrames"/>) instead of losing it, and every state the
-/// cut does not carry is named in the report (§6: no silent loss).
+/// (<see cref="WorldCutDeferral.MaxFrames"/>) instead of losing it, and every state
+/// the cut does not carry is named in the report (§6: no silent loss).
 ///
 /// The writing half itself is <see cref="WorldCutWriter"/>: this class decides
 /// WHETHER and WHERE, the writer decides WHAT the archive holds.
@@ -47,13 +47,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	/// <summary>The manifest's cut phase for a cut taken at the host pump's frame-end seam (§4).</summary>
 	public const string FrameEndCutPhase = "frame-end";
 
-	/// <summary>
-	/// How many pump frames an armed cut waits for <see cref="WorldTransientVerdict.ResolveBeforeSave"/>
-	/// state. The longest such window is the trap drop hold (two frames), so eight
-	/// frames is generous for the live path while keeping a STUCK pending state
-	/// from starving the request: after the deadline the cut proceeds and names
-	/// the state it could not take.
-	/// </summary>
 	private readonly WorldRepository? _repository;
 	private readonly ISessionControl _session;
 	private readonly ItemKernelAuthority _kernel;
@@ -152,8 +145,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	public string CurrentWorldId => _worldId;
 
-	public bool RestoredGeneration => _restore.RestoredGeneration;
-
 	public bool HasArmedCut => _armedReason is not null;
 
 	public event Action<WorldCutReport>? CutReported;
@@ -214,9 +205,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	{
 		_log.LogWarning("The CUO continue attempt is abandoned: {Reason}. Every handover it armed is released and the live world keeps the state it already has.", reason);
 
-		// No generation will consume the restored baseline: no generation belongs to an archive.
-		_restore.ReleaseGeneration();
-
 		// The click already reported "applied" (the absence of a click reported nothing at
 		// all, and that absence is why the relay, not this method, decides whether there is
 		// an attempt to close); this is the second and last word on it, and the player needs
@@ -269,7 +257,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		// the game's own damage rows, the run clock base and the recipe unlock table).
 		_armedReason = null;
 		_deferral.Reset();
-		_restore.ReleaseGeneration();
 		_restoreAccount.Superseded();
 		_audit?.AbandonRestore();
 		_worldFacts.ClearPendingLiveReplay();
@@ -568,10 +555,10 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	public bool TryContinue(out WorldContinueOutcome outcome)
 	{
-		// The restore half opens the archive, reports what it produced and owns the archive's
-		// claim on the generation (WorldRestoreApplier.RestoredGeneration); this class owns the
-		// CUT half and adopts only the identity a restore produced — here and nowhere else, so
-		// every later cut of this session writes back into that world.
+		// The restore half is its own object: it opens the archive and reports what it
+		// produced. This class owns the CUT half, so the identity a restore produced is
+		// adopted HERE and nowhere else — every later cut of this session writes back
+		// into that world.
 		var restore = _restore.TryApply(ContinueWorldId);
 		if (restore.Started)
 		{

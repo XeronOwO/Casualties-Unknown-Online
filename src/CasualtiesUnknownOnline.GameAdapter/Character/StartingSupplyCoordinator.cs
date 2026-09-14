@@ -48,7 +48,6 @@ internal sealed class StartingSupplyCoordinator(
 	ISessionControl session,
 	IWorldControl world,
 	LocalCharacterRestoreQueue restore,
-	IWorldSaveControl saves,
 	IStartingSupplyPublisher audit,
 	IStartingSupplyBehaviour behaviour,
 	ILogger<StartingSupplyCoordinator> log)
@@ -56,7 +55,6 @@ internal sealed class StartingSupplyCoordinator(
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
 	private readonly LocalCharacterRestoreQueue _restore = restore;
-	private readonly IWorldSaveControl _saves = saves;
 	private readonly IStartingSupplyPublisher _audit = audit;
 	private readonly IStartingSupplyBehaviour _behaviour = behaviour;
 	private readonly ILogger<StartingSupplyCoordinator> _log = log;
@@ -106,8 +104,7 @@ internal sealed class StartingSupplyCoordinator(
 		var decision = StartingSupplyPolicy.Decide(
 			_restore.HasPending || _restore.WipePending,
 			baseline,
-			StartingSupplyPolicy.SettingOf(baseline),
-			_saves.RestoredGeneration);
+			StartingSupplyPolicy.SettingOf(baseline));
 
 		switch (decision.Reason)
 		{

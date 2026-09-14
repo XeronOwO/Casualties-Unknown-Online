@@ -49,69 +49,6 @@ public class WorldSaveContinueTests
 	}
 
 	[Fact]
-	public void RestoredGeneration_IsWhatTellsARestoredWorldFromAFreshOne()
-	{
-		// S4.3's one Runtime fact. The game's own first-layer test cannot tell a restored run
-		// frozen on its starting layer from a fresh one (same totalTraveled, same
-		// biomeOverride), so the adapter asks this instead — and it has to be true exactly
-		// while the generation that came out of the archive is the one being played.
-		using var fixture = WorldSaveFixture.Create("continue-restored-generation");
-		SaveLayerEnd(fixture, withCharacter: false);
-		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
-		Assert.False(fixture.Service.RestoredGeneration, "a service that has not continued anything owns no archive's generation");
-
-		using var restarted = fixture.Restart("continue-restored-generation-restart");
-		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
-		Assert.True(restarted.Service.RestoredGeneration);
-
-		// A run this client STARTS is its own: the restored world's generation is over.
-		Assert.True(restarted.Service.TryBeginRun(isTutorial: false));
-		Assert.False(restarted.Service.RestoredGeneration);
-	}
-
-	[Fact]
-	public void RestoredGeneration_OfARepeatedContinueThatIsRefused_DoesNotSurvive()
-	{
-		// The flag is about the generation in flight, not about the process: a continue that
-		// refuses has applied nothing, so nothing belongs to an archive (and the applier has
-		// already released every arm the previous attempt left behind).
-		using var fixture = WorldSaveFixture.Create("continue-restored-generation-refused");
-		SaveLayerEnd(fixture, withCharacter: false);
-		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
-
-		using var restarted = fixture.Restart("continue-restored-generation-refused-restart");
-		Assert.True(restarted.Service.TryContinue(out _));
-		Assert.True(restarted.Service.RestoredGeneration);
-
-		// The archive's run baseline is replaced by one the decoder cannot use, so the second
-		// continue is a refusal.
-		var live = restarted.Repository.Workspace.LiveDirectory(restarted.WorldId);
-		File.WriteAllText(Path.Combine(live, SaveArchiveFormat.RunFileName), "[{\"runId\":42,\"randomState\":\"\"}]\n");
-		Assert.False(restarted.Service.TryContinue(out _));
-
-		Assert.False(restarted.Service.RestoredGeneration);
-	}
-
-	[Fact]
-	public void RestoredGeneration_OfAnAbandonedAttempt_IsReleased()
-	{
-		// The attempt applied but no generation will consume it: keeping the flag would make
-		// the NEXT run's first generation read as an archive's — and that is the run whose
-		// supplies the game's own grant already hands out.
-		using var fixture = WorldSaveFixture.Create("continue-restored-generation-abandoned");
-		SaveLayerEnd(fixture, withCharacter: false);
-		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
-
-		using var restarted = fixture.Restart("continue-restored-generation-abandoned-restart");
-		Assert.True(restarted.Service.TryContinue(out _));
-		Assert.True(restarted.Service.RestoredGeneration);
-
-		restarted.Service.AbandonRestore("the test abandoned it");
-
-		Assert.False(restarted.Service.RestoredGeneration);
-	}
-
-	[Fact]
 	public void TryContinue_RestoresTheKernelCheckpoint()
 	{
 		using var fixture = WorldSaveFixture.Create("continue-kernel");

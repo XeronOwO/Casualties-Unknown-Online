@@ -45,12 +45,16 @@ public class StartingSupplyCoordinatorTests
 	[Fact]
 	public void Update_AnOmittedPlayerInARestoredWorld_IsSupplied()
 	{
-		// The acceptance case of S4.3, end to end: the host continued an archive, the
-		// archive carries no character for this player, and the run's own startingsupplies
-		// setting is handed over — the game's first-layer grant does NOT cover a restored
-		// generation, which is the whole point of the stage.
+		// The acceptance case of S4.3, end to end: the world was restored from an archive
+		// (a REAL continue through the production save service), the archive carries no
+		// character for this player, and the run's own startingsupplies setting is handed over.
+		//
+		// The restored run is PAST its starting layer here, and that is the honest shape of the
+		// case: on a restored run's own starting layer the game hands the supplies out itself
+		// (pinned by Update_ARestoredStartingLayer_DoesNotGrantASecondSet), so the gap S4.3
+		// closes is every entry that is not the run's first layer.
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(2));
+		fixture.RestoreWorld(Supplies(2), totalTraveled: 4200, biomeDepth: 3);
 		var before = fixture.Reports.Count;
 
 		fixture.Coordinator().Update();
@@ -64,6 +68,27 @@ public class StartingSupplyCoordinatorTests
 	}
 
 	[Fact]
+	public void Update_ARestoredStartingLayer_DoesNotGrantASecondSet()
+	{
+		// The S4.3 adversarial review's BLOCKER, as the coordinator sees it. A restored run
+		// frozen on its OWN starting layer reaches the game's grant exactly like a fresh run
+		// (the native Continue loads the scene, and CUO blocks the only writer of a non-zero
+		// totalTraveled on a load), so the body's slots are already full when the pump runs.
+		// The first version of this decision granted anyway: Body.PickUpItem refuses an
+		// occupied slot without a word, so all four items stayed on the ground as world items
+		// the whole team could see and take.
+		using var fixture = new Fixture();
+		fixture.RestoreWorld(Supplies(2), totalTraveled: 0, biomeDepth: 0);
+		var before = fixture.Reports.Count;
+
+		fixture.Coordinator().Update();
+
+		var report = Assert.Single(fixture.Reports.Skip(before));
+		Assert.Equal(StartingSupplyGrantReport.Disposition.AlreadyOwned, report.Outcome);
+		Assert.Empty(fixture.Placed);
+	}
+
+	[Fact]
 	public void Update_TheSameBodyIsJudgedOnce_HoweverManyFramesRun()
 	{
 		// The pump runs every frame and the world keeps the same body across a layer
@@ -71,7 +96,7 @@ public class StartingSupplyCoordinatorTests
 		// which is what makes "once per body" correct rather than "once per frame" — the
 		// failure mode is a backpack that refills itself.
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(2));
+		fixture.RestoreWorld(Supplies(2), totalTraveled: 4200, biomeDepth: 3);
 		var coordinator = fixture.Coordinator();
 
 		coordinator.Update();
@@ -88,7 +113,7 @@ public class StartingSupplyCoordinatorTests
 		// A death puts a new body under the player: it is a new entry and must be judged
 		// again (the old body's judgement says nothing about this one).
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(1));
+		fixture.RestoreWorld(Supplies(1), totalTraveled: 4200, biomeDepth: 3);
 		var coordinator = fixture.Coordinator();
 
 		coordinator.Update();
@@ -108,7 +133,7 @@ public class StartingSupplyCoordinatorTests
 		// body's slots a frame later, so a grant here would be created, announced and then
 		// destroyed — and the player would be told about items they never kept.
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(2));
+		fixture.RestoreWorld(Supplies(2), totalTraveled: 4200, biomeDepth: 3);
 		fixture.Restore.Queue(new CharacterDataMsg(), ownRun: false);
 		var coordinator = fixture.Coordinator();
 
@@ -123,16 +148,28 @@ public class StartingSupplyCoordinatorTests
 	}
 
 	[Fact]
-	public void Update_ARestoreThatLandsBeforeTheGrant_CancelsIt()
+	public void Update_ARestoreThatLandsBetweenTheEntryAndTheGrant_CancelsIt()
 	{
 		// The decision is taken at the GRANT moment, not sampled when the body appeared,
 		// because a restore can land in between: the host hands a reconnecting guest its
 		// character while the guest is already in the world.
+		//
+		// This is the test the first version of the suite only APPEARED to have: its two rows
+		// queued the restore before the first pump, so an implementation that sampled the
+		// queue once at body entry passed both. Here the first pump runs while the generation
+		// baseline is still unpublished (NoBaseline is not a verdict and does NOT judge the
+		// body), the restore lands after it, and only then does the baseline arrive — so the
+		// grant is decided with the queue already holding this player's character.
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(2));
-		fixture.Restore.Queue(new CharacterDataMsg(), ownRun: false);
+		fixture.World.WorldParams = null;
+		var coordinator = fixture.Coordinator();
 
-		fixture.Coordinator().Update();
+		coordinator.Update(); // entry: no baseline, nothing judged
+		Assert.Empty(fixture.Reports);
+
+		fixture.Restore.Queue(new CharacterDataMsg(), ownRun: false);
+		fixture.PublishBaseline(Supplies(2), totalTraveled: 4200, biomeDepth: 3);
+		coordinator.Update();
 
 		Assert.Empty(fixture.Reports);
 		Assert.Empty(fixture.Placed);
@@ -175,7 +212,7 @@ public class StartingSupplyCoordinatorTests
 	public void Update_ARunWithNoSupplies_ReportsDisabledAndGrantsNothing()
 	{
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(0));
+		fixture.RestoreWorld(Supplies(0), totalTraveled: 4200, biomeDepth: 3);
 
 		fixture.Coordinator().Update();
 
@@ -200,7 +237,7 @@ public class StartingSupplyCoordinatorTests
 		Assert.Empty(fixture.Reports);
 		Assert.Empty(fixture.Placed);
 
-		fixture.RestoreWorld(Supplies(2));
+		fixture.RestoreWorld(Supplies(2), totalTraveled: 4200, biomeDepth: 3);
 		coordinator.Update();
 
 		var report = Assert.Single(fixture.Reports);
@@ -212,7 +249,7 @@ public class StartingSupplyCoordinatorTests
 	public void Update_WithNoLocalBody_DoesNothing()
 	{
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(2));
+		fixture.RestoreWorld(Supplies(2), totalTraveled: 4200, biomeDepth: 3);
 		fixture.DetachBody();
 
 		fixture.Coordinator().Update();
@@ -227,7 +264,7 @@ public class StartingSupplyCoordinatorTests
 		// the body's feet. The account must say so: a player who cannot find a "given" item
 		// must not have to read the line twice to learn it never landed.
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(2));
+		fixture.RestoreWorld(Supplies(2), totalTraveled: 4200, biomeDepth: 3);
 		fixture.RefuseSlot(4);
 
 		fixture.Coordinator().Update();
@@ -243,7 +280,7 @@ public class StartingSupplyCoordinatorTests
 	public void Update_AContentIdThatProducesNoItem_IsNamedInsteadOfClaimed()
 	{
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(1));
+		fixture.RestoreWorld(Supplies(1), totalTraveled: 4200, biomeDepth: 3);
 		fixture.RefuseCreation("emergencylight");
 
 		fixture.Coordinator().Update();
@@ -261,7 +298,7 @@ public class StartingSupplyCoordinatorTests
 		// over: the bodies it recorded belong to the world being left. Without it the rule
 		// would be "supplied once per process" for a body a scene reload happened to reuse.
 		using var fixture = new Fixture();
-		fixture.RestoreWorld(Supplies(1));
+		fixture.RestoreWorld(Supplies(1), totalTraveled: 4200, biomeDepth: 3);
 		var coordinator = fixture.Coordinator();
 
 		coordinator.Update();
@@ -369,38 +406,56 @@ public class StartingSupplyCoordinatorTests
 		internal List<StartingSupplyGrantReport> Reports { get; } = [];
 
 		/// <summary>
-		/// A REAL continue, through the production save service and a real archive on disk:
-		/// the world is created, cut, and reopened — which is what sets the
-		/// restored-generation flag and makes the Runtime project the restored run baseline
-		/// into <see cref="IWorldControl.WorldParams"/>.
+		/// A REAL continue, through the production save service and a real archive on disk: the
+		/// world is created, cut, reopened, and the Runtime projects the restored run baseline
+		/// into <see cref="IWorldControl.WorldParams"/> — which is the input the decision reads.
 		///
-		/// The archive's run carries the run's <c>startingsupplies</c> setting and NO
-		/// character: the player continuing it is the one S4.3 is about.
+		/// The archive's run carries the run's <c>startingsupplies</c> setting and NO character:
+		/// the player continuing it is the one S4.3 is about. <paramref name="totalTraveled"/> and
+		/// <paramref name="biomeDepth"/> are the restored run's own position, because they decide
+		/// whether the game's own grant covers this generation (see
+		/// <c>StartingSupplyPolicy.NativeGrantCovers</c>) — 0 is a run still on its starting
+		/// layer, where the game supplies everyone itself.
 		/// </summary>
-		internal void RestoreWorld(Dictionary<string, object> settings)
+		internal void RestoreWorld(Dictionary<string, object> settings, int totalTraveled = 4200, byte biomeDepth = 3)
 		{
 			Assert.True(Save.TryBeginRun(isTutorial: false), "the fixture's world could not be created");
-			Assert.True(Kernel.TryStartRun(HostId, Run(settings), out _, out _));
+			Assert.True(Kernel.TryStartRun(HostId, Run(settings, totalTraveled, biomeDepth), out _, out _));
 			Assert.True(Save.TryRequestCut(WorldCutReason.MenuReturn, out var refusal), refusal);
 			Assert.NotNull(Save.TryCaptureArmedCut(null, frame: 0));
 			Assert.True(Save.TryContinue(out var outcome), outcome.Summary);
-			Assert.True(Save.RestoredGeneration);
 		}
 
-		/// <summary>A fresh run's generation: the host clicked start, so nothing belongs to an archive.</summary>
-		internal void BeginFreshRun(Dictionary<string, object> settings, int totalTraveled)
+		/// <summary>
+		/// Publish a generation baseline directly — the shape a client's own boundary capture
+		/// produces, for the cases that have no archive behind them.
+		/// </summary>
+		internal void PublishBaseline(Dictionary<string, object> settings, int totalTraveled, byte biomeDepth)
 		{
-			Assert.True(Save.TryBeginRun(isTutorial: false));
-			var run = Run(settings);
-			Assert.True(Kernel.TryStartRun(HostId, run, out _, out _));
-			Assert.False(Save.RestoredGeneration);
-			var restored = World.WorldParams!;
+			var run = Run(settings, totalTraveled, biomeDepth);
 			World.WorldParams = new WorldStartParams
 			{
-				RandomState = restored.RandomState,
-				BiomeOverride = restored.BiomeOverride,
-				BiomeDepth = restored.BiomeDepth,
+				RandomState = run.RandomState,
+				BiomeOverride = run.BiomeOverride,
+				BiomeDepth = run.BiomeDepth,
+				TotalTraveled = run.TotalTraveled,
+				RunSettings = settings,
+			};
+		}
+
+		/// <summary>A fresh run's generation: the host clicked start and the run's first layer is being built.</summary>
+		internal void BeginFreshRun(Dictionary<string, object> settings, int totalTraveled, int debugStartDepth = 0)
+		{
+			Assert.True(Save.TryBeginRun(isTutorial: false));
+			var run = Run(settings, totalTraveled, biomeDepth: 0);
+			Assert.True(Kernel.TryStartRun(HostId, run, out _, out _));
+			World.WorldParams = new WorldStartParams
+			{
+				RandomState = run.RandomState,
+				BiomeOverride = run.BiomeOverride,
+				BiomeDepth = run.BiomeDepth,
 				TotalTraveled = totalTraveled,
+				DebugStartDepth = (byte)debugStartDepth,
 				RunSettings = settings,
 			};
 		}
@@ -425,7 +480,6 @@ public class StartingSupplyCoordinatorTests
 				_services.GetRequiredService<ISessionControl>(),
 				World,
 				Restore,
-				Save,
 				Publisher,
 				Behaviour,
 				ReflectionLogger(),
@@ -469,15 +523,17 @@ public class StartingSupplyCoordinatorTests
 
 	/// <summary>
 	/// The run baseline the fixture cuts: the archive's own run, carrying the run's
-	/// <c>startingsupplies</c> setting — the value a restore replays and the decision reads.
+	/// <c>startingsupplies</c> setting — the value a restore replays and the decision reads —
+	/// and the position the restored run was frozen at, which decides whether the game's own
+	/// grant covers the generation it regenerates.
 	/// </summary>
-	private static RunState Run(Dictionary<string, object> settings) =>
+	private static RunState Run(Dictionary<string, object> settings, int totalTraveled, byte biomeDepth) =>
 		new(
 			RunId: 77,
 			RandomState: [1, 2, 3, 4],
 			BiomeOverride: 0,
-			BiomeDepth: 0,
-			TotalTraveled: 0,
+			BiomeDepth: biomeDepth,
+			TotalTraveled: totalTraveled,
 			LoadedRun: false,
 			RunSettings: [.. settings.Select(pair => new RunSetting(pair.Key, RunSettingKind.Int, IntValue: (int)pair.Value))],
 			LayerIndex: 0);

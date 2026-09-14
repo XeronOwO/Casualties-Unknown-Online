@@ -58,12 +58,20 @@ public sealed record StartingSupplyGrantReport(
 	/// <summary>
 	/// The one-line account the console prints as its notification and the log keeps —
 	/// the same words on both, so a log and a player's screen can be compared directly.
+	///
+	/// "Given" is claimed only for the items that actually LANDED. A grant where nothing
+	/// landed (every slot refused) says that outright instead of opening with "given —" and
+	/// then contradicting itself: the game's <c>PickUpItem</c> refuses a slot without a word,
+	/// so this line is the only place the difference can appear.
 	/// </summary>
 	public string Describe() => Outcome switch
 	{
-		Disposition.Granted => Complete
-			? $"CUO new player: starting supplies ({Setting}) given — {string.Join(", ", Items)}."
-			: $"CUO new player: starting supplies ({Setting}) given — {string.Join(", ", Items)}; {Unplaced.Count} could not be placed and lie on the ground: {string.Join(", ", Unplaced)}.",
+		Disposition.Granted when Items.Count == 0 && Unplaced.Count > 0 =>
+			$"CUO new player: starting supplies ({Setting}) could not be placed ({string.Join(", ", Unplaced)}); they lie on the ground at your feet.",
+		Disposition.Granted when Complete =>
+			$"CUO new player: starting supplies ({Setting}) given — {string.Join(", ", Items)}.",
+		Disposition.Granted =>
+			$"CUO new player: starting supplies ({Setting}) given — {string.Join(", ", Items)}; {Unplaced.Count} could not be placed and lie on the ground: {string.Join(", ", Unplaced)}.",
 		Disposition.Disabled => "CUO new player: this run grants no starting supplies (startingsupplies = none).",
 		_ => $"CUO new player: the world's own first-layer supplies ({Setting}) are already yours — CUO granted nothing on top.",
 	};

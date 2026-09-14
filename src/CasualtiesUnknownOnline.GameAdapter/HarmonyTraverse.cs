@@ -138,4 +138,15 @@ internal static class HarmonyTraverse
 	public static int ReadTotalTraveled() => FieldOfWorld("totalTraveled")?.GetValue<int>() ?? 0;
 
 	public static void WriteTotalTraveled(int value) => FieldOfWorld("totalTraveled")?.SetValue(value);
+
+	/// <summary>
+	/// The game's own <c>debugStartDepth</c> (WorldGeneration.cs:4258) — the debug console's
+	/// starting depth, and the third clause of the game's first-layer test
+	/// (<c>WorldGeneration.cs:1891</c>). It exists on the baseline so both sides reach the
+	/// same verdict about the game's own starting-supplies grant; a world that has no live
+	/// instance yet reads 0, which is the game's own default.
+	/// </summary>
+	public static int ReadDebugStartDepth() => FieldOfWorld("debugStartDepth")?.GetValue<int>() ?? 0;
+
+	public static void WriteDebugStartDepth(int value) => FieldOfWorld("debugStartDepth")?.SetValue(value);
 }

@@ -61,6 +61,7 @@ internal sealed class RunCoordinator(
 	private readonly WorldParamsService _params = worldParams;
 	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
+	private readonly StartingSupplyCoordinator _startingSupplies = startingSupplies;
 	private readonly RunSaveCoordinator _save = new(session, world, worldSaves, worldParams, characterData, items, restoreAudit, startingSupplies, log);
 	private readonly ILogger<RunCoordinator> _log = log;
 
@@ -487,6 +488,12 @@ internal sealed class RunCoordinator(
 		_hostInWorldSinceMs = 0;
 		_worldFingerprintLogged = false;
 		_params.ResetForSessionEnd();
+		// The starting-supplies record is session-scoped: the bodies it holds belong to a world
+		// this client is leaving, and a later run must judge its own. It is cleared here as well
+		// as at a run start, because a session can end with the client still in the world (the
+		// host leaving a lobby it stays in) and the next session's first body would otherwise be
+		// compared against a body that is long gone.
+		_startingSupplies.Clear();
 		_menuReturn.Request(_session.Role, RunMenuReturnOrigin.SessionTeardown, _inWorld);
 	}
 

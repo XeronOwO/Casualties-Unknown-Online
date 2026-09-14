@@ -198,6 +198,25 @@ public class CommandConsoleSaveTests
 	}
 
 	[Fact]
+	public void StartingSupplies_OfAPlayerTheGameAlreadySupplied_SaysSoInsteadOfGranting()
+	{
+		// A fresh run's first layer, and a restored run frozen on its own starting layer: the
+		// game's own grant runs inside generation, so CUO handed out nothing. The player still
+		// gets the line — "the world already supplied you" is an answer, and without it the
+		// mechanism reads as if it had never run.
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+
+		host.Services.GetRequiredService<IStartingSupplyPublisher>().Publish(new StartingSupplyGrantReport(
+			StartingSupplyGrantReport.Disposition.AlreadyOwned, "full", [], []));
+
+		var line = Assert.Single(console.Lines, entry => entry.Text.Contains("already yours", StringComparison.Ordinal));
+		Assert.True(line.Notifiable);
+		Assert.Equal(ConsoleLineKind.Info, line.Kind);
+	}
+
+	[Fact]
 	public void StartingSupplies_OfARunWithNoSupplies_SaysTheRunDecidedIt()
 	{
 		// "This run hands out nothing" is an answer, not an absence: a player who expects
@@ -209,9 +228,27 @@ public class CommandConsoleSaveTests
 		host.Services.GetRequiredService<IStartingSupplyPublisher>().Publish(new StartingSupplyGrantReport(
 			StartingSupplyGrantReport.Disposition.Disabled, "none", [], []));
 
-		Assert.Contains(
-			console.Lines,
-			line => line.Text.Contains("this run grants no starting supplies", StringComparison.Ordinal));
+		var line = Assert.Single(console.Lines, entry => entry.Text.Contains("this run grants no starting supplies", StringComparison.Ordinal));
+		Assert.True(line.Notifiable);
+		Assert.Equal(ConsoleLineKind.Info, line.Kind);
+	}
+
+	[Fact]
+	public void StartingSupplies_OfAGrantWhereNothingLanded_IsAnnouncedAsAnError()
+	{
+		// The worst shape: every slot refused, so the player is EMPTY-handed while the line
+		// would otherwise open with "given —" and contradict itself two clauses later. The
+		// report's own words are asserted for that case; here the console pins the level.
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+
+		host.Services.GetRequiredService<IStartingSupplyPublisher>().Publish(new StartingSupplyGrantReport(
+			StartingSupplyGrantReport.Disposition.Granted, "light", [], ["emergencylight"]));
+
+		var line = Assert.Single(console.Lines, entry => entry.Text.Contains("could not be placed", StringComparison.Ordinal));
+		Assert.Equal(ConsoleLineKind.Error, line.Kind);
+		Assert.DoesNotContain("given", line.Text, StringComparison.Ordinal);
 	}
 
 	[Fact]

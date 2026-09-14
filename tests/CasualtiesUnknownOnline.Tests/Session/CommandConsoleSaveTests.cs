@@ -174,6 +174,11 @@ public class CommandConsoleSaveTests
 		Assert.Equal(ConsoleLineKind.Success, line.Kind);
 		Assert.Contains("starting supplies (full) given", line.Text, StringComparison.Ordinal);
 		Assert.Contains("lantern, dogfood, waterbottle, trashbag", line.Text, StringComparison.Ordinal);
+		Assert.DoesNotContain("could not be placed", line.Text, StringComparison.Ordinal);
+		// The account's words, not just its level: the reverse of the incomplete case's
+		// assertion, so a change that made every grant read as unplaced fails here too.
+		Assert.EndsWith(".", line.Text, StringComparison.Ordinal);
+		Assert.Contains("given — lantern", line.Text, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -328,9 +333,6 @@ public class CommandConsoleSaveTests
 		public bool HasArmedCut { get; private set; }
 
 		public string CurrentWorldId => "w-test";
-
-		/// <summary>Set by a test that needs the console-adjacent code to see an archive-owned generation.</summary>
-		public bool RestoredGeneration { get; internal set; }
 
 		public string? ContinueWorldId => null;
 

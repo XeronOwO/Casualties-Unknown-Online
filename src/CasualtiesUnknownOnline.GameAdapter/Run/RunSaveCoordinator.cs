@@ -135,8 +135,11 @@ internal sealed class RunSaveCoordinator(
 		// the local two-frame restore path, applied when the freshly generated world
 		// puts a body under this client. Nothing else can do it — the character table
 		// slot it was bound into is the same one the live 1 Hz snapshot writes, so the
-		// fresh body would overwrite it before anything read it, and the world hands
-		// out no starting supplies when a run is being continued (WorldPlacePlayer).
+		// fresh body would overwrite it before anything read it. (The world DOES hand out
+		// starting supplies when a run is being continued, whenever the continued run is
+		// still on its first layer: the game's own grant is a position test, not an origin
+		// test — see StartingSupplyPolicy.NativeGrantCovers. The restore's first pass wipes
+		// whatever it handed out, which is why a restored character does not keep them.)
 		QueueLocalCharacter(outcome.LocalCharacter);
 
 		// Debug: this click's account is already logged ONCE, by the restore applier

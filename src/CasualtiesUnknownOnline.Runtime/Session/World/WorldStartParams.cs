@@ -18,12 +18,13 @@ public sealed class WorldStartParams
 	public byte BiomeDepth { get; init; }
 
 	/// <summary>
-	/// The game's <c>WorldGeneration.debugStartDepth</c> when this boundary was captured — a
-	/// debug-console value the game's own first-layer test reads
-	/// (<c>WorldGeneration.cs:1891</c>), so a run started at a debug depth is NOT the run's
-	/// first layer and the game hands out no starting supplies on it. The adapter owns the
-	/// field (it is the only layer that may look at a game member); this carries the value to
-	/// the peers so both sides reach the same verdict.
+	/// The game's <c>WorldGeneration.debugStartDepth</c> when this boundary was captured — the third
+	/// clause of the game's own first-layer test (<c>WorldGeneration.cs:1891</c>), which the starting
+	/// supplies' coverage mirrors. It is captured and read by the ADAPTER only: the field is never
+	/// written by game code (<c>:4258</c> is its declaration and the three read sites are all the
+	/// game has), so it is whatever the scene serialized, and the kernel baseline does not carry it
+	/// to the peers. A restored or followed generation therefore reads the default 0, which is the
+	/// value the clause holds today — see <c>StartingSupplyPolicy.NativeGrantCovers</c>.
 	/// </summary>
 	public byte DebugStartDepth { get; init; }
 

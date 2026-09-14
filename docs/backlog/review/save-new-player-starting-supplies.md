@@ -168,19 +168,64 @@ below is fixed in this cycle; nothing is deferred.
   `WorldSaveService` (it had been attached to a field) is gone, and all five stale
   `MaxCutDeferralFrames` references — one source, one architecture doc, two backlog tickets, one
   decision entry — were repointed to `WorldCutDeferral.MaxFrames`.
-- **MINOR — `LoadedRun` is a dead clause**: kept, and documented as such. It is part of the game's own
-  load path, and it is false under CUO only because the Runtime has no source for it; a future native
-  load CUO lets through would otherwise re-open the double grant. Removing it would trade a nameable
-  impossibility for an unnamed one.
-- **MINOR / NIT — coverage and lifetime**: the `AlreadyOwned` and `Disabled` console branches and their
-  line kinds are now asserted; the adapter-facing publisher registration is pinned in the production
-  root; the tracker is cleared on session end as well as at a run start (a session can end with the
-  client still in the world, and the next session's first body must not be compared against a body
-  that is long gone).
+- **MINOR — `LoadedRun` must NOT be part of the condition**: the first fix kept it as a safety clause,
+  argued as "a native load CUO lets through must not re-open the double grant". A second independent
+  pass showed the argument is exactly INVERTED: the game's guard does not read `LoadedRun`, and a native
+  load writes `totalTraveled` from the save, so a stored run frozen at its starting layer would still
+  satisfy the position clauses and the game would still hand out — which an `!LoadedRun` clause reads as
+  "not covered" and answers with a second set of items. It is deleted, and
+  `NativeGrantCovers_AStoredRun_IsTrueBecauseTheGameDoesNotReadLoadedRun` pins the reasoning rather than
+  a preference.
+- **MINOR — `DebugStartDepth` cannot reach the guest**: the first fix carried it on the baseline and
+  wrote it back on the guest, and the ticket claimed "both sides reach the same verdict". False: the
+  kernel baseline (`WorldRunStateMapper.ToWorldStartParams`) does not carry the field, so a guest reads
+  the default 0 while the host reads the live field. The write-back is gone, the field's documentation
+  says it is the HOST's clause, and the reason it is harmless is now written down where a reader will
+  find it: game code declares `debugStartDepth` (`WorldGeneration.cs:4258`) and reads it three times
+  (`:247`, `:257`, `:1891`) but NEVER writes it, so the clause cannot currently fire on either side. It
+  is mirrored (and read, not assumed) so that the verdict follows the game if that ever changes.
+- **MINOR — a comment still described the refuted model**: `RunSaveCoordinator`'s "the world hands out no
+  starting supplies when a run is being continued" was the old belief. Corrected in place, with the
+  reason the restored character still does not keep them (the restore's first pass wipes the body).
+- **MINOR / NIT — coverage and lifetime**: the `AlreadyOwned`, `Disabled` and fully-unplaced console
+  branches and their line kinds are now asserted, the granted line's POSITIVE wording is asserted too
+  (the earlier row only pinned the negative), the adapter-facing publisher registration is pinned in the
+  production root, and the tracker's `Clear` has a mechanism test. The session-end call itself is
+  belt-and-braces — `WorldService` nulls the world params on `SessionEnded` (subscribed before
+  `RunCoordinator`), so the next pump already answers `NoBaseline` — and this ticket does not claim a
+  test drives it.
 - **NIT — the coordinator suite never ran as a guest**: left as it is, deliberately. No host ever
   supplies a body it is not driving, and the in-process role is what the pump gates on; the guest
-  asymmetry it hinted at was the flag, which is now gone. It is recorded here rather than papered over
-  with a test that would assert the fake.
+  asymmetry the original finding hinted at was the deleted flag. It is recorded here rather than papered
+  over with a test that would assert the fake.
+- **NIT — test naming vs discriminating power**: `NativeGrantCovers_TheRunsFirstLayer_IsTrue` and
+  `NativeGrantCovers_ARestoredStartingLayer_IsStillTrue` take the same input, so the pair is one row of
+  discriminating power; the real guard for the BLOCKER is the coordinator-level
+  `Update_ARestoredStartingLayer_DoesNotGrantASecondSet`. Kept as documentation of the corrected
+  reasoning, not as a second net.
+
+### Pre-existing hygiene the same pass reported (NOT introduced here, not fixed here)
+
+- `docs/evidence/sync-coverage-evidence.json`'s `count` field says 807 while `entries` holds 815 (the
+  pre-fix file says the same), and three entry keys are duplicated verbatim — the duplicates are
+  legitimate repeated references, the header is simply stale.
+- ~35 of the matrix's ~300 inline anchors are no longer referenced by any evidence entry, and the W1
+  row's bare anchor points at the wrong line inside `WorldParamsService` (the gate verifies anchored
+  references, not bare ones). Both predate this stage.
+These belong to the sync-coverage matrix's own upkeep; this stage's repoints are clean (see below) and
+touching the matrix's structure now would mix an unrelated repair into a save-system delivery.
+
+## The second independent pass, on the fixes themselves
+
+A fresh verifier was given the fixes and the review's findings (not the implementation reasoning). Its
+verdict: five findings genuinely fixed, two partially, no "over-fixed", no new BLOCKER or MAJOR. It
+independently re-derived the BLOCKER's game-side chain, reproduced the acceptance-row-3 red in a scratch
+copy outside the repository (the new test is the ONLY one of fourteen that fails against an entry-sampled
+decision), and re-verified every evidence reference with its own checker (815/815 in the working tree,
+815/815 for the pre-fix file against `78ba9bd4^`'s sources, no entry lost or added, 23 moved — matching
+the commit's own claim). Its own findings are the three MINORs above (`LoadedRun`'s inverted rationale,
+`DebugStartDepth`'s one-sided reach, the stale `RunSaveCoordinator` comment), all fixed in this cycle,
+plus coverage notes and the pre-existing matrix hygiene recorded below.
 
 ## Verification limits
 

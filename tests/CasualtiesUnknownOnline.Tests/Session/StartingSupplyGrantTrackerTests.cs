@@ -65,6 +65,31 @@ public class StartingSupplyGrantTrackerTests
 		Assert.False(WasSupplied(tracker, body));
 	}
 
+	[Fact]
+	public void Clear_IsTheSameResetForEverySessionScopedCaller()
+	{
+		// The tracker is cleared from two places — RunSaveCoordinator.BeginRun (a run this client
+		// owns is taking over) and RunCoordinator.OnSessionEnded (a session ended with this client
+		// still in the world) — and this pins the MECHANISM both call, not the call sites: a
+		// session-scoped reset that emptied only part of its state would let a later run compare
+		// its first body against one from the world before it. The coordinator suite's
+		// Clear_ForgetsTheBodiesOfTheRunBeingLeft drives the same effect one layer up, through the
+		// coordinator's own Clear.
+		var tracker = Tracker();
+		var bodies = new object[] { new(), new(), new() };
+		foreach (var body in bodies)
+		{
+			MarkSupplied(tracker, body);
+		}
+
+		Assert.Equal(3, SuppliedCount(tracker));
+
+		Clear(tracker);
+
+		Assert.Equal(0, SuppliedCount(tracker));
+		Assert.All(bodies, body => Assert.False(WasSupplied(tracker, body)));
+	}
+
 	/// <summary>A handle that compares equal to another with the same value, to pin identity-vs-equality.</summary>
 	private sealed record ComparableHandle(string Name);
 

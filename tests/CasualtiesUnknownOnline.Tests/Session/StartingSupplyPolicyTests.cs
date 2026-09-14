@@ -139,14 +139,23 @@ public class StartingSupplyPolicyTests
 
 	[Fact]
 	public void NativeGrantCovers_ARunStartedAtADebugDepth_IsFalse() =>
-		// The third clause of the game's own test (WorldGeneration.cs:1891): a run the player
-		// started from the debug console is not the run's first layer, so the game hands out
-		// nothing and CUO must supply rather than report AlreadyOwned.
+		// The third clause of the game's own test (WorldGeneration.cs:1891), mirrored because the
+		// field exists — NOT because it can currently be non-zero: game code declares
+		// debugStartDepth (:4258) and reads it three times (:247, :257, :1891) but never writes it.
+		// A run at a debug depth would not be the run's first layer, so the game would hand out
+		// nothing and CUO would have to supply rather than report AlreadyOwned.
 		Assert.False(Probe.NativeGrantCovers(Baseline(Full, debugStartDepth: 2)));
 
 	[Fact]
-	public void NativeGrantCovers_AStoredRun_IsFalse() =>
-		Assert.False(Probe.NativeGrantCovers(Baseline(Full, loadedRun: true)));
+	public void NativeGrantCovers_AStoredRun_IsTrueBecauseTheGameDoesNotReadLoadedRun() =>
+		// LoadedRun is deliberately NOT part of the condition, and this row pins WHY rather than
+		// asserting a preference: WorldGeneration.cs:1891 does not read it (PreRunScript.cs:302
+		// writes it; Body.cs:1768 and PlayerCamera.cs:726 are its only readers, both for fresh-vital
+		// rolls), and a native LOAD sets totalTraveled from the save (SaveSystem.cs:434) — so a
+		// stored run frozen at its starting layer still satisfies the position clauses and the
+		// game's grant still fires. An !LoadedRun clause would read that as "not covered" and answer
+		// with a second set of items, which is the bug this rule exists to prevent.
+		Assert.True(Probe.NativeGrantCovers(Baseline(Full, loadedRun: true)));
 
 	[Fact]
 	public void NativeGrantCovers_NoBaseline_IsFalse() =>

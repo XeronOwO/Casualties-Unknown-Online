@@ -122,40 +122,55 @@ internal static class StartingSupplyPolicy
 	}
 
 	/// <summary>
-	/// True = the game's own grant covers this generation, so CUO must not supply on top of
-	/// it. Every clause is the game's own condition (<c>WorldGeneration.cs:1891</c>:
-	/// <c>totalTraveled &lt;= 0 &amp;&amp; biomeOverride == None &amp;&amp; debugStartDepth == 0</c>),
-	/// read off the generation baseline the two sides share.
+	/// True = the game's own grant covers this generation, so CUO must not supply on top of it:
+	/// the game's own condition, clause for clause, and NOTHING more
+	/// (<c>WorldGeneration.cs:1891</c> — <c>totalTraveled &lt;= 0 &amp;&amp; biomeOverride == None
+	/// &amp;&amp; debugStartDepth == 0</c>), read off the generation baseline.
 	///
-	/// It is deliberately the WHOLE condition and nothing more. The tempting extra clause —
-	/// "unless this generation came from an archive" — is wrong, and the S4.3 adversarial
-	/// review proved it: a CUO continue lets the native <c>PreRunScript.LoadRun</c> run
-	/// (<c>PreRunScriptLoadRunPatch</c>), which loads the scene, and the CUO patch blocks
-	/// <c>SaveSystem.TryLoadGame</c> — the only thing that ever wrote a non-zero
-	/// <c>totalTraveled</c> on a load. So on a restored run frozen on its starting layer the
-	/// live field is the archive's own <c>totalTraveled == 0</c> (written by
-	/// <c>WorldParamsService.Apply</c> before generation) and the game's grant DOES fire —
-	/// for the host and for a following guest alike, because both walk the same
-	/// <c>GenerateWorld</c> → <c>WorldPlacePlayer</c> path. Flipping this to "not covered"
-	/// therefore handed a SECOND set of items to a player whose slots the native grant had
-	/// just filled: <c>PickUpItem</c> refuses every occupied slot silently and the new items
-	/// were left on the ground as world items. The two comments that describe the native
-	/// handout happening on a restore (<c>CharacterDataSync</c>'s "the game hands out the
-	/// starting supplies inside generation" and <c>CharacterRestoreApplier</c>'s "the game's
-	/// starting supplies … are already on the body when a restore runs") are the same fact
-	/// from the live side.
+	/// It is deliberately the whole condition. The tempting extra clause — "unless this generation
+	/// came from an archive" — is WRONG, and the S4.3 adversarial review proved it: a CUO continue
+	/// lets the native <c>PreRunScript.LoadRun</c> run (<c>PreRunScriptLoadRunPatch</c>), which
+	/// loads the scene, and the CUO patch blocks <c>SaveSystem.TryLoadGame</c> — the ONLY thing that
+	/// ever wrote a non-zero <c>totalTraveled</c> on a load (<c>SaveSystem.cs:433-434</c>). So on a
+	/// restored run frozen on its starting layer the live field is the archive's own
+	/// <c>totalTraveled == 0</c> (written by <c>WorldParamsService.Apply</c> before generation) and
+	/// the game's grant DOES fire — for the host and for a following guest alike, because both walk
+	/// the same <c>GenerateWorld</c> → <c>WorldPlacePlayer</c> path. Flipping this to "not covered"
+	/// therefore handed a SECOND set of items to a player whose slots the native grant had just
+	/// filled: <c>PickUpItem</c> refuses every occupied slot silently and the new items were left on
+	/// the ground as world items.
 	///
-	/// <c>LoadedRun</c> is part of the condition because the game's own load path sets it
-	/// (<c>PreRunScript.cs:302</c>); under CUO it is always false, since the Runtime has no
-	/// source for it (<c>WorldParamsService</c>). It stays in the mirror so that a future
-	/// source — a native load CUO lets through — cannot silently re-open the double grant.
+	/// Neither clause here may be replaced by a Runtime fact, because the game evaluates its own
+	/// condition against its own live fields inside <c>WorldPlacePlayer</c>; a fact the game does not
+	/// read can only make the two answers disagree. The two comments that describe the native handout
+	/// happening on a restore (<c>CharacterDataSync</c>'s "the game hands out the starting supplies
+	/// inside generation" and <c>CharacterRestoreApplier</c>'s "the game's starting supplies … are
+	/// already on the body when a restore runs") are the same fact seen from the live side.
+	///
+	/// <c>DebugStartDepth</c> is carried on the baseline for the HOST's benefit and is a mirror of a
+	/// clause that cannot currently fire: <c>WorldGeneration.debugStartDepth</c> is declared
+	/// (<c>:4258</c>) and read in three places (<c>:247</c>, <c>:257</c>, <c>:1891</c>) but NEVER
+	/// written by code, so it is whatever the scene serialized — in practice 0. It is READ rather
+	/// than assumed so that the mirror stays the game's condition if that ever changes, and its
+	/// value therefore reaches the verdict by way of the adapter's own read, not by way of the
+	/// kernel baseline (which does not carry it): if it ever became non-zero, the HOST would say
+	/// "not covered" — the safe direction, since that is the client the debug console runs on.
+	///
+	/// <c>LoadedRun</c> is deliberately NOT part of the condition. The game's guard does not read it
+	/// (<c>PreRunScript.cs:302</c> writes it, <c>Body.cs:1768</c> and <c>PlayerCamera.cs:726</c> are
+	/// its only readers, both for fresh-vital rolls), and it cannot stand in for the game's own
+	/// reasoning: a native load sets <c>totalTraveled</c> from the save (<c>SaveSystem.cs:434</c>), so
+	/// a stored run frozen at its starting layer would still satisfy the position clauses and the
+	/// native grant would still fire — which an <c>!LoadedRun</c> clause would read as "not covered"
+	/// and answer with a second set of items. Under CUO it is always false anyway (the Runtime has no
+	/// source for it and the native load is blocked), so the clause was both unreachable and, if it
+	/// ever became reachable, pointed the wrong way.
 	/// </summary>
 	internal static bool NativeGrantCovers(WorldStartParams? baseline) =>
 		baseline is not null
 		&& baseline.TotalTraveled <= 0
 		&& baseline.BiomeOverride == 0
-		&& baseline.DebugStartDepth == 0
-		&& !baseline.LoadedRun;
+		&& baseline.DebugStartDepth == 0;
 
 	/// <summary>
 	/// The whole decision. <paramref name="restoredAtEntry"/> is the world's answer to "is

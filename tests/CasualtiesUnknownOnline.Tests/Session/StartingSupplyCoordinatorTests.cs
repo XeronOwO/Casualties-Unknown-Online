@@ -32,12 +32,12 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// per body, never on top of a character restore, and never on the game's own first-layer
 /// grant.
 ///
-/// The Runtime half is REAL (a <see cref="WorldSaveService"/> over a throwaway world
-/// repository, so <c>RestoredGeneration</c> comes from an actual continue rather than a
-/// hand-set flag), and the engine half is a fake behind the adapter seam — which is exactly
-/// why the seam was drawn there: a coordinator that touched <c>Utils.Create</c> or
-/// <c>Body.transform</c> directly could never be constructed in this host at all, because
-/// the CLR binds a method body's Unity InternalCall members when it JITs the method.
+/// The Runtime half is REAL — a <see cref="WorldSaveService"/> over a real world repository on a
+/// temp root, so the generation baseline the decision reads is produced by an ACTUAL cut and
+/// continue rather than hand-built — and the engine half is a fake behind the adapter seam. That
+/// seam is exactly why the decision can be driven here at all: a coordinator that touched
+/// <c>Utils.Create</c> or <c>Body.transform</c> directly could never be constructed in this host,
+/// because the CLR binds a method body's Unity InternalCall members when it JITs the method.
 /// </summary>
 [Trait("Category", "Integration")]
 public class StartingSupplyCoordinatorTests

@@ -281,7 +281,13 @@ internal sealed class WorldParamsService(
 		HarmonyTraverse.WriteBiomeOverride(parameters.BiomeOverride);
 		HarmonyTraverse.WriteBiomeDepth(parameters.BiomeDepth);
 		HarmonyTraverse.WriteTotalTraveled(parameters.TotalTraveled);
-		HarmonyTraverse.WriteDebugStartDepth(parameters.DebugStartDepth);
+
+		// DebugStartDepth is deliberately NOT written back: the game never writes that field
+		// (`WorldGeneration.cs:4258` is its declaration and `:247`/`:257`/`:1891` are its only
+		// readers), so it is a scene-serialized constant, and the kernel baseline does not carry it
+		// between peers — writing the local default here would only mask the value the game will
+		// actually use. The clause it belongs to is the HOST's to evaluate (see
+		// StartingSupplyPolicy.NativeGrantCovers).
 
 		// The generation boundary's rarity multipliers: the host captured them from
 		// the world it just generated with, and the guest must generate the SAME

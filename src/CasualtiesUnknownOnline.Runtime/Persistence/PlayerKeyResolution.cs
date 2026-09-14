@@ -92,49 +92,62 @@ public static class PlayerKeyResolution
 				: null;
 
 	/// <summary>
-	/// Which of <paramref name="peers"/> claims <paramref name="playerKey"/>.
-	/// Steam mode claims by account id; IP-direct mode claims by recomputing
-	/// every peer's name key, so a name that only differs in case, spacing or
-	/// punctuation still resolves (the game's own name handling). False = nobody
-	/// present claims it (decision 162: that player is absent from the session).
+	/// Which of <paramref name="peers"/> claims <paramref name="playerKey"/> — see
+	/// <see cref="PlayerKeyClaim"/> for why the answer is three-valued. Steam mode claims by
+	/// account id; IP-direct mode claims by recomputing every peer's name key, so a name that
+	/// only differs in case, spacing or punctuation still resolves (the game's own name
+	/// handling).
+	///
+	/// One rule serves both spaces on purpose: matches are COUNTED, never short-circuited, so
+	/// two DIFFERENT peers can never resolve to one stored character. In the Steam space the
+	/// match IS the account id, so ambiguity there needs a roster that lists two distinct peers
+	/// under one id; in IP-direct it is ordinary, because duplicate display names are allowed
+	/// (resolved ticket "IP-direct duplicate names") and the name is the whole key.
 	/// </summary>
-	public static bool TryResolve(string? playerKey, PlayerKeySpace space, IReadOnlyList<PlayerIdentity> peers, out ulong peerId)
+	public static PlayerKeyClaim Claim(string? playerKey, PlayerKeySpace space, IReadOnlyList<PlayerIdentity> peers, out ulong peerId)
 	{
 		peerId = 0;
 		if (string.IsNullOrEmpty(playerKey))
 		{
-			return false;
+			return PlayerKeyClaim.Unclaimed;
 		}
 
-		if (space == PlayerKeySpace.Steam)
+		var steamId = space == PlayerKeySpace.Steam ? SteamIdOf(playerKey) : null;
+		if (space == PlayerKeySpace.Steam && steamId is null)
 		{
-			var steamId = SteamIdOf(playerKey);
-			if (steamId is null)
-			{
-				return false;
-			}
-
-			foreach (var peer in peers)
-			{
-				if (peer.PeerId == steamId.Value)
-				{
-					peerId = peer.PeerId;
-					return true;
-				}
-			}
-
-			return false;
+			return PlayerKeyClaim.Unclaimed;
 		}
 
+		var claimedBy = ulong.MaxValue;
+		var found = false;
 		foreach (var peer in peers)
 		{
-			if (string.Equals(KeyOf(peer.PeerId, peer.DisplayName, PlayerKeySpace.IpDirect), playerKey, StringComparison.Ordinal))
+			var matches = space == PlayerKeySpace.Steam
+				? peer.PeerId == steamId!.Value
+				: string.Equals(KeyOf(peer.PeerId, peer.DisplayName, PlayerKeySpace.IpDirect), playerKey, StringComparison.Ordinal);
+			if (!matches)
 			{
-				peerId = peer.PeerId;
-				return true;
+				continue;
 			}
+
+			if (found && peer.PeerId != claimedBy)
+			{
+				// Two DIFFERENT players claim one stored character. A repeated row for the
+				// SAME peer is not a conflict — the refusal is about two players, not about
+				// the shape of the roster — so only a different id turns the claim ambiguous.
+				return PlayerKeyClaim.Ambiguous;
+			}
+
+			claimedBy = peer.PeerId;
+			found = true;
 		}
 
-		return false;
+		if (!found)
+		{
+			return PlayerKeyClaim.Unclaimed;
+		}
+
+		peerId = claimedBy;
+		return PlayerKeyClaim.Claimed;
 	}
 }

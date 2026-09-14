@@ -84,13 +84,7 @@ public class Plugin : BaseUnityPlugin
 				Logger,
 				Path.Combine(Paths.BepInExRootPath, "logs"),
 				legacyLogPath: Path.Combine(Paths.BepInExRootPath, "CUO.log"),
-				// The host's guest-character saves persist under BepInEx/config —
-				// a host restart (continue-run) restores reconnecting guests from
-				// this file; a NEW run deletes it (RunCoordinator).
-				characterDataFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.character-data.bin"),
-				// The host's per-mod state saves persist in the same config
-				// directory; guests never write it (host is the only save
-				// authority, enforced by ModService.State).
+				// The host's per-mod state saves persist under BepInEx/config;
 				modStateFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.mod-state.bin"),
 				// The host's ban list persists in the same config directory;
 				// it is written only by the host's HostBanService.

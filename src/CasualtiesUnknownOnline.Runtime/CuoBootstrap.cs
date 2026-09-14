@@ -55,15 +55,13 @@ public static class CuoBootstrap
 	/// Builds the container. <paramref name="extraRegistrations"/> lets the plugin
 	/// register the Game Adapter implementation (CUO.GameAdapter references the
 	/// game, so the Runtime cannot reference it back).
-	/// <paramref name="characterDataFile"/> is the optional host character-data
-	/// disk file; null (the test composition default) keeps the store in-memory only.
 	/// <paramref name="savesRoot"/> is the optional world-archive root
 	/// (<c>&lt;CUO data root&gt;/cuo/saves</c> in production); null disables the save system.
 	/// <paramref name="gameBuild"/> is the running game version recorded as a save's provenance.
 	/// </summary>
 	public static ServiceProvider BuildServiceProvider(
 		ManualLogSource bepinExLogSource, string logDirectory, string? legacyLogPath = null,
-		string? characterDataFile = null, string? modStateFile = null, string? hostBanFile = null,
+		string? modStateFile = null, string? hostBanFile = null,
 		string? savesRoot = null, string? gameBuild = null,
 		Action<IServiceCollection>? extraRegistrations = null)
 	{
@@ -219,12 +217,12 @@ public static class CuoBootstrap
 		services.AddSingleton<TutorialClawService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<TutorialClawService>());
 		services.AddSingleton<ITutorialClawControl>(p => p.GetRequiredService<TutorialClawService>());
-		// Character-data domain: the SteamID-keyed save/restore with its disk
-		// store (no pump, not an ICuoService — it only reacts to reports and
-		// handshakes). A null characterDataFile keeps the store in-memory-only
-		// (the test composition default).
-		services.AddSingleton(p => new CharacterDataFileStore(
-			characterDataFile, p.GetRequiredService<ILogger<CharacterDataFileStore>>()));
+		// Character-data domain: the SteamID-keyed reconnect table. It is
+		// in-memory and SESSION-scoped by construction — the world archive is the
+		// only persistent copy of a character (decisions 162/164) and feeds this
+		// table at a restore through the claim (S4 scope 6 retired the separate
+		// character-data disk store as a second source of truth). No pump, not an
+		// ICuoService — it only reacts to reports and handshakes.
 		services.AddSingleton<PlayerKernelLimbProjection>();
 		services.AddSingleton<PlayerKernelRestoreProjection>();
 		services.AddSingleton<CharacterDataStore>();

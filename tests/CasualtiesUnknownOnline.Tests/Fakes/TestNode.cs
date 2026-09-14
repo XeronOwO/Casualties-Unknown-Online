@@ -47,7 +47,7 @@ internal sealed class TestNode : IDisposable
 
 	internal static TestNode Create(ulong steamId, FakeNetwork network, FakeSteamService steam,
 		FakeClock? clock = null, bool pumpFirstFrame = false,
-		string? characterDataFile = null, string? modStateFile = null, string? hostBanFile = null,
+		string? modStateFile = null, string? hostBanFile = null,
 		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var transport = new FakeTransport(steamId, network);
@@ -59,7 +59,6 @@ internal sealed class TestNode : IDisposable
 		var services = CuoBootstrap.BuildServiceProvider(
 			new ManualLogSource("test"),
 			logDirectory,
-			characterDataFile: characterDataFile,
 			modStateFile: modStateFile,
 			hostBanFile: hostBanFile,
 			extraRegistrations: s =>
@@ -110,15 +109,15 @@ internal sealed class TestNode : IDisposable
 	/// handshake build the nodes with <see cref="Create"/> directly.
 	/// </summary>
 	internal static (TestNode Host, TestNode Guest) CreatePair(ulong hostId, ulong guestId, ulong lobbyId,
-		Action<IServiceCollection>? extraRegistrations = null, string? characterDataFile = null,
+		Action<IServiceCollection>? extraRegistrations = null,
 		string? modStateFile = null, string? hostBanFile = null)
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
 		var hostSteam = new FakeSteamService(hostId) { LobbyOwner = hostId, LobbyMembers = [hostId] };
 		var guestSteam = new FakeSteamService(guestId) { LobbyOwner = hostId, LobbyMembers = [hostId, guestId] };
-		var host = Create(hostId, network, hostSteam, clock, pumpFirstFrame: true, characterDataFile: characterDataFile, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
-		var guest = Create(guestId, network, guestSteam, clock, pumpFirstFrame: true, characterDataFile: characterDataFile, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
+		var host = Create(hostId, network, hostSteam, clock, pumpFirstFrame: true, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
+		var guest = Create(guestId, network, guestSteam, clock, pumpFirstFrame: true, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
 		host.Steam.FireLobbyCreated(lobbyId);
 		host.Steam.LobbyMembers = [hostId, guestId]; // the guest joined the lobby
 		guest.Steam.FireLobbyEntered(lobbyId);

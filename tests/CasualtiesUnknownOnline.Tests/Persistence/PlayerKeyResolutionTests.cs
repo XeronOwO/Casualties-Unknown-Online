@@ -55,28 +55,56 @@ public class PlayerKeyResolutionTests
 		// cannot claim anybody, because the account half does not parse.
 		Assert.True(PlayerKeyResolution.TrySpaceOfSet(["steam-"], out var barePrefix));
 		Assert.Equal(PlayerKeySpace.Steam, barePrefix);
-		Assert.False(PlayerKeyResolution.TryResolve("steam-", PlayerKeySpace.Steam, [Host], out _));
+		Assert.Equal(PlayerKeyClaim.Unclaimed, PlayerKeyResolution.Claim("steam-", PlayerKeySpace.Steam, [Host], out _));
 	}
 
 	[Fact]
-	public void TryResolve_SteamSpace_ClaimsByAccountOnly()
+	public void Claim_SteamSpace_ClaimsByAccountOnly()
 	{
-		Assert.True(PlayerKeyResolution.TryResolve("steam-76561198000000001", PlayerKeySpace.Steam, [Host, NamedBob], out var peerId));
+		Assert.Equal(PlayerKeyClaim.Claimed, PlayerKeyResolution.Claim("steam-76561198000000001", PlayerKeySpace.Steam, [Host, NamedBob], out var peerId));
 		Assert.Equal(Host.PeerId, peerId);
 
 		// Present but not that account: nobody claims it.
-		Assert.False(PlayerKeyResolution.TryResolve("steam-76561198000000002", PlayerKeySpace.Steam, [Host, NamedBob], out _));
-		Assert.False(PlayerKeyResolution.TryResolve("name-bob", PlayerKeySpace.Steam, [Host, NamedBob], out _));
+		Assert.Equal(PlayerKeyClaim.Unclaimed, PlayerKeyResolution.Claim("steam-76561198000000002", PlayerKeySpace.Steam, [Host, NamedBob], out _));
+		Assert.Equal(PlayerKeyClaim.Unclaimed, PlayerKeyResolution.Claim("name-bob", PlayerKeySpace.Steam, [Host, NamedBob], out _));
 	}
 
 	[Fact]
-	public void TryResolve_IpDirectSpace_ClaimsByNameRegardlessOfPunctuation()
+	public void Claim_IpDirectSpace_ClaimsByNameRegardlessOfPunctuation()
 	{
-		Assert.True(PlayerKeyResolution.TryResolve("name-bob", PlayerKeySpace.IpDirect, [Host, NamedBob], out var peerId));
+		Assert.Equal(PlayerKeyClaim.Claimed, PlayerKeyResolution.Claim("name-bob", PlayerKeySpace.IpDirect, [Host, NamedBob], out var peerId));
 		Assert.Equal(NamedBob.PeerId, peerId);
 
-		Assert.False(PlayerKeyResolution.TryResolve("steam-76561198000000001", PlayerKeySpace.IpDirect, [Host, NamedBob], out _));
-		Assert.False(PlayerKeyResolution.TryResolve("name-carol", PlayerKeySpace.IpDirect, [Host, NamedBob], out _));
+		Assert.Equal(PlayerKeyClaim.Unclaimed, PlayerKeyResolution.Claim("steam-76561198000000001", PlayerKeySpace.IpDirect, [Host, NamedBob], out _));
+		Assert.Equal(PlayerKeyClaim.Unclaimed, PlayerKeyResolution.Claim("name-carol", PlayerKeySpace.IpDirect, [Host, NamedBob], out _));
+	}
+
+	[Fact]
+	public void Claim_TwoPresentPeersWithTheSameDisplayName_IsAmbiguousAndClaimsNobody()
+	{
+		// IP-direct keys a stored character by display name, and that mode deliberately ALLOWS
+		// duplicate names, so two present "Bob"s both match the one stored key. Handing it to
+		// whichever the member list happens to yield first is a silent cross-claim of another
+		// player's character (S4 scope 1): the claim is refused instead — and refused for both.
+		var first = new PlayerIdentity(11UL, "Bob");
+		var second = new PlayerIdentity(12UL, "bob"); // the same sanitized key, a different peer
+
+		Assert.Equal(PlayerKeyClaim.Ambiguous, PlayerKeyResolution.Claim("name-bob", PlayerKeySpace.IpDirect, [first, second], out var peerId));
+		Assert.Equal(0UL, peerId);
+
+		// The refusal is a property of the SET, not of the list order.
+		Assert.Equal(PlayerKeyClaim.Ambiguous, PlayerKeyResolution.Claim("name-bob", PlayerKeySpace.IpDirect, [second, first], out _));
+	}
+
+	[Fact]
+	public void Claim_OnePeerListedTwice_IsNotAmbiguous()
+	{
+		// A roster that names one peer twice still has exactly ONE claimant: the refusal is
+		// about two different players, never about a duplicated row.
+		var bob = new PlayerIdentity(11UL, "Bob");
+
+		Assert.Equal(PlayerKeyClaim.Claimed, PlayerKeyResolution.Claim("name-bob", PlayerKeySpace.IpDirect, [bob, bob], out var peerId));
+		Assert.Equal(11UL, peerId);
 	}
 
 	[Fact]
@@ -87,16 +115,16 @@ public class PlayerKeyResolutionTests
 	}
 
 	[Fact]
-	public void TryResolve_NonLatinDisplayName_StillRoundTripsItsOwnKey()
+	public void Claim_NonLatinDisplayName_StillRoundTripsItsOwnKey()
 	{
 		// A name that loses its readable form still keys stably: the key carries a
 		// digest, so two different non-Latin names never collapse (S1 contract).
 		var playerKey = PlayerKeyResolution.KeyOf(7UL, "玩家甲", PlayerKeySpace.IpDirect);
 
 		Assert.StartsWith("name-", playerKey, StringComparison.Ordinal);
-		Assert.True(PlayerKeyResolution.TryResolve(playerKey, PlayerKeySpace.IpDirect, [new PlayerIdentity(7UL, "玩家甲")], out var peerId));
+		Assert.Equal(PlayerKeyClaim.Claimed, PlayerKeyResolution.Claim(playerKey, PlayerKeySpace.IpDirect, [new PlayerIdentity(7UL, "玩家甲")], out var peerId));
 		Assert.Equal(7UL, peerId);
-		Assert.False(PlayerKeyResolution.TryResolve(playerKey, PlayerKeySpace.IpDirect, [new PlayerIdentity(7UL, "玩家乙")], out _));
+		Assert.Equal(PlayerKeyClaim.Unclaimed, PlayerKeyResolution.Claim(playerKey, PlayerKeySpace.IpDirect, [new PlayerIdentity(7UL, "玩家乙")], out _));
 	}
 
 	[Fact]

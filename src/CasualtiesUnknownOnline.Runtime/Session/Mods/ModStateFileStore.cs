@@ -12,9 +12,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// and WHEN to persist. Persistence is disabled when the path is null — the
 /// default for tests and any composition root that has not opted in.
 ///
-/// Degradation contract (mirrors the character-data store): a missing file is
-/// an empty table; a corrupt or unknown-version file logs a warning and reads
-/// as empty (never a startup crash, never a guessed migration); a failed
+/// Degradation contract (the same one the host-ban store follows): a missing
+/// file is an empty table; a corrupt or unknown-version file logs a warning and
+/// reads as empty (never a startup crash, never a guessed migration); a failed
 /// write/delete logs a warning and lets the in-memory table continue. Writes
 /// are atomic — serialize to a temp file in the same directory, flush, then
 /// File.Replace (or File.Move for the first write) so a crash can never leave

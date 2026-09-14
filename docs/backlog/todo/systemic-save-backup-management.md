@@ -11,13 +11,14 @@ persistence without breaking the runtime/wire contracts.
 
 Current state (updated 2026-09-07):
 
-- `CharacterDataFileStore` / `CharacterDataFile`: protobuf host-side per-SteamID
-  character snapshots (atomic write, survives a host restart, cleared on a new run).
+- `CharacterDataFileStore` / `CharacterDataFile`: the pre-archive protobuf host-side per-SteamID
+  character snapshot store — **RETIRED in S4.1** (decision 178), so the CUO world archive is the only
+  persistent copy of a character and this ticket's backup/restore surface has nothing else to carry.
 - `ModStateFileStore` / `HostBanService`: mod-state and host-ban persistence.
 - `KernelSaveFileStore` + `SaveHeader` + `GameCheckpoint`: protobuf authoritative
   checkpoint save exists and is unit-tested, but has **no production caller**
-  (not registered in `CuoBootstrap`; `Plugin.cs:82-96` passes only the character,
-  mod-state, and ban paths). The save-system ticket owns wiring it up.
+  (not registered in `CuoBootstrap`; `Plugin.cs` passes only the mod-state, ban and
+  saves-root paths). The save-system ticket owns wiring it up.
 - No scheduled/manual backup, archive, or restore workflow exists yet.
 
 Scope owned by this ticket (the package format itself is owned by the save-system ticket):

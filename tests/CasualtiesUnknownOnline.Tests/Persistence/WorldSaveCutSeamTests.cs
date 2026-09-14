@@ -309,6 +309,38 @@ public class WorldSaveCutSeamTests
 
 	// ---- fixture ----
 
+	[Fact]
+	public void Cut_TwoPresentPlayersSharingADisplayName_CarriesNeitherAndNamesThem()
+	{
+		// The archive holds one character per transport-scoped key, so two present IP-direct
+		// players sharing a display name map to ONE key. Writing both files made the writer
+		// refuse EVERY cut (duplicate payload path) with a message that named no cause, and
+		// writing one of them would leave a file a later restore could claim for the wrong
+		// player — so the cut carries neither and says who it left behind (decision 177).
+		using var fixture = WorldSaveFixture.Create("seam-shared-key", ipDirect: true, displayName: "Bob");
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
+		fixture.Session.AddMember(2002UL, "Bob");
+		fixture.Characters.SaveHostCharacterData(WorldSaveCaptureTests.Character(100, "bag"));
+		fixture.Characters.SaveCharacterData(2002UL, WorldSaveCaptureTests.Character(200, "rope"));
+
+		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out var refusal), refusal);
+		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 0));
+
+		Assert.True(report.Captured, report.Describe());
+		Assert.Single(CutFiles(fixture)); // the cut really wrote — it is no longer refused
+		Assert.Contains(report.DroppedStates, line => line.Contains("name-bob", StringComparison.Ordinal));
+		Assert.Contains(report.DroppedStates, line => line.Contains("1001, 2002", StringComparison.Ordinal));
+		Assert.Contains("NOT carried", report.Describe(), StringComparison.Ordinal);
+
+		// And the archive it wrote carries no character for that key, so the restore hands
+		// nobody a character rather than picking one of the two.
+		using var restarted = fixture.Restart("seam-shared-key-restart", ipDirect: true, displayName: "Bob");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+		Assert.Empty(restarted.Service.PendingCharacters);
+		Assert.Null(restarted.Characters.GetHostCharacterData());
+	}
+
 	private sealed class StubProbe(string key, int pending) : IWorldCutTransientProbe
 	{
 		public IReadOnlyList<WorldTransientCount> Capture() => [new(key, pending)];

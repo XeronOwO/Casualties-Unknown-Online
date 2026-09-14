@@ -101,10 +101,10 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			member.InWorld = peerState == SceneStateType.InWorld;
 			member.DisplayName = displayName;
 			member.SelectedColor = selectedColor;
-			// Cross-session restore: the disk-backed character save outlives the
-			// session — a returning player gets it back once the host has a live
-			// world (CharacterDataStore.SendSavedCharacter gates on LocalInWorld);
-			// a NEW run clears it at the host's start click.
+			// Reconnect restore: the world archive's stored character (decision
+			// 178 — this table is in-memory, the archive is what persists) is
+			// handed back once the host has a live world (SendSavedCharacter gates
+			// on LocalInWorld); a NEW run clears the table at the start click.
 			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 		else

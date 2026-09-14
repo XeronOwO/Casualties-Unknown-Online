@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -14,10 +15,11 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
 /// The command console's save surface: <c>/save</c> ARMS a cut — it never takes
-/// one inside the console callback — and the two deferred answers the seam
-/// produces (the cut report and a restore's live-write report) are printed where
-/// the player is already reading. A cut nobody asked for (a layer advance) stays
-/// in the log.
+/// one inside the console callback — and the three answers the save layer produces
+/// are printed where the player is already reading: the cut report the seam
+/// resolved, the Continue click's own account (one notification plus the itemized
+/// history), and a restore's live-world write. A cut nobody asked for (a layer
+/// advance) stays in the log.
 /// </summary>
 [Trait("Category", "Integration")]
 public class CommandConsoleSaveTests
@@ -111,6 +113,79 @@ public class CommandConsoleSaveTests
 	}
 
 	[Fact]
+	public void RestoreReport_OfADamagedRestore_IsOneNotificationWithTheItemsInTheHistory()
+	{
+		// §6 forbids silent loss, and the console is the only in-game surface the save
+		// system has. A damaged restore is ONE event: the disposition is the line the
+		// player is interrupted by, and the itemized account (content ids included) goes
+		// into the history — announced details would flood the closed console's
+		// newest-few window and push every other notice out of it.
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+
+		saves.RaiseRestore(new WorldRestoreReport(
+			"w-3",
+			WorldRestoreReport.Disposition.Applied,
+			"world w-3 restored with damage: 1 untranslatable entry(ies) skipped in items.json (ContentMissing)",
+			["entry bandage was skipped in items.json (ContentMissing): the item definition is gone"]));
+
+		Assert.Contains(console.Lines, line => line.Text.Contains("CUO restored world w-3 with 1 damaged item(s)", StringComparison.Ordinal));
+		Assert.Equal(2, console.Lines.Count(line => !line.Notifiable));
+		Assert.Contains(console.Lines, line => line.Text.Contains("entry bandage was skipped", StringComparison.Ordinal) && !line.Notifiable);
+	}
+
+	[Fact]
+	public void RestoreReport_OfACleanRestore_IsOneLineAndSaysNothingWasLost()
+	{
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+		var before = console.Lines.Count;
+
+		saves.RaiseRestore(new WorldRestoreReport("w-4", WorldRestoreReport.Disposition.Applied, "world w-4 restored from the live snapshot", []));
+
+		Assert.Contains(console.Lines, line => line.Text.Contains("CUO restored world w-4: nothing was lost.", StringComparison.Ordinal));
+		// The account's own one line still reaches the history; nothing is announced twice.
+		Assert.Contains(console.Lines, line => line.Text.Contains("restored from the live snapshot", StringComparison.Ordinal) && !line.Notifiable);
+		Assert.Equal(before + 2, console.Lines.Count);
+	}
+
+	[Fact]
+	public void RestoreReport_OfARefusal_NamesTheReasonTheClickDidNothing()
+	{
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+
+		saves.RaiseRestore(new WorldRestoreReport("", WorldRestoreReport.Disposition.Refused, "no CUO world exists to continue", []));
+
+		Assert.Contains(console.Lines, line => line.Text.Contains("CUO continue refused: no CUO world exists to continue", StringComparison.Ordinal));
+		Assert.Contains(console.Lines, line => line.Kind == ConsoleLineKind.Error);
+	}
+
+	[Fact]
+	public void RestoreReport_OfARefusalWithDamage_KeepsTheReasonInTheLineAndTheItemsInTheHistory()
+	{
+		// The refusal is the case §6 exists for, and the one that carries the most detail:
+		// a decode-level refusal's summary is a GROUPED count, so the content ids are only
+		// in the itemized lines. The reason is the notification (it is what the player has
+		// to act on) and every item follows it in the history — never the other way round.
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+
+		saves.RaiseRestore(new WorldRestoreReport(
+			"w-7",
+			WorldRestoreReport.Disposition.Refused,
+			"the snapshot has no readable run baseline (run.json); 1 untranslatable entry(ies) skipped in items.json (ContentMissing)",
+			["entry bandage was skipped in items.json (ContentMissing): the item definition is gone"]));
+
+		Assert.Contains(console.Lines, line => line.Notifiable && line.Text.Contains("CUO continue refused: the snapshot has no readable run baseline", StringComparison.Ordinal));
+		Assert.Contains(console.Lines, line => !line.Notifiable && line.Text.Contains("entry bandage was skipped", StringComparison.Ordinal));
+	}
+
+	[Fact]
 	public void Help_ListsTheSaveAndAdminCommands()
 	{
 		var (host, _) = Session(new FakeWorldSaveControl());
@@ -146,6 +221,8 @@ public class CommandConsoleSaveTests
 
 		public event Action<WorldCutReport>? CutReported;
 
+		public event Action<WorldRestoreReport>? RestoreReported;
+
 		public bool IsEnabled => true;
 
 		public bool HasArmedCut { get; private set; }
@@ -164,6 +241,8 @@ public class CommandConsoleSaveTests
 		public void AbandonRestore(string reason) => Abandoned.Add(reason);
 
 		internal void Raise(WorldCutReport report) => CutReported?.Invoke(report);
+
+		internal void RaiseRestore(WorldRestoreReport report) => RestoreReported?.Invoke(report);
 
 		public bool TryBeginRun(bool isTutorial) => true;
 

@@ -132,7 +132,13 @@ internal sealed class RunSaveCoordinator(
 		// out no starting supplies when a run is being continued (WorldPlacePlayer).
 		QueueLocalCharacter(outcome.LocalCharacter);
 
-		_log.LogInformation("Continuing CUO world {WorldId}: {Summary}", outcome.WorldId, outcome.Summary);
+		// Debug: this click's account is already logged ONCE, by the restore applier
+		// that produced it, together with the kind, the cut phase, the revision and the
+		// per-domain counts (S4 scope 3). This class keeps its own Information lines for
+		// the decisions it took and the answers it refused — the acceptance is visible
+		// in the run starting at all, and a second copy of the same summary is the noise
+		// that hides the line a reader is looking for.
+		_log.LogDebug("Continuing CUO world {WorldId}: {Summary}", outcome.WorldId, outcome.Summary);
 
 		// The live-world half of this restore reports at the world-entry seam, after
 		// this method returned. Subscribe here — the click is what started it — so

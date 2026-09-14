@@ -4,6 +4,7 @@ using System.Linq;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.DependencyInjection;
@@ -89,6 +90,25 @@ public class WorldSaveCompositionTests
 		Assert.False(control.HasRestorableWorld);
 		Assert.False(control.TryContinue(out var outcome));
 		Assert.Contains("no world repository", outcome.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void ProductionRoot_WiresTheContinueAccountToTheConsole()
+	{
+		// The report is only a surface if the PRODUCTION root actually connects the two:
+		// the service raises it and the console renders it, and a subscription that never
+		// happened would leave the click account exactly as invisible as before this stage
+		// (the suites that assert the rendering swap in a fake save control, so they cannot
+		// see the wiring). A refusal is enough to prove the chain end to end: the fresh root
+		// has no world to continue.
+		var savesRoot = Path.Combine(Path.GetTempPath(), "cuo-compose-tests", Guid.NewGuid().ToString("N"), "cuo", "saves");
+		using var provider = Build(savesRoot);
+
+		var console = provider.GetRequiredService<ICommandControl>();
+		var control = provider.GetRequiredService<IWorldSaveControl>();
+		Assert.False(control.TryContinue(out var outcome));
+
+		Assert.Contains(console.Lines, line => line.Text.Contains($"CUO continue refused: {outcome.Summary}", StringComparison.Ordinal));
 	}
 
 	private static ServiceProvider Build(string? savesRoot) =>

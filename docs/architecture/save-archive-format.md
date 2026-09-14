@@ -323,7 +323,24 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
 - Repair mode never regenerates the layer, never changes `layerIndex`, and never writes over the
   player's current progress. It converges on the same world, minus the entries it names.
 - Every skipped entry, every fallback and every mismatch is surfaced in-game (not only in the log):
-  the count per domain, the reason, and the affected content id. Silent loss is forbidden.
+  the count per domain, the reason, and the affected content id. Silent loss is forbidden. The surface
+  is the command console the cut report already uses (decision 179): a resolved Continue attempt raises
+  a `WorldRestoreReport` — disposition `Refused` / `Applied` / `Abandoned`, a one-line summary, and the
+  itemized account — and `CommandConsoleService` prints the summary as the ONE notification while the
+  itemized lines (each skipped content id, each refused claimant, each native field the body cannot
+  take, the backup a load fell back to) go into the history behind it, marked not notifiable so a
+  damaged restore stays one announced event instead of a burst. A refusal that reaches no surface is
+  the failure this rule exists for: the player clicks Continue, the run does not start, and nothing
+  says why.
+- **Every save event is diagnosable from ONE log line.** A cut logs its trigger, kind, cut phase, world
+  id, revision, layer and per-domain record counts; a restore logs the same domains in the same
+  vocabulary (`WorldSnapshotCounts`) beside its own account — so "the restored world is missing rows"
+  is a comparison of two lines instead of a code change, a deploy and a reproduction. Both sides count
+  the rows the ARCHIVE holds, never the writer's input: a layer-end cut drops its in-layer rows by
+  design, so the cut's counts come from the encoder's own output while the restore's come from the rows
+  it decoded out of that same archive. The lines the format layer writes for ITS passes (the opened
+  snapshot, the salvage pass) stay as they are: those report the pass, this one reports the cut or the
+  restore.
 - **A restore has halves in time, and the later ones report too.** The Continue click applies
   the kernel checkpoint and the Runtime fact tables; the values only a live world can take (the
   block diff, the game's own partial-damage list, the decided keypad/geyser values, the radiation

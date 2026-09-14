@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using UnityEngine;
 
@@ -88,29 +87,13 @@ internal sealed class CommandConsoleOverlay
 
 	private void DrawClosedNotifications(OnlineUiContext ctx)
 	{
-		var lines = ctx.Commands.Lines;
-		if (lines.Count == 0)
-		{
-			return;
-		}
-
+		// WHICH lines are notifications (the newest few, still fading, never a
+		// report's history-only detail) is Runtime policy — this class owns placement,
+		// colours and alpha.
 		var now = DateTime.UtcNow;
 		var hold = TimeSpan.FromSeconds(NotificationHoldSeconds);
 		var fade = TimeSpan.FromSeconds(NotificationFadeSeconds);
-		var visible = new List<ConsoleLine>(MaxNotificationLines);
-		for (var i = lines.Count - 1; i >= 0 && visible.Count < MaxNotificationLines; i--)
-		{
-			var line = lines[i];
-			var alpha = ConsoleFadePolicy.ComputeAlpha(
-				now - new DateTime(line.CreatedAtUtcTicks, DateTimeKind.Utc),
-				hold,
-				fade);
-			if (alpha > 0.01f)
-			{
-				visible.Add(line);
-			}
-		}
-
+		var visible = ConsoleNotificationPolicy.Recent(ctx.Commands.Lines, now, hold, fade, MaxNotificationLines);
 		if (visible.Count == 0)
 		{
 			return;

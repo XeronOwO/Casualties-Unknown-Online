@@ -71,13 +71,14 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_restoreAudit = restoreAudit;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += OnSessionEnded;
-		// The console is the player's surface for the save system's two deferred
-		// answers: the cut the frame-end seam resolved (long after /save returned)
-		// and the live-world half of a restore. Both are subscribable state, so the
-		// console renders them where the player is already reading — no polling and
-		// no second output buffer.
+		// The console is the player's surface for the save system's three answers: the
+		// cut the frame-end seam resolved (long after /save returned), the Continue
+		// click's own account, and the live-world half of a restore. All three are
+		// subscribable state, so the console renders them where the player is already
+		// reading — no polling and no second output buffer.
 		_saves.CutReported += OnCutReported;
-		_restoreAudit.Reported += OnRestoreReported;
+		_saves.RestoreReported += OnRestoreReported;
+		_restoreAudit.Reported += OnRestoreLiveWrite;
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
@@ -202,7 +203,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_chat.MessageReceived -= OnChatLine;
 		_session.SessionEnded -= OnSessionEnded;
 		_saves.CutReported -= OnCutReported;
-		_restoreAudit.Reported -= OnRestoreReported;
+		_saves.RestoreReported -= OnRestoreReported;
+		_restoreAudit.Reported -= OnRestoreLiveWrite;
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
@@ -214,8 +216,40 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		}
 	}
 
+	/// <summary>
+	/// The Continue click's account (§6: no silent loss). The DISPOSITION becomes the
+	/// one notification the player is interrupted by, and the account itself — the
+	/// one-line summary with its per-domain counts, then one line per skipped content
+	/// id, refused claimant, unbindable native field and backup fallback — goes into
+	/// the history behind it, where it can be read without pushing the player's other
+	/// notices out of the closed console's newest-few window.
+	/// </summary>
+	private void OnRestoreReported(WorldRestoreReport report)
+	{
+		var headline = report.Result switch
+		{
+			WorldRestoreReport.Disposition.Refused => $"CUO continue refused: {report.Summary}",
+			WorldRestoreReport.Disposition.Abandoned => $"CUO continue abandoned: {report.Summary}",
+			_ when report.Clean => $"CUO restored world {report.WorldId}: nothing was lost.",
+			_ => $"CUO restored world {report.WorldId} with {report.Details.Count} damaged item(s); the console history names them.",
+		};
+		AddLine(headline, report.Clean ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+
+		// The refusal and abandonment headlines ARE the account's one line; the applied
+		// ones are a short form of it, so only those add the summary to the history.
+		if (report.Result == WorldRestoreReport.Disposition.Applied)
+		{
+			AddHistoryLine(report.Summary);
+		}
+
+		foreach (var detail in report.Details)
+		{
+			AddHistoryLine(detail);
+		}
+	}
+
 	/// <summary>The live-world half of a restore: the world-entry seam wrote — or could not write — the restored facts.</summary>
-	private void OnRestoreReported(WorldRestoreLiveWriteReport report) =>
+	private void OnRestoreLiveWrite(WorldRestoreLiveWriteReport report) =>
 		AddLine($"CUO restore of world {report.WorldId}: {report.Summary}", report.Complete ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	private bool ExecuteCommand(string commandLine)
@@ -485,9 +519,18 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		AddLine("Session ended.", ConsoleLineKind.Info);
 	}
 
-	private void AddLine(string text, ConsoleLineKind kind)
+	private void AddLine(string text, ConsoleLineKind kind) => AddLine(text, kind, notifiable: true);
+
+	/// <summary>
+	/// A line that belongs in the HISTORY only: the closed console does not announce
+	/// it, because it is one item of a report whose headline already did (see
+	/// <see cref="ConsoleLine.Notifiable"/>).
+	/// </summary>
+	private void AddHistoryLine(string text) => AddLine(text, ConsoleLineKind.Info, notifiable: false);
+
+	private void AddLine(string text, ConsoleLineKind kind, bool notifiable)
 	{
-		_lines.Add(new ConsoleLine(kind, text, _time.UtcNowTicks));
+		_lines.Add(new ConsoleLine(kind, text, _time.UtcNowTicks, notifiable));
 		if (_lines.Count > MaxLines)
 		{
 			_lines.RemoveAt(0);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -69,14 +70,36 @@ internal sealed class WorldRestoreApplier(
 	/// What one applied archive produced. The identity fields are meaningful only
 	/// when <see cref="Started"/> is true: a refusal applied nothing and must not
 	/// move the session's write target.
+	///
+	/// <see cref="Damage"/> is the attempt's itemized account, one line per loss:
+	/// a skipped entry with the content id it named, a stored character no present
+	/// player could be given, a native field the local body cannot take, a backup
+	/// the load fell back to. It travels BESIDE the outcome because the outcome's
+	/// summary is one joined line — §6 requires the ids to be readable in-game, and
+	/// only the itemized form carries them. A refusal fills it too: what was wrong
+	/// with a refused archive is exactly what its player needs to read.
 	/// </summary>
 	internal readonly record struct Result(
 		WorldContinueOutcome Outcome,
 		string WorldId,
 		string DisplayName,
-		IReadOnlyList<SavedCharacter> Characters)
+		IReadOnlyList<SavedCharacter> Characters,
+		IReadOnlyList<string> Damage)
 	{
 		internal bool Started => Outcome.Started;
+
+		/// <summary>
+		/// This attempt as the player-facing account (see <see cref="WorldRestoreReport"/>).
+		/// The disposition IS <see cref="Started"/> — a refusal applied nothing, so the run
+		/// must not start — and it is derived HERE rather than re-decided by the caller that
+		/// raises the report: the account and the verdict are then one fact, not two that
+		/// can disagree.
+		/// </summary>
+		internal WorldRestoreReport Report => new(
+			Outcome.WorldId,
+			Started ? WorldRestoreReport.Disposition.Applied : WorldRestoreReport.Disposition.Refused,
+			Outcome.Summary,
+			Damage);
 	}
 
 	/// <summary>
@@ -251,21 +274,46 @@ internal sealed class WorldRestoreApplier(
 		// here: decision 162 makes that a new character, not a degradation.
 		damages.AddRange(bound.ClaimRefusals);
 
+		// The itemized form of the same account, for the in-game surface (§6): the
+		// Runtime damage above, then ONE line per entry the load or the decode skipped.
+		// That second half is why this list exists — the summary's grouped count names
+		// the domain file and the reason but never the affected content id, and the id
+		// is what tells the player WHAT is gone.
+		var details = new List<string>(damages);
+		details.AddRange(salvage.Report.DescribeLines());
+
 		if (salvage.Report.Entries.Count > 0)
 		{
 			damages.Add(salvage.Report.Describe());
 		}
 
+		var source = SourceNameOf(load);
 		var summary = damages.Count == 0
-			? $"world {worldId} restored from {load.Content.SourcePath}"
+			? $"world {worldId} restored from {source}"
 			: $"world {worldId} restored with damage: {string.Join("; ", damages)}";
-		log.LogInformation("Continue restored world {WorldId} at revision {Revision} (layer {Layer}, {Players} stored character(s)): {Summary}",
-			worldId, decode.Checkpoint.GlobalRevision, decode.Checkpoint.Run?.LayerIndex ?? -1, decode.UsableCharacters.Count, summary);
+
+		// ONE line per restore (S4 scope 3): which world, which kind of cut taken at
+		// which phase, the revision and layer it was frozen at, where it was read from,
+		// and the per-domain counts — the same domains the cut's own line reports, in
+		// the same order (WorldSnapshotCounts), so a restore that took fewer rows than
+		// the cut wrote is a two-line comparison. The reader keeps its own lines for
+		// the passes it ran; THIS is the restore's account.
+		var counts = WorldSnapshotCounts.Of(
+			decode.Checkpoint,
+			decode.UsableCharacters.Count,
+			decode.UsableWorldBlocks.Count,
+			decode.UsableWorldTransients.Count,
+			decode.UsableNativeRunFields?.Recipes.Count);
+		log.LogInformation(
+			"Continue restored world {WorldId}: {Kind} cut taken at {CutPhase}, revision {Revision}, layer {Layer}, from {Source} ({SourcePath}); {Counts}; {Summary}",
+			worldId, SaveArchiveFormat.CutKindName(load.Content.Manifest.Kind), load.Content.Manifest.CutPhase, decode.Checkpoint.GlobalRevision,
+			decode.Checkpoint.Run?.LayerIndex ?? -1, source, load.Content.SourcePath, counts.Describe(), summary);
 		return new Result(
 			new WorldContinueOutcome(true, worldId, summary, salvage, bound.LocalCharacter),
 			worldId,
 			load.Content.Manifest.DisplayName,
-			decode.UsableCharacters);
+			decode.UsableCharacters,
+			details);
 	}
 
 	/// <summary>
@@ -345,10 +393,31 @@ internal sealed class WorldRestoreApplier(
 			liveEnemyRows, fluidRows);
 	}
 
-	private Result Refuse(string worldId, string summary, SalvageResult? salvage = null) =>
-		new(
-			WorldContinueOutcome.Refused(worldId, summary, salvage ?? new SalvageResult(DamageReport.Empty)),
+	/// <summary>
+	/// Where this restore actually read from, in the words the console shows: the live
+	/// folder, or the backup archive the load fell back to. The source PATH stays in the
+	/// log line (<c>load.Content.SourcePath</c>) — a player reading the console needs to
+	/// know WHICH snapshot they got, not where their machine keeps it (§6's "fell back
+	/// to backup X" is a player-facing message, not a path).
+	/// </summary>
+	private static string SourceNameOf(WorldLoadResult load) =>
+		load.Content is { State: WorldLoadState.BackupFallback, SourcePath: { Length: > 0 } path }
+			? $"backup {Path.GetFileName(path)}"
+			: "the live snapshot";
+
+	/// <summary>
+	/// A refusal carries the itemized account exactly like an applied restore: the
+	/// skipped content ids and the backup that could not be used are what the player
+	/// has to read when the Continue click does nothing (§6).
+	/// </summary>
+	private Result Refuse(string worldId, string summary, SalvageResult? salvage = null)
+	{
+		var loaded = salvage ?? new SalvageResult(DamageReport.Empty);
+		return new(
+			WorldContinueOutcome.Refused(worldId, summary, loaded),
 			string.Empty,
 			string.Empty,
-			[]);
+			[],
+			loaded.Report.DescribeLines());
+	}
 }

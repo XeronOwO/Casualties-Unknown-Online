@@ -149,7 +149,10 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 				: new EnemyStateTable(_enemies, _removedEnemies),
 			_fluids.Count == 0 ? null : new FluidStateTable(_fluids));
 
-		_log.LogInformation("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s), {Blocks} world block(s), {Transients} transient(s), native run fields {RunFields}.",
+		// Debug, not Information: the restore that drives this decoder logs ONE account
+		// line per restore carrying these same per-domain counts (S4 scope 3), and a
+		// second Information line for the same facts is the noise that hides it.
+		_log.LogDebug("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s), {Blocks} world block(s), {Transients} transient(s), native run fields {RunFields}.",
 			_manifest.WorldId, epoch, (ulong)_manifest.GlobalRevision, _items.Count, _players.Count, _enemies.Count + _removedEnemies.Count, _characters.Count, _worldBlocks.Count, _worldTransients.Count,
 			_nativeRunFields is null ? "absent" : $"present ({_nativeRunFields.Recipes.Count} recipe row(s), clock {_nativeRunFields.SavedRunTime:F1})");
 		return new WorldSnapshotDecode(checkpoint, _characters, null, _worldBlocks, _worldTransients, _nativeRunFields);

@@ -4,11 +4,11 @@ using ProtoBuf;
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
-/// Full character snapshot for disk-backed save/restore (character-data-plan):
+/// Full character snapshot for save/restore (character-data-plan, decision 178):
 /// the guest reports it periodically (1-2 Hz), the host keeps the latest per
-/// SteamID in memory + on disk and hands it back when the same player
-/// reconnects, so the guest can rebuild its character after the game spawned a
-/// fresh default one.
+/// SteamID in memory (the world archive is what persists it) and hands it back
+/// when the same player reconnects, so the guest can rebuild its character after
+/// the game spawned a fresh default one.
 /// One message serves both directions (report and restore); the host also
 /// relays a guest's report to the OTHER guests (OwnerSteamId set) so every
 /// side renders that guest's clone inventory — without the relay a guest can

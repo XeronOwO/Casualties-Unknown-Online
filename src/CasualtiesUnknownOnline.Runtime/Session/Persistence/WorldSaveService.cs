@@ -505,23 +505,29 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			return new WorldCutReport(WorldCutResult.Refused, reason, _worldId, "this host has no CUO world for the current run", dropped);
 		}
 
-		var characters = _binder.Collect(hostCharacter);
+		var collected = _binder.Collect(hostCharacter);
 		var write = _writer.Write(new WorldCutWriteRequest(
 			_worldId,
 			_displayName,
 			reason,
 			WorldCutWriter.KindOf(reason),
 			cutPhase,
-			characters));
+			collected.Characters));
+
+		// A character the cut could not carry is drawn from the same well as an
+		// in-flight class it left behind: the player is told at the cut, never only
+		// in the log (§6).
+		var notCarried = new List<string>(dropped);
+		notCarried.AddRange(collected.NotCarried);
 
 		if (!write.Success)
 		{
-			return new WorldCutReport(WorldCutResult.Refused, reason, _worldId, write.Detail, dropped);
+			return new WorldCutReport(WorldCutResult.Refused, reason, _worldId, write.Detail, notCarried);
 		}
 
 		var summary = $"world {_worldId} at revision {write.Revision}, layer {write.Layer} "
 			+ $"({write.Files} file(s), {write.BlockRows} world-block row(s), {write.TransientRows} transient row(s), backup {write.BackupPath})";
-		return new WorldCutReport(WorldCutResult.Captured, reason, _worldId, summary, dropped);
+		return new WorldCutReport(WorldCutResult.Captured, reason, _worldId, summary, notCarried);
 	}
 
 	/// <summary>Log one finished attempt and hand it to the surface that answers the player. A deferral is not a result: it is logged where it happens and never pushed to the console.</summary>

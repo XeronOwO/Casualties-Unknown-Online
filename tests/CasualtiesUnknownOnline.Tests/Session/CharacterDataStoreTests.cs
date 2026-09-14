@@ -194,6 +194,46 @@ public class CharacterDataStoreTests
 	}
 
 	[Fact]
+	public void ApplyEnemyLunge_MergesTheTerminalStateIntoTheSavedSnapshot()
+	{
+		// Moved here when the disk-persistence suite retired (S4 scope 6): the merge is an
+		// IN-MEMORY fact first — a reconnect inside the same run reads this table — and the
+		// lunge mirror was the one terminal-state applier the surviving suite did not cover.
+		using var host = TestNode.CreatePair(HostId, GuestId, LobbyId).Host;
+		var store = host.Services.GetRequiredService<CharacterDataStore>();
+		store.SaveCharacterData(GuestId, Snapshot(GuestId));
+
+		store.ApplyEnemyLunge(new EnemyLungeMsg
+		{
+			VictimSteamId = GuestId,
+			Limb = new CharacterLimbMsg { Index = 1, Pain = 22f, SkinHealth = 60f },
+			Adrenaline = 70f,
+			Stamina = 100f,
+		});
+
+		var saved = store.GetSavedCharacter(GuestId)!;
+		Assert.Equal(22f, saved.Limbs[0].Pain);
+		Assert.Equal(70f, saved.Health!.Adrenaline);
+		Assert.Equal(100f, saved.Health!.Stamina);
+	}
+
+	[Fact]
+	public void SessionEnd_ClearsTheInMemoryTable()
+	{
+		// Moved here when the disk-persistence suite retired (S4 scope 6): there is no disk
+		// copy any more, so the session-end reset is the whole of the reset — the archive is
+		// what a later start restores from.
+		using var host = TestNode.CreatePair(HostId, GuestId, LobbyId).Host;
+		var store = host.Services.GetRequiredService<CharacterDataStore>();
+		store.SaveCharacterData(GuestId, Snapshot(GuestId));
+		Assert.NotNull(store.GetSavedCharacter(GuestId));
+
+		store.ResetForSessionEnd();
+
+		Assert.Null(store.GetSavedCharacter(GuestId));
+	}
+
+	[Fact]
 	public void SendSavedCharacter_ProjectsKernelTerminalFactsOverSnapshot()
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);

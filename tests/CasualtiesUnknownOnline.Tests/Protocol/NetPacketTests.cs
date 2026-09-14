@@ -575,4 +575,121 @@ public class NetPacketTests
 		Assert.Equal(0.31f, decoded.Health!.LegSpeedMult);
 	}
 
+	[Fact]
+	public void CharacterData_EveryFieldFamily_RoundTrips()
+	{
+		// Moved here from the retired character-data disk suite (S4.1): that store was the only
+		// place a FULL CharacterDataMsg went through the protobuf codec, so deleting it would
+		// have left skills, limb component states, nested container contents, liquid stacks and
+		// the hand slot with no round-trip coverage at all. The wire is the same codec and the
+		// same DTO, and HandSlot is the field with a documented 0-is-valid +1 encoding
+		// (CharacterDataMsg.cs, CharacterDataCapture), i.e. exactly the kind that regresses
+		// silently.
+		var msg = new CharacterDataMsg
+		{
+			OwnerSteamId = 42UL,
+			HandSlot = 3,
+			Position = new NetVector2Msg(12.5f, 34.75f),
+			Skills = new CharacterSkillsMsg
+			{
+				Strength = 7,
+				Resistance = 3,
+				Intelligence = 5,
+				ExpStrength = 12.5f,
+				ExpResistance = 4.25f,
+				ExpIntelligence = 9.75f,
+			},
+			Health = new CharacterHealthMsg
+			{
+				BloodVolume = 5.1f,
+				Hunger = 61.5f,
+				Shock = 20f,
+				SepticShock = 3f,
+				EyePanicTime = 0.5f,
+				HorrifiedLevel = 2f,
+				Alive = true,
+				Conscious = true,
+				Disfigured = true,
+				EyeGone = true,
+				BothEyesGone = true,
+				DisfiguredIndex = 2,
+				DisfiguredTimeFullSkin = 123.5f,
+				EyeTimeHealed = 456.25f,
+			},
+			Limbs =
+			[
+				new CharacterLimbMsg
+				{
+					Index = 0,
+					SkinHealth = 80f,
+					MuscleHealth = 70f,
+					Broken = true,
+					Infected = true,
+					BleedAmount = 1.5f,
+					Pain = 12f,
+					Shrapnel = 2,
+					Components =
+					[
+						new ComponentStateMsg
+						{
+							TypeName = "SplintLimb",
+							Fields = [new ComponentFieldMsg { Name = "condition", Kind = 1, FloatValue = 0.5f }],
+						},
+					],
+				},
+			],
+			Items =
+			[
+				new CharacterItemMsg
+				{
+					InstanceId = 4242UL,
+					ItemId = "backpack",
+					Condition = 0.75f,
+					Favourited = true,
+					SlotIndex = 2,
+					Contents =
+					[
+						new CharacterItemMsg { InstanceId = 4243UL, ItemId = "dogfood", Condition = 1f },
+					],
+					Liquids = [new LiquidStackMsg { LiquidId = "water", Amount = 0.6f }],
+				},
+			],
+		};
+
+		var decoded = NetPacket.DecodePayload<CharacterDataMsg>(NetPacket.Encode(NetMsg.CharacterData, msg));
+
+		Assert.Equal(42UL, decoded.OwnerSteamId);
+		Assert.Equal(3, decoded.HandSlot);
+		Assert.Equal(12.5f, decoded.Position!.X);
+		Assert.Equal(34.75f, decoded.Position.Y);
+		Assert.Equal(7, decoded.Skills!.Strength);
+		Assert.Equal(9.75f, decoded.Skills.ExpIntelligence);
+		Assert.Equal(61.5f, decoded.Health!.Hunger);
+		Assert.True(decoded.Health.Disfigured, "the disfigured latch must survive the round-trip");
+		Assert.True(decoded.Health.EyeGone, "the eyeGone latch must survive the round-trip");
+		Assert.True(decoded.Health.BothEyesGone, "the bothEyesGone latch must survive the round-trip");
+		Assert.Equal(2, decoded.Health.DisfiguredIndex);
+		Assert.Equal(123.5f, decoded.Health.DisfiguredTimeFullSkin);
+		Assert.Equal(456.25f, decoded.Health.EyeTimeHealed);
+		var limb = Assert.Single(decoded.Limbs);
+		Assert.True(limb.Broken, "the limb bool must survive the round-trip");
+		Assert.Equal(12f, limb.Pain);
+		Assert.Equal(2, limb.Shrapnel);
+		var component = Assert.Single(limb.Components);
+		Assert.Equal("SplintLimb", component.TypeName);
+		var field = Assert.Single(component.Fields);
+		Assert.Equal("condition", field.Name);
+		Assert.Equal(0.5f, field.FloatValue);
+		var item = Assert.Single(decoded.Items);
+		Assert.Equal(4242UL, item.InstanceId);
+		Assert.Equal("backpack", item.ItemId);
+		Assert.True(item.Favourited);
+		Assert.Equal(2, item.SlotIndex);
+		var nested = Assert.Single(item.Contents);
+		Assert.Equal(4243UL, nested.InstanceId);
+		Assert.Equal("dogfood", nested.ItemId);
+		var liquid = Assert.Single(item.Liquids);
+		Assert.Equal("water", liquid.LiquidId);
+		Assert.Equal(0.6f, liquid.Amount);
+	}
 }

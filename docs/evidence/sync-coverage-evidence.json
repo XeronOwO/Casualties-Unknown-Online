@@ -1477,7 +1477,7 @@
     {
       "cluster": "players",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:93",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:89",
       "quote": "_playerLimbKernel.SyncFromCharacterData(steamId, msg);"
     },
     {
@@ -1507,13 +1507,13 @@
     {
       "cluster": "players",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:85",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:82",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.CharacterData, msg);"
     },
     {
       "cluster": "players",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:91",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:88",
       "quote": "_savedCharacters[steamId] = msg;"
     },
     {
@@ -1531,13 +1531,37 @@
     {
       "cluster": "players",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:64",
-      "quote": "_persistence.TryLoad(out _savedCharacters);"
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Persistence/PlayerKeyClaim.cs:22",
+      "quote": "Ambiguous,"
     },
     {
       "cluster": "players",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:191",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Persistence/PlayerKeyResolution.cs:138",
+      "quote": "return PlayerKeyClaim.Ambiguous;"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldCharacterBinder.cs:89",
+      "quote": "players sharing the character key"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldCharacterBinder.cs:163",
+      "quote": "is claimed by more than one player present"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:55",
+      "quote": "_savedCharacters = [];"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:169",
       "quote": "MergeTransferredItems(steamId, data);"
     },
     {
@@ -1549,25 +1573,25 @@
     {
       "cluster": "players",
       "row": "P4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:363",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:326",
       "quote": "NetMsg.LimbStateEvent, msg, reliable: true);"
     },
     {
       "cluster": "players",
       "row": "P4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:367",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:330",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.LimbStateEvent, msg);"
     },
     {
       "cluster": "players",
       "row": "P4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:332",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:296",
       "quote": "EnemyTerminalStateApplier.ApplyLimbState(data, msg);"
     },
     {
       "cluster": "players",
       "row": "P4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:343",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:306",
       "quote": "/// already damaged locally). Reliable — a lost event self-heals on the next"
     },
     {
@@ -1585,25 +1609,25 @@
     {
       "cluster": "players",
       "row": "P5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:388",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:351",
       "quote": "NetMsg.CharacterSound, msg, reliable: true);"
     },
     {
       "cluster": "players",
       "row": "P5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:413",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:376",
       "quote": "NetMsg.CharacterAttackAnim, msg, reliable: true);"
     },
     {
       "cluster": "players",
       "row": "P5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:438",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:401",
       "quote": "NetMsg.CharacterLandingVisual, msg, reliable: true);"
     },
     {
       "cluster": "players",
       "row": "P5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:463",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:426",
       "quote": "NetMsg.CharacterRagdoll, msg, reliable: true);"
     },
     {
@@ -1717,7 +1741,7 @@
     {
       "cluster": "players",
       "row": "P7",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:191",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:169",
       "quote": "MergeTransferredItems(steamId, data);"
     },
     {
@@ -1771,7 +1795,7 @@
     {
       "cluster": "players",
       "row": "P8",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:191",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:169",
       "quote": "MergeTransferredItems(steamId, data);"
     },
     {
@@ -1867,7 +1891,7 @@
     {
       "cluster": "players",
       "row": "P10",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:191",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:169",
       "quote": "MergeTransferredItems(steamId, data);"
     },
     {
@@ -3787,7 +3811,7 @@
     {
       "cluster": "inline",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:337",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:300",
       "quote": "_playerLimbKernel.SyncFromLimbEvent(msg);"
     },
     {
@@ -3817,7 +3841,7 @@
     {
       "cluster": "inline",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:196",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:174",
       "quote": "_playerKernelRestore.Apply(steamId, data);"
     },
     {
@@ -3841,7 +3865,7 @@
     {
       "cluster": "inline",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:298",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:262",
       "quote": "_session.Broadcast(NetMsg.HostCharacterData, msg);"
     },
     {
@@ -3871,25 +3895,25 @@
     {
       "cluster": "inline",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:181",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:159",
       "quote": "internal void SendSavedCharacter(ulong steamId)"
     },
     {
       "cluster": "inline",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:210",
-      "quote": "if (!_persistence.Save(_savedCharacters))"
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRestoreApplier.cs:212",
+      "quote": "var bound = binder.Apply(decode.UsableCharacters);"
     },
     {
       "cluster": "inline",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:143",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:135",
       "quote": "public void ClearSavedCharacters()"
     },
     {
       "cluster": "inline",
       "row": "P4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:347",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:310",
       "quote": "public void SendLimbStateEvent(LimbStateEventMsg msg)"
     },
     {
@@ -3907,7 +3931,7 @@
     {
       "cluster": "inline",
       "row": "P5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:377",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:340",
       "quote": "public void SendCharacterSound(CharacterSoundMsg msg)"
     },
     {
@@ -3931,7 +3955,7 @@
     {
       "cluster": "inline",
       "row": "P5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:374",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:337",
       "quote": "/// already heard the sound locally). Reliable — one sound = one message,"
     },
     {

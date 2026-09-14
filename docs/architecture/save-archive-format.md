@@ -178,10 +178,16 @@ degrades in a named way rather than being refused, which is why the manifest `sc
 move.
 
 `characters/<playerKey>.json` holds one player character per file (an entry array of one), in the
-native `SaveInfo` shape plus CUO extensions, so the existing `CharacterDataFileStore` restore path
-stays usable. A save writes one file per member PRESENT at the cut; a stored key nobody claims at
+native `SaveInfo` shape plus CUO extensions. It is the ONLY persistent copy of a character: the
+pre-archive reconnect store (`CasualtiesUnknownOnline.character-data.bin`,
+`Session/CharacterData/CharacterDataFileStore`) is retired (decision 178), and the in-memory
+`CharacterDataStore` is filled by the live 1 Hz reports and by a restore's claim, never reloaded from
+disk. A save writes one file per member PRESENT at the cut; a stored key nobody claims at
 restore time means that player is absent from the session and joins as a new character with fresh
-starting supplies (decision 162) — the file stays in the archive for a later claim. The character's
+starting supplies (decision 162) — the file stays in the archive for a later claim. A key TWO present
+peers claim is a different fact and is REFUSED, not handed to one of them (decision 177): IP-direct
+keys a character by display name and that mode deliberately allows duplicate names, so the claim
+verdict is three-valued and a refusal is named in the restore's account. The character's
 `position` is a claim about the layer the cut NAMES, and the cut kind decides whether that claim is
 real: a `layer-end` cut names the layer being entered, which the restore REGENERATES, so a position
 captured while the body still stood in the layer being left is DROPPED at that restore (the native
@@ -339,6 +345,17 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   a refusal with its reason instead of silently writing nothing.
 - **Load twice = same world.** Restoring an already-restored snapshot is idempotent; validation
   applies the same dedup and exactly-once rules as the live restore path.
+- **A stored character goes to exactly one present claimant, or to nobody.** The claim is three-valued
+  (decision 177): a key no present peer claims is decision 162's absent player (a new character, the
+  file kept for a later claim, NOT damage), while a key TWO present peers claim — an IP-direct session
+  keys by display name and allows duplicate names — is refused for both of them, and so is a whole
+  snapshot whose key space differs from the live transport (a Steam world opened over IP-direct). Both
+  refusals DROP a character a present player may have earned, so both are named in the restore's
+  account — the `WorldContinueOutcome` summary the continue caller logs — rather than left to the log.
+  The same rule governs the WRITE side: a key two present players map to is carried by no file at all
+  and the cut report names the players who share it, because a file under a shared key could later be
+  claimed by the wrong player (a cut that wrote one anyway was refused outright by the writer's
+  duplicate-path guard, naming no cause).
 
 ### 6.1 Where a restored cut lands in the live world
 

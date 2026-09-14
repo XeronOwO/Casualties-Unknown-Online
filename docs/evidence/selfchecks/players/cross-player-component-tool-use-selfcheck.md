@@ -54,7 +54,7 @@ message and no protocol bump (additive `CharacterLimbMsg` fields only).
 
 | Mechanism | Change | Evidence |
 |-----------|--------|----------|
-| Limb wire state | `CharacterLimbMsg.Components` round-trips through the character-data file | `CharacterDataFileStoreTests.Save_Load_RoundTripsEveryFieldFamily` now asserts a `SplintLimb` state |
+| Limb wire state | `CharacterLimbMsg.Components` round-trips through the wire codec | `NetPacketTests.CharacterData_EveryFieldFamily_RoundTrips` now asserts a `SplintLimb` state |
 | Splint | adds `SplintLimb` state + marks `Splinted`, refuses head/vital/existing | `RemoteLimbToolApplicationTests.ApplySplint_...` (3 cases) |
 | Tourniquet | adds `TourniquetScript` state + marks `BlockedBleeding`, refuses head/vital/central/existing | `RemoteLimbToolApplicationTests.ApplyTourniquet_...` |
 | Icepack | adds `ChilledLimb` state, lowers temperature, keeps the item at zero condition | `RemoteLimbToolApplicationTests.ApplyIcepack_...` + service test |
@@ -66,7 +66,7 @@ message and no protocol bump (additive `CharacterLimbMsg` fields only).
 ## 4. Verification
 
 - **L0 unit**: `RemoteLimbToolApplicationTests` (12),
-  `PlayerInteractionServiceTests` +3, `CharacterDataFileStoreTests` +1 limb
+  `PlayerInteractionServiceTests` +3, `NetPacketTests.CharacterData_EveryFieldFamily_RoundTrips` +1 limb
   component assertion, `LimbComponentStateCodecTests` (2).
 - **Code gates**: `dotnet build` 0 warnings/0 errors, `dotnet test` 1454 green,
   `dotnet format`, check-architecture / check-event-replay /

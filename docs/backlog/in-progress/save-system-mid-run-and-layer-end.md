@@ -69,12 +69,16 @@ CUO persistence today:
 
 - `CharacterDataFileStore` — per-SteamID host-side character snapshots (protobuf, atomic write, cleared
   on a new run). Decision #27; `docs/evidence/selfchecks/players/character-data-persistence-selfcheck.md`.
+  **RETIRED in S4.1** (decision 178): with the world archive holding `characters/<playerKey>.json`, the
+  disk copy was a second persistent source of truth, so the store, its DTO, its composition-root
+  parameter and its tests are deleted and `CharacterDataStore` is in-memory only.
 - `ModStateFileStore`, `HostBanFileStore` — mod state and host bans.
 - `GameCheckpoint` (`src/CasualtiesUnknownOnline.GameState/GameCheckpoint.cs`) covers items, run, world
   entities, players, enemies, fluids, and optional random streams.
 - `KernelSaveFileStore` + `KernelSaveFile` + `SaveHeader` (`src/CasualtiesUnknownOnline.Runtime/Session/Items/`)
   exist and are unit-tested, **but have no production caller**: `CuoBootstrap.BuildServiceProvider` never
-  registers the store and `Plugin.cs:82-96` passes only `characterDataFile` / `modStateFile` / `hostBanFile`.
+  registers the store and `Plugin.cs` passes only `modStateFile` / `hostBanFile` / `savesRoot`
+  (the `characterDataFile` argument was removed in S4.1).
 - `GameCheckpoint.RandomStreams` is never populated in production (`GameStateStore.CreateCheckpoint` passes
   `null`; `docs/architecture/protocol.md:176-178`).
 - Kernel item location is X/Y only (`src/CasualtiesUnknownOnline.GameState/Domains/Items/ItemLocation.cs`);
@@ -117,7 +121,7 @@ independent adversarial review before the next begins (AGENTS.md convention 11).
 | S2 | `review/save-layer-end-save-and-restore.md` | Layer-end capture/restore via the native continue entry | landed (review) |
 | S3 | `todo/save-mid-run-consistent-cut.md` | Mid-run consistent cut, all domains, world diff, transient policy; S3.4a/S3.4b landed, the S3.5 increment (scope 8 + F3) landed 2026-09-12 | in progress |
 | S3.6 | `review/save-solo-menu-exit-trigger.md` | The solo menu-exit trigger for the mid-run cut (split out of S3's scope list) | landed (review) |
-| S4 | `todo/save-multiplayer-restore-and-backups.md` | Guest restore claim, validation/recovery, scheduled autosave + retention (also owns scope 7's decode-level refusal recovery) | open (blocked on S3) |
+| S4 | `in-progress/save-multiplayer-restore-and-backups.md` | Guest restore claim, validation/recovery, scheduled autosave + retention (also owns scope 7's decode-level refusal recovery) | in progress (S4.1 landed 2026-09-14: the claim rules + the legacy store's retirement) |
 
 ## Mid-run semantics: the hard part
 

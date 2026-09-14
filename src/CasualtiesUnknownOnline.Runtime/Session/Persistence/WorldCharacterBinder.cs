@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Networking;
@@ -32,13 +33,21 @@ internal sealed class WorldCharacterBinder(
 	/// character snapshot exists. Membership — not the "in world" flag — is the
 	/// predicate: a layer boundary is a LOADING moment, where every peer's scene
 	/// state reads as "not in the world".
+	///
+	/// A key TWO present players map to is carried by NEITHER, and named: the
+	/// archive holds one file per key, so writing one of the two would leave a file
+	/// a later restore could hand to the wrong player — the collision the claim side
+	/// refuses (decision 177) is refused on the way IN as well. A roster that lists
+	/// one peer twice is not a collision: the claimants are counted per PEER ID.
 	/// </summary>
-	internal List<SavedCharacter> Collect(CharacterDataMsg? hostCharacter)
+	internal WorldCharacterCutSet Collect(CharacterDataMsg? hostCharacter)
 	{
 		var peers = PresentPeers();
 		var space = LiveKeySpace();
 		var localPeerId = LocalPeerId;
 		var collected = new List<SavedCharacter>(peers.Count);
+		var claimants = new Dictionary<string, List<ulong>>(StringComparer.Ordinal);
+		var keysInOrder = new List<string>(peers.Count);
 		foreach (var peer in peers)
 		{
 			var data = peer.PeerId == localPeerId
@@ -52,10 +61,41 @@ internal sealed class WorldCharacterBinder(
 				continue;
 			}
 
-			collected.Add(new SavedCharacter(peer.KeyIn(space), data));
+			var key = peer.KeyIn(space);
+			if (!claimants.TryGetValue(key, out var sharers))
+			{
+				sharers = [];
+				claimants[key] = sharers;
+				keysInOrder.Add(key);
+			}
+
+			if (!sharers.Contains(peer.PeerId))
+			{
+				sharers.Add(peer.PeerId);
+			}
+
+			collected.Add(new SavedCharacter(key, data));
 		}
 
-		return collected;
+		var notCarried = new List<string>();
+		foreach (var key in keysInOrder)
+		{
+			var sharers = claimants[key];
+			if (sharers.Count < 2)
+			{
+				continue;
+			}
+
+			notCarried.Add($"the {sharers.Count} players sharing the character key {key} ({string.Join(", ", sharers)}) are carried by no file: the archive holds one character per key");
+			log.LogWarning("Character key {PlayerKey} is shared by {Count} present players ({Peers}); no character is written for it — the archive holds one character per key, and a file under a shared key could be claimed by the wrong player at a restore.", key, sharers.Count, string.Join(", ", sharers));
+		}
+
+		if (notCarried.Count > 0)
+		{
+			collected.RemoveAll(character => claimants[character.PlayerKey].Count > 1);
+		}
+
+		return new WorldCharacterCutSet(collected, notCarried);
 	}
 
 	/// <summary>
@@ -76,14 +116,14 @@ internal sealed class WorldCharacterBinder(
 	{
 		if (stored.Count == 0)
 		{
-			return new WorldCharacterBindResult(null, []);
+			return new WorldCharacterBindResult(null, [], []);
 		}
 
 		var keys = stored.Select(character => character.PlayerKey).ToList();
 		if (!PlayerKeyResolution.TrySpaceOfSet(keys, out var space))
 		{
 			log.LogError("The snapshot's character files mix transport key spaces ({Keys}); no character was applied.", string.Join(", ", keys));
-			return new WorldCharacterBindResult(null, []);
+			return new WorldCharacterBindResult(null, [], [$"the snapshot's character files mix transport key spaces ({string.Join(", ", keys)}), so not one of them was applied"]);
 		}
 
 		var live = LiveKeySpace();
@@ -96,9 +136,10 @@ internal sealed class WorldCharacterBinder(
 			// The two key spaces are separate (§2): a world written over IP-direct is
 			// never claimed over Steam, even when a Steam persona happens to spell the
 			// same name. Every key stays unclaimed — that player joins as a NEW
-			// character (decision 162), and the files stay for a later claim.
-			log.LogInformation("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
-			return new WorldCharacterBindResult(null, []);
+			// character (decision 162), and the files stay for a later claim. It is a
+			// LOSS for this session, not a benign absence, so it is named as one.
+			log.LogWarning("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
+			return new WorldCharacterBindResult(null, [], [$"the snapshot was written in the {space} key space and this session runs {live}, so none of its {stored.Count} stored character(s) was claimed (decision 162)"]);
 		}
 
 		var peers = PresentPeers();
@@ -107,10 +148,23 @@ internal sealed class WorldCharacterBinder(
 		var unclaimed = 0;
 		CharacterDataMsg? local = null;
 		var boundKeys = new List<string>(stored.Count);
+		var refusals = new List<string>();
 		foreach (var character in stored)
 		{
-			if (!PlayerKeyResolution.TryResolve(character.PlayerKey, space, peers, out var peerId))
+			var claim = PlayerKeyResolution.Claim(character.PlayerKey, space, peers, out var peerId);
+			if (claim != PlayerKeyClaim.Claimed)
 			{
+				if (claim == PlayerKeyClaim.Ambiguous)
+				{
+					// Two present players claim one stored character. IP-direct allows
+					// duplicate display names by design, so this is a real possibility and
+					// NOT a reason to pick one: whichever we picked could be handed another
+					// player's character. Nobody gets it, and the loss is named.
+					refusals.Add($"the stored character {character.PlayerKey} is claimed by more than one player present (duplicate display name in an IP-direct session), so it was handed to none of them");
+					log.LogWarning("Character {PlayerKey} has more than one claimant in this session; it was handed to nobody (IP-direct duplicate display name). The file stays in the archive for a later claim.", character.PlayerKey);
+					continue;
+				}
+
 				unclaimed++;
 				log.LogInformation("Character {PlayerKey} has no claimant in this session; decision 162: that player joins as a new character. The file stays in the archive for a later claim.", character.PlayerKey);
 				continue;
@@ -130,8 +184,9 @@ internal sealed class WorldCharacterBinder(
 			applied++;
 		}
 
-		log.LogInformation("Restored characters: {Applied} bound to present peers, {Unclaimed} left unclaimed (key space {Space}).", applied, unclaimed, space);
-		return new WorldCharacterBindResult(local, boundKeys);
+		log.LogInformation("Restored characters: {Applied} bound to present peers, {Unclaimed} left unclaimed, {Refused} refused (key space {Space}).",
+			applied, unclaimed, refusals.Count, space);
+		return new WorldCharacterBindResult(local, boundKeys, refusals);
 	}
 
 	/// <summary>

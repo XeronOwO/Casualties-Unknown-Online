@@ -313,10 +313,35 @@ public class WorldSaveContinueTests
 		// (decision 162) — even when the Steam persona spells exactly the same name,
 		// which is why the live transport space is compared, not just the prefix.
 		using var restarted = fixture.Restart("continue-ip-to-steam-restart", displayName: "Host Name");
-		Assert.True(restarted.Service.TryContinue(out _));
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
 		Assert.Null(restarted.Characters.GetHostCharacterData());
 		Assert.Equal("name-host-name", Assert.Single(restarted.Service.PendingCharacters).PlayerKey);
+
+		// The refusal is a LOSS this session really takes (a present player may have earned
+		// that character), so it is part of the account the caller reports — not a log line.
+		Assert.Contains("key space", outcome.Summary, StringComparison.Ordinal);
+		Assert.Contains("none of its 1 stored character(s) was claimed", outcome.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void TryContinue_TwoPresentPlayersSharingADisplayName_HandsTheCharacterToNobodyAndNamesIt()
+	{
+		// The world was saved while ONE "Bob" was present, so characters/name-bob.json exists.
+		// A second player using the same display name then shows up: IP-direct keys by name, so
+		// both claim that one file. Handing it to either could hand over the other player's
+		// character, so it is refused for both (decision 177) — and the refusal is in the account.
+		using var fixture = WorldSaveFixture.Create("continue-ambiguous-claim", ipDirect: true, displayName: "Bob");
+		SaveLayerEnd(fixture, withCharacter: true);
+
+		using var restarted = fixture.Restart("continue-ambiguous-restart", ipDirect: true, displayName: "Bob");
+		restarted.Session.AddMember(2002UL, "Bob");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.Null(restarted.Characters.GetHostCharacterData());
+		Assert.Null(restarted.Characters.GetSavedCharacter(2002UL));
+		Assert.Contains("name-bob", outcome.Summary, StringComparison.Ordinal);
+		Assert.Contains("more than one player present", outcome.Summary, StringComparison.Ordinal);
 	}
 
 	[Fact]

@@ -204,10 +204,10 @@ internal sealed class WorldRestoreApplier(
 			DropReplacedLayerPositions(decode.UsableCharacters);
 		}
 
-		// The archive is authoritative for this world: the legacy reconnect table
-		// (CasualtiesUnknownOnline.character-data.bin) is dropped before the archive's
-		// characters are bound, so a player the package omits cannot be resurrected
-		// from stale data (decision 162: absent from the package = new character).
+		// The archive is authoritative for this world: the in-memory reconnect table
+		// is cleared before the archive's characters are bound, so a player the
+		// package omits cannot be resurrected from an earlier snapshot of this run,
+		// and the table then holds exactly the archive's claims (decisions 162/178).
 		characters.ClearSavedCharacters();
 		var bound = binder.Apply(decode.UsableCharacters);
 		repository.SetLastOpenedWorld(worldId);
@@ -243,6 +243,13 @@ internal sealed class WorldRestoreApplier(
 				damages.AddRange(CharacterNativeFieldPolicy.Missing(character.PlayerKey, character.Character));
 			}
 		}
+
+		// A stored character that was REFUSED a claimant is part of the same account: an
+		// ambiguous claim (two present players whose transport-scoped keys collide) and a
+		// key-space mismatch both drop a character a present player may have earned, so they
+		// are named beside the damage — never only logged. An absent player's file is NOT
+		// here: decision 162 makes that a new character, not a degradation.
+		damages.AddRange(bound.ClaimRefusals);
 
 		if (salvage.Report.Entries.Count > 0)
 		{

@@ -69,6 +69,10 @@ internal sealed class WorldParamsService(
 			BiomeOverride = isTutorial ? (byte)WorldGeneration.OverrideSceneType.Tutorial : (byte)WorldGeneration.OverrideSceneType.None,
 			BiomeDepth = 0,
 			TotalTraveled = 0,
+			// The debug console's starting depth is READ, not assumed: it is the third clause
+			// of the game's own first-layer test (`WorldGeneration.cs:1891`), so a run the
+			// player started at a debug depth must not read as the run's first layer.
+			DebugStartDepth = (byte)HarmonyTraverse.ReadDebugStartDepth(),
 		});
 		_entryParamsCaptured = true;
 		_log.LogInformation("Captured world params at run-start entry ({StateBytes} bytes, {SettingCount} settings, tutorial: {Tutorial}).",
@@ -173,6 +177,7 @@ internal sealed class WorldParamsService(
 		var biomeOverride = (byte)HarmonyTraverse.ReadBiomeOverride();
 		var biomeDepth = (byte)HarmonyTraverse.ReadBiomeDepth();
 		var totalTraveled = HarmonyTraverse.ReadTotalTraveled();
+		var debugStartDepth = (byte)HarmonyTraverse.ReadDebugStartDepth();
 
 		// The rarity multipliers are world-defining inputs like the fields above:
 		// the layer's loot/trap distribution is scaled by them, and the game has
@@ -201,6 +206,7 @@ internal sealed class WorldParamsService(
 			BiomeOverride = biomeOverride,
 			BiomeDepth = biomeDepth,
 			TotalTraveled = totalTraveled,
+			DebugStartDepth = debugStartDepth,
 			LootRarityMultiplier = lootRarity,
 			TrapRarityMultiplier = trapRarity,
 			// LoadedRun: no backing game field (PreRunScript.LoadRun is the
@@ -275,6 +281,7 @@ internal sealed class WorldParamsService(
 		HarmonyTraverse.WriteBiomeOverride(parameters.BiomeOverride);
 		HarmonyTraverse.WriteBiomeDepth(parameters.BiomeDepth);
 		HarmonyTraverse.WriteTotalTraveled(parameters.TotalTraveled);
+		HarmonyTraverse.WriteDebugStartDepth(parameters.DebugStartDepth);
 
 		// The generation boundary's rarity multipliers: the host captured them from
 		// the world it just generated with, and the guest must generate the SAME

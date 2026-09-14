@@ -18,34 +18,43 @@ layer: `WorldGeneration.WorldPlacePlayer` guards the grant with
 `totalTraveled <= 0 && biomeOverride == OverrideSceneType.None && debugStartDepth == 0`
 (`WorldGeneration.cs:1891`), and the two branches under it read
 `WorldGeneration.GetRunSettingInt("startingsupplies")` (`:1899`) and create the setting's items into
-the body's slots (`:1904-1912`). Every other way into the world therefore gets nothing:
+the body's slots (`:1904-1912`). The gate is the run's POSITION, and a CUO continue reaches it exactly
+like a native load does: the click lets the original `PreRunScript.LoadRun` run
+(`PreRunScriptLoadRunPatch`), which loads the scene; CUO then blocks `SaveSystem.TryLoadGame` — the
+only writer of a non-zero `totalTraveled` on a load — so the live field is whatever the generation
+baseline carries, and generation proceeds through `GenerateWorld` → `WorldPlacePlayer`. So:
 
-- a **restored** world generates the layer being entered (`RegenerateWorld` → `Clear()` +
-  `InstantiateWorld(true)`), and the restored run's own travel/depth are the archive's — so a player
-  who was not in the package joins a world where nobody has supplies, and the restored characters
-  carry only what they had;
-- a **mid-run join** (`totalTraveled > 0`) fails the same test, so a late joiner has an empty
-  backpack next to players carrying a run's worth of gear.
+- a run still on its **starting layer** (`totalTraveled == 0`, `debugStartDepth == 0`, no override)
+  gets the supplies from the game itself, whether it was started here or restored from an archive;
+- a **mid-run join** or a **restored run past its starting layer** (`totalTraveled > 0`) fails the
+  same test, so a player who was not in the package joins a world where nobody has supplies for them
+  and the restored characters carry only what they had.
 
 S4.1 made the identity half of the acceptance row work (the claim: a present player gets their
 character, an absent one is a new character — decision 162). The new character itself was the gap:
 nothing gave them the run's starting supplies, and nothing told them what they had (or had not)
 received.
 
-The one thing the game cannot help with is telling a restored run from a fresh one on the first
-layer: a restored run frozen on its starting layer has the same `totalTraveled == 0` and the same
-`biomeOverride == None`, so the game's own test answers "the supplies were already handed out" for a
-world whose supplies were never handed out by that path. That is the fact S4.3 had to add.
+The first version of this stage believed the opposite of the first bullet — that a restored run's
+starting layer was NOT covered by the game's grant, and added a Runtime fact
+(`IWorldSaveControl.RestoredGeneration`) to say so. The adversarial review broke it: on that layer the
+game's grant DOES run, so the extra clause turned `AlreadyOwned` into `Granted` and handed a second
+set of items to a body whose slots the native grant had just filled — `Body.PickUpItem` refuses an
+occupied slot without a word, so all of them were left on the ground as world items the whole team
+could see and take. The clause and the fact it needed are gone; the condition is now the game's own,
+read off the generation baseline.
 
 ## What landed
 
 - **`StartingSupplyPolicy`** (GameAdapter/Character) is the whole decision as a pure function: the
-  game's own setting table (none / light / full, with the game's own content ids and slot numbers),
-  the game's own first-layer condition, and one clause the game cannot make — a generation that came
-  from an archive is NOT covered by the game's grant. It returns a `Decision` with a `Reason`
-  (`Granted`, `Disabled`, `AlreadyOwned`, `CharacterRestored`, `NoBaseline`), the setting in the
-  game's words, and the plan (content id + slot per item). Pure, so every branch the live game
-  reaches is machine-verified without a Unity scene.
+  game's own setting table (none / light / full, with the game's own content ids and slot numbers) and
+  the game's own first-layer condition, mirrored clause for clause off the boundary capture
+  (`totalTraveled <= 0 && biomeOverride == None && debugStartDepth == 0 && !loadedRun`). It returns a
+  `Decision` with a `Reason` (`Granted`, `Disabled`, `AlreadyOwned`, `CharacterRestored`,
+  `NoBaseline`), the setting in the game's words, and the plan (content id + slot per item). Pure, so
+  every branch the live game reaches is machine-verified without a Unity scene — and deliberately
+  WITHOUT any "is this a restored world" input: no Runtime fact may enter a condition the game itself
+  evaluates at `WorldPlacePlayer`.
 - **`StartingSupplyGrantTracker`** is the once-per-body rule. Per BODY, not per session: a layer
   descent keeps the same body (`RegenerateWorld` never reloads the scene), so a player who descends
   still HAS their character and is not a new player; a death or a reconnect destroys the body, and
@@ -67,70 +76,121 @@ world whose supplies were never handed out by that path. That is the fact S4.3 h
   decoration: the CLR binds a method body's Unity InternalCall members when it JITs the method, so a
   coordinator that named `Utils.Create` or `Body.transform` could never be constructed in the test
   host at all — with the seam, the whole decision path is driven by tests.
-- **`IWorldSaveControl.RestoredGeneration`** is the one Runtime fact the decision needs: true from an
-  applied `TryContinue` until a run this client owns takes over (`TryBeginRun`) or the attempt is
-  abandoned. `WorldRestoreApplier` OWNS it — a restore is what produces it and the applier owns every
-  point it changes, including the release at the start of a superseding attempt — and
-  `WorldSaveService` relays it.
+- **There is no new Runtime fact, deliberately.** The first version added
+  `IWorldSaveControl.RestoredGeneration` (true from an applied `TryContinue`) to argue that the game's
+  grant did not cover a restored generation. It was wrong and it is deleted: the condition that
+  decides the game's own grant is evaluated inside `WorldPlacePlayer` against the live fields, so a
+  Runtime flag can only make the two answers disagree — and it did, in the one place the divergence
+  costs the player items. `RestoredGeneration` no longer exists on `IWorldSaveControl`,
+  `WorldSaveService` or `WorldRestoreApplier`.
 - **The account reaches the player through the surface S4.2 established** (decision 179): a new
   narrow port (`IStartingSupplyPublisher` for the adapter, `IStartingSupplyControl` for the surfaces,
   `StartingSupplyAudit` as the production broadcast point) and one console line — the same words the
   log carries, so a player's screen and the log can be compared without translating. Detail is not
   needed behind it (the line names its items), and an incomplete grant is the one failure shape: it
-  names what stayed on the ground and is announced as an error rather than a success.
+  names what stayed on the ground and is announced as an error rather than a success — including the
+  worst case, where NOTHING landed, whose line says so instead of opening with "given".
 - **The decision reads the SAME restore queue the character domain applies from.** S4.2's handoff
   named the hazard: the restore's first pass wipes the body's slots a frame later, so a grant that
   races it would be created, announced and then destroyed. The queue is therefore injected into
   `CharacterDataSync` rather than created inside it (one queue, two readers), and the check is taken
   at the GRANT moment rather than sampled when the body appeared — a restore that lands in between is
-  exactly the event that must cancel the grant.
+  exactly the event that must cancel the grant. The review found the original suite only APPEARED to
+  prove this (both of its rows queued the restore before the first pump, so an entry-sampled
+  implementation passed both); `Update_ARestoreThatLandsBetweenTheEntryAndTheGrant_CancelsIt` now
+  drives the real interleaving and was recorded RED against a re-introduced entry sample.
 
 ## Structure review notes
 
 - `WorldSaveService` was at 596 of the 600 aggregate lines before this stage and the new interface
   member pushed it over, so the stage split a responsibility rather than buying headroom:
-  **`WorldCutDeferral`** now owns the armed cut's deferral deadline (`MaxCutDeferralFrames` moved with
-  it) and its reset, which is the trigger-policy half of the frame-end seam — the seam S4.4's interval
-  trigger grows next. The archive's restored-generation claim moved to the applier that produces it,
-  and the player-facing source name ("the live snapshot" / "backup `<file>`") moved onto
-  `WorldLoadResult` as `SourceName`, where the load's own facts live. `WorldSaveService` is back to
-  600/600 and `WorldRestoreApplier` is 455.
+  **`WorldCutDeferral`** now owns the armed cut's deferral deadline (`MaxFrames` moved with it) and
+  its reset, which is the trigger-policy half of the frame-end seam — the seam S4.4's interval trigger
+  grows next. The player-facing source name ("the live snapshot" / "backup `<file>`") moved onto
+  `WorldLoadResult` as `SourceName`, where the load's own facts live. `WorldSaveService` ended at 594,
+  and all five stale `MaxCutDeferralFrames` references (one of them a summary block the extraction had
+  orphaned onto a field) were cleared with the rename.
+- `docs/evidence/sync-coverage-evidence.json` and `sync-coverage-matrix.md` were repointed twice: the
+  implementation moved 28 evidence lines (787 entries already correct) and the review fix moved 23
+  more (792 already correct). The repoint is quote-driven — an entry whose quote is no longer in its
+  file is reported and NOTHING is written — with the matrix's inline refs moved through the same map
+  and the backtick/hyphen/pipe/colon counts compared before and after.
 - `WorldCharacterBinder`'s Collect/Apply and their two pinned tests are untouched.
-- `docs/evidence/sync-coverage-evidence.json` and `sync-coverage-matrix.md` were repointed: this
-  stage's edits moved 28 evidence lines (787 entries were already correct), and the repoint was
-  quote-driven — an entry whose quote is no longer in its file is reported rather than guessed at —
-  with the matrix's inline refs moved through the same map and the backtick/hyphen/pipe/colon counts
-  compared before and after.
 
 ## Acceptance
 
 | # | Scenario | Expected | Evidence |
 |---|---|---|---|
-| 1 | A guest who was not in the package joins a restored world | Fresh character + the run's starting supplies, and one account line saying what they got | `StartingSupplyCoordinatorTests.Update_AnOmittedPlayerInARestoredWorld_IsSupplied` (a REAL continue through the production save service + a real archive on disk, then the coordinator's pump), `CommandConsoleSaveTests.StartingSupplies_OfAGrantedNewPlayer_IsOneNotificationNamingTheItems` |
+| 1 | A player who was not in the package joins a RESTORED world past its starting layer | Fresh character + the run's starting supplies, and one account line saying what they got | `StartingSupplyCoordinatorTests.Update_AnOmittedPlayerInARestoredWorld_IsSupplied` (a REAL continue through the production save service + a real archive on disk, then the coordinator's pump), `StartingSupplyPolicyTests.Decide_AnOmittedPlayerInARestoredWorldPastTheFirstLayer_IsGranted`, `CommandConsoleSaveTests.StartingSupplies_OfAGrantedNewPlayer_IsOneNotificationNamingTheItems` |
 | 2 | A player joining a running world (its first layer already behind it) | The run's supplies, once | `StartingSupplyCoordinatorTests.Update_AMidRunJoinInAFreshRun_IsSupplied`, `StartingSupplyPolicyTests.Decide_AMidRunJoin_SuppliesThePlayer` |
-| 3 | A player the world HAS a character for (a restore is queued) | Nothing is granted, and no second account is printed | `StartingSupplyCoordinatorTests.Update_AQueuedCharacterRestore_CancelsTheGrant`, `.Update_ARestoreThatLandsBeforeTheGrant_CancelsIt`, `StartingSupplyPolicyTests.Decide_AQueuedRestore_WinsOverEverything` |
-| 4 | A FRESH run's first layer | CUO grants nothing (the game's own grant is the one that ran) and says so | `StartingSupplyCoordinatorTests.Update_AFreshRun_ReportsAlreadyOwnedInsteadOfGranting`, `StartingSupplyPolicyTests.Decide_AFreshRun_TheGameAlreadySuppliedEveryone`, `.NativeGrantCovers_TheRunsFirstLayer_IsTrue` |
-| 5 | A restored world frozen on its starting layer | Not mistaken for a fresh run: the players the archive omitted ARE supplied | `StartingSupplyPolicyTests.NativeGrantCovers_ARestoredGeneration_IsFalse`, `.Decide_ARestoredWorld_SuppliesThePlayerTheArchiveOmitted` |
+| 3 | A player the world HAS a character for (a restore is queued) | Nothing is granted, and no second account is printed — including when the restore lands between the body's entry and the grant | `StartingSupplyCoordinatorTests.Update_AQueuedCharacterRestore_CancelsTheGrant`, `.Update_ARestoreThatLandsBetweenTheEntryAndTheGrant_CancelsIt` (red→green against an entry-sampled decision), `StartingSupplyPolicyTests.Decide_AQueuedRestore_WinsOverEverything` |
+| 4 | A FRESH run's first layer | CUO grants nothing (the game's own grant is the one that ran) and says so | `StartingSupplyCoordinatorTests.Update_AFreshRun_ReportsAlreadyOwnedInsteadOfGranting`, `StartingSupplyPolicyTests.Decide_AFreshRun_TheGameAlreadySuppliedEveryone`, `.NativeGrantCovers_TheRunsFirstLayer_IsTrue`, `CommandConsoleSaveTests.StartingSupplies_OfAPlayerTheGameAlreadySupplied_SaysSoInsteadOfGranting` |
+| 5 | A RESTORED world frozen on its starting layer | The game's own grant covers it exactly as it covers a fresh run: nothing is handed out a second time | `StartingSupplyCoordinatorTests.Update_ARestoredStartingLayer_DoesNotGrantASecondSet`, `StartingSupplyPolicyTests.NativeGrantCovers_ARestoredStartingLayer_IsStillTrue`, `.Decide_ARestoredStartingLayer_IsAlreadyOwned` |
 | 6 | The pump runs many frames over one body / a layer descent | Supplied once per body, never once per frame | `StartingSupplyCoordinatorTests.Update_TheSameBodyIsJudgedOnce_HoweverManyFramesRun`, `StartingSupplyGrantTrackerTests.WasSupplied_TracksEachBodyOnItsOwn`, `.WasSupplied_TwoSeparateInstances_AreTwoBodies` |
-| 7 | A new body after the old one is gone (death) / a new run | Judged on its own entry; a new run forgets the old bodies | `StartingSupplyCoordinatorTests.Update_ANewBodyAfterTheOldOneIsGone_IsJudgedOnItsOwnEntry`, `.Clear_ForgetsTheBodiesOfTheRunBeingLeft`, `StartingSupplyGrantTrackerTests.Clear_ForgetsEveryBody` |
+| 7 | A new body after the old one is gone (death) / a new run / a session end | Judged on its own entry; a new run and a session end both forget the old bodies | `StartingSupplyCoordinatorTests.Update_ANewBodyAfterTheOldOneIsGone_IsJudgedOnItsOwnEntry`, `.Clear_ForgetsTheBodiesOfTheRunBeingLeft`, `StartingSupplyGrantTrackerTests.Clear_ForgetsEveryBody` |
 | 8 | The run's setting is `none`, or the run carries no run settings at all (the tutorial) | Nothing is granted, and the player reads that the RUN decided it | `StartingSupplyCoordinatorTests.Update_ARunWithNoSupplies_ReportsDisabledAndGrantsNothing`, `StartingSupplyPolicyTests.Decide_ARunWithoutRunSettings_ReportsDisabledUnset`, `.Decide_ADisabledRunOnTheFirstLayer_IsDisabledNotAlreadyOwned`, `CommandConsoleSaveTests.StartingSupplies_OfARunWithNoSupplies_SaysTheRunDecidedIt` |
 | 9 | The baseline is not published yet | Not a verdict: nothing is granted, nothing is reported, and a later frame still supplies the body | `StartingSupplyCoordinatorTests.Update_WithNoPublishedBaseline_JudgesNothingAndRetries`, `StartingSupplyPolicyTests.Decide_NoBaseline_IsNotAVerdict` |
 | 10 | A slot the body cannot take / an id that produces no item | The item is NAMED as unplaced (and the console announces the partial grant as an error), never claimed | `StartingSupplyCoordinatorTests.Update_AnItemTheGameCannotPlace_IsNamedInsteadOfClaimed`, `.Update_AContentIdThatProducesNoItem_IsNamedInsteadOfClaimed`, `CommandConsoleSaveTests.StartingSupplies_OfAPartialGrant_IsAnnouncedAsAnErrorAndNamesWhatStayedOnTheGround` |
 | 11 | The setting's items and slots | The game's own table, item for item and slot for slot | `StartingSupplyPolicyTests.PlanFor_Full_IsTheGamesFourItemsInTheGamesSlots`, `.PlanFor_Light_IsTheEmergencyLightInTheGamesSlot`, `.PlanFor_AnUnknownValue_GrantsNothing` |
-| 12 | The account reaches the console in the production composition | The adapter's publish is rendered by the console, from the ONE audit instance the plugin registers | `WorldSaveCompositionTests.ProductionRoot_WiresTheStartingSuppliesAccountToTheConsole` |
-| 13 | The archive's claim on a generation | True only between an applied continue and the next run / an abandonment | `WorldSaveContinueTests.RestoredGeneration_IsWhatTellsARestoredWorldFromAFreshOne`, `.RestoredGeneration_OfARepeatedContinueThatIsRefused_DoesNotSurvive`, `.RestoredGeneration_OfAnAbandonedAttempt_IsReleased` |
+| 12 | The account reaches the console in the production composition | The adapter's publish is rendered by the console, from the ONE audit instance the plugin registers | `WorldSaveCompositionTests.ProductionRoot_WiresTheStartingSuppliesAccountToTheConsole`, `.ProductionRoot_ResolvesTheStartingSupplyAuditForTheAdapter` |
+| 13 | A run started from the debug console (`debugStartDepth != 0`) | Not the run's first layer: the game grants nothing, so CUO supplies | `StartingSupplyPolicyTests.NativeGrantCovers_ARunStartedAtADebugDepth_IsFalse` |
 | 14 | The tutorial | Never supplied (the game skips its own grant for that override, and the run carries no settings) | `StartingSupplyPolicyTests.NativeGrantCovers_TheTutorial_IsFalse`, `.Decide_ARunWithoutRunSettings_ReportsDisabledUnset` |
+
+## The independent adversarial review, and what happened to each finding
+
+The review ran in a fresh context and produced 1 BLOCKER / 2 MAJOR / 3 MINOR / 3 NIT. Everything
+below is fixed in this cycle; nothing is deferred.
+
+- **BLOCKER — the reversed `restoredGeneration` clause** (its evidence was the native continue's own
+  call chain: `PreRunScriptLoadRunPatch` lets `PreRunScript.LoadRun` run, which loads the scene;
+  `SaveSystemTryLoadGamePatch` blocks the only writer of a non-zero `totalTraveled` on a load, so the
+  live field is the archive's; generation therefore reaches `WorldPlacePlayer` with the game's own
+  guard satisfied). The clause and the `RestoredGeneration` fact it needed are DELETED, and
+  `NativeGrantCovers` is the game's condition verbatim — now including `debugStartDepth`, which the
+  first version had dropped. Two tests pin the corrected behaviour, one at each level
+  (`NativeGrantCovers_ARestoredStartingLayer_IsStillTrue`,
+  `Update_ARestoredStartingLayer_DoesNotGrantASecondSet`); both fail against the old code.
+- **MAJOR — the same root cause seen from the guest side**: the flag was only ever true on the host, so
+  the two clients evaluated one rule from different inputs. That asymmetry is gone with the flag; the
+  decision is now one input set (the shared generation baseline) on both sides.
+- **MAJOR — acceptance row 3 was proven by a duplicate**. The two rows were line-for-line equivalent and
+  both queued the restore BEFORE the first pump, so an implementation that sampled the queue at body
+  entry passed both — the very behaviour the ticket claimed to have avoided. The duplicate is replaced
+  by `Update_ARestoreThatLandsBetweenTheEntryAndTheGrant_CancelsIt`, which pumps once with no published
+  baseline (a non-verdict, so the body stays unjudged), queues the restore, publishes the baseline and
+  pumps again. Recorded RED by re-introducing the entry sample (`_entrySample ??= …`): the test reports
+  `Granted` where nothing may be granted.
+- **MINOR — a fully unplaced grant opened with "given"**: `Describe()` now has a case for "nothing
+  landed" and the console announces it as an error; `CommandConsoleSaveTests` pins that the line does
+  not contain the word "given", and `StartingSupplyGrantReport`'s own case is covered by the
+  `emergencylight` row.
+- **MINOR — the extraction left documentation garbage**: the orphaned summary block in
+  `WorldSaveService` (it had been attached to a field) is gone, and all five stale
+  `MaxCutDeferralFrames` references — one source, one architecture doc, two backlog tickets, one
+  decision entry — were repointed to `WorldCutDeferral.MaxFrames`.
+- **MINOR — `LoadedRun` is a dead clause**: kept, and documented as such. It is part of the game's own
+  load path, and it is false under CUO only because the Runtime has no source for it; a future native
+  load CUO lets through would otherwise re-open the double grant. Removing it would trade a nameable
+  impossibility for an unnamed one.
+- **MINOR / NIT — coverage and lifetime**: the `AlreadyOwned` and `Disabled` console branches and their
+  line kinds are now asserted; the adapter-facing publisher registration is pinned in the production
+  root; the tracker is cleared on session end as well as at a run start (a session can end with the
+  client still in the world, and the next session's first body must not be compared against a body
+  that is long gone).
+- **NIT — the coordinator suite never ran as a guest**: left as it is, deliberately. No host ever
+  supplies a body it is not driving, and the in-process role is what the pump gates on; the guest
+  asymmetry it hinted at was the flag, which is now gone. It is recorded here rather than papered over
+  with a test that would assert the fake.
 
 ## Verification limits
 
-Machine-verified: the whole decision (every `Reason`, the setting table, the native-coverage clauses,
-the entry-point/verdict precedence), the once-per-body rule including reference-vs-equality identity,
-the coordinator's pump against a REAL composition root — a real world repository on disk, a real cut,
-a real `TryContinue` (so `RestoredGeneration` is a produced fact, not a hand-set flag) — the
-Runtime's flag lifecycle, the console's rendering of all three dispositions, and the production
-wiring end to end. Also verified: the whole existing suite still passes, and the gates (including the
-architecture shape gate this stage had to satisfy by splitting, and the sync-coverage evidence gate
-this stage repointed).
+Machine-verified: the whole decision (every `Reason`, the setting table, the native-coverage clauses
+including `debugStartDepth`, the entry-point/verdict precedence), the once-per-body rule including
+reference-vs-equality identity and the session-end reset, the coordinator's pump against a REAL
+composition root — a real world repository on disk, a real cut, a real `TryContinue` — the console's
+rendering of all three dispositions and all four line shapes, and the production wiring end to end.
+Also verified: the whole existing suite still passes, and the gates (including the architecture shape
+gate this stage had to satisfy by splitting, and the sync-coverage evidence gate it repointed twice).
 
 NOT machine-verified, and NOT claimed here: the Unity half. `GameStartingSupplyTarget.Create` /
 `TryPlace` compile against the game's own `Utils.Create`, `Body.PickUpItem`, `PlayerCamera` and
@@ -138,7 +198,14 @@ NOT machine-verified, and NOT claimed here: the Unity half. `GameStartingSupplyT
 the method — the method body cannot be constructed at all). Their logic is the native grant's own
 calls and arguments, verified by reading `WorldGeneration.cs:1896-1912` and `Body.cs:1388-1410`, and
 the guards they add are for the two silent-failure modes the game has (`PickUpItem` refuses a
-non-empty or non-pickup-able slot without a word). What still needs the USER's dual-client pass:
+non-empty or non-pickup-able slot without a word).
+
+The BLOCKER's own last mile is in the same category, and it is the FIRST thing the user's pass should
+look at: that the game's own grant really does run on a CONTINUED world still frozen on its starting
+layer. The call chain is read off the decompiled sources and four independent statements inside this
+repository agree with it, but the only proof is a run: continue a layer-0 archive whose character the
+local player cannot claim and check that no second set of items appears at the body's feet. What else
+needs the USER's dual-client pass:
 
 - a host + guest where the guest was NOT in the package: the guest must enter the restored world
   with the run's supplies in the same slots a fresh run gives them, and the console must show one

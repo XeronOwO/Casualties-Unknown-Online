@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 ///   lands a frame later. Capturing them is impossible (there is nothing to
 ///   capture) and dropping them would lose the items, so the cut WAITS — the
 ///   armed request stays armed and the frame-end seam retries, bounded by
-///   <see cref="WorldSaveService.MaxCutDeferralFrames"/>.
+///   <see cref="WorldCutDeferral.MaxFrames"/>.
 /// - <see cref="WorldTransientVerdict.DropWithLog"/> covers states whose world
 ///   effect is already in the kernel (a medical session's applied wounds, a
 ///   pickup that has not happened) or that the restored world re-derives (the run

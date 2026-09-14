@@ -17,6 +17,16 @@ public sealed class WorldStartParams
 
 	public byte BiomeDepth { get; init; }
 
+	/// <summary>
+	/// The game's <c>WorldGeneration.debugStartDepth</c> when this boundary was captured — a
+	/// debug-console value the game's own first-layer test reads
+	/// (<c>WorldGeneration.cs:1891</c>), so a run started at a debug depth is NOT the run's
+	/// first layer and the game hands out no starting supplies on it. The adapter owns the
+	/// field (it is the only layer that may look at a game member); this carries the value to
+	/// the peers so both sides reach the same verdict.
+	/// </summary>
+	public byte DebugStartDepth { get; init; }
+
 	public int TotalTraveled { get; init; }
 
 	public bool LoadedRun { get; init; }

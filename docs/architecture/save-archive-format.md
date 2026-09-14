@@ -260,7 +260,7 @@ drops' `Item.Start`, a destructive trap holds its event two frames for the death
 drop holds its report one frame for the throw velocity. Capturing those states is impossible — their
 items do not exist yet — and dropping them would lose items, so an armed `frame-end` cut is
 DEFERRED: the request stays armed and the seam retries, bounded by
-`WorldSaveService.MaxCutDeferralFrames` (eight pump frames). A state that outlasts the deadline (a
+`WorldCutDeferral.MaxFrames` (eight pump frames). A state that outlasts the deadline (a
 stuck pending record) is NAMED in the cut report instead of starving the request.
 
 Every other in-flight class has an explicit row in `WorldTransientPolicy`: `capture` (the world fact

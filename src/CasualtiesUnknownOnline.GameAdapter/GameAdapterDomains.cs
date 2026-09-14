@@ -232,7 +232,6 @@ internal sealed class GameAdapterDomains
 			session,
 			world,
 			localRestore,
-			worldSaves,
 			startingSupplies,
 			new GameStartingSupplyTarget(),
 			loggerFactory.CreateLogger<StartingSupplyCoordinator>());

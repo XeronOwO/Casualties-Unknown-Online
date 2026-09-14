@@ -122,33 +122,49 @@ internal static class StartingSupplyPolicy
 	}
 
 	/// <summary>
-	/// True = the game's own grant covers this generation, so CUO must not supply on top
-	/// of it: the run's first layer of a run STARTED HERE. Every clause is the game's own
-	/// condition (<c>WorldGeneration.cs:1891</c>), and the restored-generation clause is
-	/// the half the game cannot make — a restored run frozen on its starting layer is
-	/// literally indistinguishable from a fresh one to that test (same
-	/// <c>totalTraveled == 0</c>, same <c>biomeOverride == None</c>), yet its players'
-	/// characters come from the archive and their supplies, if they ever had any, are
-	/// inside those characters. Without the clause the player who joined such a world with
-	/// no character would be handed NOTHING: the game's grant is not what put them in the
-	/// world, so its "already supplied" verdict is a false one — which is exactly the gap
-	/// S4.3 closes.
+	/// True = the game's own grant covers this generation, so CUO must not supply on top of
+	/// it. Every clause is the game's own condition (<c>WorldGeneration.cs:1891</c>:
+	/// <c>totalTraveled &lt;= 0 &amp;&amp; biomeOverride == None &amp;&amp; debugStartDepth == 0</c>),
+	/// read off the generation baseline the two sides share.
+	///
+	/// It is deliberately the WHOLE condition and nothing more. The tempting extra clause —
+	/// "unless this generation came from an archive" — is wrong, and the S4.3 adversarial
+	/// review proved it: a CUO continue lets the native <c>PreRunScript.LoadRun</c> run
+	/// (<c>PreRunScriptLoadRunPatch</c>), which loads the scene, and the CUO patch blocks
+	/// <c>SaveSystem.TryLoadGame</c> — the only thing that ever wrote a non-zero
+	/// <c>totalTraveled</c> on a load. So on a restored run frozen on its starting layer the
+	/// live field is the archive's own <c>totalTraveled == 0</c> (written by
+	/// <c>WorldParamsService.Apply</c> before generation) and the game's grant DOES fire —
+	/// for the host and for a following guest alike, because both walk the same
+	/// <c>GenerateWorld</c> → <c>WorldPlacePlayer</c> path. Flipping this to "not covered"
+	/// therefore handed a SECOND set of items to a player whose slots the native grant had
+	/// just filled: <c>PickUpItem</c> refuses every occupied slot silently and the new items
+	/// were left on the ground as world items. The two comments that describe the native
+	/// handout happening on a restore (<c>CharacterDataSync</c>'s "the game hands out the
+	/// starting supplies inside generation" and <c>CharacterRestoreApplier</c>'s "the game's
+	/// starting supplies … are already on the body when a restore runs") are the same fact
+	/// from the live side.
+	///
+	/// <c>LoadedRun</c> is part of the condition because the game's own load path sets it
+	/// (<c>PreRunScript.cs:302</c>); under CUO it is always false, since the Runtime has no
+	/// source for it (<c>WorldParamsService</c>). It stays in the mirror so that a future
+	/// source — a native load CUO lets through — cannot silently re-open the double grant.
 	/// </summary>
-	internal static bool NativeGrantCovers(WorldStartParams? baseline, bool restoredGeneration) =>
+	internal static bool NativeGrantCovers(WorldStartParams? baseline) =>
 		baseline is not null
-		&& !restoredGeneration
 		&& baseline.TotalTraveled <= 0
 		&& baseline.BiomeOverride == 0
+		&& baseline.DebugStartDepth == 0
 		&& !baseline.LoadedRun;
 
 	/// <summary>
-	/// The whole decision. <paramref name="restoredAtEntry"/> is whether a character
-	/// restore was queued when this body appeared — see
-	/// <see cref="CharacterDataSync.RestorePending"/> for why that is the world's answer
-	/// to "is there a character for me"; the grant otherwise follows the run's setting
-	/// unless the game's own first-layer grant already covered it.
+	/// The whole decision. <paramref name="restoredAtEntry"/> is the world's answer to "is
+	/// there a character for me": a restore is queued for this very body (see
+	/// <see cref="CharacterDataSync.RestorePending"/>), so it is not a new player. The grant
+	/// otherwise follows the run's setting, unless the game's own first-layer grant already
+	/// covered the body.
 	/// </summary>
-	internal static Decision Decide(bool restoredAtEntry, WorldStartParams? baseline, int? setting, bool restoredGeneration)
+	internal static Decision Decide(bool restoredAtEntry, WorldStartParams? baseline, int? setting)
 	{
 		if (restoredAtEntry)
 		{
@@ -176,7 +192,7 @@ internal static class StartingSupplyPolicy
 			return new Decision(Reason.Disabled, Describe(setting.Value), []);
 		}
 
-		if (NativeGrantCovers(baseline, restoredGeneration))
+		if (NativeGrantCovers(baseline))
 		{
 			return new Decision(Reason.AlreadyOwned, Describe(setting.Value), []);
 		}

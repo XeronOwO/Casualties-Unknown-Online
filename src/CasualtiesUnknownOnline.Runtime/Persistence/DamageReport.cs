@@ -58,6 +58,36 @@ public sealed record DamageReport(IReadOnlyList<DamageReport.Entry> Entries)
 		return string.Join("; ", parts);
 	}
 
+	/// <summary>
+	/// The same account item by item, for the in-game history: §6 requires the
+	/// reason AND the affected content id to be readable by the player, and a
+	/// single joined line (<see cref="Describe"/>) cannot carry the ids behind a
+	/// grouped count. <see cref="Describe"/> stays the account's headline; these
+	/// lines are what a surface prints under it.
+	/// </summary>
+	public IReadOnlyList<string> DescribeLines()
+	{
+		if (Entries.Count == 0)
+		{
+			return [];
+		}
+
+		var lines = new List<string>(Entries.Count);
+		foreach (var entry in Entries)
+		{
+			lines.Add(entry.Scope switch
+			{
+				EntryScope.Entry => $"entry {entry.Id} was skipped in {entry.Path} ({entry.Reason}): {entry.Detail}",
+				EntryScope.File => $"{entry.Path} could not be used ({entry.Reason}): {entry.Detail}",
+				_ => entry.Id.Length == 0
+					? $"{entry.Reason}: {entry.Detail}"
+					: $"{entry.Reason} ({entry.Id}): {entry.Detail}",
+			});
+		}
+
+		return lines;
+	}
+
 	/// <summary>How far the damaged thing reaches: the repository, one file, or one entry inside a file.</summary>
 	public enum EntryScope
 	{

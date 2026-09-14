@@ -78,6 +78,7 @@ internal sealed class WorldCutWriter(
 		}
 
 		IReadOnlyList<SavePayloadFile> files;
+		WorldSnapshotCounts counts;
 		SaveManifestMeta meta;
 		try
 		{
@@ -94,7 +95,9 @@ internal sealed class WorldCutWriter(
 				facts.Transients,
 				request.Kind,
 				facts.RunFields);
-			files = _encoder.Encode(payload);
+			var encoded = _encoder.EncodeWithCounts(payload);
+			files = encoded.Files;
+			counts = encoded.Counts;
 			meta = MetaOf(checkpoint, request.DisplayName, request.Characters.Count, request.Reason, request.CutPhase);
 		}
 		catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NotSupportedException)
@@ -123,11 +126,23 @@ internal sealed class WorldCutWriter(
 			return WorldCutWriteResult.Refused($"the write transaction failed at {write.Reason} ({write.Detail})");
 		}
 
-		_log.LogInformation("Cut {Reason} committed for world {WorldId} at revision {Revision}, layer {Layer} ({Files} file(s), backup {Backup}).",
-			request.Reason, request.WorldId, checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, files.Count, write.BackupArchivePath);
+		// ONE line per cut (S4 scope 3): the trigger, the kind and phase the manifest
+		// recorded, the revision and layer the snapshot was frozen at, and the
+		// per-domain counts — the same domains the restore's own line reports, in the
+		// same order (WorldSnapshotCounts), so "the restored world is missing rows"
+		// is a two-line comparison instead of a deploy-and-reproduce loop. The counts
+		// are the ENCODER's, i.e. the rows the archive holds: a layer-end cut drops its
+		// in-layer rows, so the checkpoint's own counts would name a set nobody can read.
+		_log.LogInformation(
+			"Cut {Reason} committed for world {WorldId}: {Kind} cut taken at {CutPhase}, revision {Revision}, layer {Layer}, {Files} file(s), backup {Backup}; {Counts}.",
+			request.Reason, request.WorldId, SaveArchiveFormat.CutKindName(request.Kind), request.CutPhase, checkpoint.GlobalRevision,
+			checkpoint.Run.LayerIndex, files.Count, write.BackupArchivePath, counts.Describe());
+		// The result carries the SAME counts the line above reports, from the same source:
+		// the account a console prints and the line a log keeps must not be able to name
+		// different numbers for one cut.
 		return WorldCutWriteResult.Captured(
 			checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, files.Count,
-			facts.Blocks.Count, facts.Transients.Count, write.BackupArchivePath ?? string.Empty);
+			counts.WorldBlocks, counts.WorldTransients, write.BackupArchivePath ?? string.Empty);
 	}
 
 	/// <summary>
@@ -248,7 +263,10 @@ internal sealed class WorldCutWriter(
 			}
 		}
 
-		_log.LogInformation("Cut {Reason} ({Kind}) carries {Blocks} world-block row(s) and {Transients} transient row(s).",
+		// Debug, not Information: the commit line of this same cut reports these two
+		// counts (with the rest of the domains), and a second Information line for one
+		// cut is the noise that hides the line a reader is looking for.
+		_log.LogDebug("Cut {Reason} ({Kind}) carries {Blocks} world-block row(s) and {Transients} transient row(s).",
 			reason, cutKind, blocks.Count, transients.Count);
 		return new WorldSaveFacts(blocks, transients);
 	}

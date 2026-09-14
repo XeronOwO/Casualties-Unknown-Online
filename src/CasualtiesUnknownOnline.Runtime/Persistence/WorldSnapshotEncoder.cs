@@ -31,8 +31,25 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 {
 	private readonly ILogger<WorldSnapshotEncoder> _log = log;
 
-	/// <summary>Builds every payload file of one cut. Throws when the payload has no run baseline — a snapshot without one could not restore into any layer.</summary>
-	public IReadOnlyList<SavePayloadFile> Encode(WorldSnapshotPayload payload)
+	/// <summary>
+	/// Builds every payload file of one cut, dropping the row counts — the projection the
+	/// suites that pin the payload's row SHAPES use. The cut writer calls
+	/// <see cref="EncodeWithCounts"/> instead, because the line it logs has to name the
+	/// rows the ARCHIVE holds.
+	/// </summary>
+	public IReadOnlyList<SavePayloadFile> Encode(WorldSnapshotPayload payload) => EncodeWithCounts(payload).Files;
+
+	/// <summary>
+	/// Builds every payload file of one cut, together with the per-domain row counts the
+	/// ARCHIVE will hold. Throws when the payload has no run baseline — a snapshot without
+	/// one could not restore into any layer.
+	///
+	/// The counts come from the row lists this method actually wrote, never from the
+	/// checkpoint it was handed: a layer-end cut DROPS in-layer rows, so the checkpoint's
+	/// own counts describe a different set than the archive does — and the restore that
+	/// reads that archive can only report the archive's.
+	/// </summary>
+	internal EncodedSnapshot EncodeWithCounts(WorldSnapshotPayload payload)
 	{
 		var checkpoint = payload.Checkpoint;
 		if (checkpoint.Run is null)
@@ -44,21 +61,30 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 
 		WarnAboutUnpersistedDomains(payload);
 
+		var runRows = RunRows(checkpoint.Run, payload.RunFields);
+		var playerRows = (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState).ToList();
+		var itemRows = ItemRows(checkpoint, payload.Kind);
+		var entityRows = WorldEntityRows(checkpoint.WorldEntities ?? WorldEntityState.Empty, payload.Kind);
+		var enemyRows = EnemyRows(checkpoint.Enemies ?? EnemyStateTable.Empty, payload.Kind);
+
+		// A layer-end cut has no in-layer deviations: the blocks the player changed
+		// and the transient world facts are DROPPED here, because the layer it names
+		// is regenerated from the run baseline (§3.4/§4). Every other kind writes the
+		// payload's facts as typed rows.
+		var fluidRows = FluidRows(checkpoint.Fluids, payload.Kind);
+		var blockRows = RowsFor(payload, payload.WorldBlocks);
+		var transientRows = RowsFor(payload, payload.WorldTransients);
+
 		var files = new List<SavePayloadFile>(12 + payload.Characters.Count)
 		{
-			Json(SaveArchiveFormat.RunFileName, RunRows(checkpoint.Run, payload.RunFields)),
-			Json(SaveArchiveFormat.PlayersFileName, (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState).ToList()),
-			Json(SaveArchiveFormat.ItemsFileName, ItemRows(checkpoint, payload.Kind)),
-			Json(SaveArchiveFormat.WorldEntitiesFileName, WorldEntityRows(checkpoint.WorldEntities ?? WorldEntityState.Empty, payload.Kind)),
-			Json(SaveArchiveFormat.EnemiesFileName, EnemyRows(checkpoint.Enemies ?? EnemyStateTable.Empty, payload.Kind)),
-			Json(SaveArchiveFormat.FluidsFileName, FluidRows(checkpoint.Fluids, payload.Kind)),
-
-			// A layer-end cut has no in-layer deviations: the blocks the player
-			// changed and the transient world facts are DROPPED here, because the
-			// layer it names is regenerated from the run baseline (§3.4/§4). Every
-			// other kind writes the payload's facts as typed rows.
-			Json(SaveArchiveFormat.WorldBlocksFileName, RowsFor(payload, payload.WorldBlocks)),
-			Json(SaveArchiveFormat.WorldTransientsFileName, RowsFor(payload, payload.WorldTransients)),
+			Json(SaveArchiveFormat.RunFileName, runRows),
+			Json(SaveArchiveFormat.PlayersFileName, playerRows),
+			Json(SaveArchiveFormat.ItemsFileName, itemRows),
+			Json(SaveArchiveFormat.WorldEntitiesFileName, entityRows),
+			Json(SaveArchiveFormat.EnemiesFileName, enemyRows),
+			Json(SaveArchiveFormat.FluidsFileName, fluidRows),
+			Json(SaveArchiveFormat.WorldBlocksFileName, blockRows),
+			Json(SaveArchiveFormat.WorldTransientsFileName, transientRows),
 		};
 
 		foreach (var character in payload.Characters)
@@ -66,10 +92,24 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 			files.Add(Json(SaveArchiveFormat.CharacterFilePath(character.PlayerKey), new List<CharacterDataMsg> { character.Character }));
 		}
 
-		_log.LogInformation("Encoded snapshot payload: {Files} file(s), epoch {Epoch}, revision {Revision}, layer {Layer}, {Items} item(s), {Players} player(s), {Characters} character(s), run fields {RunFields}.",
-			files.Count, checkpoint.RunEpoch.Value, checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, checkpoint.Items.Count, checkpoint.Players?.Players.Count ?? 0, payload.Characters.Count,
-			payload.RunFields is null ? "absent" : $"present ({payload.RunFields.Value.Recipes.Count} recipe row(s))");
-		return files;
+		var counts = new WorldSnapshotCounts(
+			itemRows.Count,
+			playerRows.Count,
+			enemyRows.Count,
+			fluidRows.Count,
+			entityRows.Count,
+			payload.Characters.Count,
+			blockRows.Count,
+			transientRows.Count,
+			payload.RunFields is { } fields ? fields.Recipes.Count : null);
+
+		// Debug, not Information: the commit line of the cut these files were encoded for
+		// reports the same account (with the world id, the kind, the phase, the revision,
+		// the layer and the backup), and a second Information line for one cut is the noise
+		// that hides the line a reader is looking for.
+		_log.LogDebug("Encoded snapshot payload: {Files} file(s), epoch {Epoch}, revision {Revision}, layer {Layer}; {Counts}.",
+			files.Count, checkpoint.RunEpoch.Value, checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, counts.Describe());
+		return new EncodedSnapshot(files, counts);
 	}
 
 	/// <summary>

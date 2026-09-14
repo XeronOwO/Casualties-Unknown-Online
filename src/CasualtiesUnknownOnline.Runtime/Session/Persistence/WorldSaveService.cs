@@ -78,6 +78,14 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	private int? _deferralStartFrame;
 	private bool _disposed;
 
+	/// <summary>
+	/// The Continue attempt's player-facing account: what the click resolved, whether an
+	/// applied attempt is still outstanding, and the one place a report is raised. Its own
+	/// type because it is about what the PLAYER is told rather than about what a snapshot
+	/// holds — and because this class sits at the architecture file-size ceiling.
+	/// </summary>
+	private readonly WorldRestoreAccountRelay _restoreAccount;
+
 	public WorldSaveService(
 		WorldRepository? repository,
 		ISessionControl session,
@@ -135,6 +143,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 				gameBuild ?? string.Empty,
 				utcNow ?? (() => DateTime.UtcNow));
 		_log = log;
+		_restoreAccount = new WorldRestoreAccountRelay(report => RestoreReported?.Invoke(report), audit);
 
 		_kernel.BatchCommitted += OnBatchCommitted;
 	}
@@ -148,6 +157,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	public bool HasArmedCut => _armedReason is not null;
 
 	public event Action<WorldCutReport>? CutReported;
+
+	/// <summary>The Continue click's own account, raised once the attempt resolves (see <see cref="IWorldSaveControl.RestoreReported"/>).</summary>
+	public event Action<WorldRestoreReport>? RestoreReported;
 
 	/// <summary>
 	/// The world the Continue entry opens: the repository's last-opened pointer
@@ -201,6 +213,14 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	public void AbandonRestore(string reason)
 	{
 		_log.LogWarning("The CUO continue attempt is abandoned: {Reason}. Every handover it armed is released and the live world keeps the state it already has.", reason);
+
+		// The click already reported "applied" (the absence of a click reported nothing at
+		// all, and that absence is why the relay, not this method, decides whether there is
+		// an attempt to close); this is the second and last word on it, and the player needs
+		// it for the same reason a refusal needs a line: the run does not start, and without
+		// this the console would say nothing about the button that just did nothing.
+		_restoreAccount.Abandoned(reason);
+
 		_audit?.AbandonRestore();
 		_worldFacts.ClearPendingLiveReplay();
 		_worldEntities?.CancelPendingRestore(reason);
@@ -224,6 +244,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 		_disposed = true;
 		_kernel.BatchCommitted -= OnBatchCommitted;
+		_restoreAccount.Dispose();
 	}
 
 	public bool TryBeginRun(bool isTutorial)
@@ -245,6 +266,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		// the game's own damage rows, the run clock base and the recipe unlock table).
 		_armedReason = null;
 		_deferralStartFrame = null;
+		_restoreAccount.Superseded();
 		_audit?.AbandonRestore();
 		_worldFacts.ClearPendingLiveReplay();
 		_worldEntities?.CancelPendingRestore("a new run superseded the restore");
@@ -556,6 +578,14 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		}
 
 		outcome = restore.Outcome;
+
+		// The click account is a REPORT, not a log line (§6): the console renders these
+		// same lines where the player is already reading, so a refused continue — and a
+		// continue that skipped an entry, refused a stored character or fell back to a
+		// backup — is never discoverable only by reading a file. Raised for the refusals
+		// too, which is the half a player otherwise experiences as "nothing happened".
+		// The account itself, disposition included, is the restore's own (Result.Report).
+		_restoreAccount.Resolved(restore.Report);
 		return restore.Started;
 	}
 

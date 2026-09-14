@@ -72,6 +72,18 @@ public interface IWorldSaveControl
 	/// </summary>
 	event Action<WorldCutReport>? CutReported;
 
+	/// <summary>
+	/// Every RESOLVED Continue attempt, once: the click's own account of what it
+	/// applied, what it lost and why it refused — raised by
+	/// <see cref="TryContinue"/> as the attempt resolves, and again by
+	/// <see cref="AbandonRestore"/> when an applied attempt no generation will
+	/// consume. The log keeps the same lines, but §6 requires the restore's losses
+	/// in-game (the count per domain, the reason, the affected content id, the
+	/// backup a load fell back to), and a click that does nothing is exactly the
+	/// failure a player cannot diagnose from a log they never open.
+	/// </summary>
+	event Action<WorldRestoreReport>? RestoreReported;
+
 	/// <summary>The world this run writes into ("" before a run started); the Runtime owns it, the adapter only reports it in logs.</summary>
 	string CurrentWorldId { get; }
 
@@ -103,9 +115,17 @@ public interface IWorldSaveControl
 	/// baseline could not be published, so no generation runs): every handover that
 	/// click armed is released here — the restore's account, the Runtime world-fact
 	/// tables, the kernel's restored per-entity arm, the adapter's native handover and
-	/// the item reconcile — instead of waiting for the next run to cancel them. Nothing
-	/// is reported: a restore that never happened is not a restore that succeeded.
-	/// <paramref name="reason"/> names why, in the log and in each release.
+	/// the item reconcile — instead of waiting for the next run to cancel them.
+	///
+	/// The attempt gets its LAST word here: an APPLIED attempt that is still outstanding
+	/// raises one more <see cref="RestoreReported"/> report with
+	/// <see cref="WorldRestoreReport.Disposition.Abandoned"/> (the click already reported
+	/// the application), because a run that does not start is exactly what the player
+	/// must not have to read a log to learn. An attempt that is not outstanding — no
+	/// click, a refused one, one already abandoned or superseded by a new run — releases
+	/// the same handovers and reports NOTHING: a restore that never happened is not a
+	/// restore that succeeded. <paramref name="reason"/> names why, in the log, in the
+	/// abandonment report and in each release.
 	/// </summary>
 	void AbandonRestore(string reason);
 }

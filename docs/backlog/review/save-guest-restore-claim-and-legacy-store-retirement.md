@@ -108,11 +108,13 @@ deployed-artifact hashes.
 
 NOT machine-verified, and NOT claimed here: the multi-client rows. Two real clients sharing a display
 name in an IP-direct session, a reconnecting guest after a host process restart, and the in-game
-appearance of the refusals all need the user's dual-client pass. A restore refusal is in the CLICK-TIME
-account (`WorldContinueOutcome.Summary`, logged by `RunSaveCoordinator`) and today reaches `CUO.log`,
-not the console — S4.2 owns making the whole click-time account (damage, claim refusals, native-field
-gaps) player-visible. The CUT-side refusals this stage added ARE player-visible already: they ride the
-cut report's "NOT carried" list, which `CommandConsoleService.OnCutReported` prints for a
-player-initiated cut (layer-end and autosave cuts stay log-only, the pre-existing policy for every
-dropped class). The full-suite and deployed-hash numbers in this file are the ones recorded in the
-S4.1 commit; the artifact hashes are re-verified after that commit.
+appearance of the refusals all need the user's dual-client pass. A restore refusal lands in the
+CLICK-TIME account (`WorldContinueOutcome.Summary`, logged by `RunSaveCoordinator`) — as of S4.2
+(`review/save-restore-account-surface.md`, decision 179) that whole account is player-visible: it
+travels as a `WorldRestoreReport` and the command console prints its disposition as one notification
+with the itemized damage, the claim refusals and the native-field gaps in the history. The CUT-side
+refusals this stage added were already player-visible: they ride the cut report's "NOT carried" list,
+which `CommandConsoleService.OnCutReported` prints for a player-initiated cut (layer-end and autosave
+cuts stay log-only, the pre-existing policy for every dropped class). The full-suite and
+deployed-hash numbers in this file are the ones recorded in the S4.1 commit; the artifact hashes are
+re-verified after that commit.

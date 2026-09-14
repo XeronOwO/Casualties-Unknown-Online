@@ -15,7 +15,7 @@ begins. This file stays the roadmap and holds no implementation work of its own.
 | Stage | Ticket | Scope | State |
 |---|---|---|---|
 | S4.1 | `review/save-guest-restore-claim-and-legacy-store-retirement.md` | Scope 1's claim rules (transport-scoped, collision-safe) + scope 6 (retire the legacy `.bin` reconnect store) | landed (review) |
-| S4.2 | this file, scope 2 + 3 | The player-visible restore account: repair/recovery reporting rules of §6 in-game, the claim refusals from S4.1, one observability line per save/restore | open |
+| S4.2 | `review/save-restore-account-surface.md` | Scope 2 + 3: the player-visible restore account (repair/recovery reporting of §6, the S4.1 claim refusals), and one account log line per save/restore with the per-domain record counts | landed (review) |
 | S4.3 | this file, scope 1 (second half) | A player the world has no character for joins as a NEW player: the run's configured starting supplies, granted once per body | open |
 | S4.4 | this file, scope 4 + 5 (+ S3's scope 7) | Interval autosave, retention, the config surface, the failure-degradation matrix, and the decode-level refusal's backup-promotion recovery (acceptance row 6) | open |
 
@@ -77,8 +77,15 @@ begins. This file stays the roadmap and holds no implementation work of its own.
 | 6 | Restore from a backup after a damaged live snapshot | Live snapshot preserved as evidence, backup promoted, action reported | S4.4 |
 | 7 | A guest disconnects and rejoins a restored world, with no `character-data.bin` on disk | The character comes from the world archive's `characters/<playerKey>.json`; nothing else is written for it | S4.1 |
 
-## Verification limits
+## Known constraint for the remaining stages
 
+`WorldSaveService.cs` is the class S4.4's interval trigger and retention policy will grow, and after
+S4.2 it sits at 596 of the 600 aggregate-line limit (`SourceShapeGateTests`). S4.4 must split before
+adding: the natural seam is the cut-TRIGGER family (arming, the deferral deadline, the transient
+policy hand-off) or the continue entry, both of which are separable from the world identity the class
+owns. Do not buy headroom by shrinking comments or moving code without a responsibility split.
+
+## Verification limits
 The multi-client rows (1–3) cannot be machine-verified: they need the sandbox dual-client pass and
 the user's acceptance run. Each stage's completion report must separate machine-verified rows from
 user-verified rows, and must not claim dual-client verification before the user runs it.

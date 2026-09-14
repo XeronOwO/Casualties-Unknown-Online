@@ -643,8 +643,8 @@ onto the arm it creates, and the value the account is opened for:
 | the restored world-item set | armed inside the kernel restore (`RestoredWorldItemSet.cs:48`) | internal — the set is its own reporter (`:83`, `:105`) |
 
 `WorldRestoreApplier` reads `kernel.RestoreSequence` ONCE after `kernel.Restore`
-(`WorldRestoreApplier.cs:167`) and passes it both to `WorldFactRestore.Apply` (`:174`) and to
-`BeginRestore` (`:208`), so the arms and the account cannot disagree.
+(`WorldRestoreApplier.cs:188`) and passes it both to `WorldFactRestore.Apply` (`:195`) and to
+`BeginRestore` (`:230`), so the arms and the account cannot disagree.
 `WorldRestoreAudit.LiveWriteFinished` ignores a contribution whose sequence is not the open account's
 and logs it at warning level (`WorldRestoreAudit.cs:130`; `LiveWriteAbandoned` takes the identity too,
 `:163`). The audit now takes the composition's logger (optional, so a test host may omit it;
@@ -658,7 +658,7 @@ reports both. That is why the supersession below has to release it too: an attem
 values armed while a new attempt's apply stamps the Runtime half would otherwise have its rows written
 into the new layer under the new attempt's identity.
 
-**A new restore SUPERSEDES the previous attempt** (`WorldRestoreApplier.cs:145-149`, before the kernel
+**A new restore SUPERSEDES the previous attempt** (`WorldRestoreApplier.cs:146-166`, before the kernel
 restore that arms this attempt's own halves): the account is closed (`AbandonRestore`, so a dead
 attempt's arm releases cannot report into it) and every handover it left armed is released — the Runtime
 world-fact marker, the world-entity facts, the adapter's native handover and the restored world-item set

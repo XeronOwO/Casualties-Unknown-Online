@@ -43,6 +43,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IResourceLocationCatalog _resourceLocations;
 	private readonly IWorldSaveControl _saves;
 	private readonly WorldRestoreAudit _restoreAudit;
+	private readonly IStartingSupplyControl _startingSupplies;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -56,7 +57,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		ConsoleCommandRegistry commandRegistry,
 		IResourceLocationCatalog resourceLocations,
 		IWorldSaveControl worldSaves,
-		WorldRestoreAudit restoreAudit)
+		WorldRestoreAudit restoreAudit,
+		IStartingSupplyControl startingSupplies)
 	{
 		_chat = chat;
 		_session = session;
@@ -69,6 +71,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_resourceLocations = resourceLocations;
 		_saves = worldSaves;
 		_restoreAudit = restoreAudit;
+		_startingSupplies = startingSupplies;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += OnSessionEnded;
 		// The console is the player's surface for the save system's three answers: the
@@ -79,6 +82,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_saves.CutReported += OnCutReported;
 		_saves.RestoreReported += OnRestoreReported;
 		_restoreAudit.Reported += OnRestoreLiveWrite;
+		// ...and for the one answer S4.3 added to the same story: what a player entering
+		// a world the world has no character for was handed (decision 179's rule — one
+		// notification, the account behind it).
+		_startingSupplies.Reported += OnStartingSuppliesReported;
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
@@ -205,6 +212,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_saves.CutReported -= OnCutReported;
 		_saves.RestoreReported -= OnRestoreReported;
 		_restoreAudit.Reported -= OnRestoreLiveWrite;
+		_startingSupplies.Reported -= OnStartingSuppliesReported;
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
@@ -251,6 +259,29 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// <summary>The live-world half of a restore: the world-entry seam wrote — or could not write — the restored facts.</summary>
 	private void OnRestoreLiveWrite(WorldRestoreLiveWriteReport report) =>
 		AddLine($"CUO restore of world {report.WorldId}: {report.Summary}", report.Complete ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+
+	/// <summary>
+	/// The starting-supplies grant of a player this world had no character for (S4.3):
+	/// ONE line, the same words the log carries, so the player's screen and the log can
+	/// be compared without translating. The three dispositions are one event each and the
+	/// account is one line long by construction, so nothing goes into the history behind
+	/// it — a granted report names its items in that same line, and an empty grant
+	/// (disabled, or already owned through the game's own first-layer grant) has nothing
+	/// behind it to read.
+	///
+	/// An incomplete grant is the one failure shape: the line says so (it names what
+	/// stayed on the ground), and it is announced as an error rather than a success —
+	/// a player who cannot find a given item must not have to read the sentence twice
+	/// to learn it was never placed.
+	/// </summary>
+	private void OnStartingSuppliesReported(StartingSupplyGrantReport report) =>
+		AddLine(
+			report.Describe(),
+			report.Outcome == StartingSupplyGrantReport.Disposition.Granted && report.Complete
+				? ConsoleLineKind.Success
+				: report.Outcome == StartingSupplyGrantReport.Disposition.Granted
+					? ConsoleLineKind.Error
+					: ConsoleLineKind.Info);
 
 	private bool ExecuteCommand(string commandLine)
 	{

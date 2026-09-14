@@ -60,6 +60,7 @@ internal sealed class GameAdapterDomains
 
 	internal readonly CloneFactTable FactTable;
 	internal readonly CharacterDataSync CharacterDataSync;
+	internal readonly StartingSupplyCoordinator StartingSupplies;
 	internal readonly RemotePlayerRenderer Renderer;
 	internal readonly RemoteBackpackCoordinator RemoteBackpack;
 	internal readonly RemoteMedicalCoordinator RemoteMedical;
@@ -145,6 +146,7 @@ internal sealed class GameAdapterDomains
 		ITutorialClawControl tutorialClaw,
 		IWorldSaveControl worldSaves,
 		WorldRestoreAudit restoreAudit,
+		IStartingSupplyPublisher startingSupplies,
 		IOptionsMonitor<RespawnOptions> respawnOptions,
 		IHostRules hostRules,
 		WorldEntityKernelProjection worldEntityKernel,
@@ -210,6 +212,10 @@ internal sealed class GameAdapterDomains
 		// injected: the coordinator owns when a restore runs, they own what it does.
 		var wearables = new WearableRestorer(loggerFactory.CreateLogger<WearableRestorer>());
 		var nativeCharacterSystem = CharacterNativeFields.LiveSystem.Instance; // the two game statics (PlayerCamera.main, WoundView.view), behind the port the capture/apply logic is tested through
+																			   // One queue, two readers: the character domain owns when a restore is applied, and
+																			   // the starting-supplies decision reads the same instance to answer "does this world
+																			   // have a character for me?" (S4.3).
+		var localRestore = new LocalCharacterRestoreQueue();
 		var restoreApplier = new CharacterRestoreApplier(mapper, wearables, nativeCharacterSystem, loggerFactory.CreateLogger<CharacterRestoreApplier>());
 		CharacterDataSync = new CharacterDataSync(session, characterData, mapper,
 			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
@@ -217,7 +223,19 @@ internal sealed class GameAdapterDomains
 			restoreApplier,
 			wearables,
 			nativeCharacterSystem,
+			localRestore,
 			loggerFactory.CreateLogger<CharacterDataSync>());
+		// The starting-supplies grant (S4.3): a player the world has no character for gets
+		// the run's startingsupplies once per body. The shared restore queue above is its
+		// input — a queued character restore means this player is NOT new.
+		StartingSupplies = new StartingSupplyCoordinator(
+			session,
+			world,
+			localRestore,
+			worldSaves,
+			startingSupplies,
+			new GameStartingSupplyTarget(),
+			loggerFactory.CreateLogger<StartingSupplyCoordinator>());
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
 		RemoteMedical = new RemoteMedicalCoordinator(session, CharacterDataSync, mapper, loggerFactory.CreateLogger<RemoteMedicalCoordinator>());
@@ -309,7 +327,7 @@ internal sealed class GameAdapterDomains
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, NativeWorldFacts, loggerFactory.CreateLogger<WorldParamsService>());
 		MenuReturn = new RunMenuReturnCoordinator(loggerFactory.CreateLogger<RunMenuReturnCoordinator>());
-		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, MenuReturn, loggerFactory.CreateLogger<RunCoordinator>());
+		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, StartingSupplies, MenuReturn, loggerFactory.CreateLogger<RunCoordinator>());
 		// The frame-end cut seam is the LAST domain of the pump: it is where every
 		// cut trigger is taken (the armed /save request and the deliberate menu
 		// return of a host or a solo player), after every domain has finished this

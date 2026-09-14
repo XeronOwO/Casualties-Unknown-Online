@@ -26,6 +26,7 @@ internal sealed class CharacterDataSync(
 	CharacterRestoreApplier restoreApplier,
 	WearableRestorer wearables,
 	ICharacterNativeSystem nativeSystem,
+	LocalCharacterRestoreQueue restore,
 	ILogger<CharacterDataSync> log)
 {
 	private readonly ISessionControl _session = session;
@@ -45,13 +46,31 @@ internal sealed class CharacterDataSync(
 		remove => _factTable.CloneSnapshotUpdated -= value;
 	}
 
-	private readonly LocalCharacterRestoreQueue _restore = new(); // the local body's pending restore (which snapshot, whose run, which apply phase)
+	/// <summary>
+	/// The local body's pending restore (which snapshot, whose run, which apply phase).
+	/// Injected rather than owned: it is also the world's answer to "does this world have
+	/// a character for me?", which the starting-supplies decision reads at the moment a
+	/// body appears (<see cref="StartingSupplyCoordinator"/>). One queue, two readers — a
+	/// second instance would let the two disagree about whether this player is new, which
+	/// is exactly the confusion a grant must not have.
+	/// </summary>
+	private readonly LocalCharacterRestoreQueue _restore = restore;
+
 	private readonly RestorePositionGate _positionGate = new(); // the restore's position lands ONCE per body (a re-sent restore must not teleport it again)
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
 	private long _nextCharacterReportMs;
 
 	/// <summary>Read-only view for the clone renderer: latest snapshot per SteamId.</summary>
 	internal IReadOnlyDictionary<ulong, CharacterDataMsg> CloneData => _factTable.CloneData;
+
+	/// <summary>
+	/// True = a character snapshot is waiting for (or is half-way onto) the local body.
+	/// A queued restore IS this player's character, so a body that has one must not be
+	/// supplied with starting supplies on top of it: the restore's own first pass wipes
+	/// the slots a frame later, so an extra grant would be created, announced and then
+	/// destroyed.
+	/// </summary>
+	internal bool RestorePending => _restore.HasPending || _restore.WipePending;
 
 	/// <summary>Carried-fact event (the owner's fact-table entry updates and the clone re-renders immediately) — the fact table lives in CloneFactTable.</summary>
 	internal void ApplyCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown) => _factTable.ApplyCarriedSync(owner, item, slotKnown);

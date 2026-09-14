@@ -54,8 +54,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	/// from starving the request: after the deadline the cut proceeds and names
 	/// the state it could not take.
 	/// </summary>
-	public const int MaxCutDeferralFrames = 8;
-
 	private readonly WorldRepository? _repository;
 	private readonly ISessionControl _session;
 	private readonly ItemKernelAuthority _kernel;
@@ -75,7 +73,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	private string _displayName = string.Empty;
 	private IReadOnlyList<SavedCharacter> _pendingCharacters = [];
 	private WorldCutReason? _armedReason;
-	private int? _deferralStartFrame;
+	private readonly WorldCutDeferral _deferral = new();
 	private bool _disposed;
 
 	/// <summary>
@@ -154,6 +152,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	public string CurrentWorldId => _worldId;
 
+	public bool RestoredGeneration => _restore.RestoredGeneration;
+
 	public bool HasArmedCut => _armedReason is not null;
 
 	public event Action<WorldCutReport>? CutReported;
@@ -214,6 +214,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	{
 		_log.LogWarning("The CUO continue attempt is abandoned: {Reason}. Every handover it armed is released and the live world keeps the state it already has.", reason);
 
+		// No generation will consume the restored baseline: no generation belongs to an archive.
+		_restore.ReleaseGeneration();
+
 		// The click already reported "applied" (the absence of a click reported nothing at
 		// all, and that absence is why the relay, not this method, decides whether there is
 		// an attempt to close); this is the second and last word on it, and the player needs
@@ -265,7 +268,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		// facts and the adapter's native handover (keypad codes, geyser liquid types,
 		// the game's own damage rows, the run clock base and the recipe unlock table).
 		_armedReason = null;
-		_deferralStartFrame = null;
+		_deferral.Reset();
+		_restore.ReleaseGeneration();
 		_restoreAccount.Superseded();
 		_audit?.AbandonRestore();
 		_worldFacts.ClearPendingLiveReplay();
@@ -365,7 +369,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		}
 
 		// A DIFFERENT trigger starts its own wait (the same trigger kept the one above).
-		_deferralStartFrame = null;
+		_deferral.Reset();
 		_armedReason = reason;
 		_log.LogInformation("Cut {Reason} armed for world {WorldId}: the pump takes it at the frame-end seam.", reason, _worldId);
 		return true;
@@ -397,7 +401,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 				// snapshot whose in-flight state is unaccounted for is exactly what
 				// §6 forbids.
 				_armedReason = null;
-				_deferralStartFrame = null;
+				_deferral.Reset();
 				return Publish(new WorldCutReport(WorldCutResult.Refused, reason, _worldId, malformed, dropped));
 			}
 
@@ -409,7 +413,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		}
 
 		_armedReason = null;
-		_deferralStartFrame = null;
+		_deferral.Reset();
 		return Publish(TryWriteCut(reason, FrameEndCutPhase, hostCharacter, dropped));
 	}
 
@@ -463,10 +467,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		if (waiting.Count > 0)
 		{
 			var waitingText = waiting.Select(WorldTransientPolicy.Describe).ToList();
-			_deferralStartFrame ??= frame;
-			if (frame - _deferralStartFrame.Value < MaxCutDeferralFrames)
+			if (_deferral.ShouldWait(frame, out var firstFrame))
 			{
-				if (_deferralStartFrame == frame)
+				if (firstFrame)
 				{
 					_log.LogInformation("[Save] the armed cut waits for in-flight state to resolve: {Waiting}.", string.Join(", ", waitingText));
 				}
@@ -482,7 +485,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			// Deadlock guard: the deadline passed and the state is still there (a
 			// stuck pending record). The cut goes on and NAMES what it could not take.
 			_log.LogWarning("[Save] the armed cut waited {Frames} frame(s) for {Waiting} and took the cut without it.",
-				frame - _deferralStartFrame.Value, string.Join(", ", waitingText));
+				frame - _deferral.StartedAtFrame, string.Join(", ", waitingText));
 		}
 
 		dropped.AddRange(WorldCutTransients.Dropped(observation, waiting, nativeReaderAvailable: _nativeWorldFacts is not null));
@@ -565,10 +568,10 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	public bool TryContinue(out WorldContinueOutcome outcome)
 	{
-		// The restore half is its own object: it opens the archive and reports what it
-		// produced. This class owns the CUT half, so the identity a restore produced is
-		// adopted HERE and nowhere else — every later cut of this session writes back
-		// into that world.
+		// The restore half opens the archive, reports what it produced and owns the archive's
+		// claim on the generation (WorldRestoreApplier.RestoredGeneration); this class owns the
+		// CUT half and adopts only the identity a restore produced — here and nowhere else, so
+		// every later cut of this session writes back into that world.
 		var restore = _restore.TryApply(ContinueWorldId);
 		if (restore.Started)
 		{

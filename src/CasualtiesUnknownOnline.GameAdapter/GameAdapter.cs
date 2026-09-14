@@ -90,11 +90,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		GameAdapterMoodleContentProvider moodleContent,
 		ModStatusStore modStatusStore,
 		ModStatusProjectionReadModel modStatusProjectionReadModel,
-		WorldRestoreAudit restoreAudit)
+		WorldRestoreAudit restoreAudit,
+		IStartingSupplyPublisher startingSupplies)
 	{
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
-			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, restoreAudit, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
+			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		_remoteInventoryApply = new RemoteInventoryOperationApply(_domains);
@@ -210,6 +211,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		}
 		_domains.GenItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_domains.GenItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
+		_domains.StartingSupplies.Update(); // a player this world has no character for: the run's starting supplies, once per body (S4.3)
 		using (_latency.Measure("Respawn"))
 		{
 			_domains.Respawn.Update(); // host: next-level respawn once a world generation finishes

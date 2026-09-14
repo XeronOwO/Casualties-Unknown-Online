@@ -14,7 +14,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | world/cactus-selfdamage-sync-selfcheck.md | Other | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/carry-interaction-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/character-attack-anim-and-player-context-menu-selfcheck.md | Players | current | candidate current evidence; verify before citing |
-| players/character-data-persistence-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| players/character-data-persistence-selfcheck.md | Players | historical | superseded by S4.1 (decision 178): the `.bin` reconnect store it delivered is deleted, so its layout/paths/test names are not current |
 | players/character-ragdoll-toggle-sync-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/character-sound-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/carried-idle-sit-suppression-selfcheck.md | Players | current | carried-ride idle-sit suppression landed |

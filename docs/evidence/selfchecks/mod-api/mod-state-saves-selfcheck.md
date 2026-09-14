@@ -12,7 +12,7 @@ rather than writing a local save file. No wire change, no protocol bump.
 |---|---|---|
 | 1 | Save authority | Architecture.md §8: host is the only save authority; guests keep local settings only. |
 | 2 | Permission | `ModPermission.WriteGameState` is the existing state-write flag; this slice gives it its first live enforcement point (`ModService.State`). |
-| 3 | Persistence shape | Mirrors `CharacterDataFileStore` (versioned protobuf wrapper + atomic temp/replace) — same corruption/version degradation contract. |
+| 3 | Persistence shape | Versioned protobuf wrapper + atomic temp/replace — the same corruption/version degradation contract the host-ban store follows. |
 | 4 | Mod state isolation | Each mod reads/writes only its own id-scoped entry; the framework never interprets mod bytes. |
 | 5 | Wire | No new NetMsg — this is local host persistence, not a sync channel. ProtocolVersion stays 29. |
 
@@ -47,7 +47,7 @@ rather than writing a local save file. No wire change, no protocol bump.
   guest refusal, permission refusal, defensive copies, persistence across a new
   node process, corrupt-file degradation.
 - Static evidence: the host-only save-authority rule (architecture.md §8), the
-  file-store degradation contract mirrors `CharacterDataFileStore`, and the
+  file-store degradation contract the host-ban store also follows, and the
   API/permission docs updated in `../mod-api.md`.
 - Runtime verification box: **L0 simulation + static evidence, no manual
   acceptance** (user rule 2026-08-16).

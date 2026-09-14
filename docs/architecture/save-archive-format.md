@@ -352,10 +352,11 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   snapshot whose key space differs from the live transport (a Steam world opened over IP-direct). Both
   refusals DROP a character a present player may have earned, so both are named in the restore's
   account — the `WorldContinueOutcome` summary the continue caller logs — rather than left to the log.
-  The same rule governs the WRITE side: a key two present players map to is carried by no file at all
-  and the cut report names the players who share it, because a file under a shared key could later be
-  claimed by the wrong player (a cut that wrote one anyway was refused outright by the writer's
-  duplicate-path guard, naming no cause).
+  The same rule governs the WRITE side: a key that two present players who BOTH carry a snapshot map to
+  is carried by no file at all and the cut report names the players who share it, because a file under a
+  shared key could later be claimed by the wrong player (a cut that wrote one anyway was refused
+  outright by the writer's duplicate-path guard, naming no cause). A same-named player who reported no
+  snapshot is not a sharer — that character really is the only one that exists, so it is written.
 
 ### 6.1 Where a restored cut lands in the live world
 

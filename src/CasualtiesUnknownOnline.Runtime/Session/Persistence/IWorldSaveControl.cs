@@ -87,6 +87,21 @@ public interface IWorldSaveControl
 	/// <summary>The world this run writes into ("" before a run started); the Runtime owns it, the adapter only reports it in logs.</summary>
 	string CurrentWorldId { get; }
 
+	/// <summary>
+	/// True = the world generation this session is inside (or about to consume) came
+	/// from an ARCHIVE rather than from a run started here. Set by an applied
+	/// <see cref="TryContinue"/>, cleared by <see cref="TryBeginRun"/> and by an
+	/// <see cref="AbandonRestore"/> that no generation will consume.
+	///
+	/// The adapter needs it because the game cannot tell the two apart: its own
+	/// first-layer test (<c>WorldGeneration.cs:1891</c> — <c>totalTraveled &lt;= 0 &amp;&amp;
+	/// biomeOverride == None &amp;&amp; debugStartDepth == 0</c>) reads a restored run frozen
+	/// on its starting layer as a fresh one, so the player who joined that world with no
+	/// character of their own would be given the starting supplies by the game's own
+	/// grant while a player restored into it gets none (S4.3).
+	/// </summary>
+	bool RestoredGeneration { get; }
+
 	/// <summary>The world the Continue entry would open (null when none is openable); the adapter logs it and the tests pin the rule.</summary>
 	string? ContinueWorldId { get; }
 

@@ -456,6 +456,12 @@ public static class CuoBootstrap
 		// live-world write back to the caller that started it.
 		services.AddSingleton<WorldCutTransientProbe>();
 		services.AddSingleton<WorldRestoreAudit>();
+		// The Game Adapter's starting-supplies report (S4.3): a broadcast point, not an
+		// account — the adapter owns the decision and its once-per-body rule, and the
+		// publisher/subscriber split keeps it from reading back its own report.
+		services.AddSingleton<StartingSupplyAudit>();
+		services.AddSingleton<IStartingSupplyControl>(p => p.GetRequiredService<StartingSupplyAudit>());
+		services.AddSingleton<IStartingSupplyPublisher>(p => p.GetRequiredService<StartingSupplyAudit>());
 		if (savesRoot is not null)
 		{
 			services.AddSingleton(p => new WorldRepository(

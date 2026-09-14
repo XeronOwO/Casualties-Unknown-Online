@@ -38,6 +38,7 @@ internal sealed class RunCoordinator(
 	IWorldSaveControl worldSaves,
 	IItemControl items,
 	WorldRestoreAudit? restoreAudit,
+	StartingSupplyCoordinator startingSupplies,
 	RunMenuReturnCoordinator menuReturn,
 	ILogger<RunCoordinator> log)
 {
@@ -60,7 +61,7 @@ internal sealed class RunCoordinator(
 	private readonly WorldParamsService _params = worldParams;
 	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
-	private readonly RunSaveCoordinator _save = new(session, world, worldSaves, worldParams, characterData, items, restoreAudit, log);
+	private readonly RunSaveCoordinator _save = new(session, world, worldSaves, worldParams, characterData, items, restoreAudit, startingSupplies, log);
 	private readonly ILogger<RunCoordinator> _log = log;
 
 	private RunPhase _phase = RunPhase.Idle;

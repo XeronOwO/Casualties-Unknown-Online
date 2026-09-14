@@ -111,6 +111,30 @@ public class WorldSaveCompositionTests
 		Assert.Contains(console.Lines, line => line.Text.Contains($"CUO continue refused: {outcome.Summary}", StringComparison.Ordinal));
 	}
 
+	[Fact]
+	public void ProductionRoot_WiresTheStartingSuppliesAccountToTheConsole()
+	{
+		// S4.3's report is only a surface if the PRODUCTION root connects the two: the
+		// Game Adapter publishes through IStartingSupplyPublisher and the console renders
+		// what arrives on IStartingSupplyControl. A subscription that never happened would
+		// leave the grant exactly as invisible as no grant at all, and the suites that assert
+		// the rendering publish to a hand-built audit, so they cannot see this wiring.
+		var savesRoot = Path.Combine(Path.GetTempPath(), "cuo-compose-tests", Guid.NewGuid().ToString("N"), "cuo", "saves");
+		using var provider = Build(savesRoot);
+
+		var console = provider.GetRequiredService<ICommandControl>();
+		provider.GetRequiredService<IStartingSupplyPublisher>().Publish(new StartingSupplyGrantReport(
+			StartingSupplyGrantReport.Disposition.Granted, "light", ["emergencylight"], []));
+
+		Assert.Contains(
+			console.Lines,
+			line => line.Text.Contains("starting supplies (light) given", StringComparison.Ordinal));
+
+		// The publisher and the subscriber are the SAME object in production — a second
+		// audit instance would leave the adapter's reports reaching nobody.
+		Assert.Same(provider.GetRequiredService<StartingSupplyAudit>(), provider.GetRequiredService<IStartingSupplyControl>());
+	}
+
 	private static ServiceProvider Build(string? savesRoot) =>
 		CuoBootstrap.BuildServiceProvider(
 			new ManualLogSource("test"),

@@ -1,10 +1,10 @@
 # S4 — Multiplayer restore, validation/recovery, scheduled backups
 
-- Status: In progress (split into S4.1–S4.4; S4.1 landed 2026-09-14)
+- Status: In progress (split into S4.1–S4.4; S4.1, S4.2 and S4.3 landed 2026-09-14)
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 4 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md` (the backup half is the user's Q3/Q6 answer: "可配置的定时备份")
-- Related: `docs/architecture/save-archive-format.md` §6/§7, `review/save-layer-end-save-and-restore.md` (S2), `todo/save-mid-run-consistent-cut.md` (S3), `review/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1), `todo/systemic-save-backup-management.md` (owns the broader backup/restore product surface)
+- Related: `docs/architecture/save-archive-format.md` §6/§7, `review/save-layer-end-save-and-restore.md` (S2), `todo/save-mid-run-consistent-cut.md` (S3), `review/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1), `review/save-restore-account-surface.md` (S4.2), `review/save-new-player-starting-supplies.md` (S4.3), `todo/systemic-save-backup-management.md` (owns the broader backup/restore product surface)
 
 ## Stage split
 
@@ -16,7 +16,7 @@ begins. This file stays the roadmap and holds no implementation work of its own.
 |---|---|---|---|
 | S4.1 | `review/save-guest-restore-claim-and-legacy-store-retirement.md` | Scope 1's claim rules (transport-scoped, collision-safe) + scope 6 (retire the legacy `.bin` reconnect store) | landed (review) |
 | S4.2 | `review/save-restore-account-surface.md` | Scope 2 + 3: the player-visible restore account (repair/recovery reporting of §6, the S4.1 claim refusals), and one account log line per save/restore with the per-domain record counts | landed (review) |
-| S4.3 | this file, scope 1 (second half) | A player the world has no character for joins as a NEW player: the run's configured starting supplies, granted once per body | open |
+| S4.3 | `review/save-new-player-starting-supplies.md` | A player the world has no character for joins as a NEW player: the run's configured starting supplies, granted once per body | landed (review) |
 | S4.4 | this file, scope 4 + 5 (+ S3's scope 7) | Interval autosave, retention, the config surface, the failure-degradation matrix, and the decode-level refusal's backup-promotion recovery (acceptance row 6) | open |
 
 ## Design decisions frozen with the user
@@ -71,7 +71,7 @@ begins. This file stays the roadmap and holds no implementation work of its own.
 |---|---|---|---|
 | 1 | Host + 2 guests save; both guests rejoin | Each claims their own character; no cross-claim; two sessions in a row stay stable | S4.1 |
 | 2 | A Steam world opened over IP-direct | No silent cross-mode claim; the mismatch is reported and the player joins fresh | S4.1 (rule) + S4.2 (report) |
-| 3 | A guest who was not in the package joins | Fresh character + starting supplies, logged | S4.3 |
+| 3 | A guest who was not in the package joins | Fresh character + starting supplies, logged | S4.3 (landed) |
 | 4 | Interval autosave over several cycles | The expected number of backups, retention honoured, the newest never pruned | S4.4 |
 | 5 | Disk full / read-only save directory | Loud failure, previous snapshot intact, session continues | S4.4 |
 | 6 | Restore from a backup after a damaged live snapshot | Live snapshot preserved as evidence, backup promoted, action reported | S4.4 |
@@ -79,11 +79,14 @@ begins. This file stays the roadmap and holds no implementation work of its own.
 
 ## Known constraint for the remaining stages
 
-`WorldSaveService.cs` is the class S4.4's interval trigger and retention policy will grow, and after
-S4.2 it sits at 596 of the 600 aggregate-line limit (`SourceShapeGateTests`). S4.4 must split before
-adding: the natural seam is the cut-TRIGGER family (arming, the deferral deadline, the transient
-policy hand-off) or the continue entry, both of which are separable from the world identity the class
-owns. Do not buy headroom by shrinking comments or moving code without a responsibility split.
+`WorldSaveService.cs` is the class S4.4's interval trigger and retention policy will grow. It sits
+exactly at the 600 aggregate-line limit after S4.3 (which had to split to get there: the armed cut's
+deferral deadline became `WorldCutDeferral`, the archive's restored-generation claim moved to
+`WorldRestoreApplier` and the player-facing source name moved onto `WorldLoadResult.SourceName`), so
+S4.4 must split before adding: the natural seam is the cut-TRIGGER family (arming, the deferral
+policy hand-off, the interval timer) or the continue entry, both of which are separable from the
+world identity the class owns. Do not buy headroom by shrinking comments or moving code without a
+responsibility split.
 
 ## Verification limits
 The multi-client rows (1–3) cannot be machine-verified: they need the sandbox dual-client pass and

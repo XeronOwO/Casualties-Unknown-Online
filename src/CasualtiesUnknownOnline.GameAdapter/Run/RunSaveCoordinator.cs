@@ -27,6 +27,7 @@ internal sealed class RunSaveCoordinator(
 	Character.CharacterDataSync characterData,
 	IItemControl items,
 	WorldRestoreAudit? restoreAudit,
+	Character.StartingSupplyCoordinator startingSupplies,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -35,6 +36,7 @@ internal sealed class RunSaveCoordinator(
 	private readonly WorldParamsService _parameters = parameters;
 	private readonly Character.CharacterDataSync _characterData = characterData;
 	private readonly IItemControl _items = items;
+	private readonly Character.StartingSupplyCoordinator _startingSupplies = startingSupplies;
 	private readonly ILogger _log = log;
 
 	/// <summary>
@@ -70,6 +72,11 @@ internal sealed class RunSaveCoordinator(
 		_parameters.CancelRestorePending();
 		_characterData.CancelAllLocalRestores();
 		_items.CancelRestoredWorldItems("a new run superseded the restore");
+		// The starting-supplies rule is per BODY, and every body of the run being left is
+		// about to be replaced: the next world's bodies are new-player entries by
+		// definition, so the record goes with the run it belongs to. Leaving it would make
+		// the rule "supplied once per process" for a body a scene reload happened to reuse.
+		_startingSupplies.Clear();
 
 		if (_session.Role == SessionRole.Guest)
 		{

@@ -152,6 +152,69 @@ public class CommandConsoleSaveTests
 	}
 
 	[Fact]
+	public void StartingSupplies_OfAGrantedNewPlayer_IsOneNotificationNamingTheItems()
+	{
+		// S4.3's account on the same surface (decision 179): a player the world had no
+		// character for is told what they were handed. ONE line — it names its items in that
+		// same line, so there is nothing behind it to read and nothing else is pushed out of
+		// the closed console's window.
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+		var before = console.Lines.Count;
+
+		host.Services.GetRequiredService<IStartingSupplyPublisher>().Publish(new StartingSupplyGrantReport(
+			StartingSupplyGrantReport.Disposition.Granted,
+			"full",
+			["lantern", "dogfood", "waterbottle", "trashbag"],
+			[]));
+
+		var line = Assert.Single(console.Lines.Skip(before));
+		Assert.True(line.Notifiable);
+		Assert.Equal(ConsoleLineKind.Success, line.Kind);
+		Assert.Contains("starting supplies (full) given", line.Text, StringComparison.Ordinal);
+		Assert.Contains("lantern, dogfood, waterbottle, trashbag", line.Text, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void StartingSupplies_OfAPartialGrant_IsAnnouncedAsAnErrorAndNamesWhatStayedOnTheGround()
+	{
+		// The one failure shape: the game refused a slot (Body.PickUpItem refuses silently),
+		// so the item is at the body's feet. A player who cannot find something they were
+		// told they received must not have to read the line twice to learn it never landed.
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+
+		host.Services.GetRequiredService<IStartingSupplyPublisher>().Publish(new StartingSupplyGrantReport(
+			StartingSupplyGrantReport.Disposition.Granted,
+			"full",
+			["lantern", "waterbottle", "trashbag"],
+			["dogfood"]));
+
+		Assert.Contains(
+			console.Lines,
+			line => line.Kind == ConsoleLineKind.Error && line.Text.Contains("could not be placed", StringComparison.Ordinal) && line.Text.Contains("dogfood", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void StartingSupplies_OfARunWithNoSupplies_SaysTheRunDecidedIt()
+	{
+		// "This run hands out nothing" is an answer, not an absence: a player who expects
+		// supplies must be able to see that the run — not a broken mod — decided against them.
+		var saves = new FakeWorldSaveControl();
+		var (host, _) = Session(saves);
+		var console = FileConsole(host);
+
+		host.Services.GetRequiredService<IStartingSupplyPublisher>().Publish(new StartingSupplyGrantReport(
+			StartingSupplyGrantReport.Disposition.Disabled, "none", [], []));
+
+		Assert.Contains(
+			console.Lines,
+			line => line.Text.Contains("this run grants no starting supplies", StringComparison.Ordinal));
+	}
+
+	[Fact]
 	public void RestoreReport_OfARefusal_NamesTheReasonTheClickDidNothing()
 	{
 		var saves = new FakeWorldSaveControl();
@@ -228,6 +291,9 @@ public class CommandConsoleSaveTests
 		public bool HasArmedCut { get; private set; }
 
 		public string CurrentWorldId => "w-test";
+
+		/// <summary>Set by a test that needs the console-adjacent code to see an archive-owned generation.</summary>
+		public bool RestoredGeneration { get; internal set; }
 
 		public string? ContinueWorldId => null;
 

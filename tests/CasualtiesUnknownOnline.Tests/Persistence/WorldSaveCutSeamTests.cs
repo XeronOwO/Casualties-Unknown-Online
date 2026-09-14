@@ -120,7 +120,7 @@ public class WorldSaveCutSeamTests
 		var opening = Live(WorldTransientPolicy.DropFlushKey, 1);
 
 		Assert.Equal(WorldCutResult.Deferred, fixture.Service.TryCaptureArmedCut(null, frame: 100, opening)!.Result);
-		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 100 + WorldSaveService.MaxCutDeferralFrames, opening));
+		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 100 + WorldCutDeferral.MaxFrames, opening));
 
 		// A stuck pending record must not starve the request: the cut goes on and
 		// NAMES what it could not take.
@@ -142,7 +142,7 @@ public class WorldSaveCutSeamTests
 		Assert.Equal(WorldCutResult.Deferred, fixture.Service.TryCaptureArmedCut(null, frame: 200, opening)!.Result);
 
 		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.MenuReturn, out _));
-		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 200 + WorldSaveService.MaxCutDeferralFrames, opening));
+		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 200 + WorldCutDeferral.MaxFrames, opening));
 
 		Assert.True(report.Captured);
 		Assert.NotEmpty(report.DroppedStates);

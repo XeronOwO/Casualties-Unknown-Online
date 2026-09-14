@@ -14,7 +14,7 @@ the roster.
 | Wire registry | Every new message must be explicitly classified in `DirectionTests` (NetMsg direction fail-closed). |
 | Host UI | `OnlineUiOverlay` member list already renders host-only `Kick`; a host-only `Ban` button is the natural adjacent admin action. |
 | Guest teardown | `ISessionControl.EndSession()` is the existing no-host-migration teardown, identical to the kick path. |
-| Persistence | The host already owns file-backed stores (`CharacterDataFileStore`, `ModStateFileStore`); the ban list follows the same atomic file pattern. |
+| Persistence | The host already owns file-backed stores (`ModStateFileStore`); the ban list follows the same atomic file pattern. |
 
 ## 2. Changes
 

@@ -43,9 +43,11 @@ there is no migration burden and the store is DELETED rather than kept in sync.
 - The key-space mismatch is now a refusal too (it drops every stored character of a Steam world opened
   over IP-direct) — `LogInformation` became `LogWarning` and it travels with the account.
 - **The CUT side obeys the same rule.** `WorldCharacterBinder.Collect` returns a
-  `WorldCharacterCutSet` (the files, plus the players it could not carry) and a key two present players
-  map to is carried by NO file; `WorldSaveService` folds those lines into the cut report's "NOT
-  carried" account. Claimants are counted per PEER ID, so a duplicated roster row still yields one file.
+  `WorldCharacterCutSet` (the files, plus the players it could not carry) and a key that two present
+  players WHO BOTH CARRY A SNAPSHOT map to is carried by NO file; `WorldSaveService` folds those lines
+  into the cut report's "NOT carried" account. Claimants are counted per PEER ID, so a duplicated
+  roster row still yields one file — and a same-named player who reported no snapshot is not a sharer,
+  so the one character that does exist is still written.
 - **The legacy store is gone**: `CharacterDataFileStore`, `CharacterDataFile`,
   `CharacterDataFileStoreTests` (6 cases) and `CharacterDataPersistenceTests` (8 cases) deleted, and
   with them the `characterDataFile` parameter of `CuoBootstrap.BuildServiceProvider`, its DI
@@ -106,9 +108,11 @@ deployed-artifact hashes.
 
 NOT machine-verified, and NOT claimed here: the multi-client rows. Two real clients sharing a display
 name in an IP-direct session, a reconnecting guest after a host process restart, and the in-game
-appearance of the refusals all need the user's dual-client pass. The refusals are player-visible only
-through the restore account that reaches the console at the LIVE-WORLD half — S4.2 owns turning the
-whole click-time account (damage, claim refusals, native-field gaps) into the player-visible repair
-report — and the cut-side "NOT carried" line rides the existing cut report the console already renders
-for player-initiated cuts. The full-suite and deployed-hash numbers in this file are the ones recorded
-in the S4.1 commit; the artifact hashes are re-verified after that commit.
+appearance of the refusals all need the user's dual-client pass. A restore refusal is in the CLICK-TIME
+account (`WorldContinueOutcome.Summary`, logged by `RunSaveCoordinator`) and today reaches `CUO.log`,
+not the console — S4.2 owns making the whole click-time account (damage, claim refusals, native-field
+gaps) player-visible. The CUT-side refusals this stage added ARE player-visible already: they ride the
+cut report's "NOT carried" list, which `CommandConsoleService.OnCutReported` prints for a
+player-initiated cut (layer-end and autosave cuts stay log-only, the pre-existing policy for every
+dropped class). The full-suite and deployed-hash numbers in this file are the ones recorded in the
+S4.1 commit; the artifact hashes are re-verified after that commit.

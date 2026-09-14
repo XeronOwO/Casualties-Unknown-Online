@@ -237,11 +237,16 @@ There are exactly two seams:
   flush. Both remaining triggers ARM a cut and are taken here, never inside the callback that asked:
   - the `/save` console command (a command runs inside the game's input handling, where a cut could
     read a half-applied frame), and
-  - the host's deliberate return to the main menu — a full mid-run cut, because every world object
-    is still alive at that moment. The leave happens AFTER the cut; leaving first would destroy the
-    world the cut has to read. If the cut cannot be written (no run baseline, an unreadable native
-    table, a failed transaction) the leave still happens, the previous snapshot stays intact, and the
-    reason is logged and shown — never a snapshot whose tables read as empty.
+  - the deliberate return to the main menu by whoever OWNS the world — a host or a solo player (solo
+    carries no session role, so it is its own save authority; a guest returns without a cut) — a full
+    mid-run cut, because every world object is still alive at that moment. The leave happens AFTER the
+    cut; leaving first would destroy the world the cut has to read. If the cut cannot be written (no
+    run baseline, an unreadable native table, a failed transaction) the leave still happens, the
+    previous snapshot stays intact, and the reason is logged and shown — never a snapshot whose
+    tables read as empty. A TUTORIAL entry owns no archive at all (`TryBeginRun(isTutorial)` releases
+    the previous run's identity instead of creating a folder): the game generates it with
+    `biomeOverride == Tutorial` and disables its own save surface there, and an archive is what the
+    Continue entry opens.
 
 **The cut waits for its in-flight state.** Some live operations span frames and only reach the
 kernel through the very flush they are waiting for: a local break holds its report one frame for the

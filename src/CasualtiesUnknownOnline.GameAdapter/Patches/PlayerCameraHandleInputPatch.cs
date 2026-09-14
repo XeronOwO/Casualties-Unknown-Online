@@ -30,7 +30,7 @@ internal static class PlayerCameraHandleInputPatch
 
 	private static bool Prefix(PlayerCamera __instance, out RagdollObservation __state)
 	{
-		if (PatchBridge.Impl is { IsOnlineUiModalOpen: true })
+		if (PatchBridge.SessionSurface is { IsOnlineUiModalOpen: true })
 		{
 			__state = null!;
 			return false;

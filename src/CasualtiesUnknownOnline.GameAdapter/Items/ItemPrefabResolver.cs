@@ -17,7 +17,7 @@ internal static class ItemPrefabResolver
 	internal static bool TryGetCustomTemplate(string id, out GameObject? template)
 	{
 		if (!string.IsNullOrWhiteSpace(id)
-			&& PatchBridge.Impl?.TryResolveItemTemplate(id, out template) == true
+			&& PatchBridge.ModContent?.TryResolveItemTemplate(id, out template) == true
 			&& template != null) // Unity object — ==
 		{
 			return true;

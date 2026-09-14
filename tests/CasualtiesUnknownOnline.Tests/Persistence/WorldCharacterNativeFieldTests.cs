@@ -80,7 +80,7 @@ public sealed class WorldCharacterNativeFieldTests
 	/// </summary>
 	private static void CutAtLayerEnd(WorldSaveFixture fixture, CharacterDataMsg hostCharacter, CharacterDataMsg? guestCharacter = null)
 	{
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
 		fixture.Characters.SaveHostCharacterData(hostCharacter);
 		if (guestCharacter is { } guest)

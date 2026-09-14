@@ -32,7 +32,7 @@ public class WorldSaveCaptureTests
 	{
 		using var fixture = WorldSaveFixture.Create("save-capture");
 
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 
 		// The run's world is a NEW folder (the repository's own seed world predates
 		// it), but nothing is continuable yet: the folder holds no snapshot, and the
@@ -53,10 +53,28 @@ public class WorldSaveCaptureTests
 	}
 
 	[Fact]
+	public void TryBeginRun_Tutorial_GetsNoArchive_AndReleasesThePreviousRun()
+	{
+		using var fixture = WorldSaveFixture.Create("save-capture");
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		var runWorldId = fixture.Service.CurrentWorldId;
+		Assert.True(SaveArchiveFormat.IsWorldId(runWorldId));
+
+		// The tutorial entry: the save layer refuses it AND releases the previous
+		// run's identity, so a /save fired during the tutorial can never rewrite the
+		// previous run's snapshot, and nothing here becomes a Continue target.
+		Assert.False(fixture.Service.TryBeginRun(isTutorial: true));
+
+		Assert.Equal(string.Empty, fixture.Service.CurrentWorldId);
+		Assert.False(fixture.Service.TryRequestCut(WorldCutReason.Command, out var refusal));
+		Assert.Contains("world", refusal, StringComparison.OrdinalIgnoreCase);
+	}
+
+	[Fact]
 	public void LayerAdvance_WritesACutForTheLayerBeingEntered()
 	{
 		using var fixture = WorldSaveFixture.Create("save-capture");
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 
 		// The kernel's own commit is the trigger: the cut is taken AFTER the layer
@@ -74,7 +92,7 @@ public class WorldSaveCaptureTests
 	public void MenuReturnCut_WritesTheHostCharacterUnderTheSteamKey()
 	{
 		using var fixture = WorldSaveFixture.Create("save-capture");
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 2), out _, out _));
 
 		var report = MenuReturnCut(fixture, Character(100, "bag"));
@@ -98,7 +116,7 @@ public class WorldSaveCaptureTests
 	public void MenuReturnCut_MenuReturnPhaseIsRecordedOnTheManifest()
 	{
 		using var fixture = WorldSaveFixture.Create("save-capture-phase");
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 
 		MenuReturnCut(fixture, null);
@@ -114,7 +132,7 @@ public class WorldSaveCaptureTests
 	public void MenuReturnCut_InIpDirectMode_WritesTheNameKey()
 	{
 		using var fixture = WorldSaveFixture.Create("save-capture-ip", ipDirect: true, displayName: "Host Name");
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 
 		MenuReturnCut(fixture, Character(100, "bag"));
@@ -129,7 +147,7 @@ public class WorldSaveCaptureTests
 		using var fixture = WorldSaveFixture.Create("save-capture");
 
 		// No run started yet: the world exists but holds no baseline to restore into.
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
 		Assert.False(fixture.Service.TryCaptureArmedCut(Character(100, "bag"), frame: 0)!.Captured);
 		Assert.Empty(CutFilesOf(fixture));
@@ -147,7 +165,7 @@ public class WorldSaveCaptureTests
 		using var fixture = WorldSaveFixture.Create("save-capture");
 		fixture.Session.Role = SessionRole.Guest;
 
-		Assert.False(fixture.Service.TryBeginRun());
+		Assert.False(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.False(fixture.Service.TryRequestCut(WorldCutReason.Command, out var refusal));
 		Assert.Contains("guest", refusal!, StringComparison.Ordinal);
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
@@ -184,7 +202,7 @@ public class WorldSaveCaptureTests
 
 		Assert.False(service.IsEnabled);
 		Assert.False(service.HasRestorableWorld);
-		Assert.False(service.TryBeginRun());
+		Assert.False(service.TryBeginRun(isTutorial: false));
 		Assert.False(service.TryRequestCut(WorldCutReason.Command, out var refusal));
 		Assert.Contains("no CUO world repository", refusal!, StringComparison.Ordinal);
 		Assert.False(service.HasArmedCut);
@@ -201,7 +219,7 @@ public class WorldSaveCaptureTests
 		using var fixture = WorldSaveFixture.Create("save-capture");
 		fixture.Session.AddMember(2002UL, "Guest");
 		fixture.Characters.SaveCharacterData(2002UL, Character(200, "rope"));
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 		fixture.Characters.SaveHostCharacterData(Character(100, "bag"));
 

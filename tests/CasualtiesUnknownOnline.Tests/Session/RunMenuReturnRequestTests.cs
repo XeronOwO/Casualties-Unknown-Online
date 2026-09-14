@@ -4,34 +4,33 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// L0 locks for the deferred menu-return request: session teardown only sets
-/// one-shot intent; the Update pump consumes it exactly once.
+/// L0 locks for the deferred menu-return request: a caller only sets one-shot
+/// intent (mode + origin); the seam decides whether to act on it.
 /// </summary>
 public class RunMenuReturnRequestTests
 {
 	[Fact]
-	public void Request_ThenConsume_YieldsOneShotMode()
+	public void Request_ThenPending_YieldsTheModeAndOrigin()
 	{
 		var request = new RunMenuReturnRequest();
 
-		request.Request(RunMenuReturnMode.SaveAndMenu);
-		Assert.True(request.IsPending);
+		request.Request(RunMenuReturnMode.SaveAndMenu, RunMenuReturnOrigin.PlayerLeave);
 
-		Assert.True(request.TryConsume(out var mode));
-		Assert.Equal(RunMenuReturnMode.SaveAndMenu, mode);
-		Assert.False(request.IsPending);
-		Assert.False(request.TryConsume(out _));
+		Assert.True(request.IsPending);
+		Assert.Equal(RunMenuReturnMode.SaveAndMenu, request.Pending);
+		Assert.Equal(RunMenuReturnOrigin.PlayerLeave, request.Origin);
 	}
 
 	[Fact]
-	public void Request_MenuOnly_IsReturned()
+	public void Clear_EndsTheRequest()
 	{
 		var request = new RunMenuReturnRequest();
+		request.Request(RunMenuReturnMode.SaveAndMenu, RunMenuReturnOrigin.SessionTeardown);
 
-		request.Request(RunMenuReturnMode.MenuOnly);
+		request.Clear();
 
-		Assert.True(request.TryConsume(out var mode));
-		Assert.Equal(RunMenuReturnMode.MenuOnly, mode);
+		Assert.False(request.IsPending);
+		Assert.Equal(RunMenuReturnMode.None, request.Pending);
 	}
 
 	[Fact]
@@ -39,10 +38,23 @@ public class RunMenuReturnRequestTests
 	{
 		var request = new RunMenuReturnRequest();
 
-		request.Request(RunMenuReturnMode.None);
+		request.Request(RunMenuReturnMode.None, RunMenuReturnOrigin.PlayerLeave);
 
 		Assert.False(request.IsPending);
-		Assert.False(request.TryConsume(out var mode));
-		Assert.Equal(RunMenuReturnMode.None, mode);
+		Assert.Equal(RunMenuReturnMode.None, request.Pending);
+	}
+
+	[Fact]
+	public void Request_OverwritesThePendingModeAndOrigin()
+	{
+		// The record is a single slot: the newest ask wins (a menu return supersedes
+		// an older teardown request for the same leave).
+		var request = new RunMenuReturnRequest();
+		request.Request(RunMenuReturnMode.SaveAndMenu, RunMenuReturnOrigin.SessionTeardown);
+
+		request.Request(RunMenuReturnMode.MenuOnly, RunMenuReturnOrigin.PlayerLeave);
+
+		Assert.Equal(RunMenuReturnMode.MenuOnly, request.Pending);
+		Assert.Equal(RunMenuReturnOrigin.PlayerLeave, request.Origin);
 	}
 }

@@ -19,7 +19,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal sealed class OnlineMenuInputGuard(
 	ISessionControl session,
-	ILogger<OnlineMenuInputGuard> log)
+	ILogger<OnlineMenuInputGuard> log) : ISessionSurfacePatchBridge
 {
 	private readonly ISessionControl _session = session;
 	private readonly ILogger<OnlineMenuInputGuard> _log = log;
@@ -31,12 +31,11 @@ internal sealed class OnlineMenuInputGuard(
 	private bool _modal;
 	private bool _nonModalEscapeSurfaceOpen;
 
-	internal bool IsModal => _modal;
+	public bool IsOnlineUiModalOpen => _modal;
 
-	internal bool IsNonModalEscapeSurfaceOpen => _nonModalEscapeSurfaceOpen;
+	public bool IsNonModalEscapeSurfaceOpen => _nonModalEscapeSurfaceOpen;
 
 	internal void SetNonModalEscapeSurfaceVisible(bool visible) => _nonModalEscapeSurfaceOpen = visible;
-
 	internal void SetModal(bool modal)
 	{
 		if (_modal == modal)

@@ -266,7 +266,7 @@ public class WorldSaveCutSeamTests
 		using var fixture = Started("seam-new-run");
 		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
 
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 
 		// The armed request belongs to the world it was armed in; the new run must
 		// never inherit it.
@@ -317,7 +317,7 @@ public class WorldSaveCutSeamTests
 	private static WorldSaveFixture Started(string label, FakeNativeWorldFacts? native = null, IWorldCutTransientProbe? transients = null)
 	{
 		var fixture = WorldSaveFixture.Create(label, nativeWorldFacts: native, transients: transients);
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
 		return fixture;
 	}

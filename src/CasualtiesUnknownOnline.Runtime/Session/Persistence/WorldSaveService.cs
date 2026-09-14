@@ -226,7 +226,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_kernel.BatchCommitted -= OnBatchCommitted;
 	}
 
-	public bool TryBeginRun()
+	public bool TryBeginRun(bool isTutorial)
 	{
 		if (_session.Role == SessionRole.Guest)
 		{
@@ -249,6 +249,21 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_worldFacts.ClearPendingLiveReplay();
 		_worldEntities?.CancelPendingRestore("a new run superseded the restore");
 		_nativeWorldFacts?.CancelPendingRestore();
+
+		// A TUTORIAL run gets no archive: it is generated with
+		// biomeOverride == Tutorial, the game's own save surface is disabled there
+		// (WorldGeneration.cs:979 excludes the tutorial from the layer-end panel), and
+		// an archive is what the Continue entry opens. The previous run's identity is
+		// released here as well — leaving it set would aim a /save fired during the
+		// tutorial at the PREVIOUS run's world and silently rewrite its snapshot.
+		if (isTutorial)
+		{
+			_worldId = string.Empty;
+			_displayName = string.Empty;
+			_pendingCharacters = [];
+			_log.LogInformation("This entry is the tutorial — it gets no world archive, and the previous run's identity is released.");
+			return false;
+		}
 
 		if (_repository is null)
 		{

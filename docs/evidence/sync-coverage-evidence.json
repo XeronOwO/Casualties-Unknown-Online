@@ -1969,7 +1969,7 @@
     {
       "cluster": "players",
       "row": "P13",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:570",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:572",
       "quote": "? LimbPoseCapture.Capture(body)"
     },
     {
@@ -2017,7 +2017,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:185",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:186",
       "quote": "_params.CaptureAtEntry(isTutorial); // the generation baseline — captured at the click moment, before any run randomness is consumed"
     },
     {
@@ -2137,7 +2137,7 @@
     {
       "cluster": "run-world",
       "row": "R3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:386",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:388",
       "quote": "_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);"
     },
     {
@@ -2305,13 +2305,13 @@
     {
       "cluster": "run-world",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:323",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:325",
       "quote": "if (inWorld && !_worldFingerprintLogged)"
     },
     {
       "cluster": "run-world",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:325",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:327",
       "quote": "_worldFingerprintLogged = true;"
     },
     {
@@ -2323,7 +2323,7 @@
     {
       "cluster": "run-world",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:485",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:487",
       "quote": "_worldFingerprintLogged = false;"
     },
     {
@@ -3235,8 +3235,8 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:301",
-      "quote": "var inWorld = PlayerCamera.main != null && WorldGeneration.world != null"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:304",
+      "quote": "var inWorld = HarmonyTraverse.HasLiveWorld;"
     },
     {
       "cluster": "inline",
@@ -4272,8 +4272,20 @@
     },
     {
       "cluster": "inline",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:190",
+      "quote": "_world.SendWorldJoin(isTutorial);"
+    },
+    {
+      "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:217",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:186",
+      "quote": "_params.CaptureAtEntry(isTutorial); // the generation baseline — captured at the click moment, before any run randomness is consumed"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:218",
       "quote": "_params.OnGenerateBoundary();"
     },
     {
@@ -4309,8 +4321,20 @@
     {
       "cluster": "inline",
       "row": "R3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:189",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:190",
       "quote": "_world.SendWorldJoin(isTutorial);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:450",
+      "quote": "_session.ReportSceneState(SceneStateType.InWorld, sceneName, pos);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:358",
+      "quote": "_world.SendWorldJoin(_world.WorldParams?.IsTutorial ?? false);"
     },
     {
       "cluster": "inline",
@@ -4441,7 +4465,7 @@
     {
       "cluster": "inline",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:283",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:284",
       "quote": "_log.LogInformation("
     },
     {
@@ -4801,7 +4825,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:286",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:287",
       "quote": "// StartTutorial sets the tutorial flag and nulls runSettings itself"
     },
     {
@@ -4813,14 +4837,14 @@
     {
       "cluster": "inline",
       "row": "R3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:371",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:373",
       "quote": "_log.LogInformation(\"Host entered the world — no one to wait for, starting immediately.\");"
     },
     {
       "cluster": "inline",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:412",
-      "quote": "/// loading screen up over a running game). Also closes the start-gate alert"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:328",
+      "quote": "WorldFingerprintLog.Log(_log);"
     },
     {
       "cluster": "inline",

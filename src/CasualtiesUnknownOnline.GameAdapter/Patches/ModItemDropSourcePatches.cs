@@ -35,8 +35,8 @@ internal static class ModItemDropSourcePatches
 				return;
 			}
 
-			if (PatchBridge.Impl is not { } bridge
-				|| !bridge.TryGetModDropSourceCategory(ModItemDropSource.Corpse, out var category))
+			if (PatchBridge.ModContent is not { } modContent
+				|| !modContent.TryGetModDropSourceCategory(ModItemDropSource.Corpse, out var category))
 			{
 				return;
 			}
@@ -55,8 +55,8 @@ internal static class ModItemDropSourcePatches
 				return;
 			}
 
-			if (PatchBridge.Impl is not { } bridge
-				|| !bridge.TryGetModDropSourceCategory(source, out var category))
+			if (PatchBridge.ModContent is not { } modContent
+				|| !modContent.TryGetModDropSourceCategory(source, out var category))
 			{
 				return;
 			}
@@ -73,8 +73,8 @@ internal static class ModItemDropSourcePatches
 			TraderScript.TraderItemPreference pref,
 			ref List<TraderItem> __result)
 		{
-			if (PatchBridge.Impl is not { } bridge
-				|| !TryAppendTraderCategories(__instance, bridge, out var categories))
+			if (PatchBridge.ModContent is not { } modContent
+				|| !TryAppendTraderCategories(__instance, modContent, out var categories))
 			{
 				return true;
 			}
@@ -131,7 +131,7 @@ internal static class ModItemDropSourcePatches
 
 	private static bool TryAppendTraderCategories(
 		TraderScript trader,
-		IPatchBridge bridge,
+		IModContentPatchBridge modContent,
 		out List<string> categories)
 	{
 		categories = [.. VanillaTraderCategories];
@@ -139,7 +139,7 @@ internal static class ModItemDropSourcePatches
 		var added = false;
 		foreach (var source in ResolveTraderSources(trader))
 		{
-			if (!bridge.TryGetModDropSourceCategory(source, out var category)
+			if (!modContent.TryGetModDropSourceCategory(source, out var category)
 				|| string.IsNullOrEmpty(category)
 				|| categories.Contains(category))
 			{

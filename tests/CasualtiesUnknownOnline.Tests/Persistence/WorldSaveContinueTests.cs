@@ -445,7 +445,7 @@ public class WorldSaveContinueTests
 	/// </summary>
 	private static void SaveLayerEnd(WorldSaveFixture fixture, bool withCharacter, bool guestCharacter = false, bool seedItem = true)
 	{
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
 		if (seedItem)
 		{
@@ -503,7 +503,7 @@ public class WorldSaveContinueTests
 	/// </summary>
 	private static void SaveMidRun(WorldSaveFixture fixture)
 	{
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 2), out _, out _));
 		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.MenuReturn, out var refusal), refusal);
 		Assert.NotNull(fixture.Service.TryCaptureArmedCut(null, frame: 0));

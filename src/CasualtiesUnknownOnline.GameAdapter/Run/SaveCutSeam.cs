@@ -10,16 +10,18 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Run;
 
 /// <summary>
-/// The post-session menu return's frame-end half.
+/// The menu return's frame-end half.
 ///
-/// Session teardown events run inside Steam/UI callbacks, so the intent is
-/// recorded by <see cref="RunMenuReturnCoordinator"/> and the scene load happens
-/// on the normal pump. This class is the seam that performs it, and it is the
-/// same seam every other cut is taken at: the host's deliberate return is itself
-/// a mid-run cut now (the world is still fully alive at that moment), so the cut
-/// and the leave are one operation — if the transient policy defers the cut, the
-/// leave waits a frame instead of walking out of a world whose in-flight state
-/// was never captured.
+/// A deliberate "leave the world" always runs outside the pump — a session
+/// teardown event inside a Steam/UI callback, or the game's own
+/// <c>PlayerCamera.ToMainMenu</c> — so the intent is recorded by
+/// <see cref="RunMenuReturnCoordinator"/> and both the leave and the scene load
+/// happen here. This class is the seam that performs it, and it is the same seam
+/// every other cut is taken at: the deliberate return is itself a mid-run cut
+/// now (the world is still fully alive at that moment), so the cut and the leave
+/// are one operation — if the transient policy defers the cut, the leave waits a
+/// frame instead of walking out of a world whose in-flight state was never
+/// captured.
 ///
 /// Order inside the seam is load-bearing: cut first, then leave. Leaving first
 /// would destroy the world the cut has to read.
@@ -65,22 +67,36 @@ internal sealed class SaveCutSeam(
 	}
 
 	/// <summary>
-	/// True when a pending menu return was handled this frame (the world was left,
-	/// or the request was dropped as stale) — the armed cut must then not run a
-	/// second time in the same frame.
+	/// True when a pending menu return was handled this frame — the world was left,
+	/// or the request was dropped (nothing left to leave, or a teardown a newer
+	/// session superseded). The armed-cut path below still runs after a drop: the
+	/// request and the armed cut are independent triggers, and a dropped RETURN must
+	/// not swallow a cut the player or the kernel asked for.
 	/// </summary>
 	private bool FlushMenuReturn(bool inWorld, int frame)
 	{
 		var mode = _menuReturn.Pending;
-		if (mode == RunMenuReturnMode.None)
+		var decision = RunMenuReturnPolicy.DecideFlush(
+			mode,
+			_menuReturn.Origin,
+			inWorld,
+			_session.SessionActive,
+			PlayerCamera.main != null); // Unity object — ==
+		if (decision == RunMenuReturnFlush.None)
 		{
 			return false;
 		}
 
-		// The world must be leavable: still in it, no new session that makes the
-		// teardown stale, and a camera to hand the scene load to.
-		if (!inWorld || _session.SessionActive || PlayerCamera.main == null) // Unity object — ==
+		if (decision == RunMenuReturnFlush.Clear)
 		{
+			// The world is not leavable: it is already gone, there is no camera to
+			// hand the scene load to, or a session took over the teardown this
+			// request belonged to. Named, because the interception upstream refuses
+			// to suppress a leave the seam would drop — reaching here means the
+			// state moved between the record and this sample.
+			_log.LogInformation(
+				"[SaveSeam] the pending {Mode} menu return ({Origin}) is dropped: inWorld={InWorld}, sessionActive={SessionActive}, camera={Camera}.",
+				mode, _menuReturn.Origin, inWorld, _session.SessionActive, PlayerCamera.main != null);
 			_menuReturn.Clear();
 			return false;
 		}
@@ -88,7 +104,10 @@ internal sealed class SaveCutSeam(
 		if (mode == RunMenuReturnMode.SaveAndMenu)
 		{
 			// Arm the same seam cut a console /save uses, with the trigger that names
-			// the moment: "the host deliberately left the world".
+			// the moment: "the player deliberately left the world". A guest never
+			// reaches this branch (the policy answers MenuOnly for it, and the save
+			// layer refuses a guest anyway), so solo play — which has no session role
+			// — takes the same cut a host does.
 			if (_saves.TryRequestCut(WorldCutReason.MenuReturn, out var refusal))
 			{
 				var report = _saves.TryCaptureArmedCut(_run.CaptureLocalCharacter(), frame, LiveTransients());
@@ -115,8 +134,14 @@ internal sealed class SaveCutSeam(
 			}
 		}
 
-		_menuReturn.Clear();
-		_menuReturn.Leave();
+		// Clear only once the leave actually happened: a leave that could not run
+		// (the camera vanished between the sample and this call) leaves the request
+		// armed, so the leave is retried instead of being consumed.
+		if (_menuReturn.Leave())
+		{
+			_menuReturn.Clear();
+		}
+
 		return true;
 	}
 

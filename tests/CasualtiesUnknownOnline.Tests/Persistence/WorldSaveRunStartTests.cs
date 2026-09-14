@@ -22,7 +22,7 @@ public sealed class WorldSaveRunStartTests
 		Assert.True(native.HasPendingRestore);
 		using var fixture = WorldSaveFixture.Create("save-run-start-cancel", nativeWorldFacts: native);
 
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 
 		Assert.False(native.HasPendingRestore);
 		Assert.Contains("cancel-pending", native.Calls);
@@ -34,7 +34,7 @@ public sealed class WorldSaveRunStartTests
 		var native = new FakeNativeWorldFacts();
 		using var fixture = WorldSaveFixture.Create("save-run-start-clean", nativeWorldFacts: native);
 
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 
 		// The cancel is a real transition, not a call every start logs.
 		Assert.DoesNotContain("cancel-pending", native.Calls);

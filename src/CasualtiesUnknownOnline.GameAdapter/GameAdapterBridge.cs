@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Linq;
-using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -22,35 +22,24 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 {
 	private readonly RemoteBackpackOperationHandler _remoteBackpackOps = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
+	private readonly ModContentPatchBridge _modContent = new(domains);
+	private readonly CarriagePatchBridge _carriage = new(domains);
+
+	public IModContentPatchBridge ModContent => _modContent;
+
+	public ICarriagePatchBridge Carriage => _carriage;
+
+	public ISessionSurfacePatchBridge SessionSurface => domains.MenuInput;
 
 	public bool IsWorldGenIsolated => true;
 
 	public bool IsWaitingForReady => domains.Gate.WaitingForReady;
-
-	public bool IsOnlineUiModalOpen => domains.MenuInput.IsModal;
-
-	public bool IsNonModalEscapeSurfaceOpen => domains.MenuInput.IsNonModalEscapeSurfaceOpen;
 
 	public bool IsInGateWindow => domains.Run.IsInGateWindow;
 
 	public bool IsSessionActive => domains.Session.SessionActive;
 
 	public bool IsHostMode => domains.Session.Role == SessionRole.Host && domains.Session.SessionActive;
-
-	public bool TryResolveItemTemplate(string id, out GameObject? template) =>
-		domains.ItemContent.TryResolveTemplate(id, out template);
-
-	public bool TryResolveBuildingTemplate(string id, out GameObject? template) =>
-		domains.BuildingContent.TryResolveTemplate(id, out template);
-
-	public void ApplyCustomBuildingInstanceHooks(string id, GameObject instance) =>
-		domains.BuildingContent.ApplyInstanceHook(id, instance);
-
-	public bool TryGetModDropSourceCategory(ModItemDropSource source, out string category) =>
-		domains.ItemContent.TryGetDropSourceCategory(source, out category);
-
-	public BlockInfo? TryGetCustomBlockInfo(ushort block) =>
-		domains.TileContent.TryGetBlockInfo(block);
 
 	public bool IsReplayingLifePodSound => domains.LifePod.IsReplayingSound;
 
@@ -148,57 +137,50 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnSceneLoadBegin() => domains.ItemWorldSync.SuppressDestroys();
 
+	/// <summary>
+	/// Decide the interception of the game's own "leave the world" action. The
+	/// caller (the <c>PlayerCamera.ToMainMenu</c> patch) has already checked
+	/// <see cref="HarmonyTraverse.HasLiveWorld"/> — the game's own "in world"
+	/// expression — so the world half of the decision is passed in rather than
+	/// re-derived here.
+	///
+	/// The seam's precondition is asked BEFORE anything is recorded: suppressing a
+	/// scene load the seam would then drop (it samples one frame later, and the
+	/// state can move) would consume the player's action and strand them in a world
+	/// they asked to leave. A false answer here means the original load runs,
+	/// exactly as it did before the solo trigger existed.
+	/// </summary>
+	public bool TryDeferMenuReturn(bool hasLiveWorld)
+	{
+		// This IS the recorded leave being honoured (SaveCutSeam.Leave →
+		// PlayerCamera.ToMainMenu): let it through, or the world can never be left.
+		var replaying = domains.MenuReturn.IsReplayingLeave;
+
+		// A player's own leave arms the same mid-run cut a /save does: solo play is
+		// its own save authority, a guest's answer is MenuOnly (no cut is written).
+		var mode = RunMenuReturnPolicy.Decide(domains.Session.Role, inWorld: hasLiveWorld);
+		var wouldLeave = RunMenuReturnPolicy.WouldLeaveWorld(mode, hasLiveWorld, cameraAvailable: true);
+
+		if (!MenuExitInterception.ShouldSuppressSceneLoad(hasLiveWorld, replaying, wouldLeave))
+		{
+			return false;
+		}
+
+		domains.MenuReturn.Request(domains.Session.Role, RunMenuReturnOrigin.PlayerLeave, inWorld: true);
+		return true;
+	}
+
 	public void OnInventoryChanged() => domains.CharacterDataSync.ReportInventoryChanged(domains.Run.LocalBody);
 
-	public float GetCarriedEncumbrance(Body body)
-	{
-		var local = domains.Run.LocalBody;
-		if (local == null || local != body) // Unity objects — ==
-		{
-			return 0f;
-		}
+	public bool IsOnlineUiModalOpen => domains.MenuInput.IsOnlineUiModalOpen;
 
-		if (!domains.PlayerInteraction.TryGetCarried(domains.Session.LocalSteamId, out var carried))
-		{
-			return 0f;
-		}
+	public bool IsNonModalEscapeSurfaceOpen => domains.MenuInput.IsNonModalEscapeSurfaceOpen;
 
-		if (!domains.CharacterDataSync.CloneData.TryGetValue(carried, out var data))
-		{
-			domains.Log.LogDebug("[CarryWeight] no character snapshot for carried {Carried} — no weight added.", carried);
-			return 0f;
-		}
+	public float GetCarriedEncumbrance(Body body) => Carriage.GetCarriedEncumbrance(body);
 
-		var full = CarriedEncumbranceCalculator.ComputeFullEncumbrance(data);
-		var contribution = CarriedEncumbranceCalculator.ApplyMultiplier(full, domains.HostRules.PiggybackWeightMultiplier);
-		domains.Log.LogDebug("[CarryWeight] carrier {Carrier} gains {Contribution:F2} from {Carried} (full {Full:F2}).",
-			domains.Session.LocalSteamId, contribution, carried, full);
-		return contribution;
-	}
+	public bool IsLocalCarrier(Body body) => Carriage.IsLocalCarrier(body);
 
-	public bool IsLocalCarrier(Body body)
-	{
-		var local = domains.Run.LocalBody;
-		return local != null
-			&& local == body // Unity objects — ==
-			&& domains.PlayerInteraction.TryGetCarried(domains.Session.LocalSteamId, out _);
-	}
-
-	public void OnLocalCarrierBodyUpdated()
-	{
-		var local = domains.Run.LocalBody;
-		if (local == null) // Unity object — ==
-		{
-			return;
-		}
-
-		if (!domains.PlayerInteraction.TryGetCarried(domains.Session.LocalSteamId, out _))
-		{
-			return;
-		}
-
-		domains.Renderer.RefreshLocalCarrierAttach(local);
-	}
+	public void OnLocalCarrierBodyUpdated() => Carriage.OnLocalCarrierBodyUpdated();
 
 	public bool EnsureGuestWorldParams() => domains.WorldParams.EnsureGuestApplied();
 

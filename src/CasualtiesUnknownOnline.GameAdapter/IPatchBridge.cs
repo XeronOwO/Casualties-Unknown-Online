@@ -1,5 +1,4 @@
 using System.Collections;
-using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using UnityEngine;
@@ -13,17 +12,25 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// patches read only this interface — never the service itself (user
 /// architecture rule: state belongs to its owner, DI owns behavior).
 /// </summary>
-internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatchBridge
+internal interface IPatchBridge
+	: IRemoteBackpackPatchBridge, IRemoteMedicalPatchBridge, ICarriagePatchBridge, ISessionSurfacePatchBridge
 {
 	bool IsWorldGenIsolated { get; }
 
 	bool IsWaitingForReady { get; }
 
-	/// <summary>True while the CUO Online UI modal window is open — the adapter suppresses the game's native input handling (pause/ESC) behind it.</summary>
-	bool IsOnlineUiModalOpen { get; }
+	/// <summary>
+	/// The carriage half of this bridge (the carrier's extra encumbrance, the
+	/// local-carrier query and the post-Update re-pin moment). Patches that need
+	/// only that surface read <c>PatchBridge.Impl.Carriage</c>.
+	/// </summary>
+	ICarriagePatchBridge Carriage { get; }
 
-	/// <summary>True while a non-modal CUO ESC-closing surface (currently the quick panel) is visible — the pause toggle must not open the native pause menu behind it.</summary>
-	bool IsNonModalEscapeSurfaceOpen { get; }
+	/// <summary>The session-surface half of this bridge (CUO modal / non-modal ESC surfaces).</summary>
+	ISessionSurfacePatchBridge SessionSurface { get; }
+
+	/// <summary>The mod-content half of this bridge (template / drop-source / tile-behaviour resolution).</summary>
+	IModContentPatchBridge ModContent { get; }
 
 	/// <summary>Guest: generation finished (or finishing) but the start gate still holds — the GlobalDark fade must not black out the kept loading screen.</summary>
 	bool IsInGateWindow { get; }
@@ -40,6 +47,19 @@ internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatc
 
 	/// <summary>SceneManager.LoadScene(string) prefix — the old scene unloads inside the load: engage the destroy-report suppression BEFORE the teardown destroys (#191).</summary>
 	void OnSceneLoadBegin();
+
+	/// <summary>
+	/// <c>PlayerCamera.ToMainMenu</c> is about to load the menu scene — the single
+	/// funnel every deliberate "leave the world" action goes through. True = the
+	/// leave was RECORDED instead: the frame-end seam takes the mid-run cut first
+	/// and performs the leave on the pump, while the world the cut reads is alive.
+	/// False = the original runs (the seam would not act on the leave, or this is
+	/// the recorded leave being honoured, which must never be deferred again).
+	/// <paramref name="hasLiveWorld"/> is the caller's
+	/// <see cref="HarmonyTraverse.HasLiveWorld"/> check — the world half of the
+	/// decision, passed in rather than re-derived.
+	/// </summary>
+	bool TryDeferMenuReturn(bool hasLiveWorld);
 
 	/// <summary>
 	/// Wrap the vanilla <c>WorldGenerateWorldBorders</c> iterator so the Game
@@ -248,30 +268,6 @@ internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatc
 	/// <summary>An inventory-internal move completed (SwapSlots/SwitchHands) — re-report the character snapshot immediately so the peer's clone updates in real time (the 1 Hz throttle alone reads as a 1-2 s delay).</summary>
 	void OnInventoryChanged();
 
-	/// <summary>
-	/// The extra encumbrance a LOCAL carrier body owes while it carries or
-	/// piggybacks a teammate. Zero for non-local bodies or when there is no
-	/// active carry relation, so the native <c>Body.GetTotalEncumberance</c>
-	/// result is unchanged for remote clones and standalone players.
-	/// </summary>
-	float GetCarriedEncumbrance(Body body);
-
-	/// <summary>
-	/// True when the given body is the LOCAL player's body and that player is
-	/// currently the carrier half of a carry/piggyback relation. Harmony pose
-	/// patches use this to suppress the native idle-sit while carrying; the
-	/// runtime carry mirror is the single source of truth (no extra local
-	/// marker to keep in sync).
-	/// </summary>
-	bool IsLocalCarrier(Body body);
-
-	/// <summary>
-	/// The local carrier's <c>Body.Update</c> finished. Re-pin the remote rider
-	/// clones to the just-updated local carrier transform; CUO's own update pump
-	/// may have pinned them before the game moved the local body this frame.
-	/// </summary>
-	void OnLocalCarrierBodyUpdated();
-
 	// ---- World items (runtime-generated item entities) ----
 
 	/// <summary>True in a live session — the spawn landing sound is deferred until the start-gate release.</summary>
@@ -279,43 +275,6 @@ internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatc
 
 	/// <summary>True when this side is the session host (earthquake authority, host-only drops).</summary>
 	bool IsHostMode { get; }
-
-	/// <summary>
-	/// Resolve a mod-registered runtime item template by item id. Returns false
-	/// when the id has no custom template; the caller falls back to
-	/// <c>Resources.Load</c> for vanilla items.
-	/// </summary>
-	bool TryResolveItemTemplate(string id, out GameObject? template);
-
-	/// <summary>
-	/// Resolve a mod-registered runtime building template by building id.
-	/// Returns false when the id has no custom template; the caller falls back
-	/// to <c>Resources.Load</c> for vanilla buildings.
-	/// </summary>
-	bool TryResolveBuildingTemplate(string id, out GameObject? template);
-
-	/// <summary>
-	/// Apply a registered runtime building instance hook to a freshly
-	/// instantiated custom building. The instance is still inactive when this is
-	/// called, so hook-returned components attach before <c>Awake</c> runs.
-	/// </summary>
-	void ApplyCustomBuildingInstanceHooks(string id, GameObject instance);
-
-	/// <summary>
-	/// Resolve the synthetic <c>ItemLootPool</c> category for a fixed drop
-	/// source. Returns false when no custom items have been registered for that
-	/// source or the loot pool is not ready yet.
-	/// </summary>
-	bool TryGetModDropSourceCategory(ModItemDropSource source, out string category);
-
-	/// <summary>
-	/// Returns the mod-authored <see cref="BlockInfo"/> for a custom tile
-	/// index, or null when the block is vanilla/unregistered. The
-	/// <c>WorldGeneration.GetBlockInfo</c> patch uses this to let the original
-	/// switch continue handling every vanilla block while supplying behavior for
-	/// static custom tiles.
-	/// </summary>
-	BlockInfo? TryGetCustomBlockInfo(ushort block);
 
 	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
 	void OnEarthquakeStarted(float duration, float nextDelay);

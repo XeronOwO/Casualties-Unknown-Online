@@ -68,6 +68,14 @@ internal static class HarmonyTraverse
 	}
 
 	/// <summary>
+	/// The game's own "in world" expression, shared by every seam that must act
+	/// only inside a live, finished world: the camera exists, the world exists (no
+	/// scene reload in flight), and generation is not running.
+	/// </summary>
+	public static bool HasLiveWorld =>
+		PlayerCamera.main != null && WorldGeneration.world != null && !IsGenerating(); // Unity objects — ==
+
+	/// <summary>
 	/// World-instance field access. The four world-defining fields were verified
 	/// in the decompiled source (WorldGeneration.cs): totalTraveled (4162),
 	/// biomeDepth (4165), biomeOverride (4237, OverrideSceneType enum). LoadedRun

@@ -32,9 +32,11 @@ public interface IWorldSaveControl
 	/// <summary>
 	/// Host: the host clicked start — the run this session plays gets its own
 	/// world folder. False = the world could not be created (the run still plays;
-	/// it just cannot be saved).
+	/// it just cannot be saved) or this entry is the TUTORIAL, which gets no
+	/// archive at all (its own identity is released, so a later <c>/save</c> can
+	/// never aim at the previous run's world).
 	/// </summary>
-	bool TryBeginRun();
+	bool TryBeginRun(bool isTutorial);
 
 	/// <summary>
 	/// Host: arm a cut for the next pump seam. <paramref name="reason"/> is the

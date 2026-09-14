@@ -367,7 +367,7 @@ public class WorldSnapshotWorldFactsTests
 		using var fixture = WorldSaveFixture.Create("facts-layer-advance");
 		fixture.WorldFacts.SeedBlockState(3, 4, 0);
 		fixture.WorldFacts.RadiationLine = Radiation(active: true, timeGone: 3f);
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(1001UL, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
 		fixture.Characters.SaveHostCharacterData(WorldSaveCaptureTests.Character(100, "bag"));
 
@@ -410,7 +410,7 @@ public class WorldSnapshotWorldFactsTests
 		// kernel, and a row that still arrives would leak the replaced layer to a guest
 		// that joins before the regenerated layer's entry seam.
 		using var fixture = WorldSaveFixture.Create("world-entities-layer-advance");
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(1001UL, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
 		Assert.True(fixture.Kernel.TryRecordTrapConsumed(1001UL, new EntityPosition(3, 4), 2, 0, 1234, out _, out _));
 		Assert.True(fixture.Kernel.TryRecordOpenedEntity(1001UL, new EntityPosition(7, 8), out _, out _));
@@ -431,7 +431,7 @@ public class WorldSnapshotWorldFactsTests
 		// because the archive's contract cannot depend on every caller's order. Carried
 		// items (and their contents) DO cross the boundary and must stay in the archive.
 		using var fixture = WorldSaveFixture.Create("items-layer-advance");
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(1001UL, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
 		Assert.True(fixture.Kernel.TrySpawn(
 			1001UL, new ItemIdentity(100, "shell"), ItemLocation.World(5f, 5f), new CharacterItemMsg { ItemId = "shell" }, out _, out _));
@@ -869,7 +869,7 @@ public class WorldSnapshotWorldFactsTests
 		// this marker to know that this generation is a RESTORE, not a new layer.
 		Assert.True(restarted.WorldFacts.HasPendingLiveReplay, "a restored cut owns the next generation");
 
-		Assert.True(restarted.Service.TryBeginRun());
+		Assert.True(restarted.Service.TryBeginRun(isTutorial: false));
 		Assert.False(restarted.WorldFacts.HasPendingLiveReplay, "a new run must never inherit a previous restore's replay");
 		Assert.Contains("clear-pending-replay", restarted.WorldFacts.Calls);
 	}
@@ -980,7 +980,7 @@ public class WorldSnapshotWorldFactsTests
 		IReadOnlyList<SaveWorldBlockRow>? blocks = null,
 		IReadOnlyList<SaveWorldTransientRow>? transients = null)
 	{
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(1001UL, WorldSaveCaptureTests.Run(layerIndex: 2), out _, out _));
 
 		var files = Encoder().Encode(Payload(

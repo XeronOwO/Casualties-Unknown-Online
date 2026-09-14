@@ -13,7 +13,7 @@ internal static class WorldGenerationGetBlockInfoPatch
 {
 	private static bool Prefix(ushort block, ref BlockInfo __result)
 	{
-		var custom = PatchBridge.Impl?.TryGetCustomBlockInfo(block);
+		var custom = PatchBridge.ModContent?.TryGetCustomBlockInfo(block);
 		if (custom is null)
 		{
 			return true;

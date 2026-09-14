@@ -18,6 +18,11 @@ public class CarrierSitContractTests
 		"CasualtiesUnknownOnline.GameAdapter.IPatchBridge",
 		throwOnError: true)!;
 
+	/// <summary>The carriage half of the bridge — its own interface since the patch-bridge split (the 600-line architecture gate).</summary>
+	private static readonly Type CarriageBridge = GameAssemblyHost.Adapter.GetType(
+		"CasualtiesUnknownOnline.GameAdapter.ICarriagePatchBridge",
+		throwOnError: true)!;
+
 	private static readonly Type BridgeImpl = GameAssemblyHost.Adapter.GetType(
 		"CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge",
 		throwOnError: true)!;
@@ -33,11 +38,22 @@ public class CarrierSitContractTests
 	[Fact]
 	public void PatchBridge_HasLocalCarrierQuery()
 	{
-		var method = Bridge.GetMethod("IsLocalCarrier", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-			?? throw new InvalidOperationException("IPatchBridge.IsLocalCarrier not found.");
+		var method = CarriageBridge.GetMethod("IsLocalCarrier", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("ICarriagePatchBridge.IsLocalCarrier not found.");
 		Assert.Equal(typeof(bool), method.ReturnType);
 		var parameters = Assert.Single(method.GetParameters());
 		Assert.Equal("Body", parameters.ParameterType.Name);
+	}
+
+	[Fact]
+	public void PatchBridge_ExposesTheCarriageHalf()
+	{
+		// The pose patches reach the carriage query through the bridge's own
+		// property (PatchBridge.Impl.Carriage) — a contract test so the split
+		// cannot silently orphan the surface.
+		var property = Bridge.GetProperty("Carriage", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("IPatchBridge.Carriage not found.");
+		Assert.Equal(CarriageBridge, property.PropertyType);
 	}
 
 	[Fact]

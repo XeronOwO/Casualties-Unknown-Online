@@ -51,7 +51,8 @@
   world-fact files, with the layer-boundary reset's own subtree rule
   (`ItemLocationChain.IsWorldRooted`); `world-entities.json` obeys the same rule, so a produced
   layer-end archive holds no in-layer fact at all. Scope 7 and scope 9 are NOT part of this
-  increment; scope 9 moved to its own stage ticket (S3.6). **A third pass (2026-09-12) closed recorded
+  increment; scope 9 moved to its own stage ticket (S3.6, since landed as
+  `review/save-solo-menu-exit-trigger.md`). **A third pass (2026-09-12) closed recorded
   gap 1**: the restore account now carries the restore ATTEMPT's identity
   (`ItemKernelAuthority.RestoreSequence`, stamped by every arm and echoed by every contribution), so a
   half of an earlier attempt can no longer be counted toward a newer restore's account — see *the
@@ -312,12 +313,12 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    trap replay's game types) cannot be instantiated in the test host, so their counting contract is
    pinned at the Runtime seam and by static review of the adapter; see the S3.5 increment self-check.
 9. **Solo menu-exit trigger** (found by the S3.3 adversarial pass) — **MOVED OUT of this ticket**: it
-   is its own stage, `todo/save-solo-menu-exit-trigger.md` (S3.6), because it is a trigger-edge gap on
-   the solo surface rather than part of the consistent cut's scope. The gap is unchanged there: the
-   deliberate menu return is requested from session-teardown events and decided by
-   `RunMenuReturnPolicy` for a HOST, so solo play (no session, no role) gets no menu-return cut; the
-   fix is an in-world → menu transition edge in the run coordinator that requests the same seam cut,
-   not a second cut path.
+   is its own stage, S3.6, because it is a trigger-edge gap on the solo surface rather than part of the
+   consistent cut's scope. **Landed 2026-09-14** as `review/save-solo-menu-exit-trigger.md`, with the
+   mechanism finding that the fix is NOT the in-world → menu transition edge this scope first named
+   (the leave's own scene load destroys the world before any next-frame cut could read it) but the
+   leave ACTION itself, intercepted at `PlayerCamera.ToMainMenu` and replayed by the frame-end seam
+   after the cut (decision 176).
 
 ## S3.5 increment self-check (2026-09-12)
 
@@ -921,8 +922,8 @@ matrix above are NOT a precondition for the move, exactly as S2 landed its conti
 in-game rows open.
 
 - [ ] **Scope closure**: scopes 1-6 and 8 are landed and documented here; scope 7 is owned by S4
-      (`todo/save-multiplayer-restore-and-backups.md`); scope 9 is owned by S3.6
-      (`todo/save-solo-menu-exit-trigger.md`). No scope is silently dropped.
+      (`todo/save-multiplayer-restore-and-backups.md`); scope 9 is owned by S3.6 and landed
+      (`review/save-solo-menu-exit-trigger.md`). No scope is silently dropped.
 - [ ] **The exactly-once claim is stated at the level it is proven**: the machine evidence above is
       claimed, the in-game half is named as the user's pass and is not claimed as observed
       (`AGENTS.md` line 327: no self-assumption — every claim needs source or runtime evidence).

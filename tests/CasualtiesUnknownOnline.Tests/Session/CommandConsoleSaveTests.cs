@@ -165,7 +165,7 @@ public class CommandConsoleSaveTests
 
 		internal void Raise(WorldCutReport report) => CutReported?.Invoke(report);
 
-		public bool TryBeginRun() => true;
+		public bool TryBeginRun(bool isTutorial) => true;
 
 		public bool TryRequestCut(WorldCutReason reason, out string? refusal)
 		{

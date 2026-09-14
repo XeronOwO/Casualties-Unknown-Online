@@ -177,8 +177,9 @@ internal sealed class RunCoordinator(
 	internal void OnWorldJoinRequested(bool isTutorial)
 	{
 		// Host AND solo: this run gets its own world folder before any content
-		// exists (the save arm owns that call — see RunSaveCoordinator).
-		_save.BeginRun();
+		// exists (the save arm owns that call — see RunSaveCoordinator) — except for
+		// the tutorial, which gets no archive at all.
+		_save.BeginRun(isTutorial);
 
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
@@ -298,8 +299,9 @@ internal sealed class RunCoordinator(
 	private void UpdateSceneState()
 	{
 		// == null on Unity singletons (is null misses scene-reload-destroyed objects).
-		var inWorld = PlayerCamera.main != null && WorldGeneration.world != null
-			&& !HarmonyTraverse.IsGenerating();
+		// The expression is shared with the seams that act on the same edge (the
+		// menu-exit scene-load interception) so "in world" cannot drift.
+		var inWorld = HarmonyTraverse.HasLiveWorld;
 		if (inWorld == _inWorld)
 		{
 			if (inWorld && _localBody == null) // Unity object — ==
@@ -465,7 +467,7 @@ internal sealed class RunCoordinator(
 		if (!inWorld && steamId == _session.HostSteamId && _session.Role == SessionRole.Guest)
 		{
 			_phase = RunPhase.Idle;
-			_menuReturn.Request(_session.Role, _inWorld);
+			_menuReturn.Request(_session.Role, RunMenuReturnOrigin.HostPull, _inWorld);
 		}
 	}
 
@@ -484,7 +486,7 @@ internal sealed class RunCoordinator(
 		_hostInWorldSinceMs = 0;
 		_worldFingerprintLogged = false;
 		_params.ResetForSessionEnd();
-		_menuReturn.Request(_session.Role, _inWorld);
+		_menuReturn.Request(_session.Role, RunMenuReturnOrigin.SessionTeardown, _inWorld);
 	}
 
 	// ---- State shuttling ----

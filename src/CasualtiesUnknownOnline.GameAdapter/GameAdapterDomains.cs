@@ -115,6 +115,9 @@ internal sealed class GameAdapterDomains
 	internal readonly IPlayerInteractionControl PlayerInteraction;
 	internal readonly CrossPlayerDragUse DragUse;
 
+	/// <summary>The deferred menu-return record — read by the scene-load interception (<c>PlayerCamera.ToMainMenu</c>) and by the bridge's deferral decision.</summary>
+	internal readonly RunMenuReturnCoordinator MenuReturn;
+
 	/// <summary>The CUO world archive's control surface — the host's save authority (decision 164).</summary>
 	internal readonly IWorldSaveControl WorldSaves;
 	internal readonly CharacterSoundSync CharacterSoundSync;
@@ -305,16 +308,17 @@ internal sealed class GameAdapterDomains
 		RunSettingsRange = new RunSettingsRangeService(session, hostRules, loggerFactory.CreateLogger<RunSettingsRangeService>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, NativeWorldFacts, loggerFactory.CreateLogger<WorldParamsService>());
-		var menuReturn = new RunMenuReturnCoordinator(loggerFactory.CreateLogger<RunMenuReturnCoordinator>());
-		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, menuReturn, loggerFactory.CreateLogger<RunCoordinator>());
+		MenuReturn = new RunMenuReturnCoordinator(loggerFactory.CreateLogger<RunMenuReturnCoordinator>());
+		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, MenuReturn, loggerFactory.CreateLogger<RunCoordinator>());
 		// The frame-end cut seam is the LAST domain of the pump: it is where every
-		// cut trigger is taken (the armed /save request and the host's deliberate
-		// menu return), after every domain has finished this frame's work.
+		// cut trigger is taken (the armed /save request and the deliberate menu
+		// return of a host or a solo player), after every domain has finished this
+		// frame's work.
 		SaveCutSeam = new SaveCutSeam(
 			session,
 			worldSaves,
 			Run,
-			menuReturn,
+			MenuReturn,
 			blockBreakState,
 			TrapDrops,
 			itemDropState,

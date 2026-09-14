@@ -80,7 +80,7 @@ internal static class UtilsCreateCustomPrefabPatch
 
 		try
 		{
-			PatchBridge.Impl?.ApplyCustomBuildingInstanceHooks(id, created);
+			PatchBridge.ModContent?.ApplyCustomBuildingInstanceHooks(id, created);
 		}
 		catch
 		{
@@ -100,7 +100,7 @@ internal static class UtilsCreateCustomPrefabPatch
 			return true;
 		}
 
-		if (PatchBridge.Impl?.TryResolveBuildingTemplate(id, out var buildingTemplate) == true
+		if (PatchBridge.ModContent?.TryResolveBuildingTemplate(id, out var buildingTemplate) == true
 			&& buildingTemplate != null) // Unity object — ==
 		{
 			template = buildingTemplate;

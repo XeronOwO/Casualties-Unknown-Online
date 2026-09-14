@@ -51,7 +51,7 @@ public class WorldContinueLocalCharacterTests
 	public void MidRunContinue_KeepsTheLocalCharactersPosition()
 	{
 		using var fixture = WorldSaveFixture.Create("continue-position-midrun");
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 2), out _, out _));
 
 		// A mid-run cut carries the live capture; the layer it names is the layer the
@@ -120,7 +120,7 @@ public class WorldContinueLocalCharacterTests
 	/// </summary>
 	private static void CutAtLayerEndWithPosition(WorldSaveFixture fixture, float x, float y)
 	{
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
 
 		var character = WorldSaveCaptureTests.Character(100, "bag");
@@ -134,7 +134,7 @@ public class WorldContinueLocalCharacterTests
 	/// <summary>One layer-end cut carrying a host character and, when asked, a present member's own.</summary>
 	private static void CutAtLayerEnd(WorldSaveFixture fixture, ulong hostInstanceId, ulong? guestInstanceId)
 	{
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
 		fixture.Characters.SaveHostCharacterData(WorldSaveCaptureTests.Character(hostInstanceId, "bag"));
 		if (guestInstanceId is { } guestId)

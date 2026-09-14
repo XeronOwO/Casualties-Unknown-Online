@@ -30,7 +30,7 @@ public sealed class WorldRunFieldTests
 		native.SeedRunFields(2.5f, 3.5f, 42.5f, Recipe(0, madeBefore: true, intValue: 0), Recipe(3, madeBefore: false, intValue: 7));
 
 		using var fixture = WorldSaveFixture.Create("run-fields-midrun", nativeWorldFacts: native);
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 2, loot: 2.5f, trap: 3.5f), out _, out _));
 
 		var report = Cut(fixture);
@@ -66,7 +66,7 @@ public sealed class WorldRunFieldTests
 		native.SeedRunFields(9f, 9f, 10f);
 
 		using var fixture = WorldSaveFixture.Create("run-fields-window", nativeWorldFacts: native);
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 1, loot: 2f, trap: 3f), out _, out _));
 
 		Assert.True(Cut(fixture).Captured);
@@ -83,7 +83,7 @@ public sealed class WorldRunFieldTests
 		native.SeedRunFields(4f, 5f, 11.5f, Recipe(1, madeBefore: true, intValue: 0));
 
 		using var fixture = WorldSaveFixture.Create("run-fields-layerend", nativeWorldFacts: native);
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 
 		// The layer advance is where the host publishes the boundary capture, so the
@@ -109,7 +109,7 @@ public sealed class WorldRunFieldTests
 		var native = new FakeNativeWorldFacts { CaptureRunFieldsFailure = "no live world holds the run clock" };
 
 		using var fixture = WorldSaveFixture.Create("run-fields-unreadable", nativeWorldFacts: native);
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 
 		var report = Cut(fixture);
@@ -128,7 +128,7 @@ public sealed class WorldRunFieldTests
 		cutNative.SeedRunFields(6f, 7f, 88.5f, Recipe(2, madeBefore: true, intValue: 0));
 
 		using var fixture = WorldSaveFixture.Create("run-fields-continue", nativeWorldFacts: cutNative);
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 3, loot: 6f, trap: 7f), out _, out _));
 		Assert.True(Cut(fixture).Captured);
 		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
@@ -161,7 +161,7 @@ public sealed class WorldRunFieldTests
 		// A composition with no native reader records no run-field row at all — the
 		// shape an archive written before this row existed has.
 		using var fixture = WorldSaveFixture.Create("run-fields-absent");
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 1), out _, out _));
 		Assert.True(Cut(fixture).Captured);
 		Assert.Single(LiveRunRows(fixture));
@@ -183,7 +183,7 @@ public sealed class WorldRunFieldTests
 		cutNative.SeedRunFields(1f, 1f, 5f, Recipe(0, madeBefore: true, intValue: 0));
 
 		using var fixture = WorldSaveFixture.Create("run-fields-no-applier", nativeWorldFacts: cutNative);
-		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 		Assert.True(Cut(fixture).Captured);
 		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));

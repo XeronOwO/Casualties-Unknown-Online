@@ -48,27 +48,37 @@ internal sealed class RunSaveCoordinator(
 	private readonly WorldRestoreAudit? _restoreAudit = restoreAudit;
 
 	/// <summary>
-	/// Host AND solo: every run gets its own world folder before any content
-	/// exists, so a later cut has somewhere to go. A guest never writes (the
-	/// Runtime refuses it too — the host is the only save authority).
+	/// Host AND solo: every RUN gets its own world folder before any content
+	/// exists, so a later cut has somewhere to go. A guest never writes and a
+	/// TUTORIAL entry gets no archive at all — both rules belong to the save layer
+	/// (<see cref="IWorldSaveControl.TryBeginRun"/>), which also releases the
+	/// previous run's identity on a tutorial entry. What stays here is the run's
+	/// own restore arm: a new run owns the next generation, so a restore armed for
+	/// a refused or abandoned Continue attempt must never replay into it.
 	/// </summary>
-	internal void BeginRun()
+	internal void BeginRun(bool isTutorial)
 	{
-		if (_session.Role == SessionRole.Guest)
-		{
-			return;
-		}
-
 		// A new run owns the next generation: a restore armed for a refused/aborted
 		// Continue attempt must never replay into it — the world baseline, the native
 		// values (the adapter cancels its own handover with the same call) and the
 		// local body's queued character alike. The item domain's restore arm belongs to
 		// that set too: left armed, the new run's generation would reconcile its fresh
 		// objects against the old world's ids.
+		//
+		// This half runs for EVERY entry, the tutorial included: abandoning a stale
+		// restore is not a save-repository action.
 		_parameters.CancelRestorePending();
 		_characterData.CancelAllLocalRestores();
 		_items.CancelRestoredWorldItems("a new run superseded the restore");
-		_saves.TryBeginRun();
+
+		if (_session.Role == SessionRole.Guest)
+		{
+			return;
+		}
+
+		// The tutorial is refused by the save layer itself (no archive for a
+		// tutorial entry, and the previous run's identity is released there).
+		_saves.TryBeginRun(isTutorial);
 	}
 
 	/// <summary>

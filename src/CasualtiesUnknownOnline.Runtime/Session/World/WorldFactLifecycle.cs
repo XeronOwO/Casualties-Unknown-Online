@@ -178,9 +178,9 @@ internal sealed class WorldFactLifecycle(
 	/// <summary>
 	/// The cut and the restore are both SAVE operations, so the predicate is "not a
 	/// guest" rather than "is exactly host": the host entry point
-	/// (<c>WorldSaveService.TryBeginRun</c>) refuses guests and accepts everything
-	/// else, which includes the no-lobby state the game reports as
-	/// <see cref="SessionRole.None"/> before any lobby exists.
+	/// (<c>WorldSaveService.TryBeginRun</c>) refuses guests and tutorial entries and
+	/// accepts everything else, which includes the no-lobby state the game reports
+	/// as <see cref="SessionRole.None"/> before any lobby exists.
 	/// </summary>
 	private bool Authoritative(string operation)
 	{

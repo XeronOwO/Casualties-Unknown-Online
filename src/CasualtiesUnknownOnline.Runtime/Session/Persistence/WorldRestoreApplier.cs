@@ -163,7 +163,7 @@ internal sealed class WorldRestoreApplier(
 		if (load.Content is null)
 		{
 			log.LogError("Continue refused for world {WorldId}: {Summary}", worldId, load.Summary);
-			return Refuse(worldId, load.Summary, new SalvageResult(load.Report));
+			return RefuseHolding(worldId, load.Summary, new SalvageResult(load.Report));
 		}
 
 		var decoder = new WorldSnapshotDecoder(load.Content.Manifest, loggerFactory.CreateLogger<WorldSnapshotDecoder>());
@@ -183,7 +183,7 @@ internal sealed class WorldRestoreApplier(
 			{
 				var refusal = $"{decode.Refusal}; {salvage.Report.Describe()}";
 				log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
-				return Refuse(worldId, refusal, salvage);
+				return RefuseHolding(worldId, refusal, salvage);
 			}
 
 			load = recovered.Load;
@@ -200,7 +200,7 @@ internal sealed class WorldRestoreApplier(
 		{
 			var guard = $"{decode.Refusal}; {salvage.Report.Describe()}";
 			log.LogError("Continue refused for world {WorldId}: {Guard}", worldId, guard);
-			return Refuse(worldId, guard, salvage);
+			return RefuseHolding(worldId, guard, salvage);
 		}
 
 		// A new restore SUPERSEDES the previous attempt: its account is closed (a restore
@@ -446,6 +446,16 @@ internal sealed class WorldRestoreApplier(
 	/// skipped content ids and the backup that could not be used are what the player
 	/// has to read when the Continue click does nothing (§6).
 	/// </summary>
+	private Result RefuseHolding(string worldId, string summary, SalvageResult? salvage = null)
+	{
+		// The attempt took the world's writer lease and applied nothing: keeping it would lock
+		// the world for another instance until the staleness window passed, for a restore that
+		// never happened. Only a refusal that got PAST the lease uses this; the ones before it
+		// never held anything.
+		repository?.ReleaseWorld(worldId);
+		return Refuse(worldId, summary, salvage);
+	}
+
 	private Result Refuse(string worldId, string summary, SalvageResult? salvage = null)
 	{
 		var loaded = salvage ?? new SalvageResult(DamageReport.Empty);

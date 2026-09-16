@@ -4,11 +4,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 
 /// <summary>
 /// When the interval autosave is due. The clock is the world's WRITE history, not a
-/// stopwatch: the interval restarts on every COMMITTED cut of any trigger, so a player
-/// who saves by hand, crosses a layer or deliberately leaves the world does not get an
-/// extra archive a minute later — and an interval that fired on a refused or deferred
-/// cut would keep firing until one committed, which is exactly the burst the retention
-/// policy would then have to prune.
+/// stopwatch: the interval restarts whenever a cut REACHES the writer — a committed cut of
+/// any trigger, or an attempt the writer refused — so a player who saves by hand, crosses a
+/// layer or deliberately leaves the world does not get an extra archive a minute later, and a
+/// world that CANNOT be written (a read-only folder, a vanished drive) is retried once per
+/// interval instead of once per frame.
 ///
 /// The window is opened by entering a world (<see cref="Restart"/>), never by the
 /// process: a host that spends twenty minutes in the main menu and then starts a run

@@ -147,10 +147,12 @@ public class WorldSaveAutosaveTests
 	}
 
 	[Fact]
-	public void ARefusedCut_DoesNotRestartTheInterval()
+	public void ARefusedAutosave_DoesNotArmAgainOnTheNextFrame()
 	{
-		// No kernel run baseline: the writer refuses the cut, so the world was NOT
-		// written and the interval keeps its window.
+		// No kernel run baseline: the writer refuses the cut. The world was NOT written, but the
+		// attempt WAS made — and the tick must not arm another one on the very next frame, or a
+		// world that cannot be written would run a full snapshot transaction every frame for as
+		// long as its cause lasts (a read-only folder, a vanished drive).
 		var now = Noon;
 		using var fixture = WorldSaveFixture.Create("save-autosave-refused", utcNow: () => now);
 		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
@@ -160,6 +162,12 @@ public class WorldSaveAutosaveTests
 		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 0));
 		Assert.False(report.Captured);
 
+		Assert.False(fixture.Service.TryArmIntervalAutosave(inWorld: true));
+
+		// ... and the window it restarted is a full one, not a per-frame one.
+		now = now.AddMinutes(9);
+		Assert.False(fixture.Service.TryArmIntervalAutosave(inWorld: true));
+		now = now.AddMinutes(1);
 		Assert.True(fixture.Service.TryArmIntervalAutosave(inWorld: true));
 	}
 

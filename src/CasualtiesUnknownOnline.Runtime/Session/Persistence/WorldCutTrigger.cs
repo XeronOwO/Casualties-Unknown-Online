@@ -196,6 +196,14 @@ internal sealed class WorldCutTrigger(
 			return new WorldCutReport(WorldCutResult.Refused, reason, target.WorldId, "this host has no CUO world for the current run", dropped);
 		}
 
+		// The interval counts ATTEMPTS that reached the writer, never only committed ones: a
+		// world that cannot be written (a read-only folder, a drive that went away) would
+		// otherwise stay "due" forever and the pump would run a FULL snapshot transaction —
+		// checkpoint, world facts, encoding, staging — on every single frame. Noting the attempt
+		// here opens a fresh window, so the next autosave is one interval away whatever this one
+		// resolved to; a COMMITTED player cut restarts the same window on its way through.
+		_autosave.NoteCutTaken(_utcNow());
+
 		var collected = _binder.Collect(hostCharacter);
 		var write = _writer.Write(new WorldCutWriteRequest(
 			target.WorldId,
@@ -215,11 +223,6 @@ internal sealed class WorldCutTrigger(
 		{
 			return new WorldCutReport(WorldCutResult.Refused, reason, target.WorldId, write.Detail, notCarried);
 		}
-
-		// Only a COMMITTED cut restarts the interval: a refused or deferred one has not
-		// written this world, and counting it would push the next autosave out by a full
-		// interval for a world that was never saved.
-		_autosave.NoteCutTaken(_utcNow());
 
 		// §7's retention pass, at the one moment it can be exact: the transaction just
 		// committed, so the archive set on disk is the one this cut belongs to. A failed

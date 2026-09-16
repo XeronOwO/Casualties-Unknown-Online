@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -65,19 +66,19 @@ internal static class WorldLease
 		if (held is not null && !string.Equals(held.Owner, Owner, StringComparison.Ordinal))
 		{
 			var age = nowUtc - HeartbeatOf(held);
-			if (age < StaleAfter)
+			if (age < StaleAfter && IsOwnerAlive(held.Owner))
 			{
 				refusal = $"another CUO instance ({held.Owner}) is writing this world; its last write was {Describe(age)} ago";
 				log.LogWarning("World {Directory} is leased to {Owner} (last write {Age} ago); this instance will not write into it.", worldDirectory, held.Owner, Describe(age));
 				return false;
 			}
 
-			// A lease this old belongs to a process that is gone (or to a file left by a
-			// crash): taking it over is what keeps a dead host from locking the world
-			// forever, and it is never silent.
+			// A lease nobody refreshed for the whole window — or one whose process is provably
+			// gone — belongs to a writer that cannot be writing: taking it over is what keeps a
+			// crashed host from locking the world, and it is never silent.
 			log.LogWarning(
-				"Taking world {Directory} over from {Owner}: its lease has not been refreshed for {Age} (the staleness window is {Stale}).",
-				worldDirectory, held.Owner, Describe(age), StaleAfter);
+				"Taking world {Directory} over from {Owner}: {Reason} (the staleness window is {Stale}).",
+				worldDirectory, held.Owner, DescribeTakeover(held.Owner, age), StaleAfter);
 		}
 
 		try
@@ -142,6 +143,47 @@ internal static class WorldLease
 
 	private static DateTime HeartbeatOf(WorldLeaseEntry entry) =>
 		SaveArchiveFormat.TryParseUtc(entry.HeartbeatUtc, out var utc) ? utc : DateTime.MinValue;
+
+	/// <summary>Why a lease is being taken over, in the words the warning carries.</summary>
+	private static string DescribeTakeover(string owner, TimeSpan age) =>
+		IsOwnerAlive(owner)
+			? $"its lease has not been refreshed for {Describe(age)}"
+			: $"the process that held it is gone (last write {Describe(age)} ago)";
+
+	/// <summary>
+	/// True = the lease's owner is a process on THIS machine that is still running. A lease
+	/// whose process is gone is stale whatever its heartbeat says: the alternative is a host
+	/// that crashed a minute ago locking the world for the rest of the window. An owner on
+	/// another machine cannot be checked at all, so there its heartbeat is the only evidence
+	/// — and anything this machine cannot inspect counts as alive, because taking a world
+	/// over from a writer that IS running is the one outcome the lease exists to prevent.
+	/// </summary>
+	private static bool IsOwnerAlive(string owner)
+	{
+		var separator = owner.LastIndexOf(':');
+		if (separator <= 0
+			|| !string.Equals(owner.Substring(0, separator), Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+			|| !int.TryParse(owner.Substring(separator + 1), NumberStyles.None, CultureInfo.InvariantCulture, out var pid))
+		{
+			return true;
+		}
+
+		try
+		{
+			using var process = Process.GetProcessById(pid);
+			return !process.HasExited;
+		}
+		catch (ArgumentException)
+		{
+			// No process with that id: the writer is gone.
+			return false;
+		}
+		catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+		{
+			// "It exited while we looked" is a dead writer; "we may not look" is a live one.
+			return ex is Win32Exception;
+		}
+	}
 
 	private static string Describe(TimeSpan age) =>
 		age <= TimeSpan.Zero

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -65,6 +66,53 @@ public class WorldLeaseTests
 	}
 
 	[Fact]
+	public void ALeaseFromAProcessThatIsGone_IsTakenOverImmediately()
+	{
+		// A fresh heartbeat, and a pid no process can have: the writer crashed a second ago,
+		// and making the player wait out the whole staleness window for a process that is
+		// provably gone is the false refusal this check exists to remove.
+		var fixture = SaveTestRepository.Create("lease-dead-process");
+		WriteLease(fixture, Environment.MachineName + ":2147483647", fixture.Now.AddSeconds(-1));
+
+		var result = Write(fixture);
+
+		Assert.True(result.Success, result.Detail);
+		Assert.Equal(WorldLease.Owner, WorldLease.Read(fixture.WorldDirectory, NullLogger.Instance)!.Owner);
+	}
+
+	[Fact]
+	public void ALeaseFromAProcessThatIsRunning_IsRefused()
+	{
+		// The one outcome the lease exists to prevent: taking a world over from a writer that IS
+		// running. The child is a real process on this machine, so the liveness check sees it.
+		var fixture = SaveTestRepository.Create("lease-live-process");
+		using var writer = Process.Start(new ProcessStartInfo(
+			"cmd.exe", "/c timeout /t 30")
+		{
+			CreateNoWindow = true,
+			UseShellExecute = false,
+		});
+		Assert.NotNull(writer);
+
+		try
+		{
+			WriteLease(fixture, Environment.MachineName + ":" + writer!.Id, fixture.Now.AddSeconds(-1));
+
+			var result = Write(fixture);
+
+			Assert.Equal(SaveWriteResult.Failure.LeaseHeld, result.Reason);
+			Assert.Contains(Environment.MachineName, result.Detail, StringComparison.Ordinal);
+		}
+		finally
+		{
+			if (!writer!.HasExited)
+			{
+				writer.Kill();
+			}
+		}
+	}
+
+	[Fact]
 	public void ThisProcessesOwnLease_IsRefreshedRatherThanRefused()
 	{
 		var fixture = SaveTestRepository.Create("lease-own");
@@ -116,6 +164,22 @@ public class WorldLeaseTests
 		Assert.False(service.Service.TryContinue(out var outcome));
 		Assert.Contains("OTHER-MACHINE:4242", outcome.Summary, StringComparison.Ordinal);
 		Assert.False(service.Service.HasArmedCut);
+	}
+
+	[Fact]
+	public void ARefusedContinue_GivesTheLeaseBack()
+	{
+		// The refused attempt took the world's writer lease and applied nothing. Keeping it would
+		// lock the world for another instance until the staleness window passed — for a restore
+		// that never happened.
+		var fixture = SaveTestRepository.Create("lease-refused-continue");
+		Assert.True(fixture.Repository.WriteSnapshot(
+			fixture.WorldId, fixture.Request(WorldCutKind.MidRun, fixture.Now, SaveTestData.RunPayload("broken"))).Success);
+
+		using var service = WorldSaveFixture.Create("lease-refused-continue", repository: fixture, utcNow: () => fixture.Now);
+
+		Assert.False(service.Service.TryContinue(out _));
+		Assert.Null(WorldLease.Read(fixture.WorldDirectory, NullLogger.Instance));
 	}
 
 	private static SaveWriteResult Write(SaveTestRepository fixture) =>

@@ -112,6 +112,49 @@ refusal when nothing decodes, an unpackable archive, another world's backup).
 replaces the old refusal expectation: the same damage now recovers from the cut's own backup, and the
 refusal it used to pin is pinned by `WorldSaveRecoveryTests.WhenNoBackupDecodes_TheContinueIsRefused_AndTheWorldIsLeftAlone`.
 
+## The adversarial pass, and what happened to each finding
+
+Three findings came out of the adversarial reading of the diff, every one of them in NEW code, and
+all three are fixed with tests that pin the corrected behaviour:
+
+1. **A refused autosave re-armed on the very next frame (BLOCKER, fixed).** The interval restarted
+   only on a COMMITTED cut, so a world that cannot be written (a read-only folder, a drive that went
+   away) stayed "due" forever: the pump would arm and TAKE a cut every single frame, running a full
+   snapshot transaction — checkpoint, world-fact capture, encoding, staging, a failed write — per
+   frame, for as long as the cause lasted. The interval now counts any cut that REACHES the writer
+   (`WorldCutTrigger.Write` notes the attempt before the transaction), so a failed attempt opens a
+   fresh window and the next autosave is one interval away. Found red first:
+   `WorldSaveAutosaveTests.ARefusedAutosave_DoesNotArmAgainOnTheNextFrame` observed the re-arm on the
+   unfixed code.
+2. **A crashed writer's lease locked the world for the whole staleness window (fixed).** A heartbeat
+   is not evidence of life: a host that died a minute ago left a 30-minute lease and a *restarted*
+   game would have been refused with "another CUO instance is writing this world". The lease now
+   checks whether the recorded owner is a process on THIS machine that is still running
+   (`WorldLease.IsOwnerAlive`); a gone process is taken over at once, another machine still counts on
+   the heartbeat (it cannot be inspected), and anything un-inspectable counts as ALIVE, because
+   stealing a world from a running writer is the one outcome the lease exists to prevent. Pinned by
+   `ALeaseFromAProcessThatIsGone_IsTakenOverImmediately` and `ALeaseFromAProcessThatIsRunning_IsRefused`
+   (the latter against a real child process).
+3. **A refused continue kept the writer lease (fixed).** The lease is taken before the payload is
+   applied, so every refusal after that point held the world until the window passed — for a restore
+   that never happened. `WorldRestoreApplier.RefuseHolding` releases it on all four post-lease refusal
+   paths. Pinned by `ARefusedContinue_GivesTheLeaseBack`.
+
+Checked and found sound (no change needed): retention never touches the newest archive and runs only
+after a committed write; the recovery skips the archive the load already opened; a failed promotion
+puts the preserved folder back; `damaged-<stamp>/` is invisible to the world scan, the backup listing,
+the pruner and the loader; the pre-restore archive is verified against its manifest before it is
+renamed into `backups/`; a lease that cannot be written does not block the write it cannot protect.
+
+Known, deliberate asymmetry: when the live snapshot's MANIFEST does not read, the load still falls
+back to a backup in memory without promoting it (S1's contract: a load writes nothing), while a
+DECODE-level refusal promotes. The manifest case therefore keeps its pre-existing behaviour; the
+decode case needed both the retry and the promotion because the refusal arrives after the load
+returned. After a promotion `world.json` still names the replaced snapshot's time until the next cut
+refreshes it (the picker reads that field); the promotion deliberately does not rewrite the metadata,
+because the live snapshot it now holds is older than what that field describes and inventing a time
+would be worse than a stale one.
+
 ## Verification limits
 
 - The dual-client rows (acceptance 1–3) and the entity work above them are unchanged by this stage;
@@ -122,3 +165,9 @@ refusal it used to pin is pinned by `WorldSaveRecoveryTests.WhenNoBackupDecodes_
   trigger is deliberately not announced), and the retention behaviour on a real multi-gigabyte world.
 - The writer lease is machine-verified as a FILE protocol; two real game instances pointed at one
   folder is a user-run scenario (the sandbox pair does not share a saves root by construction).
+- **Process gap, recorded rather than papered over**: this session had no subagent capability (the
+  available tools were file read/write and a shell), so the adversarial pass above was a fresh
+  re-reading of the diff by the same agent, NOT the independent second context AGENTS.md requires for
+  an architecture/cross-module change. The three findings show the pass was real work, but an
+  independent reviewer with a fresh context should re-audit the interval/lease/recovery trio before
+  the final acceptance pass.

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.World;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -10,14 +11,15 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 
 /// <summary>
-/// The save system's control point: which world this run writes into, when a cut
-/// is taken, and what the Continue entry resolves to. It is the only writer of
-/// the world repository (decision 164) and the only reader of the native save's
-/// place (decision 165) — the game side never decides either.
+/// The save system's control point: which world this run writes into, whether a cut
+/// may be taken at all, and what the Continue entry resolves to. It is the only
+/// writer of the world repository (decision 164) and the only reader of the native
+/// save's place (decision 165) — the game side never decides either.
 ///
 /// Two triggers, two seams:
 ///
@@ -25,19 +27,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 ///   the kernel raises it AFTER the layer advance committed, so the snapshot holds
 ///   the run baseline of the layer being entered (its generation random state and
 ///   layer index), which is exactly what a restore has to replay.
-/// - Every other cut (the host's <c>/save</c> command, the deliberate menu return)
-///   is ARMED here and taken by the adapter at the frame-end pump seam
-///   (<see cref="TryCaptureArmedCut"/>), where no command batch and no frame flush
-///   is in flight. A cut inside the console callback would read a half-applied
+/// - Every other cut (the host's <c>/save</c> command, the deliberate menu return,
+///   the interval autosave) is ARMED here and taken by the adapter at the frame-end
+///   pump seam (<see cref="TryCaptureArmedCut"/>), where no command batch and no frame
+///   flush is in flight. A cut inside the console callback would read a half-applied
 ///   frame; arming it keeps the request out of that callback.
 ///
-/// The cut is also where the transient policy is applied: an in-flight state the
-/// policy resolves first defers the cut for a bounded number of frames
-/// (<see cref="WorldCutDeferral.MaxFrames"/>) instead of losing it, and every state
-/// the cut does not carry is named in the report (§6: no silent loss).
-///
-/// The writing half itself is <see cref="WorldCutWriter"/>: this class decides
-/// WHETHER and WHERE, the writer decides WHAT the archive holds.
+/// This class owns WHETHER and WHERE; the sequence between "armed" and "written" — the
+/// bounded wait for in-flight state, the interval timer, the write and the backup
+/// retention pass — belongs to <see cref="WorldCutTrigger"/>, and the writing half
+/// itself to <see cref="WorldCutWriter"/>.
 /// </summary>
 public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 {
@@ -47,17 +46,19 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	/// <summary>The manifest's cut phase for a cut taken at the host pump's frame-end seam (§4).</summary>
 	public const string FrameEndCutPhase = "frame-end";
 
+	/// <summary>The save policy a composition with no options monitor runs with (the frozen defaults of §7).</summary>
+	private static readonly SaveOptions FallbackOptions = new();
+
 	private readonly WorldRepository? _repository;
 	private readonly ISessionControl _session;
 	private readonly ItemKernelAuthority _kernel;
 	private readonly ITransportIdentity _transport;
 	private readonly IWorldFactSource _worldFacts;
 	private readonly INativeWorldFacts? _nativeWorldFacts;
-	private readonly WorldCutWriter? _writer;
-	private readonly WorldCharacterBinder _binder;
-	private readonly WorldRestoreApplier _restore;
-	private readonly IWorldCutTransientProbe? _transients;
+	private readonly IOptionsMonitor<SaveOptions> _options;
 	private readonly WorldRestoreAudit? _audit;
+	private readonly WorldRestoreApplier _restore;
+	private readonly WorldCutTrigger _trigger;
 	private readonly IRestoredWorldEntitySource? _worldEntities;
 	private readonly IItemControl? _items;
 	private readonly ILogger<WorldSaveService> _log;
@@ -65,8 +66,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	private string _worldId = string.Empty;
 	private string _displayName = string.Empty;
 	private IReadOnlyList<SavedCharacter> _pendingCharacters = [];
-	private WorldCutReason? _armedReason;
-	private readonly WorldCutDeferral _deferral = new();
 	private bool _disposed;
 
 	/// <summary>
@@ -93,7 +92,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		IWorldCutTransientProbe? transients = null,
 		WorldRestoreAudit? audit = null,
 		IItemControl? items = null,
-		IRestoredWorldEntitySource? worldEntities = null)
+		IRestoredWorldEntitySource? worldEntities = null,
+		IOptionsMonitor<SaveOptions>? options = null)
 	{
 		_repository = repository;
 		_session = session;
@@ -101,18 +101,18 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_transport = transport;
 		_worldFacts = worldFacts;
 		_nativeWorldFacts = nativeWorldFacts;
-		_transients = transients;
-		_audit = audit;
 		_worldEntities = worldEntities;
 		_items = items;
-		_binder = new WorldCharacterBinder(session, characters, transport, loggerFactory.CreateLogger<WorldCharacterBinder>());
+		_audit = audit;
+		_options = options ?? new MutableOptionsMonitor<SaveOptions>(FallbackOptions);
+		var binder = new WorldCharacterBinder(session, characters, transport, loggerFactory.CreateLogger<WorldCharacterBinder>());
 		_restore = new WorldRestoreApplier(
 			repository,
 			kernel,
 			characters,
 			worldFacts,
 			nativeWorldFacts,
-			_binder,
+			binder,
 			items,
 			audit,
 			// The restore's host-local kernel resets (a layer-end cut's enemy/fluid rows)
@@ -122,7 +122,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			loggerFactory,
 			loggerFactory.CreateLogger<WorldRestoreApplier>(),
 			worldEntities);
-		_writer = repository is null
+		var clock = utcNow ?? (() => DateTime.UtcNow);
+		var writer = repository is null
 			? null
 			: new WorldCutWriter(
 				repository,
@@ -132,7 +133,16 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 				nativeWorldFacts,
 				loggerFactory.CreateLogger<WorldCutWriter>(),
 				gameBuild ?? string.Empty,
-				utcNow ?? (() => DateTime.UtcNow));
+				clock);
+		_trigger = new WorldCutTrigger(
+			session,
+			writer,
+			binder,
+			transients,
+			nativeReaderAvailable: nativeWorldFacts is not null,
+			loggerFactory.CreateLogger<WorldCutTrigger>(),
+			clock);
+		_trigger.Reported += report => CutReported?.Invoke(report);
 		_log = log;
 		_restoreAccount = new WorldRestoreAccountRelay(report => RestoreReported?.Invoke(report), audit);
 
@@ -145,7 +155,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	public string CurrentWorldId => _worldId;
 
-	public bool HasArmedCut => _armedReason is not null;
+	public bool HasArmedCut => _trigger.HasArmed;
 
 	public event Action<WorldCutReport>? CutReported;
 
@@ -192,6 +202,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	public IReadOnlyList<SavedCharacter> PendingCharacters => _pendingCharacters;
 
+	/// <summary>The save policy in force right now — read at the instant of each decision, so a config edit hot-reloads without a restart (decision 25).</summary>
+	private SaveOptions Options => _options.CurrentValue;
+
 	/// <summary>
 	/// The Continue attempt is dead: it applied a checkpoint but no world generation
 	/// will consume it (no run baseline to publish). Every handover the click armed is
@@ -224,7 +237,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	/// writer's row shapes (which facts a cut kind carries) directly — the same
 	/// reason the capture methods used to be internal on this class.
 	/// </summary>
-	internal WorldCutWriter? Writer => _writer;
+	internal WorldCutWriter? Writer => _trigger.Writer;
 
 	public void Dispose()
 	{
@@ -236,6 +249,14 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_disposed = true;
 		_kernel.BatchCommitted -= OnBatchCommitted;
 		_restoreAccount.Dispose();
+
+		// A clean shutdown refreshes no lease: releasing it here is what keeps the next
+		// instance from waiting out the staleness window for a writer that is provably
+		// gone. A lease another process took over meanwhile is left alone.
+		if (_worldId.Length > 0)
+		{
+			_repository?.ReleaseWorld(_worldId);
+		}
 	}
 
 	public bool TryBeginRun(bool isTutorial)
@@ -252,11 +273,11 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		// into this world. Every half is cancelled here — BEFORE the folder is
 		// created, so a repository that is missing or fails to create the folder cannot
 		// leave the previous attempt's values armed for this run's first generation:
-		// the armed cut, the Runtime fact tables, the kernel's restored per-entity
-		// facts and the adapter's native handover (keypad codes, geyser liquid types,
-		// the game's own damage rows, the run clock base and the recipe unlock table).
-		_armedReason = null;
-		_deferral.Reset();
+		// the armed cut, the interval clock, the Runtime fact tables, the kernel's
+		// restored per-entity facts and the adapter's native handover (keypad codes,
+		// geyser liquid types, the game's own damage rows, the run clock base and the
+		// recipe unlock table).
+		_trigger.StandDown();
 		_restoreAccount.Superseded();
 		_audit?.AbandonRestore();
 		_worldFacts.ClearPendingLiveReplay();
@@ -296,6 +317,11 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_worldId = created.WorldId;
 		_displayName = displayName;
 		_pendingCharacters = [];
+
+		// The interval autosave counts from HERE, not from the process start: the first
+		// autosave of a run lands one interval after the run began, never on its first
+		// frame (WorldAutosaveInterval).
+		_trigger.RestartInterval();
 
 		// The picker pointer moves on the FIRST CUT, not here: an aborted start (the
 		// tutorial gate refuses after the click) must not hide the previous world
@@ -341,25 +367,38 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			return false;
 		}
 
-		if (_armedReason == reason)
-		{
-			// Re-arming the SAME trigger: the menu-return seam retries every frame a
-			// deferred cut waits, so this path must keep the wait it already spent and
-			// stay quiet for the log's sake.
-			_log.LogDebug("Cut {Reason} is still armed for world {WorldId}.", reason, _worldId);
-			return true;
-		}
-
-		if (_armedReason is { } armed)
-		{
-			_log.LogInformation("The armed {Armed} cut is superseded by {Reason}; one cut is taken at the seam.", armed, reason);
-		}
-
-		// A DIFFERENT trigger starts its own wait (the same trigger kept the one above).
-		_deferral.Reset();
-		_armedReason = reason;
-		_log.LogInformation("Cut {Reason} armed for world {WorldId}: the pump takes it at the frame-end seam.", reason, _worldId);
+		_trigger.Arm(reason, _worldId);
 		return true;
+	}
+
+	/// <summary>
+	/// The pump's interval tick, run every frame BEFORE the armed cut is taken: arm the
+	/// interval autosave when the configured interval has elapsed since this world was
+	/// last written. <paramref name="inWorld"/> is the adapter's own answer to "is a
+	/// world loaded right now", and it is load-bearing: a host that returned to the main
+	/// menu still owns a world folder, and cutting it every interval would churn the
+	/// archive set (and prune the archives of the run that IS being played) for as long
+	/// as the menu stays open.
+	/// </summary>
+	public bool TryArmIntervalAutosave(bool inWorld)
+	{
+		if (!inWorld || _session.Role == SessionRole.Guest || _repository is null || _worldId.Length == 0)
+		{
+			return false;
+		}
+
+		// A cut is already armed, and it will write this world at the next seam: arming
+		// the interval on top of it would supersede the player's own trigger and answer
+		// it with nothing (an autosave is not player-initiated), so the player's /save
+		// would silently become an autosave.
+		if (_trigger.HasArmed)
+		{
+			return false;
+		}
+
+		var options = Options;
+		return _trigger.IsAutosaveDue(options.AutosaveEnabled, options.AutosaveInterval)
+			&& TryRequestCut(WorldCutReason.AutoInterval, out _);
 	}
 
 	/// <summary>
@@ -371,113 +410,11 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	public WorldCutReport? TryCaptureArmedCut(
 		CharacterDataMsg? hostCharacter,
 		int frame,
-		IReadOnlyList<WorldTransientCount>? liveTransients = null)
-	{
-		if (_armedReason is not { } reason)
-		{
-			return null;
-		}
+		IReadOnlyList<WorldTransientCount>? liveTransients = null) =>
+		_trigger.Take(Target, frame, hostCharacter, liveTransients, Options.Retention);
 
-		var dropped = new List<string>();
-		if (WorldCutWriter.KindOf(reason) != WorldCutKind.LayerEnd)
-		{
-			if (!TryCollectTransients(frame, liveTransients, dropped, out var deferred, out var malformed))
-			{
-				// A malformed report is an owner bug, not a runtime condition: the cut
-				// is refused (nothing is written) and the class is named, because a
-				// snapshot whose in-flight state is unaccounted for is exactly what
-				// §6 forbids.
-				_armedReason = null;
-				_deferral.Reset();
-				return Publish(new WorldCutReport(WorldCutResult.Refused, reason, _worldId, malformed, dropped));
-			}
-
-			if (deferred is not null)
-			{
-				// Still waiting: the request stays armed for the next pump frame.
-				return deferred;
-			}
-		}
-
-		_armedReason = null;
-		_deferral.Reset();
-		return Publish(TryWriteCut(reason, FrameEndCutPhase, hostCharacter, dropped));
-	}
-
-	/// <summary>
-	/// Writes one cut, turning a throw into a refusal. Both callers run inside the
-	/// game's frame pump — one from the kernel's own layer-advance commit, one from
-	/// the frame-end seam — and a snapshot that cannot be written must not take the
-	/// frame (or the run) down with it: the failure is named in the same report a
-	/// refusal uses, so the trigger's answer is never missing.
-	/// </summary>
-	private WorldCutReport TryWriteCut(WorldCutReason reason, string cutPhase, CharacterDataMsg? hostCharacter, IReadOnlyList<string> dropped)
-	{
-		try
-		{
-			return WriteCut(reason, cutPhase, hostCharacter, dropped);
-		}
-		catch (Exception ex)
-		{
-			_log.LogError(ex, "Cut {Reason} of world {WorldId} threw while writing.", reason, _worldId);
-			return new WorldCutReport(WorldCutResult.Refused, reason, _worldId, $"the cut threw while writing ({ex.Message})", dropped);
-		}
-	}
-
-	/// <summary>
-	/// Applies the transient policy to the states reported at this instant. Returns
-	/// false only for an undeclared class (<paramref name="malformed"/>);
-	/// <paramref name="deferred"/> is a report that must be returned as-is, and
-	/// <paramref name="dropped"/> collects the classes the cut will not carry. The
-	/// observation and the naming are pure (<see cref="WorldCutTransients"/>); the
-	/// WAIT's deadline is this class's, because it owns the armed request.
-	/// </summary>
-	private bool TryCollectTransients(
-		int frame,
-		IReadOnlyList<WorldTransientCount>? liveTransients,
-		List<string> dropped,
-		out WorldCutReport? deferred,
-		out string malformed)
-	{
-		deferred = null;
-		malformed = string.Empty;
-
-		var observation = WorldCutTransients.Observe(_transients, liveTransients);
-		if (WorldCutTransients.UndeclaredClass(observation) is { } undeclared)
-		{
-			malformed = $"an owner reported an undeclared transient class '{undeclared}'";
-			_log.LogError("[Save] {Failure}: refusing the cut rather than writing a snapshot whose in-flight state is not accounted for.", malformed);
-			return false;
-		}
-
-		var waiting = WorldCutTransients.WaitingFor(observation);
-		if (waiting.Count > 0)
-		{
-			var waitingText = waiting.Select(WorldTransientPolicy.Describe).ToList();
-			if (_deferral.ShouldWait(frame, out var firstFrame))
-			{
-				if (firstFrame)
-				{
-					_log.LogInformation("[Save] the armed cut waits for in-flight state to resolve: {Waiting}.", string.Join(", ", waitingText));
-				}
-				else
-				{
-					_log.LogDebug("[Save] the armed cut is still waiting at frame {Frame}: {Waiting}.", frame, string.Join(", ", waitingText));
-				}
-
-				deferred = new WorldCutReport(WorldCutResult.Deferred, _armedReason!.Value, _worldId, "waiting for in-flight state", waitingText);
-				return true;
-			}
-
-			// Deadlock guard: the deadline passed and the state is still there (a
-			// stuck pending record). The cut goes on and NAMES what it could not take.
-			_log.LogWarning("[Save] the armed cut waited {Frames} frame(s) for {Waiting} and took the cut without it.",
-				frame - _deferral.StartedAtFrame, string.Join(", ", waitingText));
-		}
-
-		dropped.AddRange(WorldCutTransients.Dropped(observation, waiting, nativeReaderAvailable: _nativeWorldFacts is not null));
-		return true;
-	}
+	/// <summary>Which world a cut of this instant writes into (the identity a restore may have adopted a moment ago).</summary>
+	private WorldCutTarget Target => new(_worldId, _displayName);
 
 	private void OnBatchCommitted(CommittedBatch batch)
 	{
@@ -493,64 +430,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 		// The layer-end cut carries no in-layer fact, so the transient policy does
 		// not apply to it at all: the layer it names is regenerated.
-		Publish(TryWriteCut(WorldCutReason.LayerAdvance, LayerBoundaryCutPhase, hostCharacter: null, dropped: []));
-	}
-
-	/// <summary>Write one cut and turn the writer's account into the trigger's report.</summary>
-	private WorldCutReport WriteCut(WorldCutReason reason, string cutPhase, CharacterDataMsg? hostCharacter, IReadOnlyList<string> dropped)
-	{
-		if (_session.Role == SessionRole.Guest)
-		{
-			_log.LogWarning("No cut taken ({Reason}): a guest never writes a world archive (decision 164).", reason);
-			return new WorldCutReport(WorldCutResult.Refused, reason, _worldId, "a guest never writes a world archive", dropped);
-		}
-
-		if (_repository is null || _writer is null)
-		{
-			_log.LogWarning("No cut taken ({Reason}): this composition root has no world repository.", reason);
-			return new WorldCutReport(WorldCutResult.Refused, reason, _worldId, "this composition root has no world repository", dropped);
-		}
-
-		if (_worldId.Length == 0)
-		{
-			_log.LogWarning("No cut taken ({Reason}): this host has no world for the current run (no run was started by the host).", reason);
-			return new WorldCutReport(WorldCutResult.Refused, reason, _worldId, "this host has no CUO world for the current run", dropped);
-		}
-
-		var collected = _binder.Collect(hostCharacter);
-		var write = _writer.Write(new WorldCutWriteRequest(
-			_worldId,
-			_displayName,
-			reason,
-			WorldCutWriter.KindOf(reason),
-			cutPhase,
-			collected.Characters));
-
-		// A character the cut could not carry is drawn from the same well as an
-		// in-flight class it left behind: the player is told at the cut, never only
-		// in the log (§6).
-		var notCarried = new List<string>(dropped);
-		notCarried.AddRange(collected.NotCarried);
-
-		if (!write.Success)
-		{
-			return new WorldCutReport(WorldCutResult.Refused, reason, _worldId, write.Detail, notCarried);
-		}
-
-		var summary = $"world {_worldId} at revision {write.Revision}, layer {write.Layer} "
-			+ $"({write.Files} file(s), {write.BlockRows} world-block row(s), {write.TransientRows} transient row(s), backup {write.BackupPath})";
-		return new WorldCutReport(WorldCutResult.Captured, reason, _worldId, summary, notCarried);
-	}
-
-	/// <summary>Log one finished attempt and hand it to the surface that answers the player. A deferral is not a result: it is logged where it happens and never pushed to the console.</summary>
-	private WorldCutReport Publish(WorldCutReport report)
-	{
-		if (report.Result != WorldCutResult.Deferred)
-		{
-			CutReported?.Invoke(report);
-		}
-
-		return report;
+		_trigger.TakeLayerAdvance(Target, Options.Retention);
 	}
 
 	public bool TryContinue(out WorldContinueOutcome outcome)
@@ -565,6 +445,11 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			_worldId = restore.WorldId;
 			_displayName = restore.DisplayName;
 			_pendingCharacters = restore.Characters;
+
+			// A restored world starts its own write history: the first interval autosave
+			// lands one interval after the click, not one interval after the last cut of
+			// the session that preceded it.
+			_trigger.RestartInterval();
 		}
 
 		outcome = restore.Outcome;

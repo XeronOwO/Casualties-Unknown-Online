@@ -285,14 +285,79 @@ public sealed class SaveArchiveWriter(ILogger<SaveArchiveWriter> log)
 		}
 
 		// The manifest goes in last (§5) and is the archive's gate: without it the
-		// backup would be unusable exactly when it is needed.
+		// backup would be unusable exactly when it is needed. It is serialized from the
+		// manifest OBJECT rather than copied from disk — the same serializer the staging
+		// step used, so the bytes are identical — because an archive is also written for a
+		// folder whose manifest is deliberately rewritten (the pre-restore copy of §6).
 		var manifestPath = ArchivePathPolicy.CombineWithin(snapshotRoot, SaveArchiveFormat.ManifestFileName);
 		var manifestEntry = archive.CreateEntry(SaveArchiveFormat.ManifestFileName, CompressionLevel.Optimal);
-		manifestEntry.LastWriteTime = File.GetLastWriteTime(manifestPath);
+		manifestEntry.LastWriteTime = File.Exists(manifestPath) ? File.GetLastWriteTime(manifestPath) : DateTime.Now;
 		using (var manifestStream = manifestEntry.Open())
-		using (var manifestSource = File.OpenRead(manifestPath))
 		{
-			manifestSource.CopyTo(manifestStream, EntryBufferSize);
+			var manifestBytes = SaveArchiveJson.Serialize(manifest);
+			manifestStream.Write(manifestBytes, 0, manifestBytes.Length);
+		}
+	}
+
+	/// <summary>
+	/// Archives a snapshot folder that is already on disk, under a manifest the caller
+	/// supplies: the PRE-RESTORE copy of §6. A restore is about to replace the world's live
+	/// snapshot, and this keeps a loadable copy of it in <c>backups/</c> before that
+	/// happens — where the retention policy manages it and the fallback can find it —
+	/// instead of leaving the only copy in a folder nothing reads.
+	///
+	/// The caller rewrites the manifest's PROVENANCE (the reason becomes
+	/// <c>pre-restore-backup</c>); the kind stays the one the snapshot was cut with, because
+	/// the kind says what the snapshot HOLDS and it is the name the archive must carry (§2).
+	///
+	/// The archive is written to a temporary name and renamed into place, exactly like a
+	/// cut's own backup: a crash mid-write leaves no half-archive for a fallback to trip on.
+	/// A folder whose bytes no longer match its manifest is refused (the verification step
+	/// below), and the caller reports that the preserved folder is the only copy.
+	/// </summary>
+	internal static WorldBackup ArchiveExistingSnapshot(string snapshotRoot, string backupsDirectory, SaveManifest manifest, DateTime utc, ILogger log)
+	{
+		Directory.CreateDirectory(backupsDirectory);
+		var backup = WorldBackup.Create(backupsDirectory, manifest.Kind, utc);
+		var temporary = backup.FullPath + ".tmp";
+		try
+		{
+			WriteArchive(snapshotRoot, temporary, manifest);
+			var damage = VerifyArchive(temporary, manifest);
+			if (damage is not null)
+			{
+				throw new InvalidDataException($"the pre-restore archive does not round-trip: {damage}");
+			}
+
+			if (File.Exists(backup.FullPath))
+			{
+				File.Replace(temporary, backup.FullPath, destinationBackupFileName: null);
+			}
+			else
+			{
+				File.Move(temporary, backup.FullPath);
+			}
+
+			log.LogInformation("Archived the pre-restore snapshot of {Root} as {Archive} ({Kind} cut, reason {Reason}).",
+				snapshotRoot, backup.FileName, SaveArchiveFormat.CutKindName(manifest.Kind), manifest.SaveReason);
+			return backup;
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+		{
+			try
+			{
+				if (File.Exists(temporary))
+				{
+					File.Delete(temporary);
+				}
+			}
+			catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException)
+			{
+				log.LogWarning(cleanup, "The temporary pre-restore archive {Path} could not be removed.", temporary);
+			}
+
+			log.LogWarning(ex, "The pre-restore archive of {Root} could not be written.", snapshotRoot);
+			throw;
 		}
 	}
 

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Persistence;
@@ -26,6 +25,13 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	private readonly SaveArchiveReader _reader = reader;
 	private readonly Func<DateTime> _utcNow = utcNow ?? (() => DateTime.UtcNow);
 
+	/// <summary>
+	/// The WORLDS this root holds — the folder listing, their metadata and the
+	/// <c>index.json</c> cache. Its own object (see <see cref="WorldCatalog"/>): this class
+	/// owns ONE world's files, the catalog owns which worlds exist and what they are called.
+	/// </summary>
+	private readonly WorldCatalog _catalog = new(root, log, utcNow ?? (() => DateTime.UtcNow));
+
 	/// <summary>The repository root (the <c>cuo/saves</c> folder).</summary>
 	public string Root => _root;
 
@@ -34,7 +40,7 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	/// world has been opened yet or the index is unreadable. The caller still has
 	/// to check that the world exists — the index is a cache, not the truth (§3.1).
 	/// </summary>
-	public string LastOpenedWorldId => ReadIndex()?.LastOpenedWorldId ?? string.Empty;
+	public string LastOpenedWorldId => _catalog.LastOpenedWorldId;
 
 	/// <summary>
 	/// True = the world folder holds a committed snapshot. A world folder created
@@ -61,6 +67,46 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 
 	public string PathOfBackups(string worldId) => Path.Combine(PathOfWorld(worldId), SaveArchiveFormat.BackupsFolderName);
 
+	/// <summary>
+	/// Claims this world folder for THIS process, or reports who else is writing it
+	/// (the writer lease, §5 / <see cref="WorldLease"/>). A caller that is about to
+	/// RESTORE the world takes the lease before it applies anything: a restore is a
+	/// write path (it can promote a backup over the live snapshot), and a restore that
+	/// landed in a world another instance is playing would be overwritten by that
+	/// instance's next cut without either side ever seeing the other.
+	/// </summary>
+	public bool TryHoldWorld(string worldId, out string refusal)
+	{
+		var problem = DescribeWorldIdProblem(worldId);
+		if (problem.Length > 0)
+		{
+			refusal = problem;
+			return false;
+		}
+
+		var directory = PathOfWorld(worldId);
+		if (!Directory.Exists(directory))
+		{
+			refusal = "the world folder does not exist";
+			return false;
+		}
+
+		return WorldLease.TryAcquire(directory, _utcNow(), _log, out refusal);
+	}
+
+	/// <summary>
+	/// Releases the world's writer lease when this process owns it. A clean shutdown
+	/// refreshes nothing, so leaving the lease behind would make the next instance wait
+	/// out the staleness window for a writer that is provably gone.
+	/// </summary>
+	public void ReleaseWorld(string worldId)
+	{
+		if (TryPathOfWorld(worldId) is { } directory)
+		{
+			WorldLease.Release(directory, _log);
+		}
+	}
+
 	/// <summary>The reason a world id cannot be used, or "" when it can.</summary>
 	private static string DescribeWorldIdProblem(string? worldId) =>
 		SaveArchiveFormat.IsWorldId(worldId)
@@ -73,134 +119,13 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	/// unreadable <c>index.json</c> makes the list fall back to the folders
 	/// themselves. The index is rewritten when it disagreed with disk.
 	/// </summary>
-	public IReadOnlyList<WorldIndex.WorldEntry> ListWorlds()
-	{
-		Directory.CreateDirectory(_root);
-		var fromDisk = ScanWorldFolders();
-		var index = ReadIndex();
-
-		if (index is null)
-		{
-			_log.LogWarning("World index {Path} is missing or unreadable; the list was rebuilt from the world folders.", IndexPath);
-			RefreshIndex();
-		}
-		else
-		{
-			foreach (var entry in index.Worlds.Where(entry => !Contains(fromDisk, entry.WorldId)))
-			{
-				_log.LogWarning("World index lists {WorldId}, but its folder is gone; the entry is dropped.", entry.WorldId);
-			}
-
-			if (fromDisk.Count != index.Worlds.Count || index.Worlds.Any(entry => !Contains(fromDisk, entry.WorldId)))
-			{
-				RefreshIndex();
-			}
-		}
-
-		return [.. fromDisk.Select(ToEntry)];
-	}
+	public IReadOnlyList<WorldIndex.WorldEntry> ListWorlds() => _catalog.ListWorlds();
 
 	/// <summary>Creates a world folder with a fresh immutable id and its first <c>world.json</c>; a collision is reported, never overwritten.</summary>
-	public WorldCreateResult CreateWorld(string displayName)
-	{
-		Directory.CreateDirectory(_root);
-		var now = _utcNow();
-		for (var attempt = 0; attempt < 16; attempt++)
-		{
-			var worldId = GenerateWorldId(now);
-			var directory = PathOfWorld(worldId);
-			if (Directory.Exists(directory))
-			{
-				_log.LogWarning("World id {WorldId} already exists; drawing another one.", worldId);
-				continue;
-			}
-
-			var metadata = new WorldMetadata
-			{
-				WorldId = worldId,
-				DisplayName = displayName,
-				CreatedAtUtc = SaveArchiveFormat.FormatUtc(now),
-				LastSavedUtc = SaveArchiveFormat.FormatUtc(now),
-				SaveCount = 0,
-				BackupCount = 0,
-			};
-
-			try
-			{
-				Directory.CreateDirectory(directory);
-				WriteMetadata(directory, metadata);
-			}
-			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-			{
-				_log.LogError(ex, "World {WorldId} could not be created under {Root}.", worldId, _root);
-				return WorldCreateResult.Failed(ex.Message);
-			}
-
-			_log.LogInformation("Created world {WorldId} ({DisplayName}) at {Directory}.", worldId, displayName, directory);
-			RefreshIndex();
-			return WorldCreateResult.Created(worldId, directory, metadata);
-		}
-
-		_log.LogError("Could not draw a free world id under {Root} after 16 attempts.", _root);
-		return WorldCreateResult.Failed("no free world id could be generated");
-	}
+	public WorldCreateResult CreateWorld(string displayName) => _catalog.CreateWorld(displayName);
 
 	/// <summary>Renames a world's display name. The folder key and every existing archive stay untouched.</summary>
-	public bool RenameWorld(string worldId, string newDisplayName)
-	{
-		var problem = DescribeWorldIdProblem(worldId);
-		if (problem.Length > 0)
-		{
-			_log.LogError("Rename refused: {Problem}.", problem);
-			return false;
-		}
-
-		if (string.IsNullOrWhiteSpace(newDisplayName))
-		{
-			_log.LogError("World {WorldId} cannot be renamed to an empty display name.", worldId);
-			return false;
-		}
-
-		var directory = PathOfWorld(worldId);
-		var metadata = ReadMetadata(directory);
-		if (metadata is null)
-		{
-			_log.LogError("World {WorldId} has no readable {File}; the rename is refused.", worldId, SaveArchiveFormat.MetadataFileName);
-			return false;
-		}
-
-		var renamed = new WorldMetadata
-		{
-			WorldId = metadata.WorldId,
-			DisplayName = newDisplayName,
-			CreatedAtUtc = metadata.CreatedAtUtc,
-			LastSavedUtc = metadata.LastSavedUtc,
-			LastKind = metadata.LastKind,
-			LayerIndex = metadata.LayerIndex,
-			PlayerCount = metadata.PlayerCount,
-			RunEpoch = metadata.RunEpoch,
-			SaveCount = metadata.SaveCount,
-			BackupCount = metadata.BackupCount,
-		};
-
-		try
-		{
-			// Existing backup archives keep the display name they were cut with: a
-			// manifest freezes a cut's identity, and rewriting archives during a
-			// rename would risk world data for a cosmetic field. The live metadata and
-			// the index are what the picker and the next cut read.
-			WriteMetadata(directory, renamed);
-		}
-		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-		{
-			_log.LogError(ex, "World {WorldId} could not be renamed.", worldId);
-			return false;
-		}
-
-		_log.LogInformation("Renamed world {WorldId} to {DisplayName}; the folder key is unchanged.", worldId, newDisplayName);
-		RefreshIndex();
-		return true;
-	}
+	public bool RenameWorld(string worldId, string newDisplayName) => _catalog.RenameWorld(worldId, newDisplayName);
 
 	/// <summary>Opens the newest readable snapshot of a world (§6), crash leftovers included.</summary>
 	public WorldLoadResult LoadSnapshot(string worldId, WorldLoadOptions options)
@@ -220,6 +145,58 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 		}
 
 		return _reader.LoadSnapshot(directory, options);
+	}
+
+	/// <summary>
+	/// Opens ONE backup archive of a world (§6). The reader's own fallback opens the newest
+	/// one whose manifest reads; this is the same gate by NAME, for the caller that has to
+	/// walk past a candidate the DECODE refused (the refusal happens after the manifest was
+	/// read, so the reader's fallback has already returned by then).
+	/// </summary>
+	public WorldLoadResult LoadBackup(string worldId, WorldBackup backup, WorldLoadOptions options)
+	{
+		var problem = DescribeWorldIdProblem(worldId);
+		if (problem.Length > 0)
+		{
+			_log.LogError("Backup cannot be opened: {Problem}.", problem);
+			return FailedLoad(worldId, problem);
+		}
+
+		// The archive must belong to THIS world's backups folder: a backup record is a
+		// path, and a caller-supplied path must never be read from anywhere else.
+		if (!string.Equals(Path.GetDirectoryName(backup.FullPath), PathOfBackups(worldId), StringComparison.OrdinalIgnoreCase))
+		{
+			var mismatch = $"backup {backup.FileName} is not inside world {worldId}'s backups folder";
+			_log.LogError("Backup cannot be opened: {Problem}.", mismatch);
+			return FailedLoad(worldId, mismatch);
+		}
+
+		return _reader.LoadBackup(PathOfWorld(worldId), backup, options);
+	}
+
+	/// <summary>
+	/// Replaces a world's live snapshot with <paramref name="backup"/> (§6, the restore's
+	/// recovery): the refused snapshot is preserved as evidence, the pre-restore copy is
+	/// archived, and the backup becomes <c>live/</c>. False = nothing was promoted and the
+	/// folder was left as it was found.
+	/// </summary>
+	internal WorldBackupPromotion.Result PromoteBackup(string worldId, WorldBackup backup)
+	{
+		var problem = DescribeWorldIdProblem(worldId);
+		if (problem.Length > 0)
+		{
+			_log.LogError("Promotion refused: {Problem}.", problem);
+			return WorldBackupPromotion.Result.Refused(problem);
+		}
+
+		if (!string.Equals(Path.GetDirectoryName(backup.FullPath), PathOfBackups(worldId), StringComparison.OrdinalIgnoreCase))
+		{
+			var mismatch = $"backup {backup.FileName} is not inside world {worldId}'s backups folder";
+			_log.LogError("Promotion refused: {Problem}.", mismatch);
+			return WorldBackupPromotion.Result.Refused(mismatch);
+		}
+
+		return WorldBackupPromotion.Promote(PathOfWorld(worldId), backup, _utcNow(), _log);
 	}
 
 	private static WorldLoadResult FailedLoad(string worldId, string detail)
@@ -268,8 +245,21 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 		}
 
 		var directory = PathOfWorld(worldId);
-		Directory.CreateDirectory(directory);
-		var metadata = ReadMetadata(directory);
+		if (!_catalog.TryEnsureDirectory(directory, out var directoryFailure))
+		{
+			return SaveWriteResult.Failed(worldId, SaveWriteResult.Failure.StageFailed, directoryFailure);
+		}
+
+		// The folder has ONE writer (§5): a second CUO instance pointed at it would
+		// interleave the transaction below — both stage into one .staging/, both rename
+		// live/ aside — and delete the snapshot the other just committed. The lease is
+		// refreshed by every write, so a running host never looks stale.
+		if (!WorldLease.TryAcquire(directory, _utcNow(), _log, out var leaseRefusal))
+		{
+			return SaveWriteResult.Failed(worldId, SaveWriteResult.Failure.LeaseHeld, leaseRefusal);
+		}
+
+		var metadata = _catalog.ReadMetadata(directory);
 		var displayName = metadata?.DisplayName;
 		if (displayName is null)
 		{
@@ -307,8 +297,8 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 
 		try
 		{
-			WriteMetadata(directory, updated);
-			RefreshIndex();
+			_catalog.WriteMetadata(directory, updated);
+			_catalog.RefreshIndex();
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 		{
@@ -321,23 +311,7 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	}
 
 	/// <summary>Sets the "last opened" pointer used by the world picker. A world id that is not ours is refused.</summary>
-	public bool SetLastOpenedWorld(string worldId)
-	{
-		var problem = DescribeWorldIdProblem(worldId);
-		if (problem.Length > 0)
-		{
-			_log.LogError("The last-opened pointer was not updated: {Problem}.", problem);
-			return false;
-		}
-
-		var index = ReadIndex() ?? new WorldIndex();
-		return TryWriteIndex(new WorldIndex
-		{
-			SchemaVersion = WorldIndex.CurrentSchemaVersion,
-			Worlds = [.. index.Worlds],
-			LastOpenedWorldId = worldId,
-		});
-	}
+	public bool SetLastOpenedWorld(string worldId) => _catalog.SetLastOpenedWorld(worldId);
 
 	/// <summary>The world's backup archives, newest first (§7). Archives that do not match the name grammar are ignored.</summary>
 	public IReadOnlyList<WorldBackup> ListBackups(string worldId)
@@ -408,32 +382,8 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 		return new BackupPruneResult(kept, deleted, failures);
 	}
 
-	private string IndexPath => Path.Combine(_root, SaveArchiveFormat.IndexFileName);
-
-	internal static string GenerateWorldId(DateTime utc) =>
-		$"w-{utc.ToUniversalTime():yyyyMMdd}-{RandomHex4()}";
-
-	private static string RandomHex4()
-	{
-		var bytes = new byte[2];
-		using (var random = RandomNumberGenerator.Create())
-		{
-			random.GetBytes(bytes);
-		}
-
-		return $"{bytes[0]:x2}{bytes[1]:x2}";
-	}
-
-	private static bool Contains(IReadOnlyList<WorldMetadata> worlds, string worldId) =>
-		worlds.Any(metadata => string.Equals(metadata.WorldId, worldId, StringComparison.Ordinal));
-
-	private static WorldIndex.WorldEntry ToEntry(WorldMetadata metadata) => new(
-		metadata.WorldId,
-		metadata.DisplayName,
-		metadata.LastSavedUtc,
-		metadata.LastKind,
-		metadata.LayerIndex,
-		metadata.PlayerCount);
+	/// <summary>A world id in the format's shape, drawn from a timestamp and a random suffix (<see cref="WorldCatalog.GenerateWorldId"/>).</summary>
+	internal static string GenerateWorldId(DateTime utc) => WorldCatalog.GenerateWorldId(utc);
 
 	private static SaveManifestMeta WithDisplayName(SaveManifestMeta meta, string displayName) => new()
 	{
@@ -454,112 +404,5 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 		salvage.Entries.Count == 0 ? load.Report : new DamageReport([.. load.Report.Entries, .. salvage.Entries]);
 
 	/// <summary>Every world folder under the root, newest first. A folder that is not a world id is not a world.</summary>
-	private IReadOnlyList<WorldMetadata> ScanWorldFolders()
-	{
-		var worlds = new List<WorldMetadata>();
-		foreach (var directory in Directory.EnumerateDirectories(_root))
-		{
-			var folderName = Path.GetFileName(directory);
-			if (!SaveArchiveFormat.IsWorldId(folderName))
-			{
-				_log.LogWarning("Ignoring {Directory}: '{Folder}' is not a world id ({Format}).",
-					directory, folderName, SaveArchiveFormat.WorldIdFormat);
-				continue;
-			}
-
-			worlds.Add(ReadMetadata(directory) ?? new WorldMetadata { WorldId = folderName, DisplayName = folderName });
-		}
-
-		return [.. worlds
-			.OrderByDescending(metadata => metadata.LastSavedUtc, StringComparer.Ordinal)
-			.ThenBy(metadata => metadata.WorldId, StringComparer.Ordinal)];
-	}
-
-	private WorldMetadata? ReadMetadata(string worldDirectory)
-	{
-		var path = Path.Combine(worldDirectory, SaveArchiveFormat.MetadataFileName);
-		if (!File.Exists(path))
-		{
-			return null;
-		}
-
-		try
-		{
-			var metadata = SaveArchiveJson.Deserialize<WorldMetadata>(File.ReadAllBytes(path));
-			if (metadata is null || string.IsNullOrEmpty(metadata.WorldId))
-			{
-				_log.LogWarning("World metadata {Path} is empty or has no world id; the folder is listed by its folder name.", path);
-				return null;
-			}
-
-			return metadata;
-		}
-		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
-		{
-			_log.LogWarning(ex, "World metadata {Path} is unreadable; the folder is listed by its folder name.", path);
-			return null;
-		}
-	}
-
-	private void WriteMetadata(string worldDirectory, WorldMetadata metadata)
-	{
-		Directory.CreateDirectory(worldDirectory);
-		SaveArchiveJson.WriteFile(Path.Combine(worldDirectory, SaveArchiveFormat.MetadataFileName), metadata);
-	}
-
-	private WorldIndex? ReadIndex()
-	{
-		if (!File.Exists(IndexPath))
-		{
-			return null;
-		}
-
-		try
-		{
-			var index = SaveArchiveJson.Deserialize<WorldIndex>(File.ReadAllBytes(IndexPath));
-			if (index is null || index.SchemaVersion != WorldIndex.CurrentSchemaVersion)
-			{
-				_log.LogWarning("World index {Path} has schema {Schema}; this build writes {Current} — it is rebuilt from disk.",
-					IndexPath, index?.SchemaVersion, WorldIndex.CurrentSchemaVersion);
-				return null;
-			}
-
-			return index;
-		}
-		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
-		{
-			_log.LogWarning(ex, "World index {Path} is unreadable; it is rebuilt from disk.", IndexPath);
-			return null;
-		}
-	}
-
-	/// <summary>Rebuilds the index from disk and writes it (a cache refresh, §3.1).</summary>
-	private void RefreshIndex()
-	{
-		var worlds = ScanWorldFolders();
-		TryWriteIndex(new WorldIndex
-		{
-			SchemaVersion = WorldIndex.CurrentSchemaVersion,
-			Worlds = [.. worlds.Select(ToEntry)],
-			LastOpenedWorldId = ReadIndex()?.LastOpenedWorldId ?? string.Empty,
-		});
-	}
-
-	private bool TryWriteIndex(WorldIndex index)
-	{
-		try
-		{
-			Directory.CreateDirectory(_root);
-			SaveArchiveJson.WriteFile(IndexPath, index);
-			_log.LogDebug("World index {Path} written with {Count} world(s).", IndexPath, index.Worlds.Count);
-			return true;
-		}
-		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-		{
-			_log.LogWarning(ex, "World index {Path} could not be written; it is a cache and will be rebuilt from disk.", IndexPath);
-			return false;
-		}
-	}
-
 	private int CountBackups(string worldId) => ListBackups(worldId).Count;
 }

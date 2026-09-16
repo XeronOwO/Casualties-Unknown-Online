@@ -3901,7 +3901,7 @@
     {
       "cluster": "inline",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRestoreApplier.cs:237",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRestoreApplier.cs:282",
       "quote": "var bound = binder.Apply(decode.UsableCharacters);"
     },
     {

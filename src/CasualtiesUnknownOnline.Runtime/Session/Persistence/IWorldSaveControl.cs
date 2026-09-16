@@ -51,6 +51,18 @@ public interface IWorldSaveControl
 	bool HasArmedCut { get; }
 
 	/// <summary>
+	/// Host pump (the frame-end seam), every frame and BEFORE the armed cut is taken:
+	/// arm the interval autosave when the configured interval has elapsed since this
+	/// world was last written. <paramref name="inWorld"/> is the adapter's own answer
+	/// to "is a world loaded right now" — a host that returned to the main menu still
+	/// owns a world folder, and autosaving it there would churn (and prune) the archive
+	/// set of a world nobody is playing. True = this call armed a cut; false is the
+	/// normal answer for most frames (no world, a cut already pending, the interval not
+	/// elapsed yet, autosave switched off in the config).
+	/// </summary>
+	bool TryArmIntervalAutosave(bool inWorld);
+
+	/// <summary>
 	/// Host: the frame-end seam — take the armed cut. <paramref name="hostCharacter"/>
 	/// is the host's character captured from the live body at this instant (null =
 	/// fall back to the last reported snapshot); <paramref name="liveTransients"/>

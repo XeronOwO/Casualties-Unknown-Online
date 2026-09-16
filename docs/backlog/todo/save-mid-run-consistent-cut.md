@@ -266,6 +266,15 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    the repository a "newest readable snapshot OF THIS WORLD" retry that runs after a decode
    refusal, so a damaged live snapshot falls back to its own newest backup the way an unreadable
    manifest already does (§6). Owner: S4.
+
+   **Landed (S4.4, 2026-09-14).** The retry runs after a decode refusal and it does more than fall
+   back: `WorldRestoreRecovery` walks the world's backups newest-first (skipping the one the load
+   already used), decodes each with the same decoder that refused the live snapshot, and takes the
+   first that decodes; `WorldBackupPromotion` then preserves the refused snapshot as
+   `damaged-<stamp>/`, archives the pre-restore copy into `backups/` under the format's own
+   `pre-restore-backup` reason, and promotes the backup into `live/` — because a restore read out of
+   an archive that never becomes live is deleted by the next cut's transaction, evidence and all.
+   See `docs/backlog/review/save-interval-autosave-and-backup-recovery.md` and decision 182.
 8. **Host-side world-entity projection on a mid-run restore** (found while landing S3.2) — a
    restored layer's per-layer game objects are regenerated from the run baseline, and
    `WorldEntityKernelProjection` only raises its flat fact lists when the local role is GUEST. On

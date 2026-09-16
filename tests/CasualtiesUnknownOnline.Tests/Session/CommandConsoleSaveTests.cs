@@ -349,6 +349,8 @@ public class CommandConsoleSaveTests
 
 		internal void RaiseRestore(WorldRestoreReport report) => RestoreReported?.Invoke(report);
 
+		public bool TryArmIntervalAutosave(bool inWorld) => false;
+
 		public bool TryBeginRun(bool isTutorial) => true;
 
 		public bool TryRequestCut(WorldCutReason reason, out string? refusal)

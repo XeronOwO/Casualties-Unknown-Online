@@ -121,7 +121,7 @@ independent adversarial review before the next begins (AGENTS.md convention 11).
 | S2 | `review/save-layer-end-save-and-restore.md` | Layer-end capture/restore via the native continue entry | landed (review) |
 | S3 | `todo/save-mid-run-consistent-cut.md` | Mid-run consistent cut, all domains, world diff, transient policy; S3.4a/S3.4b landed, the S3.5 increment (scope 8 + F3) landed 2026-09-12 | in progress |
 | S3.6 | `review/save-solo-menu-exit-trigger.md` | The solo menu-exit trigger for the mid-run cut (split out of S3's scope list) | landed (review) |
-| S4 | `in-progress/save-multiplayer-restore-and-backups.md` | Guest restore claim, validation/recovery, scheduled autosave + retention (also owns scope 7's decode-level refusal recovery) | in progress (S4.1 landed 2026-09-14: the claim rules + the legacy store's retirement) |
+| S4 | `review/save-multiplayer-restore-and-backups.md` | Guest restore claim, validation/recovery, scheduled autosave + retention (also owns scope 7's decode-level refusal recovery) | in progress (S4.1 landed 2026-09-14: the claim rules + the legacy store's retirement) |
 
 ## Mid-run semantics: the hard part
 

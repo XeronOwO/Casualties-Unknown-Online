@@ -22,6 +22,9 @@ public sealed record SaveWriteResult(
 		/// <summary>The request itself is unusable (unsafe path, duplicate path, unknown world id).</summary>
 		InvalidRequest,
 
+		/// <summary>Another CUO instance is writing this world folder (the writer lease, §5).</summary>
+		LeaseHeld,
+
 		/// <summary>Staging the payload or the manifest failed — I/O, or the staging folder could not be reset.</summary>
 		StageFailed,
 

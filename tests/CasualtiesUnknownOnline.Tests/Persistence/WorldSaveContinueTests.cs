@@ -255,23 +255,30 @@ public class WorldSaveContinueTests
 	}
 
 	[Fact]
-	public void TryContinue_WithoutAReadableRunBaseline_IsRefused()
+	public void TryContinue_WithoutAReadableRunBaseline_IsRecoveredFromTheCutsOwnBackup()
 	{
 		using var fixture = WorldSaveFixture.Create("continue-damaged-run");
 		SaveLayerEnd(fixture, withCharacter: false);
 		var live = fixture.Repository.Workspace.LiveDirectory(fixture.WorldId);
 
-		// The archive's live run baseline is replaced by a file the decoder cannot
-		// use: the continue must refuse instead of starting a fresh layer.
+		// The archive's live run baseline is replaced by a file the decoder cannot use. The
+		// manifest still reads, so this is the refusal the READER's fallback cannot see — and
+		// the cut's own backup (the transaction archives before it commits) holds the same
+		// snapshot intact, so the continue recovers from it instead of refusing (S4/§6).
 		File.WriteAllText(Path.Combine(live, SaveArchiveFormat.RunFileName), "[{\"runId\":42,\"randomState\":\"\"}]\n");
 
 		using var restarted = fixture.Restart("continue-damaged-run-restart");
 		Assert.True(restarted.Service.HasRestorableWorld);
-		Assert.False(restarted.Service.TryContinue(out var outcome));
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
-		Assert.False(outcome.Started);
-		Assert.Contains("run baseline", outcome.Summary, StringComparison.Ordinal);
-		Assert.Null(restarted.Kernel.QueryRun());
+		// The baseline is the RESTORED one — the layer the cut named — never a fresh layer.
+		Assert.True(outcome.Started);
+		Assert.Equal(1, restarted.Kernel.QueryRun()!.LayerIndex);
+
+		// The refused snapshot is preserved as evidence in the world folder it was read from.
+		Assert.Single(Directory.GetDirectories(
+			fixture.Repository.Workspace.WorldDirectory(fixture.WorldId), SaveArchiveFormat.DamagedFolderPrefix + "*"));
+		Assert.Contains("was promoted to the live snapshot", outcome.Summary, StringComparison.Ordinal);
 	}
 
 	[Fact]

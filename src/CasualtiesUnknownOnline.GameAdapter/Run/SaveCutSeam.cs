@@ -48,9 +48,10 @@ internal sealed class SaveCutSeam(
 	/// <summary>
 	/// The host pump's frame-end point: every domain has finished this frame's
 	/// work (the drop/break flushes included), no command batch is in flight and
-	/// no kernel revision is half-applied. Both cut triggers — the armed
-	/// <c>/save</c> request and the deliberate menu return — are taken here, and
-	/// nowhere else.
+	/// no kernel revision is half-applied. Three cut triggers meet here and
+	/// nowhere else: the deliberate menu return, the interval autosave armed by
+	/// <see cref="IWorldSaveControl.TryArmIntervalAutosave"/>, and the armed
+	/// <c>/save</c> request.
 	/// </summary>
 	internal void Update(bool inWorld)
 	{
@@ -63,6 +64,11 @@ internal sealed class SaveCutSeam(
 			return;
 		}
 
+		// The interval autosave is armed here and taken by the call below, at the one
+		// moment that is exact: a player-facing trigger that is already armed wins the
+		// seam (the interval never supersedes a /save or a menu return), and a world the
+		// player has LEFT is never autosaved — `inWorld` is what tells the two apart.
+		_saves.TryArmIntervalAutosave(inWorld);
 		TakeArmedCut(frame);
 	}
 

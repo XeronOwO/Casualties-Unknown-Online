@@ -56,6 +56,13 @@ internal sealed class WorldRestoreApplier(
 	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
 
 	/// <summary>
+	/// The retry a decode-level refusal gets (§6): its own object, because walking candidate
+	/// archives and promoting one is not what this class is about — the applier APPLIES the
+	/// snapshot the recovery settled on.
+	/// </summary>
+	private readonly WorldRestoreRecovery _recovery = new(repository, loggerFactory, loggerFactory.CreateLogger<WorldRestoreRecovery>());
+
+	/// <summary>
 	/// Reads the LOCAL peer a host-local kernel reset runs as (see
 	/// <see cref="DropReplacedLayerKernelTables"/>). A delegate rather than a captured
 	/// value because the session identity is not final when the composition root is
@@ -141,6 +148,17 @@ internal sealed class WorldRestoreApplier(
 		// The restore is about to APPLY the payload, so it verifies the manifest's
 		// digests — a listing would not (WorldLoadOptions).
 		var options = new WorldLoadOptions { VerifyChecksums = true, RepairMode = true };
+
+		// The world folder has ONE writer, and a restore is a write path (§5's lease):
+		// another CUO instance playing this world must be named HERE, before a checkpoint
+		// is applied — not discovered later, when this session's first cut is refused and
+		// the player has already been playing a world that will never be saved.
+		if (!repository.TryHoldWorld(worldId, out var leaseRefusal))
+		{
+			log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, leaseRefusal);
+			return Refuse(worldId, leaseRefusal);
+		}
+
 		var load = repository.LoadSnapshot(worldId, options);
 		if (load.Content is null)
 		{
@@ -151,11 +169,38 @@ internal sealed class WorldRestoreApplier(
 		var decoder = new WorldSnapshotDecoder(load.Content.Manifest, loggerFactory.CreateLogger<WorldSnapshotDecoder>());
 		var (_, salvage) = repository.ReadSalvage(load, decoder.DecodeEntry, options);
 		var decode = decoder.Finish();
+		var recoveryAccount = new List<string>();
 		if (decode.Checkpoint is null)
 		{
-			var refusal = $"{decode.Refusal}; {salvage.Report.Describe()}";
-			log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
-			return Refuse(worldId, refusal, salvage);
+			// A decode-level refusal is the one refusal the reader's fallback cannot see: the
+			// manifest WAS read, so the load returned, and the contradiction only shows once
+			// the payload is decoded. This is the retry §6 owes it (S3 scope 7), and it
+			// PROMOTES the backup it recovered from: the refused snapshots stay as evidence
+			// and the pre-restore copy is archived, because a restore read out of an archive
+			// that never becomes live is undone by the very next cut.
+			var recovered = _recovery.TryRecover(worldId, options, load, decode.Refusal ?? "the snapshot was refused");
+			if (recovered is null)
+			{
+				var refusal = $"{decode.Refusal}; {salvage.Report.Describe()}";
+				log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
+				return Refuse(worldId, refusal, salvage);
+			}
+
+			load = recovered.Load;
+			decode = recovered.Decode;
+			salvage = recovered.Salvage;
+			recoveryAccount.AddRange(recovered.Account);
+		}
+
+		// The two facts every step below needs, made local: a snapshot was OPENED and it
+		// DECODED. The recovery returns exactly that pair and refuses otherwise, but the
+		// invariant belongs here — every use below reads the snapshot's manifest and the
+		// checkpoint's run baseline.
+		if (load.Content is not { } content || decode.Checkpoint is not { } checkpoint)
+		{
+			var guard = $"{decode.Refusal}; {salvage.Report.Describe()}";
+			log.LogError("Continue refused for world {WorldId}: {Guard}", worldId, guard);
+			return Refuse(worldId, guard, salvage);
 		}
 
 		// A new restore SUPERSEDES the previous attempt: its account is closed (a restore
@@ -184,7 +229,7 @@ internal sealed class WorldRestoreApplier(
 		nativeWorldFacts?.CancelPendingRestore();
 		_items?.CancelRestoredWorldItems("a new restore superseded the previous attempt's world items");
 
-		var restored = kernel.Restore(decode.Checkpoint);
+		var restored = kernel.Restore(checkpoint);
 		if (!restored.Success)
 		{
 			var refusal = $"the kernel rejected the checkpoint: {restored.Error}";
@@ -209,7 +254,7 @@ internal sealed class WorldRestoreApplier(
 		// snapshot never gets here, so nothing of a refused cut is written.
 		var factDamage = _factRestore.Apply(restoreSequence, decode.UsableWorldBlocks, decode.UsableWorldTransients, decode.UsableNativeRunFields);
 
-		if (load.Content.Manifest.Kind == WorldCutKind.LayerEnd)
+		if (content.Manifest.Kind == WorldCutKind.LayerEnd)
 		{
 			// A layer-end cut names the layer being ENTERED, so its world-item rows
 			// describe the layer being LEFT: they are not restored — the layer reset
@@ -259,7 +304,8 @@ internal sealed class WorldRestoreApplier(
 		// player would otherwise never be told (§6.1). Only the characters that were
 		// actually BOUND are described: a file no present peer claims restores
 		// nothing, so naming its gaps would describe a degradation nobody gets.
-		var damages = new List<string>(factDamage);
+		var damages = new List<string>(recoveryAccount);
+		damages.AddRange(factDamage);
 		var boundKeys = new HashSet<string>(bound.BoundPlayerKeys, StringComparer.Ordinal);
 		foreach (var character in decode.UsableCharacters)
 		{
@@ -301,19 +347,19 @@ internal sealed class WorldRestoreApplier(
 		// the cut wrote is a two-line comparison. The reader keeps its own lines for
 		// the passes it ran; THIS is the restore's account.
 		var counts = WorldSnapshotCounts.Of(
-			decode.Checkpoint,
+			checkpoint,
 			decode.UsableCharacters.Count,
 			decode.UsableWorldBlocks.Count,
 			decode.UsableWorldTransients.Count,
 			decode.UsableNativeRunFields?.Recipes.Count);
 		log.LogInformation(
 			"Continue restored world {WorldId}: {Kind} cut taken at {CutPhase}, revision {Revision}, layer {Layer}, from {Source} ({SourcePath}); {Counts}; {Summary}",
-			worldId, SaveArchiveFormat.CutKindName(load.Content.Manifest.Kind), load.Content.Manifest.CutPhase, decode.Checkpoint.GlobalRevision,
-			decode.Checkpoint.Run?.LayerIndex ?? -1, source, load.Content.SourcePath, counts.Describe(), summary);
+			worldId, SaveArchiveFormat.CutKindName(content.Manifest.Kind), content.Manifest.CutPhase, checkpoint.GlobalRevision,
+			checkpoint.Run?.LayerIndex ?? -1, source, content.SourcePath, counts.Describe(), summary);
 		return new Result(
 			new WorldContinueOutcome(true, worldId, summary, salvage, bound.LocalCharacter),
 			worldId,
-			load.Content.Manifest.DisplayName,
+			content.Manifest.DisplayName,
 			decode.UsableCharacters,
 			details);
 	}

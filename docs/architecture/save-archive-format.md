@@ -46,6 +46,8 @@ N compressed archive backups — the Minecraft world layout, plus backups.
       layer-end-<yyyyMMdd-HHmmss>.cuoz        # ZIP archive: the same file set, one snapshot
       mid-run-<yyyyMMdd-HHmmss>.cuoz
       auto-<yyyyMMdd-HHmmss>.cuoz
+    world.lease                               # which process is writing this world right now (§5)
+    damaged-<yyyyMMdd-HHmmss>/                # a REFUSED live snapshot, kept as evidence (§6)
 ```
 
 - `live/` stays **unpacked** so a save is a fast file write, and a human can inspect or repair a
@@ -61,6 +63,11 @@ N compressed archive backups — the Minecraft world layout, plus backups.
     the display name is the only claim available.
   The two modes are distinct key spaces; a world written over Steam is never silently claimed by
   an IP-direct name collision, because the prefix differs.
+- `world.lease` names the PROCESS writing the world (`<machine>:<pid>`) and the instant of its last
+  write. It is not part of a backup and never travels; it is what keeps two CUO instances pointed at
+  one folder from interleaving §5's transaction (§5, concurrent-host case).
+- `damaged-<stamp>/` is a snapshot that was REFUSED and then replaced by a promoted backup: it is
+  evidence, nothing reads it, and no cut, prune or load ever deletes it (§6).
 
 ## 3. File contracts
 
@@ -297,6 +304,17 @@ commit:  rename <worldId>/live → <worldId>/.previous/ → rename .staging → 
   leaves either the old snapshot or the new one — never a half-written world.
 - A leftover `.staging/` or `.previous/` from an interrupted run is detected at load: `.staging/`
   is discarded, `.previous/` is restored, both with a warning.
+- The world folder has **one writer**, and the folder — not the process — is what that rule protects
+  (`WorldLease`). Every write refreshes `world.lease`; a write that finds a lease another process
+  refreshed inside a 30-minute window is REFUSED with the holder named (`SaveWriteResult.Failure.LeaseHeld`),
+  because two instances would stage into one `.staging/` and each rename `live/` aside — the loser's
+  snapshot deleted by a commit it never saw. A lease nobody refreshed for that window is taken over
+  with a warning: a host that has been dead that long cannot be writing. The window is three times the
+  default autosave interval, so a running host refreshes its lease long before it could look stale.
+- A save directory that cannot be used is an ANSWER, not an exception: a read-only folder, a drive
+  that went away and a file where the root should be all leave the session playable with the failure
+  logged (`WorldCreateResult.Failed` / `SaveWriteResult.Failure.StageFailed`), because these paths run
+  on the game's main thread inside the run's own start and pump.
 
 ## 6. Restore and repair semantics
 
@@ -310,11 +328,19 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   `world-transients.json` carries rows is self-contradictory: applying them would graft one
   layer's mutations onto the layer the restore regenerates, and dropping them quietly is exactly
   what this section forbids. Such a snapshot is REFUSED as a whole.
-- A refusal is not yet backed by a backup retry: the reader's fallback runs while the MANIFEST is
-  read, and a decode-level refusal happens afterwards. Until the recovery surface lands, such a
-  world stays unopenable and the reason is reported with the `worldId`. No build writes that shape
-  (a layer-end cut always writes the two empty arrays), so this guards a corrupted or foreign
-  snapshot, not a produced one.
+- A refusal IS backed by a backup retry, at both levels. While the MANIFEST is read, the reader opens
+  the newest backup whose manifest reads. A **decode-level** refusal — the manifest read fine, but the
+  payload decodes into a self-contradictory snapshot, or the run baseline cannot be read — happens
+  after that fallback returned, so the restore walks the world's backups itself
+  (`WorldRestoreRecovery`), newest first, skipping the one the load already used, and takes the first
+  that DECODES. The one it takes is then **promoted** (`WorldBackupPromotion`): the refused snapshot is
+  moved to `damaged-<stamp>/` untouched, the snapshot about to be replaced is archived into `backups/`
+  as the pre-restore copy, and the backup becomes `live/`. Without the promotion the very next cut
+  would rename the refused snapshot to `.previous/` and delete it — the evidence of what went wrong
+  destroyed by an autosave. Nothing is moved until the replacement is unpacked and verified in a fresh
+  `.staging/`, and a promotion that cannot finish puts the preserved folder back and refuses. When no
+  backup decodes, the continue is refused with the reason it already had and the folder is left exactly
+  as it was found.
 - If the manifest reads, the load proceeds in **repair mode**. Per domain file:
   - An unreadable domain file is skipped with a warning; the other domains still load.
   - A readable domain file is decoded **entry by entry**: an entry that cannot be materialized —
@@ -498,11 +524,28 @@ verified in-game — an adapter-level reflection host can read the real game lis
 ## 7. Backup policy
 
 - Backups are written on: every save (the transaction in §5 always archives), layer transition,
-  explicit player request, and the configurable interval (`auto` kind).
+  explicit player request, the configurable interval (`auto` kind), and before a restore replaces a
+  live snapshot (the `pre-restore-backup` reason: the snapshot about to be replaced is archived under
+  its own manifest, rewritten only in provenance, so the world's history holds a loadable copy of it
+  in `backups/` rather than only in the `damaged-<stamp>/` folder).
+- An interval cut is its own KIND, not a mid-run cut with a different reason: `WorldCutKind.Auto`
+  names the archive (`auto-<stamp>.cuoz`) and rides the same seam, transient policy and report as
+  every other trigger. The interval (default 10 minutes) restarts on every COMMITTED cut of any
+  trigger — a refused or deferred cut has not written the world — so a hand save, a layer boundary or
+  a menu return does not buy an extra archive a minute later.
+- The interval autosave is armed by the frame-end pump (`IWorldSaveControl.TryArmIntervalAutosave`)
+  and only while a world is LOADED: a host that returned to the main menu still owns a world folder,
+  and cutting it there would churn — and prune — the archive set of a world nobody is playing. A cut
+  the player asked for always wins the seam; the interval never supersedes it.
 - Retention keeps the newest N archives (default 10), never deletes the newest archive, and never
-  lets a prune failure corrupt a world.
-- The interval and retention count are configuration, defaulting to an interval-based autosave
-  that the host can turn off; the values are decided in S5 with the config surface.
+  lets a prune failure corrupt a world: the pass runs after every COMMITTED cut, deleting oldest-first,
+  and a file it cannot delete is reported (warning + the cut's own account) while the cut stays
+  committed and the world stays loadable.
+- The interval, the retention count and the autosave switch are configuration, defaulting to an
+  interval-based autosave the host can turn off. The surface is the BepInEx `ConfigFile` bridged to
+  `IOptionsMonitor<SaveOptions>` (decision 25, `[Save]` section), read at each decision, so an edit
+  hot-reloads without a restart; the bounds are clamped in `SaveOptions` as well as by BepInEx,
+  because a hand-edited file bypasses the latter.
 
 ## 8. Non-goals
 

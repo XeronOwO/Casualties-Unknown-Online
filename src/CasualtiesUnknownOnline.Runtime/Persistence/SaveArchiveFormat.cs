@@ -27,6 +27,17 @@ public static class SaveArchiveFormat
 	public const string PreviousFolderName = ".previous";
 	public const string IndexFileName = "index.json";
 
+	/// <summary>The writer lease a world folder carries while a process is writing it (§5 / <see cref="WorldLease"/>).</summary>
+	public const string LeaseFileName = "world.lease";
+
+	/// <summary>
+	/// Prefix of the folder a REFUSED live snapshot is preserved under when a restore
+	/// promotes a backup over it (§6 / <see cref="WorldBackupPromotion"/>). It stays inside
+	/// the world folder, and nothing else in the layout ever writes or deletes it: the
+	/// evidence of a snapshot CUO could not open must not be destroyed by the next cut.
+	/// </summary>
+	public const string DamagedFolderPrefix = "damaged-";
+
 	/// <summary>Backup archive extension: ZIP with directory entries preserved (§2).</summary>
 	public const string BackupExtension = ".cuoz";
 
@@ -111,9 +122,13 @@ public static class SaveArchiveFormat
 	public static bool IsWorldId(string? folderName) =>
 		!string.IsNullOrEmpty(folderName) && WorldIdRegex.IsMatch(folderName!);
 
+	/// <summary>The <c>yyyyMMdd-HHmmss</c> stamp a backup name (and a preserved snapshot's folder) carries (§2).</summary>
+	public static string StampOf(DateTime utc) =>
+		utc.ToUniversalTime().ToString(BackupStampFormat, CultureInfo.InvariantCulture);
+
 	/// <summary>Builds the backup stem for a cut kind and stamp (§2, §7).</summary>
 	public static string BuildBackupStem(WorldCutKind kind, DateTime utc) =>
-		$"{CutKindName(kind)}-{utc.ToUniversalTime().ToString(BackupStampFormat, CultureInfo.InvariantCulture)}";
+		$"{CutKindName(kind)}-{StampOf(utc)}";
 
 	/// <summary>Parses a backup file name (<c>&lt;kind&gt;-&lt;stamp&gt;[-n].cuoz</c>). False = not a backup of this format.</summary>
 	public static bool TryParseBackupFileName(string? fileName, out WorldCutKind kind, out string stem)

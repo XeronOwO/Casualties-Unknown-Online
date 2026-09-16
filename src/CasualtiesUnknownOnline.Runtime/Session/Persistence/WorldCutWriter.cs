@@ -45,12 +45,15 @@ internal sealed class WorldCutWriter(
 
 	/// <summary>
 	/// The cut kind a trigger produces. A layer advance is the one trigger that
-	/// names a layer the world regenerates, so it is the only layer-end cut; every
-	/// other trigger cuts into a live layer and carries its in-layer facts.
+	/// names a layer the world regenerates, so it is the only layer-end cut; the
+	/// interval autosave is the one trigger whose archive is named by its own kind
+	/// (<c>auto-&lt;stamp&gt;.cuoz</c>, §2/§7), and every other trigger cuts into a live
+	/// layer and carries its in-layer facts.
 	/// </summary>
 	internal static WorldCutKind KindOf(WorldCutReason reason) => reason switch
 	{
 		WorldCutReason.LayerAdvance => WorldCutKind.LayerEnd,
+		WorldCutReason.AutoInterval => WorldCutKind.Auto,
 		_ => WorldCutKind.MidRun,
 	};
 
@@ -143,6 +146,27 @@ internal sealed class WorldCutWriter(
 		return WorldCutWriteResult.Captured(
 			checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, files.Count,
 			counts.WorldBlocks, counts.WorldTransients, write.BackupArchivePath ?? string.Empty);
+	}
+
+	/// <summary>
+	/// The retention pass §7 owes a committed cut: keep this world's newest
+	/// <paramref name="keep"/> archives. It runs through the repository, so the two
+	/// safety rules of the pass are the repository's own — the newest archive is never
+	/// deleted whatever the caller asked for, and a failed deletion is REPORTED rather
+	/// than allowed to fail the cut. A cut is committed before this runs, and a prune
+	/// that cannot finish never un-commits it: the world is written, only its history
+	/// is longer than the policy wanted, which is the failure mode that loses nothing.
+	/// </summary>
+	internal BackupPruneResult Prune(string worldId, int keep)
+	{
+		var prune = _repository.PruneBackups(worldId, keep);
+		if (!prune.Clean)
+		{
+			_log.LogWarning("Retention of world {WorldId} kept {Kept} archive(s) but could not delete {Failed}: {Failures}",
+				worldId, prune.Kept.Count, prune.Failures.Count, string.Join("; ", prune.Failures));
+		}
+
+		return prune;
 	}
 
 	/// <summary>

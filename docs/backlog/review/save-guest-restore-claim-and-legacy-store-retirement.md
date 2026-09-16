@@ -3,7 +3,7 @@
 - Status: Review (landed 2026-09-14; awaiting the final unified acceptance pass)
 - Priority: High
 - Category: Persistence / save system
-- Source: `docs/backlog/in-progress/save-multiplayer-restore-and-backups.md` scopes 1 and 6
+- Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scopes 1 and 6
 - Related: decision 162 (transport-scoped identity), decision 163 (repair mode), decision 164 (the
   world repository), decision 177 (the claim verdict), decision 178 (the reconnect table's single
   source of truth), `docs/architecture/save-archive-format.md` §2/§6.1,

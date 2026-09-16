@@ -28,6 +28,9 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 
 	private readonly ILogger<SaveArchiveReader> _log = log;
 
+	/// <summary>The salvage pass this reader hands an opened snapshot to (§6): its own object, because what to do with the entries is not what OPENING a snapshot is about.</summary>
+	private readonly SaveSalvagePass _salvage = new(log);
+
 	/// <summary>
 	/// Opens the newest readable snapshot of a world: the live folder when its
 	/// manifest reads, otherwise the newest backup whose manifest reads. Crash
@@ -137,23 +140,7 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 	public (WorldSnapshotContent Content, SalvageResult Salvage) ReadSalvage(
 		WorldSnapshotContent content,
 		Action<JsonElement, SalvageSession> decode,
-		WorldLoadOptions options)
-	{
-		var damage = new List<DamageReport.Entry>();
-		foreach (var file in content.Files)
-		{
-			if (!SalvageFile(file, decode, options, damage))
-			{
-				_log.LogWarning("Salvage stopped after {Path}: the decoder asked to stop; the remaining files are not decoded.", file.Path);
-				break;
-			}
-		}
-
-		var salvage = new SalvageResult(BuildReport(damage));
-		_log.LogInformation("Salvage pass over {FileCount} file(s) of world {WorldId}: {Damage}.",
-			content.Files.Count, content.Manifest.WorldId, salvage.Report.Describe());
-		return (content, salvage);
-	}
+		WorldLoadOptions options) => _salvage.Run(content, decode, options);
 
 	/// <summary>True = this file is the named domain file of a snapshot (for example <c>items.json</c>).</summary>
 	public static bool IsDomainFile(SnapshotFile file, string fileName) =>
@@ -192,81 +179,6 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 		_log.LogInformation("Opened snapshot for world {WorldId} in state {State} from {Source}: {FileCount} file(s); damage: {Damage}.",
 			content.Manifest.WorldId, state, content.SourcePath, content.Files.Count, report.Describe());
 		return new WorldLoadResult(state, content.Manifest.WorldId, content, report, report.Describe());
-	}
-
-	/// <summary>Runs the decoder over one file's entries. False = the decoder asked to stop after this file.</summary>
-	private bool SalvageFile(SnapshotFile file, Action<JsonElement, SalvageSession> decode, WorldLoadOptions options, List<DamageReport.Entry> damage)
-	{
-		var session = SalvageDecode.Create(options.ReaderSchemaVersion, (id, reason, detail) =>
-			_log.LogWarning("Salvage in {Path}: entry {Id} was skipped — {Reason} ({Detail}).", file.Path, id, reason, detail));
-		session.BeginFile(file.Path);
-
-		JsonDocument document;
-		try
-		{
-			document = JsonDocument.Parse(file.Bytes);
-		}
-		catch (JsonException ex)
-		{
-			_log.LogWarning(ex, "Salvage cannot parse {Path} as JSON; the file is skipped.", file.Path);
-			damage.Add(FileEntry(DamageReport.EntryReason.FileInvalidJson, file.Path, ex.Message));
-			return true;
-		}
-
-		using (document)
-		{
-			if (document.RootElement.ValueKind != JsonValueKind.Array)
-			{
-				// A domain file is an entry list by contract. A non-array payload is a
-				// whole-file problem: a decoder that guessed at its shape would be
-				// exactly the guessing §6.1 forbids.
-				_log.LogWarning("Salvage skipped {Path}: the payload is {Kind}, not an entry array.", file.Path, document.RootElement.ValueKind);
-				damage.Add(FileEntry(DamageReport.EntryReason.FileDecodeFailed, file.Path,
-					$"the payload is {document.RootElement.ValueKind}, not an entry array"));
-				return true;
-			}
-
-			var index = 0;
-			foreach (var entry in document.RootElement.EnumerateArray())
-			{
-				if (session.ShouldStop)
-				{
-					_log.LogInformation("Salvage of {Path} stopped at the decoder's request; the entries already applied stay applied.", file.Path);
-					break;
-				}
-
-				InvokeDecoder(entry, index, decode, session);
-				index++;
-			}
-
-			damage.AddRange(session.EndFile());
-			return !session.ShouldStop;
-		}
-	}
-
-	private void InvokeDecoder(JsonElement entry, int index, Action<JsonElement, SalvageSession> decode, SalvageSession session)
-	{
-		var id = SalvageSession.IdOf(entry, index);
-		var schemaVersion = session.ReadEntrySchemaVersion(entry);
-		if (schemaVersion > session.ReaderSchemaVersion)
-		{
-			session.RecordSchemaNewer(id, schemaVersion);
-			_log.LogWarning("Salvage in {Path}: entry {Id} declares schemaVersion {Schema} > {Reader}; skipped.",
-				session.CurrentPath, id, schemaVersion, session.ReaderSchemaVersion);
-			return;
-		}
-
-		try
-		{
-			decode(entry, session);
-		}
-		catch (Exception ex)
-		{
-			// One entry's decoder failure must not take the domain with it (§6): the
-			// next entry is offered to the decoder as usual.
-			session.RecordRejected(id, $"{ex.GetType().Name}: {ex.Message}");
-			_log.LogWarning(ex, "Salvage in {Path}: the decoder threw for entry {Id}; the entry is skipped.", session.CurrentPath, id);
-		}
 	}
 
 	/// <summary>
@@ -432,6 +344,31 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 		return files;
 	}
 
+	/// <summary>
+	/// Opens ONE backup archive of a world — the same manifest gate the live snapshot
+	/// gets, with the archive as the source. Public because a decode-level refusal
+	/// happens AFTER this reader's own fallback ran (the manifest had already been read),
+	/// so the recoverer has to open candidates by name itself: see
+	/// <c>WorldRestoreRecovery</c> and §6.
+	/// </summary>
+	public WorldLoadResult LoadBackup(string worldDirectory, WorldBackup backup, WorldLoadOptions options)
+	{
+		var worldId = Path.GetFileName(worldDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+		var damage = new List<DamageReport.Entry>();
+		var content = TryReadBackup(backup, options, damage);
+		if (content is null)
+		{
+			var failed = BuildReport(damage);
+			_log.LogError("Backup {Backup} of world {WorldId} could not be opened: {Damage}.", backup.FileName, worldId, failed.Describe());
+			return new WorldLoadResult(WorldLoadState.Failed, worldId, null, failed, failed.Describe());
+		}
+
+		var report = BuildReport(damage);
+		_log.LogInformation("Opened backup {Backup} of world {WorldId}: {FileCount} file(s); damage: {Damage}.",
+			backup.FileName, worldId, content.Files.Count, report.Describe());
+		return new WorldLoadResult(WorldLoadState.BackupFallback, content.Manifest.WorldId, content, report, report.Describe());
+	}
+
 	/// <summary>Opens the newest backup archive whose manifest reads, or null when none does.</summary>
 	private WorldSnapshotContent? TryLoadNewestReadableBackup(string worldDirectory, WorldLoadOptions options, List<DamageReport.Entry> damage)
 	{
@@ -448,47 +385,64 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 
 		foreach (var backup in backups)
 		{
-			try
+			var opened = TryReadBackup(backup, options, damage);
+			if (opened is null)
 			{
-				var entries = ReadArchiveEntries(backup.FullPath);
-				if (!TryReadManifest(entries, out var manifest, out var reason))
-				{
-					_log.LogError("Backup {Backup} cannot be used: {Reason}", backup.FileName, reason);
-					damage.Add(RepositoryEntry(DamageReport.EntryReason.NoReadableBackup, backup.FileName, reason));
-					continue;
-				}
-
-				NoteProtocolMismatch(manifest, damage);
-				var byPath = entries.ToDictionary(entry => entry.Path, entry => entry, StringComparer.Ordinal);
-				var files = new List<SnapshotFile>(manifest.Files.Count);
-				foreach (var file in manifest.Files)
-				{
-					if (!byPath.TryGetValue(file.Path, out var archiveEntry))
-					{
-						damage.Add(FileEntry(DamageReport.EntryReason.FileUnreadable, file.Path, $"backup {backup.FileName} has no such entry"));
-						continue;
-					}
-
-					if (ShouldVerify(manifest, options))
-					{
-						VerifyBytes(file, archiveEntry.Bytes, damage);
-					}
-
-					files.Add(new SnapshotFile(file.Path, archiveEntry.Bytes, file));
-				}
-
-				damage.Add(RepositoryEntry(DamageReport.EntryReason.ManifestUnreadable, backup.FileName,
-					$"the live snapshot's manifest is unreadable, so backup {backup.FileName} was opened instead"));
-				return new WorldSnapshotContent(WorldLoadState.BackupFallback, manifest, files, backup.FullPath);
+				continue;
 			}
-			catch (Exception ex) when (ex is IOException or InvalidDataException or SaveArchivePathException or UnauthorizedAccessException or ArgumentException or JsonException)
-			{
-				_log.LogError(ex, "Backup {Backup} could not be opened: {Reason}", backup.FileName, ex.Message);
-				damage.Add(RepositoryEntry(DamageReport.EntryReason.NoReadableBackup, backup.FileName, ex.Message));
-			}
+
+			damage.Add(RepositoryEntry(DamageReport.EntryReason.ManifestUnreadable, backup.FileName,
+				$"the live snapshot could not be read, so backup {backup.FileName} was opened instead"));
+			return opened;
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// Reads one archive into a snapshot content, or null when it cannot be used (a damage
+	/// entry is recorded for every refusal). The archive's manifest is the gate; its listed
+	/// files are read out of the same archive, verified when the load asks for it.
+	/// </summary>
+	private WorldSnapshotContent? TryReadBackup(WorldBackup backup, WorldLoadOptions options, List<DamageReport.Entry> damage)
+	{
+		try
+		{
+			var entries = ReadArchiveEntries(backup.FullPath);
+			if (!TryReadManifest(entries, out var manifest, out var reason))
+			{
+				_log.LogError("Backup {Backup} cannot be used: {Reason}", backup.FileName, reason);
+				damage.Add(RepositoryEntry(DamageReport.EntryReason.NoReadableBackup, backup.FileName, reason));
+				return null;
+			}
+
+			NoteProtocolMismatch(manifest, damage);
+			var byPath = entries.ToDictionary(entry => entry.Path, entry => entry, StringComparer.Ordinal);
+			var files = new List<SnapshotFile>(manifest.Files.Count);
+			foreach (var file in manifest.Files)
+			{
+				if (!byPath.TryGetValue(file.Path, out var archiveEntry))
+				{
+					damage.Add(FileEntry(DamageReport.EntryReason.FileUnreadable, file.Path, $"backup {backup.FileName} has no such entry"));
+					continue;
+				}
+
+				if (ShouldVerify(manifest, options))
+				{
+					VerifyBytes(file, archiveEntry.Bytes, damage);
+				}
+
+				files.Add(new SnapshotFile(file.Path, archiveEntry.Bytes, file));
+			}
+
+			return new WorldSnapshotContent(WorldLoadState.BackupFallback, manifest, files, backup.FullPath);
+		}
+		catch (Exception ex) when (ex is IOException or InvalidDataException or SaveArchivePathException or UnauthorizedAccessException or ArgumentException or JsonException)
+		{
+			_log.LogError(ex, "Backup {Backup} could not be opened: {Reason}", backup.FileName, ex.Message);
+			damage.Add(RepositoryEntry(DamageReport.EntryReason.NoReadableBackup, backup.FileName, ex.Message));
+			return null;
+		}
 	}
 
 	/// <summary>True = this load's manifest requires its digests to be enforced (§3.2).</summary>

@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Persistence;
 /// in S2. Keeping one factory means a test never hand-rolls a half-configured
 /// repository.
 /// </summary>
-internal sealed record SaveTestRepository(WorldRepository Repository, SaveTestWorkspace Workspace, string WorldId, DateTime Now, WorldMetadata Seed)
+internal sealed record SaveTestRepository(WorldRepository Repository, SaveTestWorkspace Workspace, string WorldId, DateTime Now, WorldMetadata Seed, SaveArchiveWriter Writer)
 {
 	internal static SaveTestRepository Create(string label, string displayName = "Index World")
 	{
@@ -25,7 +25,7 @@ internal sealed record SaveTestRepository(WorldRepository Repository, SaveTestWo
 			throw new InvalidOperationException($"the test repository could not create a world: {created.Failure}");
 		}
 
-		return new SaveTestRepository(repository, workspace, created.WorldId, now, created.Metadata);
+		return new SaveTestRepository(repository, workspace, created.WorldId, now, created.Metadata, writer);
 	}
 
 	internal string WorldDirectory => Workspace.WorldDirectory(WorldId);

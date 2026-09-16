@@ -81,6 +81,8 @@ public static class CuoBootstrap
 			new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions()));
 		services.AddSingleton<IOptionsMonitor<LocalizationOptions>>(
 			new MutableOptionsMonitor<LocalizationOptions>(new LocalizationOptions()));
+		services.AddSingleton<IOptionsMonitor<SaveOptions>>(
+			new MutableOptionsMonitor<SaveOptions>(new SaveOptions()));
 
 		// The logging providers are DI-resolved (registered as ILoggerProvider)
 		// rather than captured as instances, so the extraRegistrations options
@@ -503,7 +505,11 @@ public static class CuoBootstrap
 			// are written at the same world-entry seam (and dropped for a layer-end
 			// cut). The save layer only arms/cancels the expectation; the projection
 			// owns the facts and the replay owns the write.
-			worldEntities: p.GetRequiredService<IRestoredWorldEntitySource>()));
+			worldEntities: p.GetRequiredService<IRestoredWorldEntitySource>(),
+			// The archive's policy knobs (S4.4): the interval autosave and the backup
+			// retention. The production plugin replaces this monitor with the BepInEx
+			// config-backed one; the default keeps the frozen values of §7.
+			options: p.GetRequiredService<IOptionsMonitor<SaveOptions>>()));
 		services.AddSingleton<IWorldSaveControl>(p => p.GetRequiredService<WorldSaveService>());
 
 		extraRegistrations?.Invoke(services);

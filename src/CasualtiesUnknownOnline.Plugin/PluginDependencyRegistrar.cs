@@ -117,6 +117,34 @@ internal static class PluginDependencyRegistrar
 				allowRemoteInventoryTake.Definition,
 				widenRunSettings.Definition, piggybackWeight.Definition)));
 
+		// World archive policy (S4.4, decision 25): the interval autosave and the backup
+		// retention. The runtime reads the monitor at each decision, so a config edit
+		// hot-reloads without a restart. BepInEx's range validation is the first clamp
+		// and SaveOptions is the second: a hand-edited config file bypasses the first,
+		// and neither "autosave every 0 minutes" nor "keep 0 archives" is a policy this
+		// system may execute.
+		var autosaveEnabled = config.Bind("Save", "AutosaveEnabled", true,
+			new ConfigDescription(
+				"Host-only: write an interval autosave while a world is being played. Off leaves the player's /save, the layer-end cut and the menu-return cut in place."));
+		var autosaveIntervalMinutes = config.Bind("Save", "AutosaveIntervalMinutes", SaveOptions.DefaultAutosaveIntervalMinutes,
+			new ConfigDescription(
+				"Host-only: minutes between two interval autosaves (the auto-*.cuoz archives). The interval restarts on every committed cut, whatever triggered it.",
+				new AcceptableValueRange<int>(SaveOptions.MinAutosaveIntervalMinutes, SaveOptions.MaxAutosaveIntervalMinutes)));
+		var backupRetentionCount = config.Bind("Save", "BackupRetentionCount", SaveOptions.DefaultBackupRetentionCount,
+			new ConfigDescription(
+				"Host-only: how many backup archives one world keeps. The oldest are pruned after each committed cut; the newest archive is never pruned.",
+				new AcceptableValueRange<int>(SaveOptions.MinBackupRetentionCount, SaveOptions.MaxBackupRetentionCount)));
+		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<SaveOptions>>(
+			new BepInExOptionsMonitor<SaveOptions>(
+				config,
+				() => new SaveOptions
+				{
+					AutosaveEnabled = autosaveEnabled.Value,
+					AutosaveIntervalMinutes = autosaveIntervalMinutes.Value,
+					BackupRetentionCount = backupRetentionCount.Value,
+				},
+				autosaveEnabled.Definition, autosaveIntervalMinutes.Definition, backupRetentionCount.Definition)));
+
 		// UI language: en or zh. The localization service normalizes anything
 		// starting with "zh" to zh and everything else to English.
 		var language = config.Bind("UI", "Language", "en",

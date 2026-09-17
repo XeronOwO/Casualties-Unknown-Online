@@ -16,11 +16,14 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// <c>docs/evidence/sync-coverage-matrix.md</c> with an owning matrix row whose
 /// semantic text mentions it and whose verdict is one of the audit vocabulary;
 /// every evidence entry in <c>docs/evidence/sync-coverage-evidence.json</c> must
-/// still be present in the source it quotes; every inline matrix reference must be
-/// anchored in that evidence file; the verdict summary must match the rows; and
-/// every gap row must own an existing ticket. A new sync feature therefore
-/// cannot ship without declaring its event + fallback policy, and evidence
-/// cannot silently drift. A reference carries the path and the quoted text,
+/// still be present in the source it quotes AND the declared anchor count of the
+/// row it belongs to must match the entries that file holds for that row; the
+/// verdict summary must match the rows; and every gap row must own an existing
+/// ticket. A new sync feature therefore cannot ship without declaring its event +
+/// fallback policy, and evidence cannot silently drift. Evidence lives in ONE
+/// place (the JSON): a matrix row carries the decision and the NUMBER of anchors
+/// it owns, never a copy of the quoted text, so the same claim is not
+/// hand-maintained twice. A reference carries the path and the quoted text,
 /// never a line number: a line number drifts with every edit above it and then
 /// has to be re-pointed by hand, while the quoted text is what the evidence
 /// actually asserts.
@@ -32,9 +35,19 @@ public class SyncCoverageGateTests
 	private const int MinimumMatrixRows = 64;
 	private const int MinimumEvidenceEntries = 700;
 
+	/// <summary>A matrix data row has ten cells; the anchor-count cell and the gap-ticket cell are named so the layout is asserted in one place.</summary>
+	private const int MatrixRowCellCount = 10;
+	private const int AnchorCellIndex = 8;
+	private const int TicketCellIndex = 9;
+
+	/// <summary>The row value of an evidence entry that belongs to the document rather than to a coverage row (for example the "doc corrections" table); such an entry is verified like any other quote but is owned by no row. The count is capped so the marker cannot become a way to park coverage evidence out of every row's anchors.</summary>
+	private const string UnassignedRow = "(none)";
+	private const int MaximumUnassignedEntries = 5;
+
+	/// <summary>A matrix row must NOT carry evidence text: the quote lives in the evidence file only, so a row that repeats a <c>path 'quote'</c> pair is exactly the double maintenance this contract removed.</summary>
+	private static readonly Regex ForbiddenInlineEvidence = new(@"(?:src|tests|docs)/[A-Za-z0-9_\-./]+\.(?:cs|md)\s+'[^']*'");
+
 	private static readonly Regex MatrixRowId = new(@"^[A-Z]{1,2}\d+[a-z]?$");
-	private static readonly Regex InlineReference = new(@"(?:src|tests|docs)/[A-Za-z0-9_\-./]+\.(?:cs|md)");
-	private static readonly Regex InlineQuote = new(@"((?:src|tests|docs)/[A-Za-z0-9_\-./]+\.(?:cs|md))\s+'(?<quote>[^']*)'");
 	private static readonly Regex TicketReference = new(@"todo/[A-Za-z0-9_\-]+\.md");
 	private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -88,12 +101,12 @@ public class SyncCoverageGateTests
 	}
 
 	[Fact]
-	public void SyncCoverageMatrix_InlineRefsAreEvidenceAnchoredAndQuoted()
+	public void SyncCoverageMatrix_DeclaredAnchorCountsMatchTheEvidence()
 	{
 		var matrix = ParseMatrix();
-		var evidenceFiles = LoadEvidence().Select(e => e.File).ToHashSet(StringComparer.Ordinal);
-		var failures = ValidateInlineReferences(matrix.Rows, evidenceFiles);
-		Assert.True(failures.Count == 0, "Sync-coverage inline-reference gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures.Take(20)));
+		var document = LoadEvidence();
+		var failures = ValidateAnchorDeclarations(matrix.Rows, document.Entries ?? []);
+		Assert.True(failures.Count == 0, "Sync-coverage anchor-declaration gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures.Take(20)));
 	}
 
 	[Fact]
@@ -104,41 +117,52 @@ public class SyncCoverageGateTests
 	}
 
 	[Fact]
-	public void InlineReferenceValidation_FlagsUngroundedAnchorAndQuoteMismatch()
+	public void AnchorDeclarationValidation_FlagsCountMismatchZeroAnchorsAndUnclaimedRow()
 	{
-		const string netMsg = "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs";
 		var rows = new List<MatrixRow>
 		{
-			new("W1", ["W1", "feature", "direction", $"event {netMsg} 'public enum NetMsg : byte'", "fallback", "backfill", "loss", "OK", "ticket"]),
-			new("W2", ["W2", "feature", "direction", $"event {netMsg} 'this text does not exist'", "fallback", "backfill", "loss", "OK", "ticket"]),
-			new("W3", ["W3", "feature", "direction", "event src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsgUnknown.cs 'public enum NetMsg : byte'", "fallback", "backfill", "loss", "OK", "ticket"])
+			new("W1", Row("W1", "OK", "2")),
+			new("W2", Row("W2", "OK", "3")),
+			new("W3", Row("W3", "OK", "1"))
 		};
-		var evidence = new HashSet<string>(StringComparer.Ordinal) { netMsg };
+		var entries = new List<EvidenceEntry>
+		{
+			new("c", "W1", "src/one.cs", "quote one"),
+			new("c", "W1", "src/two.cs", "quote two"),
+			new("c", "W2", "src/three.cs", "quote three"),
+			new("c", "W9", "src/four.cs", "quote four"),
+			new("c", "(none)", "src/five.cs", "quote five")
+		};
 
-		var failures = ValidateInlineReferences(rows, evidence);
+		var failures = ValidateAnchorDeclarations(rows, entries);
 
-		Assert.Contains(failures, f => f.Contains($"W2: inline quote is not in {netMsg}", StringComparison.Ordinal));
-		Assert.Contains(failures, f => f.Contains("W3: inline reference src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsgUnknown.cs has no evidence anchor", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W2: declares 3 evidence anchors but", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W3: no evidence anchors in", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W9", StringComparison.Ordinal) && f.Contains("is neither a matrix row id", StringComparison.Ordinal));
+		Assert.DoesNotContain(failures, f => f.Contains("row '(none)'", StringComparison.Ordinal));
 		Assert.DoesNotContain(failures, f => f.StartsWith("W1:", StringComparison.Ordinal));
 	}
 
 	[Fact]
-	public void RowValidation_FlagsInvalidVerdictMissingEvidenceDuplicatesAndMissingGapTicket()
+	public void RowValidation_FlagsInvalidVerdictMissingAnchorDeclarationDuplicatesAndMissingGapTicket()
 	{
 		var rows = new List<MatrixRow>
 		{
-			new("W1", Row("W1", "OK", "src/one.cs:1")),
-			new("W1", Row("W1", "Unverified", "src/two.cs:2")),
-			new("W2", Row("W2", "OK", "no evidence here")),
-			new("W3", Row("W3", "Made-up verdict", "src/three.cs:3")),
-			new("W4", Row("W4", "Event-only gap", "src/four.cs:4"))
+			new("W1", Row("W1", "OK", "2")),
+			new("W1", Row("W1", "Unverified", "2")),
+			new("W2", Row("W2", "OK", "no anchors here")),
+			new("W3", Row("W3", "Made-up verdict", "0")),
+			new("W4", Row("W4", "Event-only gap", "1")),
+			new("W5", ["W5", "feature", "direction", "event src/one.cs 'a quote'", "fallback", "backfill", "loss", "OK", "1", "ticket"])
 		};
 
 		var failures = ValidateRows(rows, minimumRows: 1);
 
+		Assert.Contains(failures, f => f.Contains("W5: row repeats evidence text", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("duplicate matrix row id: W1", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("invalid verdict 'Unverified'", StringComparison.Ordinal));
-		Assert.Contains(failures, f => f.Contains("W2: no source evidence reference", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W2: evidence anchors cell 'no anchors here'", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W3: evidence anchors cell '0'", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("invalid verdict 'Made-up verdict'", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("W4: gap row has no existing todo ticket", StringComparison.Ordinal));
 	}
@@ -146,7 +170,7 @@ public class SyncCoverageGateTests
 	[Fact]
 	public void RowValidation_FlagsATruncatedMatrix()
 	{
-		var failures = ValidateRows([new MatrixRow("K1", Row("K1", "OK", "src/one.cs:1"))], minimumRows: 64);
+		var failures = ValidateRows([new MatrixRow("K1", Row("K1", "OK", "1"))], minimumRows: 64);
 		Assert.Contains(failures, f => f.Contains("expected at least 64 rows", StringComparison.Ordinal));
 	}
 
@@ -155,8 +179,8 @@ public class SyncCoverageGateTests
 	{
 		var rows = new List<MatrixRow>
 		{
-			new("W1", Row("W1", "OK", "src/one.cs:1")),
-			new("W2", Row("W2", "Event-only gap", "src/two.cs:2"))
+			new("W1", Row("W1", "OK", "1")),
+			new("W2", Row("W2", "Event-only gap", "2"))
 		};
 		var summary = new Dictionary<string, int>(StringComparer.Ordinal)
 		{
@@ -191,7 +215,7 @@ public class SyncCoverageGateTests
 		};
 		var rows = new List<MatrixRow>
 		{
-			new("R4", Row("R4", "OK", "src/one.cs:1"))
+			new("R4", Row("R4", "OK", "1"))
 		};
 
 		var failures = ValidateVocabulary(index, membersByKind, rows);
@@ -204,7 +228,7 @@ public class SyncCoverageGateTests
 	}
 
 	[Fact]
-	public void EvidenceValidation_FlagsMismatchedQuoteMissingFileTruncationAndEmptyQuote()
+	public void EvidenceValidation_FlagsCountMismatchMismatchedQuoteMissingFileTruncationAndEmptyQuote()
 	{
 		const string netMsg = "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs";
 		var entries = new List<EvidenceEntry>
@@ -212,12 +236,20 @@ public class SyncCoverageGateTests
 			new("c", "W1", netMsg, "public enum NetMsg : byte"),
 			new("c", "W1", netMsg, "this line text does not exist"),
 			new("c", "W1", "src/does/not/exist.cs", "anything"),
-			new("c", "W1", netMsg, "   ")
+			new("c", "W1", netMsg, "   "),
+			new("c", "(none)", netMsg, "n1"),
+			new("c", "(none)", netMsg, "n2"),
+			new("c", "(none)", netMsg, "n3"),
+			new("c", "(none)", netMsg, "n4"),
+			new("c", "(none)", netMsg, "n5"),
+			new("c", "(none)", netMsg, "n6")
 		};
 
-		var failures = ValidateEvidence(entries);
+		var failures = ValidateEvidence(new EvidenceDocument(3, entries));
 
-		Assert.Contains(failures, f => f.Contains("evidence file has 4 entries (expected at least 700)", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("evidence file declares count=3 but carries 10 entries", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("evidence file has 10 entries (expected at least 700)", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("evidence file has 6 '(none)' entries", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains($"quote is not in {netMsg}", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("missing file src/does/not/exist.cs", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains($"empty quote at {netMsg}", StringComparison.Ordinal));
@@ -242,11 +274,15 @@ public class SyncCoverageGateTests
 		Assert.Equal(["OldMember", "Third", "class"], members.OrderBy(m => m, StringComparer.Ordinal));
 	}
 
-	private static string[] Row(string id, string verdict, string evidence) =>
-		[id, "feature", "direction", "event", "fallback", "backfill", evidence, verdict, "ticket"];
+	private static string[] Row(string id, string verdict, string anchors) =>
+		[id, "feature", "direction", "event", "fallback", "backfill", "loss", verdict, anchors, "ticket"];
 
 	private static string Normalize(string? value) =>
 		value is null ? string.Empty : Regex.Replace(value.Trim(), @"\s+", " ");
+
+	/// <summary>The anchor-count cell is a count, not an anchor list: the row id is the anchor key, so a row owns exactly the entries the evidence file records for it.</summary>
+	private static bool TryParseAnchorCount(string cell, out int count) =>
+		int.TryParse(cell.Trim().Trim('`'), out count);
 
 	private static List<string> ValidateRows(IReadOnlyList<MatrixRow> rows, int minimumRows)
 	{
@@ -270,17 +306,26 @@ public class SyncCoverageGateTests
 				failures.Add($"{row.Id}: invalid verdict '{verdict}' (expected one of {string.Join(" | ", AllowedVerdicts)})");
 			}
 
-			if (!row.Cells.Any(cell => InlineReference.IsMatch(cell)))
+			if (!TryParseAnchorCount(row.Cells[AnchorCellIndex], out var anchors) || anchors <= 0)
 			{
-				failures.Add($"{row.Id}: no source evidence reference in any cell");
+				failures.Add($"{row.Id}: evidence anchors cell '{row.Cells[AnchorCellIndex]}' must declare at least one anchor from {EvidencePath}");
+			}
+
+			foreach (var cell in row.Cells)
+			{
+				if (ForbiddenInlineEvidence.IsMatch(cell))
+				{
+					failures.Add($"{row.Id}: row repeats evidence text ({ForbiddenInlineEvidence.Match(cell).Value}) - the quote belongs only in {EvidencePath}");
+					break;
+				}
 			}
 
 			if (GapVerdicts.Contains(verdict, StringComparer.Ordinal))
 			{
-				var ticket = TicketReference.Match(row.Cells[8]);
+				var ticket = TicketReference.Match(row.Cells[TicketCellIndex]);
 				if (!ticket.Success || !File.Exists(RepositoryPaths.File("docs/backlog/" + ticket.Value)))
 				{
-					failures.Add($"{row.Id}: gap row has no existing todo ticket (cell: '{row.Cells[8]}')");
+					failures.Add($"{row.Id}: gap row has no existing todo ticket (cell: '{row.Cells[TicketCellIndex]}')");
 				}
 			}
 		}
@@ -310,49 +355,51 @@ public class SyncCoverageGateTests
 	}
 
 	/// <summary>
-	/// A QUOTED reference is the evidence claim: its path must be anchored in the
-	/// evidence file AND the quoted text must still be in that source. A bare path
-	/// mention (no quote) is prose, not a claim, so it is not anchored here — which
-	/// is also why dropping the line number costs nothing: the claim was always the
-	/// quoted text, never the position.
+	/// The row's anchor-count cell is the row's whole evidence claim: the evidence
+	/// file must hold exactly that many entries for the row id, a covered row must
+	/// own at least one entry, and no entry may name a row id the matrix does not
+	/// have (an entry that belongs to the document rather than to a row is marked
+	/// <see cref="UnassignedRow"/>). The quoted text itself lives only in the
+	/// evidence file, so the same claim is never hand-maintained twice.
 	/// </summary>
-	private static List<string> ValidateInlineReferences(
+	private static List<string> ValidateAnchorDeclarations(
 		IReadOnlyList<MatrixRow> rows,
-		IReadOnlySet<string> evidenceFiles)
+		IReadOnlyList<EvidenceEntry> entries)
 	{
 		var failures = new List<string>();
-		var textByFile = new Dictionary<string, string>(StringComparer.Ordinal);
+		var rowIds = rows.Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
+		var countByRow = new Dictionary<string, int>(StringComparer.Ordinal);
+		foreach (var entry in entries)
+		{
+			countByRow[entry.Row] = countByRow.TryGetValue(entry.Row, out var existing) ? existing + 1 : 1;
+		}
 
 		foreach (var row in rows)
 		{
-			foreach (var cell in row.Cells)
+			if (!TryParseAnchorCount(row.Cells[AnchorCellIndex], out var declared))
 			{
-				foreach (Match match in InlineQuote.Matches(cell))
-				{
-					var relative = match.Groups[1].Value;
-					if (!evidenceFiles.Contains(relative))
-					{
-						failures.Add($"{row.Id}: inline reference {relative} has no evidence anchor in {EvidencePath}");
-					}
+				failures.Add($"{row.Id}: evidence anchors cell '{row.Cells[AnchorCellIndex]}' is not a count");
+				continue;
+			}
 
-					var quote = Normalize(match.Groups["quote"].Value.Replace("&#124;", "|", StringComparison.Ordinal));
-					if (quote.Length == 0)
-					{
-						continue;
-					}
+			var actual = countByRow.TryGetValue(row.Id, out var value) ? value : 0;
+			if (actual == 0)
+			{
+				failures.Add($"{row.Id}: no evidence anchors in {EvidencePath} - a covered row must own at least one entry");
+				continue;
+			}
 
-					var fullPath = RepositoryPaths.File(relative);
-					if (!File.Exists(fullPath))
-					{
-						failures.Add($"{row.Id}: inline quote file missing {relative}");
-						continue;
-					}
+			if (declared != actual)
+			{
+				failures.Add($"{row.Id}: declares {declared} evidence anchors but {EvidencePath} holds {actual} for that row");
+			}
+		}
 
-					if (!NormalizedSourceText(fullPath, textByFile).Contains(quote, StringComparison.Ordinal))
-					{
-						failures.Add($"{row.Id}: inline quote is not in {relative}: '{quote}'");
-					}
-				}
+		foreach (var entry in entries)
+		{
+			if (entry.Row != UnassignedRow && !rowIds.Contains(entry.Row))
+			{
+				failures.Add($"evidence entry with row '{entry.Row}' ({entry.File}) is neither a matrix row id in {MatrixPath} nor '{UnassignedRow}'");
 			}
 		}
 
@@ -427,12 +474,24 @@ public class SyncCoverageGateTests
 		return failures;
 	}
 
-	private static List<string> ValidateEvidence(IReadOnlyList<EvidenceEntry> entries)
+	private static List<string> ValidateEvidence(EvidenceDocument document)
 	{
 		var failures = new List<string>();
+		var entries = document.Entries ?? [];
+		if (document.Count != entries.Count)
+		{
+			failures.Add($"evidence file declares count={document.Count} but carries {entries.Count} entries");
+		}
+
 		if (entries.Count < MinimumEvidenceEntries)
 		{
 			failures.Add($"evidence file has {entries.Count} entries (expected at least {MinimumEvidenceEntries})");
+		}
+
+		var unassigned = entries.Count(e => e.Row == UnassignedRow);
+		if (unassigned > MaximumUnassignedEntries)
+		{
+			failures.Add($"evidence file has {unassigned} '{UnassignedRow}' entries; at most {MaximumUnassignedEntries} document-level anchors are allowed");
 		}
 
 		var textByFile = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -490,14 +549,14 @@ public class SyncCoverageGateTests
 			.ToHashSet(StringComparer.Ordinal);
 	}
 
-	private static IReadOnlyList<EvidenceEntry> LoadEvidence()
+	private static EvidenceDocument LoadEvidence()
 	{
 		var path = RepositoryPaths.File(EvidencePath);
 		Assert.True(File.Exists(path), $"{EvidencePath} missing");
 		var document = JsonSerializer.Deserialize<EvidenceDocument>(File.ReadAllText(path), JsonOptions)
 			?? throw new InvalidOperationException($"{EvidencePath} could not be deserialized");
 		Assert.NotNull(document.Entries);
-		return document.Entries;
+		return document;
 	}
 
 	private static IReadOnlyDictionary<string, int> ParseVerdictSummary()
@@ -552,7 +611,7 @@ public class SyncCoverageGateTests
 
 			var raw = line.Split('|');
 			var cells = raw.Skip(1).Take(raw.Length - 2).Select(c => c.Trim()).ToArray();
-			if (cells.Length == 9 && MatrixRowId.IsMatch(cells[0]))
+			if (cells.Length == MatrixRowCellCount && MatrixRowId.IsMatch(cells[0]))
 			{
 				rows.Add(new MatrixRow(cells[0], cells));
 				continue;

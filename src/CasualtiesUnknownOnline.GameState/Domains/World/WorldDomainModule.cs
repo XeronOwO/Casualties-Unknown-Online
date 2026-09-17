@@ -67,6 +67,21 @@ internal sealed class WorldDomainModule : IDomainModule
 				}
 			}
 		}
+
+		// The two rarity multipliers are world-generation INPUTS: the layer's loot and
+		// trap distribution are scaled by them, so a non-finite value is not a value
+		// the game could have produced and must never shape a layer. This assertion
+		// covers the two paths that go through a domain module — the host's own capture
+		// (the command path rejects the baseline with RejectionReason.InvariantViolation)
+		// and the guest's wire checkpoint (the batch fails to apply) — both by name,
+		// instead of committing a run no peer can generate from. The RESTORE family does
+		// not pass through here at all and is refused at its own seam, before the store
+		// is replaced (GameStateKernel.Restore).
+		if (!RunRarityMultipliers.IsWellFormed(run.LootRarityMultiplier) || !RunRarityMultipliers.IsWellFormed(run.TrapRarityMultiplier))
+		{
+			throw new InvalidOperationException(
+				$"run {run.RunId} carries a non-finite rarity multiplier (loot {run.LootRarityMultiplier}, trap {run.TrapRarityMultiplier})");
+		}
 	}
 
 	private static DomainDecision DecideStartRun(StartRunCommand command, KernelReadModel state)

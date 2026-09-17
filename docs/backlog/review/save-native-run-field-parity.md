@@ -1,11 +1,14 @@
 # Native run fields are not covered by the world archive
 
-- Status: Todo — **S3.4a landed 2026-09-11** (the run-level fields: both rarity multipliers, the run
-  clock base and the recipe unlock table), and **S3.4b landed 2026-09-11** as its own ticket
-  (`save-native-character-field-parity.md`): the character-level fields `lastHappiness`,
+- Status: Review — **S3.4a landed 2026-09-11** (the run-level fields: both rarity multipliers, the run
+  clock base and the recipe unlock table), **S3.4b landed 2026-09-11** as its own ticket
+  (`review/save-native-character-field-parity.md`): the character-level fields `lastHappiness`,
   `caloriesConsumed` and `WoundView.cInfo` now ride `CharacterDataMsg.NativeFields` and are written
-  back on the local restore path, with the missing-field case named in the restore report. Nothing in
-  this ticket is open any more; the per-field decided homes below are kept as the frozen record.
+  back on the local restore path, with the missing-field case named in the restore report. The
+  hardening cycle of 2026-09-17 closed the two recorded ENGINEERING gaps (the missing multiplier guard
+  and the concrete adapter dependency) and split the two that are each their own cycle into
+  `todo/save-run-clock-not-sent.md` and `todo/save-layer-time-not-carried.md`. Awaiting the final
+  unified acceptance pass; the per-field decided homes below are kept as the frozen record.
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: found by the S2 independent adversarial review (2026-09-10)
@@ -38,40 +41,56 @@ and whose recipe table reads back as empty is worse than no snapshot — the pla
 the world was recorded. Recipe rows are written back by INDEX, not by position, because
 `GameAdapterRecipeContentProvider` appends custom recipes to `Recipes.recipes`.
 
-## Recorded gaps from the S3.4a adversarial pass (not fixed here)
+## Disposition of the recorded gaps (2026-09-17)
 
-| gap | why it matters | where it would land |
+| gap | why it matters | disposition |
 |---|---|---|
-| The run clock base is archived but NOT sent | a guest joining a run mid-way has `SaveSystem.savedRunTime == 0`, so `WorldGeneration.TotalRunTime()` (the pause/tooltip/death-stat clock) shows only the time since it joined. Pre-existing, but the field is now formally a run-level value | the run baseline (it is not a generation input, so it does not belong in `WorldStartParams`' generation group) or a small absolute message at the world-entry fan-out |
-| `layerTimeSpent` / `maxTimePerLayer` are not carried | continuing into the SAME layer restarts the radiation-line timer and hands the player a fresh `timelimit`. The native save does not carry it either | `run.json`'s native row (the field is game state no CUO domain owns) — decide with S3.5 |
-| No value-range guard on the multipliers | a malformed or hostile wire value (NaN/Inf) reaches `WorldGeneration.lootRarityMultiplier` unchanged. Low priority (accept-first, no anti-cheat in MVP) but the kernel already asserts its other invariants | `WorldDomainModule.AssertInvariants` |
-| `WorldParamsService` injects the concrete adapter type | the new capture/apply branches cannot be covered by `FakeNativeWorldFacts`, so they are only reachable through the adapter's own tests | change the dependency to `INativeWorldFacts` (the port it already uses for everything else) |
+| The run clock base is archived but NOT sent | a guest joining a run mid-way has `SaveSystem.savedRunTime == 0`, so `WorldGeneration.TotalRunTime()` (the pause/tooltip/death-stat clock) shows only the time since it joined. Pre-existing, but the field is now formally a run-level value | SPLIT — `todo/save-run-clock-not-sent.md`: a wire carrier is its own cycle (additive member + `ProtocolVersion` bump), and the generation group must not become a general side channel |
+| `layerTimeSpent` / `maxTimePerLayer` are not carried | continuing into the SAME layer restarts the radiation-line timer and hands the player a fresh `timelimit`. The native save does not carry it either | SPLIT — `todo/save-layer-time-not-carried.md`: whether a restore should RESUME the timer is a gameplay decision (native restarts it), so it is asked before it is built |
+| No value-range guard on the multipliers | a malformed or hostile wire value (NaN/Inf) reaches `WorldGeneration.lootRarityMultiplier` unchanged. Low priority (accept-first, no anti-cheat in MVP) but the kernel already asserts its other invariants | CLOSED — one rule, four seams: `RunRarityMultipliers.IsWellFormed` is the rule; the kernel refuses a non-finite run baseline on the command path, on the applied wire batch and at the checkpoint restore; and the adapter refuses to write one into the live world |
+| `WorldParamsService` injects the concrete adapter type | the new capture/apply branches cannot be covered by `FakeNativeWorldFacts`, so they are only reachable through the adapter's own tests | CLOSED — the dependency is `INativeWorldFacts`, the port every call it makes already belongs to |
+
+### Hardening landed (2026-09-17)
+
+The rarity multipliers are world-generation INPUTS — a layer's loot and trap distribution are scaled by
+them — so a value the game could not have produced must never become the run baseline.
+`RunRarityMultipliers.IsWellFormed(float?)` answers that question in one place (the game starts a run at
+`Neutral` and only ever scales the pair, so a NaN or an infinity is a malformed producer; an ABSENT
+value stays well formed, because that is a field a sender never carried rather than a malformed one).
+`WorldDomainModule.AssertInvariants` refuses a run whose committed baseline carries one on the two paths
+that go through a domain module — the host's own capture (the command path rejects it with
+`InvariantViolation`) and the guest's wire batch (it fails to apply, so the guest never projects it into
+the params the adapter generates from). The RESTORE family does not go through `Execute` at all — the
+archive decode and the wire checkpoint both hand their whole checkpoint to `GameStateKernel.Restore` —
+so it is refused THERE, before the store is replaced. That seam was found by this cycle's independent
+adversarial pass by probe (`Restore` of a NaN run returned success while `StartRun` of one was rejected),
+which is exactly why the claim below is a list of seams rather than "one gate every producer passes".
+`WorldParamsService.Apply` carries the same rule as its LAST line before the live-world write, because
+the params object the adapter reads is the one the publisher stored rather than the kernel's projection:
+a non-finite pair is refused exactly like the half-pair the method already refused, so the layer keeps
+the game's own values instead of being scaled by a number that has no meaning.
+
+Machine-verified by `RarityMultiplierGuardTests` (the rule's answers, the rejected start, the failed
+wire apply, the refused restore, and the finite-but-non-neutral case that must still be accepted). The
+adapter site is game-typed and is read-only reviewed, like every other live-world write in that layer.
+The second closed gap is the dependency narrowing: `WorldParamsService` now takes `INativeWorldFacts`, so it is no longer
+welded to the adapter's own implementation; the proof is the compile (the port exposes every member the
+service calls) plus the composition/DI tests and the deployed build.
 
 Accepted as-is: log lines format floats with the current culture (the codebase does this
 everywhere); `WorldGeneration.cs:257`'s Start-time trap term is reproduced exactly as the native path
 does it (the generation boundary reads the live world, so both sides agree).
 
-## Still open (S3.4b)
+## Landed (S3.4b)
 
-| field | decided home | why it is not done |
-|---|---|---|
-| `lastHappiness` | `characters/<playerKey>.json` | needs a per-player capture (the host can read its own body at the cut; a guest's value can only come from that guest's own report) and an apply through the character-restore path; `CharacterDataMsg` has no field for it yet |
-| `caloriesConsumed` | same | same |
-| `WoundView.cInfo` | same | same; it is a WINDOW value (four ints) with no reader besides the save system |
-
-Until S3.4b lands a continued run keeps the LIVE values for these three fields, and no report names
-them yet (the native-run-field row names the run-level values only). Closing that gap means either
-implementing the fields or naming them explicitly in the restore report — a silent default is what §6
-forbids.
-
-The apply seam these three fields need now EXISTS, on both roles: a continue hands the archive's
-character for the local player back with `WorldContinueOutcome.LocalCharacter` and the adapter queues
-it on `CharacterDataSync`'s local restore path (decision 170, landed 2026-09-11 as the S2 in-game gap
-fix — before S3.4b started, because without it the host half of S3.4b had no landfall at all). S3.4b
-therefore hooks that same path: the capture adds the three values to `CharacterDataMsg`, and the apply
-writes them onto the live `Body`/`PlayerCamera`/`WoundView` while the restored snapshot is being put
-on the body — no second apply path, and the "the snapshot carries none of them" case is named in the
-same account the restore already reports.
+The three character-level fields landed as their own ticket
+(`review/save-native-character-field-parity.md`): they ride `CharacterDataMsg.NativeFields` (read off
+the live scene at the cut and at each 1 Hz report, all-or-nothing), are written back by the local
+restore path's second pass, and a snapshot that carries none of them — or a malformed one — is named as
+damage in the restore report (decision 171). They hook the seam described above rather than opening a
+second apply path: a continue hands the archive's character for the local player back with
+`WorldContinueOutcome.LocalCharacter` and the adapter queues it on `CharacterDataSync`'s local restore
+path (decision 170).
 
 ## Problem
 

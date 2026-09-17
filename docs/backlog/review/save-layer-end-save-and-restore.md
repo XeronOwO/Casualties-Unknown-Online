@@ -6,8 +6,8 @@
   *In-game gap found while scoping S3.4b* below)
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 2 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
-- Related: `docs/architecture/save-archive-format.md`, `review/save-format-and-world-repository.md` (S1), `todo/save-mid-run-consistent-cut.md` (S3), `todo/save-multiplayer-restore-and-backups.md` (S4)
+- Source: Stage 2 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
+- Related: `docs/architecture/save-archive-format.md`, `review/save-format-and-world-repository.md` (S1), `review/save-mid-run-consistent-cut.md` (S3), `todo/save-multiplayer-restore-and-backups.md` (S4)
 
 ## Scope
 

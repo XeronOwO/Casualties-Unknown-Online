@@ -6,7 +6,7 @@
 - Source: found while fixing S3.2's blocker B1 (the restore replay wrote CUO's registry rows into the
   game's own 128-entry list and pushed the game's OWN rows out). That write path is gone, but the two
   tables still disagreed about what they held.
-- Related: `docs/evidence/sync-coverage-matrix.md` row W2, `todo/save-mid-run-consistent-cut.md`
+- Related: `docs/evidence/sync-coverage-matrix.md` row W2, `review/save-mid-run-consistent-cut.md`
   (S3.2 fixed the restore path), `docs/architecture/save-archive-format.md` §3.4
 
 ## Problem

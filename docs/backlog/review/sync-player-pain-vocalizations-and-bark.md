@@ -1,6 +1,6 @@
 # Sync player pain vocalizations and B-key bark to remote players
 
-- Status: In Progress
+- Status: Review (landed; awaiting the final unified acceptance pass)
 - Priority: Medium
 - Category: Character audio / player presentation sync
 - Source: User report (2026-09-04) — the host's pain scream/groan and the sound triggered by pressing B are not heard on the guest client. The reverse direction (guest → host) was not tested by the user and is covered by the same star-relay path during the fix.

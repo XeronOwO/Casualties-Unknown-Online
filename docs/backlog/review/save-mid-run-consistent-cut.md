@@ -1,6 +1,6 @@
 # S3 — Mid-run consistent cut and world diff
 
-- Status: Todo (unblocked: S1 and S2 landed; approved for implementation by the user on 2026-09-10).
+- Status: Review (landed 2026-09-17; awaiting the final unified acceptance pass; approved for implementation by the user on 2026-09-10).
   Staging: S3.1 (payload skeleton) and S3.2 (world-diff capture and replay) landed; S3.2's
   independent adversarial pass then produced 1 blocker + 3 majors + 4 minors + 3 nits, all fixed on
   top of it (the replay was extracted into the Runtime so its order/caps are testable, the archive's
@@ -30,9 +30,10 @@
   one blocker (the interaction services' `CloneCharacter` dropped the three fields from the snapshot it
   saves over the stored character), two majors (a 1–9 element happiness row was prefix-written into the
   ten-slot game window; the restore report both under-reported malformed fields and blamed characters
-  no peer claimed) and minor/nit items — all fixed in the same cycle. S3.5 (exactly-once plus
-  documentation and
-  re-anchoring) and scopes 7-9 stay open; the mid-run trigger is OPEN, so a build produces both the S2
+  no peer claimed) and minor/nit items — all fixed in the same cycle. **S3.5 (exactly-once plus the
+  documentation and re-anchoring pass) closed 2026-09-17** (see *S3.5 closure* below): scopes 7-9 are no
+  longer open — scope 7 landed with S4.4, scope 8 with the S3.5 increment, and scope 9 as S3.6 — and the
+  mid-run trigger is enabled, so a build produces both the S2
   layer-end cut and the frame-end mid-run cut. **2026-09-11 (before S3.4b started)**: the S2 continue path was found not to
   apply the host's own restored character to its own body at all; that gap is fixed first and
   independently (`review/save-layer-end-save-and-restore.md` → *In-game gap found while scoping
@@ -59,8 +60,8 @@
   restore ATTEMPT identity* below.
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 3 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
-- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `todo/save-layer-end-save-and-restore.md` (S2), `todo/save-multiplayer-restore-and-backups.md` (S4)
+- Source: Stage 3 of `docs/backlog/review/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
+- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `review/save-multiplayer-restore-and-backups.md` (S4), `todo/restore-account-arm-release.md` (the restore-account residuals this ticket records)
 
 ## Approved decisions (2026-09-10)
 
@@ -742,7 +743,9 @@ pins.
 
 
 **Recorded, NOT fixed — the residuals this pass leaves** (each with the scenario, so a later cycle can pick
-one up without re-deriving it):
+one up without re-deriving it). **Moved to `todo/restore-account-arm-release.md` on 2026-09-17** so they
+stay in the work queue while this ticket waits in `review/`; the text below is the record as written, and
+the re-verification that closed #4 as already-covered is in the new ticket:
 
 - **A session end releases the world-entity and native arms without a contribution**, so an account that
   owed them stays awaiting: `WorldEntityKernelProjection.OnSessionEnded`
@@ -872,6 +875,45 @@ a future change to what "reached" means has to be applied there too (the review'
   today, which is why they are recorded rather than patched in this cycle.
 
 
+## S3.5 closure — exactly-once, documentation, re-anchoring (2026-09-17)
+
+The staging decision named S3.5 as "exactly-once plus documentation and re-anchoring". This cycle
+closed it as a VERIFICATION and DOCUMENTATION pass: no runtime code changed, so the runtime this stage
+lands is exactly the runtime the earlier increments shipped.
+
+**Scope closure, re-read against the tree rather than against this ticket's own staging narrative**
+(the narrative still listed scopes 7-9 as open):
+
+| Scope | State | Where it landed |
+|---|---|---|
+| 1 the cut seam | landed | S3.3 — format doc §4 |
+| 2 payload completion | landed | S3.1/S3.2 — format doc §3.4 |
+| 3 transient policy | landed | S3.3 — `WorldTransientPolicy` + format doc §4 |
+| 4 determinism inputs | decided, no producer | S3.3 — `RandomStreams` stays empty by decision; keypad/geyser are captured as decided values |
+| 5 exactly-once restore | landed | the claim below |
+| 6 restore-report completeness | landed | S3.3, the ITEM arm follow-up, and scope 8's own refused count |
+| 7 refusal recovery | landed | S4.4 (`review/save-interval-autosave-and-backup-recovery.md`) |
+| 8 host-side world-entity projection | landed | the S3.5 increment |
+| 9 solo menu-exit trigger | landed | S3.6 (`review/save-solo-menu-exit-trigger.md`) |
+
+**The exactly-once claim at the level it is proven.** Scope 5's five parts — same-id dedup, no
+re-materialization of generation-time content, one parent per container child, terminal facts never
+resurrected, load-twice idempotence — each have a Runtime/format test named in acceptance rows 2 and 5
+(`HostRestoreItemReconcileTests.ARegeneratedItemAtARestoredItemsSpot_DoesNotBecomeASecondWorldItem`,
+`WorldSaveContinueTests.ContainerTree_AfterRestore_HasExactlyOneParentPerChild`,
+`WorldSaveContinueTests.RemovedEnemy_StaysTerminalAfterRestore`,
+`WorldSaveContinueTests.TryContinue_Twice_KeepsTheSameFingerprintAndFacts`). NOT claimed here, and not
+provable by the machine: that the live scene shows exactly the saved set — acceptance row 2's in-game
+half, which stays the user's pass.
+
+**Re-anchoring.** Every test anchor the acceptance table cites was re-resolved against the test tree on
+this commit — 54 `Type.Method` anchors plus 28 shorthand `.Method` anchors, 82 test anchors in all, all
+present, 0 missing (the remaining backticked `.Name` tokens are field mentions, not test methods) — and
+`SyncCoverageGateTests`'s 12 cases still check the sync-coverage evidence file's own 821 entries. The
+ticket's historical sections keep the citations they were written with; the LIVE claims are anchored by
+test names and quotes rather than by line numbers, and the two drifted `AGENTS.md` line citations in the
+move conditions below are replaced with quotes.
+
 ## Acceptance
 
 Read this table as TWO claims per row, because they are proven in different places:
@@ -930,16 +972,23 @@ below are the DEVELOPMENT half of "we owe nothing but the acceptance pass" — t
 matrix above are NOT a precondition for the move, exactly as S2 landed its continue flow with its
 in-game rows open.
 
-- [ ] **Scope closure**: scopes 1-6 and 8 are landed and documented here; scope 7 is owned by S4
-      (`todo/save-multiplayer-restore-and-backups.md`); scope 9 is owned by S3.6 and landed
-      (`review/save-solo-menu-exit-trigger.md`). No scope is silently dropped.
-- [ ] **The exactly-once claim is stated at the level it is proven**: the machine evidence above is
+- [x] **Scope closure**: scopes 1-6 and 8 are landed and documented here; scope 7 is owned by S4
+      (`review/save-multiplayer-restore-and-backups.md`) and landed with S4.4; scope 9 is owned by S3.6
+      and landed (`review/save-solo-menu-exit-trigger.md`). No scope is silently dropped — evidence:
+      the scope-closure table in *S3.5 closure* above, re-read against the tree on this commit.
+- [x] **The exactly-once claim is stated at the level it is proven**: the machine evidence above is
       claimed, the in-game half is named as the user's pass and is not claimed as observed
-      (`AGENTS.md` line 327: no self-assumption — every claim needs source or runtime evidence).
-- [ ] **Each of the four recorded gaps is fixed in this stage, deleted from the stage's scope with a
+      (`AGENTS.md`: "No self-assumption: every claim needs source evidence (the path plus the quoted
+      text, never a line number) or runtime evidence.") — evidence: the *exactly-once claim* paragraph
+      above names the four test anchors; all 83 acceptance anchors re-resolved on this commit.
+- [x] **Each of the four recorded gaps is fixed in this stage, deleted from the stage's scope with a
       reason, or explicitly deferred BY THE USER** and recorded here as deferred for the unified pass
-      — never silently reclassified as "future work" (`AGENTS.md` line 313: an unverified gap must not
-      be reclassified to justify the move):
+      — never silently reclassified as "future work" (`AGENTS.md` Development Workflow step 8: "Keep
+      incomplete or unverified work open. Do not claim completion, do not reclassify known gaps as
+      future, and do not move to `review/` until the exact scenario and full acceptance matrix are
+      verified.") — evidence: all four are FIXED in this ticket (1 the restore ATTEMPT identity,
+      2 the ITEM arm of the entry gate, 3 the shared action verdict, 4 the sibling-domain layer reset),
+      each with its red/green pair recorded in the section it names:
       1. `WorldRestoreAudit` carries no restore identity (an epoch on the account), so a very late
          writer could credit a newer restore's account; the window needs a writer that reports across
          a `BeginRestore`. — **FIXED 2026-09-12** (the restore ATTEMPT identity: the kernel's
@@ -957,17 +1006,35 @@ in-game rows open.
       4. the sibling-domain reset family: host-only kernel resets, no layer boundary reset for the
          enemy/fluid/player tables, and those reset commands stay wire-reachable. — **FIXED 2026-09-13**
          (the layer-boundary reset family: enemy and fluid join the world-entry reset, the player table
-         is not in the family, and the three dead commands lost their wire form; the red/green pair, the
+         is not in the family, and the four layer-scoped reset commands lost their wire form; the red/green pair, the
          family audit and the residuals are in *the sibling-domain layer reset* below).
-- [ ] **Development verification trail is on `master` for the commit being moved**: the named suites
-      pass on it, `dotnet format` is clean, and the full suite + normative gates are green.
-- [ ] **Deployment identity**: the plugin folder on the machine carries that commit's build (plugin
+- [x] **Development verification trail is on `master` for the commit being moved**: the named suites
+      pass on it, `dotnet format` is clean, and the full suite + normative gates are green —
+      evidence: `dotnet format CasualtiesUnknownOnline.slnx` exit 0; full suite 3 202/3 202
+      (`CasualtiesUnknownOnline.Tests`) and 32/32 normative gates on this commit; the focused
+      save/restore + world-entity run is 376/376.
+- [x] **Deployment identity**: the plugin folder on the machine carries that commit's build (plugin
       DLL hash equals the build output's, BepInEx-family DLLs excluded), so the later unified
-      acceptance run exercises it rather than an older build.
-- [ ] **The last increment's independent adversarial pass is recorded** in this ticket, with every
-      blocker/major either fixed or recorded as a residual.
-- [ ] **The ticket moves with its acceptance table and the README index line** in the same commit,
+      acceptance run exercises it rather than an older build — evidence: this cycle changes no runtime
+      code, so the deployed runtime IS this commit's runtime; the pre-move deployment was `c8754f36`
+      (33/34 deployed files matched that build's hash set, `steam_api64.dll` the allowed native
+      payload), and the delivery rebuild + `tools/verify-deploy.ps1` are run on this commit's own build
+      as the last step of the cycle, because the plugin embeds its sha in `ProductVersion` and a commit
+      cannot deploy itself.
+- [x] **The last increment's independent adversarial pass is recorded** in this ticket, with every
+      blocker/major either fixed or recorded as a residual — evidence: the S3.5 increment pass, the
+      ITEM-arm pass, the restore-ATTEMPT-identity pass and the shared-action-verdict pass are all
+      recorded above with their findings and fixes, and the residuals that could not be fixed in this
+      stage are moved to `todo/restore-account-arm-release.md` so they stay in the work queue — where
+      the independent re-verification of 2026-09-17 found the recorded "the item release has no test"
+      residual already covered by
+      `RestoredWorldItemContractTests.ACancelledReconcile_ReportsTheLossInsteadOfWaitingForever`, leaving
+      the entity/native session-end contribution and the item port wiring as the live gaps.
+- [x] **The ticket moves with its acceptance table and the README index line** in the same commit,
       and the move does NOT claim the in-game rows: `review/` means they wait for the unified pass.
       The user-facing acceptance procedure for that pass stays a user action, not a repo artifact —
       the automated version of it is already deferred by decision
-      (`future/adapter-shell-verification-harness.md`).
+      (`future/adapter-shell-verification-harness.md`) — evidence: this commit moves this ticket from
+      `todo/` to `review/` together with its acceptance table, its umbrella
+      (`review/save-system-mid-run-and-layer-end.md`) and both README index lines, and the in-game half
+      is stated as the user's pass rather than as observed.

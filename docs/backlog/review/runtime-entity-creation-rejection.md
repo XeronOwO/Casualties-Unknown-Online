@@ -59,6 +59,7 @@ recording it** — neither accept nor reject:
 | 6 | The host HAS the prefab | Unchanged accept-first path: materialize + record + relay | `GuestEntityReportRecoveryTests` (16 cases, unchanged) |
 | 7 | A member joins after a rejected creation | Nobody has it (converged) | the host table stays empty (`UnmaterializableGuestCreation_IsNeitherRelayedNorEchoed`), so no world-entry snapshot can carry it |
 | 8 | A non-reporter receives the rejection message | Ignored (direction-locked host → guest; only the reporter's own key matches) | `RejectionForAnotherCreatorsKey_ChangesNothing`; `HostToGuestDirectionTests` direction row |
+| 9 | A hand-built report names another member in its creation token | Still answered and acted on: the pending table is the proof THIS member reported it | `RejectionForAKeyThisMemberReported_IsActedOnEvenWhenTheTokenNamesAnotherCreator`; `PendingEntityReportTableTests.Contains_SeesExactlyThePendingEntries` |
 
 ## Landed (2026-09-17)
 
@@ -70,9 +71,13 @@ recording it** — neither accept nor reject:
 - **Host.** `RuntimeEntityChannel.ReportEntitySpawnUnmaterialized` now logs the concrete
   mismatch (prefab id, creation key, reporter SteamId, the rejection) and answers THAT
   reporter; nothing is recorded in `RuntimeEntityRegistry` and nothing is broadcast.
-- **Reporter.** `RuntimeEntityChannel.FireRuntimeEntityRejectedReceived` acts only on the
-  local creator's own key: it drops the matching `PendingEntityReportTable` entry (so the
-  60 s fallback stops) and raises `RuntimeEntityRejectedReceived` with the key and reason.
+- **Reporter.** `RuntimeEntityChannel.FireRuntimeEntityRejectedReceived` acts only when the
+  creation is this member's own: the creation token's creator half equals the local SteamId,
+  OR the pending table still holds that report — the proof that this member really reported
+  it (a mod-built report through the public send surface can name another creator in its
+  token, and the creator half alone would then leave that entry re-reporting forever). It
+  drops the matching `PendingEntityReportTable` entry (so the 60 s fallback stops) and
+  raises `RuntimeEntityRejectedReceived` with the key and reason.
 - **Adapter.** `EntitySpawnSync.OnRuntimeEntityRejected` locates the local copy by its
   stamped creation key — never by position — and hands it to the same death funnel every
   remote death uses: `RemoteEntityDeath.Mark` plus a health below the death threshold, so
@@ -80,14 +85,21 @@ recording it** — neither accept nor reject:
   the creation record is dropped in the same step. A copy that is already gone is a logged
   no-op. The marker helper moved onto `RemoteEntityDeath` itself, so one rule serves every
   remote death (behaviour-preserving extraction).
-- **Tests.** New `RuntimeEntityRejectionTests` (5 cases), one `NetPacketTests` round-trip,
-  one `HostToGuestDirectionTests` row; the superseded
+- **Tests.** New `RuntimeEntityRejectionTests` (6 cases), one `PendingEntityReportTableTests`
+  case, one `NetPacketTests` round-trip, one `HostToGuestDirectionTests` row; the superseded
   `UnmaterializableCreation_IsRelayedAndAcknowledgedWithoutBeingRecorded` is deleted (its
   subject no longer exists) and `UnmaterializableReport_OnAGuest_IsNotRelayed` stays.
 - **Evidence.** Matrix row E3 (description, evidence, loss semantics), the wire vocabulary
   index, the closed-gap row and six new `sync-coverage-evidence.json` anchors;
   `review/runtime-entity-spawn-backfill.md` finding 3, round-4 finding 2, acceptance row 11
   and the deleted late-join limitation.
+- **What the tests cannot prove.** Every `RuntimeEntityRejectionTests` case asserts the
+  channel's half: replacing the body of `EntitySpawnSync.OnRuntimeEntityRejected` with an
+  early return leaves all of them green, because the adapter's `FindByCreationKey`,
+  `RemoteEntityDeath.Mark` and the `health` write reach Unity InternalCall members and the
+  method is therefore un-JIT-able in the test host. Requirement 3's removal is in the
+  code-reviewed + unified dual-client column, like the rest of the adapter shell; it is
+  spelled out here so a "N cases" summary is never read as covering it.
 
 ## Red before green (recorded)
 
@@ -106,7 +118,7 @@ is a real assertion failure, not a compile error):
 That is the "no relay to a third member" half (the third-party guest received the creation
 the host could not materialize). The "reporter's local copy is destroyed" half is asserted
 through the rejection event, which needs the new message type, so it arrives with the
-implementation; the whole 5-case matrix then runs green (93/93 in the affected families).
+implementation; the whole 6-case matrix then runs green (affected families 91/91, full suite 3202 + 32 gates, `dotnet format` exit 0).
 
 ## Implementation notes
 
@@ -124,6 +136,12 @@ implementation; the whole 5-case matrix then runs green (93/93 in the affected f
   `RuntimeEntityFactory` logs a Warn per failed materialization and the host's absolute
   snapshot keeps re-offering the record. A guest-side refusal would be a second protocol
   direction and is not part of this ticket's frozen scope.
+- Residual found by the adversarial pass and recorded, not fixed: a rejected ANIMAL creation
+  is destroyed without passing through `EnemySyncCoordinator.OnEnemyRemoved`, so the guest
+  enemy domain's `_runtimeAnimalCopies` set keeps the destroyed reference until its next
+  `Reset`. Its only consumer filters LIVE `FindObjectsOfType` instances, so behaviour is
+  unaffected — a bounded reference leak, not a desync, and not worth a cross-domain call in
+  this cycle.
 
 ## Docs updated (2026-09-17)
 

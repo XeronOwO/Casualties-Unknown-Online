@@ -40,6 +40,24 @@ public class PendingEntityReportTableTests
 	}
 
 	[Fact]
+	public void Contains_SeesExactlyThePendingEntries()
+	{
+		var table = new PendingEntityReportTable();
+		var key = Key("keypad", 3, 4);
+
+		// The pending table is the proof that THIS member reported a creation —
+		// the host's rejection is matched against it when the creation token
+		// names another creator.
+		Assert.False(table.Contains(key));
+		Assert.True(table.Report(Creation("keypad", 3f, 4f)));
+		Assert.True(table.Contains(key));
+		Assert.False(table.Contains(Key("keypad", 3, 5))); // a different cell is a different creation
+
+		Assert.True(table.Remove(key));
+		Assert.False(table.Contains(key));
+	}
+
+	[Fact]
 	public void Report_DistinctCellsOfTheSamePrefab_AreDistinctCreations()
 	{
 		var table = new PendingEntityReportTable();

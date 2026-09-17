@@ -16,13 +16,13 @@
    was dropped without a reason.
 2. **S2 — evidence collection.** Eight independent collectors produced per-row evidence:
    trigger message + numeric id, direction, reliability, periodic fallback cadence and apply
-   semantics, backfill/reconnect path, loss semantics, and `path:line` references. The
-   reference + quoted-line pairs are stored in `docs/evidence/sync-coverage-evidence.json`
-   (505 collector entries + 288 inline-reference anchors = 793 entries) and **all 793 were
-   mechanically verified against the working tree** (file exists, line in range, quoted text
-   is a substring of that line). `SyncCoverageGateTests`
-   re-runs that verification on every `dotnet test`, so a line shift fails the gate instead of
-   silently rotting.
+   semantics, backfill/reconnect path, loss semantics, and source references. The
+   reference + quoted-text pairs are stored in `docs/evidence/sync-coverage-evidence.json`
+   and **every one was mechanically verified against the working tree** (the file exists and
+   the quoted text is still in it). `SyncCoverageGateTests` re-runs that verification on every
+   `dotnet test`, so rotted evidence fails the gate instead of silently rotting. A reference is
+   a path plus the quoted text and carries no line number: a line number drifts with every edit
+   above it and then has to be re-pointed by hand, while the quoted text is the claim.
 3. **S3 — adjudication.** Every row got exactly one verdict. The adjudication changed four
    collector verdicts (N6/N7/N8/R7 → `Transient-by-design` because the loss is accepted by
    design, and F4 → `OK` because a continuous field has no discrete trigger) and, after the
@@ -390,13 +390,12 @@ rewriting the historical records is out of scope for this audit.
 - the owning row's text does not mention the member (an entry cannot be parked on an unrelated
   row);
 - a row's verdict leaves the vocabulary or is empty;
-- a row carries no `path.cs:line` evidence reference, a row id is duplicated, or the matrix
+- a row carries no source evidence reference, a row id is duplicated, or the matrix
   drops below the 64-row floor;
-- any of the 793 evidence entries in `docs/evidence/sync-coverage-evidence.json` no longer
-  matches its referenced source line (the quote is not a substring of that line), or the
-  evidence file shrinks below the 700-entry floor;
-- an inline `path:line` reference in the matrix has no anchor in that evidence file, its
-  inline quote does not match the source line, or it uses a bare continuation `:N`;
+- any evidence entry in `docs/evidence/sync-coverage-evidence.json` no longer has its quoted
+  text in the file it names, or the evidence file shrinks below the 700-entry floor;
+- a quoted inline reference in the matrix has no anchor in that evidence file, or its quote is
+  no longer in the file it names;
 - the verdict summary table disagrees with the row verdicts;
 - a gap row does not name an existing `docs/backlog/todo/*.md` ticket.
 

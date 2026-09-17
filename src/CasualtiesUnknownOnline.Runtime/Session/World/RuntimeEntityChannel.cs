@@ -12,6 +12,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// every member, the reporter included); the host creates its own copy, enriches
 /// the record (a created keypad's code is host authority) and relays.
 /// <para>
+/// A creation this host cannot materialize is the one exception: accept-first
+/// never covers state the host cannot own, so it is REJECTED — neither recorded
+/// nor relayed — and answered to the reporter, whose pending report and local
+/// copy both end there (decision 161).
+/// </para>
+/// <para>
 /// The live message is one-shot, so this channel also owns the tables that make
 /// a swallowed report or relay heal without a reconnect: the host's
 /// accepted-creation table (<see cref="RuntimeEntityRegistry"/>, sent absolutely
@@ -54,6 +60,13 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 
 	/// <summary>An entity-creation record arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived;
+
+	/// <summary>
+	/// The host rejected a creation this side reported: the pending re-report is
+	/// already dropped by the channel; the adapter destroys the local copy through
+	/// the entity death funnel (idempotent when the copy is already gone).
+	/// </summary>
+	public event Action<RuntimeEntityKey, RuntimeEntityRejectReason>? RuntimeEntityRejectedReceived;
 
 	/// <summary>How many unacknowledged guest creations are waiting for the host's answer (the fallback pump's work check and the tests' seam).</summary>
 	internal int PendingEntityReportCount => _pendingEntityReports.Count;
@@ -138,15 +151,18 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 
 	/// <summary>
 	/// Host only: a guest reported a runtime creation this host could NOT
-	/// materialize locally (its mod set lacks the prefab/template). Accept-first:
-	/// the creation is still relayed — a third-party guest that does have the
-	/// prefab must receive it, and the reporter's echo must still acknowledge
-	/// its pending report. It is deliberately NOT recorded in the accepted table:
-	/// the host has no local copy whose death could ever drop the record, so the
-	/// 60 s snapshot would re-materialize a creation a member later destroyed
-	/// (the exact resurrection this mechanism exists to prevent). The cost —
-	/// a late joiner with the prefab does not receive it — is recorded in the
-	/// ticket.
+	/// materialize locally (its content set lacks the prefab/template). The
+	/// corrected accept-first precondition is explicit — accept-first never
+	/// covers state the host cannot own, and this creation is such state: the
+	/// host has no local copy whose death could ever drop a record, so a record
+	/// would re-materialize the creation on a member that later destroyed its
+	/// copy, and a relay would hand every peer that HAS the prefab an entity the
+	/// host can never back up or retract (an unowned accept that leaks into every
+	/// later snapshot). The creation is therefore REJECTED: neither recorded nor
+	/// relayed, and the reporter is answered directly with
+	/// <see cref="NetMsg.RuntimeEntityRejected"/> — which stops its 60 s re-report,
+	/// destroys its local copy, and makes the session's inconsistent content sets
+	/// visible instead of silently divergent.
 	/// </summary>
 	public void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg)
 	{
@@ -155,9 +171,50 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 			return;
 		}
 
-		_log.LogWarning("[EntitySpawn] host could not materialize {Id} at ({X:F1},{Y:F1}) — relaying it unchanged so a member that has the prefab receives it, but NOT recording it (no local copy could ever drop the record).",
-			msg.Id, msg.Position.X, msg.Position.Y);
-		_session.Broadcast(NetMsg.EntitySpawned, msg); // the reporter's echo is its acknowledgement
+		var key = RuntimeEntityKey.From(msg);
+		_log.LogWarning("[EntitySpawn] REJECTED {Id} at ({X:F1},{Y:F1}) (creation {Creator}:{Sequence}) reported by {Reporter}: this host cannot materialize the prefab, so the creation is neither recorded nor relayed.",
+			msg.Id, msg.Position.X, msg.Position.Y, key.CreatorSteamId, key.CreationSequence, sender);
+
+		_sender.Send(sender, NetMsg.RuntimeEntityRejected, new RuntimeEntityRejectedMsg
+		{
+			Key = key.ToKeyMsg(),
+			Reason = RuntimeEntityRejectReason.PrefabUnavailable,
+		});
+	}
+
+	/// <summary>
+	/// Guest: the host rejected a creation this side reported — the answer the
+	/// pending re-report waited for. Only the REPORTER's own creation key (its
+	/// token's creator half) is acted on: a rejection that reaches another member
+	/// changes nothing there. The pending entry is dropped so the 60 s fallback
+	/// stops, and the adapter is asked to destroy the local copy — idempotent, so
+	/// a replayed rejection that arrives after the copy already died is a no-op
+	/// rather than a resurrection.
+	/// </summary>
+	public void FireRuntimeEntityRejectedReceived(ulong sender, RuntimeEntityRejectedMsg msg)
+	{
+		if (_session.Role != SessionRole.Guest || msg.Key is null)
+		{
+			return;
+		}
+
+		var key = RuntimeEntityKey.FromKeyMsg(msg.Key);
+		if (key.CreatorSteamId != _session.LocalSteamId)
+		{
+			_log.LogDebug("[EntitySpawn] ignoring a rejection for {Id} at ({X},{Y}) — creation {Creator} is not this member's report.",
+				key.Id, key.X, key.Y, key.CreatorSteamId);
+			return;
+		}
+
+		if (_pendingEntityReports.Remove(key) && _pendingEntityReports.Count == 0)
+		{
+			_pendingEntityOverflowLogged = false; // the overflow episode ended — a later fill must log again
+		}
+
+		_log.LogWarning("[EntitySpawn] host rejected {Id} at ({X:F1},{Y:F1}) (creation {Creator}:{Sequence}): {Reason} — the pending report is dropped and the local copy is removed.",
+			key.Id, key.X, key.Y, key.CreatorSteamId, key.CreationSequence, msg.Reason);
+
+		RuntimeEntityRejectedReceived?.Invoke(key, msg.Reason);
 	}
 
 	/// <summary>Host only: send the accepted-creation table to one member (world entry, or the 60 s cycle).</summary>

@@ -66,6 +66,11 @@ internal sealed class WorldChannelRelay(
 
 	public void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg) => _runtimeEntityChannel.ReportEntitySpawnUnmaterialized(sender, msg);
 
+	public void FireRuntimeEntityRejectedReceived(ulong sender, RuntimeEntityRejectedMsg msg) =>
+		_runtimeEntityChannel.FireRuntimeEntityRejectedReceived(sender, msg);
+
+	public event Action<RuntimeEntityKey, RuntimeEntityRejectReason>? RuntimeEntityRejectedReceived { add => _runtimeEntityChannel.RuntimeEntityRejectedReceived += value; remove => _runtimeEntityChannel.RuntimeEntityRejectedReceived -= value; }
+
 	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _runtimeEntityChannel.SendRuntimeEntitySnapshot(targetSteamId);
 
 	public void FireRuntimeEntitySnapshotReceived(ulong sender, RuntimeEntitySnapshotMsg snapshot) =>

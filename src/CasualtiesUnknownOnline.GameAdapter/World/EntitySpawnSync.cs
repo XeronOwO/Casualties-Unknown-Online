@@ -61,9 +61,17 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	/// <summary>Received geyser creations awaiting their own copy's Start before the carried type is applied.</summary>
 	private readonly List<(RuntimeEntityKey Key, Vector2 Pos, byte Type, int AtFrame)> _applyQueue = [];
 
-	internal void BindToSession() => _world.EntitySpawnedReceived += OnRemoteEntitySpawned;
+	internal void BindToSession()
+	{
+		_world.EntitySpawnedReceived += OnRemoteEntitySpawned;
+		_world.RuntimeEntityRejectedReceived += OnRuntimeEntityRejected;
+	}
 
-	internal void Unbind() => _world.EntitySpawnedReceived -= OnRemoteEntitySpawned;
+	internal void Unbind()
+	{
+		_world.EntitySpawnedReceived -= OnRemoteEntitySpawned;
+		_world.RuntimeEntityRejectedReceived -= OnRuntimeEntityRejected;
+	}
 
 	internal void Update()
 	{
@@ -117,6 +125,37 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		{
 			_world.ReportRuntimeEntityDestroyed(key);
 		}
+	}
+
+	/// <summary>
+	/// The host rejected a creation this side reported (decision 161) — nobody
+	/// keeps an entity the host cannot own. The local copy is located by its
+	/// STAMPED creation key (never by position: the round trip takes time and the
+	/// copy may have moved, been pushed or been used), then handed to the same
+	/// death funnel every other remote death uses — the remote-death marker plus a
+	/// health below the death threshold, so the game's own
+	/// <c>BuildingEntity.Update</c> removes it WITHOUT rolling a second drop set
+	/// (a rejected creation has no side that owns its drops). The creation record
+	/// is dropped in the same step, so no snapshot or re-report can resurrect it.
+	/// Idempotent: a rejection that arrives after the copy already died is a
+	/// logged no-op.
+	/// </summary>
+	internal void OnRuntimeEntityRejected(RuntimeEntityKey key, RuntimeEntityRejectReason reason)
+	{
+		var entity = FindByCreationKey(key);
+		if (entity == null) // Unity object — ==
+		{
+			_log.LogDebug("[EntitySpawn] rejected creation {Id} at ({X},{Y}) has no local copy left — nothing to remove ({Reason}).",
+				key.Id, key.X, key.Y, reason);
+			return;
+		}
+
+		_log.LogWarning("[EntitySpawn] host rejected creation {Id} at ({X},{Y}) (creation {Creator}:{Sequence}): {Reason} — removing the local copy.",
+			key.Id, key.X, key.Y, key.CreatorSteamId, key.CreationSequence, reason);
+
+		RemoteEntityDeath.Mark(entity, replayAnimalDeath: false);
+		entity.health = 0f;
+		OnRuntimeEntityDestroyed(entity); // the record half, cleaned in the same step (the death funnel reports it again in Update — idempotent)
 	}
 
 	/// <summary>
@@ -221,12 +260,12 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 				created = RuntimeEntityFactory.TryCreate(msg.Id, pos, _log, "EntitySpawn");
 				if (created == null) // Unity object — ==
 				{
-					// ACCEPT-FIRST: the host could not materialize its own copy
-					// (its mod set lacks the prefab), but a member that HAS the
-					// prefab must still receive the creation, and the reporter's
-					// report must still be acknowledged. The channel records the
-					// acceptance and relays the ORIGINAL message — there is no
-					// local copy to enrich.
+					// REJECTED (decision 161): the host could not materialize its
+					// own copy (its content set lacks the prefab), so it can never
+					// own this creation — the channel neither records nor relays
+					// it, and answers the reporter, whose pending report and local
+					// copy both end there. Relaying instead would hand every member
+					// that HAS the prefab an entity no owner can back up or retract.
 					_world.ReportEntitySpawnUnmaterialized(sender, msg);
 					return;
 				}

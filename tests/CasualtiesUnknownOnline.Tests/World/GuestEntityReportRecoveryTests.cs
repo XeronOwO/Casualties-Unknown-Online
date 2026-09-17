@@ -382,37 +382,6 @@ public class GuestEntityReportRecoveryTests
 	}
 
 	[Fact]
-	public void UnmaterializableCreation_IsRelayedAndAcknowledgedWithoutBeingRecorded()
-	{
-		using var w = ItemSimWorld.Create();
-		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
-		var g2Creations = new List<EntitySpawnedMsg>();
-		w.G2.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) => g2Creations.Add(msg);
-		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
-
-		// The adapter's contract double for the host-side failure branch: the
-		// host lacks the prefab and cannot materialize its own copy. Accept-first
-		// still requires the creation to reach a member that HAS the prefab, and
-		// the reporter's echo to acknowledge its report.
-		hostWorld.EntitySpawnedReceived += (sender, msg) => hostWorld.ReportEntitySpawnUnmaterialized(sender, msg);
-
-		guestWorld.SendEntitySpawned(Creation("modcrate", 6f, 6f, w.G1.SteamId, 4));
-		w.Driver.Tick(33);
-
-		var relayed = Assert.Single(g2Creations);
-		Assert.Equal("modcrate", relayed.Id);
-		Assert.Equal(0, PendingCreations(w.G1));
-
-		// NOT recorded: the host has no local copy whose death could drop the
-		// record, so a record would re-materialize the creation on a member that
-		// later destroyed its copy (the resurrection this mechanism prevents).
-		Assert.Equal(0, w.Host.Services.GetRequiredService<RuntimeEntityRegistry>().Count);
-		w.Host.Services.GetRequiredService<IWorldControl>().SendRuntimeEntitySnapshot(w.G2.SteamId);
-		w.Driver.Tick(33);
-		Assert.Single(g2Creations); // the snapshot carries no record for it
-	}
-
-	[Fact]
 	public void UnmaterializableReport_OnAGuest_IsNotRelayed()
 	{
 		using var w = ItemSimWorld.Create();

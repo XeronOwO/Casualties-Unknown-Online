@@ -412,6 +412,37 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void RuntimeEntityRejected_CreationKeyAndReason_RoundTrip()
+	{
+		// The rejection carries the CREATION key — never a position: the round
+		// trip takes time and the reporter's copy may have moved or been used
+		// before it arrives. A lost key would leave the pending re-report alive
+		// and the local copy in place, which is exactly the unowned creation this
+		// message exists to end.
+		var msg = new RuntimeEntityRejectedMsg
+		{
+			Key = new RuntimeEntityKeyMsg
+			{
+				Id = "modcrate",
+				CellX = -12,
+				CellY = 34,
+				CreatorSteamId = 76561198000000042ul,
+				CreationSequence = 17,
+			},
+			Reason = RuntimeEntityRejectReason.PrefabUnavailable,
+		};
+
+		var decoded = NetPacket.DecodePayload<RuntimeEntityRejectedMsg>(NetPacket.Encode(NetMsg.RuntimeEntityRejected, msg));
+
+		Assert.Equal("modcrate", decoded.Key.Id);
+		Assert.Equal(-12, decoded.Key.CellX);
+		Assert.Equal(34, decoded.Key.CellY);
+		Assert.Equal(76561198000000042ul, decoded.Key.CreatorSteamId);
+		Assert.Equal(17u, decoded.Key.CreationSequence);
+		Assert.Equal(RuntimeEntityRejectReason.PrefabUnavailable, decoded.Reason);
+	}
+
+	[Fact]
 	public void EnemySpawnEntry_CrystalEnemyTint_RoundTrips()
 	{
 		// The late-joiner backfill entry mirrors the live EntitySpawned tint; a

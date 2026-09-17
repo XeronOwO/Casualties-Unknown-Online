@@ -36,7 +36,7 @@ internal sealed class WorldFactRestore(
 	/// re-roll is a value the player can see (§6: never a quiet default). The native
 	/// half's own refusals land later, at the world-entry replay, and reach the log
 	/// today rather than the outcome — the restore-report gap tracked in
-	/// `todo/save-mid-run-consistent-cut.md` (scope 6).
+	/// `review/save-mid-run-consistent-cut.md` (scope 6).
 	///
 	/// <paramref name="restoreSequence"/> is the restore attempt these values belong
 	/// to (the kernel restore that produced them): the Runtime arm stamps it, and the

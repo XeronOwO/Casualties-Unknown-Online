@@ -5,10 +5,10 @@
   tooltip's happiness) is the user's dual-client acceptance, per the project's verification boundary.
 - Priority: Medium-High
 - Category: Persistence / save system
-- Source: Stage S3.4b of `in-progress/save-system-mid-run-and-layer-end.md`, split out of
+- Source: Stage S3.4b of `review/save-system-mid-run-and-layer-end.md`, split out of
   `todo/save-native-run-field-parity.md` (S3.4a landed the run-level fields there).
 - Related: `docs/architecture/save-archive-format.md` §3.4/§6.1, `docs/decisions/active.md` 165/166/170/171,
-  `todo/save-mid-run-consistent-cut.md` (S3 umbrella), `todo/save-native-run-field-parity.md` (S3.4a)
+  `review/save-mid-run-consistent-cut.md` (S3 umbrella), `todo/save-native-run-field-parity.md` (S3.4a)
 
 ## Why
 
@@ -138,5 +138,5 @@ write). What is NOT machine-verified and needs a dual-client session:
 
 - S3.5 (exactly-once plus the documentation/re-anchoring pass) stays in the umbrella ticket.
 - The umbrella's scope 6 restore-report history: native world facts' own refusals still reach the log
-  only (tracked in `todo/save-mid-run-consistent-cut.md` scope 6) — the character half of that report
+  only (tracked in `review/save-mid-run-consistent-cut.md` scope 6) — the character half of that report
   is what this stage closed.

@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Persistence;
 /// </summary>
 public class WorldTransientPolicyTests
 {
-	/// <summary>The ticket's table, one key per in-flight class (todo/save-mid-run-consistent-cut.md §3).</summary>
+	/// <summary>The ticket's table, one key per in-flight class (review/save-mid-run-consistent-cut.md §3).</summary>
 	private static readonly string[] TicketRows =
 	[
 		"block-break-pending",

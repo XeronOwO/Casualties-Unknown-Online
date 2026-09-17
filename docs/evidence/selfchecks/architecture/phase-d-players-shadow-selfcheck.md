@@ -6,7 +6,7 @@
 > table holds is cross-layer and a layer boundary must keep all of it. The lines below that name the
 > removed members are the historical record of the 2026-08-29 cycle, not a description of the
 > current tree; for the reset family as it stands, see `docs/architecture/domains.md` and the
-> layer-boundary section of `docs/backlog/todo/save-mid-run-consistent-cut.md`.
+> layer-boundary section of `docs/backlog/review/save-mid-run-consistent-cut.md`.
 
 This fact sheet records the Phase D Players domain cycles: a kernel
 terminal-status table (alive/conscious), discrete limb terminal facts, the

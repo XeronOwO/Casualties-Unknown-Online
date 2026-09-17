@@ -5,7 +5,7 @@
 - Category: Sync / restore accounting
 - Source: the S3 gap-3 cycle (`TrapActionOutcome` + `TrapActionVerdict`); the reviewer restated these
   as over-claims of the family that cycle fixed, with their reachability
-- Related: `docs/backlog/todo/save-mid-run-consistent-cut.md` (the shared action verdict),
+- Related: `docs/backlog/review/save-mid-run-consistent-cut.md` (the shared action verdict),
   `docs/architecture/save-archive-format.md` §6, `src/CasualtiesUnknownOnline.GameAdapter/World/TrapStateActions.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/World/CrystalStateActions.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs`, decision 175

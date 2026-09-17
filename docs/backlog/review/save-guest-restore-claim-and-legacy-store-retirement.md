@@ -7,7 +7,7 @@
 - Related: decision 162 (transport-scoped identity), decision 163 (repair mode), decision 164 (the
   world repository), decision 177 (the claim verdict), decision 178 (the reconnect table's single
   source of truth), `docs/architecture/save-archive-format.md` §2/§6.1,
-  `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md` (stage table)
+  `docs/backlog/review/save-system-mid-run-and-layer-end.md` (stage table)
 
 ## The gap
 

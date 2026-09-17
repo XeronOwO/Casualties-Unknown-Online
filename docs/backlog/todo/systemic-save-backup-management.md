@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Persistence / tooling
 - Source: Promoted from `future/` by user request (2026-09-07, user-promoted) alongside the new save-system requirement
-- Depends on: `todo/save-system-mid-run-and-layer-end.md` — **reuse its package format** (manifest + per-domain JSON files + directory-entry archive). Do not define a second archive format.
+- Depends on: `review/save-system-mid-run-and-layer-end.md` — **reuse its package format** (manifest + per-domain JSON files + directory-entry archive). Do not define a second archive format.
 
 Goal: provide a user-facing, inspectable backup/restore layer on top of CUO's
 persistence without breaking the runtime/wire contracts.

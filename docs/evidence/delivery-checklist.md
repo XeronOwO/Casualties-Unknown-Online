@@ -24,19 +24,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: 64 data rows are 10 cells each with an `Anchors` count equal to that row's entries in `docs/evidence/sync-coverage-evidence.json`, which is now the single home of every quoted source text
+      file:line or runtime log) or is explicitly marked unverified — evidence: this cycle touches no runtime mechanism; the moved ticket's claims were re-verified instead — 82/82 acceptance test anchors re-resolved in the test tree (54 `Type.Method` + 28 shorthand `.Method`, 0 missing), 376/376 focused save/restore + world-entity cases, 32/32 normative gates
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 64 data rows were rewritten by one rule rather than row by row, and the 33 mechanical-deletion residues the independent review found across 21 rows are fixed in the same change
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `SyncCoverageGateTests.SyncCoverageMatrix_DeclaredAnchorCountsMatchTheEvidence` recomputes every row's count against the JSON (64/64 match, independently reproduced by the review) and every new gate rule carries a negative-contract self-test
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the family was every reference to the two moved tickets — 33 references across 18 files (one by hand, 32 by one literal sweep rule), with a repo-wide search confirming 0 residual hits for the two moved ticket paths
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the *S3.5 closure* section of `review/save-mid-run-consistent-cut.md` carries the scope table (9 scopes x state x where each landed), the exactly-once claim split into machine-proven vs the user's in-game half, and the re-anchoring numbers
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: no runtime behaviour is touched, so the proof is the gate itself (12/12 including 7 negative-contract self-tests) plus the full suite, with the review replaying mutations against the real gate DLL outside the tree
+      peer log comparison, hotrepl assertions) is decided — evidence: no runtime behaviour changes, so the proof is a one-off anchor re-resolution pass (82/82, script not landed), the focused suites, and the normative gates; the moved ticket's in-game rows stay named as the user's pass and are NOT claimed as observed
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket's own "Required outcome (decide at implementation)" block froze the five outcomes, and the handoff instruction named this ticket as the next work item
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: `dotnet format CasualtiesUnknownOnline.slnx` exit 0; `SyncCoverageGateTests` 12/12; full suite 3 202 + 32 gates green (the only red was this checklist before its own boxes were checked)
+      process violation — evidence: the S3 design was frozen with the user on 2026-09-10 (decisions 162-166) and the handoff instruction named this ticket as the next work item; the S3.5 closure is verification/documentation only, so it introduces no design that needs approval
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: `dotnet format CasualtiesUnknownOnline.slnx` exit 0; full suite 3 202/3 202 + 31/32 normative gates, the only red being THIS checklist before its own boxes were checked; re-run after checking them is 32/32
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: `SyncCoverageGateTests.cs` is 642 lines, over the 600-line advisory; the repository line cap enumerates `src` only, `TestClassSizeGateTests` caps xUnit cases (12 here, limit 40), and the deviation with the review's split recommendation is recorded in `review/evidence-matrix-fat-rows-split.md`
+      dead mechanisms deleted in the same round) — evidence: no class is touched — the two source edits are comment-only lines repointing a moved ticket path (`WorldFactRestore.cs`, `WorldTransientPolicyTests.cs`), with no state bool and no dead mechanism involved; the rest of the change is documentation
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

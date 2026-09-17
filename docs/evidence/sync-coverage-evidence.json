@@ -4908,13 +4908,13 @@
     },
     {
       "cluster": "inline",
-      "row": "`docs/architecture/protocol.md`",
+      "row": "(none)",
       "file": "src/CasualtiesUnknownOnline.Protocol/Wire/ProtocolFrameValidator.cs",
       "quote": "var envelopeCount = (frame.Command is not null ? 1 : 0)"
     },
     {
       "cluster": "inline",
-      "row": "`docs/architecture/protocol.md`",
+      "row": "(none)",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
       "quote": "if (!ProtocolFrameValidator.TryValidate(frame, sender, out var validationError))"
     },

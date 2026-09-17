@@ -16,11 +16,14 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// <c>docs/evidence/sync-coverage-matrix.md</c> with an owning matrix row whose
 /// semantic text mentions it and whose verdict is one of the audit vocabulary;
 /// every evidence entry in <c>docs/evidence/sync-coverage-evidence.json</c> must
-/// still match the source line it quotes; every inline matrix reference must be
+/// still be present in the source it quotes; every inline matrix reference must be
 /// anchored in that evidence file; the verdict summary must match the rows; and
 /// every gap row must own an existing ticket. A new sync feature therefore
 /// cannot ship without declaring its event + fallback policy, and evidence
-/// lines cannot silently drift.
+/// cannot silently drift. A reference carries the path and the quoted text,
+/// never a line number: a line number drifts with every edit above it and then
+/// has to be re-pointed by hand, while the quoted text is what the evidence
+/// actually asserts.
 /// </summary>
 public class SyncCoverageGateTests
 {
@@ -30,10 +33,8 @@ public class SyncCoverageGateTests
 	private const int MinimumEvidenceEntries = 700;
 
 	private static readonly Regex MatrixRowId = new(@"^[A-Z]{1,2}\d+[a-z]?$");
-	private static readonly Regex EvidenceReference = new(@"\.cs:[0-9]+");
-	private static readonly Regex InlineReference = new(@"((?:src|tests|docs)/[A-Za-z0-9_\-./]+\.(?:cs|md)):(\d+)(?:-\d+)?");
-	private static readonly Regex ContinuationReference = new(@"(?<![\d\w]):\d+");
-	private static readonly Regex InlineQuote = new(@"((?:src|tests|docs)/[A-Za-z0-9_\-./]+\.(?:cs|md)):(\d+)(?:-\d+)?\s+'(?<quote>[^']*)'");
+	private static readonly Regex InlineReference = new(@"(?:src|tests|docs)/[A-Za-z0-9_\-./]+\.(?:cs|md)");
+	private static readonly Regex InlineQuote = new(@"((?:src|tests|docs)/[A-Za-z0-9_\-./]+\.(?:cs|md))\s+'(?<quote>[^']*)'");
 	private static readonly Regex TicketReference = new(@"todo/[A-Za-z0-9_\-]+\.md");
 	private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -90,8 +91,8 @@ public class SyncCoverageGateTests
 	public void SyncCoverageMatrix_InlineRefsAreEvidenceAnchoredAndQuoted()
 	{
 		var matrix = ParseMatrix();
-		var evidenceRefs = LoadEvidence().Select(e => e.Ref).ToHashSet(StringComparer.Ordinal);
-		var failures = ValidateInlineReferences(matrix.Rows, evidenceRefs);
+		var evidenceFiles = LoadEvidence().Select(e => e.File).ToHashSet(StringComparer.Ordinal);
+		var failures = ValidateInlineReferences(matrix.Rows, evidenceFiles);
 		Assert.True(failures.Count == 0, "Sync-coverage inline-reference gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures.Take(20)));
 	}
 
@@ -103,22 +104,22 @@ public class SyncCoverageGateTests
 	}
 
 	[Fact]
-	public void InlineReferenceValidation_FlagsContinuationUngroundedAnchorAndQuoteMismatch()
+	public void InlineReferenceValidation_FlagsUngroundedAnchorAndQuoteMismatch()
 	{
+		const string netMsg = "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs";
 		var rows = new List<MatrixRow>
 		{
-			new("W1", ["W1", "feature", "direction", "event src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8 'public enum NetMsg : byte'", "fallback", "backfill", "loss", "OK", "ticket"]),
-			new("W2", ["W2", "feature", "direction", "event src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8 and :9", "fallback", "backfill", "loss", "OK", "ticket"]),
-			new("W3", ["W3", "feature", "direction", "event src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8 'this text does not exist'", "fallback", "backfill", "loss", "OK", "ticket"]),
-			new("W4", ["W4", "feature", "direction", "event src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:9999", "fallback", "backfill", "loss", "OK", "ticket"])
+			new("W1", ["W1", "feature", "direction", $"event {netMsg} 'public enum NetMsg : byte'", "fallback", "backfill", "loss", "OK", "ticket"]),
+			new("W2", ["W2", "feature", "direction", $"event {netMsg} 'this text does not exist'", "fallback", "backfill", "loss", "OK", "ticket"]),
+			new("W3", ["W3", "feature", "direction", "event src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsgUnknown.cs 'public enum NetMsg : byte'", "fallback", "backfill", "loss", "OK", "ticket"])
 		};
-		var evidence = new HashSet<string>(StringComparer.Ordinal) { "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8" };
+		var evidence = new HashSet<string>(StringComparer.Ordinal) { netMsg };
 
 		var failures = ValidateInlineReferences(rows, evidence);
 
-		Assert.Contains(failures, f => f.Contains("W2: continuation reference ':9'", StringComparison.Ordinal));
-		Assert.Contains(failures, f => f.Contains("W3: inline quote at src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8", StringComparison.Ordinal));
-		Assert.Contains(failures, f => f.Contains("W4: inline reference src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:9999 has no evidence anchor", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains($"W2: inline quote is not in {netMsg}", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W3: inline reference src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsgUnknown.cs has no evidence anchor", StringComparison.Ordinal));
+		Assert.DoesNotContain(failures, f => f.StartsWith("W1:", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -137,7 +138,7 @@ public class SyncCoverageGateTests
 
 		Assert.Contains(failures, f => f.Contains("duplicate matrix row id: W1", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("invalid verdict 'Unverified'", StringComparison.Ordinal));
-		Assert.Contains(failures, f => f.Contains("W2: no file:line evidence reference", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W2: no source evidence reference", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("invalid verdict 'Made-up verdict'", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("W4: gap row has no existing todo ticket", StringComparison.Ordinal));
 	}
@@ -205,20 +206,21 @@ public class SyncCoverageGateTests
 	[Fact]
 	public void EvidenceValidation_FlagsMismatchedQuoteMissingFileTruncationAndEmptyQuote()
 	{
+		const string netMsg = "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs";
 		var entries = new List<EvidenceEntry>
 		{
-			new("c", "W1", "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8", "public enum NetMsg : byte"),
-			new("c", "W1", "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8", "this line text does not exist"),
-			new("c", "W1", "src/does/not/exist.cs:1", "anything"),
-			new("c", "W1", "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8", "   ")
+			new("c", "W1", netMsg, "public enum NetMsg : byte"),
+			new("c", "W1", netMsg, "this line text does not exist"),
+			new("c", "W1", "src/does/not/exist.cs", "anything"),
+			new("c", "W1", netMsg, "   ")
 		};
 
 		var failures = ValidateEvidence(entries);
 
 		Assert.Contains(failures, f => f.Contains("evidence file has 4 entries (expected at least 700)", StringComparison.Ordinal));
-		Assert.Contains(failures, f => f.Contains("quote mismatch at src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8", StringComparison.Ordinal));
-		Assert.Contains(failures, f => f.Contains("missing file src/does/not/exist.cs:1", StringComparison.Ordinal));
-		Assert.Contains(failures, f => f.Contains("empty quote at src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:8", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains($"quote is not in {netMsg}", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("missing file src/does/not/exist.cs", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains($"empty quote at {netMsg}", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -268,9 +270,9 @@ public class SyncCoverageGateTests
 				failures.Add($"{row.Id}: invalid verdict '{verdict}' (expected one of {string.Join(" | ", AllowedVerdicts)})");
 			}
 
-			if (!row.Cells.Any(cell => EvidenceReference.IsMatch(cell)))
+			if (!row.Cells.Any(cell => InlineReference.IsMatch(cell)))
 			{
-				failures.Add($"{row.Id}: no file:line evidence reference in any cell");
+				failures.Add($"{row.Id}: no source evidence reference in any cell");
 			}
 
 			if (GapVerdicts.Contains(verdict, StringComparer.Ordinal))
@@ -307,40 +309,38 @@ public class SyncCoverageGateTests
 		return failures;
 	}
 
+	/// <summary>
+	/// A QUOTED reference is the evidence claim: its path must be anchored in the
+	/// evidence file AND the quoted text must still be in that source. A bare path
+	/// mention (no quote) is prose, not a claim, so it is not anchored here — which
+	/// is also why dropping the line number costs nothing: the claim was always the
+	/// quoted text, never the position.
+	/// </summary>
 	private static List<string> ValidateInlineReferences(
 		IReadOnlyList<MatrixRow> rows,
-		IReadOnlySet<string> evidenceRefs)
+		IReadOnlySet<string> evidenceFiles)
 	{
 		var failures = new List<string>();
+		var textByFile = new Dictionary<string, string>(StringComparer.Ordinal);
+
 		foreach (var row in rows)
 		{
 			foreach (var cell in row.Cells)
 			{
-				// A continuation ref ("and :123") is forbidden: every ref must carry its path.
-				foreach (Match match in ContinuationReference.Matches(cell))
-				{
-					failures.Add($"{row.Id}: continuation reference '{match.Value}' - write the full path instead");
-				}
-
-				foreach (Match match in InlineReference.Matches(cell))
-				{
-					var reference = match.Groups[1].Value + ":" + match.Groups[2].Value;
-					if (!evidenceRefs.Contains(reference))
-					{
-						failures.Add($"{row.Id}: inline reference {reference} has no evidence anchor in {EvidencePath}");
-					}
-				}
-
 				foreach (Match match in InlineQuote.Matches(cell))
 				{
+					var relative = match.Groups[1].Value;
+					if (!evidenceFiles.Contains(relative))
+					{
+						failures.Add($"{row.Id}: inline reference {relative} has no evidence anchor in {EvidencePath}");
+					}
+
 					var quote = Normalize(match.Groups["quote"].Value.Replace("&#124;", "|", StringComparison.Ordinal));
 					if (quote.Length == 0)
 					{
 						continue;
 					}
 
-					var relative = match.Groups[1].Value;
-					var lineNumber = int.Parse(match.Groups[2].Value);
 					var fullPath = RepositoryPaths.File(relative);
 					if (!File.Exists(fullPath))
 					{
@@ -348,16 +348,33 @@ public class SyncCoverageGateTests
 						continue;
 					}
 
-					var lines = File.ReadAllLines(fullPath);
-					if (lineNumber < 1 || lineNumber > lines.Length || !Normalize(lines[lineNumber - 1]).Contains(quote, StringComparison.Ordinal))
+					if (!NormalizedSourceText(fullPath, textByFile).Contains(quote, StringComparison.Ordinal))
 					{
-						failures.Add($"{row.Id}: inline quote at {relative}:{lineNumber} does not match the referenced source line: '{quote}'");
+						failures.Add($"{row.Id}: inline quote is not in {relative}: '{quote}'");
 					}
 				}
 			}
 		}
 
 		return failures;
+	}
+
+	/// <summary>
+	/// The whole file with runs of whitespace folded to one space, so a quote is
+	/// matched against the text it was copied from rather than against one line
+	/// number. A line number is deliberately NOT part of the contract: it drifts
+	/// with every edit above it and then has to be re-pointed by hand, while the
+	/// quoted text is what the evidence actually asserts.
+	/// </summary>
+	private static string NormalizedSourceText(string fullPath, Dictionary<string, string> cache)
+	{
+		if (!cache.TryGetValue(fullPath, out var text))
+		{
+			text = Normalize(File.ReadAllText(fullPath));
+			cache[fullPath] = text;
+		}
+
+		return text;
 	}
 
 	private static List<string> ValidateVocabulary(
@@ -418,40 +435,26 @@ public class SyncCoverageGateTests
 			failures.Add($"evidence file has {entries.Count} entries (expected at least {MinimumEvidenceEntries})");
 		}
 
+		var textByFile = new Dictionary<string, string>(StringComparer.Ordinal);
 		foreach (var entry in entries)
 		{
-			var separator = entry.Ref.LastIndexOf(':');
-			if (separator <= 0 || !int.TryParse(entry.Ref[(separator + 1)..], out var lineNumber))
-			{
-				failures.Add($"{entry.Row}: malformed evidence ref '{entry.Ref}'");
-				continue;
-			}
-
 			var quote = Normalize(entry.Quote);
 			if (quote.Length == 0)
 			{
-				failures.Add($"{entry.Row}: empty quote at {entry.Ref}");
+				failures.Add($"{entry.Row}: empty quote at {entry.File}");
 				continue;
 			}
 
-			var relative = entry.Ref[..separator];
-			var fullPath = RepositoryPaths.File(relative);
+			var fullPath = RepositoryPaths.File(entry.File);
 			if (!File.Exists(fullPath))
 			{
-				failures.Add($"{entry.Row}: missing file {entry.Ref}");
+				failures.Add($"{entry.Row}: missing file {entry.File}");
 				continue;
 			}
 
-			var lines = File.ReadAllLines(fullPath);
-			if (lineNumber < 1 || lineNumber > lines.Length)
+			if (!NormalizedSourceText(fullPath, textByFile).Contains(quote, StringComparison.Ordinal))
 			{
-				failures.Add($"{entry.Row}: line out of range {entry.Ref}");
-				continue;
-			}
-
-			if (!Normalize(lines[lineNumber - 1]).Contains(quote, StringComparison.Ordinal))
-			{
-				failures.Add($"{entry.Row}: quote mismatch at {entry.Ref}");
+				failures.Add($"{entry.Row}: quote is not in {entry.File}: '{quote}'");
 			}
 		}
 
@@ -575,6 +578,6 @@ public class SyncCoverageGateTests
 
 	private sealed record EvidenceDocument(int Count, IReadOnlyList<EvidenceEntry>? Entries);
 
-	private sealed record EvidenceEntry(string Cluster, string Row, string Ref, string Quote);
+	private sealed record EvidenceEntry(string Cluster, string Row, string File, string Quote);
 }
 

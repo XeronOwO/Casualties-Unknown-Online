@@ -227,8 +227,11 @@ person). "It runs" is the floor, not the goal.
 2. `[RULE]` Modern idiomatic C#: `var`, nullable, `is null`/`is not null`, using aliases for
    name collisions. **Unity objects are the exception**: use `== null` / `!= null` because the
    overload detects scene-reload-destroyed objects.
-3. `[RULE]` Evidence-based changes: cite decompiled sources (`reversing/`, file:line) before
-   touching code; fix root causes, not symptoms.
+3. `[RULE]` Evidence-based changes: cite decompiled sources (`reversing/`, file:line — that tree
+   is never edited, so its line numbers are stable) before touching code. For our own `src/` and
+   `tests/`, cite the path plus the quoted text and never a line number: a line number drifts
+   with every edit above it and then has to be re-pointed by hand, while the quoted text is what
+   the claim actually rests on. Fix root causes, not symptoms.
 4. `[CRITICAL]` **Absolute-machine-path red line**: no absolute machine path may ever enter
    git. Existing tracked absolute paths must be removed, not merely left as historical debt.
    Local machine paths belong only in gitignored `AGENTS.local.md` or in placeholders such as
@@ -327,10 +330,10 @@ verification → independent adversarial self-check → structure review → com
 
 ### Quality & Delivery
 
-- `[CRITICAL]` No self-assumption: every claim needs source evidence (`file:line`) or runtime
-  evidence. The runtime is the judge, not the plan. A paper review is not a review: key paths
-  need instrumentation or a runtime tool to prove them; ask "how does this chain get proven at
-  runtime?" before hand-off.
+- `[CRITICAL]` No self-assumption: every claim needs source evidence (the path plus the quoted
+  text, never a line number) or runtime evidence. The runtime is the judge, not the plan. A paper
+  review is not a review: key paths need instrumentation or a runtime tool to prove them; ask
+  "how does this chain get proven at runtime?" before hand-off.
 - `[CRITICAL]` **Fix the family, not just the reported case**: when fixing a problem, do not stop
   at the single symptom or function. Actively inspect similar functions, sibling mechanisms,
   and other modules for the same defect pattern; align the whole family in the same cycle, or

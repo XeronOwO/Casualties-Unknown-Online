@@ -4813,6 +4813,42 @@
     {
       "cluster": "inline",
       "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "RuntimeEntityRejected = 135,"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/RuntimeEntityRejectedMsg.cs",
+      "quote": "public RuntimeEntityKeyMsg Key { get; set; } = new();"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/RuntimeEntityRejectedHandler.cs",
+      "quote": "[PacketHandler(NetMsg.RuntimeEntityRejected, NetMessageDirection.HostToGuest)]"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs",
+      "quote": "public void FireRuntimeEntityRejectedReceived(ulong sender, RuntimeEntityRejectedMsg msg)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/EntitySpawnSync.cs",
+      "quote": "internal void OnRuntimeEntityRejected(RuntimeEntityKey key, RuntimeEntityRejectReason reason)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/RemoteEntityDeath.cs",
+      "quote": "internal static void Mark(BuildingEntity entity, bool replayAnimalDeath)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/EntitySpawnSync.cs",
       "quote": "_reportQueue.Add((key, pos, entity.transform.eulerAngles.z, Time.frameCount, entity.animal));"
     },

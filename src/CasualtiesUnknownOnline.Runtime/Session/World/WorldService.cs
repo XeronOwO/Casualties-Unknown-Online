@@ -218,6 +218,12 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 
 	public void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg) => _channels.ReportEntitySpawnUnmaterialized(sender, msg);
 
+	/// <summary>Guest: the host rejected a creation this side reported — the channel drops the pending re-report, the adapter destroys the local copy.</summary>
+	public void FireRuntimeEntityRejectedReceived(ulong sender, RuntimeEntityRejectedMsg msg) =>
+		_channels.FireRuntimeEntityRejectedReceived(sender, msg);
+
+	public event Action<RuntimeEntityKey, RuntimeEntityRejectReason>? RuntimeEntityRejectedReceived { add => _channels.RuntimeEntityRejectedReceived += value; remove => _channels.RuntimeEntityRejectedReceived -= value; }
+
 	public void SendEntitySpawned(EntitySpawnedMsg msg) => _channels.SendEntitySpawned(msg);
 
 	/// <summary>Host only: send the accepted runtime-entity creation table to one member (world entry, or the 60 s cycle).</summary>

@@ -257,4 +257,6 @@ public enum NetMsg : byte
 	// creation whose live report or relay was swallowed is healed absolutely)
 	RuntimeEntitySnapshot = 134, // host → guest: the absolute runtime-created entity table (world entry + the 60 s cycle)
 
+	RuntimeEntityRejected = 135, // host → reporter: the reported creation is rejected (this host cannot materialize its prefab) — the report's answer, so its pending re-report stops and its local copy dies
+
 }

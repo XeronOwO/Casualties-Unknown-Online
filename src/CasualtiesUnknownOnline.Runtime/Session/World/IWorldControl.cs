@@ -261,11 +261,24 @@ public interface IWorldControl
 
 	/// <summary>
 	/// Host only: the adapter could not materialize a reported creation locally
-	/// (the prefab/template is missing). Accept-first — the host still records
-	/// and relays it so a member that has the prefab receives it and the
-	/// reporter's pending report is acknowledged.
+	/// (its content set lacks the prefab/template). The corrected accept-first
+	/// precondition REJECTS it — the host can never own the creation, so it is
+	/// neither recorded nor relayed, and the reporter is answered with
+	/// <see cref="NetMsg.RuntimeEntityRejected"/> so its 60 s re-report stops and
+	/// its local copy dies (an accepted-but-unowned creation has no owner whose
+	/// death could ever retract it).
 	/// </summary>
 	void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg);
+
+	/// <summary>Guest: the host rejected a creation this side reported — the reporter's own creation key is the only one acted on.</summary>
+	void FireRuntimeEntityRejectedReceived(ulong sender, RuntimeEntityRejectedMsg msg);
+
+	/// <summary>
+	/// Guest: the host rejected a creation this side reported. The channel drops
+	/// the matching pending re-report; the adapter destroys the local copy
+	/// through the entity death funnel. Never raised for another creator's key.
+	/// </summary>
+	event Action<RuntimeEntityKey, RuntimeEntityRejectReason>? RuntimeEntityRejectedReceived;
 
 	/// <summary>Host only: send the accepted runtime-entity creation table to one member (world entry, or the 60 s cycle) — the recovery source for a swallowed creation report or relay.</summary>
 	void SendRuntimeEntitySnapshot(ulong targetSteamId);

@@ -58,7 +58,7 @@ world has since destroyed.
 | 8 | Duplicate delivery of the same creation record | Exactly one local entity |
 | 9 | Two identical prefabs created inside one cell | Two entities on every peer; a death drops only its own record |
 | 10 | An accepted animal report | Acknowledged by the snapshot key list; never materialized from it |
-| 11 | The host cannot materialize a reported creation | Still accepted + relayed; the reporter's report is acknowledged |
+| 11 | The host cannot materialize a reported creation | REJECTED (decision 161): neither recorded nor relayed; the reporter is answered, drops its pending report and destroys its local copy through the death funnel |
 | 12 | A MOD-registered template (building or animal) | Materialized (never rejected by a `Resources.Load` pre-check) |
 
 ## Non-goals
@@ -110,14 +110,18 @@ the floored cell of the creation position + a token (the creating side's SteamId
   host's relay echo, the absolute snapshot's entry list, or its animal key list.
   An unanswered entry is never dropped for age — a stalled creation logs once
   after 10 fallback windows and keeps retrying.
-- **Accept-first on a local materialization failure.** A host that lacks the
-  prefab/template cannot build its own copy, but it must not drop the creation:
-  `RuntimeEntityChannel.ReportEntitySpawnUnmaterialized` relays the ORIGINAL
-  message, so a member that has the prefab receives it and the reporter's echo
-  still acknowledges its pending report. It deliberately does NOT record the
-  acceptance — a record with no local copy could never be dropped, and the 60 s
-  snapshot would re-materialize a creation a member later destroyed. The
-  resulting late-join gap for such a creation is recorded under limitations.
+- **Rejection on a local materialization failure (decision 161, landed
+  2026-09-17).** A host that lacks the prefab/template cannot build its own copy,
+  and accept-first never covers state the host cannot own: relaying handed every
+  peer that had the prefab an entity no owner could back up or retract, and the
+  reporter's own echo hid the divergence. `RuntimeEntityChannel.ReportEntitySpawnUnmaterialized`
+  therefore REJECTS the creation — neither recorded nor relayed — and answers
+  that reporter with `NetMsg.RuntimeEntityRejected` (135) carrying the creation
+  key and a reason code. The reporter drops the pending entry (the 60 s fallback
+  stops) and destroys its local copy through the entity death funnel, located by
+  its stamped creation key. The old "a member joining after the creation never
+  receives it" limitation is DELETED: nobody holds the creation, so the session
+  converges instead of diverging.
 - **One materialization path.** `RuntimeEntityFactory.TryCreate` is the shared
   materializer (entity spawn + enemy runtime backfill): it never pre-checks
   `Resources.Load` (a MOD-registered template lives in the content provider and
@@ -203,16 +207,18 @@ an explicit code-review justification:
    same). **Coverage:** adapter shell (needs the live Unity world) — code review
    plus the pure exact-key judgment (`RuntimeEntityMatchTests`), and the unified
    dual-client pass.
-3. **MAJOR — a host-side create failure returned before the relay.**
-   `OnRemoteEntitySpawned` logged and returned when the host lacked the
-   prefab/template, so a third-party guest that DID have it never received the
-   creation (accept-first violation). **Fix:**
+3. **MAJOR — a host-side create failure returned before the relay.** (The
+   round-3/round-4 answer below — relay without recording — was itself corrected
+   2026-09-17 into a REJECTION by
+   `review/runtime-entity-creation-rejection.md`: decision 161 forbids relaying a
+   creation the host cannot own.) `OnRemoteEntitySpawned` logged and returned when
+   the host lacked the prefab/template, so a third-party guest that DID have it
+   never received the creation (accept-first violation). **Fix (round 3/4):**
    `RuntimeEntityChannel.ReportEntitySpawnUnmaterialized` relays the original
    message WITHOUT recording it (see the round-4 re-review below for why a record
    must not be kept); the adapter calls it from the failure branch. **Coverage:**
-   `GuestEntityReportRecoveryTests.UnmaterializableCreation_IsRelayedAndAcknowledgedWithoutBeingRecorded`
-   + `UnmaterializableReport_OnAGuest_IsNotRelayed` (the adapter's failure branch
-   is the contract double).
+   `GuestEntityReportRecoveryTests.UnmaterializableReport_OnAGuest_IsNotRelayed`
+   (the adapter's failure branch is the contract double).
 4. **MAJOR — MOD animals had no late-join recovery under the split.**
    `EnemySyncCoordinator.CreateRuntimeSpawn` pre-checked `Resources.Load` and
    skipped MOD-registered animal templates; animals are excluded from the host's
@@ -253,12 +259,12 @@ found two MAJOR regressions plus four MINORs. All are fixed and re-verified:
 2. **MAJOR — a recorded unmaterializable creation resurrected a later
    destruction.** Recording it gave the host a record with no local copy that
    could ever drop it, so the 60 s snapshot re-materialized an entity a member
-   had destroyed (acceptance matrix row 6). **Fix:**
-   `ReportEntitySpawnUnmaterialized` relays WITHOUT recording; the resulting
-   late-join gap is recorded under limitations. **Coverage:**
-   `UnmaterializableCreation_IsRelayedAndAcknowledgedWithoutBeingRecorded` (it
-   also sends a snapshot and asserts nothing is re-sent) +
-   `UnmaterializableReport_OnAGuest_IsNotRelayed`.
+   had destroyed (acceptance matrix row 6). **Fix (round 4):**
+   `ReportEntitySpawnUnmaterialized` relays WITHOUT recording; **superseded
+   2026-09-17** — the relay half was itself the unowned accept decision 161
+   forbids, and such a creation is now REJECTED and answered to its reporter
+   (`review/runtime-entity-creation-rejection.md`). **Coverage:**
+   `UnmaterializableReport_OnAGuest_IsNotRelayed` + `RuntimeEntityRejectionTests`.
 3. **MAJOR — wire extension without the protocol-version bump.** New ProtoMembers
    on `EntitySpawnedMsg` and `RuntimeEntitySnapshotMsg` are a behavioral wire
    change: `ProtocolVersion.Current` is now 17 (was 16) and the versioning docs
@@ -291,7 +297,7 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
 | Marker / death key | the marker carries the full key; the death funnel reports it | `RuntimeEntityCreation.cs:36,57`; `EntitySpawnSync.cs:116,118` (adapter, code-reviewed) |
 | Host table | non-animal entries + animal key set, 4 096 keys TOTAL; key-based remove; snapshot carries both | `RuntimeEntityRegistry.cs:41,96,118,151`; `RuntimeEntityRegistryTests` (10) |
 | Guest pending table | key-based remove/attempt; the entry carries its key | `PendingEntityReportTable.cs:61,64`; `PendingEntityReportTableTests` (9) |
-| Channel | animal recording by key; snapshot ack list; accept-first relay WITHOUT a record; key-based death; tokenless warning | `RuntimeEntityChannel.cs:121,162,186,219`; `GuestEntityReportRecoveryTests` (16) |
+| Channel | animal recording by key; snapshot ack list; a creation the host cannot materialize is REJECTED and answered (RuntimeEntityRejected) instead of relayed; key-based death; tokenless warning | `RuntimeEntityChannel.cs`; `GuestEntityReportRecoveryTests` (16); `RuntimeEntityRejectionTests` (5) |
 | Geyser deferral | queue carries key + creation position; flush locates by exact key (no positional fallback) | `EntitySpawnSync.cs:172,359` (adapter, code-reviewed) |
 | Materialization family | shared factory (no pre-check, per-entry containment, orphan destroy); mod hook failure destroys the half-built instance | `RuntimeEntityFactory.cs:32,39`; `EnemySyncCoordinator.RuntimeSpawns.cs:78`; `UtilsCreateCustomPrefabPatch.cs:87` (adapter, code-reviewed) |
 | Snapshot vocabulary | `AcceptedAnimalKeys` ack list | `RuntimeEntitySnapshotMsg.cs:40`; `NetPacketTests` |
@@ -344,7 +350,7 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
 | 8 | `DuplicateCreationReport_KeepsOneAcceptedRecord` + `RuntimeEntityMatchTests` (the exact-key bind, the same-cell sibling rejection, the markerless candidate rejection, the three-turret regression); the adapter's Unity create path is dual-client acceptance |
 | 9 | `RuntimeEntityKeyTests` + the same-cell registry/pending/channel/match cases + `TwoCreationsInOneCell_OneDies_OnlyItsOwnRecordIsDropped` |
 | 10 | `AnimalCreation_IsAcknowledgedByTheHostSnapshot` + `RuntimeEntityRegistryTests.ReportAnimal_KeepsTheKeyOnlyAndNeverEntersTheMaterializableEntries` |
-| 11 | `UnmaterializableCreation_IsStillAcceptedRelayedAndAcknowledged` (the adapter's failure branch calls `ReportEntitySpawnUnmaterialized`) |
+| 11 | `RuntimeEntityRejectionTests` (the adapter's failure branch calls `ReportEntitySpawnUnmaterialized`: nothing is relayed or recorded, the reporter is answered and stops re-reporting, and the removal is located by creation key and idempotent) |
 | 12 | `RuntimeEntityFactory` is the single materialization path (code-reviewed); the mod-animal backfill call site is `EnemySyncCoordinator.RuntimeSpawns.cs:78` |
 
 ## Known limitations (recorded, not hidden)
@@ -352,12 +358,14 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
 - A destroyed entity whose death signal is itself lost can be re-materialized
   until the host's own copy dies: the destruction paths are the E1
   damage/open/support-loss relays, whose own re-report gap is a separate ticket.
-- A creation the host cannot materialize is relayed but NOT recorded (a record
-  with no local copy could never be dropped, and the snapshot would resurrect a
-  member's later destruction). Consequence: a member that joins AFTER the
-  creation — even one that has the prefab — does not receive it. The host cannot
-  represent a creation it cannot materialize, and recording it would trade this
-  late-join gap for a resurrection bug.
+- **RESOLVED 2026-09-17** by `review/runtime-entity-creation-rejection.md`: a
+  creation the host cannot materialize is REJECTED — neither recorded nor
+  relayed, answered to its reporter, whose pending entry and local copy both end
+  there. The old late-join gap (a member joining after such a creation did not
+  receive it) is gone with the relay: nobody holds the creation, so the session
+  converges instead of diverging. The rejection still costs the creator its copy,
+  which is deliberate — an entity the host cannot own must not survive anywhere
+  (decision 161).
 - The markerless positional pass could also ABSORB a genuine runtime creation into
   an unrelated markerless same-prefab copy within 1 m (a generated entity), and
   the bind then stamped that copy with the creation key. **RESOLVED 2026-09-09** by

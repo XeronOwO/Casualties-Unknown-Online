@@ -11,7 +11,11 @@ public static class ProtocolVersion
 	/// 20: `WorldItemsReset` / `ResetWorldItemsCommand` — the layer boundary now
 	/// resets the item domain's world-rooted records, so a peer without the event
 	/// would keep every earlier layer's world items and then disagree with the
-	/// host's kernel after the first layer switch.</summary>
-	public const int Current = 20;
+	/// host's kernel after the first layer switch.
+	/// 21: `RuntimeEntityRejected` — a runtime creation the host cannot
+	/// materialize is now REJECTED instead of relayed, so a peer without the
+	/// message would keep relaying an unowned creation to everyone and leave the
+	/// reporter's copy and 60 s re-report alive forever.</summary>
+	public const int Current = 21;
 
 }

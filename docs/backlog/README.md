@@ -56,6 +56,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Sync cadence review: fallback stretch limits and first-resend latency](todo/sync-cadence-review.md) — **Medium**: audit cadence findings; item keyframe 5 s→30 s, trader 5 s→30 s, fluid full viewport 1 s→10 s, and the single 60 s block/damage/keypad/geyser first resend need measured decisions.
 - [Systemic save and backup management](todo/systemic-save-backup-management.md) — **Medium (user-promoted from future)**: manual/scheduled backup, retention, restore/import, native game-layer backup, migration; reuses the save-system package format (`docs/architecture/save-archive-format.md`), does not define a second one.
 - [CasualtiesUnknownOnline.Pinyin: pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium**: port standalone pinyin search into a CUO mod; crafting UI pinyin search plus command completion by id/name/pinyin; extra interface extraction needed for command-side pinyin support; pinyin search is a configurable toggle defaulting to on for Simplified Chinese players.
+- [The backlog index duplicates every ticket's summary](todo/backlog-index-summary-duplication.md) — **Low-Medium**: 132 index lines restate their tickets; make the index a table of pointers with a length gate.
+- [Evidence matrix rows carry their whole evidence trail](todo/evidence-matrix-fat-rows-split.md) — **Low-Medium**: split the 12 619-character row into decision cells + JSON anchors, and let the gate check anchors instead of inline quotes.
 
 ### In progress
 

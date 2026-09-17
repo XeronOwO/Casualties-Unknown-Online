@@ -17,6 +17,12 @@ catch-up pass) is FORBIDDEN: it fabricates the process record and voids the
 gate (observed: the cycle was bulk-checked, never committed, then reset —
 the user called it out). Only a deliberate cycle reset may touch multiple lines.
 
+**Evidence rule (added 2026-09-17)**: a checked box carries a short evidence suffix on the
+SAME line — `- [x] <item> — evidence: <command/file/result>` — because a bare checkmark
+records that someone decided the step was done, not what proved it. Keep it to one clause
+(a command, a file, or a measured result); the full detail belongs in the cycle's ticket or
+evidence file.
+
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
       file:line or runtime log) or is explicitly marked unverified
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
@@ -24,7 +30,10 @@ the user called it out). Only a deliberate cycle reset may touch multiple lines.
 - [x] Self-check table: mechanism x change x evidence, every cell filled
 - [x] Verification design: how the runtime proves it (diagnostic traces,
       peer log comparison, hotrepl assertions) is decided
-- [x] Plan approved by the user (before deployment; investigation excepted)
+- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
+      design the user already froze counts as approved (a backlog decision, a recorded
+      decision entry, a handoff instruction); re-asking a work-item choice is itself a
+      process violation
 - [x] Build + dotnet format + dotnet test normative gates pass
 - [x] Structure review done (touched classes <= 600 lines, state bools,
       dead mechanisms deleted in the same round)

@@ -481,7 +481,7 @@ internal sealed partial class WorldEventSync(
 			{
 				_buildingEntities.MarkSupportLossRemote(pos);
 			}
-		});
+		}, _log);
 
 		_log.LogInformation("Applied host block-state snapshot ({Count} blocks, {Restored} restored cell(s) whose support loss was settled by the host).",
 			blocks.Count, blocks.Count(block => block.SupportLossSettled));

@@ -171,25 +171,32 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 	///
 	/// Returns how many rows reached the live world: a row whose entity the
 	/// regenerated layer does not have is a REFUSED row, which the restore's
-	/// live-write account names.
+	/// live-write account names. The rows run through the Runtime's per-row
+	/// containment (<see cref="ContainedRowLoop"/>), so a row that reaches an engine
+	/// call this copy cannot serve costs ITSELF — named at error level with its kind
+	/// and position — instead of every row behind it.
 	/// </summary>
 	internal LiveWorldWriteOutcome OnTrapStateProjected(IReadOnlyList<EntityEventMsg> consumed)
 	{
 		_log.LogInformation("[TrapCheckpoint] projected {Count} consumed.", consumed.Count);
-		var applied = 0;
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			foreach (var msg in consumed)
-			{
-				var pos = msg.Position.ToNetVector2();
-				if (_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra, msg.ElapsedSeconds))
+			return ContainedRowLoop.Run(
+				consumed,
+				msg =>
 				{
-					applied++;
-				}
-			}
-		}
+					var pos = msg.Position.ToNetVector2();
+					if (_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra, msg.ElapsedSeconds))
+					{
+						return true;
+					}
 
-		return new LiveWorldWriteOutcome(applied, consumed.Count - applied);
+					return false;
+				},
+				msg => $"{msg.Kind} at ({msg.Position.X:F1},{msg.Position.Y:F1})",
+				_log,
+				"restored trap");
+		}
 	}
 
 	/// <summary>

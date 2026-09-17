@@ -507,6 +507,44 @@ public sealed class RestoredWorldFactReplayTests
 	}
 
 	[Fact]
+	public void ApplyIfPending_AThrowingWorldEntityRowCostsOnlyItself()
+	{
+		// The row-level containment, one level below decision 175's half scoping: a row that
+		// reaches an engine call the local copy cannot serve is refused BY NAME and the rows
+		// BEHIND it still land, so the half's account carries an exact count — one lost row,
+		// not "the write threw" and not the whole half.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { ThrowOnWorldEntityRow = 1 };
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Sequence = Attempt, Facts = TrapFacts() };
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-row-contained", Attempt, expectedContributions: 2);
+		var replay = new RestoredWorldFactReplay(
+			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+		Assert.Contains("1 world-entity row(s)", string.Join("; ", report.Refused), StringComparison.Ordinal);
+		Assert.DoesNotContain("threw", string.Join("; ", report.Refused), StringComparison.Ordinal);
+
+		// The row's IDENTITY is in the error line, so the copy the local world could not
+		// serve is findable — that is the half of the trade the log owns.
+		Assert.True(sink.RowLog.HasError("BearTrapClamped"));
+
+		// The half is released like any half with a refused row (no leak into the next
+		// generation's layer), while the world-fact half that landed keeps its own account.
+		Assert.Single(entities.Cancels);
+		Assert.Equal(0, entities.Commits);
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.False(native.HasPendingRestore);
+	}
+
+	[Fact]
 	public void ApplyIfPending_MidRunRestore_ReportsTwoHalvesAndWaitsForTheItemReconcile()
 	{
 		// A mid-run cut owes THREE live-world halves at this seam's end: the world
@@ -598,6 +636,31 @@ public sealed class RestoredWorldFactReplayTests
 		Assert.Equal(writes, sink.Calls.Count);
 		Assert.Equal(1, audit.Contributions);
 	}
+
+	/// <summary>Three trap rows and nothing else — the shape the per-row containment suite drives (its second row throws).</summary>
+	private static RestoredWorldEntityFacts TrapFacts() => new(
+		[
+			new EntityEventMsg
+			{
+				Kind = EntityEventKind.BearTrapClamped,
+				Extra = 1,
+				Position = new NetVector2Msg(1.5f, 2.5f),
+			},
+			new EntityEventMsg
+			{
+				Kind = EntityEventKind.BearTrapClamped,
+				Extra = 2,
+				Position = new NetVector2Msg(3.5f, 4.5f),
+			},
+			new EntityEventMsg
+			{
+				Kind = EntityEventKind.BearTrapClamped,
+				Extra = 3,
+				Position = new NetVector2Msg(5.5f, 6.5f),
+			},
+		],
+		[],
+		[]);
 
 	private static RestoredWorldEntityFacts EntityFacts() => new(
 		[

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using UnityEngine;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -27,43 +28,54 @@ internal static class WorldBlockStateTable
 	/// <summary>
 	/// Apply the absolute block diff, invoking <paramref name="onAirWrite"/> for
 	/// every cell this call actually changed to air (with the row's support-loss
-	/// verdict).
+	/// verdict). Returns what the live world TOOK: a row counts as applied only once
+	/// its WHOLE write (the cell write and the air-write settle) completed, and a row
+	/// whose engine call threw counts as refused. The rows run one at a time, so a
+	/// throwing row cannot cost the rows behind it.
 	/// </summary>
-	internal static int Apply(IReadOnlyList<DamagedBlock> blocks, Action<Vector2Int, bool> onAirWrite)
+	internal static LiveWorldWriteOutcome Apply(IReadOnlyList<DamagedBlock> blocks, Action<Vector2Int, bool> onAirWrite, ILogger log)
 	{
 		var world = WorldGeneration.world;
-		if (world == null) // Unity object — == (nothing to write into)
+		if (world == null) // Unity object — == (nothing to write into: every row is refused, never silently "written")
 		{
-			return 0;
+			return new LiveWorldWriteOutcome(0, blocks.Count);
 		}
 
 		var written = 0;
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			foreach (var block in blocks)
-			{
-				var pos = new Vector2Int(block.X, block.Y);
-				var changed = world.GetBlock(pos) != block.Block;
-				world.SetBlock(pos, block.Block);
-				if (!changed)
+			var thrown = ContainedRowLoop.RunContained(
+				blocks,
+				block =>
 				{
-					continue; // already the row's value: not a write, so it is not counted as one
-				}
+					var pos = new Vector2Int(block.X, block.Y);
+					var changed = world.GetBlock(pos) != block.Block;
+					world.SetBlock(pos, block.Block);
+					if (!changed)
+					{
+						return; // already the row's value: not a write, so it is not counted as one
+					}
 
-				written++;
-				if (block.Block == 0)
-				{
-					// A direct SetBlock(0) leaves the game's own BlockDamage entry
-					// and its crack sprite behind ("fragmented air"), and the cell
-					// may have carried a building that required the ground. An
-					// UNCHANGED cell was already handled when it became air
-					// locally — re-marking it would suppress this side's own
-					// building-drop roll (RemoteEntityDeath).
-					onAirWrite(pos, block.SupportLossSettled);
-				}
-			}
+					if (block.Block == 0)
+					{
+						// A direct SetBlock(0) leaves the game's own BlockDamage entry
+						// and its crack sprite behind ("fragmented air"), and the cell
+						// may have carried a building that required the ground. An
+						// UNCHANGED cell was already handled when it became air
+						// locally — re-marking it would suppress this side's own
+						// building-drop roll (RemoteEntityDeath).
+						onAirWrite(pos, block.SupportLossSettled);
+					}
+
+					// Counted only after the row's settle, so a row whose settle threw is
+					// refused exactly once instead of both applied and refused.
+					written++;
+				},
+				block => $"({block.X},{block.Y})",
+				log,
+				"Restored block-state");
+
+			return new LiveWorldWriteOutcome(written, thrown);
 		}
-
-		return written;
 	}
 }

@@ -190,21 +190,22 @@ internal sealed class WorldBuildingEntitySync(
 	/// open through the SAME application as the live relay (health = 0 + the
 	/// remote-death mark). Idempotent by construction: an already-open entity's
 	/// health is 0 again. The count is what the restore's live-write account
-	/// names: an entity the regenerated layer does not have is a refused row.
+	/// names: an entity the regenerated layer does not have is a refused row, and the
+	/// rows run through the Runtime's per-row containment
+	/// (<see cref="ContainedRowLoop"/>), so a row that reaches an engine call this
+	/// copy cannot serve costs ITSELF instead of the rows behind it.
 	/// </summary>
 	internal LiveWorldWriteOutcome OnOpenedEntitiesProjected(IReadOnlyList<NetVector2Msg> positions)
 	{
-		var applied = 0;
-		foreach (var pos in positions)
-		{
-			if (OnRemoteBuildingEntityOpened(new NetVector2(pos.X, pos.Y)))
-			{
-				applied++;
-			}
-		}
+		var outcome = ContainedRowLoop.Run(
+			positions,
+			pos => OnRemoteBuildingEntityOpened(new NetVector2(pos.X, pos.Y)),
+			pos => $"({pos.X:F1},{pos.Y:F1})",
+			_log,
+			"restored opened-entity");
 
-		_log.LogInformation("Opened-entities checkpoint projection applied ({Applied}/{Total} positions).", applied, positions.Count);
-		return new LiveWorldWriteOutcome(applied, positions.Count - applied);
+		_log.LogInformation("Opened-entities checkpoint projection applied ({Applied}/{Total} positions).", outcome.Applied, positions.Count);
+		return outcome;
 	}
 
 	/// <summary>
@@ -214,21 +215,21 @@ internal sealed class WorldBuildingEntitySync(
 	/// side never rolls a second set of drops. Idempotent by construction:
 	/// writing the same health again is a no-op. The count is what the restore's
 	/// live-write account names: an entity the regenerated layer does not have is
-	/// a refused row.
+	/// a refused row, and the rows run through the Runtime's per-row containment
+	/// (<see cref="ContainedRowLoop"/>), so a row that reaches an engine call this
+	/// copy cannot serve costs ITSELF instead of the rows behind it.
 	/// </summary>
 	internal LiveWorldWriteOutcome OnBuildingHealthProjected(IReadOnlyList<BuildingEntityHealthEntryMsg> entries)
 	{
-		var applied = 0;
-		foreach (var entry in entries)
-		{
-			if (ApplyRemoteBuildingEntityHealth(entry.X, entry.Y, entry.Health))
-			{
-				applied++;
-			}
-		}
+		var outcome = ContainedRowLoop.Run(
+			entries,
+			entry => ApplyRemoteBuildingEntityHealth(entry.X, entry.Y, entry.Health),
+			entry => $"({entry.X:F1},{entry.Y:F1})",
+			_log,
+			"restored building-entity health");
 
-		_log.LogInformation("Building-entity health checkpoint projection applied ({Applied}/{Total} entities).", applied, entries.Count);
-		return new LiveWorldWriteOutcome(applied, entries.Count - applied);
+		_log.LogInformation("Building-entity health checkpoint projection applied ({Applied}/{Total} entities).", outcome.Applied, entries.Count);
+		return outcome;
 	}
 
 	private bool ApplyRemoteBuildingEntityHealth(float x, float y, float health)

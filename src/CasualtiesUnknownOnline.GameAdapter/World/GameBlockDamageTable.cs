@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -94,7 +95,9 @@ internal static class GameBlockDamageTable
 	/// <summary>
 	/// Apply damage rows to the game's list, absolute per cell. Returns every
 	/// entry the call wrote so the caller can refresh its crack sprite, plus the
-	/// rows that were refused and why they were logged.
+	/// rows that were refused — by this table's own rule (air, range, cap), and by
+	/// a row whose engine call THREW (the rows run one at a time, so a throwing row
+	/// cannot cost the rows behind it).
 	/// </summary>
 	internal static ApplyResult Apply(
 		WorldGeneration world,
@@ -104,35 +107,42 @@ internal static class GameBlockDamageTable
 	{
 		var written = new List<BlockDamage>(entries.Count);
 		var refused = 0;
-		foreach (var entry in entries)
-		{
-			var cell = new Vector2Int(entry.X, entry.Y);
-			var block = world.GetBlock(cell);
-			var existing = block == 0 ? null : world.GetBlockDamage(cell);
-			var blockHealth = block == 0 ? 0f : world.GetBlockInfo(block).health;
-
-			var verdict = Decide(entry.Damage, block, blockHealth, existing is not null, world.blockDamages.Count);
-			if (verdict != Verdict.Apply)
+		var thrown = ContainedRowLoop.RunContained(
+			entries,
+			entry =>
 			{
-				refused++;
-				LogRefusal(log, origin, verdict, entry, cell, blockHealth);
-				continue;
-			}
+				var cell = new Vector2Int(entry.X, entry.Y);
+				var block = world.GetBlock(cell);
+				var existing = block == 0 ? null : world.GetBlockDamage(cell);
+				var blockHealth = block == 0 ? 0f : world.GetBlockInfo(block).health;
 
-			if (existing is null)
-			{
-				existing = new BlockDamage { pos = cell, damage = entry.Damage };
-				world.blockDamages.Add(existing);
-			}
-			else
-			{
-				existing.damage = entry.Damage;
-			}
+				var verdict = Decide(entry.Damage, block, blockHealth, existing is not null, world.blockDamages.Count);
+				if (verdict != Verdict.Apply)
+				{
+					refused++;
+					LogRefusal(log, origin, verdict, entry, cell, blockHealth);
+					return;
+				}
 
-			written.Add(existing);
-		}
+				if (existing is null)
+				{
+					existing = new BlockDamage { pos = cell, damage = entry.Damage };
+					world.blockDamages.Add(existing);
+				}
+				else
+				{
+					existing.damage = entry.Damage;
+				}
 
-		return new ApplyResult(written, refused);
+				written.Add(existing);
+			},
+			entry => $"({entry.X},{entry.Y})",
+			log,
+			"Partial-damage");
+
+		// A row whose engine call threw is a refusal too: it is neither written nor lost
+		// quietly, and the containment is what keeps it from costing the rows behind it.
+		return new ApplyResult(written, refused + thrown);
 	}
 
 	private static void LogRefusal(ILogger log, string origin, Verdict verdict, BlockDamageEntryMsg entry, Vector2Int cell, float blockHealth)

@@ -58,12 +58,13 @@ internal sealed class GameRestoredWorldFactSink(
 			return new LiveWorldWriteOutcome(0, states.Count);
 		}
 
-		return LiveWorldWriteOutcome.All(WorldBlockStateTable.Apply(
+		return WorldBlockStateTable.Apply(
 			[.. states.Select(state => new DamagedBlock(state.X, state.Y, state.Block, state.SupportLossSettled))],
 			// The host's replay never settles support loss (see the class doc): the
 			// host is the authority that settled it in the saved world, and the
 			// restored rows carry that verdict to the guests.
-			(pos, _) => _blockBreaks.OnBlockAirWrite(pos)));
+			(pos, _) => _blockBreaks.OnBlockAirWrite(pos),
+			_log);
 	}
 
 	/// <inheritdoc />

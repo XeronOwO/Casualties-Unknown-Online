@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.Tests.Fakes;
 
 namespace CasualtiesUnknownOnline.Tests.Persistence;
 
@@ -34,6 +35,17 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 	/// instead of being reported as not taken — see <c>RestoredWorldFactReplayTests</c>.
 	/// </summary>
 	internal bool ThrowOnWorldEntityWrite { get; set; }
+
+	/// <summary>
+	/// The level BELOW <see cref="ThrowOnWorldEntityWrite"/>: the trap rows go through the same
+	/// per-row containment the three adapter loops use (<see cref="ContainedRowLoop"/>), with the
+	/// row at this index reaching an engine call the local copy cannot serve. The rows behind it
+	/// still land, so the half's count names exactly ONE refused row instead of "the write threw".
+	/// </summary>
+	internal int ThrowOnWorldEntityRow { get; set; } = -1;
+
+	/// <summary>The per-row log the containment writes to — the error line's row identity is asserted through it.</summary>
+	internal RecordingLogger<FakeRestoredWorldFactSink> RowLog { get; } = new();
 
 	/// <summary>Every call this sink received, in order.</summary>
 	internal List<string> Calls { get; } = [];
@@ -165,11 +177,47 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 			return new LiveWorldWriteOutcome(0, facts.Count);
 		}
 
+		if (ThrowOnWorldEntityRow >= 0)
+		{
+			return ApplyWorldEntitiesRowByRow(facts);
+		}
+
 		if (facts.Count > 0)
 		{
 			WrittenWorldEntities.Add(facts);
 		}
 
 		return LiveWorldWriteOutcome.All(facts.Count);
+	}
+
+	/// <summary>
+	/// The three adapter loops run their rows through <see cref="ContainedRowLoop"/>; this models
+	/// the FIRST of them (the trap replay) with one throwing row, so a suite can assert what the
+	/// containment buys: the rows behind the throw still land, and the half's refused count is
+	/// exact. The other two lists apply whole, which is what the suites that use this mode expect
+	/// them to be handed (empty).
+	/// </summary>
+	private LiveWorldWriteOutcome ApplyWorldEntitiesRowByRow(RestoredWorldEntityFacts facts)
+	{
+		var index = -1;
+		var traps = ContainedRowLoop.Run(
+			facts.Traps,
+			trap =>
+			{
+				index++;
+				if (index == ThrowOnWorldEntityRow)
+				{
+					throw new InvalidOperationException($"trap row {index} reached an engine call the local copy cannot serve");
+				}
+
+				return true;
+			},
+			trap => $"{trap.Kind} at ({trap.Position.X:F1},{trap.Position.Y:F1})",
+			RowLog,
+			"restored trap");
+
+		return new LiveWorldWriteOutcome(
+			traps.Applied + facts.Opened.Count + facts.Health.Count,
+			traps.Refused);
 	}
 }

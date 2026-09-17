@@ -252,8 +252,10 @@ found two MAJOR regressions plus four MINORs. All are fixed and re-verified:
    host-authoritative layout replay must not re-report; (b) the positional pass
    is restored but restricted to MARKERLESS candidates, which keeps an
    enemy-domain backfill copy binding a live animal re-report while a sibling
-   creation's marked copy can never be bound. **Coverage:**
-   `RuntimeEntityMatchTests.FindIndex_BindsAMarkerlessCopyInsideTheRadius` +
+   creation's marked copy can never be bound. **Coverage — SUPERSEDED: the markerless positional bind
+   was DELETED later by `review/runtime-entity-markerless-bind-absorption.md`, so the positional pass
+   described here no longer exists; the current key-based binding is pinned by**
+   `RuntimeEntityMatchTests.FindIndex_BindsTheCandidateCarryingTheSameCreationKey` +
    `FindIndex_TwoCreationsOfTheSamePrefabInOneCell_NeverShareACopy`; the
    `SpawnReplayMarker` stamping is adapter-shell (code-reviewed).
 2. **MAJOR — a recorded unmaterializable creation resurrected a later

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -85,9 +86,11 @@ public class WorldLeaseTests
 	{
 		// The one outcome the lease exists to prevent: taking a world over from a writer that IS
 		// running. The child is a real process on this machine, so the liveness check sees it.
+		// It runs `ping` through cmd rather than `timeout`: `timeout` exits immediately when its
+		// stdin is not a console, which made this test flaky inside a loaded parallel suite.
 		var fixture = SaveTestRepository.Create("lease-live-process");
 		using var writer = Process.Start(new ProcessStartInfo(
-			"cmd.exe", "/c timeout /t 30")
+			"cmd.exe", "/c ping -n 30 127.0.0.1 > nul")
 		{
 			CreateNoWindow = true,
 			UseShellExecute = false,
@@ -96,7 +99,14 @@ public class WorldLeaseTests
 
 		try
 		{
-			WriteLease(fixture, Environment.MachineName + ":" + writer!.Id, fixture.Now.AddSeconds(-1));
+			// The child must be OBSERVABLY alive before the lease names it: the lease refuses a
+			// writer the OS still has, so a child that has not appeared yet (or died on startup)
+			// would test nothing at all instead of failing the contract this case pins.
+			Assert.True(
+				WaitForLiveProcess(writer!.Id, TimeSpan.FromSeconds(5)),
+				"the child process never became observable");
+
+			WriteLease(fixture, Environment.MachineName + ":" + writer.Id, fixture.Now.AddSeconds(-1));
 
 			var result = Write(fixture);
 
@@ -110,6 +120,30 @@ public class WorldLeaseTests
 				writer.Kill();
 			}
 		}
+	}
+
+	private static bool WaitForLiveProcess(int pid, TimeSpan timeout)
+	{
+		var deadline = DateTime.UtcNow + timeout;
+		while (DateTime.UtcNow < deadline)
+		{
+			try
+			{
+				using var probe = Process.GetProcessById(pid);
+				if (!probe.HasExited)
+				{
+					return true;
+				}
+			}
+			catch (ArgumentException)
+			{
+				// The OS has not published the child yet; keep waiting until the deadline.
+			}
+
+			Thread.Sleep(25);
+		}
+
+		return false;
 	}
 
 	[Fact]

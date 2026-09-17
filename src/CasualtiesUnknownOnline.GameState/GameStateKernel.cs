@@ -209,6 +209,19 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 
 	public RestoreResult Restore(GameCheckpoint checkpoint)
 	{
+		// The restore family does not pass through Execute, so it does not meet the domain
+		// invariants either — and it is a THIRD producer of the kernel run baseline: the archive
+		// decode and the wire checkpoint both hand their whole checkpoint to THIS method. A run a
+		// peer could not have generated (a non-finite rarity multiplier) is refused BEFORE the
+		// store is replaced, so a poisoned baseline can never be projected into the params other
+		// peers generate their layer from.
+		if (checkpoint.Run is { } run
+			&& (!RunRarityMultipliers.IsWellFormed(run.LootRarityMultiplier) || !RunRarityMultipliers.IsWellFormed(run.TrapRarityMultiplier)))
+		{
+			return RestoreResult.Failed(
+				$"checkpoint carries a non-finite rarity multiplier (loot {run.LootRarityMultiplier}, trap {run.TrapRarityMultiplier})");
+		}
+
 		_store.Restore(checkpoint);
 		return RestoreResult.Ok();
 	}

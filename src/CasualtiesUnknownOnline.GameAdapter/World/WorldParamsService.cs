@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using Microsoft.Extensions.Logging;
@@ -16,14 +17,20 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// the run-lifecycle phase machine stays in RunCoordinator, which calls the
 /// two boundary hooks (OnGenerateBoundary host branch / EnsureGuestApplied
 /// guest branch).
+///
+/// It depends on the <see cref="INativeWorldFacts"/> PORT, never on the concrete
+/// <c>NativeWorldFacts</c>: every call it makes (cancel a superseded handover, apply
+/// the baseline's rarity multipliers) is part of that contract, so the service can
+/// be composed and driven against any implementation of it instead of being welded
+/// to the adapter's own.
 /// </summary>
 internal sealed class WorldParamsService(
 	IWorldControl world,
-	NativeWorldFacts nativeWorldFacts,
+	INativeWorldFacts nativeWorldFacts,
 	ILogger<WorldParamsService> log)
 {
 	private readonly IWorldControl _world = world;
-	private readonly NativeWorldFacts _nativeWorldFacts = nativeWorldFacts;
+	private readonly INativeWorldFacts _nativeWorldFacts = nativeWorldFacts;
 	private readonly ILogger<WorldParamsService> _log = log;
 
 	/// <summary>Host: params captured at the run-start entry — the first GenerateWorld must not re-capture.</summary>
@@ -295,7 +302,21 @@ internal sealed class WorldParamsService(
 		// value in place, which is the behavior the sender itself had. A sender that
 		// carries only ONE of the two is not guessed at: the pair is captured together,
 		// so a half-pair is a producer bug and the other half keeps the game's value.
-		if (parameters.LootRarityMultiplier is not null && parameters.TrapRarityMultiplier is not null)
+		// A value the game could not have produced — a NaN or an infinity — is refused
+		// exactly like the half-pair below: NEITHER multiplier is written, so the layer
+		// keeps the game's own values instead of being scaled by a number that has no
+		// meaning. The kernel refuses such a run baseline too (RunRarityMultipliers'
+		// rule, asserted by WorldDomainModule), but this is the write into the LIVE
+		// world, and the params object read here is the one the publisher stored — not
+		// the kernel's projection — so the last line sits at this seam as well.
+		if (!RunRarityMultipliers.IsWellFormed(parameters.LootRarityMultiplier) || !RunRarityMultipliers.IsWellFormed(parameters.TrapRarityMultiplier))
+		{
+			_log.LogError(
+				"[WorldParams] the run baseline carries a non-finite rarity multiplier (loot {Loot}, trap {Trap}); neither is applied, so the layer keeps the game's own values and does NOT match the run's captured distribution.",
+				parameters.LootRarityMultiplier?.ToString("F3") ?? "<none>",
+				parameters.TrapRarityMultiplier?.ToString("F3") ?? "<none>");
+		}
+		else if (parameters.LootRarityMultiplier is not null && parameters.TrapRarityMultiplier is not null)
 		{
 			try
 			{

@@ -14,4 +14,25 @@ public static class RunRarityMultipliers
 {
 	/// <summary>The game's own starting multiplier for a new run.</summary>
 	public const float Neutral = 1f;
+
+	/// <summary>
+	/// Is this captured/wire multiplier a value the game could have produced? The
+	/// game starts a run at <see cref="Neutral"/> and only ever SCALES the two
+	/// values, so a NaN or an infinity comes from a buggy or hostile peer — the wire
+	/// carries a float with no finiteness rule of its own — and never from
+	/// generation. (The archive is not one of those producers: its JSON layer
+	/// refuses a non-finite number on both read and write, so the restore-side
+	/// caller of this rule is a backstop rather than the archive's defence.) Such a
+	/// value must not shape a layer: the kernel refuses a baseline that carries one
+	/// on every path into it — the command path, the applied wire batch, and the
+	/// checkpoint restore — and the adapter refuses to write one into the live
+	/// world, so the layer keeps the game's own values instead of being scaled by a
+	/// number that has no meaning.
+	///
+	/// Null ("this producer captured no multiplier") is well formed by definition:
+	/// it is a field the sender never carried, not a malformed value, and every
+	/// reader defaults it to <see cref="Neutral"/>.
+	/// </summary>
+	public static bool IsWellFormed(float? multiplier) =>
+		multiplier is not { } value || (!float.IsNaN(value) && !float.IsInfinity(value));
 }

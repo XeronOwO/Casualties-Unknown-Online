@@ -279,7 +279,7 @@ being applied, not to the body. Same end state for the items, one frame later, a
 snapshot wins consistently.
 
 **Red → green for F1**: with the pre-review cancel semantics temporarily restored (cancel anything
-queued), `LocalCharacterRestoreQueueTests.PeerQueue_SurvivesARunStartHere` fails at runtime
+queued), `LocalCharacterRestoreQueueTests.PeerQueue_SurvivesThisClientFollowingItsRun` fails at runtime
 (`Assert.False() Failure / Expected: False / Actual: True`) and passes with `CancelOwnRun`. The rest of
 the class pins the wipe-phase cancel, the empty cancel, the re-sent restore (the phase belongs to the
 SNAPSHOT, not the body) and the clear.

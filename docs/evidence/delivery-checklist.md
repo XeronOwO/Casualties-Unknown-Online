@@ -17,6 +17,17 @@ catch-up pass) is FORBIDDEN: it fabricates the process record and voids the
 gate (observed: the cycle was bulk-checked, never committed, then reset —
 the user called it out). Only a deliberate cycle reset may touch multiple lines.
 
+**Documentation-only cycles (added 2026-09-17)**: a cycle that changes no runtime or test behaviour
+(backlog moves, evidence/citation updates, workflow documentation) still fills EVERY box and still
+leaves item 8 and FORBIDDEN unchecked, but may write its boxes in one pass. That is the deliberate
+multi-line exception the paragraph above already allows for a cycle reset, applied to a cycle with no
+implementation sequence to record; the BULK-checking prohibition keeps governing every cycle that
+touches `src/`, `tests/` or `tools/`. `dotnet format` may be skipped (it only rewrites C#, and such a
+cycle has none). The evidence run may use
+`--filter "FullyQualifiedName!~DeliveryChecklist_NoIncompleteRequiredBoxes"` — but the focused
+normative-gate run afterwards is NOT optional: it is the only thing that proves this checklist complete
+before the commit.
+
 **Evidence rule (added 2026-09-17)**: a checked box carries a short evidence suffix on the
 SAME line — `- [x] <item> — evidence: <command/file/result>` — because a bare checkmark
 records that someone decided the step was done, not what proved it. Keep it to one clause
@@ -24,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: this cycle touches no runtime mechanism; the moved ticket's claims were re-verified instead — 82/82 acceptance test anchors re-resolved in the test tree (54 `Type.Method` + 28 shorthand `.Method`, 0 missing), 376/376 focused save/restore + world-entity cases, 32/32 normative gates
+      file:line or runtime log) or is explicitly marked unverified — evidence: the touched mechanisms are 3 instruction/doc files (byte counts + verbatim-move check), 1 test (the lease's process-liveness wait), and 5 new gate rules (each measured against the tree before being written: 239 anchor citations across 151 gated documents, 1 unresolved; AGENTS.md line citations 0)
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the family was every reference to the two moved tickets — 33 references across 18 files (one by hand, 32 by one literal sweep rule), with a repo-wide search confirming 0 residual hits for the two moved ticket paths
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the *S3.5 closure* section of `review/save-mid-run-consistent-cut.md` carries the scope table (9 scopes x state x where each landed), the exactly-once claim split into machine-proven vs the user's in-game half, and the re-anchoring numbers
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the flake family is "a test that depends on a spawned process still being alive"; `git grep Process.Start tests` finds only `WorldLeaseTests` (the other two spawn git/a harness for their OUTPUT, not for liveness), and the class's 11 cases pass 3/3 repeat runs plus the full suite
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: A = instruction-budget split — of the three files the harness auto-loads, `AGENTS.md` went 31 858 → 23 667 B and `AGENTS.local.md` 36 538 → 20 448 B (global `~/.dsh/AGENTS.md` 16 796 B unchanged), i.e. 85 192 → 60 911 B of 65 536, and `docs/development/agent-reference.md` (9 441 B) is deliberately NOT auto-loaded — with the three moved sections verified verbatim; C = the review template (`docs/development/review-prompt.md`), the interim-report step in `AGENTS.md`, and the documentation-only-cycle clause in this file; E = the lease test's observable-liveness wait; B = five gate rules plus five negative-contract self-tests (10 cases), 42/42 gates green
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: no runtime behaviour changes, so the proof is a one-off anchor re-resolution pass (82/82, script not landed), the focused suites, and the normative gates; the moved ticket's in-game rows stay named as the user's pass and are NOT claimed as observed
+      peer log comparison, hotrepl assertions) is decided — evidence: no runtime path is touched (no `src/` behaviour change), so the proof is the gate suite (42/42) plus the full suite (3 202/3 202); the new gate rules were measured against the tree BEFORE being written (239 anchor citations, exactly 1 unresolved and excused as a historical red record; 0 AGENTS.md line citations) so the gate starts green and can only catch regressions
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the S3 design was frozen with the user on 2026-09-10 (decisions 162-166) and the handoff instruction named this ticket as the next work item; the S3.5 closure is verification/documentation only, so it introduces no design that needs approval
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: `dotnet format CasualtiesUnknownOnline.slnx` exit 0; full suite 3 202/3 202 + 31/32 normative gates, the only red being THIS checklist before its own boxes were checked; re-run after checking them is 32/32
+      process violation — evidence: the user selected all five workflow-iteration workstreams (A instruction slimming / B gates / C per-cycle cost / D doc structure / E lease flake) from the retrospective's option list this session; this cycle lands A, B, C and E, with D specified for the next session (the index gate that D needs already exists)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: `dotnet format CasualtiesUnknownOnline.slnx` exit 0; full suite 3 202/3 202 plus 42/42 normative gates (41/42 on the evidence run, which filters THIS gate out — the tip this cycle added to the rules above); no warnings from the new gate class
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: no class is touched — the two source edits are comment-only lines repointing a moved ticket path (`WorldFactRestore.cs`, `WorldTransientPolicyTests.cs`), with no state bool and no dead mechanism involved; the rest of the change is documentation
+      dead mechanisms deleted in the same round) — evidence: the one new class is `BacklogIntegrityGateTests` (406 lines, under the 600-line advisory; `TestClassSizeGateTests` sees 10 cases against its limit of 40); no production class is touched; no state bool or dead mechanism is involved; the instruction text was MOVED, not copied (the three sections exist only in `docs/development/agent-reference.md`)
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

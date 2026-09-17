@@ -1,0 +1,10 @@
+{
+  "//": "Anchors that a GATED document cites but that no test declares any more. Every entry must still be cited by its document (the gate fails on a stale exception) and must carry a reason. Add here only for a HISTORICAL record inside a gated document — a red/green log or a dated pass narrative — never to excuse a live claim: a live claim whose anchor is gone is a finding, not an exception. Point-in-time record folders (docs/evidence/selfchecks/, docs/history/, docs/backlog/done/, docs/backlog/resolved/) are out of scope entirely and need no entries.",
+  "exceptions": [
+    {
+      "ticket": "docs/backlog/review/runtime-entity-spawn-backfill.md",
+      "anchor": "GuestEntityReportRecoveryTests.UnmaterializableCreation_IsStillAcceptedRelayedAndAcknowledged",
+      "reason": "Historical red record that the ticket itself marks SUPERSEDED (the accept-first relay was replaced by the rejection path in review/runtime-entity-creation-rejection.md). The line names a test that was never declared under that exact name: the surrounding prose was written against an aspirational name, and the real counterpart today is GuestEntityReportRecoveryTests.UnmaterializableReport_OnAGuest_IsNotRelayed, which pins the opposite (rejection) behaviour. Kept as the record was written; the exception exists so the gate does not force a rewrite of a dated red log."
+    }
+  ]
+}

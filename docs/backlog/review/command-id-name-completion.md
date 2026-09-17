@@ -72,7 +72,7 @@ Rules:
 
 - `ResourceLocationCatalogTests` (matching/ranking/dedup/cap),
   `ModContentResourceLocationSourceTests` (canonical mod ids + display names),
-  `CommandConsoleServiceTests.ArgumentSuggestions_ResourceLocationKind_ReturnsCatalog`,
+  `CommandConsoleCompletionTests.ArgumentSuggestions_ResourceLocationKind_ReturnsCatalog`,
   `ModConsoleCommandTests.ModConsoleCommand_ResourceLocationCompletion_ReturnsCatalog`,
   `CommandSelectorSuggestionsTests`, `CommandSelectorFilterTests`/`CommandSelectorResolverTests`.
 - Full build + test + format + normative gates; deployed-DLL hash verification.

@@ -98,7 +98,8 @@ dotnet format CasualtiesUnknownOnline.slnx        # mandatory before every commi
 - Target: `net48`, `LangVersion = preview`, nullable enabled, warnings-as-errors.
 - NuGet sources: nuget.org + nuget.bepinex.dev + nuget.samboy.dev.
 - Game assemblies are copyrighted and only the Game Adapter may reference them.
-- Packaged plugin deploys via `tools/deploy.ps1` (machine path in `AGENTS.local.md`).
+- Packaged plugin deploys via `tools/deploy.ps1`, and the deployment is verified against this
+  tree's build output by `tools/verify-deploy.ps1` (machine path in `AGENTS.local.md`).
 
 ## Engineering Discipline
 
@@ -310,9 +311,16 @@ verification → independent adversarial self-check → structure review → com
    verify deployed artifact identity (hash/timestamp) → run runtime/log/dual-client checks
    where applicable → confirm every row of the acceptance matrix passes before moving to
    `review/`. A build that passes without the latest DLLs running is not completion.
-6. **Run an independent adversarial self-check.** Use a fresh/independent context (an
-   independent subagent, not the same reasoning path that produced the change). Cover reverse
-   directions, third-party views, edge cases, and regressions of adjacent features.
+6. **Run an independent adversarial self-check BEFORE the commit.** Use a fresh/independent
+   context (an independent subagent, not the same reasoning path that produced the change).
+   Cover reverse directions, third-party views, edge cases, and regressions of adjacent
+   features. Start it against the FROZEN working tree: implement, run the affected tests and
+   `dotnet format`, then stop editing until the report comes back, and spend that window on
+   non-conflicting work (deployment build, doc drafts, evidence collection). Fix its findings
+   in the SAME commit — a review run after the commit turns every finding into a second commit
+   with its own format + full-suite + deploy + hash-verification round, which is the largest
+   avoidable cost of a cycle (measured 2026-09-17: one extra full round). Editing files while
+   the review runs invalidates its conclusions, so freeze or restart it.
 7. **When a delivery is rejected or verification fails, run a root-cause loop.** Analyze "why
    was it missed", record the process lesson, and fix the leak before moving on. Moving the
    ticket back is not enough.

@@ -60,6 +60,15 @@ public sealed class PendingEntityReportTable
 	/// <summary>Drop the creation — the host has answered for it, or the local copy died. Returns whether an entry was removed.</summary>
 	public bool Remove(RuntimeEntityKey key) => _entries.Remove(key);
 
+	/// <summary>
+	/// Whether this creation's report is still waiting for the host's answer.
+	/// The pending table is what proves THIS member really reported a creation:
+	/// a hand-built report (a mod calling the public send surface) can carry a
+	/// creation token naming another creator, and the creator half alone would
+	/// then make the host's answer unrecognisable to the side that must act on it.
+	/// </summary>
+	public bool Contains(RuntimeEntityKey key) => _entries.ContainsKey(key);
+
 	/// <summary>Count one fallback re-send for the creation; returns the new attempt count (0 when the entry is already gone).</summary>
 	public int RecordAttempt(RuntimeEntityKey key)
 	{

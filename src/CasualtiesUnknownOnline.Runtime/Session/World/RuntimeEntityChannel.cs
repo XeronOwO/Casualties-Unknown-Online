@@ -184,11 +184,15 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 
 	/// <summary>
 	/// Guest: the host rejected a creation this side reported — the answer the
-	/// pending re-report waited for. Only the REPORTER's own creation key (its
-	/// token's creator half) is acted on: a rejection that reaches another member
-	/// changes nothing there. The pending entry is dropped so the 60 s fallback
-	/// stops, and the adapter is asked to destroy the local copy — idempotent, so
-	/// a replayed rejection that arrives after the copy already died is a no-op
+	/// pending re-report waited for. Only the host's own message is considered,
+	/// and only when the creation is this member's own: either the creation token's creator half is this
+	/// member, or the pending table still holds the report — the proof that this
+	/// member reported it (a mod-built report can carry a token naming another
+	/// creator, and then the creator half alone would leave the entry
+	/// re-reporting forever). A rejection that reaches another member changes
+	/// nothing there. The pending entry is dropped so the 60 s fallback stops,
+	/// and the adapter is asked to destroy the local copy — idempotent, so a
+	/// replayed rejection that arrives after the copy already died is a no-op
 	/// rather than a resurrection.
 	/// </summary>
 	public void FireRuntimeEntityRejectedReceived(ulong sender, RuntimeEntityRejectedMsg msg)
@@ -198,10 +202,16 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 			return;
 		}
 
-		var key = RuntimeEntityKey.FromKeyMsg(msg.Key);
-		if (key.CreatorSteamId != _session.LocalSteamId)
+		if (sender != _session.HostSteamId)
 		{
-			_log.LogDebug("[EntitySpawn] ignoring a rejection for {Id} at ({X},{Y}) — creation {Creator} is not this member's report.",
+			_log.LogWarning("[EntitySpawn] ignoring a rejection from {Sender} — only the host answers a creation report.", sender);
+			return;
+		}
+
+		var key = RuntimeEntityKey.FromKeyMsg(msg.Key);
+		if (key.CreatorSteamId != _session.LocalSteamId && !_pendingEntityReports.Contains(key))
+		{
+			_log.LogDebug("[EntitySpawn] ignoring a rejection for {Id} at ({X},{Y}) — creation {Creator} is neither this member's token nor its pending report.",
 				key.Id, key.X, key.Y, key.CreatorSteamId);
 			return;
 		}
@@ -211,7 +221,7 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 			_pendingEntityOverflowLogged = false; // the overflow episode ended — a later fill must log again
 		}
 
-		_log.LogWarning("[EntitySpawn] host rejected {Id} at ({X:F1},{Y:F1}) (creation {Creator}:{Sequence}): {Reason} — the pending report is dropped and the local copy is removed.",
+		_log.LogWarning("[EntitySpawn] host rejected {Id} at ({X:F1},{Y:F1}) (creation {Creator}:{Sequence}): {Reason} — the pending report is dropped; the reporter is asked to remove the local copy.",
 			key.Id, key.X, key.Y, key.CreatorSteamId, key.CreationSequence, msg.Reason);
 
 		RuntimeEntityRejectedReceived?.Invoke(key, msg.Reason);
@@ -301,9 +311,9 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 	/// outstanding, when this side is not a guest, or when the session ended.
 	/// Entries are never dropped for age: an unreachable host keeps them until
 	/// the answer, the entity's death or a world/session boundary. A creation
-	/// the host cannot materialize (a prefab its mod set lacks) therefore keeps
-	/// retrying; the host still accepts and relays it, and the stall warning
-	/// makes a genuinely unreachable report visible instead of silent.
+	/// the host cannot materialize is answered with a rejection, which drops the
+	/// entry; only a genuinely unreachable host leaves it retrying, and the stall
+	/// warning makes that visible instead of silent.
 	/// </summary>
 	public void ResendPendingEntityReports()
 	{

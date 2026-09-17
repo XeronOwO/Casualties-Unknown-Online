@@ -73,6 +73,7 @@ public class RuntimeEntityRejectionTests
 		// retract, and the reporter's own echo would hide the divergence.
 		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.EntitySpawned));
 		Assert.Equal(0, w.ReceivedCount(w.G1, NetMsg.EntitySpawned));
+		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.RuntimeEntityRejected)); // the answer is targeted, never broadcast
 		Assert.Equal(0, w.Host.Services.GetRequiredService<RuntimeEntityRegistry>().Count);
 	}
 
@@ -100,6 +101,7 @@ public class RuntimeEntityRejectionTests
 		w.Driver.Tick(61_000);
 		Assert.Single(reports); // no fallback re-report: the rejection answered it
 		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.EntitySpawned));
+		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.RuntimeEntityRejected)); // third parties never learn of the creation
 	}
 
 	[Fact]
@@ -163,7 +165,33 @@ public class RuntimeEntityRejectionTests
 	}
 
 	[Fact]
-	public void RepeatedRejection_IsIdempotent()
+	public void RejectionForAKeyThisMemberReported_IsActedOnEvenWhenTheTokenNamesAnotherCreator()
+	{
+		using var w = ItemSimWorld.Create();
+		var reports = InstallRejectingHostExecutor(w);
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+		var rejected = new List<RuntimeEntityKey>();
+		guestWorld.RuntimeEntityRejectedReceived += (key, _) => rejected.Add(key);
+
+		// A hand-built report (a mod calling the public send surface) can name
+		// another member in its creation token. The pending table is what proves
+		// THIS member reported it, so the host's rejection must still clear the
+		// entry and remove the copy — the creator half alone would leave the
+		// reporter re-reporting for the rest of the session.
+		var foreign = Creation("modcrate", 6f, 6f, w.G2.SteamId, 9);
+		guestWorld.SendEntitySpawned(foreign);
+		w.Driver.Tick(33);
+
+		Assert.Single(reports);
+		Assert.Equal(1, w.ReceivedCount(w.G1, NetMsg.RuntimeEntityRejected));
+		Assert.Equal(RuntimeEntityKey.From(foreign), Assert.Single(rejected));
+		Assert.Equal(0, PendingCreations(w.G1));
+		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.EntitySpawned));
+		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.RuntimeEntityRejected));
+	}
+
+	[Fact]
+	public void RepeatedRejection_ReRaisesTheRemovalRequest_AndTheChannelStaysConsistent()
 	{
 		using var w = ItemSimWorld.Create();
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
@@ -183,13 +211,15 @@ public class RuntimeEntityRejectionTests
 		};
 
 		// A duplicate rejection (a resend, or one arriving after the local copy
-		// already died) must not resurrect anything or throw: the entry is already
-		// gone, and the adapter's removal is located by creation key, so a copy
-		// that is no longer there is a no-op.
+		// already died) must not resurrect anything or throw. The channel keeps
+		// re-raising the removal request — it cannot know whether the copy is
+		// still there — so the idempotence lives in the adapter, whose
+		// find-by-creation-key lookup is a logged no-op for a copy that is gone
+		// (game-typed: code-reviewed, not executed here).
 		guestWorld.FireRuntimeEntityRejectedReceived(w.Host.SteamId, msg);
 		guestWorld.FireRuntimeEntityRejectedReceived(w.Host.SteamId, msg);
 
-		Assert.Equal(2, rejected.Count);
+		Assert.Equal(2, rejected.Count); // the channel's half: consistent, no throw, nothing pending
 		Assert.Equal(0, PendingCreations(w.G1));
 	}
 }

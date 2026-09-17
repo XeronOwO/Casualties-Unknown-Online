@@ -51,9 +51,12 @@ rides the relay back to the reporter.
   removed.
 - The live relay is untouched: `RuntimeEntityChannel.SendEntitySpawned`'s host branch
   records the accepted creation and `_session.Broadcast(NetMsg.EntitySpawned, msg)`
-  reaches every member including the source; the unmaterializable-report branch
-  (`ReportEntitySpawnUnmaterialized`) also broadcasts to every member and documents the
-  echo as the acknowledgement.
+  reaches every member including the source. The unmaterializable-report branch
+  (`ReportEntitySpawnUnmaterialized`) no longer broadcasts at all: since
+  `review/runtime-entity-creation-rejection.md` (decision 161) it REJECTS the
+  creation — neither recorded nor relayed — and answers only its reporter with
+  `NetMsg.RuntimeEntityRejected`, which the reporter's pending report and local
+  copy both end on.
 
 ## Verification
 

@@ -28,6 +28,20 @@ See `docs/README.md` for the documentation index.
 - `[CRITICAL]` **Local compute, remote verify/sync**: each player simulates its own actions
   with single-player feel; the host never simulates a guest's per-frame behavior. Host
   authority is limited to global world-state ownership (seed, saves, rulings).
+- `[CRITICAL]` **Judge where the effect lands (user ruling 2026-09-18)**: a judgment about
+  what happens to a player belongs to THAT player's client, on its own view and timeline —
+  the victim judges its own hit, the actor and the target judge their own interaction gates
+  (line of sight, operation preconditions), and a locally initiated operation (world-time
+  acceleration) takes effect locally at once while the host arbitrates and broadcasts the
+  shared state. The host owns the world it simulates and the arbitration of conflicting
+  claims (first writer wins) — never the verdict on somebody else's body, reach, or timing.
+  Co-op work must stay possible: exclusive one-operator locks are the exception, not the rule.
+- `[CRITICAL]` **Latency is never a parameter of a judgment**: no judgment, arbitration or
+  tolerance may rest on a fixed window that ignores the peer's measured RTT — a locally
+  completed action rolled back by a guessed hold (the pickup window) is the smell this rule
+  exists to catch. Either the deciding fact is known (a creation judged before any operation
+  on it, a tombstone for a refused creation) or the judgment belongs to the client that can
+  see it.
 - `[CRITICAL]` **Accept-first sync arbitration — only for state the host can represent**:
   adopt and relay a guest's report first; correct only on an obvious conflict; a correction
   never blocks the player. Strict validation/anti-cheat are low priority until the feature set

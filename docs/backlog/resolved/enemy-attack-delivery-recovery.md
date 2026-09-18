@@ -1,16 +1,32 @@
 # A dropped enemy attack is never re-issued
 
-- Status: Todo
-- Priority: Medium
+- Status: Resolved
 - Category: Network / sync coverage / enemies (host-ordered attack delivery)
-- Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the binding half is `review/enemy-snapshot-binding-recovery.md`
+- Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the binding half landed as `review/enemy-snapshot-binding-recovery.md`
+- Superseded by: `todo/enemy-hit-determination-local.md` (user ruling 2026-09-18)
 - Related: `review/enemy-snapshot-binding-recovery.md`, `review/runtime-entity-spawn-backfill.md`
 
-## Problem (evidence)
+## Why this record is closed without code
 
-An attack on a remote victim is a host-ordered one-shot: the host's enemy simulation decides, the
-victim's client applies it to its own body and reports the terminal state back (the `EnemyBite` /
-`EnemyLunge` kernel events). The order is dropped on two paths and nothing re-issues it.
+This ticket assumed the host ORDERS the hit and the victim applies it, and asked how a
+dropped order should be recovered (re-issue it, acknowledge it, or record the loss). The
+user's 2026-09-18 ruling removes the premise: hit determination itself belongs on the
+victim's client, because a host-side verdict punishes high-latency players (damage landing
+after the victim's own screen showed a dodge, several hits inside one round trip). With the
+victim judging its own hit there is no host verdict to drop, so the whole "re-issue or
+compensate the lost order" family — including the design directions below — is moot.
+
+What survives from this ticket is carried into `todo/enemy-hit-determination-local.md`:
+the host keeps the enemy's action and its timing; the victim's report remains the shared
+truth; the binding recovery that the victim's judgment depends on already landed
+(`review/enemy-snapshot-binding-recovery.md`).
+
+## Original problem (evidence, as recorded)
+
+An attack on a remote victim is a host-ordered one-shot: the host's enemy simulation
+decides, the victim's client applies it to its own body and reports the terminal state back
+(the `EnemyBite` / `EnemyLunge` kernel events). The order is dropped on two paths and
+nothing re-issues it.
 
 - Host side, the victim is not an in-world member:
   `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs` `SendEnemyAttack`
@@ -32,33 +48,15 @@ victim's client applies it to its own body and reports the terminal state back (
   orders the lunge and returns; the enemy lunges once, so a dropped order is permanently lost —
   there is no second decision to re-issue it.
 
-## Goal
+## Original design directions (superseded)
 
-A dropped `EnemyAttack` does not leave the host's simulation and the victim's body permanently
-disagreeing. Either the order is re-issued, or the loss is explicitly accepted with a recorded
-reason and a bounded consequence in the matrix row.
+1. Do not consume an undelivered order (the no-wire-change option the audit preferred).
+2. Or make the command idempotent with an ack/retry.
+3. Or accept the loss explicitly with the bound recorded in the matrix row.
 
-## Design direction (decide at implementation)
-
-1. **Do not consume an undelivered order.** Make the send's outcome explicit and mirror the
-   retreat/cooldown (spider) or the wind-up commitment (crystal) only when the order actually
-   left; the next AI decision then re-issues it. This is the no-wire-change option the audit
-   prefers. It must be checked against the per-frame re-order / log-spam risk while a victim is out
-   of world or still unbound.
-2. **Or make the command idempotent with an ack/retry.** The victim's bite report already exists as
-   a natural ack, but the command carries no attempt identity, so a blind retry could double-apply
-   a bite; that needs a wire member.
-3. **Or accept the loss explicitly.** If a case is accepted, record the concrete bound in the
-   matrix row instead of leaving it implicit.
-
-## Acceptance matrix
+## Original acceptance matrix (superseded)
 
 | # | Scenario | Expected |
 |---|---|---|
 | 7 | `EnemyAttack` dropped (victim not in world / enemy id unbound) | The victim does not stay permanently unbitten; either re-issued or explicitly accepted with a recorded reason |
 | 7b | Third-party view | All peers agree on the victim's post-attack state |
-
-## Non-goals
-
-- Enemy AI / combat policy changes.
-- The enemy binding half (`review/enemy-snapshot-binding-recovery.md`).

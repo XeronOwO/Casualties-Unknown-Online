@@ -7,7 +7,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 2 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
-- Related: `docs/architecture/save-archive-format.md`, `review/save-format-and-world-repository.md` (S1), `review/save-mid-run-consistent-cut.md` (S3), `todo/save-multiplayer-restore-and-backups.md` (S4)
+- Related: `docs/architecture/save-archive-format.md`, `review/save-format-and-world-repository.md` (S1), `review/save-mid-run-consistent-cut.md` (S3), `review/save-multiplayer-restore-and-backups.md` (S4)
 
 ## Scope
 
@@ -168,7 +168,7 @@ Recorded, not fixed in this cycle:
   `caloriesConsumed`, `lastHappiness`, `savedRecipeData`, `savedRunTime`, `WoundView.cInfo`) are not
   part of the v1 snapshot (decision 166: kernel checkpoint + run baseline + character data + world
   diff). A layer beyond the first therefore restores its rarity multipliers from their start values,
-  not their accumulated ones — see the new `todo/save-native-run-field-parity.md`.
+  not their accumulated ones — see the new `review/save-native-run-field-parity.md`.
 - `RunMenuReturnCoordinator.Flush` consumes its pending request before checking `inWorld` /
   `SessionActive` / `PlayerCamera.main` (inherited behaviour, now the only writer sits behind it): a
   failed check loses that save and the menu transition with no retry. Left alone deliberately — the
@@ -299,7 +299,7 @@ ticket's own text).
 - Two persistent copies of a member's character now exist: the archive's `characters/<key>.json`
   (durable, per-world) and the legacy `CasualtiesUnknownOnline.character-data.bin` reconnect store
   (session-scoped, fed by the same restore path). Folding the reconnect store into the archive needs
-  the guest-claim machinery, so it is S4's (`todo/save-multiplayer-restore-and-backups.md`).
+  the guest-claim machinery, so it is S4's (`review/save-multiplayer-restore-and-backups.md`).
 - A fatal continue refusal (e.g. an unreadable run baseline) currently reaches the log and the
   returned outcome only; the player-visible surface for repair/refusal reports is S4's decision, and
   S2 deliberately did not invent one.

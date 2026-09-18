@@ -7,7 +7,7 @@
 > `../presentation/unified-remote-display-projection-selfcheck.md` for the
 > current seam.
 
-Owner cycle: backlog `todo/remote-fentanyl-injection-and-medical-panel-desync.md`.
+Owner cycle: backlog `review/remote-fentanyl-injection-and-medical-panel-desync.md`.
 
 ## 1. Mechanism inventory
 

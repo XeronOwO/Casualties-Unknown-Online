@@ -173,8 +173,10 @@ person). "It runs" is the floor, not the goal.
 12. `[RULE]` **Empty directories** that must stay in the repository use a 0-byte `.gitkeep`
     file; do not substitute a placeholder document, and do not leave an untracked empty
     directory.
-13. `[RULE]` **Extension methods**: stop and ask the user whether to use the C# 14 `extension`
-    syntax; do not default to the classic `this X` form.
+13. `[RULE]` **Extension methods** use the C# 14 `extension` syntax (`LangVersion = preview`); do not
+    write the classic `this X` form. Record the reason in the ticket or commit when the classic form
+    is unavoidable for a specific compatibility case — this is an implementation detail and does not
+    need a user round trip.
 
 ## Development Workflow (binding)
 

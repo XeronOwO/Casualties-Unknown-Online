@@ -305,7 +305,7 @@ Already-owned findings cross-referenced, not duplicated:
 
 - `KernelSaveFileStore` is unit-tested but has no production caller (the authoritative
   checkpoint is memory-only today) — owned by `docs/backlog/review/save-format-and-world-repository.md`
-  (S1) and `docs/backlog/todo/save-layer-end-save-and-restore.md` (S2).
+  (S1) and `docs/backlog/review/save-layer-end-save-and-restore.md` (S2).
 - `ResetFluidsCommand` and `ResetEnemiesCommand` are host-local and carry no wire form — closed by
   the layer-boundary reset family (decision 174): `LayerScopedTableReset` issues
   both at the world-entry seam, so the commands have a real caller and no peer can reach them. The

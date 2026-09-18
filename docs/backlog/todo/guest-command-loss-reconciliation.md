@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / items
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` rows I5 and I1 caveat, after the independent adversarial review reclassified I5 from OK)
-- Related: `todo/guest-block-mutation-re-report.md` (same swallowed-guest-event family), `review/remote-backpack-native-interaction-parity.md`
+- Related: `review/guest-block-mutation-re-report.md` (same swallowed-guest-event family), `review/remote-backpack-native-interaction-parity.md`
 
 ## Problem (evidence)
 

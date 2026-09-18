@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / session control
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` rows R3, R4, W7 marker finding)
-- Related: `todo/guest-block-mutation-re-report.md` (same "swallowed event" family)
+- Related: `review/guest-block-mutation-re-report.md` (same "swallowed event" family)
 
 ## Problem (evidence)
 

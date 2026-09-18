@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / enemies
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1)
-- Related: `todo/runtime-entity-spawn-backfill.md`, `review/global-adaptive-report-rate-flow-control.md`
+- Related: `review/runtime-entity-spawn-backfill.md`, `review/global-adaptive-report-rate-flow-control.md`
 
 ## Problem (evidence)
 
@@ -70,7 +70,7 @@ stays intact.
 ## Non-goals
 
 - Enemy AI / combat policy changes.
-- The runtime BuildingEntity half (`todo/runtime-entity-spawn-backfill.md`).
+- The runtime BuildingEntity half (`review/runtime-entity-spawn-backfill.md`).
 
 ## Progress (2026-09-09) — identity half landed, recovery still open
 

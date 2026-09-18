@@ -84,7 +84,7 @@ leaking from the template into the render clone:
 - Deployed to the real game directory and verified the deployed
   `CasualtiesUnknownOnline.GameAdapter.dll` hash matches the build output.
 - The earlier water-current/clipping variant is part of the broader systemic
-  body-pose family (see `todo/host-severe-sleepiness-posture-desync.md`) and
+  body-pose family (see `review/host-severe-sleepiness-posture-desync.md`) and
   is not independently closed by this presentation-only facing fix.
 
 ## Non-goals

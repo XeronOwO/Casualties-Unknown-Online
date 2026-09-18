@@ -141,7 +141,7 @@ never ran.
 half, and the two appliers that have not run — the throw leaves no count, so the half's report can only
 say "not fully written". One level deeper (a per-row catch inside the adapter's row loops, which the
 adversarial review showed can keep BOTH the exception in the log and an exact refused-row count) is
-recorded as `todo/restored-entity-row-containment.md`: it is a different mechanism with its own
+recorded as `review/restored-entity-row-containment.md`: it is a different mechanism with its own
 evidence problem (the appliers are game-typed and carry read-only review only), not a footnote of this
 ticket.
 
@@ -161,7 +161,7 @@ ticket.
 ## Residuals (recorded, not closed)
 
 - **The rows behind a throwing row** are still lost (see the containment section) —
-  `todo/restored-entity-row-containment.md`.
+  `review/restored-entity-row-containment.md`.
 - **Shy-crystal pairing is order-dependent on the replay side.** The row's position is post-swap (see
   above), so a replay scans from the partner's position and depends on the same unspecified
   `Physics2D.OverlapCircleAll` order the game's own effect depends on. Faithful mirror, unverified at

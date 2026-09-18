@@ -36,8 +36,8 @@ public class BacklogIntegrityGateTests
 	/// <summary>A floor on the ROW CENSUS, not on the failures: the index carries every ticket, so a parser that silently stopped matching would otherwise pass by checking nothing.</summary>
 	internal const int IndexRowFloor = 130;
 
-	/// <summary>Folder name → the <c>- Status:</c> label that folder implies, and the index section that owns it.</summary>
-	private static readonly Dictionary<string, string> StatusOfFolder = new(StringComparer.Ordinal)
+	/// <summary>Folder name → the <c>- Status:</c> label that folder implies, and the index section that owns it. Internal because the cross-reference gate derives its status alternation from this one list instead of copying it.</summary>
+	internal static readonly Dictionary<string, string> StatusOfFolder = new(StringComparer.Ordinal)
 	{
 		["todo"] = "Todo",
 		["review"] = "Review",
@@ -48,8 +48,8 @@ public class BacklogIntegrityGateTests
 		["watchlist"] = "Watchlist"
 	};
 
-	/// <summary>Point-in-time records are deliberately NOT anchor-checked: a selfcheck, an audit or a closed ticket is the record of what was true when it was written, so a test renamed afterwards must not force history to be rewritten. Everything else under <c>docs/</c> — the live backlog folders, the decisions register, the architecture specs, the evidence pages — is gated, which is where a dead anchor means a live claim pointing at nothing.</summary>
-	private static readonly string[] RecordPrefixes = ["backlog/done/", "backlog/resolved/", "evidence/selfchecks/", "history/"];
+	/// <summary>Point-in-time records are deliberately NOT anchor-checked: a selfcheck, an audit or a closed ticket is the record of what was true when it was written, so a test renamed afterwards must not force history to be rewritten. Everything else under <c>docs/</c> — the live backlog folders, the decisions register, the architecture specs, the evidence pages — is gated, which is where a dead anchor means a live claim pointing at nothing. Internal because the backlog cross-reference gate exempts exactly the same records.</summary>
+	internal static readonly string[] RecordPrefixes = ["backlog/done/", "backlog/resolved/", "evidence/selfchecks/", "history/"];
 
 	/// <summary>Every markdown document under <c>docs/</c> except the records above is anchor-checked: an evidence page that points at a test nobody declares is the same rot one directory over.</summary>
 	private static IEnumerable<(string Folder, string File, string Text)> DocumentTexts() =>

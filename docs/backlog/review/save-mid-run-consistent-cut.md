@@ -75,8 +75,8 @@ Frozen with the user before implementation started:
 2. **Staging** — S3.1 payload skeleton (typed rows, encoder/decoder, the Runtime fact ports), S3.2
    world-diff capture and replay in the adapter, S3.3 the consistent cut and the per-state transient
    policy, S3.4 the native run-field ownership (the frozen per-field decision lives in
-   `todo/save-native-run-field-parity.md`), S3.5 exactly-once plus documentation and re-anchoring.
-3. **Native run fields** — decided per field in `todo/save-native-run-field-parity.md`; a field
+   `review/save-native-run-field-parity.md`), S3.5 exactly-once plus documentation and re-anchoring.
+3. **Native run fields** — decided per field in `review/save-native-run-field-parity.md`; a field
    deliberately left out is still named in the restore report, never silently defaulted.
 4. **Random streams** — the world's generation baseline already rides `RunState.RandomState` in
    `run.json`, and no kernel domain makes a random decision, so `GameCheckpoint.RandomStreams` stays
@@ -130,7 +130,7 @@ promises "this frame" when a deferral can wait.
 **Not proven by the above**: the in-game result (the layer's loot/trap distribution actually
 matching, the recipe list actually staying unlocked, the clock display continuing) — those are the
 user's dual-client pass. `WoundView.SetCharDetails`/`cInfo` and the two character-level fields are
-S3.4b and are NOT implemented; see `todo/save-native-run-field-parity.md`.
+S3.4b and are NOT implemented; see `review/save-native-run-field-parity.md`.
 
 ## S3.4a independent adversarial pass (2026-09-11)
 
@@ -164,7 +164,7 @@ moved on:
    instead of "an unusable kind ''". Recorded but NOT fixed (they are the same family, outside this
    stage): the run clock is not on the wire, `layerTimeSpent`/`maxTimePerLayer` are not carried, no
    value-range guard on wire multipliers, and `WorldParamsService` injects the concrete adapter type.
-   See `todo/save-native-run-field-parity.md` → "Recorded gaps".
+   See `review/save-native-run-field-parity.md` → "Disposition of the recorded gaps (2026-09-17)".
 
 ## Scope
 

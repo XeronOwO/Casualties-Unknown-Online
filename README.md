@@ -56,6 +56,7 @@ The project is developed with AI assistance:
 - [CUCoreLib](https://github.com/jimmyking9999999/CUCoreLib) — an open-source library for this game, used as a helpful reference for game-specific integration details.
 - [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) — the development harness used for CUO's development.
 - [BepInEx](https://github.com/BepInEx/BepInEx) — the modding framework CUO builds on.
+- [Claude Code](https://github.com/anthropics/claude-code) — used for CUO's early development; thanks revoked for suspicious signals before delivery.
 
 ## License
 

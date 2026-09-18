@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 821,
+  "count": 824,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -1267,8 +1267,8 @@
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "kernel-protocol",
@@ -1483,8 +1483,8 @@
     {
       "cluster": "players",
       "row": "P2",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "players",
@@ -1687,8 +1687,8 @@
     {
       "cluster": "players",
       "row": "P6",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "players",
@@ -1837,8 +1837,8 @@
     {
       "cluster": "players",
       "row": "P9",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "players",
@@ -2419,8 +2419,8 @@
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.SendBlockStateSnapshot(member.SteamId);"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_world.SendBlockStateSnapshot(steamId);"
     },
     {
       "cluster": "world-blocks",
@@ -2497,8 +2497,8 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.SendBlockDamageSnapshot(member.SteamId); // the partial block damage rides the same world-entry resend (idempotent absolute set)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_world.SendBlockDamageSnapshot(steamId);"
     },
     {
       "cluster": "world-blocks",
@@ -2563,8 +2563,8 @@
     {
       "cluster": "world-blocks",
       "row": "W3",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.SendBlockStateSnapshot(member.SteamId);"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_world.SendBlockStateSnapshot(steamId);"
     },
     {
       "cluster": "world-blocks",
@@ -2791,8 +2791,8 @@
     {
       "cluster": "world-entities",
       "row": "E1",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "world-entities",
@@ -2833,8 +2833,8 @@
     {
       "cluster": "world-entities",
       "row": "E2",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "world-entities",
@@ -2887,8 +2887,8 @@
     {
       "cluster": "world-entities",
       "row": "E3",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "world-entities",
@@ -2947,8 +2947,8 @@
     {
       "cluster": "world-entities",
       "row": "E4",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "world-entities",
@@ -3079,8 +3079,8 @@
     {
       "cluster": "world-entities",
       "row": "E7",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
     },
     {
       "cluster": "world-entities",
@@ -3351,6 +3351,24 @@
       "row": "W6",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/TrapLayoutApplication.cs",
       "quote": "if (_pending is { } pending && !generating && _generating)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
+      "quote": "_worldBackfill.SendInSessionRepair(member.SteamId);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/TrapLayoutRegistry.cs",
+      "quote": "if (_session.Role != SessionRole.Host || (entries.Count == 0 && _layout.Count > 0))"
+    },
+    {
+      "cluster": "inline",
+      "row": "W6",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/TrapLayoutSimulationTests.cs",
+      "quote": "w.Host.Services.GetRequiredService<WorldEntryFanout>().SendInSessionRepair(w.G1.SteamId);"
     },
     {
       "cluster": "inline",
@@ -4687,8 +4705,8 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.SendRuntimeEntitySnapshot(member.SteamId); // the runtime-created entity table (E3): heals a swallowed creation relay within 60 s"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_world.SendRuntimeEntitySnapshot(steamId);"
     },
     {
       "cluster": "inline",

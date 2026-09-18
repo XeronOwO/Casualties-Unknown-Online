@@ -298,7 +298,10 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	/// <summary>Host only: record one generated trap entity (the adapter's scanner reports it on the generation-finished edge) with its runtime-creation identity when the host's copy carries one.</summary>
 	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey = null) => _trapLayout.Report(kind, x, y, prefabName, creationKey);
 
-	/// <summary>Host only: send the layout to one member (on its world entry).</summary>
+	/// <summary>Host only: replace the whole trap-layout table with a fresh scan of the live scene (the in-session repair re-derives it before sending). Returns false when the empty-scan fail-safe refused it.</summary>
+	public bool ReplaceTrapLayout(IReadOnlyList<TrapLayoutEntryMsg> entries) => _trapLayout.Replace(entries);
+
+	/// <summary>Host only: send the layout to one member (on its world entry, or on the in-session repair).</summary>
 	public void SendTrapLayoutSnapshot(ulong targetSteamId) => _trapLayout.SendSnapshot(targetSteamId);
 
 	/// <summary>Host only: a new world layer is generating — the layout starts empty again.</summary>

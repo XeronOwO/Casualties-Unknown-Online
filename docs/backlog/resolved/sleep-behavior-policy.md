@@ -3,6 +3,7 @@
 - Status: Resolved
 - Category: Gameplay / sleeping policy
 - Source: User backlog (2026-09-05)
+- Superseded in part by: `todo/world-time-local-initiation.md` (user ruling 2026-09-18 — the manual-acceleration half only; the all-unconscious sleep gate stands)
 
 ## Decision
 
@@ -13,11 +14,15 @@
   treated as ordinary sleep.** It is not a voluntary world-time request; remote
   presentation already rides the existing sleeping/nap path (standard variant
   when no nap tracker is present).
-- **World-time acceleration remains the existing cooperative host-authoritative
-  policy:** the shared clock accelerates only when every in-world alive player
-  is unconscious (`WorldTimePolicy.DecideSleepSpeed`); any awake player blocks
-  acceleration. Manual Fast/SuperFast requests are cooperative and do not move
-  the clock while anyone is awake. This is not a local time-scale hack.
+- **SUPERSEDED IN PART (2026-09-18) — see `todo/world-time-local-initiation.md`.**
+  The original decision read: world-time acceleration remains the existing cooperative
+  host-authoritative policy; the shared clock accelerates only when every in-world alive
+  player is unconscious (`WorldTimePolicy.DecideSleepSpeed`); any awake player blocks
+  acceleration; manual Fast/SuperFast requests are cooperative and do not move the clock
+  while anyone is awake; this is not a local time-scale hack. The user's 2026-09-18 ruling
+  replaces the MANUAL half: acceleration is initiated locally and takes effect at once, the
+  host arbitrates accept-first and broadcasts the shared clock, and a teammate being awake
+  is no longer grounds for refusal. The SLEEP half stands exactly as decided here.
 - **Remote presentation remains on the existing player stream:**
   `PlayerEntity.Sleeping` / `NapVariant` at 20 Hz plus `CharacterHealthMsg`
   face vitals at 1 Hz are sufficient; no new wire field or protocol change is

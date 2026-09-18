@@ -47,13 +47,17 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [The host decides enemy hits on remote players](todo/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
+- [Remote interaction gates are judged by the host](todo/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
+- [Medical operations are exclusive (one operator at a time)](todo/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
+- [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — the 500 ms guess window goes.
+- [World-time acceleration is gated on being asleep](todo/world-time-local-initiation.md) — **Medium** — the manual key must act locally and at once.
 - [Run clock is not sent to a mid-run joiner](todo/save-run-clock-not-sent.md) — **Low-Medium** — the clock base needs a wire member.
 - [Layer time is not carried](todo/save-layer-time-not-carried.md) — **Low-Medium** — resuming the radiation timer is a gameplay decision.
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Partial-damage report vs the live delta](todo/partial-damage-delta-report-overlap.md) — **Low-Medium** — the merge can under- and over-count.
 - [World/layer generation identity](todo/world-layer-generation-identity.md) — **Medium** — a stale cell-keyed report looks like a legitimate one.
 - [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
-- [A dropped enemy attack is never re-issued](todo/enemy-attack-delivery-recovery.md) — **Medium** — the host consumes the attack anyway.
 - [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — the keyframe cannot heal a swallowed command.
 - [Recipe unlock has no fallback](todo/recipe-unlock-fallback.md) — **Medium** — a late joiner never learns a prior unlock.
 - [Carried-inventory registration](todo/carried-inventory-registration-re-report.md) — **Medium** — the host arbitration table stays empty.
@@ -172,6 +176,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Resolved
 
+- [A dropped enemy attack is never re-issued](resolved/enemy-attack-delivery-recovery.md) — superseded: the victim judges its own hit.
 - [IP-direct duplicate names allowed](resolved/ip-direct-duplicate-names.md) — an accepted IP-direct property.
 - [check-architecture.ps1 performance](resolved/check-architecture-performance.md) — **Medium** — the script became C# gate tests.
 - [Runtime log errors (2026-08-30)](resolved/runtime-log-errors-2026-08-30.md) — HotRepl, not CUO.

@@ -382,7 +382,7 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
   identity half): `EnemySpawnEntryMsg.CreationKey` rides the snapshot and the
   backfill copy is stamped, so the bind is by identity and distance-free. N1's
   remaining work (periodic snapshot resend, attack recovery) stays open in
-  `review/enemy-snapshot-binding-recovery.md` and `todo/enemy-attack-delivery-recovery.md`.
+  `review/enemy-snapshot-binding-recovery.md` and `todo/enemy-hit-determination-local.md`.
 - The source-excluding `BroadcastEntitySpawned` relay was dead API (no caller).
   **RESOLVED 2026-09-09** by `review/runtime-entity-dead-api-cleanup.md`: deleted
   (`rg` → zero hits); the live source-included relay is unchanged.

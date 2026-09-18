@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: snapshot entry-only (WorldEntryFanout.Send); repair set excluded it; pairing used the live Capture position vs frozen copies (TryPair 0.5f)
+      file:line or runtime log) or is explicitly marked unverified — evidence: the judgment site of each family traced in code and recorded per ticket (EnemyCombatDirector's verdict, the PlayerInteractionVisibility callers, the shared reservation sets, KernelProtocolCommandHandler/PendingPickupQueue, WorldTimePolicy.Decide)
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: every absolute in-world table re-checked; the attack half split out as todo/enemy-attack-delivery-recovery.md; watchlist + matrix row N1 updated
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the 7-row matrix maps to named tests (EnemySnapshotRecoveryTests 6, reused EnemySyncServiceTests/arbitration); row 7 lives in the attack ticket
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the host-judgment audit covered enemy hits, interaction gates, medical reservations, item operation ordering and world time; five tickets instead of one patch; conflicting-claim arbitration stays host-side by ruling
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: each new ticket carries its own acceptance matrix (6-8 rows) naming what the runtime must show; the implementation cycle fills the mechanism x change x evidence table
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: the repair GROUP is proven over the real wire (ItemSimWorld; the Unity 60 s pump itself is a recorded limitation); the adapter half rests on the dual-client pass
+      peer log comparison, hotrepl assertions) is decided — evidence: documentation-only cycle, so no runtime claim is made; each ticket states the evidence its implementation owes (wire seam, ItemSimWorld, dual-client pass)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the deleted umbrella's ## Design direction had frozen this approach (option 1: piggyback the absolute EnemySnapshot on the 60 s cycle); the pairing-key choice is architecture, decided in-session
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/errors; dotnet format clean; gates 56/56; full suite 3260 + 55 (checklist gate filtered); unfiltered gate run follows
+      process violation — evidence: the user's 2026-09-18 ruling fixed all five directions (victim-side hit determination, local interaction gates, concurrent medical work, creation-registration-first, locally initiated world time); recorded as decision 184
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: documentation-only cycle (no src/tests/tools touched, build and format skipped by rule); the normative gate project was run and is green 56/56
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: EnemySyncCoordinator 626 → 584 via EnemyPresentationApplier (94 lines, 42 moved) at the 600 gate; watchlist records both; no dead code left
+      dead mechanisms deleted in the same round) — evidence: no source change; the philosophy lives in decision 184 + the agent-reference sync model, and the backlog index / matrix references are consistent (gates green)
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

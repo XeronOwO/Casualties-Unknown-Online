@@ -59,6 +59,7 @@ Automation status legend:
 | User-found issues are hard blockers | Review / process | Backlog/human process. |
 | Independent adversarial self-check | Review / process | Human/process. |
 | Delivery checklist | dotnet test (C# port) | `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`. |
+| The backlog index is a table of POINTERS, not a second copy of its tickets: every ticket is listed exactly once under the section that matches its folder, each row fits a 160-character budget and carries the priority its ticket declares, each ticket's `- Status:` field agrees with its folder, every test anchor a live ticket cites still exists under `tests/`, and no document cites `AGENTS.md` by line number | dotnet test (C# port) | `BacklogIntegrityGateTests.EveryTicketIsIndexedExactlyOnceUnderItsOwnSectionAndEveryLinkResolves` + `BacklogIntegrityGateTests.EveryIndexRowIsAPointerWithinItsBudgetCarryingItsTicketsPriority` + `BacklogIntegrityGateTests.TheStatusFoldersAreTheOnlyOnesAndNoTicketFileSitsLoose` + `BacklogIntegrityGateTests.EveryTicketStatusFieldAgreesWithItsFolder` + `BacklogIntegrityGateTests.EveryDocumentedTestAnchorIsStillDeclared` + `BacklogIntegrityGateTests.NoDocumentCitesAgentsMdByLineNumber`, each with its negative-contract self-test |
 | Deployment/artifact verification | PowerShell + process | `tools/deploy.ps1` and deployment hash/file check. |
 
 ## Former PowerShell checks
@@ -78,6 +79,11 @@ into this test project. The mapping below records what replaced each one.
 | `check-entity-event-dispatch.ps1` | Entity event dispatch matrix. | `RepositoryGateTests.EntityEventDispatch_AllKindsCoveredInEveryTable` |
 | `check-no-absolute-paths.ps1` | Tracked-file absolute machine paths. | `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths` |
 | `check-delivery.ps1` | Delivery checklist/forbidden-box integrity. | `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes` |
+
+> `NoAbsolutePaths_NoTrackedMachinePaths` enumerates `git ls-files`, so a file that is still UNTRACKED is not
+> scanned at all: after a new file lands, `git add` it and run the gate again, or its paths were never checked.
+> The same scan reads a C# regex escape such as `:\s` in a verbatim string as a drive-letter path, so a pattern
+> like `- Status:[ \t]*(.+?)` is the form that both means what it says and stays clean.
 
 ## Why the FQ-name rule uses Roslyn
 

@@ -310,7 +310,17 @@ public interface IWorldControl
 	/// </summary>
 	void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey = null);
 
-	/// <summary>Host only: send the trap layout to one member (on its world entry).</summary>
+	/// <summary>
+	/// Host only: replace the whole trap-layout table with a fresh scan of the
+	/// live scene. The in-session repair re-derives the table this way right
+	/// before it re-sends the layout, so an entity the world has since removed
+	/// cannot come back from a generation-time record. Returns false when the
+	/// replace did not happen (not the host, or the empty-scan fail-safe refused
+	/// it) so the caller can log the refusing branch.
+	/// </summary>
+	bool ReplaceTrapLayout(IReadOnlyList<TrapLayoutEntryMsg> entries);
+
+	/// <summary>Host only: send the trap layout to one member (on its world entry, or on the in-session repair).</summary>
 	void SendTrapLayoutSnapshot(ulong targetSteamId);
 
 	/// <summary>Guest: the host's trap layout arrived — align the local world (materialize missing, destroy surplus).</summary>

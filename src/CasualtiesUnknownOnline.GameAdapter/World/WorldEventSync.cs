@@ -3,7 +3,6 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -29,7 +28,8 @@ internal sealed partial class WorldEventSync(
 	RestoredWorldFactReplay replay,
 	OperationTrace trace,
 	WorldEntityKernelProjection kernelProjection,
-	IKernelProtocolControl kernelProtocol,
+	WorldEntryFanout worldBackfill,
+	TrapLayoutScanner trapLayouts,
 	ILogger<WorldEventSync> log)
 {
 	private readonly ISessionControl _session = session;
@@ -38,7 +38,8 @@ internal sealed partial class WorldEventSync(
 	private readonly RestoredWorldFactReplay _replay = replay;
 	private readonly OperationTrace _trace = trace;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
-	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
+	private readonly WorldEntryFanout _worldBackfill = worldBackfill;
+	private readonly TrapLayoutScanner _trapLayouts = trapLayouts;
 	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, trace, log);
 	private readonly ILogger<WorldEventSync> _log = log;
 
@@ -137,14 +138,21 @@ internal sealed partial class WorldEventSync(
 		if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)
 		{
 			_lastSnapshotResend = Time.unscaledTime;
-			foreach (var member in _session.Members)
+			if (_session.Members.Any(m => m.InWorld))
 			{
-				if (member.InWorld)
+				// The trap-layout table is re-derived from the LIVE scene ONCE,
+				// before the first repair send: the record is written on the
+				// generation edge, so a trap the world has since removed would
+				// otherwise be re-materialized on every peer every cycle. No
+				// in-world member means no repair send, so the scan is skipped —
+				// which also keeps the scan's refusal warning meaningful.
+				_trapLayouts.RefreshLayout();
+				foreach (var member in _session.Members)
 				{
-					_world.SendBlockStateSnapshot(member.SteamId);
-					_world.SendBlockDamageSnapshot(member.SteamId); // the partial block damage rides the same world-entry resend (idempotent absolute set)
-					_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains
-					_world.SendRuntimeEntitySnapshot(member.SteamId); // the runtime-created entity table (E3): heals a swallowed creation relay within 60 s
+					if (member.InWorld)
+					{
+						_worldBackfill.SendInSessionRepair(member.SteamId); // the absolute in-world tables (block state/damage, trap layout, kernel checkpoint, runtime entities) — the swallowed-send recovery for a member that never leaves the world
+					}
 				}
 			}
 

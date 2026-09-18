@@ -88,6 +88,9 @@ internal sealed class WorldChannelRelay(
 
 	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey = null) => _eventChannel.ReportTrapLayout(kind, x, y, prefabName, creationKey);
 
+	/// <summary>Host only: replace the whole trap-layout table with a fresh scan of the live scene (the in-session repair re-derives it before sending). Returns false when the empty-scan fail-safe refused it.</summary>
+	public bool ReplaceTrapLayout(IReadOnlyList<TrapLayoutEntryMsg> entries) => _eventChannel.ReplaceTrapLayout(entries);
+
 	public void SendTrapLayoutSnapshot(ulong targetSteamId) => _eventChannel.SendTrapLayoutSnapshot(targetSteamId);
 
 	public event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived { add => _eventChannel.TrapLayoutReceived += value; remove => _eventChannel.TrapLayoutReceived -= value; }

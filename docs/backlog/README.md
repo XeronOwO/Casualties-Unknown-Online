@@ -52,7 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Guest partial block damage has no re-report](todo/guest-partial-block-damage-re-report.md) — **Medium** — the re-report must be absolute and merge.
 - [Guest break drops are lost](todo/guest-break-drops-recovery.md) — **Medium** — the item keyframe cannot reconcile the drops.
-- [Trap-layout snapshot has no recovery](todo/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s cycle does not include it.
+- [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
 - [Enemy snapshot and attack have no recovery](todo/enemy-snapshot-and-attack-recovery.md) — **Medium** — a dropped attack is never re-issued.
 - [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — the keyframe cannot heal a swallowed command.
 - [Recipe unlock has no fallback](todo/recipe-unlock-fallback.md) — **Medium** — a late joiner never learns a prior unlock.
@@ -150,6 +150,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest container ghost drops on host](review/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.
 - [Trap destruction drop quantity desync](review/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
+- [Trap-layout snapshot recovery](review/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s repair re-derives and re-sends the layout.
 
 ### Future
 

@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 835,
+  "count": 841,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -2047,8 +2047,8 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs",
-      "quote": "if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldRunProjection.cs",
+      "quote": "if (!kernelAuthority.TryStartRun(session.LocalSteamId, run, out _, out var rejection))"
     },
     {
       "cluster": "run-world",
@@ -2311,8 +2311,8 @@
     {
       "cluster": "run-world",
       "row": "R6",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs",
-      "quote": "_projectionHealth.Run(\"run\", batch.GlobalRevision, () =>"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldRunProjection.cs",
+      "quote": "projectionHealth.Run(\"run\", batch.GlobalRevision, () =>"
     },
     {
       "cluster": "run-world",
@@ -4303,8 +4303,8 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs",
-      "quote": "private void CommitRunBaseline(WorldStartParams parameters)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldRunProjection.cs",
+      "quote": "internal void CommitBaseline(WorldStartParams parameters)"
     },
     {
       "cluster": "inline",
@@ -4550,7 +4550,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs",
-      "quote": "_blockReportFallback.Pump(nowMs, _messages.PendingBlockReportCount, _messages.ResendPendingBlockReports);"
+      "quote": "internal void PumpReportFallbacks(long nowMs) =>"
     },
     {
       "cluster": "inline",
@@ -4562,7 +4562,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "OnRemoteDamageBrokeBlock(sender, cell, hasDropPayload);"
+      "quote": "_arbitration.TryAccept(sender, cell.x, cell.y);"
     },
     {
       "cluster": "inline",
@@ -5013,6 +5013,42 @@
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
       "quote": "return alreadyTracked || trackedCount < Cap ? MergeVerdict.Raise : MergeVerdict.RefuseCap;"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/PendingBreakDropTable.cs",
+      "quote": "public sealed class PendingBreakDropTable"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/GuestReportRecovery.cs",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.BlockDamaged, new BlockDamagedMsg"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/GuestBreakDropReportBookkeeping.cs",
+      "quote": "internal sealed class GuestBreakDropReportBookkeeping(ILogger<WorldService> log)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
+      "quote": "_world.ReportBreakDrops(cell.x, cell.y, flushed.PosX, flushed.PosY, flushed.Drops, flushed.BuildingDrops);"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockBreakArbitration.cs",
+      "quote": "internal Verdict TryAccept(ulong sender, int cellX, int cellY)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Items/DropProtectionGuard.cs",
+      "quote": "|| (_isPendingBreakDrop?.Invoke(itemId) ?? false);"
     }
   ]
 }

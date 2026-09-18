@@ -93,6 +93,28 @@ public interface IWorldControl
 	void ResetPendingBlockDamageReports();
 
 	/// <summary>
+	/// Guest only: record the break's locally-created drops (the block drops and
+	/// the building-death drops the same break produced) BEFORE the live
+	/// <c>BlockDamaged</c> report is sent — the fallback's re-report source. The
+	/// host registers a guest's break drops exclusively from that report, so a
+	/// swallowed one leaves items the authoritative table never learns about and
+	/// the item keyframe cannot reconcile.
+	/// </summary>
+	void ReportBreakDrops(int x, int y, float posX, float posY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
+
+	/// <summary>Guest: the host relayed a break for this cell — the drops it names are answered (the accepted relay is the acknowledgement); a drop answered another way (an <c>ItemReject</c> refusal, a gone local object) is forgotten individually.</summary>
+	void AnswerBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
+
+	/// <summary>Guest: one drop of an outstanding break left the world or was refused — the break must not be re-reported forever for an item that no longer exists.</summary>
+	void ForgetBreakDrop(ulong itemId);
+
+	/// <summary>Guest only: true while this side still waits for the host to answer a break whose drops include <paramref name="itemId"/> — the item keyframe's reconcile must not kill that locally-created drop before the host knows it (the 5-30 s keyframe is far inside the fallback's window).</summary>
+	bool IsBreakDropPending(ulong itemId);
+
+	/// <summary>Guest: a new world/layer baseline was applied — drop every unacknowledged break-drop report from the previous world (same boundary as <see cref="ResetPendingBlockReports"/>).</summary>
+	void ResetPendingBreakDropReports();
+
+	/// <summary>
 	/// Host only: a guest's ABSOLUTE partial-damage report arrived — merge every
 	/// row into the GAME's own damage list through the native port (per cell,
 	/// never below what this host already holds) and answer every reported cell

@@ -50,7 +50,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Run clock is not sent to a mid-run joiner](todo/save-run-clock-not-sent.md) — **Low-Medium** — the clock base needs a wire member.
 - [Layer time is not carried](todo/save-layer-time-not-carried.md) — **Low-Medium** — resuming the radiation timer is a gameplay decision.
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
-- [Guest break drops are lost](todo/guest-break-drops-recovery.md) — **Medium** — the item keyframe cannot reconcile the drops.
 - [Partial-damage report vs the live delta](todo/partial-damage-delta-report-overlap.md) — **Low-Medium** — the merge can under- and over-count.
 - [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
 - [Enemy snapshot and attack have no recovery](todo/enemy-snapshot-and-attack-recovery.md) — **Medium** — a dropped attack is never re-issued.
@@ -67,6 +66,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [S4 — Multiplayer restore and backups](review/save-multiplayer-restore-and-backups.md) — **High** — stage 4 (S4.1–S4.4).

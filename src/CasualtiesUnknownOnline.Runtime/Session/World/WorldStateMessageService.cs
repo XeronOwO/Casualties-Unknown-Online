@@ -82,6 +82,10 @@ internal sealed class WorldStateMessageService(
 	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?>? BlockDamagedReceived;
 
 	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) =>
+		// The break-drop report's acknowledgement is NOT cleared here: the cell a
+		// report belongs to is the game's own world→cell conversion (it offsets by
+		// the world's half extent), which only the adapter can run — BlockBreakSync
+		// answers the pending drop report with the cell it resolved.
 		BlockDamagedReceived?.Invoke(sender, pos, damage, metalBonus, drops, buildingDrops);
 
 	public event Action<bool>? WorldJoinReceived;
@@ -429,6 +433,7 @@ internal sealed class WorldStateMessageService(
 		_damagedBlocks.Clear();
 		_guestReports.ResetBlocks();
 		_guestReports.ResetDamages();
+		_guestReports.ResetBreakDrops();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
 		_eventChannel.ResetBuildingEntityHealth();
@@ -476,6 +481,9 @@ internal sealed class WorldStateMessageService(
 
 	/// <summary>How many unacknowledged guest partial-damage reports are waiting for the host's answer (the fallback pump's work check).</summary>
 	internal int PendingBlockDamageReportCount => _guestReports.PendingDamageCount;
+
+	/// <summary>The guest report recovery (W1 block state, W2 partial damage, W1's drop half) — <see cref="WorldService"/> relays that surface to the adapter without this message surface growing a member per channel (the 600-line gate).</summary>
+	internal GuestReportRecovery GuestReports => _guestReports;
 
 	/// <summary>Guest only: record the cell's current ABSOLUTE damage before the live delta report goes out (the fallback's re-report source).</summary>
 	public void ReportBlockDamage(int x, int y, float damage) => _guestReports.ReportDamage(x, y, damage);

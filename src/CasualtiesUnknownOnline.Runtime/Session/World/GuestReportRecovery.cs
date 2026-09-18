@@ -35,6 +35,9 @@ internal sealed class GuestReportRecovery(
 	/// <summary>The W2 state: block cell → the absolute partial damage this side holds, unacknowledged by the host.</summary>
 	private readonly GuestBlockDamageReportBookkeeping _damages = new(log);
 
+	/// <summary>The W1 drop half's state: block cell → the break's locally-created drops, unacknowledged by the host (the host learns a guest's break drops ONLY from the report, so their loss is an item-domain divergence the keyframe cannot heal).</summary>
+	private readonly GuestBreakDropReportBookkeeping _breakDrops = new(log);
+
 	// ---- W1: unacknowledged block-state reports ----
 
 	/// <summary>How many unacknowledged guest block reports are waiting for the host's answer (the fallback pump's work check).</summary>
@@ -200,4 +203,89 @@ internal sealed class GuestReportRecovery(
 	/// <summary>Guest, in session, something outstanding — the shape both re-sends need.</summary>
 	private bool HasReportWork(int pendingCount) =>
 		_session.Role == SessionRole.Guest && _session.SessionActive && pendingCount > 0;
+
+	// ---- W1's drop half: unacknowledged break drops ----
+
+	/// <summary>How many unacknowledged break-drop sets are waiting for the host's answer (the fallback pump's work check).</summary>
+	internal int PendingBreakDropCount => _breakDrops.Count;
+
+	/// <summary>
+	/// Guest only: record the break's locally-created drops BEFORE the live
+	/// <c>BlockDamaged</c> report is sent. The host registers a guest's break
+	/// drops exclusively from that message, so a swallowed one leaves the
+	/// breaker's items unknown to the authoritative table and the item keyframe
+	/// has no fact to reconcile them from — this record is the fallback's source.
+	/// </summary>
+	internal void ReportBreakDrops(int x, int y, float posX, float posY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		_breakDrops.Report(x, y, posX, posY, drops, buildingDrops);
+	}
+
+	/// <summary>
+	/// Guest: the host relayed a break for this cell — its payload names the drops
+	/// it registered, so every one of them is answered (the accepted relay is the
+	/// acknowledgement, exactly as the W1 block echo is for the air write).
+	/// </summary>
+	internal void AnswerBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		_breakDrops.Answer(x, y, drops, buildingDrops);
+	}
+
+	/// <summary>Guest: one drop of an outstanding break is answered another way (the host refused it, or the local object is gone) — the break must not be re-reported forever for an item that no longer exists.</summary>
+	internal void ForgetBreakDrop(ulong itemId)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		_breakDrops.ForgetItem(itemId);
+	}
+
+	/// <summary>Guest: true while this side waits for the host to answer a break carrying <paramref name="itemId"/> — the item keyframe's reconcile consults this before killing a locally-created drop (the 5-30 s keyframe is far inside the fallback's window, so an unacknowledged drop must survive it).</summary>
+	internal bool IsBreakDropPending(ulong itemId) => _breakDrops.IsPending(itemId);
+
+	/// <summary>The world these reports belonged to is gone — every pending break-drop report dies with it.</summary>
+	internal void ResetBreakDrops() => _breakDrops.Reset();
+
+	/// <summary>
+	/// Guest only: re-report every unacknowledged break's drops to the host — one
+	/// <c>BlockDamaged</c> per outstanding break, in the message shape the live
+	/// report uses, so the host's existing arbitration and its idempotent per-item
+	/// registration handle it unchanged. The host's relay of that message is what
+	/// clears the entry. Called by the fallback pump; a no-op when nothing is
+	/// outstanding, when this side is not a guest, or when the session ended.
+	/// </summary>
+	internal void ResendBreakDrops()
+	{
+		if (!HasReportWork(_breakDrops.Count))
+		{
+			return;
+		}
+
+		foreach (var entry in _breakDrops.Entries)
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.BlockDamaged, new BlockDamagedMsg
+			{
+				Position = new NetVector2(entry.PosX, entry.PosY).ToNetVector2Msg(),
+				Damage = 0f,
+				MetalBonus = false,
+				Drops = entry.Drops.Count > 0 ? [.. entry.Drops] : null,
+				BuildingDrops = entry.BuildingDrops.Count > 0 ? [.. entry.BuildingDrops] : null,
+			});
+		}
+
+		_log.LogInformation("[BlockSync] re-reported {Count} unacknowledged break-drop set(s) to the host.",
+			_breakDrops.Count);
+	}
 }

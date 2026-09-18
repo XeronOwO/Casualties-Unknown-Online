@@ -20,15 +20,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// This facade keeps <see cref="IWorldControl"/> stable for packet handlers and
 /// the Game Adapter without turning one class into a mixed god-object.
 /// </summary>
-public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
+public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDisposable
 {
 	private readonly ISessionControl _session;
-	private readonly ILogger<WorldService> _log;
 	private readonly WorldChannelRelay _channels;
 	private readonly WorldStateMessageService _messages;
 	private readonly WorldFactLifecycle _facts;
-	private readonly PendingReportFallback _blockReportFallback;
-	private readonly PendingReportFallback _blockDamageReportFallback;
+	private readonly GuestReportFallbacks _reportFallbacks;
+	private readonly WorldRunProjection _runProjection;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly IWorldItemLayerReset _itemLayerReset;
 	private readonly LayerScopedTableReset _layerTables;
@@ -76,7 +75,6 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		ProjectionHealthCoordinator projectionHealth)
 	{
 		_session = session;
-		_log = log;
 		_channels = new WorldChannelRelay(eventChannel, runtimeEntityChannel, tradeChannel, speechChannel, chatChannel, locationPingChannel);
 
 		// The message surface is this facade's own collaborator, not a DI singleton:
@@ -84,8 +82,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		// SAME instance, so both see one set of tables.
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, nativeWorldFacts);
 		_facts = new WorldFactLifecycle(_messages, log);
-		_blockReportFallback = new PendingReportFallback(session);
-		_blockDamageReportFallback = new PendingReportFallback(session);
+		_reportFallbacks = new GuestReportFallbacks(session);
 		_startGate = new WorldStartGate(session, sender, time, log);
 		_kernelAuthority = kernelAuthority;
 		_itemLayerReset = itemLayerReset;
@@ -93,11 +90,12 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		_fluidKernel = fluidKernel;
 		_fluidKernelRead = fluidKernelRead;
 		_projectionHealth = projectionHealth;
+		_runProjection = new WorldRunProjection(session, kernelAuthority, projectionHealth, worldParams => WorldParams = worldParams, log);
 		_projectionHealth.Register(new ProjectionDomain("run", RebuildRunFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 
-		_kernelAuthority.BatchApplied += OnRunBatchApplied;
-		_kernelAuthority.BatchCommitted += OnRunBatchCommitted;
-		_kernelAuthority.CheckpointRestored += OnRunCheckpointRestored;
+		_kernelAuthority.BatchApplied += _runProjection.OnBatch;
+		_kernelAuthority.BatchCommitted += _runProjection.OnBatch;
+		_kernelAuthority.CheckpointRestored += _runProjection.OnCheckpointRestored;
 		session.SessionEnded += OnSessionEnded;
 	}
 
@@ -122,24 +120,29 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest block reports are outstanding.</summary>
 	internal int PendingBlockReportCount => _messages.PendingBlockReportCount;
 
-	/// <summary>The guest block-report fallback's time edge (driven by <see cref="WorldReportFallbackPump"/>; the cadence policy lives in <see cref="PendingReportFallback"/>).</summary>
-	internal void PumpBlockReportFallback(long nowMs) =>
-		_blockReportFallback.Pump(nowMs, _messages.PendingBlockReportCount, _messages.ResendPendingBlockReports);
-
-	/// <summary>The guest partial-damage report fallback's time edge (same pump, its own window — the two tables fill and drain independently).</summary>
-	internal void PumpBlockDamageReportFallback(long nowMs) =>
-		_blockDamageReportFallback.Pump(nowMs, _messages.PendingBlockDamageReportCount, _messages.ResendPendingBlockDamageReports);
+	/// <summary>Every guest report channel's time edge (driven by <see cref="WorldReportFallbackPump"/>): each table re-sends its outstanding set once ITS window elapses — they fill and drain independently.</summary>
+	internal void PumpReportFallbacks(long nowMs) =>
+		_reportFallbacks.Pump(
+			nowMs,
+			_messages.PendingBlockReportCount,
+			_messages.ResendPendingBlockReports,
+			_messages.PendingBlockDamageReportCount,
+			_messages.ResendPendingBlockDamageReports,
+			_messages.GuestReports.PendingBreakDropCount,
+			_messages.GuestReports.ResendBreakDrops);
 
 	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest partial-damage reports are outstanding.</summary>
 	internal int PendingBlockDamageReportCount => _messages.PendingBlockDamageReportCount;
+
+	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest break-drop sets are outstanding.</summary>
+	internal int PendingBreakDropReportCount => _messages.GuestReports.PendingBreakDropCount;
 
 	// ---- Session reset ----
 
 	private void ResetSessionState()
 	{
 		_startGate.Reset();
-		_blockReportFallback.Reset();
-		_blockDamageReportFallback.Reset();
+		_reportFallbacks.Reset();
 		_channels.ResetRuntimeEntities();
 		_channels.ResetPendingEntityReports();
 		WorldParams = null;
@@ -184,9 +187,9 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 
 	public void Dispose()
 	{
-		_kernelAuthority.BatchApplied -= OnRunBatchApplied;
-		_kernelAuthority.BatchCommitted -= OnRunBatchCommitted;
-		_kernelAuthority.CheckpointRestored -= OnRunCheckpointRestored;
+		_kernelAuthority.BatchApplied -= _runProjection.OnBatch;
+		_kernelAuthority.BatchCommitted -= _runProjection.OnBatch;
+		_kernelAuthority.CheckpointRestored -= _runProjection.OnCheckpointRestored;
 		_session.SessionEnded -= OnSessionEnded;
 	}
 
@@ -403,18 +406,9 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 
 	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block) => _messages.SendBlockPlacedCorrection(targetSteamId, x, y, block);
 
-	public void ResetPendingBlockReports() => _messages.ResetPendingBlockReports();
-
-	// ---- Guest partial-damage report recovery (audit gap W2) ----
-
-	/// <summary>Guest only: record the cell's current ABSOLUTE partial damage before the live delta report goes out (the fallback's re-report source).</summary>
-	public void ReportBlockDamage(int x, int y, float damage) => _messages.ReportBlockDamage(x, y, damage);
-
-	/// <summary>Either role: the cell went air — its pending partial-damage report dies with the block.</summary>
-	public void ForgetPendingBlockDamage(int x, int y) => _messages.ForgetPendingBlockDamage(x, y);
-
-	/// <summary>Guest only: a new world/layer baseline was applied — the previous world's pending partial-damage reports are dropped.</summary>
-	public void ResetPendingBlockDamageReports() => _messages.ResetPendingBlockDamageReports();
+	// The guest report-recovery surface (the three channels of the W1/W2 family)
+	// lives in the WorldService.ReportRecovery partial — it is one cohesive block
+	// of adapter-facing pass-throughs, and this file is at the 600-line gate.
 
 	/// <summary>Host only: a guest's absolute partial-damage report arrived — merge it through the native port and answer every reported cell authoritatively.</summary>
 	public void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries) => _messages.HandleBlockDamageReport(sender, entries);
@@ -481,97 +475,11 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 
 	public void PublishWorldParams(WorldStartParams parameters)
 	{
-		CommitRunBaseline(parameters);
+		_runProjection.CommitBaseline(parameters);
 		_messages.PublishWorldParams(parameters);
 	}
 
-	private void CommitRunBaseline(WorldStartParams parameters)
-	{
-		var current = _kernelAuthority.QueryRun();
-		var runId = current?.RunId ?? _kernelAuthority.CreateCheckpoint().RunEpoch.Value;
-		var layerIndex = current is null ? 0 : current.LayerIndex + 1;
-		var run = WorldRunStateMapper.ToRunState(runId, parameters, layerIndex);
-
-		if (current is null)
-		{
-			if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))
-			{
-				_log.LogWarning("Kernel run start rejected: {Reason} ({Message}).", rejection!.Reason, rejection.Message);
-				return;
-			}
-
-			_log.LogInformation("Committed kernel run start (run {RunId}, {StateBytes} RNG bytes).",
-				runId, parameters.RandomState.Length);
-		}
-		else
-		{
-			if (!_kernelAuthority.TryAdvanceLayer(_session.LocalSteamId, run, out _, out var rejection))
-			{
-				_log.LogWarning("Kernel layer advance rejected: {Reason} ({Message}).", rejection!.Reason, rejection.Message);
-				return;
-			}
-
-			_log.LogInformation("Committed kernel layer advance (run {RunId}, layer {Layer}).",
-				runId, layerIndex);
-		}
-	}
-
-	private void OnRunBatchCommitted(CommittedBatch batch) => RunBatchProjection(batch);
-
-	private void OnRunBatchApplied(CommittedBatch batch) => RunBatchProjection(batch);
-
-	private void RunBatchProjection(CommittedBatch batch)
-	{
-		_projectionHealth.Run("run", batch.GlobalRevision, () =>
-		{
-			foreach (var @event in batch.Events)
-			{
-				switch (@event)
-				{
-					case RunStartedEvent started:
-						ApplyRunProjection(started.Run);
-						break;
-					case RunAdvancedEvent advanced:
-						ApplyRunProjection(advanced.Run);
-						break;
-				}
-			}
-		});
-	}
-
-	private void OnRunCheckpointRestored(GameCheckpoint checkpoint)
-	{
-		_projectionHealth.Run("run", checkpoint.GlobalRevision, () =>
-		{
-			if (checkpoint.Run is not null)
-			{
-				ApplyRunProjection(checkpoint.Run);
-			}
-		});
-	}
-
-	private void RebuildRunFromKernel()
-	{
-		var run = _kernelAuthority.QueryRun();
-		if (run is not null)
-		{
-			ApplyRunProjection(run);
-		}
-		else
-		{
-			WorldParams = null;
-			_log.LogInformation("[RunProjection] kernel run is null; cleared the world-start projection.");
-		}
-
-		_log.LogDebug("[RunProjection] rebuilt from kernel at revision {Revision}.", _kernelAuthority.CurrentGlobalRevision);
-	}
-
-	private void ApplyRunProjection(RunState run)
-	{
-		WorldParams = WorldRunStateMapper.ToWorldStartParams(run);
-		_log.LogInformation("Projected kernel run baseline (run {RunId}, layer {Layer}, {StateBytes} RNG bytes).",
-			run.RunId, run.LayerIndex, run.RandomState.Length);
-	}
+	private void RebuildRunFromKernel() => _runProjection.Rebuild(() => WorldParams = null);
 
 	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _messages.SendBlockDamaged(worldPos, damage, metalBonus, drops, buildingDrops);
 

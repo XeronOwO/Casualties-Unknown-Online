@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: 4 classic extensions migrated to 4 extension(receiver) blocks; reflected compiled surface identical to HEAD; twin-probe IL byte-identical, no receiver null guard
+      file:line or runtime log) or is explicitly marked unverified — evidence: guest break = BlockPlaced + a drops-carrying BlockDamaged one frame later (BlockBreakSync.FlushPendingBlockBreak); the host registers a guest's drops ONLY from that message (BlockDropSync.FireBlockDropsReceived); the duplicate guard is the drop item id (SpawnWorldItem, RegisterWorldItemIfAbsent)
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: whole-repo census 0 classic / 4 blocks over 2012 C# files; the rule-to-gate map gained its #13 row; AGENTS.md and AGENTS.local.md updated together
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: matcher contract 9 samples (generic / attributed / unsafe positive; ordinary static / comment / doc / string negative); census floor 1500 files; test-data lines excluded by design
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all three swallowed-report shapes closed (both messages lost / air write only / drops report only) plus the refusal path; the 60 s fallback family gained its third channel (GuestReportFallbacks); W1 matrix row extended with the drop half
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the 7-row acceptance matrix maps to named tests (GuestBreakDropRecoveryTests 12); the verdict machine (Fresh / Repeat / Refused) and both purge windows unit-tested (BlockBreakArbitrationTests 16); item-id idempotency verified at both guards
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: negative control hits HEAD's 4 declarations and 0 in the tree; the reviewer's reflection + IL + null-receiver probes closed behaviour preservation
+      peer log comparison, hotrepl assertions) is decided — evidence: the Runtime half is proven over the real wire (ItemSimWorld + injected link faults + the 60 s fallback pump); the adapter half is enumerated as Unity-bound in the ticket's limitation paragraph and rests on the dual-client pass
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user set the policy directly (C# 14 extension is a strict superset; migrate the existing 4) — an instruction, not an inferred design choice
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors; dotnet format exit 0 (scoped --include 11 s); gates 56/56; full suite 3225; the unfiltered gate run follows
+      process violation — evidence: the handoff named this ticket as the next work item and the ticket's own `## Design direction` had frozen the approach (record the drops, re-report them, make the host verdict idempotent)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors; dotnet format clean (scoped --include); gates 56/56; full suite 3253 + 56; the unfiltered gate run follows this checklist
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: each mapper keeps one top-level type; the gate stays one type at 17 cases; no dead code; both regexes documented with their limits
+      dead mechanisms deleted in the same round) — evidence: one top-level type per file (Verdict and PendingBreakDrops split out); the WorldService 600-line aggregate gate forced the WorldRunProjection extraction; no dead code left
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

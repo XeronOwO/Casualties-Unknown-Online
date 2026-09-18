@@ -238,8 +238,8 @@ internal sealed class GameAdapterDomains
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
 		RemoteMedical = new RemoteMedicalCoordinator(session, CharacterDataSync, mapper, loggerFactory.CreateLogger<RemoteMedicalCoordinator>());
-		DropGuard = new DropProtectionGuard();
-		ItemApplication = new ItemApplication(items, session, loggerFactory.CreateLogger<ItemApplication>());
+		DropGuard = new DropProtectionGuard(world.IsBreakDropPending);
+		ItemApplication = new ItemApplication(items, world, session, loggerFactory.CreateLogger<ItemApplication>());
 		ItemReconcile = new ItemReconcile(items, ItemApplication, DropGuard, loggerFactory.CreateLogger<ItemReconcile>());
 		OperationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
 		var itemReports = new ItemReportCommitter(items, OperationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());

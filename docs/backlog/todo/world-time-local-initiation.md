@@ -15,7 +15,8 @@ The manual acceleration key is effectively disabled in a session:
   returns `Normal` for both the speed and the kept request, and the type's own doc says
   manual requests "never move the shared clock while any in-world player is awake … a
   manual request adds nothing outside that window". Movement is stricter still: any moving
-  player forces `Normal` first.
+  player forces `Normal` first — a CUO-side velocity veto, not the native rule (see design
+  direction 5).
 - `src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs` turns a guest's manual
   speed into a request and REFUSES the local apply (`OnTimeScaleSetRequested`), so the key
   produces no local effect either; a guest's own sleep fast-forward is suppressed outright
@@ -44,14 +45,23 @@ authority changes — only who may initiate and when the initiator feels it.
    IS the shared clock and others catch up; on refusal the initiator returns to the host's
    value quickly (a fast ramp down, never a snap). The brief window where the initiator is
    ahead is accepted (user ruling), as is the rare rollback.
-4. Sleep acceleration is untouched: the all-unconscious gate, the movement override and
-   the request-clearing semantics stay.
-5. Open decision (user's, not the implementer's): whether ANOTHER player's movement cancels
-   the session-wide fast-forward, as the current policy does ("any moving player wins
-   first"), or only the initiator's own movement does. Recommendation on the ticket's side:
-   keep the session-wide rule (a fast-forward while somebody is acting in the world ages
-   their input), and make the cancellation visible so a cancelled fast-forward is never
-   mistaken for a broken key.
+4. Sleep acceleration is untouched: the all-unconscious gate, the native black-screen
+   acceleration and the request-clearing semantics stay.
+5. Movement is an ACTION of the player who performs it, never a world state the host polls
+   — settled by the user 2026-09-18 after the first draft proposed a session-wide veto. The
+   native rule is the mover's own key check:
+   `PlayerCamera.Update` binds `speed1`/`speed2`/`speed3` to Normal/Fast/SuperFast
+   (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:885-896`), and the lines just
+   below return the clock to Normal for the player who pressed a movement key —
+   `Input.GetKeyDown(KeyBinds.GetBind("right")) || Input.GetKeyDown(KeyBinds.GetBind("left"))`
+   calls `SetTimeScale(Normal)` (`PlayerCamera.cs:921-924`); up/down never did it. CUO must
+   therefore run that rule on the mover's OWN client and report it through the same
+   local-initiation path as any other speed change, and DELETE the host-side velocity veto
+   (`WorldTimePolicy.IsMoving` / `MovingSpeedSquaredThreshold`): it forced `Normal` for every
+   player's movement — a body that was only pushed, carried or drifting included — which is
+   a judgement about a player's own input taken on somebody else's client (decision 184).
+   Consequences: a teammate walking no longer cancels an accelerated session, and the
+   feedback names the player who changed the speed instead of guessing it from velocity.
 6. `resolved/sleep-behavior-policy.md` is rewritten to record the supersession (its
    "manual requests never move the clock while anyone is awake" and "any awake player
    blocks" clauses), with the reason.
@@ -66,7 +76,8 @@ authority changes — only who may initiate and when the initiator feels it.
 | 4 | Invalid request (not in world / bad speed / start gate) | Refused, as today |
 | 5 | Late joiner / reconnect | The existing world-entry fan-out and 5 s resend carry the shared speed |
 | 6 | Two players press accelerate at once | Idempotent: one shared accelerated state |
-| 7 | Movement policy | Per the open decision above, with visible feedback when a fast-forward is cancelled |
+| 7 | A player presses a movement key during a fast-forward | That player's own client returns to Normal at once (the native rule) and the session follows through the same local-initiation path; a body that was only pushed, carried or drifting changes nothing |
+| 8 | A teammate walks while the session is accelerated | No change: the session stays accelerated (the movement veto is gone); a player who wants Normal presses their own key |
 
 ## Non-goals
 

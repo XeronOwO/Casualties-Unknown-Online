@@ -14,7 +14,9 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// Backlog integrity rot guard. The backlog is the project's work queue, so its index and its tickets
 /// must not drift apart: every ticket under a status folder is linked from
 /// <c>docs/backlog/README.md</c> exactly once AND in the section that matches its folder, every index
-/// link resolves, every ticket's <c>- Status:</c> field agrees with the folder that holds it (the
+/// link resolves, every index ROW stays a POINTER — within its length budget and carrying the
+/// priority its ticket declares, because an index that re-states its tickets is a second copy that
+/// drifts — every ticket's <c>- Status:</c> field agrees with the folder that holds it (the
 /// folder is the status; the field repeats it for a reader who opens the file), every test anchor a
 /// LIVE ticket cites (<c>SomeTests.Method</c>) is still declared under <c>tests/</c> — the anchors are
 /// the acceptance evidence, and a renamed or deleted test otherwise rots silently — and no document
@@ -27,6 +29,12 @@ public class BacklogIntegrityGateTests
 {
 	private const string IndexPath = "docs/backlog/README.md";
 	private const string ExceptionsPath = "docs/evidence/ticket-anchor-exceptions.json";
+
+	/// <summary>The index is read to pick the next work item, so a row is one scannable pointer: title, the ticket's priority, one clause saying what the ticket IS. A row that grows back into a summary is the drift this budget catches.</summary>
+	internal const int IndexLineBudget = 160;
+
+	/// <summary>A floor on the ROW CENSUS, not on the failures: the index carries every ticket, so a parser that silently stopped matching would otherwise pass by checking nothing.</summary>
+	internal const int IndexRowFloor = 130;
 
 	/// <summary>Folder name → the <c>- Status:</c> label that folder implies, and the index section that owns it.</summary>
 	private static readonly Dictionary<string, string> StatusOfFolder = new(StringComparer.Ordinal)
@@ -55,7 +63,10 @@ public class BacklogIntegrityGateTests
 
 	private static readonly Regex IndexEntryLine = new(@"(?m)^(?:\s*-\s+\[|\s*\|)");
 	private static readonly Regex IndexSection = new(@"(?m)^### (.+?)\s*$");
-	private static readonly Regex StatusField = new(@"(?m)^- Status:\s*(.+?)\s*$");
+	private static readonly Regex StatusField = new(@"(?m)^- Status:[ \t]*(.+?)\s*$");
+	/// <summary>A row's priority is the ticket's own field, so the bold token is the row's second column and the first whitespace-delimited token of <c>- Priority:</c> is the ticket's.</summary>
+	private static readonly Regex IndexPriority = new(@"\*\*(.+?)\*\*");
+	private static readonly Regex PriorityField = new(@"(?m)^- Priority:[ \t]*(.+?)\s*$");
 	/// <summary>Test methods are PascalCase, which also keeps a file-name token such as <c>`FooTests.cs`</c> from being read as an anchor. Only the <c>Type.Method</c> form is gated: the shorthand <c>.Method</c> form is ambiguous with source-field mentions (`.INT`, `.trapRarityMultiplier`), so those tokens are not checked.</summary>
 	private static readonly Regex TicketAnchor = new(@"`([A-Z][A-Za-z0-9_]*(?:Tests|Test))\.([A-Z][A-Za-z0-9_]*)`");
 	/// <summary>Both shapes count: <c>AGENTS.md:327</c> and the backticked <c>`AGENTS.md` line 327</c>. A bare number after the name is NOT a citation — a byte count reads the same way.</summary>
@@ -66,6 +77,16 @@ public class BacklogIntegrityGateTests
 	public void EveryTicketIsIndexedExactlyOnceUnderItsOwnSectionAndEveryLinkResolves()
 	{
 		var failures = IndexFailures(RepositoryPaths.ReadText(IndexPath), TicketFilePaths());
+		Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
+	}
+
+	[Fact]
+	public void EveryIndexRowIsAPointerWithinItsBudgetCarryingItsTicketsPriority()
+	{
+		var rows = IndexRows(RepositoryPaths.ReadText(IndexPath));
+		Assert.True(rows.Count >= IndexRowFloor, $"the index only parsed as {rows.Count} rows; the pointer rule would pass by checking almost nothing");
+
+		var failures = IndexRowFailures(rows, TicketPriorities());
 		Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
 	}
 
@@ -142,6 +163,33 @@ public class BacklogIntegrityGateTests
 		Assert.Contains(failures, f => f.Contains("review/four.md", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("todo/one.md appears 2 time(s)", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("todo/three.md", StringComparison.Ordinal) && f.Contains("Review", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void IndexRowFailures_FindAnOverlongRowAndAPriorityThatDisagrees()
+	{
+		const string readme = """
+			### Todo
+
+			- [one](todo/one.md) — **High** — a short pointer row.
+			- [two](todo/two.md) — **Low** — this row is padded until it is far longer than the row budget, which is what the pointer rule exists to catch before an index turns back into a hand-maintained second copy of its tickets.
+			- [three](todo/three.md) — **Low** — the ticket declares no priority, so this invents one.
+			""";
+
+		var rows = IndexRows(readme);
+		var priorities = new Dictionary<string, string?>(StringComparer.Ordinal)
+		{
+			["todo/one.md"] = "Medium",
+			["todo/two.md"] = "Medium",
+			["todo/three.md"] = null
+		};
+
+		var failures = IndexRowFailures(rows, priorities);
+
+		Assert.Contains(failures, f => f.Contains("todo/one.md", StringComparison.Ordinal) && f.Contains("Medium", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("todo/two.md", StringComparison.Ordinal) && f.Contains("over the", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("todo/three.md", StringComparison.Ordinal) && f.Contains("'(none)'", StringComparison.Ordinal));
+		Assert.DoesNotContain(failures, f => f.Contains("todo/one.md", StringComparison.Ordinal) && f.Contains("over the", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -243,6 +291,63 @@ public class BacklogIntegrityGateTests
 
 		return failures;
 	}
+
+	/// <summary>Index rows are parsed exactly the way a reader scans them: the first ticket link on a list-item line, its bold priority token, and the line as written (the budget is a property of the file, not of the parsed fields).</summary>
+	internal static List<IndexRow> IndexRows(string readme)
+	{
+		var rows = new List<IndexRow>();
+		foreach (var line in readme.Split('\n'))
+		{
+			if (!IndexEntryLine.IsMatch(line))
+			{
+				continue;
+			}
+
+			var link = AnyIndexLink.Match(line);
+			if (!link.Success)
+			{
+				continue;
+			}
+
+			var priority = IndexPriority.Match(line);
+			rows.Add(new IndexRow(link.Groups[1].Value, line.TrimEnd(), priority.Success ? priority.Groups[1].Value : null));
+		}
+
+		return rows;
+	}
+
+	/// <summary>Two pointer rules, both aimed at the same rot: a row that re-states its ticket grows past the budget, and a row that repeats the ticket's priority drifts from it. A ticket that declares no priority (a closed record) must not have one invented for it in the index.</summary>
+	internal static List<string> IndexRowFailures(IReadOnlyList<IndexRow> rows, IReadOnlyDictionary<string, string?> declared)
+	{
+		var failures = new List<string>();
+		foreach (var row in rows)
+		{
+			if (row.Line.Length > IndexLineBudget)
+			{
+				failures.Add($"{row.Path}: the index row is {row.Line.Length} characters, over the {IndexLineBudget}-character budget; a row is a pointer, not a summary");
+			}
+
+			if (!declared.TryGetValue(row.Path, out var priority))
+			{
+				failures.Add($"{row.Path}: the index row has no ticket file to take a priority from");
+				continue;
+			}
+
+			var expected = priority?.Split([' ', '\t'])[0];
+			if (!string.Equals(expected, row.Priority, StringComparison.Ordinal))
+			{
+				failures.Add($"{row.Path}: the row carries priority '{row.Priority ?? "(none)"}' but the ticket declares '{priority ?? "(none)"}'");
+			}
+		}
+
+		return failures;
+	}
+
+	/// <summary>Ticket path → the priority its <c>- Priority:</c> field declares, or null when it declares none. Only the first token is compared, so a parenthetical provenance note stays in the ticket.</summary>
+	private static Dictionary<string, string?> TicketPriorities() => TicketTexts()
+		.ToDictionary(ticket => ticket.File, ticket => PriorityField.Match(ticket.Text) is { Success: true } match ? match.Groups[1].Value.Trim() : null, StringComparer.Ordinal);
+
+	internal sealed record IndexRow(string Path, string Line, string? Priority);
 
 	/// <summary>Index entries are the FIRST link on a list-item line or on a table row; a second link on such a line (or one inside a sentence) is a cross-reference, not a listing.</summary>
 	private static List<string> Entries(string text)

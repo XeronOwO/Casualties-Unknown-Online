@@ -58,15 +58,22 @@ public sealed class WorldEntryFanout(
 	/// world — the absolute, idempotent in-world tables, re-sent on the host's
 	/// periodic cycle (the cadence and the in-world filter live in the adapter,
 	/// which owns Unity time). Deliberately a SUBSET of <see cref="Send"/>: the
-	/// ordered entry group's other members are either heavy one-shots (the item
-	/// snapshot, the enemy snapshot) or a scalar re-sent on its own
-	/// generation/entry edges (the radiation line state), and the completion
-	/// marker is an entry-group contract.
+	/// item snapshot stays an entry-only one-shot (its rows are reconciled
+	/// continuously by the item keyframe), the radiation line state is a scalar
+	/// re-sent on its own generation/entry edges, and the completion marker is an
+	/// entry-group contract.
+	///
+	/// The ENEMY snapshot rides here since the N1 recovery (2026-09-18): a
+	/// repeat snapshot is idempotent because the guest pairs its frozen copies on
+	/// the host's bind-time spawn anchor rather than on the live position, so a
+	/// repair landing long after generation still binds (before the anchor it
+	/// could not pair at all, and a failed pairing even cleared the guest's
+	/// mapping flag).
 	///
 	/// Adding an absolute in-world table means adding it HERE as well: a
 	/// swallowed entry send has no second chance until the next world-entry
 	/// edge, which is the gap the trap-layout snapshot sat in (the sync-coverage
-	/// audit's W6 row).
+	/// audit's W6 row) and the enemy snapshot sat in (N1).
 	/// </summary>
 	public void SendInSessionRepair(ulong steamId)
 	{
@@ -75,6 +82,7 @@ public sealed class WorldEntryFanout(
 		_world.SendBlockDamageSnapshot(steamId);
 		_world.SendTrapLayoutSnapshot(steamId);
 		_kernelProtocol.SendCheckpoint(steamId);
+		_enemies.SendEnemySnapshot(steamId);
 		_world.SendRuntimeEntitySnapshot(steamId);
 	}
 }

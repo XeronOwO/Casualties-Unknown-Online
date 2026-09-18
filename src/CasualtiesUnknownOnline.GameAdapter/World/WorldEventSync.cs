@@ -151,7 +151,7 @@ internal sealed partial class WorldEventSync(
 				{
 					if (member.InWorld)
 					{
-						_worldBackfill.SendInSessionRepair(member.SteamId); // the absolute in-world tables (block state/damage, trap layout, kernel checkpoint, runtime entities) — the swallowed-send recovery for a member that never leaves the world
+						_worldBackfill.SendInSessionRepair(member.SteamId); // the absolute in-world tables (block state/damage, trap layout, enemy snapshot, kernel checkpoint, runtime entities) — the swallowed-send recovery for a member that never leaves the world
 					}
 				}
 			}

@@ -64,6 +64,7 @@ public class EnemyStateRoundtripTests
 		var source = new EnemyEntity(new NetworkEntityId(7, 3, 1))
 		{
 			Position = new NetVector2(1.5f, -2.5f),
+			SpawnPosition = new NetVector2(9f, -9.5f),
 			Velocity = new NetVector2(0.5f, 0.25f),
 			Rotation = 90f,
 			Health = 42.5f,
@@ -82,6 +83,7 @@ public class EnemyStateRoundtripTests
 
 		Assert.Equal(source.EntityId, target.EntityId);
 		Assert.Equal(source.Position, target.Position);
+		Assert.Equal(source.SpawnPosition, target.SpawnPosition);
 		Assert.Equal(source.Velocity, target.Velocity);
 		Assert.Equal(source.Rotation, target.Rotation);
 		Assert.Equal(source.Health, target.Health);

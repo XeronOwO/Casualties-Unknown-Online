@@ -21,7 +21,14 @@ public static class ProtocolVersion
 	/// host's authoritative value per reported cell. A peer without the message
 	/// would never send the report (its swallowed hits would stay missing from
 	/// the host's own damage list forever) and would not understand the answer's
-	/// zero rows.</summary>
-	public const int Current = 22;
+	/// zero rows.
+	/// 23: `EnemyStateMsg.SpawnPosition` — the enemy snapshot now carries the
+	/// host's BIND-TIME spawn anchor beside the live position, the guest pairs
+	/// its frozen copies on the anchor, and the snapshot rides the 60 s
+	/// in-session repair group. A peer without it would pair on the live
+	/// position (which fails the moment the host's enemy has walked away from
+	/// its spawn spot, so the repair could not bind) and would never be re-sent
+	/// a snapshot it missed.</summary>
+	public const int Current = 23;
 
 }

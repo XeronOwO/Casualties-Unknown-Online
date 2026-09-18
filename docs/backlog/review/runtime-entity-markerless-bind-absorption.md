@@ -4,7 +4,7 @@
 - Priority: Low-Medium
 - Category: Network / sync coverage / world entities
 - Source: round-4 independent re-review of `review/runtime-entity-spawn-backfill.md` (2026-09-09)
-- Related: `review/runtime-entity-spawn-backfill.md`, `todo/enemy-snapshot-and-attack-recovery.md` (N1)
+- Related: `review/runtime-entity-spawn-backfill.md`, `review/enemy-snapshot-binding-recovery.md` (N1)
 
 ## Problem (evidence)
 
@@ -33,7 +33,7 @@ Remove the need for the positional fallback, or bound it with a positive identit
 1. Give the enemy-domain backfill copy the creation key (the host knows both the
    `NetworkEntityId` and the creation record at relay time) so the copy can carry a
    `RuntimeEntityCreation` marker; then delete the positional pass. This is N1's identity
-   work in `todo/enemy-snapshot-and-attack-recovery.md`.
+   work in `review/enemy-snapshot-binding-recovery.md`.
 2. Prove (or disprove) with evidence that a runtime creation can coincide with a
    generated entity of the same prefab inside 1 m; if it can, decide the tie-break.
 

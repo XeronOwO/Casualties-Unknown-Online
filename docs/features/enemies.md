@@ -41,6 +41,12 @@ and `docs/architecture/protocol.md`.
   override a terminal kernel fact.
 - World-entry/reconnect snapshots use kernel enemy terminal facts through
   `EnemyKernelRestoreProjection`.
+- The same absolute snapshot also rides the host's 60 s in-session repair group
+  (`WorldEntryFanout.SendInSessionRepair`), so a member that never leaves the
+  world re-binds after an entry send the lazy session swallowed. A repeat
+  snapshot is idempotent because the guest pairs its frozen generated copies on
+  each entry's host bind-time `SpawnPosition` anchor, never on the live position
+  (which has moved on by then).
 
 ### Enemy lifecycle and health facts
 
@@ -81,7 +87,10 @@ apply an attack to a remote body directly. The active path is:
   `WorldGeneration.DistributeEntities`.
 - Runtime spawns (for example `CaveTickSpawner`) travel through
   `EntitySpawned` and are bound by `EnemyRuntimeSpawnArbitration`
-  (position-based pairing, all-or-nothing).
+  (position-based pairing, all-or-nothing). That positional key is scoped to the
+  moment of creation — a runtime spawn the host binds some frames later keeps
+  that scope — while the generated baseline pairs on the recorded anchor
+  (`review/runtime-entity-markerless-bind-absorption.md` covers the keyed cases).
 - Enemy aggregate removal rides `EnemyRemovedEvent`; a session-scoped
   resurrection guard prevents stale stream rollback of a removed enemy.
 
@@ -91,7 +100,9 @@ There is no `EnemyStateCodec` type. Current mappings are:
 
 - `EnemyEntity.ToEnemyStateMsg()` for runtime snapshot creation.
 - `EnemyStreamWireMapper` for stream wire mapping.
-- `EnemySnapshotMsg` for world-entry/reconnect snapshots.
+- `EnemySnapshotMsg` for the absolute enemy snapshot (world entry / reconnect /
+  the 60 s in-session repair); each entry carries the host's bind-time
+  `SpawnPosition` anchor beside the live position.
 - `EnemyKernelWireMapper` / `EnemyCombatWireMapper` where kernel facts map to wire.
 
 ## 4. Risks and boundaries

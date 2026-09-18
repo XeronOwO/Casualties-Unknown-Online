@@ -17,10 +17,10 @@ public interface IEnemySyncControl
 	/// <summary>Guest side: apply an update-only 20 Hz enemy-state stream (never removes an id absent from the stream).</summary>
 	void ApplyEnemyStream(WireStateStream stream);
 
-	/// <summary>Guest side: apply the full enemy snapshot (world entry / late joiner — clears + repopulates).</summary>
+	/// <summary>Guest side: apply the full enemy snapshot (world entry / late joiner / the 60 s in-session repair — clears + repopulates; the generated copies pair on each entry's spawn anchor, so a late apply is idempotent).</summary>
 	void ApplyEnemySnapshot(EnemySnapshotMsg msg);
 
-	/// <summary>Host side: send the full enemy snapshot to one member (world entry / reconnect).</summary>
+	/// <summary>Host side: send the full enemy snapshot to one member (world entry / reconnect / the 60 s in-session repair group, so a swallowed entry send heals for a member that never leaves the world).</summary>
 	void SendEnemySnapshot(ulong steamId);
 
 	/// <summary>Host side: order one member to apply an enemy attack locally (the host's collision callbacks cannot reach a collider-less remote clone).</summary>

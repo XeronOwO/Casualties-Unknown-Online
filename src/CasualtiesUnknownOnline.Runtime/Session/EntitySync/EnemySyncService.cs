@@ -290,6 +290,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 			],
 		};
 		_sender.Send(steamId, NetMsg.EnemySnapshot, payload);
+		// The entry fan-out and the 60 s in-session repair share this sender; the
+		// line is what tells a post-mortem which members were (re)bound, when and
+		// with what — the repair path is otherwise invisible in the log.
+		_log.LogInformation("[Enemy] snapshot sent to {Peer}: {Enemies} enemies, {Runtime} runtime spawns.",
+			steamId, snapshotEnemies.Count, payload.RuntimeSpawns.Count);
 	}
 
 	// ---- Apply (guest) ----
@@ -358,12 +363,18 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 			var entity = new EnemyEntity(default);
 			state.ApplyTo(entity);
-			if (_terminalHealthRevision.TryGetValue(id, out var terminalRevision)
-				&& baseGlobalRevision < terminalRevision
-				&& _enemies.TryGetValue(id, out var existing))
+			if (_enemies.TryGetValue(id, out var existing))
 			{
-				entity.Health = existing.Health;
-				entity.Stunned = existing.Stunned;
+				// The stream is update-only and carries no binding anchor, so the
+				// anchor the last snapshot established must survive every 20 Hz
+				// frame — otherwise the buffer forgets how to re-pair.
+				entity.SpawnPosition = existing.SpawnPosition;
+				if (_terminalHealthRevision.TryGetValue(id, out var terminalRevision)
+					&& baseGlobalRevision < terminalRevision)
+				{
+					entity.Health = existing.Health;
+					entity.Stunned = existing.Stunned;
+				}
 			}
 
 			_enemies[entity.EntityId] = entity;

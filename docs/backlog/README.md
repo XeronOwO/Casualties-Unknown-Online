@@ -52,7 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Partial-damage report vs the live delta](todo/partial-damage-delta-report-overlap.md) — **Low-Medium** — the merge can under- and over-count.
 - [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
-- [Enemy snapshot and attack have no recovery](todo/enemy-snapshot-and-attack-recovery.md) — **Medium** — a dropped attack is never re-issued.
+- [A dropped enemy attack is never re-issued](todo/enemy-attack-delivery-recovery.md) — **Medium** — the host consumes the attack anyway.
 - [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — the keyframe cannot heal a swallowed command.
 - [Recipe unlock has no fallback](todo/recipe-unlock-fallback.md) — **Medium** — a late joiner never learns a prior unlock.
 - [Carried-inventory registration](todo/carried-inventory-registration-re-report.md) — **Medium** — the host arbitration table stays empty.
@@ -66,6 +66,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [Enemy snapshot binding has no recovery path](review/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn anchor and the 60 s repair group.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.

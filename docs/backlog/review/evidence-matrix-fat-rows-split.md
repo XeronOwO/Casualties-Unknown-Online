@@ -58,7 +58,7 @@ length is now decision prose rather than evidence text.
   on this legitimate history, and dropped.
 - Historical counts elsewhere still read 793 / 807 / 815 (`docs/backlog/README.md` row summaries,
   `docs/evidence/selfchecks/**`, older `review/` tickets). Those are dated records or index
-  summaries; `todo/backlog-index-summary-duplication.md` owns that family.
+  summaries; `review/backlog-index-summary-duplication.md` owns that family.
 - `SyncCoverageGateTests.cs` is 642 lines, over the delivery checklist's 600-line advisory for a
   touched class. The repository's line cap (`SourceShapeGateTests`) enumerates `src` only, this
   project's own `TestClassSizeGateTests` caps xUnit cases (12 here, limit 40), and eight test

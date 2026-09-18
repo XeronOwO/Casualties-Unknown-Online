@@ -30,7 +30,10 @@ Adversarially verify:
 - **A. Every copied claim.** The change restates facts carried over from tickets, handoffs, or older
   documents. For each one, open the code or test it names and confirm the CURRENT state. A stale
   restatement is a finding even when the original document was correct when it was written — this is
-  the single most productive check in practice.
+  the single most productive check in practice. Numbers get the same treatment with one extra
+  question: **can this figure be reproduced from the frozen tree?** A count, line count or suite
+  total that cannot (for example one measured from an uncommitted intermediate state) is reported as
+  unverifiable unless it names its source.
 - **B. Each claim's own evidence.** Run the gates/tests the change cites and reproduce its numbers. A
   number that cannot be reproduced, or whose decomposition does not add up, is a finding.
 - **C. The mechanism, not the wording.** For behaviour claims read the test BODIES (does the assertion

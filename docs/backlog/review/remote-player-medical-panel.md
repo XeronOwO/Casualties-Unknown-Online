@@ -9,7 +9,7 @@
 
 The user opened the remote medical panel during acceptance and found display
 issues; they are recorded in
-`docs/backlog/todo/remote-medical-panel-acceptance-issues.md`. This ticket is
+`docs/backlog/review/remote-medical-panel-acceptance-issues.md`. This ticket is
 **not accepted** until the display-fidelity issues are resolved:
 
 - Fentanyl mood/happiness updates only at 1 Hz, not in real time.

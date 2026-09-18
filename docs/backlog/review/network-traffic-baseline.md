@@ -28,5 +28,5 @@ Verification: `dotnet build` clean, `dotnet format` clean, 2233 tests green,
 architecture/event-replay/entity-event/delivery gates pass.
 
 Non-goal: no bandwidth optimization yet. The measured baseline is the input for
-`docs/backlog/todo/state-stream-bandwidth-reduction.md` and
-`docs/backlog/todo/snapshot-size-reduction.md`.
+`docs/backlog/review/state-stream-bandwidth-reduction.md` and
+`docs/backlog/review/snapshot-size-reduction.md`.

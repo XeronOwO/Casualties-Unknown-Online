@@ -35,7 +35,7 @@ materialization path that does not deliver the complete drop set immediately.
 - Check whether the periodic catch-up is the existing full-table item snapshot
   or a separate correction; the goal is to remove the visible gap before the
   periodic sync, not to rely on it.
-- Cross-check with `todo/entity-destruction-drop-guest-fresh-state-loss.md`: the
+- Cross-check with `review/entity-destruction-drop-guest-fresh-state-loss.md`: the
   same scenario also has fresh-drop presentation rejection on the guest.
 
 ## Landed (this cycle)

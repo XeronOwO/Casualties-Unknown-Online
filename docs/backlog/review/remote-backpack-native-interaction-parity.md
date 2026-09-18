@@ -9,7 +9,7 @@
 
 The user opened this review ticket for acceptance and found the following
 issues. They are recorded in
-`docs/backlog/todo/remote-backpack-item-projection-acceptance-issues.md`; this
+`docs/backlog/review/remote-backpack-item-projection-acceptance-issues.md`; this
 ticket is **not accepted** until those issues are resolved.
 
 1. Host holds metal scrap at 75% durability; guest opens the host backpack and sees 100% durability.

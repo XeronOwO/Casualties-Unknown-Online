@@ -17,7 +17,7 @@ rejected:
   because only one item is visible on the guest side it cannot be confirmed
   whether no-gravity/fresh-drop is present.
 - The guest also has a separate quantity/desync issue for the same destruction
-  (see `todo/trap-destruction-drop-quantity-desync.md`), which may affect
+  (see `review/trap-destruction-drop-quantity-desync.md`), which may affect
   observable presentation.
 
 This ticket is re-opened as TODO. The fresh-drop presentation must match the

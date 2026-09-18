@@ -121,9 +121,9 @@ See `docs/README.md` for the documentation index.
 `[REF]` Detailed pitfalls list (historical blueprint, still applicable):
 `docs/history/architecture-blueprint.md` §10. Keep these in mind:
 
-- After `dotnet format` (or any external tool) modifies a file, re-`read` that file before using
-  Edit; the Edit tool tracks the last-read buffer and refuses stale edits as "file changed since
-  it was read".
+- A number in a committed document (a count, a line count, a suite total) must be reproducible
+  from the tree it describes, or carry its source; a figure measured from an uncommitted
+  intermediate state is not a fact about the repository.
 - Steam P2P is not plain LAN UDP; don't mix the two modes.
 - Syncing Transforms fails on physics, parenting, animation, nav, rigidbodies, scene loads.
 - Over-reliance on hardcoded offsets/private fields breaks on every game update.

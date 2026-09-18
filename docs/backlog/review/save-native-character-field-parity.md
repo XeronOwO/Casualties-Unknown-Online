@@ -6,9 +6,9 @@
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: Stage S3.4b of `review/save-system-mid-run-and-layer-end.md`, split out of
-  `todo/save-native-run-field-parity.md` (S3.4a landed the run-level fields there).
+  `review/save-native-run-field-parity.md` (S3.4a landed the run-level fields there).
 - Related: `docs/architecture/save-archive-format.md` §3.4/§6.1, `docs/decisions/active.md` 165/166/170/171,
-  `review/save-mid-run-consistent-cut.md` (S3 umbrella), `todo/save-native-run-field-parity.md` (S3.4a)
+  `review/save-mid-run-consistent-cut.md` (S3 umbrella), `review/save-native-run-field-parity.md` (S3.4a)
 
 ## Why
 

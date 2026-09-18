@@ -87,7 +87,7 @@ public enum NetMsg : byte
 	// guests render the frozen copies from the snapshot; same pattern as the
 	// player entity stream)
 	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding + RuntimeSpawns for materializing runtime-created enemies)
-	EnemyAttack = 83, // host → guest: the host's enemy simulation decided an attack on a remote player (the victim applies it locally and reports the terminal state through kernel combat-result events)
+	EnemyAttack = 83, // host → guest: the host's enemy simulation ANNOUNCED an attack (broadcast to every in-world guest — which enemy, which kind, the per-enemy attack seq); each guest judges on its own view whether it was hit and reports the terminal state through kernel combat-result events
 
 	// Mod host commands (Phase 4b Mod API — command execution is host-authoritative:
 	// the guest only sends the request, the host executes its own copy of the mod

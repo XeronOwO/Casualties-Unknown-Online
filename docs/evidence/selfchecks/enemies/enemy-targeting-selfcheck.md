@@ -1,5 +1,10 @@
 # Enemy Targeting & Host-Ordered Attacks — Self-Check Table
 
+_Superseded in part (2026-09-18): the host no longer ORDERS an attack with a victim and a
+limb — it announces the enemy's action and the client it lands on judges the hit
+(`docs/backlog/review/enemy-hit-determination-local.md`, decision 185). The rows below
+record the behaviour as it shipped at that date._
+
 > **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
 > an intermediate architecture slice. It is retained for audit history, not as
 > current evidence. Check `docs/evidence/selfchecks/MANIFEST.md` and

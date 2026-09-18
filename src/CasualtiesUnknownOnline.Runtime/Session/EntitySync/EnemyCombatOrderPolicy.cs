@@ -1,12 +1,13 @@
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
-/// Pure host-side enemy-combat apply-path policy. The Game Adapter's
-/// <c>EnemyCombatDirector</c> has the Unity-facing responsibility of turning a
-/// selected victim into a native hit, a host-ordered remote attack, or a
-/// host-applied item fallback; this class owns the direction of that decision
-/// without Unity, so the ordering rule is L0-testable and can later feed a
-/// kernel process without re-deriving the rule from the adapter.
+/// Pure host-side enemy-combat apply-path policy for the decision the host still
+/// owns. The attack paths themselves are no longer host decisions: an enemy
+/// attack is announced and the client it may have landed on judges it
+/// (<see cref="EnemyAttackJudgment"/>, the 2026-09-18 ruling). What remains here
+/// is the item-vs-enemy hit: the Game Adapter observes whether the game's native
+/// branch ran, and this class owns the direction of that decision without Unity,
+/// so the rule is L0-testable.
 /// </summary>
 public static class EnemyCombatOrderPolicy
 {
@@ -16,47 +17,11 @@ public static class EnemyCombatOrderPolicy
 		/// <summary>No host action is needed for this decision.</summary>
 		None = 0,
 
-		/// <summary>Host sends this remote victim an <c>EnemyAttack</c> command; the victim applies the game's damage locally.</summary>
-		RemoteOrder = 1,
-
-		/// <summary>The native game collision/ray path handles (or just handled) the local victim; no host command.</summary>
-		LocalNative = 2,
+		/// <summary>The native game branch handles (or just handled) the host-local case; no extra host action.</summary>
+		LocalNative = 1,
 
 		/// <summary>The native item branch skipped the host-local proximity, so the host applies the same native effects before reporting.</summary>
-		HostItemFallback = 3,
-	}
-
-	/// <summary>
-	/// The spider-bite apply path. The victim is null when the game's
-	/// cooldown/stun gates or bite range closed the decision; otherwise a
-	/// remote victim must be ordered and a local victim rides the native
-	/// collision path.
-	/// </summary>
-	public static ApplyPath DecideSpiderBite(EnemyTargetFact? victim, ulong localSteamId)
-	{
-		if (victim is not { } fact)
-		{
-			return ApplyPath.None;
-		}
-
-		return fact.SteamId == localSteamId ? ApplyPath.LocalNative : ApplyPath.RemoteOrder;
-	}
-
-	/// <summary>
-	/// The crystal-lunge apply path. The victim is null when no player lies
-	/// along the lunge ray before the first ground hit; a remote victim is
-	/// ordered because the game's raycast cannot see a collider-less clone,
-	/// while a local victim stays on the native raycast and only needs the
-	/// pre/post trace for the terminal-state report.
-	/// </summary>
-	public static ApplyPath DecideCrystalLunge(EnemyTargetFact? victim, ulong localSteamId)
-	{
-		if (victim is not { } fact)
-		{
-			return ApplyPath.None;
-		}
-
-		return fact.SteamId == localSteamId ? ApplyPath.LocalNative : ApplyPath.RemoteOrder;
+		HostItemFallback = 2,
 	}
 
 	/// <summary>

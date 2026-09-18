@@ -229,7 +229,8 @@ only on `foodbox` (root + the nested copy in `BioContainer`). Every other
 
 Enemy AI is covered by the host-authoritative enemy-sync domain (`docs/features/enemies.md`).
 Continuous enemy fields ride `StateStreamEnvelope` over `KernelEnvelope`;
-`EnemyAttack` remains the host-order local-apply command; combat terminal results
+`EnemyAttack` is the host's attack ANNOUNCEMENT, judged on the client it lands on;
+combat terminal results
 (bite/lunge/proximity) are kernel journal events
 (`EnemyBiteResultEvent`, `EnemyLungeResultEvent`, `EnemyEffectResultEvent`).
 The `Heater` temperature field on `xaloris` is **excluded by design**: a
@@ -247,7 +248,7 @@ effects (see `docs/evidence/selfchecks/enemies/animal-death-presentation-selfche
 
 | entity | sync | path |
 |---|---|---|
-| SpiderHandler | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack/EnemyBite events + ClawAnim replay |
-| CaveTicks | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack/EnemyBite events + ClawAnim replay |
+| SpiderHandler | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack announcement (judged locally) + EnemyBite events + ClawAnim replay |
+| CaveTicks | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack announcement (judged locally) + EnemyBite events + ClawAnim replay |
 | ElderThornbackBehaviour | covered | EnemyState stream + EnemyEffectMsg horror events |
-| CrystalEnemy | covered | EnemyState stream (CrystalWindup telegraph) + EnemyAttack + kernel `EnemyLungeResultEvent`; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot |
+| CrystalEnemy | covered | EnemyState stream (CrystalWindup telegraph) + EnemyAttack announcement (judged locally) + kernel `EnemyLungeResultEvent`; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot |

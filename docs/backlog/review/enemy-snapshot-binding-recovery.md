@@ -3,7 +3,7 @@
 - Status: Review
 - Priority: Medium
 - Category: Network / sync coverage / enemies (host-authoritative binding)
-- Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the attack half stays open in `todo/enemy-hit-determination-local.md`
+- Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the attack half stays open in `review/enemy-hit-determination-local.md`
 - Related: `review/runtime-entity-markerless-bind-absorption.md` (the runtime-spawn creation key), `review/runtime-entity-spawn-backfill.md`, `review/trap-layout-snapshot-recovery.md` (the same repair-set family, W6)
 
 ## Problem (evidence)
@@ -120,7 +120,7 @@ independent adversarial review reproduced both figures (and the checklist-filter
 
 **Evidence.** `docs/evidence/sync-coverage-matrix.md` row N1 rewritten for the landed snapshot half
 (verdict stays `Event-only gap` while the attack half is open; the gap cell now points at
-`todo/enemy-hit-determination-local.md`), 12 → 16 anchors; `docs/evidence/sync-coverage-evidence.json`
+`review/enemy-hit-determination-local.md`), 12 → 16 anchors; `docs/evidence/sync-coverage-evidence.json`
 841 → 845 entries with its `count` field updated.
 
 ### Acceptance matrix coverage
@@ -133,7 +133,7 @@ independent adversarial review reproduced both figures (and the checklist-filter
 | 4 | `HandshakeHandler`'s reconnect-while-InWorld re-fans the same group (unchanged behavior; the repair group now also covers a member that already had one) |
 | 5 | `EnemyRuntimeSpawnArbitrationTests` / the W-era runtime-spawn tests (the snapshot's `RuntimeSpawns` half is untouched by this change) |
 | 6 | `EnemySyncServiceTests` — an explicit removal is final, "a snapshot also cannot resurrect an id that already received an explicit removal in this session"; the repair snapshot is the same apply path (`Replace`) |
-| 7 | NOT covered here by design: the row moved with the attack half, which carries it as its own row 7 (`todo/enemy-hit-determination-local.md`) |
+| 7 | NOT covered here by design: the row moved with the attack half, which carries it as its own row 7 (`review/enemy-hit-determination-local.md`) |
 | 8 | Acceptance-only for the view itself: the host sends per member (`SendEnemySnapshot(steamId)`, and the repair pump iterates the in-world members), so no peer is starved by another's repair, and `EnemySyncServiceTests` pins the shared id set on the wire. Peers agreeing on the set AND on terminal health across two live clients is observable only in the dual-client acceptance pass (see limitations) |
 
 ## Known limitations (recorded, not hidden)
@@ -163,7 +163,7 @@ independent adversarial review reproduced both figures (and the checklist-filter
 - **Attacks dropped by a missing binding are not re-issued here.** While the binding is absent every
   ordered attack is dropped on the victim, and the host has already consumed the enemy's attack
   (retreat/cooldown). This change bounds that window to the repair cycle instead of forever; the
-  order itself is `todo/enemy-hit-determination-local.md`.
+  order itself is `review/enemy-hit-determination-local.md`.
 - **The positional key's scope is only fixed for the generated baseline.** A runtime spawn is still
   bound by `TryBindRuntimeSpawns` with the same 0.5 tolerance against CURRENT positions, and its
   stored anchor is "position at bind" — if the host binds that animal tens of milliseconds after its

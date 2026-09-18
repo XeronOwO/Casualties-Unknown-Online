@@ -8,10 +8,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// Resolves the host-side enemy AI target set: builds the in-world player
-/// candidate list (local body + remote entity-stream positions), finds a
-/// selected fact back to its render candidate, and picks the limb index for a
-/// host-ordered attack. Extracted from <see cref="EnemyCombatDirector"/> so the
-/// director owns ordering/reporting while this class owns the target view.
+/// candidate list (local body + remote entity-stream positions) and finds a
+/// selected fact back to its render candidate. Extracted from
+/// <see cref="EnemyCombatDirector"/> so the director owns the enemy's action
+/// (aiming, announcements) while this class owns the host's view of who is where.
 /// </summary>
 internal sealed class EnemyTargetResolver(
 	ISessionControl session,
@@ -43,14 +43,6 @@ internal sealed class EnemyTargetResolver(
 	}
 
 	internal IEnumerable<EnemyTargetFact> Facts() => BuildCandidates().Select(c => c.ToFact());
-
-	internal int SelectLimbIndex(EnemyTarget target, Vector2 from)
-	{
-		var body = target.SteamId == _session.LocalSteamId
-			? LocalBody()
-			: (_renderer.TryGetRemoteBody(target.SteamId, out var remoteBody) ? remoteBody : null);
-		return body != null ? BodyLimbIndex(body, from) : -1; // Unity object — ==; -1 = the victim picks its closest limb
-	}
 
 	internal Body? LocalBody()
 	{
@@ -95,19 +87,5 @@ internal sealed class EnemyTargetResolver(
 
 		_candidateFrame = Time.frameCount;
 		return _candidates;
-	}
-
-	private static int BodyLimbIndex(Body body, Vector2 from)
-	{
-		var limb = body.GetClosestLimb(from);
-		for (var i = 0; i < body.limbs.Length; i++)
-		{
-			if (body.limbs[i] == limb) // Unity object — ==
-			{
-				return i;
-			}
-		}
-
-		return -1;
 	}
 }

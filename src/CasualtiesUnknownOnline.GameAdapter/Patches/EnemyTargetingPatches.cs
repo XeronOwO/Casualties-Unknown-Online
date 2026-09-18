@@ -13,9 +13,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 ///    inside seeDistance;
 ///  - CrystalEnemy.body getter: the director returns the nearest player body
 ///    inside the game's 64-unit close radius;
-///  - CrystalEnemy.Lunge: the director orders the remote victim to apply the
-///    lunge locally when the game's RaycastAll cannot see the collider-less
-///    clone.
+///  - CrystalEnemy.Lunge: the director ANNOUNCES the lunge to every in-world
+///    guest as it begins (the game's own raycast cannot see a collider-less
+///    clone); each guest judges on its own screen whether the ray reached its
+///    body, and the host's own body stays on the native raycast.
 /// Guest-side frozen copies never reach these callbacks (EnemyPatches skips
 /// Update/FixedUpdate; the director is host-only).
 /// </summary>

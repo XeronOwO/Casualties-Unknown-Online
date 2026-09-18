@@ -29,7 +29,6 @@ public class EnemyTargetResolverContractTests
 		Assert.Contains(methods, m => m.Name == "BuildCandidates");
 		Assert.Contains(methods, m => m.Name == "Find");
 		Assert.Contains(methods, m => m.Name == "Facts");
-		Assert.Contains(methods, m => m.Name == "SelectLimbIndex");
 		Assert.Contains(methods, m => m.Name == "LocalBody");
 	}
 

@@ -32,19 +32,19 @@
       "cluster": "enemies-trade",
       "row": "N1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs",
-      "quote": "_sender.Send(msg.VictimSteamId, NetMsg.EnemyAttack, msg, reliable: true);"
+      "quote": "_sender.SendToAll(targets, NetMsg.EnemyAttack, msg, reliable: true);"
     },
     {
       "cluster": "enemies-trade",
       "row": "N1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatDirector.cs",
-      "quote": "_enemies.SendEnemyAttack(new EnemyAttackMsg"
+      "quote": "_enemies.SendEnemyAttack(enemyId, EnemyAttackKind.SpiderBite);"
     },
     {
       "cluster": "enemies-trade",
       "row": "N1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatReplay.cs",
-      "quote": "_log.LogWarning(\"[Enemy] attack {Kind} arrived for unknown enemy {Enemy} — the snapshot binding may not have arrived yet; command dropped.\","
+      "quote": "_log.LogWarning(\"[Enemy] attack {Kind} #{Seq} arrived for unknown enemy {Enemy} — the snapshot binding may not have arrived yet; the attack is dropped.\","
     },
     {
       "cluster": "enemies-trade",
@@ -4178,7 +4178,7 @@
       "cluster": "inline",
       "row": "N1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs",
-      "quote": "_log.LogWarning(\"[EnemyAttack] victim {Victim} is not an in-world member — command dropped.\", msg.VictimSteamId);"
+      "quote": "_log.LogInformation(\"[EnemyAttack] no in-world guest to announce enemy {Enemy} {Kind} to.\", enemyId, kind);"
     },
     {
       "cluster": "inline",

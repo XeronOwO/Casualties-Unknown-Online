@@ -43,7 +43,7 @@ value is accepted, record the acceptance in the matrix row.
 5. **`WorldSnapshotComplete` / late-join readiness** — tracked in
    `todo/session-control-convergence.md`.
 6. **Enemy snapshot / attack** — tracked in
-   `review/enemy-snapshot-binding-recovery.md` and `todo/enemy-hit-determination-local.md`.
+   `review/enemy-snapshot-binding-recovery.md` and `review/enemy-hit-determination-local.md`.
 
 ## Goal
 

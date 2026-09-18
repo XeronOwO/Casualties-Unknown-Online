@@ -52,6 +52,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private uint _lastEnemyStateSeq; // guest: last applied seq (the unreliable-stream gate)
 	private ulong _epoch; // host: the enemy-id epoch (set on Initialize)
 	private uint _nextEnemyCounter; // host: enemy-id allocation counter
+	private readonly Dictionary<NetworkEntityId, uint> _nextAttackSeq = []; // host: per-enemy attack announcement identity
 
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
 		AdaptiveStreamRateService adaptiveRates, ILogger<EnemySyncService> log,
@@ -89,7 +90,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// <summary>Raised when an enemy bite result is projected from the kernel — the Game Adapter applies the post-bite limb/body state to the victim's clone (source victim excluded).</summary>
 	public event Action<ulong, EnemyBiteMsg>? EnemyBiteReceived;
 
-	/// <summary>Raised on the victim's side when a host-ordered enemy attack arrives — the Game Adapter applies it to the local body and reports the terminal state.</summary>
+	/// <summary>Raised on the guest side when an announced enemy attack arrives — the Game Adapter judges it against its own body and reports the terminal state.</summary>
 	public event Action<EnemyAttackMsg>? EnemyAttackReceived;
 
 	/// <summary>Raised when a crystal-lunge result is projected from the kernel — the Game Adapter applies the post-lunge limb/body state to the victim's clone (source victim excluded).</summary>
@@ -126,30 +127,43 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		=> EnemyBiteReceived?.Invoke(sender, msg);
 
 	/// <summary>
-	/// Host side: order one member to apply an enemy attack locally. The remote
+	/// Host side: announce an enemy attack to every in-world guest. The remote
 	/// clone has no colliders, so the host's own collision callback can never
-	/// reach the guest — the host simulation decides, the victim applies and
-	/// reports the terminal state. Reliable: the command is one-shot.
+	/// reach a guest — and the host does not decide who was hit either: it
+	/// publishes the enemy's action with a per-enemy attack identity, and each
+	/// guest judges the connection on its own view and reports the terminal
+	/// state. Reliable: the announcement is one-shot. With no in-world guest there
+	/// is nobody to judge, so nothing is sent and no identity is stamped — the next
+	/// action announces with a fresh sequence.
 	/// </summary>
-	public void SendEnemyAttack(EnemyAttackMsg msg)
+	public void SendEnemyAttack(NetworkEntityId enemyId, EnemyAttackKind kind)
 	{
 		if (!_session.SessionActive || _session.Role != SessionRole.Host)
 		{
 			return;
 		}
 
-		var target = _session.Members.FirstOrDefault(m =>
-			m.SteamId == msg.VictimSteamId && m.Handshaken && m.InWorld);
-		if (target == null)
+		var targets = InWorldGuestSteamIds().ToList();
+		if (targets.Count == 0)
 		{
-			_log.LogWarning("[EnemyAttack] victim {Victim} is not an in-world member — command dropped.", msg.VictimSteamId);
+			_log.LogInformation("[EnemyAttack] no in-world guest to announce enemy {Enemy} {Kind} to.", enemyId, kind);
 			return;
 		}
 
-		_sender.Send(msg.VictimSteamId, NetMsg.EnemyAttack, msg, reliable: true);
+		var seq = _nextAttackSeq.TryGetValue(enemyId, out var previous) ? previous + 1u : 1u;
+		_nextAttackSeq[enemyId] = seq;
+		var msg = new EnemyAttackMsg
+		{
+			EnemyId = enemyId.ToNetworkEntityIdMsg(),
+			Kind = kind,
+			AttackSeq = seq,
+		};
+		_sender.SendToAll(targets, NetMsg.EnemyAttack, msg, reliable: true);
+		_log.LogInformation("[EnemyAttack] announced enemy {Enemy} {Kind} #{Seq} to {Count} in-world guest(s).",
+			enemyId, kind, seq, targets.Count);
 	}
 
-	/// <summary>A host-ordered enemy attack arrived at the victim — surface it for the Game Adapter to apply locally.</summary>
+	/// <summary>An announced enemy attack arrived on this guest — surface it for the Game Adapter to judge against its own body and apply locally.</summary>
 	public void FireEnemyAttackReceived(EnemyAttackMsg msg) => EnemyAttackReceived?.Invoke(msg);
 
 	/// <summary>
@@ -210,7 +224,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	void IEnemySyncControl.SendEnemySnapshot(ulong steamId) => SendEnemySnapshot(steamId);
 
-	void IEnemySyncControl.SendEnemyAttack(EnemyAttackMsg msg) => SendEnemyAttack(msg);
+	void IEnemySyncControl.SendEnemyAttack(NetworkEntityId enemyId, EnemyAttackKind kind) => SendEnemyAttack(enemyId, kind);
 
 	void IEnemySyncControl.FireEnemyAttackReceived(EnemyAttackMsg msg) => FireEnemyAttackReceived(msg);
 
@@ -489,6 +503,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_enemies.Clear();
 		_removedEnemies.Clear();
 		_terminalHealthRevision.Clear();
+		_nextAttackSeq.Clear();
 		_runtimeSpawns = [];
 		_nextEnemySeq = 0;
 		_lastEnemyStateSeq = 0;

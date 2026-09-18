@@ -1,20 +1,25 @@
-using CasualtiesUnknownOnline.Runtime.Protocol;
+using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
-using System;
+using UnityRandom = UnityEngine.Random;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
-/// The guest-side enemy combat replay: applies host-ordered attacks (spider
-/// bite / crystal lunge) to the local body and reports the local victim's
-/// post-bite / post-lunge terminal state as dedicated EnemyBite/EnemyLunge
-/// events. It is deliberately separate from the enemy binding/stream side so
-/// the enemy domain can keep its two responsibilities distinct.
+/// The guest-side enemy combat replay: it JUDGES an announced enemy attack
+/// against this client's own view — the frozen enemy copy it renders and its own
+/// body — and applies the game's own damage locally only when that view shows the
+/// attack connecting (the 2026-09-18 ruling: the host announces the enemy's
+/// action, the client the effect lands on decides it). The local victim's
+/// post-bite / post-lunge terminal state leaves as the dedicated EnemyBite /
+/// EnemyLunge events. It is deliberately separate from the enemy binding/stream
+/// side so the enemy domain can keep its two responsibilities distinct.
 /// </summary>
 internal sealed class EnemyCombatReplay(
 	ISessionControl session,
@@ -30,8 +35,9 @@ internal sealed class EnemyCombatReplay(
 	private readonly CharacterDataSync _characterData = characterData;
 	private readonly Func<NetworkEntityId, BuildingEntity?> _findEntity = findEntity;
 	private readonly ILogger<EnemySyncCoordinator> _log = log;
+	private readonly EnemyAttackLedger _ledger = new();
 
-	// ---- Host-ordered enemy attacks (the dedicated command — never the snapshot) ----
+	// ---- Announced enemy attacks (the dedicated broadcast — never the snapshot) ----
 
 	internal void OnEnemyAttackReceived(EnemyAttackMsg msg)
 	{
@@ -40,54 +46,82 @@ internal sealed class EnemyCombatReplay(
 			return;
 		}
 
-		var entity = _findEntity(msg.EnemyId.ToNetworkEntityId());
+		var enemyId = msg.EnemyId.ToNetworkEntityId();
+		if (!_ledger.ShouldJudge(enemyId, msg.AttackSeq))
+		{
+			_log.LogInformation("[Enemy] attack {Kind} #{Seq} of enemy {Enemy} was already judged — ignored.",
+				msg.Kind, msg.AttackSeq, enemyId);
+			return;
+		}
+
+		var entity = _findEntity(enemyId);
 		if (entity == null) // Unity object — ==
 		{
-			_log.LogWarning("[Enemy] attack {Kind} arrived for unknown enemy {Enemy} — the snapshot binding may not have arrived yet; command dropped.",
-				msg.Kind, msg.EnemyId.ToNetworkEntityId());
+			_log.LogWarning("[Enemy] attack {Kind} #{Seq} arrived for unknown enemy {Enemy} — the snapshot binding may not have arrived yet; the attack is dropped.",
+				msg.Kind, msg.AttackSeq, enemyId);
 			return;
 		}
 
 		switch (msg.Kind)
 		{
 			case EnemyAttackKind.SpiderBite:
-				ApplyHostSpiderBite(entity, msg);
+				JudgeSpiderBite(entity, enemyId, msg.AttackSeq);
 				break;
 			case EnemyAttackKind.CrystalLunge:
-				ApplyHostCrystalLunge(entity, msg);
+				JudgeCrystalLunge(entity, enemyId, msg.AttackSeq);
 				break;
 			default:
-				_log.LogWarning("[Enemy] unknown attack kind {Kind} for enemy {Enemy} — dropped.", msg.Kind, msg.EnemyId.ToNetworkEntityId());
+				_log.LogWarning("[Enemy] unknown attack kind {Kind} for enemy {Enemy} — dropped.", msg.Kind, enemyId);
 				break;
 		}
 	}
 
 	/// <summary>
-	/// Apply the host-ordered spider bite to the LOCAL body using the frozen
-	/// copy's own SpiderHandler (same prefab values, same DamageLimb virtual
-	/// dispatch). Replicates CheckForLimbDamage's non-collision side effects
-	/// (SpiderHandler.cs:148-160) around DamageLimb; the EnemyBitePatches
-	/// postfix on DamageLimb reports the post-bite terminal state back to the
-	/// host — the command and its report are the dedicated event chain.
+	/// Judge the announced spider bite on this client's own view: the bite lands
+	/// only when the frozen spider's collider touches one of this body's limbs
+	/// here, with the game's own facing gate. A bite this screen never shows
+	/// connecting does NOT land — that is the intended semantics (the host's
+	/// spider biting air), not a lost command.
 	/// </summary>
-	private void ApplyHostSpiderBite(BuildingEntity entity, EnemyAttackMsg msg)
+	private void JudgeSpiderBite(BuildingEntity entity, NetworkEntityId enemyId, uint attackSeq)
 	{
 		var spider = entity.GetComponentInChildren<SpiderHandler>();
 		var body = LocalBody();
 		if (spider == null || body == null) // Unity objects — ==
 		{
-			_log.LogWarning("[Enemy] spider bite {Enemy} could not be applied — attacker/victim body missing.", msg.EnemyId.ToNetworkEntityId());
+			_log.LogWarning("[Enemy] spider bite {Enemy} #{Seq} could not be judged — attacker/victim body missing.", enemyId, attackSeq);
 			return;
 		}
 
-		var limb = SelectLimb(body, msg.LimbIndex, entity.transform.position);
-		if (limb == null)
+		var limbIndex = EnemyAttackLocalProbe.ProbeBittenLimb(spider, body);
+		if (limbIndex < 0)
 		{
-			_log.LogWarning("[Enemy] spider bite {Enemy} has no non-dismembered limb — dropped.", msg.EnemyId.ToNetworkEntityId());
+			_log.LogInformation("[Enemy] spider bite {Enemy} #{Seq} judged a miss — the local view shows no contact with this body.",
+				enemyId, attackSeq);
 			return;
 		}
 
-		Sound.Play(spider.biteSound, entity.transform.position, false, true, null, 1f, 1f, false, false);
+		ApplySpiderBite(spider, body, limbIndex);
+		_log.LogInformation("[Enemy] spider bite {Enemy} #{Seq} judged a hit on local limb {Limb}.", enemyId, attackSeq, limbIndex);
+	}
+
+	/// <summary>
+	/// Apply the judged bite to the LOCAL body using the frozen copy's own
+	/// SpiderHandler (same prefab values, same DamageLimb virtual dispatch),
+	/// replicating CheckForLimbDamage's non-collision side effects
+	/// (SpiderHandler.cs:185-208) around DamageLimb; the EnemyBitePatches postfix
+	/// on DamageLimb reports the post-bite terminal state back to the session.
+	/// </summary>
+	private void ApplySpiderBite(SpiderHandler spider, Body body, int limbIndex)
+	{
+		var limb = limbIndex >= 0 && limbIndex < body.limbs.Length ? body.limbs[limbIndex] : null;
+		if (limb == null || limb.dismembered) // Unity object — ==
+		{
+			_log.LogWarning("[Enemy] judged spider bite has no usable limb {Limb} — dropped.", limbIndex);
+			return;
+		}
+
+		Sound.Play(spider.biteSound, spider.transform.position, false, true, null, 1f, 1f, false, false);
 		limb.body.eyeScareTime = 5f;
 		limb.body.talker.Talk(Locale.GetCharacter("hitbycreature"), null, false, true);
 		limb.body.happiness -= spider.happinessLoss;
@@ -105,34 +139,50 @@ internal sealed class EnemyCombatReplay(
 			body.transform.position.x - spider.transform.position.x,
 			body.transform.position.y - spider.transform.position.y);
 		SpiderClawReplay.Play(spider, biteDirection);
-
-		_log.LogInformation("[Enemy] applied host spider bite {Enemy} to local limb {Limb}.", msg.EnemyId.ToNetworkEntityId(), limb);
 	}
 
 	/// <summary>
-	/// Apply the host-ordered crystal lunge to the LOCAL body, reproducing
-	/// CrystalEnemy.Lunge's player-damage branch exactly
-	/// (CrystalEnemy.cs:143-156): closest non-dismembered limb, the same
-	/// armor-reduced damage constants and body reactions. The post-lunge
-	/// terminal state is reported as the dedicated EnemyLunge event.
+	/// Judge the announced crystal lunge on this client's own view: the lunge
+	/// lands only when the game's own ray (from the frozen crystal, along its
+	/// displayed facing) reaches this client's body before the ground.
 	/// </summary>
-	private void ApplyHostCrystalLunge(BuildingEntity entity, EnemyAttackMsg msg)
+	private void JudgeCrystalLunge(BuildingEntity entity, NetworkEntityId enemyId, uint attackSeq)
 	{
 		var crystal = entity.GetComponentInChildren<CrystalEnemy>();
 		var body = LocalBody();
 		if (crystal == null || body == null) // Unity objects — ==
 		{
-			_log.LogWarning("[Enemy] crystal lunge {Enemy} could not be applied — attacker/victim body missing.", msg.EnemyId.ToNetworkEntityId());
+			_log.LogWarning("[Enemy] crystal lunge {Enemy} #{Seq} could not be judged — attacker/victim body missing.", enemyId, attackSeq);
 			return;
 		}
 
-		var limb = SelectLimb(body, msg.LimbIndex, entity.transform.position);
-		if (limb == null)
+		if (!EnemyAttackLocalProbe.CrystalLungeHitsLocalBody(crystal, body))
 		{
-			_log.LogWarning("[Enemy] crystal lunge {Enemy} has no non-dismembered limb — dropped.", msg.EnemyId.ToNetworkEntityId());
+			_log.LogInformation("[Enemy] crystal lunge {Enemy} #{Seq} judged a miss — the local ray reaches no body of this client.",
+				enemyId, attackSeq);
 			return;
 		}
 
+		var limb = SelectRandomLimb(body);
+		if (limb == null) // Unity object — ==
+		{
+			_log.LogWarning("[Enemy] crystal lunge {Enemy} #{Seq} has no non-dismembered limb — dropped.", enemyId, attackSeq);
+			return;
+		}
+
+		ApplyCrystalLunge(crystal, body, limb);
+		_log.LogInformation("[Enemy] crystal lunge {Enemy} #{Seq} judged a hit on local limb {Limb}.",
+			enemyId, attackSeq, LimbIndexOf(body, limb));
+	}
+
+	/// <summary>
+	/// Apply the judged lunge to the LOCAL body, reproducing CrystalEnemy.Lunge's
+	/// player-damage branch exactly (CrystalEnemy.cs:143-156): the same
+	/// armor-reduced damage constants and body reactions. The post-lunge terminal
+	/// state is reported as the dedicated EnemyLunge event.
+	/// </summary>
+	private void ApplyCrystalLunge(CrystalEnemy crystal, Body body, Limb limb)
+	{
 		var armorReduction = limb.GetArmorReduction();
 		limb.DamageWearables(0.4f);
 		limb.muscleHealth -= 35f / armorReduction;
@@ -145,10 +195,9 @@ internal sealed class EnemyCombatReplay(
 		body.Scream();
 		body.Ragdoll();
 		body.DoGoreSound();
-		Sound.Play("crystalenemylaugh", entity.transform.position, true, true, null, 1f, 1f, false, false);
+		Sound.Play("crystalenemylaugh", crystal.transform.position, true, true, null, 1f, 1f, false, false);
 
-		SendLocalCrystalLunge(body, limb, "applied host crystal lunge to local limb {Limb}");
-		_log.LogInformation("[Enemy] applied host crystal lunge {Enemy} to local limb {Limb}.", msg.EnemyId.ToNetworkEntityId(), LimbIndexOf(body, limb));
+		SendLocalCrystalLunge(body, limb, "judged and applied an announced crystal lunge to local limb {Limb}");
 	}
 
 	internal void OnEnemyLungeReceived(ulong sender, EnemyLungeMsg msg) => _characterData.ApplyEnemyLunge(msg);
@@ -190,19 +239,23 @@ internal sealed class EnemyCombatReplay(
 		_log.LogInformation("[Enemy] " + message + ".", limbMsg.Index);
 	}
 
-	private static Limb? SelectLimb(Body body, int limbIndex, Vector3 enemyPosition)
+	/// <summary>
+	/// The game's own lunge limb choice: a random non-dismembered limb of the body
+	/// the ray reached (CrystalEnemy.cs:141 — PickRandom over the filtered list).
+	/// The victim's own body decides it; the attacker no longer names a limb.
+	/// </summary>
+	private static Limb? SelectRandomLimb(Body body)
 	{
-		if (limbIndex >= 0 && limbIndex < body.limbs.Length)
+		var candidates = new List<Limb>();
+		foreach (var limb in body.limbs)
 		{
-			var indexed = body.limbs[limbIndex];
-			if (indexed != null && !indexed.dismembered) // Unity object — ==
+			if (limb != null && !limb.dismembered) // Unity object — ==
 			{
-				return indexed;
+				candidates.Add(limb);
 			}
 		}
 
-		var closest = body.GetClosestLimb(enemyPosition);
-		return closest != null && !closest.dismembered ? closest : null; // Unity object — ==
+		return candidates.Count == 0 ? null : candidates[UnityRandom.Range(0, candidates.Count)];
 	}
 
 	private static Body? LocalBody()
@@ -215,8 +268,9 @@ internal sealed class EnemyCombatReplay(
 
 	/// <summary>
 	/// The local player was bitten (the game's DamageLimb already ran on the
-	/// local body): capture the post-bite terminal state and send it as the
-	/// dedicated EnemyBite event — guest → host report, host → guest broadcast
+	/// local body, whether from the native path or from a judged announcement):
+	/// capture the post-bite terminal state and send it as the dedicated
+	/// EnemyBite event — guest → host report, host → guest broadcast
 	/// (accept-first, no distance/legitimacy validation).
 	/// </summary>
 	internal void ReportEnemyBite(Limb limb)

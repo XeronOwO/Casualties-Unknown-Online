@@ -129,7 +129,7 @@ corrected.
   was tried and reverted — without a generation identity on the wire, a stale
   report of a previous layer's break is indistinguishable from a legitimate one,
   and accepting it breaks a block in the new layer. Closing this properly needs a
-  wire member carrying the world/layer identity (its own ticket if wanted).
+  wire member carrying the world/layer identity (`todo/world-layer-generation-identity.md`).
 - The empty-drop recording guard lives in `BlockBreakSync.FlushPendingBlockBreak`
   (Unity-side): the suite pins the premise that makes it necessary (a
   payload-free report is never relayed, so an entry for it could never be

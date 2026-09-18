@@ -51,6 +51,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Layer time is not carried](todo/save-layer-time-not-carried.md) — **Low-Medium** — resuming the radiation timer is a gameplay decision.
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Partial-damage report vs the live delta](todo/partial-damage-delta-report-overlap.md) — **Low-Medium** — the merge can under- and over-count.
+- [World/layer generation identity](todo/world-layer-generation-identity.md) — **Medium** — a stale cell-keyed report looks like a legitimate one.
 - [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
 - [A dropped enemy attack is never re-issued](todo/enemy-attack-delivery-recovery.md) — **Medium** — the host consumes the attack anyway.
 - [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — the keyframe cannot heal a swallowed command.

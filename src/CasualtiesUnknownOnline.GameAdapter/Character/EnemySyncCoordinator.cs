@@ -14,13 +14,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// <summary>
 /// The Unity side of the host-authoritative enemy stream. Host: captures the
 /// simulated animal entities (BuildingEntity.animal), assigns ids in the
-/// deterministic <see cref="EnemySpawnArbitration"/> order and publishes their
-/// presentation state. Guest: binds its locally generated copies to the host's
-/// ids on the world-entry snapshot (position pairing) and drives the frozen
-/// copies from the 20 Hz batch. No enemy simulation on the guest — same
-/// pattern as the player render clones (RemoteBodyDriver). Also the enemy-bite
-/// side: reports the local victim's post-bite state (EnemyBite event) and
-/// applies the received bites to the victim's clone.
+/// deterministic <see cref="EnemySpawnArbitration"/> order, records each one's
+/// bind-time spawn anchor and publishes their presentation state. Guest: binds
+/// its locally generated copies to the host's ids on the world-entry snapshot
+/// AND on the 60 s in-session repair (spawn-anchor pairing — the anchor, never
+/// the live position, so a snapshot that lands after the host's animals have
+/// wandered still binds) and drives the frozen copies from the 20 Hz batch. No
+/// enemy simulation on the guest — same pattern as the player render clones
+/// (RemoteBodyDriver). Also the enemy-bite side: reports the local victim's
+/// post-bite state (EnemyBite event) and applies the received bites to the
+/// victim's clone.
 /// </summary>
 internal sealed partial class EnemySyncCoordinator
 {
@@ -28,6 +31,7 @@ internal sealed partial class EnemySyncCoordinator
 	private readonly EnemySyncService _enemies;
 	private readonly ILogger<EnemySyncCoordinator> _log;
 	private readonly EnemyCombatReplay _combat;
+	private readonly EnemyPresentationApplier _presentation;
 
 	internal EnemySyncCoordinator(
 		ISessionControl session,
@@ -40,11 +44,12 @@ internal sealed partial class EnemySyncCoordinator
 		_enemies = enemies;
 		_log = log;
 		_combat = new EnemyCombatReplay(session, enemies, mapper, characterData, FindEntityById, log);
+		_presentation = new EnemyPresentationApplier(log);
 	}
 
 	private readonly Dictionary<BuildingEntity, NetworkEntityId> _idByEntity = [];
 	private readonly Dictionary<NetworkEntityId, BuildingEntity> _entityById = [];
-	private readonly Dictionary<NetworkEntityId, EnemyHealthReconcile> _healthReconcile = [];
+	private readonly Dictionary<BuildingEntity, NetVector2> _spawnPositionByEntity = []; // host: the bind-time anchor each snapshot entry carries (the pairing key); written by Bind together with _idByEntity, cleared with it, never unbound on its own
 	private readonly HashSet<NetworkEntityId> _runtimeEnemyIds = []; // host: ids allocated after the initial deterministic mapping (runtime spawns)
 	private readonly HashSet<BuildingEntity> _runtimeAnimalCopies = []; // guest: animals created at runtime (never the generated baseline — the pairing must not steal a generated copy)
 	private bool _mappingEstablished;
@@ -70,7 +75,8 @@ internal sealed partial class EnemySyncCoordinator
 		_enemies.EnemyLungeReceived -= _combat.OnEnemyLungeReceived;
 		_idByEntity.Clear();
 		_entityById.Clear();
-		_healthReconcile.Clear();
+		_spawnPositionByEntity.Clear();
+		_presentation.Clear();
 		_runtimeEnemyIds.Clear();
 		_runtimeAnimalCopies.Clear();
 		_mappingEstablished = false;
@@ -112,7 +118,7 @@ internal sealed partial class EnemySyncCoordinator
 		_entityById.Remove(id);
 		_runtimeEnemyIds.Remove(id);
 		_runtimeAnimalCopies.Remove(entity);
-		_healthReconcile.Remove(id);
+		_presentation.Forget(id);
 		if (entity != null) // Unity object — ==
 		{
 			Object.Destroy(entity.gameObject);
@@ -196,9 +202,20 @@ internal sealed partial class EnemySyncCoordinator
 		{
 			_runtimeEnemyIds.Add(id);
 		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			// The binding anchor, recorded ONCE at the first bind: EnsureMapping
+			// runs on the host's first capture after generation and a runtime spawn
+			// is bound when it appears, so this is the enemy's generation /
+			// creation position. That is the key the guest's frozen copies pair on
+			// — pairing on the live position only holds in the instant after
+			// generation, which is why a repair snapshot could never bind (N1).
+			_spawnPositionByEntity[entity] = new NetVector2(entity.transform.position.x, entity.transform.position.y);
+		}
 	}
 
-	private static EnemyEntity Capture(BuildingEntity entity, NetworkEntityId id, bool runtimeSpawn)
+	private EnemyEntity Capture(BuildingEntity entity, NetworkEntityId id, bool runtimeSpawn)
 	{
 		var rb = entity.GetComponent<Rigidbody2D>();
 		var spider = entity.GetComponentInChildren<SpiderHandler>();
@@ -215,9 +232,22 @@ internal sealed partial class EnemySyncCoordinator
 			tint = new NetColorRgba(color.r, color.g, color.b, color.a);
 		}
 
+		if (!_spawnPositionByEntity.TryGetValue(entity, out var spawnPosition))
+		{
+			// Bind writes both tables together and runs before the first capture,
+			// so a miss means the binding was bypassed. The anchor is load-bearing
+			// (a zero or moving one silently breaks the repair pairing), so this
+			// degrades to the live position LOUDLY instead of indexing blind.
+			spawnPosition = new NetVector2(entity.transform.position.x, entity.transform.position.y);
+			_log.LogWarning("[Enemy] {Enemy} captured without a bind-time spawn anchor — falling back to its live position; a repair snapshot may fail to pair it.", id);
+		}
+
 		return new EnemyEntity(id)
 		{
 			Position = new NetVector2(entity.transform.position.x, entity.transform.position.y),
+			// The anchor travels beside the live position: the guest pairs on it,
+			// the presentation keeps using Position.
+			SpawnPosition = spawnPosition,
 			Velocity = rb != null ? new NetVector2(rb.velocity.x, rb.velocity.y) : NetVector2.Zero,
 			Rotation = entity.transform.eulerAngles.z,
 			Health = entity.health,
@@ -246,9 +276,10 @@ internal sealed partial class EnemySyncCoordinator
 
 	/// <summary>
 	/// Freeze the guest's animal copies the moment generation finishes — BEFORE
-	/// their AI moves them. The pairing key is the spawn position, so the copies
-	/// must still be at their spawn spots when the host's snapshot arrives;
-	/// freezing early also stops the guest from simulating (host-authoritative).
+	/// their AI moves them. The pairing key is the spawn position and only the
+	/// HOST records it as an anchor, so the copies must still be at their spawn
+	/// spots when a snapshot (entry or the 60 s repair) pairs them; freezing
+	/// early also stops the guest from simulating (host-authoritative).
 	/// </summary>
 	private void FreezeOnGenerationComplete()
 	{
@@ -285,11 +316,17 @@ internal sealed partial class EnemySyncCoordinator
 		MaterializeRuntimeSpawns(runtimeSpawns);
 
 		// The runtime copies are bound/materialized; what remains is the
-		// deterministic generation baseline — pair it exactly like before.
+		// deterministic generation baseline — pair it on the host's bind-time
+		// SPAWN anchor, never on the live position. The copies below have been
+		// frozen at their spawn spots since generation, so a snapshot that lands
+		// later (the 60 s in-session repair, or a late joiner into a world whose
+		// animals have wandered) fails the tolerance for the whole set on the live
+		// position — and a failed pairing also clears _mappingEstablished, which
+		// switches off the runtime-spawn bind that would otherwise heal.
 		var comparer = Comparer<NetVector2>.Create(EnemySpawnArbitration.Compare);
 		var generatedHost = hostStates
 			.Where(s => !runtimeIds.Contains(s.EntityId))
-			.OrderBy(s => s.Position, comparer)
+			.OrderBy(s => s.SpawnPosition, comparer)
 			.ToList();
 		var generatedGuest = FindAnimals()
 			.Where(e => !_runtimeAnimalCopies.Contains(e)
@@ -325,34 +362,6 @@ internal sealed partial class EnemySyncCoordinator
 			generatedPaired ? generatedHost.Count : 0, runtimeSpawns.Count, _mappingEstablished);
 	}
 
-	private void Apply(BuildingEntity entity, EnemyEntity state)
-	{
-		entity.transform.position = new Vector3(state.Position.X, state.Position.Y, entity.transform.position.z);
-		entity.transform.rotation = Quaternion.Euler(0f, 0f, state.Rotation);
-		// A local attack drops this copy's health for immediate feedback, but the
-		// host's batch does not yet include the in-flight report — reconciling
-		// against the pending local damage keeps that drop visible instead of
-		// flashing back up for one round-trip.
-		entity.health = _healthReconcile.TryGetValue(state.EntityId, out var reconcile)
-			? reconcile.Reconcile(state.Health)
-			: state.Health;
-
-		if (EnemyStunPresentation.Apply(entity, state.Stunned))
-		{
-			_log.LogInformation("[Enemy] {Enemy} stun presentation -> {New}.", state.EntityId, state.Stunned);
-		}
-
-		if (state.SpiderLegTargets is { Count: > 0 })
-		{
-			SpiderLegPresentation.Apply(entity, state.SpiderLegTargets);
-		}
-
-		if (CrystalWindupPresentation.Apply(entity, state.CrystalWindupAmount, state.CrystalLineEnd))
-		{
-			_log.LogInformation("[Enemy] {Enemy} crystal wind-up telegraph -> {Visible}.", state.EntityId, state.CrystalWindupAmount > 0f);
-		}
-	}
-
 	/// <summary>
 	/// A local attack damaged a frozen enemy copy (Body.Attack → the copy's
 	/// health dropped before the report reaches the host): record the damage as
@@ -371,13 +380,7 @@ internal sealed partial class EnemySyncCoordinator
 			return;
 		}
 
-		if (!_healthReconcile.TryGetValue(id, out var reconcile))
-		{
-			reconcile = new EnemyHealthReconcile();
-			_healthReconcile[id] = reconcile;
-		}
-
-		reconcile.RecordLocalDamage(damage);
+		_presentation.RecordLocalDamage(id, damage);
 	}
 
 	// ---- Host-ordered enemy attacks / bites: delegated to EnemyCombatReplay ----

@@ -138,16 +138,7 @@ internal sealed partial class EnemySyncCoordinator
 		_log.LogInformation("[Enemy] applied carried tint to runtime spawn {Id}.", spawn.Id.ToNetworkEntityId());
 	}
 
-	private void ApplyAllStates()
-	{
-		foreach (var state in _enemies.Enemies)
-		{
-			if (_entityById.TryGetValue(state.EntityId, out var entity) && entity != null) // Unity object — ==
-			{
-				Apply(entity, state);
-			}
-		}
-	}
+	private void ApplyAllStates() => _presentation.ApplyAll(_enemies.Enemies, FindEntityById);
 
 	private static void Freeze(BuildingEntity entity)
 	{

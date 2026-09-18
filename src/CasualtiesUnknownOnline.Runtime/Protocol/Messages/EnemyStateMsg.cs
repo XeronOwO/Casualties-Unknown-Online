@@ -60,11 +60,23 @@ public sealed class EnemyStateMsg
 	[ProtoMember(9)]
 	public NetVector2Msg? CrystalLineEnd { get; set; }
 
+	/// <summary>
+	/// Where this enemy stood when the HOST first bound it — its generation
+	/// position for a generated animal, its creation position for a runtime
+	/// spawn. This is the key the guest pairs its frozen copies on, never
+	/// <see cref="Position"/>: the live position keeps moving with the host's
+	/// simulation, so pairing on it only holds in the instant after generation
+	/// and a repair snapshot published later cannot bind at all (audit row N1).
+	/// </summary>
+	[ProtoMember(10)]
+	public NetVector2Msg SpawnPosition { get; set; } = new();
+
 	/// <summary>Wire → domain; the reverse lives in <see cref="EnemyEntity.ToEnemyStateMsg"/>.</summary>
 	public void ApplyTo(EnemyEntity target)
 	{
 		target.EntityId = Id.ToNetworkEntityId();
 		target.Position = Position.ToNetVector2();
+		target.SpawnPosition = SpawnPosition.ToNetVector2();
 		target.Velocity = Velocity.ToNetVector2();
 		target.Rotation = Rotation;
 		target.Health = Health;

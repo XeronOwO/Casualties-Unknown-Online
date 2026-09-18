@@ -18,6 +18,13 @@ change lands in them.
 
 ## Near the limit (watch)
 
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (+ its
+  `EnemySyncCoordinator.RuntimeSpawns.cs` partial, 584 aggregate after the 2026-09-18 split) — the
+  host capture (id allocation in the deterministic `EnemySpawnArbitration` order, the bind-time
+  spawn anchor, the per-frame state capture) and the guest binding half (the spawn-anchor pairing,
+  the runtime-spawn materialization, the frozen-copy lifecycle). What is left to extract next is
+  the HOST CAPTURE half (`CaptureHostEnemies` / `EnsureMapping` / `Bind` / `Capture` ≈ 110 lines);
+  the shared entity↔id table is what currently ties it to the guest binding half.
 - `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (~583) — the pump order is the seam
   contract, so any further per-frame step should go into a domain, not into `Update`.
 - `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs` (~582) — the run-lifecycle phase
@@ -38,6 +45,13 @@ change lands in them.
 
 ## Split since the last revision
 
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` — the demanded split
+  happened (2026-09-18, with the N1 enemy binding recovery): the coordinator sat at exactly the cap
+  (388 + 212 = 600) and the change pushed it to 626, so the presentation-apply half moved into
+  `EnemyPresentationApplier` — writing one authoritative state onto its bound copy (transform,
+  reconciled health, stun pose, spider leg IK, crystal wind-up telegraph) and the in-flight
+  local-damage table it reconciles against. The coordinator now owns identity/binding/lifecycle
+  only: 626 → 584.
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs` — the demanded APPLY split
   happened (2026-09-11, with S3.4b): the restore's write half moved into `CharacterRestoreApplier`
   (stats + wipe, items, the native character fields) and the worn-item write into `WearableRestorer`,

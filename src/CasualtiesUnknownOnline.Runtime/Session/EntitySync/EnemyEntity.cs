@@ -19,6 +19,18 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 
 	public NetVector2 Position { get; set; }
 
+	/// <summary>
+	/// The binding anchor: where this enemy stood when the HOST first bound it —
+	/// its generation position for a generated animal, its creation position for
+	/// a runtime spawn. The guest pairs its frozen copies on THIS, never on
+	/// <see cref="Position"/>: the live position keeps moving with the host's
+	/// simulation, so pairing on it only holds in the instant after generation
+	/// and a snapshot that arrives later (the 60 s in-session repair, audit row
+	/// N1) could not bind at all. The host records it at bind time;
+	/// <see cref="EnemyKernelRestoreProjection"/> never overwrites it.
+	/// </summary>
+	public NetVector2 SpawnPosition { get; set; }
+
 	public NetVector2 Velocity { get; set; }
 
 	/// <summary>Facing (z euler angle, degrees — the Rigidbody2D rotation).</summary>
@@ -86,6 +98,7 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 	{
 		Id = EntityId.ToNetworkEntityIdMsg(),
 		Position = Position.ToNetVector2Msg(),
+		SpawnPosition = SpawnPosition.ToNetVector2Msg(),
 		Velocity = Velocity.ToNetVector2Msg(),
 		Rotation = Rotation,
 		Health = Health,

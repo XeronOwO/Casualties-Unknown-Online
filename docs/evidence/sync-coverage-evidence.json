@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 841,
+  "count": 845,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -4179,6 +4179,30 @@
       "row": "N1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs",
       "quote": "_log.LogWarning(\"[EnemyAttack] victim {Victim} is not an in-world member — command dropped.\", msg.VictimSteamId);"
+    },
+    {
+      "cluster": "inline",
+      "row": "N1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/EnemyStateMsg.cs",
+      "quote": "public NetVector2Msg SpawnPosition { get; set; } = new();"
+    },
+    {
+      "cluster": "inline",
+      "row": "N1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs",
+      "quote": ".OrderBy(s => s.SpawnPosition, comparer)"
+    },
+    {
+      "cluster": "inline",
+      "row": "N1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs",
+      "quote": "entity.SpawnPosition = existing.SpawnPosition;"
+    },
+    {
+      "cluster": "inline",
+      "row": "N1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs",
+      "quote": "return; // an empty table is a no-op — the member's own generated enemies stay"
     },
     {
       "cluster": "inline",

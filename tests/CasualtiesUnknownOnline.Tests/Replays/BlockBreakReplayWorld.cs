@@ -123,8 +123,10 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 		worldControl.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops) =>
 		{
 			// The production BlockBreakSync executor shape: only a BREAK (drops
-			// attached) consults the one-shot record; a refused break rejects
-			// every drop back to the breaker, never double-applies.
+			// attached) consults the record; a break the cell does not belong to
+			// rejects every drop back to the breaker, never double-applies, while a
+			// repeat from the break's own sender is re-accepted idempotently (the
+			// breaker's 60 s fallback re-report).
 			if (drops is not { Count: > 0 } && buildingDrops is not { Count: > 0 })
 			{
 				return;
@@ -132,7 +134,8 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 
 			var cellX = (int)Math.Floor(pos.X);
 			var cellY = (int)Math.Floor(pos.Y);
-			if (!world._arbitration.TryAccept(sender, cellX, cellY))
+			var verdict = world._arbitration.TryAccept(sender, cellX, cellY);
+			if (verdict == Verdict.Refused)
 			{
 				if (drops is not null)
 				{
@@ -157,7 +160,7 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 			world._acceptedBy[sender] = world._acceptedBy.TryGetValue(sender, out var count) ? count + 1 : 1;
 			items.FireBlockDropsReceived(sender, drops ?? []);
 			items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
-			worldControl.BroadcastBlockDamaged(sender, pos, damage, metalBonus, drops, buildingDrops);
+			worldControl.BroadcastBlockDamaged(0, pos, damage, metalBonus, drops, buildingDrops); // production relays to everyone, the reporter included — that echo is the acknowledgement
 		};
 
 		return world;

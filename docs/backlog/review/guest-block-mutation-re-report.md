@@ -150,7 +150,7 @@ written with, 46/9/0/9 and 750 entries, were the state at landing and moved on w
 and W2 cycles; 835 entries now), inline anchors re-anchored and
 extended, W2 split into
 `review/guest-partial-block-damage-re-report.md` (landed 2026-09-18), the break-drop loss
-recorded in `todo/guest-break-drops-recovery.md`.
+recorded in `review/guest-break-drops-recovery.md`.
 
 **Verification.**
 
@@ -176,7 +176,7 @@ recorded in `todo/guest-break-drops-recovery.md`.
 |---|---|
 | 1 | `SwallowedGuestReport_IsReReportedOnTheFallbackCycleAndConverges` (air write onto a solid host block; the host adopts it, relays, the reporter's echo clears the entry) |
 | 2 | the same report/arbitration shape (the host answer is value-agnostic); no separate placement test — the placement branch is the same code path |
-| 3 | the same test: the air write IS the recovery entry; the drops arbitration is NOT covered here (its own ticket `todo/guest-break-drops-recovery.md`) |
+| 3 | the same test: the air write IS the recovery entry; the drops arbitration is NOT covered here (its own ticket `review/guest-break-drops-recovery.md`) |
 | 4 | `RefusedReport_IsAnsweredWithTheHostsAuthoritativeValue` (first-writer-wins: the host's cell stands, the reporter converges, no ping-pong) |
 | 5 | the same test asserts `w.ReceivedCount(w.G2, NetMsg.BlockPlaced) >= 1` — the accepted relay reaches the third member |
 | 6 | `WorldSnapshotComplete_DoesNotDropUnansweredReports` (a reconnect keeps the pending report; the marker is not a world boundary) |

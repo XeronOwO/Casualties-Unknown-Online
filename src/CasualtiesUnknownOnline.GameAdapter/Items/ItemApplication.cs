@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -19,16 +20,19 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 internal sealed class ItemApplication
 {
 	private readonly IItemControl _items;
+	private readonly IWorldControl _world;
 	private readonly ILogger<ItemApplication> _log;
 	private readonly ItemCookReplayApplier _cookReplay;
 	private readonly RemoteItemSceneOps _scene;
 
 	internal ItemApplication(
 		IItemControl items,
+		IWorldControl world,
 		ISessionControl session,
 		ILogger<ItemApplication> log)
 	{
 		_items = items;
+		_world = world;
 		_log = log;
 		_scene = new RemoteItemSceneOps(session, log);
 		_cookReplay = new ItemCookReplayApplier(this, session, log);
@@ -179,6 +183,19 @@ internal sealed class ItemApplication
 	/// </summary>
 	private void OnItemRejected(ulong itemId, ItemRejectMsg.Reason reason)
 	{
+		if (reason == ItemRejectMsg.Reason.BlockAlreadyBroken)
+		{
+			// A refused break drop leaves the outstanding break-drop set whatever
+			// the local scene holds: the host will never accept it, so re-reporting
+			// the break would only repeat the refusal every window and park a cap
+			// slot. This runs BEFORE the scene lookup on purpose — an item already
+			// gone (the host's refusal can arrive after this side's own cleanup)
+			// must still leave the set. It is also a Runtime call outside the
+			// remote-apply scope below: the scope silences the scene's local-report
+			// hooks, and this touches no scene.
+			_world.ForgetBreakDrop(itemId);
+		}
+
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var item = FindWorldItem(itemId);

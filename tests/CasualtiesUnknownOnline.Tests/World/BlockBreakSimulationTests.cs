@@ -16,10 +16,13 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// Phase-2 block-break simulations: the first-writer-wins arbitration over the
 /// real wire path — the host records the applied air-write (BlockPlaced), the
 /// breaker's BlockDamaged report (the drops carrier) consumes it and relays to
-/// the other members; a repeated report of the same break is refused (the
-/// one-shot record is gone) and the host's executor never double-applies. The
-/// executor here is the real <see cref="BlockBreakArbitration"/> machine (the
-/// GameAdapter's BlockBreakSync is its thin shell); the relay is the handler's.
+/// the other members; a repeated report is REFUSED only when the cell's break
+/// belongs to someone else. Since the break-drop recovery landed, a repeat from
+/// the SAME breaker is an idempotent re-accept (its 60 s fallback re-sends the
+/// break when the acknowledgement relay was the lost message), while a second
+/// breaker of the same cell stays refused. The executor here is the real
+/// <see cref="BlockBreakArbitration"/> machine (the GameAdapter's BlockBreakSync
+/// is its thin shell); the relay is the handler's.
 /// </summary>
 [Trait("Category", "Integration")]
 public class BlockBreakSimulationTests
@@ -35,7 +38,7 @@ public class BlockBreakSimulationTests
 		internal int Value;
 	}
 
-	private sealed record SimWorld(SimulationDriver Driver, TestNode Host, TestNode G1, TestNode G2, List<(NetMsg Msg, byte[] Frame)> G2Received, BlockBreakArbitration Arbitration, Counter AcceptedBreaks, Counter AcceptedByG2);
+	private sealed record SimWorld(SimulationDriver Driver, TestNode Host, TestNode G1, TestNode G2, List<(NetMsg Msg, byte[] Frame)> G1Received, List<(NetMsg Msg, byte[] Frame)> G2Received, BlockBreakArbitration Arbitration, Counter AcceptedBreaks, Counter AcceptedByG2, Counter Relays);
 
 	private static SimWorld CreateWorld()
 	{
@@ -56,20 +59,27 @@ public class BlockBreakSimulationTests
 			() => host.Session.Members.Count(m => m.Handshaken) == 2 && g1.Session.Members.Any(m => m.Handshaken) && g2.Session.Members.Any(m => m.Handshaken),
 			maxMs: 5000);
 
+		var g1Received = new List<(NetMsg Msg, byte[] Frame)>();
+		g1.Transport.MessageReceived += (_, frame) => g1Received.Add(((NetMsg)frame[0], frame));
 		var g2Received = new List<(NetMsg Msg, byte[] Frame)>();
 		g2.Transport.MessageReceived += (_, frame) => g2Received.Add(((NetMsg)frame[0], frame));
 
 		var arbitration = new BlockBreakArbitration();
 		var accepted = new Counter();
 		var acceptedByG2 = new Counter();
+		var relays = new Counter(); // every relay the host sent (the relay includes the reporter)
 		var world = host.Services.GetRequiredService<IWorldControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
 		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops) =>
 		{
 			// The executor: first-writer-wins — an accepted break relays, a
-			// refused one (the record was already consumed) rolls every drop
-			// back to the breaker via ItemReject(BlockAlreadyBroken).
-			if (!arbitration.TryAccept(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y)))
+			// refused one (the cell's break belongs to another writer) rolls every
+			// drop back to the breaker via ItemReject(BlockAlreadyBroken). A repeat
+			// from the same breaker is acknowledged idempotently instead: it is the
+			// breaker's own recovery re-report, and the registration/materialization
+			// of those drops is idempotent per item id.
+			var verdict = arbitration.TryAccept(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y));
+			if (verdict == Verdict.Refused)
 			{
 				if (drops is not null)
 				{
@@ -90,18 +100,20 @@ public class BlockBreakSimulationTests
 				return;
 			}
 
+			arbitration.RecordAccepted(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y), now: 0f); // the break is real
 			accepted.Value++;
+			relays.Value++;
 			if (sender == G2Id)
 			{
-				acceptedByG2.Value++; // G2's own accepted breaks relay EXCLUDING G2
+				acceptedByG2.Value++;
 			}
 
 			items.FireBlockDropsReceived(sender, drops ?? []);
 			items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
-			world.BroadcastBlockDamaged(sender, pos, damage, metalBonus, drops, buildingDrops);
+			world.BroadcastBlockDamaged(0, pos, damage, metalBonus, drops, buildingDrops); // everyone, the reporter included — that echo is the acknowledgement
 		};
 
-		return new SimWorld(driver, host, g1, g2, g2Received, arbitration, accepted, acceptedByG2);
+		return new SimWorld(driver, host, g1, g2, g1Received, g2Received, arbitration, accepted, acceptedByG2, relays);
 	}
 
 	private static void ReportBreak(TestNode guest, int cellX, int cellY, List<BlockDropEntryMsg>? drops = null, List<TrapDropEntryMsg>? buildingDrops = null, bool metalBonus = false)
@@ -118,7 +130,7 @@ public class BlockBreakSimulationTests
 	}
 
 	[Fact]
-	public void FirstBreak_AcceptedAndRelayed_RepeatRefused()
+	public void FirstBreak_AcceptedAndRelayed_RepeatFromTheSameBreakerReRelays()
 	{
 		var w = CreateWorld();
 
@@ -132,13 +144,42 @@ public class BlockBreakSimulationTests
 		Assert.True(w.AcceptedBreaks.Value == 1, $"the first break is accepted, got {w.AcceptedBreaks.Value}");
 		Assert.True(w.G2Received.Count(r => r.Msg == NetMsg.BlockDamaged) == 1, "the accepted break relays to the other members");
 
-		// A retransmit of the same break: the one-shot record is gone — refused,
-		// no second relay (the host would otherwise double-apply the drops).
+		// The breaker's 60 s fallback re-sends the break (its acknowledgement relay
+		// was the lost message): the host re-relays instead of refusing, and the
+		// relay now reaches the reporter too — that echo IS the acknowledgement
+		// that clears its pending drop report. Re-registering the same item ids is
+		// idempotent, so a repeat can never double-materialize.
 		ReportBreak(w.G1, 5, 7);
 		w.Driver.Tick(33);
 
-		Assert.True(w.AcceptedBreaks.Value == 1, "the repeated break is refused");
-		Assert.True(w.G2Received.Count(r => r.Msg == NetMsg.BlockDamaged) == 1, "no second relay");
+		Assert.True(w.AcceptedBreaks.Value == 2, "the repeat from the same breaker is re-accepted");
+		Assert.True(w.G2Received.Count(r => r.Msg == NetMsg.BlockDamaged) == 2, "the repeat re-relays — the acknowledgement can be the lost message");
+		Assert.True(w.G1Received.Count(r => r.Msg == NetMsg.BlockDamaged) >= 1, "the relay must reach the reporter — its echo is the acknowledgement");
+	}
+
+	[Fact]
+	public void OtherBreakersReport_OfAnAcceptedCell_IsRefused()
+	{
+		var w = CreateWorld();
+
+		// G1's air-write applied and its break was accepted: the cell is G1's.
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 5, 7, now: 0);
+		ReportBreak(w.G1, 5, 7, drops: [new BlockDropEntryMsg { ItemId = 77 }]);
+		w.Driver.Tick(33);
+		Assert.True(w.AcceptedBreaks.Value == 1, "the first break is accepted");
+
+		// G2's report for the same cell has no record of its own — first-writer-wins
+		// refuses it and rolls its drops back; it is never mistaken for a repeat of
+		// G1's break (the accepted record is per sender).
+		var rejects = new List<(ulong ItemId, ItemRejectMsg.Reason Reason)>();
+		w.G2.Services.GetRequiredService<ItemService>().ItemRejected += (itemId, reason) => rejects.Add((itemId, reason));
+		ReportBreak(w.G2, 5, 7, drops: [new BlockDropEntryMsg { ItemId = 88 }]);
+		w.Driver.Tick(33);
+
+		Assert.True(w.AcceptedBreaks.Value == 1, "another sender's report is refused");
+		var reject = Assert.Single(rejects);
+		Assert.True(reject.ItemId == 88 && reject.Reason == ItemRejectMsg.Reason.BlockAlreadyBroken,
+			$"the loser must roll its drops back, got item {reject.ItemId} reason {reject.Reason}");
 	}
 
 	[Fact]
@@ -264,13 +305,12 @@ public class BlockBreakSimulationTests
 			w.Driver.Tick(33);
 		}
 
-		// Invariant: the OTHER guest received exactly as many relays as the host
-		// accepted for the OTHER guest's breaks (each accepted break relays
-		// exactly once, source excluded — G2's own accepted breaks never reach
-		// it; the duplicates the random sequence unavoidably produced were
-		// refused, never double-relayed).
-		var relays = w.G2Received.Count(r => r.Msg == NetMsg.BlockDamaged);
-		Assert.True(relays == w.AcceptedBreaks.Value - w.AcceptedByG2.Value,
-			$"every accepted break relays exactly once to the other members (accepted {w.AcceptedBreaks.Value}, G2's own {w.AcceptedByG2.Value}, relayed {relays})");
+		// Invariant: every accepted report relays exactly once and the relay reaches
+		// EVERY member — the reporter included, because that echo is the
+		// acknowledgement that clears its pending drop report. The duplicates the
+		// random sequence unavoidably produced were refused, never double-relayed.
+		var g2Relays = w.G2Received.Count(r => r.Msg == NetMsg.BlockDamaged);
+		Assert.True(g2Relays == w.Relays.Value,
+			$"every accepted report relays once, to every member (relays {w.Relays.Value}, G2 received {g2Relays})");
 	}
 }

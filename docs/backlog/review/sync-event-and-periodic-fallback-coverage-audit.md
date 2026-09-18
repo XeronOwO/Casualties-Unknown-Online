@@ -101,7 +101,7 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   `todo/carried-inventory-registration-re-report.md`,
   `todo/session-control-convergence.md`, `todo/checkpoint-run-epoch-validation.md`,
   `todo/mod-command-request-timeout.md`, `todo/sync-cadence-review.md` (cadence findings
-  raised at the user's request), and `todo/guest-break-drops-recovery.md` (found while
+  raised at the user's request), and `review/guest-break-drops-recovery.md` (found while
   landing W1).
 - **Guard**: `tests/CasualtiesUnknownOnline.NormativeGates.Tests/SyncCoverageGateTests.cs` —
   every `NetMsg` / `WireCommandKind` / `WireEventKind` / `AdaptiveStreamId` member must be

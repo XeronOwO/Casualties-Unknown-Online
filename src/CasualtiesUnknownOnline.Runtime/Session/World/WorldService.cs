@@ -28,6 +28,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	private readonly WorldStateMessageService _messages;
 	private readonly WorldFactLifecycle _facts;
 	private readonly PendingReportFallback _blockReportFallback;
+	private readonly PendingReportFallback _blockDamageReportFallback;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly IWorldItemLayerReset _itemLayerReset;
 	private readonly LayerScopedTableReset _layerTables;
@@ -84,6 +85,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, nativeWorldFacts);
 		_facts = new WorldFactLifecycle(_messages, log);
 		_blockReportFallback = new PendingReportFallback(session);
+		_blockDamageReportFallback = new PendingReportFallback(session);
 		_startGate = new WorldStartGate(session, sender, time, log);
 		_kernelAuthority = kernelAuthority;
 		_itemLayerReset = itemLayerReset;
@@ -124,12 +126,20 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	internal void PumpBlockReportFallback(long nowMs) =>
 		_blockReportFallback.Pump(nowMs, _messages.PendingBlockReportCount, _messages.ResendPendingBlockReports);
 
+	/// <summary>The guest partial-damage report fallback's time edge (same pump, its own window — the two tables fill and drain independently).</summary>
+	internal void PumpBlockDamageReportFallback(long nowMs) =>
+		_blockDamageReportFallback.Pump(nowMs, _messages.PendingBlockDamageReportCount, _messages.ResendPendingBlockDamageReports);
+
+	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest partial-damage reports are outstanding.</summary>
+	internal int PendingBlockDamageReportCount => _messages.PendingBlockDamageReportCount;
+
 	// ---- Session reset ----
 
 	private void ResetSessionState()
 	{
 		_startGate.Reset();
 		_blockReportFallback.Reset();
+		_blockDamageReportFallback.Reset();
 		_channels.ResetRuntimeEntities();
 		_channels.ResetPendingEntityReports();
 		WorldParams = null;
@@ -394,6 +404,20 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block) => _messages.SendBlockPlacedCorrection(targetSteamId, x, y, block);
 
 	public void ResetPendingBlockReports() => _messages.ResetPendingBlockReports();
+
+	// ---- Guest partial-damage report recovery (audit gap W2) ----
+
+	/// <summary>Guest only: record the cell's current ABSOLUTE partial damage before the live delta report goes out (the fallback's re-report source).</summary>
+	public void ReportBlockDamage(int x, int y, float damage) => _messages.ReportBlockDamage(x, y, damage);
+
+	/// <summary>Either role: the cell went air — its pending partial-damage report dies with the block.</summary>
+	public void ForgetPendingBlockDamage(int x, int y) => _messages.ForgetPendingBlockDamage(x, y);
+
+	/// <summary>Guest only: a new world/layer baseline was applied — the previous world's pending partial-damage reports are dropped.</summary>
+	public void ResetPendingBlockDamageReports() => _messages.ResetPendingBlockDamageReports();
+
+	/// <summary>Host only: a guest's absolute partial-damage report arrived — merge it through the native port and answer every reported cell authoritatively.</summary>
+	public void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries) => _messages.HandleBlockDamageReport(sender, entries);
 
 	public event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived { add => _messages.BuildingEntityDamagedReceived += value; remove => _messages.BuildingEntityDamagedReceived -= value; }
 

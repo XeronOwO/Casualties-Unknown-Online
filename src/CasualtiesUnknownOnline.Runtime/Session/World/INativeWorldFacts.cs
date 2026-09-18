@@ -62,6 +62,26 @@ public interface INativeWorldFacts
 	IReadOnlyList<BlockDamageEntryMsg>? CaptureBlockDamages();
 
 	/// <summary>
+	/// Host only: merge a guest's ABSOLUTE partial-damage report into the game's
+	/// own list and return THIS host's authoritative value for EVERY reported
+	/// cell (0 = this host holds no damage for it), which the caller relays as the
+	/// report's answer. The merge never lowers a cell's damage — two players'
+	/// contributions and this host's own all count — and never breaks a block: a
+	/// row outside a surviving block's range, or one the list's own 128-entry cap
+	/// cannot take, is refused by the same rules the snapshot apply uses, and the
+	/// host's current value (possibly none) is what the answer carries.
+	///
+	/// Separate from <see cref="CaptureBlockDamages"/> because it is the only
+	/// WRITE this port performs on the game's list from a peer's input, and it is
+	/// reached only while a live world exists (the report of a member that arrived
+	/// before the world is not mergeable at all). Null = no live world to merge
+	/// into: nothing is merged and nothing is answered, so the reporter's pending
+	/// entry survives to the next cycle instead of being cleared against a table
+	/// that does not exist.
+	/// </summary>
+	IReadOnlyList<BlockDamageEntryMsg>? MergeBlockDamages(IReadOnlyList<BlockDamageEntryMsg> reported);
+
+	/// <summary>
 	/// ONE read of the native values a cut carries that the kernel's run baseline
 	/// does not hold: the two rarity multipliers (which the encoder stamps into the
 	/// run baseline row, because that is where a side that GENERATES the layer

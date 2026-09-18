@@ -78,11 +78,14 @@ internal sealed class BlockBreakSync(
 	/// Called from the DamageBlock patch after a LOCAL block damage was applied:
 	/// report it so the peer applies the same damage at the same world position
 	/// (raw damage + MetalBonus — the receiver's own DamageBlock applies the
-	/// same metallic multiplier to the same generated block). The host also
-	/// records the post-write accumulated BlockDamage.damage for the
-	/// late-joiner snapshot. A BREAK is not reported immediately — it waits one
-	/// frame so the drops' Item.Start folds into the pending break (one
-	/// message, one verdict), and the frame-end flush sends it.
+	/// same metallic multiplier to the same generated block). CUO records nothing
+	/// here on the HOST: the late-joiner absolute value is the GAME's own list,
+	/// read at snapshot time (<see cref="BlockDamageSnapshotSender"/>). A GUEST
+	/// records the cell's current absolute damage BEFORE its delta report goes
+	/// out — the fallback's re-report source (audit gap W2). A BREAK is not
+	/// reported immediately — it waits one frame so the drops' Item.Start folds
+	/// into the pending break (one message, one verdict), and the frame-end flush
+	/// sends it.
 	/// </summary>
 	internal void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal)
 	{
@@ -103,7 +106,17 @@ internal sealed class BlockBreakSync(
 		{
 			// Damage only (the block survived) — report it immediately. The
 			// absolute damage a late joiner receives is read from the game's own
-			// list at snapshot time, so there is nothing to record here.
+			// list at snapshot time, so the HOST records nothing here; a GUEST
+			// records the cell's current absolute value FIRST, because its live
+			// report is a delta: a swallowed one would leave the host short by
+			// exactly this hit and its absolute snapshot could never heal it
+			// (audit gap W2).
+			var accumulated = world.GetBlockDamage(cell)?.damage ?? 0f;
+			if (accumulated > 0f)
+			{
+				_world.ReportBlockDamage(cell.x, cell.y, accumulated);
+			}
+
 			_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null, null);
 			_trace.End(op, 0, "OnBlockDamaged", "Committed(1)", "Damage");
 			return;
@@ -302,6 +315,10 @@ internal sealed class BlockBreakSync(
 	/// </summary>
 	internal void OnBlockAirWrite(Vector2Int cell)
 	{
+		// The cell is air now: a pending partial-damage report for it would be
+		// refused (air) on every future report cycle, so it dies with the block.
+		_world.ForgetPendingBlockDamage(cell.x, cell.y);
+
 		var world = WorldGeneration.world;
 		if (world != null && BlockDamageCleaner.ClearForAirWrite(world, cell))
 		{
@@ -324,6 +341,11 @@ internal sealed class BlockBreakSync(
 	/// This is a MERGE, not a replace: cells the snapshot does not name keep this
 	/// side's own local damage. Only the save restore replaces the whole list —
 	/// there the restored cut is the whole truth for the table.
+	///
+	/// A ZERO row is the host's authoritative "this cell holds no damage" (the
+	/// answer to an absolute re-report the host's own cap/range rules refused, or
+	/// a cell whose block is gone): the local crack is cleared through the same
+	/// seam an air write uses, never written as a row.
 	/// </summary>
 	internal void OnBlockDamageSnapshot(IReadOnlyList<BlockDamageEntryMsg> entries)
 	{
@@ -333,7 +355,23 @@ internal sealed class BlockBreakSync(
 			return;
 		}
 
-		var apply = GameBlockDamageTable.Apply(world, entries, "Block-damage snapshot", _log);
+		var rows = new List<BlockDamageEntryMsg>(entries.Count);
+		var cleared = 0;
+		foreach (var entry in entries)
+		{
+			if (entry.Damage > 0f)
+			{
+				rows.Add(entry);
+				continue;
+			}
+
+			if (BlockDamageCleaner.ClearForAirWrite(world, new Vector2Int(entry.X, entry.Y)))
+			{
+				cleared++;
+			}
+		}
+
+		var apply = GameBlockDamageTable.Apply(world, rows, "Block-damage snapshot", _log);
 		foreach (var damage in apply.Written)
 		{
 			// Presentation of a damage the table already holds: a sprite that
@@ -341,8 +379,8 @@ internal sealed class BlockBreakSync(
 			damage.UpdateSprite();
 		}
 
-		_log.LogInformation("Block-damage snapshot applied ({Applied}/{Count} cells, {Refused} not applicable).",
-			apply.Applied, entries.Count, apply.Refused);
+		_log.LogInformation("Block-damage snapshot applied ({Applied}/{Count} cells, {Refused} not applicable, {Cleared} cleared).",
+			apply.Applied, entries.Count, apply.Refused, cleared);
 	}
 
 	/// <summary>

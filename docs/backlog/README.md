@@ -50,8 +50,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Run clock is not sent to a mid-run joiner](todo/save-run-clock-not-sent.md) — **Low-Medium** — the clock base needs a wire member.
 - [Layer time is not carried](todo/save-layer-time-not-carried.md) — **Low-Medium** — resuming the radiation timer is a gameplay decision.
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
-- [Guest partial block damage has no re-report](todo/guest-partial-block-damage-re-report.md) — **Medium** — the re-report must be absolute and merge.
 - [Guest break drops are lost](todo/guest-break-drops-recovery.md) — **Medium** — the item keyframe cannot reconcile the drops.
+- [Partial-damage report vs the live delta](todo/partial-damage-delta-report-overlap.md) — **Low-Medium** — the merge can under- and over-count.
 - [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
 - [Enemy snapshot and attack have no recovery](todo/enemy-snapshot-and-attack-recovery.md) — **Medium** — a dropped attack is never re-issued.
 - [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — the keyframe cannot heal a swallowed command.
@@ -84,6 +84,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Dead runtime-entity relay API](review/runtime-entity-dead-api-cleanup.md) — **Low** — the relay chain is deleted.
 - [Guest block mutations: periodic re-report](review/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
+- [Guest partial block damage re-report](review/guest-partial-block-damage-re-report.md) — **Medium** — the absolute re-report and the per-cell merge.
 - [Runtime-created entity spawn backfill](review/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
 - [Sync completeness audit](review/sync-event-and-periodic-fallback-coverage-audit.md) — **High** — the 64-row evidence matrix.
 - [Namespaced ID system](review/id-system-namespaced-ids.md) — **Medium** — the `ContentId` vocabulary.

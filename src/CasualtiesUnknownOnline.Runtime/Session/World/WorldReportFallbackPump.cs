@@ -33,6 +33,7 @@ internal sealed class WorldReportFallbackPump(WorldService world, RuntimeEntityC
 	{
 		var nowMs = _time.NowMs;
 		_world.PumpBlockReportFallback(nowMs);
+		_world.PumpBlockDamageReportFallback(nowMs);
 		_entities.PumpEntityReportFallback(nowMs);
 	}
 

@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The host decides enemy hits on remote players](todo/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [Remote interaction gates are judged by the host](todo/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Medical operations are exclusive (one operator at a time)](todo/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — the 500 ms guess window goes.
@@ -158,6 +157,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Trap destruction drop quantity desync](review/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
 - [Trap-layout snapshot recovery](review/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s repair re-derives and re-sends the layout.
+- [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 
 ### Future
 

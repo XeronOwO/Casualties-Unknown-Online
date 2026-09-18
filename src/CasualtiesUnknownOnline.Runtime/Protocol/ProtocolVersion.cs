@@ -28,7 +28,15 @@ public static class ProtocolVersion
 	/// in-session repair group. A peer without it would pair on the live
 	/// position (which fails the moment the host's enemy has walked away from
 	/// its spawn spot, so the repair could not bind) and would never be re-sent
-	/// a snapshot it missed.</summary>
-	public const int Current = 23;
+	/// a snapshot it missed.
+	/// 24: `EnemyAttackMsg` — a host enemy attack is now an ANNOUNCEMENT broadcast
+	/// to every in-world guest (`EnemyId` + `Kind` + the per-enemy `AttackSeq`)
+	/// instead of a verdict addressed to one victim with a host-chosen limb
+	/// (`VictimSteamId` / `LimbIndex`). Each guest judges the connection on its own
+	/// view and applies the game's damage locally. A peer without it would apply a
+	/// verdict this protocol no longer carries and would ignore the dedup identity,
+	/// so its victims would take damage for attacks their own screens never showed
+	/// connecting.</summary>
+	public const int Current = 24;
 
 }

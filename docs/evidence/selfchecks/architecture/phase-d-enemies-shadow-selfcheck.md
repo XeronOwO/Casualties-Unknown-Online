@@ -1,5 +1,10 @@
 # Phase D Enemies/Entities shadow self-check (2026-08-29)
 
+_Superseded in part (2026-09-18): the host no longer ORDERS an attack with a victim and a
+limb — it announces the enemy's action and the client it lands on judges the hit
+(`docs/backlog/review/enemy-hit-determination-local.md`, decision 185). The rows below
+record the behaviour as it shipped at that date._
+
 This fact sheet records the Phase D Enemy/Entity domain cycles: a kernel
 enemy/entity lifecycle-health table, checkpoint/wire/save integration, and
 production wiring from the host enemy-sync publish path into the kernel.

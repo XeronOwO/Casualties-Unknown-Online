@@ -3,7 +3,7 @@
 - Status: Resolved
 - Category: Network / sync coverage / enemies (host-ordered attack delivery)
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the binding half landed as `review/enemy-snapshot-binding-recovery.md`
-- Superseded by: `todo/enemy-hit-determination-local.md` (user ruling 2026-09-18)
+- Superseded by: `review/enemy-hit-determination-local.md` (user ruling 2026-09-18)
 - Related: `review/enemy-snapshot-binding-recovery.md`, `review/runtime-entity-spawn-backfill.md`
 
 ## Why this record is closed without code
@@ -16,7 +16,7 @@ after the victim's own screen showed a dodge, several hits inside one round trip
 victim judging its own hit there is no host verdict to drop, so the whole "re-issue or
 compensate the lost order" family — including the design directions below — is moot.
 
-What survives from this ticket is carried into `todo/enemy-hit-determination-local.md`:
+What survives from this ticket is carried into `review/enemy-hit-determination-local.md`:
 the host keeps the enemy's action and its timing; the victim's report remains the shared
 truth; the binding recovery that the victim's judgment depends on already landed
 (`review/enemy-snapshot-binding-recovery.md`).

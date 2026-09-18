@@ -96,7 +96,7 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   `review/guest-partial-block-damage-re-report.md`).
 - **Gap tickets** (one ticket per gap, with W2 split from W1 and R3+R4 merged): `review/guest-partial-block-damage-re-report.md`,
   `review/trap-layout-snapshot-recovery.md`,
-  `review/enemy-snapshot-binding-recovery.md`, `todo/enemy-hit-determination-local.md`,
+  `review/enemy-snapshot-binding-recovery.md`, `review/enemy-hit-determination-local.md`,
   `todo/guest-command-loss-reconciliation.md`, `todo/recipe-unlock-fallback.md`,
   `todo/carried-inventory-registration-re-report.md`,
   `todo/session-control-convergence.md`, `todo/checkpoint-run-epoch-validation.md`,

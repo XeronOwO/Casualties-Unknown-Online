@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Microsoft.Extensions.Logging;
@@ -24,9 +23,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 ///    (host body + reported remote positions) wins;
 ///  - CrystalEnemy.body resolves to the nearest in-world player body within the
 ///    game's own 64-unit "close" radius (CrystalEnemy.cs:25);
-///  - when the host's spider/crystal reaches a remote player, the host sends
-///    the one-shot EnemyAttack command; the victim applies the game's own
-///    damage method locally and reports the post-attack terminal state.
+///  - when the host's spider reaches a player or the crystal begins a lunge, the
+///    host ANNOUNCES the attack to every in-world guest. The host owns the
+///    enemy's action and its timing; whether the attack connected is judged by
+///    each client against its own view (the 2026-09-18 ruling), so a spider
+///    lunging at air is a legal outcome.
 /// Local-host collisions stay on the game's native path (real colliders).
 /// </summary>
 internal sealed class EnemyCombatDirector(
@@ -51,7 +52,7 @@ internal sealed class EnemyCombatDirector(
 
 	private bool _biteFieldMissingLogged;
 
-	/// <summary>Per-frame pump: host-ordered spider-bite arbitration (crystal lunge rides the Lunge patch callback).</summary>
+	/// <summary>Per-frame pump: host spider-bite announcements (the crystal lunge rides the Lunge patch callback).</summary>
 	internal void Update()
 	{
 		if (!_session.SessionActive || _session.Role != SessionRole.Host)
@@ -61,7 +62,7 @@ internal sealed class EnemyCombatDirector(
 
 		foreach (var spider in Object.FindObjectsOfType<SpiderHandler>())
 		{
-			TryOrderSpiderBite(spider);
+			TryAnnounceSpiderBite(spider);
 		}
 	}
 
@@ -115,14 +116,11 @@ internal sealed class EnemyCombatDirector(
 
 	/// <summary>
 	/// CrystalEnemy.Lunge is starting on the host. The crystal is aimed at the
-	/// nearest player (the property override above); if that player is a remote
-	/// clone the game's RaycastAll cannot see it (no collider), so the host
-	/// decides the hit here — nearest player along the lunge ray before the
-	/// first ground hit — and orders the victim to apply the lunge locally.
-	/// When the selected victim is the LOCAL body, the native raycast applies
-	/// the hit and this returns the pre-lunge limb trace for the postfix, so
-	/// the terminal state can leave as the dedicated EnemyLunge event (verified
-	/// commit: the postfix reports only the limb whose write it confirms).
+	/// nearest player (the property override above) and the native Lunge applies
+	/// whatever its own raycast finds on the host (real colliders only), so the
+	/// pre-lunge trace still lets the postfix report the host's own terminal
+	/// state. The attack itself is ANNOUNCED to every in-world guest, which judges
+	/// on its own view whether the lunge ray reached its body.
 	/// </summary>
 	internal object? OnCrystalLungeBegin(CrystalEnemy crystal)
 	{
@@ -132,44 +130,14 @@ internal sealed class EnemyCombatDirector(
 		}
 
 		var building = crystal.GetComponentInParent<BuildingEntity>();
-		if (building == null || !_enemySync.TryGetHostEnemyId(building, out var enemyId)) // Unity object — ==
+		if (building != null && _enemySync.TryGetHostEnemyId(building, out var enemyId)) // Unity object — ==
 		{
-			return null;
+			_enemies.SendEnemyAttack(enemyId, EnemyAttackKind.CrystalLunge);
+			_log.LogInformation("[Enemy] host crystal {Enemy} lunge announced to the session.", enemyId);
 		}
 
-		var origin = new Vector2(crystal.transform.position.x, crystal.transform.position.y);
-		var direction = new Vector2(crystal.transform.up.x, crystal.transform.up.y);
-		var groundDistance = FirstGroundDistance(origin, direction, crystal.transform);
-		var fact = EnemyCombatArbitration.SelectLungeVictim(
-			_targets.Facts(), ToNetVector2(origin), ToNetVector2(direction), groundDistance, EnemyCombatPolicy.CrystalRayTolerance);
-		var target = _targets.Find(fact);
-		if (target is null)
-		{
-			return null; // no player in the ray — nothing to order or report
-		}
-
-		switch (EnemyCombatOrderPolicy.DecideCrystalLunge(fact, _session.LocalSteamId))
-		{
-			case EnemyCombatOrderPolicy.ApplyPath.RemoteOrder:
-				var limbIndex = _targets.SelectLimbIndex(target, origin);
-				_enemies.SendEnemyAttack(new EnemyAttackMsg
-				{
-					EnemyId = enemyId.ToNetworkEntityIdMsg(),
-					VictimSteamId = target.SteamId,
-					Kind = EnemyAttackKind.CrystalLunge,
-					LimbIndex = limbIndex,
-				});
-				_log.LogInformation("[Enemy] host crystal {Enemy} lunge ordered on {Victim} limb {Limb}.",
-					enemyId, target.SteamId, limbIndex);
-				return null;
-
-			case EnemyCombatOrderPolicy.ApplyPath.LocalNative:
-				var body = _targets.LocalBody();
-				return body != null ? CrystalLungeTrace.Capture(body) : null; // Unity object — ==; the native raycast handles the local hit
-
-			default:
-				return null;
-		}
+		var body = _targets.LocalBody();
+		return body != null ? CrystalLungeTrace.Capture(body) : null; // Unity object — ==; the native raycast handles a local hit
 	}
 
 	/// <summary>
@@ -291,14 +259,35 @@ internal sealed class EnemyCombatDirector(
 
 	// ---- Spider bite (the host's collision callback can never touch a remote clone) ----
 
-	private void TryOrderSpiderBite(SpiderHandler spider)
+	/// <summary>
+	/// The spider's bite ACTION fired on the HOST's view — announce it to the
+	/// session. The host does not decide who was hit or which limb: every in-world
+	/// guest judges the announcement against its own screen and its own body.
+	/// <para>
+	/// The action is edge-triggered per spider (<see cref="EnemyBiteAnnouncementState"/>):
+	/// it announces once while the game's own gate holds (cooldown open, no stun, a
+	/// player in range) and the latch clears when that gate closes, so the cadence
+	/// follows the enemy's own cooldown instead of the frame rate. The local body
+	/// keeps its native path — the game's own collision callback damages it and
+	/// writes the cooldown, and this method must not touch either — while a remote
+	/// nearest candidate makes the host mirror <c>CheckForLimbDamage</c>'s post-bite
+	/// retreat + cooldown (SpiderHandler.cs:185-192) so its own spider backs off
+	/// exactly like after a native bite.
+	/// </para>
+	/// <para>
+	/// Every in-world guest is announced to, never only the nearest candidate: the
+	/// nearest is the host's stale picture, and whether a screen shows the bite
+	/// connecting is the judging client's question alone.
+	/// </para>
+	/// </summary>
+	private void TryAnnounceSpiderBite(SpiderHandler spider)
 	{
 		if (BiteCooldownField == null)
 		{
 			if (!_biteFieldMissingLogged)
 			{
 				_biteFieldMissingLogged = true;
-				_log.LogError("[Enemy] SpiderHandler.biteCooldown field not found — host-ordered spider bites are disabled.");
+				_log.LogError("[Enemy] SpiderHandler.biteCooldown field not found — host spider bite announcements are disabled.");
 			}
 
 			return;
@@ -307,15 +296,16 @@ internal sealed class EnemyCombatDirector(
 		var cooldown = (float)BiteCooldownField.GetValue(spider);
 		var fact = EnemyCombatArbitration.SelectBiteVictim(
 			_targets.Facts(), ToNetVector2(spider.transform.position), EnemyCombatPolicy.SpiderBiteRange, cooldown, spider.stunTime);
-		var target = _targets.Find(fact);
-		if (target is null)
+		var state = AnnouncementState(spider);
+		if (fact is not { } victim)
 		{
-			return; // cooldown/stun closed, nobody in bite range, or the local body rides the native collision path
+			state.Announced = false; // the action ended — the next one announces again
+			return; // cooldown/stun closed, or nobody in bite range
 		}
 
-		if (EnemyCombatOrderPolicy.DecideSpiderBite(fact, _session.LocalSteamId) != EnemyCombatOrderPolicy.ApplyPath.RemoteOrder)
+		if (state.Announced)
 		{
-			return; // only remote victims need the host-ordered apply; local bites ride the native collision path
+			return; // this bite action is already announced
 		}
 
 		var building = spider.GetComponentInParent<BuildingEntity>();
@@ -324,54 +314,42 @@ internal sealed class EnemyCombatDirector(
 			return;
 		}
 
-		var limbIndex = _targets.SelectLimbIndex(target, spider.transform.position);
-		_enemies.SendEnemyAttack(new EnemyAttackMsg
-		{
-			EnemyId = enemyId.ToNetworkEntityIdMsg(),
-			VictimSteamId = target.SteamId,
-			Kind = EnemyAttackKind.SpiderBite,
-			LimbIndex = limbIndex,
-		});
+		state.Announced = true;
+		_enemies.SendEnemyAttack(enemyId, EnemyAttackKind.SpiderBite);
 
-		// Mirror CheckForLimbDamage's post-bite retreat + cooldown write
-		// (SpiderHandler.cs:146-151) so the host spider backs off exactly like
-		// after a native bite and cannot double-order during the retreat.
+		if (victim.SteamId == _session.LocalSteamId)
+		{
+			// The native collision path owns the local body's bite — it damages the limb and
+			// writes the cooldown itself — so nothing is mirrored here. The action is announced
+			// anyway: the guests judge their OWN screens, and the host's own view (a stale
+			// picture that merely has the host body nearest) must not decide that for them.
+			_log.LogInformation("[Enemy] host spider {Enemy} bite action announced — the host's nearest bite candidate is its own body.",
+				enemyId);
+			return;
+		}
+
 		BiteCooldownField.SetValue(spider, spider.biteCoolToSet);
-		var fromSpider = new Vector2(spider.transform.position.x - target.Position.x, spider.transform.position.y - target.Position.y);
+		var fromSpider = new Vector2(spider.transform.position.x - victim.Position.X, spider.transform.position.y - victim.Position.Y);
 		spider.target = fromSpider.normalized * 15f + new Vector2(spider.transform.position.x, spider.transform.position.y);
 		spider.moveTime = spider.retreatMoveTime;
 
 		var biteDirection = new Vector2(
-			target.Position.x - spider.transform.position.x,
-			target.Position.y - spider.transform.position.y);
+			victim.Position.X - spider.transform.position.x,
+			victim.Position.Y - spider.transform.position.y);
 		SpiderClawReplay.Play(spider, biteDirection);
 
-		_log.LogInformation("[Enemy] host spider {Enemy} bite ordered on {Victim} limb {Limb}.",
-			enemyId, target.SteamId, limbIndex);
+		_log.LogInformation("[Enemy] host spider {Enemy} bite action announced — the host's nearest bite candidate is {Victim}.",
+			enemyId, victim.SteamId);
+	}
+
+	/// <summary>The per-spider announcement latch — added on first use, since the spider prefab carries none.</summary>
+	private static EnemyBiteAnnouncementState AnnouncementState(SpiderHandler spider)
+	{
+		var state = spider.GetComponent<EnemyBiteAnnouncementState>();
+		return state != null ? state : spider.gameObject.AddComponent<EnemyBiteAnnouncementState>(); // Unity object — ==
 	}
 
 	// ---- Target resolution helpers ----
 
 	private static NetVector2 ToNetVector2(Vector2 value) => new(value.x, value.y);
-
-	private float FirstGroundDistance(Vector2 origin, Vector2 direction, Transform self)
-	{
-		var hits = Physics2D.RaycastAll(origin, direction, EnemyCombatPolicy.CrystalRayLength, LayerMask.GetMask("Ground"));
-		var best = EnemyCombatPolicy.CrystalRayLength;
-		foreach (var hit in hits)
-		{
-			if (hit.collider == null || hit.transform == self || hit.distance < 0.01f) // Unity objects — ==
-			{
-				continue;
-			}
-
-			if (hit.distance < best)
-			{
-				best = hit.distance;
-			}
-		}
-
-		return best;
-	}
-
 }

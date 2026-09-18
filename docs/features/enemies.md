@@ -68,18 +68,26 @@ Runtime projections:
 - `EnemyCombatKernelProjection` — combat result events into host character save
   and peer presentation.
 
-### Host-ordered attacks
+### Announced attacks judged by the victim
 
 Remote player clones have colliders disabled, so host collision callbacks cannot
-apply an attack to a remote body directly. The active path is:
+apply an attack to a remote body directly — and since the 2026-09-18 ruling the
+host does not decide who was hit either. The active path is:
 
-- `EnemyAttack` (`NetMsg 83`) — host → victim: the victim applies the game's own
-  damage path locally.
+- `EnemyAttack` (`NetMsg 83`) — host → every in-world guest: the host announces
+  the enemy's action (`EnemyId`, `Kind`, the per-enemy `AttackSeq`) and each guest
+  judges on its own view whether the attack reached its body, then applies the
+  game's own damage path locally.
+- The judgment belongs to the client the effect lands on: a spider bite needs a
+  real collider contact plus the game's facing gate, a crystal lunge runs the
+  game's own ray (first body wins, the ground stops it), and the limb is chosen
+  on that client.
 - Terminal combat results are journal-only kernel events
   (`EnemyBiteResultEvent`, `EnemyLungeResultEvent`, `EnemyEffectResultEvent`).
-- `EnemyCombatOrderPolicy` / `EnemyTargetResolver` / `EnemyCombatArbitration`
-  own host-side target selection and apply-path decisions. The old
-  `EnemyBite`/`EnemyLunge`/`EnemyEffect` direct result frames are gone.
+- `EnemyAttackJudgment` / `EnemyAttackLedger` (Runtime) own the victim-side rule
+  and the one-attack-once identity; `EnemyTargetResolver` /
+  `EnemyCombatArbitration` keep the host's target selection and bite-action gates.
+  The old `EnemyBite`/`EnemyLunge`/`EnemyEffect` direct result frames are gone.
 
 ### Runtime spawns and removal
 

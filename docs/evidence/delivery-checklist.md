@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: matcher self-test 4 positive / 4 negative; full-path reference surface 124 refs, 28 stale (10 live, 18 in exempt records)
+      file:line or runtime log) or is explicitly marked unverified — evidence: 4 classic extensions migrated to 4 extension(receiver) blocks; reflected compiled surface identical to HEAD; twin-probe IL byte-identical, no receiver null guard
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: status list + record exemptions reused from BacklogIntegrityGateTests; live refs repointed 22 short + 9 full-path; records exempt by the same rule
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: pattern → matcher self-test; scope → reference floor 300; exemptions → reused RecordPrefixes; live rot → 0 non-resolving refs; external pointer → section name verified
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: whole-repo census 0 classic / 4 blocks over 2012 C# files; the rule-to-gate map gained its #13 row; AGENTS.md and AGENTS.local.md updated together
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: matcher contract 9 samples (generic / attributed / unsafe positive; ordinary static / comment / doc / string negative); census floor 1500 files; test-data lines excluded by design
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: gates 46/46 (2 new cases), full suite 3225, format exit 0; the gate's census floor proves the scan is not empty; no src/ behaviour touched
+      peer log comparison, hotrepl assertions) is decided — evidence: negative control hits HEAD's 4 declarations and 0 in the tree; the reviewer's reflection + IL + null-receiver probes closed behaviour preservation
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user selected this workflow-iteration set explicitly (6 of 6 options); scope calls (exempt records, no ticket re-prioritisation) recorded in the session
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors; dotnet format exit 0 (scoped --include 11 s; full run earlier); gates 46/46; full suite 3225 passed
+      process violation — evidence: the user set the policy directly (C# 14 extension is a strict superset; migrate the existing 4) — an instruction, not an inferred design choice
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors; dotnet format exit 0 (scoped --include 11 s); gates 56/56; full suite 3225; the unfiltered gate run follows
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: new class 1 top-level type / 2 cases / no static mutable state, formatting matches siblings; the hand-copied status list removed (now derived); no dead code left
+      dead mechanisms deleted in the same round) — evidence: each mapper keeps one top-level type; the gate stays one type at 17 cases; no dead code; both regexes documented with their limits
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

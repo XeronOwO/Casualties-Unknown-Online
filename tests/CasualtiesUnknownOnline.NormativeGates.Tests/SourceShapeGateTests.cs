@@ -29,6 +29,22 @@ public class SourceShapeGateTests
 	private static readonly Regex TransferTableMutationRegex = new(@"_transferred\s*[\[]|_transferred\.");
 	private static readonly Regex NoLegacyTypeRegex = new(@"^\s*(public\s+|internal\s+|private\s+|protected\s+|static\s+|sealed\s+|abstract\s+|partial\s+)*(class|record|struct|interface|enum)\s+(?<name>Shadow|Legacy|Compat|Dual)[A-Za-z0-9_]*", RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+	/// <summary>
+	/// A classic extension method declaration: the line carries a <c>static</c> modifier AND its parameter
+	/// list carries the <c>this</c> parameter modifier. Matching on those two facts instead of on a guessed
+	/// signature shape is what keeps generic (<c>M&lt;T&gt;(this …)</c>), attributed and multi-modifier
+	/// declarations visible. Applied line by line, so a signature wrapped across lines would slip past —
+	/// the formatter keeps these single-line (measured against the pre-migration revision) and a wrap
+	/// fails loudly rather than silently missing anything else.
+	/// </summary>
+	private static readonly Regex ClassicExtensionMethodRegex = new(@"^\s*(?!//|\*)(?=.*\bstatic\b)[^=;]*\([^)]*\bthis\s+[A-Za-z_]\w*");
+
+	/// <summary>Guards the scan against silently checking nothing — the tree carries roughly two thousand C# files under these roots.</summary>
+	private const int ScannedFileFloor = 1500;
+
+	/// <summary>Test-data attributes carry sample SOURCE TEXT as strings — this gate's own matcher contract among them — and a sample is not a declaration, so those lines are skipped rather than read as code.</summary>
+	private static readonly Regex TestDataLineRegex = new(@"^\s*\[(?:InlineData|MemberData|TheoryData)\b");
+
 	private sealed record ArchitectureDebtEntry(int Lines, int BoolFlags);
 
 	[Fact]
@@ -307,6 +323,52 @@ public class SourceShapeGateTests
 		}
 
 		Assert.True(failures.Count == 0, "Microsoft.Extensions net48 compatibility gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	/// <summary>The matcher's own contract, so a later edit cannot narrow the scan silently (the reviewer probed exactly these shapes against the first version, which missed three of them).</summary>
+	[Theory]
+	[InlineData("public static void ApplyTo(this EnemyEntity entity) { }", true)]
+	[InlineData("internal static bool IsNear(this EnemyEntity a, float r) => true;", true)]
+	[InlineData("public static T First<T>(this IEnumerable<T> source) => source.First();", true)]
+	[InlineData("[Obsolete] public static Foo Bar(this int x) => null;", true)]
+	[InlineData("public unsafe static void Fill(this int[] xs) { }", true)]
+	[InlineData("private static WireVector2 ToWireVector2(NetVector2 value) => default;", false)]
+	[InlineData("// a helper that takes (this x) while talking about static state", false)]
+	[InlineData("/// <summary>static state drives this.Model on the clone</summary>", false)]
+	[InlineData("var text = \"static (this x)\";", false)]
+	public void TheMatcher_SeesEveryClassicExtensionShapeAndIgnoresOrdinaryStatics(string line, bool expected) =>
+		Assert.Equal(expected, ClassicExtensionMethodRegex.IsMatch(line));
+
+	[Fact]
+	public void ExtensionMethods_UseTheCsharp14ExtensionSyntax()
+	{
+		var failures = new List<string>();
+		var scanned = 0;
+		foreach (var root in new[] { Src, RepositoryPaths.File("tests") })
+		{
+			foreach (var file in EnumerateCSharpFiles(root))
+			{
+				scanned++;
+				var lines = File.ReadAllLines(file);
+				for (var i = 0; i < lines.Length; i++)
+				{
+					if (TestDataLineRegex.IsMatch(lines[i]))
+					{
+						continue;
+					}
+
+					if (ClassicExtensionMethodRegex.IsMatch(lines[i]))
+					{
+						failures.Add($"{Relative(file)}:{i + 1} : classic 'this X' extension method — write the C# 14 extension(receiver) block instead (the two forms compile to the same call sites, so there is no case for the old one)");
+					}
+				}
+			}
+		}
+
+		Assert.True(
+			scanned >= ScannedFileFloor,
+			$"the scan only saw {scanned} C# file(s); the roots or the enumeration broke and this rule would pass by checking nothing");
+		Assert.True(failures.Count == 0, "extension-method shape gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
 	}
 
 	private static IEnumerable<string> EnumerateCSharpFiles(string root)

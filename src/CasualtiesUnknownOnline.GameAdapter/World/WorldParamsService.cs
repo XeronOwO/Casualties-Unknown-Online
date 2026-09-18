@@ -273,10 +273,11 @@ internal sealed class WorldParamsService(
 		_guestParamsWaitLogged = false;
 	}
 
-	/// <summary>Guest side: restore the host's RNG state + run settings + world-defining fields so local world generation produces the same world. A new params instance IS a new world/layer, so the guest's unacknowledged block reports from the previous world are dropped here — the host reset its own difference table at the same generation boundary.</summary>
+	/// <summary>Guest side: restore the host's RNG state + run settings + world-defining fields so local world generation produces the same world. A new params instance IS a new world/layer, so the guest's unacknowledged block reports (state and partial damage alike) from the previous world are dropped here — the host reset its own difference table at the same generation boundary.</summary>
 	internal void Apply(WorldStartParams parameters)
 	{
 		_world.ResetPendingBlockReports();
+		_world.ResetPendingBlockDamageReports();
 		_world.ResetPendingEntityReports();
 
 		Random.state = RandomStateSerializer.Deserialize(parameters.RandomState);

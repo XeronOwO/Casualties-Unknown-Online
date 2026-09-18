@@ -76,6 +76,32 @@ public interface IWorldControl
 	/// <summary>Guest: a new world/layer baseline was applied — drop every unacknowledged block report from the previous world (the counterpart of the host's <see cref="ResetDamagedBlocks"/> at its generation boundary).</summary>
 	void ResetPendingBlockReports();
 
+	/// <summary>
+	/// Guest only: record the cell's current ABSOLUTE partial damage — the
+	/// fallback's re-report source (the live report itself is a delta the
+	/// receiver accumulates, so replaying it would double-apply). Called right
+	/// BEFORE the live delta report is sent; the entry is dropped when the host
+	/// answers for the cell (the snapshot / the per-report answer) or the cell
+	/// goes air.
+	/// </summary>
+	void ReportBlockDamage(int x, int y, float damage);
+
+	/// <summary>Either role: the cell went air (local break, remote break, earthquake/environment) — its pending partial-damage report dies with the block, which the block-state channel now owns.</summary>
+	void ForgetPendingBlockDamage(int x, int y);
+
+	/// <summary>Guest: a new world/layer baseline was applied — drop every unacknowledged partial-damage report from the previous world (same boundary as <see cref="ResetPendingBlockReports"/>).</summary>
+	void ResetPendingBlockDamageReports();
+
+	/// <summary>
+	/// Host only: a guest's ABSOLUTE partial-damage report arrived — merge every
+	/// row into the GAME's own damage list through the native port (per cell,
+	/// never below what this host already holds) and answer every reported cell
+	/// with this host's authoritative value (0 = no damage here) by broadcasting
+	/// a <c>BlockDamageSnapshot</c> to all members. The answer is what clears the
+	/// reporter's pending re-report and converges a third party's copy.
+	/// </summary>
+	void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries);
+
 	void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block);
 
 	event Action<ulong, int, int, ushort>? BlockPlacedReceived;

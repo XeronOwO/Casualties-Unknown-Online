@@ -92,9 +92,10 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   table + world-entry backfill) but guest → host has no diff table and no periodic re-report,
   so a swallowed guest mutation is invisible to the host table and the absolute snapshot
   cannot heal it (row W1 — closed 2026-09-09 by `review/guest-block-mutation-re-report.md`).
-  Partial block damage shares the asymmetry (row W2 — `todo/guest-partial-block-damage-re-report.md`).
-- **Gap tickets** (one ticket per gap, with W2 split from W1 and R3+R4 merged): `todo/guest-partial-block-damage-re-report.md`,
-  `todo/trap-layout-snapshot-recovery.md`,
+  Partial block damage shares the asymmetry (row W2 — closed 2026-09-18 by
+  `review/guest-partial-block-damage-re-report.md`).
+- **Gap tickets** (one ticket per gap, with W2 split from W1 and R3+R4 merged): `review/guest-partial-block-damage-re-report.md`,
+  `review/trap-layout-snapshot-recovery.md`,
   `todo/enemy-snapshot-and-attack-recovery.md`,
   `todo/guest-command-loss-reconciliation.md`, `todo/recipe-unlock-fallback.md`,
   `todo/carried-inventory-registration-re-report.md`,

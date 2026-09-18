@@ -144,11 +144,13 @@ backwards `Environment.TickCount` instead of stalling, and the
   host — it needs the live Unity world. Those branches rest on code review plus
   the unified dual-client acceptance pass.
 
-**Evidence.** `docs/evidence/sync-coverage-matrix.md` row W1 → `OK` (46 OK /
-9 event-only / 0 fallback-only / 9 transient), inline anchors re-anchored and
-extended (750 entries), W2 split into
-`todo/guest-partial-block-damage-re-report.md`, the break-drop loss recorded in
-`todo/guest-break-drops-recovery.md`.
+**Evidence.** `docs/evidence/sync-coverage-matrix.md` row W1 → `OK` (the matrix stands at
+49 OK / 6 event-only / 0 fallback-only / 9 transient today — the numbers this record was
+written with, 46/9/0/9 and 750 entries, were the state at landing and moved on with the W6
+and W2 cycles; 835 entries now), inline anchors re-anchored and
+extended, W2 split into
+`review/guest-partial-block-damage-re-report.md` (landed 2026-09-18), the break-drop loss
+recorded in `todo/guest-break-drops-recovery.md`.
 
 **Verification.**
 

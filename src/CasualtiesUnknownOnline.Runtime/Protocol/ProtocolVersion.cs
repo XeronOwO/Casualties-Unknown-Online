@@ -15,7 +15,13 @@ public static class ProtocolVersion
 	/// 21: `RuntimeEntityRejected` — a runtime creation the host cannot
 	/// materialize is now REJECTED instead of relayed, so a peer without the
 	/// message would keep relaying an unowned creation to everyone and leave the
-	/// reporter's copy and 60 s re-report alive forever.</summary>
-	public const int Current = 21;
+	/// reporter's copy and 60 s re-report alive forever.
+	/// 22: `BlockDamageReport` — a guest's partial block damage now has an
+	/// ABSOLUTE re-report whose answer is a `BlockDamageSnapshot` carrying this
+	/// host's authoritative value per reported cell. A peer without the message
+	/// would never send the report (its swallowed hits would stay missing from
+	/// the host's own damage list forever) and would not understand the answer's
+	/// zero rows.</summary>
+	public const int Current = 22;
 
 }

@@ -28,7 +28,16 @@ internal sealed class WorldStateMessageService(
 	private readonly ILogger<WorldService> _log = log;
 	private readonly EntityEventChannel _eventChannel = eventChannel;
 
-	/// <summary>The partial-damage snapshot's send half — the only world flow that reads the GAME's own tables.</summary>
+	/// <summary>
+	/// The guest-side report recovery (audit gaps W1/W2): the two pending tables
+	/// (unacknowledged block state, unacknowledged partial damage), their
+	/// re-sends and their answers. Its one native-port use is the merge half of a
+	/// guest's absolute damage report; a Runtime-only composition has no port,
+	/// reads and merges nothing, and says so instead of inventing rows.
+	/// </summary>
+	private readonly GuestReportRecovery _guestReports = new(session, sender, nativeWorldFacts, log);
+
+	/// <summary>The partial-damage snapshot's send half — the other world flow that reads the GAME's own tables.</summary>
 	private readonly BlockDamageSnapshotSender _blockDamageSnapshot = new(session, sender, nativeWorldFacts, log);
 
 	/// <summary>
@@ -41,21 +50,6 @@ internal sealed class WorldStateMessageService(
 	/// <summary>Table cap — a fully-mined world would otherwise grow without bound. Internal so the pending-report table's own cap can be asserted against it.</summary>
 	internal const int MaxDamagedBlocks = 65536;
 
-	/// <summary>
-	/// Guest-side bookkeeping of locally-applied block mutations whose report the
-	/// host has not answered yet (sync-coverage audit W1): the host→guest direction
-	/// heals a lost relay with the absolute table above, the guest→host report had
-	/// no recovery at all. Populated by <see cref="SendBlockPlacedReport"/>,
-	/// re-reported by <see cref="ResendPendingBlockReports"/> and dropped when the
-	/// host answers for the cell (its relay echo or its correction) or when a new
-	/// world/layer baseline is applied. The absolute snapshot and the world-entry
-	/// completion marker deliberately do NOT clear it — a reconnect-while-in-world
-	/// keeps the guest's local mutations, and re-reporting them is the recovery.
-	/// The table and the overflow latch live in the collaborator, so this type
-	/// stays the wire surface.
-	/// </summary>
-	private readonly GuestBlockReportBookkeeping _pendingBlockReports = new(log);
-
 	public WorldStartParams? WorldParams { get; set; }
 
 	public RadiationLineStateMsg? RadiationLineState { get; private set; }
@@ -64,8 +58,21 @@ internal sealed class WorldStateMessageService(
 
 	public event Action<IReadOnlyList<BlockDamageEntryMsg>>? BlockDamageSnapshotReceived;
 
-	public void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries) =>
+	/// <summary>
+	/// Guest: the host's partial-damage snapshot arrived — it is also the ANSWER
+	/// to every outstanding absolute re-report whose cell it names (the
+	/// world-entry / 60 s snapshot and the per-report answer share this message),
+	/// so those pending entries are done.
+	/// </summary>
+	public void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries)
+	{
+		if (_session.Role == SessionRole.Guest)
+		{
+			_guestReports.AnswerDamage(entries);
+		}
+
 		BlockDamageSnapshotReceived?.Invoke(entries);
+	}
 
 	/// <summary>Host only: send the partial damage the GAME's own list holds (see <see cref="BlockDamageSnapshotSender"/>).</summary>
 	public void SendBlockDamageSnapshot(ulong targetSteamId) => _blockDamageSnapshot.Send(targetSteamId);
@@ -208,13 +215,15 @@ internal sealed class WorldStateMessageService(
 		}
 	}
 
+	/// <summary>Guest: a block was placed locally — record it as an unacknowledged pending report and send it (the host arbitrates + answers; a swallowed report is re-reported by the fallback).</summary>
 	public void SendBlockPlacedReport(int x, int y, ushort block)
 	{
 		if (!_session.SessionActive)
 		{
 			return;
 		}
-		_pendingBlockReports.Report(x, y, block);
+
+		_guestReports.ReportBlock(x, y, block);
 		_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
 			new BlockPlacedMsg { X = x, Y = y, Block = block });
 	}
@@ -418,68 +427,35 @@ internal sealed class WorldStateMessageService(
 		WorldParams = null;
 		RadiationLineState = null;
 		_damagedBlocks.Clear();
-		_pendingBlockReports.Reset();
+		_guestReports.ResetBlocks();
+		_guestReports.ResetDamages();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
 		_eventChannel.ResetBuildingEntityHealth();
 		_eventChannel.ResetTrapLayouts();
 	}
 
-	// ---- Guest block-report recovery (audit gap W1) ----
+	// ---- Guest report recovery (audit gaps W1/W2) ----
+	// The re-send/answer WIRE logic lives in GuestReportRecovery; the recovery
+	// STATE lives in its two bookkeeping collaborators. These members are only
+	// the surface WorldService and the handlers call.
 
 	/// <summary>How many unacknowledged guest block reports are waiting for the host's answer (the fallback pump's work check).</summary>
-	internal int PendingBlockReportCount => _pendingBlockReports.Count;
+	internal int PendingBlockReportCount => _guestReports.PendingBlockCount;
 
-	/// <summary>
-	/// Guest only: re-report every unacknowledged block mutation to the host.
-	/// Each entry is one <see cref="NetMsg.BlockPlaced"/> report, so the host's
-	/// existing first-writer-wins arbitration handles it unchanged (idempotent
-	/// — a cell the host already agrees with is answered, not re-applied).
-	/// Called by <see cref="BlockReportFallbackPump"/>; a no-op when nothing is
-	/// outstanding, when this side is not a guest, or when the session ended.
-	/// </summary>
-	public void ResendPendingBlockReports()
-	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive || _pendingBlockReports.Count == 0)
-		{
-			return;
-		}
+	/// <summary>Guest only: re-report every unacknowledged block mutation to the host (the fallback pump's action).</summary>
+	public void ResendPendingBlockReports() => _guestReports.ResendBlocks();
 
-		foreach (var entry in _pendingBlockReports.Entries)
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
-				new BlockPlacedMsg { X = entry.X, Y = entry.Y, Block = entry.Block });
-		}
-
-		_log.LogInformation("[BlockSync] re-reported {Count} unacknowledged block mutation(s) to the host.",
-			_pendingBlockReports.Count);
-	}
-
-	/// <summary>
-	/// Host only: answer a guest's block report with the host's authoritative
-	/// block at that cell. Sent when the report was refused (first-writer-wins:
-	/// the host's cell stands) — the reporter applies the correction and drops
-	/// its pending entry. An ACCEPTED report needs no correction: its relay now
-	/// includes the reporter (the echo is the acknowledgement).
-	/// </summary>
-	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || targetSteamId == 0)
-		{
-			return;
-		}
-
-		_sender.Send(targetSteamId, NetMsg.BlockPlaced, new BlockPlacedMsg { X = x, Y = y, Block = block });
-		_log.LogDebug("[BlockSync] answered {Peer}'s report at ({X},{Y}) with the authoritative block {Block}.",
-			targetSteamId, x, y, block);
-	}
+	/// <summary>Host only: answer a guest's refused block report with the host's authoritative block at that cell.</summary>
+	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block) =>
+		_guestReports.SendBlockPlacedCorrection(targetSteamId, x, y, block);
 
 	/// <summary>Guest: the host answered for this cell (relay or correction) — its value is authoritative, the pending report is done.</summary>
 	private void OnBlockPlacedReceived(ulong sender, int x, int y, ushort block)
 	{
 		if (_session.Role == SessionRole.Guest)
 		{
-			_pendingBlockReports.Answer(x, y);
+			_guestReports.AnswerBlock(x, y);
 		}
 
 		BlockPlacedReceived?.Invoke(sender, x, y, block);
@@ -494,7 +470,28 @@ internal sealed class WorldStateMessageService(
 	/// NOT clear the table: a reconnect-while-in-world keeps the guest's local
 	/// mutations, and re-reporting them is exactly the recovery.
 	/// </summary>
-	public void ResetPendingBlockReports() => _pendingBlockReports.Reset();
+	public void ResetPendingBlockReports() => _guestReports.ResetBlocks();
+
+	// ---- Guest partial-damage report recovery (audit gap W2) ----
+
+	/// <summary>How many unacknowledged guest partial-damage reports are waiting for the host's answer (the fallback pump's work check).</summary>
+	internal int PendingBlockDamageReportCount => _guestReports.PendingDamageCount;
+
+	/// <summary>Guest only: record the cell's current ABSOLUTE damage before the live delta report goes out (the fallback's re-report source).</summary>
+	public void ReportBlockDamage(int x, int y, float damage) => _guestReports.ReportDamage(x, y, damage);
+
+	/// <summary>Either role: the cell went air — its pending partial-damage report dies with the block.</summary>
+	public void ForgetPendingBlockDamage(int x, int y) => _guestReports.ForgetDamage(x, y);
+
+	/// <summary>Guest only: a new world/layer baseline was applied — the previous world's pending partial-damage reports are dropped.</summary>
+	public void ResetPendingBlockDamageReports() => _guestReports.ResetDamages();
+
+	/// <summary>Guest only: re-report every unacknowledged cell's absolute damage to the host (the fallback pump's action).</summary>
+	public void ResendPendingBlockDamageReports() => _guestReports.ResendDamages();
+
+	/// <summary>Host only: merge a guest's absolute partial-damage report and answer every reported cell authoritatively.</summary>
+	public void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries) =>
+		_guestReports.HandleDamageReport(sender, entries);
 
 	// ---- World-fact capture and restore (the save system's world diff) ----
 	// The save side reads these tables as the WIRE shapes a late joiner receives

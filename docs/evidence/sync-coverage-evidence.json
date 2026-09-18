@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 824,
+  "count": 835,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -4525,8 +4525,8 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
-      "quote": "_pendingBlockReports.Report(x, y, block);"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/GuestReportRecovery.cs",
+      "quote": "_blocks.Report(x, y, block);"
     },
     {
       "cluster": "inline",
@@ -4947,6 +4947,72 @@
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs",
       "quote": "}"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "BlockDamageReport = 136, // guest → host: the guest's ABSOLUTE partial-damage set for the cells the host has not answered"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/PendingBlockDamageTable.cs",
+      "quote": "if (!_entries.ContainsKey(key) && _entries.Count >= _cap)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/GuestReportRecovery.cs",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.BlockDamageReport,"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/GuestReportRecovery.cs",
+      "quote": "var authoritative = _nativeWorldFacts.MergeBlockDamages(entries);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/INativeWorldFacts.cs",
+      "quote": "IReadOnlyList<BlockDamageEntryMsg>? MergeBlockDamages(IReadOnlyList<BlockDamageEntryMsg> reported);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
+      "quote": "if (reported <= hostDamage)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
+      "quote": "_world.ReportBlockDamage(cell.x, cell.y, accumulated);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
+      "quote": "_world.ForgetPendingBlockDamage(cell.x, cell.y);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
+      "quote": "return MergeVerdict.RefuseAir;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
+      "quote": "if (reported <= 0f || reported >= blockHealth)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
+      "quote": "return alreadyTracked || trackedCount < Cap ? MergeVerdict.Raise : MergeVerdict.RefuseCap;"
     }
   ]
 }

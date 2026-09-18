@@ -259,4 +259,17 @@ public enum NetMsg : byte
 
 	RuntimeEntityRejected = 135, // host → reporter: the reported creation is rejected (this host cannot materialize its prefab) — the report's answer, so its pending re-report stops and its local copy dies
 
+	// Guest partial-damage report recovery (sync-coverage audit W2 — the live
+	// BlockDamaged report is a DELTA the receiver accumulates, and the host's
+	// authoritative table is the GAME's own list, so a swallowed report left the
+	// host permanently short by exactly that hit and its absolute snapshot then
+	// omitted the cell forever). The guest keeps each reported cell's ABSOLUTE
+	// damage and re-reports the set until the host answers; the answer reuses the
+	// existing BlockDamageSnapshot (89), carrying this host's authoritative value
+	// for every reported cell — a zero means "no damage here", so a refused row
+	// converges instead of re-reporting forever. One new operation (the guest's
+	// absolute report, sharing the snapshot's payload shape); its answer is the
+	// pre-existing snapshot message.
+	BlockDamageReport = 136, // guest → host: the guest's ABSOLUTE partial-damage set for the cells the host has not answered
+
 }

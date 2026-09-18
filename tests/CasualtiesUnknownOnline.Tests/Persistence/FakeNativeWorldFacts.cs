@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -68,6 +69,56 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	{
 		Calls.Add("capture-block-damages");
 		return CaptureFailure is null ? [.. _damages] : null;
+	}
+
+	/// <summary>
+	/// Set to make every merge come back "no damage here" (0 per reported cell) —
+	/// the same answer a real host gives for a report its own cap/range rules
+	/// refused, which must still clear the reporter's pending entry.
+	/// </summary>
+	internal bool MergesAreRefused { get; set; }
+
+	/// <summary>
+	/// The host half of the guest report's loop, in the fake's own terms: the
+	/// report merges into "the game's list" per cell, never lowering a cell, and
+	/// the authoritative value of every reported cell comes back. The real
+	/// air/range/cap rules live in the adapter's table and are covered there; this
+	/// fake carries the same never-lower contract plus a switch for the refused
+	/// shape. <see cref="CaptureFailure"/> doubles as "no live world": nothing is
+	/// merged, nothing is answered (null).
+	/// </summary>
+	public IReadOnlyList<BlockDamageEntryMsg>? MergeBlockDamages(IReadOnlyList<BlockDamageEntryMsg> reported)
+	{
+		Calls.Add("merge-block-damages");
+		if (CaptureFailure is not null)
+		{
+			return null;
+		}
+
+		var authoritative = new List<BlockDamageEntryMsg>(reported.Count);
+		foreach (var row in reported)
+		{
+			if (MergesAreRefused)
+			{
+				authoritative.Add(new BlockDamageEntryMsg { X = row.X, Y = row.Y, Damage = 0f });
+				continue;
+			}
+
+			var existing = _damages.FirstOrDefault(d => d.X == row.X && d.Y == row.Y);
+			if (existing is null)
+			{
+				existing = new BlockDamageEntryMsg { X = row.X, Y = row.Y, Damage = row.Damage };
+				_damages.Add(existing);
+			}
+			else if (row.Damage > existing.Damage)
+			{
+				existing.Damage = row.Damage;
+			}
+
+			authoritative.Add(new BlockDamageEntryMsg { X = row.X, Y = row.Y, Damage = existing.Damage });
+		}
+
+		return authoritative;
 	}
 
 	/// <summary>The native run fields as the "live world" holds them (seeded, or written back by a restore).</summary>

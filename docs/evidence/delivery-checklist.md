@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem cites BlockBreakArbitration + BlockBreakSync + RunEpoch; What landed covers stamp, gate, LostAirWrite, protocol 29
+      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem cites TrapLayoutRegistry/Scanner, EntitySpawnedMsg and RunEpoch; What landed covers both stamps, the seams and protocol 30
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: ticket family table: 3 messages stamped; trap layout + runtime-entity creation carried by todo/generation-identity-remaining-families.md; the rest recorded safe
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: review/world-layer-generation-identity.md 8-row Verification table, every row names its test
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: ticket records the two stamped families and the safe ones; WorldReportGenerationGate serves block/trap/entity from one comparison
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: review/generation-identity-remaining-families.md 7-row Verification table, every row names its test
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: pure WorldGeneration/arbitration tests + real-stack frames (the stamp decoded from the wire); the Unity half declared static + release acceptance
+      peer log comparison, hotrepl assertions) is decided — evidence: real-stack ItemSimWorld refusals + stamps decoded from peer transports; the Unity half declared static + release acceptance
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user chose this session's route (continue development); the ticket's frozen design direction fixed the mechanism, no work-item re-ask
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; gates 56/56; main suite 3354 green; focused 13-class block/world filter 112/112
+      process violation — evidence: handoff instruction fixed the route (continue development); the ticket's frozen design fixed the mechanism, no work-item re-ask
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; gates 56/56; main suite 3368 green; focused 86/86
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: BlockReportChannel extracted from WorldStateMessageService (400 lines left); the new vocabulary is one type per file; no state bool added
+      dead mechanisms deleted in the same round) — evidence: RuntimeEntityChannel 510, EntityEventChannel 330, BlockReportChannel 273, TrapLayoutRegistry 127 lines; one type per file; no state bool added
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

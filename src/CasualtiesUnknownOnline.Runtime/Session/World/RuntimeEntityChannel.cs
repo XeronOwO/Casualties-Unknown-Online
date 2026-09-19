@@ -1,6 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
@@ -28,8 +29,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// a dead entity is never resurrected and a previous layer's creations never
 /// leak into the next.
 /// </para>
+/// <para>
+/// The channel also owns the family's world/layer GENERATION gate (protocol 30):
+/// every send is stamped with this side's kernel run baseline, and an arrived
+/// report or absolute table of another generation is refused before anything is
+/// created, recorded or relayed — a creation materializes at the reported
+/// position, and positions are layer-relative. The host answers a refused
+/// reporter through the existing rejection path so its pending re-report ends.
+/// </para>
 /// </summary>
-public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender sender, RuntimeEntityRegistry runtimeEntities, ILogger<RuntimeEntityChannel> log)
+public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender sender, RuntimeEntityRegistry runtimeEntities, ItemKernelAuthority kernelAuthority, ILogger<RuntimeEntityChannel> log)
 {
 	/// <summary>Fallback windows after which a still-unanswered creation is reported as stalled (once — the entry keeps retrying).</summary>
 	internal const int StallWarnAttempts = 10;
@@ -38,6 +47,16 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 	private readonly PacketSender _sender = sender;
 	private readonly RuntimeEntityRegistry _runtimeEntities = runtimeEntities;
 	private readonly ILogger<RuntimeEntityChannel> _log = log;
+
+	/// <summary>
+	/// The world/layer generation this side is at: the stamp every send reads
+	/// live, and the side an arrived report or absolute table is compared
+	/// against. A creation is materialized at its reported position, and
+	/// positions are layer-relative, so a report of another generation is
+	/// refused before anything is created — in the same words every stamped
+	/// family uses (<see cref="WorldReportGenerationGate"/>).
+	/// </summary>
+	private readonly KernelWorldGenerationSource _generations = new(kernelAuthority);
 
 	/// <summary>
 	/// Guest-side table of runtime entity creations whose report the host has
@@ -73,6 +92,18 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 
 	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg)
 	{
+		// A creation of ANOTHER world/layer generation is refused WHOLE: its
+		// position key is layer-relative, so materializing it would create the
+		// previous layer's entity in this one, and relaying it would spread that
+		// to every peer. The host also answers the reporter, whose pending
+		// re-report would otherwise keep asking for a report this host will
+		// never take.
+		if (WorldReportGenerationGate.Relate(msg.Generation, _generations.Current, "EntitySpawned", sender, _log) == WorldGenerationRelation.Stale)
+		{
+			AnswerStaleCreation(sender, msg);
+			return;
+		}
+
 		// The host answered this creation (the relay echo reaches the reporter
 		// too) — its pending re-report is done. This is also the acknowledgement
 		// for a creation the host enriched (a generated keypad code): the
@@ -89,6 +120,34 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 		}
 
 		EntitySpawnedReceived?.Invoke(sender, msg);
+	}
+
+	/// <summary>
+	/// Host: a creation report of another world/layer generation was refused — it
+	/// is neither recorded nor relayed, and the reporter is answered through the
+	/// existing rejection path so a report this host will never take stops
+	/// re-reporting (the answer also ends the reporter's pending entry and asks
+	/// it to remove its local copy, idempotently). Only a remote reporter is
+	/// answered: the host's own creations never arrive here, and a guest refuses
+	/// the host's stale relay silently — its own pending entry is about its own
+	/// world, not the relay's.
+	/// </summary>
+	private void AnswerStaleCreation(ulong sender, EntitySpawnedMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || sender == _session.LocalSteamId)
+		{
+			return;
+		}
+
+		var key = RuntimeEntityKey.From(msg);
+		_log.LogWarning("[EntitySpawn] refused stale creation {Id} at ({X:F1},{Y:F1}) (creation {Creator}:{Sequence}) from {Reporter} — answering the reporter so its pending report ends.",
+			msg.Id, msg.Position.X, msg.Position.Y, key.CreatorSteamId, key.CreationSequence, sender);
+
+		_sender.Send(sender, NetMsg.RuntimeEntityRejected, new RuntimeEntityRejectedMsg
+		{
+			Key = key.ToKeyMsg(),
+			Reason = RuntimeEntityRejectReason.StaleGeneration,
+		});
 	}
 
 	/// <summary>
@@ -126,6 +185,11 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 			_log.LogWarning("[EntitySpawn] creation {Id} at ({X:F1},{Y:F1}) carries no creation token — a second creation of the same prefab in the same cell would share this record.",
 				msg.Id, msg.Position.X, msg.Position.Y);
 		}
+
+		// The stamp is read LIVE at send time, BEFORE the record is taken: the
+		// record and the wire must carry the same generation, and a creation
+		// belongs to the world this side simulates now.
+		msg.Generation = _generations.Stamp();
 
 		if (_session.Role == SessionRole.Host)
 		{
@@ -227,8 +291,8 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 		RuntimeEntityRejectedReceived?.Invoke(key, msg.Reason);
 	}
 
-	/// <summary>Host only: send the accepted-creation table to one member (world entry, or the 60 s cycle).</summary>
-	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _runtimeEntities.SendSnapshot(targetSteamId);
+	/// <summary>Host only: send the accepted-creation table to one member (world entry, or the 60 s cycle), stamped with this side's current world/layer generation.</summary>
+	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _runtimeEntities.SendSnapshot(targetSteamId, _generations.Stamp());
 
 	/// <summary>
 	/// Guest: the host's absolute runtime-entity table arrived (world entry or
@@ -241,6 +305,17 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 	/// </summary>
 	public void FireRuntimeEntitySnapshotReceived(ulong sender, RuntimeEntitySnapshotMsg snapshot)
 	{
+		// The absolute table is refused WHOLE when it describes another
+		// world/layer generation: its entries materialize at layer-relative
+		// positions, so a snapshot of the previous layer would create the old
+		// layer's entities in the new one — and its animal acknowledgements
+		// would settle pending reports that belong to a world this host is not
+		// describing. One log line covers the whole table.
+		if (WorldReportGenerationGate.Relate(snapshot.Generation, _generations.Current, "RuntimeEntitySnapshot", sender, _log) == WorldGenerationRelation.Stale)
+		{
+			return;
+		}
+
 		foreach (var animalKey in snapshot.AcceptedAnimalKeys)
 		{
 			var key = RuntimeEntityKey.FromKeyMsg(animalKey);
@@ -324,6 +399,10 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 
 		foreach (var entry in _pendingEntityReports.Entries)
 		{
+			// Read live at send time: a surviving pending entry belongs to the
+			// world this side simulates now (the generation boundary drops the
+			// table), so the re-report carries the CURRENT generation.
+			entry.Msg.Generation = _generations.Stamp();
 			_sender.Send(_session.HostSteamId, NetMsg.EntitySpawned, entry.Msg);
 			var attempts = _pendingEntityReports.RecordAttempt(entry.Key);
 			if (attempts == StallWarnAttempts)

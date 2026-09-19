@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 861,
+  "count": 880,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5108,7 +5108,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
-      "quote": "var relation = WorldReportGeneration.Relate(_generations.Current, generation);"
+      "quote": "WorldReportGenerationGate.Relate(generation, _generations.Current, kind, sender, _log);"
     },
     {
       "cluster": "world-blocks",
@@ -5156,7 +5156,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 29;"
+      "quote": "public const int Current = 30;"
     },
     {
       "cluster": "world-blocks",
@@ -5169,6 +5169,120 @@
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
       "quote": "if (RelateReportGeneration(generation, \"BlockDamageSnapshot\", _session.HostSteamId) == WorldGenerationRelation.Stale)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/TrapLayoutSnapshotMsg.cs",
+      "quote": "public WorldGenerationMsg? Generation { get; set; }"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/TrapLayoutRegistry.cs",
+      "quote": "var msg = new TrapLayoutSnapshotMsg { Entries = [.. _layout.Values], Generation = _generations.Stamp() };"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/TrapLayoutRegistry.cs",
+      "quote": "public bool IsStale(WorldGenerationMsg? generation, ulong sender) =>"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs",
+      "quote": "if (_trapLayout.IsStale(generation, sender))"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldReportGenerationGate.cs",
+      "quote": "internal static class WorldReportGenerationGate"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/TrapLayoutGenerationIdentityTests.cs",
+      "quote": "public void SnapshotFromAPreviousLayer_IsRefusedWhole_AndNothingIsMaterialized()"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/EntitySpawnedMsg.cs",
+      "quote": "public WorldGenerationMsg? Generation { get; set; }"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/RuntimeEntitySnapshotMsg.cs",
+      "quote": "public WorldGenerationMsg? Generation { get; set; }"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/RuntimeEntityRejectReason.cs",
+      "quote": "StaleGeneration = 2,"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs",
+      "quote": "msg.Generation = _generations.Stamp();"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs",
+      "quote": "entry.Msg.Generation = _generations.Stamp();"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs",
+      "quote": "private void AnswerStaleCreation(ulong sender, EntitySpawnedMsg msg)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs",
+      "quote": "_runtimeEntities.SendSnapshot(targetSteamId, _generations.Stamp());"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/RuntimeEntityGenerationIdentityTests.cs",
+      "quote": "public void ReportFromAPreviousLayer_IsRefusedWhole_Answered_AndNeverRelayed()"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/RuntimeEntityGenerationIdentityTests.cs",
+      "quote": "public void TheFallbackReReport_CarriesTheCurrentGenerationStamp()"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/RuntimeEntityGenerationIdentityTests.cs",
+      "quote": "public void AStaleAbsoluteTable_IsRefusedWhole_BeforeAnyEntryIsApplied()"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/RuntimeEntityGenerationIdentityTests.cs",
+      "quote": "public void AStaleAnswer_EndsOnlyItsOwnCreation_NotAnotherOneAtTheSameCell()"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/TrapLayoutGenerationIdentityTests.cs",
+      "quote": "public void TheEntryGroup_SendsTheRunBaselineBeforeEveryStampedTable()"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "// The kernel checkpoint goes FIRST because it is what carries the run"
     }
   ]
 }

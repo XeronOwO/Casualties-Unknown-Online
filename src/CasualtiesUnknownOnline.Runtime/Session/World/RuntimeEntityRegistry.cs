@@ -130,8 +130,8 @@ public sealed class RuntimeEntityRegistry(ISessionControl session, PacketSender 
 		return removedEntry || removedAnimal;
 	}
 
-	/// <summary>Host only: send the absolute table to one member (world entry, or the 60 s cycle). A no-op when nothing was accepted yet.</summary>
-	public void SendSnapshot(ulong targetSteamId)
+	/// <summary>Host only: send the absolute table to one member (world entry, or the 60 s cycle), stamped with this side's CURRENT world/layer generation (read by the caller at send time, so the table and its stamp always describe the same world). A no-op when nothing was accepted yet.</summary>
+	public void SendSnapshot(ulong targetSteamId, WorldGenerationMsg? generation)
 	{
 		if (_session.Role != SessionRole.Host || targetSteamId == 0)
 		{
@@ -147,6 +147,7 @@ public sealed class RuntimeEntityRegistry(ISessionControl session, PacketSender 
 		{
 			Entries = [.. _entities.Values],
 			AcceptedAnimalKeys = [.. _acceptedAnimals.Select(key => key.ToKeyMsg())],
+			Generation = generation,
 		};
 		_sender.Send(targetSteamId, NetMsg.RuntimeEntitySnapshot, msg);
 	}

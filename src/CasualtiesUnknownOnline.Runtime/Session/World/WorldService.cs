@@ -269,7 +269,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived { add => _channels.TrapLayoutReceived += value; remove => _channels.TrapLayoutReceived -= value; }
 
-	public void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries) => _channels.FireTrapLayoutReceived(entries);
+	public void FireTrapLayoutReceived(ulong sender, WorldGenerationMsg? generation, IReadOnlyList<TrapLayoutEntryMsg> entries) => _channels.FireTrapLayoutReceived(sender, generation, entries);
 
 	/// <summary>Guest-side rebuilt fluid-region facts from the kernel projection (host: empty).</summary>
 	public IReadOnlyList<FluidRegionState> FluidRegionFacts => _fluidKernelRead.Regions;

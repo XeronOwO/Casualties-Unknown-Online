@@ -95,7 +95,7 @@ internal sealed class WorldChannelRelay(
 
 	public event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived { add => _eventChannel.TrapLayoutReceived += value; remove => _eventChannel.TrapLayoutReceived -= value; }
 
-	public void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries) => _eventChannel.FireTrapLayoutReceived(entries);
+	public void FireTrapLayoutReceived(ulong sender, WorldGenerationMsg? generation, IReadOnlyList<TrapLayoutEntryMsg> entries) => _eventChannel.FireTrapLayoutReceived(sender, generation, entries);
 
 	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg) => _eventChannel.SendFluidRegion(targetSteamId, msg);
 

@@ -112,6 +112,17 @@ public sealed class EntitySpawnedMsg
 	[ProtoMember(11)]
 	public uint CreationSequence { get; set; }
 
+	/// <summary>
+	/// The world/layer generation this creation belongs to (protocol 30): the
+	/// creating side's kernel run baseline, read at send time. The receiver
+	/// materializes a copy at the reported position, and positions are
+	/// layer-relative, so a report of another generation is refused before
+	/// anything is created or relayed. Null = the sender had no committed run
+	/// baseline (compared as UNKNOWN, the pre-stamp behaviour).
+	/// </summary>
+	[ProtoMember(12)]
+	public WorldGenerationMsg? Generation { get; set; }
+
 	/// <summary>True when the message carries a creation-instance token (the creating side stamped it).</summary>
 	public bool HasCreationToken => CreationSequence != 0;
 }

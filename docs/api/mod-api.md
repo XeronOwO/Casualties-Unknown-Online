@@ -917,7 +917,7 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `29`. The pre-release protocol-version sequence
+- `ProtocolVersion.Current` is `30`. The pre-release protocol-version sequence
   was deliberately reset before first release (tech-decisions #137); the
   post-reset wire has since extended the character-sound event family
   (`CharacterSoundKind.ItemPlacement`), the runtime-entity creation family
@@ -942,7 +942,12 @@ commands and remains the two-process verification target).
   layer-relative direct world reports carry (`BlockPlaced`, `BlockDamaged`, the
   block-damage snapshot/report payload — a stale previous-layer report is
   refused, and a same-generation lost-air-write break report is accepted so its
-  drops survive), so earlier numbers such as
+  drops survive), and the world/layer generation stamp on the remaining
+  position-keyed families (the trap-layout snapshot and the runtime-entity
+  creation report with its absolute table — a stale one is refused before any
+  entity is materialized, and a refused creation report is answered with
+  `RuntimeEntityRejectReason.StaleGeneration` so its pending re-report ends), so
+  earlier numbers such as
   10/29/34 in this document are historical and must not be used as current wire
   versions.
 - Behavioral wire changes after the first release will bump

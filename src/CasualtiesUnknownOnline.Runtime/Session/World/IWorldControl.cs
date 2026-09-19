@@ -373,8 +373,8 @@ public interface IWorldControl
 	/// <summary>Host only: send the trap layout to one member (on its world entry, or on the in-session repair).</summary>
 	void SendTrapLayoutSnapshot(ulong targetSteamId);
 
-	/// <summary>Guest: the host's trap layout arrived — align the local world (materialize missing, destroy surplus).</summary>
-	void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries);
+	/// <summary>Guest: the host's trap layout arrived — align the local world (materialize missing, destroy surplus). A snapshot of another world/layer generation is refused before this seam fires.</summary>
+	void FireTrapLayoutReceived(ulong sender, WorldGenerationMsg? generation, IReadOnlyList<TrapLayoutEntryMsg> entries);
 
 	event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived;
 

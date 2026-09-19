@@ -3,7 +3,9 @@ using ProtoBuf;
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
-/// The world/layer generation a direct world report belongs to (protocol 29).
+/// The world/layer generation a direct world report belongs to (introduced with
+/// the block-report family at protocol 29, extended to the trap-layout and
+/// runtime-entity families at protocol 30).
 /// The identity is the kernel run baseline's own: the session/restore epoch (a
 /// per-process counter that advances on session end and on a restore, so no fact
 /// can cross a session) plus the run's layer index (bumped for every

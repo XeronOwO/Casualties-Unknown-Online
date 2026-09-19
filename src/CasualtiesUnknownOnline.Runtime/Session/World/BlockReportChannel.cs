@@ -56,24 +56,13 @@ internal sealed class BlockReportChannel(
 
 	/// <summary>
 	/// Compare a received direct world report's generation stamp with this side's
-	/// own generation, logging every STALE verdict with both sides of the
-	/// comparison (kind, sender, reported generation, current generation). A
-	/// refusal of this kind must be distinguishable in the field from a
-	/// first-writer loss or a malformed report, so it is never silent; an
-	/// UNKNOWN verdict (no stamp, or no committed run baseline here) is not stale
-	/// and leaves the caller's pre-stamp behaviour in place.
+	/// own generation. The verdict and its refusal log are the shared
+	/// <see cref="WorldReportGenerationGate"/> that the trap-layout and
+	/// runtime-entity families use too, so every stamped family refuses a stale
+	/// report in the same words.
 	/// </summary>
-	private WorldGenerationRelation RelateReportGeneration(WorldGenerationMsg? generation, string kind, ulong sender)
-	{
-		var relation = WorldReportGeneration.Relate(_generations.Current, generation);
-		if (relation == WorldGenerationRelation.Stale)
-		{
-			_log.LogWarning("[WorldReportGeneration] {Kind} from {Sender} belongs to {Reported} while this side is at {Current} — the report is about another world generation and is refused as stale.",
-				kind, sender, WorldReportGeneration.Describe(generation), WorldReportGeneration.Describe(_generations.Current));
-		}
-
-		return relation;
-	}
+	private WorldGenerationRelation RelateReportGeneration(WorldGenerationMsg? generation, string kind, ulong sender) =>
+		WorldReportGenerationGate.Relate(generation, _generations.Current, kind, sender, _log);
 
 	/// <summary>
 	/// Guest: the host's partial-damage snapshot arrived — it is also the ANSWER

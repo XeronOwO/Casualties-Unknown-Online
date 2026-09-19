@@ -55,7 +55,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — the keyframe cannot heal a swallowed command.
 - [Carried-inventory registration](todo/carried-inventory-registration-re-report.md) — **Medium** — the host arbitration table stays empty.
 - [Restore live-object row loops](todo/restore-live-object-loops-containment.md) — **Low** — three appliers keep a half-level blast radius.
-- [Session control convergence](todo/session-control-convergence.md) — **Medium** — lost readiness/control messages have no re-report.
 - [Checkpoint chunks vs the run epoch](todo/checkpoint-run-epoch-validation.md) — **Low-Medium** — a late set could move the epoch backwards.
 - [Dropped mod command requests](todo/mod-command-request-timeout.md) — **Low** — pending callbacks have no timeout.
 - [Sync cadence review](todo/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
@@ -65,6 +64,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Review
 
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
+- [Session control convergence](review/session-control-convergence.md) — **Medium** — the bounded scene re-report window and the re-ack loop.
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — the manual key acts locally; the host arbitrates.
 - [World/layer generation identity](review/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
 - [Remaining generation-relative families](review/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.

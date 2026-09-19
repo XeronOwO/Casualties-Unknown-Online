@@ -49,6 +49,11 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	private long _nextPingMs;
 
+	/// <summary>The last absolute scene report this side sent (null name = nothing reported yet) — the readiness window re-asserts it.</summary>
+	private SceneStateType _lastSceneState = SceneStateType.InMenu;
+	private string? _lastSceneName;
+	private NetVector2? _lastScenePosition;
+
 	public SessionService(ISteamService steam, PacketSender sender, NetworkTrafficMonitor traffic, ITimeSource time,
 		IModListProvider modListProvider, ILogger<SessionService> log)
 	{
@@ -220,26 +225,70 @@ public sealed class SessionService : ICuoService, ISessionControl
 	public void ReportSceneState(SceneStateType state, string sceneName, NetVector2? localPosition = null)
 	{
 		_state.LocalInWorld = state == SceneStateType.InWorld;
-		if (SessionActive)
-		{
-			var msg = new SceneStateMsg
-			{
-				State = (byte)state,
-				SceneName = sceneName,
-				Position = (localPosition ?? default).ToNetVector2Msg(),
-				SteamId = _steam.LocalSteamId,
-			};
-			if (Role == SessionRole.Host)
-			{
-				((ISessionControl)this).Broadcast(NetMsg.SceneState, msg);
-			}
-			else
-			{
-				_sender.Send(HostSteamId, NetMsg.SceneState, msg);
-			}
-		}
+		_lastSceneState = state;
+		_lastSceneName = sceneName;
+		_lastScenePosition = localPosition;
+
+		// Announced BEFORE the send: the readiness window arms on this edge, and a peer that
+		// answers inside the send call (loopback / in-process) must not have its answer
+		// cleared by the arming that follows it.
+		LocalSceneReported?.Invoke(state);
+		SendSceneState(state, sceneName, localPosition);
 
 		_log.LogInformation("Scene state: {State} ({SceneName})", state, sceneName);
+	}
+
+	/// <summary>Raised when this side makes a local scene report (see <see cref="ISessionControl.LocalSceneReported"/>).</summary>
+	public event Action<SceneStateType>? LocalSceneReported;
+
+	/// <summary>
+	/// Guest only (the readiness window calls this): re-send the last absolute scene
+	/// report. The message is the SAME state, never a delta — the host's scene handler
+	/// treats a repeat as an absolute statement of where this member is and answers with
+	/// the control facts it owns. Returns whether it actually went out: false before the
+	/// first report, and while the session is not active
+	/// (<see cref="SessionControlConvergence"/> must not count a report that never left).
+	/// </summary>
+	public bool ResendSceneState()
+	{
+		if (_lastSceneName is null)
+		{
+			return false;
+		}
+
+		if (!SendSceneState(_lastSceneState, _lastSceneName, _lastScenePosition))
+		{
+			return false;
+		}
+
+		_log.LogInformation("Scene state re-reported: {State} ({SceneName})", _lastSceneState, _lastSceneName);
+		return true;
+	}
+
+	private bool SendSceneState(SceneStateType state, string sceneName, NetVector2? localPosition)
+	{
+		if (!SessionActive)
+		{
+			return false;
+		}
+
+		var msg = new SceneStateMsg
+		{
+			State = (byte)state,
+			SceneName = sceneName,
+			Position = (localPosition ?? default).ToNetVector2Msg(),
+			SteamId = _steam.LocalSteamId,
+		};
+		if (Role == SessionRole.Host)
+		{
+			((ISessionControl)this).Broadcast(NetMsg.SceneState, msg);
+		}
+		else
+		{
+			_sender.Send(HostSteamId, NetMsg.SceneState, msg);
+		}
+
+		return true;
 	}
 
 	/// <summary>

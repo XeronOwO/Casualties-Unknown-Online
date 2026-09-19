@@ -29,11 +29,23 @@ public sealed class HandshakeAckHandler(PacketSender sender, ILogger<HandshakeAc
 		}
 
 		var member = session.GetOrCreateMember(sender);
+		var wasHandshaken = member.Handshaken;
+		var wasInWorld = member.InWorld;
 		member.InWorld = hostState == SceneStateType.InWorld;
 		member.Handshaken = true;
 		member.DisplayName = IpDisplayNamePolicy.Normalize(msg.DisplayName);
 		member.SelectedColor = msg.HasColor ? msg.Color.ToNetColorRgba() : (NetColorRgba?)null;
-		session.FireMemberAdded(sender); // the handshake completed — domains keyed on member readiness hook here (the item domain grants the id watermark on the host)
+
+		// Edge only: the host re-sends this ack while its member stays unconfirmed
+		// (SessionPeerMaintenance), and a repeat must not re-fire every readiness
+		// subscriber (ModLifecycle's PlayerJoined, the item domain's watermark grant) —
+		// the exact rule the host's own ack-ack handler documents. The scene event is
+		// edge-gated too: a repeat whose scene field says the same thing must not
+		// re-drive the adapter's entry/exit handlers.
+		if (!wasHandshaken)
+		{
+			session.FireMemberAdded(sender); // the handshake completed — domains keyed on member readiness hook here
+		}
 
 		var wasActive = session.SessionActive;
 		session.SessionActive = true;
@@ -45,8 +57,12 @@ public sealed class HandshakeAckHandler(PacketSender sender, ILogger<HandshakeAc
 
 		// The ack carries the host's scene state — surface it like a regular
 		// scene change so a reconnecting guest follows the host into a world
-		// that is already running (Game Adapter auto-starts the run).
-		session.FireRemoteSceneChanged(sender, hostState == SceneStateType.InWorld);
+		// that is already running (Game Adapter auto-starts the run). Fired on the
+		// value's edge: a re-sent ack must not re-run the entry/exit handlers.
+		if (!wasHandshaken || wasInWorld != member.InWorld)
+		{
+			session.FireRemoteSceneChanged(sender, hostState == SceneStateType.InWorld);
+		}
 
 		// Third leg of the handshake: the host marks us Handshaken only on this
 		// arrival — the start gate's wait list then holds only members whose

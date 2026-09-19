@@ -40,9 +40,6 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	}
 
 	private readonly ISessionControl _session;
-
-	private readonly PacketSender _sender;
-
 	private readonly ITimeSource _time;
 
 	private readonly ILogger<EntitySyncService> _log;
@@ -65,6 +62,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	private readonly Dictionary<ulong, SyncedEntity> _entities = [];
 	private readonly List<PlayerEntity> _remotePlayers = [];
+	private readonly PlayerRosterAnnouncer _roster;
 	private ulong _epoch;
 	private uint _nextEntityCounter;
 	private bool _selfSyncActive; // guest: self sync state (host derives from the entity table)
@@ -78,8 +76,6 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	{
 		_session = session;
 
-		_sender = sender;
-
 		_time = time;
 
 		_adaptiveRates = adaptiveRates;
@@ -89,6 +85,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_kernelProtocol = kernelProtocol;
 		_localPlayer = new PlayerEntity(session.LocalSteamId, default, isLocal: true);
 		_playerStream = new PlayerStreamExchange(session, this, kernelProtocol, log);
+		_roster = new PlayerRosterAnnouncer(sender, session, log);
 
 		_kernelProtocol.EntityStateStreamReceived += _playerStream.OnEntityStateStreamReceived;
 		session.MemberRemoved += OnMemberRemoved;
@@ -206,6 +203,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	void IEntitySyncControl.EndEntitySync() => EndEntitySync();
 
+	void IEntitySyncControl.ResendRoster(ulong steamId) => ResendRoster(steamId);
+
 	// ---- Internal surface for the packet handlers (Session/Handlers/) ----
 
 	/// <summary>Guest side: last applied host snapshot seq (stream gate).</summary>
@@ -231,11 +230,22 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	{
 		if (msg.GuestSteamId == _localPlayer.SteamId)
 		{
-			_localPlayer.EntityId = msg.GuestEntityId.ToNetworkEntityId();
+			var entityId = msg.GuestEntityId.ToNetworkEntityId();
+			// A repeat carries the SAME identity (the in-session repair group re-sends
+			// the roster): it must not re-drive the receivers — re-firing RemoteJoined
+			// rebuilds every render clone, and resetting the sequence re-admits frames
+			// the stream already superseded.
+			var isRepeat = _selfSyncActive && _localPlayer.EntityId.Equals(entityId);
+			_localPlayer.EntityId = entityId;
 			var hostEntity = UpsertEntity(msg.HostSteamId, msg.HostEntityId.ToNetworkEntityId());
 			hostEntity.Position = msg.HostPosition.ToNetVector2();
 			_session.GetOrCreateMember(msg.HostSteamId).InWorld = true; // the host is in the world with us
 			_selfSyncActive = true;
+			if (isRepeat)
+			{
+				return;
+			}
+
 			LastStateSeq = 0; // the host's snapshot sequence restarts with this join
 			_log.LogInformation("PlayerJoin received: local {Local}, host {Host} at {Position}.",
 				_localPlayer.EntityId, hostEntity.EntityId, hostEntity.Position);
@@ -246,8 +256,15 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		var presence = _session.GetOrCreateMember(msg.GuestSteamId);
 		presence.InWorld = true;
 		presence.Handshaken = true;
-		var entity = UpsertEntity(msg.GuestSteamId, msg.GuestEntityId.ToNetworkEntityId());
+		var guestId = msg.GuestEntityId.ToNetworkEntityId();
+		var isNewRow = !_entities.TryGetValue(msg.GuestSteamId, out var existing) || !existing.Entity.EntityId.Equals(guestId);
+		var entity = UpsertEntity(msg.GuestSteamId, guestId);
 		entity.Position = msg.GuestPosition.ToNetVector2();
+		if (!isNewRow)
+		{
+			return; // a re-sent roster row: the buffer is already bound to this identity
+		}
+
 		_log.LogInformation("Roster join: member {Guest} ({GuestId}) at {Position}.",
 			msg.GuestSteamId, entity.EntityId, entity.Position);
 		RemoteJoined?.Invoke(entity);
@@ -463,11 +480,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		RefreshRemotePlayers();
 		if (_session.Role == SessionRole.Host)
 		{
-			BroadcastExcept(steamId, NetMsg.PlayerLeave, new PlayerLeaveMsg
-			{
-				SteamId = steamId,
-				EntityId = member.Entity.EntityId.ToNetworkEntityIdMsg(),
-			});
+			_roster.AnnounceLeave(steamId, member.Entity.EntityId, _entities.Values);
 		}
 
 		_session.FireRemoteSceneChanged(steamId, false);
@@ -509,50 +522,31 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_playerStatus.Ensure(presence.SteamId);
 		RemoteJoined?.Invoke(entity);
 
-		var joinMsg = BuildJoinMsg(presence.SteamId, entity.EntityId, presence.ReportedSpawnPos);
-		_sender.Send(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // self-activation
+		var joinMsg = _roster.SendRosterTo(presence.SteamId, entity.EntityId, presence.ReportedSpawnPos, _localPlayer, _entities.Values);
+		_roster.AnnounceJoin(joinMsg, presence.SteamId, _entities.Values); // roster: announce to the others
+		_playerStream.BroadcastPlayerState();
 		_log.LogInformation("PlayerJoin sent: local {Local} ({LocalId}), member {Guest} ({GuestId}).",
 			_localPlayer.SteamId, _localPlayer.EntityId, presence.SteamId, entity.EntityId);
-
-		// Roster backfill: the newcomer also needs every already-synced member —
-		// their PlayerJoin predates it, and state messages only update existing
-		// entity buffers, so without this it never learns they exist.
-		foreach (var existing in _entities.Values)
-		{
-			if (existing.SteamId == presence.SteamId)
-			{
-				continue;
-			}
-
-			var existingPresence = _session.GetOrCreateMember(existing.SteamId);
-			_sender.Send(presence.SteamId, NetMsg.PlayerJoin,
-				BuildJoinMsg(existing.SteamId, existing.Entity.EntityId, existingPresence.ReportedSpawnPos));
-		}
-
-		BroadcastExcept(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // roster: announce to the others
-		_playerStream.BroadcastPlayerState();
 	}
 
-	private PlayerJoinMsg BuildJoinMsg(ulong guestSteamId, NetworkEntityId guestId, NetVector2 guestPosition)
+	/// <summary>
+	/// Host side: re-send the absolute roster facts to one member — its own activation
+	/// join carrying the SAME entity id (never a new allocation) plus every other synced
+	/// member's row. This is the roster's absolute form, carried by the in-session repair
+	/// group (<see cref="World.WorldEntryFanout.SendInSessionRepair"/>): a swallowed
+	/// <c>PlayerJoin</c> used to stay lost until the member left and re-entered the world,
+	/// and a third party's row for this member converges through its own repair pass.
+	/// A repeat is idempotent on the receiver by the identity the row carries.
+	/// </summary>
+	internal void ResendRoster(ulong steamId)
 	{
-		var displayName = _session.TryGetMember(guestSteamId, out var presence)
-			? presence.DisplayName
-			: "";
-		var selectedColor = _session.TryGetMember(guestSteamId, out presence)
-			? presence.SelectedColor
-			: null;
-		return new PlayerJoinMsg
+		if (_session.Role != SessionRole.Host || !_entities.TryGetValue(steamId, out var member))
 		{
-			HostSteamId = _localPlayer.SteamId,
-			HostEntityId = _localPlayer.EntityId.ToNetworkEntityIdMsg(),
-			HostPosition = _localPlayer.Position.ToNetVector2Msg(),
-			GuestSteamId = guestSteamId,
-			GuestEntityId = guestId.ToNetworkEntityIdMsg(),
-			GuestPosition = guestPosition.ToNetVector2Msg(),
-			DisplayName = displayName,
-			HasColor = selectedColor.HasValue,
-			Color = selectedColor.HasValue ? selectedColor.Value.ToNetColorRgbaMsg() : new(),
-		};
+			return;
+		}
+
+		var presence = _session.GetOrCreateMember(steamId);
+		_roster.SendRosterTo(steamId, member.Entity.EntityId, presence.ReportedSpawnPos, _localPlayer, _entities.Values);
 	}
 
 	/// <summary>Upsert a remote entity buffer (id updated on rejoin; the buffer is
@@ -582,17 +576,5 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		}
 
 		return new NetworkEntityId(_epoch, _nextEntityCounter++, generation: 0);
-	}
-
-	/// <summary>Broadcast to every synced member except one — relay semantics: the source already applied the change locally.</summary>
-	private void BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload)
-	{
-		foreach (var member in _entities.Values)
-		{
-			if (member.SteamId != excludeSteamId)
-			{
-				_sender.Send(member.SteamId, msg, payload);
-			}
-		}
 	}
 }

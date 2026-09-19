@@ -39,6 +39,7 @@ public sealed class WorldEntryFanout(
 	IWorldControl world,
 	IItemControl items,
 	IEnemySyncControl enemies,
+	IEntitySyncControl entities,
 	ICraftControl craft,
 	IKernelProtocolControl kernelProtocol,
 	ILogger<WorldEntryFanout> log)
@@ -46,6 +47,7 @@ public sealed class WorldEntryFanout(
 	private readonly IWorldControl _world = world;
 	private readonly IItemControl _items = items;
 	private readonly IEnemySyncControl _enemies = enemies;
+	private readonly IEntitySyncControl _entities = entities;
 	private readonly ICraftControl _craft = craft;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly ILogger<WorldEntryFanout> _log = log;
@@ -97,7 +99,10 @@ public sealed class WorldEntryFanout(
 	/// Adding an absolute in-world table means adding it HERE as well: a
 	/// swallowed entry send has no second chance until the next world-entry
 	/// edge, which is the gap the trap-layout snapshot sat in (the sync-coverage
-	/// audit's W6 row) and the enemy snapshot sat in (N1).
+	/// audit's W6 row) and the enemy snapshot sat in (N1). The player roster
+	/// rides here for the same reason (row R3): its entry-time writes live in
+	/// <c>EntitySyncService.StartMemberSync</c>, and this group is its absolute
+	/// re-send — the same entity ids, which the receiver absorbs by identity.
 	/// </summary>
 	public void SendInSessionRepair(ulong steamId)
 	{
@@ -112,5 +117,6 @@ public sealed class WorldEntryFanout(
 		_enemies.SendEnemySnapshot(steamId);
 		_world.SendRuntimeEntitySnapshot(steamId);
 		_craft.SendRecipeUnlockSnapshot(steamId);
+		_entities.ResendRoster(steamId); // the roster is an absolute table too: a swallowed PlayerJoin (self-activation or a third party's row) converges here
 	}
 }

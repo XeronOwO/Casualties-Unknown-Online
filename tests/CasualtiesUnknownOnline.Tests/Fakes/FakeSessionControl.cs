@@ -53,7 +53,15 @@ internal sealed class FakeSessionControl : ISessionControl
 
 	public NetVector2 GetRemoteSpawnPos(ulong steamId) => TryGetMember(steamId, out var member) ? member.ReportedSpawnPos : default;
 
-	public void ReportSceneState(SceneStateType state, string sceneName, NetVector2? localPosition = null) => LocalSceneState = state;
+	public void ReportSceneState(SceneStateType state, string sceneName, NetVector2? localPosition = null)
+	{
+		LocalSceneState = state;
+		LocalSceneReported?.Invoke(state); // the real service announces the report; the fake mirrors it
+	}
+
+	public event Action<SceneStateType>? LocalSceneReported;
+
+	public bool ResendSceneState() => throw new NotSupportedException("the save tests never re-report a scene state");
 
 	public bool TryGetMember(ulong steamId, out MemberPresenceTable.MemberPresence member)
 	{

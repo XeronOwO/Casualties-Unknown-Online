@@ -154,6 +154,12 @@ public interface IWorldControl
 	/// <summary>Host only: a member finished loading (InWorld) — release the gate when all are in, or let a late joiner pass directly.</summary>
 	void NotifyMemberInWorld(ulong steamId);
 
+	/// <summary>Host only: a member RE-ASSERTED its InWorld state (its convergence window has not
+	/// seen the host's answer) — re-answer with the gate's current verdict. Released → the same
+	/// targeted WorldReady a late joiner gets; still armed or no gate at all → nothing (a repeat is
+	/// not a new arrival and never releases the gate).</summary>
+	void AnswerRepeatInWorld(ulong steamId);
+
 	/// <summary>Host only: the gate is armed (the host is waiting too) — driver pumps this for the 30 s fallback.</summary>
 	void MaybeForceStartGate();
 

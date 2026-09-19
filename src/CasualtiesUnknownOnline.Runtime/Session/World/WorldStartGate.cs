@@ -96,6 +96,26 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 		}
 	}
 
+	/// <summary>
+	/// Host only: a member re-asserted its InWorld state (its readiness window has not
+	/// seen the host's answer). Re-answer with the gate's CURRENT verdict — released: the
+	/// same targeted WorldReady a late joiner gets; still armed: nothing, because the
+	/// release broadcast covers every handshaken member; no gate at all (the host is not
+	/// in a run): nothing. Never releases the gate — a repeat is not a new arrival.
+	/// </summary>
+	internal void AnswerRepeatInWorld(ulong steamId)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || _armed is not null || !_released)
+		{
+			return;
+		}
+
+		// The same message as the late-joiner pass; the log line differs because this is
+		// an ANSWER to a re-asserted report, not a member arriving for the first time.
+		_sender.Send(steamId, NetMsg.WorldReady, new WorldReadyMsg());
+		_log.LogInformation("Start-gate state re-answered to {Peer} — the gate is released.", steamId);
+	}
+
 	/// <summary>Host only: the gate is armed (the host is waiting too) — the driver pumps this for the 30 s fallback.</summary>
 	internal void PumpTimeout()
 	{

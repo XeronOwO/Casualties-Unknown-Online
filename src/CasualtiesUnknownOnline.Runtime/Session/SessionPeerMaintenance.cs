@@ -74,7 +74,10 @@ internal sealed class SessionPeerMaintenance(
 		_log.LogInformation("Retrying handshake with {Host}…", _identity.HostSteamId);
 	}
 
-	/// <summary>Host-side warm-up for un-handshaken lobby peers (Steam P2P needs traffic both ways).</summary>
+	/// <summary>Host-side warm-up and handshake convergence for un-handshaken lobby peers:
+	/// a Ping while no handshake has arrived yet (Steam P2P needs traffic both ways to
+	/// establish), and a re-sent ack for a member that HAS handshaken but never confirmed
+	/// end-to-end — the third leg has no other re-drive (sync-coverage row R4).</summary>
 	internal void SendPeerWarmup()
 	{
 		if (_identity.Role != SessionRole.Host)
@@ -107,6 +110,44 @@ internal sealed class SessionPeerMaintenance(
 			if (!_warmupBackoff.ShouldSend(peer, nowMs))
 			{
 				continue; // a recent failure streak is still backing off — do not hammer the broken session
+			}
+
+			// A member we already acked but never confirmed end-to-end (no ack-ack): the
+			// guest stopped retrying its handshake the moment our ack arrived, so it
+			// believes it is connected while this host keeps it out of the start gate and
+			// the entity sync, and nothing else re-drives the third leg. Re-send the ack —
+			// the guest answers EVERY ack with the third leg, so the loop closes on the
+			// next tick. Only the scene field is refreshed: it is the one control fact that
+			// moves, and re-asserting a stale scene would drive the guest's scene handlers.
+			if (member?.SentHandshakeAck is { } sent)
+			{
+				// A COPY, never the stored message: that one is the record of what this host
+				// admitted for this member, and mutating it in place would make the record a
+				// moving target (and lean on the sender serializing synchronously). Every
+				// admission field is carried over and only the scene is read live — it is the
+				// one fact that moves, and re-asserting a stale scene would drive the guest's
+				// own scene handlers. A new field on the ack must be added here as well.
+				var ack = new HandshakeAckMsg
+				{
+					Protocol = sent.Protocol,
+					Scene = new SceneStateMsg { State = (byte)(_state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu) },
+					HasWorldParams = sent.HasWorldParams,
+					AssignedPeerId = sent.AssignedPeerId,
+					DisplayName = sent.DisplayName,
+					HasColor = sent.HasColor,
+					Color = sent.Color,
+				};
+				if (_sender.TrySend(peer, NetMsg.HandshakeAck, ack))
+				{
+					_warmupBackoff.RecordSuccess(peer);
+					_log.LogInformation("Re-sent the handshake ack to unconfirmed {Peer}.", peer);
+				}
+				else
+				{
+					_warmupBackoff.RecordFailure(peer, nowMs);
+				}
+
+				continue;
 			}
 
 			if (_sender.TrySend(peer, NetMsg.Ping, ping))

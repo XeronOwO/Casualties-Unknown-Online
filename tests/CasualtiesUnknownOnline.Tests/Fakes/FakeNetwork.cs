@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Tests.Fakes;
 
@@ -64,6 +65,15 @@ internal sealed class FakeNetwork
 		if (!reliable && faults?.UnreliableDropRate > 0 && _random.NextDouble() < faults.UnreliableDropRate)
 		{
 			return true; // sent, never delivered — unreliable loss
+		}
+
+		// Targeted swallow: the lazy Steam P2P session drops individual frames while
+		// the link reports success (the sender never learns). One message id, so a
+		// convergence scenario can swallow exactly the frame under test and leave
+		// every other message of the same flow intact.
+		if (faults?.DropMessageId is { } dropped && data.Length > 0 && data[0] == (byte)dropped)
+		{
+			return true; // sent, never delivered — the lazy-session swallow
 		}
 
 		var deliverAt = faults?.DelayMs > 0 ? _clock.NowMs + faults.DelayMs : _clock.NowMs;
@@ -184,6 +194,9 @@ internal sealed class LinkFaults
 	internal long DelayMs { get; set; } // virtual-clock delivery delay
 
 	internal double UnreliableDropRate { get; set; } // 0-1, unreliable messages only
+
+	/// <summary>Swallow every frame whose first byte (the NetMsg id) matches — the lazy-P2P swallow window, targeted at one message type.</summary>
+	internal NetMsg? DropMessageId { get; set; }
 
 	internal bool Duplicate { get; set; } // deliver twice (retransmission style)
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
@@ -27,6 +28,16 @@ public sealed class MemberPresenceTable
 		public bool InWorld; // in the world (menu/loading = false)
 		public NetVector2 ReportedSpawnPos; // position reported when entering the world — the clone anchor
 		public float RttMs = -1f; // per-member ping diagnostics
+
+		/// <summary>
+		/// Host only: the handshake ack this host sent the member (null before the first
+		/// ack). The warm-up pump re-sends it — with the scene field refreshed, the only
+		/// field that moves — while the member stays unconfirmed, because the ack's other
+		/// admission facts (the world-params presence, the assigned peer id, the host's
+		/// own identity at ack time) are known only where the ack was built and nothing
+		/// else re-drives the third handshake leg.
+		/// </summary>
+		public HandshakeAckMsg? SentHandshakeAck;
 
 		/// <summary>Custom display name for IP-direct sessions (empty = fall back to Steam persona/ID).</summary>
 		public string DisplayName = "";

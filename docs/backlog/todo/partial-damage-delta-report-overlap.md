@@ -4,7 +4,7 @@
 - Priority: Low-Medium
 - Category: Network / sync coverage / world blocks
 - Source: Independent adversarial review of the W2 landing (2026-09-18) — the landing's recorded limitation described only the under-count half
-- Related: `review/guest-partial-block-damage-re-report.md` (W2 — the absolute re-report, landed), `todo/sync-cadence-review.md`
+- Related: `review/guest-partial-block-damage-re-report.md` (W2 — the absolute re-report, landed), `review/sync-cadence-review.md`
 
 ## Problem (evidence)
 
@@ -61,4 +61,4 @@ block breaks.
 
 - The W2 recovery itself and its entry lifetime (landed).
 - Optional members / relay re-sends (`review/sync-event-and-periodic-fallback-coverage-audit.md`).
-- Cadence tuning (`todo/sync-cadence-review.md`).
+- Cadence tuning (`review/sync-cadence-review.md`, landed).

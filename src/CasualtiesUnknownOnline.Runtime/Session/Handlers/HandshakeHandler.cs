@@ -142,6 +142,11 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		// again, the trashbag contents regressed).
 		if (member.InWorld)
 		{
+			// This path IS an entry — the InWorld edge below never fires for a reconnect — so
+			// the member's entry-repair budget re-arms here exactly as it does on the edge
+			// (SceneStateHandler): a reconnect must not inherit the cooldown of the previous
+			// entry's last repair, or its own first repeat could go unanswered.
+			member.EntryRepair.Arm();
 			_worldEntryFanout.Send(sender);
 			// The Game Adapter's world-entry state (geyser liquid types, keypad
 			// codes) lives in the Unity scene, so it cannot ride the Runtime

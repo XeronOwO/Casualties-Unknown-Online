@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W6, after the independent adversarial review reclassified it from OK)
-- Related: `review/runtime-entity-spawn-backfill.md`, `todo/sync-cadence-review.md`, `todo/trap-layout-entry-snapshot-staleness.md`
+- Related: `review/runtime-entity-spawn-backfill.md`, `review/sync-cadence-review.md`, `todo/trap-layout-entry-snapshot-staleness.md`
 
 ## Problem (evidence)
 
@@ -107,7 +107,7 @@ member entering between two repairs can materialize an entity the host has since
 (transient — the next repair makes the guest destroy the surplus): recorded in
 `todo/trap-layout-entry-snapshot-staleness.md`. (2) The repair sends the full table per
 in-world member per minute; the snapshot is small and absolute, and the first-resend
-latency question stays with `todo/sync-cadence-review.md`.
+latency question is decided in `review/sync-cadence-review.md` (landed: a still-open entry window is answered with the in-session repair set).
 
 **Review.** The independent adversarial pass ran on the frozen code and reproduced both
 commands (10/10 focused at the time, gates green after the evidence re-point). Its findings,

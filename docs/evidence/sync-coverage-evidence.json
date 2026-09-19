@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 959,
+  "count": 978,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -182,7 +182,7 @@
       "cluster": "enemies-trade",
       "row": "N4",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs",
-      "quote": "MaxIntervalMs: 30_000),"
+      "quote": "BaseIntervalMs: 5000, MaxIntervalMs: 15_000),"
     },
     {
       "cluster": "enemies-trade",
@@ -854,7 +854,7 @@
       "cluster": "items",
       "row": "I3",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs",
-      "quote": "MaxIntervalMs: 30_000),"
+      "quote": "BaseIntervalMs: 5000, MaxIntervalMs: 10_000),"
     },
     {
       "cluster": "items",
@@ -2450,7 +2450,7 @@
       "cluster": "run-world",
       "row": "R5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs",
-      "quote": "MaxIntervalMs: 30_000),"
+      "quote": "BaseIntervalMs: 5000, MaxIntervalMs: 10_000),"
     },
     {
       "cluster": "run-world",
@@ -5757,6 +5757,120 @@
       "row": "R3",
       "file": "tests/CasualtiesUnknownOnline.Tests/Session/SessionControlConvergenceTests.cs",
       "quote": "public void GateArmedPastTheFirstWindows_StillConvergesWhenItReleases()"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "I3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SyncCadenceDecisionTests.cs",
+      "quote": "Assert.Equal(10_000, IntervalAt(profile, AdaptivePressureLevel.Critical));"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "N4",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SyncCadenceDecisionTests.cs",
+      "quote": "Assert.Equal(15_000, IntervalAt(profile, AdaptivePressureLevel.Critical));"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "F1",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SyncCadenceDecisionTests.cs",
+      "quote": "Assert.Equal(6_667, worst); // 1 000 ms / the priority-2 Critical factor 0.15"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "public void SendInSessionRepair(ulong steamId)"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs",
+      "quote": "session.FireEntryRepairRequested(reporter); // the adapter-owned entry tables (keypad codes, geyser types)"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W4",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
+      "quote": "_session.EntryRepairRequested += OnEntryRepairRequested;"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W5",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs",
+      "quote": "_session.EntryRepairRequested += OnEntryRepairRequested;"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W7",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntryRepairSchedule.cs",
+      "quote": "internal const long RepairIntervalMs = 10_000;"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W7",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs",
+      "quote": "if (member.EntryRepair.TryClaim(_time.NowMs))"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W7",
+      "file": "docs/evidence/sync-cadence-measurements.md",
+      "quote": "| One repair pass, measured in the simulation world | 2 438 bytes"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs",
+      "quote": "_worldEntryFanout.SendInSessionRepair(reporter); // the runtime-owned absolute in-world tables"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "R3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
+      "quote": "the state must precede the completion marker, or the window would close on a marker whose tables never came"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "I8",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SyncCadenceDecisionTests.cs",
+      "quote": "Assert.Equal(60_000, CarriedInventoryReportSchedule.BurstIntervalMs * CarriedInventoryReportSchedule.BurstReports);"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "I8",
+      "file": "docs/evidence/sync-cadence-measurements.md",
+      "quote": "| Burst step (first-resend latency of a swallowed registration) | 5 000 ms |"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/PendingReportFallback.cs",
+      "quote": "internal const long IntervalMs = 60_000;"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_world.SendBlockStateSnapshot(steamId);"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W7",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
+      "quote": "Assert.Equal(2_438L, answerBytes);"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W7",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/EntryRepairScheduleTests.cs",
+      "quote": "Assert.True(schedule.TryClaim(1_000), \"a wrapped tick count must re-base instead of suppressing the repair for the rest of the wrap\");"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "R3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
+      "quote": "((ISessionControl)w.Host.Session).EntryRepairRequested += requested.Add;"
     }
   ]
 }

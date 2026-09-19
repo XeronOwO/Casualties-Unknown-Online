@@ -161,6 +161,15 @@ public sealed class SessionService : ICuoService, ISessionControl
 	void ISessionControl.FireRemoteSceneChanged(ulong steamId, bool inWorld) =>
 		_presence.FireRemoteSceneChanged(steamId, inWorld);
 
+	void ISessionControl.FireEntryRepairRequested(ulong steamId) =>
+		_presence.FireEntryRepairRequested(steamId);
+
+	event Action<ulong>? ISessionControl.EntryRepairRequested
+	{
+		add => _presence.EntryRepairRequested += value;
+		remove => _presence.EntryRepairRequested -= value;
+	}
+
 	void ISessionControl.FireMemberAdded(ulong steamId) => _presence.FireMemberAdded(steamId);
 
 	event Action<ulong>? ISessionControl.MemberRemoved

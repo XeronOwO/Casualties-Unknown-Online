@@ -39,12 +39,14 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 	{
 		_world.GeyserStateReceived += OnGeyserStateReceived;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
+		_session.EntryRepairRequested += OnEntryRepairRequested;
 	}
 
 	internal void Unbind()
 	{
 		_world.GeyserStateReceived -= OnGeyserStateReceived;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
+		_session.EntryRepairRequested -= OnEntryRepairRequested;
 	}
 
 	/// <summary>A member (re)entered the world — re-broadcast the geyser liquid
@@ -54,6 +56,24 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 	{
 		if (inWorld && _session.Role == SessionRole.Host && _session.SessionActive && WorldGeneration.world != null) // Unity object — ==
 		{
+			SendFullSet();
+		}
+	}
+
+	/// <summary>
+	/// The host re-sent a member's entry state because that member is still re-asserting its
+	/// entry — the same reason the entry edge re-sends, and the geyser liquid types are one of
+	/// the two entry tables the adapter owns (the keypad codes are the other). The send is
+	/// idempotent (same-value SetValue on the guest) and re-enumerates the live table, so a
+	/// geyser created after the entry send is covered too. It is a broadcast because the geyser
+	/// channel has no per-member send today — third parties receive a duplicate of a table
+	/// they already hold.
+	/// </summary>
+	private void OnEntryRepairRequested(ulong steamId)
+	{
+		if (_session.Role == SessionRole.Host && _session.SessionActive && WorldGeneration.world != null) // Unity object — ==
+		{
+			_log.LogInformation("[GeyserSnapshot] entry repair for {Peer} — re-broadcast the liquid-type set (its entry window is still open).", steamId);
 			SendFullSet();
 		}
 	}

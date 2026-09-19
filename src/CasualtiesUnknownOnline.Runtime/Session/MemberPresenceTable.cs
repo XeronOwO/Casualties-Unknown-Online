@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
@@ -44,6 +45,14 @@ public sealed class MemberPresenceTable
 
 		/// <summary>The member's selected marker color (null = automatic palette).</summary>
 		public NetColorRgba? SelectedColor;
+
+		/// <summary>
+		/// Host only: the world-entry repair cadence of this member's CURRENT entry. Armed on
+		/// the InWorld edge and consulted when a repeat scene report arrives while the member's
+		/// readiness window is still open (<see cref="EntryRepairSchedule"/>); it is what keeps
+		/// a still-open window answered in bounded steps instead of on every 5 s repeat.
+		/// </summary>
+		public readonly EntryRepairSchedule EntryRepair = new();
 	}
 
 	private readonly Dictionary<ulong, MemberPresence> _members = [];
@@ -96,4 +105,19 @@ public sealed class MemberPresenceTable
 	public void FireMemberAdded(ulong steamId) => MemberAdded?.Invoke(steamId);
 
 	public void FireRemoteSceneChanged(ulong steamId, bool inWorld) => RemoteSceneChanged?.Invoke(steamId, inWorld);
+
+	/// <summary>
+	/// Raised on the host when a member that is ALREADY in the world re-asserted its scene
+	/// report while its entry window was still open: the entry state it may have missed is
+	/// re-sent on this signal. The runtime-owned absolute tables are re-sent by
+	/// <see cref="WorldEntryFanout"/> at the same decision point; this event
+	/// carries the half the Game Adapter owns (the keypad codes and the geyser liquid types,
+	/// the same tables it re-fans-out on <see cref="RemoteSceneChanged"/>). A repeat exists only
+	/// while the member's readiness window is open, so a window closed by BOTH control facts
+	/// never fires it — a window a still-armed start gate holds open does, and
+	/// <see cref="MemberPresence.EntryRepair"/> bounds that.
+	/// </summary>
+	public event Action<ulong>? EntryRepairRequested;
+
+	public void FireEntryRepairRequested(ulong steamId) => EntryRepairRequested?.Invoke(steamId);
 }

@@ -349,9 +349,9 @@ domain"). Per-surface notes:
   hook renders with the owner's fired sprite. Display path only; the pure
   state-selection helper (`RemoteItemPresentation.IsGrapplingHookFired`) now
   has an L0 test face, while the Unity sprite write remains display-only.
-- **World-item component state on keyframes**: RESOLVED (2026-08-21, no
-  protocol bump) — the periodic snapshot (5 s base; the adaptive governor may
-  stretch it up to 30 s under pressure — see `todo/sync-cadence-review.md`) now
+- **World-item component state on keyframes**: RESOLVED (2026-08-21) — the periodic snapshot (5 s base; the adaptive governor may
+  stretch it to 10 s at most under pressure — the cap tightened by the cadence
+  review, `review/sync-cadence-review.md`) now
   re-aligns the top-level
   state of an existing world item (condition/favourited/liquid stacks/
   `[Saveable]` component states) whenever it diverges from the host table;

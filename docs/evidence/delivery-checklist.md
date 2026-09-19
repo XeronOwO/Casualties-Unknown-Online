@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: HandshakeHandler rejects a mismatched HandshakeMsg.Protocol and HandshakeAckHandler ends the session on a mismatched ack (both read in code)
+      file:line or runtime log) or is explicitly marked unverified — evidence: the repair's seams read in code: SessionControlConvergence 5 s window, WorldEntryFanout.SendInSessionRepair, EntryRepairSchedule 10 s
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: AGENTS.md rule, AGENTS.local.md, decision 188, decision 187 and the I8 ticket now state one boundary; the superseded pre-release framings are listed in 188
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: decision 188 names both enforcement sites and every superseded framing (remote-medical parity ticket, stage-1 ticket, decision 187's first wording); no runtime claim changed
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all four audit findings plus the carried-inventory rhythm decided in one cycle; both adapter owners bound (W1/W4/W5/W7/R3 rows)
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: docs/evidence/sync-cadence-measurements.md (measured table + reproduce commands) plus the ticket's acceptance matrix with a result per row
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: docs-only cycle — the focused normative-gate run (evidence anchors, backlog index, reference integrity) plus a re-grep for the pre-release scoping is the verification
+      peer log comparison, hotrepl assertions) is decided — evidence: EntryRepairConvergenceTests (dropped group, repeat, ordering, bound, held gate) + SyncCadenceDecisionTests against the production policy
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user's 2026-09-19 ruling (the handshake version check is the boundary; do not trade design quality for compatibility) is the basis
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: no C# touched, so build and format are skipped (this file's docs-only rule); the focused normative-gate run is green after the edits
+      process violation — evidence: work-item choice is the agent's per AGENTS.md rule 9; the ticket's own proposals and the handoff's order were followed
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet build 0/0; dotnet format exit 0; normative gates 68/68; full suite with build 3435 + 68 green
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: no C# touched (line counts unchanged 110/129/202/477/590/599); the deployed artifact is re-verified at the new HEAD after redeploy
+      dead mechanisms deleted in the same round) — evidence: largest touched class WorldEventSync 528 lines (< 600); new EntryRepairSchedule 68 lines; no dead path or legacy marker left
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

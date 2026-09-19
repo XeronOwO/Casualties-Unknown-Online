@@ -17,8 +17,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// answer did not complete me" and "my uplink is up now". The first repeat is
 /// therefore answered with the entry state it may have missed, and a window that
 /// stays open keeps being answered at <see cref="RepairIntervalMs"/>: bounded by
-/// the guest's own 60 s window at six repairs, never a trickle. A clean entry
-/// (both control facts arrived) never repeats and never pays for a repair.
+/// the guest's own 60 s window at six repairs, never a trickle. An entry whose
+/// window closes on both control facts never repeats and never pays for a repair.
 /// </para>
 ///
 /// <para>

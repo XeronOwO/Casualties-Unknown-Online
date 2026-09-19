@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 978,
+  "count": 976,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5841,18 +5841,6 @@
       "row": "I8",
       "file": "docs/evidence/sync-cadence-measurements.md",
       "quote": "| Burst step (first-resend latency of a swallowed registration) | 5 000 ms |"
-    },
-    {
-      "cluster": "cadence-review",
-      "row": "W1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/PendingReportFallback.cs",
-      "quote": "internal const long IntervalMs = 60_000;"
-    },
-    {
-      "cluster": "cadence-review",
-      "row": "W1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
-      "quote": "_world.SendBlockStateSnapshot(steamId);"
     },
     {
       "cluster": "cadence-review",

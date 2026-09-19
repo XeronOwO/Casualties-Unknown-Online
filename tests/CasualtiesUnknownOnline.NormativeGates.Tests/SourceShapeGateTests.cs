@@ -466,6 +466,7 @@ public class SourceShapeGateTests
 	[InlineData("internal void BindToSession() { _session.EntryRepairRequested += OnEntryRepairRequested; } internal void Unbind() { _session.EntryRepairRequested -= OnEntryRepairRequested; }", 0)]
 	[InlineData("internal void BindToSession() { } internal void Unbind() { _session.EntryRepairRequested += OnEntryRepairRequested; }", 2)]
 	[InlineData("internal void BindToSession() { } internal void Unbind() { } // EntryRepairRequested += OnEntryRepairRequested;", 2)]
+	[InlineData("internal void BindToSession() { // _session.EntryRepairRequested += OnEntryRepairRequested; } internal void Unbind() { _session.EntryRepairRequested -= OnEntryRepairRequested; }", 1)]
 	[InlineData("internal void BindToSession() { _session.EntryRepairRequested += OnEntryRepairRequested; } internal void Unbind() { }", 1)]
 	[InlineData("// neither method exists", 2)]
 	public void TheEntryRepairBindMatcher_SeesThePairAndItsFailureShapes(string source, int expectedFailures) =>
@@ -481,7 +482,7 @@ public class SourceShapeGateTests
 		{
 			failures.Add("BindToSession() not found — this rule would pass by checking nothing");
 		}
-		else if (!bind.Contains("EntryRepairRequested += ", StringComparison.Ordinal))
+		else if (!LiveLines(bind).Contains("EntryRepairRequested += ", StringComparison.Ordinal))
 		{
 			failures.Add("BindToSession() does not subscribe to ISessionControl.EntryRepairRequested — a swallowed entry send of this table would wait for the 60 s cycle again");
 		}
@@ -490,13 +491,21 @@ public class SourceShapeGateTests
 		{
 			failures.Add("Unbind() not found — this rule would pass by checking nothing");
 		}
-		else if (!unbind.Contains("EntryRepairRequested -= ", StringComparison.Ordinal))
+		else if (!LiveLines(unbind).Contains("EntryRepairRequested -= ", StringComparison.Ordinal))
 		{
 			failures.Add("Unbind() does not unsubscribe from EntryRepairRequested — a rebind would leave a stale handler on the session");
 		}
 
 		return failures;
 	}
+
+	/// <summary>The body's LIVE lines: a subscribe that was commented out is not wiring, so a line's comment half (own-line or trailing) is dropped before the rule looks at it.</summary>
+	private static string LiveLines(string body) =>
+		string.Join('\n', body.Split('\n').Select(line =>
+		{
+			var comment = line.IndexOf("//", StringComparison.Ordinal);
+			return comment < 0 ? line : line[..comment];
+		}));
 
 	/// <summary>The body of one method, located by its signature and closed by brace counting.</summary>
 	private static string MethodBody(string text, string signature)

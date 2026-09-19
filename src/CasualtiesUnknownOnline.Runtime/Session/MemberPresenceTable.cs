@@ -47,10 +47,12 @@ public sealed class MemberPresenceTable
 		public NetColorRgba? SelectedColor;
 
 		/// <summary>
-		/// Host only: the world-entry repair cadence of this member's CURRENT entry. Armed on
-		/// the InWorld edge and consulted when a repeat scene report arrives while the member's
-		/// readiness window is still open (<see cref="EntryRepairSchedule"/>); it is what keeps
-		/// a still-open window answered in bounded steps instead of on every 5 s repeat.
+		/// Host only: the world-entry repair cadence of this member's CURRENT entry. Armed on BOTH
+		/// entry paths — the InWorld edge (SceneStateHandler) and a reconnect-while-InWorld
+		/// handshake (HandshakeHandler, which re-runs the entry group without that edge) — and
+		/// consulted when a repeat scene report arrives while the member's readiness window is
+		/// still open (<see cref="EntryRepairSchedule"/>); it is what keeps a still-open window
+		/// answered in bounded steps instead of on every 5 s repeat.
 		/// </summary>
 		public readonly EntryRepairSchedule EntryRepair = new();
 	}

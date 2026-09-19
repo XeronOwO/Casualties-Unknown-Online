@@ -158,15 +158,28 @@ self-test; the marker comment was narrowed to what the repair actually carries; 
 "recorded below" pointer is filled. One finding of my own was fixed alongside: the
 reconnect-while-InWorld path (`HandshakeHandler`) re-runs the entry group without passing through
 the InWorld edge, so it now re-arms the member's repair budget too — a reconnect can no longer
-inherit the previous entry's cooldown. A read-only verification round on the changed tree follows
-this fix round.
+inherit the previous entry's cooldown. **Verification round (2026-09-19, same reviewer, read-only, on the committed revision
+`dee766e4`).** Verdict: no blocker; five of the six round-1 findings plus M2 genuinely closed, the
+reconnect re-arm confirmed correct, harmless and non-transmitting, and every number reproduced
+(focused 15/15, neighbours 36/36, gates 68/68, full 3435 + 68, JSON 978). It also caught that this
+record was ahead of the tree: three places still said "a clean entry never pays for it" (matrix row
+W7, the audit gap row, and the convergence test's class summary) — all three now carry the scoped
+wording — and that two of the anchors added to row W1 were byte-identical duplicates (dropped, so
+the JSON declares 976 and W1 declares 47 distinct anchors). Its remaining findings were fixed the
+same way: the residual ticket no longer cites a window test that does not exist (the class has NO
+test today — the note now says the test is added, not extended), the held-gate bound reads
+"≤ 3 inside the gate's 30 s force-start (≤ 4 over the ~36 s the test runs)", the source gate drops
+commented-out lines before reading the bind pair (with an in-body comment sample in its
+self-test), the `EntryRepair` field doc names both arming sites, and the delivery checklist's
+structure-review evidence names the actually largest touched class.
 
 **Verification (2026-09-19, final).** `dotnet build` 0 warnings / 0 errors; `dotnet format` exit 0;
 focused `dotnet test … --filter "FullyQualifiedName~SyncCadenceDecision|FullyQualifiedName~EntryRepairConvergence|FullyQualifiedName~EntryRepairSchedule"`
 15/15; the session/adaptive neighbour families re-run green
 (`FullyQualifiedName~SessionControlConvergence|FullyQualifiedName~AdaptiveStreamCatalog|FullyQualifiedName~AdaptiveRatePolicy`,
-36/36); normative gates 68/68; full suite with build 3435 (main) + 68 (gates) green.
-The evidence JSON's declared total is 978 entries after the review's anchors were added.
+36/36); normative gates 69/69; full suite with build 3435 (main) + 69 (gates) green.
+The evidence JSON's declared total is 976 entries after the review's anchors were added (two
+byte-identical duplicates the verification round found were dropped).
 
 ## Non-goals
 

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: the four committed spots that framed the protocol number as merit located by grep (ticket twice, decision 187, matrix gap row); grounded in the user's 2026-09-19 ruling plus decision 137
+      file:line or runtime log) or is explicitly marked unverified — evidence: HandshakeHandler rejects a mismatched HandshakeMsg.Protocol and HandshakeAckHandler ends the session on a mismatched ack (both read in code)
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all four spots corrected in one pass; a re-grep for "protocol stays 31" and "NO wire member" leaves only the review record's factual "no wire change (protocol 31)"
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the corrected sentences keep the substantive reasons (option 2 heals only after a failed arbitration; option 3 turns a read model into an authority input) and mark the wire fact as a fact, never a reason
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: AGENTS.md rule, AGENTS.local.md, decision 188, decision 187 and the I8 ticket now state one boundary; the superseded pre-release framings are listed in 188
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: decision 188 names both enforcement sites and every superseded framing (remote-medical parity ticket, stage-1 ticket, decision 187's first wording); no runtime claim changed
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: docs-only cycle — the focused normative-gate run (evidence anchors, backlog index, reference integrity) plus the re-grep is the verification; no runtime claim changes
+      peer log comparison, hotrepl assertions) is decided — evidence: docs-only cycle — the focused normative-gate run (evidence anchors, backlog index, reference integrity) plus a re-grep for the pre-release scoping is the verification
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user's 2026-09-19 ruling (the protocol version is meaningless while the mod is unreleased) is the basis; start-here is not a work-item choice and none was re-asked
+      process violation — evidence: the user's 2026-09-19 ruling (the handshake version check is the boundary; do not trade design quality for compatibility) is the basis
 - [x] Build + dotnet format + dotnet test normative gates pass — evidence: no C# touched, so build and format are skipped (this file's docs-only rule); the focused normative-gate run is green after the edits
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: no C# touched (line counts unchanged: 110/129/202/477/590/599); the deployed artifact is re-verified at the new HEAD after redeploy
+      dead mechanisms deleted in the same round) — evidence: no C# touched (line counts unchanged 110/129/202/477/590/599); the deployed artifact is re-verified at the new HEAD after redeploy
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

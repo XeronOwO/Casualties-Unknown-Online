@@ -1,7 +1,7 @@
 # Guest partial block damage has no re-report
 
 **State note (2026-09-18):** this is the W2 landing record. The gap described below is
-closed: the guest keeps each reported cell's ABSOLUTE damage, the 60 s fallback re-reports
+closed: the guest keeps each reported cell's ABSOLUTE damage, the fallback re-reports
 the outstanding set, and the host merges per cell and answers every reported cell
 authoritatively — a zero answer clears a row this host's own cap/range rules refused.
 

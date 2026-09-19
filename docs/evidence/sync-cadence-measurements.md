@@ -12,6 +12,7 @@ each value.
 dotnet test CasualtiesUnknownOnline.slnx --filter "FullyQualifiedName~SyncCadenceDecision"
 dotnet test CasualtiesUnknownOnline.slnx --filter "FullyQualifiedName~EntryRepairConvergence"
 dotnet test CasualtiesUnknownOnline.slnx --filter "FullyQualifiedName~NetworkTrafficBaseline"
+dotnet test CasualtiesUnknownOnline.slnx --filter "FullyQualifiedName~PendingReportFallback|FullyQualifiedName~GuestBlockReportRecovery|FullyQualifiedName~GuestEntityReportRecovery"
 ```
 
 `SyncCadenceDecisionTests` computes the first table from the production catalog and policy (no
@@ -19,7 +20,8 @@ copy of the arithmetic) and asserts every cell of it; `EntryRepairConvergenceTes
 entry repair through a real host/guest simulation (a dropped entry group, the guest's repeat, the
 repair, the ordering of the marker, the per-entry bound, third-party isolation) and measures the
 repair pass's bytes; `NetworkTrafficBaselineTests` is the recorded traffic baseline the decision
-must not regress.
+must not regress; `PendingReportFallbackTests` pins the shared pending-report cadence and the
+two family recovery classes drive a swallowed report through the simulation world.
 
 ## Worst-case divergence (the fallback's own staleness, in ms)
 
@@ -63,6 +65,27 @@ checkpoint, which the traffic baseline pins (< 24 KB for 600 items).
 | Burst window | 12 × 5 000 ms = 60 000 ms |
 | Steady cadence after the window | 60 000 ms |
 
+## Guest pending-report fallback (finding 4's opposite direction, rows W1/W2/E3/I6)
+
+The guest's unacknowledged reports share ONE cadence policy
+(`src/CasualtiesUnknownOnline.Runtime/Session/World/PendingReportFallback.cs`), and its flat 60 s
+step was replaced by an entry phase — the same dense-then-steady shape the readiness window and the
+carried-inventory registration already use.
+
+| Quantity | Value |
+|---|---|
+| Entry-phase step (first-resend latency of a report swallowed inside the swallow window) | 5 000 ms (`DenseIntervalMs`) |
+| Entry phase | 12 x 5 000 ms = 60 000 ms after the guest's own InWorld report (`DenseWindowMs`) |
+| Steady step after the phase (unchanged) | 60 000 ms (`IntervalMs`) |
+| Worst case the phase covers | a report made at the END of the documented ~30 s swallow window is re-sent 5 000 ms later, still inside the phase |
+| Declared boundary (pinned by a test, not implied) | a set that first becomes outstanding in the last seconds of the phase is ~30 s past the swallow window and gets the steady step (`PendingReportFallbackTests.SetArmedAtTheEndOfTheEntryPhase_IsOnTheSteadyStep`) |
+| Dense re-sends per entry phase, worst case | 11 — the twelfth deadline lands exactly on the phase boundary, where the steady step governs — and only while the set stays unacknowledged; 0 when the host's answer arrives before a step elapses |
+| One re-report frame, measured in the simulation world | 5 bytes (the id byte plus the protobuf body of a one-cell `BlockPlaced` report, with no world/layer generation stamp committed in that world) — `GuestBlockReportRecoveryTests.SwallowedReportInsideTheEntryWindow_ConvergesOnTheEntryStep` asserts exactly this number |
+| Extra traffic for one outstanding cell report, worst case | 11 x 5 bytes = 55 bytes across the entry minute; the steady one-a-minute cadence is unchanged, so the recorded traffic baseline is unaffected |
+
+The 5-byte figure is the frame `PacketSender` hands the transport, which is what this suite can
+measure; Steam's own message framing is not part of it.
+
 ## The 60 s steady cycles that remain
 
 `WorldEntryFanout.SendInSessionRepair` (block state, block damage, trap layout, kernel
@@ -74,6 +97,6 @@ behind the entry repair, which is what changes their FIRST resend after a world 
 ## What is not measured here
 
 Real transport timing. The guest's 5 s window, the lazy-P2P swallow window (~30 s documented),
-the 10 Hz diff stream between two fluid full viewports and every steady 60 s cycle are simulation
+this cycle's 5 s entry phase and every steady 60 s cycle are simulation
 and code facts; whether a real dual-client session converges inside them is the user's
 acceptance pass.

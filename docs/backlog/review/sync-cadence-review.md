@@ -133,8 +133,11 @@ edge. Real transport timing — the 5 s window, the ~30 s swallow window, the re
 tables, `PendingReportFallback`) is measured here and NOT changed: the window arms on the first
 outstanding entry and re-sends flat at 60 s, so a guest report swallowed in the entry window stays
 invisible on the host until then. It is a different seam (the guest's own arming) and is recorded
-as an open residual with its own ticket, `todo/guest-report-fallback-first-resend.md`, rather than
-accepted silently.
+as an open residual with its own ticket (landed 2026-09-19 as
+`review/guest-report-fallback-first-resend.md`), rather than
+accepted silently. That ticket landed the same day: the window now has an entry
+phase (12 x 5 s after the guest's own InWorld report, then the steady 60 s described above), so the
+flat-60 s sentence above records the state this review measured, not the current one.
 
 **Independent adversarial review (2026-09-19, fresh context, FULL tier, read-only, frozen tree).**
 Verdict: no blocker — 2 major and 5 minor findings, all record-accuracy or gate-strength defects;

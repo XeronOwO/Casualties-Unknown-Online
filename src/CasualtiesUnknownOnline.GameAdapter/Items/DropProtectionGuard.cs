@@ -15,7 +15,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 ///
 /// The short window is not enough for one family: a GUEST's block-break drops
 /// exist only on this side until the host answers the break report that carries
-/// them, and the re-report fallback's window (60 s) is far longer than this
+/// them, and the re-report fallback's window (5 s at its densest, 60 s steady)
+/// is far longer than this
 /// guard's. Those items are therefore protected by the report state itself
 /// (<paramref name="isPendingBreakDrop"/>, the Runtime's pending break-drop
 /// table) for as long as they stay unacknowledged — killing one would destroy an

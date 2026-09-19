@@ -224,7 +224,7 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 	/// host can never back up or retract (an unowned accept that leaks into every
 	/// later snapshot). The creation is therefore REJECTED: neither recorded nor
 	/// relayed, and the reporter is answered directly with
-	/// <see cref="NetMsg.RuntimeEntityRejected"/> — which stops its 60 s re-report,
+	/// <see cref="NetMsg.RuntimeEntityRejected"/> — which stops its re-report,
 	/// destroys its local copy, and makes the session's inconsistent content sets
 	/// visible instead of silently divergent.
 	/// </summary>
@@ -254,7 +254,7 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 	/// member reported it (a mod-built report can carry a token naming another
 	/// creator, and then the creator half alone would leave the entry
 	/// re-reporting forever). A rejection that reaches another member changes
-	/// nothing there. The pending entry is dropped so the 60 s fallback stops,
+	/// nothing there. The pending entry is dropped so the fallback stops,
 	/// and the adapter is asked to destroy the local copy — idempotent, so a
 	/// replayed rejection that arrives after the copy already died is a no-op
 	/// rather than a resurrection.

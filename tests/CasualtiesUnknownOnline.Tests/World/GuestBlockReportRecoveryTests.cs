@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,8 +15,9 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// swallowed guest→host report had no recovery: the host never learned the
 /// cell, so its absolute table omitted it and could not heal either side. The
 /// guest now keeps its unacknowledged reports in
-/// <see cref="PendingBlockReportTable"/>, re-reports them on the 60 s fallback
-/// cycle (<see cref="BlockReportFallbackPump"/> → WorldService), and drops each
+/// <see cref="PendingBlockReportTable"/>, re-reports them on the shared fallback
+/// cadence (<see cref="WorldReportFallbackPump"/> → WorldService: 5 s inside the
+/// guest's own 60 s entry phase, the steady 60 s after it), and drops each
 /// entry when the host answers for that cell (relay echo or correction) or when
 /// a new world/layer baseline is applied. The absolute snapshot and the
 /// world-entry completion marker deliberately do NOT clear the table — a
@@ -248,5 +250,85 @@ public class GuestBlockReportRecoveryTests
 		w.G1.Session.EndSession();
 
 		Assert.Equal(0, guestWorld.PendingBlockReportCount);
+	}
+
+	[Fact]
+	public void SwallowedReportInsideTheEntryWindow_ConvergesOnTheEntryStep()
+	{
+		using var w = ItemSimWorld.Create();
+		var (reports, hostBlocks) = InstallHostExecutor(w);
+		hostBlocks[(5, 7)] = HostBlock;
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		// The guest's own world entry opens the fallback's entry phase (the documented
+		// swallow window is up to ~30 s after it), so a report made inside that window
+		// must converge on the 5 s step instead of waiting for the 60 s mark.
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33);
+
+		var framedReports = 0;
+		var reportBytes = 0L;
+		w.Host.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.BlockPlaced)
+			{
+				framedReports++;
+				reportBytes += frame.Length;
+			}
+		};
+
+		// 29 s in — inside the swallow window — and the live report never lands.
+		w.Driver.Tick(29_000);
+		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
+		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		w.Driver.Tick(33);
+		Assert.Empty(reports);
+
+		// The link heals: the first re-send is the entry phase's 5 s step, so the host
+		// converges a step later instead of a minute later.
+		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
+		w.Driver.Tick(4_000);
+		Assert.Empty(reports);
+		w.Driver.Tick(1_000);
+		var report = Assert.Single(reports);
+		Assert.Equal((w.G1.SteamId, 5, 7, (ushort)0), report);
+		Assert.Equal((ushort)0, hostBlocks[(5, 7)]);
+
+		// Convergence costs exactly ONE re-report frame (the host's echo cleared the
+		// pending entry). The measured size is the frame the sender hands the
+		// transport — the id byte plus the protobuf body of a one-cell report, with no
+		// world/layer generation stamp committed in this simulation world — and pinning
+		// it here is what keeps docs/evidence/sync-cadence-measurements.md reproducible.
+		Assert.Equal(1, framedReports);
+		Assert.Equal(5L, reportBytes);
+
+		w.Driver.Tick(61_000);
+		Assert.Single(reports);
+	}
+
+	[Fact]
+	public void SwallowedReportAfterTheEntryWindow_IsOnTheSteadyStep()
+	{
+		using var w = ItemSimWorld.Create();
+		var reports = RecordHostReports(w); // recording only — the host never answers
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33); // the entry anchors the phase
+		w.Driver.Tick(61_000); // ... and the entry phase (12 x 5 s) is over
+
+		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
+		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		w.Driver.Tick(33);
+		Assert.Empty(reports);
+
+		// Past the entry phase the fallback waits the steady 60 s: the live send is long
+		// past the swallow window, so nothing is owed a step later — and the heal this
+		// class always had is still there a minute later.
+		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
+		w.Driver.Tick(5_000);
+		Assert.Empty(reports);
+		w.Driver.Tick(55_000);
+		Assert.Single(reports);
 	}
 }

@@ -32,7 +32,7 @@ recording it** — neither accept nor reject:
    creator + sequence), reporter SteamId, and the fact that it was rejected.
 2. **The rejection is visible.** The host answers the reporter with a dedicated message
    (`NetMsg.RuntimeEntityRejected`, host → guest, creation key + reason code) so the
-   reporter's `PendingEntityReportTable` entry is dropped and the 60 s fallback stops; the
+   reporter's `PendingEntityReportTable` entry is dropped and the fallback stops; the
    guest logs the reason ("host lacks prefab X").
 3. **The creator destroys its local copy** (user decision 2026-09-09: this is the obvious
    answer — nobody keeps an entity the host cannot own). Destroy through the same death
@@ -76,7 +76,7 @@ recording it** — neither accept nor reject:
   OR the pending table still holds that report — the proof that this member really reported
   it (a mod-built report through the public send surface can name another creator in its
   token, and the creator half alone would then leave that entry re-reporting forever). It
-  drops the matching `PendingEntityReportTable` entry (so the 60 s fallback stops) and
+  drops the matching `PendingEntityReportTable` entry (so the fallback stops) and
   raises `RuntimeEntityRejectedReceived` with the key and reason.
 - **Adapter.** `EntitySpawnSync.OnRuntimeEntityRejected` locates the local copy by its
   stamped creation key — never by position — and hands it to the same death funnel every

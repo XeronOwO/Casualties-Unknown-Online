@@ -103,7 +103,7 @@ the floored cell of the creation position + a token (the creating side's SteamId
 - **Guest pending re-report.** `RuntimeEntityChannel.SendEntitySpawned`'s guest
   branch records the report in `PendingEntityReportTable` BEFORE the send (for
   animals too — a swallowed guest → host animal report has no other in-session
-  recovery). The 60 s fallback (`PendingReportFallback` +
+  recovery). The fallback (`PendingReportFallback` +
   `WorldReportFallbackPump` — the W1 cadence class generalized to take the
   pending count and the resend action) re-reports every unacknowledged creation
   as a plain `EntitySpawned` message until the host answers. The answer is the
@@ -117,7 +117,7 @@ the floored cell of the creation position + a token (the creating side's SteamId
   reporter's own echo hid the divergence. `RuntimeEntityChannel.ReportEntitySpawnUnmaterialized`
   therefore REJECTS the creation — neither recorded nor relayed — and answers
   that reporter with `NetMsg.RuntimeEntityRejected` (135) carrying the creation
-  key and a reason code. The reporter drops the pending entry (the 60 s fallback
+  key and a reason code. The reporter drops the pending entry (the fallback
   stops) and destroys its local copy through the entity death funnel, located by
   its stamped creation key. The old "a member joining after the creation never
   receives it" limitation is DELETED: nobody holds the creation, so the session

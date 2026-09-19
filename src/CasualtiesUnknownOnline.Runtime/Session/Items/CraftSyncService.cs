@@ -45,10 +45,10 @@ public sealed class CraftSyncService(
 	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
 	private readonly ILogger<CraftSyncService> _log = log;
 
-	/// <summary>The set re-report's cadence: the shared pending window (60 s, armed by the first outstanding unlock) every other report fallback uses.</summary>
+	/// <summary>The set re-report's cadence: the shared pending window (the 5 s entry phase after this guest's own world entry, the steady 60 s after it; armed by the first outstanding unlock).</summary>
 	private readonly PendingReportFallback _recipeFallback = new(session);
 
-	/// <summary>How many fallback windows one recipe's re-report may spend before this side gives up on it and NAMES the divergence. The FIRST window is the swallowed-send heal, so the budget only runs out for an index this host's own table cannot hold — where the host's set can never carry it, and an unbounded retry would be a permanent 60 s drip.</summary>
+	/// <summary>How many fallback windows one recipe's re-report may spend before this side gives up on it and NAMES the divergence. The FIRST window is the swallowed-send heal, so the budget only runs out for an index this host's own table cannot hold — where the host's set can never carry it, and an unbounded retry would be a permanent drip.</summary>
 	private const int MaxRecipeSetReports = 3;
 
 	/// <summary>

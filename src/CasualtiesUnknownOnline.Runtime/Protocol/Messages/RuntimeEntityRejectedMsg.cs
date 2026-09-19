@@ -6,7 +6,7 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// Host → the reporting guest: the runtime creation this guest reported is
 /// REJECTED — the host cannot materialize it, so it is neither recorded nor
 /// relayed and the reporter is told why (decision 161). This message is the
-/// report's answer: the reporter drops its pending re-report (the 60 s fallback
+/// report's answer: the reporter drops its pending re-report (the fallback
 /// stops) and destroys its local copy, so no peer keeps an entity the host can
 /// never own, back up or retract — the unowned accept the corrected accept-first
 /// precondition forbids.

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: the repair's seams read in code: SessionControlConvergence 5 s window, WorldEntryFanout.SendInSessionRepair, EntryRepairSchedule 10 s
+      file:line or runtime log) or is explicitly marked unverified — evidence: seams read in code: PendingReportFallback's five windows/four owners, the ISessionControl.LocalSceneReported edge, RunCoordinator's entry + reconnect re-report
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all four audit findings plus the carried-inventory rhythm decided in one cycle; both adapter owners bound (W1/W4/W5/W7/R3 rows)
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: docs/evidence/sync-cadence-measurements.md (measured table + reproduce commands) plus the ticket's acceptance matrix with a result per row
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all five windows of the shared policy moved together; matrix rows W1/W2/E3/I6, 10 source files and decision 190 re-cadenced
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: docs/evidence/sync-cadence-measurements.md (two-phase table, 5-byte frame) + the ticket's acceptance matrix, a result per row
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: EntryRepairConvergenceTests (dropped group, repeat, ordering, bound, held gate) + SyncCadenceDecisionTests against the production policy
+      peer log comparison, hotrepl assertions) is decided — evidence: PendingReportFallbackTests (both phases, late arm, boundary, wrap, ack) + block/entity family simulations; red recorded on HEAD
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: work-item choice is the agent's per AGENTS.md rule 9; the ticket's own proposals and the handoff's order were followed
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet build 0/0; dotnet format exit 0; normative gates 69/69; full suite with build 3435 + 69 green
+      process violation — evidence: work-item choice is the agent's per AGENTS.md rule 9; the ticket's own notes and the handoff's order were followed
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet build 0/0; format exit 0; full suite with build 3448 + gates 69/69 (this checklist gate is the only red before this box)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: touched classes under 600 lines (largest SessionService 546, WorldEventSync 528); new EntryRepairSchedule 68; no dead path left
+      dead mechanisms deleted in the same round) — evidence: PendingReportFallback 165 lines (was 72); state = two bools + two longs, no new state machine; no dead path left
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

@@ -22,7 +22,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// this machine is what the tests lock.
 ///
 /// A report may arrive AGAIN: the guest re-reports an unacknowledged break on
-/// its 60 s fallback, and the host's own relay (the acknowledgement) can be the
+/// its own fallback window (5 s inside the guest's own 60 s entry phase, then
+/// once a minute), and the host's own relay (the acknowledgement) can be the
 /// lost message. A repeat from the SAME sender is therefore acknowledged
 /// idempotently instead of refused — the drops it carries are already
 /// registered, so re-materializing is a no-op by item id
@@ -100,7 +101,7 @@ internal sealed class BlockBreakArbitration
 	/// break anything, or the cell would be attributed to a break that never
 	/// happened and a genuine second breaker would be refused for the whole
 	/// window. A repeat REFRESHES the entry's clock: the guest's fallback may
-	/// re-report every 60 s for as long as it stays unanswered, so the window
+	/// re-report for as long as it stays unanswered, so the window
 	/// measures time since the last report rather than since the first.
 	/// </summary>
 	internal void RecordAccepted(ulong sender, int cellX, int cellY, float now) =>

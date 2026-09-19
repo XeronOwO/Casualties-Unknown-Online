@@ -19,7 +19,9 @@ were not stamped:
    and the 60 s repair re-derives the table from the host's live scene, but a repair landing across
    the guest's own layer change materializes the previous layer's traps into the new one — nothing on
    the message attributes it.
-2. **Runtime entity creation** (`EntitySpawnedMsg`, guest → host, with a 60 s re-report): the host
+2. **Runtime entity creation** (`EntitySpawnedMsg`, guest → host, re-reported on the shared
+   pending-report fallback — 5 s inside the guest's entry phase, the steady 60 s after it; see
+   `review/guest-report-fallback-first-resend.md`): the host
    materializes a copy at the reported position. The reporter's pending table is dropped at its own
    generation boundary, which bounds the exposure to the in-flight window, but the wire carries no
    generation, so the host cannot tell a report of the world it is simulating from one of the world

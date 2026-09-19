@@ -283,7 +283,7 @@ internal sealed class BlockBreakSync(
 					// A BREAK with drops. The verdict decides its fate; the drops
 					// themselves are the breaker's local compute and their
 					// registration/materialization is idempotent per item id, so a
-					// REPEAT (the breaker's 60 s fallback re-sending a break the host
+					// REPEAT (the breaker's fallback re-sending a break the host
 					// already accepted — its relay, the acknowledgement, was the lost
 					// message) re-relays instead of being refused. Re-reporting is
 					// what makes a swallowed report recoverable at all.

@@ -65,7 +65,7 @@ family, exactly as W1 reused `BlockPlaced`.
   the pending drop report (`IWorldControl.IsBreakDropPending`), so the item
   keyframe's reconcile leaves a locally-created drop alone until the host has
   answered it. Without this the 5-30 s keyframe would destroy the drop long
-  before the 60 s fallback could carry it.
+  before the fallback could carry it.
 - **Refusals converge.** A lost first-writer race still rolls the loser's drops
   back (`ItemReject`), and the adapter now also forgets the refused item from
   the pending set, so a break is never re-reported forever for an item that no

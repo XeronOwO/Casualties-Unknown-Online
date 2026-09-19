@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 976,
+  "count": 982,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5859,6 +5859,42 @@
       "row": "R3",
       "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
       "quote": "((ISessionControl)w.Host.Session).EntryRepairRequested += requested.Add;"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/PendingReportFallback.cs",
+      "quote": "internal const long DenseIntervalMs = 5_000;"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/PendingReportFallback.cs",
+      "quote": "session.LocalSceneReported += OnLocalSceneReported;"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/PendingReportFallbackTests.cs",
+      "quote": "public void ReportInsideTheSwallowWindow_GetsItsFirstReSendFiveSecondsLater()"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/GuestBlockReportRecoveryTests.cs",
+      "quote": "Assert.Equal(5L, reportBytes);"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "W1",
+      "file": "docs/evidence/sync-cadence-measurements.md",
+      "quote": "| Entry-phase step (first-resend latency of a report swallowed inside the swallow window) | 5 000 ms"
+    },
+    {
+      "cluster": "cadence-review",
+      "row": "E3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/GuestEntityReportRecoveryTests.cs",
+      "quote": "public void SwallowedCreationReportInsideTheEntryWindow_ConvergesOnTheEntryStep()"
     }
   ]
 }

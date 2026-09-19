@@ -18,6 +18,6 @@ public sealed class BlockDamageSnapshotHandler(ILogger<BlockDamageSnapshotHandle
 	protected override void Handle(ulong sender, BlockDamageSnapshotMsg msg, IWorldHandlerContext ctx)
 	{
 		_log.LogInformation("Block-damage snapshot received ({Count} cells).", msg.Entries.Count);
-		ctx.World.FireBlockDamageSnapshotReceived(msg.Entries);
+		ctx.World.FireBlockDamageSnapshotReceived(msg.Entries, msg.Generation);
 	}
 }

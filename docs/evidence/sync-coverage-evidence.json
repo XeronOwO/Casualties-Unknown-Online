@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 849,
+  "count": 861,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -2419,7 +2419,7 @@
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,"
     },
     {
@@ -4591,14 +4591,14 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,"
     },
     {
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "_arbitration.TryAccept(sender, cell.x, cell.y);"
+      "quote": "var verdict = _arbitration.TryAccept(sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current);"
     },
     {
       "cluster": "inline",
@@ -4621,7 +4621,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
       "quote": "public void ResetPendingBlockReports()"
     },
     {
@@ -5078,7 +5078,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockBreakArbitration.cs",
-      "quote": "internal Verdict TryAccept(ulong sender, int cellX, int cellY)"
+      "quote": "internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified)"
     },
     {
       "cluster": "inline",
@@ -5097,6 +5097,78 @@
       "row": "P11",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/MedicalOperationTargetCheckAnswerMsg.cs",
       "quote": "public sealed class MedicalOperationTargetCheckAnswerMsg"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "private readonly KernelWorldGenerationSource _generations = generations;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "var relation = WorldReportGeneration.Relate(_generations.Current, generation);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "Generation = _generations.Stamp(),"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldReportGeneration.cs",
+      "quote": "internal static WorldGenerationRelation Relate(WorldReportGeneration? current, WorldGenerationMsg? reported)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/WorldGenerationMsg.cs",
+      "quote": "public sealed class WorldGenerationMsg"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/BlockDamagedMsg.cs",
+      "quote": "public WorldGenerationMsg? Generation { get; set; }"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockBreakArbitration.cs",
+      "quote": "return generationVerified && !cellIsAir ? Verdict.LostAirWrite : Verdict.Refused;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BreakVerdict.cs",
+      "quote": "LostAirWrite,"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
+      "quote": "if (generation == WorldGenerationRelation.Stale)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
+      "quote": "public const int Current = 29;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "if (RelateReportGeneration(generation, \"BlockDamageReport\", sender) == WorldGenerationRelation.Stale)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "if (RelateReportGeneration(generation, \"BlockDamageSnapshot\", _session.HostSteamId) == WorldGenerationRelation.Stale)"
     }
   ]
 }

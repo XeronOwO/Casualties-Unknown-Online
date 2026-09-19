@@ -109,7 +109,7 @@ public class EntityEventSimulationCrossDomainTests
 		var w = EntityEventSimWorld.Create();
 		var g2Blocks = new List<(int X, int Y, ushort Block)>();
 		var g2Drops = new List<ulong>();
-		w.G2.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (_, x, y, block) => g2Blocks.Add((x, y, block));
+		w.G2.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (_, x, y, block, _) => g2Blocks.Add((x, y, block));
 		w.G2.Transport.MessageReceived += (_, frame) =>
 		{
 			if ((NetMsg)frame[0] != NetMsg.KernelEnvelope)

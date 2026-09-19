@@ -51,7 +51,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Layer time is not carried](todo/save-layer-time-not-carried.md) — **Low-Medium** — resuming the radiation timer is a gameplay decision.
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Partial-damage report vs the live delta](todo/partial-damage-delta-report-overlap.md) — **Low-Medium** — the merge can under- and over-count.
-- [World/layer generation identity](todo/world-layer-generation-identity.md) — **Medium** — a stale cell-keyed report looks like a legitimate one.
+- [Remaining generation-relative families](todo/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.
 - [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
 - [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — the keyframe cannot heal a swallowed command.
 - [Recipe unlock has no fallback](todo/recipe-unlock-fallback.md) — **Medium** — a late joiner never learns a prior unlock.
@@ -67,6 +67,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Review
 
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — the manual key acts locally; the host arbitrates.
+- [World/layer generation identity](review/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
 - [An item can be operated on before its creation is registered](review/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
 - [Remote interaction gates are judged by the host](review/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.

@@ -22,12 +22,23 @@ internal sealed class GuestReportRecovery(
 	ISessionControl session,
 	PacketSender sender,
 	INativeWorldFacts? nativeWorldFacts,
+	KernelWorldGenerationSource generations,
 	ILogger<WorldService> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
 	private readonly ILogger<WorldService> _log = log;
+
+	/// <summary>
+	/// The world/layer generation every report here is stamped with, read LIVE at
+	/// send time. A fallback re-report therefore carries this side's CURRENT
+	/// generation, which is the correct one by construction: the generation
+	/// boundary drops every pending entry (see <see cref="ResetBlocks"/> and the
+	/// damage/drop counterparts), so a surviving entry always belongs to the world
+	/// this side is simulating now.
+	/// </summary>
+	private readonly KernelWorldGenerationSource _generations = generations;
 
 	/// <summary>The W1 state: block cell → the block this side wrote there, unacknowledged by the host.</summary>
 	private readonly GuestBlockReportBookkeeping _blocks = new(log);
@@ -70,7 +81,7 @@ internal sealed class GuestReportRecovery(
 		foreach (var entry in _blocks.Entries)
 		{
 			_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
-				new BlockPlacedMsg { X = entry.X, Y = entry.Y, Block = entry.Block });
+				new BlockPlacedMsg { X = entry.X, Y = entry.Y, Block = entry.Block, Generation = _generations.Stamp() });
 		}
 
 		_log.LogInformation("[BlockSync] re-reported {Count} unacknowledged block mutation(s) to the host.",
@@ -91,7 +102,7 @@ internal sealed class GuestReportRecovery(
 			return;
 		}
 
-		_sender.Send(targetSteamId, NetMsg.BlockPlaced, new BlockPlacedMsg { X = x, Y = y, Block = block });
+		_sender.Send(targetSteamId, NetMsg.BlockPlaced, new BlockPlacedMsg { X = x, Y = y, Block = block, Generation = _generations.Stamp() });
 		_log.LogDebug("[BlockSync] answered {Peer}'s report at ({X},{Y}) with the authoritative block {Block}.",
 			targetSteamId, x, y, block);
 	}
@@ -155,7 +166,7 @@ internal sealed class GuestReportRecovery(
 		}
 
 		_sender.Send(_session.HostSteamId, NetMsg.BlockDamageReport,
-			new BlockDamageSnapshotMsg { Entries = [.. _damages.Entries] });
+			new BlockDamageSnapshotMsg { Entries = [.. _damages.Entries], Generation = _generations.Stamp() });
 		_log.LogInformation("[BlockSync] re-reported {Count} unacknowledged partial-damage cell(s) to the host.",
 			_damages.Count);
 	}
@@ -195,7 +206,7 @@ internal sealed class GuestReportRecovery(
 			return;
 		}
 
-		_session.Broadcast(NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg { Entries = [.. authoritative] });
+		_session.Broadcast(NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg { Entries = [.. authoritative], Generation = _generations.Stamp() });
 		_log.LogInformation("[BlockSync] merged {Peer}'s partial-damage report ({Count} cell(s)) and answered with {Answered} authoritative value(s).",
 			sender, entries.Count, authoritative.Count);
 	}
@@ -282,6 +293,7 @@ internal sealed class GuestReportRecovery(
 				MetalBonus = false,
 				Drops = entry.Drops.Count > 0 ? [.. entry.Drops] : null,
 				BuildingDrops = entry.BuildingDrops.Count > 0 ? [.. entry.BuildingDrops] : null,
+				Generation = _generations.Stamp(),
 			});
 		}
 

@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// BlockDamaged (both reliable, same source), so in the NORMAL path the block is
 /// ALREADY air when the drops arrive and a GetBlock check cannot tell
 /// first-writer from second-writer there — this table does. The one case where
-/// the block's own state LOOKS like evidence is a report that arrives while the
-/// host's block still stands (no earlier break could have taken a cell this side
-/// still holds); it is deliberately NOT accepted, because the record it would
-/// create is layer-relative while the report is not — see
-/// <see cref="TryAccept"/>. Entries without a
+/// the block's own state looks like evidence is a report that arrives while the
+/// host's block still stands; it is accepted ONLY when the report's generation
+/// stamp proves it is this generation's (the lost-air-write shape), because the
+/// record it creates is layer-relative and without the stamp a previous layer's
+/// report is indistinguishable from a legitimate one — see <see cref="TryAccept"/>. Entries without a
 /// BlockDamaged (quake / environment air writes) expire. The GameAdapter's
 /// BlockBreakSync feeds the game inputs (cell coordinates, Time.unscaledTime) —
 /// this machine is what the tests lock.
@@ -54,29 +54,43 @@ internal sealed class BlockBreakArbitration
 	/// <see cref="Verdict.Repeat"/>, never a second fresh accept). Without one, a
 	/// break this sender already had accepted for the cell is an idempotent
 	/// REPEAT (its drops re-relay; the receiver's registration is idempotent by
-	/// item id). Anything else is REFUSED: a different sender's report for an
-	/// already-broken cell, or a report nobody's air write proved.
+	/// item id). Anything else is REFUSED — a different sender's report for an
+	/// already-broken cell, or a report nobody's air write proved — with ONE
+	/// exception the generation stamp makes attributable:
+	/// <see cref="Verdict.LostAirWrite"/>.
 	///
-	/// A report that arrives while the host's block still STANDS is refused too,
-	/// deliberately: the block's own state looks like evidence of a first writer
-	/// (no earlier break could have taken a cell this side still holds), but the
-	/// record it would create is layer-relative and the report is not. After a
-	/// descent, a stale report of the previous layer's break names a cell that now
-	/// holds a freshly generated block, and accepting it on that "evidence" made
-	/// the host break a block nobody had touched — with the report's REAL damage
-	/// (only the fallback's re-send uses zero). Evidence for the accepting branch
-	/// would have to distinguish generations, which no message carries.
+	/// <paramref name="generationVerified"/> is the caller's comparison of the
+	/// report's world/layer stamp with this side's own generation, and
+	/// <paramref name="cellIsAir"/> is the host's live cell state. A verified
+	/// report naming a cell that still STANDS is the lost-air-write shape: the
+	/// guest broke the block, its air-write report was lost together with the
+	/// drops-carrying one, so no record exists and the cell is untouched here.
+	/// Before the stamp existed this shape was refused — the record it creates is
+	/// layer-relative and the report was not, so after a descent a stale previous
+	/// layer's report read as exactly this shape, and the host applied it as a
+	/// break of a freshly generated block with that report's REAL damage (only a fallback's re-send carries zero). The
+	/// stamp removes that ambiguity, so the legitimate case is accepted and a
+	/// stale report is refused before it reaches this machine.
+	///
+	/// The verified clause is scoped to the UNRECORDED shape on purpose: a report
+	/// whose air write IS recorded but whose cell stands again (someone rebuilt
+	/// in the record's short window) stays refused, and a different sender on an
+	/// accepted cell stays refused whatever the cell looks like — first-writer-wins
+	/// is unchanged.
 	/// </summary>
-	internal Verdict TryAccept(ulong sender, int cellX, int cellY)
+	internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified)
 	{
 		if (_recentBroken.Remove((sender, cellX, cellY)))
 		{
 			return Verdict.Fresh;
 		}
 
-		return _accepted.TryGetValue((cellX, cellY), out var accepted) && accepted.Sender == sender
-			? Verdict.Repeat
-			: Verdict.Refused;
+		if (_accepted.TryGetValue((cellX, cellY), out var accepted))
+		{
+			return accepted.Sender == sender ? Verdict.Repeat : Verdict.Refused;
+		}
+
+		return generationVerified && !cellIsAir ? Verdict.LostAirWrite : Verdict.Refused;
 	}
 
 	/// <summary>

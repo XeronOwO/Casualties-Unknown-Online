@@ -29,10 +29,10 @@ public interface IWorldControl
 
 	void SetHostRunPending(bool pending);
 
-	/// <summary>Host: a guest reported damage (sender = the reporter; drops ride the break — the host arbitrates; MetalBonus preserves the ×10 metallic multiplier). Guest: the host broadcast it.</summary>
-	void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
+	/// <summary>Host: a guest reported damage (sender = the reporter; drops ride the break — the host arbitrates; MetalBonus preserves the ×10 metallic multiplier). Guest: the host broadcast it. <paramref name="generation"/> is the report's world/layer stamp, and the raised event carries the comparison against this side's own generation: a STALE report belongs to another world and must be refused (its drops rolled back) before any world write.</summary>
+	void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationMsg? generation);
 
-	event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?>? BlockDamagedReceived;
+	event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?, WorldGenerationRelation>? BlockDamagedReceived;
 
 	/// <summary>Report a locally-performed block damage (drops = the break's drops, null/empty = damage only; buildingDrops = building-death drops from the same break, null/empty = none): guest → host report, host → broadcast to all synced members.</summary>
 	void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
@@ -115,18 +115,20 @@ public interface IWorldControl
 	void ResetPendingBreakDropReports();
 
 	/// <summary>
-	/// Host only: a guest's ABSOLUTE partial-damage report arrived — merge every
+	/// Host only: a guest's ABSOLUTE partial-damage report arrived (with its
+	/// world/layer stamp) — merge every
 	/// row into the GAME's own damage list through the native port (per cell,
 	/// never below what this host already holds) and answer every reported cell
 	/// with this host's authoritative value (0 = no damage here) by broadcasting
 	/// a <c>BlockDamageSnapshot</c> to all members. The answer is what clears the
-	/// reporter's pending re-report and converges a third party's copy.
+	/// reporter's pending re-report and converges a third party's copy. A report
+	/// whose stamp belongs to another generation is refused before the merge.
 	/// </summary>
-	void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries);
+	void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation);
 
-	void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block);
+	void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block, WorldGenerationMsg? generation);
 
-	event Action<ulong, int, int, ushort>? BlockPlacedReceived;
+	event Action<ulong, int, int, ushort, WorldGenerationRelation>? BlockPlacedReceived;
 
 	void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash);
 
@@ -196,8 +198,8 @@ public interface IWorldControl
 	/// </summary>
 	void SendBlockDamageSnapshot(ulong targetSteamId);
 
-	/// <summary>Guest: the host's partial block-damage snapshot arrived — apply each entry absolutely (world entry / 60 s resend).</summary>
-	void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries);
+	/// <summary>Guest: the host's partial block-damage snapshot arrived (world entry / 60 s resend) — apply each entry absolutely, unless the snapshot's stamp belongs to another generation (its rows are cell-keyed, so applying them would write another layer's damage here).</summary>
+	void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation);
 
 	event Action<IReadOnlyList<BlockDamageEntryMsg>>? BlockDamageSnapshotReceived;
 

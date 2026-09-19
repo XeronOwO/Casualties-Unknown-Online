@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,7 +39,7 @@ public class GuestBlockReportRecoveryTests
 	private static List<(ulong Sender, int X, int Y, ushort Block)> RecordHostReports(ItemSimWorld w)
 	{
 		var reports = new List<(ulong Sender, int X, int Y, ushort Block)>();
-		w.Host.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (sender, x, y, block) =>
+		w.Host.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (sender, x, y, block, _) =>
 			reports.Add((sender, x, y, block));
 		return reports;
 	}
@@ -53,8 +54,16 @@ public class GuestBlockReportRecoveryTests
 		var reports = new List<(ulong Sender, int X, int Y, ushort Block)>();
 		var hostBlocks = new Dictionary<(int X, int Y), ushort>();
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
-		hostWorld.BlockPlacedReceived += (sender, x, y, block) =>
+		hostWorld.BlockPlacedReceived += (sender, x, y, block, generation) =>
 		{
+			if (generation == WorldGenerationRelation.Stale)
+			{
+				// Production refuses a report of another generation before the
+				// arbitration (the message seam's own guard); the double mirrors the
+				// consequence for its cell table.
+				return;
+			}
+
 			reports.Add((sender, x, y, block));
 			var current = hostBlocks.TryGetValue((x, y), out var value) ? value : (ushort)0;
 			if ((block == 0) == (current == 0))
@@ -68,6 +77,33 @@ public class GuestBlockReportRecoveryTests
 			hostWorld.BroadcastBlockPlaced(0, x, y, block); // accepted: relay to everyone, the reporter included (its acknowledgement)
 		};
 		return (reports, hostBlocks);
+	}
+
+	[Fact]
+	public void LiveBlockReport_CarriesTheSendersOwnGenerationStamp()
+	{
+		// The stamp is attached by the SEND PATH itself (the world message service
+		// and the recovery's fallback read the kernel run baseline at send time),
+		// never by the caller: what a receiver compares is exactly this value.
+		using var w = ItemSimWorld.Create();
+		WorldGenerationReports.CommitRun(w.G1, layerIndex: 2);
+		var framed = new List<BlockPlacedMsg>();
+		w.Host.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.BlockPlaced)
+			{
+				framed.Add(NetPacket.DecodePayload<BlockPlacedMsg>(frame));
+			}
+		};
+
+		w.G1.Services.GetRequiredService<IWorldControl>().SendBlockPlacedReport(5, 7, 0);
+		w.Driver.Tick(33);
+
+		var expected = WorldGenerationReports.StampOf(w.G1);
+		var msg = Assert.Single(framed);
+		Assert.NotNull(msg.Generation);
+		Assert.Equal(expected.RunEpoch, msg.Generation!.RunEpoch);
+		Assert.Equal(expected.LayerIndex, msg.Generation.LayerIndex);
 	}
 
 	[Fact]
@@ -111,7 +147,7 @@ public class GuestBlockReportRecoveryTests
 		hostBlocks[(9, 9)] = HostBlock; // the host's world already holds a block there
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 		var answers = new List<(int X, int Y, ushort Block)>();
-		guestWorld.BlockPlacedReceived += (_, x, y, block) => answers.Add((x, y, block));
+		guestWorld.BlockPlacedReceived += (_, x, y, block, _) => answers.Add((x, y, block));
 
 		// A placement the host must refuse (the cell is occupied) — first-writer-wins.
 		guestWorld.SendBlockPlacedReport(9, 9, 7);

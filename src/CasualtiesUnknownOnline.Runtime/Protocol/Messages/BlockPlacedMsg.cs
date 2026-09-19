@@ -21,4 +21,14 @@ public sealed class BlockPlacedMsg
 
 	[ProtoMember(3)]
 	public ushort Block { get; set; }
+
+	/// <summary>
+	/// The world/layer generation this report belongs to (protocol 29). The cell
+	/// key is LAYER-RELATIVE, so the receiver compares the stamp with its own
+	/// generation before the report counts as evidence: a stale air write must not
+	/// clear a freshly generated block. Null = the sender has no committed run
+	/// baseline yet, which the receiver compares as UNKNOWN and never as fresh.
+	/// </summary>
+	[ProtoMember(4)]
+	public WorldGenerationMsg? Generation { get; set; }
 }

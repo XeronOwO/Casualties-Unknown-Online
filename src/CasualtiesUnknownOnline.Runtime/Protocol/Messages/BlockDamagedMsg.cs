@@ -44,4 +44,15 @@ public sealed class BlockDamagedMsg
 	/// </summary>
 	[ProtoMember(5)]
 	public List<TrapDropEntryMsg>? BuildingDrops { get; set; }
+
+	/// <summary>
+	/// The world/layer generation this report belongs to (protocol 29). The
+	/// position is LAYER-RELATIVE, so the receiver compares the stamp with its own
+	/// generation before the report is arbitrated: a stale break report of the
+	/// previous layer would otherwise claim a freshly generated cell, and only
+	/// the generation tells that apart from a legitimate report whose air write
+	/// was lost. Null = the sender has no committed run baseline yet (UNKNOWN).
+	/// </summary>
+	[ProtoMember(6)]
+	public WorldGenerationMsg? Generation { get; set; }
 }

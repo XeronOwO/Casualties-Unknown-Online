@@ -128,8 +128,11 @@ corrected.
   block state converges through the W1 air-write channel instead. Accepting it
   was tried and reverted — without a generation identity on the wire, a stale
   report of a previous layer's break is indistinguishable from a legitimate one,
-  and accepting it breaks a block in the new layer. Closing this properly needs a
-  wire member carrying the world/layer identity (`todo/world-layer-generation-identity.md`).
+  and accepting it breaks a block in the new layer. **Closed since** by the wire
+  member carrying the world/layer identity: see
+  `review/world-layer-generation-identity.md` (the same-generation report is now
+  accepted as `Verdict.LostAirWrite`, and a stale one is refused before the
+  verdict).
 - The empty-drop recording guard lives in `BlockBreakSync.FlushPendingBlockBreak`
   (Unity-side): the suite pins the premise that makes it necessary (a
   payload-free report is never relayed, so an entry for it could never be
@@ -159,7 +162,7 @@ cycle, as the workflow requires.
 | # | Covered by |
 |---|---|
 | 1 | `SwallowedBreakReport_TheFallbackReReportIsWhatRegistersTheDrop` (only the drops report is lost — nothing inline can register them, so the fallback's re-report is provably the carrier; the host's table then holds the drop exactly once) |
-| 2 | `LostAirWrite_TheBreakReportIsRefused_AndTheRefusalReachesTheBreaker` (a report naming a cell the host still holds is refused — the conservative answer, since the wire carries no generation identity to attribute it; the refusal reaches the breaker and stops the re-report) |
+| 2 | `LostAirWrite_WithoutAGenerationStamp_IsRefused_AndTheRefusalReachesTheBreaker (the unverified shape; a same-generation report is now accepted — see review/world-layer-generation-identity.md)` (a report naming a cell the host still holds is refused — the conservative answer, since the wire carries no generation identity to attribute it; the refusal reaches the breaker and stops the re-report) |
 | 2b | `DropsFreeBreak_TheHostNeverAnswersIt_WhichIsWhyTheAdapterDoesNotRecordIt` (pins the host-side premise: a payload-free report is never relayed, so a recorded entry for it could never be answered) |
 | 3 | `LostDropsReport_IsReReported_AndAnsweredByTheRelayEcho` (only the drops report is lost; the next window carries it and the relay echo clears the entry) |
 | 4 | `DuplicateReReport_RegistersAndMaterializesExactlyOncePerDrop` (the idempotent repeat: one table entry, one relay per accepted report, no second materialization) |

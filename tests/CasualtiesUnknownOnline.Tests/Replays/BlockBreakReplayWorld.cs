@@ -120,7 +120,7 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 
 		var worldControl = host.Services.GetRequiredService<IWorldControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
-		worldControl.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops) =>
+		worldControl.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops, generation) =>
 		{
 			// The production BlockBreakSync executor shape: only a BREAK (drops
 			// attached) consults the record; a break the cell does not belong to
@@ -134,7 +134,10 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 
 			var cellX = (int)Math.Floor(pos.X);
 			var cellY = (int)Math.Floor(pos.Y);
-			var verdict = world._arbitration.TryAccept(sender, cellX, cellY);
+			// The replay carries no run baseline, so every report compares as
+			// UNKNOWN and no report can take the generation-verified branch: a
+			// recorded air write (the sim's only cell model) is what accepts a break.
+			var verdict = world._arbitration.TryAccept(sender, cellX, cellY, cellIsAir: true, generationVerified: false);
 			if (verdict == Verdict.Refused)
 			{
 				if (drops is not null)

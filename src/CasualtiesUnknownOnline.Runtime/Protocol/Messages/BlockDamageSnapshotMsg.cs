@@ -17,4 +17,14 @@ public sealed class BlockDamageSnapshotMsg
 {
 	[ProtoMember(1)]
 	public List<BlockDamageEntryMsg> Entries { get; set; } = [];
+
+	/// <summary>
+	/// The world/layer generation these rows describe (protocol 29) — the same
+	/// stamp the live block-damage family carries, because the rows are keyed by
+	/// block cell: a snapshot or a guest's absolute re-report that crossed a
+	/// generation boundary would write another world's damage into this one.
+	/// Null = the sender has no committed run baseline yet (UNKNOWN).
+	/// </summary>
+	[ProtoMember(2)]
+	public WorldGenerationMsg? Generation { get; set; }
 }

@@ -358,6 +358,12 @@ public static class CuoBootstrap
 		// Phase C four-envelope kernel protocol: executes wire commands on the
 		// host, applies checkpoints/batches on the guest, and owns the host
 		// journal used by join/reconnect fallback.
+		// Guest-side item-command convergence (sync-coverage audit row I5): the bounded
+		// re-report window that heals a swallowed item command. Its own time edge — the
+		// short-window family, like SessionControlConvergence above, not the unbounded
+		// pending-report tables.
+		services.AddSingleton<GuestCommandReconciliation>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GuestCommandReconciliation>());
 		services.AddSingleton<KernelProtocolService>();
 		services.AddSingleton<IKernelProtocolControl>(p => p.GetRequiredService<KernelProtocolService>());
 		services.AddSingleton<ItemService>();

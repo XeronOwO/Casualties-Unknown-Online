@@ -4,7 +4,7 @@
 - Priority: Medium-High
 - Category: Network / sync coverage / items (creation-before-operation invariant)
 - Source: User ruling 2026-09-18 (design alignment session): the 500 ms pickup hold is a design smell, not a latency fix — creation registration must always come first, and multiple messages/events may be composed into one atomic operation. The host must never execute, wait on, or guess about an operation on an item whose creation it has not yet judged.
-- Related: `todo/guest-command-loss-reconciliation.md`, `review/block-break-first-writer-wins.md`, `review/guest-break-drops-recovery.md`, `todo/carried-inventory-registration-re-report.md`
+- Related: `review/guest-command-loss-reconciliation.md`, `review/block-break-first-writer-wins.md`, `review/guest-break-drops-recovery.md`, `todo/carried-inventory-registration-re-report.md`
 
 ## Problem (evidence)
 

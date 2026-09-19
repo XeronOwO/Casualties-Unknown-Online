@@ -390,7 +390,14 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   the generation-finished edge. Every half travels back to the caller that started the restore
   through `WorldRestoreAudit`: the Runtime table's per-row apply counts AND each live-world write's
   refused counts, so a restore can never be reported as a success while the game's own bounded
-  (128-entry) table refused a row. A snapshot that carries no native run-field row is named in the
+  (128-entry) table refused a row. A half that will never arrive is accounted too, not waited on:
+  when the session ends before the world-entry seam, each owner releases its own arm and reports it —
+  the world-entity facts from `WorldEntityKernelProjection`, the restored items from `ItemService`,
+  and the world-fact/native half from the save layer, which is the only holder of both the tables'
+  stamped attempt and the adapter's unstamped handover. Every contribution names WHICH half it is
+  (`WorldRestoreHalf`) and counts at most once, so one arm released along several paths (the seam
+  wrote it, then the session ended) cannot complete the account in place of a half the restore still
+  owes. A snapshot that carries no native run-field row is named in the
   same account rather than silently continuing with a clock that restarts at zero and every recipe
   re-locked; a recipe row whose index no longer exists in the live table is refused by name and
   leaves that recipe's live state alone.
@@ -450,7 +457,7 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   silently dropped). It is ONE of a mid-run restore's live-write contributions, and the report
   waits for all of them before it is raised — the world facts and the restored world-entity facts
   at the world-entry seam, then this item reconcile — because each is a separate writer with its own
-  handover and its own refusal account. The count is the writers that are ACTUALLY armed when the
+  handover and its own refusal account. The halves are the writers that are ACTUALLY armed when the
   click returns (`WorldRestoreApplier.LiveWorldHalves`: three with both halves armed, one when
   neither is — a layer-end cut, whose world-entity rows and item rows both describe the layer being
   replaced and are dropped before the audit begins), never the cut kind alone, so a composition

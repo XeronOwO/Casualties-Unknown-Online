@@ -27,6 +27,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		FakeSessionControl session,
 		FakeWorldFactSource worldFacts,
 		WorldRestoreAudit? audit,
+		IRestoredWorldItemSource? items,
 		MutableOptionsMonitor<SaveOptions> options,
 		ILoggerFactory loggerFactory)
 	{
@@ -37,6 +38,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		Session = session;
 		WorldFacts = worldFacts;
 		Audit = audit;
+		Items = items;
 		Options = options;
 		LoggerFactory = loggerFactory;
 	}
@@ -56,6 +58,14 @@ internal sealed class WorldSaveFixture : IDisposable
 
 	/// <summary>The restore account this fixture's service reports its live-world halves to, when the suite supplied one.</summary>
 	internal WorldRestoreAudit? Audit { get; }
+
+	/// <summary>
+	/// The item domain's restored-set port the save layer drives, when the suite supplied
+	/// one: it records every cancellation the service asked for, which is how the PORT
+	/// WIRING (the supersession, layer-end and abandon call sites) is pinned rather than
+	/// read.
+	/// </summary>
+	internal IRestoredWorldItemSource? Items { get; }
 
 	/// <summary>
 	/// The save policy the service reads at each decision. A suite that pins the
@@ -94,6 +104,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		IWorldCutTransientProbe? transients = null,
 		IRestoredWorldEntitySource? worldEntities = null,
 		WorldRestoreAudit? audit = null,
+		IRestoredWorldItemSource? items = null,
 		ILoggerFactory? loggerFactory = null,
 		Func<DateTime>? utcNow = null,
 		SaveOptions? options = null)
@@ -122,12 +133,13 @@ internal sealed class WorldSaveFixture : IDisposable
 			transients: transients,
 			worldEntities: worldEntities,
 			audit: audit,
+			items: items,
 			options: monitor);
 
-		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts, audit, monitor, loggerFactory);
+		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts, audit, items, monitor, loggerFactory);
 	}
 
-	/// <summary>A second service over the SAME world repository with a fresh kernel — a host restart.</summary>
+	/// <summary>A second service over the SAME world repository with a fresh kernel — a host restart. The restore account and the item port are the caller's to supply: a restart is a NEW service, and sharing a stand-in silently would hide that (the suites that pin them compose through <see cref="Create"/>).</summary>
 	internal WorldSaveFixture Restart(string label, bool ipDirect = false, string displayName = "Host") =>
 		Create(label, ipDirect, displayName, hostId: Session.LocalSteamId, repository: Repository, loggerFactory: LoggerFactory);
 

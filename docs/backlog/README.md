@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Restore live-object row loops](todo/restore-live-object-loops-containment.md) — **Low** — three appliers keep a half-level blast radius.
 - [Dropped mod command requests](todo/mod-command-request-timeout.md) — **Low** — pending callbacks have no timeout.
 - [Systemic save and backup management](todo/systemic-save-backup-management.md) — **Medium** — backup/retention/restore/migration.
@@ -160,6 +159,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Run clock is not sent to a mid-run joiner](review/save-run-clock-not-sent.md) — **Low-Medium** — the clocks travel as their own message.
 - [Layer time is not carried](review/save-layer-time-not-carried.md) — **Low-Medium** — the continued layer resumes its timer.
 - [Checkpoint chunks vs the run epoch](review/checkpoint-run-epoch-validation.md) — **Low-Medium** — the join instruction carries the run identity.
+- [Restore account arm release](review/restore-account-arm-release.md) — **Low** — every release path accounts for its own live-world half.
 
 ### Future
 

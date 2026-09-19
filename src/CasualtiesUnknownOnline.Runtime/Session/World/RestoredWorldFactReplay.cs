@@ -127,7 +127,7 @@ internal sealed class RestoredWorldFactReplay(
 			// finished.
 			if (_audit is { AwaitingLiveWrite: true })
 			{
-				_audit.LiveWriteFinished(factSequence, complete: true, refused: [], summary: "the restored cut carried no live-world fact to write");
+				_audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, factSequence, complete: true, refused: [], summary: "the restored cut carried no live-world fact to write");
 			}
 
 			return;
@@ -185,6 +185,7 @@ internal sealed class RestoredWorldFactReplay(
 			// prevent. The world-ENTITY half never ran, so it reports that too rather than
 			// leaving the audit waiting for a contribution this path just made impossible.
 			_audit?.LiveWriteFinished(
+				WorldRestoreHalf.WorldFacts,
 				factSequence,
 				complete: false,
 				refused: [$"the live-world write threw ({ex.Message})"],
@@ -192,6 +193,7 @@ internal sealed class RestoredWorldFactReplay(
 			if (entitiesPending)
 			{
 				_audit?.LiveWriteFinished(
+					WorldRestoreHalf.WorldEntities,
 					entitySequence,
 					complete: false,
 					refused: ["the world-entity facts were not written (the live-world write threw)"],
@@ -265,6 +267,7 @@ internal sealed class RestoredWorldFactReplay(
 		}
 
 		_audit?.LiveWriteFinished(
+			WorldRestoreHalf.WorldFacts,
 			factSequence,
 			liveWorldComplete,
 			refusedDetail,
@@ -302,6 +305,7 @@ internal sealed class RestoredWorldFactReplay(
 			// released rather than left armed for another generation's layer. The halves
 			// above keep their own account and their commit — they had already landed.
 			_audit?.LiveWriteFinished(
+				WorldRestoreHalf.WorldEntities,
 				entitySequence,
 				complete: false,
 				refused: [$"the world-entity facts were not fully written (the write threw: {entityThrow})"],
@@ -316,6 +320,7 @@ internal sealed class RestoredWorldFactReplay(
 			// divergence), and a refusal there says nothing about the rows above.
 			var entitiesComplete = entityWrite.Refused == 0;
 			_audit?.LiveWriteFinished(
+				WorldRestoreHalf.WorldEntities,
 				entitySequence,
 				entitiesComplete,
 				entitiesComplete ? [] : [$"{entityWrite.Refused} world-entity row(s)"],

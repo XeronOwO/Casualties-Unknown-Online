@@ -167,13 +167,9 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// </summary>
 	void CompleteRestoredWorldItems(int applied, IReadOnlyList<string> refused);
 
-	/// <summary>
-	/// Host/solo: the restored item set will never be reconciled — a layer-end cut
-	/// (its world rows are dropped by the layer reset, not restored), a new run, or
-	/// the session ending. Drops the expectation; an armed set reports the loss
-	/// rather than disappearing silently.
-	/// </summary>
-	void CancelRestoredWorldItems(string reason);
+	// CancelRestoredWorldItems — the release the save layer drives — is declared by the
+	// port this surface implements (IRestoredWorldItemSource), beside the pending flag
+	// it pairs with: the reconcile side adds no second declaration of it.
 
 	/// <summary>Host side: the world's current layer modifier (index into the game's LayerModifier.availableModifiers, -1 = none) — rides the world-item snapshots so a world entry outside a generation still receives it. A projection of world state: the adapter refreshes it when a generation finishes.</summary>
 	int LayerModifierIndex { get; set; }

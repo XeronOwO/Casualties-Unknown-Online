@@ -102,11 +102,11 @@ public class WorldSaveContinueTests
 
 		// ...and it is NOT one of the halves the new restore owes: the writers armed for
 		// THIS attempt are the world-fact half alone (the fixture composes no item control).
-		Assert.Equal(1, audit.ExpectedContributions);
+		Assert.Equal(1, audit.ExpectedHalves.Count);
 		Assert.True(audit.AwaitingLiveWrite);
 
 		// The world the new attempt replaced is still the one its own halves belong to.
-		audit.LiveWriteFinished(restarted.Kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restarted.Kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
 		Assert.False(audit.AwaitingLiveWrite);
 		Assert.Equal(fixture.WorldId, audit.Last!.WorldId);
 	}
@@ -146,7 +146,7 @@ public class WorldSaveContinueTests
 		Assert.Equal(restarted.Kernel.RestoreSequence, restarted.WorldFacts.AppliedRestoreSequence);
 
 		// ...and a half carrying it is THIS restore's half, not a straggler.
-		audit.LiveWriteFinished(restarted.Kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restarted.Kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
 
 		var report = Assert.Single(reports);
 		Assert.True(report.Complete);
@@ -464,6 +464,135 @@ public class WorldSaveContinueTests
 
 		Assert.Equal(enemyId, Assert.Single(restarted.Kernel.QueryEnemies()!.Enemies).EntityId);
 		Assert.Equal(7, Assert.Single(restarted.Kernel.QueryFluids()!.Regions).TotalAmount);
+	}
+
+	[Fact]
+	public void SessionEnd_ReportsTheWorldFactHalfTheRestoreStillOwed()
+	{
+		// A restore's world-fact half lands at the world-entry seam, which a session that
+		// ends first never reaches. The account must not stay awaiting a half nobody will
+		// ever report: the loss is named instead (§6: silent loss is forbidden).
+		using var fixture = WorldSaveFixture.Create("continue-session-end-facts");
+		fixture.WorldFacts.SeedBlockState(1, 1, 3);
+		SaveMidRun(fixture);
+
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		using var restarted = WorldSaveFixture.Create(
+			"continue-session-end-facts-restart", repository: fixture.Repository, audit: audit);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+		Assert.Equal(1, audit.ExpectedHalves.Count);
+		Assert.True(audit.AwaitingLiveWrite);
+		Assert.True(restarted.WorldFacts.HasPendingLiveReplay, "the restored cut is still waiting for the world-entry seam");
+
+		restarted.Session.FireSessionEnded();
+
+		Assert.False(
+			audit.AwaitingLiveWrite,
+			"the session ended before the world-entry seam, so the world-fact half can never report and the account must be closed WITH a report");
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+		Assert.Equal(fixture.WorldId, report.WorldId);
+	}
+
+	[Fact]
+	public void SessionEnd_ReportsTheWorldFactHalfEvenWhenOnlyTheAdapterHoldsIt()
+	{
+		// The other shape of the same half: a cut that carried no Runtime world fact
+		// (nothing for the block diff or the radiation line) and only the adapter's native
+		// handover. The ACCOUNT is what says a half is owed, so the report must not depend
+		// on the Runtime marker being set.
+		using var fixture = WorldSaveFixture.Create("continue-session-end-native");
+		SaveMidRun(fixture);
+
+		var native = new FakeNativeWorldFacts();
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		using var restarted = WorldSaveFixture.Create(
+			"continue-session-end-native-restart", repository: fixture.Repository, nativeWorldFacts: native, audit: audit);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// The adapter holds the restored native values (keypad codes, damage rows,
+		// recipes); the Runtime tables have nothing pending.
+		restarted.WorldFacts.ClearPendingLiveReplay();
+		native.SeedKeypad(5f, 6f, "1234");
+		native.ApplyKeypadCodes(native.Keypads);
+		Assert.True(native.HasPendingRestore);
+		Assert.False(restarted.WorldFacts.HasPendingLiveReplay);
+
+		restarted.Session.FireSessionEnded();
+
+		Assert.False(
+			audit.AwaitingLiveWrite,
+			"the session ended before the world-entry seam, so the half only the adapter holds must still be accounted");
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+	}
+
+	[Fact]
+	public void TryContinue_SupersedesThePreviousAttemptsItemReconcile()
+	{
+		// The item half is the port the save layer used to take as the WHOLE IItemControl, which
+		// no suite could assemble — so its call sites were verified by reading only. They are
+		// pinned here, the way the release METHOD is pinned by RestoredWorldItemContractTests.
+		using var fixture = WorldSaveFixture.Create("continue-items-supersede");
+		SaveMidRun(fixture);
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+
+		// An attempt that never reached its generation reconcile left its set armed.
+		var items = new FakeRestoredWorldItemSource { Armed = true };
+		using var restarted = WorldSaveFixture.Create(
+			"continue-items-supersede-restart", repository: fixture.Repository, items: items);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.False(items.Armed);
+		Assert.Contains(items.Cancels, reason => reason.Contains("superseded", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void ALayerEndRestore_DropsTheItemHalfBeforeTheAccountOpens()
+	{
+		// A layer-end cut's item rows describe the layer being LEFT, so nothing will reconcile
+		// them: the expectation is dropped BEFORE the account opens, and the account must not
+		// owe a half this cut never had ("a cancelled half is not a lost one").
+		using var fixture = WorldSaveFixture.Create("continue-items-layer-end");
+		SaveMidRunAsLayerEnd(fixture, "continue-items-layer-end");
+
+		var items = new FakeRestoredWorldItemSource { Armed = true };
+		var audit = new WorldRestoreAudit();
+		using var restarted = WorldSaveFixture.Create(
+			"continue-items-layer-end-restart", repository: fixture.Repository, items: items, audit: audit);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.False(items.Armed);
+		Assert.Contains(items.Cancels, reason => reason.Contains("layer-end cut", StringComparison.Ordinal));
+		Assert.Equal([WorldRestoreHalf.WorldFacts], audit.ExpectedHalves);
+	}
+
+	[Fact]
+	public void AbandonRestore_CancelsTheArmedItemReconcileToo()
+	{
+		// The abandon path releases every handover the click armed — the item half included,
+		// or the next run's generation would reconcile its fresh objects against a dead
+		// attempt's ids.
+		var items = new FakeRestoredWorldItemSource { Armed = true };
+		using var fixture = WorldSaveFixture.Create("abandon-items", items: items);
+		SaveMidRun(fixture);
+
+		// A new run's own arm release belongs to the adapter (RunSaveCoordinator.BeginRun), not
+		// to the save layer's TryBeginRun — so the set is still armed here.
+		Assert.True(items.Armed);
+
+		fixture.Service.AbandonRestore("the restore published no run baseline, so no world generation will consume it");
+
+		Assert.False(items.Armed);
+		Assert.Contains(items.Cancels, reason => reason.Contains("no run baseline", StringComparison.Ordinal));
 	}
 
 	// ---- helpers ----

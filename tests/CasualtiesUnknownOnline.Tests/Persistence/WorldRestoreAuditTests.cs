@@ -10,22 +10,28 @@ namespace CasualtiesUnknownOnline.Tests.Persistence;
 /// world-entry seam, long after the Continue click returned, so the click's
 /// caller can only learn what the live world took through this object. The suite
 /// pins its lifecycle — a pending restore, a completed or incomplete write, a
-/// restore that never reached the seam — and the ATTEMPT identity every
-/// contribution carries (<c>restoreSequence</c>: the kernel restore that armed
-/// the writer), which is what keeps a half of an earlier attempt out of a later
-/// attempt's account.
+/// restore that never reached the seam — and the two identities every
+/// contribution carries: WHICH half reported (<see cref="WorldRestoreHalf"/>, so
+/// one arm can be released along several paths and still counts once, and no
+/// other half can take its place) and the ATTEMPT it belongs to
+/// (<c>restoreSequence</c>, the kernel restore that armed the writer), which is
+/// what keeps a half of an earlier attempt out of a later attempt's account.
 /// </summary>
 public class WorldRestoreAuditTests
 {
+	private static readonly WorldRestoreHalf[] FactOnly = [WorldRestoreHalf.WorldFacts];
+
+	private static readonly WorldRestoreHalf[] FactsAndItems = [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldItems];
+
 	[Fact]
 	public void Begin_ExpectsTheLiveWorldWriteAndClearsAStaleReport()
 	{
 		var audit = new WorldRestoreAudit();
-		audit.BeginRestore("w-1", restoreSequence: 1);
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "took everything");
+		audit.BeginRestore("w-1", restoreSequence: 1, FactOnly);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "took everything");
 		Assert.NotNull(audit.Last);
 
-		audit.BeginRestore("w-2", restoreSequence: 2);
+		audit.BeginRestore("w-2", restoreSequence: 2, FactOnly);
 
 		Assert.True(audit.AwaitingLiveWrite);
 		Assert.Null(audit.Last);
@@ -37,9 +43,9 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-1", restoreSequence: 1);
+		audit.BeginRestore("w-1", restoreSequence: 1, FactOnly);
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "12 block-state row(s) written");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "12 block-state row(s) written");
 
 		var report = Assert.Single(reported);
 		Assert.Equal("w-1", report.WorldId);
@@ -55,9 +61,10 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-9", restoreSequence: 1);
+		audit.BeginRestore("w-9", restoreSequence: 1, FactOnly);
 
 		audit.LiveWriteFinished(
+			WorldRestoreHalf.WorldFacts,
 			restoreSequence: 1,
 			complete: false,
 			refused: ["2 partial-damage row(s)", "1 keypad code(s)"],
@@ -75,7 +82,7 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reports = 0;
 		audit.Reported += _ => reports++;
-		audit.BeginRestore("w-3", restoreSequence: 1);
+		audit.BeginRestore("w-3", restoreSequence: 1, FactOnly);
 
 		audit.AbandonRestore();
 
@@ -96,7 +103,7 @@ public class WorldRestoreAuditTests
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: false, refused: ["1 block-state row(s)"], summary: "did not take 1 block-state row(s)");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: false, refused: ["1 block-state row(s)"], summary: "did not take 1 block-state row(s)");
 
 		Assert.Single(reported);
 		Assert.Equal(string.Empty, Assert.Single(reported).WorldId);
@@ -112,16 +119,16 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-7", restoreSequence: 1, expectedContributions: 2);
+		audit.BeginRestore("w-7", restoreSequence: 1, FactsAndItems);
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
 
 		Assert.Empty(reported);
 		Assert.True(audit.AwaitingLiveWrite);
 		Assert.Equal(1, audit.Contributions);
-		Assert.Equal(2, audit.ExpectedContributions);
+		Assert.Equal(2, audit.ExpectedHalves.Count);
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the live world took the restored item set (3 entries)");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldItems, restoreSequence: 1, complete: true, refused: [], summary: "the live world took the restored item set (3 entries)");
 
 		var report = Assert.Single(reported);
 		Assert.True(report.Complete);
@@ -137,10 +144,10 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-8", restoreSequence: 1, expectedContributions: 2);
+		audit.BeginRestore("w-8", restoreSequence: 1, FactsAndItems);
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
-		audit.LiveWriteFinished(restoreSequence: 1, complete: false, refused: ["2 restored item(s)"], summary: "the live world did not take 2 restored item(s)");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldItems, restoreSequence: 1, complete: false, refused: ["2 restored item(s)"], summary: "the live world did not take 2 restored item(s)");
 
 		var report = Assert.Single(reported);
 		Assert.False(report.Complete);
@@ -158,14 +165,15 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-10", restoreSequence: 1, expectedContributions: 2);
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
+		audit.BeginRestore("w-10", restoreSequence: 1, FactsAndItems);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
 
-		audit.LiveWriteAbandoned(restoreSequence: 1, "the session ended before the generation reconcile ran");
+		audit.LiveWriteAbandoned(WorldRestoreHalf.WorldItems, restoreSequence: 1, "the session ended before the generation reconcile ran");
 
 		var report = Assert.Single(reported);
 		Assert.False(report.Complete);
 		Assert.Contains("generation reconcile", Assert.Single(report.Refused), StringComparison.Ordinal);
+		Assert.Contains("item", report.Summary, StringComparison.Ordinal);
 		Assert.False(audit.AwaitingLiveWrite);
 	}
 
@@ -178,7 +186,7 @@ public class WorldRestoreAuditTests
 		var reports = 0;
 		audit.Reported += _ => reports++;
 
-		audit.LiveWriteAbandoned(restoreSequence: 1, "a layer-end cut never reconciles its items");
+		audit.LiveWriteAbandoned(WorldRestoreHalf.WorldItems, restoreSequence: 1, "a layer-end cut never reconciles its items");
 
 		Assert.Equal(0, reports);
 		Assert.Null(audit.Last);
@@ -193,16 +201,16 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-11", restoreSequence: 1, expectedContributions: WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: true, itemReconcileArmed: true));
+		audit.BeginRestore("w-11", restoreSequence: 1, WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: true, itemReconcileArmed: true));
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored world-entity fact (3 row(s))");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldEntities, restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored world-entity fact (3 row(s))");
 
 		Assert.Empty(reported);
 		Assert.True(audit.AwaitingLiveWrite);
 		Assert.Equal(2, audit.Contributions);
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the live world took the restored item set (1 entry)");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldItems, restoreSequence: 1, complete: true, refused: [], summary: "the live world took the restored item set (1 entry)");
 
 		var report = Assert.Single(reported);
 		Assert.True(report.Complete);
@@ -212,19 +220,107 @@ public class WorldRestoreAuditTests
 	}
 
 	[Fact]
-	public void LiveWorldHalves_CountTheWritersThatAreActuallyArmed()
+	public void LiveWorldHalves_NameTheWritersThatAreActuallyArmed()
 	{
-		// The count is a CONTRACT between the restore applier and this audit: the report
-		// is raised when the contribution count reaches the expectation, so a half nobody
-		// will report leaves the restore awaiting forever, while a count that is too low
-		// raises the report before the last writer ran and then raises a SECOND one when
-		// that writer reports. It therefore follows the writers that are ARMED at the
-		// moment the click returns — never the cut kind — and the world-fact half always
-		// reports (an armed restore with no facts at all reports "carried nothing").
-		Assert.Equal(3, WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: true, itemReconcileArmed: true));
-		Assert.Equal(2, WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: true, itemReconcileArmed: false));
-		Assert.Equal(2, WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: false, itemReconcileArmed: true));
-		Assert.Equal(1, WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: false, itemReconcileArmed: false));
+		// The list is a CONTRACT between the restore applier and this audit: the report
+		// is raised when the last OWED half has arrived, so a list naming a half nobody
+		// will report leaves the restore awaiting forever, while one omitting a writer
+		// the seam will report raises the account early (and then has to drop the extra
+		// report as a producer bug). It therefore follows the writers that are ARMED at
+		// the moment the click returns — never the cut kind — and the world-fact half is
+		// always owed (an armed restore with no facts at all reports "carried nothing").
+		Assert.Equal(
+			[WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities, WorldRestoreHalf.WorldItems],
+			WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: true, itemReconcileArmed: true));
+		Assert.Equal(
+			[WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities],
+			WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: true, itemReconcileArmed: false));
+		Assert.Equal(
+			[WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldItems],
+			WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: false, itemReconcileArmed: true));
+		Assert.Equal(
+			[WorldRestoreHalf.WorldFacts],
+			WorldRestoreApplier.LiveWorldHalves(worldEntityHalfArmed: false, itemReconcileArmed: false));
+	}
+
+	[Fact]
+	public void AHalfThatReportsTwice_IsCountedOnce()
+	{
+		// One armed half can be released along more than one path — the world-entry seam
+		// reports it, then the session ends and its owner releases it again. The second
+		// report must not stand in for the half this restore still owes.
+		var audit = new WorldRestoreAudit();
+		var reported = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reported.Add;
+		audit.BeginRestore("w-16", restoreSequence: 1, FactsAndItems);
+
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
+		audit.LiveWriteAbandoned(WorldRestoreHalf.WorldFacts, restoreSequence: 1, "the session ended after the seam already took them");
+
+		Assert.Empty(reported);
+		Assert.True(audit.AwaitingLiveWrite);
+		Assert.Equal(1, audit.Contributions);
+
+		audit.LiveWriteAbandoned(WorldRestoreHalf.WorldItems, restoreSequence: 1, "the session ended before the generation reconcile ran");
+
+		var report = Assert.Single(reported);
+		Assert.False(report.Complete);
+		Assert.Contains("generation reconcile", Assert.Single(report.Refused), StringComparison.Ordinal);
+		Assert.DoesNotContain("already took them", report.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void AHalfTheAccountDoesNotOwe_DoesNotStandInForTheOneItWaitsFor()
+	{
+		// A bare count cannot tell the halves apart: without the identity, a release of
+		// ANY armed half completes the account, and the half that never reported is
+		// dropped from the report without a word. The identity is what decides, so a
+		// contribution for a half this account does not owe is refused rather than
+		// counted.
+		var audit = new WorldRestoreAudit();
+		var reported = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reported.Add;
+		audit.BeginRestore("w-17", restoreSequence: 1, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities]);
+
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldItems, restoreSequence: 1, complete: true, refused: [], summary: "the generation reconciled a set this account does not owe");
+
+		Assert.Empty(reported);
+		Assert.True(audit.AwaitingLiveWrite);
+		Assert.Equal(0, audit.Contributions);
+
+		// The half it DOES owe is accounted on its own — and the report still waits for
+		// the world-fact half, which is exactly what the refused contribution above must
+		// not have stood in for.
+		audit.LiveWriteAbandoned(WorldRestoreHalf.WorldEntities, restoreSequence: 1, "the session ended before the restored world-entity facts reached the world-entry seam");
+		Assert.Empty(reported);
+		Assert.Equal(1, audit.Contributions);
+
+		audit.LiveWriteAbandoned(WorldRestoreHalf.WorldFacts, restoreSequence: 1, "the session ended before the world-entry seam wrote the restored world facts");
+
+		var report = Assert.Single(reported);
+		Assert.False(report.Complete);
+		Assert.Contains("world-entity", report.Summary, StringComparison.Ordinal);
+		Assert.Contains(report.Refused, entry => entry.Contains("world-entity", StringComparison.Ordinal));
+		Assert.DoesNotContain("does not owe", report.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void ADuplicatedHalfInTheOwedList_IsOwedOnce()
+	{
+		// The owed list is public API. Completion compares the accounted halves against the
+		// OWED ones, so a list naming one half twice would owe a contribution that can only
+		// ever arrive once, and the account could never complete.
+		var audit = new WorldRestoreAudit();
+		var reported = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reported.Add;
+		audit.BeginRestore("w-18", restoreSequence: 1, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldFacts]);
+
+		Assert.Equal(1, audit.ExpectedHalves.Count);
+
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
+
+		Assert.Single(reported);
+		Assert.False(audit.AwaitingLiveWrite);
 	}
 
 	[Fact]
@@ -237,18 +333,18 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
-		audit.BeginRestore("w-12", restoreSequence: 1);
+		audit.BeginRestore("w-12", restoreSequence: 1, FactOnly);
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "a later generation reported a no-op");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the live world took every restored fact");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "a later generation reported a no-op");
 
 		var report = Assert.Single(reported);
 		Assert.True(report.Complete);
 		Assert.Equal(1, audit.Contributions);
 
 		// A NEW restore starts a new account: the ignore rule is per restore.
-		audit.BeginRestore("w-13", restoreSequence: 2);
-		audit.LiveWriteFinished(restoreSequence: 2, complete: true, refused: [], summary: "the live world took the second restore");
+		audit.BeginRestore("w-13", restoreSequence: 2, FactOnly);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 2, complete: true, refused: [], summary: "the live world took the second restore");
 		Assert.Equal(2, reported.Count);
 		Assert.Equal("w-13", reported[1].WorldId);
 	}
@@ -263,18 +359,18 @@ public class WorldRestoreAuditTests
 		var audit = new WorldRestoreAudit();
 		var reports = 0;
 		audit.Reported += _ => reports++;
-		audit.BeginRestore("w-14", restoreSequence: 1);
+		audit.BeginRestore("w-14", restoreSequence: 1, FactOnly);
 		audit.AbandonRestore();
 
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "a stale write reached the seam after the attempt was abandoned");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "a stale write reached the seam after the attempt was abandoned");
 
 		Assert.Equal(0, reports);
 		Assert.Null(audit.Last);
 		Assert.False(audit.AwaitingLiveWrite);
 
 		// The next restore opens a fresh account.
-		audit.BeginRestore("w-15", restoreSequence: 2);
-		audit.LiveWriteFinished(restoreSequence: 2, complete: true, refused: [], summary: "the next restore's write");
+		audit.BeginRestore("w-15", restoreSequence: 2, FactOnly);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 2, complete: true, refused: [], summary: "the next restore's write");
 		Assert.Equal(1, reports);
 		Assert.Equal("w-15", audit.Last!.WorldId);
 	}
@@ -292,7 +388,7 @@ public class WorldRestoreAuditTests
 		audit.Reported += reported.Add;
 
 		audit.AbandonRestore();
-		audit.LiveWriteFinished(restoreSequence: 1, complete: false, refused: ["1 block-state row(s)"], summary: "did not take 1 block-state row(s)");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: false, refused: ["1 block-state row(s)"], summary: "did not take 1 block-state row(s)");
 
 		var report = Assert.Single(reported);
 		Assert.False(report.Complete);
@@ -304,11 +400,11 @@ public class WorldRestoreAuditTests
 		// A completed restore's report must never be read as the next (abandoned)
 		// attempt's outcome: Last is part of the restore in flight.
 		var audit = new WorldRestoreAudit();
-		audit.BeginRestore("w-1", restoreSequence: 1);
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "took everything");
+		audit.BeginRestore("w-1", restoreSequence: 1, FactOnly);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "took everything");
 		Assert.NotNull(audit.Last);
 
-		audit.BeginRestore("w-2", restoreSequence: 2);
+		audit.BeginRestore("w-2", restoreSequence: 2, FactOnly);
 		audit.AbandonRestore();
 
 		Assert.Null(audit.Last);
@@ -327,21 +423,21 @@ public class WorldRestoreAuditTests
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
 
-		audit.BeginRestore("w-old", restoreSequence: 1, expectedContributions: 2);
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the previous restore's world facts");
+		audit.BeginRestore("w-old", restoreSequence: 1, FactsAndItems);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the previous restore's world facts");
 
 		// A new restore supersedes the attempt and opens its own account.
-		audit.BeginRestore("w-new", restoreSequence: 2);
+		audit.BeginRestore("w-new", restoreSequence: 2, FactOnly);
 
 		// The previous attempt's half reports now, after the new account opened.
-		audit.LiveWriteFinished(restoreSequence: 1, complete: false, refused: ["1 stale row"], summary: "a straggler from the previous restore");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldItems, restoreSequence: 1, complete: false, refused: ["1 stale row"], summary: "a straggler from the previous restore");
 
 		Assert.Empty(reported);
 		Assert.True(audit.AwaitingLiveWrite);
 		Assert.Equal(0, audit.Contributions);
 
 		// The new restore's OWN half is what completes its account.
-		audit.LiveWriteFinished(restoreSequence: 2, complete: true, refused: [], summary: "the new restore's world facts");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 2, complete: true, refused: [], summary: "the new restore's world facts");
 
 		var report = Assert.Single(reported);
 		Assert.True(report.Complete);
@@ -358,12 +454,12 @@ public class WorldRestoreAuditTests
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
 
-		audit.BeginRestore("w-old", restoreSequence: 1, expectedContributions: 2);
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the previous restore's world facts");
+		audit.BeginRestore("w-old", restoreSequence: 1, FactsAndItems);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the previous restore's world facts");
 
-		audit.BeginRestore("w-new", restoreSequence: 2, expectedContributions: 2);
-		audit.LiveWriteFinished(restoreSequence: 1, complete: false, refused: ["1 stale row"], summary: "a straggler from the previous restore");
-		audit.LiveWriteFinished(restoreSequence: 2, complete: true, refused: [], summary: "the new restore's world facts");
+		audit.BeginRestore("w-new", restoreSequence: 2, FactsAndItems);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: false, refused: ["1 stale row"], summary: "a straggler from the previous restore");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 2, complete: true, refused: [], summary: "the new restore's world facts");
 
 		Assert.Empty(reported);
 		Assert.True(audit.AwaitingLiveWrite);
@@ -380,12 +476,12 @@ public class WorldRestoreAuditTests
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
 
-		audit.BeginRestore("w-old", restoreSequence: 1, expectedContributions: 2);
-		audit.LiveWriteFinished(restoreSequence: 1, complete: true, refused: [], summary: "the previous restore's world facts");
+		audit.BeginRestore("w-old", restoreSequence: 1, FactsAndItems);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, restoreSequence: 1, complete: true, refused: [], summary: "the previous restore's world facts");
 
-		audit.BeginRestore("w-new", restoreSequence: 2);
+		audit.BeginRestore("w-new", restoreSequence: 2, FactOnly);
 
-		audit.LiveWriteAbandoned(restoreSequence: 1, "the previous restore's reconcile was cancelled");
+		audit.LiveWriteAbandoned(WorldRestoreHalf.WorldItems, restoreSequence: 1, "the previous restore's reconcile was cancelled");
 
 		Assert.Empty(reported);
 		Assert.True(audit.AwaitingLiveWrite);

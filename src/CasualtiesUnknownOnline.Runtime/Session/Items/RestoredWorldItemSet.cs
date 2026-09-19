@@ -80,6 +80,7 @@ internal sealed class RestoredWorldItemSet(
 		var complete = refused.Count == 0;
 		_log.LogInformation("[Restore] the generation reconciled the restored item set: {Applied} applied, {Refused} not taken.", applied, refused.Count);
 		_audit?.LiveWriteFinished(
+			WorldRestoreHalf.WorldItems,
 			_restoreSequence,
 			complete,
 			refused,
@@ -102,6 +103,6 @@ internal sealed class RestoredWorldItemSet(
 
 		Pending = false;
 		_log.LogWarning("[Restore] the restored item set is dropped without a generation reconcile: {Reason}", reason);
-		_audit?.LiveWriteAbandoned(_restoreSequence, reason);
+		_audit?.LiveWriteAbandoned(WorldRestoreHalf.WorldItems, _restoreSequence, reason);
 	}
 }

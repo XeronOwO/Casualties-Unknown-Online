@@ -54,8 +54,8 @@ public sealed class RestoredWorldItemContractTests
 		// with that attempt's sequence) and THEN opens the restore's account for the
 		// same attempt.
 		RestoreOneShell(kernel, 100, 5f, 5f);
-		audit.BeginRestore("w-1", kernel.RestoreSequence, expectedContributions: 2);
-		audit.LiveWriteFinished(kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
+		audit.BeginRestore("w-1", kernel.RestoreSequence, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldItems]);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
 
 		items.CompleteRestoredWorldItems(applied: 1, refused: []);
 
@@ -76,8 +76,8 @@ public sealed class RestoredWorldItemContractTests
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
 		RestoreOneShell(kernel, 100, 5f, 5f);
-		audit.BeginRestore("w-2", kernel.RestoreSequence, expectedContributions: 2);
-		audit.LiveWriteFinished(kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
+		audit.BeginRestore("w-2", kernel.RestoreSequence, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldItems]);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
 
 		items.CompleteRestoredWorldItems(applied: 0, refused: ["item #100 (shell) at (5.0,5.0)"]);
 
@@ -96,8 +96,8 @@ public sealed class RestoredWorldItemContractTests
 		var reported = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reported.Add;
 		RestoreOneShell(kernel, 100, 5f, 5f);
-		audit.BeginRestore("w-3", kernel.RestoreSequence, expectedContributions: 2);
-		audit.LiveWriteFinished(kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
+		audit.BeginRestore("w-3", kernel.RestoreSequence, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldItems]);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
 
 		items.CancelRestoredWorldItems("the session ended before the generation reconcile ran");
 
@@ -155,6 +155,30 @@ public sealed class RestoredWorldItemContractTests
 		items.ResetItems();
 
 		Assert.False(w.HostTable(200)); // the layer is new and its table starts empty
+	}
+
+	[Fact]
+	public void ASessionEnd_EndsTheItemExpectationThroughTheServicesOwnSubscription()
+	{
+		// The service's OWN SessionEnded subscription ends the expectation when a session
+		// tears down — not a call from the restore path, and not something the save layer
+		// does for it — so this pins the WIRING rather than the release method.
+		using var w = ItemSimWorld.Create();
+		var kernel = Kernel(w.Host);
+		var items = w.Host.Services.GetRequiredService<ItemService>();
+		var audit = w.Host.Services.GetRequiredService<WorldRestoreAudit>();
+		var reported = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reported.Add;
+		RestoreOneShell(kernel, 100, 5f, 5f);
+		audit.BeginRestore("w-4", kernel.RestoreSequence, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldItems]);
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, kernel.RestoreSequence, complete: true, refused: [], summary: "the world facts landed");
+
+		w.Host.Session.EndSession();
+
+		Assert.False(items.RestoredWorldItemsPending);
+		var report = Assert.Single(reported);
+		Assert.False(report.Complete);
+		Assert.Contains("session ended", Assert.Single(report.Refused), StringComparison.Ordinal);
 	}
 
 	private static ItemKernelAuthority Kernel(TestNode node) =>

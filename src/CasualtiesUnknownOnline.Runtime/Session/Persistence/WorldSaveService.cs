@@ -60,7 +60,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	private readonly WorldRestoreApplier _restore;
 	private readonly WorldCutTrigger _trigger;
 	private readonly IRestoredWorldEntitySource? _worldEntities;
-	private readonly IItemControl? _items;
+	private readonly IRestoredWorldItemSource? _items;
 	private readonly ILogger<WorldSaveService> _log;
 
 	private string _worldId = string.Empty;
@@ -91,7 +91,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		INativeWorldFacts? nativeWorldFacts = null,
 		IWorldCutTransientProbe? transients = null,
 		WorldRestoreAudit? audit = null,
-		IItemControl? items = null,
+		IRestoredWorldItemSource? items = null,
 		IRestoredWorldEntitySource? worldEntities = null,
 		IOptionsMonitor<SaveOptions>? options = null)
 	{
@@ -147,6 +147,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_restoreAccount = new WorldRestoreAccountRelay(report => RestoreReported?.Invoke(report), audit);
 
 		_kernel.BatchCommitted += OnBatchCommitted;
+		_session.SessionEnded += OnSessionEnded;
 	}
 
 	public bool IsEnabled => _repository is not null;
@@ -233,6 +234,26 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	}
 
 	/// <summary>
+	/// The session is gone, and with it the world-entry seam that would have written
+	/// whatever this restore still owed. Every arm is released by its own owner as the
+	/// session tears down (the world-fact tables by <see cref="WorldService"/>, the
+	/// adapter's native handover by the adapter's session binding, the world-entity
+	/// facts by <see cref="WorldEntityKernelProjection"/>, the restored items by
+	/// <see cref="ItemService"/>), and each of those releases accounts for its own half
+	/// — EXCEPT the world-fact half, whose two owners cannot attribute it: the Runtime
+	/// tables carry the attempt, the adapter's native handover carries none, and this is
+	/// the one place holding both. The half is therefore contributed here, stamped with
+	/// the attempt the tables were applied by; the account drops the contribution when
+	/// that is not the attempt it is open for, or when the half already reported at the
+	/// seam (which is why contributing unconditionally is safe).
+	/// </summary>
+	private void OnSessionEnded() =>
+		_audit?.LiveWriteAbandoned(
+			WorldRestoreHalf.WorldFacts,
+			_worldFacts.AppliedRestoreSequence,
+			"the session ended before the world-entry seam wrote the restored world facts");
+
+	/// <summary>
 	/// The cut writer this service drives. Internal because the save suites pin the
 	/// writer's row shapes (which facts a cut kind carries) directly — the same
 	/// reason the capture methods used to be internal on this class.
@@ -248,6 +269,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 		_disposed = true;
 		_kernel.BatchCommitted -= OnBatchCommitted;
+		_session.SessionEnded -= OnSessionEnded;
 		_restoreAccount.Dispose();
 
 		// A clean shutdown refreshes no lease: releasing it here is what keeps the next

@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -38,6 +39,7 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 	private readonly ITimeSource _time;
 	private readonly ILogger<WorldEntityKernelProjection> _log;
 	private readonly ProjectionHealthCoordinator _projectionHealth;
+	private readonly WorldRestoreAudit? _audit;
 
 	/// <summary>Host/solo: the restored cut's world-entity facts, waiting for the world-entry seam. Null everywhere else.</summary>
 	private WorldEntityState? _pendingRestore;
@@ -50,13 +52,15 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 		ISessionControl session,
 		ITimeSource time,
 		ILogger<WorldEntityKernelProjection> log,
-		ProjectionHealthCoordinator projectionHealth)
+		ProjectionHealthCoordinator projectionHealth,
+		WorldRestoreAudit? audit = null)
 	{
 		_kernelAuthority = kernelAuthority;
 		_session = session;
 		_time = time;
 		_log = log;
 		_projectionHealth = projectionHealth;
+		_audit = audit;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
 		_session.SessionEnded += OnSessionEnded;
 		_projectionHealth.Register(new ProjectionDomain("world-entities", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
@@ -67,7 +71,8 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 	/// gone with it. An arm that outlived its session would make the next
 	/// world-entry seam skip its layer-boundary reset and write a previous session's
 	/// facts into a new world, so it is released here with its counts (named, never
-	/// silent).
+	/// silent) — and the restore's account hears that the half will never arrive, the
+	/// same way <see cref="ItemService.ResetSessionState"/> accounts for the item half.
 	/// </summary>
 	private void OnSessionEnded() =>
 		CancelPendingRestore("the session ended before the restored world-entity facts reached the world-entry seam");
@@ -111,10 +116,24 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 			return;
 		}
 
+		// The arm goes first, so the release below cannot re-enter this method through a
+		// subscriber of the report it may raise. Defence in depth rather than necessity:
+		// the account counts a half at most once, so even a re-entrant release would be
+		// absorbed — but the arm's own state should never depend on that.
+		var sequence = _pendingRestoreSequence;
 		_pendingRestore = null;
 		_log.LogWarning(
 			"[WorldEntityKernel] the restored world-entity facts are dropped without reaching the live world: {Reason} ({Consumptions} consumption(s), {Opened} opened entit(ies), {Health} health row(s)).",
 			reason, state.Consumptions.Count, state.OpenedEntities.Count, state.BuildingHealth.Count);
+
+		// A half that will never reach the live world is accounted for, never silently
+		// dropped. This is the ONE place the arm ends (the session ending, a
+		// supersession, a layer-end cut, a throw at the seam), so the restore's account
+		// hears about every one of them from here. The half's own sequence attributes the
+		// release — the account counts it only when it owes that half for that attempt,
+		// and drops it when the world-entry seam already reported the same arm (the
+		// replay reports the half and then ends it here, which is a legitimate path).
+		_audit?.LiveWriteAbandoned(WorldRestoreHalf.WorldEntities, sequence, reason);
 	}
 
 	public void Project(GameCheckpoint checkpoint) =>

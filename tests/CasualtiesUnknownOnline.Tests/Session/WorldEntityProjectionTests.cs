@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
@@ -6,6 +7,7 @@ using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Session;
 using Microsoft.Extensions.DependencyInjection;
@@ -423,5 +425,50 @@ public class WorldEntityProjectionTests
 		host.Session.EndSession();
 
 		Assert.False(source.HasPendingRestore);
+	}
+
+	[Fact]
+	public void SessionEnd_ReportsTheWorldEntityHalfTheRestoreStillOwed()
+	{
+		// The release above is only half the story: the restore's account was waiting for
+		// this half. A half that will never reach the live world must be accounted — with
+		// its own name — rather than leaving the account awaiting a contribution forever.
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		var world = host.Services.GetRequiredService<IWorldControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var projection = host.Services.GetRequiredService<WorldEntityKernelProjection>();
+		var audit = host.Services.GetRequiredService<WorldRestoreAudit>();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+
+		world.ReportOpenedEntity(3.1f, 4.2f);
+		Assert.True(authority.Restore(authority.CreateCheckpoint()).Success);
+		var source = (IRestoredWorldEntitySource)projection;
+		Assert.True(source.HasPendingRestore);
+
+		// The account a Continue click opens for this attempt: the world-fact half (it
+		// reported when the live world took it), the armed world-entity half, and the
+		// restored item set the item domain armed alongside them.
+		audit.BeginRestore("w-session-end", authority.RestoreSequence, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities, WorldRestoreHalf.WorldItems]);
+		audit.LiveWriteFinished(
+			WorldRestoreHalf.WorldFacts, authority.RestoreSequence, complete: true, refused: [], summary: "the live world took every restored fact");
+		Assert.True(audit.AwaitingLiveWrite);
+
+		host.Session.EndSession();
+
+		Assert.False(source.HasPendingRestore);
+		Assert.False(
+			audit.AwaitingLiveWrite,
+			"the released world-entity half must be accounted for, not awaited forever");
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+
+		// Both halves the session ended with are named, each by itself: the count alone
+		// could not tell them apart, and an account completed in place of the world-entity
+		// half would have dropped it from the report without a word.
+		Assert.Contains(report.Refused, entry => entry.Contains("world-entity", StringComparison.OrdinalIgnoreCase));
+		Assert.Contains(report.Refused, entry => entry.Contains("generation reconcile", StringComparison.OrdinalIgnoreCase));
+		Assert.Contains("world-entity", report.Summary, StringComparison.OrdinalIgnoreCase);
 	}
 }

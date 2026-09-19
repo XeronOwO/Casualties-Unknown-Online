@@ -4,7 +4,7 @@
 - Priority: Low-Medium
 - Category: Network / sync coverage / protocol validation
 - Source: Sync coverage audit 2026-09-09, independent adversarial review finding (side note of the stale-epoch stream fix)
-- Related: `review/sync-event-and-periodic-fallback-coverage-audit.md`, `docs/backlog/todo/session-control-convergence.md`
+- Related: `review/sync-event-and-periodic-fallback-coverage-audit.md`, `docs/backlog/review/session-control-convergence.md`
 
 ## Problem (evidence)
 

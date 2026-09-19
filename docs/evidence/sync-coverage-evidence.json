@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 896,
+  "count": 926,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -2179,8 +2179,8 @@
     {
       "cluster": "run-world",
       "row": "R3",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs",
-      "quote": "_sender.Send(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // self-activation"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerRosterAnnouncer.cs",
+      "quote": "_sender.Send(steamId, NetMsg.PlayerJoin, joinMsg); // self-activation"
     },
     {
       "cluster": "run-world",
@@ -2210,7 +2210,7 @@
       "cluster": "run-world",
       "row": "R4",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs",
-      "quote": "_sender.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg"
+      "quote": "_sender.Send(sender, NetMsg.HandshakeAck, ack);"
     },
     {
       "cluster": "run-world",
@@ -4159,7 +4159,7 @@
     {
       "cluster": "inline",
       "row": "P12",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerRosterAnnouncer.cs",
       "quote": "var selectedColor = _session.TryGetMember(guestSteamId, out presence)"
     },
     {
@@ -4423,8 +4423,8 @@
     {
       "cluster": "inline",
       "row": "R3",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs",
-      "quote": "_sender.Send(presence.SteamId, NetMsg.PlayerJoin,"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerRosterAnnouncer.cs",
+      "quote": "_sender.Send(steamId, NetMsg.PlayerJoin,"
     },
     {
       "cluster": "inline",
@@ -5379,6 +5379,186 @@
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs",
       "quote": "private void ResendOwnRecipeUnlockSet()"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "internal sealed class SessionControlConvergence : ICuoService"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "internal const int MaxReports = 12;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "var budget = _inWorld ? MaxReports : MaxExitReports;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "_world.WorldSnapshotCompleteReceived += OnEntryGroupComplete;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "_world.WorldReadyReceived += OnGateReleased;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "if (_inWorld && _entryGroupComplete && _gateReleased)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs",
+      "quote": "ctx.World.AnswerRepeatInWorld(reporter);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs",
+      "quote": "ctx.World.SendWorldSnapshotComplete(reporter);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_entities.ResendRoster(steamId);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs",
+      "quote": "internal void ResendRoster(ulong steamId)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs",
+      "quote": "var isRepeat = _selfSyncActive && _localPlayer.EntityId.Equals(entityId);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerRosterAnnouncer.cs",
+      "quote": "internal PlayerJoinMsg SendRosterTo(ulong steamId, NetworkEntityId entityId, NetVector2 position, PlayerEntity localPlayer, IEnumerable<EntitySyncService.SyncedEntity> synced)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SessionControlConvergenceTests.cs",
+      "quote": "public void InWorldReportDropped_TheWindowHealsItAndTheEntryGroupFiresOnce()"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SessionControlConvergenceTests.cs",
+      "quote": "public void RosterDropped_ConvergesThroughTheRepairGroupWithoutADuplicateJoin()"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionPeerMaintenance.cs",
+      "quote": "if (member?.SentHandshakeAck is { } sent)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionPeerMaintenance.cs",
+      "quote": "Scene = new SceneStateMsg { State = (byte)(_state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu) },"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs",
+      "quote": "member.SentHandshakeAck = ack;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/MemberPresenceTable.cs",
+      "quote": "public HandshakeAckMsg? SentHandshakeAck;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeAckHandler.cs",
+      "quote": "if (!wasHandshaken || wasInWorld != member.InWorld)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/ISessionControl.cs",
+      "quote": "bool ResendSceneState();"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStartGate.cs",
+      "quote": "internal void AnswerRepeatInWorld(ulong steamId)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/IEntitySyncControl.cs",
+      "quote": "void ResendRoster(ulong steamId);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SessionControlConvergenceTests.cs",
+      "quote": "public void HandshakeAckAckDropped_TheHostReAcksUntilTheMemberIsConfirmed()"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Fakes/FakeNetwork.cs",
+      "quote": "internal NetMsg? DropMessageId { get; set; }"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "internal const int MaxExitReports = 6;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "private void OnLocalSceneReported(SceneStateType state)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionControlConvergence.cs",
+      "quote": "if (!_session.ResendSceneState())"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/ISessionControl.cs",
+      "quote": "event Action<SceneStateType>? LocalSceneReported;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SessionControlConvergenceTests.cs",
+      "quote": "public void ExitReportDropped_IsReAssertedInBoundedWindows()"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Session/SessionControlConvergenceTests.cs",
+      "quote": "public void GateArmedPastTheFirstWindows_StillConvergesWhenItReleases()"
     }
   ]
 }

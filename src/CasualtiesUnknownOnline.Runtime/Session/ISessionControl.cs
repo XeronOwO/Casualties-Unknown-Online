@@ -34,6 +34,19 @@ public interface ISessionControl
 	/// <summary>Either side: report the local scene state (menu / in world).</summary>
 	void ReportSceneState(SceneStateType state, string sceneName, NetVector2? localPosition = null);
 
+	/// <summary>Raised when this side MAKES a local scene report, before the message leaves the
+	/// client. A consumer that must not miss the edge — the readiness window — has to be armed
+	/// before a response to that very report can be delivered back (an in-process or loopback
+	/// peer answers inside the send call).</summary>
+	event Action<SceneStateType>? LocalSceneReported;
+
+	/// <summary>Guest: re-send the last absolute scene report — the readiness window's
+	/// re-assert (the same state, never a delta), so a report the lazy P2P session
+	/// swallowed still reaches the host. Returns whether the report actually left the
+	/// client (false = nothing reported yet, or the session is not active), so the caller
+	/// never spends a re-report budget on a message that never went out.</summary>
+	bool ResendSceneState();
+
 	float LastRttMs { get; }
 
 	IEnumerable<MemberPresenceTable.MemberPresence> Members { get; }

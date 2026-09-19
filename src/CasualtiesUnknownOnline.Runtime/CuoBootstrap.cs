@@ -303,6 +303,14 @@ public static class CuoBootstrap
 		// this tiny pump is their clock.
 		services.AddSingleton<WorldReportFallbackPump>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<WorldReportFallbackPump>());
+		// Guest readiness convergence (sync-coverage rows R3/R4): the bounded absolute
+		// scene re-report window that heals a swallowed InWorld report or start-gate
+		// release, and the only production consumer of the world-entry completion
+		// marker. Session control is a different family from the world-report
+		// fallbacks above (a short bounded window versus an unbounded pending table),
+		// so it is its own time edge.
+		services.AddSingleton<SessionControlConvergence>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SessionControlConvergence>());
 		// Text-chat domain: the bounded recent-message buffer + send path (no
 		// pump — it only reacts to the world channel's receive event and session end).
 		services.AddSingleton<ChatService>();

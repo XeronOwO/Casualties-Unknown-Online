@@ -78,5 +78,20 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntry
 				session.FireRemoteSceneChanged(reporter, false);
 			}
 		}
+		else if (session.Role == SessionRole.Host && member.InWorld && member.Handshaken)
+		{
+			// A REPEAT absolute report while the member is already in the world: the guest's
+			// readiness window re-asserts its scene state when it has not seen the host's
+			// answer (SessionControlConvergence). Answer with the two control facts it waits
+			// for, and NEVER re-run the entry fan-out — that group went out on the edge, and
+			// repeating it would duplicate every table while the completion marker stopped
+			// meaning "the entry group is complete".
+			ctx.World.AnswerRepeatInWorld(reporter);
+			ctx.World.SendWorldSnapshotComplete(reporter);
+			// Debug, not Information: a legitimately armed start gate (a slow loader, up to
+			// the host's 30 s force-start) makes the window re-assert until the release, and
+			// the window logs every re-report it sends — this line would only double it.
+			_log.LogDebug("Repeat scene report from {Peer} — re-answered with the start-gate state and the entry-group marker.", reporter);
+		}
 	}
 }

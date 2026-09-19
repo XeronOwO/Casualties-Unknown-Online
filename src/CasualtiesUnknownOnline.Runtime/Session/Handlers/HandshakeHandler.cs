@@ -170,7 +170,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		// first messages can be swallowed — Phase-0 finding). Same for world
 		// params, which are only sent once the session exists.
 		var hostColor = _steam.LocalPlayerColor;
-		_sender.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
+		var ack = new HandshakeAckMsg
 		{
 			Protocol = ProtocolVersion.Current,
 			Scene = new SceneStateMsg { State = (byte)session.LocalSceneState },
@@ -182,7 +182,13 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			DisplayName = _steam.GetPersonaName(_steam.LocalSteamId),
 			HasColor = hostColor.HasValue,
 			Color = hostColor.HasValue ? hostColor.Value.ToNetColorRgba().ToNetColorRgbaMsg() : new(),
-		});
+		};
+		// The pump re-sends this ack (scene refreshed) while the member stays unconfirmed:
+		// a lost ack-ack otherwise leaves the pair diverged for the whole connection — the
+		// guest believes it is connected while the start gate and the entity sync both
+		// exclude it, and nothing else re-drives the third leg.
+		member.SentHandshakeAck = ack;
+		_sender.Send(sender, NetMsg.HandshakeAck, ack);
 		var worldParams = ctx.World.WorldParams;
 		if (worldParams is not null)
 		{

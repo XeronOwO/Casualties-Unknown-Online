@@ -56,4 +56,10 @@ public interface IEntitySyncControl
 	void EndMemberSync(ulong steamId);
 
 	void EndEntitySync();
+
+	/// <summary>Host side: re-send the roster facts to one member — its own activation join
+	/// (the SAME entity id) plus every other synced member's row. The absolute form of the
+	/// join announcement, carried by the in-session repair group, so a swallowed
+	/// <c>PlayerJoin</c> converges without a leave/re-enter (sync-coverage row R3).</summary>
+	void ResendRoster(ulong steamId);
 }

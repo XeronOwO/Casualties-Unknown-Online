@@ -41,7 +41,7 @@ value is accepted, record the acceptance in the matrix row.
    5–10 s) and keep 60 s steady-state; this does not change the bandwidth
    baseline materially (one extra small snapshot per join).
 5. **`WorldSnapshotComplete` / late-join readiness** — tracked in
-   `todo/session-control-convergence.md`.
+   `review/session-control-convergence.md`.
 6. **Enemy snapshot / attack** — tracked in
    `review/enemy-snapshot-binding-recovery.md` and `review/enemy-hit-determination-local.md`.
 

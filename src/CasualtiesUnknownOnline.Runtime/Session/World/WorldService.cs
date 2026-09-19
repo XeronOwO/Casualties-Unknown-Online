@@ -109,6 +109,8 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public void NotifyMemberInWorld(ulong steamId) => _startGate.NotifyMemberInWorld(steamId);
 
+	public void AnswerRepeatInWorld(ulong steamId) => _startGate.AnswerRepeatInWorld(steamId);
+
 	public void MaybeForceStartGate() => _startGate.PumpTimeout();
 
 	public bool StartGateActive => _startGate.Active;

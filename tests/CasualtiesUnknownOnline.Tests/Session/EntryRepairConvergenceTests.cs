@@ -23,7 +23,9 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// answer did not complete the member and that its uplink is up now. The host answers that
 /// repeat with the absolute in-session repair set (and the adapter-owned entry tables, through
 /// <see cref="ISessionControl.EntryRepairRequested"/>) BEFORE the two control facts, at the
-/// <see cref="EntryRepairSchedule"/> cadence — and a clean entry never pays for it.
+/// <see cref="EntryRepairSchedule"/> cadence: free for an entry whose window closed on both
+/// control facts, bounded for one a still-armed start gate holds open (the host cannot tell that
+/// window from a swallowed one).
 /// </para>
 ///
 /// <para>

@@ -51,5 +51,6 @@ re-report a minute.
   already publishes it and `SessionControlConvergence` consumes it — not a new message.
 - `PendingReportFallback` is shared by two tables, so the window shape belongs in this class (one
   policy, two owners) rather than in either table.
-- The existing window test asserts the flat cadence; it has to be extended with the dense phase
-  rather than replaced, and the clock-wrap case must stay green.
+- Nothing covers this class today: `PendingReportFallback` has no test of its own, and the flat
+  cadence and the clock-wrap branch are exercised only indirectly by the world-report simulations
+  — the window test is ADDED rather than extended, and it should pin both phases and the wrap.

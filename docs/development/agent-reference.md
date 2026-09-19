@@ -33,7 +33,10 @@ See `docs/README.md` for the documentation index.
   the victim judges its own hit, the actor and the target judge their own interaction gates
   (line of sight, operation preconditions), and a locally initiated operation (world-time
   acceleration) takes effect locally at once while the host arbitrates and broadcasts the
-  shared state. The host owns the world it simulates and the arbitration of conflicting
+  shared state. The reach half of that rule is landed and is the seam to copy: the gate is
+  evaluated in the `Send*Request` method of the family's Runtime service — the client that
+  FORMS the request — and no host handler re-judges a remote actor's reach or distance
+  (`docs/evidence/selfchecks/players/interaction-gate-authority-selfcheck.md`). The host owns the world it simulates and the arbitration of conflicting
   claims (first writer wins) — never the verdict on somebody else's body, reach, or timing.
   Co-op work must stay possible: exclusive one-operator locks are the exception, not the rule.
 - `[CRITICAL]` **Latency is never a parameter of a judgment**: no judgment, arbitration or

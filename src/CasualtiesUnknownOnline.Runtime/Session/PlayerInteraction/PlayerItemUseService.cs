@@ -49,6 +49,12 @@ internal sealed class PlayerItemUseService(
 			return;
 		}
 
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[ItemUse] refused locally: {User} cannot see {Target} on this client.", _session.LocalSteamId, targetSteamId);
+			return;
+		}
+
 		var msg = new PlayerItemUseRequestMsg
 		{
 			TargetSteamId = targetSteamId,
@@ -81,11 +87,7 @@ internal sealed class PlayerItemUseService(
 			return;
 		}
 
-		TryExecuteUse(
-			user, target, msg.ItemInstanceId, msg.LimbIndex,
-			requireUserConscious: true,
-			visibilityRequester: user,
-			visibilityTarget: target);
+		TryExecuteUse(user, target, msg.ItemInstanceId, msg.LimbIndex, requireUserConscious: true);
 	}
 
 	/// <summary>
@@ -120,12 +122,6 @@ internal sealed class PlayerItemUseService(
 			return;
 		}
 
-		if (!_visibility.HasLineOfSight(requester, itemOwner))
-		{
-			_log.LogInformation("[HeldItemUse] refused: {Requester} cannot see item owner {Owner}.", requester, itemOwner);
-			return;
-		}
-
 		// The requester is the person physically using the item on their own
 		// body, so they must be conscious/alive. The owner is only the item
 		// source and may be unconscious/dead (the common remote-backpack case).
@@ -137,11 +133,7 @@ internal sealed class PlayerItemUseService(
 			return;
 		}
 
-		TryExecuteUse(
-			itemOwner, requester, itemInstanceId, targetLimbIndex,
-			requireUserConscious: false,
-			visibilityRequester: requester,
-			visibilityTarget: itemOwner);
+		TryExecuteUse(itemOwner, requester, itemInstanceId, targetLimbIndex, requireUserConscious: false);
 	}
 
 	/// <summary>
@@ -157,19 +149,11 @@ internal sealed class PlayerItemUseService(
 		ulong target,
 		ulong itemInstanceId,
 		int limbIndex,
-		bool requireUserConscious,
-		ulong visibilityRequester,
-		ulong visibilityTarget)
+		bool requireUserConscious)
 	{
 		if (!_characters.IsInWorld(user) || !_characters.IsInWorld(target))
 		{
 			_log.LogWarning("[ItemUse] refused: {User} or {Target} is not in-world.", user, target);
-			return false;
-		}
-
-		if (!_visibility.HasLineOfSight(visibilityRequester, visibilityTarget))
-		{
-			_log.LogInformation("[ItemUse] refused: {Requester} cannot see {Target}.", visibilityRequester, visibilityTarget);
 			return false;
 		}
 

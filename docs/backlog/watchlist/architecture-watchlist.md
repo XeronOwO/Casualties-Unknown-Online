@@ -9,12 +9,8 @@ change lands in them.
 
 ## At the limit (no headroom)
 
-- `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs`
-  and `ShrapnelOperationSessionService.cs` — both at exactly 600 lines after S3.3 added a
-  one-line cut-policy probe to each (see `WorldTransientPolicy` / `MedicalSessionCutCounts`). The
-  next change to either file needs the real split: the member/limb RESERVATION bookkeeping
-  (`_reservedItems`, `_reservedTargetLimbs`) is shared by reference between the medical, shrapnel
-  and other-medical services and belongs in its own object.
+- None right now: the medical family's two 600-line services were split on 2026-09-19 (see
+  "Split since the last revision").
 
 ## Near the limit (watch)
 
@@ -44,6 +40,17 @@ change lands in them.
   family must not grow this class.
 
 ## Split since the last revision
+
+- `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/` — the demanded split happened
+  (2026-09-19, with the interaction-gate relocation): the medical family's shared reservation
+  bookkeeping (`_reservedItems`, `_reservedTargetLimbs` and the cross-service "operator busy"
+  lambda chain that each service used to answer for the other two) moved into
+  `MedicalOperationClaims`, one owner with one claim rule. `MedicalOperationSessionService`
+  600 → 595, `ShrapnelOperationSessionService` 600 → 553, `OtherMedicalOperationSessionService`
+  524 → 520, and all three have headroom for the change that needed it. The shrapnel family's
+  start validation also left the service as the pure `ShrapnelStartValidator` (the pattern the
+  stage-3 family already used), so the service holds the session lifecycle and the validator
+  holds the rules.
 
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` — the demanded split
   happened (2026-09-18, with the N1 enemy binding recovery): the coordinator sat at exactly the cap

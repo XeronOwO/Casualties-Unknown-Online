@@ -74,7 +74,7 @@ public class PushTests
 	}
 
 	[Fact]
-	public void Push_OutOfReach_IsRefused()
+	public void Push_HostLocalOutOfReach_IsRefusedOnThePushersOwnClient()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -82,8 +82,10 @@ public class PushTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
 		SeedHostEntities(host, GuestId, guestX: 20f);
 
-		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendPushRequest(HostId);
+		// Reach is the pusher's own judgment — with the host as the pusher, the
+		// host's own picture of the two bodies decides and the request never leaves.
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPushRequest(GuestId);
 
 		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerPushResult);
 	}

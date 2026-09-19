@@ -78,6 +78,18 @@ internal sealed class PlayerPushService : IDisposable
 			return;
 		}
 
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[Push] refused locally: {Pusher} cannot see {Target} on this client.", _session.LocalSteamId, targetSteamId);
+			return;
+		}
+
+		if (!HasPushReach(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[Push] refused locally: {Pusher} → {Target} is out of reach on this client.", _session.LocalSteamId, targetSteamId);
+			return;
+		}
+
 		var msg = new PlayerPushRequestMsg { TargetSteamId = targetSteamId };
 		if (_session.Role == SessionRole.Host)
 		{
@@ -107,12 +119,6 @@ internal sealed class PlayerPushService : IDisposable
 		if (!_characters.IsInWorld(pusher) || !_characters.IsInWorld(target))
 		{
 			_log.LogWarning("[Push] refused: {Pusher} or {Target} is not in-world.", pusher, target);
-			return;
-		}
-
-		if (!_visibility.HasLineOfSight(pusher, target))
-		{
-			_log.LogInformation("[Push] refused: {Pusher} cannot see {Target}.", pusher, target);
 			return;
 		}
 
@@ -146,9 +152,11 @@ internal sealed class PlayerPushService : IDisposable
 		var dx = targetEntity.Position.X - pusherEntity.Position.X;
 		var dy = targetEntity.Position.Y - pusherEntity.Position.Y;
 		var distSq = (dx * dx) + (dy * dy);
-		if (distSq <= 0.0001f || distSq > MaxPushDistanceSq)
+		if (distSq <= 0.0001f)
 		{
-			_log.LogInformation("[Push] refused: {Pusher} → {Target} is out of reach (distance {Distance:F2}).", pusher, target, Math.Sqrt(distSq));
+			// Reach was judged on the pusher's own client; what is left here is
+			// arithmetic safety — two bodies at one point have no push direction.
+			_log.LogInformation("[Push] refused: {Pusher} and {Target} share one position, so there is no push direction.", pusher, target);
 			return;
 		}
 
@@ -191,6 +199,26 @@ internal sealed class PlayerPushService : IDisposable
 
 	private PlayerEntity? GetEntity(ulong steamId) =>
 		steamId == _session.LocalSteamId ? _entities.LocalPlayer : _entities.GetRemotePlayer(steamId);
+
+	/// <summary>
+	/// Reach is judged where the push is felt from: the pusher's own client, on
+	/// its own picture of the two bodies. Missing evidence does not block — the
+	/// same convention the visibility oracle uses — so a client that cannot
+	/// resolve one of the two entities still forms its request.
+	/// </summary>
+	private bool HasPushReach(ulong pusherSteamId, ulong targetSteamId)
+	{
+		var pusher = GetEntity(pusherSteamId);
+		var target = GetEntity(targetSteamId);
+		if (pusher is null || target is null)
+		{
+			return true;
+		}
+
+		var dx = target.Position.X - pusher.Position.X;
+		var dy = target.Position.Y - pusher.Position.Y;
+		return ((dx * dx) + (dy * dy)) <= MaxPushDistanceSq;
+	}
 
 	private bool InCarryRelation(ulong steamId) =>
 		_carry.TryGetCarrier(steamId, out _) || _carry.TryGetCarried(steamId, out _);

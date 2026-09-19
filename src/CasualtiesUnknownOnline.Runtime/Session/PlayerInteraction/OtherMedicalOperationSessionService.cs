@@ -24,9 +24,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	IPlayerInteractionVisibility visibility,
 	ITimeSource time,
 	ItemKernelAuthority kernelAuthority,
-	HashSet<ulong> sharedReservedItems,
-	HashSet<(ulong Target, int Limb)> sharedReservedTargetLimbs,
-	Func<ulong, bool> hasActiveInjectionOrShrapnel,
+	MedicalOperationClaims claims,
 	MedicalOperationIdAllocator operationIds,
 	ILogger log)
 {
@@ -37,9 +35,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	private readonly PlayerCharacterAccess _access = access;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ITimeSource _time = time;
-	private readonly HashSet<ulong> _sharedReservedItems = sharedReservedItems;
-	private readonly HashSet<(ulong Target, int Limb)> _sharedReservedTargetLimbs = sharedReservedTargetLimbs;
-	private readonly Func<ulong, bool> _hasActiveInjectionOrShrapnel = hasActiveInjectionOrShrapnel;
+	private readonly MedicalOperationClaims _claims = claims;
 	private readonly MedicalOperationIdAllocator _operationIds = operationIds;
 	private readonly ILogger _log = log;
 	private readonly OtherMedicalOperationApplier _applier = new(access, items, kernelAuthority, session);
@@ -71,6 +67,13 @@ internal sealed class OtherMedicalOperationSessionService(
 			LimbIndex = targetLimbIndex,
 			Kind = kind,
 		};
+
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[MedicalOps3] refused locally: {Operator} cannot see {Target} on this client.", _session.LocalSteamId, targetSteamId);
+			RejectStart(_session.LocalSteamId, targetSteamId, msg, "No line of sight.");
+			return;
+		}
 
 		if (_session.Role == SessionRole.Host)
 		{
@@ -148,12 +151,6 @@ internal sealed class OtherMedicalOperationSessionService(
 			return;
 		}
 
-		if (!_visibility.HasLineOfSight(sender, target))
-		{
-			RejectStart(sender, target, msg, "No line of sight.");
-			return;
-		}
-
 		var operatorData = _access.GetCharacterData(sender);
 		var targetData = _access.GetCharacterData(target);
 		if (operatorData?.Health is not { } operatorHealth || !operatorHealth.Conscious || !operatorHealth.Alive)
@@ -168,7 +165,7 @@ internal sealed class OtherMedicalOperationSessionService(
 			return;
 		}
 
-		if (_sessions.Values.Any(s => s.Operator == sender) || _hasActiveInjectionOrShrapnel(sender))
+		if (_claims.IsOperatorBusy(sender))
 		{
 			RejectStart(sender, target, msg, "Operator already has an active medical operation.");
 			return;
@@ -197,7 +194,7 @@ internal sealed class OtherMedicalOperationSessionService(
 				return;
 			}
 
-			if (_sharedReservedItems.Contains(msg.ItemInstanceId))
+			if (_claims.IsItemReserved(msg.ItemInstanceId))
 			{
 				RejectStart(sender, target, msg, "Item is already reserved.");
 				return;
@@ -212,7 +209,7 @@ internal sealed class OtherMedicalOperationSessionService(
 				return;
 			}
 
-			if (_sharedReservedTargetLimbs.Contains((target, msg.LimbIndex)))
+			if (_claims.IsLimbReserved(target, msg.LimbIndex))
 			{
 				RejectStart(sender, target, msg, "Target limb is already reserved.");
 				return;
@@ -234,14 +231,15 @@ internal sealed class OtherMedicalOperationSessionService(
 		};
 
 		_sessions.Add(newSession.OperationId, newSession);
+		_claims.TryReserveOperator(newSession.Operator);
 		if (msg.ItemInstanceId != 0)
 		{
-			_sharedReservedItems.Add(msg.ItemInstanceId);
+			_claims.TryReserveItem(msg.ItemInstanceId);
 		}
 
 		if (msg.LimbIndex >= 0)
 		{
-			_sharedReservedTargetLimbs.Add((target, msg.LimbIndex));
+			_claims.TryReserveLimb(target, msg.LimbIndex);
 		}
 
 		_log.LogInformation(
@@ -414,9 +412,6 @@ internal sealed class OtherMedicalOperationSessionService(
 		_sessions.Clear();
 	}
 
-	public bool HasActiveOtherOperator(ulong steamId) =>
-		_sessions.Values.Any(s => s.Operator == steamId);
-
 	public bool IsOtherOperation(ulong operationId) =>
 		_sessions.Values.Any(s => s.OperationId == operationId);
 
@@ -461,14 +456,15 @@ internal sealed class OtherMedicalOperationSessionService(
 
 	private void ReleaseSession(OtherMedicalOperationSession session)
 	{
+		_claims.ReleaseOperator(session.Operator);
 		if (session.ItemInstanceId != 0)
 		{
-			_sharedReservedItems.Remove(session.ItemInstanceId);
+			_claims.ReleaseItem(session.ItemInstanceId);
 		}
 
 		if (session.LimbIndex >= 0)
 		{
-			_sharedReservedTargetLimbs.Remove((session.Target, session.LimbIndex));
+			_claims.ReleaseLimb(session.Target, session.LimbIndex);
 		}
 	}
 

@@ -100,6 +100,12 @@ internal sealed class TraderRecruitCoordinator(
 			TraderPosition = new NetVector2Msg(trader.transform.position.x, trader.transform.position.y),
 		};
 
+		if (!_interactionVisibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[TradeRecruit] refused locally: {Requester} cannot see {Target} on this client.", _session.LocalSteamId, targetSteamId);
+			return false;
+		}
+
 		if (_session.Role == SessionRole.Host)
 		{
 			HandleHostRequest(_session.LocalSteamId, msg, trader);
@@ -177,12 +183,6 @@ internal sealed class TraderRecruitCoordinator(
 		if (!IsInWorld(requester) || !IsInWorld(target))
 		{
 			_log.LogWarning("[TradeRecruit] refused: {Requester} or {Target} is not in-world.", requester, target);
-			return;
-		}
-
-		if (!_interactionVisibility.HasLineOfSight(requester, target))
-		{
-			_log.LogInformation("[TradeRecruit] refused: {Requester} cannot see {Target}.", requester, target);
 			return;
 		}
 

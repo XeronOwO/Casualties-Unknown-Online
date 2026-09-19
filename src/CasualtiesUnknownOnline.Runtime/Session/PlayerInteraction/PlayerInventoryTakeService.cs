@@ -49,6 +49,12 @@ internal sealed class PlayerInventoryTakeService(
 			return;
 		}
 
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, ownerSteamId))
+		{
+			_log.LogInformation("[Take] refused locally: {To} cannot see {From} on this client.", _session.LocalSteamId, ownerSteamId);
+			return;
+		}
+
 		var msg = new PlayerInventoryTakeRequestMsg
 		{
 			OwnerSteamId = ownerSteamId,
@@ -106,13 +112,6 @@ internal sealed class PlayerInventoryTakeService(
 		if (!_characters.IsInWorld(from) || !_characters.IsInWorld(to))
 		{
 			_log.LogWarning("[Take] refused: {From} or {To} is not in-world.", from, to);
-			return;
-		}
-
-		if (!_visibility.HasLineOfSight(to, from))
-		{
-			_log.LogInformation("[Take] refused: {To} cannot see {From}.",
-				to, from);
 			return;
 		}
 

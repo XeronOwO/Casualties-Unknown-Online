@@ -56,6 +56,13 @@ internal sealed class PlayerRemoteInventoryService(
 			return;
 		}
 
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, msg.OwnerSteamId))
+		{
+			_log.LogInformation("[RemoteInventory] refused locally {Kind}: {Requester} cannot see {Owner} on this client.",
+				msg.Kind, _session.LocalSteamId, msg.OwnerSteamId);
+			return;
+		}
+
 		if (_session.Role == SessionRole.Host)
 		{
 			HandleRemoteInventoryOperation(_session.LocalSteamId, msg);
@@ -90,12 +97,6 @@ internal sealed class PlayerRemoteInventoryService(
 		if (!_characters.IsInWorld(owner) || !_characters.IsInWorld(requester))
 		{
 			_log.LogWarning("[RemoteInventory] refused {Kind}: {Owner} or {Requester} is not in-world.", msg.Kind, owner, requester);
-			return;
-		}
-
-		if (!_visibility.HasLineOfSight(requester, owner))
-		{
-			_log.LogInformation("[RemoteInventory] refused {Kind}: {Requester} cannot see {Owner}.", msg.Kind, requester, owner);
 			return;
 		}
 

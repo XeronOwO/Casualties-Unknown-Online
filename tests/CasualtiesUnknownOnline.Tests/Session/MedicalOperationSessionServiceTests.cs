@@ -82,7 +82,9 @@ public sealed class MedicalOperationSessionServiceTests
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, MedicineBag(77, "morphine", "morphine", amount: 100f)));
-		characters.SaveCharacterData(GuestId, SnapshotWithLimbs(GuestId, conscious: true));
+		var guestBody = SnapshotWithLimbs(GuestId, conscious: true);
+		characters.SaveCharacterData(GuestId, guestBody);
+		PlayerInteractionTestSession.SeedOwnBody(guest, guestBody);
 
 		MedicalOperationStartAckMsg? hostAck = null;
 		var guestStates = new List<MedicalOperationStateMsg>();

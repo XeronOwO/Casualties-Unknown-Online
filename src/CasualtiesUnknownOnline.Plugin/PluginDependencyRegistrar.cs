@@ -321,6 +321,12 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<PlayerInteractionVisibility>();
 		services.Replace(ServiceDescriptor.Singleton<IPlayerInteractionVisibility>(
 			p => p.GetRequiredService<PlayerInteractionVisibility>()));
+		// The live local-body capture the target-body verdict seam asks for. Same
+		// standalone-service shape and the same cycle reason as the visibility oracle
+		// above: it must not be reached through GameAdapterImpl.
+		services.AddSingleton<LocalCharacterCapture>();
+		services.Replace(ServiceDescriptor.Singleton<ILocalCharacterCapture>(
+			p => p.GetRequiredService<LocalCharacterCapture>()));
 
 		// Full-configuration templates: a named snapshot of every bound BepInEx
 		// entry, stored beside the live config. The store is plugin-side because

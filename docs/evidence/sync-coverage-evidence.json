@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 845,
+  "count": 847,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5073,6 +5073,18 @@
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Items/DropProtectionGuard.cs",
       "quote": "|| (_isPendingBreakDrop?.Invoke(itemId) ?? false);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/MedicalOperationTargetCheckRequestMsg.cs",
+      "quote": "public sealed class MedicalOperationTargetCheckRequestMsg"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/MedicalOperationTargetCheckAnswerMsg.cs",
+      "quote": "public sealed class MedicalOperationTargetCheckAnswerMsg"
     }
   ]
 }

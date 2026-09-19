@@ -247,7 +247,9 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var (host, guest) = CreatePair();
 		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, true));
-		characters.SaveCharacterData(Guest1Id, SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1, components: [SplintComponent(0.6f)]), Limb(2)));
+		var guestBody = SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1, components: [SplintComponent(0.6f)]), Limb(2));
+		characters.SaveCharacterData(Guest1Id, guestBody);
+		PlayerInteractionTestSession.SeedOwnBody(guest, guestBody);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 
@@ -305,8 +307,10 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var w = CreateThreeNode();
 		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
 		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, true));
-		characters.SaveCharacterData(Guest1Id, SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1, dislocated: true), Limb(2)));
+		var guest1Body = SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1, dislocated: true), Limb(2));
+		characters.SaveCharacterData(Guest1Id, guest1Body);
 		characters.SaveCharacterData(Guest2Id, SnapshotWithLimbs(Guest2Id, true));
+		PlayerInteractionTestSession.SeedOwnBody(w.Guest1, guest1Body);
 		MarkInWorld(w.Host);
 		MarkInWorld(w.Guest1);
 		MarkInWorld(w.Guest2);
@@ -350,6 +354,7 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var targetData = SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1), Limb(2));
 		targetData.Health!.FibrillationProgress = 50f;
 		characters.SaveCharacterData(Guest1Id, targetData);
+		PlayerInteractionTestSession.SeedOwnBody(guest, targetData);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 
@@ -383,6 +388,7 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var targetData = SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1), Limb(2));
 		targetData.Health!.FibrillationProgress = 25f;
 		characters.SaveCharacterData(Guest1Id, targetData);
+		PlayerInteractionTestSession.SeedOwnBody(guest, targetData);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 
@@ -411,11 +417,13 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var (host, guest) = CreatePair();
 		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, true, Item(92, "machete")));
-		characters.SaveCharacterData(Guest1Id, SnapshotWithLimbs(Guest1Id, true,
+		var guestBody = SnapshotWithLimbs(Guest1Id, true,
 			Limb(0),
 			Limb(1, infection: 80f),
 			Limb(2),
-			Limb(3, infection: 80f)));
+			Limb(3, infection: 80f));
+		characters.SaveCharacterData(Guest1Id, guestBody);
+		PlayerInteractionTestSession.SeedOwnBody(guest, guestBody);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 
@@ -456,7 +464,9 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var items = w.Host.Services.GetRequiredService<IItemControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, true));
 		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, true, Item(94, "bandage")));
-		characters.SaveCharacterData(Guest2Id, SnapshotWithLimbs(Guest2Id, true, Limb(0), Limb(1), Limb(2)));
+		var guest2Body = SnapshotWithLimbs(Guest2Id, true, Limb(0), Limb(1), Limb(2));
+		characters.SaveCharacterData(Guest2Id, guest2Body);
+		PlayerInteractionTestSession.SeedOwnBody(w.Guest2, guest2Body);
 		items.AdoptTransferredItem(Guest1Id, 94, Item(94, "bandage"));
 		MarkInWorld(w.Host);
 		MarkInWorld(w.Guest1);

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: all 12 in-handler oracle judgments and every claim-set use traced by grep to the actor-side Send*Request seam or into MedicalOperationClaims
+      file:line or runtime log) or is explicitly marked unverified — evidence: new ids 137/138 + protocol 25; gate/validator/recheck/capture traced by grep
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all twelve host-side reach sites retired in one pass (nine Runtime services + TraderRecruit); the two already-local sites kept; push reach moved with the gate
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfchecks/players/interaction-gate-authority-selfcheck.md mechanism table + the ticket's What-landed / What-remains sections
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all three families' target halves moved in one pass (injection, shrapnel, other-medical); each kept one operator-half home
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfchecks/players/interaction-gate-authority-selfcheck.md stage-2 table + the ticket's What landed / What remains
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: InteractionGateAuthorityTests (13 cases) pins the negative direction for 8 families and the positive for push/injection/heal; full suite 3278 + 56
+      peer log comparison, hotrepl assertions) is decided — evidence: InteractionGateAuthorityTests 22 cases + MedicalTargetBodyValidatorTests 9 pin the target half both directions, its edges and its reason strings
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user confirmed this cycle's plan in-session (both tickets, native concurrency audit first, stage A then stage B), on top of decision 184's ruling
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors; dotnet format exit 0; unfiltered run with build green 3278 + 56 (dotnet test CasualtiesUnknownOnline.slnx)
+      process violation — evidence: decision 184's ruling + the ticket's settled seam and the handoff's stage order; no re-ask
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors; dotnet format exit 0; unfiltered run with build green 3298 (main) + 56 (gates)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: medical 595 / shrapnel 553 / other-medical 520 lines; claims book and shrapnel validator extracted; dead HasActive*Operator deleted; no new bool state
+      dead mechanisms deleted in the same round) — evidence: medical 510 / shrapnel 552 / other-medical 538 lines; injection start and shrapnel bookkeeping extracted; no new bool state
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

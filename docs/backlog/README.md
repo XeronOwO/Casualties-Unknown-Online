@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Remote interaction gates are judged by the host](todo/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Medical operations are exclusive (one operator at a time)](todo/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — the 500 ms guess window goes.
 - [World-time acceleration is gated on being asleep](todo/world-time-local-initiation.md) — **Medium** — the manual key must act locally and at once.
@@ -70,6 +69,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [Remote interaction gates are judged by the host](review/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Enemy snapshot binding has no recovery path](review/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn anchor and the 60 s repair group.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.

@@ -237,6 +237,7 @@ public class ShrapnelOperationApplicationTests
 		var guestSnapshot = Snapshot(Guest1Id, conscious: true);
 		characters.SaveCharacterData(Guest1Id, guestSnapshot);
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		PlayerInteractionTestSession.SeedOwnBody(w.Guest1, guestSnapshot);
 		MarkInWorld(w.Host);
 		MarkInWorld(w.Guest1);
 

@@ -32,6 +32,7 @@ internal sealed class ShrapnelOperationSessionService(
 	MedicalOperationClaims claims,
 	AdaptiveStreamRateService adaptiveRates,
 	MedicalOperationIdAllocator operationIds,
+	MedicalTargetBodyGate bodyGate,
 	ILogger log)
 {
 	private const int MaxPieces = 5;
@@ -45,6 +46,7 @@ internal sealed class ShrapnelOperationSessionService(
 	private readonly ITimeSource _time = time;
 	private readonly MedicalOperationClaims _claims = claims;
 	private readonly MedicalOperationIdAllocator _operationIds = operationIds;
+	private readonly MedicalTargetBodyGate _bodyGate = bodyGate;
 	private readonly ILogger _log = log;
 
 	private readonly ShrapnelSessionStateWriter _writer = new(access, items, kernelAuthority, session, log);
@@ -184,11 +186,48 @@ internal sealed class ShrapnelOperationSessionService(
 		}
 
 		var userData = _access.GetCharacterData(sender);
-		var targetData = _access.GetCharacterData(target);
-		if (!ShrapnelStartValidator.TryValidate(sender, userData, targetData, msg, _claims, out var shrapnelCount, out var reason))
+		if (!ShrapnelStartValidator.TryValidateOperator(sender, userData, msg, _claims, out var reason))
 		{
 			RejectStart(sender, target, msg, reason);
 			return;
+		}
+
+		// The limb's piece count is the target's own fact, so only its client can say
+		// how many fragments the limb carries right now — and the session's piece
+		// layout is seeded from the count that answer carries, not from the report
+		// that had aged by a latency before this request arrived.
+		_bodyGate.Begin(sender, target, msg.LimbIndex, msg.Kind, verdict =>
+		{
+			if (!verdict.Accepted)
+			{
+				RejectStart(sender, target, msg, verdict.Reason);
+				return;
+			}
+
+			CommitStart(sender, target, msg, userData!, verdict.ShrapnelCount);
+		});
+	}
+
+	/// <summary>
+	/// Runs on the target's accept. The answer took a round trip, so the host's own
+	/// facts are re-checked before the session opens or the operator joins: a
+	/// departure or another operator's claim that landed in that window must not be
+	/// overridden by a verdict that predates it.
+	/// </summary>
+	private void CommitStart(ulong sender, ulong target, MedicalOperationStartRequestMsg msg, CharacterDataMsg userData, int shrapnelCount)
+	{
+		// A session that already exists for this limb IS the claim on it, and this start
+		// is a second operator JOINING it — so the limb-claim half of the re-check only
+		// applies to the start that would create the session.
+		var joinedExistingSession = _sessions.ContainsKey((target, msg.LimbIndex));
+		switch (MedicalStartRecheck.Run(_access, _claims, sender, target, msg, limbClaimApplies: !joinedExistingSession, out var rejectReason))
+		{
+			case MedicalStartRecheckOutcome.OperatorGone:
+				_log.LogInformation("[Shrapnel] start for {Operator} dropped: the operator left while the target answered.", sender);
+				return;
+			case MedicalStartRecheckOutcome.Reject:
+				RejectStart(sender, target, msg, rejectReason);
+				return;
 		}
 
 		var itemInstanceId = msg.ItemInstanceId;
@@ -215,7 +254,7 @@ internal sealed class ShrapnelOperationSessionService(
 				shrapnel.OperationId, target, msg.LimbIndex, shrapnelCount);
 		}
 
-		JoinOperator(shrapnel, sender, itemInstanceId, userData!); // the validator answered true, so the operator snapshot exists
+		ShrapnelOperatorBookkeeping.Join(shrapnel, sender, itemInstanceId, userData, _claims, _writer, _time, _log);
 
 		SendStartAck(new MedicalOperationStartAckMsg
 		{
@@ -403,7 +442,7 @@ internal sealed class ShrapnelOperationSessionService(
 	{
 		foreach (var shrapnel in _sessions.Values)
 		{
-			ReleaseItems(shrapnel);
+			ShrapnelOperatorBookkeeping.ReleaseItems(shrapnel, _claims);
 			foreach (var operatorId in shrapnel.Operators)
 			{
 				_claims.ReleaseOperator(operatorId);
@@ -432,25 +471,10 @@ internal sealed class ShrapnelOperationSessionService(
 
 	// ---- Internals ----
 
-	private void JoinOperator(ShrapnelOperationSession shrapnel, ulong operatorId, ulong itemInstanceId, CharacterDataMsg userData)
-	{
-		shrapnel.Operators.Add(operatorId);
-		_claims.TryReserveOperator(operatorId);
-		if (itemInstanceId != 0)
-		{
-			_claims.TryReserveItem(itemInstanceId);
-			shrapnel.OperatorItems[operatorId] = itemInstanceId;
-			_writer.DrainTweezers(operatorId, itemInstanceId, userData);
-		}
-
-		shrapnel.LastUpdateMs = _time.NowMs;
-		_log.LogInformation("[Shrapnel] operator {Operator} joined session {OperationId}.", operatorId, shrapnel.OperationId);
-	}
-
 	private void LeaveOperator(ShrapnelOperationSession shrapnel, ulong operatorId, MedicalOperationTerminalReason reason)
 	{
-		ReleaseOperatorPieces(shrapnel, operatorId);
-		ReleaseOperatorItem(shrapnel, operatorId);
+		ShrapnelOperatorBookkeeping.ReleasePieces(shrapnel, operatorId);
+		ShrapnelOperatorBookkeeping.ReleaseItem(shrapnel, operatorId, _claims);
 		shrapnel.Operators.Remove(operatorId);
 		_claims.ReleaseOperator(operatorId);
 		shrapnel.LastUpdateMs = _time.NowMs;
@@ -471,36 +495,6 @@ internal sealed class ShrapnelOperationSessionService(
 		PublishState(shrapnel);
 	}
 
-	private void ReleaseOperatorPieces(ShrapnelOperationSession shrapnel, ulong operatorId)
-	{
-		foreach (var piece in shrapnel.Pieces.Values)
-		{
-			if (piece.Owner == operatorId)
-			{
-				piece.Owner = 0;
-			}
-		}
-	}
-
-	private void ReleaseOperatorItem(ShrapnelOperationSession shrapnel, ulong operatorId)
-	{
-		if (shrapnel.OperatorItems.TryGetValue(operatorId, out var itemId))
-		{
-			shrapnel.OperatorItems.Remove(operatorId);
-			_claims.ReleaseItem(itemId);
-		}
-	}
-
-	private void ReleaseItems(ShrapnelOperationSession shrapnel)
-	{
-		foreach (var itemId in shrapnel.OperatorItems.Values)
-		{
-			_claims.ReleaseItem(itemId);
-		}
-
-		shrapnel.OperatorItems.Clear();
-	}
-
 	private void PublishState(ShrapnelOperationSession shrapnel) =>
 		_statePublisher.Publish(shrapnel, StateReceived);
 
@@ -512,7 +506,7 @@ internal sealed class ShrapnelOperationSessionService(
 			return;
 		}
 
-		ReleaseItems(shrapnel);
+		ShrapnelOperatorBookkeeping.ReleaseItems(shrapnel, _claims);
 		foreach (var operatorId in shrapnel.Operators)
 		{
 			_claims.ReleaseOperator(operatorId);

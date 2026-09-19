@@ -272,4 +272,12 @@ public enum NetMsg : byte
 	// pre-existing snapshot message.
 	BlockDamageReport = 136, // guest → host: the guest's ABSOLUTE partial-damage set for the cells the host has not answered
 
+	// Target-body verdict for a medical operation start (the target's own client
+	// decides what its own body allows: the host validates what it owns, parks
+	// the request and asks; the target runs the target half of the preconditions
+	// against its LIVE body and answers). The pending table's liveness bound only
+	// abandons an unanswered request — no latency value is ever a judgment input.
+	MedicalOperationTargetCheckRequest = 137, // host → target: does your body allow this medical operation start?
+	MedicalOperationTargetCheckAnswer = 138, // target → host: the target's own verdict + its reason (+ its live shrapnel count)
+
 }

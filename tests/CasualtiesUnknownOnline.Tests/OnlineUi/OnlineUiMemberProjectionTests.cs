@@ -698,6 +698,8 @@ public sealed class OnlineUiMemberProjectionTests
 
 			public void SendStartRequest(ulong targetSteamId, ulong itemInstanceId, int targetLimbIndex) { }
 			public void HandleStartRequest(ulong sender, MedicalOperationStartRequestMsg msg) { }
+			public void HandleTargetCheckRequest(ulong sender, MedicalOperationTargetCheckRequestMsg msg) { }
+			public void HandleTargetCheckAnswer(ulong sender, MedicalOperationTargetCheckAnswerMsg msg) { }
 			public void SendUpdate(ulong operationId, float deltaMl) { }
 			public void HandleUpdate(ulong sender, MedicalOperationUpdateMsg msg) { }
 			public void SendEndRequest(ulong operationId, float totalMl) { }

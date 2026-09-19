@@ -357,6 +357,10 @@ public static class CuoBootstrap
 		// permits every pair; the plugin replaces it with the Game Adapter's
 		// world-backed line-of-sight implementation in extraRegistrations.
 		services.AddSingleton<IPlayerInteractionVisibility>(new AllowAllPlayerInteractionVisibility());
+		// Local-body capture for the target-body verdict seam. The base root has no
+		// game scene, so it captures nothing and the gate answers from this side's own
+		// latest snapshot; the plugin replaces it with the Game Adapter's live capture.
+		services.AddSingleton<ILocalCharacterCapture>(new UnavailableLocalCharacterCapture());
 		// Remote medical operation session domain: generic start/update/end/cancel
 		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
 		// it for real-time injection; later stages reuse the same session envelope.

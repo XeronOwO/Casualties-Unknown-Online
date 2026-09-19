@@ -4,7 +4,7 @@
 - Priority: Medium-High
 - Category: Gameplay / multiplayer medical sessions (concurrency)
 - Source: User ruling 2026-09-18 (design alignment session): exclusive reservation is wrong for this family — KrokMP already supports several players working the same minigame at once (pulling shrapnel, treating a dislocation), and co-op medical work is the natural expectation even though it is harder to implement.
-- Related: `todo/remote-interaction-local-gating.md` (the gate half of the same services), `review/remote-medical-stage-2-shrapnel-multiplayer.md`, `review/remote-medical-stage-3-other-actions.md`, `docs/backlog/watchlist/architecture-watchlist.md` (the reservation bookkeeping is the entry that must be extracted)
+- Related: `review/remote-interaction-local-gating.md` (the gate half of the same services), `review/remote-medical-stage-2-shrapnel-multiplayer.md`, `review/remote-medical-stage-3-other-actions.md`, `docs/backlog/watchlist/architecture-watchlist.md` (the reservation bookkeeping is the entry that must be extracted)
 
 ## Problem (evidence)
 

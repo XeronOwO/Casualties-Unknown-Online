@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// (Completed/Cancelled/TimedOut/Disconnected). Intermediate updates are state
 /// deltas applied to the authoritative character/item snapshots and broadcast
 /// as non-terminal progress; they are never independent final commits. The
-/// service also owns item and target-limb reservations, timeout cleanup and
+/// service also owns the family's item and operator claims, timeout cleanup and
 /// disconnect release so the later shrapnel/bandage stages reuse the same
 /// lifecycle.
 /// </summary>
@@ -466,10 +466,6 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 		_claims.ReleaseItem(session.ItemInstanceId);
 		_claims.ReleaseOperator(session.Operator);
-		if (session.LimbIndex >= 0)
-		{
-			_claims.ReleaseLimb(session.Target, session.LimbIndex);
-		}
 
 		var end = _applier.BuildTerminal(session, reason);
 		_log.LogInformation(

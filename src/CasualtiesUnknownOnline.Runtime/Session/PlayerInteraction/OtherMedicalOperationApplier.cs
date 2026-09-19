@@ -142,19 +142,20 @@ internal sealed class OtherMedicalOperationApplier(
 		return true;
 	}
 
-	internal void CompleteAmputation(OtherMedicalOperationSession session)
+	/// <summary>Dismembers the limb and reports whether THIS call settled the unit (false when the limb was already off or missing).</summary>
+	internal bool CompleteAmputation(OtherMedicalOperationSession session)
 	{
 		var targetData = _access.GetCharacterData(session.Target);
 		if (targetData is null || session.LimbIndex < 0 || session.LimbIndex >= targetData.Limbs.Count)
 		{
-			return;
+			return false;
 		}
 
 		var newTarget = PlayerCharacterAccess.CloneCharacter(targetData);
 		var limb = newTarget.Limbs[session.LimbIndex];
 		if (limb.Dismembered)
 		{
-			return;
+			return false;
 		}
 
 		limb.Dismembered = true;
@@ -184,6 +185,7 @@ internal sealed class OtherMedicalOperationApplier(
 		}
 
 		_access.SaveCharacterData(session.Target, newTarget);
+		return true;
 	}
 
 	internal bool CompleteDislocation(OtherMedicalOperationSession session, bool succeeded)
@@ -362,18 +364,8 @@ internal sealed class OtherMedicalOperationApplier(
 		session.ManualDefibSeconds += elapsedSeconds;
 	}
 
-	internal MedicalOperationEndCommittedMsg BuildTerminal(OtherMedicalOperationSession session, MedicalOperationTerminalReason reason, bool dislocateSucceeded = false)
+	internal MedicalOperationEndCommittedMsg BuildTerminal(OtherMedicalOperationSession session, MedicalOperationTerminalReason reason)
 	{
-		if (session.Kind == MedicalOperationKind.Amputation && session.Progress >= 1f)
-		{
-			CompleteAmputation(session);
-		}
-
-		if (session.Kind == MedicalOperationKind.Dislocation)
-		{
-			CompleteDislocation(session, dislocateSucceeded);
-		}
-
 		var targetData = _access.GetCharacterData(session.Target);
 		var operatorData = _access.GetCharacterData(session.Operator);
 		var itemAfter = operatorData is null ? null : FindItemAfter(operatorData, session.ItemInstanceId);

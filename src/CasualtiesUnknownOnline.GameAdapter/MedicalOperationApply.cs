@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -37,6 +38,15 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 
 	public void OnEndCommittedReceived(MedicalOperationEndCommittedMsg msg)
 	{
+		if (msg.TerminalReason == MedicalOperationTerminalReason.AlreadyHandled)
+		{
+			// Another operator settled this unit first. OnHostTerminal (below) ends this
+			// client's minigame, and this is the precise answer the operator is given.
+			domains.Log.LogInformation(
+				"[MedicalOps] operation {OperationId} ({Kind}) on {Target} limb {Limb} stopped: {Reason}",
+				msg.OperationId, msg.Kind, msg.TargetSteamId, msg.LimbIndex, MedicalOperationUnitRules.HandledReason(msg.Kind));
+		}
+
 		if (msg.ShrapnelPieces.Count > 0)
 		{
 			RemoteMedicalOperationHandler.OnShrapnelHostTerminal(msg.OperationId);

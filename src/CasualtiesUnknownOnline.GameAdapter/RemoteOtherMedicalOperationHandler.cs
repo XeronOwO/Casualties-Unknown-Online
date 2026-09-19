@@ -14,8 +14,8 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// Remote-medical Stage 3 adapter. It starts the native Bandage/Dislocation/
 /// AED/ManualDefib/Amputation minigames on the remote display body, routes
 /// semantic updates through the generic medical operation session, and handles
-/// the one-shot splint/tourniquet removal sessions. All active state is
-/// exclusive to one local minigame/one operation at a time.
+/// the one-shot splint/tourniquet removal sessions. This client holds one
+/// session at a time, because the native engine runs one minigame per client.
 /// </summary>
 internal sealed class RemoteOtherMedicalOperationHandler
 {

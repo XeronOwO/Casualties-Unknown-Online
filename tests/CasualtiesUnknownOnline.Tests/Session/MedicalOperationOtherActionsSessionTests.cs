@@ -302,50 +302,6 @@ public sealed class MedicalOperationOtherActionsSessionTests
 	}
 
 	[Fact]
-	public void Dislocation_ExclusiveLimbLeaseThenSuccess()
-	{
-		var w = CreateThreeNode();
-		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
-		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, true));
-		var guest1Body = SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1, dislocated: true), Limb(2));
-		characters.SaveCharacterData(Guest1Id, guest1Body);
-		characters.SaveCharacterData(Guest2Id, SnapshotWithLimbs(Guest2Id, true));
-		PlayerInteractionTestSession.SeedOwnBody(w.Guest1, guest1Body);
-		MarkInWorld(w.Host);
-		MarkInWorld(w.Guest1);
-		MarkInWorld(w.Guest2);
-
-		MedicalOperationStartAckMsg? hostAck = null;
-		MedicalOperationStartAckMsg? secondAck = null;
-		var hostOps = Ops(w.Host);
-		var g2Ops = Ops(w.Guest2);
-		hostOps.StartAckReceived += m => hostAck = m;
-		g2Ops.StartAckReceived += m => secondAck = m;
-
-		hostOps.SendOtherStartRequest(Guest1Id, 0, 1, MedicalOperationKind.Dislocation);
-		Assert.NotNull(hostAck);
-		Assert.True(hostAck!.Accepted);
-		g2Ops.SendOtherStartRequest(Guest1Id, 0, 1, MedicalOperationKind.Dislocation);
-		Assert.NotNull(secondAck);
-		Assert.False(secondAck!.Accepted);
-		Assert.Equal("Target limb is already reserved.", secondAck.RejectReason);
-
-		var states = new List<MedicalOperationStateMsg>();
-		hostOps.StateReceived += states.Add;
-		hostOps.SendOtherUpdate(hostAck.OperationId, MedicalOperationUpdateAction.Hit, flag1: true);
-		Assert.NotEmpty(states);
-
-		var ends = new List<MedicalOperationEndCommittedMsg>();
-		hostOps.EndCommittedReceived += ends.Add;
-		hostOps.SendOtherEndRequest(hostAck.OperationId, 1f);
-		var end = Assert.Single(ends);
-		Assert.Equal(MedicalOperationTerminalReason.Completed, end.TerminalReason);
-		var limb = characters.GetSavedCharacter(Guest1Id)!.Limbs.Single(l => l.Index == 1);
-		Assert.False(limb.Dislocated);
-		Assert.True(limb.Pain > 0f);
-	}
-
-	[Fact]
 	public void Aed_StageBatteryDrainAndShockClearsFibrillation()
 	{
 		var (host, guest) = CreatePair();

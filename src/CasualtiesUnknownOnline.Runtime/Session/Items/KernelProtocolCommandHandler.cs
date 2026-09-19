@@ -44,7 +44,7 @@ internal sealed class KernelProtocolCommandHandler(
 		// THE CARRY-REGISTRATION HEAL — an explicit EXCEPTION to this invariant, not
 		// a use of it. The reporter's own carried container may never have been
 		// registered at all (a swallowed CarriedInventory report — see
-		// todo/carried-inventory-registration-re-report.md), so the host takes the
+		// review/carried-inventory-registration-re-report.md), so the host takes the
 		// reporter's first report AS the creation judgement and materializes the
 		// parent as the reporter's OWN carried item, then executes the operation.
 		// Nothing is waited for and nothing is guessed about a third party's item;
@@ -67,7 +67,7 @@ internal sealed class KernelProtocolCommandHandler(
 		// ItemLocation.Carried(sender) from the reporter's own report. The host
 		// cannot verify the item really sits in that reporter's body — the wire
 		// carries no such proof, and this pre-release trust model is exactly what
-		// todo/carried-inventory-registration-re-report.md and
+		// review/carried-inventory-registration-re-report.md and
 		// future/strict-validation-anti-cheat.md own.
 		if (envelope.Command.Kind == WireCommandKind.ItemUpdateState
 			&& envelope.Command.Data is not null

@@ -78,7 +78,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			log,
 			(items, layerModifierIndex, randomState) => _snapshots.FireItemSnapshotReceived(session.HostSteamId, items, layerModifierIndex, randomState),
 			(items, layerModifierIndex, randomState) => _snapshots.FireWorldItemsSnapshotReceived(session.HostSteamId, items, layerModifierIndex, randomState));
-		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
+		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, time, log);
 		_blockDrops = new BlockDropSync(session, this);
 
 		_messageFlow = new ItemMessageFlowService(
@@ -102,6 +102,10 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	public void SendItemIdWatermark(ulong counter) => _idCoordinator.SendItemIdWatermark(counter);
 
 	public void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.SendCarriedInventory(items);
+
+	public void ArmCarriedInventoryRegistration(string reason) => _idCoordinator.ArmCarriedInventoryRegistration(reason);
+
+	public bool IsCarriedInventoryRegistrationDue() => _idCoordinator.IsCarriedInventoryRegistrationDue();
 
 	public void GrantItemIdWatermark(ulong targetSteamId, ulong counter) => _idCoordinator.GrantItemIdWatermark(targetSteamId, counter);
 

@@ -45,6 +45,9 @@ public class SourceShapeGateTests
 	/// <summary>Test-data attributes carry sample SOURCE TEXT as strings — this gate's own matcher contract among them — and a sample is not a declaration, so those lines are skipped rather than read as code.</summary>
 	private static readonly Regex TestDataLineRegex = new(@"^\s*\[(?:InlineData|MemberData|TheoryData)\b");
 
+	/// <summary>The inert-capture shape: a null test on the item's id component, i.e. "skip it because it is already bound".</summary>
+	private static readonly Regex BoundItemSkipRegex = new(@"GetComponent<ItemInstanceId>\(\)\s*(!=\s*null|is\s+not\s+null)");
+
 	private sealed record ArchitectureDebtEntry(int Lines, int BoolFlags);
 
 	[Fact]
@@ -370,6 +373,56 @@ public class SourceShapeGateTests
 			$"the scan only saw {scanned} C# file(s); the roots or the enumeration broke and this rule would pass by checking nothing");
 		Assert.True(failures.Count == 0, "extension-method shape gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
 	}
+
+	/// <summary>
+	/// The carried-inventory report is an ABSOLUTE set that is REPEATED, so its capture must
+	/// state every authoritative item of the body — including one that already carries an
+	/// instance id (a snapshot id, an id an earlier report stamped, a product CraftingSync
+	/// stamped). Skipping bound items makes the repeat inert: the first capture stamps an id on
+	/// every item it reports (<c>ItemIdAllocator.Allocate</c>), so every later capture would come
+	/// back empty and send nothing at all — the registration would silently stop converging,
+	/// which is exactly the gap the re-report exists to close (sync-coverage row I8; the
+	/// 2026-09-19 adversarial review found the shipped version doing this). The capture itself
+	/// needs Unity and cannot run in this suite, so this gate pins the SHAPE the inert capture was
+	/// written in — a null test on the id component, directly in the filter. An equivalent skip
+	/// written through a local (<c>var id = item.GetComponent&lt;ItemInstanceId&gt;(); if (id != null)
+	/// continue;</c>) is deliberately NOT matched here: that one is caught by its EFFECT instead,
+	/// through <c>ItemIdCoordinator</c>'s warning for a window that captures nothing after a
+	/// non-empty registration.
+	/// </summary>
+	[Fact]
+	public void CarriedInventoryCapture_DoesNotSkipItemsThatAlreadyCarryAnInstanceId()
+	{
+		var reporter = RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Items/CarriedInventoryReporter.cs");
+		Assert.True(File.Exists(reporter), $"the carried-inventory reporter moved: {Relative(reporter)}");
+
+		var text = File.ReadAllText(reporter);
+		Assert.True(
+			text.Contains("EnsureId", StringComparison.Ordinal),
+			"the reporter no longer reads like a capture — this rule would pass by checking nothing");
+
+		var failures = new List<string>();
+		var lines = File.ReadAllLines(reporter);
+		for (var i = 0; i < lines.Length; i++)
+		{
+			if (BoundItemSkipRegex.IsMatch(lines[i]))
+			{
+				failures.Add($"{Relative(reporter)}:{i + 1} : the capture skips an item because it already carries an instance id — the absolute registration states the CURRENT set, bound items included (a skip makes every repeat after the first empty)");
+			}
+		}
+
+		Assert.True(failures.Count == 0, "carried-inventory capture gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	/// <summary>The matcher's own contract: a null test on the id component is the skip shape, reading the component is not.</summary>
+	[Theory]
+	[InlineData("if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==", true)]
+	[InlineData("if (worn.GetComponent<ItemInstanceId>() is not null)", true)]
+	[InlineData("if (worn.GetComponent<ItemInstanceId>() == null)", false)]
+	[InlineData("if (_ids.EnsureId(item) == 0)", false)]
+	[InlineData("var bound = item.GetComponent<ItemInstanceId>();", false)]
+	public void TheBoundItemSkipMatcher_SeesTheSkipShapeAndIgnoresOrdinaryReads(string line, bool expected) =>
+		Assert.Equal(expected, BoundItemSkipRegex.IsMatch(line));
 
 	private static IEnumerable<string> EnumerateCSharpFiles(string root)
 	{

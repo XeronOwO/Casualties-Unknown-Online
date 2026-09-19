@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Partial-damage report vs the live delta](todo/partial-damage-delta-report-overlap.md) — **Low-Medium** — the merge can under- and over-count.
 - [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
-- [Carried-inventory registration](todo/carried-inventory-registration-re-report.md) — **Medium** — the host arbitration table stays empty.
 - [Restore live-object row loops](todo/restore-live-object-loops-containment.md) — **Low** — three appliers keep a half-level blast radius.
 - [Checkpoint chunks vs the run epoch](todo/checkpoint-run-epoch-validation.md) — **Low-Medium** — a late set could move the epoch backwards.
 - [Dropped mod command requests](todo/mod-command-request-timeout.md) — **Low** — pending callbacks have no timeout.
@@ -62,6 +61,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [Carried-inventory registration](review/carried-inventory-registration-re-report.md) — **Medium** — the absolute re-report window.
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
 - [Session control convergence](review/session-control-convergence.md) — **Medium** — the bounded scene re-report window and the re-ack loop.
 - [Guest command loss is not reconciled](review/guest-command-loss-reconciliation.md) — **Medium** — the bounded per-item re-report queue.

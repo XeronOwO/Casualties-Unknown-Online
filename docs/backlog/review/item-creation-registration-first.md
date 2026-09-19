@@ -4,7 +4,7 @@
 - Priority: Medium-High
 - Category: Network / sync coverage / items (creation-before-operation invariant)
 - Source: User ruling 2026-09-18 (design alignment session): the 500 ms pickup hold is a design smell, not a latency fix — creation registration must always come first, and multiple messages/events may be composed into one atomic operation. The host must never execute, wait on, or guess about an operation on an item whose creation it has not yet judged.
-- Related: `review/guest-command-loss-reconciliation.md`, `review/block-break-first-writer-wins.md`, `review/guest-break-drops-recovery.md`, `todo/carried-inventory-registration-re-report.md`
+- Related: `review/guest-command-loss-reconciliation.md`, `review/block-break-first-writer-wins.md`, `review/guest-break-drops-recovery.md`, `review/carried-inventory-registration-re-report.md`
 
 ## Problem (evidence)
 
@@ -89,7 +89,7 @@ documented as exceptions instead of silently bypassing the rule:
 
 Both exist because a swallowed `CarriedInventory` report leaves the host with no
 registration for a guest's own carried items, and
-`todo/carried-inventory-registration-re-report.md` pins them (its acceptance matrix row
+`review/carried-inventory-registration-re-report.md` pins them (its acceptance matrix row
 "Accepted-first path still works"). What the host takes on trust is that the item belongs to
 the REPORTER; the wire carries no proof of that, and that trust boundary is owned by the
 heal ticket and by `future/strict-validation-anti-cheat.md` — not by this one. A refused
@@ -124,7 +124,7 @@ and a mixed session would have one side waiting on a window the other no longer 
   log line plus the precise reason carried in the envelope.
 - The carry-registration heal's trust boundary (a peer may claim any unjudged id as its own
   carried item) is deliberately unchanged here and belongs to
-  `todo/carried-inventory-registration-re-report.md` / `future/strict-validation-anti-cheat.md`.
+  `review/carried-inventory-registration-re-report.md` / `future/strict-validation-anti-cheat.md`.
 - Dual-client acceptance stays the user's release-cycle action: the second operator's
   screen, real two-machine latency, and the production live-capture branch are not covered
   by the simulation harness.

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem cites current call sites (SendCommand, PendingItemCreations is ordering-only, the empty-table keyframe skip); review round 1 read those paths
+      file:line or runtime log) or is explicitly marked unverified — evidence: row I8 plus every touched path read before editing (CarriedInventoryReporter, ItemIdCoordinator, ItemArbitration.RegisterCarried, KernelProtocolCommandHandler)
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the four report kinds aligned (creation/pickup/drop/destroy); I7/I4 keep their absolute fallbacks; I8 stays with its own ticket
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance matrix (9 rows, each naming its suite case) plus the declared limits and the review fixes
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the family's rows re-read (I5/W1/W2/I6); both RegisterCarried callers audited (the CarriedInventory handler and CraftSyncService); no other registration writer; the review's family pass found no reachable regression
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance matrix (12 rows: each names its test and the half it runs in, the two regression-only guards labelled) plus the red-first record and the review fix round
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: ItemSimWorld + LinkFaults.DropMessageId and Duplicate; the adapter/Unity half declared static + dual-client acceptance
+      peer log comparison, hotrepl assertions) is decided — evidence: ItemSimWorld + LinkFaults.DropMessageId swallow and the schedule unit tests; the Game Adapter Unity half declared static + dual-client acceptance
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff fixed the route (continue development, one Medium ticket, takeover order); the ticket's frozen design direction 1 chose the mechanism
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; main suite 3401 green (with build); focused 13/13; gates 56/56 at the final run after this box
+      process violation — evidence: the handoff fixed the route (continue development, one ticket); the ticket's frozen design direction 1 chose the mechanism
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; main suite 3420 green (with build); focused 20/20; neighbours 472/472; gates 62/62 (five are the new capture matcher's own contract)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: the new window is 451 lines (queue + two reused scan lists, no per-frame allocation); KernelProtocolService 538; CuoBootstrap 599; no dead code left behind
+      dead mechanisms deleted in the same round) — evidence: schedule 110 lines, ItemIdCoordinator 202, ItemArbitration 477, ItemService 590, CuoBootstrap 599 unchanged; dead _reportPending/EnsureCarried/IsArmed deleted
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

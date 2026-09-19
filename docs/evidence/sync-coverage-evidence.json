@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 947,
+  "count": 959,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -1226,7 +1226,7 @@
       "cluster": "items",
       "row": "I8",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Items/CarriedInventoryReporter.cs",
-      "quote": "_items.SendCarriedInventory(items);"
+      "quote": "_items.SendCarriedInventory(CaptureItems());"
     },
     {
       "cluster": "items",
@@ -1239,6 +1239,78 @@
       "row": "I8",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs",
       "quote": "_log.LogInformation(\"Accepted-first missing carried update for item {ItemId} from {Sender}: spawned carried fact.\","
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CarriedInventoryReportSchedule.cs",
+      "quote": "internal const int BurstReports = 12;"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CarriedInventoryReportSchedule.cs",
+      "quote": "internal const long SteadyIntervalMs = 60_000;"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs",
+      "quote": "_carriedRegistration.MarkReported(_time.NowMs);"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs",
+      "quote": "_session.Role == SessionRole.Guest && _session.SessionActive && _carriedRegistration.IsDue(_time.NowMs);"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/GameAdapterSessionBinding.cs",
+      "quote": "domains.Items.ArmCarriedInventoryRegistration(\"the host granted the id watermark (join/reconnect)\");"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Items/CarriedInventoryReporter.cs",
+      "quote": "_items.ArmCarriedInventoryRegistration(\"the local generation finished\");"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemArbitration.cs",
+      "quote": "if (owned.ContainsKey(item.InstanceId))"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemArbitration.cs",
+      "quote": "if (current.Value.Location.Kind == ItemLocationKind.Carried && current.Value.Location.Owner.Value == guest)"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Items/CarriedInventoryRegistrationTests.cs",
+      "quote": "public void SwallowedRegistration_ConvergesOnTheDenseReReport()"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Items/CarriedInventoryReportScheduleTests.cs",
+      "quote": "public void DenseWindow_SpendsEveryBurstReport_ThenSettlesToTheSteadyInterval()"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs",
+      "quote": "_log.LogWarning(\"[CarriedInventory] the registration captured nothing although this session already registered {Count} carried item(s) — if the guest still carries them, the capture has stopped seeing them and the re-report cannot converge.\","
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "tests/CasualtiesUnknownOnline.NormativeGates.Tests/SourceShapeGateTests.cs",
+      "quote": "public void CarriedInventoryCapture_DoesNotSkipItemsThatAlreadyCarryAnInstanceId()"
     },
     {
       "cluster": "items",

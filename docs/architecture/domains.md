@@ -90,7 +90,7 @@ Source roots:
 | WorldEntities | Trap phase/consumption, opened-entity facts, and building health are kernel facts; presentation and Unity components are rebuildable projections. |
 | Entities / Enemies | Enemy lifecycle/health/removal and combat terminal results are kernel facts; continuous presentation/stream fields are projection-owned; a removed enemy cannot be resurrected by a stale stream. |
 | Fluids | Only coarse authoritative region totals/types are kernel facts; per-pixel simulation is a local presentation projection fed by the fluid region stream (10 Hz diff + 1 Hz full viewport). The kernel facts are a coarse 5 s aggregation and are **not** a grid rebuild source today (see `docs/evidence/selfchecks/architecture/phase-d-fluids-shadow-selfcheck.md` §"not a second grid authority"). |
-| World / Run | Run identity, epoch, seed, layer, run settings, and baseline fields; world-generation result facts live in `WorldEntities`, not `RunState`; all old-epoch commands, batches, and kernel state-stream packets are rejected (direct `NetMsg` presentation streams carry no epoch). |
+| World / Run | Run identity, epoch, seed, layer, run settings, and baseline fields; world-generation result facts live in `WorldEntities`, not `RunState`; all old-epoch commands, batches, checkpoint chunk sets, and kernel state-stream packets are rejected (direct `NetMsg` presentation streams carry no epoch). A checkpoint set is compared against the run identity the host announced with its world-join instruction (`WorldJoinMsg.RunEpoch`), never against this side's own kernel epoch. |
 
 ## Native operation layer
 

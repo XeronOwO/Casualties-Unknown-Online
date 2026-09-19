@@ -34,6 +34,19 @@ public interface IKernelProtocolControl
 
 	void SendCheckpoint(ulong targetSteamId);
 
+	/// <summary>Host: the kernel run epoch this side is serving — the run identity a world-join instruction announces to the members.</summary>
+	ulong CurrentRunEpoch { get; }
+
+	/// <summary>
+	/// Guest: the host announced the run identity this member must serve (the
+	/// enter-the-world instruction). Every later checkpoint chunk set is
+	/// validated against it before a chunk is buffered: a set from another run
+	/// is refused, and the partial set already buffered is dropped the moment a
+	/// different identity's chunk arrives. Zero means "no announcement" — the
+	/// receiver keeps the identity it holds.
+	/// </summary>
+	void AdoptHostRunEpoch(ulong runEpoch);
+
 	event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
 
 	event Action<WirePayloadType, WireStateStream>? ItemStateStreamReceived;

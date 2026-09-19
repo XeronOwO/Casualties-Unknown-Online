@@ -106,7 +106,10 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   `review/session-control-convergence.md` (rows R3+R4 — closed 2026-09-19: the guest's bounded
   absolute scene re-report window, the host's idempotent repeat answer, the re-ack loop and the
   roster riding the in-session repair group; the completion marker is now that window's
-  acknowledgement), `todo/checkpoint-run-epoch-validation.md`,
+  acknowledgement), `review/checkpoint-run-epoch-validation.md` (row K2 finding — closed
+  2026-09-19: the world-join instruction announces the host's run epoch, the guest refuses a
+  checkpoint set from another run before a chunk is buffered, and the pending set is keyed by
+  its own epoch/revision/chunk count),
   `todo/mod-command-request-timeout.md`, `review/sync-cadence-review.md` (cadence findings
   raised at the user's request), and `review/guest-break-drops-recovery.md` (found while
   landing W1).

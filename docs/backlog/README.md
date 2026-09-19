@@ -49,7 +49,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Restore live-object row loops](todo/restore-live-object-loops-containment.md) — **Low** — three appliers keep a half-level blast radius.
-- [Checkpoint chunks vs the run epoch](todo/checkpoint-run-epoch-validation.md) — **Low-Medium** — a late set could move the epoch backwards.
 - [Dropped mod command requests](todo/mod-command-request-timeout.md) — **Low** — pending callbacks have no timeout.
 - [Systemic save and backup management](todo/systemic-save-backup-management.md) — **Medium** — backup/retention/restore/migration.
 - [Pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium** — crafting-UI and command completion.
@@ -160,6 +159,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [Run clock is not sent to a mid-run joiner](review/save-run-clock-not-sent.md) — **Low-Medium** — the clocks travel as their own message.
 - [Layer time is not carried](review/save-layer-time-not-carried.md) — **Low-Medium** — the continued layer resumes its timer.
+- [Checkpoint chunks vs the run epoch](review/checkpoint-run-epoch-validation.md) — **Low-Medium** — the join instruction carries the run identity.
 
 ### Future
 

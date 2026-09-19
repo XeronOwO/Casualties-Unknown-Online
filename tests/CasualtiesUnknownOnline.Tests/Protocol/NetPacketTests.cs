@@ -287,6 +287,21 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void WorldJoin_RunEpoch_RoundTrips()
+	{
+		// The identity a member validates its checkpoint sets against: a value that
+		// decoded back as 0 would leave the member with nothing to refuse a straggler
+		// set against, and one that decoded as another run would refuse the live set.
+		var decoded = NetPacket.DecodePayload<WorldJoinMsg>(NetPacket.Encode(NetMsg.WorldJoin, new WorldJoinMsg
+		{
+			IsTutorial = false,
+			RunEpoch = 4UL,
+		}));
+
+		Assert.Equal(4UL, decoded.RunEpoch);
+	}
+
+	[Fact]
 	public void BlockDamageSnapshot_AnswersReportTrue_RoundTrips()
 	{
 		// The answer flag is what lets the receiver clear its outstanding

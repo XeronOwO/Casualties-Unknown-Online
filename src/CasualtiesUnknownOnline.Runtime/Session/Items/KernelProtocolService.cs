@@ -29,9 +29,9 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly ILogger<KernelProtocolService> _log;
 	private readonly KernelProtocolCommandHandler _commandHandler;
 	private readonly List<CommittedBatch> _journal = [];
-	private readonly Dictionary<int, WireCheckpoint> _checkpointChunks = [];
 	private readonly Dictionary<ulong, CommittedBatch> _pendingBatches = [];
 	private readonly KernelStateStreamService _stateStreams;
+	private readonly GuestCheckpointReceiver _checkpoints;
 	private readonly HashSet<ulong> _staleStreamEpochWarned = [];
 	private long _nextMessageId;
 
@@ -58,6 +58,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_pendingCommands = pendingCommands;
 		_log = log;
 		_stateStreams = new KernelStateStreamService(session, sender, authority, payloadType => CreateHeader(payloadType, 0));
+		_checkpoints = new GuestCheckpointReceiver(authority, log);
 		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, refusedCreations, log);
 		_authority.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetForSessionEnd;
@@ -141,6 +142,10 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			checkpoint.GlobalRevision, targetSteamId, _journal.Count(b => b.GlobalRevision > checkpoint.GlobalRevision));
 	}
 
+	public ulong CurrentRunEpoch => _authority.CurrentRunEpoch.Value;
+
+	public void AdoptHostRunEpoch(ulong runEpoch) => _checkpoints.AdoptHostRunEpoch(runEpoch);
+
 	public void SendCommand(WireCommand command, WirePayloadType payloadType)
 	{
 		if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)
@@ -222,7 +227,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	{
 		_authority.ResetForSession();
 		_journal.Clear();
-		_checkpointChunks.Clear();
+		_checkpoints.ResetForSessionEnd();
 		_pendingBatches.Clear();
 		_nextMessageId = 0;
 		_staleStreamEpochWarned.Clear();
@@ -255,7 +260,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		switch (frame.Kind)
 		{
 			case EnvelopeKind.Checkpoint when frame.Checkpoint is not null:
-				HandleCheckpoint(frame.Checkpoint);
+				_checkpoints.HandleChunk(sender, frame.Checkpoint);
 				break;
 			case EnvelopeKind.CommittedBatch when frame.CommittedBatch is not null:
 				HandleCommittedBatch(sender, frame.CommittedBatch);
@@ -477,37 +482,6 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			},
 		};
 		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);
-	}
-
-	private void HandleCheckpoint(CheckpointEnvelope envelope)
-	{
-		var chunk = envelope.Checkpoint;
-		_checkpointChunks[chunk.ChunkIndex] = chunk;
-		if (_checkpointChunks.Count != chunk.ChunkCount)
-		{
-			return;
-		}
-
-		try
-		{
-			var checkpoint = WireCheckpointAssembler.Assemble([.. _checkpointChunks.Values]);
-			var result = _authority.Restore(checkpoint);
-			if (result.Success)
-			{
-				_log.LogInformation("Restored kernel checkpoint at revision {Revision} ({Items} items).",
-					checkpoint.GlobalRevision, checkpoint.Items.Count);
-				_checkpointChunks.Clear();
-			}
-			else
-			{
-				_log.LogWarning("Kernel checkpoint restore failed: {Message}", result.Error);
-			}
-		}
-		catch (Exception ex)
-		{
-			_log.LogWarning(ex, "Kernel checkpoint assembly/restore failed for guest.");
-			_checkpointChunks.Clear();
-		}
 	}
 
 	private void SendToGuests(ProtocolFrame frame, bool reliable = true)

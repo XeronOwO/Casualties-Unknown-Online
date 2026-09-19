@@ -319,14 +319,17 @@ internal sealed class WorldStateMessageService(
 		_log.LogInformation("Sent block-state snapshot ({Count} blocks) to {Peer}.", _damagedBlocks.Count, targetSteamId);
 	}
 
-	public void SendWorldJoin(bool isTutorial)
+	public void SendWorldJoin(bool isTutorial, ulong runEpoch)
 	{
 		if (!_session.SessionActive)
 		{
 			return;
 		}
 
-		var msg = new WorldJoinMsg { IsTutorial = isTutorial };
+		// The run identity rides the instruction: it is the edge at which a NEW run
+		// legitimately begins, and the member validates every checkpoint set it is
+		// about to receive against it (the entry group follows this instruction).
+		var msg = new WorldJoinMsg { IsTutorial = isTutorial, RunEpoch = runEpoch };
 		foreach (var member in _session.Members)
 		{
 			if (member.Handshaken && !member.InWorld)
@@ -335,11 +338,11 @@ internal sealed class WorldStateMessageService(
 			}
 		}
 
-		_log.LogInformation("World join sent to {Members} members (tutorial: {Tutorial}).",
-			_session.Members.Count(m => m.Handshaken && !m.InWorld), isTutorial);
+		_log.LogInformation("World join sent to {Members} members (tutorial: {Tutorial}, run {Epoch}).",
+			_session.Members.Count(m => m.Handshaken && !m.InWorld), isTutorial, runEpoch);
 	}
 
-	public void SendWorldJoinTo(ulong steamId)
+	public void SendWorldJoinTo(ulong steamId, ulong runEpoch)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
@@ -353,8 +356,8 @@ internal sealed class WorldStateMessageService(
 		}
 
 		var tutorial = WorldParams?.IsTutorial ?? false;
-		_sender.Send(steamId, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = tutorial });
-		_log.LogInformation("[Respawn] sent targeted world join to {Peer} (tutorial: {Tutorial}).", steamId, tutorial);
+		_sender.Send(steamId, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = tutorial, RunEpoch = runEpoch });
+		_log.LogInformation("[Respawn] sent targeted world join to {Peer} (tutorial: {Tutorial}, run {Epoch}).", steamId, tutorial, runEpoch);
 	}
 
 	public void PublishWorldParams(WorldStartParams parameters)

@@ -16,7 +16,7 @@ public enum NetMsg : byte
 	HandshakeAck = 17, // host → guest: acknowledges every handshake, even repeats (lazy Steam P2P sessions swallow early messages)
 	HandshakeAckAck = 58, // guest → host: handshake end-to-end confirmation (the ack arrived — the host only marks the member Handshaken on this)
 	SceneState = 18,
-	WorldJoin = 20, // host → guest: start loading the world (sent at generation start; the run baseline rides KernelEnvelope/checkpoint)
+	WorldJoin = 20, // host → guest: start loading the world (sent at generation start; the run baseline rides KernelEnvelope/checkpoint, and the run IDENTITY the member validates checkpoint sets against rides this message's RunEpoch)
 	WorldReady = 21, // host → guest: everyone finished loading — start playing (start-gate release / late-joiner pass)
 
 	// Entities

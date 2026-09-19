@@ -59,7 +59,6 @@ public class WorldSaveCompositionTests
 		var rows = probe.Capture();
 		Assert.Equal(
 			[
-				WorldTransientPolicy.PickupQueueKey,
 				WorldTransientPolicy.MedicalSessionKey,
 				WorldTransientPolicy.ShrapnelSessionKey,
 				WorldTransientPolicy.OtherMedicalSessionKey,

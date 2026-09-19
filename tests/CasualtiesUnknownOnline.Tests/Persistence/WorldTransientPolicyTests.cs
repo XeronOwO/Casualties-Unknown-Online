@@ -18,7 +18,6 @@ public class WorldTransientPolicyTests
 	[
 		"block-break-pending",
 		"trap-drop-hold",
-		"pickup-queue",
 		"drop-flush",
 		"medical-session",
 		"shrapnel-session",
@@ -58,7 +57,6 @@ public class WorldTransientPolicyTests
 		{
 			["block-break-pending"] = WorldTransientVerdict.ResolveBeforeSave,
 			["trap-drop-hold"] = WorldTransientVerdict.ResolveBeforeSave,
-			["pickup-queue"] = WorldTransientVerdict.DropWithLog,
 			["drop-flush"] = WorldTransientVerdict.ResolveBeforeSave,
 			["medical-session"] = WorldTransientVerdict.DropWithLog,
 			["shrapnel-session"] = WorldTransientVerdict.DropWithLog,
@@ -101,7 +99,7 @@ public class WorldTransientPolicyTests
 		Assert.True(WorldTransientPolicy.MustResolveBeforeSave(WorldTransientPolicy.BlockBreakPendingKey));
 		Assert.True(WorldTransientPolicy.MustResolveBeforeSave(WorldTransientPolicy.TrapDropHoldKey));
 		Assert.True(WorldTransientPolicy.MustResolveBeforeSave(WorldTransientPolicy.DropFlushKey));
-		Assert.False(WorldTransientPolicy.MustResolveBeforeSave(WorldTransientPolicy.PickupQueueKey));
+		Assert.False(WorldTransientPolicy.MustResolveBeforeSave(WorldTransientPolicy.MedicalSessionKey));
 		Assert.False(WorldTransientPolicy.MustResolveBeforeSave(WorldTransientPolicy.DecidedNativeValuesKey));
 	}
 
@@ -117,8 +115,8 @@ public class WorldTransientPolicyTests
 	public void Describe_NamesTheCountAndTheUnit()
 	{
 		Assert.Equal(
-			"2 pickup claim(s) waiting for their spawn report",
-			WorldTransientPolicy.Describe(new WorldTransientCount(WorldTransientPolicy.PickupQueueKey, 2)));
+			"2 medical operation(s) in progress",
+			WorldTransientPolicy.Describe(new WorldTransientCount(WorldTransientPolicy.MedicalSessionKey, 2)));
 	}
 
 	[Fact]

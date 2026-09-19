@@ -944,19 +944,19 @@
       "cluster": "items",
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs",
-      "quote": "if (_pendingPickups.TryEnqueue(sender, itemId, null, _time.NowMs))"
+      "quote": "if (_refusedCreations.TryGet(itemId, out var refusal))"
     },
     {
       "cluster": "items",
       "row": "I5",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/PendingPickupQueue.cs",
-      "quote": "internal const int DefaultHoldMs = 500;"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/PendingItemCreations.cs",
+      "quote": "internal void SettleBeforeOperation()"
     },
     {
       "cluster": "items",
       "row": "I5",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs",
-      "quote": "foreach (var pending in _pendingPickups.TakeExpired(nowMs))"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemMessageFlowService.cs",
+      "quote": "_pendingCreations.SettleBeforeOperation();"
     },
     {
       "cluster": "items",

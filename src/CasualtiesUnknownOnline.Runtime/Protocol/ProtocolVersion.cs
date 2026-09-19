@@ -50,7 +50,17 @@ public static class ProtocolVersion
 	/// other operations still open on that unit are terminated with this reason
 	/// carrying the winner's authoritative state. A peer without it would read the
 	/// loser's terminal as an ordinary completion, keep its minigame on a limb that
-	/// is already treated, and could resolve the same unit a second time.</summary>
-	public const int Current = 26;
+	/// is already treated, and could resolve the same unit a second time.
+	/// 27: the creation-before-operation invariant — an item operation
+	/// (`ItemPickup` / `ItemDrop` / `ItemTransfer` / `ItemDestroy` /
+	/// `ItemUpdateState`) whose item's creation the host has not judged is refused
+	/// AT ONCE, with the reason the creation died when it was refused, instead of
+	/// being parked in a fixed 500 ms hold window and answered late with a less
+	/// precise one. The reporting side must settle every deferred creation report
+	/// before it reports an operation on the same item. A peer without it would
+	/// still park the claim and wait on a window the other side no longer fills,
+	/// and its own operations would be judged against a creation ordering it does
+	/// not implement.</summary>
+	public const int Current = 27;
 
 }

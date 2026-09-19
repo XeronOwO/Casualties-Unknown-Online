@@ -4,7 +4,6 @@ using System.Linq;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Xunit;
 
@@ -14,11 +13,12 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// The time-sensitive item races — the class of bug manual double-opening
 /// cannot reliably reproduce (they need the wire to misbehave at the right
 /// moment). Fixed scenarios: the duplicated pickup report (reliable
-/// retransmission), the spawn-report-in-flight race in both arrival orders
-/// (the kernel pending-pickup queue), the symmetric same-frame claim (G2
-/// first) and a reordered arrival (sender order ≠ arrival order). Plus a
-/// seeded random lifecycle whose host-table state is checked against an oracle
-/// that replays the ACTUAL delivery order of the Phase C commands.
+/// retransmission), a pickup that beats its own spawn report (an operation on an
+/// item whose creation was never judged — refused at once, never held), the
+/// symmetric same-frame claim (G2 first) and a reordered arrival (sender order ≠
+/// arrival order). Plus a seeded random lifecycle whose host-table state is
+/// checked against an oracle that replays the ACTUAL delivery order of the
+/// Phase C commands.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ItemRaceTests
@@ -59,47 +59,6 @@ public class ItemRaceTests
 
 		Assert.True(w.Rejects(w.G1).Count == 0, $"the duplicated pickup report must not come back as a reject, got {w.Rejects(w.G1).Count}");
 		Assert.False(w.HostTable(42), "the transfer still succeeded");
-	}
-
-	[Fact]
-	public void SpawnPickupInflight_PickupArrivesFirst_SettlesWhenTheSpawnLands()
-	{
-		// The kernel pending-pickup queue holds the claim until the spawn
-		// command lands (within the 500 ms hold), then settles the same
-		// transfer the spawn-first path would have produced.
-		using var w = ItemSimWorld.Create();
-		w.Pickup(w.G1, 42, Item());
-		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { DelayMs = 300 });
-		w.Spawn(w.G1, 42, Item());
-		w.Driver.Tick(33); // the pickup is queued, no reject yet
-		Assert.Empty(w.Rejects(w.G1));
-		w.Driver.Tick(300); // the spawn command lands and settles the queue
-
-		Assert.Empty(w.Rejects(w.G1));
-		Assert.False(w.HostTable(42), "the settled claim transferred the item out of the world table");
-		Assert.True(w.TransferredOf(w.G1, 42), "the picker owns the item exactly like the spawn-first path");
-	}
-
-	[Fact]
-	public void SpawnPickupInflight_SpawnArrivesAfterTheHold_RejectedThenSpawnRegisters()
-	{
-		// The queue is bounded: when the registration never arrives inside the
-		// hold window the claim gets the late UnknownItem reject, and the even
-		// later spawn command registers idempotently.
-		using var w = ItemSimWorld.Create();
-		w.Pickup(w.G1, 42, Item());
-		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { DelayMs = 700 });
-		w.Spawn(w.G1, 42, Item());
-		w.Driver.Tick(33);
-		w.Driver.Tick(600); // the 500 ms hold expires before the 700 ms spawn lands
-
-		Assert.True(w.Rejects(w.G1).Any(r => r.ItemId == 42), "the unconfirmed claim must be rejected after the hold");
-		Assert.True(w.Rejects(w.G1).Count == 1, $"exactly one reject, got {w.Rejects(w.G1).Count}");
-		Assert.False(w.HostTable(42), "the item has not registered yet");
-
-		w.Driver.Tick(100); // the late spawn command lands
-		Assert.True(w.HostTable(42), "the late spawn command must register idempotently");
-		Assert.True(w.Rejects(w.G1).Count == 1, "the late spawn does not produce a second reject");
 	}
 
 	[Fact]
@@ -159,8 +118,8 @@ public class ItemRaceTests
 		// drop by G1) over a jittered link (random delay, occasional duplicate)
 		// whose host-table end state and reject stream must EXACTLY match an
 		// oracle that replays the actual delivery order of the Phase C commands
-		// PLUS the kernel pending-pickup hold window (500 ms) at the actual pump
-		// ticks.
+		// against the invariant's host half: an operation on an item whose
+		// creation was never judged is refused at once (no hold window to model).
 		using var w = ItemSimWorld.Create();
 		var rng = new Random(seed);
 		var delivered = new List<(long Ms, ulong ItemId, WireCommandKind Kind, ulong OperationId)>();
@@ -227,7 +186,6 @@ public class ItemRaceTests
 		var oracleOwned = new HashSet<ulong>();
 		var oracleTerminal = new HashSet<ulong>();
 		var oracleRejects = new List<ulong>();
-		var oracleQueue = new List<(ulong ItemId, long QueuedAtMs)>();
 		var seenOperations = new HashSet<ulong>();
 		var eventIndex = 0;
 
@@ -247,13 +205,13 @@ public class ItemRaceTests
 					case WireCommandKind.ItemSpawn:
 						if (!oracleTerminal.Contains(itemId))
 						{
-							SettleSpawn(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+							oracleWorld.Add(itemId);
 							accepted = true;
 						}
 
 						break;
 					case WireCommandKind.ItemPickup:
-						if (oracleTerminal.Contains(itemId))
+						if (oracleTerminal.Contains(itemId) || oracleOwned.Contains(itemId))
 						{
 							oracleRejects.Add(itemId);
 						}
@@ -262,17 +220,11 @@ public class ItemRaceTests
 							oracleOwned.Add(itemId);
 							accepted = true;
 						}
-						else if (oracleOwned.Contains(itemId))
-						{
-							oracleRejects.Add(itemId);
-						}
-						else if (oracleQueue.Any(q => q.ItemId == itemId))
-						{
-							// A duplicate claim while one is queued is dropped silently.
-						}
 						else
 						{
-							oracleQueue.Add((itemId, now));
+							// An item this host has never judged: the creation-before-operation
+							// rule answers at once — no hold window, no guess.
+							oracleRejects.Add(itemId);
 						}
 
 						break;
@@ -287,7 +239,8 @@ public class ItemRaceTests
 						}
 						else
 						{
-							SettleDrop(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+							oracleOwned.Remove(itemId);
+							oracleWorld.Add(itemId);
 							accepted = true;
 						}
 
@@ -311,8 +264,6 @@ public class ItemRaceTests
 					seenOperations.Add(operationId);
 				}
 			}
-
-			ExpireQueue(now, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
 		}
 
 		Assert.Equal(delivered.Count, eventIndex);
@@ -326,73 +277,5 @@ public class ItemRaceTests
 		actualRejects.Sort();
 		oracleRejects.Sort();
 		Assert.Equal(oracleRejects, actualRejects);
-	}
-
-	/// <summary>The oracle's spawn edge: the first queued claim for the item settles (first-writer-wins), later queued claims lose; otherwise the item registers.</summary>
-	private static void SettleSpawn(ulong itemId, HashSet<ulong> world, HashSet<ulong> owned, List<ulong> rejects, List<(ulong ItemId, long QueuedAtMs)> queue)
-	{
-		var index = queue.FindIndex(q => q.ItemId == itemId);
-		if (index < 0)
-		{
-			world.Add(itemId);
-			return;
-		}
-
-		queue.RemoveAt(index);
-		world.Remove(itemId);
-		owned.Add(itemId);
-		RejectQueuedLosers(itemId, rejects, queue);
-	}
-
-	/// <summary>The oracle's drop edge: the drop leaves G1's transfer entry and registers the item; a queued claim settles exactly like the spawn edge.</summary>
-	private static void SettleDrop(ulong itemId, HashSet<ulong> world, HashSet<ulong> owned, List<ulong> rejects, List<(ulong ItemId, long QueuedAtMs)> queue)
-	{
-		owned.Remove(itemId);
-		var index = queue.FindIndex(q => q.ItemId == itemId);
-		if (index < 0)
-		{
-			world.Add(itemId);
-			return;
-		}
-
-		queue.RemoveAt(index);
-		world.Remove(itemId);
-		owned.Add(itemId);
-		RejectQueuedLosers(itemId, rejects, queue);
-	}
-
-	private static void RejectQueuedLosers(ulong itemId, List<ulong> rejects, List<(ulong ItemId, long QueuedAtMs)> queue)
-	{
-		for (var i = queue.Count - 1; i >= 0; i--)
-		{
-			if (queue[i].ItemId == itemId)
-			{
-				queue.RemoveAt(i);
-				rejects.Add(itemId);
-			}
-		}
-	}
-
-	/// <summary>The oracle's per-pump expiry edge: a queued claim that outlives the hold rejects, unless its item registered through a non-settling path — then it transfers.</summary>
-	private static void ExpireQueue(long now, HashSet<ulong> world, HashSet<ulong> owned, List<ulong> rejects, List<(ulong ItemId, long QueuedAtMs)> queue)
-	{
-		for (var i = queue.Count - 1; i >= 0; i--)
-		{
-			if (now - queue[i].QueuedAtMs < PendingPickupQueue.DefaultHoldMs)
-			{
-				continue;
-			}
-
-			var itemId = queue[i].ItemId;
-			queue.RemoveAt(i);
-			if (world.Remove(itemId))
-			{
-				owned.Add(itemId);
-			}
-			else
-			{
-				rejects.Add(itemId);
-			}
-		}
 	}
 }

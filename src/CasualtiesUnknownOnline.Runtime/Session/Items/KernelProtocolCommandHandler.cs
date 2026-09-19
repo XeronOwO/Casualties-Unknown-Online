@@ -1,11 +1,9 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -15,30 +13,62 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// from <see cref="KernelProtocolService"/> so the transport/journal service
 /// stays under the architecture size gate while the command decoding and
 /// reject-notification logic stays in one narrow owner.
+///
+/// <para>
+/// THE CREATION-BEFORE-OPERATION INVARIANT lives here on the judging side: the
+/// host executes an operation on an item only after that item's creation has
+/// been judged — accepted, or refused with a remembered reason. An operation
+/// whose item this host has never judged is NOT held and NOT guessed about: it
+/// is refused at once, loudly, because the sender broke the rule that its
+/// creation report precedes every operation on the same item
+/// (<see cref="PendingItemCreations"/> is the sending half). Before this, a
+/// pickup could be parked for a fixed 500 ms window and then answered with a
+/// less precise reason; that window is gone rather than kept as a fallback.
+/// </para>
 /// </summary>
 internal sealed class KernelProtocolCommandHandler(
 	ISessionControl session,
 	PacketSender sender,
 	ItemKernelAuthority authority,
-	ITimeSource time,
+	RefusedItemCreations refusedCreations,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly ItemKernelAuthority _authority = authority;
-	private readonly ITimeSource _time = time;
+	private readonly RefusedItemCreations _refusedCreations = refusedCreations;
 	private readonly ILogger _log = log;
-	private readonly PendingPickupQueue _pendingPickups = new(PendingPickupQueue.DefaultHoldMs);
-	private readonly Dictionary<(ulong Sender, ulong ItemId), CommandEnvelope> _pendingEnvelopes = [];
 
 	public void Handle(ulong sender, CommandEnvelope envelope)
 	{
+		// THE CARRY-REGISTRATION HEAL — an explicit EXCEPTION to this invariant, not
+		// a use of it. The reporter's own carried container may never have been
+		// registered at all (a swallowed CarriedInventory report — see
+		// todo/carried-inventory-registration-re-report.md), so the host takes the
+		// reporter's first report AS the creation judgement and materializes the
+		// parent as the reporter's OWN carried item, then executes the operation.
+		// Nothing is waited for and nothing is guessed about a third party's item;
+		// a REFUSED creation is still answered precisely before this path
+		// (TryRefuseRefusedCreation), and the invariant's check deliberately does
+		// not cover this kind (see IsItemOperation).
 		if (envelope.Command.Kind == WireCommandKind.ItemContainerSync)
 		{
-			HandleItemContainerSync(sender, envelope);
+			if (!TryRefuseRefusedCreation(sender, envelope))
+			{
+				HandleItemContainerSync(sender, envelope);
+			}
+
 			return;
 		}
 
+		// The carried-item half of the same heal, and it must run BEFORE the
+		// invariant's check below (which would otherwise answer the generic
+		// protocol-violation refusal): an unknown carried id is adopted as
+		// ItemLocation.Carried(sender) from the reporter's own report. The host
+		// cannot verify the item really sits in that reporter's body — the wire
+		// carries no such proof, and this pre-release trust model is exactly what
+		// todo/carried-inventory-registration-re-report.md and
+		// future/strict-validation-anti-cheat.md own.
 		if (envelope.Command.Kind == WireCommandKind.ItemUpdateState
 			&& envelope.Command.Data is not null
 			&& _authority.FindItem(envelope.Command.Identity.InstanceId) is null)
@@ -47,10 +77,8 @@ internal sealed class KernelProtocolCommandHandler(
 			return;
 		}
 
-		if (envelope.Command.Kind == WireCommandKind.ItemPickup
-			&& _authority.FindItem(envelope.Command.Identity.InstanceId) is null)
+		if (TryRefuseUnjudgedOperation(sender, envelope))
 		{
-			EnqueuePickup(sender, envelope);
 			return;
 		}
 
@@ -65,93 +93,94 @@ internal sealed class KernelProtocolCommandHandler(
 		var command = ResolveCommandRevision(KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header));
 		if (!_authority.TryExecuteCommand(command, sender, out _, out var rejection))
 		{
+			if (envelope.Command.Kind == WireCommandKind.ItemSpawn)
+			{
+				// A refused creation is remembered: later operations on this id get
+				// this precise reason instead of "unknown item".
+				_refusedCreations.Record(envelope.Command.Identity.InstanceId, rejection!.Reason);
+			}
+
 			_log.LogWarning("Kernel command from {Sender} rejected: {Reason} ({Message}).",
 				sender, rejection!.Reason, rejection.Message);
 			SendCommandRejected(sender, envelope.Command, rejection.Reason);
-			return;
 		}
-
-		SettlePendingPickups(envelope.Command.Identity.InstanceId);
 	}
 
-	public void PumpPendingPickups(long nowMs)
+	/// <summary>
+	/// The invariant's host half: an operation on an item whose creation this
+	/// host has not judged is refused AT ONCE — with the remembered reason when
+	/// the creation was refused, and as a logged protocol violation when the
+	/// sender simply never reported the creation. Nothing is queued, nothing
+	/// waits, and no window stands between the report and the verdict.
+	/// </summary>
+	private bool TryRefuseUnjudgedOperation(ulong sender, CommandEnvelope envelope)
 	{
-		foreach (var pending in _pendingPickups.TakeExpired(nowMs))
+		var kind = envelope.Command.Kind;
+		if (!IsItemOperation(kind))
 		{
-			_pendingEnvelopes.Remove((pending.Sender, pending.ItemId));
-			if (_authority.FindItem(pending.ItemId) is null)
-			{
-				SendCommandRejected(pending.Sender, PendingIdentity(pending.ItemId), RejectionReason.UnknownAggregate);
-			}
-			else
-			{
-				SettlePendingPickups(pending.ItemId);
-			}
+			return false;
 		}
-	}
 
-	public void Reset() => _pendingPickups.Reset();
-
-	/// <summary>The cut policy's read-only probe (WorldTransientPolicy.PickupQueueKey): pickup claims still inside their hold window.</summary>
-	public int PendingPickupCount => _pendingPickups.Count;
-
-	private void EnqueuePickup(ulong sender, CommandEnvelope envelope)
-	{
 		var itemId = envelope.Command.Identity.InstanceId;
-		if (_pendingPickups.TryEnqueue(sender, itemId, null, _time.NowMs))
+		if (_authority.FindItem(itemId) is not null)
 		{
-			_pendingEnvelopes[(sender, itemId)] = envelope;
-			_log.LogInformation("Item pickup {ItemId} from {Sender} queued — registration has not arrived yet (hold {HoldMs} ms).",
-				itemId, sender, PendingPickupQueue.DefaultHoldMs);
+			return false;
 		}
-		else
+
+		if (_refusedCreations.TryGet(itemId, out var refusal))
 		{
-			_log.LogWarning("Item pickup {ItemId} from {Sender} already queued — duplicate claim dropped silently.", itemId, sender);
+			_log.LogWarning("Kernel command from {Sender} refused: the creation of item {ItemId} was refused ({Reason}) — answering the precise reason immediately.",
+				sender, itemId, refusal);
+			SendCommandRejected(sender, envelope.Command, refusal);
+			return true;
 		}
+
+		_log.LogError("Protocol violation: {Sender} reported {Kind} on item {ItemId} whose creation this host has never judged. Refused at once — a sender must report an item's creation before any operation on it (creation-before-operation).",
+			sender, kind, itemId);
+		SendCommandRejected(sender, envelope.Command, RejectionReason.UnknownAggregate);
+		return true;
 	}
 
-	private void SettlePendingPickups(ulong itemId)
+	/// <summary>
+	/// The bare tombstone check used by the container-sync path, whose unknown-id
+	/// handling stays with the kernel: a refused creation is answered with its
+	/// precise reason, an id this host never saw keeps its existing verdict.
+	/// </summary>
+	private bool TryRefuseRefusedCreation(ulong sender, CommandEnvelope envelope)
 	{
-		while (true)
+		if (_authority.FindItem(envelope.Command.Identity.InstanceId) is not null)
 		{
-			var pending = _pendingPickups.TryTakeFirst(itemId);
-			if (pending is null)
-			{
-				return;
-			}
-
-			var key = (pending.Sender, itemId);
-			if (!_pendingEnvelopes.TryGetValue(key, out var envelope))
-			{
-				continue;
-			}
-
-			_pendingEnvelopes.Remove(key);
-
-			if (_authority.FindItem(itemId) is null)
-			{
-				SendCommandRejected(pending.Sender, envelope.Command, RejectionReason.UnknownAggregate);
-				continue;
-			}
-
-			var command = ResolveCommandRevision(KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header));
-			if (_authority.TryExecuteCommand(command, pending.Sender, out _, out var rejection))
-			{
-				foreach (var loser in _pendingPickups.TakeByItem(itemId))
-				{
-					_pendingEnvelopes.Remove((loser.Sender, itemId));
-					SendCommandRejected(loser.Sender, envelope.Command, RejectionReason.Conflict);
-				}
-
-				return;
-			}
-
-			SendCommandRejected(pending.Sender, envelope.Command, rejection!.Reason);
+			return false;
 		}
+
+		if (!_refusedCreations.TryGet(envelope.Command.Identity.InstanceId, out var refusal))
+		{
+			return false;
+		}
+
+		_log.LogWarning("Container sync from {Sender} refused: the creation of item {ItemId} was refused ({Reason}) — answering the precise reason immediately.",
+			sender, envelope.Command.Identity.InstanceId, refusal);
+		SendCommandRejected(sender, envelope.Command, refusal);
+		return true;
 	}
 
-	private static WireCommand PendingIdentity(ulong itemId) =>
-		new() { Identity = new WireItemIdentity { InstanceId = itemId } };
+	/// <summary>
+	/// Every wire kind that OPERATES on an existing item — the family the invariant
+	/// governs (a creation kind, <c>ItemSpawn</c>, is the judgement itself).
+	/// <c>ItemContainerSync</c> is deliberately absent: that kind carries the
+	/// carry-registration heal instead, which the host answers by materializing the
+	/// reporter's own carried parent (see Handle), and a refused creation there is
+	/// still answered precisely by <see cref="TryRefuseRefusedCreation"/>.
+	/// </summary>
+	private static bool IsItemOperation(WireCommandKind kind) => kind switch
+	{
+		WireCommandKind.ItemPickup => true,
+		WireCommandKind.ItemDrop => true,
+		WireCommandKind.ItemTransfer => true,
+		WireCommandKind.ItemDestroy => true,
+		WireCommandKind.ItemUpdateState => true,
+		_ => false,
+	};
 
 	private void HandleMissingCarriedUpdate(ulong sender, CommandEnvelope envelope)
 	{
@@ -298,8 +327,9 @@ internal sealed class KernelProtocolCommandHandler(
 		var current = _authority.FindItem(itemId);
 		if (current is null)
 		{
-			// Unknown items go through the kernel so the reporter receives the
-			// same UnknownAggregate rejection the old path produced.
+			// Unknown items were handled by TryRefuseUnjudgedOperation above; a
+			// reachable null here means the destroy names an item with no judged
+			// creation, which that check already refused.
 			return true;
 		}
 

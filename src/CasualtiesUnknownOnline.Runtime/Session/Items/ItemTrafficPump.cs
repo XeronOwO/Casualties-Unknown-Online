@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// <summary>
 /// The item-traffic observation pump: once per frame it asks <see cref="ItemService"/>
 /// to roll and log a finished traffic window. ItemService stays reaction-only;
-/// this tiny service is the time edge, exactly like <see cref="PendingPickupPump"/>.
+/// this tiny service is its time edge.
 /// </summary>
 internal sealed class ItemTrafficPump(ItemService items, ITimeSource time) : ICuoService
 {

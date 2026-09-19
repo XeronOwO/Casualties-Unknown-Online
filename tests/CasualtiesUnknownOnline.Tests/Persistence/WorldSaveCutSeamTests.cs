@@ -155,10 +155,10 @@ public class WorldSaveCutSeamTests
 		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
 
 		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(
-			null, frame: 0, Live(WorldTransientPolicy.PickupQueueKey, 2)));
+			null, frame: 0, Live(WorldTransientPolicy.MedicalSessionKey, 2)));
 
 		Assert.True(report.Captured);
-		Assert.Contains("2 pickup claim(s) waiting for their spawn report", report.DroppedStates);
+		Assert.Contains("2 medical operation(s) in progress", report.DroppedStates);
 		Assert.Contains("NOT carried", report.Describe(), StringComparison.Ordinal);
 	}
 
@@ -199,17 +199,17 @@ public class WorldSaveCutSeamTests
 	[Fact]
 	public void Observation_MergesBothHalvesOfTheSameClass()
 	{
-		// Both observers can see the same class (a pending pickup is a Runtime queue
-		// entry, and an adapter-side window could report the same key). The report
+		// Both observers can see the same class (an operation session is a Runtime
+		// service, and an adapter-side window could report the same key). The report
 		// must count BOTH, not the last one read.
-		var probe = new StubProbe(WorldTransientPolicy.PickupQueueKey, 1);
+		var probe = new StubProbe(WorldTransientPolicy.MedicalSessionKey, 1);
 		using var fixture = Started("seam-merge", transients: probe);
 		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
 
 		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(
-			null, frame: 0, Live(WorldTransientPolicy.PickupQueueKey, 2)));
+			null, frame: 0, Live(WorldTransientPolicy.MedicalSessionKey, 2)));
 
-		Assert.Contains("3 pickup claim(s) waiting for their spawn report", report.DroppedStates);
+		Assert.Contains("3 medical operation(s) in progress", report.DroppedStates);
 	}
 
 	[Fact]
@@ -278,19 +278,19 @@ public class WorldSaveCutSeamTests
 	public void RuntimeHalfOfTheObservation_IsMergedIntoTheCutReport()
 	{
 		// The adapter reports the game-side windows; the Runtime probe reports the
-		// CUO-owned ones (the operation sessions, the pickup queue, the deferred
-		// creation reports). A cut must see BOTH halves, or a session in progress
-		// would be left behind without a word.
-		var probe = new StubProbe(WorldTransientPolicy.MedicalSessionKey, 1);
+		// CUO-owned ones (the operation sessions, the deferred entity creation
+		// reports). A cut must see BOTH halves, or a session in progress would be
+		// left behind without a word.
+		var probe = new StubProbe(WorldTransientPolicy.DeferredEntityReportKey, 1);
 		using var fixture = Started("seam-runtime-half", transients: probe);
 		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
 
 		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(
-			null, frame: 0, Live(WorldTransientPolicy.PickupQueueKey, 1)));
+			null, frame: 0, Live(WorldTransientPolicy.MedicalSessionKey, 1)));
 
 		Assert.True(report.Captured);
 		Assert.Contains("1 medical operation(s) in progress", report.DroppedStates);
-		Assert.Contains("1 pickup claim(s) waiting for their spawn report", report.DroppedStates);
+		Assert.Contains("1 deferred entity creation report(s)", report.DroppedStates);
 	}
 
 	[Fact]

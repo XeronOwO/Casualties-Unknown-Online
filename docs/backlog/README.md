@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — the 500 ms guess window goes.
 - [World-time acceleration is gated on being asleep](todo/world-time-local-initiation.md) — **Medium** — the manual key must act locally and at once.
 - [Run clock is not sent to a mid-run joiner](todo/save-run-clock-not-sent.md) — **Low-Medium** — the clock base needs a wire member.
 - [Layer time is not carried](todo/save-layer-time-not-carried.md) — **Low-Medium** — resuming the radiation timer is a gameplay decision.
@@ -68,6 +67,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [An item can be operated on before its creation is registered](review/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
 - [Remote interaction gates are judged by the host](review/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [Enemy snapshot binding has no recovery path](review/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn anchor and the 60 s repair group.

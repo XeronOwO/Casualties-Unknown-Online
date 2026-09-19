@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Dropped mod command requests](todo/mod-command-request-timeout.md) — **Low** — pending callbacks have no timeout.
 - [Systemic save and backup management](todo/systemic-save-backup-management.md) — **Medium** — backup/retention/restore/migration.
 - [Pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium** — crafting-UI and command completion.
 
@@ -160,6 +159,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Checkpoint chunks vs the run epoch](review/checkpoint-run-epoch-validation.md) — **Low-Medium** — the join instruction carries the run identity.
 - [Restore account arm release](review/restore-account-arm-release.md) — **Low** — every release path accounts for its own live-world half.
 - [Restore live-object row loops](review/restore-live-object-loops-containment.md) — **Low** — the last three restore loops are contained.
+- [Dropped mod command requests](review/mod-command-request-timeout.md) — **Low** — the request deadline and the bounded pending map.
 
 ### Future
 

@@ -130,6 +130,9 @@ internal sealed class ModContext(
 
 	internal void FailPendingCommands(string reason) => _commands.FailPending(reason);
 
+	/// <summary>Settle every pending command request at or past its deadline (the per-frame pump).</summary>
+	internal void PumpPendingCommands(long nowMs) => _commands.PumpPending(nowMs);
+
 	// ---- Nested per-mod adapters (private — part of the context) ----
 
 	/// <summary>The per-mod send surface — every call routes through the channel with the mod's own id. SendNetworkMessage is checked here (undeclared messages are refused).</summary>

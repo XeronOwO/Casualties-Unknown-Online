@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: each loop read at HEAD (git show HEAD:<path>) and in the tree; the ticket's sweep table names every verdict
+      file:line or runtime log) or is explicitly marked unverified — evidence: ModCommandService/ModRateLimitPolicy/ModLifecycle read at HEAD and in the tree; the ticket's family sweep names every drop path
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the review's family pass found the item half's reconcile; the sweep table now covers all 12 restore-path sites
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance table maps 5 rows to tests; independent review 0 blocker / 2 major / 6 minor / 5 nit, all fixed in this round
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the sweep covers all six mod-domain loss paths; the review pass found the Abstractions interface docs stale, fixed in this round
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket maps 6 acceptance rows to tests; review 0 blocker / 1 major / 3 minor / 3 nit — major, m1, m2, n1 fixed, m3 in Limits, n2/n3 pre-existing
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused 34/34; the seam test asserts the whole refused list; game-typed call sites stay read-only reviewed (ticket Limits)
+      peer log comparison, hotrepl assertions) is decided — evidence: focused 18/18 with a recorded red 3/15; the deadline runs off the harness ICuoService pump; the 10 s value stays a ticket Limit
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: item taken from the handoff + the ticket's own priority; plain restore accounting, so no gameplay/UI design question arises
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; full suite with build 3510/3510; normative gates 69/69
+      process violation — evidence: item taken from the handoff and its own Low priority; a requester-side deadline/cap is a mechanism choice, no gameplay or UI question
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0 (no rewrite); normative gates 69/69; full suite with build 3514/3514 (baseline 3510 + 4 cases)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest touched file WorldEventSync 533 lines, ContainedRowLoop 161, GeneratedItemReconcile 129; the count-based paths were replaced, not shadowed
+      dead mechanisms deleted in the same round) — evidence: ModContext 592 lines (pre-existing, +3) and ModCommandService 438→508, both under 600; no new state bools; nothing shadowed
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

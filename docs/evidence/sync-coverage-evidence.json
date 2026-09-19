@@ -374,7 +374,7 @@
       "cluster": "enemies-trade",
       "row": "N8",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModCommandService.cs",
-      "quote": "_pending.Add(guestRequestId, new PendingCommand(callback));"
+      "quote": "_pending.Add(guestRequestId, new PendingCommand(name, service._time.NowMs + ModCommandPolicy.CommandRequestTimeoutMs, callback));"
     },
     {
       "cluster": "enemies-trade",

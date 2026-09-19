@@ -31,13 +31,16 @@ public interface IModCommands
 	/// <summary>
 	/// Execute a command. Host: runs the local copy synchronously and invokes
 	/// <paramref name="callback"/> before returning. Guest: sends a request to
-	/// the host and invokes the callback when the directed result arrives (the
-	/// request/result channel is reliable; delivery may be synchronous in tests
-	/// or later on the next receive batch). Returns false immediately when the
-	/// command/arguments are invalid or the request cannot be sent (outside a
-	/// session, wrong role, over the shape caps) — in that case the callback is
-	/// not invoked. A pending guest callback whose session ends is settled with
-	/// a failure result.
+	/// the host and invokes the callback when the directed result arrives
+	/// (delivery may be synchronous in tests or later on the next receive batch).
+	/// Delivery is NOT guaranteed: over-burst frames are dropped by policy and
+	/// nothing is re-sent, so a guest's pending callback is also settled by the
+	/// framework's request deadline — with <see cref="IModCommandResult.Success"/>
+	/// false and a timeout reason — and, if the session ends first, with the
+	/// session-end failure. Returns false immediately, WITHOUT invoking the
+	/// callback, when the command/arguments are invalid, when the request cannot
+	/// be sent (outside a session, wrong role, over the shape caps), or when this
+	/// mod already holds the framework's maximum number of pending guest requests.
 	/// </summary>
 	bool TryExecute(string name, IReadOnlyList<string> arguments, Action<IModCommandResult> callback);
 }

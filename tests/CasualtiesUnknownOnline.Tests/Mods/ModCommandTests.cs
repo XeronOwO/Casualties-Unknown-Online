@@ -16,8 +16,10 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// copy of the mod and the directed result settles the guest callback,
 /// permission-less mods cannot register/execute commands, malformed or unknown
 /// requests produce framework failure results (or are dropped when unrouteable),
-/// handler exceptions become failure results, results are capped, and pending
-/// callbacks are settled when the session ends.
+/// handler exceptions become failure results, results are capped, a request whose
+/// result never arrives fails on the policy deadline (drop and loss alike), the
+/// per-mod pending map is capped and drains on that deadline, and pending callbacks
+/// are settled when the session ends.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ModCommandTests
@@ -207,13 +209,7 @@ public class ModCommandTests
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
-		var hostSteam = new FakeSteamService(HostId) { LobbyOwner = HostId, LobbyMembers = [HostId] };
-		var guestSteam = new FakeSteamService(GuestId) { LobbyOwner = HostId, LobbyMembers = [HostId, GuestId] };
-		var host = TestNode.Create(HostId, network, hostSteam, clock, pumpFirstFrame: true);
-		var guest = TestNode.Create(GuestId, network, guestSteam, clock, pumpFirstFrame: true);
-		host.Steam.FireLobbyCreated(LobbyId);
-		host.Steam.LobbyMembers = [HostId, GuestId];
-		guest.Steam.FireLobbyEntered(LobbyId);
+		var (_, guest) = CreateSessionPair(clock, network);
 
 		network.SetFaults(HostId, GuestId, new LinkFaults { DelayMs = 10_000 });
 		IModCommandResult? result = null;
@@ -278,6 +274,132 @@ public class ModCommandTests
 
 		Assert.Equal(ModRateLimitPolicy.CommandRequestBurst, frames.Count);
 		Assert.Equal(ModRateLimitPolicy.CommandRequestBurst, CommandMod(host).Executions.Count);
+	}
+
+	[Fact]
+	public void RequestWithNoResult_FailsOnTheDeadline_NotAtSessionEnd()
+	{
+		var clock = new FakeClock();
+		var network = new FakeNetwork(clock: clock);
+		var (host, guest) = CreateSessionPair(clock, network);
+
+		// The result frame is delayed far past the deadline: for the requester the request is lost.
+		network.SetFaults(HostId, GuestId, new LinkFaults { DelayMs = ModCommandPolicy.CommandRequestTimeoutMs * 4 });
+		var results = new List<IModCommandResult>();
+		var accepted = CommandMod(guest).Context!.Commands.TryExecute("echo", ["lost"], results.Add);
+
+		Assert.True(accepted);
+		Assert.Empty(results); // the host ran it; the result is still in flight
+
+		clock.Advance(ModCommandPolicy.CommandRequestTimeoutMs - 1);
+		guest.Update();
+		Assert.Empty(results); // one millisecond before the deadline the request is still pending
+
+		clock.Advance(1);
+		guest.Update();
+
+		var result = Assert.Single(results);
+		Assert.False(result.Success);
+		Assert.Equal("echo", result.Name);
+		Assert.Contains("timed out", result.Error);
+
+		network.Advance(ModCommandPolicy.CommandRequestTimeoutMs * 4); // the late result finds no pending entry — dropped, never a second settlement
+		Assert.Single(results);
+		Assert.Null(result.Output);
+
+		var execution = Assert.Single(CommandMod(host).Executions); // the host DID run it: only its answer was lost
+		Assert.Equal("echo", execution.Name);
+		Assert.Equal(["lost"], execution.Arguments);
+	}
+
+	[Fact]
+	public void RateLimitedRequest_FailsOnTheDeadline_WithAnObservableReason()
+	{
+		var clock = new FakeClock();
+		var network = new FakeNetwork(clock: clock);
+		var (_, guest) = CreateSessionPair(clock, network);
+
+		// Spend the host's per-guest burst on requests that DO resolve, then send one more:
+		// the host drops it by policy, so no result frame is ever sent back.
+		for (var i = 0; i < ModRateLimitPolicy.CommandRequestBurst; i++)
+		{
+			Assert.True(CommandMod(guest).Context!.Commands.TryExecute("echo", [$"burst{i}"], _ => { }));
+		}
+
+		var results = new List<IModCommandResult>();
+		Assert.True(CommandMod(guest).Context!.Commands.TryExecute("echo", ["over-burst"], results.Add));
+		Assert.Empty(results); // no result, no immediate failure — the deadline is the only settlement
+
+		clock.Advance(ModCommandPolicy.CommandRequestTimeoutMs);
+		guest.Update();
+
+		var result = Assert.Single(results);
+		Assert.False(result.Success);
+		Assert.Contains("timed out", result.Error);
+	}
+
+	[Fact]
+	public void PendingBurstOverTheCap_IsRefusedAtTheSender_AndTheMapDrainsOnTheDeadline()
+	{
+		var clock = new FakeClock();
+		var network = new FakeNetwork(clock: clock);
+		var (_, guest) = CreateSessionPair(clock, network);
+
+		// No result can come back, so every accepted request stays pending.
+		network.SetFaults(HostId, GuestId, new LinkFaults { DelayMs = ModCommandPolicy.CommandRequestTimeoutMs * 4 });
+		var results = new List<IModCommandResult>();
+		var accepted = 0;
+		for (var i = 0; i < ModCommandPolicy.MaxPendingRequests + 3; i++)
+		{
+			if (CommandMod(guest).Context!.Commands.TryExecute("echo", [$"burst{i}"], results.Add))
+			{
+				accepted++;
+			}
+		}
+
+		Assert.Equal(ModCommandPolicy.MaxPendingRequests, accepted); // the cap bounds the pending map
+		Assert.Empty(results); // a refused call does not invoke its callback, and nothing has timed out yet
+
+		clock.Advance(ModCommandPolicy.CommandRequestTimeoutMs);
+		guest.Update();
+
+		Assert.Equal(ModCommandPolicy.MaxPendingRequests, results.Count);
+		Assert.All(results, r => Assert.False(r.Success));
+
+		// The map drained on the deadline, so a fresh request is accepted again.
+		Assert.True(CommandMod(guest).Context!.Commands.TryExecute("echo", ["after"], results.Add));
+	}
+
+	[Fact]
+	public void SettledRequest_IsNeverReplacedByALaterDeadlineSweep()
+	{
+		var clock = new FakeClock();
+		var network = new FakeNetwork(clock: clock);
+		var (_, guest) = CreateSessionPair(clock, network);
+
+		var results = new List<IModCommandResult>();
+		Assert.True(CommandMod(guest).Context!.Commands.TryExecute("echo", ["ok"], results.Add));
+		var result = Assert.Single(results);
+		Assert.True(result.Success);
+		Assert.Equal("ok", result.Output);
+
+		clock.Advance(ModCommandPolicy.CommandRequestTimeoutMs * 2);
+		guest.Update();
+
+		Assert.Single(results); // a settled request is never settled twice
+		Assert.True(result.Success);
+	}
+
+	private static (TestNode Host, TestNode Guest) CreateSessionPair(FakeClock clock, FakeNetwork network)
+	{
+		var hostSteam = new FakeSteamService(HostId) { LobbyOwner = HostId, LobbyMembers = [HostId] };
+		var guestSteam = new FakeSteamService(GuestId) { LobbyOwner = HostId, LobbyMembers = [HostId, GuestId] };
+		var host = TestNode.Create(HostId, network, hostSteam, clock, pumpFirstFrame: true);
+		var guest = TestNode.Create(GuestId, network, guestSteam, clock, pumpFirstFrame: true);
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+		return (host, guest);
 	}
 
 	private static List<(ulong Sender, byte[] Frame)> RecordInbound(TestNode node)

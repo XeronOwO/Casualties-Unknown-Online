@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: row I8 plus every touched path read before editing (CarriedInventoryReporter, ItemIdCoordinator, ItemArbitration.RegisterCarried, KernelProtocolCommandHandler)
+      file:line or runtime log) or is explicitly marked unverified — evidence: the four committed spots that framed the protocol number as merit located by grep (ticket twice, decision 187, matrix gap row); grounded in the user's 2026-09-19 ruling plus decision 137
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the family's rows re-read (I5/W1/W2/I6); both RegisterCarried callers audited (the CarriedInventory handler and CraftSyncService); no other registration writer; the review's family pass found no reachable regression
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance matrix (12 rows: each names its test and the half it runs in, the two regression-only guards labelled) plus the red-first record and the review fix round
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all four spots corrected in one pass; a re-grep for "protocol stays 31" and "NO wire member" leaves only the review record's factual "no wire change (protocol 31)"
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the corrected sentences keep the substantive reasons (option 2 heals only after a failed arbitration; option 3 turns a read model into an authority input) and mark the wire fact as a fact, never a reason
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: ItemSimWorld + LinkFaults.DropMessageId swallow and the schedule unit tests; the Game Adapter Unity half declared static + dual-client acceptance
+      peer log comparison, hotrepl assertions) is decided — evidence: docs-only cycle — the focused normative-gate run (evidence anchors, backlog index, reference integrity) plus the re-grep is the verification; no runtime claim changes
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff fixed the route (continue development, one ticket); the ticket's frozen design direction 1 chose the mechanism
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; main suite 3420 green (with build); focused 20/20; neighbours 472/472; gates 62/62 (five are the new capture matcher's own contract)
+      process violation — evidence: the user's 2026-09-19 ruling (the protocol version is meaningless while the mod is unreleased) is the basis; start-here is not a work-item choice and none was re-asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: no C# touched, so build and format are skipped (this file's docs-only rule); the focused normative-gate run is green after the edits
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: schedule 110 lines, ItemIdCoordinator 202, ItemArbitration 477, ItemService 590, CuoBootstrap 599 unchanged; dead _reportPending/EnsureCarried/IsArmed deleted
+      dead mechanisms deleted in the same round) — evidence: no C# touched (line counts unchanged: 110/129/202/477/590/599); the deployed artifact is re-verified at the new HEAD after redeploy
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

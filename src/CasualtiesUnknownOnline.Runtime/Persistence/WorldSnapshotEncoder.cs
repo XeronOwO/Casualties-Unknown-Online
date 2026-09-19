@@ -61,7 +61,7 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 
 		WarnAboutUnpersistedDomains(payload);
 
-		var runRows = RunRows(checkpoint.Run, payload.RunFields);
+		var runRows = RunRows(checkpoint.Run, payload.RunFields, payload.Kind);
 		var playerRows = (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState).ToList();
 		var itemRows = ItemRows(checkpoint, payload.Kind);
 		var entityRows = WorldEntityRows(checkpoint.WorldEntities ?? WorldEntityState.Empty, payload.Kind);
@@ -130,7 +130,7 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 	/// the layer its row names — a restore would then rebuild the named layer with
 	/// the wrong loot/trap density).
 	/// </summary>
-	private List<SaveRunRow> RunRows(RunState run, NativeRunFields? runFields)
+	private List<SaveRunRow> RunRows(RunState run, NativeRunFields? runFields, WorldCutKind kind)
 	{
 		var wire = KernelDomainWireMapper.ToWireRun(run);
 		if (runFields is { } fields
@@ -148,6 +148,10 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 			{
 				SavedRunTime = captured.SavedRunTime,
 				Recipes = [.. captured.Recipes],
+				// A layer-end cut records no layer timer: the layer it names is regenerated,
+				// so the pair would describe the layer being replaced (the encoder drops
+				// every other in-layer fact for the same reason).
+				LayerTimeSpent = kind == WorldCutKind.LayerEnd ? null : captured.LayerTimeSpent,
 			}));
 		}
 

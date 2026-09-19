@@ -24,6 +24,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <param name="LootRarityMultiplier">The run's accumulated loot multiplier (<c>WorldGeneration.world.lootRarityMultiplier</c>).</param>
 /// <param name="TrapRarityMultiplier">The run's accumulated trap multiplier.</param>
 /// <param name="SavedRunTime">The run clock base at the read instant (seconds) — the game's own <c>savedRunTime + realTimeElapsed</c> value.</param>
+/// <param name="LayerTimeSpent">
+/// The layer's own radiation-timer accounting (<c>WorldGeneration.world.layerTimeSpent</c>,
+/// seconds), null when the reader could not read it. It is the one per-LAYER value this
+/// run-level read carries, and only a mid-run cut records it: a layer-end cut names a layer
+/// that is regenerated, so its timer is the new layer's own. The LIMIT
+/// (<c>maxTimePerLayer</c>) is deliberately NOT carried — <c>WorldGeneration.Start</c>
+/// derives it from the run's <c>timelimit</c> setting (<c>WorldGeneration.cs:258</c>), which
+/// the restored run baseline already applies, so carrying it would be a second, disagreeing
+/// carrier for a value the game recomputes.
+/// </param>
 /// <param name="Recipes">Every entry of the game's own recipe table, in table order.</param>
 /// <param name="Failure">Why the values could not be read; null when the read succeeded.</param>
 public readonly record struct NativeRunFields(
@@ -31,7 +41,8 @@ public readonly record struct NativeRunFields(
 	float TrapRarityMultiplier,
 	float SavedRunTime,
 	IReadOnlyList<SaveRecipeUnlockRow> Recipes,
-	string? Failure)
+	string? Failure,
+	float? LayerTimeSpent = null)
 {
 	/// <summary>The live world (or its recipe table) is not there: the cut must be refused rather than store defaults.</summary>
 	public static NativeRunFields Unreadable(string failure) => new(0f, 0f, 0f, [], failure);

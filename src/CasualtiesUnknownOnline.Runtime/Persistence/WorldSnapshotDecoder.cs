@@ -154,7 +154,7 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 		// second Information line for the same facts is the noise that hides it.
 		_log.LogDebug("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s), {Blocks} world block(s), {Transients} transient(s), native run fields {RunFields}.",
 			_manifest.WorldId, epoch, (ulong)_manifest.GlobalRevision, _items.Count, _players.Count, _enemies.Count + _removedEnemies.Count, _characters.Count, _worldBlocks.Count, _worldTransients.Count,
-			_nativeRunFields is null ? "absent" : $"present ({_nativeRunFields.Recipes.Count} recipe row(s), clock {_nativeRunFields.SavedRunTime:F1})");
+			_nativeRunFields is null ? "absent" : $"present ({_nativeRunFields.Recipes.Count} recipe row(s), clock {_nativeRunFields.SavedRunTime:F1}, layer time {(_nativeRunFields.LayerTimeSpent is { } spent ? spent.ToString("F1") : "absent")})");
 		return new WorldSnapshotDecode(checkpoint, _characters, null, _worldBlocks, _worldTransients, _nativeRunFields);
 	}
 
@@ -216,7 +216,17 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 					return;
 				}
 
-				_nativeRunFields = row.NativeRunFields;
+				_nativeRunFields = new SaveNativeRunFields
+				{
+					SavedRunTime = row.NativeRunFields!.SavedRunTime,
+					Recipes = row.NativeRunFields.Recipes,
+					// Absence is NOT read as zero: a cut that carried no layer timer (a
+					// layer-end cut, or an archive written before the value existed) leaves
+					// the live timer alone, and the restore names that.
+					LayerTimeSpent = entry.GetProperty("nativeRunFields").TryGetProperty("layerTimeSpent", out var layerTime) && layerTime.ValueKind != JsonValueKind.Null
+						? layerTime.GetSingle()
+						: null,
+				};
 				return;
 			default:
 				session.Skip(
@@ -372,12 +382,15 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 	};
 
 	/// <summary>
-	/// Same rule for the two <c>run.json</c> rows. The native row's two fields are
-	/// both required: an omitted <c>recipes</c> would deserialize to an empty list,
-	/// which the applier would write absolutely — re-locking every recipe the
-	/// player had unlocked — and an omitted <c>savedRunTime</c> would restart the
-	/// run clock at zero. Neither default is distinguishable from a recorded value
-	/// after deserialization, so the names are read off the raw JSON.
+	/// Same rule for the two <c>run.json</c> rows. The native row's two required fields are
+	/// both checked: an omitted <c>recipes</c> would deserialize to an empty list, which the
+	/// applier would write absolutely — re-locking every recipe the player had unlocked —
+	/// and an omitted <c>savedRunTime</c> would restart the run clock at zero. Neither
+	/// default is distinguishable from a recorded value after deserialization, so the names
+	/// are read off the raw JSON. <c>layerTimeSpent</c> is OPTIONAL by design: a layer-end
+	/// cut and an archive written before the value existed both carry none, and the reader
+	/// tells that apart from a recorded value by the property's presence (see
+	/// <see cref="DecodeRun"/>), not by a default.
 	/// </summary>
 	private static bool CarriesItsOwnPayload(JsonElement entry, SaveRunRow row) => row.Kind switch
 	{

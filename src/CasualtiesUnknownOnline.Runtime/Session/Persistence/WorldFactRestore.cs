@@ -168,8 +168,11 @@ internal sealed class WorldFactRestore(
 				// derives the layer's time limit from it); the recipe unlock table goes
 				// to the WORLD-ENTRY seam, because only there is the world's recipe
 				// table complete — the game rebuilds it in Awake and CUO's mod-content
-				// provider appends the custom recipes on a later Update frame.
-				nativeWorldFacts.ApplyCutRunFields(fieldsToApply.SavedRunTime);
+				// provider appends the custom recipes on a later Update frame. The layer
+				// timer rides the clock: a mid-run cut recorded the time the interrupted
+				// layer had already spent, so the continued layer resumes the radiation
+				// line's countdown instead of restarting it.
+				nativeWorldFacts.ApplyCutRunFields(fieldsToApply.SavedRunTime, fieldsToApply.LayerTimeSpent);
 				nativeWorldFacts.ApplyRecipeUnlocks(fieldsToApply.Recipes);
 			}
 

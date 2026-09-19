@@ -47,8 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Run clock is not sent to a mid-run joiner](todo/save-run-clock-not-sent.md) — **Low-Medium** — the clock base needs a wire member.
-- [Layer time is not carried](todo/save-layer-time-not-carried.md) — **Low-Medium** — resuming the radiation timer is a gameplay decision.
 - [Restore account arm release](todo/restore-account-arm-release.md) — **Low** — the recorded S3 restore-account residuals.
 - [Restore live-object row loops](todo/restore-live-object-loops-containment.md) — **Low** — three appliers keep a half-level blast radius.
 - [Checkpoint chunks vs the run epoch](todo/checkpoint-run-epoch-validation.md) — **Low-Medium** — a late set could move the epoch backwards.
@@ -160,6 +158,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
 - [Trap-layout snapshot recovery](review/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s repair re-derives and re-sends the layout.
 - [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
+- [Run clock is not sent to a mid-run joiner](review/save-run-clock-not-sent.md) — **Low-Medium** — the clocks travel as their own message.
+- [Layer time is not carried](review/save-layer-time-not-carried.md) — **Low-Medium** — the continued layer resumes its timer.
 
 ### Future
 

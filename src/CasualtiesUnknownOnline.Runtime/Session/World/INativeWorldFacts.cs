@@ -94,16 +94,18 @@ public interface INativeWorldFacts
 	NativeRunFields CaptureRunFields();
 
 	/// <summary>
-	/// Host only: a RESTORED cut's run clock base is waiting for the world. The
-	/// adapter writes it when a live world can take it (the world does not exist at
-	/// the Continue click, and <c>WorldGeneration.Start</c> derives the layer's time
-	/// limit from it before any later seam). The rarity multipliers are NOT handed
-	/// over here — they ride the restored run baseline, which the
-	/// generation-parameter path applies. The recipe unlock table is not handed over
-	/// here either: it needs the world's COMPLETE recipe table, so it goes through
-	/// <see cref="ApplyRecipeUnlocks"/> and lands at the world-entry seam.
+	/// Host only: a RESTORED cut's run clock base (and, when the archive carries one, the
+	/// layer's already-spent time) is waiting for the world. The adapter writes them when a
+	/// live world can take it (the world does not exist at the Continue click, and
+	/// <c>WorldGeneration.Start</c> derives the layer's time limit from the clock before any
+	/// later seam). <paramref name="layerTimeSpent"/> null = a layer-end cut, or an archive
+	/// written before the value was carried. The rarity multipliers are NOT handed over
+	/// here — they ride the restored run baseline, which the generation-parameter path
+	/// applies. The recipe unlock table is not handed over here either: it needs the world's
+	/// COMPLETE recipe table, so it goes through <see cref="ApplyRecipeUnlocks"/> and lands
+	/// at the world-entry seam.
 	/// </summary>
-	void ApplyCutRunFields(float savedRunTime);
+	void ApplyCutRunFields(float savedRunTime, float? layerTimeSpent);
 
 	/// <summary>
 	/// Host only: the restored recipe unlock table is waiting for the world-entry
@@ -126,16 +128,51 @@ public interface INativeWorldFacts
 	bool ApplyRunGenerationMultipliers(float lootRarityMultiplier, float trapRarityMultiplier);
 
 	/// <summary>
-	/// Write every restored run value that is still waiting, into the live world.
-	/// Called from the slot the native <c>SaveSystem.TryLoadGame</c> used to run in,
-	/// before <c>WorldGeneration.Start</c> derives the layer's time limit from them.
-	/// That slot is also the ONLY one they need: the world object exists there
+	/// Host only: ONE read of the two clocks the kernel run baseline does not hold — the
+	/// run clock base (<c>SaveSystem.savedRunTime + world.realTimeElapsed</c>, the value the
+	/// game's own save carries) and the layer's radiation-timer accounting
+	/// (<c>layerTimeSpent</c> / <c>maxTimePerLayer</c>). Read where a member is brought up
+	/// to date (the world-entry group and the 60 s repair) and at the generation boundary,
+	/// which is the last instant the old world's totals are the current ones and the base
+	/// the new scene must derive from.
+	///
+	/// The value is not a generation INPUT: nothing about the layer's shape is generated
+	/// from a clock, so it does not ride the run baseline. The generation stamp is added by
+	/// the Runtime when the message is sent — the kernel run baseline is its authority on
+	/// both sides. An unreadable read is <see cref="RunClockFacts.Unreadable"/>, never a
+	/// zero pair.
+	/// </summary>
+	RunClockFacts CaptureRunClockFacts();
+
+	/// <summary>
+	/// Both roles: the run clock base and layer timer a peer read off its live world (the
+	/// world-entry message). Written into the live world when one exists, otherwise held
+	/// for <see cref="TryWritePendingRunFields"/>. The write never moves either value
+	/// backwards: the clock is written at most once per world, and the layer timer only
+	/// when it advances. An unreadable capture (<see cref="RunClockFacts.Failure"/>)
+	/// writes nothing and is named, so the receiver keeps its own clock.
+	/// </summary>
+	void ApplyRunFacts(RunClockFacts facts);
+
+	/// <summary>
+	/// Both roles: a generation boundary is starting a NEW world — the per-world
+	/// once-only clock marker is re-armed and any value still waiting for the old world
+	/// is dropped. Without this a new layer would keep the previous world's final clock
+	/// (or write a value captured in the layer being replaced onto the new one).
+	/// </summary>
+	void SettleRunClockFacts();
+
+	/// <summary>
+	/// Write every restored or received run value that is still waiting, into the live
+	/// world. Called from the slot the native <c>SaveSystem.TryLoadGame</c> used to run in,
+	/// before <c>WorldGeneration.Start</c> derives the layer's time limit from them, and
+	/// again at the world-entry edge (where a member that joined a run in progress takes
+	/// the clock the host sent). The world object normally exists at that slot
 	/// (<c>WorldGeneration.Awake</c> assigns it before <c>Start</c>), so a <c>false</c>
-	/// return means the caller met a composition that has no live world at all and
-	/// the values stay pending for the next run's Start — never written, never
-	/// silently dropped. The recipe unlock table is NOT waiting here: it needs the
-	/// world's complete recipe table and is read through
-	/// <see cref="ReadPendingRestore"/> at the world-entry seam instead.
+	/// return means the caller met a composition that has no live world at all and the
+	/// values stay pending for the next seam — never written, never silently dropped. The
+	/// recipe unlock table is NOT waiting here: it needs the world's complete recipe table
+	/// and is read through <see cref="ReadPendingRestore"/> at the world-entry seam instead.
 	/// </summary>
 	bool TryWritePendingRunFields();
 

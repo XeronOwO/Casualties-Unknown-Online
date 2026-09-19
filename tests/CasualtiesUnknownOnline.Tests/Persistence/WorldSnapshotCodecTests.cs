@@ -244,6 +244,35 @@ public class WorldSnapshotCodecTests
 	}
 
 	[Fact]
+	public void Decode_NativeRunFieldsRow_CarriesTheLayerTimerWhenTheRowHasOne()
+	{
+		var (decode, _) = Decode([
+			SaveTestData.Payload(SaveArchiveFormat.RunFileName, RunFile(
+				RunBaselineRow(),
+				NativeRunFieldsRow("{\"savedRunTime\":42.5,\"layerTimeSpent\":411.5,\"recipes\":[]}"))),
+		]);
+
+		var fields = Assert.IsType<SaveNativeRunFields>(decode.NativeRunFields);
+		Assert.True(fields.LayerTimeSpent == 411.5f, $"the layer timer must round-trip, got {fields.LayerTimeSpent}");
+	}
+
+	[Fact]
+	public void Decode_NativeRunFieldsRow_WithoutALayerTimer_KeepsTheAbsence()
+	{
+		// The property is optional by design: a layer-end cut and an archive written before
+		// the value existed both carry none. Reading that as 0 would restart a timer whose
+		// real value nobody recorded, so the absence stays an absence.
+		var (decode, _) = Decode([
+			SaveTestData.Payload(SaveArchiveFormat.RunFileName, RunFile(
+				RunBaselineRow(),
+				NativeRunFieldsRow("{\"savedRunTime\":12.5,\"recipes\":[]}"))),
+		]);
+
+		var fields = Assert.IsType<SaveNativeRunFields>(decode.NativeRunFields);
+		Assert.Null(fields.LayerTimeSpent);
+	}
+
+	[Fact]
 	public void Decode_UnknownDomainFiles_AreReportedNotGuessed()
 	{
 		var (decode, salvage) = Decode([

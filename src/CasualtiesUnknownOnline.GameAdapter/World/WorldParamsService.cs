@@ -27,10 +27,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 internal sealed class WorldParamsService(
 	IWorldControl world,
 	INativeWorldFacts nativeWorldFacts,
+	RunClockFactsSync runClockFacts,
 	ILogger<WorldParamsService> log)
 {
 	private readonly IWorldControl _world = world;
 	private readonly INativeWorldFacts _nativeWorldFacts = nativeWorldFacts;
+	private readonly RunClockFactsSync _runClockFacts = runClockFacts;
 	private readonly ILogger<WorldParamsService> _log = log;
 
 	/// <summary>Host: params captured at the run-start entry — the first GenerateWorld must not re-capture.</summary>
@@ -85,6 +87,14 @@ internal sealed class WorldParamsService(
 		_log.LogInformation("Captured world params at run-start entry ({StateBytes} bytes, {SettingCount} settings, tutorial: {Tutorial}).",
 			randomState.Length, runSettings?.Count ?? 0, isTutorial);
 	}
+
+	/// <summary>
+	/// The world-entry edge: write the run clock a peer sent (a member that joined a run in
+	/// progress holds the host's clock until a world exists to take it), then publish this
+	/// side's settled clocks so its own members can be sent them. The world-entry fan-out
+	/// reads the published value, so this must run before a member's entry group goes out.
+	/// </summary>
+	internal void PublishRunClockFactsAtEntry() => _runClockFacts.PublishAtWorldEntry();
 
 	/// <summary>
 	/// Host, at the GenerateWorld boundary. First generation of a run that
@@ -223,6 +233,13 @@ internal sealed class WorldParamsService(
 			+ "biome {Biome}/{Depth}, traveled {Traveled}, loot {Loot}, trap {Trap}).",
 			randomState.Length, runSettings?.Count ?? 0, biomeOverride, biomeDepth, totalTraveled,
 			lootRarity?.ToString("F3") ?? "<none>", trapRarity?.ToString("F3") ?? "<none>");
+
+		// The clocks are captured at the same boundary for the same reason the rarity
+		// multipliers are: this is the last instant the world being replaced holds the
+		// run's totals, and the base this snapshot takes is what the new scene derives
+		// the layer's time limit from. It also re-arms the once-per-world clock marker
+		// and publishes the value for the members' entry/repair groups.
+		_runClockFacts.SettleAtGenerationBoundary();
 	}
 
 	/// <summary>

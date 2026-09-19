@@ -120,6 +120,16 @@ public static class ProtocolVersion
 	/// accumulates, so two senders whose reports were both swallowed would converge
 	/// to the higher value instead of the sum, and a delta landing after the report
 	/// covering it would count the same hit twice.
-	public const int Current = 32;
+	/// 33: `RunFacts` — the run clock base (`SaveSystem.savedRunTime +
+	/// WorldGeneration.world.realTimeElapsed`) and the layer's radiation-timer
+	/// accounting (`layerTimeSpent` / `maxTimePerLayer`) now reach a member that
+	/// joined a run in progress, absolute and stamped with the kernel run
+	/// baseline's generation. Neither value belongs to a CUO domain, so neither
+	/// rides the kernel run baseline: a peer without the message keeps its own
+	/// process statics, so a guest that joined 40 minutes into a run reads the
+	/// end screen's clock as the time since it joined (0 on a fresh launch) and
+	/// its own layer timer starts at 0 while the host's has been running since
+	/// the layer was generated.
+	public const int Current = 33;
 
 }

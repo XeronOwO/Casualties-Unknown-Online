@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1000,
+  "count": 1006,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5354,7 +5354,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 32;"
+      "quote": "public const int Current = 33;"
     },
     {
       "cluster": "world-blocks",
@@ -5546,7 +5546,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 32;"
+      "quote": "public const int Current = 33;"
     },
     {
       "cluster": "inline",
@@ -6003,6 +6003,42 @@
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationDamageBlockPatch.cs",
       "quote": ": (__state.World.GetBlockDamage(__state.Cell)?.damage ?? 0f) - __state.PreviousDamage;"
+    },
+    {
+      "cluster": "world-entry",
+      "row": "R9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "RunFacts = 140,"
+    },
+    {
+      "cluster": "world-entry",
+      "row": "R9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_world.SendRunFacts(steamId); // the run clock base + the layer timer"
+    },
+    {
+      "cluster": "world-entry",
+      "row": "R9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
+      "quote": "_sender.Send(targetSteamId, NetMsg.RunFacts, new RunFactsMsg"
+    },
+    {
+      "cluster": "world-entry",
+      "row": "R9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/RunFactsHandler.cs",
+      "quote": "[PacketHandler(NetMsg.RunFacts, NetMessageDirection.HostToGuest)]"
+    },
+    {
+      "cluster": "world-entry",
+      "row": "R9",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/RunClockFactsSync.cs",
+      "quote": "internal void SettleAtGenerationBoundary()"
+    },
+    {
+      "cluster": "world-entry",
+      "row": "R9",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/NativeWorldFacts.cs",
+      "quote": "SaveSystem.savedRunTime = facts.RunClockBase;"
     }
   ]
 }

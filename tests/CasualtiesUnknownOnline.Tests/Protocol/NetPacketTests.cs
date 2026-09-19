@@ -249,6 +249,44 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void RunFacts_RoundTripsTheClocksAndTheGenerationStamp()
+	{
+		// Every member is meaningful by itself: the stamp decides whether the layer timer
+		// may be applied, the clock is a run total a fresh process does not have, and a
+		// value that decoded back as 0 would restart a run's clock on the receiver.
+		var decoded = NetPacket.DecodePayload<RunFactsMsg>(NetPacket.Encode(NetMsg.RunFacts, new RunFactsMsg
+		{
+			RunEpoch = 7UL,
+			LayerIndex = 3,
+			RunClockBase = 2450.5f,
+			LayerTimeSpent = 366.5f,
+			MaxTimePerLayer = 600f,
+		}));
+
+		Assert.Equal(7UL, decoded.RunEpoch);
+		Assert.Equal(3, decoded.LayerIndex);
+		Assert.Equal(2450.5f, decoded.RunClockBase);
+		Assert.Equal(366.5f, decoded.LayerTimeSpent);
+		Assert.Equal(600f, decoded.MaxTimePerLayer);
+	}
+
+	[Fact]
+	public void RunFacts_DefaultFields_DecodeAsZero()
+	{
+		// A WIRE-SHAPE assertion, not a writer guarantee: protobuf-net omits default values,
+		// so zeros always come back as zeros and this case cannot fail for a protobuf reason.
+		// It is kept because it pins the shape the receiver reads — "absent" is not a state of
+		// THIS message (the sender refuses to send a clock it never read, and an unreadable
+		// capture travels as no message at all), so a zero here is a real zero.
+		var decoded = NetPacket.DecodePayload<RunFactsMsg>(
+			NetPacket.Encode(NetMsg.RunFacts, new RunFactsMsg { RunEpoch = 1UL }));
+
+		Assert.Equal(0f, decoded.RunClockBase);
+		Assert.Equal(0f, decoded.LayerTimeSpent);
+		Assert.Equal(0f, decoded.MaxTimePerLayer);
+	}
+
+	[Fact]
 	public void BlockDamageSnapshot_AnswersReportTrue_RoundTrips()
 	{
 		// The answer flag is what lets the receiver clear its outstanding

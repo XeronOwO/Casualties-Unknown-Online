@@ -26,6 +26,7 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	private float _lootRarityMultiplier = RunRarityMultipliers.Neutral;
 	private float _trapRarityMultiplier = RunRarityMultipliers.Neutral;
 	private float _savedRunTime;
+	private float? _layerTimeSpent;
 	private readonly List<SaveRecipeUnlockRow> _recipes = [];
 	private bool _runFieldsPending;
 
@@ -118,7 +119,10 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 
 	/// <summary>The native run fields as the "live world" holds them (seeded, or written back by a restore).</summary>
 	internal NativeRunFields RunFields => new(
-		_lootRarityMultiplier, _trapRarityMultiplier, _savedRunTime, [.. _recipes], CaptureRunFieldsFailure);
+		_lootRarityMultiplier, _trapRarityMultiplier, _savedRunTime, [.. _recipes], CaptureRunFieldsFailure, _layerTimeSpent);
+
+	/// <summary>Seed the layer timer a cut is supposed to read out of the live world (null = the world could not report one).</summary>
+	internal void SeedLayerTime(float? layerTimeSpent) => _layerTimeSpent = layerTimeSpent;
 
 	/// <summary>Set to make <see cref="CaptureRunFields"/> report an unreadable read — the "no live world" shape.</summary>
 	internal string? CaptureRunFieldsFailure { get; set; }
@@ -141,10 +145,16 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 			: RunFields;
 	}
 
-	public void ApplyCutRunFields(float savedRunTime)
+	public void ApplyCutRunFields(float savedRunTime, float? layerTimeSpent)
 	{
 		Calls.Add("apply-cut-run-fields");
 		_savedRunTime = savedRunTime;
+		if (layerTimeSpent is { } spent)
+		{
+			_pendingLayerTimeSpent = spent;
+			_clockFactsPending = true;
+		}
+
 		_runFieldsPending = true;
 	}
 
@@ -166,10 +176,109 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 		return true;
 	}
 
+	// ---- The run/layer clocks (the RunFacts message's two values) ----
+
+	/// <summary>The run clock base this "live world" holds.</summary>
+	internal float RunClock => _savedRunTime;
+
+	/// <summary>The layer timer this "live world" holds.</summary>
+	internal float? LayerTimeSpent => _layerTimeSpent;
+
+	/// <summary>Set to make <see cref="CaptureRunClockFacts"/> report an unreadable read — the "no live world" shape.</summary>
+	internal string? CaptureRunClockFailure { get; set; }
+
+	/// <summary>Every value that actually LANDED, in order — the write guard's own record, so a suite can prove a duplicate or a stale value wrote nothing.</summary>
+	internal List<string> ClockWrites { get; } = [];
+
+	/// <summary>
+	/// The per-world write marker, mirroring the production rules: the clock is written
+	/// only when it advances (or when this world has not taken one yet), the layer timer
+	/// only when it advances, and the limit only when the world has none.
+	/// </summary>
+	private bool _sawRunClock;
+
+	private bool _clockFactsPending;
+
+	public RunClockFacts CaptureRunClockFacts()
+	{
+		Calls.Add("capture-run-clock");
+		return CaptureRunClockFailure is { } failure
+			? new RunClockFacts(0f, 0f, 0f, failure)
+			: new RunClockFacts(_savedRunTime, _layerTimeSpent ?? 0f, _maxTimePerLayer, Failure: null);
+	}
+
+	public void ApplyRunFacts(RunClockFacts facts)
+	{
+		Calls.Add("apply-run-facts");
+		if (facts.Failure is not null)
+		{
+			return;
+		}
+
+		_pendingClock = facts.RunClockBase;
+		_pendingLayerTimeSpent = facts.LayerTimeSpent;
+		_pendingMaxTimePerLayer = facts.MaxTimePerLayer;
+		_clockFactsPending = true;
+	}
+
+	public void SettleRunClockFacts()
+	{
+		Calls.Add("settle-run-clock");
+		_sawRunClock = false;
+		_clockFactsPending = false;
+		_pendingClock = null;
+		_pendingLayerTimeSpent = null;
+		_pendingMaxTimePerLayer = null;
+	}
+
+	private float? _pendingClock;
+	private float? _pendingLayerTimeSpent;
+	private float? _pendingMaxTimePerLayer;
+	private float _maxTimePerLayer;
+
+	/// <summary>True = a received run clock or layer timer is waiting for the live world (mirrors the production flag).</summary>
+	internal bool HasPendingClockFacts => _clockFactsPending;
+
+	private void FlushClockFacts()
+	{
+		if (!_clockFactsPending)
+		{
+			return;
+		}
+
+		var clock = _pendingClock ?? 0f;
+		var layerTime = _pendingLayerTimeSpent ?? -1f;
+		var limit = _pendingMaxTimePerLayer ?? -1f;
+		if (clock > 0f && (!_sawRunClock || clock > _savedRunTime))
+		{
+			_savedRunTime = clock;
+			_sawRunClock = true;
+			ClockWrites.Add($"clock {clock:F1}");
+		}
+
+		if (layerTime > (_layerTimeSpent ?? 0f))
+		{
+			_layerTimeSpent = layerTime;
+			ClockWrites.Add($"layer-time {layerTime:F1}");
+		}
+
+		if (limit > 0f && _maxTimePerLayer <= 0f)
+		{
+			_maxTimePerLayer = limit;
+			ClockWrites.Add($"limit {limit:F1}");
+		}
+
+		_pendingClock = null;
+		_pendingLayerTimeSpent = null;
+		_pendingMaxTimePerLayer = null;
+		_clockFactsPending = false;
+	}
+
 	public bool TryWritePendingRunFields()
 	{
 		Calls.Add("write-pending-run-fields");
 		_runFieldsPending = false;
+		FlushClockFacts();
 		return true;
 	}
 

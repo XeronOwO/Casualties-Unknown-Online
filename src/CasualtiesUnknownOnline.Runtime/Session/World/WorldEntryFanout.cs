@@ -78,6 +78,7 @@ public sealed class WorldEntryFanout(
 		// it would be refused as stale by the very member it is meant to bring
 		// up to date, with no second chance before the 60 s repair.
 		_kernelProtocol.SendCheckpoint(steamId);
+		_world.SendRunFacts(steamId); // the run clock base + the layer timer — no CUO domain owns them, so they ride their own absolute message and not the kernel baseline
 		_world.SendBlockStateSnapshot(steamId);
 		_world.SendBlockDamageSnapshot(steamId);
 		_world.SendTrapLayoutSnapshot(steamId);
@@ -123,6 +124,7 @@ public sealed class WorldEntryFanout(
 		// Same rule as the entry group: the run-baseline carrier first, then the
 		// generation-stamped absolute tables it is compared against.
 		_kernelProtocol.SendCheckpoint(steamId);
+		_world.SendRunFacts(steamId);
 		_world.SendBlockStateSnapshot(steamId);
 		_world.SendBlockDamageSnapshot(steamId);
 		_world.SendTrapLayoutSnapshot(steamId);

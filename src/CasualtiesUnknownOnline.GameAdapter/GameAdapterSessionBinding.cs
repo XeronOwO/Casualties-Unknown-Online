@@ -31,6 +31,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.EntitySpawnSync.BindToSession();
 		domains.GeyserStateSync.BindToSession();
 		domains.RadiationLineSync.BindToSession();
+		domains.RunClockFacts.BindToSession();
 		domains.FluidSync.BindToSession();
 		domains.TradeSync.BindToSession();
 		domains.TraderSwingSync.BindToSession();
@@ -84,6 +85,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.EntitySpawnSync.Unbind();
 		domains.GeyserStateSync.Unbind();
 		domains.RadiationLineSync.Unbind();
+		domains.RunClockFacts.Unbind(); // the last published clock belongs to the dead session
 		domains.FluidSync.Unbind();
 		domains.TradeSync.Unbind();
 		domains.TraderSwingSync.Unbind();

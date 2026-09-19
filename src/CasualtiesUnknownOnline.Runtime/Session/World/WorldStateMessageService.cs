@@ -20,12 +20,14 @@ internal sealed class WorldStateMessageService(
 	ISessionControl session,
 	PacketSender sender,
 	ILogger<WorldService> log,
-	EntityEventChannel eventChannel)
+	EntityEventChannel eventChannel,
+	KernelWorldGenerationSource generations)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<WorldService> _log = log;
 	private readonly EntityEventChannel _eventChannel = eventChannel;
+	private readonly KernelWorldGenerationSource _generations = generations;
 
 	/// <summary>
 	/// Host-side block-difference table: block-space position → current block id,
@@ -38,6 +40,13 @@ internal sealed class WorldStateMessageService(
 	internal const int MaxDamagedBlocks = 65536;
 
 	public WorldStartParams? WorldParams { get; set; }
+
+	/// <summary>
+	/// Host: the run/layer clocks the adapter last read off the live world. Null until a
+	/// world has been captured — the message is never fabricated from zeros (a zero
+	/// clock is a real value a receiver would write onto its own statics).
+	/// </summary>
+	public RunClockFacts? RunFacts { get; set; }
 
 	public RadiationLineStateMsg? RadiationLineState { get; private set; }
 
@@ -59,6 +68,52 @@ internal sealed class WorldStateMessageService(
 		}
 
 		_sender.Send(targetSteamId, NetMsg.WorldSnapshotComplete, new WorldSnapshotCompleteMsg());
+	}
+
+	public event Action<RunFactsMsg, bool>? RunFactsReceived;
+
+	/// <summary>Guest: the host's clocks arrived. <paramref name="layerTimerApplies"/> is false when the message's generation is not this side's — the clock is still applied (it is run-scoped), the layer timer is not.</summary>
+	public void FireRunFactsReceived(RunFactsMsg facts, bool layerTimerApplies) => RunFactsReceived?.Invoke(facts, layerTimerApplies);
+
+	/// <summary>
+	/// Host only: send the run/layer clocks this host read off its live world, stamped
+	/// with the kernel run baseline's generation — the same identity every layer-relative
+	/// world report carries, so the receiver can refuse a value captured in another layer.
+	/// Nothing is sent when no run baseline or no captured value exists: the receiver keeps
+	/// its own values and names the absence, which is the pre-message behaviour rather than
+	/// a guessed clock.
+	/// </summary>
+	public void SendRunFacts(ulong targetSteamId)
+	{
+		if (_session.Role != SessionRole.Host || targetSteamId == 0)
+		{
+			return;
+		}
+
+		var facts = RunFacts;
+		if (facts is not { } captured || captured.Failure is not null)
+		{
+			_log.LogDebug("[RunFacts] nothing to send to {Peer} — this host has no captured run clock; it keeps its own clock and layer timer.", targetSteamId);
+			return;
+		}
+
+		if (_generations.Current is not { } generation)
+		{
+			// No committed run baseline means no identity to stamp the values with, and an
+			// unstamped absolute clock is exactly the value that could be written onto the
+			// wrong layer.
+			_log.LogDebug("[RunFacts] no committed run baseline — the run clock is not sent to {Peer}.", targetSteamId);
+			return;
+		}
+
+		_sender.Send(targetSteamId, NetMsg.RunFacts, new RunFactsMsg
+		{
+			RunEpoch = generation.RunEpoch,
+			LayerIndex = generation.LayerIndex,
+			RunClockBase = captured.RunClockBase,
+			LayerTimeSpent = captured.LayerTimeSpent,
+			MaxTimePerLayer = captured.MaxTimePerLayer,
+		});
 	}
 
 	public event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived;
@@ -312,6 +367,9 @@ internal sealed class WorldStateMessageService(
 	internal void ResetSessionState()
 	{
 		WorldParams = null;
+		// The captured run clocks belong to the world that read them: a session that
+		// ended must never hand the next run's members a dead run's clock.
+		RunFacts = null;
 		RadiationLineState = null;
 		_damagedBlocks.Clear();
 		_eventChannel.ResetConsumptions();

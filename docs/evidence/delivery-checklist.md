@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: the bite is SpiderHandler.cs:180-210 (collider contact + minVectorDotToBite facing gate) and the lunge is CrystalEnemy.cs:133-165 (first body wins, ground stops it), with every CUO site they replaced traced (TryOrderSpiderBite, OnCrystalLungeBegin, ApplyHostSpiderBite, ApplyHostCrystalLunge)
+      file:line or runtime log) or is explicitly marked unverified — evidence: all 12 in-handler oracle judgments and every claim-set use traced by grep to the actor-side Send*Request seam or into MedicalOperationClaims
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both attack kinds converted (bite and lunge), the host's own body left on the native collision path, the proximity-effect family confirmed already local (EnemySyncService.SendEnemyEffect) and the item-hit fallback confirmed host-side and untouched
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: review/enemy-hit-determination-local.md carries the design direction, the landed mechanism list and the acceptance-matrix coverage table (every row mapped to a test, to an unchanged path, or to the user's dual-client pass)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all twelve host-side reach sites retired in one pass (nine Runtime services + TraderRecruit); the two already-local sites kept; push reach moved with the gate
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfchecks/players/interaction-gate-authority-selfcheck.md mechanism table + the ticket's What-landed / What-remains sections
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: L0 rule tests (EnemyAttackJudgmentTests, EnemyAttackLedgerTests), wire simulation over ItemSimWorld (EnemyAttackSyncTests: broadcast to every in-world guest + per-enemy identity), and the frame-level dual-client pass that remains the user's
+      peer log comparison, hotrepl assertions) is decided — evidence: InteractionGateAuthorityTests (13 cases) pins the negative direction for 8 families and the positive for push/injection/heal; full suite 3278 + 56
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user confirmed this cycle's plan in-session, on top of the 2026-09-18 ruling that decision 184 records and the five directions it fixed
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors, dotnet format exit 0, whole-solution evidence run green 3265 + 55 with the checklist gate filtered out, and the unfiltered building run proves 3265 + 56 (dotnet test CasualtiesUnknownOnline.slnx)
+      process violation — evidence: the user confirmed this cycle's plan in-session (both tickets, native concurrency audit first, stage A then stage B), on top of decision 184's ruling
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors; dotnet format exit 0; unfiltered run with build green 3278 + 56 (dotnet test CasualtiesUnknownOnline.slnx)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest touched class 512 lines (EnemySyncService), EnemyCombatDirector 355, EnemyCombatReplay 317, the new EnemyAttackLocalProbe 139 / EnemyAttackJudgment 141 / EnemyAttackLedger 45 / EnemyBiteAnnouncementState 21; no new bool state; the dead host-side verdict machinery deleted (SelectLungeVictim, DecideSpiderBite + DecideCrystalLunge + ApplyPath.RemoteOrder, SelectLimbIndex + BodyLimbIndex, CrystalRayLength + CrystalRayTolerance, FirstGroundDistance)
+      dead mechanisms deleted in the same round) — evidence: medical 595 / shrapnel 553 / other-medical 520 lines; claims book and shrapnel validator extracted; dead HasActive*Operator deleted; no new bool state
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

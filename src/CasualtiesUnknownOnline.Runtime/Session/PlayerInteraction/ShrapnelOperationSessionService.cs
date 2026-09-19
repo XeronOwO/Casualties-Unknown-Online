@@ -29,9 +29,7 @@ internal sealed class ShrapnelOperationSessionService(
 	IPlayerInteractionVisibility visibility,
 	ITimeSource time,
 	ItemKernelAuthority kernelAuthority,
-	HashSet<ulong> sharedReservedItems,
-	HashSet<(ulong Target, int Limb)> sharedReservedTargetLimbs,
-	Func<ulong, bool> hasActiveInjection,
+	MedicalOperationClaims claims,
 	AdaptiveStreamRateService adaptiveRates,
 	MedicalOperationIdAllocator operationIds,
 	ILogger log)
@@ -45,9 +43,7 @@ internal sealed class ShrapnelOperationSessionService(
 	private readonly PlayerCharacterAccess _access = access;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ITimeSource _time = time;
-	private readonly HashSet<ulong> _sharedReservedItems = sharedReservedItems;
-	private readonly HashSet<(ulong Target, int Limb)> _sharedReservedTargetLimbs = sharedReservedTargetLimbs;
-	private readonly Func<ulong, bool> _hasActiveInjection = hasActiveInjection;
+	private readonly MedicalOperationClaims _claims = claims;
 	private readonly MedicalOperationIdAllocator _operationIds = operationIds;
 	private readonly ILogger _log = log;
 
@@ -78,6 +74,13 @@ internal sealed class ShrapnelOperationSessionService(
 			LimbIndex = targetLimbIndex,
 			Kind = MedicalOperationKind.Shrapnel,
 		};
+
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[Shrapnel] refused locally: {Operator} cannot see {Target} on this client.", _session.LocalSteamId, targetSteamId);
+			RejectStart(_session.LocalSteamId, targetSteamId, msg, "No line of sight.");
+			return;
+		}
 
 		if (_session.Role == SessionRole.Host)
 		{
@@ -180,73 +183,19 @@ internal sealed class ShrapnelOperationSessionService(
 			return;
 		}
 
-		if (!_visibility.HasLineOfSight(sender, target))
-		{
-			RejectStart(sender, target, msg, "No line of sight.");
-			return;
-		}
-
 		var userData = _access.GetCharacterData(sender);
 		var targetData = _access.GetCharacterData(target);
-		if (userData?.Health is not { } userHealth || !userHealth.Conscious || !userHealth.Alive)
+		if (!ShrapnelStartValidator.TryValidate(sender, userData, targetData, msg, _claims, out var shrapnelCount, out var reason))
 		{
-			RejectStart(sender, target, msg, "Operator is not conscious/alive.");
-			return;
-		}
-
-		if (targetData?.Health is not { } targetHealth || !targetHealth.Conscious || !targetHealth.Alive)
-		{
-			RejectStart(sender, target, msg, "Target is not conscious/alive.");
-			return;
-		}
-
-		if (msg.LimbIndex < 0 || msg.LimbIndex >= targetData.Limbs.Count)
-		{
-			RejectStart(sender, target, msg, "Target limb not found.");
-			return;
-		}
-
-		var targetLimb = targetData.Limbs[msg.LimbIndex];
-		if (targetLimb.Dismembered || targetLimb.Shrapnel <= 0)
-		{
-			RejectStart(sender, target, msg, "Target limb has no shrapnel.");
-			return;
-		}
-
-		if (_hasActiveInjection(sender) || HasActiveShrapnelOperator(sender))
-		{
-			RejectStart(sender, target, msg, "Operator already has an active medical operation.");
+			RejectStart(sender, target, msg, reason);
 			return;
 		}
 
 		var itemInstanceId = msg.ItemInstanceId;
-		if (itemInstanceId != 0)
-		{
-			var itemIndex = PlayerItemIndex.Find(userData, itemInstanceId);
-			if (itemIndex < 0 || itemIndex >= userData.Items.Count)
-			{
-				RejectStart(sender, target, msg, "Tweezers not found.");
-				return;
-			}
-
-			var item = userData.Items[itemIndex];
-			if (item.ItemId != "tweezers" || item.Condition <= 0f)
-			{
-				RejectStart(sender, target, msg, "Item is not usable tweezers.");
-				return;
-			}
-
-			if (_sharedReservedItems.Contains(itemInstanceId))
-			{
-				RejectStart(sender, target, msg, "Item is already reserved.");
-				return;
-			}
-		}
-
 		var key = (target, msg.LimbIndex);
 		if (!_sessions.TryGetValue(key, out var shrapnel))
 		{
-			if (_sharedReservedTargetLimbs.Contains(key))
+			if (_claims.IsLimbReserved(target, msg.LimbIndex))
 			{
 				RejectStart(sender, target, msg, "Target limb is already reserved.");
 				return;
@@ -259,14 +208,14 @@ internal sealed class ShrapnelOperationSessionService(
 				LimbIndex = msg.LimbIndex,
 				LastUpdateMs = _time.NowMs,
 			};
-			_writer.InitializePieces(shrapnel, targetLimb.Shrapnel);
+			_writer.InitializePieces(shrapnel, shrapnelCount);
 			_sessions.Add(key, shrapnel);
-			_sharedReservedTargetLimbs.Add(key);
+			_claims.TryReserveLimb(target, msg.LimbIndex);
 			_log.LogInformation("[Shrapnel] session {OperationId} created for {Target} limb {Limb} ({Count} pieces).",
-				shrapnel.OperationId, target, msg.LimbIndex, targetLimb.Shrapnel);
+				shrapnel.OperationId, target, msg.LimbIndex, shrapnelCount);
 		}
 
-		JoinOperator(shrapnel, sender, itemInstanceId, userData);
+		JoinOperator(shrapnel, sender, itemInstanceId, userData!); // the validator answered true, so the operator snapshot exists
 
 		SendStartAck(new MedicalOperationStartAckMsg
 		{
@@ -455,15 +404,17 @@ internal sealed class ShrapnelOperationSessionService(
 		foreach (var shrapnel in _sessions.Values)
 		{
 			ReleaseItems(shrapnel);
-			_sharedReservedTargetLimbs.Remove((shrapnel.Target, shrapnel.LimbIndex));
+			foreach (var operatorId in shrapnel.Operators)
+			{
+				_claims.ReleaseOperator(operatorId);
+			}
+
+			_claims.ReleaseLimb(shrapnel.Target, shrapnel.LimbIndex);
 		}
 
 		_sessions.Clear();
 		_positionReports.ClearAll();
 	}
-
-	public bool HasActiveShrapnelOperator(ulong steamId) =>
-		_sessions.Values.Any(s => s.Operators.Contains(steamId));
 
 	public bool IsShrapnelOperation(ulong operationId) =>
 		_sessions.Values.Any(s => s.OperationId == operationId);
@@ -484,9 +435,10 @@ internal sealed class ShrapnelOperationSessionService(
 	private void JoinOperator(ShrapnelOperationSession shrapnel, ulong operatorId, ulong itemInstanceId, CharacterDataMsg userData)
 	{
 		shrapnel.Operators.Add(operatorId);
+		_claims.TryReserveOperator(operatorId);
 		if (itemInstanceId != 0)
 		{
-			_sharedReservedItems.Add(itemInstanceId);
+			_claims.TryReserveItem(itemInstanceId);
 			shrapnel.OperatorItems[operatorId] = itemInstanceId;
 			_writer.DrainTweezers(operatorId, itemInstanceId, userData);
 		}
@@ -500,6 +452,7 @@ internal sealed class ShrapnelOperationSessionService(
 		ReleaseOperatorPieces(shrapnel, operatorId);
 		ReleaseOperatorItem(shrapnel, operatorId);
 		shrapnel.Operators.Remove(operatorId);
+		_claims.ReleaseOperator(operatorId);
 		shrapnel.LastUpdateMs = _time.NowMs;
 		_log.LogInformation("[Shrapnel] operator {Operator} left session {OperationId} ({Reason}).", operatorId, shrapnel.OperationId, reason);
 
@@ -534,7 +487,7 @@ internal sealed class ShrapnelOperationSessionService(
 		if (shrapnel.OperatorItems.TryGetValue(operatorId, out var itemId))
 		{
 			shrapnel.OperatorItems.Remove(operatorId);
-			_sharedReservedItems.Remove(itemId);
+			_claims.ReleaseItem(itemId);
 		}
 	}
 
@@ -542,7 +495,7 @@ internal sealed class ShrapnelOperationSessionService(
 	{
 		foreach (var itemId in shrapnel.OperatorItems.Values)
 		{
-			_sharedReservedItems.Remove(itemId);
+			_claims.ReleaseItem(itemId);
 		}
 
 		shrapnel.OperatorItems.Clear();
@@ -560,7 +513,12 @@ internal sealed class ShrapnelOperationSessionService(
 		}
 
 		ReleaseItems(shrapnel);
-		_sharedReservedTargetLimbs.Remove(key);
+		foreach (var operatorId in shrapnel.Operators)
+		{
+			_claims.ReleaseOperator(operatorId);
+		}
+
+		_claims.ReleaseLimb(shrapnel.Target, shrapnel.LimbIndex);
 		var end = _writer.BuildTerminal(shrapnel, reason);
 		_log.LogInformation("[Shrapnel] session {OperationId} terminal {Reason}.", shrapnel.OperationId, reason);
 		EndCommittedReceived?.Invoke(end);

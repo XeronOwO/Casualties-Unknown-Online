@@ -179,8 +179,36 @@ internal static class PlayerInteractionTestSession
 			ServiceDescriptor.Singleton<IPlayerInteractionVisibility>(
 				new BlockingPlayerInteractionVisibility())));
 
+	/// <summary>
+	/// A handshaken pair whose visibility oracle blocks ONE observer only. The two
+	/// clients of a live session never share a picture — the peer's position is a
+	/// report — which is what the gate-authority contract is about;
+	/// <see cref="CreateBlockedSession"/> blocks both sides instead.
+	/// </summary>
+	internal static (TestNode Host, TestNode Guest, List<(NetMsg Msg, byte[] Frame)> Received) CreateSessionBlockingObserver(
+		ulong blockedObserverId) =>
+		CreateSession(s => s.Replace(
+			ServiceDescriptor.Singleton<IPlayerInteractionVisibility>(
+				new ObserverBlockingPlayerInteractionVisibility(blockedObserverId))));
+
+	/// <summary>
+	/// Collects what the HOST receives — the evidence for "did the request leave the
+	/// actor's client at all", which is what an actor-side gate decides.
+	/// </summary>
+	internal static List<NetMsg> CaptureHostMessages(TestNode host)
+	{
+		var received = new List<NetMsg>();
+		host.Transport.MessageReceived += (_, frame) => received.Add((NetMsg)frame[0]);
+		return received;
+	}
+
 	private sealed class BlockingPlayerInteractionVisibility : IPlayerInteractionVisibility
 	{
 		public bool HasLineOfSight(ulong observerSteamId, ulong targetSteamId) => false;
+	}
+
+	private sealed class ObserverBlockingPlayerInteractionVisibility(ulong blockedObserverId) : IPlayerInteractionVisibility
+	{
+		public bool HasLineOfSight(ulong observerSteamId, ulong targetSteamId) => observerSteamId != blockedObserverId;
 	}
 }

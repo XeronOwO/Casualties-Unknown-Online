@@ -41,8 +41,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 	private readonly MedicalInjectionReportBuffer _injectionReports;
 
 	private readonly Dictionary<ulong, OperationSession> _active = [];
-	private readonly HashSet<ulong> _reservedItems = [];
-	private readonly HashSet<(ulong Target, int Limb)> _reservedTargetLimbs = [];
+	private readonly MedicalOperationClaims _claims = new();
 	private readonly MedicalOperationIdAllocator _operationIds = new();
 	private bool _disposed;
 	public MedicalSessionCutCounts PendingCutSessions => new(_active.Count, _shrapnel.PendingCutSessions, _other.PendingCutSessions); // the cut policy's read-only probe (WorldTransientPolicy) — this file is at the architecture gate's line limit, so the probe is deliberately one line
@@ -75,10 +74,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			_visibility,
 			_time,
 			kernelAuthority,
-			_reservedItems,
-			_reservedTargetLimbs,
-			operation => _active.Values.Any(s => s.Operator == operation)
-				|| (_other is { } other ? other.HasActiveOtherOperator(operation) : false),
+			_claims,
 			adaptiveRates,
 			_operationIds,
 			log);
@@ -90,9 +86,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			_visibility,
 			_time,
 			kernelAuthority,
-			_reservedItems,
-			_reservedTargetLimbs,
-			operation => _active.Values.Any(s => s.Operator == operation) || _shrapnel.HasActiveShrapnelOperator(operation),
+			_claims,
 			_operationIds,
 			log);
 		_shrapnel.StartAckReceived += FireStartAckReceived;
@@ -133,6 +127,13 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			LimbIndex = targetLimbIndex,
 			Kind = MedicalOperationKind.Injection,
 		};
+
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[MedicalOps] refused locally: {Operator} cannot see {Target} on this client.", _session.LocalSteamId, targetSteamId);
+			_publisher.RejectStart(_session.LocalSteamId, targetSteamId, msg, "No line of sight.");
+			return;
+		}
 
 		if (_session.Role == SessionRole.Host)
 		{
@@ -268,13 +269,6 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			return;
 		}
 
-		if (!_visibility.HasLineOfSight(operation, target))
-		{
-			_log.LogInformation("[MedicalOps] refused start: {Operator} cannot see {Target}.", operation, target);
-			_publisher.RejectStart(operation, target, msg, "No line of sight.");
-			return;
-		}
-
 		var userData = _access.GetCharacterData(operation);
 		var targetData = _access.GetCharacterData(target);
 		if (userData?.Health is not { } userHealth || !userHealth.Conscious || !userHealth.Alive)
@@ -308,21 +302,21 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			return;
 		}
 
-		if (_active.Values.Any(s => s.Operator == operation) || _shrapnel.HasActiveShrapnelOperator(operation) || _other.HasActiveOtherOperator(operation))
+		if (_claims.IsOperatorBusy(operation))
 		{
 			_log.LogWarning("[MedicalOps] refused start: {Operator} already has an active medical operation.", operation);
 			_publisher.RejectStart(operation, target, msg, "Operator already has an active operation.");
 			return;
 		}
 
-		if (_reservedItems.Contains(msg.ItemInstanceId))
+		if (_claims.IsItemReserved(msg.ItemInstanceId))
 		{
 			_log.LogWarning("[MedicalOps] refused start: item {ItemId} is already reserved.", msg.ItemInstanceId);
 			_publisher.RejectStart(operation, target, msg, "Item is already reserved.");
 			return;
 		}
 
-		if (msg.LimbIndex >= 0 && _reservedTargetLimbs.Contains((target, msg.LimbIndex)))
+		if (msg.LimbIndex >= 0 && _claims.IsLimbReserved(target, msg.LimbIndex))
 		{
 			_log.LogWarning("[MedicalOps] refused start: target {Target} limb {Limb} is already reserved.", target, msg.LimbIndex);
 			_publisher.RejectStart(operation, target, msg, "Target limb is already reserved.");
@@ -351,10 +345,11 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		};
 
 		_active.Add(session.OperationId, session);
-		_reservedItems.Add(session.ItemInstanceId);
+		_claims.TryReserveItem(session.ItemInstanceId);
+		_claims.TryReserveOperator(session.Operator);
 		if (session.LimbIndex >= 0)
 		{
-			_reservedTargetLimbs.Add((session.Target, session.LimbIndex));
+			_claims.TryReserveLimb(session.Target, session.LimbIndex);
 		}
 
 		_log.LogInformation(
@@ -556,10 +551,11 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			return;
 		}
 
-		_reservedItems.Remove(session.ItemInstanceId);
+		_claims.ReleaseItem(session.ItemInstanceId);
+		_claims.ReleaseOperator(session.Operator);
 		if (session.LimbIndex >= 0)
 		{
-			_reservedTargetLimbs.Remove((session.Target, session.LimbIndex));
+			_claims.ReleaseLimb(session.Target, session.LimbIndex);
 		}
 
 		var end = _applier.BuildTerminal(session, reason);
@@ -594,7 +590,6 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_other.Clear();
 		_active.Clear();
 		_injectionReports.ClearAll();
-		_reservedItems.Clear();
-		_reservedTargetLimbs.Clear();
+		_claims.Clear();
 	}
 }

@@ -76,6 +76,12 @@ internal sealed class PlayerCarryService : IDisposable
 			return;
 		}
 
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[Carry] refused locally: {Requester} cannot see {Requested} on this client.", _session.LocalSteamId, targetSteamId);
+			return;
+		}
+
 		var msg = new PlayerCarryStartRequestMsg
 		{
 			TargetSteamId = targetSteamId,
@@ -141,13 +147,6 @@ internal sealed class PlayerCarryService : IDisposable
 		if (!_characters.IsInWorld(carrier) || !_characters.IsInWorld(carried))
 		{
 			_log.LogWarning("[Carry] refused: {Carrier} or {Carried} is not in-world.", carrier, carried);
-			return;
-		}
-
-		if (!_visibility.HasLineOfSight(requester, requested))
-		{
-			_log.LogInformation("[Carry] refused: {Requester} cannot see {Requested}.",
-				requester, requested);
 			return;
 		}
 

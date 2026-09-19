@@ -45,6 +45,12 @@ internal sealed class PlayerHealService(
 			return;
 		}
 
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
+		{
+			_log.LogInformation("[Heal] refused locally: {Healer} cannot see {Target} on this client.", _session.LocalSteamId, targetSteamId);
+			return;
+		}
+
 		var msg = new PlayerHealRequestMsg
 		{
 			TargetSteamId = targetSteamId,
@@ -80,12 +86,6 @@ internal sealed class PlayerHealService(
 		if (!_characters.IsInWorld(healer) || !_characters.IsInWorld(target))
 		{
 			_log.LogWarning("[Heal] refused: {Healer} or {Target} is not in-world.", healer, target);
-			return;
-		}
-
-		if (!_visibility.HasLineOfSight(healer, target))
-		{
-			_log.LogInformation("[Heal] refused: {Healer} cannot see {Target}.", healer, target);
 			return;
 		}
 

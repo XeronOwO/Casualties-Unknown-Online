@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 982,
+  "count": 988,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5895,6 +5895,42 @@
       "row": "E3",
       "file": "tests/CasualtiesUnknownOnline.Tests/World/GuestEntityReportRecoveryTests.cs",
       "quote": "public void SwallowedCreationReportInsideTheEntryWindow_ConvergesOnTheEntryStep()"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/ILiveTrapLayoutSource.cs",
+      "quote": "void RefreshFromLiveScene();"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "private void RefreshTrapLayout() => _liveLayout?.RefreshFromLiveScene();"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/LiveTrapLayoutSource.cs",
+      "quote": "if (frame == _lastScannedFrame)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "src/CasualtiesUnknownOnline.Plugin/PluginDependencyRegistrar.cs",
+      "quote": "services.AddSingleton<ILiveTrapLayoutSource>(p => p.GetRequiredService<LiveTrapLayoutSource>());"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/TrapLayoutEntryFreshnessTests.cs",
+      "quote": "public void WorldEntry_ReDerivesTheLayout_SoARemovedEntityIsNeverSent()"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "file": "tests/CasualtiesUnknownOnline.Tests/World/ReconnectWorldSnapshotTests.cs",
+      "quote": "public void GuestReconnects_WhileStillInWorld_ReceivesTheLiveLayout()"
     }
   ]
 }

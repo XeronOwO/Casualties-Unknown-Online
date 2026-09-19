@@ -2,6 +2,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -12,6 +13,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// the guests' regenerated layouts diverge — the host's scene is the
 /// authority). One scan per layer: the per-layer idempotent guard resets when
 /// a new generation starts.
+///
+/// It owns only the generation edge's RECORD: the member-facing table is
+/// re-derived from the same component table at send time by
+/// <see cref="LiveTrapLayoutSource"/>, so a member that enters between two
+/// generation edges is never handed an entity the world has since removed.
 /// </summary>
 internal sealed class TrapLayoutScanner(ISessionControl session, IWorldControl world, ILogger<TrapLayoutScanner> log)
 {
@@ -49,36 +55,12 @@ internal sealed class TrapLayoutScanner(ISessionControl session, IWorldControl w
 		}
 
 		var keyed = scanned.Count(s => s.Entry.CreationKey is not null);
-		_log.LogInformation("[TrapLayout] host scanned {Count} trap entities ({Kinds} kinds, {Keyed} runtime-created).",
-			scanned.Count, scanned.Select(s => s.Entry.Kind).Distinct().Count(), keyed);
-	}
-
-	/// <summary>
-	/// Host only: re-derive the table from the LIVE scene. The in-session repair
-	/// calls this right before it re-sends the layout, so a trap the world has
-	/// since removed (a self-destructed turret, a broken crystal) is gone from
-	/// the snapshot instead of being re-materialized on every peer every cycle.
-	/// Skipped while a layer is generating — the generation edge's own failing-edge
-	/// scan owns that moment, and the registry refuses an empty scan against a
-	/// non-empty table (a scene in transition is not a destroyed layer).
-	/// </summary>
-	internal void RefreshLayout()
-	{
-		if (_session.Role != SessionRole.Host || HarmonyTraverse.IsGenerating())
-		{
-			return;
-		}
-
-		var scanned = TrapEntityScan.Scan();
-		if (!_world.ReplaceTrapLayout([.. scanned.Select(s => s.Entry)]))
-		{
-			// The refusing branch is a decision, not a no-op: record it, so a
-			// field report of "the guests kept traps the host had removed" has a
-			// line naming the fail-safe instead of only a "0 entries" refresh log.
-			_log.LogWarning("[TrapLayout] live-scene refresh REFUSED ({Count} scanned): the table still holds entries, so it is kept — a scene in transition must not wipe every guest's layout. It clears at the next generation edge.", scanned.Count);
-			return;
-		}
-
-		_log.LogInformation("[TrapLayout] host layout re-derived from the live scene: {Count} entries.", scanned.Count);
+		// The frame number rides the line so the generation-edge record can be
+		// compared with the layer-boundary clear the Runtime logs
+		// (TrapLayoutRegistry.Reset): a clear that reports dropping exactly these
+		// entries and follows this line is the evidence that the record was wiped
+		// in the SAME frame, which the send-time re-derive covers.
+		_log.LogInformation("[TrapLayout] host scanned {Count} trap entities ({Kinds} kinds, {Keyed} runtime-created) at frame {Frame}.",
+			scanned.Count, scanned.Select(s => s.Entry.Kind).Distinct().Count(), keyed, Time.frameCount);
 	}
 }

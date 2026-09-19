@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W6, after the independent adversarial review reclassified it from OK)
-- Related: `review/runtime-entity-spawn-backfill.md`, `review/sync-cadence-review.md`, `todo/trap-layout-entry-snapshot-staleness.md`
+- Related: `review/runtime-entity-spawn-backfill.md`, `review/sync-cadence-review.md`, `review/trap-layout-entry-snapshot-staleness.md`
 
 ## Problem (evidence)
 
@@ -69,11 +69,13 @@ re-derived from the live host scene first:
   longer depends on a world-entry edge. The Runtime seam is where a future absolute
   in-world table has to be added: the trap layout was missed for exactly as long as the
   entry group and the cycle's subset were owned in two different places.
-- The repair re-derives the table from the LIVE scene before sending:
-  `TrapLayoutScanner.RefreshLayout` (host, skipped while generating, run once per cycle and
-  only when at least one member is in world) → `IWorldControl.ReplaceTrapLayout` →
-  `TrapLayoutRegistry.Replace`. A generation-time record can therefore no longer resurrect a
-  trap the world has since removed (a self-destructed turret, a broken crystal).
+- The repair re-derives the table from the LIVE scene before sending: the host scan
+  (`TrapLayoutScanner.RefreshLayout` when this landed — SUPERSEDED 2026-09-19 by
+  `review/trap-layout-entry-snapshot-staleness.md`: the re-derive now belongs to the send path
+  itself, through the `ILiveTrapLayoutSource` port, and that method is gone) →
+  `IWorldControl.ReplaceTrapLayout` → `TrapLayoutRegistry.Replace`. A generation-time record
+  can therefore no longer resurrect a trap the world has since removed (a self-destructed
+  turret, a broken crystal).
 - `TrapLayoutRegistry.Replace` refuses an EMPTY scan against a non-empty table and reports
   that in its return value, which the scanner logs as a WARNING: inactive and unloaded
   objects are invisible to the scene scan, so the fail-safe direction is a stale entry —
@@ -98,14 +100,17 @@ REFUSES the replace (`Assert.False`) and the kept entry still rides with its ide
 
 **Verified / not verified.** Machine-checked: the Runtime repair seam, the registry
 replace semantics and the wire delivery to a member. NOT exercisable in the test host:
-`WorldEventSync.Update` and `TrapLayoutScanner.RefreshLayout` are Unity-typed
+`WorldEventSync.Update` and the adapter's live-scene scan (a `TrapLayoutScanner` method when
+this landed; `LiveTrapLayoutSource` since 2026-09-19) are Unity-typed
 (`Time.unscaledTime`, `FindObjectsOfType`, `HarmonyTraverse.IsGenerating`), so the adapter
 wiring is code-reviewed and belongs to the unified dual-client acceptance pass.
 
-**Residuals.** (1) The world-entry fanout still sends the table as last derived, so a
-member entering between two repairs can materialize an entity the host has since removed
-(transient — the next repair makes the guest destroy the surplus): recorded in
-`todo/trap-layout-entry-snapshot-staleness.md`. (2) The repair sends the full table per
+**Residuals.** (1) CLOSED 2026-09-19 by the successor ticket
+`review/trap-layout-entry-snapshot-staleness.md`: the world-entry fanout sent the table as last
+derived, so a member entering between two repairs could materialize an entity the host had
+since removed (transient — the next repair made the guest destroy the surplus). The re-derive
+now happens inside BOTH group sends, through the `ILiveTrapLayoutSource` port, and is skipped
+while a layer is generating exactly as before. (2) The repair sends the full table per
 in-world member per minute; the snapshot is small and absolute, and the first-resend
 latency question is decided in `review/sync-cadence-review.md` (landed: a still-open entry window is answered with the in-session repair set).
 

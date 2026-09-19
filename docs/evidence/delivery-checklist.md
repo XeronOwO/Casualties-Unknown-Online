@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem cites TrapLayoutRegistry/Scanner, EntitySpawnedMsg and RunEpoch; What landed covers both stamps, the seams and protocol 30
+      file:line or runtime log) or is explicitly marked unverified — evidence: ticket cites the native unlock (Item.cs blueprint useAction), Recipes.SetUpRecipes via WorldGeneration.cs:125, RecipeResult.SpawnResult and both CUO send sites
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: ticket records the two stamped families and the safe ones; WorldReportGenerationGate serves block/trap/entity from one comparison
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: review/generation-identity-remaining-families.md 7-row Verification table, every row names its test
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both UNLOCK directions and both fan-out groups (entry + 60 s repair) aligned; the remaining one-shot gaps stay ticketed in the matrix gap list (I5, I8, R3/R4, K2, N8)
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket Acceptance matrix (7 rows, each naming its suite case) plus the declared coverage gaps and the review's fixes
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: real-stack ItemSimWorld refusals + stamps decoded from peer transports; the Unity half declared static + release acceptance
+      peer log comparison, hotrepl assertions) is decided — evidence: ItemSimWorld with one faked recipe table per node plus the mirrored adapter write; the Unity half (real read, silent write, list refresh) declared static + release acceptance
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: handoff instruction fixed the route (continue development); the ticket's frozen design fixed the mechanism, no work-item re-ask
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; gates 56/56; main suite 3368 green; focused 86/86
+      process violation — evidence: the handoff fixed the route (continue development on a Medium ticket); the ticket's own frozen design direction chose the mechanism, no work-item re-ask
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; gates 56/56; main suite 3379 green; focused 10/10 and families 62/62
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: RuntimeEntityChannel 510, EntityEventChannel 330, BlockReportChannel 273, TrapLayoutRegistry 127 lines; one type per file; no state bool added
+      dead mechanisms deleted in the same round) — evidence: largest changed file CraftSyncService 419 lines; one type per file; the unbounded boolean pending flag was replaced by the bounded per-index table (review finding M2)
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

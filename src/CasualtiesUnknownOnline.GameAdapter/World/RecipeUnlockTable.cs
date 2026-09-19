@@ -56,6 +56,40 @@ internal static class RecipeUnlockTable
 	}
 
 	/// <summary>
+	/// The live table's UNLOCKED indices — every recipe whose <c>INT</c> is 0,
+	/// which is both what the game's own blueprint use writes
+	/// (<c>Item.cs:4284</c>) and the state that makes a recipe draw no INT
+	/// requirement at all (<c>Recipe.visible</c>, <c>Recipe.cs:98-104</c>). A few
+	/// recipes are set up at 0 by the game itself (<c>Recipes.cs</c>), so the set
+	/// means "recipes that need no skill" — exactly the fact the crafting list
+	/// shows; sending such an index writes to a peer the 0 its own table already
+	/// holds.
+	///
+	/// Null = the table cannot be read (see <see cref="Capture"/>), never an empty
+	/// set standing in for it: the caller's empty set means "nothing is unlocked",
+	/// which asks for no write at all.
+	/// </summary>
+	internal static IReadOnlyList<int>? CaptureUnlockedIndexes()
+	{
+		var rows = Capture();
+		if (rows is null)
+		{
+			return null;
+		}
+
+		var indices = new List<int>();
+		foreach (var row in rows)
+		{
+			if (row.IntValue == 0)
+			{
+				indices.Add(row.Index);
+			}
+		}
+
+		return indices;
+	}
+
+	/// <summary>
 	/// Writes the restored set absolutely: every restored row's value is written
 	/// onto the live recipe at that index. Rows whose index left the table are
 	/// collected as refusals (the caller reports them); nothing else changes, and

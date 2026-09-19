@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 880,
+  "count": 896,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5156,7 +5156,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 30;"
+      "quote": "public const int Current = 31;"
     },
     {
       "cluster": "world-blocks",
@@ -5283,6 +5283,102 @@
       "row": "W6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
       "quote": "// The kernel checkpoint goes FIRST because it is what carries the run"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "RecipeUnlockSnapshot = 139, // bidirectional: guest → host report of this guest's unlocked recipe-index set; host → guest this host's authoritative set (world entry / 60 s repair / the answer that ends the guest's re-report)"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/RecipeUnlockSnapshotMsg.cs",
+      "quote": "public sealed class RecipeUnlockSnapshotMsg"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/RecipeUnlockSnapshotHandler.cs",
+      "quote": "[PacketHandler(NetMsg.RecipeUnlockSnapshot, NetMessageDirection.Bidirectional)]"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs",
+      "quote": "public void SendRecipeUnlockSnapshot(ulong targetSteamId)"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs",
+      "quote": "public void PumpRecipeUnlockFallback(long nowMs) =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs",
+      "quote": "_recipeFallback.Pump(nowMs, _uncarriedRecipes.Count, ResendOwnRecipeUnlockSet);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs",
+      "quote": "FireRecipeUnlockReceived(sender, index);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/INativeWorldFacts.cs",
+      "quote": "IReadOnlyList<int>? CaptureUnlockedRecipeIndexes();"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_craft.SendRecipeUnlockSnapshot(steamId);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldReportFallbackPump.cs",
+      "quote": "_craft.PumpRecipeUnlockFallback(nowMs);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
+      "quote": "public const int Current = 31;"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Items/RecipeUnlockApply.cs",
+      "quote": "private void OnRecipeUnlockSetReceived(IReadOnlyList<int> recipeIndexes)"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/RecipeUnlockTable.cs",
+      "quote": "internal static IReadOnlyList<int>? CaptureUnlockedIndexes()"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/NativeWorldFacts.cs",
+      "quote": "public IReadOnlyList<int>? CaptureUnlockedRecipeIndexes()"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs",
+      "quote": "private const int MaxRecipeSetReports = 3;"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs",
+      "quote": "private void ResendOwnRecipeUnlockSet()"
     }
   ]
 }

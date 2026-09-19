@@ -101,6 +101,15 @@ public static class ProtocolVersion
 	/// materialize this side's stamped reports without the check, so across a
 	/// layer boundary the two sides would disagree about which world a trap
 	/// layout or a creation belongs to.</summary>
-	public const int Current = 30;
+	/// 31: the recipe-unlock backfill (`RecipeUnlockSnapshot`) — the blueprint
+	/// unlock's one-shot report/relay now has an absolute SET beside it: the host
+	/// sends its live recipe table's unlocked indices on world entry and in the
+	/// 60 s repair group, and a guest reports its own set on the fallback cadence
+	/// until this host's set carries it (the host merges the difference and
+	/// relays exactly those through the ordinary unlock path). A peer without it
+	/// would keep a crafting list permanently short by every unlock whose report
+	/// or relay it missed — including every unlock that happened before it
+	/// joined — and would ignore the set the other side sends.
+	public const int Current = 31;
 
 }

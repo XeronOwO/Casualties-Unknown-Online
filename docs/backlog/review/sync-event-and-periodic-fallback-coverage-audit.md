@@ -97,7 +97,9 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
 - **Gap tickets** (one ticket per gap, with W2 split from W1 and R3+R4 merged): `review/guest-partial-block-damage-re-report.md`,
   `review/trap-layout-snapshot-recovery.md`,
   `review/enemy-snapshot-binding-recovery.md`, `review/enemy-hit-determination-local.md`,
-  `todo/guest-command-loss-reconciliation.md`, `todo/recipe-unlock-fallback.md`,
+  `todo/guest-command-loss-reconciliation.md`, `review/recipe-unlock-fallback.md` (row I6 — closed
+  2026-09-19: the absolute unlock set rides the world-entry and 60 s repair groups from the host and
+  the shared fallback cadence from a guest),
   `todo/carried-inventory-registration-re-report.md`,
   `todo/session-control-convergence.md`, `todo/checkpoint-run-epoch-validation.md`,
   `todo/mod-command-request-timeout.md`, `todo/sync-cadence-review.md` (cadence findings

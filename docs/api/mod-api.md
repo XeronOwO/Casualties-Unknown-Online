@@ -5,7 +5,8 @@ Status: first round **landed 2026-08-13**; second round (4b) **landed
 the framework's future rounds — the semantics below are locked by tests
 (`tests/.../Mods/`, 761 total green at landing) and the two-process runtime
 verification (host + sandbox guest; the pre-release ProtocolVersion sequence was
-later reset and subsequently bumped to `ProtocolVersion.Current = 2` — see tech-decisions #137).
+later reset and has been bumped on every behavioral wire change since — see
+tech-decisions #137).
 
 ## 1. Scope
 
@@ -917,7 +918,7 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `30`. The pre-release protocol-version sequence
+- `ProtocolVersion.Current` is `31`. The pre-release protocol-version sequence
   was deliberately reset before first release (tech-decisions #137); the
   post-reset wire has since extended the character-sound event family
   (`CharacterSoundKind.ItemPlacement`), the runtime-entity creation family
@@ -946,7 +947,11 @@ commands and remains the two-process verification target).
   position-keyed families (the trap-layout snapshot and the runtime-entity
   creation report with its absolute table — a stale one is refused before any
   entity is materialized, and a refused creation report is answered with
-  `RuntimeEntityRejectReason.StaleGeneration` so its pending re-report ends), so
+  `RuntimeEntityRejectReason.StaleGeneration` so its pending re-report ends), and
+  the recipe-unlock backfill (the host's absolute unlocked-recipe set rides the
+  world-entry and 60 s repair groups, a guest re-reports its own set until the
+  host's set carries it, and the host merges the difference through the ordinary
+  unlock path — `RecipeUnlockSnapshot`, `docs/decisions/active.md` #186), so
   earlier numbers such as
   10/29/34 in this document are historical and must not be used as current wire
   versions.

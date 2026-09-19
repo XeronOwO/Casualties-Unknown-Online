@@ -53,7 +53,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Partial-damage report vs the live delta](todo/partial-damage-delta-report-overlap.md) — **Low-Medium** — the merge can under- and over-count.
 - [World-entry trap layout staleness](todo/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the entry fanout sends a stale table.
 - [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — the keyframe cannot heal a swallowed command.
-- [Recipe unlock has no fallback](todo/recipe-unlock-fallback.md) — **Medium** — a late joiner never learns a prior unlock.
 - [Carried-inventory registration](todo/carried-inventory-registration-re-report.md) — **Medium** — the host arbitration table stays empty.
 - [Restore live-object row loops](todo/restore-live-object-loops-containment.md) — **Low** — three appliers keep a half-level blast radius.
 - [Session control convergence](todo/session-control-convergence.md) — **Medium** — lost readiness/control messages have no re-report.
@@ -65,6 +64,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — the manual key acts locally; the host arbitrates.
 - [World/layer generation identity](review/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
 - [Remaining generation-relative families](review/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.

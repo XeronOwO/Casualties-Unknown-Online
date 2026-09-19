@@ -295,7 +295,12 @@ domain"). Per-surface notes:
   `RecipeUnlockMsg` — every side applies it to its per-process static. The
   native "learned recipe" popup (Item.cs:4285-4287) now also replays on the
   other sides for a NEW unlock and is suppressed on the acting side
-  (#195, `docs/evidence/selfchecks/world/blueprint-popup-selfcheck.md`).
+  (#195, `docs/evidence/selfchecks/world/blueprint-popup-selfcheck.md`). The
+  one-shot report has an absolute SET beside it (`RecipeUnlockSnapshot`,
+  decision 186): the host sends its live table's unlocked indices on the
+  world-entry and 60 s repair groups, a guest re-reports its own set until the
+  host's set carries it, and a backfill applies silently — a catch-up is not a
+  learn, so no alert (`review/recipe-unlock-fallback.md`).
 - **Enum component fields (codec kind 6)**: `GunScript.roundInChamber` and the
   ammo/firing-mode enums now ride the component digest (stored as the
   underlying int). The gun's live state (hasMag/roundsInMag/racked/safe —

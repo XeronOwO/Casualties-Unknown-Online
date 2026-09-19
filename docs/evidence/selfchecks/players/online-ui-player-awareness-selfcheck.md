@@ -12,7 +12,7 @@ selector when several remotes overlap at the right-click point.
 |---|---|
 | Existing nameplate/arrow path | `OnlineUiOverlay.DrawNameplatesAndArrows` iterates `EntitySyncService.RemotePlayers`, projects each authoritative position and routes through `OffScreenArrowGeometry.Place`. |
 | Local position source | `EntitySyncService.LocalPlayer.Position` is the local player's authoritative world position (already published by the adapter). |
-| Distance units | The game uses world units as metres for movement/speed fields (e.g. the world-time policy's `0.5 m/s` gate), so the UI displays world delta directly as metres. |
+| Distance units | The game uses world units as metres for movement/speed fields, so the UI displays world delta directly as metres. |
 | Color source | `PlayerColorResolver` maps SteamId → one of eight high-contrast palette entries; the mapping is deterministic and local-only. |
 | Overlap hit-test | `RemoteTargetPicker.Find` returns every `RemoteScreenTarget` inside the click radius, ordered by squared distance with SteamId tie-break. |
 

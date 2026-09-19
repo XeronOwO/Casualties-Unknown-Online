@@ -10,10 +10,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 ///   HandleUnconsciousScreen scope before it reaches the bridge;
 /// - the host's local calls run (authority) and the postfix reports the
 ///   applied speed for broadcast;
-/// - a guest's Normal/Fast/SuperFast local calls never write timeScale —
-///   they become WorldTimeRequest reports; UnconsciousFast/DyingFast are
-///   host-owned and swallowed; Slowmo/Paused and forced local transitions
-///   stay local-only (recorded presentation semantics).
+/// - a guest's Normal/Fast/SuperFast local call is LOCAL FIRST: it writes this
+///   client's clock at once and becomes a WorldTimeRequest report that the host
+///   answers; UnconsciousFast/DyingFast are host-owned and swallowed;
+///   Slowmo/Paused and forced local transitions stay local-only (recorded
+///   presentation semantics).
 /// </summary>
 [HarmonyPatch(typeof(PlayerCamera), "SetTimeScale")]
 internal static class PlayerCameraSetTimeScalePatch

@@ -197,7 +197,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 		using (_latency.Measure("WorldTime"))
 		{
-			_domains.WorldTimeSync.Update(); // host policy + direct-write adoption + resend; guest enforcement of the host speed
+			_domains.WorldTimeSync.Update(); // host policy + direct-write adoption + resend; guest ramp stepping and host-speed enforcement (suspended while a local initiation is in flight)
 		}
 
 		// World-entry edge: the teardown of the PREVIOUS scene finished (its

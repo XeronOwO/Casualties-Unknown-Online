@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 847,
+  "count": 849,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -2102,7 +2102,7 @@
       "cluster": "run-world",
       "row": "R2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
-      "quote": "WorldTime = 91, // host → guest: the authoritative world-time speed (change / world entry / 5 s resend)"
+      "quote": "WorldTime = 91, // host → guest: the authoritative world-time speed (change / request answer / world entry / 5 s resend)"
     },
     {
       "cluster": "run-world",
@@ -2132,7 +2132,19 @@
       "cluster": "run-world",
       "row": "R2",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs",
-      "quote": "_worldTime.SendRequest(ToWorldTimeSpeed(speed));"
+      "quote": "_worldTime.SendRequest(intent);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs",
+      "quote": "private void Answer() => _worldTime.Broadcast(_appliedSpeed);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldTimeLocalInitiation.cs",
+      "quote": "public sealed class WorldTimeLocalInitiation"
     },
     {
       "cluster": "run-world",
@@ -4382,7 +4394,7 @@
       "cluster": "inline",
       "row": "R2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
-      "quote": "WorldTimeRequest = 90, // guest → host: request Normal/Fast/SuperFast"
+      "quote": "WorldTimeRequest = 90, // guest → host: a speed the guest already applied locally (hotkey / native movement reset)"
     },
     {
       "cluster": "inline",

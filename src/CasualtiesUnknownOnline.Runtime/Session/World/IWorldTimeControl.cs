@@ -10,10 +10,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// </summary>
 public interface IWorldTimeControl
 {
-	/// <summary>Guest only: report the local speed hotkey/movement-reset intent to the host (the host applies policy).</summary>
+	/// <summary>Guest only: report a speed the local client has ALREADY applied (hotkey, or the native left/right movement reset) — the host arbitrates it and answers through the broadcast.</summary>
 	void SendRequest(WorldTimeSpeed speed);
 
-	/// <summary>Host only: broadcast the authoritative world-time speed to every synced member.</summary>
+	/// <summary>Host only: broadcast the authoritative speed to every synced member — a change, the world-entry fan-out, the 5 s resend, and the answer to a request (an unchanged answer settles the initiator's pending local initiation).</summary>
 	void Broadcast(WorldTimeSpeed speed);
 
 	/// <summary>Host: a guest's world-time request arrived.</summary>

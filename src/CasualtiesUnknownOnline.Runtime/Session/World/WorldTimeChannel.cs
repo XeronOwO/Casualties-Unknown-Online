@@ -6,22 +6,24 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
 /// <summary>
 /// The world-time message plumbing (host authority, star shaped): a guest
-/// reports its speed intent up, the host broadcasts the authoritative speed
-/// down. Owns no policy — the Game Adapter's WorldTimeSync owns the request
-/// state and the all-unconscious sleep decisions; this only moves frames.
+/// reports the speed its own client has already applied, the host broadcasts
+/// the authoritative speed down. Owns no policy — the Game Adapter's
+/// WorldTimeSync owns the accept-first arbitration, the local-initiation
+/// reconciliation and the all-unconscious sleep decisions; this only moves
+/// frames.
 /// </summary>
 public sealed class WorldTimeChannel(ISessionControl session, PacketSender sender) : IWorldTimeControl
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 
-	/// <summary>Host: a guest requested a world-time speed.</summary>
+	/// <summary>Host: a guest applied a speed locally and reported it.</summary>
 	public event Action<ulong, WorldTimeSpeed>? RequestReceived;
 
-	/// <summary>Guest: the host broadcast the authoritative world-time speed.</summary>
+	/// <summary>Guest: the host broadcast the authoritative speed (a change, the resend, or the answer to this client's request).</summary>
 	public event Action<WorldTimeSpeed>? TimeReceived;
 
-	/// <summary>Guest only: report the local speed intent to the host.</summary>
+	/// <summary>Guest only: report a locally applied speed to the host.</summary>
 	public void SendRequest(WorldTimeSpeed speed)
 	{
 		if (_session.Role != SessionRole.Guest || !_session.SessionActive)

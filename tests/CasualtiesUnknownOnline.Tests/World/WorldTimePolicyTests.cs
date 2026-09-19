@@ -5,38 +5,46 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.World;
 
 /// <summary>
-/// The pure world-time policy: movement forces Normal and clears the request,
-/// manual Fast/SuperFast requests are cooperative — they are ignored unless the
-/// all-unconscious sleep branch already accelerates — all-unconscious sleep
-/// acceleration applies only when every in-world ALIVE player is below the
-/// game's black-screen threshold, a dying player slows the session to 3.5×,
-/// dead players are ignored, and an unobserved player blocks every acceleration
-/// (safety, never speed over a just-joined member).
+/// The pure world-time policy: the all-unconscious sleep acceleration owns the
+/// clock while it applies (its speed, request cleared) and refuses to accelerate
+/// over an unobserved player; otherwise the standing request is honored, so a
+/// manual Fast/SuperFast request no longer needs an asleep group (user ruling
+/// 2026-09-18). Movement is not an input at all: a movement key is the mover's
+/// own action, taken on that player's client and reported like any other speed
+/// change.
 /// </summary>
 public class WorldTimePolicyTests
 {
-	private static WorldTimePlayerState Awake(float vx = 0f, float vy = 0f, float consciousness = 80f) =>
-		new(true, true, consciousness, false, vx, vy);
+	private static WorldTimePlayerState Awake(float consciousness = 80f) => new(true, true, consciousness, false);
 
-	private static WorldTimePlayerState Asleep(bool brainDying = false, float consciousness = 10f) =>
-		new(true, true, consciousness, brainDying, 0f, 0f);
+	private static WorldTimePlayerState Asleep(bool brainDying = false, float consciousness = 10f) => new(true, true, consciousness, brainDying);
 
-	private static WorldTimePlayerState Dead() =>
-		new(true, false, 0f, false, 0f, 0f);
+	private static WorldTimePlayerState Dead() => new(true, false, 0f, false);
+
+	private static WorldTimePlayerState Unknown() => new(false, false, 0f, false);
 
 	[Theory]
 	[InlineData(WorldTimeSpeed.Fast)]
 	[InlineData(WorldTimeSpeed.SuperFast)]
-	public void AwakePlayer_BlocksManualAcceleration(WorldTimeSpeed requested)
+	public void ManualAcceleration_StandsWhileTeammatesAreAwake(WorldTimeSpeed requested)
 	{
-		var decision = WorldTimePolicy.Decide(requested, [Awake()]);
+		var decision = WorldTimePolicy.Decide(requested, [Awake(), Awake(consciousness: 40f)]);
 
-		Assert.Equal(WorldTimeSpeed.Normal, decision.Speed);
-		Assert.Equal(WorldTimeSpeed.Normal, decision.NextRequested);
+		Assert.Equal(requested, decision.Speed);
+		Assert.Equal(requested, decision.NextRequested);
 	}
 
 	[Fact]
-	public void NormalRequest_StandsForAwakeIdlePlayer()
+	public void ManualAcceleration_IsNotCancelledByAJustJoinedPlayer()
+	{
+		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Fast, [Awake(), Unknown()]);
+
+		Assert.Equal(WorldTimeSpeed.Fast, decision.Speed);
+		Assert.Equal(WorldTimeSpeed.Fast, decision.NextRequested);
+	}
+
+	[Fact]
+	public void NormalRequest_StandsForAnAwakePlayer()
 	{
 		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Normal, [Awake()]);
 
@@ -44,35 +52,21 @@ public class WorldTimePolicyTests
 		Assert.Equal(WorldTimeSpeed.Normal, decision.NextRequested);
 	}
 
-	[Theory]
-	[InlineData(0.6f, 0f)]
-	[InlineData(0f, -0.6f)]
-	[InlineData(0.4f, 0.4f)]
-	public void MovingPlayer_ForcesNormalAndClearsRequest(float vx, float vy)
-	{
-		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.SuperFast, [Awake(vx, vy)]);
-
-		Assert.Equal(WorldTimeSpeed.Normal, decision.Speed);
-		Assert.Equal(WorldTimeSpeed.Normal, decision.NextRequested);
-	}
-
 	[Fact]
-	public void UnconsciousPlayerVelocity_DoesNotCountAsMovement()
-	{
-		// A ragdoll/unconscious body can carry velocity without input — sleep
-		// acceleration must still be eligible.
-		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Fast, [Asleep(consciousness: 10f) with { VelocityX = 2f }]);
-
-		Assert.Equal(WorldTimeSpeed.UnconsciousFast, decision.Speed);
-	}
-
-	[Fact]
-	public void AllUnconscious_AcceleratesTo25AndClearsRequest()
+	public void AllUnconscious_AcceleratesTo25AndClearsTheRequest()
 	{
 		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Fast, [Asleep(), Asleep()]);
 
 		Assert.Equal(WorldTimeSpeed.UnconsciousFast, decision.Speed);
 		Assert.Equal(WorldTimeSpeed.Normal, decision.NextRequested);
+	}
+
+	[Fact]
+	public void SleepOwnsTheClockOverAStandingManualRequest()
+	{
+		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.SuperFast, [Asleep(), Asleep()]);
+
+		Assert.Equal(WorldTimeSpeed.UnconsciousFast, decision.Speed);
 	}
 
 	[Fact]
@@ -84,12 +78,20 @@ public class WorldTimePolicyTests
 	}
 
 	[Fact]
-	public void AnyAwakePlayer_BlocksManualAndSleepAcceleration()
+	public void AnyAwakePlayer_BlocksSleepAcceleration()
 	{
-		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Fast, [Asleep(), Awake()]);
+		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Normal, [Asleep(), Awake()]);
 
 		Assert.Equal(WorldTimeSpeed.Normal, decision.Speed);
 		Assert.Equal(WorldTimeSpeed.Normal, decision.NextRequested);
+	}
+
+	[Fact]
+	public void UnknownPlayerState_BlocksSleepAcceleration()
+	{
+		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Normal, [Asleep(), Unknown()]);
+
+		Assert.Equal(WorldTimeSpeed.Normal, decision.Speed);
 	}
 
 	[Fact]
@@ -109,10 +111,9 @@ public class WorldTimePolicyTests
 	}
 
 	[Fact]
-	public void UnknownPlayerState_ForcesNormalAndBlocksSleep()
+	public void AnUnrepresentableRequest_DegradesToNormal()
 	{
-		var unknown = new WorldTimePlayerState(false, false, 0f, false, 0f, 0f);
-		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Fast, [Asleep(), unknown]);
+		var decision = WorldTimePolicy.Decide((WorldTimeSpeed)7, [Awake()]);
 
 		Assert.Equal(WorldTimeSpeed.Normal, decision.Speed);
 		Assert.Equal(WorldTimeSpeed.Normal, decision.NextRequested);
@@ -127,12 +128,13 @@ public class WorldTimePolicyTests
 	public void GuestRequests_OnlyManualSpeeds(WorldTimeSpeed speed, bool expected) =>
 		Assert.Equal(expected, WorldTimePolicy.IsGuestRequestSpeed(speed));
 
-	[Fact]
-	public void EmptyWorld_DoesNotAccelerate()
-	{
-		var decision = WorldTimePolicy.Decide(WorldTimeSpeed.Fast, []);
-
-		Assert.Equal(WorldTimeSpeed.Normal, decision.Speed);
-		Assert.Equal(WorldTimeSpeed.Normal, decision.NextRequested);
-	}
+	[Theory]
+	[InlineData(WorldTimeSpeed.Normal, WorldTimeSpeed.Normal)]
+	[InlineData(WorldTimeSpeed.Fast, WorldTimeSpeed.Fast)]
+	[InlineData(WorldTimeSpeed.SuperFast, WorldTimeSpeed.SuperFast)]
+	[InlineData(WorldTimeSpeed.UnconsciousFast, WorldTimeSpeed.UnconsciousFast)]
+	[InlineData(WorldTimeSpeed.DyingFast, WorldTimeSpeed.DyingFast)]
+	[InlineData((WorldTimeSpeed)9, WorldTimeSpeed.Normal)]
+	public void NormalizeSpeed_KeepsTheFiveWireSpeedsAndRejectsTheRest(WorldTimeSpeed speed, WorldTimeSpeed expected) =>
+		Assert.Equal(expected, WorldTimePolicy.NormalizeSpeed(speed));
 }

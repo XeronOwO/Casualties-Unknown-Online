@@ -12,18 +12,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
 /// The multiplayer world-time domain (host authority). Time.timeScale is
-/// process-global world state, so exactly one side owns it: the host. Guests
-/// report their speed intents (WorldTimeRequest) and apply host broadcasts;
-/// their local SetTimeScale writes for manual speeds and the vanilla
-/// unconscious fast-forward are suppressed by the thin patches. The host
-/// policy is pure (WorldTimePolicy): movement forces Normal, sleep
-/// acceleration applies only when EVERY in-world player is unconscious, and a
-/// request is cleared when either override fires — a fast-forward never
-/// re-applies itself later. Manual Fast/SuperFast requests are cooperative:
-/// while anyone is awake the session stays Normal; when everyone is asleep the
-/// sleep policy already supplies the acceleration. Direct Time.timeScale
-/// writers (quake reset, console) are re-adopted by the host pump and
-/// corrected on guests; the 5 s resend + world-entry fan-out heal late
+/// process-global world state, so exactly one side owns it: the host. A manual
+/// speed change is LOCAL FIRST (user ruling 2026-09-18, decision 184): the
+/// initiator's own client applies it at once and reports the intent
+/// (WorldTimeRequest), the host arbitrates accept-first and answers with the
+/// authoritative speed, and the initiator reconciles through
+/// WorldTimeLocalInitiation — a refused or overridden intent ramps back to the
+/// host's value, never snaps. The vanilla per-side unconscious fast-forward
+/// stays suppressed by its own patch, and the host policy is pure
+/// (WorldTimePolicy): the all-unconscious gate owns the clock while it applies
+/// and clears the request, otherwise the standing request is honored. Direct
+/// Time.timeScale writers (quake reset, console) are re-adopted by the host pump
+/// and corrected on guests; the 5 s resend + world-entry fan-out heal late
 /// joiners and local-only effects.
 /// </summary>
 internal sealed class WorldTimeSync(
@@ -46,6 +46,7 @@ internal sealed class WorldTimeSync(
 	/// <summary>The host-side resend interval — the idempotent self-heal for lazy sessions, reconnects and local-only time effects.</summary>
 	private const float ResendIntervalSeconds = 5f;
 
+	private readonly WorldTimeLocalInitiation _initiation = new();
 	private WorldTimeSpeed _requestedSpeed = WorldTimeSpeed.Normal;
 	private WorldTimeSpeed _appliedSpeed = WorldTimeSpeed.Normal;
 	private float _nextResendTime;
@@ -68,7 +69,7 @@ internal sealed class WorldTimeSync(
 		_session.SessionEnded -= OnSessionEnded;
 	}
 
-	/// <summary>Pump: host policy + direct-write adoption + the 5 s resend; guest enforcement of the last host speed.</summary>
+	/// <summary>Pump: host policy + direct-write adoption + the 5 s resend; guest ramp stepping and enforcement of the host's last speed (suspended while a local initiation is in flight).</summary>
 	internal void Update()
 	{
 		if (!_session.SessionActive || _run.LocalBody == null || _gate.WaitingForReady) // Unity object — ==
@@ -90,6 +91,24 @@ internal sealed class WorldTimeSync(
 			return;
 		}
 
+		if (_initiation.IsRamping)
+		{
+			var step = _initiation.AdvanceRamp(Time.unscaledDeltaTime);
+			Time.timeScale = step.TimeScale;
+			if (step.Done)
+			{
+				ApplyLocalTime(_appliedSpeed); // the exact host value, through the normal path (HUD + sound)
+				_log.LogInformation("[WorldTime] local clock returned to the host's {Speed}.", _appliedSpeed);
+			}
+
+			return;
+		}
+
+		if (_initiation.SuspendsEnforcement)
+		{
+			return; // the initiator's lead window — the local clock is deliberately ahead of the host's
+		}
+
 		EnforceAppliedSpeed();
 	}
 
@@ -97,8 +116,10 @@ internal sealed class WorldTimeSync(
 	/// PlayerCamera.SetTimeScale is about to run on this side (outside CUO
 	/// apply/sleep scopes). Host: allow — it is the authority, the postfix
 	/// reports the change. Guest: forced local transitions and local-only
-	/// Slowmo/Paused stay; manual speeds become requests, sleep speeds are
-	/// host-owned and swallowed.
+	/// Slowmo/Paused stay; a manual speed (hotkey, or the native left/right
+	/// movement reset) is LOCAL FIRST — it writes this client's clock now and is
+	/// reported as an intent to the host; sleep speeds are host-owned and
+	/// swallowed; the start gate keeps the clock for itself.
 	/// </summary>
 	internal bool OnTimeScaleSetRequested(PlayerCamera.SpeedType speed, bool force)
 	{
@@ -117,9 +138,20 @@ internal sealed class WorldTimeSync(
 			case PlayerCamera.SpeedType.Normal:
 			case PlayerCamera.SpeedType.Fast:
 			case PlayerCamera.SpeedType.SuperFast:
-				_log.LogInformation("[WorldTime] guest speed intent {Speed} — reporting to host.", speed);
-				_worldTime.SendRequest(ToWorldTimeSpeed(speed));
-				return false;
+				if (_run.LocalBody == null || _gate.WaitingForReady) // Unity object — ==
+				{
+					_log.LogInformation("[WorldTime] guest {Speed} stays local-only — the start gate owns the world clock.", speed);
+					return false;
+				}
+
+				var intent = ToWorldTimeSpeed(speed);
+				_initiation.BeginLocalInitiation(intent);
+				_log.LogInformation(
+					"[WorldTime] guest {Speed} applied locally and reported (host authority {Authority}).",
+					intent,
+					_initiation.Authoritative);
+				_worldTime.SendRequest(intent);
+				return true; // local-first: the native call writes this client's clock at once
 			case PlayerCamera.SpeedType.UnconsciousFast:
 			case PlayerCamera.SpeedType.DyingFast:
 				_log.LogInformation("[WorldTime] guest sleep fast-forward suppressed — the host's all-unconscious policy owns it.");
@@ -131,10 +163,9 @@ internal sealed class WorldTimeSync(
 
 	/// <summary>
 	/// The host's local SetTimeScale just ran — adopt the speed as the request
-	/// (manual speeds only) and run the policy immediately so movement or
-	/// sleep overrides correct it in the same frame. Apply/sleep scopes are
-	/// excluded: the apply scope already owns its broadcast, the sleep scope
-	/// never ran.
+	/// (manual speeds only) and run the policy immediately so the sleep gate
+	/// corrects it in the same frame. Apply/sleep scopes are excluded: the apply
+	/// scope already owns its broadcast, the sleep scope never ran.
 	/// </summary>
 	internal void OnLocalTimeScaleChanged(PlayerCamera.SpeedType speed)
 	{
@@ -162,6 +193,17 @@ internal sealed class WorldTimeSync(
 		TryApplyPolicy();
 	}
 
+	/// <summary>
+	/// A guest's local initiation arrived. Arbitration is ACCEPT FIRST (user
+	/// ruling 2026-09-18): only a request this host cannot represent is refused —
+	/// not an in-world member, not a guest-requestable speed, the start gate
+	/// owning the clock. EVERY path ANSWERS with the authoritative speed: an
+	/// accepted request that does not change the speed still settles the
+	/// initiator's pending intent, a refusal is how it learns to return to the
+	/// host's value, and a silent drop would leave that client's local initiation
+	/// pending — and therefore its enforcement of the host clock suspended —
+	/// until the next 5 s resend.
+	/// </summary>
 	private void OnRequestReceived(ulong sender, WorldTimeSpeed speed)
 	{
 		if (!IsHostMode)
@@ -171,27 +213,43 @@ internal sealed class WorldTimeSync(
 
 		if (!_session.TryGetMember(sender, out var member) || !member.Handshaken || !member.InWorld)
 		{
-			_log.LogWarning("[WorldTime] refused request from {Sender} (not an in-world member).", sender);
+			_log.LogWarning("[WorldTime] refused request from {Sender} (not an in-world member) — answered with the authoritative {Speed}.", sender, _appliedSpeed);
+			Answer();
 			return;
 		}
 
 		if (_gate.WaitingForReady)
 		{
 			_log.LogInformation("[WorldTime] ignored {Speed} request from {Sender} — the start gate owns the world clock.", speed, sender);
+			Answer(); // the verdict still goes out: an unanswered request suspends the initiator's enforcement
 			return;
 		}
 
 		if (!WorldTimePolicy.IsGuestRequestSpeed(speed))
 		{
-			_log.LogWarning("[WorldTime] refused invalid guest request {Speed} from {Sender}.", speed, sender);
+			_log.LogWarning("[WorldTime] refused invalid guest request {Speed} from {Sender} — answered with the authoritative {Applied}.", speed, sender, _appliedSpeed);
+			Answer();
 			return;
 		}
 
-		_log.LogInformation("[WorldTime] host received {Speed} request from {Sender}.", speed, sender);
+		_log.LogInformation("[WorldTime] host accepted {Speed} request from {Sender}.", speed, sender);
 		_requestedSpeed = speed;
-		TryApplyPolicy();
+		if (!TryApplyPolicy())
+		{
+			Answer(); // accepted and unchanged — the initiator still needs its verdict now
+		}
 	}
 
+	/// <summary>Send the authoritative speed as the answer to a request (idempotent for members already on it).</summary>
+	private void Answer() => _worldTime.Broadcast(_appliedSpeed);
+
+	/// <summary>
+	/// The host's authoritative speed arrived — including the answer to this
+	/// client's own request. The local initiation owns the verdict decision
+	/// (confirm / adopt / ramp) and this method only applies what it returns, so
+	/// an acceleration in flight is never fought by its own enforcement and an
+	/// idempotent resend still writes nothing.
+	/// </summary>
 	private void OnTimeReceived(WorldTimeSpeed speed)
 	{
 		if (IsHostMode)
@@ -199,16 +257,25 @@ internal sealed class WorldTimeSync(
 			return; // direction guard — the host never applies its own broadcast
 		}
 
-		var incoming = Normalize(speed);
-		if (incoming == _appliedSpeed)
-		{
-			return; // the 5 s periodic resend is idempotent — do not replay the speed-change UI sound every tick
-		}
-
+		var incoming = WorldTimePolicy.NormalizeSpeed(speed);
+		var pending = _initiation.Pending;
+		var reconcile = _initiation.OnAuthoritative(incoming, Time.timeScale);
 		_appliedSpeed = incoming;
-		if (!_gate.WaitingForReady)
+
+		switch (reconcile)
 		{
-			ApplyLocalTime(_appliedSpeed); // during the start gate the gate owns timeScale 0; Update enforces the host speed on release
+			case WorldTimeReconcile.Adopt:
+				if (!_gate.WaitingForReady)
+				{
+					ApplyLocalTime(_appliedSpeed); // during the start gate the gate owns timeScale 0; Update enforces the host speed on release
+				}
+
+				break;
+			case WorldTimeReconcile.Ramp:
+				_log.LogInformation("[WorldTime] host answered {Speed} for the locally applied {Pending} — ramping back.", incoming, pending);
+				break;
+			default:
+				break; // confirmed or idempotent — the clock already runs this value, so no sound is replayed
 		}
 	}
 
@@ -226,49 +293,56 @@ internal sealed class WorldTimeSync(
 	{
 		_requestedSpeed = WorldTimeSpeed.Normal;
 		_appliedSpeed = WorldTimeSpeed.Normal;
+		_initiation.ResetSession();
 		_nextResendTime = 0f;
 	}
 
 	/// <summary>
 	/// Host policy step: build the per-player facts (local body health + the
-	/// 20 Hz velocity buffers + the host's 1 Hz character-data store for the
-	/// guests' consciousness/blood pressure), decide, keep the policy's next
-	/// request and apply/broadcast only on a real change.
+	/// host's 1 Hz character-data store for the guests' consciousness/blood
+	/// pressure), decide, keep the policy's next request and apply/broadcast only
+	/// on a real change. Returns whether a change was broadcast — a caller that
+	/// owes a requester an answer sends one when this returns false.
 	/// </summary>
-	private void TryApplyPolicy()
+	private bool TryApplyPolicy()
 	{
 		if (_run.LocalBody == null || _gate.WaitingForReady) // Unity object — ==
 		{
-			return; // the start gate owns timeScale 0 while everyone loads
+			return false; // the start gate owns timeScale 0 while everyone loads
 		}
 
 		var decision = WorldTimePolicy.Decide(_requestedSpeed, CapturePlayerStates());
 		_requestedSpeed = decision.NextRequested;
 		if (decision.Speed == _appliedSpeed)
 		{
-			return;
+			return false;
 		}
 
 		_appliedSpeed = decision.Speed;
 		ApplyLocalTime(_appliedSpeed);
 		_worldTime.Broadcast(_appliedSpeed);
 		_log.LogInformation("[WorldTime] host policy applied {Speed} (next request {Request}).", _appliedSpeed, _requestedSpeed);
+		return true;
 	}
 
+	/// <summary>
+	/// The per-player facts the sleep gate needs: the local body's health plus
+	/// the host's 1 Hz character-data store for the guests, with the remote body
+	/// proxy as the "this host can observe that member" requirement. No velocity
+	/// is read — a movement key is the mover's own action, never a host-side veto
+	/// (decision 184).
+	/// </summary>
 	private List<WorldTimePlayerState> CapturePlayerStates()
 	{
 		var players = new List<WorldTimePlayerState>();
 		var localBody = _run.LocalBody;
 		if (localBody != null) // Unity object — ==
 		{
-			var velocity = _entities.LocalPlayer.Velocity;
 			players.Add(new WorldTimePlayerState(
 				StateKnown: true,
 				Alive: localBody.alive,
 				Consciousness: localBody.consciousness,
-				BrainDying: localBody.brainDying,
-				VelocityX: velocity.X,
-				VelocityY: velocity.Y));
+				BrainDying: localBody.brainDying));
 		}
 
 		foreach (var member in _session.Members)
@@ -278,18 +352,13 @@ internal sealed class WorldTimeSync(
 				continue;
 			}
 
-			var data = _characterData.GetSavedCharacter(member.SteamId);
-			var health = data?.Health;
+			var health = _characterData.GetSavedCharacter(member.SteamId)?.Health;
 			var entity = _entities.GetRemotePlayer(member.SteamId);
-			var velocity = entity?.Velocity ?? default;
-			var stateKnown = health != null && entity != null;
 			players.Add(new WorldTimePlayerState(
-				StateKnown: stateKnown,
+				StateKnown: health != null && entity != null,
 				Alive: health?.Alive ?? false,
 				Consciousness: health?.Consciousness ?? WorldTimePolicy.SleepConsciousnessThreshold + 1f,
-				BrainDying: health != null && health.BloodPressure < 10f && health.Consciousness < 5f,
-				VelocityX: velocity.X,
-				VelocityY: velocity.Y));
+				BrainDying: health != null && health.BloodPressure < 10f && health.Consciousness < 5f));
 		}
 
 		return players;
@@ -303,7 +372,7 @@ internal sealed class WorldTimeSync(
 	/// </summary>
 	private void AdoptDirectTimeScaleWrite()
 	{
-		var actual = MapTimeScaleToWorldTime(Time.timeScale);
+		var actual = WorldTimeSpeedScale.FromTimeScale(Time.timeScale);
 		if (actual == null || actual == _appliedSpeed)
 		{
 			return;
@@ -323,7 +392,7 @@ internal sealed class WorldTimeSync(
 	/// </summary>
 	private void EnforceAppliedSpeed()
 	{
-		var actual = MapTimeScaleToWorldTime(Time.timeScale);
+		var actual = WorldTimeSpeedScale.FromTimeScale(Time.timeScale);
 		if (actual != null && actual != _appliedSpeed)
 		{
 			ApplyLocalTime(_appliedSpeed);
@@ -345,13 +414,6 @@ internal sealed class WorldTimeSync(
 		}
 	}
 
-	private static WorldTimeSpeed Normalize(WorldTimeSpeed speed) => speed switch
-	{
-		WorldTimeSpeed.Normal or WorldTimeSpeed.Fast or WorldTimeSpeed.SuperFast
-			or WorldTimeSpeed.UnconsciousFast or WorldTimeSpeed.DyingFast => speed,
-		_ => WorldTimeSpeed.Normal,
-	};
-
 	private static PlayerCamera.SpeedType ToGameSpeed(WorldTimeSpeed speed) => speed switch
 	{
 		WorldTimeSpeed.Fast => PlayerCamera.SpeedType.Fast,
@@ -369,39 +431,4 @@ internal sealed class WorldTimeSync(
 		PlayerCamera.SpeedType.DyingFast => WorldTimeSpeed.DyingFast,
 		_ => WorldTimeSpeed.Normal,
 	};
-
-	private static WorldTimeSpeed? MapTimeScaleToWorldTime(float timeScale)
-	{
-		if (timeScale <= 0.1f)
-		{
-			return null; // Paused (0) and Slowmo (0.16) are local-only
-		}
-
-		if (Mathf.Abs(timeScale - 1f) < 0.01f)
-		{
-			return WorldTimeSpeed.Normal;
-		}
-
-		if (Mathf.Abs(timeScale - 3.5f) < 0.05f)
-		{
-			return WorldTimeSpeed.DyingFast;
-		}
-
-		if (Mathf.Abs(timeScale - 5f) < 0.05f)
-		{
-			return WorldTimeSpeed.Fast;
-		}
-
-		if (Mathf.Abs(timeScale - 20f) < 0.2f)
-		{
-			return WorldTimeSpeed.SuperFast;
-		}
-
-		if (Mathf.Abs(timeScale - 25f) < 0.25f)
-		{
-			return WorldTimeSpeed.UnconsciousFast;
-		}
-
-		return null;
-	}
 }

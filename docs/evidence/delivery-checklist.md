@@ -45,7 +45,7 @@ evidence file.
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
       process violation — evidence: work-item choice is the agent's per AGENTS.md rule 9; the ticket's own proposals and the handoff's order were followed
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet build 0/0; dotnet format exit 0; normative gates 68/68; full suite with build 3435 + 68 green
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet build 0/0; dotnet format exit 0; normative gates 69/69; full suite with build 3435 + 69 green
 - [x] Structure review done (touched classes <= 600 lines, state bools,
       dead mechanisms deleted in the same round) — evidence: touched classes under 600 lines (largest SessionService 546, WorldEventSync 528); new EntryRepairSchedule 68; no dead path left
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the

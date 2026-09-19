@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 
 namespace CasualtiesUnknownOnline.Tests.Persistence;
@@ -17,5 +18,14 @@ internal sealed class FakeRestoredWorldItemSource : IRestoredWorldItemSource
 	/// <summary>Whether a restore's world items are still waiting for the generation reconcile.</summary>
 	internal bool Armed { get; set; }
 
+	/// <summary>Every cancellation reason the save layer passed, in order — an armed set must never disappear silently.</summary>
+	internal List<string> Cancels { get; } = [];
+
 	public bool RestoredWorldItemsPending => Armed;
+
+	public void CancelRestoredWorldItems(string reason)
+	{
+		Cancels.Add(reason);
+		Armed = false;
+	}
 }

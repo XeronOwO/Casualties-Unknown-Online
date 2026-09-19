@@ -249,7 +249,7 @@ public sealed class RestoredWorldFactReplayTests
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
 		facts.ApplyFacts([], null, Attempt); // the click applies the cut's fact set, then opens the account for that attempt
-		audit.BeginRestore("w-recipes", Attempt);
+		audit.BeginRestore("w-recipes", Attempt, [WorldRestoreHalf.WorldFacts]);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
 		native.ApplyRecipeUnlocks(
 		[
@@ -282,7 +282,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-audit", Attempt);
+		audit.BeginRestore("w-audit", Attempt, [WorldRestoreHalf.WorldFacts]);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
@@ -306,7 +306,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-complete", Attempt);
+		audit.BeginRestore("w-complete", Attempt, [WorldRestoreHalf.WorldFacts]);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
@@ -331,7 +331,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-threw", Attempt);
+		audit.BeginRestore("w-threw", Attempt, [WorldRestoreHalf.WorldFacts]);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
@@ -361,7 +361,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-entity-threw", Attempt, expectedContributions: 2);
+		audit.BeginRestore("w-entity-threw", Attempt, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities]);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
@@ -408,7 +408,7 @@ public sealed class RestoredWorldFactReplayTests
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
 		facts.ApplyFacts([], null, Attempt);
-		audit.BeginRestore("w-empty", Attempt);
+		audit.BeginRestore("w-empty", Attempt, [WorldRestoreHalf.WorldFacts]);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
 
 		replay.ApplyIfPending();
@@ -460,7 +460,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-layer-end", Attempt);
+		audit.BeginRestore("w-layer-end", Attempt, [WorldRestoreHalf.WorldFacts]);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
@@ -486,7 +486,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-entities", Attempt, expectedContributions: 2);
+		audit.BeginRestore("w-entities", Attempt, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities]);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
@@ -520,7 +520,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-row-contained", Attempt, expectedContributions: 2);
+		audit.BeginRestore("w-row-contained", Attempt, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities]);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
@@ -558,7 +558,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-midrun", Attempt, expectedContributions: 3);
+		audit.BeginRestore("w-midrun", Attempt, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities, WorldRestoreHalf.WorldItems]);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
@@ -567,10 +567,10 @@ public sealed class RestoredWorldFactReplayTests
 
 		Assert.Empty(reports);
 		Assert.Equal(2, audit.Contributions);
-		Assert.Equal(3, audit.ExpectedContributions);
+		Assert.Equal(3, audit.ExpectedHalves.Count);
 		Assert.True(audit.AwaitingLiveWrite);
 
-		audit.LiveWriteFinished(Attempt, complete: true, refused: [], summary: "the generation reconciled the restored item set (3 entries)");
+		audit.LiveWriteFinished(WorldRestoreHalf.WorldItems, Attempt, complete: true, refused: [], summary: "the generation reconciled the restored item set (3 entries)");
 
 		var report = Assert.Single(reports);
 		Assert.True(report.Complete);
@@ -591,7 +591,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-threw-entities", Attempt, expectedContributions: 2);
+		audit.BeginRestore("w-threw-entities", Attempt, [WorldRestoreHalf.WorldFacts, WorldRestoreHalf.WorldEntities]);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
@@ -621,7 +621,7 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-generation", Attempt);
+		audit.BeginRestore("w-generation", Attempt, [WorldRestoreHalf.WorldFacts]);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 

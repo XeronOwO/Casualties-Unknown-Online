@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: KernelProtocolService.HandleCheckpoint + GameStateStore.Restore + WireCheckpointAssembler + every SendCheckpoint site + both transports read at HEAD
+      file:line or runtime log) or is explicitly marked unverified — evidence: the release sites of all four arms read at HEAD (audit, projection, save service, item set); the ticket's family table names each verdict
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the sibling kernel paths (StateStream/Command/CommittedBatch) already compared the epoch; the checkpoint receive path was the only gap; matrix K4/R3 + decision 194 moved together
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's 7-row acceptance matrix names a test per row; the independent review (fresh context, mutation probes) found 4 majors + 6 minors, all fixed in this commit
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: every release site swept (ticket's family table); the duplicate release is the expected seam-then-owner shape, the unowed half and the mismatched attempt stay loud
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's 10-row acceptance mapping names a test per row; independent review (fresh context, 11 mutation probes) found 0 blocker/0 major, 3 minor + 3 nits, all fixed in this commit
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused green (KernelProtocolServiceTests 34, NetPacketTests 34, KernelWireMapperTests 12); pre-fix red recorded for 4 of the 5 originals; wire behaviour is the user's dual-client pass
+      peer log comparison, hotrepl assertions) is decided — evidence: focused 89/89 green; pre-fix red recorded for all three session-end cases; the console line and the in-game session end belong to the user's acceptance pass
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: work item taken from the handoff + its ticket priority; no gameplay/UI decision arises (protocol validation), so no user round trip was needed
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; full suite with build 3495/3495; normative gates 69/69
+      process violation — evidence: work item taken from the handoff + the ticket's own priority; no gameplay/UI design decision arises (restore accounting), so no user round trip was needed
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; full suite with build 3505/3505; normative gates 69/69
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: KernelProtocolService 512 lines after extracting GuestCheckpointReceiver (600-line gate); no dead mechanism left; every review finding fixed in this commit
+      dead mechanisms deleted in the same round) — evidence: WorldRestoreAudit 300 lines, WorldSaveService under 600, no dead mechanism left; the audit's per-half path replaced the count rather than sitting beside it
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

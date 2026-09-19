@@ -39,7 +39,7 @@ internal sealed class WorldRestoreApplier(
 	IWorldFactSource worldFacts,
 	INativeWorldFacts? nativeWorldFacts,
 	WorldCharacterBinder binder,
-	IItemControl? items,
+	IRestoredWorldItemSource? items,
 	WorldRestoreAudit? audit,
 	Func<ulong> layerActor,
 	ILoggerFactory loggerFactory,
@@ -49,8 +49,8 @@ internal sealed class WorldRestoreApplier(
 	/// <summary>The world-fact half: which restored row goes back to which table, and what could not be put back.</summary>
 	private readonly WorldFactRestore _factRestore = new(worldFacts, nativeWorldFacts, loggerFactory.CreateLogger<WorldFactRestore>());
 
-	/// <summary>The item half: a mid-run cut's world items are reconciled against the regenerated layer (GeneratedItemAuthority); a layer-end cut's rows are dropped.</summary>
-	private readonly IItemControl? _items = items;
+	/// <summary>The item half: a mid-run cut's world items are reconciled against the regenerated layer (GeneratedItemAuthority); a layer-end cut's rows are dropped. Narrowed to the restored-set PORT (<see cref="IRestoredWorldItemSource"/>): the save layer asks whether a set is owed and cancels the expectation, never the handler surface behind it.</summary>
+	private readonly IRestoredWorldItemSource? _items = items;
 
 	/// <summary>The world-entity half: the kernel's restored per-entity facts are written at the world-entry seam; a layer-end cut's rows are dropped here.</summary>
 	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
@@ -109,21 +109,34 @@ internal sealed class WorldRestoreApplier(
 	}
 
 	/// <summary>
-	/// How many live-world halves this restore owes, counted from the writers that
-	/// are ACTUALLY armed rather than from the cut kind. The audit raises a restore's
-	/// report only when the LAST one has arrived, so a count that names a half nobody
-	/// will report leaves the restore awaiting forever, and a count that is too low
-	/// raises the report before the last writer ran (then raises a second one when it
-	/// does).
+	/// Which live-world halves this restore owes, derived from the writers that are
+	/// ACTUALLY armed rather than from the cut kind. The audit raises a restore's
+	/// report only when the LAST owed half has arrived, so a list that names a half
+	/// nobody will report leaves the restore awaiting forever, and one that omits a
+	/// writer the seam will report raises the account early (and then has to drop the
+	/// extra report as a producer bug).
 	///
-	/// The world-fact half always reports: the replay at the world-entry seam reports
+	/// The world-fact half is always owed: the replay at the world-entry seam reports
 	/// it even when the cut carried no fact at all ("carried nothing to write"). A
-	/// writer that is absent from this composition (`IItemControl` /
-	/// `IRestoredWorldEntitySource` are optional by design) or whose arm a layer-end
-	/// cut just dropped is not owed, which is exactly what the two flags say.
+	/// writer that is absent from this composition (<see cref="IRestoredWorldItemSource"/>
+	/// / <see cref="IRestoredWorldEntitySource"/> are optional by design) or whose arm a
+	/// layer-end cut just dropped is not owed, which is exactly what the two flags say.
 	/// </summary>
-	internal static int LiveWorldHalves(bool worldEntityHalfArmed, bool itemReconcileArmed) =>
-		1 + (worldEntityHalfArmed ? 1 : 0) + (itemReconcileArmed ? 1 : 0);
+	internal static IReadOnlyList<WorldRestoreHalf> LiveWorldHalves(bool worldEntityHalfArmed, bool itemReconcileArmed)
+	{
+		var halves = new List<WorldRestoreHalf>(3) { WorldRestoreHalf.WorldFacts };
+		if (worldEntityHalfArmed)
+		{
+			halves.Add(WorldRestoreHalf.WorldEntities);
+		}
+
+		if (itemReconcileArmed)
+		{
+			halves.Add(WorldRestoreHalf.WorldItems);
+		}
+
+		return halves;
+	}
 
 	/// <summary>
 	/// Applies the archive the caller resolved. <paramref name="worldId"/> is null when
@@ -285,7 +298,7 @@ internal sealed class WorldRestoreApplier(
 		// The live-world half of this restore lands at the world-entry seam, after
 		// this call returned. The audit carries that half's outcome back to the
 		// caller: a restore is not "successful" until the live world took every row.
-		// The count comes from the writers that are armed RIGHT NOW — the layer-end
+		// The halves come from the writers that are armed RIGHT NOW — the layer-end
 		// cancels above have already run — see LiveWorldHalves.
 		audit?.BeginRestore(
 			worldId,

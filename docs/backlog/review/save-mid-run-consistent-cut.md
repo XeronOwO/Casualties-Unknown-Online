@@ -61,7 +61,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/review/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
-- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `review/save-multiplayer-restore-and-backups.md` (S4), `todo/restore-account-arm-release.md` (the restore-account residuals this ticket records)
+- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `review/save-multiplayer-restore-and-backups.md` (S4), `review/restore-account-arm-release.md` (the restore-account residuals this ticket records)
 
 ## Approved decisions (2026-09-10)
 
@@ -340,12 +340,12 @@ Scope 8 (host-side world-entity projection) and F3 (the layer-end in-layer-fact 
 | the same table on a GUEST | unchanged: the flat lists are raised immediately, from the SAME mapping function the host's pending read uses | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities` + the two rows above comparing both paths' rows |
 | the host's write at the seam | `RestoredWorldFactReplay` writes the entity facts through `IRestoredWorldFactSink.ApplyWorldEntities` (the three existing appliers), commits on zero refusals and cancels with the reason otherwise | `RestoredWorldFactReplayTests.ApplyIfPending_WithOnlyTheWorldEntitiesPending_WritesAndCommitsThatHalf`, `.ApplyIfPending_WorldEntityRowsTheLayerDoesNotHave_ReachTheRestoreAccount` |
 | the seam's `HasPending` gate | a pending world-entity write keeps the restored kernel tables through the generation (the layer-boundary reset must not run) | `RestoredWorldFactReplayTests.ApplyIfPending_WithOnlyTheWorldEntitiesPending_WritesAndCommitsThatHalf` (no runtime/native half pending, and the write still runs) |
-| the restore's live-write account | the count follows the writers that are ACTUALLY armed when the click returns (the world-fact half always reports; the world-entity and item halves report when armed), never the cut kind alone — a count naming a half nobody will report would leave the restore awaiting forever, and one that is too low would report before the last writer ran | `WorldRestoreAuditTests.LiveWorldHalves_CountTheWritersThatAreActuallyArmed`, `.AThirdExpectedHalf_HoldsTheReportUntilTheItemReconcileArrives`, `RestoredWorldFactReplayTests.ApplyIfPending_MidRunRestore_ReportsTwoHalvesAndWaitsForTheItemReconcile`, `.ApplyIfPending_WithAnUnarmedWorldEntitySource_ReportsOnlyTheHalvesTheRestoreOwes` |
+| the restore's live-write account | the halves follow the writers that are ACTUALLY armed when the click returns (the world-fact half always reports; the world-entity and item halves report when armed), never the cut kind alone — a list naming a half nobody will report would leave the restore awaiting forever, and one omitting a writer the seam reports would raise the report before the last writer ran | `WorldRestoreAuditTests.LiveWorldHalves_NameTheWritersThatAreActuallyArmed`, `.AThirdExpectedHalf_HoldsTheReportUntilTheItemReconcileArrives`, `RestoredWorldFactReplayTests.ApplyIfPending_MidRunRestore_ReportsTwoHalvesAndWaitsForTheItemReconcile`, `.ApplyIfPending_WithAnUnarmedWorldEntitySource_ReportsOnlyTheHalvesTheRestoreOwes` |
 | a restore reports ONCE | a contribution that arrives after the report is ignored, and the world-entry seam's no-op report only fires while a restore is awaiting it — the seam runs the replay again on every later generation, so a completed restore must not be re-reported (the player would be told about a restore that is not happening) | `WorldRestoreAuditTests.LiveWriteFinished_AfterTheReportWasRaised_IsIgnored`, `RestoredWorldFactReplayTests.ApplyIfPending_OnTheGenerationAfterACompletedRestore_ReportsNothing`, `.ApplyIfPending_NothingToWrite_CompletesAnAwaitingAudit` |
 | a throw during the seam write | every owed half reports incomplete and every handover is released (including the entity half, whose write never ran) | `RestoredWorldFactReplayTests.ApplyIfPending_WhenTheWriteThrows_ReportsAndReleasesTheWorldEntityHalfToo` |
 | a new run superseding a restore | the kernel's restored per-entity facts are cancelled with the world-fact tables, before the new run's folder is created | `WorldSaveFixture` restore suites + `WorldSaveService.TryBeginRun` (the cancel sits beside `ClearPendingLiveReplay`/`CancelPendingRestore`); `RestoredWorldFactReplayTests` cover the release rule |
 | the session ending before the seam | the arm is released with its counts (a session end takes the layer the facts describe with it) | `WorldEntityProjectionTests.SessionEnd_ReleasesThePendingWorldEntryWrite` |
-| a layer-end cut's world-entity rows | dropped before the audit begins (the layer they describe is being replaced), mirroring the item rule | `WorldRestoreApplier.TryApply` + `WorldRestoreAuditTests.LiveWorldHalves_CountTheWritersThatAreActuallyArmed` |
+| a layer-end cut's world-entity rows | dropped before the audit begins (the layer they describe is being replaced), mirroring the item rule | `WorldRestoreApplier.TryApply` + `WorldRestoreAuditTests.LiveWorldHalves_NameTheWritersThatAreActuallyArmed` |
 | `items.json` of a layer-end cut | world-rooted rows (a ground item and everything inside a ground container) are dropped by the encoder with the layer-boundary reset's own rule; carried records and tombstones stay; a caller's pre-reset rows are named in the log | `WorldSnapshotWorldFactsTests.LayerAdvanceCut_KeepsTheWorldRootedItemsOutOfTheArchive` (red before the fix: the world item id was in the written file), `WorldSnapshotCodecTests.Encode_WritesOneEntryArrayPerDomainFileAndTheCharacters` |
 | `world-entities.json` of a layer-end cut | the same rule: every per-entity row of the replaced layer is dropped by the encoder (named), so the kernel checkpoint a later guest join receives carries no fact about a layer the world no longer is | `WorldSnapshotWorldFactsTests.LayerAdvanceCut_KeepsTheWorldEntityFactsOutOfTheArchive`, `WorldSaveContinueTests.ConsumedTrap_StaysConsumedAfterRestore` (a mid-run cut, where the fact belongs to the restored layer) |
 | the appliers' outcome counts | `TrapVisualReplay.Replay` and the building-entity appliers report whether the row reached the live world: a duplicate the guard drops counts as present (the state IS there), and a missing entity is REFUSED — including the destructive families, whose explosion is replayed as presentation but whose consumption fact is then not in the world | Runtime-seam contract tests above; the game-typed bodies are static-reviewed only (see below) |
@@ -702,7 +702,7 @@ no native values and for a checkpoint that projects no world-entity fact.)
   call shape. 1 failed of 1.
 - **Green**: `WorldRestoreAuditTests` 18/18; the restore families (audit, replay, item contract, continue,
   composition, entity projection, world-fact port, run start, console) 116/116; full suite and gates
-  below. `LiveWorldHalves_CountTheWritersThatAreActuallyArmed`, every pre-existing audit case and the
+  below. `LiveWorldHalves_NameTheWritersThatAreActuallyArmed`, every pre-existing audit case and the
   whole restore family passed UNCHANGED around the new identity, which is what says the plumbing is
   behaviour-preserving.
 - **The wiring is pinned where a test host can see it**:
@@ -743,7 +743,7 @@ pins.
 
 
 **Recorded, NOT fixed — the residuals this pass leaves** (each with the scenario, so a later cycle can pick
-one up without re-deriving it). **Moved to `todo/restore-account-arm-release.md` on 2026-09-17** so they
+one up without re-deriving it). **Moved to `review/restore-account-arm-release.md` on 2026-09-17** so they
 stay in the work queue while this ticket waits in `review/`; the text below is the record as written, and
 the re-verification that closed #4 as already-covered is in the new ticket:
 
@@ -1025,7 +1025,7 @@ in-game rows open.
       blocker/major either fixed or recorded as a residual — evidence: the S3.5 increment pass, the
       ITEM-arm pass, the restore-ATTEMPT-identity pass and the shared-action-verdict pass are all
       recorded above with their findings and fixes, and the residuals that could not be fixed in this
-      stage are moved to `todo/restore-account-arm-release.md` so they stay in the work queue — where
+      stage are moved to `review/restore-account-arm-release.md` so they stay in the work queue — where
       the independent re-verification of 2026-09-17 found the recorded "the item release has no test"
       residual already covered by
       `RestoredWorldItemContractTests.ACancelledReconcile_ReportsTheLossInsteadOfWaitingForever`, leaving

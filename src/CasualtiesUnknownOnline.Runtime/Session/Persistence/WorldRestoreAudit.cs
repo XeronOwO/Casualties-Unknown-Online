@@ -18,16 +18,19 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// incomplete, and <see cref="Last"/> / <see cref="Reported"/> are how the caller
 /// and the player-facing surface hear about it (§6: no silent loss).
 ///
-/// A restore therefore OWES one contribution per live-world half it will have: one
-/// for the world facts and the adapter's native handover (this half reports them
-/// together), one for the restored world-entity facts when that arm is armed, and
-/// one for the item reconcile on a mid-run cut (<see cref="BeginRestore"/>'s
-/// <c>expectedContributions</c> — the count follows the writers ACTUALLY armed, so
-/// a layer-end cut owes one less). The report is
-/// raised once — when every contribution has arrived — so a consumer never reads
-/// a half-written restore as a completed one. A contribution that will never
-/// arrive is accounted for explicitly (<see cref="LiveWriteAbandoned"/>) rather
-/// than silently dropping the expectation.
+/// A restore therefore OWES one contribution per live-world half it will have
+/// (<see cref="WorldRestoreHalf"/>): the world facts and the adapter's native
+/// handover (one half, reported as one), the restored world-entity facts when that
+/// arm is armed, and the item reconcile on a mid-run cut.
+/// <see cref="BeginRestore"/> is handed exactly the halves the click ARMED, so a
+/// layer-end cut owes one less. The report is raised once — when every owed half
+/// has arrived — so a consumer never reads a half-written restore as a completed
+/// one, and a half is accounted at most ONCE: several release paths can drop the
+/// same arm (the session ending, a supersession, a throw at the seam), and the
+/// identity is what keeps the second release from standing in for a half this
+/// restore still owes. A half that will never arrive is accounted for explicitly
+/// (<see cref="LiveWriteAbandoned"/>) rather than silently dropping the
+/// expectation.
 ///
 /// An account is opened for ONE restore ATTEMPT, and every contribution echoes the
 /// attempt it belongs to: the writers stamp the kernel restore sequence onto the arm
@@ -44,11 +47,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 public sealed class WorldRestoreAudit(ILogger<WorldRestoreAudit>? log = null)
 {
 	private readonly List<WorldRestoreLiveWriteReport> _contributions = [];
+	private readonly List<WorldRestoreHalf> _halves = [];
+	private readonly HashSet<WorldRestoreHalf> _accounted = [];
 	private string _worldId = string.Empty;
 	private ulong _restoreSequence;
 	private bool _awaiting;
 	private bool _closed;
-	private int _expected = 1;
 
 	/// <summary>The last COMPLETE account of a restore's live-world halves, or null before the first one.</summary>
 	public WorldRestoreLiveWriteReport? Last { get; private set; }
@@ -56,8 +60,8 @@ public sealed class WorldRestoreAudit(ILogger<WorldRestoreAudit>? log = null)
 	/// <summary>How many live-world halves have reported for the restore in flight (diagnostics and tests).</summary>
 	public int Contributions => _contributions.Count;
 
-	/// <summary>How many contributions the restore in flight owes.</summary>
-	public int ExpectedContributions => _expected;
+	/// <summary>The halves the restore in flight owes, in the order <see cref="BeginRestore"/> was handed them.</summary>
+	public IReadOnlyList<WorldRestoreHalf> ExpectedHalves => _halves;
 
 	/// <summary>True = a restore applied at the click is still waiting for one or more of its live-world halves.</summary>
 	public bool AwaitingLiveWrite => _awaiting;
@@ -67,12 +71,12 @@ public sealed class WorldRestoreAudit(ILogger<WorldRestoreAudit>? log = null)
 
 	/// <summary>
 	/// The Continue click applied the cut: from here on the live-world halves are
-	/// expected. <paramref name="expectedContributions"/> is how many writers the
-	/// restore actually armed (see <c>WorldRestoreApplier.LiveWorldHalves</c>):
-	/// one is the world-fact half, which reports even when the cut carried no fact.
-	/// Resets <see cref="Last"/>, because a completed restore's report must never be
-	/// read as the new one's outcome, and reopens the account a previous report or
-	/// abandonment closed.
+	/// expected. <paramref name="halves"/> is what the restore actually armed (see
+	/// <c>WorldRestoreApplier.LiveWorldHalves</c>) — the world-fact half is the one
+	/// every restore owes, and it reports even when the cut carried no fact at all,
+	/// so an empty list means that half alone. Resets <see cref="Last"/>, because a
+	/// completed restore's report must never be read as the new one's outcome, and
+	/// reopens the account a previous report or abandonment closed.
 	///
 	/// <paramref name="restoreSequence"/> is the ATTEMPT this account is for (the
 	/// kernel restore that produced the restored state). Every writer stamps the same
@@ -81,67 +85,120 @@ public sealed class WorldRestoreAudit(ILogger<WorldRestoreAudit>? log = null)
 	/// <see cref="LiveWriteFinished"/>) — without it a straggler could stand in for a
 	/// half this restore still owes and raise the report early.
 	/// </summary>
-	public void BeginRestore(string worldId, ulong restoreSequence, int expectedContributions = 1)
+	public void BeginRestore(string worldId, ulong restoreSequence, IReadOnlyList<WorldRestoreHalf> halves)
 	{
 		_worldId = worldId;
 		_restoreSequence = restoreSequence;
 		_awaiting = true;
 		_closed = false;
-		_expected = Math.Max(1, expectedContributions);
+		_halves.Clear();
+		foreach (var half in halves)
+		{
+			// Deduplicated on entry: completion compares the ACCOUNTED halves against the
+			// OWED ones, so a list naming one half twice would owe a contribution that can
+			// only ever arrive once and the account could never complete.
+			if (!_halves.Contains(half))
+			{
+				_halves.Add(half);
+			}
+		}
+
+		if (_halves.Count == 0)
+		{
+			_halves.Add(WorldRestoreHalf.WorldFacts);
+		}
+
+		_accounted.Clear();
 		_contributions.Clear();
 		Last = null;
 	}
 
 	/// <summary>
 	/// One live-world half finished writing. The restore's report is raised only
-	/// when the LAST expected contribution arrives, and it merges every half's
-	/// account: complete only if all of them were.
+	/// when the LAST owed half arrives, and it merges every half's account: complete
+	/// only if all of them were.
 	///
 	/// A restore reports ONCE, and an abandoned attempt reports nothing: a
 	/// contribution that arrives after either is ignored, because the next
 	/// generation's world-entry seam runs the same replay call and reports a no-op
 	/// when nothing is pending — a completed restore must not turn that into a
 	/// second report for the world it already reported, and a dead attempt must not
-	/// invent one from a handover it left behind. The count a caller passes is the
-	/// contract that makes this safe: it names the writers that WILL report, so a
-	/// straggler is a producer bug, and inventing a report for it would hide the bug
-	/// rather than surface it.
+	/// invent one from a handover it left behind.
 	///
-	/// <paramref name="restoreSequence"/> is the ATTEMPT this half belongs to — the
-	/// value its writer stamped on the arm when it took it. While an account is open
-	/// that value is the only thing that makes the contribution attributable: a half of
-	/// an EARLIER attempt can still be in flight when a new restore opens its own
-	/// account (<see cref="BeginRestore"/> REOPENS the account, it does not close it),
-	/// and counting it would let it stand in for a half the new restore still owes —
-	/// raising that restore's report before its own writers ran, with the previous
-	/// world's outcome in it. A mismatched half is therefore IGNORED and logged, which
-	/// is the same producer-bug verdict the count gives a straggler. Only an OPEN
-	/// account enforces the identity: a contribution that arrives with no account at
-	/// all still reports itself (the documented path where a write reaches the seam
-	/// without the click).
+	/// <paramref name="half"/> is WHICH of the owed halves reported. It is what makes
+	/// a half this account does not owe — or a half that already reported, which is what
+	/// a legitimate second release of the same arm looks like — a contribution that is
+	/// dropped rather than one that completes the account in place of the half still
+	/// missing. <paramref name="restoreSequence"/>
+	/// is the ATTEMPT this half belongs to — the value its writer stamped on the arm
+	/// when it took it. While an account is open that value is the only thing that
+	/// makes the contribution attributable: a half of an EARLIER attempt can still be
+	/// in flight when a new restore opens its own account (<see cref="BeginRestore"/>
+	/// REOPENS the account, it does not close it), and counting it would let it stand
+	/// in for a half the new restore still owes — raising that restore's report before
+	/// its own writers ran, with the previous world's outcome in it. A mismatched half
+	/// is therefore IGNORED and logged, which is the same producer-bug verdict an
+	/// unowed half gets. Only an OPEN account enforces the identity: a contribution
+	/// that arrives with no account at all still reports itself (the documented path
+	/// where a write reaches the seam without the click), and that report CLOSES the
+	/// idle account — so the first such write reports and a later one is dropped until
+	/// a <see cref="BeginRestore"/> opens the account again. Every production writer is
+	/// per-attempt, so the limit is a property of the diagnostic path, not of a restore.
 	/// </summary>
-	public void LiveWriteFinished(ulong restoreSequence, bool complete, IReadOnlyList<string> refused, string summary)
+	public void LiveWriteFinished(WorldRestoreHalf half, ulong restoreSequence, bool complete, IReadOnlyList<string> refused, string summary)
 	{
 		if (_closed)
 		{
 			return;
 		}
 
-		if (_awaiting && restoreSequence != _restoreSequence)
+		if (_awaiting)
 		{
-			log?.LogWarning(
-				"[Restore] a live-world half of restore {Sequence} reached the account open for restore {Open} (world {WorldId}); it is NOT counted toward it: {Summary}",
-				restoreSequence, _restoreSequence, _worldId, summary);
-			return;
-		}
+			if (restoreSequence != _restoreSequence)
+			{
+				log?.LogWarning(
+					"[Restore] the {Half} half of restore {Sequence} reached the account open for restore {Open} (world {WorldId}); it is NOT counted toward it: {Summary}",
+					half, restoreSequence, _restoreSequence, _worldId, summary);
+				return;
+			}
 
-		log?.LogDebug(
-			"[Restore] a live-world half reported for restore {Sequence} (world {WorldId}, complete={Complete}): {Summary}",
-			restoreSequence, _worldId, complete, summary);
-		_contributions.Add(new WorldRestoreLiveWriteReport(_worldId, complete, refused, summary));
-		if (_contributions.Count < _expected)
+			if (!_halves.Contains(half))
+			{
+				log?.LogWarning(
+					"[Restore] the {Half} half reported for restore {Sequence} (world {WorldId}), which owes no such half; it is NOT counted: {Summary}",
+					half, restoreSequence, _worldId, summary);
+				return;
+			}
+
+			if (!_accounted.Add(half))
+			{
+				// EXPECTED on a legitimate path, not a producer bug: the armed half's owner
+				// releases it after the world-entry seam already reported it (the replay
+				// reports the half and then ends the arm), and the session teardown may
+				// release it once more. The half counts once, and the later release is named
+				// only at debug level — the loud verdicts are the unowed half and the
+				// mismatched attempt above.
+				log?.LogDebug(
+					"[Restore] the {Half} half of restore {Sequence} (world {WorldId}) already reported; the later release is NOT counted: {Summary}",
+					half, restoreSequence, _worldId, summary);
+				return;
+			}
+
+			log?.LogDebug(
+				"[Restore] the {Half} half reported for restore {Sequence} (world {WorldId}, complete={Complete}): {Summary}",
+				half, restoreSequence, _worldId, complete, summary);
+			_contributions.Add(new WorldRestoreLiveWriteReport(_worldId, complete, refused, summary));
+			if (_accounted.Count < _halves.Count)
+			{
+				return;
+			}
+		}
+		else
 		{
-			return;
+			log?.LogDebug(
+				"[Restore] a live-world half reported with no restore in flight (complete={Complete}): {Summary}",
+				complete, summary);
+			_contributions.Add(new WorldRestoreLiveWriteReport(_worldId, complete, refused, summary));
 		}
 
 		var report = Merge(_contributions);
@@ -153,21 +210,28 @@ public sealed class WorldRestoreAudit(ILogger<WorldRestoreAudit>? log = null)
 
 	/// <summary>
 	/// A live-world half the restore was waiting for will never arrive (the run was
-	/// superseded, the session ended, the generation reconcile was cancelled). It is
-	/// accounted as an incomplete contribution — never silently dropped — and
-	/// completes the restore's report when it was the last one outstanding. A call
-	/// with no restore in flight is a no-op (a layer-end cut's own cancellation), and a
-	/// cancellation of an EARLIER attempt's arm is ignored like any other straggler: a
-	/// dead attempt's release is not this restore's half.
+	/// superseded, the session ended, the generation reconcile was cancelled, the
+	/// write threw). It is accounted as an incomplete contribution — never silently
+	/// dropped — and completes the restore's report when it was the last one
+	/// outstanding. A call with no restore in flight is a no-op (a layer-end cut's own
+	/// cancellation), and a release of an arm that already reported, or of one the
+	/// account does not owe, is not counted: a dead attempt's release is not this
+	/// restore's half, and the same armed half can be released along more than one
+	/// path.
 	/// </summary>
-	public void LiveWriteAbandoned(ulong restoreSequence, string reason)
+	public void LiveWriteAbandoned(WorldRestoreHalf half, ulong restoreSequence, string reason)
 	{
 		if (!_awaiting)
 		{
 			return;
 		}
 
-		LiveWriteFinished(restoreSequence, complete: false, refused: [reason], summary: $"a restored half never reached the live world: {reason}");
+		LiveWriteFinished(
+			half,
+			restoreSequence,
+			complete: false,
+			refused: [reason],
+			summary: $"the restored {Describe(half)} half never reached the live world: {reason}");
 	}
 
 	/// <summary>
@@ -194,11 +258,20 @@ public sealed class WorldRestoreAudit(ILogger<WorldRestoreAudit>? log = null)
 
 		_awaiting = false;
 		_closed = true;
-		_expected = 1;
+		_halves.Clear();
+		_accounted.Clear();
 		_worldId = string.Empty;
 		_contributions.Clear();
 		Last = null;
 	}
+
+	/// <summary>The half's name as the restore report and the log name it.</summary>
+	private static string Describe(WorldRestoreHalf half) => half switch
+	{
+		WorldRestoreHalf.WorldEntities => "world-entity",
+		WorldRestoreHalf.WorldItems => "item",
+		_ => "world-fact",
+	};
 
 	private WorldRestoreLiveWriteReport Merge(List<WorldRestoreLiveWriteReport> contributions)
 	{

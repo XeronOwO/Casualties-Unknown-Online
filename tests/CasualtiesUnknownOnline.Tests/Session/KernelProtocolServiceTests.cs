@@ -7,8 +7,10 @@ using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -649,6 +651,228 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
+	public void Guest_ServesTheRunTheWorldJoinAnnounced()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		// The host is on its second run and says so before the entry group: the
+		// instruction carries the identity the member validates that set against.
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ResetForSession();
+		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
+		host.Services.GetRequiredService<IWorldControl>().SendWorldJoin(isTutorial: false);
+		host.Services.GetRequiredService<IKernelProtocolControl>().SendCheckpoint(GuestId);
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.NotNull(guestAuthority.FindItem(77));
+		Assert.Equal(2UL, guestAuthority.CurrentRunEpoch.Value);
+	}
+
+	[Fact]
+	public void Guest_RefusesCheckpointSetFromAnotherRun()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		// Run 1's checkpoint, captured before the host moved on — what a straggler
+		// set carries.
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+		var previousRun = WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint());
+
+		hostAuthority.ResetForSession();
+		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
+		host.Services.GetRequiredService<IWorldControl>().SendWorldJoin(isTutorial: false);
+		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		hostKernel.SendCheckpoint(GuestId);
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.NotNull(guestAuthority.FindItem(77));
+
+		// The straggler arrives whole, after the live run is already established.
+		foreach (var chunk in previousRun)
+		{
+			guestKernel.HandleFrame(HostId, CheckpointFrame(chunk));
+		}
+
+		Assert.Null(guestAuthority.FindItem(42)); // the old run's rows never land
+		Assert.NotNull(guestAuthority.FindItem(77)); // the live run's state is untouched
+		Assert.Equal(2UL, guestAuthority.CurrentRunEpoch.Value); // and the identity did not move back
+
+		// The harm was this side rejecting everything the run it is in sends: an
+		// adopted stale epoch would drop the live run's stream below.
+		var received = new List<WireStateStream>();
+		guestKernel.ItemStateStreamReceived += (_, stream) => received.Add(stream);
+		var stream = SnapshotFrame(WirePayloadType.ItemSnapshotStream, seq: 1, baseRevision: 0, SnapshotItem(7));
+		stream.StateStream!.Header.RunEpoch = 2;
+		guestKernel.HandleFrame(HostId, stream);
+
+		Assert.Single(received);
+	}
+
+	[Fact]
+	public void Guest_RefusesASetFromARunTheWorldJoinDidNotAnnounce()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ResetForSession();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+
+		// The instruction is what decides, not the set's own stamp and not this side's
+		// epoch. It is driven as a frame here because a real host stamps instruction and
+		// set from the same instant; the production stamping itself is pinned by
+		// Guest_ServesTheRunTheWorldJoinAnnounced.
+		host.Services.GetRequiredService<PacketSender>().Send(GuestId, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = false, RunEpoch = 3 });
+
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		foreach (var chunk in WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint()))
+		{
+			guestKernel.HandleFrame(HostId, CheckpointFrame(chunk));
+		}
+
+		// Nothing was restored: this side serves run 3 and the set is not it.
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.Null(guestAuthority.FindItem(42));
+		Assert.Equal(1UL, guestAuthority.CurrentRunEpoch.Value);
+	}
+
+	[Fact]
+	public void Guest_AdoptsTheIdentityFromTheFirstRestoredSet()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+		var previousRun = WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint());
+
+		// Run 2 reaches this side with NO instruction in front of it (a reconnect's
+		// entry group is sent before the join): that set defines the identity, and the
+		// set that follows it is compared against what it established.
+		hostAuthority.ResetForSession();
+		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		host.Services.GetRequiredService<IKernelProtocolControl>().SendCheckpoint(GuestId);
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.NotNull(guestAuthority.FindItem(77));
+		Assert.Equal(2UL, guestAuthority.CurrentRunEpoch.Value);
+
+		foreach (var chunk in previousRun)
+		{
+			guestKernel.HandleFrame(HostId, CheckpointFrame(chunk));
+		}
+
+		Assert.Null(guestAuthority.FindItem(42));
+		Assert.NotNull(guestAuthority.FindItem(77));
+	}
+
+	[Fact]
+	public void Guest_StaleChunkDoesNotBlockTheLiveCheckpointSet()
+	{
+		var (network, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ResetForSession();
+		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
+		host.Services.GetRequiredService<IWorldControl>().SendWorldJoin(isTutorial: false);
+		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		hostKernel.SendCheckpoint(GuestId);
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.NotNull(guestAuthority.FindItem(77));
+
+		// A straggler of the previous run, trailing chunk only. Kept, it occupies an
+		// index the live set never fills, so the count check can never be satisfied
+		// for any later set — the member then never restores again.
+		guestKernel.HandleFrame(HostId, CheckpointFrame(TrailingChunkOfASupersededSet(runEpoch: 1, globalRevision: 3)));
+
+		// The live row reaches the member through the checkpoint or not at all: the
+		// broadcast it also rides is lost, which is the swallow the 60 s repair exists
+		// for. The repair's set (one chunk, a newer revision) must still land.
+		network.SetFaults(HostId, GuestId, new LinkFaults { Down = true });
+		hostAuthority.ObserveSpawn(HostId, 88, "water", 5f, 6f);
+		network.SetFaults(HostId, GuestId, new LinkFaults { Down = false });
+		hostKernel.SendCheckpoint(GuestId);
+
+		Assert.NotNull(guestAuthority.FindItem(88));
+	}
+
+	[Fact]
+	public void Guest_SupersededSetOfTheSameRunDoesNotBlockTheLiveSet()
+	{
+		var (network, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ResetForSession();
+		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
+		host.Services.GetRequiredService<IWorldControl>().SendWorldJoin(isTutorial: false);
+		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		hostKernel.SendCheckpoint(GuestId);
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.NotNull(guestAuthority.FindItem(77));
+		var restoredRevision = guestAuthority.CurrentGlobalRevision;
+
+		// The same run, a set that declares another chunk count: the live set
+		// supersedes it, so the partial set is dropped as a unit instead of holding
+		// a slot the live set needs. Buffered alone it restores nothing.
+		guestKernel.HandleFrame(HostId, CheckpointFrame(TrailingChunkOfASupersededSet(runEpoch: 2, globalRevision: restoredRevision)));
+		Assert.Equal(restoredRevision, guestAuthority.CurrentGlobalRevision);
+
+		network.SetFaults(HostId, GuestId, new LinkFaults { Down = true });
+		hostAuthority.ObserveSpawn(HostId, 88, "water", 5f, 6f);
+		network.SetFaults(HostId, GuestId, new LinkFaults { Down = false });
+		hostKernel.SendCheckpoint(GuestId);
+
+		Assert.NotNull(guestAuthority.FindItem(88));
+	}
+
+	[Fact]
+	public void Guest_RefusesCheckpointChunkWhoseHeaderDisagreesWithItsPayload()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		// The host is on run 2 while this guest process is still on 1, so an adopted
+		// restore is visible as the epoch moving.
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ResetForSession();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+
+		// Both stamps come from the same checkpoint at send time, so a frame whose
+		// two stamps disagree is malformed by construction and never restores.
+		var frame = CheckpointFrame(WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint())[0]);
+		frame.Checkpoint!.Header.RunEpoch = 9;
+
+		guest.Services.GetRequiredService<IKernelProtocolControl>().HandleFrame(HostId, frame);
+
+		Assert.Equal(1UL, guest.Services.GetRequiredService<ItemKernelAuthority>().CurrentRunEpoch.Value);
+	}
+
+	[Fact]
 	public void Host_DropsGuestStateStreamWithStaleRunEpoch()
 	{
 		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
@@ -743,6 +967,35 @@ public class KernelProtocolServiceTests
 
 		Assert.Null(guest.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
 	}
+
+	private static ProtocolFrame CheckpointFrame(WireCheckpoint chunk) =>
+		new()
+		{
+			Kind = EnvelopeKind.Checkpoint,
+			Checkpoint = new CheckpointEnvelope
+			{
+				Header = new EnvelopeHeader
+				{
+					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					RunEpoch = chunk.RunEpoch,
+					SenderId = HostId,
+					PayloadType = WirePayloadType.CheckpointChunk,
+					BaseGlobalRevision = chunk.GlobalRevision,
+				},
+				Checkpoint = chunk,
+			},
+		};
+
+	/// <summary>A trailing chunk of a two-chunk set: delivered alone it leaves the pending
+	/// set incomplete, which is the shape a superseded set's leftover has.</summary>
+	private static WireCheckpoint TrailingChunkOfASupersededSet(ulong runEpoch, ulong globalRevision) =>
+		new()
+		{
+			ChunkIndex = 1,
+			ChunkCount = 2,
+			RunEpoch = runEpoch,
+			GlobalRevision = globalRevision,
+		};
 
 	private static ProtocolFrame RangeRequestFrame(ulong start, ulong end) =>
 		new()

@@ -525,9 +525,11 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public void FireRadiationLineStateReceived(RadiationLineStateMsg state) => _messages.FireRadiationLineStateReceived(state);
 
-	public void SendWorldJoin(bool isTutorial) => _messages.SendWorldJoin(isTutorial);
+	// The host's own kernel run epoch stamps the instruction: the member is told which
+	// run it is entering, and it refuses checkpoint sets that belong to another one.
+	public void SendWorldJoin(bool isTutorial) => _messages.SendWorldJoin(isTutorial, _kernelAuthority.CurrentRunEpoch.Value);
 
-	public void SendWorldJoinTo(ulong steamId) => _messages.SendWorldJoinTo(steamId);
+	public void SendWorldJoinTo(ulong steamId) => _messages.SendWorldJoinTo(steamId, _kernelAuthority.CurrentRunEpoch.Value);
 
 	public void PublishWorldParams(WorldStartParams parameters)
 	{

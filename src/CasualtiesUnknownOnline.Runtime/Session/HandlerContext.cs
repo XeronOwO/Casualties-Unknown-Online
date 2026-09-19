@@ -23,6 +23,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw,
 	IKernelProtocolControl kernelProtocol) :
 	IWorldHandlerContext,
+	IWorldKernelHandlerContext,
 	IWorldSessionHandlerContext,
 	IItemHandlerContext,
 	ICharacterSessionHandlerContext,

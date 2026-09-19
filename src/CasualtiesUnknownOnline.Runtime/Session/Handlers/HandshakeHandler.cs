@@ -212,7 +212,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			// passes once the params are in hand; the host owns the timing).
 			if (session.LocalSceneState == SceneStateType.InWorld || ctx.World.HostRunPending)
 			{
-				_sender.Send(sender, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = worldParams.IsTutorial });
+				_sender.Send(sender, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = worldParams.IsTutorial, RunEpoch = _kernelProtocol.CurrentRunEpoch });
 			}
 		}
 	}

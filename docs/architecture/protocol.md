@@ -154,7 +154,7 @@ discriminator), and `src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.c
 | Batch gap | request journal range |
 | Gap too large | resend checkpoint |
 | Invariant failure | do not commit; output complete transaction diagnostics |
-| Wrong epoch | drop; old run must not pollute new run |
+| Wrong epoch | drop; old run must not pollute new run — commands, batches and state streams by the envelope/batch epoch, and a checkpoint chunk set by the run identity the host announced with its world-join instruction (`WorldJoinMsg.RunEpoch`), which is refused BEFORE a chunk is buffered |
 | Unknown critical payload | drop the frame and log (`ProtocolFrameValidator.TryValidate` at `KernelProtocolService.HandleFrame`); no automatic disconnect is implemented |
 | Projection exception | the domain is marked dirty and rebuilt from the kernel read model by the main-thread pump (`ProjectionHealthCoordinator`); the committed batch is not rolled back |
 

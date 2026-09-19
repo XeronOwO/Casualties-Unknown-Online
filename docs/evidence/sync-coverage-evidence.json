@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1006,
+  "count": 1012,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -1447,7 +1447,7 @@
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -1489,7 +1489,7 @@
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -2275,7 +2275,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -2348,7 +2348,7 @@
       "cluster": "run-world",
       "row": "R3",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
-      "quote": "WorldJoin = 20, // host → guest: start loading the world (sent at generation start; the run baseline rides KernelEnvelope/checkpoint)"
+      "quote": "WorldJoin = 20, // host → guest: start loading the world (sent at generation start; the run baseline rides KernelEnvelope/checkpoint, and the run IDENTITY the member validates checkpoint sets against rides this message's RunEpoch)"
     },
     {
       "cluster": "run-world",
@@ -3295,7 +3295,7 @@
     {
       "cluster": "world-entities",
       "row": "E7",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -3349,8 +3349,8 @@
     {
       "cluster": "inline",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "if (_checkpointChunks.Count != chunk.ChunkCount)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "quote": "if (_chunks.Count != chunk.ChunkCount)"
     },
     {
       "cluster": "inline",
@@ -3361,8 +3361,8 @@
     {
       "cluster": "inline",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "_checkpointChunks.Clear();"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "quote": "_chunks.Clear();"
     },
     {
       "cluster": "inline",
@@ -3397,8 +3397,8 @@
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "private void HandleCheckpoint(CheckpointEnvelope envelope)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "quote": "public void HandleChunk(ulong sender, CheckpointEnvelope envelope)"
     },
     {
       "cluster": "inline",
@@ -5354,7 +5354,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 33;"
+      "quote": "public const int Current = 34;"
     },
     {
       "cluster": "world-blocks",
@@ -5546,7 +5546,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 33;"
+      "quote": "public const int Current = 34;"
     },
     {
       "cluster": "inline",
@@ -6039,6 +6039,42 @@
       "row": "R9",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/NativeWorldFacts.cs",
       "quote": "SaveSystem.savedRunTime = facts.RunClockBase;"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "quote": "if (_expectedHostRunEpoch != 0 && chunk.RunEpoch != _expectedHostRunEpoch)"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "quote": "if (_pendingIdentity is { } pending && pending != identity)"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "quote": "if (envelope.Header.RunEpoch != chunk.RunEpoch)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/WorldJoinMsg.cs",
+      "quote": "public ulong RunEpoch { get; set; }"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/WorldJoinHandler.cs",
+      "quote": "ctx.KernelProtocol.AdoptHostRunEpoch(msg.RunEpoch);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs",
+      "quote": "public void SendWorldJoin(bool isTutorial) => _messages.SendWorldJoin(isTutorial, _kernelAuthority.CurrentRunEpoch.Value);"
     }
   ]
 }

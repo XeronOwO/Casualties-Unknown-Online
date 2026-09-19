@@ -130,6 +130,15 @@ public static class ProtocolVersion
 	/// end screen's clock as the time since it joined (0 on a fresh launch) and
 	/// its own layer timer starts at 0 while the host's has been running since
 	/// the layer was generated.
-	public const int Current = 33;
+	/// 34: `WorldJoinMsg.RunEpoch` — the enter-the-world instruction now
+	/// announces the run identity the host is serving, and the guest refuses a
+	/// checkpoint chunk set whose epoch is not that identity BEFORE a chunk is
+	/// buffered. Without the announcement a guest has no host-authored identity
+	/// to compare a set against (its own kernel epoch is its own counter, and a
+	/// previous session's straggler or a superseded set could hand it another
+	/// run's state, whose epoch then no longer matches the live streams). A peer
+	/// without the member would keep restoring whatever set arrived and would
+	/// keep letting a partial set's chunks occupy the slots a live set needs.
+	public const int Current = 34;
 
 }

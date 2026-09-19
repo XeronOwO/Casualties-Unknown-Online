@@ -196,6 +196,21 @@ public class KernelWireMapperTests
 	}
 
 	[Fact]
+	public void CheckpointAssemble_ChunksDisagreeingOnEpoch_Throws()
+	{
+		// The set-level guard the receiver's own per-set keying cannot replace: a
+		// caller holding chunks of two sets must never assemble them into one
+		// checkpoint (the receiver refuses the older set before it is ever mixed in,
+		// but this is the assembler's own contract).
+		var source = new GameStateKernel(Epoch);
+		var live = WireCheckpointAssembler.Split(source.CreateCheckpoint());
+		var previousRun = WireCheckpointAssembler.Split(source.CreateCheckpoint());
+		previousRun[0].RunEpoch = Epoch.Value + 1;
+
+		Assert.Throws<InvalidOperationException>(() => WireCheckpointAssembler.Assemble([live[0], previousRun[0]]));
+	}
+
+	[Fact]
 	public void CheckpointSplitAndAssemble_RoundTripsRandomStreams()
 	{
 		var checkpoint = new GameCheckpoint(

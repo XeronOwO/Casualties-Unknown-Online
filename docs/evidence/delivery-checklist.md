@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: SaveSystem.cs:165/439/532 + WorldGeneration.cs:179/258/860-861/3609 read; handler, entry+repair group and pending-write seams read
+      file:line or runtime log) or is explicitly marked unverified — evidence: KernelProtocolService.HandleCheckpoint + GameStateStore.Restore + WireCheckpointAssembler + every SendCheckpoint site + both transports read at HEAD
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the sibling absolute tables (recipe unlock, trap layout, enemy snapshot) ride the same two groups; matrix R9 + wire vocabulary index + decision 193 moved together
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: both tickets' acceptance rows each name their test; the independent adversarial review reproduced every decompiled citation and found no counterexample to the mechanism (its 2 blockers/majors were claim wording, all fixed)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the sibling kernel paths (StateStream/Command/CommittedBatch) already compared the epoch; the checkpoint receive path was the only gap; matrix K4/R3 + decision 194 moved together
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's 7-row acceptance matrix names a test per row; the independent review (fresh context, mutation probes) found 4 majors + 6 minors, all fixed in this commit
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused classes green (RunClockFacts 7, WorldRunField 10, codec/packet/entry suites); the adapter's engine half and the two UI rows recorded as the user's dual-client pass
+      peer log comparison, hotrepl assertions) is decided — evidence: focused green (KernelProtocolServiceTests 34, NetPacketTests 34, KernelWireMapperTests 12); pre-fix red recorded for 4 of the 5 originals; wire behaviour is the user's dual-client pass
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: work item from the handoff + ticket priorities; the one gameplay question (radiation timer resume vs restart) was asked and ruled RESUME on 2026-09-19
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; full suite with build 3486/3486; normative gates 69/69 once this checklist is fully filled
+      process violation — evidence: work item taken from the handoff + its ticket priority; no gameplay/UI decision arises (protocol validation), so no user round trip was needed
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; full suite with build 3495/3495; normative gates 69/69
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: RunCoordinator trimmed 605 -> 600 aggregate; the new run-clock domain split into RunClockFactsSync; review findings all fixed in this commit
+      dead mechanisms deleted in the same round) — evidence: KernelProtocolService 512 lines after extracting GuestCheckpointReceiver (600-line gate); no dead mechanism left; every review finding fixed in this commit
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

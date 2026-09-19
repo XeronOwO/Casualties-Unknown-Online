@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// coverage audit W1's drop half; the block STATE half is already landed).
 ///
 /// This table is that recovery's source. It is keyed by CELL like its two
-/// siblings (<see cref="PendingBlockReportTable"/>, <see cref="PendingBlockDamageTable"/>)
+/// siblings (<see cref="PendingBlockReportTable"/>, <see cref="LocalBlockDamageContributions"/>)
 /// but carries the drop payload, because the recovery unit is the break's drop
 /// set and the acknowledgement is the host's relay of that same set — a
 /// cell-only key could not tell a re-report of THIS break from a new one.
@@ -59,7 +59,7 @@ public sealed class PendingBreakDropTable
 	/// this side, so overwriting them would lose them for good. Returns false
 	/// when the cap refused a NEW cell (an existing cell always updates).
 	/// </summary>
-	public bool Report(int x, int y, float posX, float posY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	public bool Report(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
 	{
 		var key = (x, y);
 		if (!_entries.TryGetValue(key, out var entry))
@@ -69,7 +69,7 @@ public sealed class PendingBreakDropTable
 				return false;
 			}
 
-			entry = new Entry(posX, posY);
+			entry = new Entry();
 			_entries[key] = entry;
 		}
 
@@ -153,7 +153,7 @@ public sealed class PendingBreakDropTable
 			var entries = new List<PendingBreakDrops>(_entries.Count);
 			foreach (var pair in _entries)
 			{
-				entries.Add(new PendingBreakDrops(pair.Key.X, pair.Key.Y, pair.Value.PosX, pair.Value.PosY, pair.Value.Drops, pair.Value.BuildingDrops));
+				entries.Add(new PendingBreakDrops(pair.Key.X, pair.Key.Y, pair.Value.Drops, pair.Value.BuildingDrops));
 			}
 
 			return entries;
@@ -208,13 +208,9 @@ public sealed class PendingBreakDropTable
 		return false;
 	}
 
-	/// <summary>One cell's outstanding drop set: the break's reported position (the wire's <c>Position</c>) plus the two drop families the break message carries.</summary>
-	private sealed class Entry(float posX, float posY)
+	/// <summary>One cell's outstanding drop set. The cell IS the entry: the break message is cell-keyed, so no reported world position has to be remembered for the re-report.</summary>
+	private sealed class Entry
 	{
-		internal float PosX { get; } = posX;
-
-		internal float PosY { get; } = posY;
-
 		internal List<BlockDropEntryMsg> Drops { get; } = [];
 
 		internal List<TrapDropEntryMsg> BuildingDrops { get; } = [];

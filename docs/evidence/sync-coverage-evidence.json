@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 988,
+  "count": 1000,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -2648,7 +2648,7 @@
       "cluster": "world-blocks",
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationDamageBlockPatch.cs",
-      "quote": "PatchBridge.Impl?.OnBlockDamaged(pos, dmg, bonusMetal);"
+      "quote": "PatchBridge.Impl?.OnBlockDamaged(pos, dmg, bonusMetal, applied);"
     },
     {
       "cluster": "world-blocks",
@@ -2690,7 +2690,7 @@
       "cluster": "world-blocks",
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null, null);"
+      "quote": "_world.SendBlockDamaged(cell.x, cell.y, dmg, bonusMetal, contribution, null, null);"
     },
     {
       "cluster": "world-blocks",
@@ -5186,13 +5186,13 @@
       "cluster": "world-blocks",
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
-      "quote": "BlockDamageReport = 136, // guest → host: the guest's ABSOLUTE partial-damage set for the cells the host has not answered"
+      "quote": "BlockDamageReport = 136, // guest → host: this sender's cumulative partial-damage contribution for the cells the host has not accounted for"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/PendingBlockDamageTable.cs",
-      "quote": "if (!_entries.ContainsKey(key) && _entries.Count >= _cap)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocalBlockDamageContributions.cs",
+      "quote": "public float Add(int x, int y, float increment)"
     },
     {
       "cluster": "world-blocks",
@@ -5203,50 +5203,50 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/GuestReportRecovery.cs",
-      "quote": "var authoritative = _nativeWorldFacts.MergeBlockDamages(entries);"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "BlockDamagedReceived?.Invoke(sender, entry.X, entry.Y, increment, false, null, null, relation);"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/INativeWorldFacts.cs",
-      "quote": "IReadOnlyList<BlockDamageEntryMsg>? MergeBlockDamages(IReadOnlyList<BlockDamageEntryMsg> reported);"
+      "quote": "IReadOnlyList<BlockDamageEntryMsg>? CaptureBlockDamages();"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
-      "quote": "if (reported <= hostDamage)"
-    },
-    {
-      "cluster": "world-blocks",
-      "row": "W2",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "_world.ReportBlockDamage(cell.x, cell.y, accumulated);"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RemoteBlockDamageLedger.cs",
+      "quote": "var increment = contribution - tracked;"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "_world.ForgetPendingBlockDamage(cell.x, cell.y);"
+      "quote": "var contribution = _world.AddLocalBlockDamage(cell.x, cell.y, applied);"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
-      "quote": "return MergeVerdict.RefuseAir;"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "_guestReports.ForgetDamage(x, y);"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
-      "quote": "if (reported <= 0f || reported >= blockHealth)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocalBlockDamageContributions.cs",
+      "quote": "entry.Cumulative += increment;"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs",
-      "quote": "return alreadyTracked || trackedCount < Cap ? MergeVerdict.Raise : MergeVerdict.RefuseCap;"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RemoteBlockDamageLedger.cs",
+      "quote": "if (_entries.TryGetValue(key, out var tracked))"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RemoteBlockDamageLedger.cs",
+      "quote": "internal void Commit(Resolution resolution)"
     },
     {
       "cluster": "inline",
@@ -5270,7 +5270,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "_world.ReportBreakDrops(cell.x, cell.y, flushed.PosX, flushed.PosY, flushed.Drops, flushed.BuildingDrops);"
+      "quote": "_world.ReportBreakDrops(flushed.CellX, flushed.CellY, flushed.Drops, flushed.BuildingDrops);"
     },
     {
       "cluster": "inline",
@@ -5354,13 +5354,13 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 31;"
+      "quote": "public const int Current = 32;"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
-      "quote": "if (RelateReportGeneration(generation, \"BlockDamageReport\", sender) == WorldGenerationRelation.Stale)"
+      "quote": "var relation = RelateReportGeneration(generation, \"BlockDamageReport\", sender);"
     },
     {
       "cluster": "world-blocks",
@@ -5546,7 +5546,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 31;"
+      "quote": "public const int Current = 32;"
     },
     {
       "cluster": "inline",
@@ -5931,6 +5931,78 @@
       "row": "W6",
       "file": "tests/CasualtiesUnknownOnline.Tests/World/ReconnectWorldSnapshotTests.cs",
       "quote": "public void GuestReconnects_WhileStillInWorld_ReceivesTheLiveLayout()"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/BlockDamagedMsg.cs",
+      "quote": "public float Contribution { get; set; }"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/BlockDamageSnapshotMsg.cs",
+      "quote": "public bool AnswersReport { get; set; }"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RemoteBlockDamageLedger.cs",
+      "quote": "internal readonly record struct Resolution(ulong Sender, int X, int Y, float Contribution, float Increment, bool Trackable);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RemoteBlockDamageLedger.cs",
+      "quote": "internal Resolution Resolve(ulong sender, int x, int y, float contribution)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RemoteBlockDamageLedger.cs",
+      "quote": "internal int Forget(int x, int y)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocalBlockDamageContributions.cs",
+      "quote": "public bool Answer(int x, int y)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocalBlockDamageContributions.cs",
+      "quote": "public float Add(int x, int y, float increment)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "private readonly RemoteBlockDamageLedger _damageLedger = new();"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockReportChannel.cs",
+      "quote": "_sender.Send(sender, NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg { Entries = answers, Generation = _generations.Stamp(), AnswersReport = true });"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
+      "quote": "_blockBreaks.ForgetBlockDamageAccounting(pos);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
+      "quote": "internal void ForgetBlockDamageAccounting(Vector2Int cell) =>"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationDamageBlockPatch.cs",
+      "quote": ": (__state.World.GetBlockDamage(__state.Cell)?.damage ?? 0f) - __state.PreviousDamage;"
     }
   ]
 }

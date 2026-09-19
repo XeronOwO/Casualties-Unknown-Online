@@ -44,7 +44,7 @@ public class GuestBreakDropRecoveryTests
 	private const float Damage = 100f;
 
 	/// <summary>One report as it travels: the break position plus both drop families.</summary>
-	private sealed record Report(NetVector2 Pos, IReadOnlyList<BlockDropEntryMsg>? Drops, IReadOnlyList<TrapDropEntryMsg>? BuildingDrops);
+	private sealed record Report(int CellX, int CellY, IReadOnlyList<BlockDropEntryMsg>? Drops, IReadOnlyList<TrapDropEntryMsg>? BuildingDrops);
 
 	/// <summary>The host executor contract double: the production BlockBreakSync shape (verdict → register/materialize/relay, or refuse every drop), with the drops it registered recorded for the assertions.</summary>
 	private sealed class HostExecutor(ItemSimWorld w)
@@ -63,10 +63,8 @@ public class GuestBreakDropRecoveryTests
 		{
 			var world = _w.Host.Services.GetRequiredService<IWorldControl>();
 			var items = _w.Host.Services.GetRequiredService<IItemControl>();
-			world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops, generation) =>
+			world.BlockDamagedReceived += (sender, cellX, cellY, damage, metalBonus, drops, buildingDrops, generation) =>
 			{
-				var cellX = (int)pos.X;
-				var cellY = (int)pos.Y;
 				// A report from another generation is refused BEFORE the arbitration
 				// (its cell key is layer-relative), exactly as production does — and
 				// a break's drops are rolled back with it.
@@ -100,11 +98,11 @@ public class GuestBreakDropRecoveryTests
 					Registered.Add(drop.ItemId);
 				}
 
-				Relays.Add(new Report(pos, drops, buildingDrops));
+				Relays.Add(new Report(cellX, cellY, drops, buildingDrops));
 				// Production relays to EVERYONE, the reporter included: that echo is
 				// the acknowledgement that clears the reporter's pending drop report
 				// (the block-state echo says nothing about whether the drops arrived).
-				world.BroadcastBlockDamaged(0, pos, damage, metalBonus, drops, buildingDrops);
+				world.BroadcastBlockDamaged(0, cellX, cellY, damage, metalBonus, drops, buildingDrops);
 			};
 		}
 
@@ -120,7 +118,7 @@ public class GuestBreakDropRecoveryTests
 	private static void InstallGuestExecutor(ItemSimWorld w, TestNode guest)
 	{
 		var world = guest.Services.GetRequiredService<IWorldControl>();
-		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops, generation) =>
+		world.BlockDamagedReceived += (sender, cellX, cellY, damage, metalBonus, drops, buildingDrops, generation) =>
 		{
 			if (generation == WorldGenerationRelation.Stale)
 			{
@@ -132,7 +130,7 @@ public class GuestBreakDropRecoveryTests
 
 			if (sender == w.Host.SteamId && (drops is { Count: > 0 } || buildingDrops is { Count: > 0 }))
 			{
-				world.AnswerBreakDrops((int)pos.X, (int)pos.Y, drops, buildingDrops);
+				world.AnswerBreakDrops(cellX, cellY, drops, buildingDrops);
 			}
 		};
 	}
@@ -147,7 +145,8 @@ public class GuestBreakDropRecoveryTests
 		var sender = guest.Services.GetRequiredService<PacketSender>();
 		sender.Send(w.Host.SteamId, NetMsg.BlockDamaged, new BlockDamagedMsg
 		{
-			Position = new NetVector2Msg(cellX, cellY),
+			X = cellX,
+			Y = cellY,
 			Damage = Damage,
 			Drops = drops is { Count: > 0 } ? [.. drops] : null,
 			BuildingDrops = buildingDrops is { Count: > 0 } ? [.. buildingDrops] : null,
@@ -159,7 +158,7 @@ public class GuestBreakDropRecoveryTests
 	private static void BreakBlock(ItemSimWorld w, TestNode guest, int cellX, int cellY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops = null, WorldGenerationMsg? generation = null)
 	{
 		guest.Services.GetRequiredService<IWorldControl>()
-			.ReportBreakDrops(cellX, cellY, cellX, cellY, drops, buildingDrops);
+			.ReportBreakDrops(cellX, cellY, drops, buildingDrops);
 		SendBreakReport(w, guest, cellX, cellY, drops, buildingDrops, generation);
 	}
 
@@ -361,17 +360,18 @@ public class GuestBreakDropRecoveryTests
 		WorldGenerationReports.CommitRun(w.G1, layerIndex: 2); // this side's baseline; the relay's stamp is layer 1
 		InstallGuestExecutor(w, w.G1);
 		var relations = new List<WorldGenerationRelation>();
-		w.G1.Services.GetRequiredService<IWorldControl>().BlockDamagedReceived += (_, _, _, _, _, _, relation) => relations.Add(relation);
+		w.G1.Services.GetRequiredService<IWorldControl>().BlockDamagedReceived += (_, _, _, _, _, _, _, relation) => relations.Add(relation);
 
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
-		guestWorld.ReportBreakDrops(CellX, CellY, CellX, CellY, [Drop(93)], null);
+		guestWorld.ReportBreakDrops(CellX, CellY, [Drop(93)], null);
 		Assert.Equal(1, PendingDropReports(w.G1));
 
 		// The relay's own shape: the break's drops plus a stamp that belongs to
 		// another layer of the same run.
 		w.Host.Services.GetRequiredService<PacketSender>().Send(w.G1.SteamId, NetMsg.BlockDamaged, new BlockDamagedMsg
 		{
-			Position = new NetVector2Msg(CellX, CellY),
+			X = CellX,
+			Y = CellY,
 			Damage = Damage,
 			Drops = [Drop(93)],
 			Generation = WorldGenerationReports.StampOf(w.G1, layerOverride: 1),
@@ -520,7 +520,7 @@ public class GuestBreakDropRecoveryTests
 		using var w = ItemSimWorld.Create();
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 
-		hostWorld.ReportBreakDrops(CellX, CellY, CellX, CellY, [Drop(85)], null);
+		hostWorld.ReportBreakDrops(CellX, CellY, [Drop(85)], null);
 		w.Driver.Tick(61_000);
 
 		Assert.Equal(0, w.Host.Services.GetRequiredService<WorldService>().PendingBreakDropReportCount);

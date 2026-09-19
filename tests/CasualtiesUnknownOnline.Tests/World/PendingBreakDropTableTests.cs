@@ -23,13 +23,12 @@ public class PendingBreakDropTableTests
 	{
 		var table = new PendingBreakDropTable();
 
-		Assert.True(table.Report(3, 4, 3.5f, 4.5f, [Drop(77)], null));
-		Assert.True(table.Report(3, 4, 3.5f, 4.5f, [Drop(78)], [BuildingDrop(90)]));
-		Assert.True(table.Report(-2, 9, -1.5f, 9.5f, [Drop(79)], null));
+		Assert.True(table.Report(3, 4, [Drop(77)], null));
+		Assert.True(table.Report(3, 4, [Drop(78)], [BuildingDrop(90)]));
+		Assert.True(table.Report(-2, 9, [Drop(79)], null));
 
 		Assert.Equal(2, table.Count);
 		var entry = Assert.Single(table.Entries, e => e.X == 3 && e.Y == 4);
-		Assert.Equal(3.5f, entry.PosX);
 		Assert.Equal(2, entry.Drops.Count);
 		Assert.Contains(entry.Drops, d => d.ItemId == 77);
 		Assert.Contains(entry.Drops, d => d.ItemId == 78);
@@ -40,13 +39,13 @@ public class PendingBreakDropTableTests
 	public void Report_AtCap_RefusesNewCellsButStillUpdatesExisting()
 	{
 		var table = new PendingBreakDropTable(cap: 2);
-		Assert.True(table.Report(1, 1, 1.5f, 1.5f, [Drop(1)], null));
-		Assert.True(table.Report(2, 2, 2.5f, 2.5f, [Drop(2)], null));
+		Assert.True(table.Report(1, 1, [Drop(1)], null));
+		Assert.True(table.Report(2, 2, [Drop(2)], null));
 
-		Assert.False(table.Report(3, 3, 3.5f, 3.5f, [Drop(3)], null));
+		Assert.False(table.Report(3, 3, [Drop(3)], null));
 		Assert.Equal(2, table.Count);
 
-		Assert.True(table.Report(1, 1, 1.5f, 1.5f, [Drop(4)], null), "an existing cell always updates — its drops are real items");
+		Assert.True(table.Report(1, 1, [Drop(4)], null), "an existing cell always updates — its drops are real items");
 		Assert.Equal(2, Assert.Single(table.Entries, e => e.X == 1 && e.Y == 1).Drops.Count);
 	}
 
@@ -54,7 +53,7 @@ public class PendingBreakDropTableTests
 	public void Answer_RemovesOnlyWhenTheRelayCarriesEveryOutstandingItem()
 	{
 		var table = new PendingBreakDropTable();
-		table.Report(5, 7, 5.5f, 7.5f, [Drop(77), Drop(78)], [BuildingDrop(90)]);
+		table.Report(5, 7, [Drop(77), Drop(78)], [BuildingDrop(90)]);
 
 		Assert.False(table.Answer(5, 7, [Drop(77)], null), "a partial relay leaves the rest outstanding");
 		Assert.False(table.Answer(5, 7, [Drop(77), Drop(78)], null), "the building drop is still unanswered");
@@ -75,7 +74,7 @@ public class PendingBreakDropTableTests
 		// with an empty block-drop list — the acknowledgement must not depend on
 		// that list being non-empty.
 		var table = new PendingBreakDropTable();
-		table.Report(5, 7, 5.5f, 7.5f, null, [BuildingDrop(90)]);
+		table.Report(5, 7, null, [BuildingDrop(90)]);
 
 		Assert.True(table.Answer(5, 7, null, [BuildingDrop(90)]));
 		Assert.Equal(0, table.Count);
@@ -85,8 +84,8 @@ public class PendingBreakDropTableTests
 	public void ForgetItem_DropsJustThatDrop_AndTheEntryWhenItEmpties()
 	{
 		var table = new PendingBreakDropTable();
-		table.Report(5, 7, 5.5f, 7.5f, [Drop(77), Drop(78)], null);
-		table.Report(9, 9, 9.5f, 9.5f, [Drop(90)], null);
+		table.Report(5, 7, [Drop(77), Drop(78)], null);
+		table.Report(9, 9, [Drop(90)], null);
 
 		Assert.True(table.ForgetItem(77), "the refused drop leaves the outstanding set");
 		Assert.Equal(2, table.Count);
@@ -103,8 +102,8 @@ public class PendingBreakDropTableTests
 	public void Clear_EmptiesEveryCell()
 	{
 		var table = new PendingBreakDropTable();
-		table.Report(1, 1, 1.5f, 1.5f, [Drop(1)], null);
-		table.Report(2, 2, 2.5f, 2.5f, [Drop(2)], [BuildingDrop(3)]);
+		table.Report(1, 1, [Drop(1)], null);
+		table.Report(2, 2, [Drop(2)], [BuildingDrop(3)]);
 
 		table.Clear();
 
@@ -113,14 +112,14 @@ public class PendingBreakDropTableTests
 	}
 
 	[Fact]
-	public void Entries_CarryTheBreaksReportedPositionAndBothFamilies()
+	public void Entries_CarryTheBreaksCellAndBothFamilies()
 	{
 		var table = new PendingBreakDropTable();
-		table.Report(5, 7, 5.25f, 7.75f, [Drop(77)], [BuildingDrop(90)]);
+		table.Report(5, 7, [Drop(77)], [BuildingDrop(90)]);
 
 		var entry = Assert.Single(table.Entries);
 
-		Assert.Equal((5, 7, 5.25f, 7.75f), (entry.X, entry.Y, entry.PosX, entry.PosY));
+		Assert.Equal((5, 7), (entry.X, entry.Y));
 		Assert.Equal(77ul, Assert.Single(entry.Drops).ItemId);
 		Assert.Equal(90ul, Assert.Single(entry.BuildingDrops).ItemId);
 	}

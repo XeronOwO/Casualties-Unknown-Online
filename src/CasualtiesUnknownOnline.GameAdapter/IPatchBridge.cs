@@ -102,7 +102,7 @@ internal interface IPatchBridge
 
 	void OnBlockSet(Vector2Int pos, ushort block);
 
-	void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal);
+	void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal, float applied);
 
 	/// <summary>
 	/// A local block break hit a custom tile index. The Game Adapter spawns the

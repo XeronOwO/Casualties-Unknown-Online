@@ -157,8 +157,8 @@ only remaining logic is the role-guarded answer hand-off in
   side ever held — `KeepHost` cannot see it, because the duplicate arrives as a delta rather
   than as a second absolute value. Both need per-sender accounting (a (sender, cell) ledger
   whose cell total is re-derived, or sequenced deltas) and are tracked in
-  `todo/partial-damage-delta-report-overlap.md`; the recovery itself stays bounded and
-  self-healing, which is why W2 closes as `OK` with this recorded.
+  `review/partial-damage-delta-report-overlap.md` (landed, per-sender accounting); the recovery itself stays bounded and
+  self-healing, which is why W2 closes as `OK` with this recorded. **Closed 2026-09-19** by `review/partial-damage-delta-report-overlap.md`: partial damage is accounted per sender, both directions above are covered by tests, and the second limitation (two local hits inside one round trip) is healed by the same ledger.
 - Two local hits at the SAME cell inside one round trip share the W1 shape: the first answer
   clears the cell's entry, so a swallowed second report falls back to the host's 60 s
   snapshot.

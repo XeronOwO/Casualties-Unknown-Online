@@ -70,7 +70,7 @@ public class BlockBreakSimulationTests
 		var relays = new Counter(); // every relay the host sent (the relay includes the reporter)
 		var world = host.Services.GetRequiredService<IWorldControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
-		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops, generation) =>
+		world.BlockDamagedReceived += (sender, cellX, cellY, damage, metalBonus, drops, buildingDrops, generation) =>
 		{
 			// The executor: first-writer-wins — an accepted break relays, a
 			// refused one (the cell's break belongs to another writer) rolls every
@@ -82,7 +82,7 @@ public class BlockBreakSimulationTests
 			// the only cell model it has, so the standing-block shape cannot arise
 			// here (GuestBreakDropRecoveryTests covers it with a real cell state and
 			// a real generation stamp).
-			var verdict = arbitration.TryAccept(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y), cellIsAir: true, generationVerified: false);
+			var verdict = arbitration.TryAccept(sender, cellX, cellY, cellIsAir: true, generationVerified: false);
 			if (verdict == Verdict.Refused)
 			{
 				if (drops is not null)
@@ -104,7 +104,7 @@ public class BlockBreakSimulationTests
 				return;
 			}
 
-			arbitration.RecordAccepted(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y), now: 0f); // the break is real
+			arbitration.RecordAccepted(sender, cellX, cellY, now: 0f); // the break is real
 			accepted.Value++;
 			relays.Value++;
 			if (sender == G2Id)
@@ -114,7 +114,7 @@ public class BlockBreakSimulationTests
 
 			items.FireBlockDropsReceived(sender, drops ?? []);
 			items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
-			world.BroadcastBlockDamaged(0, pos, damage, metalBonus, drops, buildingDrops); // everyone, the reporter included — that echo is the acknowledgement
+			world.BroadcastBlockDamaged(0, cellX, cellY, damage, metalBonus, drops, buildingDrops); // everyone, the reporter included — that echo is the acknowledgement
 		};
 
 		return new SimWorld(driver, host, g1, g2, g1Received, g2Received, arbitration, accepted, acceptedByG2, relays);
@@ -125,7 +125,8 @@ public class BlockBreakSimulationTests
 		var sender = guest.Services.GetRequiredService<PacketSender>();
 		sender.Send(HostId, NetMsg.BlockDamaged, new BlockDamagedMsg
 		{
-			Position = new NetVector2Msg(cellX + 0.5f, cellY + 0.5f),
+			X = cellX,
+			Y = cellY,
 			Damage = 100f,
 			MetalBonus = metalBonus,
 			Drops = drops,

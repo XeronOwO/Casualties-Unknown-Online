@@ -38,9 +38,9 @@ internal sealed class GuestBreakDropReportBookkeeping(ILogger<WorldService> log)
 	/// lands is exactly what the fallback exists for. A cell the cap refuses is
 	/// logged once per overflow episode, never dropped silently.
 	/// </summary>
-	internal void Report(int x, int y, float posX, float posY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	internal void Report(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
 	{
-		if (_table.Report(x, y, posX, posY, drops, buildingDrops))
+		if (_table.Report(x, y, drops, buildingDrops))
 		{
 			return;
 		}

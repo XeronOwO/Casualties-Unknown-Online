@@ -249,6 +249,22 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void BlockDamageSnapshot_AnswersReportTrue_RoundTrips()
+	{
+		// The answer flag is what lets the receiver clear its outstanding
+		// contribution: a true that decodes back to false leaves the reporter
+		// re-reporting a cell this host already accounted for.
+		var decoded = NetPacket.DecodePayload<BlockDamageSnapshotMsg>(NetPacket.Encode(NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg
+		{
+			Entries = [new BlockDamageEntryMsg { X = 5, Y = 7, Damage = 20f }],
+			AnswersReport = true,
+		}));
+
+		Assert.True(decoded.AnswersReport, "AnswersReport=true must round-trip");
+		Assert.Equal(20f, Assert.Single(decoded.Entries).Damage);
+	}
+
+	[Fact]
 	public void BlockDamageSnapshot_OriginZeroDamage_RoundTrips()
 	{
 		// X/Y are ints and Damage is a float — protobuf's zero omission decodes
@@ -265,6 +281,7 @@ public class NetPacketTests
 
 		var decoded = NetPacket.DecodePayload<BlockDamageSnapshotMsg>(NetPacket.Encode(NetMsg.BlockDamageSnapshot, msg));
 
+		Assert.False(decoded.AnswersReport, "the periodic / world-entry snapshot is state, and its false default is what a third party's outstanding entry relies on");
 		Assert.Equal(2, decoded.Entries.Count);
 		Assert.Equal(0, decoded.Entries[0].X);
 		Assert.Equal(0, decoded.Entries[0].Y);
@@ -281,12 +298,36 @@ public class NetPacketTests
 		// wire — a false omission decodes back to false, a true must survive.
 		var decoded = NetPacket.DecodePayload<BlockDamagedMsg>(NetPacket.Encode(NetMsg.BlockDamaged, new BlockDamagedMsg
 		{
-			Position = new NetVector2Msg(3.5f, -4.25f),
+			X = 3,
+			Y = -4,
 			Damage = 10f,
 			MetalBonus = true,
 		}));
 
 		Assert.True(decoded.MetalBonus, "MetalBonus=true must round-trip");
+	}
+
+	[Fact]
+	public void BlockDamaged_CellAndContribution_RoundTrip()
+	{
+		// The cell is the report's identity and the contribution is what the
+		// per-sender accounting resolves: a dropped cell or a dropped contribution
+		// (0 is also the "no contribution" marker, so its default hides a wiring
+		// mistake) makes the receiver account the hit wrongly.
+		var decoded = NetPacket.DecodePayload<BlockDamagedMsg>(NetPacket.Encode(NetMsg.BlockDamaged, new BlockDamagedMsg
+		{
+			X = -12,
+			Y = 34,
+			Damage = 0f,
+			Contribution = 21.5f,
+			Generation = new WorldGenerationMsg { RunEpoch = 7, LayerIndex = 2 },
+		}));
+
+		Assert.True(decoded.X == -12 && decoded.Y == 34,
+			$"the block cell must round-trip, got ({decoded.X},{decoded.Y})");
+		Assert.Equal(21.5f, decoded.Contribution);
+		Assert.False(decoded.MetalBonus, "a contribution is already in accumulated units — no multiplier rides along");
+		Assert.True(decoded.Generation is { RunEpoch: 7, LayerIndex: 2 }, "the generation stamp must survive the wire");
 	}
 
 	[Fact]

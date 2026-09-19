@@ -120,7 +120,7 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 
 		var worldControl = host.Services.GetRequiredService<IWorldControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
-		worldControl.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops, generation) =>
+		worldControl.BlockDamagedReceived += (sender, cellX, cellY, damage, metalBonus, drops, buildingDrops, generation) =>
 		{
 			// The production BlockBreakSync executor shape: only a BREAK (drops
 			// attached) consults the record; a break the cell does not belong to
@@ -132,8 +132,6 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 				return;
 			}
 
-			var cellX = (int)Math.Floor(pos.X);
-			var cellY = (int)Math.Floor(pos.Y);
 			// The replay carries no run baseline, so every report compares as
 			// UNKNOWN and no report can take the generation-verified branch: a
 			// recorded air write (the sim's only cell model) is what accepts a break.
@@ -163,7 +161,7 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 			world._acceptedBy[sender] = world._acceptedBy.TryGetValue(sender, out var count) ? count + 1 : 1;
 			items.FireBlockDropsReceived(sender, drops ?? []);
 			items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
-			worldControl.BroadcastBlockDamaged(0, pos, damage, metalBonus, drops, buildingDrops); // production relays to everyone, the reporter included — that echo is the acknowledgement
+			worldControl.BroadcastBlockDamaged(0, cellX, cellY, damage, metalBonus, drops, buildingDrops); // production relays to everyone, the reporter included — that echo is the acknowledgement
 		};
 
 		return world;
@@ -179,7 +177,8 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 		var sender = guest.Services.GetRequiredService<PacketSender>();
 		sender.Send(HostId, NetMsg.BlockDamaged, new BlockDamagedMsg
 		{
-			Position = new NetVector2Msg(cellX + 0.5f, cellY + 0.5f),
+			X = cellX,
+			Y = cellY,
 			Damage = 100f,
 			MetalBonus = metalBonus,
 			Drops = [.. drops],

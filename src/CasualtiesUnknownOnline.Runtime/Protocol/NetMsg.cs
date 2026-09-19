@@ -263,14 +263,15 @@ public enum NetMsg : byte
 	// BlockDamaged report is a DELTA the receiver accumulates, and the host's
 	// authoritative table is the GAME's own list, so a swallowed report left the
 	// host permanently short by exactly that hit and its absolute snapshot then
-	// omitted the cell forever). The guest keeps each reported cell's ABSOLUTE
-	// damage and re-reports the set until the host answers; the answer reuses the
-	// existing BlockDamageSnapshot (89), carrying this host's authoritative value
-	// for every reported cell — a zero means "no damage here", so a refused row
-	// converges instead of re-reporting forever. One new operation (the guest's
-	// absolute report, sharing the snapshot's payload shape); its answer is the
-	// pre-existing snapshot message.
-	BlockDamageReport = 136, // guest → host: the guest's ABSOLUTE partial-damage set for the cells the host has not answered
+	// omitted the cell forever). The guest keeps its OWN cumulative contribution
+	// per cell and re-reports the outstanding set until the host answers; the host
+	// resolves every reported row against its per-sender ledger and applies the
+	// difference (protocol 32), then answers with this host's own value for every
+	// reported cell — a zero means "no damage here", and that answer, unlike the
+	// periodic snapshot, is what clears the reporter's outstanding entries. One
+	// new operation (the guest's report, sharing the snapshot's payload shape);
+	// its answer is the pre-existing snapshot message.
+	BlockDamageReport = 136, // guest → host: this sender's cumulative partial-damage contribution for the cells the host has not accounted for
 
 	// Target-body verdict for a medical operation start (the target's own client
 	// decides what its own body allows: the host validates what it owns, parks

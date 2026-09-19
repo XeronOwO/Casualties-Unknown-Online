@@ -96,30 +96,6 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 	}
 
 	/// <inheritdoc />
-	public IReadOnlyList<BlockDamageEntryMsg>? MergeBlockDamages(IReadOnlyList<BlockDamageEntryMsg> reported)
-	{
-		var world = WorldGeneration.world;
-		if (world == null) // Unity object — == (the caller answers nothing and says so)
-		{
-			log.LogWarning(
-				"[BlockDamageReport] no live world to merge a guest's partial-damage report into — the report is neither merged nor answered, and the reporter's pending entry survives to the next cycle.");
-			return null;
-		}
-
-		var merge = GameBlockDamageTable.Merge(world, reported, "Partial-damage report", log);
-		foreach (var damage in merge.Raised)
-		{
-			// A report that raised this host's own row must show here too: the
-			// crack sprite is the local presentation of the same damage.
-			damage.UpdateSprite();
-		}
-
-		log.LogInformation("[BlockDamageReport] merged {Count} reported cell(s) ({Raised} raised, {Refused} refused).",
-			reported.Count, merge.Raised.Count, merge.Refused);
-		return merge.Authoritative;
-	}
-
-	/// <inheritdoc />
 	public NativeRunFields CaptureRunFields()
 	{
 		var world = WorldGeneration.world;

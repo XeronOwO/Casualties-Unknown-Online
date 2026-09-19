@@ -33,6 +33,7 @@ internal static class WorldGenerationDamageBlockPatch
 			__instance,
 			cell,
 			__instance.GetBlock(cell),
+			__instance.GetBlockDamage(cell)?.damage ?? 0f,
 			isLocalAction,
 			CallContext.Enter(CallContext.Origin.DamageBlockOrigin));
 		return true;
@@ -53,7 +54,16 @@ internal static class WorldGenerationDamageBlockPatch
 				PatchBridge.Impl?.OnCustomTileBroken(__state.World, __state.Cell, __state.OriginalBlock);
 			}
 
-			PatchBridge.Impl?.OnBlockDamaged(pos, dmg, bonusMetal);
+			// How much this call actually added to the cell's row, in the game's own
+			// accumulated units (the metallic ×10 is already folded in,
+			// WorldGeneration.cs:715) — the sender's own contribution, which the
+			// per-sender accounting reports instead of the cell's total. A hit that
+			// BROKE the block removed the row inside the call, so the reading says
+			// nothing; the break path owns that cell instead.
+			var applied = __state.World.GetBlock(__state.Cell) == 0
+				? 0f
+				: (__state.World.GetBlockDamage(__state.Cell)?.damage ?? 0f) - __state.PreviousDamage;
+			PatchBridge.Impl?.OnBlockDamaged(pos, dmg, bonusMetal, applied);
 		}
 		finally
 		{
@@ -65,12 +75,16 @@ internal static class WorldGenerationDamageBlockPatch
 		WorldGeneration world,
 		Vector2Int cell,
 		ushort originalBlock,
+		float previousDamage,
 		bool isLocalAction,
 		IDisposable scope) : IDisposable
 	{
 		internal readonly WorldGeneration World = world;
 		internal readonly Vector2Int Cell = cell;
 		internal readonly ushort OriginalBlock = originalBlock;
+
+		/// <summary>The cell's accumulated damage BEFORE this call — the other half of the applied increment.</summary>
+		internal readonly float PreviousDamage = previousDamage;
 		internal readonly bool IsLocalAction = isLocalAction;
 		private readonly IDisposable _scope = scope;
 

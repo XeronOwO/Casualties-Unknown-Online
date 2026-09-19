@@ -5,13 +5,14 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>
-/// Guest → host: the guest's ABSOLUTE partial block-damage set for the cells
-/// whose live delta report this host never answered (sync-coverage audit W2).
-/// The host merges every row into the GAME's own <c>blockDamages</c> list through
-/// the native port — per cell, never below what it already holds — and answers
-/// with its authoritative value for every reported cell through the existing
-/// <see cref="NetMsg.BlockDamageSnapshot"/>, which is what clears the reporter's
-/// pending entry.
+/// Guest → host: this sender's cumulative partial block-damage CONTRIBUTION for
+/// the cells whose live delta report this host never accounted for
+/// (sync-coverage audit W2, per sender since protocol 32). The host resolves each
+/// row against its per-sender ledger, applies only the difference through the
+/// same path a live delta takes, and answers with its own value for every
+/// reported cell through the existing <see cref="NetMsg.BlockDamageSnapshot"/> —
+/// that answer, not the periodic snapshot, is what clears the reporter's
+/// outstanding entries.
 /// </summary>
 [PacketHandler(NetMsg.BlockDamageReport, NetMessageDirection.GuestToHost)]
 public sealed class BlockDamageReportHandler(ILogger<BlockDamageReportHandler> log) : PacketHandlerBase<BlockDamageSnapshotMsg, IWorldHandlerContext>

@@ -110,6 +110,16 @@ public static class ProtocolVersion
 	/// would keep a crafting list permanently short by every unlock whose report
 	/// or relay it missed — including every unlock that happened before it
 	/// joined — and would ignore the set the other side sends.
-	public const int Current = 31;
+	/// 32: partial block damage is accounted PER SENDER
+	/// (review/partial-damage-delta-report-overlap). BlockDamaged now names the block
+	/// CELL (the key every consumer of the family already uses) and carries the
+	/// sender's cumulative contribution to that cell in the game's accumulated
+	/// units; a guest's report carries its own contribution per cell instead of the
+	/// cell's total, and the host's answer marks itself with AnswersReport. A peer
+	/// without it would keep merging absolute totals against a delta the receiver
+	/// accumulates, so two senders whose reports were both swallowed would converge
+	/// to the higher value instead of the sum, and a delta landing after the report
+	/// covering it would count the same hit twice.
+	public const int Current = 32;
 
 }

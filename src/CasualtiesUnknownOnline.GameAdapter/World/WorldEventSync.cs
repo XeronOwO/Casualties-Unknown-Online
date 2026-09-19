@@ -196,6 +196,13 @@ internal sealed partial class WorldEventSync(
 			return;
 		}
 
+		// The block at this cell was written (a break, a placement): whatever partial
+		// damage was accounted for here — this side's outstanding contribution on a
+		// guest, every sender's ledger entry on the host — belonged to the block that
+		// is gone, and a fresh block at the same cell starts from zero. Remote writes
+		// return above and clear on their own path (OnRemoteBlockPlaced).
+		_blockBreaks.ForgetBlockDamageAccounting(pos);
+
 		// Trace only the PLAYER-driven writes: mining and placement (the postfix
 		// verified the write landed — GetBlock == block). Quake/environment
 		// breaks fire inside WorldGeneration.Update at 16/s per side — the
@@ -306,6 +313,7 @@ internal sealed partial class WorldEventSync(
 				}
 
 				WorldGeneration.world.SetBlock(pos, block);
+				_blockBreaks.ForgetBlockDamageAccounting(pos);
 				_world.ReportBlockState(x, y, block); // the mutation is a world difference too
 				_world.BroadcastBlockPlaced(0, x, y, block); // everyone, the reporter included — the echo is its acknowledgement (same-value SetBlock is idempotent)
 				if (block == 0)
@@ -321,6 +329,7 @@ internal sealed partial class WorldEventSync(
 			{
 				var changed = WorldGeneration.world.GetBlock(pos) != block;
 				WorldGeneration.world.SetBlock(pos, block);
+				_blockBreaks.ForgetBlockDamageAccounting(pos);
 				if (changed && block == 0)
 				{
 					// A guest receiving the host's air-write relay may have its

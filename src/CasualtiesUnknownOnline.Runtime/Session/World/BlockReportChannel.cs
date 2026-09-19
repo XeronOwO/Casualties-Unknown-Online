@@ -37,6 +37,9 @@ internal sealed class BlockReportChannel(
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<WorldService> _log = log;
 
+	/// <summary>The adapter's native world-fact port (optional): the host's report answer reads this host's own rows through it, and the periodic snapshot sends them.</summary>
+	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
+
 	/// <summary>
 	/// The generation every direct world report of this family is stamped with, and
 	/// the one a received report is compared against: the kernel run baseline. The
@@ -46,7 +49,7 @@ internal sealed class BlockReportChannel(
 	/// </summary>
 	private readonly KernelWorldGenerationSource _generations = generations;
 
-	private readonly GuestReportRecovery _guestReports = new(session, sender, nativeWorldFacts, generations, log);
+	private readonly GuestReportRecovery _guestReports = new(session, sender, generations, log);
 
 	private readonly BlockDamageSnapshotSender _blockDamageSnapshot = new(session, sender, nativeWorldFacts, generations, log);
 
@@ -65,21 +68,26 @@ internal sealed class BlockReportChannel(
 		WorldReportGenerationGate.Relate(generation, _generations.Current, kind, sender, _log);
 
 	/// <summary>
-	/// Guest: the host's partial-damage snapshot arrived — it is also the ANSWER
-	/// to every outstanding absolute re-report whose cell it names (the
-	/// world-entry / 60 s snapshot and the per-report answer share this message),
-	/// so those pending entries are done. A snapshot from another generation is
-	/// refused before either half runs: its rows are keyed by block cell, so
-	/// applying them would write another layer's damage onto this side's cells.
+	/// Guest: the host's partial-damage row set arrived — authoritative STATE for
+	/// every cell it names, and, when <paramref name="answersReport"/> is set, the
+	/// ANSWER to this side's own report: those cells are accounted for, so their
+	/// outstanding entries are done (the cumulative contribution stays, because
+	/// the host's ledger now holds it). The periodic / world-entry snapshot
+	/// deliberately does NOT clear anything: it says nothing about whether a
+	/// particular sender's report was accounted for, and clearing a third party's
+	/// entry would drop its contribution without it ever being reported.
+	/// A snapshot from another generation is refused before either half runs: its
+	/// rows are keyed by block cell, so applying them would write another layer's
+	/// damage onto this side's cells.
 	/// </summary>
-	public void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation)
+	public void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation, bool answersReport)
 	{
 		if (RelateReportGeneration(generation, "BlockDamageSnapshot", _session.HostSteamId) == WorldGenerationRelation.Stale)
 		{
 			return;
 		}
 
-		if (_session.Role == SessionRole.Guest)
+		if (_session.Role == SessionRole.Guest && answersReport)
 		{
 			_guestReports.AnswerDamage(entries);
 		}
@@ -90,9 +98,20 @@ internal sealed class BlockReportChannel(
 	/// <summary>Host only: send the partial damage the GAME's own list holds (see <see cref="BlockDamageSnapshotSender"/>).</summary>
 	public void SendBlockDamageSnapshot(ulong targetSteamId) => _blockDamageSnapshot.Send(targetSteamId);
 
-	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?, WorldGenerationRelation>? BlockDamagedReceived;
+	public event Action<ulong, int, int, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?, WorldGenerationRelation>? BlockDamagedReceived;
 
-	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationMsg? generation)
+	/// <summary>
+	/// Host only: what each sender has cumulatively contributed to each cell —
+	/// the accounting that makes a report idempotent and a delayed delta a no-op
+	/// (review/partial-damage-delta-report-overlap). A guest never fills it: it is
+	/// the RECEIVER's record of other senders' contributions, and a guest only
+	/// ever receives the host's relays, which it applies without accounting.
+	/// </summary>
+	private readonly RemoteBlockDamageLedger _damageLedger = new();
+
+	private bool _ledgerOverflowLogged;
+
+	public void FireBlockDamagedReceived(ulong sender, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, float contribution, WorldGenerationMsg? generation)
 	{
 		// A stale report still travels to the domain WITH its verdict: the break's
 		// drops are the breaker's LOCAL copies, and a report that belongs to
@@ -104,8 +123,66 @@ internal sealed class BlockReportChannel(
 		// report belongs to is the game's own world→cell conversion (it offsets by
 		// the world's half extent), which only the adapter can run — BlockBreakSync
 		// answers the pending drop report with the cell it resolved.
-		BlockDamagedReceived?.Invoke(sender, pos, damage, metalBonus, drops, buildingDrops,
-			RelateReportGeneration(generation, "BlockDamaged", sender));
+		var relation = RelateReportGeneration(generation, "BlockDamaged", sender);
+
+		// A partial-damage report carries its sender's cumulative contribution:
+		// this host hands the domain the DIFFERENCE it has not accounted for, so a
+		// repeat, a stale frame or a duplicate report resolves to nothing and is
+		// neither applied nor relayed. Everything else — a break with its drops, a
+		// drop re-report, a sender that could not account for the cell — keeps the
+		// raw damage path unchanged.
+		if (AdmitRemoteContribution(sender, x, y, contribution, drops, buildingDrops, relation) is { } increment)
+		{
+			if (increment > 0f)
+			{
+				BlockDamagedReceived?.Invoke(sender, x, y, increment, false, null, null, relation);
+			}
+
+			return;
+		}
+
+		BlockDamagedReceived?.Invoke(sender, x, y, damage, metalBonus, drops, buildingDrops, relation);
+	}
+
+	/// <summary>
+	/// Host only: resolve ONE sender's reported contribution for ONE cell against
+	/// the ledger. Null = this message is not a contribution (the caller keeps the
+	/// raw path); 0 = the contribution is already accounted for, so nothing is
+	/// applied and nothing is relayed; anything above 0 is the increment this host
+	/// has not seen and now commits.
+	/// </summary>
+	private float? AdmitRemoteContribution(ulong sender, int x, int y, float contribution, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationRelation relation)
+	{
+		if (_session.Role != SessionRole.Host || relation == WorldGenerationRelation.Stale
+			|| contribution <= 0f || drops is { Count: > 0 } || buildingDrops is { Count: > 0 })
+		{
+			return null;
+		}
+
+		var resolution = _damageLedger.Resolve(sender, x, y, contribution);
+		_damageLedger.Commit(resolution);
+		LogLedgerOverflow(resolution, sender);
+		return resolution.Increment;
+	}
+
+	/// <summary>The ledger's own cap is far above any real damage set; a full one degrades to "every report is new" instead of losing the sender's damage, and the episode is logged exactly once.</summary>
+	private void LogLedgerOverflow(RemoteBlockDamageLedger.Resolution resolution, ulong sender)
+	{
+		if (resolution.Trackable)
+		{
+			_ledgerOverflowLogged = false; // the episode ended — a later fill must log again
+			return;
+		}
+
+		if (_ledgerOverflowLogged)
+		{
+			return;
+		}
+
+		_ledgerOverflowLogged = true;
+		_log.LogWarning(
+			"[BlockSync] per-sender partial-damage ledger is full ({Cap} cells) — {Peer}'s contribution at ({X},{Y}) is applied without being tracked, so a repeat of it can count twice until the world is reset.",
+			RemoteBlockDamageLedger.DefaultCap, sender, resolution.X, resolution.Y);
 	}
 
 	public event Action<ulong, int, int, ushort, WorldGenerationRelation>? BlockPlacedReceived;
@@ -151,22 +228,14 @@ internal sealed class BlockReportChannel(
 		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockPlaced, msg);
 	}
 
-	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	public void SendBlockDamaged(int x, int y, float damage, bool metalBonus, float contribution, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
 	{
 		if (!_session.SessionActive)
 		{
 			return;
 		}
 
-		var msg = new BlockDamagedMsg
-		{
-			Position = worldPos.ToNetVector2Msg(),
-			Damage = damage,
-			MetalBonus = metalBonus,
-			Drops = drops is { Count: > 0 } ? [.. drops] : null,
-			BuildingDrops = buildingDrops is { Count: > 0 } ? [.. buildingDrops] : null,
-			Generation = _generations.Stamp(),
-		};
+		var msg = BuildBlockDamaged(x, y, damage, metalBonus, contribution, drops, buildingDrops);
 		if (_session.Role == SessionRole.Host)
 		{
 			_session.Broadcast(NetMsg.BlockDamaged, msg);
@@ -177,24 +246,32 @@ internal sealed class BlockReportChannel(
 		}
 	}
 
-	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	public void BroadcastBlockDamaged(ulong excludeSteamId, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			return;
 		}
 
-		var msg = new BlockDamagedMsg
+		// A relay carries the damage the host actually applied (an increment in
+		// the game's accumulated units, so no multiplier rides along) and no
+		// contribution: only the host keeps the per-sender ledger, and a third
+		// party's row accumulates what it is handed.
+		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockDamaged, BuildBlockDamaged(x, y, damage, metalBonus, 0f, drops, buildingDrops));
+	}
+
+	private BlockDamagedMsg BuildBlockDamaged(int x, int y, float damage, bool metalBonus, float contribution, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) =>
+		new()
 		{
-			Position = worldPos.ToNetVector2Msg(),
+			X = x,
+			Y = y,
 			Damage = damage,
 			MetalBonus = metalBonus,
+			Contribution = contribution,
 			Drops = drops is { Count: > 0 } ? [.. drops] : null,
 			BuildingDrops = buildingDrops is { Count: > 0 } ? [.. buildingDrops] : null,
 			Generation = _generations.Stamp(),
 		};
-		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockDamaged, msg);
-	}
 
 	// ---- Guest report recovery (audit gaps W1/W2) ----
 	// The re-send/answer WIRE logic lives in GuestReportRecovery; the recovery
@@ -241,27 +318,120 @@ internal sealed class BlockReportChannel(
 	/// <summary>The guest report recovery (W1 block state, W2 partial damage, W1's drop half) — <see cref="WorldService"/> relays that surface to the adapter without this message surface growing a member per channel (the 600-line gate).</summary>
 	internal GuestReportRecovery GuestReports => _guestReports;
 
-	/// <summary>Guest only: record the cell's current ABSOLUTE damage before the live delta report goes out (the fallback's re-report source).</summary>
-	public void ReportBlockDamage(int x, int y, float damage) => _guestReports.ReportDamage(x, y, damage);
+	/// <summary>Guest only: add a locally-applied hit to the cell's own contribution and return the new cumulative value (0 when the cell cannot be tracked — the live report then carries no contribution and the host applies the raw delta).</summary>
+	public float AddLocalBlockDamage(int x, int y, float increment) => _guestReports.AddLocalDamage(x, y, increment);
 
-	/// <summary>Either role: the cell went air — its pending partial-damage report dies with the block.</summary>
-	public void ForgetPendingBlockDamage(int x, int y) => _guestReports.ForgetDamage(x, y);
+	/// <summary>
+	/// Either role: a block write landed on the cell (air, placement, restore) —
+	/// the partial damage accounted for it belonged to the block that is gone, so
+	/// the guest's outstanding contribution and every sender's ledger entry for
+	/// the cell die with it. Without this a fresh block at the same cell would
+	/// inherit the old one's accounting, and a contribution below the old value
+	/// would resolve to "already accounted for" and never be applied.
+	/// </summary>
+	public void ForgetBlockDamageAccounting(int x, int y)
+	{
+		_guestReports.ForgetDamage(x, y);
+		_damageLedger.Forget(x, y);
+	}
 
-	/// <summary>Guest only: a new world/layer baseline was applied — the previous world's pending partial-damage reports are dropped.</summary>
-	public void ResetPendingBlockDamageReports() => _guestReports.ResetDamages();
+	/// <summary>Guest only: a new world/layer baseline was applied — the previous world's outstanding contributions are dropped, and so is every ledger entry.</summary>
+	public void ResetPendingBlockDamageReports()
+	{
+		_guestReports.ResetDamages();
+		_damageLedger.Clear();
+		_ledgerOverflowLogged = false;
+	}
 
 	/// <summary>Guest only: re-report every unacknowledged cell's absolute damage to the host (the fallback pump's action).</summary>
 	public void ResendPendingBlockDamageReports() => _guestReports.ResendDamages();
 
-	/// <summary>Host only: merge a guest's absolute partial-damage report and answer every reported cell authoritatively. A report from another generation is refused before the merge: its rows name THIS side's cells with another world's damage, and the reporter's own boundary drops its pending set, so no answer is owed (an answer would write this generation's values into the reporter's older world).</summary>
+	/// <summary>
+	/// Host only: a guest reported the cells whose live delta this host never
+	/// accounted for — and each row is that SENDER's own cumulative contribution,
+	/// never the cell's total. Every row is resolved against the ledger and the
+	/// difference is applied through the SAME path a live delta takes (apply →
+	/// relay to the rest of the members → break handling), so the report cannot
+	/// count a hit the ledger already holds and two senders add up instead of one
+	/// being swallowed by a per-cell maximum. The reporter is then answered with
+	/// this host's authoritative value for every reported cell — the answer, not
+	/// the periodic snapshot, is what clears its outstanding entries.
+	/// A report from another generation is refused before any of it runs: its rows
+	/// name THIS side's cells with another world's damage, and the reporter's own
+	/// boundary drops its pending set, so no answer is owed (an answer would write
+	/// this generation's values into the reporter's older world).
+	/// </summary>
 	public void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation)
 	{
-		if (RelateReportGeneration(generation, "BlockDamageReport", sender) == WorldGenerationRelation.Stale)
+		var relation = RelateReportGeneration(generation, "BlockDamageReport", sender);
+		if (relation == WorldGenerationRelation.Stale)
 		{
 			return;
 		}
 
-		_guestReports.HandleDamageReport(sender, entries);
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || entries.Count == 0)
+		{
+			return;
+		}
+
+		if (_nativeWorldFacts is null)
+		{
+			// No live world to read this host's own values from: an invented answer
+			// would clear the reporter's entries against a table that does not
+			// exist, so nothing is applied and nothing is answered — the report
+			// stays outstanding for the next cycle.
+			_log.LogDebug("[BlockSync] no native world-fact port is registered — {Peer}'s partial-damage report is neither applied nor answered.",
+				sender);
+			return;
+		}
+
+		var unaccounted = 0;
+		foreach (var entry in entries)
+		{
+			if (AdmitRemoteContribution(sender, entry.X, entry.Y, entry.Damage, null, null, relation) is not { } increment || increment <= 0f)
+			{
+				continue;
+			}
+
+			unaccounted++;
+			BlockDamagedReceived?.Invoke(sender, entry.X, entry.Y, increment, false, null, null, relation);
+		}
+
+		// The answer is read AFTER the applies above, so it carries what this host
+		// holds now — the reporter's own contribution included. It goes to the
+		// REPORTER only: a broadcast would clear every other member's outstanding
+		// entry for those cells, and their contributions would never be reported.
+		var rows = _nativeWorldFacts.CaptureBlockDamages();
+		if (rows is null)
+		{
+			_log.LogWarning("[BlockSync] no live world to read this host's partial-damage rows from — {Peer}'s report is not answered and stays outstanding.",
+				sender);
+			return;
+		}
+
+		var answers = new List<BlockDamageEntryMsg>(entries.Count);
+		foreach (var entry in entries)
+		{
+			answers.Add(new BlockDamageEntryMsg { X = entry.X, Y = entry.Y, Damage = ValueAt(rows, entry.X, entry.Y) });
+		}
+
+		_sender.Send(sender, NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg { Entries = answers, Generation = _generations.Stamp(), AnswersReport = true });
+		_log.LogInformation("[BlockSync] accounted {Peer}'s partial-damage report ({Count} cell(s), {Unaccounted} unaccounted) and answered every reported cell.",
+			sender, entries.Count, unaccounted);
+	}
+
+	/// <summary>This host's own value for one cell — 0 when it holds no row for it (which is a real answer: "no damage here").</summary>
+	private static float ValueAt(IReadOnlyList<BlockDamageEntryMsg> rows, int x, int y)
+	{
+		foreach (var row in rows)
+		{
+			if (row.X == x && row.Y == y)
+			{
+				return row.Damage;
+			}
+		}
+
+		return 0f;
 	}
 	/// <summary>The session that owned these reports is gone: every channel's unacknowledged set dies with it, so the next world cannot inherit the previous one's reports.</summary>
 	internal void ResetPendingReports()

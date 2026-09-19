@@ -87,8 +87,14 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>Guest only: an item-instance id was allocated locally — report the counter high-water mark so the host can grant it back on a reconnect (a crashed-and-rejoined counter restarts from zero and would reuse ids the host still holds).</summary>
 	void SendItemIdWatermark(ulong counter);
 
-	/// <summary>Guest only: the carried inventory with self-assigned ids (the local generation finished) — the host registers it in the guest's transfer table.</summary>
+	/// <summary>Guest only: the carried inventory with self-assigned ids — the host registers it in the guest's transfer table. The report is absolute and repeatable (sync-coverage row I8): every call spends one step of the registration window, and an empty capture spends a step too.</summary>
 	void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items);
+
+	/// <summary>Guest only: open the carried-registration window — the local generation finished, or the host granted the id watermark (the join/reconnect signal). The pump reports the current carried set as soon as the cadence is due.</summary>
+	void ArmCarriedInventoryRegistration(string reason);
+
+	/// <summary>Guest only: whether the carried-registration cadence wants a report now — the Game Adapter then captures the current carried set and calls <see cref="SendCarriedInventory"/>.</summary>
+	bool IsCarriedInventoryRegistrationDue();
 
 	/// <summary>Host only: grant a member's id watermark (its allocations may resume from counter + 1).</summary>
 	void GrantItemIdWatermark(ulong targetSteamId, ulong counter);

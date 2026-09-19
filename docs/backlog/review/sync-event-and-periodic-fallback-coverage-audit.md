@@ -100,7 +100,9 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   `review/guest-command-loss-reconciliation.md`, `review/recipe-unlock-fallback.md` (row I6 — closed
   2026-09-19: the absolute unlock set rides the world-entry and 60 s repair groups from the host and
   the shared fallback cadence from a guest),
-  `todo/carried-inventory-registration-re-report.md`,
+  `review/carried-inventory-registration-re-report.md` (row I8 — closed 2026-09-19: the guest
+  re-reports its current carried set absolutely on a dense-then-steady cadence, and the host
+  applies a report registration-only against the kernel's verdict),
   `review/session-control-convergence.md` (rows R3+R4 — closed 2026-09-19: the guest's bounded
   absolute scene re-report window, the host's idempotent repeat answer, the re-ack loop and the
   roster riding the in-session repair group; the completion marker is now that window's

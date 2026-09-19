@@ -145,7 +145,16 @@ internal sealed class GameAdapterSessionBinding(
 	private void OnItemCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown) =>
 		domains.CharacterDataSync.ApplyCarriedSync(owner, item, slotKnown);
 
-	private void OnItemIdWatermark(ulong counter) => domains.ItemIds.SetWatermark(counter);
+	private void OnItemIdWatermark(ulong counter)
+	{
+		domains.ItemIds.SetWatermark(counter);
+		// The host grants the watermark on every handshake completion — the join AND
+		// the reconnect. That grant is the second registration edge (sync-coverage row
+		// I8): a rejoined guest restores its world instead of generating one, so the
+		// generation-finished edge never fires and the host's transfer table would
+		// otherwise stay empty for its self-assigned ids.
+		domains.Items.ArmCarriedInventoryRegistration("the host granted the id watermark (join/reconnect)");
+	}
 
 	private void OnCarriedInventory(ulong owner, IReadOnlyList<CharacterItemMsg> items) =>
 		domains.CharacterDataSync.ApplyCarriedInventory(owner, items);

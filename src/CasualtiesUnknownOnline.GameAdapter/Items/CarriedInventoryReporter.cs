@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
-using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -20,25 +18,37 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// broadcast instead). The host's own supplies need no report — its local
 /// objects ARE the authority; their ids are assigned lazily on first domain
 /// entry (EnsureId in the use/slot/drop chains).
+///
+/// <para>
+/// The report is ABSOLUTE and REPEATABLE (sync-coverage row I8): one frame can
+/// be lost in the lazy-P2P swallow window without either side noticing, so this
+/// reporter only opens the registration window at the edges that make one
+/// meaningful (the generation-finished edge below, and the host's id-watermark
+/// grant on join/reconnect — the session binding forwards it) and then
+/// RE-CAPTURES the current carried set whenever the runtime's cadence says a
+/// report is due (<see cref="CarriedInventoryReportSchedule"/>). Re-capturing
+/// rather than replaying the first frame is what keeps a repeat honest: an item
+/// the guest destroyed, dropped or handed over is simply absent from the next
+/// capture.
+/// </para>
 /// </summary>
 internal sealed class CarriedInventoryReporter(
-	ISessionControl session,
 	IItemControl items,
-	ItemIdAllocator ids,
-	ILogger<CarriedInventoryReporter> log)
+	ItemIdAllocator ids)
 {
-	private readonly ISessionControl _session = session;
 	private readonly IItemControl _items = items;
 	private readonly ItemIdAllocator _ids = ids;
-	private readonly ILogger<CarriedInventoryReporter> _log = log;
 
 	private bool _generating; // last frame's IsGenerating — the falling edge is the generation-finished moment
-	private bool _reportPending; // one frame after the edge (the same pattern as GeneratedItemAuthority)
 
-	/// <summary>Pump: detect the generation-finished falling edge and report one
-	/// frame later — the extra frame makes the enumeration immune to start-order
-	/// jitter (corpse loot spawns in CorpseScript.Start, same rationale as
-	/// GeneratedItemAuthority).</summary>
+	/// <summary>Pump: detect the generation-finished falling edge and open the
+	/// registration window — the report itself goes out on the next frame, when
+	/// the runtime's cadence asks for it (that extra frame keeps the enumeration
+	/// immune to start-order jitter: corpse loot spawns in CorpseScript.Start,
+	/// the same rationale as GeneratedItemAuthority). After the dense window
+	/// closes, this pump keeps re-asserting the registration on the steady
+	/// cadence, which is how an id self-assigned later (a crafted product)
+	/// converges too.</summary>
 	internal void Update()
 	{
 		var generating = HarmonyTraverse.IsGenerating();
@@ -51,33 +61,25 @@ internal sealed class CarriedInventoryReporter(
 		if (_generating)
 		{
 			_generating = false;
-			_reportPending = true;
+			_items.ArmCarriedInventoryRegistration("the local generation finished");
 			return;
 		}
 
-		if (!_reportPending)
+		if (_items.IsCarriedInventoryRegistrationDue())
 		{
-			return;
+			_items.SendCarriedInventory(CaptureItems());
 		}
-
-		_reportPending = false;
-		Report();
 	}
 
-	private void Report()
+	private List<CharacterItemMsg> CaptureItems()
 	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
-		{
-			return; // the host's supplies get ids lazily (EnsureId on first domain entry) — no report
-		}
-
+		var items = new List<CharacterItemMsg>();
 		var body = PlayerCamera.main?.body; // Unity object — ==
 		if (body == null) // Unity object — ==
 		{
-			return;
+			return items; // nothing to capture yet — the window still spends the step
 		}
 
-		var items = new List<CharacterItemMsg>();
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
 			var item = body.GetItem(slot);
@@ -86,14 +88,16 @@ internal sealed class CarriedInventoryReporter(
 				continue;
 			}
 
-			if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==; already bound (a snapshot id)
-			{
-				continue;
-			}
-
+			// EVERY authoritative item of the body belongs to the absolute set, including one
+			// that already carries an instance id — a snapshot id the host knows, an id an
+			// earlier report of THIS reporter stamped, or a product CraftingSync/ContainerItemSync
+			// stamped. EnsureId returns an existing id unchanged, so a repeat states the same
+			// set, and the host drops the ids it already has. Skipping bound items is exactly
+			// how the re-report goes inert: the first capture stamps an id on every item it
+			// reports, so every later capture would come back empty and send nothing at all.
 			if (_ids.EnsureId(item) == 0)
 			{
-				continue; // still generating — the pump runs after the edge, so this should not happen
+				continue; // no id to state: still generating, or a remote kill zeroed the id
 			}
 
 			items.Add(ItemStateCodec.CaptureItem(item, slot));
@@ -111,26 +115,15 @@ internal sealed class CarriedInventoryReporter(
 					continue;
 				}
 
-				if (worn.GetComponent<ItemInstanceId>() != null) // Unity object — ==
-				{
-					continue;
-				}
-
 				if (_ids.EnsureId(worn) == 0)
 				{
-					continue;
+					continue; // no id to state (same rule as the slot loop)
 				}
 
 				items.Add(ItemStateCodec.CaptureItem(worn, -(i + 2)));
 			}
 		}
 
-		if (items.Count == 0)
-		{
-			return;
-		}
-
-		_items.SendCarriedInventory(items);
-		_log.LogInformation("[CarriedInventory] reported {Count} carried items with self-assigned ids.", items.Count);
+		return items;
 	}
 }

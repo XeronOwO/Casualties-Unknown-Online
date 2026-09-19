@@ -264,7 +264,7 @@ internal sealed class GameAdapterDomains
 		TrapLayoutScanner = new TrapLayoutScanner(session, world, loggerFactory.CreateLogger<TrapLayoutScanner>());
 		TrapLayoutApplication = new TrapLayoutApplication(world, loggerFactory.CreateLogger<TrapLayoutApplication>());
 		LayerModifierSync = new LayerModifierSync(items, loggerFactory.CreateLogger<LayerModifierSync>());
-		CarriedInventoryReporter = new CarriedInventoryReporter(session, items, ItemIds, loggerFactory.CreateLogger<CarriedInventoryReporter>());
+		CarriedInventoryReporter = new CarriedInventoryReporter(items, ItemIds);
 		LayerModifierApplyPatch.IsModifierAuthority = () => Session.Role != SessionRole.Guest; // the host/solo side rolls the world's modifier; guests replay it locally and fall back to the snapshot
 		LayerModifierApplyPatch.ReportLocalDecision = LayerModifierSync.OnLocalDecision; // the guest's local replay — the adapter defers Initialize until the generation finished
 		MineScriptPatches.ShouldShieldItems = () => Session.Role == SessionRole.Guest; // a locally simulated item must not trip a mine on the guest side (the trigger checks only !isKinematic)

@@ -222,8 +222,16 @@ public sealed class ItemArbitration(
 	/// (its local generation finished — the starting supplies and worn items).
 	/// Registered in the transfer table so the guest's use/slot reports
 	/// arbitrate normally — the authoritative record the accept-with-correction
-	/// path checks against (the guest's own report was the fact source before
-	/// this, through the no-entry fallback). Idempotent: a re-report overwrites.
+	/// path checks against. REGISTRATION-ONLY, because the report is absolute
+	/// and repeatable by design (a swallowed frame is healed by a later one, see
+	/// <see cref="CarriedInventoryReportSchedule"/>): an id the table already
+	/// holds keeps its entry exactly as it is — that entry is the arbitrated
+	/// record (a cross-player heal may have consumed part of its condition), and
+	/// a repeat must never roll it back. An id the kernel does not accept as
+	/// this guest's carried item is not inserted either: the kernel is the
+	/// carried-ownership authority, so an id it places with another guest, still
+	/// in the world, or has already terminated is a divergence (or a stale
+	/// capture), never a second registration.
 	/// </summary>
 	public void RegisterCarried(ulong guest, IReadOnlyList<CharacterItemMsg> items)
 	{
@@ -233,6 +241,8 @@ public sealed class ItemArbitration(
 		}
 
 		var registered = 0;
+		var known = 0;
+		var refused = 0;
 		foreach (var item in items)
 		{
 			if (item.InstanceId == 0)
@@ -240,12 +250,68 @@ public sealed class ItemArbitration(
 				continue; // unbound — nothing to register
 			}
 
-			EnsureCarried(guest, item.InstanceId, item);
+			if (owned.ContainsKey(item.InstanceId))
+			{
+				known++;
+				continue; // already registered — the host's entry is the arbitrated record
+			}
+
+			if (!TryAdoptCarried(guest, item))
+			{
+				refused++;
+				continue;
+			}
+
 			owned[item.InstanceId] = new WorldItem(item.InstanceId, item, default, default, 0, 0f, false);
 			registered++;
 		}
 
-		_log.LogInformation("Registered {Registered}/{Count} carried items of {Guest} in the transfer table.", registered, items.Count, guest);
+		if (registered > 0)
+		{
+			_log.LogInformation("Registered {Registered}/{Count} carried items of {Guest} in the transfer table ({Known} already registered, {Refused} refused by the kernel).",
+				registered, items.Count, guest, known, refused);
+			return;
+		}
+
+		// The steady re-report of an unchanged set is the normal case — Debug.
+		_log.LogDebug("Carried registration of {Guest}: nothing new to register ({Count} reported, {Known} already registered, {Refused} refused by the kernel).",
+			guest, items.Count, known, refused);
+	}
+
+	/// <summary>
+	/// Host only: adopt ONE unknown carried id out of a registration — the kernel
+	/// decides. An id the kernel does not know is spawned as this guest's carried
+	/// item (the registration is the fact source for the guest's own starting
+	/// supplies); an id the kernel already carries for this guest needs no kernel
+	/// change at all (only the table entry was missing); anything else — another
+	/// owner, the world table, Terminal — is refused, because an absolute
+	/// re-report must never resurrect a terminal fact or hand one item to two
+	/// guests.
+	/// </summary>
+	private bool TryAdoptCarried(ulong guest, CharacterItemMsg item)
+	{
+		var current = _kernelAuthority.FindItem(item.InstanceId);
+		if (current is null)
+		{
+			if (_kernelAuthority.TrySpawnCarried(guest, item.InstanceId, item.ItemId, item, out _, out var rejection))
+			{
+				return true;
+			}
+
+			_log.LogWarning("Carried registration of item {ItemId} for {Guest} was refused by the kernel: {Reason}.",
+				item.InstanceId, guest, rejection?.Reason);
+			return false;
+		}
+
+		if (current.Value.Location.Kind == ItemLocationKind.Carried && current.Value.Location.Owner.Value == guest)
+		{
+			return true;
+		}
+
+		_log.LogInformation("Carried registration of item {ItemId} for {Guest} ignored — the kernel already holds it as {Kind}{Owner}.",
+			item.InstanceId, guest, current.Value.Location.Kind,
+			current.Value.Location.Kind == ItemLocationKind.Carried ? $" of {current.Value.Location.Owner.Value}" : string.Empty);
+		return false;
 	}
 
 	// ===== Host-only surface =====
@@ -305,18 +371,6 @@ public sealed class ItemArbitration(
 
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId)
 		=> _transferred.TryGetValue(steamId, out var owned) ? [.. owned.Values] : [];
-
-	private void EnsureCarried(ulong guest, ulong itemId, CharacterItemMsg item)
-	{
-		if (_kernelAuthority.FindItem(itemId) is null)
-		{
-			_kernelAuthority.TrySpawnCarried(guest, itemId, item.ItemId, item, out _, out _);
-		}
-		else
-		{
-			_kernelAuthority.TryUpdateState(guest, itemId, item, out _, out _);
-		}
-	}
 
 	private CharacterItemMsg BuildFullCharacterItem(ulong itemId)
 	{

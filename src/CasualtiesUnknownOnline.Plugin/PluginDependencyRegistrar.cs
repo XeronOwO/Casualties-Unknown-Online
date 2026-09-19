@@ -253,6 +253,14 @@ internal static class PluginDependencyRegistrar
 		// gap instead of defaulting silently).
 		services.AddSingleton<NativeWorldFacts>();
 		services.AddSingleton<INativeWorldFacts>(p => p.GetRequiredService<NativeWorldFacts>());
+		// The host's member-facing trap-layout table is re-derived from the LIVE
+		// scene by the Runtime's world-entry fan-out, right before every send:
+		// only the adapter can scan the scene, so it implements the port for the
+		// composition root (the Runtime resolves the port and cannot reference
+		// the adapter). Optional by design — a build without it sends the table
+		// as last derived.
+		services.AddSingleton<LiveTrapLayoutSource>();
+		services.AddSingleton<ILiveTrapLayoutSource>(p => p.GetRequiredService<LiveTrapLayoutSource>());
 		services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModItemSpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModTilePlacer>(p => p.GetRequiredService<GameAdapterImpl>()));

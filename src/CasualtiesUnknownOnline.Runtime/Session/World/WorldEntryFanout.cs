@@ -21,6 +21,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// from the periodic cycle for exactly as long as the two lists were owned in
 /// different places.
 ///
+/// Both groups also re-derive the trap layout from the host's LIVE scene before
+/// they read it (<see cref="ILiveTrapLayoutSource"/>): the table is only as fresh
+/// as its last scan, so a send that used it as-is could hand an entering or
+/// reconnecting member an entity the world has since removed — or, on a layer
+/// whose record the boundary reset cleared, nothing at all.
+///
 /// Both groups carry the kernel checkpoint FIRST: it is what establishes the
 /// member's run baseline, and every generation-stamped absolute table
 /// (block state, block damage, trap layout, runtime entities) is compared
@@ -42,7 +48,8 @@ public sealed class WorldEntryFanout(
 	IEntitySyncControl entities,
 	ICraftControl craft,
 	IKernelProtocolControl kernelProtocol,
-	ILogger<WorldEntryFanout> log)
+	ILogger<WorldEntryFanout> log,
+	ILiveTrapLayoutSource? liveLayout = null)
 {
 	private readonly IWorldControl _world = world;
 	private readonly IItemControl _items = items;
@@ -51,6 +58,7 @@ public sealed class WorldEntryFanout(
 	private readonly ICraftControl _craft = craft;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly ILogger<WorldEntryFanout> _log = log;
+	private readonly ILiveTrapLayoutSource? _liveLayout = liveLayout;
 
 	/// <summary>
 	/// Host only: send the complete world-entry snapshot group to one member,
@@ -60,6 +68,8 @@ public sealed class WorldEntryFanout(
 	public void Send(ulong steamId)
 	{
 		_log.LogInformation("Sending world-entry snapshot group to {Peer}.", steamId);
+
+		RefreshTrapLayout();
 
 		// The kernel checkpoint goes FIRST because it is what carries the run
 		// baseline (RunEpoch + LayerIndex) to this member, and every absolute
@@ -108,6 +118,8 @@ public sealed class WorldEntryFanout(
 	{
 		_log.LogInformation("Sending the in-session repair group to {Peer}.", steamId);
 
+		RefreshTrapLayout();
+
 		// Same rule as the entry group: the run-baseline carrier first, then the
 		// generation-stamped absolute tables it is compared against.
 		_kernelProtocol.SendCheckpoint(steamId);
@@ -119,4 +131,21 @@ public sealed class WorldEntryFanout(
 		_craft.SendRecipeUnlockSnapshot(steamId);
 		_entities.ResendRoster(steamId); // the roster is an absolute table too: a swallowed PlayerJoin (self-activation or a third party's row) converges here
 	}
+
+	/// <summary>
+	/// The layout table is re-derived from the LIVE scene before a group reads it.
+	/// The table is only as fresh as its last scan, so between two scans it can
+	/// still list an entity the world has since removed (a self-destructed turret,
+	/// a broken crystal) — and the member-side apply is an absolute align, so a
+	/// member that enters inside that window materializes a phantom the host does
+	/// not own. Both send points call it, so the freshness belongs to the SEND
+	/// and not to one caller: the entry edge, the reconnect handshake, the
+	/// entry-window repeat repair and the periodic wave are covered by construction.
+	///
+	/// The port is the adapter's live-scene scan (the Runtime cannot see the scene)
+	/// and is OPTIONAL: a composition without one sends the table as last derived.
+	/// It is safe to call per member — the adapter scans at most once per frame, so
+	/// a wave costs ONE scan however many in-world members it heals.
+	/// </summary>
+	private void RefreshTrapLayout() => _liveLayout?.RefreshFromLiveScene();
 }

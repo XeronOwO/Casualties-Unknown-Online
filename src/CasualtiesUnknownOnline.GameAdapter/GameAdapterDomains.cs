@@ -296,7 +296,7 @@ internal sealed class GameAdapterDomains
 			loggerFactory.CreateLogger<GameRestoredWorldFactSink>());
 		RestoredWorldFactReplay = new RestoredWorldFactReplay(
 			worldFacts, nativeWorldFacts, restoredWorldFactSink, loggerFactory.CreateLogger<RestoredWorldFactReplay>(), restoreAudit, worldEntityKernel, items);
-		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, RestoredWorldFactReplay, OperationTrace, worldEntityKernel, worldBackfill, TrapLayoutScanner, loggerFactory.CreateLogger<WorldEventSync>());
+		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, RestoredWorldFactReplay, OperationTrace, worldEntityKernel, worldBackfill, loggerFactory.CreateLogger<WorldEventSync>());
 		DynamiteExplosionSync = new DynamiteExplosionSync(world, session, trapVisualReplay,
 			loggerFactory.CreateLogger<DynamiteExplosionSync>());
 		EntitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());

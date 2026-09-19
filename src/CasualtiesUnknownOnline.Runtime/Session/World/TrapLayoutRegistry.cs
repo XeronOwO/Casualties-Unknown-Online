@@ -111,8 +111,25 @@ public sealed class TrapLayoutRegistry(ISessionControl session, PacketSender sen
 	public bool IsStale(WorldGenerationMsg? generation, ulong sender) =>
 		WorldReportGenerationGate.Relate(generation, _generations.Current, "TrapLayoutSnapshot", sender, _log) == WorldGenerationRelation.Stale;
 
-	/// <summary>Host only: a new world layer is generating — the layout starts empty again.</summary>
-	public void Reset() => _layout.Clear();
+	/// <summary>
+	/// A new world layer is generating — the layout starts empty again. Runs on
+	/// either role (a layer boundary on the side that generated it, and the session
+	/// reset), so it is not host-only. Logged because the clear is what decides
+	/// whether the generation-finished edge's own scan (which reports into this
+	/// table) survives into a send: the scanner runs before the frame's boundary
+	/// capture in the adapter's pump, and its line carries the frame number, so a
+	/// field log that shows this clear right after the scan and dropping exactly the
+	/// entries that scan reported is the evidence that the record was wiped in the
+	/// SAME frame — the send-time re-derive
+	/// (<see cref="ILiveTrapLayoutSource"/>) is then the only writer that matters.
+	/// A clear dropping a different count belongs to a different generation.
+	/// </summary>
+	public void Reset()
+	{
+		var dropped = _layout.Count;
+		_layout.Clear();
+		_log.LogInformation("[TrapLayout] layout table cleared ({Dropped} entries dropped) — a new layer's layout starts empty.", dropped);
+	}
 
 	private void Upsert(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey)
 	{

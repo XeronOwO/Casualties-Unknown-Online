@@ -29,7 +29,6 @@ internal sealed partial class WorldEventSync(
 	OperationTrace trace,
 	WorldEntityKernelProjection kernelProjection,
 	WorldEntryFanout worldBackfill,
-	TrapLayoutScanner trapLayouts,
 	ILogger<WorldEventSync> log)
 {
 	private readonly ISessionControl _session = session;
@@ -39,7 +38,6 @@ internal sealed partial class WorldEventSync(
 	private readonly OperationTrace _trace = trace;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
 	private readonly WorldEntryFanout _worldBackfill = worldBackfill;
-	private readonly TrapLayoutScanner _trapLayouts = trapLayouts;
 	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, trace, log);
 	private readonly ILogger<WorldEventSync> _log = log;
 
@@ -160,13 +158,11 @@ internal sealed partial class WorldEventSync(
 			_lastSnapshotResend = Time.unscaledTime;
 			if (_session.Members.Any(m => m.InWorld))
 			{
-				// The trap-layout table is re-derived from the LIVE scene ONCE,
-				// before the first repair send: the record is written on the
-				// generation edge, so a trap the world has since removed would
-				// otherwise be re-materialized on every peer every cycle. No
-				// in-world member means no repair send, so the scan is skipped —
-				// which also keeps the scan's refusal warning meaningful.
-				_trapLayouts.RefreshLayout();
+				// The trap layout is re-derived from the LIVE scene inside the
+				// repair group itself (WorldEntryFanout -> ILiveTrapLayoutSource),
+				// once per frame however many members are healed: the table is only
+				// as fresh as its last scan, so a table sent as-is could resurrect
+				// an entity the world has since removed.
 				foreach (var member in _session.Members)
 				{
 					if (member.InWorld)

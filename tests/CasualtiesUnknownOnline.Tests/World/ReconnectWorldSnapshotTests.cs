@@ -49,6 +49,34 @@ public class ReconnectWorldSnapshotTests
 	}
 
 	[Fact]
+	public void GuestReconnects_WhileStillInWorld_ReceivesTheLiveLayout()
+	{
+		using var w = ItemSimWorld.Create(FakeLiveLayoutSource.Register);
+		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
+		var live = w.Host.Services.GetRequiredService<FakeLiveLayoutSource>();
+
+		// The table as last derived still lists the turret the world has since
+		// removed (it self-destructed); the live scene holds only what is there.
+		hostWorld.ReportTrapLayout(EntityEventKind.TurretSelfDestructed, 12f, 34f, "turret");
+		live.LiveScene.Add(new TrapLayoutEntryMsg { Kind = EntityEventKind.SpikeStabbed, X = -13f, Y = 466.8f, PrefabName = "spikestabber" });
+
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(50);
+
+		var received = new List<IReadOnlyList<TrapLayoutEntryMsg>>();
+		w.G1.Services.GetRequiredService<IWorldControl>().TrapLayoutReceived += received.Add;
+
+		// The handshake restores member.InWorld from the peer's report, bypassing
+		// the InWorld edge — the reconnect fan-out is its own entry path.
+		ReconnectGuestStillInWorld(w);
+		w.Driver.Tick(50);
+
+		Assert.True(received.Count >= 1, $"the reconnect send carries the layout, got {received.Count}");
+		Assert.True(received.TrueForAll(entries => entries.Count == 1 && entries[0].Kind == EntityEventKind.SpikeStabbed),
+			"EVERY send around the reconnect must carry the LIVE table — a stale send is not masked by a fresh one after it");
+	}
+
+	[Fact]
 	public void GuestReconnects_WhileStillInWorld_ReceivesAllSevenWorldSnapshotsAgain()
 	{
 		var native = new FakeNativeWorldFacts();

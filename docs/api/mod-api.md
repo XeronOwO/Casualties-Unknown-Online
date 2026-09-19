@@ -917,7 +917,7 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `27`. The pre-release protocol-version sequence
+- `ProtocolVersion.Current` is `28`. The pre-release protocol-version sequence
   was deliberately reset before first release (tech-decisions #137); the
   post-reset wire has since extended the character-sound event family
   (`CharacterSoundKind.ItemPlacement`), the runtime-entity creation family
@@ -935,7 +935,10 @@ commands and remains the two-process verification target).
   (`MedicalOperationEndCommittedMsg.TerminalReason.AlreadyHandled`), and the
   creation-before-operation invariant that replaced the host's fixed 500 ms
   pickup hold window with an immediate refusal carrying the refused creation's
-  own reason (`KernelProtocolCommandHandler`), so earlier numbers such as
+  own reason (`KernelProtocolCommandHandler`), and the local-initiation
+  world-time model (a manual speed applies on the initiator's own client, the
+  host arbitrates accept-first and answers every request, and the host-side
+  movement veto is deleted), so earlier numbers such as
   10/29/34 in this document are historical and must not be used as current wire
   versions.
 - Behavioral wire changes after the first release will bump

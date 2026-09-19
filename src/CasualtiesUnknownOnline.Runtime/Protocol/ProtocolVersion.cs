@@ -60,7 +60,19 @@ public static class ProtocolVersion
 	/// before it reports an operation on the same item. A peer without it would
 	/// still park the claim and wait on a window the other side no longer fills,
 	/// and its own operations would be judged against a creation ordering it does
-	/// not implement.</summary>
-	public const int Current = 27;
+	/// not implement.
+	/// 28: the local-initiation world-time model — a manual speed (the speed
+	/// hotkey, or the native left/right movement reset) now writes the
+	/// initiator's OWN clock at once and is reported as `WorldTimeRequest`; the
+	/// host arbitrates accept-first and answers every request with the
+	/// authoritative `WorldTime` speed, which settles the initiator's pending
+	/// intent (a refused or overridden intent ramps back to the host's value
+	/// instead of sitting ahead until the next 5 s resend). The host-side
+	/// velocity veto is deleted: movement is the mover's own action, never a
+	/// world state the host polls. A peer without it would swallow its local
+	/// manual speeds and expect a host that discards manual requests, so one side
+	/// would keep running ahead of the other's clock with no verdict to settle
+	/// it.</summary>
+	public const int Current = 28;
 
 }

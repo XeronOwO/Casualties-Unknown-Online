@@ -5,10 +5,11 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>
-/// Guest → host: the guest's speed hotkey / movement-reset intent. The
-/// handler only surfaces the request — the host-side policy (movement gate,
-/// all-unconscious sleep acceleration) lives in the Game Adapter's
-/// WorldTimeSync, which answers with a WorldTime broadcast.
+/// Guest → host: a speed the guest's own client has ALREADY applied (speed
+/// hotkey, or the native left/right movement reset). The handler only surfaces
+/// the request — the host-side policy (accept-first arbitration, all-unconscious
+/// sleep acceleration) lives in the Game Adapter's WorldTimeSync, which answers
+/// with a WorldTime broadcast.
 /// </summary>
 [PacketHandler(NetMsg.WorldTimeRequest, NetMessageDirection.GuestToHost)]
 public sealed class WorldTimeRequestHandler(ILogger<WorldTimeRequestHandler> log) : PacketHandlerBase<WorldTimeRequestMsg, IWorldTimeHandlerContext>

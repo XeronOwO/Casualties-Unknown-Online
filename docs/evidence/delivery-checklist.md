@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem + "What landed" enumerate every guest creation path and every host unjudged-id entry
+      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem/What landed cover trigger (PlayerCamera.cs:885-896, 921-924), sleep suppression, accept-first arbitration, reconciliation
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 6 operation reports settle; judging side covers pickup/drop/transfer/destroy/update-state, not a pickup special case
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: review/item-creation-registration-first.md "What landed" + its 7-row Verification table (each row names its test)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: hotkey, native movement reset, sleep suppression, direct writes and late-join fan-out aligned; veto deleted from src and tests
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: review/world-time-local-initiation.md "What landed" + its 8-row Verification table (every row names its test)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: ItemSimWorld tests invoke the real IItemControl seam; pickup-spawn-inflight.replay rewritten; seeded oracle replays real delivery order
+      peer log comparison, hotrepl assertions) is decided — evidence: pure policy/state-machine/mapping tests + real-stack wire flow; Unity-facing wiring declared static-evidence + release acceptance
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: decision 184 froze "creation registers first + refused-creation tombstone"; handoff named this ticket; no work-item re-ask
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0; build 0 warnings/0 errors; full 3305 main + 55 gates green (checklist test run separately); focused 60/60
+      process violation — evidence: decision 184 froze local initiation with host arbitration; handoff named this ticket; no work-item re-ask
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; main 3339 green; focused 57/57; gates 56 with the checklist case (55 before it)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: handler 351 / GameAdapter 591 / ItemService 586 / CuoBootstrap 585; queue+pump+envelopes+DI+cut row+tests+2 replays deleted same round
+      dead mechanisms deleted in the same round) — evidence: WorldTimeSync 431 lines; new pure types small; movement veto, velocity inputs and the duplicate timeScale mapping deleted this round
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

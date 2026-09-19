@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 /// </summary>
 public enum WorldTimeSpeed : byte
 {
-	/// <summary>1× — the default and the only speed allowed while anyone is moving.</summary>
+	/// <summary>1× — the default, and the speed the player's own left/right movement key resets to.</summary>
 	Normal = 0,
 
 	/// <summary>5× fast-forward (PlayerCamera.SpeedType.Fast).</summary>

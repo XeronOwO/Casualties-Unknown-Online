@@ -253,7 +253,7 @@ internal sealed partial class WorldEventSync(
 	/// (the drops carrier) arrives later, the record proves the break was the
 	/// first writer (see _recentBroken).
 	/// </summary>
-	private void OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block)
+	private void OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block, WorldGenerationRelation generation)
 	{
 		// A report cannot be arbitrated against a half-generated world: while
 		// (re)generating, every cell belongs to the previous layer. The guest's
@@ -262,6 +262,17 @@ internal sealed partial class WorldEventSync(
 		// in it must not land in the new layer).
 		if (WorldGeneration.world == null || HarmonyTraverse.IsGenerating()) // Unity object — ==
 		{
+			return;
+		}
+
+		// A report from ANOTHER generation is refused before it can become
+		// arbitration evidence (the host's _recentBroken record) or a world write:
+		// the cell key is layer-relative, so a stale air write would clear a
+		// freshly generated block. The message seam already logged both
+		// generations; this line names the consequence.
+		if (generation == WorldGenerationRelation.Stale)
+		{
+			_log.LogWarning("[BlockSync] {Sender}'s block report at ({X},{Y}) belongs to another world generation — neither applied nor recorded as an air write.", sender, x, y);
 			return;
 		}
 

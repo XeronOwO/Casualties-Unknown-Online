@@ -22,6 +22,6 @@ public sealed class BlockDamageReportHandler(ILogger<BlockDamageReportHandler> l
 	{
 		_log.LogInformation("Partial block-damage report received from {Peer} ({Count} cells).",
 			sender, msg.Entries.Count);
-		ctx.World.HandleBlockDamageReport(sender, msg.Entries);
+		ctx.World.HandleBlockDamageReport(sender, msg.Entries, msg.Generation);
 	}
 }

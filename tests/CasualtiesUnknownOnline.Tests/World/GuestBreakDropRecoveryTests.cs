@@ -63,11 +63,16 @@ public class GuestBreakDropRecoveryTests
 		{
 			var world = _w.Host.Services.GetRequiredService<IWorldControl>();
 			var items = _w.Host.Services.GetRequiredService<IItemControl>();
-			world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops) =>
+			world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops, generation) =>
 			{
 				var cellX = (int)pos.X;
 				var cellY = (int)pos.Y;
-				var verdict = Arbitration.TryAccept(sender, cellX, cellY);
+				// A report from another generation is refused BEFORE the arbitration
+				// (its cell key is layer-relative), exactly as production does — and
+				// a break's drops are rolled back with it.
+				var verdict = generation == WorldGenerationRelation.Stale
+					? Verdict.Refused
+					: Arbitration.TryAccept(sender, cellX, cellY, cellIsAir: !StandingBlocks.Contains((cellX, cellY)), generationVerified: generation == WorldGenerationRelation.Current);
 				if (verdict == Verdict.Refused)
 				{
 					foreach (var drop in drops ?? [])
@@ -115,8 +120,16 @@ public class GuestBreakDropRecoveryTests
 	private static void InstallGuestExecutor(ItemSimWorld w, TestNode guest)
 	{
 		var world = guest.Services.GetRequiredService<IWorldControl>();
-		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops) =>
+		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops, generation) =>
 		{
+			if (generation == WorldGenerationRelation.Stale)
+			{
+				// A relay from another generation is neither applied nor acknowledged
+				// (production's guest branch): answering would clear a pending report
+				// against a world this side no longer holds.
+				return;
+			}
+
 			if (sender == w.Host.SteamId && (drops is { Count: > 0 } || buildingDrops is { Count: > 0 }))
 			{
 				world.AnswerBreakDrops((int)pos.X, (int)pos.Y, drops, buildingDrops);
@@ -128,8 +141,8 @@ public class GuestBreakDropRecoveryTests
 	private static int PendingDropReports(TestNode guest) =>
 		guest.Services.GetRequiredService<WorldService>().PendingBreakDropReportCount;
 
-	/// <summary>The guest's live break report — the wire shape BlockBreakSync.FlushPendingBlockBreak sends (drops only; a break with no drops reports nothing).</summary>
-	private static void SendBreakReport(ItemSimWorld w, TestNode guest, int cellX, int cellY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops = null)
+	/// <summary>The guest's live break report — the wire shape BlockBreakSync.FlushPendingBlockBreak sends (drops only; a break with no drops reports nothing). <paramref name="generation"/> is the world/layer stamp the production send path attaches from the kernel run baseline.</summary>
+	private static void SendBreakReport(ItemSimWorld w, TestNode guest, int cellX, int cellY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops = null, WorldGenerationMsg? generation = null)
 	{
 		var sender = guest.Services.GetRequiredService<PacketSender>();
 		sender.Send(w.Host.SteamId, NetMsg.BlockDamaged, new BlockDamagedMsg
@@ -138,15 +151,16 @@ public class GuestBreakDropRecoveryTests
 			Damage = Damage,
 			Drops = drops is { Count: > 0 } ? [.. drops] : null,
 			BuildingDrops = buildingDrops is { Count: > 0 } ? [.. buildingDrops] : null,
+			Generation = generation,
 		});
 	}
 
 	/// <summary>The guest side of a break: record the drops (the adapter's pre-send call) and send the live report.</summary>
-	private static void BreakBlock(ItemSimWorld w, TestNode guest, int cellX, int cellY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops = null)
+	private static void BreakBlock(ItemSimWorld w, TestNode guest, int cellX, int cellY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops = null, WorldGenerationMsg? generation = null)
 	{
 		guest.Services.GetRequiredService<IWorldControl>()
 			.ReportBreakDrops(cellX, cellY, cellX, cellY, drops, buildingDrops);
-		SendBreakReport(w, guest, cellX, cellY, drops, buildingDrops);
+		SendBreakReport(w, guest, cellX, cellY, drops, buildingDrops, generation);
 	}
 
 	private static BlockDropEntryMsg Drop(ulong itemId) => new()
@@ -248,7 +262,7 @@ public class GuestBreakDropRecoveryTests
 	}
 
 	[Fact]
-	public void LostAirWrite_TheBreakReportIsRefused_AndTheRefusalReachesTheBreaker()
+	public void LostAirWrite_WithoutAGenerationStamp_IsRefused_AndTheRefusalReachesTheBreaker()
 	{
 		using var w = ItemSimWorld.Create();
 		var host = new HostExecutor(w);
@@ -260,13 +274,13 @@ public class GuestBreakDropRecoveryTests
 		BreakBlock(w, w.G1, CellX, CellY, [Drop(78)]);
 		w.Driver.Tick(33);
 
-		// A report naming a cell the host still holds is NOT attributed: the block's
-		// own state looks like evidence of a first writer, but the record would be
-		// layer-relative while the report is not — after a descent a stale report
-		// would name a freshly generated block and its real damage would break it.
-		// So the drops are refused (destroyed on the breaker, whose break the
-		// air-write report still converges on the host through W1) instead of being
-		// registered on unattributable evidence.
+		// No stamp (this side has no committed run baseline) means the receiver can
+		// attribute nothing: the block's own state looks like evidence of a first
+		// writer, but the record would be layer-relative while the report is not —
+		// after a descent a stale report would name a freshly generated block and
+		// its real damage would break it. So the drops are refused (destroyed on
+		// the breaker, whose break the air-write report still converges on the host
+		// through W1) instead of being registered on unattributable evidence.
 		Assert.Empty(host.Registered);
 		Assert.False(items.IsWorldItemRegistered(78));
 		Assert.Equal((CellX, CellY), Assert.Single(host.StandingBlocks));
@@ -278,6 +292,94 @@ public class GuestBreakDropRecoveryTests
 		// test proves the re-report actually stops, instead of parking a cap slot.
 		w.G1.Services.GetRequiredService<IWorldControl>().ForgetBreakDrop(78);
 		Assert.Equal(0, PendingDropReports(w.G1));
+	}
+
+	[Fact]
+	public void LostAirWrite_OfThisGeneration_IsAccepted_AndItsDropsSurvive()
+	{
+		// Acceptance matrix row 1 of review/world-layer-generation-identity: the air
+		// write was lost together with the drops report, the drops report arrives,
+		// and the cell is the CURRENT generation's. The stamp is what tells this
+		// apart from a previous layer's stale report, so the drops are registered
+		// and materialized instead of being destroyed on the breaker (the W1
+		// limitation this ticket closes).
+		using var w = ItemSimWorld.Create();
+		WorldGenerationReports.CommitRun(w.Host, layerIndex: 3);
+		var host = new HostExecutor(w);
+		host.Install();
+		host.StandingBlocks.Add((CellX, CellY)); // the air write never landed
+		InstallGuestExecutor(w, w.G1);
+		var items = w.Items;
+
+		BreakBlock(w, w.G1, CellX, CellY, [Drop(91)], generation: WorldGenerationReports.StampOf(w.Host));
+		w.Driver.Tick(33);
+
+		Assert.Equal([91ul], host.Registered);
+		Assert.True(items.IsWorldItemRegistered(91), "a same-generation lost air write must keep its drops");
+		Assert.Empty(w.Rejects(w.G1));
+		Assert.Single(host.Relays); // the relay echo is the acknowledgement
+		Assert.Empty(host.StandingBlocks); // the host applied the break's air transition
+		Assert.Equal(0, PendingDropReports(w.G1));
+	}
+
+	[Fact]
+	public void ReportFromAPreviousLayer_IsRefusedAsStale_AndTheNewLayersCellIsUntouched()
+	{
+		// Acceptance matrix row 2: a previous layer's break report arrives after the
+		// descent. Its cell key addresses a freshly generated block, so the report
+		// must be refused BECAUSE it is stale — with a precise log — and the new
+		// layer's block must stay untouched, its drops never registered.
+		using var w = ItemSimWorld.Create();
+		WorldGenerationReports.CommitRun(w.Host, layerIndex: 4);
+		var host = new HostExecutor(w);
+		host.Install();
+		host.StandingBlocks.Add((CellX, CellY)); // the new layer generated a block here
+		InstallGuestExecutor(w, w.G1);
+		var items = w.Items;
+
+		// The report says "layer 3" while the host is at layer 4 (a re-report fired
+		// just before the sender crossed the boundary).
+		BreakBlock(w, w.G1, CellX, CellY, [Drop(92)], generation: WorldGenerationReports.StampOf(w.Host, layerOverride: 3));
+		w.Driver.Tick(33);
+
+		Assert.Empty(host.Registered);
+		Assert.False(items.IsWorldItemRegistered(92));
+		Assert.Equal((CellX, CellY), Assert.Single(host.StandingBlocks)); // untouched
+		Assert.Empty(host.Relays);
+		Assert.Equal(92ul, Assert.Single(w.Rejects(w.G1)).ItemId); // the breaker's local copy is rolled back
+		Assert.Equal(0, host.Arbitration.Count); // and no attribution was recorded
+	}
+
+	[Fact]
+	public void RelayStampedWithAnotherGeneration_IsNotApplied_AndDoesNotAnswerTheReportersDrops()
+	{
+		// Acceptance matrix row 6 / third-party view: a relay naming a generation this
+		// side is not at arrives (the host is a layer ahead). Its cell key is
+		// layer-relative, so the guest must neither apply it nor treat it as the
+		// answer to its own outstanding drop report.
+		using var w = ItemSimWorld.Create();
+		WorldGenerationReports.CommitRun(w.G1, layerIndex: 2); // this side's baseline; the relay's stamp is layer 1
+		InstallGuestExecutor(w, w.G1);
+		var relations = new List<WorldGenerationRelation>();
+		w.G1.Services.GetRequiredService<IWorldControl>().BlockDamagedReceived += (_, _, _, _, _, _, relation) => relations.Add(relation);
+
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+		guestWorld.ReportBreakDrops(CellX, CellY, CellX, CellY, [Drop(93)], null);
+		Assert.Equal(1, PendingDropReports(w.G1));
+
+		// The relay's own shape: the break's drops plus a stamp that belongs to
+		// another layer of the same run.
+		w.Host.Services.GetRequiredService<PacketSender>().Send(w.G1.SteamId, NetMsg.BlockDamaged, new BlockDamagedMsg
+		{
+			Position = new NetVector2Msg(CellX, CellY),
+			Damage = Damage,
+			Drops = [Drop(93)],
+			Generation = WorldGenerationReports.StampOf(w.G1, layerOverride: 1),
+		});
+		w.Driver.Tick(33);
+
+		Assert.Equal(WorldGenerationRelation.Stale, Assert.Single(relations));
+		Assert.Equal(1, PendingDropReports(w.G1)); // still unanswered — the relay is another world's
 	}
 
 	[Fact]

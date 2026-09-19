@@ -200,6 +200,34 @@ public class GuestBlockDamageReportRecoveryTests
 	}
 
 	[Fact]
+	public void ReportFromAnotherGeneration_IsNeitherMergedNorAnswered()
+	{
+		// Acceptance matrix row 4 of review/world-layer-generation-identity: a stale
+		// row set for a regenerated cell must not be applied. The host is at layer 3
+		// and the report says layer 2, so its cells address a world this side no
+		// longer simulates: neither the merge nor the answer runs (an answer would
+		// write THIS generation's values into the reporter's older world), and the
+		// message seam logs the refusal with both generations named.
+		var native = new FakeNativeWorldFacts();
+		using var w = ItemSimWorld.Create(services => services.AddSingleton<INativeWorldFacts>(native));
+		WorldGenerationReports.CommitRun(w.Host, layerIndex: 3);
+		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		guestWorld.ReportBlockDamage(5, 7, SwallowedDamage); // this side holds the cell outstanding
+		hostWorld.HandleBlockDamageReport(
+			w.G1.SteamId,
+			[new BlockDamageEntryMsg { X = 5, Y = 7, Damage = SwallowedDamage }],
+			WorldGenerationReports.StampOf(w.Host, layerOverride: 2));
+		w.Driver.Tick(33);
+
+		Assert.Equal(0, MergeCalls(native));
+		Assert.Empty(native.Damages);
+		Assert.Equal(0, w.ReceivedCount(w.G1, NetMsg.BlockDamageSnapshot));
+		Assert.Equal(1, PendingDamageReports(w)); // the entry is the reporter's own boundary's business
+	}
+
+	[Fact]
 	public void HostRole_NeverRecordsAPendingReport()
 	{
 		using var w = ItemSimWorld.Create();
@@ -218,7 +246,7 @@ public class GuestBlockDamageReportRecoveryTests
 		using var w = ItemSimWorld.Create(services => services.AddSingleton<INativeWorldFacts>(native));
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 
-		guestWorld.HandleBlockDamageReport(w.Host.SteamId, [new BlockDamageEntryMsg { X = 5, Y = 7, Damage = 40f }]);
+		guestWorld.HandleBlockDamageReport(w.Host.SteamId, [new BlockDamageEntryMsg { X = 5, Y = 7, Damage = 40f }], generation: null);
 		w.Driver.Tick(33);
 
 		Assert.Equal(0, MergeCalls(native));

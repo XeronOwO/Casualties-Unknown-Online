@@ -70,7 +70,7 @@ public class BlockBreakSimulationTests
 		var relays = new Counter(); // every relay the host sent (the relay includes the reporter)
 		var world = host.Services.GetRequiredService<IWorldControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
-		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops) =>
+		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops, generation) =>
 		{
 			// The executor: first-writer-wins — an accepted break relays, a
 			// refused one (the cell's break belongs to another writer) rolls every
@@ -78,7 +78,11 @@ public class BlockBreakSimulationTests
 			// from the same breaker is acknowledged idempotently instead: it is the
 			// breaker's own recovery re-report, and the registration/materialization
 			// of those drops is idempotent per item id.
-			var verdict = arbitration.TryAccept(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y));
+			// The sim has no live world and no run baseline: a recorded air write is
+			// the only cell model it has, so the standing-block shape cannot arise
+			// here (GuestBreakDropRecoveryTests covers it with a real cell state and
+			// a real generation stamp).
+			var verdict = arbitration.TryAccept(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y), cellIsAir: true, generationVerified: false);
 			if (verdict == Verdict.Refused)
 			{
 				if (drops is not null)

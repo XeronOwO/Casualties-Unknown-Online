@@ -27,11 +27,13 @@ internal sealed class BlockDamageSnapshotSender(
 	ISessionControl session,
 	PacketSender sender,
 	INativeWorldFacts? nativeWorldFacts,
+	KernelWorldGenerationSource generations,
 	ILogger<WorldService> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
+	private readonly KernelWorldGenerationSource _generations = generations;
 	private readonly ILogger<WorldService> _log = log;
 
 	/// <summary>Host only: send the partial damage this host's game list holds (world entry / reconnect / the 60 s resend).</summary>
@@ -62,6 +64,6 @@ internal sealed class BlockDamageSnapshotSender(
 			return;
 		}
 
-		_sender.Send(targetSteamId, NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg { Entries = [.. entries] });
+		_sender.Send(targetSteamId, NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg { Entries = [.. entries], Generation = _generations.Stamp() });
 	}
 }

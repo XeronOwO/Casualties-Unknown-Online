@@ -73,6 +73,21 @@ public static class ProtocolVersion
 	/// manual speeds and expect a host that discards manual requests, so one side
 	/// would keep running ahead of the other's clock with no verdict to settle
 	/// it.</summary>
-	public const int Current = 28;
+	/// 29: the world/layer generation stamp — the direct world reports whose keys
+	/// are layer-relative (`BlockPlaced`, `BlockDamaged`, and the
+	/// `BlockDamageSnapshot` payload that carries both the late-joiner snapshot
+	/// and the guest's absolute `BlockDamageReport`) now carry the kernel run
+	/// baseline's `(RunEpoch, LayerIndex)` on the wire. The receiver compares the
+	/// stamp with its own generation: a stale previous-layer report is REFUSED
+	/// with a precise log instead of being applied to a freshly generated world,
+	/// and the one shape that used to be unattributable — a break report naming a
+	/// cell this side still holds, because the sender's air-write report was lost
+	/// together with the drops carrier (`Verdict.LostAirWrite`) — is now accepted,
+	/// so those drops survive. A peer without the stamp would report unstamped
+	/// (compared as UNKNOWN, the pre-stamp conservative behaviour) and would apply
+	/// this side's stamped reports without the check, so the two sides would
+	/// disagree about which generation a report belongs to exactly when a layer
+	/// boundary is crossed.</summary>
+	public const int Current = 29;
 
 }

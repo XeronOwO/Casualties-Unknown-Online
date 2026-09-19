@@ -49,9 +49,10 @@ internal sealed class BlockBreakSync(
 	/// is already air when the drops arrive and a GetBlock check cannot tell
 	/// first-writer from second-writer there ("the block is gone" is true for
 	/// both) — the record does. The degraded path inverts that: a report reaching
-	/// this side while the block still stands can only be the first writer, and
-	/// the verdict refuses it, because such a report cannot be attributed to a
-	/// generation. The table and the verdict
+	/// this side while the block still stands is the lost air write, and it is
+	/// accepted when the report's world/layer stamp proves it belongs to THIS
+	/// generation (a stale previous-layer report is refused at the message seam
+	/// before it can claim a freshly generated cell). The table and the verdict
 	/// live in the pure BlockBreakArbitration machine (Runtime); this side feeds
 	/// the game inputs (cell coordinates, Time.unscaledTime).
 	/// </summary>
@@ -219,9 +220,10 @@ internal sealed class BlockBreakSync(
 	/// the sender's own BlockPlaced applied the air-write earlier (the
 	/// _recentBroken record, taken when that write landed) is what proves it was
 	/// the first writer, never a GetBlock check (the block is air for the loser
-	/// too). The one case where the cell's own state IS the proof is a report that
-	/// arrives while the block still stands: no earlier break can have taken a
-	/// cell this side still holds, so the report's own damage settles it.
+	/// too). The one case where the cell's own state IS part of the proof is a
+	/// report that arrives while the block still stands: no earlier break can have
+	/// taken a cell this side still holds, so a report the generation stamp
+	/// attributes to THIS world settles it as the lost air write.
 	/// Accepted → the drops register + materialize + relay to EVERY member, the
 	/// reporter included (that echo is the acknowledgement of its pending
 	/// report). Refused → every drop gets an ItemReject and the breaker destroys
@@ -234,7 +236,7 @@ internal sealed class BlockBreakSync(
 	/// the game's own metallic multiplier (WorldGeneration.cs:715) is applied
 	/// identically everywhere.
 	/// </summary>
-	internal void OnRemoteBlockDamaged(ulong sender, NetVector2 pos, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	internal void OnRemoteBlockDamaged(ulong sender, NetVector2 pos, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationRelation generation)
 	{
 		var world = WorldGeneration.world;
 		if (world == null || HarmonyTraverse.IsGenerating()) // Unity objects/traverse — ==
@@ -243,6 +245,29 @@ internal sealed class BlockBreakSync(
 			// same reason the air-write half drops its reports here. The reporter's
 			// pending entry survives, so its fallback re-reports once the world is
 			// whole again.
+			return;
+		}
+
+		if (generation == WorldGenerationRelation.Stale)
+		{
+			// The report/relay belongs to another world generation: its position is a
+			// layer-relative key, so it must touch neither this world nor the
+			// arbitration table. On the host a break's drops are the BREAKER's local
+			// copies, so they are rolled back exactly as a first-writer loss does
+			// (the world-service line already names both generations; this one names
+			// the consequence). On a guest the relay's drops must simply never
+			// materialize — answering the host with an ItemReject would be wrong.
+			if (IsHostMode)
+			{
+				_log.LogWarning("[BlockBreak] {Sender}'s report at ({X},{Y}) belongs to another world generation — not applied; {BlockCount} block drop(s) + {BuildingCount} building drop(s) rejected.",
+					sender, (int)pos.X, (int)pos.Y, drops?.Count ?? 0, buildingDrops?.Count ?? 0);
+				RejectBreakDrops(sender, drops, buildingDrops);
+			}
+			else
+			{
+				_log.LogWarning("[BlockBreak] the host's relay at ({X},{Y}) belongs to another world generation — not applied and its drops not materialized.", (int)pos.X, (int)pos.Y);
+			}
+
 			return;
 		}
 
@@ -264,13 +289,20 @@ internal sealed class BlockBreakSync(
 					// what makes a swallowed report recoverable at all.
 					// A FRESH verdict means this sender's air write already landed,
 					// so the cell must be air here; a standing cell contradicts the
-					// record (and after a layer change may be a different world's
-					// cell entirely) — the report is not attributable and is refused.
-					// The clause is scoped to Fresh on purpose: a REPEAT must survive
-					// a block placed back on the cell (rebuilding a hole), or a
-					// legitimate, already-registered drop would be destroyed on the
-					// breaker while the host's table still holds it.
-					var verdict = _arbitration.TryAccept(sender, cell.x, cell.y);
+					// record and is refused. The clause is scoped to Fresh on purpose:
+					// a REPEAT must survive a block placed back on the cell
+					// (rebuilding a hole), or a legitimate, already-registered drop
+					// would be destroyed on the breaker while the host's table still
+					// holds it.
+					// A report whose generation stamp proves it is THIS world's and
+					// that names a cell which still stands is the LOST AIR WRITE: the
+					// guest broke the block, the air-write report was lost together
+					// with the drops-carrying one, so no record exists and this side's
+					// cell is untouched. Accepting that shape used to be impossible —
+					// a stale previous-layer report looked exactly like it and would
+					// have broken a freshly generated block — and the stamp is what
+					// tells the two apart (see BlockBreakArbitration.TryAccept).
+					var verdict = _arbitration.TryAccept(sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current);
 					if (verdict == Verdict.Refused || (verdict == Verdict.Fresh && !blockIsAir))
 					{
 						RejectBreakDrops(sender, drops, buildingDrops);
@@ -364,7 +396,14 @@ internal sealed class BlockBreakSync(
 		_items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
 		_world.BroadcastBlockDamaged(0, pos, dmg, metalBonus, drops, buildingDrops);
 		_log.LogInformation("[BlockBreak] {Sender}'s break at ({X},{Y}) {Verdict} — {BlockCount} block drop(s) + {BuildingCount} building drop(s) registered + relayed.",
-			sender, cell.x, cell.y, verdict == Verdict.Fresh ? "accepted" : "re-accepted (repeat report)", drops?.Count ?? 0, buildingDrops?.Count ?? 0);
+			sender, cell.x, cell.y,
+			verdict switch
+			{
+				Verdict.Fresh => "accepted",
+				Verdict.LostAirWrite => "accepted as this generation's lost air write",
+				_ => "re-accepted (repeat report)",
+			},
+			drops?.Count ?? 0, buildingDrops?.Count ?? 0);
 	}
 
 	/// <summary>Host: the break lost first-writer-wins — every drop goes back to the breaker, which destroys its local copy (the drops were never picked up, there is no ground position to roll back to).</summary>

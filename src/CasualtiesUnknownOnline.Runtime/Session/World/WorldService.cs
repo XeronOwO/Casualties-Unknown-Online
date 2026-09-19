@@ -23,6 +23,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	private readonly ISessionControl _session;
 	private readonly WorldChannelRelay _channels;
 	private readonly WorldStateMessageService _messages;
+	private readonly BlockReportChannel _blockReports;
 	private readonly WorldFactLifecycle _facts;
 	private readonly GuestReportFallbacks _reportFallbacks;
 	private readonly WorldRunProjection _runProjection;
@@ -78,7 +79,8 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		// The message surface is this facade's own collaborator, not a DI singleton:
 		// the world-fact lifecycle (which the save layer resolves) is built over the
 		// SAME instance, so both see one set of tables.
-		_messages = new WorldStateMessageService(session, sender, log, eventChannel, nativeWorldFacts);
+		_messages = new WorldStateMessageService(session, sender, log, eventChannel);
+		_blockReports = new BlockReportChannel(session, sender, nativeWorldFacts, new KernelWorldGenerationSource(kernelAuthority), log);
 		_facts = new WorldFactLifecycle(_messages, log);
 		_reportFallbacks = new GuestReportFallbacks(session);
 		_startGate = new WorldStartGate(session, sender, time, log);
@@ -116,24 +118,24 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	// ---- Guest block-report fallback (audit gap W1) ----
 
 	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest block reports are outstanding.</summary>
-	internal int PendingBlockReportCount => _messages.PendingBlockReportCount;
+	internal int PendingBlockReportCount => _blockReports.PendingBlockReportCount;
 
 	/// <summary>Every guest report channel's time edge (driven by <see cref="WorldReportFallbackPump"/>): each table re-sends its outstanding set once ITS window elapses — they fill and drain independently.</summary>
 	internal void PumpReportFallbacks(long nowMs) =>
 		_reportFallbacks.Pump(
 			nowMs,
-			_messages.PendingBlockReportCount,
-			_messages.ResendPendingBlockReports,
-			_messages.PendingBlockDamageReportCount,
-			_messages.ResendPendingBlockDamageReports,
-			_messages.GuestReports.PendingBreakDropCount,
-			_messages.GuestReports.ResendBreakDrops);
+			_blockReports.PendingBlockReportCount,
+			_blockReports.ResendPendingBlockReports,
+			_blockReports.PendingBlockDamageReportCount,
+			_blockReports.ResendPendingBlockDamageReports,
+			_blockReports.GuestReports.PendingBreakDropCount,
+			_blockReports.GuestReports.ResendBreakDrops);
 
 	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest partial-damage reports are outstanding.</summary>
-	internal int PendingBlockDamageReportCount => _messages.PendingBlockDamageReportCount;
+	internal int PendingBlockDamageReportCount => _blockReports.PendingBlockDamageReportCount;
 
 	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest break-drop sets are outstanding.</summary>
-	internal int PendingBreakDropReportCount => _messages.GuestReports.PendingBreakDropCount;
+	internal int PendingBreakDropReportCount => _blockReports.GuestReports.PendingBreakDropCount;
 
 	// ---- Session reset ----
 
@@ -149,6 +151,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		// first generation look like the one the cut was restored for.
 		_facts.ClearPendingLiveReplay();
 		_messages.ResetSessionState();
+		_blockReports.ResetPendingReports();
 	}
 
 	private void OnSessionEnded() => ResetSessionState();
@@ -358,9 +361,9 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	// ---- World message flow ----
 
-	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?>? BlockDamagedReceived { add => _messages.BlockDamagedReceived += value; remove => _messages.BlockDamagedReceived -= value; }
+	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?, WorldGenerationRelation>? BlockDamagedReceived { add => _blockReports.BlockDamagedReceived += value; remove => _blockReports.BlockDamagedReceived -= value; }
 
-	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _messages.FireBlockDamagedReceived(sender, pos, damage, metalBonus, drops, buildingDrops);
+	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationMsg? generation) => _blockReports.FireBlockDamagedReceived(sender, pos, damage, metalBonus, drops, buildingDrops, generation);
 
 	public event Action<bool>? WorldJoinReceived { add => _messages.WorldJoinReceived += value; remove => _messages.WorldJoinReceived -= value; }
 
@@ -394,22 +397,22 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public void SendGeyserStateSnapshot(IReadOnlyList<GeyserStateEntryMsg> geysers) => _messages.SendGeyserStateSnapshot(geysers);
 
-	public event Action<ulong, int, int, ushort>? BlockPlacedReceived { add => _messages.BlockPlacedReceived += value; remove => _messages.BlockPlacedReceived -= value; }
+	public event Action<ulong, int, int, ushort, WorldGenerationRelation>? BlockPlacedReceived { add => _blockReports.BlockPlacedReceived += value; remove => _blockReports.BlockPlacedReceived -= value; }
 
-	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block) => _messages.FireBlockPlacedReceived(sender, x, y, block);
+	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block, WorldGenerationMsg? generation) => _blockReports.FireBlockPlacedReceived(sender, x, y, block, generation);
 
-	public void SendBlockPlacedReport(int x, int y, ushort block) => _messages.SendBlockPlacedReport(x, y, block);
+	public void SendBlockPlacedReport(int x, int y, ushort block) => _blockReports.SendBlockPlacedReport(x, y, block);
 
-	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block) => _messages.BroadcastBlockPlaced(excludeSteamId, x, y, block);
+	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block) => _blockReports.BroadcastBlockPlaced(excludeSteamId, x, y, block);
 
-	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block) => _messages.SendBlockPlacedCorrection(targetSteamId, x, y, block);
+	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block) => _blockReports.SendBlockPlacedCorrection(targetSteamId, x, y, block);
 
 	// The guest report-recovery surface (the three channels of the W1/W2 family)
 	// lives in the WorldService.ReportRecovery partial — it is one cohesive block
 	// of adapter-facing pass-throughs, and this file is at the 600-line gate.
 
-	/// <summary>Host only: a guest's absolute partial-damage report arrived — merge it through the native port and answer every reported cell authoritatively.</summary>
-	public void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries) => _messages.HandleBlockDamageReport(sender, entries);
+	/// <summary>Host only: a guest's absolute partial-damage report arrived (with its world/layer stamp) — merge it through the native port and answer every reported cell authoritatively, unless it belongs to another generation.</summary>
+	public void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation) => _blockReports.HandleBlockDamageReport(sender, entries, generation);
 
 	public event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived { add => _messages.BuildingEntityDamagedReceived += value; remove => _messages.BuildingEntityDamagedReceived -= value; }
 
@@ -451,11 +454,11 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public void SendBlockStateSnapshot(ulong targetSteamId) => _messages.SendBlockStateSnapshot(targetSteamId);
 
-	public void SendBlockDamageSnapshot(ulong targetSteamId) => _messages.SendBlockDamageSnapshot(targetSteamId);
+	public void SendBlockDamageSnapshot(ulong targetSteamId) => _blockReports.SendBlockDamageSnapshot(targetSteamId);
 
-	public event Action<IReadOnlyList<BlockDamageEntryMsg>>? BlockDamageSnapshotReceived { add => _messages.BlockDamageSnapshotReceived += value; remove => _messages.BlockDamageSnapshotReceived -= value; }
+	public event Action<IReadOnlyList<BlockDamageEntryMsg>>? BlockDamageSnapshotReceived { add => _blockReports.BlockDamageSnapshotReceived += value; remove => _blockReports.BlockDamageSnapshotReceived -= value; }
 
-	public void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries) => _messages.FireBlockDamageSnapshotReceived(entries);
+	public void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation) => _blockReports.FireBlockDamageSnapshotReceived(entries, generation);
 
 	public void SetRadiationLineState(RadiationLineStateMsg state) => _messages.SetRadiationLineState(state);
 
@@ -479,7 +482,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	private void RebuildRunFromKernel() => _runProjection.Rebuild(() => WorldParams = null);
 
-	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _messages.SendBlockDamaged(worldPos, damage, metalBonus, drops, buildingDrops);
+	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _blockReports.SendBlockDamaged(worldPos, damage, metalBonus, drops, buildingDrops);
 
-	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _messages.BroadcastBlockDamaged(excludeSteamId, worldPos, damage, metalBonus, drops, buildingDrops);
+	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _blockReports.BroadcastBlockDamaged(excludeSteamId, worldPos, damage, metalBonus, drops, buildingDrops);
 }

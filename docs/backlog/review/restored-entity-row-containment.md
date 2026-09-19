@@ -8,7 +8,7 @@
   bounds the blast radius to the half, and this is the level below it
 - Related: `docs/decisions/active.md` 173, 175, 183,
   `docs/backlog/review/trap-action-divergence-hardening.md`,
-  `docs/backlog/todo/restore-live-object-loops-containment.md`,
+  `docs/backlog/review/restore-live-object-loops-containment.md`,
   `src/CasualtiesUnknownOnline.Runtime/Session/World/ContainedRowLoop.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/World/EntityEventSync.cs`,
@@ -59,8 +59,9 @@ the ticket named:
 | `WorldBlockStateTable.Apply` | the restored block cells (one per cell, unbounded) | `RunContained`: a row counts as applied only once its cell write AND its air-write settle completed, so a row whose settle threw is refused once, not both |
 | `GameBlockDamageTable.Apply` | the partial-damage rows | `RunContained`: threw rows join the refusals this table already computes (air / range / cap) |
 
-The three appliers that are NOT converted, and the per-site reason each one is genuinely a different
-shape, are recorded in `todo/restore-live-object-loops-containment.md`.
+The three loops that were NOT converted in this cycle, and the per-site reason each one is genuinely
+a different shape, were recorded when this ticket was split and landed in the cycle after this one
+(`review/restore-live-object-loops-containment.md`, decision 196).
 
 Two behaviours were preserved deliberately: the trap applier's
 `CallContext.Enter(CallContext.Origin.RemoteApply)` scope still wraps the whole loop, so a replayed row

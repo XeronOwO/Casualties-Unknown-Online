@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using UnityEngine;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
@@ -71,51 +73,68 @@ internal static class KeypadCodeTable
 	/// keypads. A code already set (a local first use raced the broadcast) is
 	/// left alone; the 60 s cycle re-sends, so a fill-only apply converges.
 	/// </summary>
-	internal static int ApplyWhereUnset(IReadOnlyList<KeypadEntryMsg> codes) =>
-		Apply(codes, overwrite: false);
+	internal static int ApplyWhereUnset(IReadOnlyList<KeypadEntryMsg> codes, ILogger log) =>
+		Apply(codes, overwrite: false, log);
 
 	/// <summary>
 	/// Host restore: the snapshot is authoritative — every matched keypad carries
 	/// the restored code, including one the game generated before the replay ran
 	/// (writing the restored value is the whole point of capturing it).
 	/// </summary>
-	internal static int ApplyAbsolute(IReadOnlyList<KeypadEntryMsg> codes) =>
-		Apply(codes, overwrite: true);
+	internal static int ApplyAbsolute(IReadOnlyList<KeypadEntryMsg> codes, ILogger log) =>
+		Apply(codes, overwrite: true, log);
 
-	private static int Apply(IReadOnlyList<KeypadEntryMsg> codes, bool overwrite)
+	/// <summary>
+	/// The one write path, per LIVE <c>Openable</c>: each object is attempted on its own
+	/// (<see cref="ContainedRowLoop.RunLiveWorld"/>), so an object whose code field this copy
+	/// cannot serve costs ITSELF — named at error level with its position — instead of every
+	/// keypad behind it. A matched row counts as applied only once its write path COMPLETED, so
+	/// a throwing object lands in the caller's refusal count (rows - applied) rather than being
+	/// called applied; with no throw the count is exactly the matched count, as before.
+	/// </summary>
+	private static int Apply(IReadOnlyList<KeypadEntryMsg> codes, bool overwrite, ILogger log)
 	{
 		var applied = 0;
-		foreach (var openable in Object.FindObjectsOfType<Openable>())
-		{
-			if (!openable.isKeypad)
+		ContainedRowLoop.RunLiveWorld(
+			Object.FindObjectsOfType<Openable>(),
+			openable =>
 			{
-				continue;
-			}
+				if (!openable.isKeypad)
+				{
+					return;
+				}
 
-			var pos = openable.transform.position;
-			var match = codes.FirstOrDefault(c =>
-				Vector2.Distance(new Vector2(c.Position.X, c.Position.Y), new Vector2(pos.x, pos.y)) < PositionTolerance);
-			if (match is null)
-			{
-				continue;
-			}
+				var pos = openable.transform.position;
+				var match = codes.FirstOrDefault(c =>
+					Vector2.Distance(new Vector2(c.Position.X, c.Position.Y), new Vector2(pos.x, pos.y)) < PositionTolerance);
+				if (match is null)
+				{
+					return;
+				}
 
-			// MATCHED: the live Openable exists, and that is what the caller counts.
-			// Counting at the WRITE instead would call a restored code that happens
-			// to equal the rolled one "not applied" — the restored replay reads this
-			// as "the world has a home for this row".
-			applied++;
-			var codeField = Traverse.Create(openable).Field("code");
-			if (!overwrite && !string.IsNullOrEmpty(codeField.GetValue<string>()))
-			{
-				continue;
-			}
+				var codeField = Traverse.Create(openable).Field("code");
+				if (!overwrite && !string.IsNullOrEmpty(codeField.GetValue<string>()))
+				{
+					// MATCHED and deliberately left alone: still a row the caller counts,
+					// because the restored replay reads "matched" as "the world has a home
+					// for this row" — not "the code changed".
+					applied++;
+					return;
+				}
 
-			if (codeField.GetValue<string>() != match.Code)
-			{
-				codeField.SetValue(match.Code);
-			}
-		}
+				if (codeField.GetValue<string>() != match.Code)
+				{
+					codeField.SetValue(match.Code);
+				}
+
+				// Counted only now, after the whole write path completed: a code field the
+				// local copy cannot serve keeps the row out of `applied`, so the caller's
+				// (rows - applied) names it refused instead of counting a failed write.
+				applied++;
+			},
+			openable => $"({openable.transform.position.x:F1},{openable.transform.position.y:F1})",
+			log,
+			"restored keypad code");
 
 		return applied;
 	}

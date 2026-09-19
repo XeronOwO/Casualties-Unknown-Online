@@ -545,6 +545,70 @@ public sealed class RestoredWorldFactReplayTests
 	}
 
 	[Fact]
+	public void ApplyIfPending_AThrowingNativeRowCostsOnlyItself()
+	{
+		// The containment reaches the NATIVE tables too. The keypad and geyser writes iterate
+		// the LIVE world (a throwing object costs itself, the object behind it still lands) and
+		// the recipe table keeps its own accounting with a throwing row as a refusal class of
+		// its own — so the restore's account must carry exact counts (one row each) instead of
+		// "the live-world write threw" taking the whole half.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink
+		{
+			ThrowOnKeypadObject = 0,
+			ThrowOnGeyserObject = 1,
+			ThrowOnRecipeRow = 2,
+		};
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
+		audit.BeginRestore("w-native-row-contained", Attempt, [WorldRestoreHalf.WorldFacts]);
+		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
+
+		native.SeedKeypad(5f, 6f, "1234");
+		native.SeedKeypad(7f, 8f, "2345");
+		native.SeedKeypad(9f, 10f, "3456");
+		native.ApplyKeypadCodes(native.Keypads);
+		native.SeedGeyser(1f, 2f, 1);
+		native.SeedGeyser(3f, 4f, 2);
+		native.SeedGeyser(5f, 6f, 3);
+		native.ApplyGeysers(native.Geysers);
+		native.ApplyRecipeUnlocks(
+		[
+			new SaveRecipeUnlockRow { Index = 0, MadeBefore = true, IntValue = 0 },
+			new SaveRecipeUnlockRow { Index = 1, MadeBefore = true, IntValue = 0 },
+			new SaveRecipeUnlockRow { Index = 2, MadeBefore = true, IntValue = 0 },
+		]);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+
+		// EXACT: one refused row per loop, each named by its own section, and no "the write
+		// threw" verdict anywhere — the half's account carries the lost rows, not the whole
+		// half's failure.
+		Assert.Equal<string>(
+			["1 keypad code(s)", "1 geyser type(s)", "1 recipe unlock row(s)"],
+			report.Refused);
+
+		// The rows BEHIND each throwing one still landed — the blast radius is one row, not the
+		// table — and each throw is named by the row's own identity, never a generic loop index.
+		Assert.Equal(2, sink.AppliedKeypads);
+		Assert.Equal(2, sink.AppliedGeysers);
+		Assert.Equal(2, sink.AppliedRecipes.Count);
+		Assert.True(sink.RowLog.HasError("(5.0,6.0)")); // the first keypad's position
+		Assert.True(sink.RowLog.HasError("(3.0,4.0)")); // the second geyser's position
+		Assert.True(sink.RowLog.HasError("index 2"));
+
+		// The release rule is unchanged: rows the world did not take end the handover instead of
+		// staying armed for the next generation.
+		Assert.False(native.HasPendingRestore);
+	}
+
+	[Fact]
 	public void ApplyIfPending_MidRunRestore_ReportsTwoHalvesAndWaitsForTheItemReconcile()
 	{
 		// A mid-run cut owes THREE live-world halves at this seam's end: the world

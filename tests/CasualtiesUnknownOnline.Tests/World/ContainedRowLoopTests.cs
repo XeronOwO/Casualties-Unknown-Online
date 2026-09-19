@@ -166,4 +166,119 @@ public class ContainedRowLoopTests
 		Assert.Contains("4 further row(s)", log.Entries[5].Message, StringComparison.Ordinal);
 		Assert.Contains("9 refused in all", log.Entries[5].Message, StringComparison.Ordinal);
 	}
+
+	/// <summary>
+	/// The third shape: the loop's unit is a LIVE WORLD OBJECT (the keypad and geyser tables
+	/// iterate what the world holds and count the RESTORED rows they matched), so the object's
+	/// identity is its position and the caller keeps its own count — incremented only once the
+	/// matched row's write path completed.
+	/// </summary>
+	[Fact]
+	public void RunLiveWorld_AThrowingObjectCostsOnlyItselfAndIsNamed()
+	{
+		var log = new RecordingLogger<ContainedRowLoopTests>();
+		var reached = new List<string>();
+		var applied = 0;
+
+		ContainedRowLoop.RunLiveWorld(
+			Rows,
+			live =>
+			{
+				reached.Add(live);
+				if (live == "b")
+				{
+					throw new InvalidOperationException("the object's component cannot be served");
+				}
+
+				applied++;
+			},
+			live => $"object at ({live})",
+			log,
+			"restored keypad code");
+
+		// Every object was attempted exactly once, and the count the caller keeps is the one the
+		// restore's account reads: the throwing object is simply absent from it.
+		Assert.Equal<string>(["a", "b", "c", "d"], reached);
+		Assert.Equal(3, applied);
+		Assert.Equal(1, Rows.Length - applied); // the caller's refusal count: (rows - applied)
+		Assert.True(log.HasError("object at (b)"));
+	}
+
+	[Fact]
+	public void RunLiveWorld_NoThrow_AppliesEveryObjectOnceAndWritesNothing()
+	{
+		// The ticket's "every count is identical to today's" row: with no throw the loop reaches
+		// every object exactly once and the containment contributes no log line at all.
+		var log = new RecordingLogger<ContainedRowLoopTests>();
+		var applied = 0;
+
+		ContainedRowLoop.RunLiveWorld(Rows, _ => applied++, live => $"object {live}", log, "restored geyser type");
+
+		Assert.Equal(Rows.Length, applied);
+		Assert.Empty(log.Entries);
+	}
+
+	[Fact]
+	public void RunLiveWorld_ASystematicFailureIsBoundedLikeTheRowRule()
+	{
+		var log = new RecordingLogger<ContainedRowLoopTests>();
+		var live = new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8" };
+
+		ContainedRowLoop.RunLiveWorld(
+			live,
+			_ => throw new InvalidOperationException("the component was never initialized"),
+			item => $"object at ({item})",
+			log,
+			"restored keypad code");
+
+		// Five named objects plus ONE summary — the same bound the row rule applies, so a
+		// systematic failure cannot replace an exact count with a flood of stack traces.
+		Assert.Equal(6, log.Entries.Count);
+		Assert.All(log.Entries, entry => Assert.Equal(LogLevel.Error, entry.Level));
+		Assert.True(log.HasError("object at (0)"));
+		Assert.True(log.HasError("object at (4)"));
+		Assert.Contains("4 further row(s)", log.Entries[5].Message, StringComparison.Ordinal);
+		Assert.Contains("9 refused in all", log.Entries[5].Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The identity is the ADAPTER's knowledge, and a live object's identity is read off the very
+	/// object whose engine call just threw (its position). Naming a refusing unit must therefore
+	/// never be able to throw in turn: that would replace the original failure with its own and
+	/// let the exception escape the containment — the exact outcome the rule exists to prevent.
+	/// </summary>
+	[Fact]
+	public void RunContained_AnIdentityThatThrowsCannotReplaceTheOriginalFailure()
+	{
+		var log = new RecordingLogger<ContainedRowLoopTests>();
+		var reached = new List<string>();
+
+		var thrown = ContainedRowLoop.RunContained(
+			Rows,
+			row =>
+			{
+				reached.Add(row);
+				throw new InvalidOperationException($"the write for {row} threw");
+			},
+			row =>
+			{
+				if (row == "a")
+				{
+					throw new InvalidOperationException("the position could not be read");
+				}
+
+				return $"row {row}";
+			},
+			log,
+			"restored keypad code");
+
+		// Every row was still attempted exactly once, every failure still produced its error
+		// line, and the one whose identity could not be produced is reported as unknown instead
+		// of aborting the loop.
+		Assert.Equal(Rows.Length, thrown);
+		Assert.Equal<string>(["a", "b", "c", "d"], reached);
+		Assert.Equal(Rows.Length, log.Entries.Count);
+		Assert.True(log.HasError("<identity unavailable>"));
+		Assert.True(log.HasError("row b"));
+	}
 }

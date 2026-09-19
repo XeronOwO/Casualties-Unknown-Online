@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Persistence;
+using CasualtiesUnknownOnline.Runtime.Session.World;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -94,32 +96,45 @@ internal static class RecipeUnlockTable
 	/// onto the live recipe at that index. Rows whose index left the table are
 	/// collected as refusals (the caller reports them); nothing else changes, and
 	/// nothing is written to a neighbouring index.
+	///
+	/// The rows run through the Runtime's per-row containment
+	/// (<see cref="ContainedRowLoop.RunContained"/>), so a row reaching an engine call this
+	/// copy cannot serve costs ITSELF — named at error level with its index — instead of every
+	/// row behind it, and it is refused as its OWN class
+	/// (<see cref="RecipeUnlockApplyResult.RefusedByThrow"/>) rather than as a missing recipe:
+	/// the index EXISTS in the table, the write threw, and reporting that as "this table has no
+	/// recipe here" would name the wrong reason.
 	/// </summary>
-	internal static RecipeUnlockApplyResult Apply(IReadOnlyList<SaveRecipeUnlockRow> rows)
+	internal static RecipeUnlockApplyResult Apply(IReadOnlyList<SaveRecipeUnlockRow> rows, ILogger log)
 	{
 		var recipes = Recipes.recipes;
 		if (recipes is null)
 		{
-			return new RecipeUnlockApplyResult(0, [.. Indices(rows)]);
+			return new RecipeUnlockApplyResult(0, [.. Indices(rows)], 0);
 		}
 
 		var refused = new List<int>();
 		var applied = 0;
-		foreach (var row in rows)
-		{
-			if (row.Index < 0 || row.Index >= recipes.Count || recipes[row.Index] is null)
+		var thrown = ContainedRowLoop.RunContained(
+			rows,
+			row =>
 			{
-				refused.Add(row.Index);
-				continue;
-			}
+				if (row.Index < 0 || row.Index >= recipes.Count || recipes[row.Index] is null)
+				{
+					refused.Add(row.Index);
+					return;
+				}
 
-			var recipe = recipes[row.Index];
-			recipe.hasMadeBefore = row.MadeBefore;
-			recipe.INT = row.IntValue;
-			applied++;
-		}
+				var recipe = recipes[row.Index];
+				recipe.hasMadeBefore = row.MadeBefore;
+				recipe.INT = row.IntValue;
+				applied++;
+			},
+			row => $"index {row.Index}",
+			log,
+			"restored recipe unlock");
 
-		return new RecipeUnlockApplyResult(applied, refused);
+		return new RecipeUnlockApplyResult(applied, refused, thrown);
 	}
 
 	private static IEnumerable<int> Indices(IReadOnlyList<SaveRecipeUnlockRow> rows)
@@ -130,6 +145,13 @@ internal static class RecipeUnlockTable
 		}
 	}
 
-	/// <summary>What one absolute write did: the rows the live table took, and the indices it has no recipe for.</summary>
-	internal readonly record struct RecipeUnlockApplyResult(int Applied, IReadOnlyList<int> RefusedIndexes);
+	/// <summary>
+	/// What one absolute write did: the rows the live table took, the indices it has no recipe
+	/// for, and how many rows reached an engine call the local copy cannot serve. The throwing
+	/// rows are their OWN class rather than entries in <see cref="RefusedIndexes"/>: their index
+	/// EXISTS in the table and the write threw, so reporting them as missing recipes would name
+	/// the wrong reason. The row itself is named by the containment's error line, whose identity
+	/// is its index — the only key a recipe row has.
+	/// </summary>
+	internal readonly record struct RecipeUnlockApplyResult(int Applied, IReadOnlyList<int> RefusedIndexes, int RefusedByThrow);
 }

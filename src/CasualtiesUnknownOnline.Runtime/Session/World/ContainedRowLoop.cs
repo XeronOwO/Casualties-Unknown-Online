@@ -97,7 +97,7 @@ internal static class ContainedRowLoop
 				thrown++;
 				if (thrown <= DetailedFailures)
 				{
-					log.LogError(ex, "{What} row {Row} reached an engine call the local world cannot serve and is REFUSED.", what, identity(row));
+					log.LogError(ex, "{What} {Row} reached an engine call the local world cannot serve and is REFUSED.", what, Describe(identity, row));
 				}
 			}
 		}
@@ -108,5 +108,54 @@ internal static class ContainedRowLoop
 		}
 
 		return thrown;
+	}
+
+	/// <summary>
+	/// The same containment for a loop whose unit is a LIVE WORLD OBJECT rather than one of
+	/// the cut's rows — the two native tables that iterate what the world currently holds and
+	/// count the RESTORED rows they matched (a keypad's <c>Openable</c>, a <c>GeyserScript</c>).
+	/// The live object's position is the only identity such a loop has, and "matched rows" is
+	/// the count it reports.
+	///
+	/// A throw in one live object cannot cost the objects behind it. The caller keeps its own
+	/// count and increments it only after the matched row's write path COMPLETED, so an object
+	/// that threw stays out of <c>applied</c>. That is why this shape returns NOTHING: the
+	/// callers that report refusals compute them as (restored rows - applied), so a throwing
+	/// object is already inside that count, and a number returned here and added to a row-based
+	/// refused total would count the same object twice. (The two callers that report no refusal
+	/// at all — the live broadcasts, which log <c>applied</c> — are covered by the same rule.)
+	/// </summary>
+	/// <param name="live">The live world's objects, in the order the applier iterates them.</param>
+	/// <param name="apply">The adapter's per-object write, counting the matched row itself once its write path completed.</param>
+	/// <param name="identity">How the error line names ONE live object (the adapter's knowledge: its position).</param>
+	/// <param name="log">The applier's logger — the object's identity and its exception ride one error line.</param>
+	/// <param name="what">What the objects are, for the error line ("restored keypad code").</param>
+	internal static void RunLiveWorld<TLive>(
+		IReadOnlyList<TLive> live,
+		Action<TLive> apply,
+		Func<TLive, string> identity,
+		ILogger log,
+		string what) =>
+		// The per-object loop is the row rule's loop, bounded log included; only the counting
+		// contract differs, and that one belongs to the caller (see the summary).
+		_ = RunContained(live, apply, identity, log, what);
+
+	/// <summary>
+	/// How the error line names ONE unit, made SAFE: the identity is the adapter's knowledge,
+	/// and for a live object it can read the very member the failed write touched (a position on
+	/// an object whose component just threw). Naming it must therefore never be able to replace
+	/// the original failure with one of its own — an identity that cannot be produced is reported
+	/// as unknown, the loop goes on, and the count stays exact.
+	/// </summary>
+	private static string Describe<TRow>(Func<TRow, string> identity, TRow row)
+	{
+		try
+		{
+			return identity(row);
+		}
+		catch (Exception)
+		{
+			return "<identity unavailable>";
+		}
 	}
 }

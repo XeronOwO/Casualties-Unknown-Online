@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: the release sites of all four arms read at HEAD (audit, projection, save service, item set); the ticket's family table names each verdict
+      file:line or runtime log) or is explicitly marked unverified — evidence: each loop read at HEAD (git show HEAD:<path>) and in the tree; the ticket's sweep table names every verdict
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: every release site swept (ticket's family table); the duplicate release is the expected seam-then-owner shape, the unowed half and the mismatched attempt stay loud
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's 10-row acceptance mapping names a test per row; independent review (fresh context, 11 mutation probes) found 0 blocker/0 major, 3 minor + 3 nits, all fixed in this commit
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the review's family pass found the item half's reconcile; the sweep table now covers all 12 restore-path sites
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance table maps 5 rows to tests; independent review 0 blocker / 2 major / 6 minor / 5 nit, all fixed in this round
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused 89/89 green; pre-fix red recorded for all three session-end cases; the console line and the in-game session end belong to the user's acceptance pass
+      peer log comparison, hotrepl assertions) is decided — evidence: focused 34/34; the seam test asserts the whole refused list; game-typed call sites stay read-only reviewed (ticket Limits)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: work item taken from the handoff + the ticket's own priority; no gameplay/UI design decision arises (restore accounting), so no user round trip was needed
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; full suite with build 3505/3505; normative gates 69/69
+      process violation — evidence: item taken from the handoff + the ticket's own priority; plain restore accounting, so no gameplay/UI design question arises
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; full suite with build 3510/3510; normative gates 69/69
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: WorldRestoreAudit 300 lines, WorldSaveService under 600, no dead mechanism left; the audit's per-half path replaced the count rather than sitting beside it
+      dead mechanisms deleted in the same round) — evidence: largest touched file WorldEventSync 533 lines, ContainedRowLoop 161, GeneratedItemReconcile 129; the count-based paths were replaced, not shadowed
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

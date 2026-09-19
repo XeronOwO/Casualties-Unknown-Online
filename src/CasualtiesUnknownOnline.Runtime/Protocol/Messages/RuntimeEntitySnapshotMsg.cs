@@ -38,4 +38,16 @@ public sealed class RuntimeEntitySnapshotMsg
 	/// </summary>
 	[ProtoMember(2)]
 	public List<RuntimeEntityKeyMsg> AcceptedAnimalKeys { get; set; } = [];
+
+	/// <summary>
+	/// The world/layer generation this table describes (protocol 30): the host's
+	/// kernel run baseline, read at send time. Its entries materialize at
+	/// layer-relative positions, so a guest that is already at another
+	/// generation refuses the snapshot WHOLE (one log line for the table instead
+	/// of one per entry) before any entry or acknowledgement is applied. Null =
+	/// the host had no committed run baseline (compared as UNKNOWN, the
+	/// pre-stamp behaviour).
+	/// </summary>
+	[ProtoMember(3)]
+	public WorldGenerationMsg? Generation { get; set; }
 }

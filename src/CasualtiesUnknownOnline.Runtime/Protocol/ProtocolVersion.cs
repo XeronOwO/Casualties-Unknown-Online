@@ -87,7 +87,20 @@ public static class ProtocolVersion
 	/// (compared as UNKNOWN, the pre-stamp conservative behaviour) and would apply
 	/// this side's stamped reports without the check, so the two sides would
 	/// disagree about which generation a report belongs to exactly when a layer
-	/// boundary is crossed.</summary>
-	public const int Current = 29;
+	/// boundary is crossed.
+	/// 30: the generation stamp reaches the remaining position-keyed families —
+	/// the trap-layout snapshot (`TrapLayoutSnapshotMsg`, host → guest) and the
+	/// runtime-entity creation report with its absolute table (`EntitySpawnedMsg`
+	/// and `RuntimeEntitySnapshotMsg`, guest → host, the host's relay, and the
+	/// re-report/repair cycle). Both materialize entities at layer-relative
+	/// positions, so the receiver refuses a STALE one before anything is created
+	/// or materialized, and the host answers a refused creation report through
+	/// the existing rejection path (`RuntimeEntityRejectReason.StaleGeneration`)
+	/// so its pending re-report ends. A peer without the stamp would report
+	/// unstamped (compared as UNKNOWN, the pre-stamp behaviour) and would
+	/// materialize this side's stamped reports without the check, so across a
+	/// layer boundary the two sides would disagree about which world a trap
+	/// layout or a creation belongs to.</summary>
+	public const int Current = 30;
 
 }

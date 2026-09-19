@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
+using Microsoft.Extensions.Logging;
 using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
@@ -15,12 +17,25 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// entity). Resets when a new world layer starts generating (the same
 /// lifecycle as the trap-consumption and opened-entities tables); ships to
 /// members on their world entry (TrapLayoutSnapshot, sent alongside the
-/// other world-entry snapshots).
+/// other world-entry snapshots) and on the in-session repair. Every send
+/// carries the world/layer generation the layout was derived in, and an
+/// arrived snapshot of another generation is refused (<see cref="IsStale"/>)
+/// before anything is materialized.
 /// </summary>
-public sealed class TrapLayoutRegistry(ISessionControl session, PacketSender sender)
+public sealed class TrapLayoutRegistry(ISessionControl session, PacketSender sender, ItemKernelAuthority kernelAuthority, ILogger<TrapLayoutRegistry> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
+	private readonly ILogger<TrapLayoutRegistry> _log = log;
+
+	/// <summary>
+	/// The world/layer generation this side is at: the stamp every send reads
+	/// live, and the side an arrived snapshot is compared against. The entries
+	/// are positions of GENERATED entities, so a snapshot of another generation
+	/// must never be materialized into this side's world — the refusal is
+	/// <see cref="IsStale"/>, in the same words every stamped family uses.
+	/// </summary>
+	private readonly KernelWorldGenerationSource _generations = new(kernelAuthority);
 
 	private const int MaxEntries = 65536; // cap, mirroring the trap-consumption table
 
@@ -72,7 +87,7 @@ public sealed class TrapLayoutRegistry(ISessionControl session, PacketSender sen
 		return true;
 	}
 
-	/// <summary>Host only: send the layout to one member (on its world entry, or on the in-session repair).</summary>
+	/// <summary>Host only: send the layout to one member (on its world entry, or on the in-session repair), stamped with this side's CURRENT world/layer generation — read at send time, so a repair re-derived in the layer being simulated now can never reach a guest as the previous layer's layout.</summary>
 	public void SendSnapshot(ulong targetSteamId)
 	{
 		if (_session.Role != SessionRole.Host || _layout.Count == 0)
@@ -80,9 +95,21 @@ public sealed class TrapLayoutRegistry(ISessionControl session, PacketSender sen
 			return;
 		}
 
-		var msg = new TrapLayoutSnapshotMsg { Entries = [.. _layout.Values] };
+		var msg = new TrapLayoutSnapshotMsg { Entries = [.. _layout.Values], Generation = _generations.Stamp() };
 		_sender.Send(targetSteamId, NetMsg.TrapLayoutSnapshot, msg);
 	}
+
+	/// <summary>
+	/// Guest: is an arrived snapshot about the world this side simulates NOW?
+	/// Its entries are positions of GENERATED entities, so a snapshot of another
+	/// world/layer generation would materialize the previous layer's traps into
+	/// this one; a STALE verdict is refused whole (logged with both generations
+	/// by <see cref="WorldReportGenerationGate"/>) before anything reaches the
+	/// adapter. An UNKNOWN verdict (no stamp, or no committed run baseline here)
+	/// is not stale and keeps the pre-stamp behaviour.
+	/// </summary>
+	public bool IsStale(WorldGenerationMsg? generation, ulong sender) =>
+		WorldReportGenerationGate.Relate(generation, _generations.Current, "TrapLayoutSnapshot", sender, _log) == WorldGenerationRelation.Stale;
 
 	/// <summary>Host only: a new world layer is generating — the layout starts empty again.</summary>
 	public void Reset() => _layout.Clear();

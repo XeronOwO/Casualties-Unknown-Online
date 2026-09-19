@@ -310,5 +310,21 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	/// <summary>Guest: the host's trap layout arrived — align the local world (materialize missing, destroy surplus).</summary>
 	public event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived;
 
-	public void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries) => TrapLayoutReceived?.Invoke(entries);
+	/// <summary>
+	/// Guest: the host's trap layout arrived — refused WHOLE when it belongs to
+	/// another world/layer generation (its entries are positions of generated
+	/// entities, so materializing them would place the previous layer's traps in
+	/// this one). The verdict is the layout's own
+	/// (<see cref="TrapLayoutRegistry.IsStale"/>), so the send and the refusal
+	/// read one identity.
+	/// </summary>
+	public void FireTrapLayoutReceived(ulong sender, WorldGenerationMsg? generation, IReadOnlyList<TrapLayoutEntryMsg> entries)
+	{
+		if (_trapLayout.IsStale(generation, sender))
+		{
+			return;
+		}
+
+		TrapLayoutReceived?.Invoke(entries);
+	}
 }

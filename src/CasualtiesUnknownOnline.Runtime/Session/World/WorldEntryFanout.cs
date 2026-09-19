@@ -20,6 +20,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// to the host's state", so they live together — the trap layout was missing
 /// from the periodic cycle for exactly as long as the two lists were owned in
 /// different places.
+///
+/// Both groups carry the kernel checkpoint FIRST: it is what establishes the
+/// member's run baseline, and every generation-stamped absolute table
+/// (block state, block damage, trap layout, runtime entities) is compared
+/// against that baseline on arrival — sending one before the checkpoint makes
+/// the receiver refuse the host's own current-generation table (review finding,
+/// cycle `review/generation-identity-remaining-families.md`).
 /// </summary>
 public sealed class WorldEntryFanout(
 	IWorldControl world,
@@ -42,11 +49,18 @@ public sealed class WorldEntryFanout(
 	public void Send(ulong steamId)
 	{
 		_log.LogInformation("Sending world-entry snapshot group to {Peer}.", steamId);
+
+		// The kernel checkpoint goes FIRST because it is what carries the run
+		// baseline (RunEpoch + LayerIndex) to this member, and every absolute
+		// table below that is stamped with the world/layer generation is
+		// compared against that baseline on arrival: a stamped table sent before
+		// it would be refused as stale by the very member it is meant to bring
+		// up to date, with no second chance before the 60 s repair.
+		_kernelProtocol.SendCheckpoint(steamId);
 		_world.SendBlockStateSnapshot(steamId);
 		_world.SendBlockDamageSnapshot(steamId);
 		_world.SendTrapLayoutSnapshot(steamId);
 		_world.SendRadiationLineState(steamId);
-		_kernelProtocol.SendCheckpoint(steamId);
 		_items.SendItemSnapshot(steamId);
 		_enemies.SendEnemySnapshot(steamId);
 		_world.SendRuntimeEntitySnapshot(steamId);
@@ -78,10 +92,13 @@ public sealed class WorldEntryFanout(
 	public void SendInSessionRepair(ulong steamId)
 	{
 		_log.LogInformation("Sending the in-session repair group to {Peer}.", steamId);
+
+		// Same rule as the entry group: the run-baseline carrier first, then the
+		// generation-stamped absolute tables it is compared against.
+		_kernelProtocol.SendCheckpoint(steamId);
 		_world.SendBlockStateSnapshot(steamId);
 		_world.SendBlockDamageSnapshot(steamId);
 		_world.SendTrapLayoutSnapshot(steamId);
-		_kernelProtocol.SendCheckpoint(steamId);
 		_enemies.SendEnemySnapshot(steamId);
 		_world.SendRuntimeEntitySnapshot(steamId);
 	}

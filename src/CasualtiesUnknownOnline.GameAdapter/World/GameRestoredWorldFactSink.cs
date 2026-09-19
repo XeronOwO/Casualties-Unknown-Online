@@ -86,14 +86,14 @@ internal sealed class GameRestoredWorldFactSink(
 	/// <inheritdoc />
 	public LiveWorldWriteOutcome ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)
 	{
-		var applied = KeypadCodeTable.ApplyAbsolute(codes);
+		var applied = KeypadCodeTable.ApplyAbsolute(codes, _log);
 		return new LiveWorldWriteOutcome(applied, codes.Count - applied);
 	}
 
 	/// <inheritdoc />
 	public LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
 	{
-		var applied = GeyserStateTable.Apply(geysers);
+		var applied = GeyserStateTable.Apply(geysers, _log);
 		return new LiveWorldWriteOutcome(applied, geysers.Count - applied);
 	}
 
@@ -104,7 +104,7 @@ internal sealed class GameRestoredWorldFactSink(
 		// mod-content provider appended the custom recipes on a later Update frame —
 		// which is what makes an index from the archive mean the recipe it meant when
 		// the cut was written.
-		var result = RecipeUnlockTable.Apply(recipes);
+		var result = RecipeUnlockTable.Apply(recipes, _log);
 		if (result.RefusedIndexes.Count > 0)
 		{
 			_log.LogWarning(
@@ -112,7 +112,10 @@ internal sealed class GameRestoredWorldFactSink(
 				result.RefusedIndexes.Count, string.Join(", ", result.RefusedIndexes));
 		}
 
-		return new LiveWorldWriteOutcome(result.Applied, result.RefusedIndexes.Count);
+		// A row whose write THREW is its own refusal class (the containment named it at error
+		// level with its index), counted here so the restore's account names it lost — without
+		// the missing-recipe warning above claiming an index this table does hold.
+		return new LiveWorldWriteOutcome(result.Applied, result.RefusedIndexes.Count + result.RefusedByThrow);
 	}
 
 	/// <inheritdoc />

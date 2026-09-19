@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using Object = UnityEngine.Object;
 
@@ -40,47 +41,76 @@ internal sealed class GeneratedItemReconcile(
 			var bound = 0;
 			var materialized = 0;
 			var refused = new List<string>();
-			foreach (var entry in entries)
+
+			// Per ENTRY, contained by the Runtime's row rule: an entry whose engine call throws
+			// costs ITSELF and the entries behind it still land. The two counts are taken only
+			// once the entry's write path completed, so a throwing entry is counted nowhere —
+			// it is named in the containment's error line and counted in the refusal below.
+			var thrown = ContainedRowLoop.RunContained(
+				entries,
+				entry =>
+				{
+					var localCopy = ItemApplication.FindExistingAt(entry.Pos, entry.Item.ItemId) != null; // Unity object — ==
+					_itemApplication.SpawnWorldItem(entry);
+
+					if (localCopy)
+					{
+						bound++; // the local copy adopts the authority's id (SpawnWorldItem binds, never duplicates)
+					}
+					else
+					{
+						materialized++; // a divergent local copy — the authority's version is materialized instead
+					}
+
+					// A write is only reported after it was verified BY ID: the bind
+					// predicate above deliberately skips objects that already carry an id, so
+					// it cannot see the write that just attached one. Reporting the intent
+					// instead of the verified result would name a successful bind as a loss on
+					// every restore, and a genuine refusal could not be told apart from it (§6).
+					if (ItemApplication.FindWorldItem(entry.ItemId) == null) // Unity object — ==
+					{
+						refused.Add(Describe(entry));
+					}
+				},
+				Describe,
+				_log,
+				"restored world item");
+
+			if (thrown > 0)
 			{
-				if (ItemApplication.FindExistingAt(entry.Pos, entry.Item.ItemId) != null) // Unity object — ==
-				{
-					bound++; // the local copy adopts the authority's id (SpawnWorldItem binds, never duplicates)
-				}
-				else
-				{
-					materialized++; // a divergent local copy — the authority's version is materialized instead
-				}
-
-				_itemApplication.SpawnWorldItem(entry);
-
-				// A write is only reported after it was verified BY ID: the bind
-				// predicate above deliberately skips objects that already carry an id, so
-				// it cannot see the write that just attached one. Reporting the intent
-				// instead of the verified result would name a successful bind as a loss on
-				// every restore, and a genuine refusal could not be told apart from it (§6).
-				if (ItemApplication.FindWorldItem(entry.ItemId) == null) // Unity object — ==
-				{
-					refused.Add($"item #{entry.ItemId} ({entry.Item.ItemId}) at ({entry.Pos.X:F1},{entry.Pos.Y:F1})");
-				}
+				refused.Add($"{thrown} restored world item row(s) reached an engine call the local world cannot serve");
 			}
 
 			// Reconciliation: destroy the standalone world items no entry claimed.
-			// Bound copies carry the authority's id and are untouched.
+			// Bound copies carry the authority's id and are untouched. This loop iterates the LIVE
+			// world and keeps its own count (destroyed), which is the other shape of the same rule:
+			// one object whose destroy throws cannot cost the objects behind it, and a leftover the
+			// cut never described that SURVIVES is a divergence the restore report must hear about.
 			var destroyed = 0;
-			foreach (var item in Item.allItems.ToList()) // copy: destroying while iterating
+			var leftoverThrown = ContainedRowLoop.RunContained(
+				Item.allItems.ToList(), // copy: destroying while iterating
+				item =>
+				{
+					if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==
+					{
+						return;
+					}
+
+					if (!ItemWorldSync.IsStandaloneWorldItem(item))
+					{
+						return;
+					}
+
+					Object.Destroy(item.gameObject);
+					destroyed++;
+				},
+				item => $"unclaimed item at ({item.transform.position.x:F1},{item.transform.position.y:F1})",
+				_log,
+				"unclaimed world item");
+
+			if (leftoverThrown > 0)
 			{
-				if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==
-				{
-					continue;
-				}
-
-				if (!ItemWorldSync.IsStandaloneWorldItem(item))
-				{
-					continue;
-				}
-
-				Object.Destroy(item.gameObject);
-				destroyed++;
+				refused.Add($"{leftoverThrown} unclaimed local item(s) could not be destroyed");
 			}
 
 			_log.LogInformation(
@@ -89,4 +119,11 @@ internal sealed class GeneratedItemReconcile(
 			return new GeneratedItemReconcileOutcome(entries.Count, bound, materialized, destroyed, refused);
 		}
 	}
+
+	/// <summary>
+	/// How one entry is named in the refusal list and in the containment's error line. Identity
+	/// data the cut carries — never a live-object read, so naming an entry can never throw.
+	/// </summary>
+	private static string Describe(WorldItem entry) =>
+		$"item #{entry.ItemId} ({entry.Item.ItemId}) at ({entry.Pos.X:F1},{entry.Pos.Y:F1})";
 }

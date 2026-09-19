@@ -67,6 +67,24 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 	/// <summary>How many recipe unlock rows name a recipe this world's table does not have (a mod update removed it).</summary>
 	internal int RefuseRecipes { get; set; }
 
+	/// <summary>
+	/// Simulate a LIVE keypad object whose code field this copy cannot serve (the table iterates
+	/// the live world and runs each object through the Runtime's per-object containment): the
+	/// object at this index throws, the ones behind it still land, and the refused count the
+	/// caller computes (rows - applied) names exactly ONE lost row.
+	/// </summary>
+	internal int ThrowOnKeypadObject { get; set; } = -1;
+
+	/// <summary>The geyser half of <see cref="ThrowOnKeypadObject"/> — the same containment over the live geysers.</summary>
+	internal int ThrowOnGeyserObject { get; set; } = -1;
+
+	/// <summary>
+	/// Simulate a RECIPE row whose index exists but whose write throws: the adapter table keeps
+	/// its own accounting and adds the thrown rows as a refusal class of their own, so the seam
+	/// must see an exact refused count instead of "the live-world write threw".
+	/// </summary>
+	internal int ThrowOnRecipeRow { get; set; } = -1;
+
 	/// <summary>The recipe unlock state the live world ended up with — the rows this sink was handed and took.</summary>
 	internal List<SaveRecipeUnlockRow> AppliedRecipes { get; } = [];
 
@@ -127,22 +145,35 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 	public LiveWorldWriteOutcome ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)
 	{
 		Calls.Add("apply-keypads");
-		var refused = Math.Min(RefuseKeypads, codes.Count);
-		AppliedKeypads = codes.Count - refused;
-		return new LiveWorldWriteOutcome(AppliedKeypads, refused);
+		AppliedKeypads = ApplyLiveObjects(
+			codes,
+			RefuseKeypads,
+			ThrowOnKeypadObject,
+			code => $"({code.Position.X:F1},{code.Position.Y:F1})",
+			"restored keypad code");
+		return new LiveWorldWriteOutcome(AppliedKeypads, codes.Count - AppliedKeypads);
 	}
 
 	public LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
 	{
 		Calls.Add("apply-geysers");
-		var refused = Math.Min(RefuseGeysers, geysers.Count);
-		AppliedGeysers = geysers.Count - refused;
-		return new LiveWorldWriteOutcome(AppliedGeysers, refused);
+		AppliedGeysers = ApplyLiveObjects(
+			geysers,
+			RefuseGeysers,
+			ThrowOnGeyserObject,
+			geyser => $"({geyser.Position.X:F1},{geyser.Position.Y:F1})",
+			"restored geyser type");
+		return new LiveWorldWriteOutcome(AppliedGeysers, geysers.Count - AppliedGeysers);
 	}
 
 	public LiveWorldWriteOutcome ApplyRecipeUnlocks(IReadOnlyList<SaveRecipeUnlockRow> recipes)
 	{
 		Calls.Add("apply-recipes");
+		if (ThrowOnRecipeRow >= 0)
+		{
+			return ApplyRecipeRowsContained(recipes);
+		}
+
 		var refused = Math.Min(RefuseRecipes, recipes.Count);
 		for (var i = 0; i < recipes.Count - refused; i++)
 		{
@@ -150,6 +181,78 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 		}
 
 		return new LiveWorldWriteOutcome(recipes.Count - refused, refused);
+	}
+
+	/// <summary>
+	/// The two native tables iterate the LIVE world, run each object through the Runtime's
+	/// per-object containment, and count a matched row only once its write path COMPLETED — so
+	/// the refused count the caller reports is (rows - applied), and an object that threw is
+	/// already inside it. This models that arithmetic, with <paramref name="unMatchedRows"/>
+	/// standing for the restored rows the live world has no object for.
+	/// </summary>
+	private int ApplyLiveObjects<T>(
+		IReadOnlyList<T> rows,
+		int unMatchedRows,
+		int throwAtIndex,
+		Func<T, string> identity,
+		string what)
+	{
+		var applied = 0;
+		var index = -1;
+		ContainedRowLoop.RunLiveWorld(
+			rows,
+			_ =>
+			{
+				index++;
+				if (index == throwAtIndex)
+				{
+					throw new InvalidOperationException($"the live world's {what} object could not be served");
+				}
+
+				if (index < rows.Count - unMatchedRows)
+				{
+					applied++;
+				}
+			},
+			identity,
+			RowLog,
+			what);
+		return applied;
+	}
+
+	/// <summary>
+	/// The recipe table keeps its own accounting (a missing index is refused by its rule) and
+	/// runs its rows through the Runtime's per-row containment; a row that THREW is refused as
+	/// its own class and the rows behind it still land — the arithmetic the adapter's
+	/// <c>RecipeUnlockTable.Apply</c> performs.
+	/// </summary>
+	private LiveWorldWriteOutcome ApplyRecipeRowsContained(IReadOnlyList<SaveRecipeUnlockRow> recipes)
+	{
+		var refusedIndexes = 0;
+		var applied = 0;
+		var thrown = ContainedRowLoop.RunContained(
+			recipes,
+			row =>
+			{
+				if (row.Index < 0)
+				{
+					refusedIndexes++;
+					return;
+				}
+
+				if (row.Index == ThrowOnRecipeRow)
+				{
+					throw new InvalidOperationException($"recipe row index {row.Index} reached an engine call the local copy cannot serve");
+				}
+
+				AppliedRecipes.Add(row);
+				applied++;
+			},
+			row => $"index {row.Index}",
+			RowLog,
+			"restored recipe unlock");
+
+		return new LiveWorldWriteOutcome(applied, refusedIndexes + thrown);
 	}
 
 	public bool ApplyRadiationLine(RadiationLineStateMsg line)

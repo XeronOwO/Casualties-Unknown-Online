@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using UnityEngine;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
@@ -48,33 +50,44 @@ internal static class GeyserStateTable
 	/// not name is left as the local roll produced it (the caller reports the
 	/// count it matched). A geyser created after the set was captured is simply
 	/// not matched — the periodic resend and the creation message carry it.
+	///
+	/// Each LIVE geyser is attempted on its own (<see cref="ContainedRowLoop.RunLiveWorld"/>),
+	/// so a type field this copy cannot serve costs ITSELF — named at error level with its
+	/// position — instead of every geyser behind it. A matched row counts as applied only once
+	/// its write path completed, so a throwing object lands in the caller's refusal count
+	/// (rows - applied); with no throw the count is exactly the matched count, as before.
 	/// </summary>
-	internal static int Apply(IReadOnlyList<GeyserStateEntryMsg> geysers)
+	internal static int Apply(IReadOnlyList<GeyserStateEntryMsg> geysers, ILogger log)
 	{
 		var applied = 0;
-		foreach (var geyser in Object.FindObjectsOfType<GeyserScript>())
-		{
-			var pos = geyser.transform.position;
-			var match = geysers.FirstOrDefault(g =>
-				Vector2.Distance(new Vector2(g.Position.X, g.Position.Y), new Vector2(pos.x, pos.y)) < PositionTolerance);
-			if (match is null)
+		ContainedRowLoop.RunLiveWorld(
+			Object.FindObjectsOfType<GeyserScript>(),
+			geyser =>
 			{
-				continue;
-			}
+				var pos = geyser.transform.position;
+				var match = geysers.FirstOrDefault(g =>
+					Vector2.Distance(new Vector2(g.Position.X, g.Position.Y), new Vector2(pos.x, pos.y)) < PositionTolerance);
+				if (match is null)
+				{
+					return;
+				}
 
-			// MATCHED: the live geyser exists — counted here, not at the write, so an
-			// entry whose rolled liquid type already equals the restored one is still
-			// a row the restored replay can call applied (the game rolls only two
-			// types, so an equal value is common, not an anomaly).
-			applied++;
-			var typeField = Traverse.Create(geyser).Field("liquidType");
-			if (typeField.GetValue<byte>() == match.LiquidType) // byte — exact type (a SetValue(int) cast throws ArgumentException)
-			{
-				continue;
-			}
+				var typeField = Traverse.Create(geyser).Field("liquidType");
+				if (typeField.GetValue<byte>() != match.LiquidType) // byte — exact type (a SetValue(int) cast throws ArgumentException)
+				{
+					typeField.SetValue(match.LiquidType);
+				}
 
-			typeField.SetValue(match.LiquidType);
-		}
+				// MATCHED and landed — counted here, not at the write, so an entry whose
+				// rolled liquid type already equals the restored one is still a row the
+				// restored replay can call applied (the game rolls only two types, so an
+				// equal value is common); a field read that threw stays uncounted and the
+				// caller's (rows - applied) names it refused.
+				applied++;
+			},
+			geyser => $"({geyser.transform.position.x:F1},{geyser.transform.position.y:F1})",
+			log,
+			"restored geyser type");
 
 		return applied;
 	}

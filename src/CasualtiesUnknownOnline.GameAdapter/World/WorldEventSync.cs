@@ -489,7 +489,7 @@ internal sealed partial class WorldEventSync(
 			return;
 		}
 
-		var applied = KeypadCodeTable.ApplyWhereUnset(codes);
+		var applied = KeypadCodeTable.ApplyWhereUnset(codes, _log);
 		_log.LogInformation("[Keypad] applied {Applied} host keypad code(s).", applied);
 	}
 

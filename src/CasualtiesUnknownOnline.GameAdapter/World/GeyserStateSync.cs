@@ -137,7 +137,7 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 			return;
 		}
 
-		var applied = GeyserStateTable.Apply(geysers);
+		var applied = GeyserStateTable.Apply(geysers, _log);
 		_log.LogInformation("[GeyserSnapshot] applied {Applied} host liquid type(s).", applied);
 	}
 }

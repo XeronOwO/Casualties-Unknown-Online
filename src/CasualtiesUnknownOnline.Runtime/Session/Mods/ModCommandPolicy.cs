@@ -20,6 +20,25 @@ public static class ModCommandPolicy
 	public const int MaxOutputLength = 32 * 1024;
 	public const int MaxErrorLength = 4 * 1024;
 
+	/// <summary>
+	/// How long a guest's command request may stay pending before the framework settles
+	/// its callback with a timeout failure. The host executes synchronously, so a result
+	/// normally returns within one round trip; the deadline exists for a request whose
+	/// frame the host dropped (rate limit, shape caps, not a handshaken member) or whose
+	/// result was lost. A dropped request is deliberately NOT answered per frame — that
+	/// would let a flooding peer drive the host's outbound traffic past the token bucket
+	/// that bounds one member's consumption — so drop and loss reach the requester as the
+	/// same observable timeout failure.
+	/// </summary>
+	public const int CommandRequestTimeoutMs = 10_000;
+
+	/// <summary>
+	/// The per-mod cap on concurrent pending guest command requests: a call over the cap
+	/// is refused at the sender (false + log, like every other sender-side refusal), so a
+	/// mod that fires without waiting cannot grow the pending map without bound.
+	/// </summary>
+	public const int MaxPendingRequests = 32;
+
 	/// <summary>A command name is a non-empty, edge-whitespace-free string of at most <see cref="MaxNameLength"/> chars.</summary>
 	public static bool IsValidName(string? name) =>
 		!string.IsNullOrWhiteSpace(name) && name!.Trim() == name && name.Length <= MaxNameLength;

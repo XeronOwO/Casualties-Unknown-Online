@@ -110,7 +110,7 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   2026-09-19: the world-join instruction announces the host's run epoch, the guest refuses a
   checkpoint set from another run before a chunk is buffered, and the pending set is keyed by
   its own epoch/revision/chunk count),
-  `todo/mod-command-request-timeout.md`, `review/sync-cadence-review.md` (cadence findings
+  `review/mod-command-request-timeout.md`, `review/sync-cadence-review.md` (cadence findings
   raised at the user's request), and `review/guest-break-drops-recovery.md` (found while
   landing W1).
 - **Guard**: `tests/CasualtiesUnknownOnline.NormativeGates.Tests/SyncCoverageGateTests.cs` —

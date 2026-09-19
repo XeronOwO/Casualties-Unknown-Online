@@ -87,6 +87,8 @@ internal sealed class ModLifecycle(
 			DiscoverAndLoad();
 		}
 
+		_commands.PumpPendingTimeouts(); // settle stale guest requests before the mods see this frame
+
 		foreach (var mod in _catalog.Mods)
 		{
 			SafeRun(mod, "Update", mod.Instance.Update);

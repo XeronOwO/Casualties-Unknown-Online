@@ -4,7 +4,9 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// The result of one command execution, delivered to the callback passed to
 /// <see cref="IModCommands.TryExecute"/>. Host-local calls complete
 /// synchronously; a guest's call completes when the host's directed result
-/// arrives (or with <see cref="Success"/> false when the session ends first).
+/// arrives, or with <see cref="Success"/> false when the request deadline passes
+/// (the framework settles a request the host dropped, or whose result was lost,
+/// with a timeout failure) or when the session ends first.
 /// </summary>
 public interface IModCommandResult
 {

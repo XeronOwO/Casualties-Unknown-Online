@@ -137,8 +137,16 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 
 The mod must declare `SendNetworkMessage`; undeclared sends are refused at the
 sender (no-op + log) and undeclared receives are dropped. The payload is
-**opaque**; unknown ids are dropped with a log. Frames are reliable; per-sender
-rate limit: 20/s sustained with a 40-frame burst (`ModRateLimitPolicy`).
+**opaque**; unknown ids are dropped with a log. Frames are reliable at the
+transport; per-sender rate limit: 20/s sustained with a 40-frame burst
+(`ModRateLimitPolicy`).
+
+**A drop is accepted loss.** An over-burst frame is dropped WITH a log and never
+queued, and nothing is re-sent: `ModMessage` and the mod-status transport
+(`ModStatusTransport`) are loss-tolerant by design — they carry opaque payloads
+with no backfill, so the next message, never a retry, is the recovery. Only the
+command request/result pair has a settlement, and it is the requester's own
+deadline (§4b).
 
 **64 KiB payload cap** — framework policy, NOT a line limit: refused at the
 sender and re-checked at the receiver.
@@ -164,9 +172,26 @@ context.Commands.TryExecute("heal", new[] { "alice" }, result => { /* ... */ });
   behavior from `ctx.RequesterSteamId`.
 - Handler exceptions become `Success=false` results with the exception
   message; output is capped at 32 KiB (error 4 KiB). Pending guest callbacks
-  are settled with a failure when the session ends or the framework shuts down.
-- Guest-side result callbacks are reliable and directed to the requester only;
-  unknown request ids are dropped with a log.
+  are settled with a failure when the session ends or the framework shuts down —
+  the deadline below settles the rest earlier.
+- **Request deadline and a bounded pending map**: a guest request is settled by
+  the result frame, by the requester's deadline
+  (`ModCommandPolicy.CommandRequestTimeoutMs`, 10 s, swept once per frame), or by
+  the session-end/shutdown failure above. The deadline is the answer to every
+  silent loss: a request the host dropped (rate limit, shape caps, not a
+  handshaken member) and one whose result was lost both fail the caller with
+  `Success=false` and a `timed out` error instead of hanging until the session
+  ends. The host never answers an over-burst frame — answering would let a
+  flooding peer drive the host's outbound past the token bucket that bounds one
+  member — so a dropped frame and a lost result reach the caller as one
+  observable reason. Per mod, at most `ModCommandPolicy.MaxPendingRequests` (32)
+  requests may be outstanding: a call over the cap is refused at the sender
+  (`false`, no callback, the same contract as the other sender-side refusals),
+  so a mod that fires without waiting cannot grow the map without bound.
+- Guest-side result callbacks are directed to the requester only; a result for an
+  unknown request id (a request that already timed out, or one this copy never
+  sent) is dropped with a log, and a failure result names its request id and
+  command name.
 
 ## 4d. Mod state (host-persistent saves)
 

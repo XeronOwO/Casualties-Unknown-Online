@@ -15,8 +15,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// membership and the host's loaded mod/permission/registration state, then
 /// executed on the HOST's copy of the mod and answered with a directed result;
 /// a host-local call executes synchronously and invokes its callback in place.
-/// Pending guest callbacks are settled with a failure when the session ends or
-/// the framework shuts down.
+/// A pending guest callback is settled by the result frame, by the request
+/// deadline (the per-frame pump — a request the host dropped or whose result was
+/// lost fails here), or by a session-end / shutdown failure. The per-mod pending
+/// map is capped, so a mod that fires without waiting cannot grow it without bound.
 /// </summary>
 internal sealed class ModCommandService(
 	ModCatalog catalog,
@@ -231,6 +233,25 @@ internal sealed class ModCommandService(
 		}
 	}
 
+	/// <summary>
+	/// Settle every pending guest request whose deadline has passed — the per-frame half
+	/// of the request timeout (the other half is the session-end fail-all). The clock is
+	/// read ONCE so every mod in this frame is judged against the same instant.
+	/// </summary>
+	internal void PumpPendingTimeouts()
+	{
+		if (_catalog.Mods.Count == 0)
+		{
+			return;
+		}
+
+		var nowMs = _time.NowMs;
+		foreach (var mod in _catalog.Mods)
+		{
+			mod.Context.PumpPendingCommands(nowMs);
+		}
+	}
+
 	internal void InvokeCallback(LoadedMod mod, Action<IModCommandResult> callback, IModCommandResult result)
 	{
 		try
@@ -323,8 +344,15 @@ internal sealed class ModCommandService(
 				return false; // outside a session a guest request cannot be delivered
 			}
 
+			if (_pending.Count >= ModCommandPolicy.MaxPendingRequests)
+			{
+				service._log.LogWarning("[Mods] {Id}/{Name} refused at the sender: {Count} command requests are already pending (cap {Cap}) — this call is not sent and gets no callback.",
+					manifest.Id, name, _pending.Count, ModCommandPolicy.MaxPendingRequests);
+				return false;
+			}
+
 			var guestRequestId = NextRequestId();
-			_pending.Add(guestRequestId, new PendingCommand(callback));
+			_pending.Add(guestRequestId, new PendingCommand(name, service._time.NowMs + ModCommandPolicy.CommandRequestTimeoutMs, callback));
 			service.SendCommandRequest(service._session.HostSteamId, guestRequestId, manifest.Id, name, arguments);
 			return true;
 		}
@@ -367,22 +395,64 @@ internal sealed class ModCommandService(
 				return;
 			}
 
-			var pending = _pending.Values.ToArray();
+			var pending = _pending.ToArray();
 			_pending.Clear();
 			var mod = service._catalog.Find(manifest.Id);
 			foreach (var entry in pending)
 			{
-				var result = new CommandResultData(0, string.Empty, service._session.LocalSteamId, false, null, ModCommandPolicy.ClampError(reason));
+				var result = new CommandResultData(entry.Key, entry.Value.Name, service._session.LocalSteamId, false, null, ModCommandPolicy.ClampError(reason));
 				if (mod is not null)
 				{
-					service.InvokeCallback(mod, entry.Callback, result);
+					service.InvokeCallback(mod, entry.Value.Callback, result);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Settle every entry at or past its deadline. The expired entries are collected
+		/// BEFORE any removal (the dictionary cannot be mutated while it is enumerated) and
+		/// each entry is removed before its callback runs, so a result that arrives later
+		/// can no longer settle a request that already timed out.
+		/// </summary>
+		internal void PumpPending(long nowMs)
+		{
+			if (_pending.Count == 0)
+			{
+				return;
+			}
+
+			List<KeyValuePair<uint, PendingCommand>>? expired = null;
+			foreach (var entry in _pending)
+			{
+				if (nowMs >= entry.Value.DeadlineMs)
+				{
+					(expired ??= []).Add(entry);
+				}
+			}
+
+			if (expired is null)
+			{
+				return;
+			}
+
+			var mod = service._catalog.Find(manifest.Id);
+			foreach (var entry in expired)
+			{
+				_pending.Remove(entry.Key);
+				service._log.LogWarning("[Mods] {Id}/{Name} request {RequestId} got no result within {Timeout} ms — settled with a failure.",
+					manifest.Id, entry.Value.Name, entry.Key, ModCommandPolicy.CommandRequestTimeoutMs);
+				var result = new CommandResultData(entry.Key, entry.Value.Name, service._session.LocalSteamId, false, null,
+					ModCommandPolicy.ClampError($"command request timed out after {ModCommandPolicy.CommandRequestTimeoutMs} ms"));
+				if (mod is not null)
+				{
+					service.InvokeCallback(mod, entry.Value.Callback, result);
 				}
 			}
 		}
 
 		private uint NextRequestId() => unchecked(_nextRequestId++);
 
-		private sealed record PendingCommand(Action<IModCommandResult> Callback);
+		private sealed record PendingCommand(string Name, long DeadlineMs, Action<IModCommandResult> Callback);
 	}
 
 	/// <summary>The execution-time command context (the bind-time session snapshot would be stale).</summary>

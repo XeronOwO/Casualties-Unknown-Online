@@ -111,6 +111,14 @@ person). "It runs" is the floor, not the goal.
   refactor out of fear of churn — the cost moves, it does not disappear.
 - `[RULE]` Pragmatic future-proofing: leave room for foreseeable evolution, do not pre-build
   for imagined futures. "We'll deal with it later" is not a default excuse.
+- `[CRITICAL]` Compatibility is never a design input. The compatibility boundary is the
+  protocol-version check at handshake — the host refuses a peer whose `HandshakeMsg.Protocol`
+  differs and the guest ends the session on a mismatched `HandshakeAckMsg.Protocol` — so a change
+  never has to keep an old wire or save shape alive, retain a legacy field, or pick a weaker
+  mechanism to avoid a version bump. Change the wire the mechanism needs and bump
+  `ProtocolVersion.Current` in the same change (`docs/decisions/active.md` holds the numbering
+  policy). "No wire change" / "host untouched" are facts worth recording, never merits or
+  constraints in a design argument — this holds before AND after release.
 - `[RULE]` Self-review happens before hand-off, not after review: structure the change the
   moment a feature or fix is finished.
 - `[CRITICAL]` Tests must cover core scenarios plus edge, exception, and failure paths.

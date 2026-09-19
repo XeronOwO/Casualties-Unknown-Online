@@ -137,6 +137,20 @@ guest that generated with the game's fresh `1f` would build a different layer th
 (S3.4). `run.json` is still ONE file whose root is one entry array — the two rows are typed rows of
 the same file, exactly like `world-blocks.json`'s `block-state` and `native-block-damage`.
 
+The `native-run-fields` row also carries an OPTIONAL `layerTimeSpent` — the layer's own
+radiation-timer accounting (`WorldGeneration.world.layerTimeSpent`, the value the game's line
+condition compares against `maxTimePerLayer`, `WorldGeneration.cs:860-861`). It is recorded by a
+MID-RUN cut only: a `layer-end` cut names a layer that is regenerated, so its timer belongs to the
+new layer and the encoder leaves the property out. A recorded value makes a continued run RESUME
+the radiation line's countdown instead of restarting it, which is what the native continue does (its
+own save carries no such value and the game zeroes the timer when a layer finishes generating (`WorldGeneration.cs:3609`); the write lands at the
+same seam as the clock base, through the same world-entry flush. The LIMIT is deliberately not
+carried — the game recomputes `maxTimePerLayer` from the restored run settings, so shipping it would
+be a second carrier for a value the restored baseline already determines. The property is absent, not
+null, when nothing was recorded: the decoder tells "the cut recorded no layer timer" from "it
+recorded one" by the property's presence, and the restore then keeps the game's own timer and names
+the gap.
+
 `world-blocks.json` is the in-layer block diff, and its rows carry `kind` (`block-state` |
 `native-block-damage`) with the row's wire payload: `blockState` is `{x, y, block}` — a block whose
 id differs from the generated baseline, mined, destroyed, built or reverted — and
@@ -370,7 +384,8 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
 - **A restore has halves in time, and the later ones report too.** The Continue click applies
   the kernel checkpoint and the Runtime fact tables; the values only a live world can take (the
   block diff, the game's own partial-damage list, the decided keypad/geyser values, the radiation
-  line, the restored per-entity facts, the run clock base and the recipe unlock table) are written at
+  line, the restored per-entity facts, the run clock base, the layer timer and the recipe unlock table)
+  are written at
   the world-entry seam afterwards, and a mid-run cut's restored item set is reconciled a frame after
   the generation-finished edge. Every half travels back to the caller that started the restore
   through `WorldRestoreAudit`: the Runtime table's per-row apply counts AND each live-world write's

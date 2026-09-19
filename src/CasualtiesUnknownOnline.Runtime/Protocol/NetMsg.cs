@@ -293,4 +293,18 @@ public enum NetMsg : byte
 	// and an index this side already holds costs one suppressed write.
 	RecipeUnlockSnapshot = 139, // bidirectional: guest → host report of this guest's unlocked recipe-index set; host → guest this host's authoritative set (world entry / 60 s repair / the answer that ends the guest's re-report)
 
+	// The run/layer clocks the kernel baseline does not hold (the run clock base
+	// is game state no CUO domain owns: SaveSystem.savedRunTime is a per-process
+	// static, 0 on a guest's fresh launch, so a member joining a run in progress
+	// read only the time since it joined while the host read the run's total —
+	// the end screen's death-stats clock). The layer's radiation-timer
+	// accounting rides the same instant for the same reason. Both values are
+	// read at one instant off the host's live world and stamped with the kernel
+	// run baseline's generation, the same stamp every layer-relative world
+	// report carries, so a value from a previous layer is refused instead of
+	// being written onto a freshly generated one. Sent in the world-entry group
+	// and the 60 s repair group, right after the checkpoint that establishes the
+	// stamp it is compared against.
+	RunFacts = 140, // host → guest: the absolute run clock base and the layer's timer accounting, stamped with the run-baseline generation
+
 }

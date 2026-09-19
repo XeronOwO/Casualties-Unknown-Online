@@ -28,6 +28,8 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	private readonly GuestReportFallbacks _reportFallbacks;
 	private readonly WorldRunProjection _runProjection;
 	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly KernelWorldGenerationSource _generations;
+	private readonly ILogger<WorldService> _log;
 	private readonly IWorldItemLayerReset _itemLayerReset;
 	private readonly LayerScopedTableReset _layerTables;
 	private readonly FluidKernelProjection _fluidKernel;
@@ -79,7 +81,9 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		// The message surface is this facade's own collaborator, not a DI singleton:
 		// the world-fact lifecycle (which the save layer resolves) is built over the
 		// SAME instance, so both see one set of tables.
-		_messages = new WorldStateMessageService(session, sender, log, eventChannel);
+		_generations = new KernelWorldGenerationSource(kernelAuthority);
+		_messages = new WorldStateMessageService(session, sender, log, eventChannel, _generations);
+		_log = log;
 		_blockReports = new BlockReportChannel(session, sender, nativeWorldFacts, new KernelWorldGenerationSource(kernelAuthority), log);
 		_facts = new WorldFactLifecycle(_messages, log);
 		_reportFallbacks = new GuestReportFallbacks(session);
@@ -376,6 +380,48 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	public void FireWorldSnapshotCompleteReceived() => _messages.FireWorldSnapshotCompleteReceived();
 
 	public void SendWorldSnapshotComplete(ulong targetSteamId) => _messages.SendWorldSnapshotComplete(targetSteamId);
+
+	/// <summary>Host: the run/layer clocks the adapter read off the live world (stamped with the kernel run baseline's generation when they are sent).</summary>
+	public RunClockFacts? RunFacts
+	{
+		get => _messages.RunFacts;
+		set => _messages.RunFacts = value;
+	}
+
+	public void SendRunFacts(ulong targetSteamId) => _messages.SendRunFacts(targetSteamId);
+
+	public void PublishRunFacts(RunClockFacts facts) => _messages.RunFacts = facts;
+
+	/// <summary>
+	/// Guest: the host's run/layer clocks arrived. The CLOCK is applied whenever it advances
+	/// (run-scoped, so a value behind can only be an older message), while the LAYER TIMER and
+	/// its LIMIT are dropped when the stamp names a DIFFERENT layer of a run this side already
+	/// knows — and are applied when it matches, or when it cannot be compared at all
+	/// (<see cref="WorldGenerationRelation.Unknown"/>: no baseline yet, and the only sender on
+	/// this connection is the host, so refusing would leave a joining member's radiation timer
+	/// at zero until its own baseline arrives). The monotone write guard, not the stamp, is
+	/// what keeps either value from moving backwards.
+	/// </summary>
+	public void FireRunFactsReceived(RunFactsMsg facts)
+	{
+		var reported = new WorldGenerationMsg { RunEpoch = facts.RunEpoch, LayerIndex = facts.LayerIndex };
+		var relation = WorldReportGeneration.Relate(_generations.Current, reported);
+		var layerTimerApplies = relation is WorldGenerationRelation.Current or WorldGenerationRelation.Unknown;
+
+		// Debug, not Warn: a legitimate layer transition produces a window in which the host
+		// already stamps the NEW generation while this side's baseline is still the old one, so
+		// a normal switch can mismatch on every entry/repair send inside that window.
+		if (!layerTimerApplies)
+		{
+			_log.LogDebug(
+				"Dropped the run clock message's layer timer ({Reported}; this side is {Mine}) — its clock is still applied if it advances, the layer timer is not.",
+				WorldReportGeneration.Describe(reported), WorldReportGeneration.Describe(_generations.Current));
+		}
+
+		_messages.FireRunFactsReceived(facts, layerTimerApplies);
+	}
+
+	public event Action<RunFactsMsg, bool>? RunFactsReceived { add => _messages.RunFactsReceived += value; remove => _messages.RunFactsReceived -= value; }
 
 	public event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived { add => _messages.BlockStateReceived += value; remove => _messages.BlockStateReceived -= value; }
 

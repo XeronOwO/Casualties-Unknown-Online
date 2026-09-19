@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CasualtiesUnknownOnline.Runtime.Persistence;
 
@@ -24,6 +25,18 @@ internal static class SaveArchiveJson
 			PropertyNameCaseInsensitive = false,
 			WriteIndented = true,
 			Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+			// An OPTIONAL archive member that is not recorded is written as ABSENT, never as an
+			// explicit null. That matters for a member whose ABSENCE the reader distinguishes
+			// from a recorded value — today exactly one: run.json's native-run-fields
+			// `layerTimeSpent` (a layer-end cut and an archive written before the value
+			// existed both record none, and a written null would make the two
+			// indistinguishable in the file itself). The typed-row unions
+			// (`SaveRunRow.Run`/`.NativeRunFields`, `SaveWorldBlockRow.*`, `SaveEnemyRow.*`,
+			// `SaveWorldEntityRow.*`, `SaveWorldTransientRow.*`) also lose their explicit null
+			// payloads here; each of those is already gated by `CarriesItsOwnPayload` or
+			// tolerates a missing property, so the omission is a shape change in the file and
+			// not a reader contract change.
+			DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 		};
 		options.Converters.Add(new WorldCutKindJsonConverter());
 		options.MakeReadOnly(populateMissingResolver: true);

@@ -28,6 +28,7 @@ public sealed class WorldRunFieldTests
 	{
 		var native = new FakeNativeWorldFacts();
 		native.SeedRunFields(2.5f, 3.5f, 42.5f, Recipe(0, madeBefore: true, intValue: 0), Recipe(3, madeBefore: false, intValue: 7));
+		native.SeedLayerTime(366.5f);
 
 		using var fixture = WorldSaveFixture.Create("run-fields-midrun", nativeWorldFacts: native);
 		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
@@ -46,12 +47,91 @@ public sealed class WorldRunFieldTests
 
 		var fields = rows.Single(row => KindOf(row) == SaveRunRow.NativeRunFieldsKind).GetProperty("nativeRunFields");
 		Assert.Equal(42.5f, fields.GetProperty("savedRunTime").GetSingle());
+		// The layer's own countdown rides the run row too, so a continued layer resumes the
+		// radiation line instead of restarting it (the native continue restarts it).
+		Assert.Equal(366.5f, fields.GetProperty("layerTimeSpent").GetSingle());
 		var recipes = fields.GetProperty("recipes").EnumerateArray().ToList();
 		Assert.Equal(2, recipes.Count);
 		Assert.Equal(0, recipes[0].GetProperty("index").GetInt32());
 		Assert.True(recipes[0].GetProperty("madeBefore").GetBoolean());
 		Assert.Equal(3, recipes[1].GetProperty("index").GetInt32());
 		Assert.Equal(7, recipes[1].GetProperty("intValue").GetInt32());
+	}
+
+	[Fact]
+	public void MidRunCut_WithNoLayerTimerRead_WritesNoLayerTimeProperty()
+	{
+		// The layer timer is OPTIONAL in the row, and its absence must stay an absence: a
+		// reader that met a world which could not report one must not write a zero, which
+		// would be read back as "the layer has just started".
+		var native = new FakeNativeWorldFacts();
+		native.SeedRunFields(1f, 1f, 20f);
+		native.SeedLayerTime(null);
+
+		using var fixture = WorldSaveFixture.Create("run-fields-no-layer-time", nativeWorldFacts: native);
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 1), out _, out _));
+
+		Assert.True(Cut(fixture).Captured);
+
+		var fields = LiveRunRows(fixture).Single(row => KindOf(row) == SaveRunRow.NativeRunFieldsKind).GetProperty("nativeRunFields");
+		Assert.False(fields.TryGetProperty("layerTimeSpent", out _), "an unread layer timer must not be recorded as a zero");
+	}
+
+	[Fact]
+	public void Continue_CarriesTheLayerTimerBackToTheNativeApplier()
+	{
+		var cutNative = new FakeNativeWorldFacts();
+		cutNative.SeedRunFields(1f, 1f, 120f, Recipe(0, madeBefore: true, intValue: 0));
+		cutNative.SeedLayerTime(410.5f);
+
+		using var fixture = WorldSaveFixture.Create("run-fields-layer-resume", nativeWorldFacts: cutNative);
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 1), out _, out _));
+		Assert.True(Cut(fixture).Captured);
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+
+		var restoreNative = new FakeNativeWorldFacts();
+		using var restarted = WorldSaveFixture.Create("run-fields-layer-resume-restart", repository: fixture.Repository, nativeWorldFacts: restoreNative);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// The layer time travels with the clock, and it is written by the same world-entry
+		// flush the clock uses — the layer the player continues into resumes its countdown.
+		// The handover itself arms a pending write (the world does not exist at the click), so
+		// this drives the seam the adapter drives: TryWritePendingRunFields.
+		Assert.Contains("apply-cut-run-fields", restoreNative.Calls);
+		Assert.Equal(120f, restoreNative.RunFields.SavedRunTime);
+		Assert.True(restoreNative.HasPendingClockFacts, "the layer timer a restore handed over must be waiting for the live world");
+		Assert.True(restoreNative.TryWritePendingRunFields(), "the world-entry flush must take the handed-over values");
+		Assert.Equal(410.5f, restoreNative.RunFields.LayerTimeSpent);
+		Assert.Contains(restoreNative.ClockWrites, write => write.StartsWith("layer-time 410.5", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Continue_FromAnArchiveWithoutTheLayerTime_KeepsTheLiveTimer()
+	{
+		// A snapshot written before the layer timer existed carries no property at all: the
+		// continued layer then keeps the game's own (restarted) timer, and the value is not
+		// invented here.
+		var cutNative = new FakeNativeWorldFacts();
+		cutNative.SeedRunFields(1f, 1f, 30f, Recipe(0, madeBefore: true, intValue: 0));
+		cutNative.SeedLayerTime(null);
+
+		using var fixture = WorldSaveFixture.Create("run-fields-layer-absent", nativeWorldFacts: cutNative);
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 1), out _, out _));
+		Assert.True(Cut(fixture).Captured);
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+
+		var restoreNative = new FakeNativeWorldFacts();
+		using var restarted = WorldSaveFixture.Create("run-fields-layer-absent-restart", repository: fixture.Repository, nativeWorldFacts: restoreNative);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.Contains("apply-cut-run-fields", restoreNative.Calls);
+		Assert.Null(restoreNative.RunFields.LayerTimeSpent);
+		Assert.DoesNotContain(restoreNative.ClockWrites, write => write.StartsWith("layer-time ", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -81,6 +161,7 @@ public sealed class WorldRunFieldTests
 	{
 		var native = new FakeNativeWorldFacts();
 		native.SeedRunFields(4f, 5f, 11.5f, Recipe(1, madeBefore: true, intValue: 0));
+		native.SeedLayerTime(500f);
 
 		using var fixture = WorldSaveFixture.Create("run-fields-layerend", nativeWorldFacts: native);
 		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
@@ -92,7 +173,12 @@ public sealed class WorldRunFieldTests
 
 		var rows = LiveRunRows(fixture);
 		Assert.Equal(4f, rows.Single(row => KindOf(row) == SaveRunRow.RunKind).GetProperty("run").GetProperty("lootRarityMultiplier").GetSingle());
-		Assert.Equal(11.5f, rows.Single(row => KindOf(row) == SaveRunRow.NativeRunFieldsKind).GetProperty("nativeRunFields").GetProperty("savedRunTime").GetSingle());
+		var fields = rows.Single(row => KindOf(row) == SaveRunRow.NativeRunFieldsKind).GetProperty("nativeRunFields");
+		Assert.Equal(11.5f, fields.GetProperty("savedRunTime").GetSingle());
+		// The layer timer is an IN-LAYER fact and this cut names a layer that is
+		// regenerated: recording the replaced layer's elapsed time would hand the new
+		// layer a countdown it never spent.
+		Assert.False(fields.TryGetProperty("layerTimeSpent", out _), "a layer-end cut must not carry the replaced layer's timer");
 
 		// The layer-end contract is untouched: the run fields are properties of the
 		// RUN, so they travel with this cut too, while the two in-layer files stay

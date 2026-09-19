@@ -81,6 +81,7 @@ internal sealed class GameAdapterDomains
 	internal readonly RestoredWorldFactReplay RestoredWorldFactReplay;
 	internal readonly TrapDropPendingState TrapDrops;
 	internal readonly WorldEventSync WorldEventSync;
+	internal readonly RunClockFactsSync RunClockFacts;
 	internal readonly LifePodPresentation LifePod;
 	internal readonly RunCoordinator Run;
 	internal readonly SaveCutSeam SaveCutSeam;
@@ -302,6 +303,9 @@ internal sealed class GameAdapterDomains
 		EntitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
 		GeyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
 		RadiationLineSync = new RadiationLineSync(world, session, entities, loggerFactory.CreateLogger<RadiationLineSync>());
+		// The run clock base and the layer timer are this process's own statics: the domain
+		// that owns sending them to members and taking a member's own is one small class.
+		RunClockFacts = new RunClockFactsSync(world, NativeWorldFacts, loggerFactory.CreateLogger<RunClockFactsSync>());
 		FluidSync = new FluidWorldSync(world, session, entities, adaptiveRates, loggerFactory);
 		TradeSync = new TradeStateSync(world, session, new TradeExecutor(), adaptiveRates, loggerFactory.CreateLogger<TradeStateSync>());
 		TraderSwingSync = new TraderSwingSync(world, session, loggerFactory.CreateLogger<TraderSwingSync>());
@@ -324,7 +328,7 @@ internal sealed class GameAdapterDomains
 		GuestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		RunSettingsRange = new RunSettingsRangeService(session, hostRules, loggerFactory.CreateLogger<RunSettingsRangeService>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
-		WorldParams = new WorldParamsService(world, NativeWorldFacts, loggerFactory.CreateLogger<WorldParamsService>());
+		WorldParams = new WorldParamsService(world, NativeWorldFacts, RunClockFacts, loggerFactory.CreateLogger<WorldParamsService>());
 		MenuReturn = new RunMenuReturnCoordinator(loggerFactory.CreateLogger<RunMenuReturnCoordinator>());
 		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, StartingSupplies, MenuReturn, loggerFactory.CreateLogger<RunCoordinator>());
 		// The frame-end cut seam is the LAST domain of the pump: it is where every

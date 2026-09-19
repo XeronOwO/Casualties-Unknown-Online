@@ -347,6 +347,12 @@ internal sealed class RunCoordinator(
 			_characterData.ApplyPendingPositionOnly(_localBody);
 		}
 
+		if (inWorld)
+		{
+			// The world-entry edge: write the run clock a peer sent, then publish this side's settled clocks (RunClockFactsSync, owned by WorldParams).
+			_params.PublishRunClockFactsAtEntry();
+		}
+
 		if (inWorld && _session.Role == SessionRole.Host)
 		{
 			// The run is now actually in the world — the world-entry condition

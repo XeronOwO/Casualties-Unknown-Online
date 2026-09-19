@@ -7,7 +7,7 @@
   back on the local restore path, with the missing-field case named in the restore report. The
   hardening cycle of 2026-09-17 closed the two recorded ENGINEERING gaps (the missing multiplier guard
   and the concrete adapter dependency) and split the two that are each their own cycle into
-  `todo/save-run-clock-not-sent.md` and `todo/save-layer-time-not-carried.md`. Awaiting the final
+  `review/save-run-clock-not-sent.md` and `review/save-layer-time-not-carried.md`. Awaiting the final
   unified acceptance pass; the per-field decided homes below are kept as the frozen record.
 - Priority: Medium-High
 - Category: Persistence / save system
@@ -45,8 +45,8 @@ the world was recorded. Recipe rows are written back by INDEX, not by position, 
 
 | gap | why it matters | disposition |
 |---|---|---|
-| The run clock base is archived but NOT sent | a guest joining a run mid-way has `SaveSystem.savedRunTime == 0`, so `WorldGeneration.TotalRunTime()` (the pause/tooltip/death-stat clock) shows only the time since it joined. Pre-existing, but the field is now formally a run-level value | SPLIT — `todo/save-run-clock-not-sent.md`: a wire carrier is its own cycle (additive member + `ProtocolVersion` bump), and the generation group must not become a general side channel |
-| `layerTimeSpent` / `maxTimePerLayer` are not carried | continuing into the SAME layer restarts the radiation-line timer and hands the player a fresh `timelimit`. The native save does not carry it either | SPLIT — `todo/save-layer-time-not-carried.md`: whether a restore should RESUME the timer is a gameplay decision (native restarts it), so it is asked before it is built |
+| The run clock base is archived but NOT sent | a guest joining a run mid-way has `SaveSystem.savedRunTime == 0`, so `WorldGeneration.TotalRunTime()` (the pause/tooltip/death-stat clock) shows only the time since it joined. Pre-existing, but the field is now formally a run-level value | SPLIT — `review/save-run-clock-not-sent.md`: a wire carrier is its own cycle (additive member + `ProtocolVersion` bump), and the generation group must not become a general side channel |
+| `layerTimeSpent` / `maxTimePerLayer` are not carried | continuing into the SAME layer restarts the radiation-line timer and hands the player a fresh `timelimit`. The native save does not carry it either | SPLIT — `review/save-layer-time-not-carried.md`: whether a restore should RESUME the timer is a gameplay decision (native restarts it), so it is asked before it is built |
 | No value-range guard on the multipliers | a malformed or hostile wire value (NaN/Inf) reaches `WorldGeneration.lootRarityMultiplier` unchanged. Low priority (accept-first, no anti-cheat in MVP) but the kernel already asserts its other invariants | CLOSED — one rule, four seams: `RunRarityMultipliers.IsWellFormed` is the rule; the kernel refuses a non-finite run baseline on the command path, on the applied wire batch and at the checkpoint restore; and the adapter refuses to write one into the live world |
 | `WorldParamsService` injects the concrete adapter type | the new capture/apply branches cannot be covered by `FakeNativeWorldFacts`, so they are only reachable through the adapter's own tests | CLOSED — the dependency is `INativeWorldFacts`, the port every call it makes already belongs to |
 

@@ -18,6 +18,9 @@ public interface IWorldControl
 	/// <summary>Host only: publish the world-start parameters as the generation baseline (captured at the host's click/boundary moment).</summary>
 	void PublishWorldParams(WorldStartParams parameters);
 
+	/// <summary>Host only: publish the run/layer clocks read off the live world (the generation boundary, and the world-entry edge where a member's own clocks have just been applied). Sent with the world-entry and repair groups.</summary>
+	void PublishRunFacts(RunClockFacts facts);
+
 	/// <summary>Host: tell every synced member to follow the run (the guest enters the world on this instruction).</summary>
 	void SendWorldJoin(bool isTutorial);
 
@@ -184,6 +187,21 @@ public interface IWorldControl
 	void FireWorldSnapshotCompleteReceived();
 
 	event Action? WorldSnapshotCompleteReceived;
+
+	/// <summary>
+	/// Host: the run/layer clocks read off the live world (the adapter is the only layer
+	/// that can read the game's clock and layer timer). Sent with the world-entry and
+	/// repair groups, stamped by the sender with the kernel run baseline's generation.
+	/// </summary>
+	RunClockFacts? RunFacts { get; set; }
+
+	/// <summary>Host only: send this host's run/layer clocks to one member (world entry + the 60 s repair group). Nothing is sent when no world has been captured.</summary>
+	void SendRunFacts(ulong targetSteamId);
+
+	/// <summary>Guest: the host's run/layer clocks arrived — the message is validated against this side's generation here, then raised for the adapter to apply. <paramref name="layerTimerApplies"/> is false when the message's stamp names another layer of a run this side knows (the clock still applies — it is run-scoped and monotone — the layer timer does not); a stamp that cannot be compared (no run baseline yet) applies both.</summary>
+	void FireRunFactsReceived(RunFactsMsg facts);
+
+	event Action<RunFactsMsg, bool>? RunFactsReceived;
 
 	/// <summary>Host only: a block changed after generation (mined/destroyed/built) — upsert it into the damage table.</summary>
 	void ReportBlockState(int x, int y, ushort block);

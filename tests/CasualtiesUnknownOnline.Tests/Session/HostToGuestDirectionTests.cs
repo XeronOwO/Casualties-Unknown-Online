@@ -49,6 +49,7 @@ public class HostToGuestDirectionTests(DirectionProbe probe) : IClassFixture<Dir
 		NetMsg.MedicalOperationTargetCheckRequest,
 		NetMsg.RuntimeEntitySnapshot,
 		NetMsg.RuntimeEntityRejected,
+		NetMsg.RunFacts,
 	};
 
 	[Theory]

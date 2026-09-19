@@ -42,4 +42,16 @@ public sealed class SaveNativeRunFields
 	/// list (not a dictionary) because the native write/read pair is positional.
 	/// </summary>
 	public List<SaveRecipeUnlockRow> Recipes { get; init; } = [];
+
+	/// <summary>
+	/// The layer's own radiation-timer accounting at the cut instant
+	/// (<c>WorldGeneration.world.layerTimeSpent</c>, seconds), null when the reader could
+	/// not read it. A MID-RUN cut records it so a continued layer resumes the radiation
+	/// line's countdown instead of restarting it (the native continue restarts it: its own
+	/// save carries no such value and the game zeroes the timer when a layer finishes generating (<c>WorldGeneration.cs:3609</c>, <c>FinishWorldGeneration</c>)), and a
+	/// LAYER-END cut records nothing here — the layer it names is regenerated, so the timer
+	/// is the new layer's own. The LIMIT is deliberately not carried: the game recomputes
+	/// <c>maxTimePerLayer</c> from the restored run settings.
+	/// </summary>
+	public float? LayerTimeSpent { get; init; }
 }

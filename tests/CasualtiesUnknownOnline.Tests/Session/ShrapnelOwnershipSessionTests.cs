@@ -39,7 +39,7 @@ public class ShrapnelOwnershipSessionTests
 
 		g1Ops.SendShrapnelStartRequest(HostId, 0, 1);
 		Assert.NotNull(first);
-		Assert.True(first!.Accepted);
+		Assert.True(first!.Accepted, $"the first shrapnel start was refused: {first.RejectReason}");
 
 		g2Ops.SendShrapnelStartRequest(HostId, 0, 1);
 		Assert.NotNull(second);

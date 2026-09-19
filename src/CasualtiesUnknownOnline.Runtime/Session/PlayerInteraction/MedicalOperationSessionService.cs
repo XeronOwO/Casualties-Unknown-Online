@@ -39,6 +39,8 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 	private readonly OtherMedicalOperationSessionService _other;
 	private readonly MedicalOperationSessionPublisher _publisher;
 	private readonly MedicalInjectionReportBuffer _injectionReports;
+	private readonly MedicalTargetBodyGate _bodyGate;
+	private readonly InjectionStartCoordinator _injectionStarts;
 
 	private readonly Dictionary<ulong, OperationSession> _active = [];
 	private readonly MedicalOperationClaims _claims = new();
@@ -52,6 +54,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		ICharacterDataControl characters,
 		IItemControl items,
 		IPlayerInteractionVisibility visibility,
+		ILocalCharacterCapture localCapture,
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
 		AdaptiveStreamRateService adaptiveRates,
@@ -66,6 +69,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_injectionReports = new MedicalInjectionReportBuffer(session, sender, adaptiveRates, time, log);
 		_access = new PlayerCharacterAccess(session, characters);
 		_applier = new MedicalOperationInjectionApplier(_access, _items, kernelAuthority, session, log);
+		_bodyGate = new MedicalTargetBodyGate(session, sender, _access, localCapture, time, log);
 		_shrapnel = new ShrapnelOperationSessionService(
 			session,
 			sender,
@@ -77,6 +81,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			_claims,
 			adaptiveRates,
 			_operationIds,
+			_bodyGate,
 			log);
 		_other = new OtherMedicalOperationSessionService(
 			session,
@@ -88,6 +93,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			kernelAuthority,
 			_claims,
 			_operationIds,
+			_bodyGate,
 			log);
 		_shrapnel.StartAckReceived += FireStartAckReceived;
 		_shrapnel.StateReceived += FireStateReceived;
@@ -102,6 +108,16 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			msg => StartAckReceived?.Invoke(msg),
 			msg => StateReceived?.Invoke(msg),
 			msg => EndCommittedReceived?.Invoke(msg));
+
+		_injectionStarts = new InjectionStartCoordinator(
+			_access,
+			_claims,
+			_operationIds,
+			_publisher,
+			_bodyGate,
+			time,
+			sessionOpened => _active.Add(sessionOpened.OperationId, sessionOpened),
+			log);
 
 		_session.MemberRemoved += OnMemberRemoved;
 		_session.SessionEnded += OnSessionEnded;
@@ -255,118 +271,14 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			return;
 		}
 
-		var operation = sender;
-		var target = msg.TargetSteamId;
-		if (operation == target || operation == 0 || target == 0)
-		{
-			return;
-		}
-
-		if (!_access.IsInWorld(operation) || !_access.IsInWorld(target))
-		{
-			_log.LogWarning("[MedicalOps] refused start: {Operator} or {Target} is not in-world.", operation, target);
-			_publisher.RejectStart(operation, target, msg, "Participants are not in-world.");
-			return;
-		}
-
-		var userData = _access.GetCharacterData(operation);
-		var targetData = _access.GetCharacterData(target);
-		if (userData?.Health is not { } userHealth || !userHealth.Conscious || !userHealth.Alive)
-		{
-			_log.LogInformation("[MedicalOps] refused start: {Operator} is not conscious/alive.", operation);
-			_publisher.RejectStart(operation, target, msg, "Operator is not conscious/alive.");
-			return;
-		}
-
-		if (targetData?.Health is not { } targetHealth || !targetHealth.Conscious || !targetHealth.Alive)
-		{
-			_log.LogInformation("[MedicalOps] refused start: {Target} is not conscious/alive and cannot receive an injection.", target);
-			_publisher.RejectStart(operation, target, msg, "Target is not conscious/alive.");
-			return;
-		}
-
-		var itemIndex = PlayerItemIndex.Find(userData, msg.ItemInstanceId);
-		if (itemIndex < 0 || itemIndex >= userData.Items.Count)
-		{
-			_log.LogWarning("[MedicalOps] refused start: {Operator} has no usable item (requested {ItemId}).", operation, msg.ItemInstanceId);
-			_publisher.RejectStart(operation, target, msg, "Item not found.");
-			return;
-		}
-
-		var originalItem = userData.Items[itemIndex];
-		if (!RemoteMedicineCatalog.IsInjectableItem(originalItem.ItemId)
-			|| !RemoteMedicineCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out _))
-		{
-			_log.LogWarning("[MedicalOps] refused start: {ItemId} (id {InstanceId}) is not an injectable medicine.", originalItem.ItemId, originalItem.InstanceId);
-			_publisher.RejectStart(operation, target, msg, "Item is not injectable.");
-			return;
-		}
-
-		if (_claims.IsOperatorBusy(operation))
-		{
-			_log.LogWarning("[MedicalOps] refused start: {Operator} already has an active medical operation.", operation);
-			_publisher.RejectStart(operation, target, msg, "Operator already has an active operation.");
-			return;
-		}
-
-		if (_claims.IsItemReserved(msg.ItemInstanceId))
-		{
-			_log.LogWarning("[MedicalOps] refused start: item {ItemId} is already reserved.", msg.ItemInstanceId);
-			_publisher.RejectStart(operation, target, msg, "Item is already reserved.");
-			return;
-		}
-
-		if (msg.LimbIndex >= 0 && _claims.IsLimbReserved(target, msg.LimbIndex))
-		{
-			_log.LogWarning("[MedicalOps] refused start: target {Target} limb {Limb} is already reserved.", target, msg.LimbIndex);
-			_publisher.RejectStart(operation, target, msg, "Target limb is already reserved.");
-			return;
-		}
-
-		var availableMl = originalItem.Liquids.Sum(l => l.Amount);
-		if (availableMl <= 0f)
-		{
-			_publisher.RejectStart(operation, target, msg, "Item is empty.");
-			return;
-		}
-
-		var session = new OperationSession
-		{
-			OperationId = _operationIds.Next(),
-			Operator = operation,
-			Target = target,
-			ItemInstanceId = originalItem.InstanceId,
-			ItemId = originalItem.ItemId,
-			LimbIndex = msg.LimbIndex,
-			Kind = msg.Kind,
-			AvailableMl = availableMl,
-			OriginalLiquids = [.. originalItem.Liquids.Select(l => new LiquidStackMsg { LiquidId = l.LiquidId, Amount = l.Amount })],
-			LastUpdateMs = _time.NowMs,
-		};
-
-		_active.Add(session.OperationId, session);
-		_claims.TryReserveItem(session.ItemInstanceId);
-		_claims.TryReserveOperator(session.Operator);
-		if (session.LimbIndex >= 0)
-		{
-			_claims.TryReserveLimb(session.Target, session.LimbIndex);
-		}
-
-		_log.LogInformation(
-			"[MedicalOps] started operation {OperationId}: {Operator} -> {Target}, item {ItemId} (id {InstanceId}), limb {Limb}, available {Available:F2} ml.",
-			session.OperationId, operation, target, session.ItemId, session.ItemInstanceId, session.LimbIndex, availableMl);
-
-		_publisher.SendStartAck(new MedicalOperationStartAckMsg
-		{
-			OperationId = session.OperationId,
-			Accepted = true,
-			OperatorSteamId = operation,
-			TargetSteamId = target,
-			ItemInstanceId = session.ItemInstanceId,
-			LimbIndex = session.LimbIndex,
-			Kind = session.Kind,
-		}, operation);
+		_injectionStarts.Handle(sender, msg);
 	}
+
+	public void HandleTargetCheckRequest(ulong sender, MedicalOperationTargetCheckRequestMsg msg) =>
+		_bodyGate.HandleRequest(sender, msg);
+
+	public void HandleTargetCheckAnswer(ulong sender, MedicalOperationTargetCheckAnswerMsg msg) =>
+		_bodyGate.HandleAnswer(sender, msg);
 
 	public void HandleUpdate(ulong sender, MedicalOperationUpdateMsg msg)
 	{
@@ -507,6 +419,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_injectionReports.FlushDue();
 		_shrapnel.Update();
 		_other.Update();
+		_bodyGate.Tick();
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			return;
@@ -574,6 +487,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 		_shrapnel.OnMemberRemoved(steamId);
 		_other.OnMemberRemoved(steamId);
+		_bodyGate.OnMemberRemoved(steamId);
 		foreach (var session in _active.Values.ToList())
 		{
 			if (session.Operator == steamId || session.Target == steamId)
@@ -586,6 +500,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 	private void OnSessionEnded()
 	{
+		_bodyGate.Clear();
 		_shrapnel.Clear();
 		_other.Clear();
 		_active.Clear();

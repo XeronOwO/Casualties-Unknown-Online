@@ -1,6 +1,6 @@
 # Remote interaction gates are judged by the host
 
-- Status: Todo
+- Status: Review
 - Priority: Medium-High
 - Category: Network / sync coverage / player interaction (gate authority)
 - Source: User ruling 2026-09-18 (design alignment session): the line-of-sight / precondition gates of remote interactions must be judged locally by the two clients involved; a host verdict on stale streamed positions refuses interactions the actor's own screen shows as valid.
@@ -23,7 +23,7 @@ stale by the peer's own latency:
   validates the target's limb state and the operator's item from `CharacterDataMsg` inside
   `OtherMedicalOperationSessionService` ("Host-authoritative Stage 3 medical operation
   domain"), so a refusal can be produced from a report the target's own client would
-  contradict.
+  contradict. **FIXED in stage 2 (2026-09-19) — see "What landed".**
 
 The policy is already deliberately forgiving (missing evidence does not block, only a
 confirmed wall does), which limits the damage but does not change whose eyes decide. The
@@ -90,28 +90,78 @@ arbitration and the commit/broadcast of the effect.
   `MedicalOperationClaims`, one owner for the family, which is what the architecture
   watchlist demanded before anything else could land in the two 600-line services.
 
-## What remains (stage 2: the target's body half)
+## What landed (2026-09-19, stage 2: the target's body half)
 
-Still open, and the ticket stays in `todo/` until it lands:
+- **The target's own client answers for its own body.** A start whose only open question is the
+  target's body is PARKED by the host and asked over a new pair of messages: the host validates
+  what it owns (participants, the operator's item facts, the claims), sends
+  `MedicalOperationTargetCheckRequest` (137) to the target, and the target runs the target half of
+  the preconditions against its OWN live body and answers with `MedicalOperationTargetCheckAnswer`
+  (138) — accepted, or its own refusal reason, plus its live shrapnel count. The host then commits
+  or refuses the operator with the target's own reason. Protocol 24 → 25
+  (`ProtocolVersion.Current`); no released compatibility surface exists, so a mixed-version session
+  is still refused by the handshake.
+- **The pending table's liveness bound is not a judgment parameter.** `MedicalTargetBodyGate` parks
+  a request under the ticket the answer correlates on, and abandons an unanswered request after
+  3000 ms with an explicit refusal ("Target did not answer the body check.") so the operator's UI
+  cannot hang; a target that leaves first is answered the same way ("Target left before answering
+  the body check."), and an operator that leaves drops the parked request. No measured latency,
+  window guess or tolerance enters any verdict.
+- **One target half for the whole family.** `MedicalTargetBodyValidator` is the single target half
+  (limb exists, dismembered, splint/tourniquet component, dislocation, infection, live shrapnel
+  count, and the per-family responsive-patient rule); the operator halves keep their own homes —
+  `OtherMedicalOperationStartValidator` (item id), `ShrapnelStartValidator` (operator body,
+  tweezers, claims) and the new `InjectionStartValidator` (item found + injectable). Every refusal
+  reason string is carried verbatim from the pre-split code.
+- **The window the answer takes is re-checked.** `MedicalStartRecheck` is the one home for "do the
+  host's own facts still hold" when the verdict arrives (participants in world, operator free, item
+  and limb unclaimed). A shared shrapnel session already holds its limb, so a second operator
+  JOINING that session is exempted from the limb-claim half — that path is the family's
+  multi-operator join, not a raced start.
+- **The piece layout comes from the target's own count.** `InitializePieces` is seeded from the
+  shrapnel count carried by the answer, so a session opened from a stale report no longer lays out
+  the wrong number of fragments.
+- **Adapter seam**: `ILocalCharacterCapture.CaptureLocal()`; `LocalCharacterCapture` (GameAdapter)
+  captures the live body through the same `CharacterDataCapture` helper the save cut uses, and
+  `PluginDependencyRegistrar` replaces the composition default with it exactly like the visibility
+  oracle, for the same constructor-cycle reason. The default
+  (`UnavailableLocalCharacterCapture`) captures nothing, and the gate then answers from this side's
+  own latest snapshot; when there is none either, the verdict is a refusal ("Target body is
+  unavailable.") rather than a host judgment made on the target's behalf.
+- **Ordering, changed on purpose**: the checks the host can decide alone (participants, claims, the
+  operator's item facts) now run BEFORE the target is asked, so a refusal the host already knows
+  does not cost a round trip. Where the old code judged the target limb before the item, the item
+  refuses first now — a precise refusal either way, pinned by the tests.
+- **Prerequisite extractions**: the injection family's start path moved to
+  `InjectionStartCoordinator` (which took `MedicalOperationSessionService` from 595 to 510 lines)
+  and the shrapnel session's operator/item bookkeeping moved to `ShrapnelOperatorBookkeeping`
+  (`ShrapnelOperationSessionService` 597 → 552) — the target-body verdict would otherwise have
+  pushed the facade past the 600-line architecture gate and left the shrapnel service within three
+  lines of it. The lifecycle after a session exists stays with each service.
+- **Evidence**: `InteractionGateAuthorityTests` (13 → 18 cases) pins the target half in both
+  directions — a target whose own body refuses overrides a host report that says it is fine, a
+  target whose own body is fine overrides a host report that says it died, a target that cannot be
+  judged is refused rather than judged by the host, the shrapnel layout follows the target's own
+  count (4 live pieces where the host's report said 1), and the liveness bound abandons an
+  unanswered request with its own refusal. The medical family's own suites pass with the target node
+  seeded with its own body (`SeedOwnBody`).
 
-- **The target-body preconditions are still judged by the host from the target's last 1 Hz
-  report** (acceptance-matrix rows 3). The settled seam for them: the host validates what it
-  owns (participants, claims), parks the request, and asks the TARGET's client — the target's
-  client runs the target half of the preconditions against its own LIVE body and answers; the
-  host then commits or refuses with the target's own reason. That needs a new host→target /
-  target→host message pair (protocol 24 → 25), a pending-verdict table with a liveness bound
-  (which abandons an unanswered request and is NOT a judgment parameter), a split of
-  `OtherMedicalOperationStartValidator` into an operator half and a target half, and one
-  adapter seam that captures the local character on demand (`CharacterDataSync.CaptureLocal`).
-  The shrapnel family must take its PIECE COUNT from that answer, because the whole session's
-  piece layout is derived from it today (`InitializePieces(shrapnel, targetLimb.Shrapnel)`).
-- **Recorded with a reason, not moved**: (a) the operator's own ITEM facts stay host-side —
-  the item authority is the host's own table and the kernel gates the commit, so this is
-  arbitration over host-owned state rather than a judgment about the actor's body or reach;
-  (b) the apply-time re-checks inside the appliers are the effect's resolution against the
-  authoritative state, not an authorization gate; (c) refusals for
-  take/remote-inventory/carry/trader-recruit target-body facts are recorded as a follow-up
-  family rather than half-migrated here.
+## What remains (recorded, not silently inherited)
+
+Both halves of the authority rule now live on the two clients involved: the actor judges its own
+reach (stage 1) and the target judges its own body (stage 2). What is left is what the two stages
+recorded on purpose rather than half-migrating:
+
+- **(a) The operator's own ITEM facts stay host-side** — the item authority is the host's own table
+  and the kernel gates the commit, so this is arbitration over host-owned state rather than a
+  judgment about the actor's body or reach.
+- **(b) The apply-time re-checks inside the appliers** are the effect's resolution against the
+  authoritative state, not an authorization gate.
+- **(c) Refusals for take / remote-inventory / carry / trader-recruit target-body facts** are a
+  follow-up family rather than half-migrated here.
+- **(d) The operator's own body facts (conscious/alive) stay with the participant gate**: the
+  actor's client cannot form the request while its own body is out, and a client that lies about it
+  is the anti-cheat non-goal this ticket already records.
 
 ## Acceptance matrix
 

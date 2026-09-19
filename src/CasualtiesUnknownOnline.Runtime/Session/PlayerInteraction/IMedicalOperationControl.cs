@@ -17,6 +17,12 @@ public interface IMedicalOperationControl
 	/// <summary>Host only: a medical-operation start request arrived.</summary>
 	void HandleStartRequest(ulong sender, MedicalOperationStartRequestMsg msg);
 
+	/// <summary>Target side: the host asks this client whether its OWN body allows a parked operation start.</summary>
+	void HandleTargetCheckRequest(ulong sender, MedicalOperationTargetCheckRequestMsg msg);
+
+	/// <summary>Host only: the target's own verdict on a parked operation start arrived.</summary>
+	void HandleTargetCheckAnswer(ulong sender, MedicalOperationTargetCheckAnswerMsg msg);
+
 	/// <summary>Any role: send one incremental ml delta for an accepted session.</summary>
 	void SendUpdate(ulong operationId, float deltaMl);
 

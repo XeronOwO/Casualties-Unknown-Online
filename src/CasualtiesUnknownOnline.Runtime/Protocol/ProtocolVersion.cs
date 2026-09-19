@@ -36,7 +36,14 @@ public static class ProtocolVersion
 	/// view and applies the game's damage locally. A peer without it would apply a
 	/// verdict this protocol no longer carries and would ignore the dedup identity,
 	/// so its victims would take damage for attacks their own screens never showed
-	/// connecting.</summary>
-	public const int Current = 24;
+	/// connecting.
+	/// 25: `MedicalOperationTargetCheckRequest` / `MedicalOperationTargetCheckAnswer`
+	/// — a medical operation start's target-body preconditions are now answered by
+	/// the TARGET's own client from its own live body instead of being judged by the
+	/// host from the target's last 1 Hz report. A peer without the pair would never
+	/// answer the host's check and would itself never ask, so every start whose only
+	/// open question is the target's body would be refused (or judged on stale data)
+	/// — the exact host verdict the ruling removed.</summary>
+	public const int Current = 25;
 
 }

@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -201,6 +202,16 @@ internal static class PlayerInteractionTestSession
 		host.Transport.MessageReceived += (_, frame) => received.Add((NetMsg)frame[0]);
 		return received;
 	}
+
+	/// <summary>
+	/// Gives a node its OWN body. A medical-operation start's target-body preconditions
+	/// are answered by the client that owns the body, so a test whose target is a GUEST
+	/// must seed that guest's own snapshot: the host-side report the same test files is
+	/// the host's picture of the guest, not the guest's word about itself — and the two
+	/// disagreeing is exactly what this seam exists for.
+	/// </summary>
+	internal static void SeedOwnBody(TestNode node, CharacterDataMsg snapshot) =>
+		node.Services.GetRequiredService<ICharacterDataControl>().SaveHostCharacterData(snapshot);
 
 	private sealed class BlockingPlayerInteractionVisibility : IPlayerInteractionVisibility
 	{

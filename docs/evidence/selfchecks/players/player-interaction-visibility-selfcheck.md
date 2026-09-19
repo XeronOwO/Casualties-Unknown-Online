@@ -18,7 +18,7 @@ backpack view cannot be performed through walls.
   heal, consumable use and push refuse a confirmed wall before mutating
   snapshots/transfer tables. The native remote-backpack open and trader-recruit
   host path use the same oracle. **[SUPERSEDED 2026-09-19 — stage 1 of
-  `todo/remote-interaction-local-gating.md` moved every one of these judgments to the
+  `review/remote-interaction-local-gating.md` moved every one of these judgments to the
   actor's own request-formation seam; the host handlers no longer call the oracle at all
   (`interaction-gate-authority-selfcheck.md`).]**
 - **UI presentation** — `OnlineUiMemberRow.CanSee` comes from the same oracle.

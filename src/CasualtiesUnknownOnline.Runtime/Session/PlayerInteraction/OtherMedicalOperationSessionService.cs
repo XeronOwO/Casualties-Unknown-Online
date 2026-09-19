@@ -26,6 +26,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	ItemKernelAuthority kernelAuthority,
 	MedicalOperationClaims claims,
 	MedicalOperationIdAllocator operationIds,
+	MedicalTargetBodyGate bodyGate,
 	ILogger log)
 {
 	private const int OperationTimeoutMs = 20000;
@@ -36,6 +37,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ITimeSource _time = time;
 	private readonly MedicalOperationClaims _claims = claims;
+	private readonly MedicalTargetBodyGate _bodyGate = bodyGate;
 	private readonly MedicalOperationIdAllocator _operationIds = operationIds;
 	private readonly ILogger _log = log;
 	private readonly OtherMedicalOperationApplier _applier = new(access, items, kernelAuthority, session);
@@ -152,16 +154,9 @@ internal sealed class OtherMedicalOperationSessionService(
 		}
 
 		var operatorData = _access.GetCharacterData(sender);
-		var targetData = _access.GetCharacterData(target);
 		if (operatorData?.Health is not { } operatorHealth || !operatorHealth.Conscious || !operatorHealth.Alive)
 		{
 			RejectStart(sender, target, msg, "Operator is not conscious/alive.");
-			return;
-		}
-
-		if (targetData?.Health is not { } targetHealth || !targetHealth.Alive)
-		{
-			RejectStart(sender, target, msg, "Target is not alive.");
 			return;
 		}
 
@@ -171,9 +166,9 @@ internal sealed class OtherMedicalOperationSessionService(
 			return;
 		}
 
-		if (!OtherMedicalOperationStartValidator.TryValidate(targetData, operatorData, msg, out var validationReason))
+		if (!OtherMedicalOperationStartValidator.TryValidate(operatorData, msg, out var itemReason))
 		{
-			RejectStart(sender, target, msg, validationReason);
+			RejectStart(sender, target, msg, itemReason);
 			return;
 		}
 
@@ -201,19 +196,42 @@ internal sealed class OtherMedicalOperationSessionService(
 			}
 		}
 
-		if (msg.LimbIndex >= 0)
+		if (msg.LimbIndex >= 0 && _claims.IsLimbReserved(target, msg.LimbIndex))
 		{
-			if (msg.LimbIndex >= targetData.Limbs.Count)
+			RejectStart(sender, target, msg, "Target limb is already reserved.");
+			return;
+		}
+
+		// Everything the host owns is settled; only the target's own body is still open,
+		// so the request is parked and the target's client answers it.
+		_bodyGate.Begin(sender, target, msg.LimbIndex, msg.Kind, verdict =>
+		{
+			if (!verdict.Accepted)
 			{
-				RejectStart(sender, target, msg, "Target limb not found.");
+				RejectStart(sender, target, msg, verdict.Reason);
 				return;
 			}
 
-			if (_claims.IsLimbReserved(target, msg.LimbIndex))
-			{
-				RejectStart(sender, target, msg, "Target limb is already reserved.");
+			CommitStart(sender, target, msg, originalItem);
+		});
+	}
+
+	/// <summary>
+	/// Runs on the target's accept. The answer took a round trip, so the host's own
+	/// facts are re-checked before the session opens: a departure or another
+	/// operation's claim that landed in that window must not be overridden by a
+	/// verdict that predates it.
+	/// </summary>
+	private void CommitStart(ulong sender, ulong target, MedicalOperationStartRequestMsg msg, CharacterItemMsg? originalItem)
+	{
+		switch (MedicalStartRecheck.Run(_access, _claims, sender, target, msg, limbClaimApplies: true, out var rejectReason))
+		{
+			case MedicalStartRecheckOutcome.OperatorGone:
+				_log.LogInformation("[MedicalOps3] start for {Operator} dropped: the operator left while the target answered.", sender);
 				return;
-			}
+			case MedicalStartRecheckOutcome.Reject:
+				RejectStart(sender, target, msg, rejectReason);
+				return;
 		}
 
 		var now = _time.NowMs;

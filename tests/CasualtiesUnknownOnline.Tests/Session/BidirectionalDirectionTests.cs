@@ -30,6 +30,7 @@ public class BidirectionalDirectionTests(DirectionProbe probe) : IClassFixture<D
 		NetMsg.ModMessage,
 		NetMsg.CraftReport,
 		NetMsg.RecipeUnlock,
+		NetMsg.RecipeUnlockSnapshot,
 		NetMsg.SpeechMsg,
 		NetMsg.LimbStateEvent,
 		NetMsg.CharacterSound,

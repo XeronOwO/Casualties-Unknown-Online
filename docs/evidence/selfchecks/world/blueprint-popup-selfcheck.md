@@ -47,3 +47,15 @@ showed it).
   `[Crafting] showed recipe-unlock popup` when shown, `[Crafting] ... popup skipped`
   when the player camera is unavailable.
 - No manual acceptance (development-period zero-manual-acceptance rule).
+
+## Follow-up (2026-09-19, `review/recipe-unlock-fallback.md`)
+
+The same apply shell now carries a SECOND shape of the same fact: the absolute unlock SET
+(`RecipeUnlockSnapshot` — the host's world-entry / 60 s repair backfill and the answer to a guest's
+re-report). A set applies SILENTLY: `OnRecipeUnlockSetReceived` writes `INT = 0` per index and shows
+NO alert, because the receiver performed none of those unlocks and one alert per recipe would fire
+the whole run's set at a late joiner. The per-recipe popup above still governs the LIVE path
+unchanged. Both paths now also refresh an OPEN crafting list, which is what the game's own branch
+does right after its write (`Item.cs:4288-4296`: the alert, then
+`OpenCraftScreen`/`RefreshRecipeList`) — otherwise a remote unlock lands in the table while the list
+a player is looking at stays stale.

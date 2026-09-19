@@ -27,17 +27,26 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// against that baseline on arrival — sending one before the checkpoint makes
 /// the receiver refuse the host's own current-generation table (review finding,
 /// cycle `review/generation-identity-remaining-families.md`).
+///
+/// The recipe-unlock set (sync-coverage audit I6) rides both groups too, and is
+/// deliberately NOT generation-stamped: the recipe table is a RUN fact (the game
+/// rebuilds it in `WorldGeneration.Awake`), its keys are recipe indices rather
+/// than layer-relative positions, and an unlock only ever adds — a set that
+/// outlives the layer it was read in still asks for nothing but writes the
+/// receiver already holds.
 /// </summary>
 public sealed class WorldEntryFanout(
 	IWorldControl world,
 	IItemControl items,
 	IEnemySyncControl enemies,
+	ICraftControl craft,
 	IKernelProtocolControl kernelProtocol,
 	ILogger<WorldEntryFanout> log)
 {
 	private readonly IWorldControl _world = world;
 	private readonly IItemControl _items = items;
 	private readonly IEnemySyncControl _enemies = enemies;
+	private readonly ICraftControl _craft = craft;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly ILogger<WorldEntryFanout> _log = log;
 
@@ -64,6 +73,7 @@ public sealed class WorldEntryFanout(
 		_items.SendItemSnapshot(steamId);
 		_enemies.SendEnemySnapshot(steamId);
 		_world.SendRuntimeEntitySnapshot(steamId);
+		_craft.SendRecipeUnlockSnapshot(steamId); // the run's unlocked recipe set — a member that joined after an unlock learns it here, and nowhere else
 		_world.SendWorldSnapshotComplete(steamId);
 	}
 
@@ -101,5 +111,6 @@ public sealed class WorldEntryFanout(
 		_world.SendTrapLayoutSnapshot(steamId);
 		_enemies.SendEnemySnapshot(steamId);
 		_world.SendRuntimeEntitySnapshot(steamId);
+		_craft.SendRecipeUnlockSnapshot(steamId);
 	}
 }

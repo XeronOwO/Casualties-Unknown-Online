@@ -72,6 +72,33 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	}
 
 	/// <summary>
+	/// The live recipe table's unlocked state (the I6 backfill's read — the
+	/// adapter's <c>INT == 0</c> rows). Seeding and the adapter's own write are the
+	/// same fact, so this is idempotent: a suite that mirrors
+	/// <c>RecipeUnlockApply</c> onto this table must not turn one recipe into two
+	/// rows.
+	/// </summary>
+	private readonly List<int> _unlockedRecipes = [];
+
+	internal IReadOnlyList<int> UnlockedRecipes => _unlockedRecipes;
+
+	internal void SeedUnlockedRecipe(int recipeIndex)
+	{
+		if (!_unlockedRecipes.Contains(recipeIndex))
+		{
+			_unlockedRecipes.Add(recipeIndex);
+		}
+	}
+
+	internal void ClearUnlockedRecipes() => _unlockedRecipes.Clear();
+
+	public IReadOnlyList<int>? CaptureUnlockedRecipeIndexes()
+	{
+		Calls.Add("capture-unlocked-recipes");
+		return CaptureFailure is null ? [.. _unlockedRecipes] : null; // CaptureFailure doubles as "no live world" / "the table is not built"
+	}
+
+	/// <summary>
 	/// Set to make every merge come back "no damage here" (0 per reported cell) —
 	/// the same answer a real host gives for a report its own cap/range rules
 	/// refused, which must still clear the reporter's pending entry.

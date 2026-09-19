@@ -152,6 +152,29 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 	}
 
 	/// <inheritdoc />
+	public IReadOnlyList<int>? CaptureUnlockedRecipeIndexes()
+	{
+		if (WorldGeneration.world == null) // Unity object — ==
+		{
+			// No live world. `Recipes.recipes` OUTLIVES a run (the game rebuilds it
+			// in `WorldGeneration.Awake`), so reading it here could report the
+			// PREVIOUS run's unlocks: refuse instead, and both halves retry on the
+			// next cycle rather than inheriting a dead run's set.
+			log.LogDebug("[Crafting] no live world — the recipe-unlock set is not read.");
+			return null;
+		}
+
+		var unlocked = RecipeUnlockTable.CaptureUnlockedIndexes();
+		if (unlocked is null)
+		{
+			log.LogDebug("[Crafting] the live recipe table is not built — the recipe-unlock set is not read.");
+			return null;
+		}
+
+		return unlocked;
+	}
+
+	/// <inheritdoc />
 	public void ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes) => _pendingKeypads = [.. codes];
 
 	/// <inheritdoc />

@@ -82,6 +82,23 @@ public interface INativeWorldFacts
 	IReadOnlyList<BlockDamageEntryMsg>? MergeBlockDamages(IReadOnlyList<BlockDamageEntryMsg> reported);
 
 	/// <summary>
+	/// The live recipe table's UNLOCKED indices — every recipe that currently
+	/// draws no INT requirement (<c>Recipe.INT == 0</c>, the state the game's OWN
+	/// blueprint use writes, <c>Item.cs:4284</c>). This is the recipe-unlock
+	/// backfill's read (sync-coverage audit I6), and both halves of it are the
+	/// same fact: the host's world-entry / 60 s repair set and a guest's
+	/// re-reported set are read from the same table at send time.
+	///
+	/// Deliberately narrower than <see cref="CaptureRunFields"/>: no
+	/// <c>hasMadeBefore</c> (a per-player crafting history, not a run fact) and no
+	/// clock. Null = the table could not be read (no live world, or a slot this
+	/// build cannot describe); an EMPTY list is a real "nothing is unlocked"
+	/// table, which is why a caller must never send one as if it were a refusal —
+	/// the set is unlock-only, so an empty one asks for no write at all.
+	/// </summary>
+	IReadOnlyList<int>? CaptureUnlockedRecipeIndexes();
+
+	/// <summary>
 	/// ONE read of the native values a cut carries that the kernel's run baseline
 	/// does not hold: the two rarity multipliers (which the encoder stamps into the
 	/// run baseline row, because that is where a side that GENERATES the layer

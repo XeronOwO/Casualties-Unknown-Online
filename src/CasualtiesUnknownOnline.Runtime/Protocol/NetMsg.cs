@@ -280,4 +280,16 @@ public enum NetMsg : byte
 	MedicalOperationTargetCheckRequest = 137, // host → target: does your body allow this medical operation start?
 	MedicalOperationTargetCheckAnswer = 138, // target → host: the target's own verdict + its reason (+ its live shrapnel count)
 
+	// Recipe-unlock backfill (sync-coverage audit I6 — the blueprint unlock is a
+	// one-shot report + relay while the recipe table is a per-process static, so
+	// a swallowed send or a late join left a peer's crafting list short with
+	// nothing that re-derived it). The unlock SET is the fact, and it is the same
+	// fact in both directions: the host sends its live table's unlocked indices
+	// on world entry and on the 60 s repair, and a guest reports its own set on
+	// the shared fallback cadence until this host's set carries it. The set is
+	// MONOTONIC (INT = 0 is what a blueprint's use writes and nothing writes it
+	// back) and applying it is idempotent, so a repeat never re-locks a recipe
+	// and an index this side already holds costs one suppressed write.
+	RecipeUnlockSnapshot = 139, // bidirectional: guest → host report of this guest's unlocked recipe-index set; host → guest this host's authoritative set (world entry / 60 s repair / the answer that ends the guest's re-report)
+
 }

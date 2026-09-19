@@ -90,7 +90,9 @@ answer and the end of the pending entry are all observed.
 **6. Evidence.** The audit matrix rows W6 and E3 carry the new decision text and their declared
 anchor counts moved with the evidence file (W6 13 → 21, E3 60 → 71; `count` 861 → 880), and the
 anchors the previous cycle owned that this change re-pointed were updated in the same pass
-(`ProtocolVersion.Current = 30`, the shared gate call in `BlockReportChannel`).
+(`ProtocolVersion.Current = 30` — the value was re-pointed to 31 when
+`review/recipe-unlock-fallback.md` bumped the protocol again — and the shared gate call in
+`BlockReportChannel`).
 
 **7. Independent adversarial review** (one round, fresh context, frozen tree). It reproduced every
 number and could not falsify the mechanism: all three seams cover every production path

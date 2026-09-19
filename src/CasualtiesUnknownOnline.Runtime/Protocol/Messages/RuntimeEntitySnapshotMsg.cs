@@ -33,7 +33,7 @@ public sealed class RuntimeEntitySnapshotMsg
 	/// (<c>EnemySnapshot.RuntimeSpawns</c> materializes at the animal's current
 	/// position), so an animal must not ride <see cref="Entries"/>; but the
 	/// creating guest still needs to learn that the host accepted its report,
-	/// otherwise a lost relay echo leaves it re-reporting every 60 s until the
+	/// otherwise a lost relay echo leaves it re-reporting until the
 	/// animal dies.
 	/// </summary>
 	[ProtoMember(2)]

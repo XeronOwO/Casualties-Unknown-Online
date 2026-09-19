@@ -103,7 +103,7 @@ are carried by `review/generation-identity-remaining-families.md` rather than de
 |---|---|---|
 | `BlockPlaced` / `BlockDamaged` / `BlockDamageSnapshot` (+ the guest's absolute re-report) | both | **Stamped this cycle** — cell keys, applied without a generation check |
 | `TrapLayoutSnapshot` / `TrapLayoutEntryMsg` | host → guest | **Not stamped, not provably safe**: position-keyed entities materialized into the guest's world; a repair landing across the guest's own layer change would place the previous layer's traps. Follow-up ticket |
-| `EntitySpawnedMsg` (runtime-entity creation) + its 60 s re-report | guest → host | **Not stamped, not provably safe**: a creation is materialized at the reported position; the in-flight window is bounded by the reporter's boundary reset, but nothing on the wire attributes it. Follow-up ticket |
+| `EntitySpawnedMsg` (runtime-entity creation) + its pending-report fallback | guest → host | **Not stamped, not provably safe**: a creation is materialized at the reported position; the in-flight window is bounded by the reporter's boundary reset, but nothing on the wire attributes it. Follow-up ticket |
 | `EntityEventMsg` (trap triggers and other entity events) | both | Safe: the receiver resolves the entity in its OWN live scene and refuses/ignores a position where nothing exists, so a regenerated cell cannot be written |
 | `BuildingEntityDamagedMsg` / `BuildingEntityOpenedMsg` | both | Safe, same reason: the adapter resolves the building entity through its own world and logs the miss |
 | `DynamiteExplosionMsg`, `WorldBloodSpawnMsg`, fluid presentation, speech/chat/location pings | both | Safe: presentation or item/keyed facts, no generated-terrain key; a stale one is a transient artifact, not a world write |

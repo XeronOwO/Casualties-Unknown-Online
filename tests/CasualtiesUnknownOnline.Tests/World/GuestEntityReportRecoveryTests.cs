@@ -16,8 +16,9 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// carried a creation table. The host now keeps the accepted creations in
 /// <see cref="RuntimeEntityRegistry"/> (absolute snapshot on world entry plus the
 /// 60 s re-broadcast) and the guest keeps its unacknowledged reports in
-/// <see cref="PendingEntityReportTable"/>, re-reported on the 60 s fallback
-/// cycle until the host answers.
+/// <see cref="PendingEntityReportTable"/>, re-reported on the shared fallback
+/// cadence (5 s inside the guest's own 60 s entry phase, the steady 60 s after
+/// it) until the host answers.
 /// <para>
 /// The host executor here is a contract double for the Game Adapter's thin
 /// shell (the same pattern as <c>GuestBlockReportRecoveryTests</c>): it records
@@ -396,5 +397,37 @@ public class GuestEntityReportRecoveryTests
 		w.Driver.Tick(33);
 
 		Assert.Empty(hostCreations);
+	}
+
+	[Fact]
+	public void SwallowedCreationReportInsideTheEntryWindow_ConvergesOnTheEntryStep()
+	{
+		using var w = ItemSimWorld.Create();
+		var reports = InstallHostExecutor(w);
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		// The guest's own world entry opens the fallback's entry phase (the
+		// documented swallow window is up to ~30 s after it).
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33);
+
+		// 29 s in — inside the swallow window — and the live report never lands.
+		w.Driver.Tick(29_000);
+		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
+		guestWorld.SendEntitySpawned(Creation("keypad", 12f, 34f));
+		w.Driver.Tick(33);
+		Assert.Empty(reports);
+
+		// The link heals: the first re-send is the entry phase's 5 s step.
+		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
+		w.Driver.Tick(4_000);
+		Assert.Empty(reports);
+		w.Driver.Tick(1_000);
+		var report = Assert.Single(reports);
+		Assert.Equal("keypad", report.Msg.Id);
+		Assert.Equal(0, PendingCreations(w.G1)); // the accepted relay's echo is the acknowledgement
+
+		w.Driver.Tick(61_000);
+		Assert.Single(reports);
 	}
 }

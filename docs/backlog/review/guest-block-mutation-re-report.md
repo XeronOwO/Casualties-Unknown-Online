@@ -91,7 +91,7 @@ idempotent and must never resurrect a cell the host has since overwritten.
 `PendingBlockReportTable` (cell → block, cap 65 536, upsert on a newer local
 write), populated by `SendBlockPlacedReport` **before** the send.
 `BlockReportFallback` (armed by the first outstanding entry) re-reports every
-entry once per 60 s through the new `BlockReportFallbackPump`; a swallowed
+entry on the shared fallback cadence through the new `WorldReportFallbackPump`; a swallowed
 report is re-sent until the host answers. An entry is dropped the moment the
 host's answer for that cell arrives (the accepted relay echo or the targeted
 correction); the whole table is cleared when a new world/layer baseline is

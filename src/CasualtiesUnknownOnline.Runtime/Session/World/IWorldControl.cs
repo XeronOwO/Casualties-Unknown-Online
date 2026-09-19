@@ -320,7 +320,7 @@ public interface IWorldControl
 	/// (its content set lacks the prefab/template). The corrected accept-first
 	/// precondition REJECTS it — the host can never own the creation, so it is
 	/// neither recorded nor relayed, and the reporter is answered with
-	/// <see cref="NetMsg.RuntimeEntityRejected"/> so its 60 s re-report stops and
+	/// <see cref="NetMsg.RuntimeEntityRejected"/> so its re-report stops and
 	/// its local copy dies (an accepted-but-unowned creation has no owner whose
 	/// death could ever retract it).
 	/// </summary>

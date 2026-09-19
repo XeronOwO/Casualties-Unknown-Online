@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: new ids 137/138 + protocol 25; gate/validator/recheck/capture traced by grep
+      file:line or runtime log) or is explicitly marked unverified — evidence: limb claim traced in all 3 families + MedicalStartRecheck; per-kind rule in MedicalOperationUnitRules
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all three families' target halves moved in one pass (injection, shrapnel, other-medical); each kept one operator-half home
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfchecks/players/interaction-gate-authority-selfcheck.md stage-2 table + the ticket's What landed / What remains
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all three families moved in one pass; ResolvesOnce covers all 9 kinds; shrapnel per-piece unchanged
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfchecks/players/medical-operation-concurrency-selfcheck.md section 1 + the ticket's What landed
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: InteractionGateAuthorityTests 22 cases + MedicalTargetBodyValidatorTests 9 pin the target half both directions, its edges and its reason strings
+      peer log comparison, hotrepl assertions) is decided — evidence: MedicalOperationConcurrencyTests 7 cases pin matrix rows 1-6; row 7 is dual-client acceptance
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: decision 184's ruling + the ticket's settled seam and the handoff's stage order; no re-ask
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors; dotnet format exit 0; unfiltered run with build green 3298 (main) + 56 (gates)
+      process violation — evidence: decision 184's ruling + the 2026-09-19 answer A recorded in the ticket; no work-item re-ask
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0; full with build 3304 main + 55 gates green (checklist test run separately)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: medical 510 / shrapnel 552 / other-medical 538 lines; injection start and shrapnel bookkeeping extracted; no new bool state
+      dead mechanisms deleted in the same round) — evidence: other-medical 570 / applier 539 / shrapnel 541 / injection 506 lines; handler 599 watchlisted; BuildTerminal made pure
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

@@ -78,7 +78,7 @@ CPR is intentionally excluded; see `future/remote-medical-cpr.md`.
 | 4 | Third-party observer | Sees the same progress/state where applicable |
 | 5 | Cancel mid-action | Per-action partial semantics applied; no stale session |
 | 6 | Disconnect mid-action | Host releases resources and commits/aborts according to action semantics |
-| 7 | Concurrent operations on same limb/item | Conflict policy applied (exclusive limb lease or per-resource arbitration) |
+| 7 | Concurrent operations on same limb/item | Conflict policy applied (exclusive limb lease or per-resource arbitration) — **superseded 2026-09-19**: the limb lease is gone, the item claim stays, and per-unit settlement governs (see `review/concurrent-medical-operations.md`) |
 | 8 | Removed component item ownership | Splint/tourniquet goes to operator |
 | 9 | Item/battery condition | Consumed/updated consistently with the committed action |
 | 10 | Legacy direct-apply or blocked paths | Removed/replaced with the designed path |

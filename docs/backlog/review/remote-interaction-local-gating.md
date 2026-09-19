@@ -4,7 +4,7 @@
 - Priority: Medium-High
 - Category: Network / sync coverage / player interaction (gate authority)
 - Source: User ruling 2026-09-18 (design alignment session): the line-of-sight / precondition gates of remote interactions must be judged locally by the two clients involved; a host verdict on stale streamed positions refuses interactions the actor's own screen shows as valid.
-- Related: `review/enemy-hit-determination-local.md` (the same authority rule for hits), `todo/concurrent-medical-operations.md` (the reservations half of the same services), `review/remote-medical-panel-acceptance-issues.md`
+- Related: `review/enemy-hit-determination-local.md` (the same authority rule for hits), `review/concurrent-medical-operations.md` (the reservations half of the same services), `review/remote-medical-panel-acceptance-issues.md`
 
 ## Problem (evidence)
 

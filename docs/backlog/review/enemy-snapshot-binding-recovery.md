@@ -67,7 +67,7 @@ was fixed, not the cadence.
   key.
 - **Wire / protocol: 22 → 23 (deliberate).** A new `ProtoMember` plus new cross-peer behavior: a v22
   peer would pair on the live position and would never be re-sent a snapshot it missed, so
-  `ProtocolVersion.Current` is 23 and the entry records why.
+  `ProtocolVersion.Current` was 23 when this landed and the entry records why.
 - **The demanded architecture split.** `EnemySyncCoordinator` sat at exactly the 600 aggregate-line
   gate and this change pushed it to 626. Per
   `docs/backlog/watchlist/architecture-watchlist.md` ("must be split — as a real responsibility

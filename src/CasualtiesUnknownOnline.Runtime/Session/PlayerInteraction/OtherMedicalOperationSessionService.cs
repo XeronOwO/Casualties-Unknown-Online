@@ -11,10 +11,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
 /// Host-authoritative Stage 3 medical operation domain. It reuses the
-/// generic medical session envelope (Start → updates → one EndCommitted) and
-/// the shared item/limb reservations, and specializes the update payload for
+/// generic medical session envelope (Start → updates → one EndCommitted) and the
+/// shared item/operator claims, and specializes the update payload for
 /// bandage, splint/tourniquet removal, dislocation, AED, manual defibrillation
-/// and amputation. All actions are exclusive (one operator at a time).
+/// and amputation. Several operators may work one victim — and one limb — at the
+/// same time: the unit of work is (target, limb, kind) plus, where the minigame has
+/// discrete pieces, the piece itself, and a unit whose outcome resolves once is
+/// settled by its first completion while the other operations still open on it are
+/// answered and stopped (<see cref="MedicalOperationUnitRules"/>).
 /// </summary>
 internal sealed class OtherMedicalOperationSessionService(
 	ISessionControl session,
@@ -196,12 +200,6 @@ internal sealed class OtherMedicalOperationSessionService(
 			}
 		}
 
-		if (msg.LimbIndex >= 0 && _claims.IsLimbReserved(target, msg.LimbIndex))
-		{
-			RejectStart(sender, target, msg, "Target limb is already reserved.");
-			return;
-		}
-
 		// Everything the host owns is settled; only the target's own body is still open,
 		// so the request is parked and the target's client answers it.
 		_bodyGate.Begin(sender, target, msg.LimbIndex, msg.Kind, verdict =>
@@ -224,7 +222,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	/// </summary>
 	private void CommitStart(ulong sender, ulong target, MedicalOperationStartRequestMsg msg, CharacterItemMsg? originalItem)
 	{
-		switch (MedicalStartRecheck.Run(_access, _claims, sender, target, msg, limbClaimApplies: true, out var rejectReason))
+		switch (MedicalStartRecheck.Run(_access, _claims, sender, target, msg, out var rejectReason))
 		{
 			case MedicalStartRecheckOutcome.OperatorGone:
 				_log.LogInformation("[MedicalOps3] start for {Operator} dropped: the operator left while the target answered.", sender);
@@ -253,11 +251,6 @@ internal sealed class OtherMedicalOperationSessionService(
 		if (msg.ItemInstanceId != 0)
 		{
 			_claims.TryReserveItem(msg.ItemInstanceId);
-		}
-
-		if (msg.LimbIndex >= 0)
-		{
-			_claims.TryReserveLimb(target, msg.LimbIndex);
 		}
 
 		_log.LogInformation(
@@ -344,11 +337,6 @@ internal sealed class OtherMedicalOperationSessionService(
 			_log.LogWarning("[MedicalOps3] end {OperationId} ignored non-finite/negative total {Total}.",
 				msg.OperationId, msg.TotalMl);
 			return;
-		}
-
-		if (session.Kind is MedicalOperationKind.SplintRemoval or MedicalOperationKind.TourniquetRemoval)
-		{
-			_removal.Remove(session);
 		}
 
 		if (session.Kind == MedicalOperationKind.Amputation && msg.TotalMl > session.Progress)
@@ -462,7 +450,8 @@ internal sealed class OtherMedicalOperationSessionService(
 		}
 
 		ReleaseSession(session);
-		var end = _applier.BuildTerminal(session, reason, dislocateSucceeded);
+		var settled = CompleteUnitOnTerminal(session, reason, dislocateSucceeded);
+		var end = _applier.BuildTerminal(session, reason);
 		_log.LogInformation("[MedicalOps3] operation {OperationId} terminal {Reason}: progress {Progress:F3}.",
 			session.OperationId, reason, session.Progress);
 		EndCommittedReceived?.Invoke(end);
@@ -470,6 +459,54 @@ internal sealed class OtherMedicalOperationSessionService(
 			_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
 			NetMsg.MedicalOperationEndCommitted,
 			end);
+
+		if (settled && MedicalOperationUnitRules.ResolvesOnce(session.Kind))
+		{
+			StopOtherOperatorsOnTheUnit(session);
+		}
+	}
+
+	/// <summary>
+	/// The effect that SETTLES the unit, in one place: the two removal kinds remove
+	/// only on a completed end (a cancel or a timeout leaves the splint on the limb),
+	/// while an amputation or a relocation finishes at its terminal whatever the
+	/// reason, because its progress was already committed. The result is what makes
+	/// the unit's single outcome visible to the sweep.
+	/// </summary>
+	private bool CompleteUnitOnTerminal(OtherMedicalOperationSession session, MedicalOperationTerminalReason reason, bool dislocateSucceeded) =>
+		session.Kind switch
+		{
+			MedicalOperationKind.SplintRemoval or MedicalOperationKind.TourniquetRemoval
+				when reason == MedicalOperationTerminalReason.Completed => _removal.Remove(session),
+			MedicalOperationKind.Amputation => session.Progress >= 1f && _applier.CompleteAmputation(session),
+			MedicalOperationKind.Dislocation => _applier.CompleteDislocation(session, dislocateSucceeded),
+			_ => false,
+		};
+
+	/// <summary>
+	/// A unit that resolves once has now been settled by this operation, so every
+	/// OTHER operation still open on the same (target, limb, kind) is answered and
+	/// stopped: its operator gets the precise "already handled" terminal carrying the
+	/// authoritative state this completion produced, and its minigame ends there
+	/// instead of working a limb that is already treated.
+	/// </summary>
+	private void StopOtherOperatorsOnTheUnit(OtherMedicalOperationSession winner)
+	{
+		var reason = MedicalOperationUnitRules.HandledReason(winner.Kind);
+		var others = _sessions.Values
+			.Where(s => s.OperationId != winner.OperationId
+				&& s.Target == winner.Target
+				&& s.LimbIndex == winner.LimbIndex
+				&& s.Kind == winner.Kind)
+			.ToList();
+		foreach (var other in others)
+		{
+			_log.LogInformation(
+				"[MedicalOps3] stopping operation {OperationId} ({Kind}) on {Target} limb {Limb}: {Reason}",
+				other.OperationId, other.Kind, other.Target, other.LimbIndex, reason);
+			PrepareTerminal(other);
+			Terminate(other, MedicalOperationTerminalReason.AlreadyHandled);
+		}
 	}
 
 	private void ReleaseSession(OtherMedicalOperationSession session)
@@ -478,11 +515,6 @@ internal sealed class OtherMedicalOperationSessionService(
 		if (session.ItemInstanceId != 0)
 		{
 			_claims.ReleaseItem(session.ItemInstanceId);
-		}
-
-		if (session.LimbIndex >= 0)
-		{
-			_claims.ReleaseLimb(session.Target, session.LimbIndex);
 		}
 	}
 

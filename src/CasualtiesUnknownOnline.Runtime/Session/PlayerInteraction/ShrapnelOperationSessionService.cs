@@ -216,11 +216,7 @@ internal sealed class ShrapnelOperationSessionService(
 	/// </summary>
 	private void CommitStart(ulong sender, ulong target, MedicalOperationStartRequestMsg msg, CharacterDataMsg userData, int shrapnelCount)
 	{
-		// A session that already exists for this limb IS the claim on it, and this start
-		// is a second operator JOINING it — so the limb-claim half of the re-check only
-		// applies to the start that would create the session.
-		var joinedExistingSession = _sessions.ContainsKey((target, msg.LimbIndex));
-		switch (MedicalStartRecheck.Run(_access, _claims, sender, target, msg, limbClaimApplies: !joinedExistingSession, out var rejectReason))
+		switch (MedicalStartRecheck.Run(_access, _claims, sender, target, msg, out var rejectReason))
 		{
 			case MedicalStartRecheckOutcome.OperatorGone:
 				_log.LogInformation("[Shrapnel] start for {Operator} dropped: the operator left while the target answered.", sender);
@@ -232,14 +228,11 @@ internal sealed class ShrapnelOperationSessionService(
 
 		var itemInstanceId = msg.ItemInstanceId;
 		var key = (target, msg.LimbIndex);
+		// A session that already exists for this limb is the shared session of that
+		// limb's pieces, and this start JOINS it as a second operator — the join is the
+		// family's multi-operator path, not a raced start.
 		if (!_sessions.TryGetValue(key, out var shrapnel))
 		{
-			if (_claims.IsLimbReserved(target, msg.LimbIndex))
-			{
-				RejectStart(sender, target, msg, "Target limb is already reserved.");
-				return;
-			}
-
 			shrapnel = new ShrapnelOperationSession
 			{
 				OperationId = _operationIds.Next(),
@@ -249,7 +242,6 @@ internal sealed class ShrapnelOperationSessionService(
 			};
 			_writer.InitializePieces(shrapnel, shrapnelCount);
 			_sessions.Add(key, shrapnel);
-			_claims.TryReserveLimb(target, msg.LimbIndex);
 			_log.LogInformation("[Shrapnel] session {OperationId} created for {Target} limb {Limb} ({Count} pieces).",
 				shrapnel.OperationId, target, msg.LimbIndex, shrapnelCount);
 		}
@@ -447,8 +439,6 @@ internal sealed class ShrapnelOperationSessionService(
 			{
 				_claims.ReleaseOperator(operatorId);
 			}
-
-			_claims.ReleaseLimb(shrapnel.Target, shrapnel.LimbIndex);
 		}
 
 		_sessions.Clear();
@@ -512,7 +502,6 @@ internal sealed class ShrapnelOperationSessionService(
 			_claims.ReleaseOperator(operatorId);
 		}
 
-		_claims.ReleaseLimb(shrapnel.Target, shrapnel.LimbIndex);
 		var end = _writer.BuildTerminal(shrapnel, reason);
 		_log.LogInformation("[Shrapnel] session {OperationId} terminal {Reason}.", shrapnel.OperationId, reason);
 		EndCommittedReceived?.Invoke(end);

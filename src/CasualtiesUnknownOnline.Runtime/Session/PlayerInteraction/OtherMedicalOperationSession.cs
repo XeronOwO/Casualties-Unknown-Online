@@ -3,10 +3,13 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// One host-owned Stage 3 medical operation session. Unlike the shared
-/// shrapnel session, these actions are exclusive to a single operator; the
-/// shared reservation sets still arbitrate item/limb conflicts across all
-/// medical operation kinds.
+/// One host-owned Stage 3 medical operation session: one operator, one target limb
+/// and one kind. Several such sessions may be open at the same time — different
+/// kinds on one limb, or one kind worked by several operators at once — because the
+/// shared claim book arbitrates only the item instance and the operator slot. A unit
+/// whose outcome resolves once is settled by its FIRST completion and the other
+/// sessions open on that unit are stopped there
+/// (<see cref="MedicalOperationUnitRules"/>).
 /// </summary>
 internal sealed class OtherMedicalOperationSession
 {

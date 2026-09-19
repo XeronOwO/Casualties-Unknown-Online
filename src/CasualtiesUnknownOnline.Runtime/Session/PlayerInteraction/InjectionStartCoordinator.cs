@@ -98,7 +98,7 @@ internal sealed class InjectionStartCoordinator(
 		});
 	}
 
-	/// <summary>The shared-claim half of a start: the operator slot, the item instance and the target limb.</summary>
+	/// <summary>The shared-claim half of a start: the operator slot and the item instance. The target limb is deliberately not claimed — several operators may work one limb.</summary>
 	private bool TryRejectClaimed(ulong operation, ulong target, MedicalOperationStartRequestMsg msg)
 	{
 		if (_claims.IsOperatorBusy(operation))
@@ -115,13 +115,6 @@ internal sealed class InjectionStartCoordinator(
 			return true;
 		}
 
-		if (msg.LimbIndex >= 0 && _claims.IsLimbReserved(target, msg.LimbIndex))
-		{
-			_log.LogWarning("[MedicalOps] refused start: target {Target} limb {Limb} is already reserved.", target, msg.LimbIndex);
-			_publisher.RejectStart(operation, target, msg, "Target limb is already reserved.");
-			return true;
-		}
-
 		return false;
 	}
 
@@ -133,7 +126,7 @@ internal sealed class InjectionStartCoordinator(
 	/// </summary>
 	private void Commit(ulong operation, ulong target, MedicalOperationStartRequestMsg msg, CharacterItemMsg originalItem, float availableMl)
 	{
-		switch (MedicalStartRecheck.Run(_access, _claims, operation, target, msg, limbClaimApplies: true, out var rejectReason))
+		switch (MedicalStartRecheck.Run(_access, _claims, operation, target, msg, out var rejectReason))
 		{
 			case MedicalStartRecheckOutcome.OperatorGone:
 				_log.LogInformation("[MedicalOps] injection start dropped: {Operator} left while the target answered.", operation);
@@ -161,10 +154,6 @@ internal sealed class InjectionStartCoordinator(
 		_onSessionOpened(session);
 		_claims.TryReserveItem(session.ItemInstanceId);
 		_claims.TryReserveOperator(session.Operator);
-		if (session.LimbIndex >= 0)
-		{
-			_claims.TryReserveLimb(session.Target, session.LimbIndex);
-		}
 
 		_log.LogInformation(
 			"[MedicalOps] started operation {OperationId}: {Operator} -> {Target}, item {ItemId} (id {InstanceId}), limb {Limb}, available {Available:F2} ml.",

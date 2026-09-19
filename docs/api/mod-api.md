@@ -917,7 +917,7 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `25`. The pre-release protocol-version sequence
+- `ProtocolVersion.Current` is `26`. The pre-release protocol-version sequence
   was deliberately reset before first release (tech-decisions #137); the
   post-reset wire has since extended the character-sound event family
   (`CharacterSoundKind.ItemPlacement`), the runtime-entity creation family
@@ -930,7 +930,9 @@ commands and remains the two-process verification target).
   (`BlockDamageReport`), the enemy snapshot's bind-time spawn anchor
   (`EnemyStateMsg.SpawnPosition`), the enemy attack announcement
   (`EnemyAttackMsg`), and the target-body verdict of a medical operation start
-  (`MedicalOperationTargetCheckRequest`/`Answer`), so earlier numbers such as
+  (`MedicalOperationTargetCheckRequest`/`Answer`), and the single-outcome settlement
+  of a medical unit that resolves once
+  (`MedicalOperationEndCommittedMsg.TerminalReason.AlreadyHandled`), so earlier numbers such as
   10/29/34 in this document are historical and must not be used as current wire
   versions.
 - Behavioral wire changes after the first release will bump

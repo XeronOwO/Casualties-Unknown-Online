@@ -43,7 +43,14 @@ public static class ProtocolVersion
 	/// host from the target's last 1 Hz report. A peer without the pair would never
 	/// answer the host's check and would itself never ask, so every start whose only
 	/// open question is the target's body would be refused (or judged on stale data)
-	/// — the exact host verdict the ruling removed.</summary>
-	public const int Current = 25;
+	/// — the exact host verdict the ruling removed.
+	/// 26: `MedicalOperationEndCommittedMsg.TerminalReason.AlreadyHandled` — a
+	/// medical unit that resolves once (one dislocation, one amputation, one
+	/// splint/tourniquet removal) is now settled by the FIRST completion, and the
+	/// other operations still open on that unit are terminated with this reason
+	/// carrying the winner's authoritative state. A peer without it would read the
+	/// loser's terminal as an ordinary completion, keep its minigame on a limb that
+	/// is already treated, and could resolve the same unit a second time.</summary>
+	public const int Current = 26;
 
 }

@@ -9,10 +9,21 @@ change lands in them.
 
 ## At the limit (no headroom)
 
-- None right now: the medical family's two 600-line services were split on 2026-09-19 (see
-  "Split since the last revision").
+- `src/CasualtiesUnknownOnline.GameAdapter/RemoteOtherMedicalOperationHandler.cs` (599) — the
+  Stage-3 remote-medical adapter (the five native minigames, the operator session, the pending
+  reports, the host-terminal cleanup). It is the file that must be split BEFORE the next change
+  lands in it; the tempting seam is the update/terminal bookkeeping (`CompleteActiveUse` /
+  `OnHostTerminal` / `CancelActiveUse` plus the static `_active` session) against the per-kind
+  start/guard half (`TryStartRemote*`).
 
 ## Near the limit (watch)
+
+- `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/OtherMedicalOperationSessionService.cs`
+  (~570 after the per-unit settlement landed on 2026-09-19) — the host registry/lifecycle of the
+  Stage-3 operations plus the unit settlement (`CompleteUnitOnTerminal`,
+  `StopOtherOperatorsOnTheUnit`) and the terminal path. The settlement half is the seam to
+  extract next (it is what pushed the file from 538 to 570): it needs only the appliers and the
+  sibling sessions, so it can become a collaborator that the service hands the winner.
 
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (+ its
   `EnemySyncCoordinator.RuntimeSpawns.cs` partial, 584 aggregate after the 2026-09-18 split) — the
@@ -45,9 +56,11 @@ change lands in them.
   (2026-09-19, with the interaction-gate relocation): the medical family's shared reservation
   bookkeeping (`_reservedItems`, `_reservedTargetLimbs` and the cross-service "operator busy"
   lambda chain that each service used to answer for the other two) moved into
-  `MedicalOperationClaims`, one owner with one claim rule. `MedicalOperationSessionService`
-  600 → 595, `ShrapnelOperationSessionService` 600 → 553, `OtherMedicalOperationSessionService`
-  524 → 520, and all three have headroom for the change that needed it. The shrapnel family's
+  `MedicalOperationClaims`, one owner with one claim rule. Those split sizes were session
+  measurements, not states the tree carries; what the tree carries now is
+  `MedicalOperationSessionService` 506, `ShrapnelOperationSessionService` 541 and
+  `OtherMedicalOperationSessionService` 570 (the near-limit entry above, after the per-unit
+  settlement landed on top of the split). The shrapnel family's
   start validation also left the service as the pure `ShrapnelStartValidator` (the pattern the
   stage-3 family already used), so the service holds the session lifecycle and the validator
   holds the rules.

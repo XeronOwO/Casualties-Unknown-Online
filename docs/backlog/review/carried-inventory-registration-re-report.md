@@ -113,11 +113,13 @@ path deliberately no longer does — a registration states ids, while the guest'
 No production caller depended on that update: `CraftSyncService`'s fallback runs exactly when the
 table has no entry and spawns its products itself, and `CharacterDataStore` only READS the table.
 
-Option 2 (host request on miss) was rejected: it needs a new wire member and only heals after the
-first take/use has already been arbitrated without the entry. Option 3 (fold into the 1 Hz
-character snapshot) was rejected: it turns a read model into an authority input. NO wire member was
-added and NO message changed shape — protocol stays 31, and the host's `CarriedInventory` handler
-is untouched.
+Option 2 (host request on miss) was rejected because it only heals AFTER the first take/use has
+already been arbitrated without the entry — the user-visible failure it would leave behind. Option 3
+(fold into the 1 Hz character snapshot) was rejected because it turns a read model into an authority
+input. Neither judgement rests on the wire: the mod is unreleased, so the protocol number is not a
+design input — a mechanism that needed a new message would take one and bump the number
+(decision 137). As it happens, the landing adds no wire member and changes no message shape, and the
+host's `CarriedInventory` handler is untouched — a fact about the mechanism, never the reason for it.
 
 **Acceptance matrix** (as landed — every row names the test that covers it, and the half it runs in):
 

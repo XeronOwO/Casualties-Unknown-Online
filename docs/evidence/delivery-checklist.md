@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem cites the current call sites (no line numbers); both review rounds read the production paths and the adapter's gate code
+      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem cites current call sites (SendCommand, PendingItemCreations is ordering-only, the empty-table keyframe skip); review round 1 read those paths
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both scene directions (entry + exit), the handshake leg and the roster aligned; remaining one-shot gaps stay ticketed (I5, I8, K2, N8)
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket Acceptance matrix (10 rows, each naming its suite case) plus the declared coverage gaps and the review fixes
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the four report kinds aligned (creation/pickup/drop/destroy); I7/I4 keep their absolute fallbacks; I8 stays with its own ticket
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance matrix (9 rows, each naming its suite case) plus the declared limits and the review fixes
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: ItemSimWorld + LinkFaults.DropMessageId targeted swallow; the adapter/Unity half declared static + dual-client acceptance
+      peer log comparison, hotrepl assertions) is decided — evidence: ItemSimWorld + LinkFaults.DropMessageId and Duplicate; the adapter/Unity half declared static + dual-client acceptance
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff fixed the route (continue development on a Medium ticket); the ticket's frozen design chose the mechanism, no work-item re-ask
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; gates 56/56; main suite 3388 green (with build); focused 9/9
+      process violation — evidence: the handoff fixed the route (continue development, one Medium ticket, takeover order); the ticket's frozen design direction 1 chose the mechanism
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; main suite 3401 green (with build); focused 13/13; gates 56/56 at the final run after this box
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: EntitySyncService 598 -> 580 via the PlayerRosterAnnouncer split; the new window carries 4 bool fields; no dead code left behind
+      dead mechanisms deleted in the same round) — evidence: the new window is 451 lines (queue + two reused scan lists, no per-frame allocation); KernelProtocolService 538; CuoBootstrap 599; no dead code left behind
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

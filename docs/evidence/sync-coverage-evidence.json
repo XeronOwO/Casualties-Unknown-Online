@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 926,
+  "count": 947,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -972,6 +972,132 @@
     },
     {
       "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "internal const long IntervalMs = 5_000;"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "internal const int MaxReports = 12;"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "internal const int MaxPendingPerItem = 8;"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "private readonly Dictionary<ulong, List<PendingCommand>> _pending = [];"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "internal void Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType)"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "queue.Add(new PendingCommand(itemId, operationId, command.Kind, frame, _time.NowMs));"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "internal void ClearCommitted(ulong operationId)"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "internal void ClearRejected(ulong itemId)"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "var refused = queue[queue.Count - 1];"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "if (!_sender.TrySend(_session.HostSteamId, NetMsg.KernelEnvelope, pending.Frame))"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "private static PendingCommand DropOldestNonCreation(List<PendingCommand> queue)"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "_log.LogWarning(\"[ItemCommand] {Kind} on item {ItemId} (operation {Operation}) was not answered by the host after {Reports} re-report(s):"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "private static bool IsCreation(WireCommandKind kind) => kind == WireCommandKind.ItemSpawn;"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "quote": "_pendingCommands.Track(command, header.OperationId, frame, payloadType);"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "quote": "_pendingCommands.ClearCommitted(batch.OperationId.Value);"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "quote": "_pendingCommands.ClearRejected(itemId);"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/CuoBootstrap.cs",
+      "quote": "services.AddSingleton<GuestCommandReconciliation>();"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Items/PickupSync.cs",
+      "quote": "_items.SendItemSpawned(id, ItemStateCodec.CaptureItem(item, -1), new NetVector2(startPos.x, startPos.y), new NetVector2(0f, 0f), item.transform.eulerAngles.z, false, 0f); _items.SendItemPickedUp(id, ItemStateCodec.CaptureDigest(item, ItemStateCodec.SlotOf(item)));"
+    },
+    {
+      "cluster": "inline",
+      "row": "I5",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Items/GuestCommandReconciliationTests.cs",
+      "quote": "public void SwallowedCreation_IsStillQueuedAndReReportedAfterALaterPickupIsRefused()"
+    },
+    {
+      "cluster": "inline",
+      "row": "I5",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Items/GuestCommandReconciliationTests.cs",
+      "quote": "Assert.Equal([WireCommandKind.ItemSpawn, WireCommandKind.ItemPickup], Window(w.G1).PendingKindsFor(42));"
+    },
+    {
+      "cluster": "inline",
+      "row": "I5",
+      "file": "tests/CasualtiesUnknownOnline.Tests/Items/GuestCommandReconciliationTests.cs",
+      "quote": "public void SwallowedDropBehindAPickup_ConvergesThroughTheOlderReport()"
+    },
+    {
+      "cluster": "items",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
       "quote": "CraftReport = 76, // bidirectional: guest → host report; host → guest broadcast relay (source excluded)"
@@ -1178,7 +1304,7 @@
       "cluster": "kernel-protocol",
       "row": "K1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "_sender.Send(_session.HostSteamId, NetMsg.KernelEnvelope, frame);"
+      "quote": "_sender.TrySend(_session.HostSteamId, NetMsg.KernelEnvelope, frame);"
     },
     {
       "cluster": "kernel-protocol",

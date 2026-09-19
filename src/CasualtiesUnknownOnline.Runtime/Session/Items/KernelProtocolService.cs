@@ -25,6 +25,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly PacketSender _sender;
 	private readonly ItemKernelAuthority _authority;
 	private readonly RefusedItemCreations _refusedCreations;
+	private readonly GuestCommandReconciliation _pendingCommands;
 	private readonly ILogger<KernelProtocolService> _log;
 	private readonly KernelProtocolCommandHandler _commandHandler;
 	private readonly List<CommittedBatch> _journal = [];
@@ -47,12 +48,14 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		PacketSender sender,
 		ItemKernelAuthority authority,
 		RefusedItemCreations refusedCreations,
+		GuestCommandReconciliation pendingCommands,
 		ILogger<KernelProtocolService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_authority = authority;
 		_refusedCreations = refusedCreations;
+		_pendingCommands = pendingCommands;
 		_log = log;
 		_stateStreams = new KernelStateStreamService(session, sender, authority, payloadType => CreateHeader(payloadType, 0));
 		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, refusedCreations, log);
@@ -156,7 +159,15 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 				Command = command,
 			},
 		};
-		_sender.Send(_session.HostSteamId, NetMsg.KernelEnvelope, frame);
+		// The unacknowledged-report window (audit row I5) re-sends this exact frame
+		// until the host's verdict arrives. Registered BEFORE the send: a transport that
+		// dispatches inline (the simulation harness does) can deliver the verdict inside
+		// the send call, and one that arrived before the registration would be lost,
+		// leaving the window open on a report the host has already judged. Tracked even
+		// when the transport refuses the send, because the window's first repeat is what
+		// heals a send that never left.
+		_pendingCommands.Track(command, header.OperationId, frame, payloadType);
+		_sender.TrySend(_session.HostSteamId, NetMsg.KernelEnvelope, frame);
 	}
 
 	public void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves) => _stateStreams.SendStateStream(itemMoves);
@@ -268,6 +279,10 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	{
 		var itemId = envelope.Command.Identity.InstanceId;
 		var reason = (RejectionReason)envelope.Command.RejectionReason;
+		// The host judged this item's operation and refused it (audit row I5): the
+		// re-report window for the item closes; the refusal itself reaches the item
+		// domain's rollback path below exactly as it always did.
+		_pendingCommands.ClearRejected(itemId);
 		_log.LogWarning("Kernel command rejected by host for item {ItemId}: {Reason}.", itemId, reason);
 		CommandRejected?.Invoke(itemId, reason);
 	}
@@ -341,6 +356,11 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 				sender, batch.RunEpoch.Value, _authority.CreateCheckpoint().RunEpoch.Value);
 			return;
 		}
+
+		// This guest's own command has been judged (audit row I5): the window closes at
+		// RECEIPT, before the revision guard below, because the host answers a re-report
+		// with the ORIGINAL batch — a revision this side may already hold.
+		_pendingCommands.ClearCommitted(batch.OperationId.Value);
 
 		var expected = _authority.CurrentGlobalRevision + 1;
 		if (batch.GlobalRevision > expected)

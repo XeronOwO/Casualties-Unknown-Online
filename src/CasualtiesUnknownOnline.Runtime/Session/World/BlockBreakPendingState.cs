@@ -25,13 +25,13 @@ internal sealed class BlockBreakPendingState
 		Broken,
 	}
 
-	private (float PosX, float PosY, float Dmg, bool MetalBonus, int Frame, long Op, List<BlockDropEntryMsg> Drops, List<TrapDropEntryMsg> BuildingDrops)? _pending;
+	private (int CellX, int CellY, float Dmg, bool MetalBonus, int Frame, long Op, List<BlockDropEntryMsg> Drops, List<TrapDropEntryMsg> BuildingDrops)? _pending;
 
 	internal Phase Current => _pending is null ? Phase.Idle : Phase.Broken;
 
-	/// <summary>Idle → Broken: the block broke locally — hold the report until the drops are collected. The op id links the pending state to its operation trace; MetalBonus preserves the source's metallic-block multiplier.</summary>
-	internal void EnterBreak(float posX, float posY, float dmg, bool metalBonus, long op, int currentFrame) =>
-		_pending = (posX, posY, dmg, metalBonus, currentFrame, op, [], []);
+	/// <summary>Idle → Broken: the block broke locally — hold the report until the drops are collected. The CELL is the key the report itself carries (protocol 32), resolved here while the world still exists; the op id links the pending state to its operation trace, and MetalBonus preserves the source's metallic-block multiplier.</summary>
+	internal void EnterBreak(int cellX, int cellY, float dmg, bool metalBonus, long op, int currentFrame) =>
+		_pending = (cellX, cellY, dmg, metalBonus, currentFrame, op, [], []);
 
 	/// <summary>Broken → stays Broken: one drop's Item.Start ran — fold it in. False when no break is pending (the drop then falls back to a standalone spawn report).</summary>
 	internal bool TryAddDrop(BlockDropEntryMsg drop)
@@ -69,7 +69,7 @@ internal sealed class BlockBreakPendingState
 	/// flushing early would send the break with half its drops (the rest would
 	/// then report as standalone spawns and split the verdict).
 	/// </summary>
-	internal bool TryFlush(int currentFrame, out (float PosX, float PosY, float Dmg, bool MetalBonus, long Op, List<BlockDropEntryMsg> Drops, List<TrapDropEntryMsg> BuildingDrops) flushed)
+	internal bool TryFlush(int currentFrame, out (int CellX, int CellY, float Dmg, bool MetalBonus, long Op, List<BlockDropEntryMsg> Drops, List<TrapDropEntryMsg> BuildingDrops) flushed)
 	{
 		if (_pending is not { } pending)
 		{
@@ -84,7 +84,7 @@ internal sealed class BlockBreakPendingState
 		}
 
 		_pending = null;
-		flushed = (pending.PosX, pending.PosY, pending.Dmg, pending.MetalBonus, pending.Op, pending.Drops, pending.BuildingDrops);
+		flushed = (pending.CellX, pending.CellY, pending.Dmg, pending.MetalBonus, pending.Op, pending.Drops, pending.BuildingDrops);
 		return true;
 	}
 

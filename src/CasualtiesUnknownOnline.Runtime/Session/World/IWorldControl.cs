@@ -29,16 +29,16 @@ public interface IWorldControl
 
 	void SetHostRunPending(bool pending);
 
-	/// <summary>Host: a guest reported damage (sender = the reporter; drops ride the break — the host arbitrates; MetalBonus preserves the ×10 metallic multiplier). Guest: the host broadcast it. <paramref name="generation"/> is the report's world/layer stamp, and the raised event carries the comparison against this side's own generation: a STALE report belongs to another world and must be refused (its drops rolled back) before any world write.</summary>
-	void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationMsg? generation);
+	/// <summary>Host: a guest reported block damage at a cell (sender = the reporter; drops ride the break — the host arbitrates; MetalBonus preserves the ×10 metallic multiplier; <paramref name="contribution"/> = this sender's CUMULATIVE own damage on that cell, 0 when it could not account for it). Guest: the host relayed it. <paramref name="generation"/> is the report's world/layer stamp, and the raised event carries the comparison against this side's own generation: a STALE report belongs to another world and must be refused (its drops rolled back) before any world write. The host resolves the contribution against its per-sender ledger and the raised event carries the INCREMENT to apply, so nothing is applied or relayed for damage this host already accounts for.</summary>
+	void FireBlockDamagedReceived(ulong sender, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, float contribution, WorldGenerationMsg? generation);
 
-	event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?, WorldGenerationRelation>? BlockDamagedReceived;
+	event Action<ulong, int, int, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?, WorldGenerationRelation>? BlockDamagedReceived;
 
-	/// <summary>Report a locally-performed block damage (drops = the break's drops, null/empty = damage only; buildingDrops = building-death drops from the same break, null/empty = none): guest → host report, host → broadcast to all synced members.</summary>
-	void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
+	/// <summary>Report a locally-performed block damage (drops = the break's drops, null/empty = damage only; buildingDrops = building-death drops from the same break, null/empty = none): guest → host report, host → broadcast to all synced members. <paramref name="contribution"/> is the sender's cumulative own damage on the cell in the game's accumulated units (0 when the sender cannot account for it or the message is a break/drop payload).</summary>
+	void SendBlockDamaged(int x, int y, float damage, bool metalBonus, float contribution, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
 
-	/// <summary>Host only: relay an ACCEPTED guest break report to the other members (source excluded).</summary>
-	void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
+	/// <summary>Host only: relay damage this host APPLIED to the other members (source excluded). The damage is the increment in the game's accumulated units, and no contribution rides along — a third party accumulates what it is handed, and only the host keeps the per-sender ledger.</summary>
+	void BroadcastBlockDamaged(ulong excludeSteamId, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
 
 	void FireWorldJoinReceived(bool isTutorial);
 
@@ -77,19 +77,23 @@ public interface IWorldControl
 	void ResetPendingBlockReports();
 
 	/// <summary>
-	/// Guest only: record the cell's current ABSOLUTE partial damage — the
-	/// fallback's re-report source (the live report itself is a delta the
-	/// receiver accumulates, so replaying it would double-apply). Called right
-	/// BEFORE the live delta report is sent; the entry is dropped when the host
-	/// answers for the cell (the snapshot / the per-report answer) or the cell
-	/// goes air.
+	/// Guest only: add a locally-applied hit to the cell's own contribution and
+	/// return the new cumulative value for the live report (0 when the cell could
+	/// not be tracked — the report then carries no contribution and the host
+	/// applies its raw damage). The value is what THIS side has applied to the
+	/// cell, never the cell's total: the host accounts damage per sender, so a
+	/// report carrying the total would merge two senders into one number and could
+	/// only ever take their maximum. Called right BEFORE the live delta report is
+	/// sent; the cell stops being outstanding when the host answers for it (the
+	/// cumulative value stays — the next hit reports cumulative + its increment),
+	/// and dies when a block write lands on the cell or the world is replaced.
 	/// </summary>
-	void ReportBlockDamage(int x, int y, float damage);
+	float AddLocalBlockDamage(int x, int y, float increment);
 
-	/// <summary>Either role: the cell went air (local break, remote break, earthquake/environment) — its pending partial-damage report dies with the block, which the block-state channel now owns.</summary>
-	void ForgetPendingBlockDamage(int x, int y);
+	/// <summary>Either role: a block write landed on the cell (a break, a placement, a restored block) — the partial damage accounted for it belonged to the block that is gone, so this side's outstanding contribution and every sender's ledger entry for the cell are dropped with it.</summary>
+	void ForgetBlockDamageAccounting(int x, int y);
 
-	/// <summary>Guest: a new world/layer baseline was applied — drop every unacknowledged partial-damage report from the previous world (same boundary as <see cref="ResetPendingBlockReports"/>).</summary>
+	/// <summary>Either role: a new world/layer baseline was applied — drop every outstanding partial-damage contribution and every ledger entry from the previous world (same boundary as <see cref="ResetPendingBlockReports"/>).</summary>
 	void ResetPendingBlockDamageReports();
 
 	/// <summary>
@@ -100,7 +104,7 @@ public interface IWorldControl
 	/// swallowed one leaves items the authoritative table never learns about and
 	/// the item keyframe cannot reconcile.
 	/// </summary>
-	void ReportBreakDrops(int x, int y, float posX, float posY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
+	void ReportBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
 
 	/// <summary>Guest: the host relayed a break for this cell — the drops it names are answered (the accepted relay is the acknowledgement); a drop answered another way (an <c>ItemReject</c> refusal, a gone local object) is forgotten individually.</summary>
 	void AnswerBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
@@ -205,7 +209,7 @@ public interface IWorldControl
 	void SendBlockDamageSnapshot(ulong targetSteamId);
 
 	/// <summary>Guest: the host's partial block-damage snapshot arrived (world entry / 60 s resend) — apply each entry absolutely, unless the snapshot's stamp belongs to another generation (its rows are cell-keyed, so applying them would write another layer's damage here).</summary>
-	void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation);
+	void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation, bool answersReport);
 
 	event Action<IReadOnlyList<BlockDamageEntryMsg>>? BlockDamageSnapshotReceived;
 

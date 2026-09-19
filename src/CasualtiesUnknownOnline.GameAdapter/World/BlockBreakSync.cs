@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -91,18 +90,19 @@ internal sealed class BlockBreakSync(
 
 	/// <summary>
 	/// Called from the DamageBlock patch after a LOCAL block damage was applied:
-	/// report it so the peer applies the same damage at the same world position
-	/// (raw damage + MetalBonus — the receiver's own DamageBlock applies the
-	/// same metallic multiplier to the same generated block). CUO records nothing
-	/// here on the HOST: the late-joiner absolute value is the GAME's own list,
-	/// read at snapshot time (<see cref="BlockDamageSnapshotSender"/>). A GUEST
-	/// records the cell's current absolute damage BEFORE its delta report goes
-	/// out — the fallback's re-report source (audit gap W2). A BREAK is not
-	/// reported immediately — it waits one frame so the drops' Item.Start folds
-	/// into the pending break (one message, one verdict), and the frame-end flush
-	/// sends it.
+	/// report it so the peer applies the same damage at the same cell (raw damage +
+	/// MetalBonus — the receiver's own DamageBlock applies the same metallic
+	/// multiplier to the same generated block). CUO records nothing here on the
+	/// HOST: the host's row IS the authority and it never re-reports its own
+	/// damage. A GUEST records the hit's own contribution — the damage this call
+	/// added to the cell, in the game's accumulated units — BEFORE its delta report
+	/// goes out, and that cumulative value rides the report: it is what lets the
+	/// host account per sender (audit gap W2, per sender since protocol 32) instead
+	/// of merging whole-cell totals. A BREAK is not reported immediately — it waits
+	/// one frame so the drops' Item.Start folds into the pending break (one
+	/// message, one verdict), and the frame-end flush sends it.
 	/// </summary>
-	internal void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal)
+	internal void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal, float applied)
 	{
 		if (IsRemoteApply || !_session.SessionActive)
 		{
@@ -120,19 +120,11 @@ internal sealed class BlockBreakSync(
 		if (world.GetBlock(cell) != 0)
 		{
 			// Damage only (the block survived) — report it immediately. The
-			// absolute damage a late joiner receives is read from the game's own
-			// list at snapshot time, so the HOST records nothing here; a GUEST
-			// records the cell's current absolute value FIRST, because its live
-			// report is a delta: a swallowed one would leave the host short by
-			// exactly this hit and its absolute snapshot could never heal it
-			// (audit gap W2).
-			var accumulated = world.GetBlockDamage(cell)?.damage ?? 0f;
-			if (accumulated > 0f)
-			{
-				_world.ReportBlockDamage(cell.x, cell.y, accumulated);
-			}
-
-			_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null, null);
+			// contribution is THIS hit's own damage (the guest's cumulative value for
+			// the cell, 0 when the cell could not be tracked — the host then applies
+			// the raw damage, which is the pre-ledger behaviour).
+			var contribution = _world.AddLocalBlockDamage(cell.x, cell.y, applied);
+			_world.SendBlockDamaged(cell.x, cell.y, dmg, bonusMetal, contribution, null, null);
 			_trace.End(op, 0, "OnBlockDamaged", "Committed(1)", "Damage");
 			return;
 		}
@@ -143,7 +135,7 @@ internal sealed class BlockBreakSync(
 		// frame so the drops' Item.Start folds in (break + drops = ONE message,
 		// one verdict).
 		_trace.Begin(op, 0, "OnBlockDamaged", "Break");
-		_breakState.EnterBreak(pos.x, pos.y, dmg, bonusMetal, op, Time.frameCount);
+		_breakState.EnterBreak(cell.x, cell.y, dmg, bonusMetal, op, Time.frameCount);
 	}
 
 	/// <summary>
@@ -178,17 +170,16 @@ internal sealed class BlockBreakSync(
 			// nothing to recover, and nothing on the host could ever answer it (a
 			// drops-free report takes the damage-only path, which relays no
 			// payload), so the entry would occupy the table for the whole session
-			// and eventually starve the cap. The world guard matters for the same
-			// reason: the cell is the game's own world→cell conversion, which
-			// cannot run without a world — `default` would key a real corner cell.
-			var cell = world.WorldToBlockPos(new Vector2(flushed.PosX, flushed.PosY));
-			_world.ReportBreakDrops(cell.x, cell.y, flushed.PosX, flushed.PosY, flushed.Drops, flushed.BuildingDrops);
+			// and eventually starve the cap.
+			_world.ReportBreakDrops(flushed.CellX, flushed.CellY, flushed.Drops, flushed.BuildingDrops);
 		}
 
 		_world.SendBlockDamaged(
-			new NetVector2(flushed.PosX, flushed.PosY),
+			flushed.CellX,
+			flushed.CellY,
 			flushed.Dmg,
 			flushed.MetalBonus,
+			0f,
 			flushed.Drops,
 			flushed.BuildingDrops);
 		_trace.End(flushed.Op, 0, "FlushPendingBlockBreak",
@@ -236,7 +227,7 @@ internal sealed class BlockBreakSync(
 	/// the game's own metallic multiplier (WorldGeneration.cs:715) is applied
 	/// identically everywhere.
 	/// </summary>
-	internal void OnRemoteBlockDamaged(ulong sender, NetVector2 pos, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationRelation generation)
+	internal void OnRemoteBlockDamaged(ulong sender, int x, int y, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationRelation generation)
 	{
 		var world = WorldGeneration.world;
 		if (world == null || HarmonyTraverse.IsGenerating()) // Unity objects/traverse — ==
@@ -260,12 +251,12 @@ internal sealed class BlockBreakSync(
 			if (IsHostMode)
 			{
 				_log.LogWarning("[BlockBreak] {Sender}'s report at ({X},{Y}) belongs to another world generation — not applied; {BlockCount} block drop(s) + {BuildingCount} building drop(s) rejected.",
-					sender, (int)pos.X, (int)pos.Y, drops?.Count ?? 0, buildingDrops?.Count ?? 0);
+					sender, x, y, drops?.Count ?? 0, buildingDrops?.Count ?? 0);
 				RejectBreakDrops(sender, drops, buildingDrops);
 			}
 			else
 			{
-				_log.LogWarning("[BlockBreak] the host's relay at ({X},{Y}) belongs to another world generation — not applied and its drops not materialized.", (int)pos.X, (int)pos.Y);
+				_log.LogWarning("[BlockBreak] the host's relay at ({X},{Y}) belongs to another world generation — not applied and its drops not materialized.", x, y);
 			}
 
 			return;
@@ -273,7 +264,9 @@ internal sealed class BlockBreakSync(
 
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			var cell = world.WorldToBlockPos(new Vector2(pos.X, pos.Y));
+			// The message carries the CELL itself (protocol 32): both sides name the
+			// same block, and the partial-damage accounting is keyed by it.
+			var cell = new Vector2Int(x, y);
 			var blockIsAir = world.GetBlock(cell) == 0;
 			var hasDropPayload = (drops is { Count: > 0 }) || (buildingDrops is { Count: > 0 });
 			if (IsHostMode)
@@ -310,7 +303,7 @@ internal sealed class BlockBreakSync(
 					}
 
 					_arbitration.RecordAccepted(sender, cell.x, cell.y, Time.unscaledTime);
-					AcceptBreak(sender, cell, pos, dmg, metalBonus, drops, buildingDrops, verdict);
+					AcceptBreak(sender, cell, dmg, metalBonus, drops, buildingDrops, verdict);
 					OnRemoteDamageBrokeBlock(sender, cell);
 					return;
 				}
@@ -331,7 +324,7 @@ internal sealed class BlockBreakSync(
 				world.DamageBlock(cell, dmg, true, metalBonus, true);
 				if (world.GetBlock(cell) != 0)
 				{
-					_world.BroadcastBlockDamaged(sender, pos, dmg, metalBonus, null, null);
+					_world.BroadcastBlockDamaged(sender, cell.x, cell.y, dmg, metalBonus, null, null);
 				}
 				else
 				{
@@ -389,12 +382,12 @@ internal sealed class BlockBreakSync(
 	/// acknowledgement that clears its pending drop report; the materialization
 	/// and registration are idempotent per item id, so a repeat is harmless).
 	/// </summary>
-	private void AcceptBreak(ulong sender, Vector2Int cell, NetVector2 pos, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, Verdict verdict)
+	private void AcceptBreak(ulong sender, Vector2Int cell, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, Verdict verdict)
 	{
 		_buildingEntities.MarkSupportLossRemote(cell);
 		_items.FireBlockDropsReceived(sender, drops ?? []);
 		_items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
-		_world.BroadcastBlockDamaged(0, pos, dmg, metalBonus, drops, buildingDrops);
+		_world.BroadcastBlockDamaged(0, cell.x, cell.y, dmg, metalBonus, drops, buildingDrops);
 		_log.LogInformation("[BlockBreak] {Sender}'s break at ({X},{Y}) {Verdict} — {BlockCount} block drop(s) + {BuildingCount} building drop(s) registered + relayed.",
 			sender, cell.x, cell.y,
 			verdict switch
@@ -445,9 +438,10 @@ internal sealed class BlockBreakSync(
 	/// </summary>
 	internal void OnBlockAirWrite(Vector2Int cell)
 	{
-		// The cell is air now: a pending partial-damage report for it would be
-		// refused (air) on every future report cycle, so it dies with the block.
-		_world.ForgetPendingBlockDamage(cell.x, cell.y);
+		// The cell is air now: a partial-damage contribution for it (this side's own,
+		// or any sender's ledger entry on the host) described a block that is gone,
+		// and a future block at the same cell starts from zero.
+		ForgetBlockDamageAccounting(cell);
 
 		var world = WorldGeneration.world;
 		if (world != null && BlockDamageCleaner.ClearForAirWrite(world, cell))
@@ -456,6 +450,19 @@ internal sealed class BlockBreakSync(
 				cell.x, cell.y);
 		}
 	}
+
+	/// <summary>
+	/// The block at this cell was WRITTEN (air, a fresh placement, a restored
+	/// block): whatever partial damage was accounted for there belonged to the
+	/// block that is gone, so this side's outstanding contribution and every
+	/// sender's ledger entry for the cell are dropped. Called from every write path
+	/// (the local SetBlock hook and the remote placement/air relays) — without it a
+	/// fresh block at a cell would inherit the previous block's accounting, and a
+	/// contribution below the stale value would resolve to "already accounted for"
+	/// and never be applied.
+	/// </summary>
+	internal void ForgetBlockDamageAccounting(Vector2Int cell) =>
+		_world.ForgetBlockDamageAccounting(cell.x, cell.y);
 
 	/// <summary>
 	/// The host's partial block-damage snapshot arrived (world entry / the

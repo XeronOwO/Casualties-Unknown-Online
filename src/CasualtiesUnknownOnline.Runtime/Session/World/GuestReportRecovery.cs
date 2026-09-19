@@ -21,13 +21,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 internal sealed class GuestReportRecovery(
 	ISessionControl session,
 	PacketSender sender,
-	INativeWorldFacts? nativeWorldFacts,
 	KernelWorldGenerationSource generations,
 	ILogger<WorldService> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
-	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
 	private readonly ILogger<WorldService> _log = log;
 
 	/// <summary>
@@ -43,7 +41,7 @@ internal sealed class GuestReportRecovery(
 	/// <summary>The W1 state: block cell → the block this side wrote there, unacknowledged by the host.</summary>
 	private readonly GuestBlockReportBookkeeping _blocks = new(log);
 
-	/// <summary>The W2 state: block cell → the absolute partial damage this side holds, unacknowledged by the host.</summary>
+	/// <summary>The W2 state: block cell → the damage THIS side has applied to it, and whether the host has answered for it since the last report.</summary>
 	private readonly GuestBlockDamageReportBookkeeping _damages = new(log);
 
 	/// <summary>The W1 drop half's state: block cell → the break's locally-created drops, unacknowledged by the host (the host learns a guest's break drops ONLY from the report, so their loss is an item-domain divergence the keyframe cannot heal).</summary>
@@ -107,54 +105,56 @@ internal sealed class GuestReportRecovery(
 			targetSteamId, x, y, block);
 	}
 
-	// ---- W2: unacknowledged partial-damage reports ----
+	// ---- W2: unaccounted partial-damage contributions ----
 
-	/// <summary>How many unacknowledged guest partial-damage reports are waiting for the host's answer (the fallback pump's work check).</summary>
+	/// <summary>How many cells are waiting for the host's answer (the fallback pump's work check).</summary>
 	internal int PendingDamageCount => _damages.Count;
 
 	/// <summary>
-	/// Guest only: record the cell's current ABSOLUTE damage BEFORE the live delta
-	/// report is sent. The live report stays a delta (the receiver accumulates it);
-	/// this record is what the fallback re-sends as an absolute value, so a
-	/// swallowed report is healed without double-applying. The value is the cell's
-	/// accumulated damage on THIS side (the game's own <c>BlockDamage.damage</c>),
-	/// which already includes every relay this side received.
+	/// Guest only: add a locally-applied hit to the cell's own contribution,
+	/// BEFORE the live delta report goes out (a send that never lands is exactly
+	/// what the fallback exists for), and return the new cumulative value for the
+	/// wire. The value is what THIS SIDE has applied to the cell — the host
+	/// accounts damage per sender, so a report carrying the cell's total would
+	/// merge two senders into one number and could only ever take their maximum
+	/// (review/partial-damage-delta-report-overlap). 0 = the cell could not be
+	/// tracked (the table's cap): the live report then carries no contribution and
+	/// the host applies its raw damage, which is the pre-ledger behaviour.
 	/// </summary>
-	internal void ReportDamage(int x, int y, float damage)
+	internal float AddLocalDamage(int x, int y, float increment)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			return;
+			return 0f;
 		}
 
-		_damages.Report(x, y, damage);
+		return _damages.Add(x, y, increment);
 	}
 
 	/// <summary>
-	/// Either role: an air write landed on the cell (local break, remote break,
-	/// earthquake/environment) — a broken block's partial damage is carried by the
-	/// block-state channel, so the pending damage report dies with the block. A
-	/// no-op outside a guest's own pending set.
+	/// Either role: a block write landed on the cell (air, placement, restore) —
+	/// the contribution belonged to the block that is gone, so the outstanding
+	/// entry dies with it. A no-op outside a guest's own table.
 	/// </summary>
 	internal void ForgetDamage(int x, int y) => _damages.Forget(x, y);
 
 	/// <summary>
-	/// Guest: the host's partial-damage snapshot arrived — it is also the ANSWER
-	/// to every outstanding absolute re-report whose cell it names (the
-	/// world-entry / 60 s snapshot and the per-report answer share this message),
-	/// so those pending entries are done.
+	/// Guest: the host's answer arrived — the cells it names are accounted for, so
+	/// their entries are no longer outstanding. The cumulative value STAYS (the
+	/// next hit at that cell reports cumulative + its increment, and the host
+	/// resolves the difference against the ledger it now holds).
 	/// </summary>
 	internal void AnswerDamage(IReadOnlyList<BlockDamageEntryMsg> entries) => _damages.Answer(entries);
 
-	/// <summary>The world these reports belonged to is gone — every pending partial-damage report dies with it.</summary>
+	/// <summary>The world these contributions belonged to is gone — every entry dies with it.</summary>
 	internal void ResetDamages() => _damages.Reset();
 
 	/// <summary>
-	/// Guest only: re-report every unacknowledged cell's ABSOLUTE damage to the
-	/// host — one <see cref="NetMsg.BlockDamageReport"/> carrying the whole
-	/// outstanding set (one operation, one message). The host merges per cell and
-	/// answers with its authoritative value for every reported cell (the existing
-	/// <see cref="NetMsg.BlockDamageSnapshot"/>), which is what clears the pending
+	/// Guest only: re-report every outstanding cell's own cumulative contribution
+	/// to the host — one <see cref="NetMsg.BlockDamageReport"/> carrying the whole
+	/// set (one operation, one message). The host resolves each row against its
+	/// ledger, so a row it already accounts for changes nothing, and answers with
+	/// its own value for every reported cell — that answer is what clears the
 	/// entry. Called by the fallback pump; a no-op when nothing is outstanding,
 	/// when this side is not a guest, or when the session ended.
 	/// </summary>
@@ -166,49 +166,9 @@ internal sealed class GuestReportRecovery(
 		}
 
 		_sender.Send(_session.HostSteamId, NetMsg.BlockDamageReport,
-			new BlockDamageSnapshotMsg { Entries = [.. _damages.Entries], Generation = _generations.Stamp() });
-		_log.LogInformation("[BlockSync] re-reported {Count} unacknowledged partial-damage cell(s) to the host.",
+			new BlockDamageSnapshotMsg { Entries = [.. _damages.Outstanding], Generation = _generations.Stamp() });
+		_log.LogInformation("[BlockSync] re-reported {Count} unaccounted partial-damage cell(s) to the host.",
 			_damages.Count);
-	}
-
-	/// <summary>
-	/// Host only: a guest's ABSOLUTE partial-damage report arrived. Merge it into
-	/// the GAME's own damage list through the native port — per cell, never below
-	/// what this host already holds, so two players' contributions and this host's
-	/// own all count — and broadcast this host's authoritative value for EVERY
-	/// reported cell. A zero answer means "no damage here" (the cell is air, the
-	/// row is out of range, or the game's own list is full): the reporter clears
-	/// its local crack, so a refused report converges instead of re-reporting
-	/// forever. The broadcast includes the reporter — that is its acknowledgement.
-	/// </summary>
-	internal void HandleDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || entries.Count == 0)
-		{
-			return;
-		}
-
-		if (_nativeWorldFacts is null)
-		{
-			_log.LogDebug("[BlockSync] no native world-fact port is registered — {Peer}'s partial-damage report is neither merged nor answered.",
-				sender);
-			return;
-		}
-
-		var authoritative = _nativeWorldFacts.MergeBlockDamages(entries);
-		if (authoritative is null)
-		{
-			// No live world to merge into: answering with an invented set would
-			// clear the reporter's pending entry against a table that does not
-			// exist, so the report stays outstanding for the next cycle.
-			_log.LogWarning("[BlockSync] no live world to merge {Peer}'s partial-damage report into — the report is not answered.",
-				sender);
-			return;
-		}
-
-		_session.Broadcast(NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg { Entries = [.. authoritative], Generation = _generations.Stamp() });
-		_log.LogInformation("[BlockSync] merged {Peer}'s partial-damage report ({Count} cell(s)) and answered with {Answered} authoritative value(s).",
-			sender, entries.Count, authoritative.Count);
 	}
 
 	/// <summary>Guest, in session, something outstanding — the shape both re-sends need.</summary>
@@ -227,14 +187,14 @@ internal sealed class GuestReportRecovery(
 	/// breaker's items unknown to the authoritative table and the item keyframe
 	/// has no fact to reconcile them from — this record is the fallback's source.
 	/// </summary>
-	internal void ReportBreakDrops(int x, int y, float posX, float posY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	internal void ReportBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
 			return;
 		}
 
-		_breakDrops.Report(x, y, posX, posY, drops, buildingDrops);
+		_breakDrops.Report(x, y, drops, buildingDrops);
 	}
 
 	/// <summary>
@@ -288,7 +248,8 @@ internal sealed class GuestReportRecovery(
 		{
 			_sender.Send(_session.HostSteamId, NetMsg.BlockDamaged, new BlockDamagedMsg
 			{
-				Position = new NetVector2(entry.PosX, entry.PosY).ToNetVector2Msg(),
+				X = entry.X,
+				Y = entry.Y,
 				Damage = 0f,
 				MetalBonus = false,
 				Drops = entry.Drops.Count > 0 ? [.. entry.Drops] : null,

@@ -39,7 +39,7 @@ public class BlockBreakPendingStateTests
 	{
 		var state = new BlockBreakPendingState();
 
-		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 
 		Assert.Equal(BlockBreakPendingState.Phase.Broken, state.Current);
 	}
@@ -48,7 +48,7 @@ public class BlockBreakPendingStateTests
 	public void EnterBreak_ThenSameFrameFlush_Refused()
 	{
 		var state = new BlockBreakPendingState();
-		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 
 		// The drops' Item.Start runs NEXT frame — flushing now sends half the drops.
 		Assert.False(state.TryFlush(BreakFrame, out _));
@@ -59,13 +59,13 @@ public class BlockBreakPendingStateTests
 	public void EnterBreak_ThenNextFrameFlush_ReturnsFullPayload()
 	{
 		var state = new BlockBreakPendingState();
-		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 		Assert.True(state.TryAddDrop(Drop(1)));
 		Assert.True(state.TryAddDrop(Drop(2)));
 
 		Assert.True(state.TryFlush(BreakFrame + 1, out var flushed));
-		Assert.Equal(5f, flushed.PosX);
-		Assert.Equal(-3f, flushed.PosY);
+		Assert.Equal(5, flushed.CellX);
+		Assert.Equal(-3, flushed.CellY);
 		Assert.Equal(40f, flushed.Dmg);
 		Assert.True(flushed.MetalBonus, "the bonus-metal flag must survive the pending hold");
 		Assert.Equal(Op, flushed.Op);
@@ -77,7 +77,7 @@ public class BlockBreakPendingStateTests
 	public void Flush_Twice_SecondRefused()
 	{
 		var state = new BlockBreakPendingState();
-		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 		Assert.True(state.TryFlush(BreakFrame + 1, out _));
 
 		Assert.False(state.TryFlush(BreakFrame + 2, out _));
@@ -104,7 +104,7 @@ public class BlockBreakPendingStateTests
 	public void TryAddDrop_FoldsIntoThePendingList()
 	{
 		var state = new BlockBreakPendingState();
-		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 
 		Assert.True(state.TryAddDrop(Drop(1)));
 		Assert.True(state.TryAddDrop(Drop(2)));
@@ -117,7 +117,7 @@ public class BlockBreakPendingStateTests
 	public void TryAddBuildingDrop_FoldsIntoThePendingList()
 	{
 		var state = new BlockBreakPendingState();
-		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 
 		Assert.True(state.TryAddBuildingDrop(BuildingDrop(9)));
 		Assert.True(state.TryAddBuildingDrop(BuildingDrop(10)));
@@ -142,7 +142,7 @@ public class BlockBreakPendingStateTests
 	public void TryReset_CancelsAndReturnsOp()
 	{
 		var state = new BlockBreakPendingState();
-		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 
 		Assert.True(state.TryReset(out var resetOp));
 		Assert.Equal(Op, resetOp);
@@ -161,11 +161,11 @@ public class BlockBreakPendingStateTests
 	public void EnterBreak_OverwritesPreviousPending()
 	{
 		var state = new BlockBreakPendingState();
-		state.EnterBreak(1f, 1f, 10f, false, 11, BreakFrame);
-		state.EnterBreak(2f, 2f, 20f, true, Op, BreakFrame + 1);
+		state.EnterBreak(1, 1, 10f, false, 11, BreakFrame);
+		state.EnterBreak(2, 2, 20f, true, Op, BreakFrame + 1);
 
 		state.TryFlush(BreakFrame + 2, out var flushed);
-		Assert.Equal(2f, flushed.PosX);
+		Assert.Equal(2, flushed.CellX);
 		Assert.Equal(20f, flushed.Dmg);
 		Assert.True(flushed.MetalBonus, "the overwrite carries its own bonus flag");
 		Assert.Equal(Op, flushed.Op);
@@ -175,14 +175,14 @@ public class BlockBreakPendingStateTests
 	public void FullSequence_BreakFoldFlushReset()
 	{
 		var state = new BlockBreakPendingState();
-		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 		Assert.True(state.TryAddDrop(Drop(1)));
 		Assert.True(state.TryFlush(BreakFrame + 1, out var flushed));
 		Assert.Single(flushed.Drops);
 		Assert.Equal(BlockBreakPendingState.Phase.Idle, state.Current);
 
 		// A new break starts clean.
-		state.EnterBreak(9f, 9f, 50f, false, Op + 1, BreakFrame + 2);
+		state.EnterBreak(9, 9, 50f, false, Op + 1, BreakFrame + 2);
 		Assert.Equal(BlockBreakPendingState.Phase.Broken, state.Current);
 		Assert.True(state.TryReset(out var resetOp));
 		Assert.Equal(Op + 1, resetOp);

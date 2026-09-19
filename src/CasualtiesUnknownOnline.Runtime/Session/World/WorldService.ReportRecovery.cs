@@ -18,13 +18,13 @@ public sealed partial class WorldService
 
 	// ---- Guest partial-damage report recovery (audit gap W2) ----
 
-	/// <summary>Guest only: record the cell's current ABSOLUTE partial damage before the live delta report goes out (the fallback's re-report source).</summary>
-	public void ReportBlockDamage(int x, int y, float damage) => _blockReports.ReportBlockDamage(x, y, damage);
+	/// <summary>Guest only: add a locally-applied hit to the cell's own contribution and return the new cumulative value for the live report (0 = not tracked, so the report carries no contribution).</summary>
+	public float AddLocalBlockDamage(int x, int y, float increment) => _blockReports.AddLocalBlockDamage(x, y, increment);
 
-	/// <summary>Either role: the cell went air — its pending partial-damage report dies with the block.</summary>
-	public void ForgetPendingBlockDamage(int x, int y) => _blockReports.ForgetPendingBlockDamage(x, y);
+	/// <summary>Either role: a block write landed on the cell — this side's outstanding contribution and every sender's ledger entry for it die with the block.</summary>
+	public void ForgetBlockDamageAccounting(int x, int y) => _blockReports.ForgetBlockDamageAccounting(x, y);
 
-	/// <summary>Guest only: a new world/layer baseline was applied — the previous world's pending partial-damage reports are dropped.</summary>
+	/// <summary>Either role: a new world/layer baseline was applied — the previous world's outstanding contributions and ledger entries are dropped.</summary>
 	public void ResetPendingBlockDamageReports() => _blockReports.ResetPendingBlockDamageReports();
 
 	// ---- Guest break-drop report recovery (audit gap W1's drop half) ----
@@ -35,9 +35,9 @@ public sealed partial class WorldService
 	// payload (never by the block-state echo, which says nothing about whether the
 	// drops arrived).
 
-	/// <summary>Guest only: record the break's drops and their reported position before its live report goes out (the fallback's re-report source).</summary>
-	public void ReportBreakDrops(int x, int y, float posX, float posY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) =>
-		_blockReports.GuestReports.ReportBreakDrops(x, y, posX, posY, drops, buildingDrops);
+	/// <summary>Guest only: record the break's locally-created drops before its live report goes out (the fallback's re-report source) — the break message is cell-keyed, so no world position is part of the record.</summary>
+	public void ReportBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) =>
+		_blockReports.GuestReports.ReportBreakDrops(x, y, drops, buildingDrops);
 
 	/// <summary>Guest: the host relayed this cell's break — the drops it names are answered; a drop answered another way is forgotten individually.</summary>
 	public void AnswerBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) =>

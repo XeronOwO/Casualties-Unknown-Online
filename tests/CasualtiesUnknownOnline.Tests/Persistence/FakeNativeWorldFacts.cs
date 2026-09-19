@@ -51,6 +51,24 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	internal void ClearBlockDamages() => _damages.Clear();
 
 	/// <summary>
+	/// The game's own accumulation, as the adapter's relay applies it
+	/// (<c>WorldGeneration.DamageBlock</c>: <c>blockDamage.damage += dmg</c>) — the
+	/// test-side stand-in for the engine write, so a suite can drive the Runtime's
+	/// accounting decisions against the same rows the port reads.
+	/// </summary>
+	internal void ApplyDamage(int x, int y, float damage)
+	{
+		var existing = _damages.FirstOrDefault(d => d.X == x && d.Y == y);
+		if (existing is null)
+		{
+			_damages.Add(new BlockDamageEntryMsg { X = x, Y = y, Damage = damage });
+			return;
+		}
+
+		existing.Damage += damage;
+	}
+
+	/// <summary>
 	/// Set to make <see cref="Capture"/> report an unreadable table set — the
 	/// "no live world" shape, which must refuse a cut rather than come back as an
 	/// empty (clean) world.
@@ -96,56 +114,6 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	{
 		Calls.Add("capture-unlocked-recipes");
 		return CaptureFailure is null ? [.. _unlockedRecipes] : null; // CaptureFailure doubles as "no live world" / "the table is not built"
-	}
-
-	/// <summary>
-	/// Set to make every merge come back "no damage here" (0 per reported cell) —
-	/// the same answer a real host gives for a report its own cap/range rules
-	/// refused, which must still clear the reporter's pending entry.
-	/// </summary>
-	internal bool MergesAreRefused { get; set; }
-
-	/// <summary>
-	/// The host half of the guest report's loop, in the fake's own terms: the
-	/// report merges into "the game's list" per cell, never lowering a cell, and
-	/// the authoritative value of every reported cell comes back. The real
-	/// air/range/cap rules live in the adapter's table and are covered there; this
-	/// fake carries the same never-lower contract plus a switch for the refused
-	/// shape. <see cref="CaptureFailure"/> doubles as "no live world": nothing is
-	/// merged, nothing is answered (null).
-	/// </summary>
-	public IReadOnlyList<BlockDamageEntryMsg>? MergeBlockDamages(IReadOnlyList<BlockDamageEntryMsg> reported)
-	{
-		Calls.Add("merge-block-damages");
-		if (CaptureFailure is not null)
-		{
-			return null;
-		}
-
-		var authoritative = new List<BlockDamageEntryMsg>(reported.Count);
-		foreach (var row in reported)
-		{
-			if (MergesAreRefused)
-			{
-				authoritative.Add(new BlockDamageEntryMsg { X = row.X, Y = row.Y, Damage = 0f });
-				continue;
-			}
-
-			var existing = _damages.FirstOrDefault(d => d.X == row.X && d.Y == row.Y);
-			if (existing is null)
-			{
-				existing = new BlockDamageEntryMsg { X = row.X, Y = row.Y, Damage = row.Damage };
-				_damages.Add(existing);
-			}
-			else if (row.Damage > existing.Damage)
-			{
-				existing.Damage = row.Damage;
-			}
-
-			authoritative.Add(new BlockDamageEntryMsg { X = row.X, Y = row.Y, Damage = existing.Damage });
-		}
-
-		return authoritative;
 	}
 
 	/// <summary>The native run fields as the "live world" holds them (seeded, or written back by a restore).</summary>

@@ -14,10 +14,17 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the source excluded, it already applied locally (the adapter's reentry guard
 /// keeps the local application from echoing a new report). Guest: the host's
 /// broadcast — apply it.
+/// <para>
+/// A partial-damage report additionally carries its sender's cumulative
+/// contribution on that cell: the world layer resolves it against the per-sender
+/// ledger BEFORE the domain sees it and raises the event with the increment this
+/// host has not accounted for — a repeat, a stale frame or a duplicate report
+/// raises nothing at all.
+/// </para>
 /// </summary>
 [PacketHandler(NetMsg.BlockDamaged, NetMessageDirection.Bidirectional)]
 public sealed class BlockDamagedHandler : PacketHandlerBase<BlockDamagedMsg, IWorldHandlerContext>
 {
 	protected override void Handle(ulong sender, BlockDamagedMsg msg, IWorldHandlerContext ctx) =>
-		ctx.World.FireBlockDamagedReceived(sender, msg.Position.ToNetVector2(), msg.Damage, msg.MetalBonus, msg.Drops, msg.BuildingDrops, msg.Generation);
+		ctx.World.FireBlockDamagedReceived(sender, msg.X, msg.Y, msg.Damage, msg.MetalBonus, msg.Drops, msg.BuildingDrops, msg.Contribution, msg.Generation);
 }

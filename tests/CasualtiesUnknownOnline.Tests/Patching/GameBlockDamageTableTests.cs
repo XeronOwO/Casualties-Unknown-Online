@@ -70,28 +70,6 @@ public class GameBlockDamageTableTests
 	}
 
 	[Fact]
-	public void DecideMerge_NeverLowersTheHostsOwnDamageAndKeepsTheSameBoundary()
-	{
-		// The report is higher than the host's own row → the row rises.
-		Assert.Equal("Raise", DecideMerge(reported: 50f, block: 1, health: 100f, host: 20f, tracked: true, count: 1));
-		// A cell the host does not track yet, below the game's own cap → a new row.
-		Assert.Equal("Raise", DecideMerge(reported: 50f, block: 1, health: 100f, host: 0f, tracked: false, count: 0));
-		// The host already holds at least this much → its value stands: a re-report
-		// can neither lower the row nor double-count the same hit.
-		Assert.Equal("KeepHost", DecideMerge(reported: 50f, block: 1, health: 100f, host: 50f, tracked: true, count: 1));
-		Assert.Equal("KeepHost", DecideMerge(reported: 50f, block: 1, health: 100f, host: 80f, tracked: true, count: 1));
-		// The same boundary the snapshot apply enforces.
-		Assert.Equal("RefuseAir", DecideMerge(reported: 50f, block: 0, health: 0f, host: 0f, tracked: false, count: 0));
-		Assert.Equal("RefuseAir", DecideMerge(reported: 50f, block: 0, health: 0f, host: 30f, tracked: true, count: 1));
-		Assert.Equal("RefuseRange", DecideMerge(reported: 100f, block: 1, health: 100f, host: 0f, tracked: false, count: 0)); // at health — a break, not partial damage
-		Assert.Equal("RefuseRange", DecideMerge(reported: 0f, block: 1, health: 100f, host: 0f, tracked: false, count: 0));
-		Assert.Equal("RefuseRange", DecideMerge(reported: -1f, block: 1, health: 100f, host: 0f, tracked: true, count: 0));
-		Assert.Equal("RefuseCap", DecideMerge(reported: 50f, block: 1, health: 100f, host: 0f, tracked: false, count: 128));
-		// A cell the host already tracks always takes a raising report, even at the cap.
-		Assert.Equal("Raise", DecideMerge(reported: 50f, block: 1, health: 100f, host: 20f, tracked: true, count: 128));
-	}
-
-	[Fact]
 	public void NativeWorldFacts_HoldsTheRestoredTablesUntilTheyAreTakenExactlyOnce()
 	{
 		var native = CreateNativeWorldFacts();
@@ -188,9 +166,6 @@ public class GameBlockDamageTableTests
 		TableMethod("Decide").Invoke(null, [damage, block, health, tracked, count])!.ToString()!;
 
 	/// <summary>The report-merge verdict (a guest's ABSOLUTE value against this host's own row).</summary>
-	private static string DecideMerge(float reported, ushort block, float health, float host, bool tracked, int count) =>
-		TableMethod("DecideMerge").Invoke(null, [reported, block, health, host, tracked, count])!.ToString()!;
-
 	// ---- the native world-fact port (pending handover, take-once) ----
 
 	private static object CreateNativeWorldFacts()

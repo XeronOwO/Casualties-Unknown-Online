@@ -40,9 +40,6 @@ public static class WorldTransientPolicy
 	/// <summary>A local drop holds its report one frame for the throw velocity (DropPendingState).</summary>
 	public const string DropFlushKey = "drop-flush";
 
-	/// <summary>A pickup claim that beat its item's spawn report, held in PendingPickupQueue.</summary>
-	public const string PickupQueueKey = "pickup-queue";
-
 	/// <summary>An injected/removal operation whose session is still open.</summary>
 	public const string MedicalSessionKey = "medical-session";
 
@@ -83,9 +80,6 @@ public static class WorldTransientPolicy
 		new(TrapDropHoldKey, "TrapDropPendingState", WorldTransientVerdict.ResolveBeforeSave, WorldTransientDetection.Observed,
 			"trap event(s) holding for their drops",
 			"The destructive trap's event is held until the death branch's items have run Item.Start, so the trap fact and its drops reach the kernel as one composite. Cutting inside the hold loses the drops."),
-		new(PickupQueueKey, "PendingPickupQueue", WorldTransientVerdict.DropWithLog, WorldTransientDetection.Observed,
-			"pickup claim(s) waiting for their spawn report",
-			"A network claim window (500 ms), not world state: the claim was made by a client whose item report was still in flight. A restored world has the item; the claim is stale and the claiming client re-reports."),
 		new(DropFlushKey, "DropPendingState", WorldTransientVerdict.ResolveBeforeSave, WorldTransientDetection.Observed,
 			"drop report(s) waiting for the throw",
 			"The drop was applied in the live world but its kernel fact follows the final throw velocity one frame later. Cutting inside the window restores the item to its pre-drop owner."),

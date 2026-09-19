@@ -300,8 +300,7 @@ public static class CuoBootstrap
 		// Pending-report fallback pump: the single time edge for the guest's
 		// unacknowledged block mutations (W1) and runtime entity creations (E3),
 		// re-reported until the host answers. Both domains stay reaction-only;
-		// this tiny pump is their clock, like PendingPickupPump for the item
-		// domain.
+		// this tiny pump is their clock.
 		services.AddSingleton<WorldReportFallbackPump>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<WorldReportFallbackPump>());
 		// Text-chat domain: the bounded recent-message buffer + send path (no
@@ -335,14 +334,19 @@ public static class CuoBootstrap
 		// behavior. It is Unity-free and shared by the standalone overlay.
 		services.AddSingleton<ConsoleInputSession>();
 		// Item domain: the authoritative world-item table + pickup arbitration
-		// (ItemService itself reacts to calls and messages; the pending-pickup
-		// hold window's expiry edge is the tiny PendingPickupPump below).
+		// (ItemService itself reacts to calls and messages — no pump: the
+		// creation-before-operation invariant replaced the old hold window, so
+		// nothing is parked waiting for an item's creation report).
 		// ItemArbitration is DI-registered so the crafting domain composes the
 		// same transfer table (RemoveTransferred/AdoptEvidence/RegisterCarried).
 		services.AddSingleton<ProjectionHealthCoordinator>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ProjectionHealthCoordinator>());
 		services.AddSingleton<ItemArbitration>();
 		services.AddSingleton<ItemKernelAuthority>();
+		// The host's tombstones for item ids whose creation it refused: shared by
+		// the kernel command path (which answers a later operation with the precise
+		// reason) and the item domain (which records the refusal).
+		services.AddSingleton<RefusedItemCreations>();
 		// Phase C four-envelope kernel protocol: executes wire commands on the
 		// host, applies checkpoints/batches on the guest, and owns the host
 		// journal used by join/reconnect fallback.
@@ -372,8 +376,6 @@ public static class CuoBootstrap
 		// session, character-data and item control surfaces; no pump.
 		services.AddSingleton<PlayerInteractionService>();
 		services.AddSingleton<IPlayerInteractionControl>(p => p.GetRequiredService<PlayerInteractionService>());
-		services.AddSingleton<PendingPickupPump>();
-		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PendingPickupPump>());
 		// Item-traffic observer: logs the per-window item-message volume (no
 		// batching/rate-limit — observe first, optimize only if the numbers hurt).
 		services.AddSingleton<ItemTrafficPump>();

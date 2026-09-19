@@ -5,7 +5,6 @@ using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 
@@ -25,6 +24,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
 	private readonly ItemKernelAuthority _authority;
+	private readonly RefusedItemCreations _refusedCreations;
 	private readonly ILogger<KernelProtocolService> _log;
 	private readonly KernelProtocolCommandHandler _commandHandler;
 	private readonly List<CommittedBatch> _journal = [];
@@ -46,15 +46,16 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		ISessionControl session,
 		PacketSender sender,
 		ItemKernelAuthority authority,
-		ITimeSource time,
+		RefusedItemCreations refusedCreations,
 		ILogger<KernelProtocolService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_authority = authority;
+		_refusedCreations = refusedCreations;
 		_log = log;
 		_stateStreams = new KernelStateStreamService(session, sender, authority, payloadType => CreateHeader(payloadType, 0));
-		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, time, log);
+		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, refusedCreations, log);
 		_authority.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetForSessionEnd;
 	}
@@ -205,10 +206,6 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	}
 
 	public void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason) => _commandHandler.SendCommandRejected(targetSteamId, itemId, reason);
-	public void PumpPendingPickups(long nowMs) => _commandHandler.PumpPendingPickups(nowMs);
-
-	/// <summary>The cut policy's read-only probe: pickup claims that beat their item's spawn report and are still held (WorldTransientPolicy.PickupQueueKey).</summary>
-	public int PendingPickupCount => _commandHandler.PendingPickupCount;
 
 	public void ResetForSessionEnd()
 	{
@@ -219,7 +216,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_nextMessageId = 0;
 		_staleStreamEpochWarned.Clear();
 		_stateStreams.Reset();
-		_commandHandler.Reset();
+		_refusedCreations.Reset(); // item ids are session-partitioned: a finished session's creation tombstones must not refuse the next session's ids
 	}
 
 	private void HandleHostFrame(ulong sender, ProtocolFrame frame)

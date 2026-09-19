@@ -49,6 +49,15 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// </summary>
 	void SendItemCooked(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity);
 
+	/// <summary>
+	/// Composition seam: register an owner of DEFERRED creation reports. The item
+	/// domain settles every registered source before it reports an operation, so a
+	/// creation report always precedes an operation on the same item — the host
+	/// judges the creation first and never has to wait for it (see
+	/// <see cref="PendingItemCreations"/>).
+	/// </summary>
+	void RegisterPendingCreationSource(IPendingItemCreationSource source);
+
 	// ===== Receive side (packet handlers surface the wire here) =====
 
 	/// <summary>Host/solo: record the drops of a LOCALLY broken block into the authoritative table (the report travels inside BlockDamagedMsg — never a standalone spawn report).</summary>

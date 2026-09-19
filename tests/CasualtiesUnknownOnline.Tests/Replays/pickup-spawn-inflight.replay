@@ -1,18 +1,21 @@
-# Phase-4 replay archive — the spawn-report-in-flight race: the pickup wins
-# the race against its own spawn report (the pickup lands while the spawn
-# report is still delayed on the wire). The host's pending-pickup queue holds
-# the claim for up to 500 ms; when the spawn lands inside the hold the SAME
-# transfer the spawn-first path would have produced settles — no reject, no
-# local rollback. The spawn relay is source-excluded and the settled pickup
-# relay reaches the other guest exactly once (the carried-fact sync rides the
-# same settlement), so G1 sees no wire echo and G2 sees pickup without spawn.
+# Phase-4 replay archive — the creation-before-operation invariant on the
+# judging side: a pickup that beats its own spawn report names an item whose
+# creation this host has never judged. It is refused AT ONCE — no hold window,
+# no guess, no waiting for the creation to maybe arrive — and the late spawn
+# report still registers idempotently afterwards, so the item simply stays in
+# the world and nobody owns it.
 #
-# Fossil of: ItemRaceTests.SpawnPickupInflight_PickupArrivesFirst_SettlesWhenTheSpawnLands
-# Mechanism: ItemService.PendingPickups.cs — PendingPickupQueue hold + spawn settlement
+# The SENDER's half of the invariant (settle every deferred creation report
+# before reporting an operation on the same item) is what keeps this shape
+# unreachable in a correct session; this file pins the host's answer when a peer
+# breaks the rule. The old 500 ms hold lived here and is gone rather than kept
+# as a fallback.
+#
+# Mechanism: KernelProtocolCommandHandler.TryRefuseUnjudgedOperation
 
 @0 pickup g1 42 test_item 1.0
 @0 fault g1 host delay=300
 @0 spawn g1 42 test_item 1.0
-@33 expect_no_reject g1
-@333 expect no_host_table 42 within 500
-@333 expect_no_reject g1
+@33 expect reject g1 42
+@33 expect no_host_table 42
+@333 expect host_table 42 within 500

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -20,11 +19,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// owner is exactly the drift the block-damage decision removed).
 /// </summary>
 public sealed class WorldCutTransientProbe(
-	KernelProtocolService protocol,
 	IMedicalOperationControl medical,
 	RuntimeEntityChannel entities) : IWorldCutTransientProbe
 {
-	private readonly KernelProtocolService _protocol = protocol;
 	private readonly IMedicalOperationControl _medical = medical;
 	private readonly RuntimeEntityChannel _entities = entities;
 
@@ -34,7 +31,6 @@ public sealed class WorldCutTransientProbe(
 		var sessions = _medical.PendingCutSessions;
 		return
 		[
-			new(WorldTransientPolicy.PickupQueueKey, _protocol.PendingPickupCount),
 			new(WorldTransientPolicy.MedicalSessionKey, sessions.Medical),
 			new(WorldTransientPolicy.ShrapnelSessionKey, sessions.Shrapnel),
 			new(WorldTransientPolicy.OtherMedicalSessionKey, sessions.Other),

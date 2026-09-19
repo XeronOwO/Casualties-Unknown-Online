@@ -24,6 +24,7 @@ internal sealed class ItemMessageFlowService(
 	Action<ItemTrafficKind, string> recordTraffic,
 	Func<ulong, string> itemTrafficLabel,
 	Action<WorldItem> onItemSpawned,
+	RefusedItemCreations refusedCreations,
 	IKernelProtocolControl kernelProtocol)
 {
 	private readonly ISessionControl _session = session;
@@ -36,8 +37,15 @@ internal sealed class ItemMessageFlowService(
 	private readonly Action<ItemTrafficKind, string> _recordTraffic = recordTraffic;
 	private readonly Func<ulong, string> _itemTrafficLabel = itemTrafficLabel;
 	private readonly Action<WorldItem> _onItemSpawned = onItemSpawned;
+	private readonly RefusedItemCreations _refusedCreations = refusedCreations;
+
+	/// <summary>The creation-before-operation gate: a deferred creation report is settled before any operation report on an item leaves this side.</summary>
+	private readonly PendingItemCreations _pendingCreations = new(session);
 
 	// ===== Report side (local compute) =====
+
+	/// <summary>Composition seam: the Game Adapter registers the owners of its deferred creation reports.</summary>
+	public void RegisterPendingCreationSource(IPendingItemCreationSource source) => _pendingCreations.Register(source);
 
 	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
 	{
@@ -74,6 +82,7 @@ internal sealed class ItemMessageFlowService(
 
 	public void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null)
 	{
+		_pendingCreations.SettleBeforeOperation(); // the host judges an operation only after the item's creation — settle the deferred creation reports first
 		if (_session.Role != SessionRole.Guest)
 		{
 			_projection.ApplyPickup(_session.LocalSteamId, itemId);
@@ -102,14 +111,27 @@ internal sealed class ItemMessageFlowService(
 		// broadcast by KernelProtocolService.
 	}
 
-	public void SendItemUse(ulong itemId, CharacterItemMsg item) => _itemActionSync.SendItemUse(itemId, item);
+	public void SendItemUse(ulong itemId, CharacterItemMsg item)
+	{
+		_pendingCreations.SettleBeforeOperation();
+		_itemActionSync.SendItemUse(itemId, item);
+	}
 
-	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item) => _itemActionSync.SendItemSlot(itemId, slotIndex, item);
+	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item)
+	{
+		_pendingCreations.SettleBeforeOperation();
+		_itemActionSync.SendItemSlot(itemId, slotIndex, item);
+	}
 
-	public void SendItemContainerContent(ulong itemId, CharacterItemMsg item) => _itemActionSync.SendItemContainerContent(itemId, item);
+	public void SendItemContainerContent(ulong itemId, CharacterItemMsg item)
+	{
+		_pendingCreations.SettleBeforeOperation();
+		_itemActionSync.SendItemContainerContent(itemId, item);
+	}
 
 	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f)
 	{
+		_pendingCreations.SettleBeforeOperation(); // a drop reports an operation on the item AND its world fact — the creation must be judged first
 		if (_session.Role != SessionRole.Guest)
 		{
 			_projection.ApplyDrop(_session.LocalSteamId, itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
@@ -141,6 +163,7 @@ internal sealed class ItemMessageFlowService(
 
 	public void SendItemDestroyed(ulong itemId)
 	{
+		_pendingCreations.SettleBeforeOperation();
 		var trafficLabel = _itemTrafficLabel(itemId);
 		if (_session.Role != SessionRole.Guest)
 		{
@@ -213,6 +236,18 @@ internal sealed class ItemMessageFlowService(
 			ItemRejectMsg.Reason.BlockAlreadyBroken => RejectionReason.BlockAlreadyBroken,
 			_ => RejectionReason.UnknownAggregate,
 		};
+
+		// The creation of this id is dead. Remember it, so a later operation on the
+		// same id is answered with THIS reason at once — and is never confused with
+		// an operation whose creation was never reported (a protocol violation).
+		// Recorded only for a refusal this host actually delivers (the guards above
+		// and the target check below), so a guest-side or target-less call cannot
+		// plant a tombstone for an id nothing was refused on.
+		if (targetSteamId != 0)
+		{
+			_refusedCreations.Record(itemId, rejection);
+		}
+
 		_kernelProtocol.SendCommandRejected(targetSteamId, itemId, rejection);
 	}
 

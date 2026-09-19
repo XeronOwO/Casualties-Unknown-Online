@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: limb claim traced in all 3 families + MedicalStartRecheck; per-kind rule in MedicalOperationUnitRules
+      file:line or runtime log) or is explicitly marked unverified — evidence: ticket Problem + "What landed" enumerate every guest creation path and every host unjudged-id entry
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all three families moved in one pass; ResolvesOnce covers all 9 kinds; shrapnel per-piece unchanged
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfchecks/players/medical-operation-concurrency-selfcheck.md section 1 + the ticket's What landed
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 6 operation reports settle; judging side covers pickup/drop/transfer/destroy/update-state, not a pickup special case
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: review/item-creation-registration-first.md "What landed" + its 7-row Verification table (each row names its test)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: MedicalOperationConcurrencyTests 7 cases pin matrix rows 1-6; row 7 is dual-client acceptance
+      peer log comparison, hotrepl assertions) is decided — evidence: ItemSimWorld tests invoke the real IItemControl seam; pickup-spawn-inflight.replay rewritten; seeded oracle replays real delivery order
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: decision 184's ruling + the 2026-09-19 answer A recorded in the ticket; no work-item re-ask
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0; full with build 3304 main + 55 gates green (checklist test run separately)
+      process violation — evidence: decision 184 froze "creation registers first + refused-creation tombstone"; handoff named this ticket; no work-item re-ask
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0; build 0 warnings/0 errors; full 3305 main + 55 gates green (checklist test run separately); focused 60/60
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: other-medical 570 / applier 539 / shrapnel 541 / injection 506 lines; handler 599 watchlisted; BuildTerminal made pure
+      dead mechanisms deleted in the same round) — evidence: handler 351 / GameAdapter 591 / ItemService 586 / CuoBootstrap 585; queue+pump+envelopes+DI+cut row+tests+2 replays deleted same round
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

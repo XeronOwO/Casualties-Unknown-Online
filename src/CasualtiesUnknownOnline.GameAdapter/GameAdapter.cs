@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Configuration;
@@ -96,6 +97,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
 			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
+		// Composition seam: the adapter owns the DEFERRED creation reports (a drop's
+		// velocity, a destructive trap's building-death drops, a block break's drops)
+		// and the item domain settles them before it reports an operation, so the host
+		// always judges an item's creation before any operation on it (no hold window).
+		items.RegisterPendingCreationSource(new PendingItemCreationReports(_domains.ItemWorldSync, _domains.EntityEventSync, _domains.BlockBreakSync));
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		_remoteInventoryApply = new RemoteInventoryOperationApply(_domains);

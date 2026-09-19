@@ -41,7 +41,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly ProjectionHealthCoordinator _projectionHealth;
 	private readonly RestoredWorldItemSet _restoredWorldItems;
 
-	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, WorldRestoreAudit? audit = null)
+	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, WorldRestoreAudit? audit = null)
 	{
 		_session = session;
 		_log = log;
@@ -91,6 +91,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			RecordItemTraffic,
 			ItemTrafficLabel,
 			item => ItemSpawned?.Invoke(item),
+			refusedCreations,
 			_kernelProtocol);
 
 		session.SessionEnded += OnSessionEnded;
@@ -201,6 +202,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_messageFlow.SendItemDropped(itemId, item, pos, vel, parentItemId, rotation, parentPos, angularVelocity);
 
 	public void SendItemDestroyed(ulong itemId) => _messageFlow.SendItemDestroyed(itemId);
+
+	public void RegisterPendingCreationSource(IPendingItemCreationSource source) => _messageFlow.RegisterPendingCreationSource(source);
 
 	public void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops) => _messageFlow.RegisterBlockDrops(drops);
 
@@ -477,8 +480,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_worldTable.TryGetValue(itemId, out var entry) ? entry.Item.ItemId : $"#{itemId}";
 
 	internal void ResetItemTraffic() => _itemTraffic.Reset();
-
-	internal void PumpPendingPickups(long nowMs) => _kernelProtocol.PumpPendingPickups(nowMs);
 
 	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _messageFlow.RegisterWorldItemIfAbsent(itemId, item);
 

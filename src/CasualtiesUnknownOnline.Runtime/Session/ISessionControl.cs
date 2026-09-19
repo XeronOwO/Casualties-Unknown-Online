@@ -78,6 +78,22 @@ public interface ISessionControl
 
 	void FireRemoteSceneChanged(ulong steamId, bool inWorld);
 
+	/// <summary>
+	/// Host only: raised when a member that is ALREADY in the world re-asserted its scene
+	/// report while its entry window was still open — the entry state it may have missed is
+	/// re-sent on this signal. The Game Adapter re-fans-out the entry tables it owns (geyser
+	/// types, keypad codes) here, exactly as it does on the entry edge; the runtime's absolute
+	/// in-world tables are re-sent at the same decision point by
+	/// <see cref="World.WorldEntryFanout.SendInSessionRepair"/>. A repeat only happens while the
+	/// member's readiness window is open (the marker OR the gate release is missing), so a window
+	/// closed by BOTH control facts never fires it — while a window a still-armed start gate holds
+	/// open does, bounded by the member's
+	/// <see cref="MemberPresenceTable.MemberPresence.EntryRepair"/>.
+	/// </summary>
+	event Action<ulong>? EntryRepairRequested;
+
+	void FireEntryRepairRequested(ulong steamId);
+
 	/// <summary>Raise the MemberAdded event (the handshake handlers fire it when a member's handshake completes).</summary>
 	void FireMemberAdded(ulong steamId);
 

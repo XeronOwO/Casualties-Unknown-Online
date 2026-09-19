@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: World / session (world-time initiation)
 - Source: User ruling 2026-09-18 (design alignment session): the shared clock stays shared, but the OPERATION must be immediate and local — a player who presses accelerate accelerates at once, the host arbitrates, and the broadcast brings everyone else in with an acceptable delay. Sleep keeps its "everyone unconscious" gate.
-- Related: `resolved/sleep-behavior-policy.md` (the 2026-09-05 decision this supersedes in part), `review/enemy-hit-determination-local.md`, `review/remote-interaction-local-gating.md`, `review/item-creation-registration-first.md` (the same ruling's other families), `todo/sync-cadence-review.md`
+- Related: `resolved/sleep-behavior-policy.md` (the 2026-09-05 decision this supersedes in part), `review/enemy-hit-determination-local.md`, `review/remote-interaction-local-gating.md`, `review/item-creation-registration-first.md` (the same ruling's other families), `review/sync-cadence-review.md`
 
 ## Problem (evidence)
 

@@ -424,6 +424,115 @@ public class SourceShapeGateTests
 	public void TheBoundItemSkipMatcher_SeesTheSkipShapeAndIgnoresOrdinaryReads(string line, bool expected) =>
 		Assert.Equal(expected, BoundItemSkipRegex.IsMatch(line));
 
+	/// <summary>
+	/// The entry repair's adapter half (sync-coverage rows R3/W7; the cadence review's finding 4):
+	/// the two owners that re-fan-out their entry tables on the InWorld edge — the keypad codes in
+	/// <c>WorldEventSync</c>, the geyser liquid types in <c>GeyserStateSync</c> — must also re-send
+	/// them on <c>ISessionControl.EntryRepairRequested</c>. That subscription is the only thing that
+	/// heals a swallowed entry send for those two tables, and neither owner is reachable from the
+	/// test suite (both sends sit behind the Unity world being alive). The gate reads the bind pair
+	/// INSIDE the two methods that own it (<c>BindToSession</c> / <c>Unbind</c>), so a rebind that
+	/// dropped the signal, or a pair whose halves were swapped, fails here — its matcher contract is
+	/// asserted by <see cref="TheEntryRepairBindMatcher_SeesThePairAndItsFailureShapes"/>.
+	/// <para>
+	/// Its reach, stated exactly: whole-file text of those two files, method bodies located by
+	/// signature. A bind moved into a helper CALLED from those methods still passes at the call
+	/// site, and one moved to another part-file of the same <c>partial</c> class is not seen at all.
+	/// Those are covered by the runtime event assertion in
+	/// <c>CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs</c> (the event fires
+	/// once for the re-asserting member) and by the Information line each handler logs; neither net
+	/// proves the adapter's Unity-guarded sends land in a real session.
+	/// </para>
+	/// </summary>
+	[Fact]
+	public void EntryRepair_IsBoundByBothAdapterEntryTableOwners()
+	{
+		foreach (var relative in new[]
+		{
+			"src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
+			"src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs"
+		})
+		{
+			var path = RepositoryPaths.File(relative);
+			Assert.True(File.Exists(path), $"the adapter entry-table owner moved: {relative}");
+
+			var failures = EntryRepairBindingFailures(File.ReadAllText(path));
+			Assert.True(failures.Count == 0, $"{relative}: " + string.Join("; ", failures));
+		}
+	}
+
+	/// <summary>The gate's own contract: a proper pair passes, and every shape it exists to catch fails.</summary>
+	[Theory]
+	[InlineData("internal void BindToSession() { _session.EntryRepairRequested += OnEntryRepairRequested; } internal void Unbind() { _session.EntryRepairRequested -= OnEntryRepairRequested; }", 0)]
+	[InlineData("internal void BindToSession() { } internal void Unbind() { _session.EntryRepairRequested += OnEntryRepairRequested; }", 2)]
+	[InlineData("internal void BindToSession() { } internal void Unbind() { } // EntryRepairRequested += OnEntryRepairRequested;", 2)]
+	[InlineData("internal void BindToSession() { _session.EntryRepairRequested += OnEntryRepairRequested; } internal void Unbind() { }", 1)]
+	[InlineData("// neither method exists", 2)]
+	public void TheEntryRepairBindMatcher_SeesThePairAndItsFailureShapes(string source, int expectedFailures) =>
+		Assert.Equal(expectedFailures, EntryRepairBindingFailures(source).Count);
+
+	private static List<string> EntryRepairBindingFailures(string text)
+	{
+		var failures = new List<string>();
+		var bind = MethodBody(text, "internal void BindToSession()");
+		var unbind = MethodBody(text, "internal void Unbind()");
+
+		if (bind.Length == 0)
+		{
+			failures.Add("BindToSession() not found — this rule would pass by checking nothing");
+		}
+		else if (!bind.Contains("EntryRepairRequested += ", StringComparison.Ordinal))
+		{
+			failures.Add("BindToSession() does not subscribe to ISessionControl.EntryRepairRequested — a swallowed entry send of this table would wait for the 60 s cycle again");
+		}
+
+		if (unbind.Length == 0)
+		{
+			failures.Add("Unbind() not found — this rule would pass by checking nothing");
+		}
+		else if (!unbind.Contains("EntryRepairRequested -= ", StringComparison.Ordinal))
+		{
+			failures.Add("Unbind() does not unsubscribe from EntryRepairRequested — a rebind would leave a stale handler on the session");
+		}
+
+		return failures;
+	}
+
+	/// <summary>The body of one method, located by its signature and closed by brace counting.</summary>
+	private static string MethodBody(string text, string signature)
+	{
+		var start = text.IndexOf(signature, StringComparison.Ordinal);
+		if (start < 0)
+		{
+			return string.Empty;
+		}
+
+		var open = text.IndexOf('{', start);
+		if (open < 0)
+		{
+			return string.Empty;
+		}
+
+		var depth = 0;
+		for (var i = open; i < text.Length; i++)
+		{
+			if (text[i] == '{')
+			{
+				depth++;
+			}
+			else if (text[i] == '}')
+			{
+				depth--;
+				if (depth == 0)
+				{
+					return text[open..(i + 1)];
+				}
+			}
+		}
+
+		return string.Empty;
+	}
+
 	private static IEnumerable<string> EnumerateCSharpFiles(string root)
 	{
 		return Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)

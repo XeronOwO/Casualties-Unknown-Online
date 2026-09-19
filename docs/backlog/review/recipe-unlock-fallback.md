@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / crafting
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I6)
-- Related: the crafting report half is healed by the item keyframe/character snapshot (matrix rows I3/P3); `docs/decisions/active.md` #186; `todo/sync-cadence-review.md`
+- Related: the crafting report half is healed by the item keyframe/character snapshot (matrix rows I3/P3); `docs/decisions/active.md` #186; `review/sync-cadence-review.md`
 
 ## Problem (evidence)
 

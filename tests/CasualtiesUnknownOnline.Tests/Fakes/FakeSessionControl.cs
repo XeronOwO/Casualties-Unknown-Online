@@ -84,6 +84,10 @@ internal sealed class FakeSessionControl : ISessionControl
 
 	public event Action<ulong, bool>? RemoteSceneChanged;
 
+	public void FireEntryRepairRequested(ulong steamId) => EntryRepairRequested?.Invoke(steamId);
+
+	public event Action<ulong>? EntryRepairRequested;
+
 	public void FireMemberRemoved(ulong steamId) => MemberRemoved?.Invoke(steamId);
 
 	public event Action<ulong>? MemberRemoved;

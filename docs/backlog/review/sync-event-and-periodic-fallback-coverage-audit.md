@@ -107,7 +107,7 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   absolute scene re-report window, the host's idempotent repeat answer, the re-ack loop and the
   roster riding the in-session repair group; the completion marker is now that window's
   acknowledgement), `todo/checkpoint-run-epoch-validation.md`,
-  `todo/mod-command-request-timeout.md`, `todo/sync-cadence-review.md` (cadence findings
+  `todo/mod-command-request-timeout.md`, `review/sync-cadence-review.md` (cadence findings
   raised at the user's request), and `review/guest-break-drops-recovery.md` (found while
   landing W1).
 - **Guard**: `tests/CasualtiesUnknownOnline.NormativeGates.Tests/SyncCoverageGateTests.cs` —

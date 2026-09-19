@@ -4,7 +4,7 @@
 - Priority: Low-Medium
 - Category: Network / sync coverage / world entities
 - Source: the W6 landing record (`review/trap-layout-snapshot-recovery.md`) — the in-session repair re-derives the table from the live scene, the entry fanout still sends it as last derived
-- Related: `review/trap-layout-snapshot-recovery.md`, `todo/sync-cadence-review.md`
+- Related: `review/trap-layout-snapshot-recovery.md`, `review/sync-cadence-review.md`
 
 ## Problem (evidence)
 

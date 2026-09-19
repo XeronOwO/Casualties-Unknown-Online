@@ -62,6 +62,7 @@ internal sealed partial class WorldEventSync(
 		_kernelProjection.OpenedEntitiesProjected += OnOpenedEntitiesProjected;
 		_kernelProjection.BuildingHealthProjected += OnBuildingHealthProjected;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
+		_session.EntryRepairRequested += OnEntryRepairRequested;
 	}
 
 	internal void Unbind()
@@ -77,6 +78,7 @@ internal sealed partial class WorldEventSync(
 		_kernelProjection.OpenedEntitiesProjected -= OnOpenedEntitiesProjected;
 		_kernelProjection.BuildingHealthProjected -= OnBuildingHealthProjected;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
+		_session.EntryRepairRequested -= OnEntryRepairRequested;
 	}
 
 	// The building-entity appliers return what the live world took, because the
@@ -109,6 +111,24 @@ internal sealed partial class WorldEventSync(
 	{
 		if (inWorld && IsHostMode && WorldGeneration.world != null) // Unity object — ==
 		{
+			SendKeypadCodes();
+		}
+	}
+
+	/// <summary>
+	/// The host re-sent a member's entry state because that member is still re-asserting its
+	/// entry — its readiness window is open, so a send made on the entry edge may have been
+	/// swallowed by the lazy P2P session. The keypad codes are one of the two entry tables the
+	/// adapter owns (the geysers' liquid types are the other), so they ride the repair exactly
+	/// as they ride the entry edge; the send is idempotent (the receiver leaves a set code
+	/// alone). It is a broadcast because the keypad channel has no per-member send today —
+	/// third parties receive a duplicate of a table they already hold.
+	/// </summary>
+	private void OnEntryRepairRequested(ulong steamId)
+	{
+		if (IsHostMode && WorldGeneration.world != null) // Unity object — ==
+		{
+			_log.LogInformation("[Keypad] entry repair for {Peer} — re-broadcast the codes (its entry window is still open).", steamId);
 			SendKeypadCodes();
 		}
 	}

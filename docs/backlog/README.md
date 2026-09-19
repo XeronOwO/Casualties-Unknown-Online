@@ -55,12 +55,13 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Restore live-object row loops](todo/restore-live-object-loops-containment.md) — **Low** — three appliers keep a half-level blast radius.
 - [Checkpoint chunks vs the run epoch](todo/checkpoint-run-epoch-validation.md) — **Low-Medium** — a late set could move the epoch backwards.
 - [Dropped mod command requests](todo/mod-command-request-timeout.md) — **Low** — pending callbacks have no timeout.
-- [Sync cadence review](todo/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
+- [Guest pending-report fallback: flat 60 s first resend](todo/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host half.
 - [Systemic save and backup management](todo/systemic-save-backup-management.md) — **Medium** — backup/retention/restore/migration.
 - [Pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium** — crafting-UI and command completion.
 
 ### Review
 
+- [Sync cadence review](review/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
 - [Carried-inventory registration](review/carried-inventory-registration-re-report.md) — **Medium** — the absolute re-report window.
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
 - [Session control convergence](review/session-control-convergence.md) — **Medium** — the bounded scene re-report window and the re-ack loop.

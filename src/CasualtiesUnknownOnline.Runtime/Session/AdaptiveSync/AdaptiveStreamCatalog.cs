@@ -84,7 +84,7 @@ public static class AdaptiveStreamCatalog
 				MaxBytesPerSecond: 1024 * 1024,
 				BaseHz: 1,
 				BaseIntervalMs: 5000,
-				MaxIntervalMs: 30_000),
+				MaxIntervalMs: 10_000),
 			[AdaptiveStreamId.FluidRegionDiffStream] = new(
 				AdaptiveStreamId.FluidRegionDiffStream,
 				"FluidRegionDiffStream",
@@ -115,7 +115,7 @@ public static class AdaptiveStreamCatalog
 				MaxBytesPerSecond: 64 * 1024,
 				BaseHz: 1,
 				BaseIntervalMs: 5000,
-				MaxIntervalMs: 30_000),
+				MaxIntervalMs: 15_000),
 		};
 
 	/// <summary>All registered adaptive stream profiles.</summary>

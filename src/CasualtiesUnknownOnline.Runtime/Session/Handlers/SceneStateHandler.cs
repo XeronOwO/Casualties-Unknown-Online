@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
@@ -12,10 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// domain); the host leaving ends the guest's own sync.
 /// </summary>
 [PacketHandler(NetMsg.SceneState, NetMessageDirection.Bidirectional)]
-public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntryFanout worldEntryFanout) : PacketHandlerBase<SceneStateMsg, ISceneHandlerContext>
+public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntryFanout worldEntryFanout, ITimeSource time) : PacketHandlerBase<SceneStateMsg, ISceneHandlerContext>
 {
 	private readonly ILogger<SceneStateHandler> _log = log;
 	private readonly WorldEntryFanout _worldEntryFanout = worldEntryFanout;
+	private readonly ITimeSource _time = time;
 
 	protected override void Handle(ulong sender, SceneStateMsg msg, ISceneHandlerContext ctx)
 	{
@@ -44,6 +46,9 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntry
 				session.FireRemoteSceneChanged(reporter, true);
 				if (session.Role == SessionRole.Host)
 				{
+					// A fresh entry: the repair cadence of the PREVIOUS entry must not
+					// suppress this one's first repair (EntryRepairSchedule).
+					member.EntryRepair.Arm();
 					ctx.Entities.MaybeStartEntitySync();
 					// Re-entering the world (death → menu → re-enter) — hand the
 					// saved character data back; the handshake restore only covers
@@ -81,11 +86,25 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntry
 		else if (session.Role == SessionRole.Host && member.InWorld && member.Handshaken)
 		{
 			// A REPEAT absolute report while the member is already in the world: the guest's
-			// readiness window re-asserts its scene state when it has not seen the host's
-			// answer (SessionControlConvergence). Answer with the two control facts it waits
-			// for, and NEVER re-run the entry fan-out — that group went out on the edge, and
-			// repeating it would duplicate every table while the completion marker stopped
-			// meaning "the entry group is complete".
+			// readiness window re-asserts its scene state while it is missing the host's two
+			// control facts (SessionControlConvergence). A repeat therefore says two things at
+			// once — the entry group sent on the edge did not complete this member, and the
+			// member's uplink is up NOW — which is exactly the lazy-P2P swallow case the 60 s
+			// repair cycle used to be the only heal for. Answer the first repeat (and a window
+			// that stays open, at the member's repair cadence) with the entry state it may have
+			// missed, BEFORE the two control facts, so the repair the marker completes is always
+			// ahead of it. The marker's own meaning is narrower than "everything the entry
+			// needs": the fan-out's entry-only members (the item snapshot and the radiation
+			// line) stay entry contracts and are not part of this repair. The entry fan-out
+			// itself is never re-run either — the repair set is the group built for this heal.
+			if (member.EntryRepair.TryClaim(_time.NowMs))
+			{
+				_worldEntryFanout.SendInSessionRepair(reporter); // the runtime-owned absolute in-world tables
+				session.FireEntryRepairRequested(reporter); // the adapter-owned entry tables (keypad codes, geyser types)
+				_log.LogInformation("Repeat scene report from {Peer} — re-sent the entry state it may have missed (repair {Repairs} of this entry).",
+					reporter, member.EntryRepair.Repairs);
+			}
+
 			ctx.World.AnswerRepeatInWorld(reporter);
 			ctx.World.SendWorldSnapshotComplete(reporter);
 			// Debug, not Information: a legitimately armed start gate (a slow loader, up to

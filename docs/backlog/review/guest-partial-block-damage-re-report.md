@@ -9,7 +9,7 @@ authoritatively — a zero answer clears a row this host's own cap/range rules r
 - Priority: Medium
 - Category: Network / sync coverage / world blocks
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W2); split out of `review/guest-block-mutation-re-report.md` when the W1 half landed
-- Related: `review/guest-block-mutation-re-report.md` (W1 — the terminal block state, landed), `todo/sync-cadence-review.md`
+- Related: `review/guest-block-mutation-re-report.md` (W1 — the terminal block state, landed), `review/sync-cadence-review.md`
 
 ## Problem (evidence)
 
@@ -80,7 +80,7 @@ break the block (a break is the block-state channel's semantic).
 
 - The terminal break state (W1 — landed).
 - Anti-cheat / strict validation of guest damage reports.
-- Host-side cadence tuning (`todo/sync-cadence-review.md`).
+- Host-side cadence tuning (`review/sync-cadence-review.md`, landed).
 
 ## Landed (2026-09-18)
 

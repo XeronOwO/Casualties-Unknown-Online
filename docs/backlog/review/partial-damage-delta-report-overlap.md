@@ -142,7 +142,10 @@ world position they stored existed only to build the wire message).
   (`BlockBreakSync.OnBlockDamageSnapshot` → `BlockDamageCleaner.ClearForAirWrite`) rest on code
   review plus the unified dual-client acceptance pass, exactly as the W2 landing recorded. What
   the automated half proves is the whole Runtime-owned decision: what a report and a delta are
-  worth, and what an answer does.
+  worth, and what an answer does. The independent review named the sharpest edge of that gap:
+  no harness models the GUEST-side row write of a relayed increment either (the tests assert the
+  payload the third member receives, not what its game list then holds), so the dual-client pass
+  should watch the third member's crack state after a hit it did not make.
 - **The ledger's cap is a degradation, not a wall.** At 65 536 tracked (sender, cell) entries a
   new cell is applied without being tracked (logged once per episode), so a repeat of that
   report could count twice until the world is reset. The game's own 128-entry list bound makes

@@ -147,11 +147,16 @@ swallow contract.
 - Gates: `dotnet test tests/CasualtiesUnknownOnline.NormativeGates.Tests/...` — 56/56,
   the evidence contract included (every anchor quote still matches its source, the
   declared anchor counts match the file, the verdict summary matches the rows).
-- Full: `dotnet test CasualtiesUnknownOnline.slnx` (with build) — recorded in the
-  handoff; the implementation-complete tree measured 3397 passed / 0 failed before the
-  checklist pass.
+- Full: `dotnet test CasualtiesUnknownOnline.slnx` (with build) — 3401 passed / 0
+  failed including the delivery-checklist gate, on the tree the commit carries (the
+  implementation-complete tree measured 3397 before the review fixes added four cases).
 - Independent adversarial review: one FULL round plus a fix-verification round, both in
-  a fresh context against the frozen tree, before the commit.
+  a fresh context against the frozen tree, before the commit. The first round found
+  MAJOR-1 (the single-slot window evicted an item's creation report) and MAJOR-2 (the
+  audit artifact contradicted the code); the fix round reproduced the numbers and
+  confirmed the per-item queue fixes MAJOR-1 at the MECHANISM level — the ordering comes
+  from the sending side's creation-first invariant and `Track` having one production call
+  site — with the termination and cap rules safe, leaving three wording nits (fixed).
 
 ### Review findings and fixes (same commit)
 

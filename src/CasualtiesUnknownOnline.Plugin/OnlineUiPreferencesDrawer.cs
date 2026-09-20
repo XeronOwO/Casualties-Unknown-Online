@@ -42,6 +42,9 @@ internal static class OnlineUiPreferencesDrawer
 		DrawLanguage(ctx);
 
 		GUILayout.Space(10f);
+		DrawPinyinSearch(ctx);
+
+		GUILayout.Space(10f);
 		DrawColor(ctx);
 
 		GUILayout.Space(10f);
@@ -158,6 +161,28 @@ internal static class OnlineUiPreferencesDrawer
 			Languages,
 			code => language.Set(code));
 		GUILayout.Label(ctx.T("prefs.language_hint"), OnlineUiTheme.MutedLabel());
+	}
+
+	private static void DrawPinyinSearch(OnlineUiContext ctx)
+	{
+		if (ctx.PinyinSearch is not { } pinyin)
+		{
+			return;
+		}
+
+		GUILayout.Label(ctx.T("prefs.pinyin_search"), OnlineUiTheme.Section());
+		GUILayout.BeginHorizontal();
+		GUILayout.Label(ctx.T("prefs.pinyin_search_current"), OnlineUiTheme.MutedLabel());
+		if (GUILayout.Button(
+			ctx.T(pinyin.Current ? "common.on" : "common.off"),
+			OnlineUiTheme.Button(),
+			GUILayout.Width(110f)))
+		{
+			pinyin.Toggle();
+		}
+
+		GUILayout.EndHorizontal();
+		GUILayout.Label(ctx.T("prefs.pinyin_search_hint"), OnlineUiTheme.MutedLabel());
 	}
 
 	private static readonly string[] ColorKeys =

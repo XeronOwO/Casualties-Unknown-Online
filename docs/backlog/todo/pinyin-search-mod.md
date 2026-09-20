@@ -5,7 +5,7 @@
 - Category: Mod / Tooling / UI / Pinyin / Console
 
 Port the pinyin search behavior from the standalone `JustUnknownCharacters`
-project into a CUO mod. Working name: `CasualtiesUnknownOnline.Pinyin`; a more
+project into CUO. Working name: `CasualtiesUnknownOnline.Pinyin`; a more
 conventional CUO-ecosystem name can be decided during implementation.
 
 Source project (record only, no code yet):
@@ -51,4 +51,77 @@ Planned features:
      - Other system languages → disabled by default.
    - The player should still be able to override the value through the config.
 
-Not started; record only.
+## Progress
+
+### Stage 1 — crafting search + the switch (landed)
+
+- **Matcher core is CUO's own, in Runtime** (`Runtime/Search/`):
+  `PinyinDictionary` (+ `PinyinSyllable`) loads the vendored reading table from
+  an embedded resource and expands the fuzzy alternates at load;
+  `PinyinMatcher` is the NFA/backtracking port; `NameSearchMatcher` is the
+  predicate every surface shares (native ordinal-ignore-case substring OR
+  pinyin). Nothing in Runtime knows about the game.
+- **The crafting half reuses the game's own search box.** The native filter is
+  `simpleName.Contains(recipeFilter, OrdinalIgnoreCase)` inside `RefreshRecipeList`,
+  so the extension lands on the name that predicate reads: a one-refresh query
+  scope is opened by the patch's prefix and closed by its postfix **and** a
+  finalizer, and inside it `Recipe.get_simpleName` answers "" for a recipe that
+  does not match. Ordering, the category filter, the row objects, the scroll
+  position and the selection index stay native — no row surgery, no duplicated
+  layout math. The scope is skipped when the camera's item filter is active
+  (the native refresh ignores the text filter then).
+- **Switch**: `Search.PinyinSearch`, a local BepInEx option whose default
+  follows the system language (Simplified Chinese → on), read through the Game
+  Adapter's construction-time gate (the monitor refreshes it on the config's
+  change event); the Online UI Preferences page writes it. Off means the
+  crafting search keeps the native behavior untouched.
+- **Test coverage split, stated exactly**: the matcher core and the pure
+  decision (`RecipeSearchDecision` — switch, typed query, item-filter
+  precedence, including the switch-off path) are covered by
+  `PinyinDictionaryTests` / `PinyinMatcherTests` / `NameSearchMatcherTests` /
+  `RecipeSearchDecisionTests`. The game-coupled half — the two patches, the
+  scope, the static gate and the BepInEx wiring — has NO automated test: the
+  test project excludes the Game Adapter from compilation, so its evidence is
+  the patch-contract check plus in-game acceptance.
+- Reading table provenance: PinIn (the table behind the standalone mod),
+  vendored whole as `Runtime/Search/pinyin_data.txt`.
+- **Failure signal, with its exact scope**: the patch contract can only prove
+  the hook is installed, so the scope counts the names each refresh consults
+  and warns once after three consecutive refreshes with an active query that
+  consulted none — either the recipe list was empty or the native filter no
+  longer reads `Recipe.simpleName`. **Not covered**: a predicate that switched
+  to a different name while the row-building loop keeps reading `simpleName`
+  keeps the counter fed — a recorded gap, not a guarded one.
+- **Structure/naming outcome**: there is no separate
+  `CasualtiesUnknownOnline.Pinyin` assembly — the matcher core lives in
+  `Runtime/Search/`, the game patch in `GameAdapter/Patches/`, and the switch is
+  a CUO option. A standalone plugin could not patch this surface at all: only
+  the Game Adapter may reference the game assemblies (`docs/api/mod-api.md` §1).
+- Evidence: `PinyinDictionaryTests`, `PinyinMatcherTests`,
+  `NameSearchMatcherTests`, `RecipeSearchDecisionTests` and
+  `docs/evidence/selfchecks/search/pinyin-search-selfcheck.md`.
+
+### Stage 2 — console completion (not started)
+
+- The console's resource completion adds pinyin as an extra ranking stage
+  behind the existing `IResourceLocationCatalog` seam (ranked after the
+  canonical-id / bare-path / display-name stages), so
+  `/cmd cu:fent`, `fent` and `ftn` all reach `cu:fentanyl` while the accepted
+  suggestion stays the canonical id.
+- Until this stage lands, the ticket stays in `todo/`: the switch covers the
+  crafting surface only.
+
+## Limits (recorded, not hidden)
+
+- The in-game rendering and the frame-level feel of the native search box
+  (rows appearing/disappearing per keystroke, tooltips, scroll position) can
+  only be verified by the user in the real game. What the automated tests cover
+  is the matcher core and the pure decision — NOT the patch, the scope, the
+  static gate or the BepInEx wiring (the test project excludes the Game Adapter
+  from compilation).
+- The English and Chinese localization tables have no key-set parity gate: the
+  four new keys were verified by inspection, and a future missing key falls back
+  to English silently.
+- The reading table is a vendored third-party dataset: it covers 26k+
+  characters, but a character outside it silently degrades to the literal
+  substring rule rather than failing.

@@ -1,10 +1,10 @@
 # World and backup management surface
 
-- Status: Review — landed 2026-09-19 (decision 198). Awaiting the final unified acceptance pass.
+- Status: Review — landed 2026-09-20 (decision 198). Awaiting the final unified acceptance pass.
 - Priority: Medium
 - Category: Persistence / UI
-- Source: Stage of `review/systemic-save-backup-management.md` (the umbrella re-scoped 2026-09-19); user
-  decision 2026-09-19 on the surface and the restore semantics
+- Source: Stage of `review/systemic-save-backup-management.md` (the umbrella re-scoped 2026-09-20); user
+  decision 2026-09-20 on the surface and the restore semantics
 - Related: `docs/decisions/active.md` 198, `docs/architecture/save-archive-format.md` §2/§6/§7,
   `review/save-format-and-world-repository.md` (S1), `review/save-interval-autosave-and-backup-recovery.md`
   (S4.4), `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldLibraryService.cs`,
@@ -29,7 +29,7 @@ What did not exist was any way to SEE or CHOOSE:
 - the ticket's other two scopes conflicted with decisions already frozen with the user (see *Scope
   closed* below), so re-scoping it was part of this stage rather than implementing them.
 
-## Design decisions frozen with the user (2026-09-19)
+## Design decisions frozen with the user (2026-09-20)
 
 1. **The management surface is a new page in CUO's existing Online UI window** (Home/Players/Network/
    Admin/Worlds/Console/Preferences), not a console-command family and not new UI on the game's own

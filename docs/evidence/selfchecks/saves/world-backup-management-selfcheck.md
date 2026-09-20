@@ -1,6 +1,6 @@
 # World and backup management surface (the Worlds page and the player-chosen restore)
 
-Date: 2026-09-19
+Date: 2026-09-20
 Scope: the Online UI's new **Worlds** page — the worlds the CUO repository holds, the backup
 archives of one of them, the world the native Load button will open, and a restore that replaces
 one world's live snapshot with an archive the player picks (decision 198,

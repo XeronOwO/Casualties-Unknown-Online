@@ -1,6 +1,6 @@
 # Systemic save and backup management
 
-- Status: Review — re-scoped 2026-09-19: every scope below is landed or closed, and the stage ticket carries the delivery (decision 198).
+- Status: Review — re-scoped 2026-09-20: every scope below is landed or closed, and the stage ticket carries the delivery (decision 198).
   The umbrella holds no implementation work of its own.
 - Priority: Medium
 - Category: Persistence / tooling
@@ -10,7 +10,7 @@
 Goal: provide a user-facing, inspectable backup/restore layer on top of CUO's
 persistence without breaking the runtime/wire contracts.
 
-## Current state (re-verified 2026-09-19)
+## Current state (re-verified 2026-09-20)
 
 The archive side is delivered; the management side is the stage ticket.
 

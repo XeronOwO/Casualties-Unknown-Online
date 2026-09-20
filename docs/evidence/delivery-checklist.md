@@ -44,7 +44,7 @@ evidence file.
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: user chose the surface (Online UI Worlds page) and the restore semantics (in place, replaced state archived first) on 2026-09-19; decision 198 records both
+      process violation — evidence: user chose the surface (Online UI Worlds page) and the restore semantics (in place, replaced state archived first) on 2026-09-20; decision 198 records both
 - [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; normative gates 69/69; full suite with build 3531 passed / 0 failed
 - [x] Structure review done (touched classes <= 600 lines, state bools,
       dead mechanisms deleted in the same round) — evidence: largest touched classes Plugin 591, OnlineUiOverlay 573, LocalizationCatalog 561; CuoBootstrap stays 599 by registering from the plugin; the new state field is one revision int, replacing the flag the review found dead

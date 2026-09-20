@@ -39,6 +39,41 @@ policy. Whenever the curated native registry (`docs/api/mod-api.md` §4i) can ex
 is the better answer, and several mods binding the same thing is the promotion signal in §6 — an
 API addition, not a wider tier.
 
+### 1.2 Which systems live where: four layers, one test
+
+The tiers above say how a mod may bind CUO. This section says where a FEATURE belongs — the question
+a contributor actually asks ("should this be its own mod?"). Four layers, in order of distance from
+the framework:
+
+| Layer | What it is | Ships with the plug-in? | Examples |
+|---|---|---|---|
+| Framework core | A capability the framework's own operation needs: its control plane, its administration and safety surface, its own results reaching the player, the shared simulation | Yes | the command console, the save layer, the session/world/entity domains, the mod loader |
+| Satellite mod | A game-facing feature with no session vocabulary of its own; it works with CUO uninstalled | No — its own mod | pinyin search (`docs/backlog/todo/pinyin-search-standalone-mod.md`) |
+| Repository tool | Needs neither the game at runtime nor the plug-in's dependency graph; it serves development and verification | No — and it is not a mod | the game-update contract toolchain (`tools/CasualtiesUnknownOnline.ContractTool`, decision 201) |
+| Reusable component | Machinery several consumers can share, with no session vocabulary of its own | Depends on its consumers | the console's input/completion engine; the pinyin matcher core |
+
+**The test** — six questions, in order; the first two decide on their own:
+
+1. Does its vocabulary name session, authority, world, save or mod state? Yes → framework core.
+2. Does the framework still work without it — its administration, its safety surface, its own
+   results reaching the player? No → framework core.
+3. Does it still make sense with CUO uninstalled? No → framework core; yes → keep asking.
+4. Is it game-facing experience or session-facing capability? Session-facing → framework core.
+5. Would extracting it create a two-way dependency, or force the framework to publish a large new
+   contract? Yes → framework core, or a component rather than a satellite.
+6. Does it need the game's own code? Yes → the satellite binds it through the declared tier (§1.1).
+
+Worked examples, so the next reader does not re-derive this:
+
+- **Pinyin search** — 1 no, 2 no, 3 yes, 4 game-facing → satellite (ticket above).
+- **The command console** — 1 yes (its verbs and its 200-line output buffer carry the session's own
+  results), 2 yes (a host without it loses the administration and save verbs and stops seeing the
+  save/restore/starting-supply accounts), 3 no, 5 yes → framework core. Its input/completion engine
+  is the component candidate, and §6's own rule says a component waits for its second consumer.
+
+A split is never free: each shipped artifact adds its own build, deploy, verification and acceptance
+surface, and a framework whose control plane is an optional add-on has made governance optional.
+
 ## 2. Stability levels
 
 Every public `Abstractions` surface has a level. It is declared with

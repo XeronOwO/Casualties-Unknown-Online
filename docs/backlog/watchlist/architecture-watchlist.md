@@ -7,6 +7,20 @@ Files at/near the 600-line hard gate (`SourceShapeGateTests.Architecture_OneTopL
 must be split — as a real responsibility split, never by shrinking formatting — before the next
 change lands in them.
 
+## How a split is decided (2026-09-20 review, item 9)
+
+The 600-line gate is a tripwire, not the design. A file that trips it must be split by
+responsibility, and the responsibilities are: who owns the state, who decides the policy, who
+performs the native write, who manages the lifecycle, who maps DTOs to domain objects, and who
+retries, recovers and observes. A split along any other line — mechanical `partial` files, moving a
+helper out to shrink a count — pays the gate without paying the debt, and the next change lands in
+the same wide class.
+
+Two signs that a file's shape, not its length, is the problem: its constructor takes dozens of
+services and assembles domain objects itself (the composition root is not separated from the domain
+assembly), and its interface keeps growing with every feature (see
+`todo/adapter-capability-ports.md` and `todo/patch-bridge-domain-ports.md`).
+
 ## At the limit (no headroom)
 
 - `src/CasualtiesUnknownOnline.GameAdapter/RemoteOtherMedicalOperationHandler.cs` (599) — the

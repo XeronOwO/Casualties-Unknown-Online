@@ -14,6 +14,19 @@ is NOT a work item and is not included in handoff prompts; promote it to `todo/`
 adapter-shell regressions keep reaching the user's acceptance step (a clear need appearing
 is the promotion trigger).
 
+## Split recorded 2026-09-20
+
+The 2026-09-20 review proposed raising this ticket to High. That is the wrong lever: this ticket's
+deferral reason is a CAPABILITY boundary (it needs a live Unity world), not a priority, and raising
+the priority would not make the live-game half runnable. What the review actually asked for splits
+into two halves, and the automatable one moved out:
+
+- the **structural half** — a machine-comparable snapshot of the game assemblies, a classified diff
+  between two builds, offline replay and a boot probe — is now `todo/game-update-contract-toolchain.md`;
+- the **live-game half** — a scripted in-game probe (entity identity, transform, health recorded for
+  a scenario) and a dual-client automation harness — stays HERE, and its deferral reason is
+  unchanged.
+
 ## Problem (evidence)
 
 A recurring class of adapter-shell behaviour cannot be exercised by the test host,

@@ -47,6 +47,15 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Game-update contract toolchain](todo/game-update-contract-toolchain.md) — **High** — game-assembly snapshot, classified diff, report.
+- [Adapter capability catalog](todo/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
+- [Mod API contract governance](todo/mod-api-contract-governance.md) — **Medium-High** — visibility rule, stability levels, API baseline.
+- [Application layer: first slice](todo/application-layer-first-slice.md) — **Medium** — after acceptance: kernel command gateway, first slice.
+- [Adapter capability ports](todo/adapter-capability-ports.md) — **Medium** — after acceptance: IGameAdapter split by capability.
+- [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — after acceptance: entry, UI and registration separated.
+- [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — after acceptance: per-domain ports, aggregate frozen.
+- [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — after acceptance: registrations and reset contract.
+
 ### Review
 
 - [Systemic save and backup management](review/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
@@ -171,10 +180,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Strict validation / anti-cheat](future/strict-validation-anti-cheat.md) — **Low** — hardening beyond the MVP scope.
 - [Phase 5 tooling & ecosystem](future/phase5-tooling-ecosystem.md) — **Low** — the tooling/ecosystem phase.
 - [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md) — **Low** — the compatibility adapter.
-- [Command authorization gateway](future/command-authorization-gateway.md) — **Medium** — central authority enforcement.
-- [Runtime DI feature lifecycle](future/runtime-di-feature-registration-lifecycle.md) — **Medium** — feature-scoped composition modules.
-- [Kernel replication namespace move](future/kernel-replication-namespace-relocation.md) — **Low** — a neutral namespace for kernel services.
-- [Adapter-shell verification harness](future/adapter-shell-verification-harness.md) — **Low** — deferred; needs the live Unity world.
+- [Handshake identity and refusal reasons](future/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names which dimension failed.
+- [Adapter-shell verification harness](future/adapter-shell-verification-harness.md) — **Low** — keeps the live-game half.
 
 ### Resolved
 
@@ -183,6 +190,9 @@ todo/  →  in-progress/  →  review/  →  done/
 - [check-architecture.ps1 performance](resolved/check-architecture-performance.md) — **Medium** — the script became C# gate tests.
 - [Runtime log errors (2026-08-30)](resolved/runtime-log-errors-2026-08-30.md) — HotRepl, not CUO.
 - [Sleep behavior policy](resolved/sleep-behavior-policy.md) — sleep stays allowed; no new gate.
+- [Command authorization gateway](resolved/command-authorization-gateway.md) — absorbed into the Application-layer ticket.
+- [Kernel replication namespace move](resolved/kernel-replication-namespace-relocation.md) — absorbed into the Application-layer ticket.
+- [Runtime DI feature lifecycle](resolved/runtime-di-feature-registration-lifecycle.md) — rewritten as the composition-root ticket.
 
 ### Done
 

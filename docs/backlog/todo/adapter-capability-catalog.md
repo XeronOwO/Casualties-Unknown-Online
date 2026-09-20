@@ -4,11 +4,11 @@
 - Priority: High
 - Category: Architecture / game-update adaptation
 - Source: Loomi architecture review (2026-09-20), item 1; degradation ruling by the user, 2026-09-20
-- Related: `todo/game-update-contract-toolchain.md`, `future/adapter-shell-verification-harness.md`
+- Related: `review/game-update-contract-toolchain.md`, `future/adapter-shell-verification-harness.md`
 
 ## Problem (evidence)
 
-`GameAdapter.ProbeGame()` is a constant true (see `todo/game-update-contract-toolchain.md`), and
+`GameAdapter.ProbeGame()` is a constant true (see `review/game-update-contract-toolchain.md`), and
 `GameAdapter.Install()` is deliberately all-or-nothing: `PatchInventory.VerifyMissing` returns a
 non-empty list → `UnpatchSelf()` → `Install` returns false → CUO multiplayer is unavailable. The
 comment states the intent ("a game update that breaks a target must fail loud"), and that intent is

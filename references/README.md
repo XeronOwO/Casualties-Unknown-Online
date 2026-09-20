@@ -60,16 +60,24 @@ Keep the versions in sync with the game build you are developing against
 
 ## After a game update
 
+The full update-day flow — snapshot the previous build, snapshot the new build,
+classify the differences, then contract tests and offline replay — is
+`docs/development/game-update-runbook.md`. In brief:
+
 1. Re-copy the updated DLLs (the list above) into `references/`.
-2. Run `dotnet test` — the Phase-3 **patch-contract tests** reflect these
+2. Snapshot the previous and the new build and diff them
+   (`tools/CasualtiesUnknownOnline.ContractTool`): the classified report names
+   every broken hook, every field/enum move, and the targets that are unchanged
+   but still need a semantic look.
+3. Run `dotnet test` — the Phase-3 **patch-contract tests** reflect these
    assemblies and assert every Harmony hook's target (type/method/argument
    types/patch parameter names) still resolves. Broken contracts are named one
    by one — that list is exactly the adapter work a game update requires
    (rename/retarget each broken hook, or drop it deliberately and delete its
    contract).
-3. The runtime repeats the same check at launch (`PatchInventory.VerifyMissing`)
+4. The runtime repeats the same check at launch (`PatchInventory.VerifyMissing`)
    — a game update that slipped past the tests fails loud at startup instead of
    silently running unpatched (a silently missing hook is how sync bugs hide).
-4. If the update added/removed Unity modules the adapter references, add/remove
+5. If the update added/removed Unity modules the adapter references, add/remove
    the matching `<Reference>`/`<None>` entries in the GameAdapter and Tests
    csproj files.

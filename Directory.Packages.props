@@ -18,6 +18,10 @@
 
     <!-- Misc / wire / mapping -->
     <PackageVersion Include="Mapster" Version="6.0.0" />
+    <!-- tools/CasualtiesUnknownOnline.ContractTool: assembly metadata read
+         (snapshot) and write (test fixtures) without loading or executing the
+         target assembly. Never referenced by the plugin. -->
+    <PackageVersion Include="Mono.Cecil" Version="0.11.6" />
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
     <PackageVersion Include="protobuf-net" Version="3.4.21" />
 

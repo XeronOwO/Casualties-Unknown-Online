@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism matrix maps the extra-stage seam, the 0-3 ranking and the live switch to code plus a test or an explicit gap
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism table cites PatchInventory, the contract checker, ProbeGame and the tool lens; no unverified cell
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both search surfaces aligned (crafting unchanged, console landed); the review sweep found the stale plugin comment and BepInEx text, fixed here
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance maps to the catalog + stage + console tests; `pinyin-console-completion-selfcheck.md` carries the mechanism matrix
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 205 contract rows + the 9-row dynamic boundary pinned by a gate; every classification kind covered by the fixture pair; both CLI commands and all four exit codes pinned
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: game-update-contract-toolchain-selfcheck.md, 7 rows each with a test anchor
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused 104/104, gates 69/69, full with build 3617/3617, format exit 0; the one-time table report is the runtime diagnostic (the hit log needs a raised level)
+      peer log comparison, hotrepl assertions) is decided — evidence: the tool CLI runs on the shipped assembly (488 types / 3318 methods / 205 rows); census, reproducibility and parity tests; live-game half out of scope
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff fixed the order and acceptance on 2026-09-20 (Stage 2 → ticket to review → unified acceptance); decision 200 records the mechanism
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; normative gates 69/69; full suite with build 3617 passed / 0 failed
+      process violation — evidence: the handoff fixed the ticket order and acceptance on 2026-09-20; decision 201 records the mechanism
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; full suite with build 3678 passed / 0 failed; normative gates 69/69
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest new file PinyinResourceLocationMatchStage 49 lines; CuoBootstrap 596/600 after the block move; no new boolean state
+      dead mechanisms deleted in the same round) — evidence: largest new file MemberDiffer 378 lines, SnapshotDiffer 345 (limit 600); no new boolean state field; the tool is new so nothing was deleted, and no plugin file changed
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

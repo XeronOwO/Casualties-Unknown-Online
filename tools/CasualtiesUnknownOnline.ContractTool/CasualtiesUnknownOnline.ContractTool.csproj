@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.ContractTool</AssemblyName>
+    <Product>Casualties Unknown: Online Contract Tool</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.ContractTool</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    The game-update contract toolchain (docs/development/game-update-runbook.md).
+
+    Deliberately standalone: NO ProjectReference to any src/ project, so the
+    plugin can never pick this tool up as a runtime dependency, and the tool
+    never binds the Game Adapter. Assemblies are read as METADATA (Mono.Cecil:
+    no load, no execution, no dependency resolution) — a snapshot needs the
+    game DLL alone, not a launchable game.
+  -->
+
+  <ItemGroup>
+    <!-- Metadata-only reading and the test fixtures' emitter. -->
+    <PackageReference Include="Mono.Cecil" />
+    <!-- Reading a snapshot back for `diff`; the WRITE side is an explicit
+         Utf8JsonWriter pass so the bytes are reproducible by construction. -->
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

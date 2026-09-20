@@ -41,6 +41,12 @@ The main test project also carries the runtime anti-rot gate:
   exceed 40 real xUnit cases/data rows, including `MemberData` expansion and
   inherited/static test methods; the counting and limit contract is asserted by
   `TestClassSizeGateTests.CaseCounting_SeesMemberDataRowsAndFlagsTheLimit`.
+- `PatchContractRowParityTests` / `GameAssemblySnapshotTests` / `SnapshotJsonTests`
+  (`ContractTool/`) — the game-update contract toolchain's own gates: the tool's
+  metadata-derived rows equal `PatchInventory.BuildContracts`, the real-assembly
+  snapshot is byte-reproducible above a census floor, and the snapshot reader
+  refuses an artifact whose declared census disagrees with its rows. The flow is
+  [`game-update-runbook.md`](../development/game-update-runbook.md).
 
 Pure documentation-only changes skip build/test/gates; run `git diff --check` and
 review the diff. If a documentation change accompanies code, run the full gates.
@@ -119,6 +125,7 @@ These are the current-evidence seeds most useful for verifying active mechanisms
 | [`ip-direct-selfcheck.md`](selfchecks/protocol/ip-direct-selfcheck.md) | Protocol |
 | [`partial-aware-gate-selfcheck.md`](selfchecks/tooling/partial-aware-gate-selfcheck.md) | Architecture/Tooling |
 | [`simtrace-diff-selfcheck.md`](selfchecks/tooling/simtrace-diff-selfcheck.md) | Tooling |
+| [`game-update-contract-toolchain-selfcheck.md`](selfchecks/tooling/game-update-contract-toolchain-selfcheck.md) | Tooling |
 | latest architecture-split sheets (`world-service-split`, `item-service-split`, `mod-service-split`) | Architecture |
 | [`tutorial-claw-stream-selfcheck.md`](selfchecks/world/tutorial-claw-stream-selfcheck.md) | World/Entities |
 

@@ -22,7 +22,7 @@ the priority would not make the live-game half runnable. What the review actuall
 into two halves, and the automatable one moved out:
 
 - the **structural half** — a machine-comparable snapshot of the game assemblies, a classified diff
-  between two builds, offline replay and a boot probe — is now `todo/game-update-contract-toolchain.md`;
+  between two builds, offline replay and a boot probe — is now `review/game-update-contract-toolchain.md`;
 - the **live-game half** — a scripted in-game probe (entity identity, transform, health recorded for
   a scenario) and a dual-client automation harness — stays HERE, and its deferral reason is
   unchanged.

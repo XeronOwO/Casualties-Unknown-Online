@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Game-update contract toolchain](todo/game-update-contract-toolchain.md) — **High** — game-assembly snapshot, classified diff, report.
 - [Adapter capability catalog](todo/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [Mod API contract governance](todo/mod-api-contract-governance.md) — **Medium-High** — visibility rule, stability levels, API baseline.
 - [Application layer: first slice](todo/application-layer-first-slice.md) — **Medium** — after acceptance: kernel command gateway, first slice.
@@ -58,6 +57,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [Game-update contract toolchain](review/game-update-contract-toolchain.md) — **High** — game-assembly snapshot, classified diff, report.
 - [Systemic save and backup management](review/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
 - [World and backup management surface](review/world-and-backup-management-surface.md) — **Medium** — the world/backup picker and the player-chosen restore.
 - [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.

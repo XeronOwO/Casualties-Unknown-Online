@@ -39,7 +39,7 @@ Both stages are recorded by the pinyin-search ticket.
 
 | Mechanism | Change | Evidence |
 |---|---|---|
-| Built-in ranks 0-3 and the 20 cap | Unchanged; extra stages rank after them | `ResourceLocationCatalog`; `Suggest_WithoutMatchStages_KeepsTheBuiltInResultsExactly`, `Suggest_ExtraStageMatches_RankAfterEveryBuiltInRank` (one row per built-in rank) |
+| Built-in ranks 0-3 (exact id, id prefix, bare path prefix, display-name prefix) and the 20 cap | Unchanged; extra stages rank after them | `ResourceLocationCatalog`; `Suggest_WithoutMatchStages_KeepsTheBuiltInResultsExactly`, `Suggest_ExtraStageMatches_RankAfterEveryBuiltInRank` (one row per built-in rank) |
 | Console projection | Unchanged — `CommandConsoleService.SuggestResourceLocations` still projects `entry.Id.ToString()` | `ArgumentSuggestions_ResourceLocationKind_CompletesToTheCanonicalId` |
 | Switch | Live per query; off ⇒ no stage match and no table load | `Suggest_SwitchOff_LeavesTheNativeRankingUntouched`, `Suggest_FollowsTheSwitchWithoutRebuildingTheCatalog` |
 | Matcher | Reuses `PinyinMatcher.Contains` against `DisplayName`; no second implementation | `Suggest_ReachesTheCanonicalId_FromPinyinInitialsChineseAndIdPrefixes`, `Suggest_MatchesTheDisplayName_NeverTheIdString` |

@@ -110,7 +110,8 @@ Planned features:
 - The console's resource completion adds pinyin as an **extra ranking stage**
   behind the existing `IResourceLocationCatalog` seam
   (`IResourceLocationMatchStage` + `PinyinResourceLocationMatchStage`), ranked
-  after the canonical-id / bare-path / display-name stages, so `/cmd cu:fent`,
+  after the four built-in stages (exact canonical id, id prefix, bare path
+  prefix, display-name prefix), so `/cmd cu:fent`,
   `fent` and `ftn` all reach `cu:fentanyl` while the accepted suggestion stays
   the canonical id. The console's own projection
   (`CommandConsoleService.SuggestResourceLocations`) is unchanged, so it emits
@@ -147,12 +148,16 @@ Planned features:
 - The in-game rendering and the frame-level feel of the native search box
   (rows appearing/disappearing per keystroke, tooltips, scroll position) can
   only be verified by the user in the real game. What the automated tests cover
-  is the matcher core and the pure decision — NOT the patch, the scope, the
-  static gate or the BepInEx wiring (the test project excludes the Game Adapter
-  from compilation).
-- The English and Chinese localization tables have no key-set parity gate: the
-  four new keys were verified by inspection, and a future missing key falls back
-  to English silently.
+  for the crafting half is the matcher core and the pure decision — NOT the
+  patch, the scope, the static gate or the BepInEx `ConfigEntry` binding (the
+  test project excludes the Game Adapter from compilation). The console half's
+  switch path IS covered at the composition level: the console test replaces the
+  `IOptionsMonitor<PinyinSearchOptions>` that the production container hands the
+  stage, and the stage honours it.
+- The English and Chinese localization tables have no key-set parity gate:
+  stage 1's four new keys were verified by inspection (stage 2 changed two of
+  those values and added none), and a future missing key falls back to English
+  silently.
 - The reading table is a vendored third-party dataset: it covers 26k+
   characters, but a character outside it silently degrades to the literal
   substring rule rather than failing.

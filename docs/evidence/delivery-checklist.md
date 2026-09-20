@@ -40,7 +40,7 @@ evidence file.
       one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both search surfaces aligned (crafting unchanged, console landed); the review sweep found the stale plugin comment and BepInEx text, fixed here
 - [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance maps to the catalog + stage + console tests; `pinyin-console-completion-selfcheck.md` carries the mechanism matrix
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused 104/104, gates 69/69, full with build 3617/3617, format exit 0; the Debug hit log + one-time table report are the runtime diagnostics
+      peer log comparison, hotrepl assertions) is decided — evidence: focused 104/104, gates 69/69, full with build 3617/3617, format exit 0; the one-time table report is the runtime diagnostic (the hit log needs a raised level)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a

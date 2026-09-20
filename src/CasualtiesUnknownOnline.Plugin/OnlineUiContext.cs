@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -62,6 +63,9 @@ internal sealed class OnlineUiContext
 	internal ConfigurationProfileStore? Profiles;
 
 	internal IGameAdapter? Adapter;
+
+	/// <summary>The world library the Worlds page manages worlds and backups through (decision 198); null when the composition has none.</summary>
+	internal IWorldLibrary? WorldLibrary;
 
 	internal string? LastJoinError;
 

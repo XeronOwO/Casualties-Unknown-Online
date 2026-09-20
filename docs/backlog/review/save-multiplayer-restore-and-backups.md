@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 4 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (the backup half is the user's Q3/Q6 answer: "可配置的定时备份")
-- Related: `docs/architecture/save-archive-format.md` §6/§7, `review/save-layer-end-save-and-restore.md` (S2), `review/save-mid-run-consistent-cut.md` (S3), `review/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1), `review/save-restore-account-surface.md` (S4.2), `review/save-new-player-starting-supplies.md` (S4.3), `todo/systemic-save-backup-management.md` (owns the broader backup/restore product surface)
+- Related: `docs/architecture/save-archive-format.md` §6/§7, `review/save-layer-end-save-and-restore.md` (S2), `review/save-mid-run-consistent-cut.md` (S3), `review/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1), `review/save-restore-account-surface.md` (S4.2), `review/save-new-player-starting-supplies.md` (S4.3), `review/systemic-save-backup-management.md` (owns the broader backup/restore product surface)
 
 ## Stage split
 

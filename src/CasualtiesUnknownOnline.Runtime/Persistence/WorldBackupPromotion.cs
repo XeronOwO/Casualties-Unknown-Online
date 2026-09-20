@@ -27,11 +27,23 @@ namespace CasualtiesUnknownOnline.Runtime.Persistence;
 /// <item>the snapshot about to be replaced is ARCHIVED — the pre-restore copy of §6, its
 /// manifest's reason rewritten to <c>pre-restore-backup</c> — so the world's history holds
 /// a loadable copy where the retention policy and the fallback can see it;</item>
-/// <item>the refused snapshot is moved to <c>damaged-&lt;stamp&gt;/</c> (this survives even a
-/// snapshot whose manifest does not read) and the staging folder takes its place.</item>
+/// <item>the snapshot being replaced is moved aside — to <c>damaged-&lt;stamp&gt;/</c>, or to
+/// <c>.previous/</c> for a promotion that already holds a copy of it (see the trigger) —
+/// and the staging folder takes its place.</item>
 /// </list>
-/// A failure in step 3 puts the preserved folder back, so a promotion that cannot finish
-/// leaves the world as it found it.
+/// A failure in step 3 puts the aside folder back, so a promotion that cannot finish
+/// leaves the world as it found it — with ONE residual, and it is named rather than
+/// implied: if the filesystem refuses the put-back as well (the same condition that broke
+/// the swap), the replaced snapshot stays in <c>.previous/</c> or in <c>damaged-&lt;stamp&gt;/</c>
+/// with <c>live/</c> absent. Nothing is lost — <c>WorldFolderRecovery</c> puts a lone
+/// <c>.previous/</c> back into <c>live/</c> on the next load, and the pre-restore archive
+/// holds the same state in <c>backups/</c> — but that path is logged as an error and is
+/// the one case where this promise does not hold literally.
+///
+/// <see cref="WorldPromotionTrigger"/> decides which of the two shapes step 3 takes: the
+/// recovery keeps the snapshot it replaced as evidence, a player-chosen restore keeps it
+/// only when the pre-restore archive could not be written, because there the archive IS
+/// the copy.
 /// </summary>
 internal static class WorldBackupPromotion
 {
@@ -43,10 +55,13 @@ internal static class WorldBackupPromotion
 
 	/// <summary>
 	/// Replaces <paramref name="worldDirectory"/>'s live snapshot with
-	/// <paramref name="backup"/>. False = nothing was promoted, and the world folder was
-	/// left as it was found (the detail says why).
+	/// <paramref name="backup"/>, archiving the snapshot it replaces first.
+	/// <paramref name="trigger"/> decides what becomes of that replaced snapshot's own
+	/// folder once the archive of it exists (see <see cref="WorldPromotionTrigger"/>).
+	/// False = nothing was promoted, and the world folder was left as it was found (the
+	/// detail says why).
 	/// </summary>
-	internal static Result Promote(string worldDirectory, WorldBackup backup, DateTime nowUtc, ILogger log)
+	internal static Result Promote(string worldDirectory, WorldBackup backup, WorldPromotionTrigger trigger, DateTime nowUtc, ILogger log)
 	{
 		var live = Path.Combine(worldDirectory, SaveArchiveFormat.LiveFolderName);
 		var staging = Path.Combine(worldDirectory, SaveArchiveFormat.StagingFolderName);
@@ -68,25 +83,57 @@ internal static class WorldBackupPromotion
 		// manifest that does not read, bytes that no longer match it) is still preserved
 		// as a folder below, so the copy is a second chance, never the only one.
 		var preRestore = ArchivePreRestore(live, worldDirectory, nowUtc, log);
-		account.Add(preRestore);
+		account.Add(preRestore.Line);
 
-		var preserved = PreserveLiveAsEvidence(worldDirectory, live, nowUtc, log);
+		// What becomes of the replaced snapshot's folder, now that its copy either does or
+		// does not exist: the recovery keeps it as evidence, a player-chosen restore reuses
+		// the writer's `.previous` swap — but only while the pre-restore archive is really on
+		// disk, because then that archive is the copy and a `damaged-` folder would be one
+		// more full snapshot per restore under a name nothing may ever delete.
+		var keepEvidence = trigger == WorldPromotionTrigger.RefusedSnapshot || !preRestore.Archived;
+		string? aside;
+		try
+		{
+			aside = keepEvidence
+				? PreserveLiveAsEvidence(worldDirectory, live, nowUtc, log)
+				: MoveLiveToPrevious(worldDirectory, live, log);
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			// Nothing has been promoted at this point and live/ is still where it was, so a
+			// filesystem refusal here is a refused restore rather than a half-replaced world
+			// — which is the one thing this method promises its callers.
+			log.LogError(ex, "The snapshot being replaced could not be moved aside; nothing was promoted.");
+			DiscardStaging(staging, log);
+			return Result.Refused($"the snapshot being replaced could not be moved aside ({ex.Message})");
+		}
+
 		try
 		{
 			Directory.Move(staging, live);
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 		{
-			log.LogError(ex, "The promoted backup {Backup} could not be moved into live/; the preserved snapshot is put back.", backup.FileName);
-			PutEvidenceBack(preserved, live, log);
+			log.LogError(ex, "The promoted backup {Backup} could not be moved into live/; the replaced snapshot is put back.", backup.FileName);
+			PutEvidenceBack(aside, live, log);
 			DiscardStaging(staging, log);
 			return Result.Refused($"the promoted backup could not replace the live snapshot ({ex.Message})");
 		}
 
-		var evidence = preserved is null
-			? "there was no live snapshot to preserve"
-			: $"the refused live snapshot is preserved at {Path.GetFileName(preserved)}";
-		account.Add($"{evidence}; backup {backup.FileName} was promoted to the live snapshot");
+		if (!keepEvidence)
+		{
+			// The new snapshot is live and the pre-restore archive holds the state that was
+			// replaced, so the transient copy goes. A failure here is not a lost world: the
+			// next load discards the same leftover.
+			DeletePrevious(worldDirectory, log);
+		}
+
+		var replaced = aside is null
+			? "there was no live snapshot to replace"
+			: keepEvidence
+				? $"the refused live snapshot is preserved at {Path.GetFileName(aside)}"
+				: "the replaced snapshot is archived as the pre-restore backup and its folder was removed";
+		account.Add($"{replaced}; backup {backup.FileName} was promoted to the live snapshot");
 		log.LogWarning("World {Directory}: {Account}", worldDirectory, account[account.Count - 1]);
 		return new Result(true, $"backup {backup.FileName} promoted to the live snapshot", account);
 	}
@@ -94,10 +141,20 @@ internal static class WorldBackupPromotion
 	/// <summary>
 	/// The pre-restore copy of §6: the snapshot about to be replaced is archived into
 	/// <c>backups/</c> with its reason rewritten, so the world's history holds a loadable
-	/// copy under the retention policy. Returns the account line for this half.
+	/// copy under the retention policy. Returns the account line for this half and whether
+	/// the archive really is on disk — the caller's decision about the replaced folder
+	/// depends on it (the archive is that state's only other copy).
 	/// </summary>
-	private static string ArchivePreRestore(string live, string worldDirectory, DateTime nowUtc, ILogger log)
+	private static (string Line, bool Archived) ArchivePreRestore(string live, string worldDirectory, DateTime nowUtc, ILogger log)
 	{
+		// No live snapshot at all is not the same fact as an unreadable one, and the account says
+		// which it was: a world whose live folder is gone (a failed earlier attempt, a folder a
+		// player cleaned up) restores from its archive without a pre-restore copy of anything.
+		if (!Directory.Exists(live))
+		{
+			return ("there was no live snapshot to archive (the world folder held none)", false);
+		}
+
 		var manifestPath = Path.Combine(live, SaveArchiveFormat.ManifestFileName);
 		SaveManifest? manifest;
 		try
@@ -112,7 +169,7 @@ internal static class WorldBackupPromotion
 
 		if (manifest is null)
 		{
-			return $"the snapshot about to be replaced carries no readable manifest, so it is preserved as a folder only (no pre-restore archive was written)";
+			return ($"the snapshot about to be replaced carries no readable manifest, so it is preserved as a folder only (no pre-restore archive was written)", false);
 		}
 
 		var preRestore = AsPreRestore(manifest, nowUtc);
@@ -120,11 +177,11 @@ internal static class WorldBackupPromotion
 		try
 		{
 			var archive = SaveArchiveWriter.ArchiveExistingSnapshot(live, Path.Combine(worldDirectory, SaveArchiveFormat.BackupsFolderName), preRestore, nowUtc, log);
-			return $"the snapshot about to be replaced was archived as {archive.FileName} (pre-restore backup)";
+			return ($"the snapshot about to be replaced was archived as {archive.FileName} (pre-restore backup)", true);
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
 		{
-			return $"the pre-restore archive of the snapshot about to be replaced could not be written ({ex.Message}); its preserved folder is the only copy";
+			return ($"the pre-restore archive of the snapshot about to be replaced could not be written ({ex.Message}); its preserved folder is the only copy", false);
 		}
 	}
 
@@ -197,10 +254,52 @@ internal static class WorldBackupPromotion
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 		{
-			// The snapshot is not lost — it is still in the preserved folder, and the log
-			// names it — but the world folder is no longer in the state it was found, which
-			// is the one thing this rollback exists to guarantee.
-			log.LogError(ex, "The preserved snapshot {Preserved} could not be put back into {Live}; it stays where it is.", preserved, live);
+			// The snapshot is not lost — it is still in the folder named here, and the next load
+			// puts a lone `.previous/` back into live/ or falls back to the archives — but the
+			// world folder is no longer in the state it was found, which is what this rollback
+			// exists to guarantee. The pre-restore archive of the same state is the other copy.
+			log.LogError(ex, "The replaced snapshot {Preserved} could not be put back into {Live}; it stays where it is, and the next load recovers it (the pre-restore archive holds the same state).", preserved, live);
+		}
+	}
+
+	/// <summary>
+	/// Moves <c>live/</c> to <c>.previous/</c> — the writer's own transient name (§5) — for a
+	/// promotion that already holds the replaced state in <c>backups/</c>. Returns the folder,
+	/// or null when there was no live snapshot. A leftover from an interrupted commit goes
+	/// first: the next load would discard it anyway, and leaving two of them would make the
+	/// name ambiguous.
+	/// </summary>
+	private static string? MoveLiveToPrevious(string worldDirectory, string live, ILogger log)
+	{
+		if (!Directory.Exists(live))
+		{
+			return null;
+		}
+
+		var previous = Path.Combine(worldDirectory, SaveArchiveFormat.PreviousFolderName);
+		DeletePrevious(worldDirectory, log);
+		Directory.Move(live, previous);
+		return previous;
+	}
+
+	/// <summary>
+	/// Removes the <c>.previous/</c> folder a finished swap left behind. Best effort and
+	/// logged: what it holds is already archived under <c>backups/</c> and the next load
+	/// discards the same leftover, so a failure costs disk, never a world.
+	/// </summary>
+	private static void DeletePrevious(string worldDirectory, ILogger log)
+	{
+		var previous = Path.Combine(worldDirectory, SaveArchiveFormat.PreviousFolderName);
+		try
+		{
+			if (Directory.Exists(previous))
+			{
+				Directory.Delete(previous, recursive: true);
+			}
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			log.LogWarning(ex, "The transient {Previous} folder could not be removed; it stays on disk and the next load discards it.", SaveArchiveFormat.PreviousFolderName);
 		}
 	}
 

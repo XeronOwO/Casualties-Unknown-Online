@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -197,6 +198,7 @@ internal sealed class OnlineUiOverlay
 		ILocationPingControl locationPings,
 		ITimeSource time,
 		IGameAdapter? adapter,
+		IWorldLibrary? worldLibrary,
 		ILocalizationService localization,
 		HostRulesConfigEditor? rulesEditor,
 		LoggingConfigEditor? logging,
@@ -223,6 +225,7 @@ internal sealed class OnlineUiOverlay
 			Language = language,
 			Profiles = Profiles,
 			Adapter = adapter,
+			WorldLibrary = worldLibrary,
 			LastJoinError = lastJoinError,
 			State = _window.State,
 			JoinLobby = JoinLobby,

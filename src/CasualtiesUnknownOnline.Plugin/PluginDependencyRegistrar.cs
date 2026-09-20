@@ -9,9 +9,12 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Persistence;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.DependencyInjection;
@@ -245,6 +248,20 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<GameAdapterImpl>();
 		services.AddSingleton<IGameAdapter>(p => p.GetRequiredService<GameAdapterImpl>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
+		// The world library (decision 198): the worlds and backups the Online UI's Worlds page
+		// manages, and the restore that replaces one world's live snapshot with an archive the
+		// player picked. It is an ICuoService because an armed restore runs at a frame boundary
+		// (the click only records the intent — see IWorldLibrary), and it is registered AFTER the
+		// adapter so the "is a world loaded" fact read at that boundary is this frame's.
+		services.AddSingleton(p => new WorldLibraryService(
+			p.GetService<WorldRepository>(),
+			p.GetRequiredService<IWorldSaveControl>(),
+			p.GetRequiredService<ISessionControl>(),
+			p.GetRequiredService<ILogger<WorldLibraryService>>(),
+			p.GetService<IOptionsMonitor<SaveOptions>>(),
+			worldActive: () => p.GetRequiredService<IGameAdapter>().IsInWorldOrGenerating));
+		services.AddSingleton<IWorldLibrary>(p => p.GetRequiredService<WorldLibraryService>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<WorldLibraryService>());
 		// The native world-fact reader/writer of the CUO world archive: the
 		// adapter is the only layer that can read the game's keypad codes, geyser
 		// liquid types and its own blockDamages list, so the save layer resolves

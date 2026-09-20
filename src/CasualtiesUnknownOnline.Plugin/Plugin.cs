@@ -16,6 +16,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -59,6 +60,7 @@ public class Plugin : BaseUnityPlugin
 	private IPlayerInteractionVisibility _interactionVisibility = null!;
 	private IModUiControl _modUiControl = null!;
 	private IGameAdapter? _adapter;
+	private IWorldLibrary? _worldLibrary;
 	private ILocationPingControl _locationPings = null!;
 	private ITimeSource _time = null!;
 	private LocationPingInputHandler _locationPingInput = null!;
@@ -123,6 +125,10 @@ public class Plugin : BaseUnityPlugin
 			_interactionVisibility = _services.GetRequiredService<IPlayerInteractionVisibility>();
 			_modUiControl = _services.GetRequiredService<IModUiControl>();
 			_adapter = _services.GetService<IGameAdapter>();
+			// The world library the Worlds page drives (decision 198): optional, exactly like the
+			// adapter — a composition without a world repository has nothing to manage, and the
+			// page says so instead of throwing.
+			_worldLibrary = _services.GetService<IWorldLibrary>();
 			_uiActions = new OnlineUiActions(_session, _hostBan, _playerInteraction, _adapter);
 			_ipActions = new IpDirectActions(
 				_router,
@@ -503,7 +509,7 @@ public class Plugin : BaseUnityPlugin
 			_lastJoinError = _ipActions.LastError;
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _adapter, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _adapter, _worldLibrary, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

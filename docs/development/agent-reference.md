@@ -18,7 +18,9 @@ docs/                                      # architecture, decisions, backlog, f
 AGENTS.local.md                            # gitignored local notes; never commit
 ```
 
-See `docs/README.md` for the documentation index.
+See `docs/README.md` for the documentation index. Before deciding that a system belongs in the
+plug-in or in its own mod, apply the four-layer rule in
+`docs/api/advanced-modification-policy.md` §1.2 ("which systems live where").
 
 
 ## Architecture & Sync Rules

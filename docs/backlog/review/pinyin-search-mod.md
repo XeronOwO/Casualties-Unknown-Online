@@ -93,10 +93,13 @@ Planned features:
   to a different name while the row-building loop keeps reading `simpleName`
   keeps the counter fed — a recorded gap, not a guarded one.
 - **Structure/naming outcome**: there is no separate
-  `CasualtiesUnknownOnline.Pinyin` assembly — the matcher core lives in
-  `Runtime/Search/`, the game patch in `GameAdapter/Patches/`, and the switch is
-  a CUO option. A standalone plugin could not patch this surface at all: only
-  the Game Adapter may reference the game assemblies (`docs/api/mod-api.md` §1).
+  `CasualtiesUnknownOnline.Pinyin` assembly in this round — the matcher core
+  lives in `Runtime/Search/`, the game patch in `GameAdapter/Patches/`, and the
+  switch is a CUO option. That placement is a tier decision (decision 204), not a
+  technical barrier: an independent BepInEx plugin can patch this surface by
+  binding the game's own code — the reference mod this work was ported from does
+  exactly that — which is why moving it out is its own ticket
+  (`docs/backlog/todo/pinyin-search-standalone-mod.md`).
 - Evidence: `PinyinDictionaryTests`, `PinyinMatcherTests`,
   `NameSearchMatcherTests`, `RecipeSearchDecisionTests` and
   `docs/evidence/selfchecks/search/pinyin-search-selfcheck.md`.

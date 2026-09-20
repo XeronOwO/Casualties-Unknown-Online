@@ -52,6 +52,9 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — after acceptance: entry, UI and registration separated.
 - [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — after acceptance: per-domain ports, aggregate frozen.
 - [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — after acceptance: registrations and reset contract.
+- [Native-binding mods declare it](todo/mod-native-binding-declaration.md) — **Medium** — after acceptance: the tier model and the manifest declaration.
+- [Native-binding session parity](todo/mod-native-binding-handshake-parity.md) — **Medium** — after acceptance: the host can require parity.
+- [Pinyin search as a standalone mod](todo/pinyin-search-standalone-mod.md) — **Medium** — after acceptance: the game-side half moves out; CUO keeps the seam.
 
 ### Review
 

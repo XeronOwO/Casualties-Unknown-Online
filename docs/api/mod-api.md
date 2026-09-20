@@ -23,10 +23,12 @@ AccessNativeApi is landed (see §4i), the runtime mod-data scope seam is
 landed (see §4j), and the runtime status table + typed status transport +
 GameAdapter projection slices and the vanilla moodle-row seam are landed (see §4k).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
-assembly mods may reference (architecture.md §5.5). A mod never touches
-BepInEx, Steamworks, the game assemblies, or CUO.Runtime. Which of these surfaces
-is a promise, which is only an implementation, what a mod may patch, and what
-diagnostics an author can expect are `docs/api/advanced-modification-policy.md`. **Mod-state saves
+assembly mods may reference (architecture.md §5.5). That is a statement about the CONTRACT, not a
+fence around what a mod may do: patching CUO's own implementation by name is allowed and carries no
+promise, and a mod that needs the game's own code binds it through the declared native-binding tier.
+Which surface is a promise, which is only an implementation, what a mod may patch, and what
+diagnostics an author can expect are `docs/api/advanced-modification-policy.md` — its §1.1 is the
+tier table. **Mod-state saves
 are landed (see §4d), the local mod UI surface is landed (see §4e), and
 content registration is landed (see §4f).**
 

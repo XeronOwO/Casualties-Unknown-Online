@@ -12,13 +12,32 @@ entitled to when a promise is not given.
 | `CasualtiesUnknownOnline.Abstractions` public API | **The contract.** It is the only assembly a mod may reference (`docs/api/mod-api.md` §1, architecture §5.5). |
 | `CasualtiesUnknownOnline.Runtime` | **Implementation.** Public only because the plugin composes it; no promise to a mod, and it may change shape in any commit. |
 | `CasualtiesUnknownOnline.GameAdapter` | **Implementation.** It is the only project that may reference the game assemblies, so anything it exposes is coupled to a game build by construction. |
-| Game assemblies (`Assembly-CSharp`, Unity modules) | **Not reachable.** A mod never references them; the adapter is the sole boundary. |
+| Game assemblies (`Assembly-CSharp`, Unity modules) | **Reachable through a declaration.** The contract never references them — the adapter is the boundary for everything the API offers — but a mod that needs the game's own code may bind it and declare that binding (§1.1; ticket `docs/backlog/todo/mod-native-binding-declaration.md`). |
 
 **The visibility rule (binding).** A type or member defaults to the narrowest visibility its
 implementation needs. Only a capability that is designed, documented and reviewed becomes a
 public third-party contract — "it compiled because it was public" is not a contract, and
 `internal` plus `InternalsVisibleTo` is the normal shape for everything the framework needs to
 share with its own tests.
+
+### 1.1 The tiers: compatibility is layered, not one-size-fits-all
+
+A mod takes the narrowest tier that expresses its feature. The tiers exist so that "not in the
+contract" never has to mean "not allowed" (owner ruling 2026-09-20, decision 204):
+
+| Tier | What the mod binds | What it gets | What it owes |
+|---|---|---|---|
+| 0 | The `Abstractions` public API | The contract: `[ApiStability]` levels and the gated baseline | Nothing beyond the API's own rules |
+| 1 | CUO's own implementation (`Runtime`, `GameAdapter`), patched by name | Allowed and not treated as hostile (§4) | Accepting that a patch carries no promise |
+| 2 | The game's own code | A DECLARED binding: still a CUO mod, visible to the host and parity-checkable | The manifest declaration, and the game-update churn |
+| 3 | Anything, as an unmanaged BepInEx plugin | No constraint at all | No visibility at all — no host can see it |
+
+Tier 3 is not an enemy to defeat; it is the reason Tier 2 exists, because a mod that binds the game
+outside CUO is invisible to every host. CUO does not detect an undeclared binding (§4's
+no-anti-cheat stance), so the declaration is opt-in honesty whose only force is a host's parity
+policy. Whenever the curated native registry (`docs/api/mod-api.md` §4i) can express the feature it
+is the better answer, and several mods binding the same thing is the promotion signal in §6 — an
+API addition, not a wider tier.
 
 ## 2. Stability levels
 

@@ -61,6 +61,7 @@ Decisions / history / future
 | [`entity-features.md`](features/entities.md) + `entity-features-matrix.csv` | Canonical entity/trap mechanism matrix and sync status |
 | [`enemy-sync.md`](features/enemies.md) | Enemy mechanics and sync design |
 | [`mod-api.md`](api/mod-api.md) | Mod API lifecycle, permissions, host commands, state, UI, content |
+| [`advanced-modification-policy.md`](api/advanced-modification-policy.md) | Contract vs implementation, stability levels, Harmony policy, the reviewed public-surface baseline (`api/abstractions-api-baseline.txt`) |
 
 ## 4. Verification / Evidence
 

@@ -24,7 +24,7 @@ Automation status legend:
 | #2 Unity objects use `== null` / `!= null` | Review / process | Documented Unity exception; IDE0031 deliberately disabled because a global `?.` rewrite would break Unity object semantics. |
 | #3 One top-level type per file; file name matches type name | dotnet test (C# port) | `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits`. |
 | #4 Evidence-based changes / cite decompiled sources | Review / process | Human process; not a source-shape rule. |
-| #5 Absolute-machine-path red line | dotnet test (C# port) | `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`. |
+| #5 Absolute-machine-path red line (nothing git would carry may contain a drive-letter, UNC or `/home`-style path) | dotnet test (C# port) | `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths` — the scan covers tracked files AND untracked-but-not-gitignored ones, so a brand-new file is checked before it is committed. |
 | #6 Requirement triage | Review / process | Human judgment. |
 | #7 Self-learning / record reusable knowledge | Review / process | Human process. |
 | #8 Architecture-first, get consent | Review / process | Approval process before risky changes. |
@@ -33,6 +33,7 @@ Automation status legend:
 | #11 Attribute/reflection registration for large families | Review / process | Design preference; no reliable syntax gate without false positives. |
 | #12 Reuse native game UI | Review / process | Acceptance-readiness audit; explicitly a human acceptance decision. |
 | #13 Extension methods use the C# 14 `extension` syntax | dotnet test (C# port) | `SourceShapeGateTests.ExtensionMethods_UseTheCsharp14ExtensionSyntax` (fails on a classic `this X` declaration under `src` or `tests`; its own matcher contract is pinned by `TheMatcher_SeesEveryClassicExtensionShapeAndIgnoresOrdinaryStatics`). |
+| #14 Minimum visibility, declared stability: only a designed/documented/reviewed capability is a public contract, and the `Abstractions` public surface is a recorded baseline — an addition or removal fails until the baseline is reviewed and updated, a removal names its reason, and a non-`Stable` surface declares its level | dotnet test (C# port) | `ApiSurfaceGateTests.AbstractionsPublicSurface_MatchesTheReviewedBaseline` + `...TheBaselineAndTheScan_MeetTheCensusFloor` + the matcher's own contract (`...TheMatcher_FlagsAnAddedMemberAsAnApiChange`, `...FlagsARemovalWithoutATombstoneAndAcceptsOneWith`, `...FlagsALevelChangeAndAMalformedBaselineLine`, `...IgnoresHowAReferenceIsSpelled`); baseline at [`abstractions-api-baseline.txt`](../api/abstractions-api-baseline.txt), policy at [`advanced-modification-policy.md`](../api/advanced-modification-policy.md) |
 | Dependency pin — Microsoft.Extensions 3.1.x on net48 (architecture blueprint §5) | dotnet test (C# port) | `SourceShapeGateTests.MicrosoftExtensionsPinnedToNet48CompatibleLine`. |
 
 ## Test infrastructure
@@ -60,6 +61,7 @@ Automation status legend:
 | User-found issues are hard blockers | Review / process | Backlog/human process. |
 | Independent adversarial self-check | Review / process | Human/process. |
 | Delivery checklist | dotnet test (C# port) | `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`. |
+| The protocol version number lives in ONE place: `ProtocolVersion.Current` and its doc comment are the value and the wire-change log, so a live governance document (`AGENTS.md`, `docs/api/**/*.md`, `docs/decisions/active.md`, `docs/architecture/current.md`) points at the constant instead of restating it — records of a past state (`docs/evidence/**`, backlog tickets, the evolution logs) keep their own historical number on purpose | dotnet test (C# port) | `ProtocolNumberGateTests.LiveGovernanceDocuments_DoNotRestateTheProtocolVersionNumber` (census floor + a check that the constant still exists) + `...TheMatcher_FlagsACurrentValueClaimAndIgnoresThePointerForm` |
 | The game-update contract toolchain stays out of the plugin: the tool is metadata-only, no `src/` project references it, and the patch-target rows it recovers from the adapter's metadata equal `PatchInventory.BuildContracts` (the rows it cannot see are exactly the hand-declared dynamic ones); the snapshot is byte-reproducible and its own census is verified on read | dotnet test (C# port) | `PatchContractRowParityTests.ToolRows_EqualTheAdaptersOwnContractRows` + `...CoverEveryAttributedPatchClass` + `RowsTheToolCannotSee_AreExactlyTheHandDeclaredDynamicOnes`, `GameAssemblySnapshotTests.Snapshot_OfTheRealGameAssembly_IsByteReproducible` + `...MeetsTheCensusFloor`, `SnapshotJsonTests.Reader_RefusesACensusThatDisagreesWithItsRows`; runbook at [`game-update-runbook.md`](../development/game-update-runbook.md) |
 | The backlog index is a table of POINTERS, not a second copy of its tickets: every ticket is listed exactly once under the section that matches its folder, each row fits a 160-character budget and carries the priority its ticket declares, each ticket's `- Status:` field agrees with its folder, every test anchor a live ticket cites still exists under `tests/`, and no document cites `AGENTS.md` by line number | dotnet test (C# port) | `BacklogIntegrityGateTests.EveryTicketIsIndexedExactlyOnceUnderItsOwnSectionAndEveryLinkResolves` + `BacklogIntegrityGateTests.EveryIndexRowIsAPointerWithinItsBudgetCarryingItsTicketsPriority` + `BacklogIntegrityGateTests.TheStatusFoldersAreTheOnlyOnesAndNoTicketFileSitsLoose` + `BacklogIntegrityGateTests.EveryTicketStatusFieldAgreesWithItsFolder` + `BacklogIntegrityGateTests.EveryDocumentedTestAnchorIsStillDeclared` + `BacklogIntegrityGateTests.NoDocumentCitesAgentsMdByLineNumber`, each with its negative-contract self-test |
 | Deployment/artifact verification | PowerShell + process | `tools/deploy.ps1` and deployment hash/file check. |
@@ -82,8 +84,11 @@ into this test project. The mapping below records what replaced each one.
 | `check-no-absolute-paths.ps1` | Tracked-file absolute machine paths. | `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths` |
 | `check-delivery.ps1` | Delivery checklist/forbidden-box integrity. | `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes` |
 
-> `NoAbsolutePaths_NoTrackedMachinePaths` enumerates `git ls-files`, so a file that is still UNTRACKED is not
-> scanned at all: after a new file lands, `git add` it and run the gate again, or its paths were never checked.
+> `NoAbsolutePaths_NoTrackedMachinePaths` enumerates `git ls-files --cached --others --exclude-standard`:
+> tracked files plus untracked-and-not-gitignored ones, so a brand-new file IS checked before it is committed.
+> It was tracked-only until 2026-09-20, which twice let a new file pass the local run and turn the gate red on
+> the commit that added it (the adapter capability reporter's log literal, and this gate suite's own
+> public-surface baseline header).
 > The same scan reads a C# regex escape such as `:\s` in a verbatim string as a drive-letter path, so a pattern
 > like `- Status:[ \t]*(.+?)` is the form that both means what it says and stays clean.
 
@@ -103,9 +108,12 @@ syntax tree rather than textual scanning. The gate:
 
 ## Related
 
-- `AGENTS.md` Engineering Conventions #3, #5, #10
+- `AGENTS.md` Engineering Conventions #3, #5, #10, #14
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/FullyQualifiedNameGate.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/FullyQualifiedNameGateTests.cs`
+- `tests/CasualtiesUnknownOnline.NormativeGates.Tests/ApiSurfaceGate.cs`
+- `tests/CasualtiesUnknownOnline.NormativeGates.Tests/ApiSurfaceGateTests.cs`
+- `tests/CasualtiesUnknownOnline.NormativeGates.Tests/ProtocolNumberGateTests.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/SourceShapeGateTests.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/RepositoryGateTests.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/TestIsolationGateTests.cs`

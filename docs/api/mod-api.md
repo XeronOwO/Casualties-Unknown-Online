@@ -24,7 +24,9 @@ landed (see §4j), and the runtime status table + typed status transport +
 GameAdapter projection slices and the vanilla moodle-row seam are landed (see §4k).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
-BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
+BepInEx, Steamworks, the game assemblies, or CUO.Runtime. Which of these surfaces
+is a promise, which is only an implementation, what a mod may patch, and what
+diagnostics an author can expect are `docs/api/advanced-modification-policy.md`. **Mod-state saves
 are landed (see §4d), the local mod UI surface is landed (see §4e), and
 content registration is landed (see §4f).**
 
@@ -927,8 +929,11 @@ host validates BEFORE the member is created:
 | discovery not yet run | anything | **"pending" refusal** — the guest's 1 s retry re-runs the check |
 
 Versions are strict SemVer. For state-bearing modes the comparison is
-**precedence equality** (build metadata ignored); compatibility ranges are
-deliberately not inferred until a formal API-compatibility contract exists.
+**precedence equality** (build metadata ignored). Compatibility ranges are still
+not inferred, but the surface they would have to be checked against is no longer
+missing: `docs/api/advanced-modification-policy.md` fixes the stability levels
+(and the visibility rule behind them) and `docs/api/abstractions-api-baseline.txt`
+is the reviewed record of the public surface, enforced by `ApiSurfaceGateTests`.
 
 ## 6. Reference layout of a mod
 
@@ -943,43 +948,14 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `31`. The pre-release protocol-version sequence
-  was deliberately reset before first release (tech-decisions #137); the
-  post-reset wire has since extended the character-sound event family
-  (`CharacterSoundKind.ItemPlacement`), the runtime-entity creation family
-  (`EntitySpawnedMsg` creation token + `RuntimeEntitySnapshotMsg` animal
-  acknowledgement keys), the backfill identity family
-  (`EnemySpawnEntryMsg`/`TrapLayoutEntryMsg` creation keys), the block-state
-  support-loss verdict (`BlockStateEntryMsg.SupportLossSettled`), the layer
-  boundary's item reset (`WorldItemsReset`), the runtime-entity rejection
-  (`RuntimeEntityRejected`), the guest partial-damage absolute re-report
-  (`BlockDamageReport`), the enemy snapshot's bind-time spawn anchor
-  (`EnemyStateMsg.SpawnPosition`), the enemy attack announcement
-  (`EnemyAttackMsg`), and the target-body verdict of a medical operation start
-  (`MedicalOperationTargetCheckRequest`/`Answer`), the single-outcome settlement
-  of a medical unit that resolves once
-  (`MedicalOperationEndCommittedMsg.TerminalReason.AlreadyHandled`), and the
-  creation-before-operation invariant that replaced the host's fixed 500 ms
-  pickup hold window with an immediate refusal carrying the refused creation's
-  own reason (`KernelProtocolCommandHandler`), and the local-initiation
-  world-time model (a manual speed applies on the initiator's own client, the
-  host arbitrates accept-first and answers every request, and the host-side
-  movement veto is deleted), and the world/layer generation stamp the
-  layer-relative direct world reports carry (`BlockPlaced`, `BlockDamaged`, the
-  block-damage snapshot/report payload — a stale previous-layer report is
-  refused, and a same-generation lost-air-write break report is accepted so its
-  drops survive), and the world/layer generation stamp on the remaining
-  position-keyed families (the trap-layout snapshot and the runtime-entity
-  creation report with its absolute table — a stale one is refused before any
-  entity is materialized, and a refused creation report is answered with
-  `RuntimeEntityRejectReason.StaleGeneration` so its pending re-report ends), and
-  the recipe-unlock backfill (the host's absolute unlocked-recipe set rides the
-  world-entry and 60 s repair groups, a guest re-reports its own set until the
-  host's set carries it, and the host merges the difference through the ordinary
-  unlock path — `RecipeUnlockSnapshot`, `docs/decisions/active.md` #186), so
-  earlier numbers such as
-  10/29/34 in this document are historical and must not be used as current wire
-  versions.
+- The current wire version is whatever `ProtocolVersion.Current` declares
+  (`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs`). That
+  constant's doc comment carries a per-number entry for each bump it logs — it is
+  where the wire-change log lives, not this document — while the earlier post-reset
+  history lives in `docs/decisions/active.md` #137 and the delivery archive. So this
+  document names no number at all (`ProtocolNumberGateTests` fails a live governance
+  document that restates the current value). The pre-release protocol-version
+  sequence was deliberately reset before first release (tech-decisions #137).
 - Behavioral wire changes after the first release will bump
   `ProtocolVersion.Current`; local-only/read-only mod surfaces that add no wire
   change do not bump it.

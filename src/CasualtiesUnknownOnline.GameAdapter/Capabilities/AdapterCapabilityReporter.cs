@@ -37,9 +37,14 @@ internal sealed class AdapterCapabilityReporter
 	internal void Publish(string gameProbeLine)
 	{
 		var report = AdapterCapabilityProbe.Build(_failures, gameProbeLine);
+		// The text is composed rather than inlined as a one-line template on purpose: a literal
+		// colon-backslash-n escape inside a log template is read as a drive-letter path by
+		// RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths. Composing it this way keeps the
+		// rendered message byte-identical to the original (a single LF, not Environment.NewLine).
+		var message = "Game Adapter capability report:" + "\n" + report.Render();
 		_log.Log(
 			report.RefusesSession ? LogLevel.Error : LogLevel.Information,
-			"Game Adapter capability report:\n{Report}",
-			report.Render());
+			"{Report}",
+			message);
 	}
 }

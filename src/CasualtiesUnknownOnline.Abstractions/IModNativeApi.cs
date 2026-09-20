@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// write/native-mutation operations are not exposed until a concrete consumer
 /// exists and its sync boundary is designed.
 /// </summary>
+[ApiStability(ApiStabilityLevel.Advanced)]
 public interface IModNativeApi
 {
 	/// <summary>

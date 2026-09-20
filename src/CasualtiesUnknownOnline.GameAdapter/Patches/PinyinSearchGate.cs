@@ -16,7 +16,6 @@ internal static class PinyinSearchGate
 {
 	private static IOptionsMonitor<PinyinSearchOptions>? _options;
 	private static ILogger? _log;
-	private static bool _reportedTable;
 
 	/// <summary>Whether a pinyin-enabled surface may extend its native matching right now.</summary>
 	internal static bool Enabled => _options?.CurrentValue.Enabled ?? false;
@@ -42,24 +41,15 @@ internal static class PinyinSearchGate
 	/// Reports the reading table once, when the first search actually needs it
 	/// (low frequency → Information). A table that failed to embed must be
 	/// visible in the log: pinyin search would otherwise look enabled while
-	/// silently matching nothing.
+	/// silently matching nothing. The console's completion stage reports through
+	/// the same helper, so a missing table produces one line, not one per
+	/// surface.
 	/// </summary>
 	internal static void ReportTableOnce()
 	{
-		if (_reportedTable)
+		if (_log is not null)
 		{
-			return;
+			PinyinTableReport.ReportOnce(_log);
 		}
-
-		_reportedTable = true;
-		var count = PinyinDictionary.Count;
-		if (count == 0)
-		{
-			_log?.LogWarning(
-				"[Pinyin] the embedded reading table is missing — pinyin search is inactive and every surface keeps the native substring rule.");
-			return;
-		}
-
-		_log?.LogInformation("[Pinyin] search enabled — {Count} characters loaded.", count);
 	}
 }

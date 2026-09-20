@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism matrix maps each seam (native box, predicate operand, item-filter guard) to code plus a test or an explicit gap
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism matrix maps the extra-stage seam, the 0-3 ranking and the live switch to code plus a test or an explicit gap
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both surfaces audited: crafting lands now, console is stage 2 with its seam named in the same ticket; PlayerCamera holds the only native search box
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance maps to PinyinDictionary/PinyinMatcher/NameSearchMatcher/RecipeSearchDecision tests; selfcheck carries the mechanism matrix
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both search surfaces aligned (crafting unchanged, console landed); the review sweep found the stale plugin comment and BepInEx text, fixed here
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance maps to the catalog + stage + console tests; `pinyin-console-completion-selfcheck.md` carries the mechanism matrix
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused 57/57, gates 69/69, full with build 3588/3588; read-path signal plus one-time warnings are the runtime diagnostics
+      peer log comparison, hotrepl assertions) is decided — evidence: focused 104/104, gates 69/69, full with build 3617/3617, format exit 0; the Debug hit log + one-time table report are the runtime diagnostics
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: user chose the reference source and the order (pinyin first, then unified acceptance) on 2026-09-20; decision 199 records the mechanism
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; normative gates 69/69; full suite with build 3588 passed / 0 failed
+      process violation — evidence: the handoff fixed the order and acceptance on 2026-09-20 (Stage 2 → ticket to review → unified acceptance); decision 200 records the mechanism
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; normative gates 69/69; full suite with build 3617 passed / 0 failed
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest new file RecipeSearchScope 129; the gate forced two file splits; CuoBootstrap trimmed to exactly its 600-line cap
+      dead mechanisms deleted in the same round) — evidence: largest new file PinyinResourceLocationMatchStage 49 lines; CuoBootstrap 596/600 after the block move; no new boolean state
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

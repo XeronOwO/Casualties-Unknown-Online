@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
@@ -15,7 +16,11 @@ namespace CasualtiesUnknownOnline.Tests.Content;
 public class ResourceLocationCatalogTests
 {
 	private static ResourceLocationCatalog CreateCatalog(params IResourceLocationSource[] sources) =>
-		new(sources, NullLogger<ResourceLocationCatalog>.Instance);
+		new(sources, [], NullLogger<ResourceLocationCatalog>.Instance);
+
+	private static ResourceLocationCatalog CreateCatalogWithStages(
+		IResourceLocationSource source, params IResourceLocationMatchStage[] stages) =>
+		new([source], stages, NullLogger<ResourceLocationCatalog>.Instance);
 
 	private static ResourceLocationEntry Entry(string id, string kind = ModContentKind.Item, string displayName = "") =>
 		new(ContentId.Parse(id), kind, string.IsNullOrEmpty(displayName) ? id : displayName);
@@ -140,6 +145,107 @@ public class ResourceLocationCatalogTests
 		var entry = Assert.Single(catalog.Entries);
 		Assert.Equal("cu:bandage", entry.Id.ToString());
 		Assert.Single(catalog.Suggest("cu:"));
+	}
+
+	[Theory]
+	[InlineData("cu:exact", "cu:exact")]
+	[InlineData("cu:ex", "cu:exact")]
+	[InlineData("fenp", "cu:fenpath")]
+	[InlineData("芬太", "cu:name")]
+	public void Suggest_ExtraStageMatches_RankAfterEveryBuiltInRank(string query, string builtInId)
+	{
+		var catalog = CreateCatalogWithStages(
+			Source(
+				Entry("cu:exact", displayName: "Unrelated"),
+				Entry("cu:fenpath", displayName: "Unrelated"),
+				Entry("cu:name", displayName: "芬太尼"),
+				Entry("cu:zzz", displayName: "Stage only")),
+			new StubStage((entry, _) => entry.Id.Path == "zzz"));
+
+		var suggestions = catalog.Suggest(query).Select(e => e.Id.ToString()).ToList();
+
+		Assert.Equal([builtInId, "cu:zzz"], suggestions);
+	}
+
+	[Fact]
+	public void Suggest_ExtraStages_RankInRegistrationOrder()
+	{
+		var catalog = CreateCatalogWithStages(
+			Source(Entry("cu:aaa", displayName: "None"), Entry("cu:bbb", displayName: "None")),
+			new StubStage((entry, _) => entry.Id.Path == "bbb"),
+			new StubStage((entry, _) => entry.Id.Path == "aaa"));
+
+		var suggestions = catalog.Suggest("zz").Select(e => e.Id.ToString()).ToList();
+
+		Assert.Equal(["cu:bbb", "cu:aaa"], suggestions);
+	}
+
+	[Fact]
+	public void Suggest_ExtraStageMatches_AreOrderedByIdWithinTheStageAndStillCapped()
+	{
+		// The source order is deliberately the reverse of the id order: the
+		// result must come back ordered by canonical id, not by source position.
+		var entries = Enumerable.Range(0, ResourceLocationCatalog.MaxSuggestions + 5)
+			.Select(i => Entry($"cu:item{i:D2}"))
+			.Reverse()
+			.ToArray();
+		var catalog = CreateCatalogWithStages(Source(entries), new StubStage((_, _) => true));
+
+		var first = catalog.Suggest("zz").Select(e => e.Id.ToString()).ToList();
+		var second = catalog.Suggest("zz").Select(e => e.Id.ToString()).ToList();
+
+		Assert.Equal(ResourceLocationCatalog.MaxSuggestions, first.Count);
+		Assert.Equal(first, second);
+		Assert.Equal("cu:item00", first[0]);
+		Assert.Equal($"cu:item{ResourceLocationCatalog.MaxSuggestions - 1:D2}", first[first.Count - 1]);
+	}
+
+	[Fact]
+	public void Suggest_ExtraStageThatMatchesEverything_CannotCrowdBuiltInMatchesOutOfTheCap()
+	{
+		var stageOnly = Enumerable.Range(0, ResourceLocationCatalog.MaxSuggestions + 5)
+			.Select(i => Entry($"cu:aaa{i:D2}"))
+			.ToArray();
+		var builtIn = Enumerable.Range(0, ResourceLocationCatalog.MaxSuggestions + 5)
+			.Select(i => Entry($"cu:item{i:D2}"))
+			.ToArray();
+		var catalog = CreateCatalogWithStages(Source([.. stageOnly, .. builtIn]), new StubStage((_, _) => true));
+
+		var suggestions = catalog.Suggest("cu:item").Select(e => e.Id.ToString()).ToList();
+
+		Assert.Equal(ResourceLocationCatalog.MaxSuggestions, suggestions.Count);
+		Assert.All(suggestions, id => Assert.StartsWith("cu:item", id, StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Suggest_WithoutMatchStages_KeepsTheBuiltInResultsExactly()
+	{
+		var catalog = CreateCatalog(Source(Entry("cu:fentanyl", displayName: "芬太尼")));
+
+		Assert.Equal(["cu:fentanyl"], catalog.Suggest("fen").Select(e => e.Id.ToString()));
+		Assert.Equal(["cu:fentanyl"], catalog.Suggest("芬太").Select(e => e.Id.ToString()));
+		Assert.Empty(catalog.Suggest("ftn"));
+	}
+
+	[Fact]
+	public void Suggest_EmptyPrefix_StillTakesTheFirstEntriesPath_AndNeverConsultsStages()
+	{
+		var consulted = false;
+		var catalog = CreateCatalogWithStages(
+			Source(Entry("cu:aaa"), Entry("cu:bbb")),
+			new StubStage((_, _) =>
+			{
+				consulted = true;
+				return true;
+			}));
+
+		Assert.Equal(["cu:aaa", "cu:bbb"], catalog.Suggest("").Select(e => e.Id.ToString()));
+		Assert.False(consulted, "an empty prefix takes the catalog's own first-entries path");
+	}
+
+	private sealed class StubStage(Func<ResourceLocationEntry, string, bool> matches) : IResourceLocationMatchStage
+	{
+		public bool Matches(ResourceLocationEntry entry, string prefix) => matches(entry, prefix);
 	}
 
 	private sealed class StubSource(params ResourceLocationEntry[] entries) : IResourceLocationSource

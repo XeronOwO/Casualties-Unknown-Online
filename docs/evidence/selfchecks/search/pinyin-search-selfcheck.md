@@ -3,8 +3,8 @@
 Date: 2026-09-20
 Scope: pinyin search on the game's own crafting search box — the matcher core, the pure scope
 decision, the native-surface patch, and the opt-in switch whose default follows the system language
-(decision 199, `docs/backlog/todo/pinyin-search-mod.md` stage 1). The console's resource completion is
-stage 2 and is NOT implemented by this cycle.
+(decision 199, stage 1 of the pinyin-search ticket). The console's resource completion is stage 2 and
+landed separately: `pinyin-console-completion-selfcheck.md` (decision 200).
 
 ## What landed
 
@@ -126,5 +126,5 @@ stage 2 and is NOT implemented by this cycle.
   progress lives in the ticket itself.
 - A query containing `:` has no test (no recipe name in the decompiled tree contains one); under
   `OrdinalIgnoreCase` it is an ordinary character, so the reasoning is equivalence, not evidence.
-- Stage 2 (console resource completion) is not implemented; the switch currently affects the
-  crafting surface only.
+- Stage 2 (console resource completion) landed separately
+  (`pinyin-console-completion-selfcheck.md`, decision 200): the switch now covers both surfaces.

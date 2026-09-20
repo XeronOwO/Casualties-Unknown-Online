@@ -47,8 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium** — crafting-UI and command completion.
-
 ### Review
 
 - [Systemic save and backup management](review/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
@@ -161,6 +159,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Restore account arm release](review/restore-account-arm-release.md) — **Low** — every release path accounts for its own live-world half.
 - [Restore live-object row loops](review/restore-live-object-loops-containment.md) — **Low** — the last three restore loops are contained.
 - [Dropped mod command requests](review/mod-command-request-timeout.md) — **Low** — the request deadline and the bounded pending map.
+- [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
 
 ### Future
 

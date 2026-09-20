@@ -97,9 +97,10 @@ the canonical id.
   every game prefab; that cost needs its own evidence/decision. `cu:player` is
   the one entity id the console vocabulary already used, and
   `IResourceLocationSource` is the seam a future prefab source plugs into.
-- **Pinyin matching is out of scope** and stays in
-  `todo/pinyin-search-mod.md`; it will plug a matcher in front of the same
-  catalog.
+- **Pinyin matching landed behind this catalog**, not in front of it: it is an
+  extra `IResourceLocationMatchStage` ranked after the four built-in ranks
+  (decision 200, `../search/pinyin-console-completion-selfcheck.md`), gated by
+  `Search.PinyinSearch`. What stays a residual is the prefab source above.
 - **Mod content ids keep the game-table key as the bare registration id.** The
   canonical `namespace:id` is the CUO vocabulary; the game's `Item.GlobalItems`
   key, wire item ids and save ids are unchanged. Consequence: two mods in

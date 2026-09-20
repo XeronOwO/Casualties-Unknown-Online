@@ -321,16 +321,12 @@ public static class CuoBootstrap
 		// channel's receive event, session end, and UI placement calls.
 		services.AddSingleton<LocationPingService>();
 		services.AddSingleton<ILocationPingControl>(p => p.GetRequiredService<LocationPingService>());
-		// Content-id vocabulary: the canonical namespace:path catalog the console
-		// completes resource arguments from. Runtime owns the built-in and
-		// mod-content sources; the plugin registers the Game Adapter's vanilla
-		// game-content source (the only layer allowed to read game tables).
-		services.AddSingleton<BuiltInResourceLocationSource>();
-		services.AddSingleton<IResourceLocationSource>(p => p.GetRequiredService<BuiltInResourceLocationSource>());
-		services.AddSingleton<ModContentResourceLocationSource>();
-		services.AddSingleton<IResourceLocationSource>(p => p.GetRequiredService<ModContentResourceLocationSource>());
-		services.AddSingleton<ResourceLocationCatalog>();
-		services.AddSingleton<IResourceLocationCatalog>(p => p.GetRequiredService<ResourceLocationCatalog>());
+		// Content-id vocabulary + its completion stages. The block lives in its
+		// own composition file (the canonical namespace:path catalog the console
+		// completes resource arguments from, plus the pinyin extra stage); the
+		// plugin registers the Game Adapter's vanilla game-content source into
+		// the same list, since only that layer may read the game's item table.
+		ContentVocabularyComposition.AddContentVocabulary(services);
 		// In-game command/chat console: local slash-command chain + the chat UI
 		// surface (no wire message, no packet handler — it only rides the
 		// existing ChatService send path).

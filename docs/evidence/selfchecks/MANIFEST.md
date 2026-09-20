@@ -186,4 +186,6 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | world/world-time-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | items/remote-clone-display-content-id-free-selfcheck.md | Items | current | remote clone container contents no longer carry item-domain instance ids |
 | items/guest-background-ghost-item-ground-sounds-selfcheck.md | Items | current | guest non-authoritative item impact presentation (drop/step/squeak/dust) suppressed |
+| search/pinyin-console-completion-selfcheck.md | UI | current | console resource-id completion matches Chinese display names by pinyin through a pluggable extra catalog stage (decision 200) |
+| search/pinyin-search-selfcheck.md | UI | current | the game's crafting search box matches Chinese recipe names by pinyin behind the `Search.PinyinSearch` switch (decision 199) |
 

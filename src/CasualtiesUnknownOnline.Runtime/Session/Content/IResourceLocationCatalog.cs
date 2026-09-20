@@ -17,7 +17,8 @@ public interface IResourceLocationCatalog
 	/// Completion candidates for a partially typed resource argument. The
 	/// returned entries always carry the canonical id — never the raw input
 	/// alias — ranked exact id, id prefix, bare path prefix, display-name
-	/// prefix, then id order, capped by the implementation's result limit.
+	/// prefix, any registered extra match stages in registration order, then id
+	/// order, capped by the implementation's result limit.
 	/// </summary>
 	IReadOnlyList<ResourceLocationEntry> Suggest(string prefix);
 }

@@ -22,7 +22,7 @@ deliberate — patches never touch the global container — but the shape has fo
 
 Per-domain ports — `IItemPatchPort`, `ICharacterPatchPort`, `IWorldPatchPort`, `IRunPatchPort`,
 `IInteractionPatchPort`, `IModContentPatchPort` — installed by the patch unit that owns them
-(the install unit arrives with `todo/adapter-capability-catalog.md` stage 3).
+(the install unit arrives with `review/adapter-capability-catalog.md` stage 3).
 
 **Rejected: the one-shot migration the review's item 4 implies.** Moving 113 patch classes at once
 is a mechanical change whose regression surface is every patch in the tree, and no test in the suite

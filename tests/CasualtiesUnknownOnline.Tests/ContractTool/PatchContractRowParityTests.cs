@@ -83,6 +83,7 @@ public class PatchContractRowParityTests
 
 	private static bool Matches(SnapshotContract tool, PatchContract adapter) =>
 		tool.PatchClass == adapter.PatchClass
+		&& tool.PatchClassType == adapter.PatchClassType
 		&& tool.TargetType == ReflectionTypeName.Canonical(adapter.TargetType)
 		&& tool.Method == adapter.MethodName
 		&& tool.ArgumentTypes.SequenceEqual(adapter.ParameterTypes.Select(ReflectionTypeName.Canonical), StringComparer.Ordinal)

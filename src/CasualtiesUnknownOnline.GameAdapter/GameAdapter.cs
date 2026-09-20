@@ -21,7 +21,6 @@ using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Session.World;
-using HarmonyLib;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -56,7 +55,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	private readonly GameAdapterSessionBinding _sessionBinding;
 	private readonly LatencyInstrumentation _latency;
 	private readonly IOptionsMonitor<PinyinSearchOptions> _pinyinSearchOptions;
-	private Harmony? _harmony;
+	private readonly PatchInstallLifecycle _patches;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(
@@ -96,6 +95,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		WorldRestoreAudit restoreAudit,
 		IStartingSupplyPublisher startingSupplies)
 	{
+		_patches = new PatchInstallLifecycle(log);
 		_latency = latency;
 		_pinyinSearchOptions = pinyinSearchOptions;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
@@ -123,55 +123,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	public bool ProbeGame()
 	{
-		var playerCamera = typeof(PlayerCamera);
-		var body = typeof(Body);
-		var preRun = typeof(PreRunScript);
-		var worldGen = typeof(WorldGeneration);
-		var ok = playerCamera is not null && body is not null && preRun is not null && worldGen is not null;
-		CapabilityReport = ok
-			? "PlayerCamera/Body/PreRunScript/WorldGeneration: OK"
-			: "PlayerCamera/Body/PreRunScript/WorldGeneration: MISSING";
+		// The four types and the report text live in the patch life cycle (declared
+		// as the session capability's game types); this stays the interface's
+		// startup gate, and its verdict is unchanged.
+		var ok = PatchInstallLifecycle.ProbeGame(out var report);
+		CapabilityReport = report;
 		return ok;
 	}
 
-	public bool Install()
-	{
-		try
-		{
-			_harmony = new Harmony("CasualtiesUnknownOnline.GameAdapter");
-			_harmony.PatchAll(typeof(GameAdapter).Assembly);
-			DynamicPatchInstaller.Install(_harmony, _domains.Log);
+	public bool Install() => _patches.Install();
 
-			// Never let a failed patch silently run: verify every patch class
-			// actually landed on its target (a game update that breaks a target
-			// must fail loud — a silently missing hook is how sync bugs hide).
-			var missing = PatchInventory.VerifyMissing(_harmony);
-			if (missing.Count > 0)
-			{
-				_domains.Log.LogError("Game Adapter patch verification FAILED — {Count} targets not applied: {Missing}",
-					missing.Count, string.Join(", ", missing));
-				_harmony.UnpatchSelf();
-				_harmony = null;
-				return false;
-			}
-
-			_domains.Log.LogInformation("Game Adapter patches installed and verified ({Count} targets).", PatchInventory.CountTargets());
-			return true;
-		}
-		catch (Exception ex)
-		{
-			_domains.Log.LogError(ex, "Game Adapter patch install failed.");
-			_harmony?.UnpatchSelf();
-			_harmony = null;
-			return false;
-		}
-	}
-
-	public void Uninstall()
-	{
-		_harmony?.UnpatchSelf();
-		_harmony = null;
-	}
+	public void Uninstall() => _patches.Uninstall();
 
 	void ICuoService.Initialize()
 	{
@@ -185,6 +147,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		{
 			_domains.Log.LogError("Game Adapter probe failed — CUO multiplayer unavailable.");
 		}
+
+		// Stage 1's probe output: ONE report naming every capability with its
+		// class, its contract count and its failure reason (see the reporter).
+		_patches.Publish(CapabilityReport);
 	}
 
 	void ICuoService.Start()

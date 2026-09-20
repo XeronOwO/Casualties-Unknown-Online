@@ -21,12 +21,14 @@ internal sealed class PatchContract
 {
 	internal PatchContract(
 		string patchClass,
+		string patchClassType,
 		string targetType,
 		string methodName,
 		IReadOnlyList<string> parameterTypes,
 		IReadOnlyList<string> patchParameters)
 	{
 		PatchClass = patchClass;
+		PatchClassType = patchClassType;
 		TargetType = targetType;
 		MethodName = methodName;
 		ParameterTypes = parameterTypes;
@@ -35,6 +37,15 @@ internal sealed class PatchContract
 
 	/// <summary>The patch class name (diagnostics — which hook would go silent).</summary>
 	internal string PatchClass { get; }
+
+	/// <summary>
+	/// The same patch class's identity in the CLR spelling (<c>Outer+Inner</c>
+	/// for nested classes; the dynamic rows' <c>"(dynamic)"</c> pseudo name).
+	/// It is the key the adapter's capability catalog joins on, because 205
+	/// contracts share only 201 simple names — and the snapshot tool's
+	/// <c>PatchClassType</c> fact, which the parity gate compares against this one.
+	/// </summary>
+	internal string PatchClassType { get; }
 
 	/// <summary>The target type's full name in the game assembly.</summary>
 	internal string TargetType { get; }

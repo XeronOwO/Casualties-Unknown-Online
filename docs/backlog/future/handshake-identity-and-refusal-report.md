@@ -41,6 +41,6 @@ that.
 
 - A refusal names the failed dimension, and a client-only mod difference does NOT refuse the join.
 - The optional-capability negotiation is additive: an absent capability degrades that dimension, not
-  the session (see `todo/adapter-capability-catalog.md` for the Required/Optional rule).
+  the session (see `review/adapter-capability-catalog.md` for the Required/Optional rule).
 - The sync-coverage matrix and its evidence file carry the new member, and the protocol number moves
   with it.

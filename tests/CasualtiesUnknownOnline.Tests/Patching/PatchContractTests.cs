@@ -331,7 +331,7 @@ public class PatchContractTests
 	[Fact]
 	public void Check_MatchingContract_Passes()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Target", ["System.Int32", "System.String"], ["alpha", "beta"]);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "Target", ["System.Int32", "System.String"], ["alpha", "beta"]);
 
 		Assert.Empty(PatchContractChecker.Check(contract, FixtureMethod("Target")));
 	}
@@ -339,7 +339,7 @@ public class PatchContractTests
 	[Fact]
 	public void Check_UnconstrainedContract_Passes()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "TargetNoParams", [], []);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "TargetNoParams", [], []);
 
 		Assert.Empty(PatchContractChecker.Check(contract, FixtureMethod("TargetNoParams")));
 	}
@@ -347,7 +347,7 @@ public class PatchContractTests
 	[Fact]
 	public void Check_MissingTarget_Reports()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Missing", [], []);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "Missing", [], []);
 
 		var violations = PatchContractChecker.Check(contract, null);
 		Assert.True(violations.Count == 1 && violations[0].Contains("not found"),
@@ -357,7 +357,7 @@ public class PatchContractTests
 	[Fact]
 	public void Check_ParameterCountMismatch_Reports()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Target", ["System.Int32"], []);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "Target", ["System.Int32"], []);
 
 		var violations = PatchContractChecker.Check(contract, FixtureMethod("Target"));
 		Assert.True(violations.Count == 1 && violations[0].Contains("expects 1 parameter(s), game has 2"),
@@ -367,7 +367,7 @@ public class PatchContractTests
 	[Fact]
 	public void Check_ParameterTypeMismatch_Reports()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Target", ["System.Int32", "System.Boolean"], []);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "Target", ["System.Int32", "System.Boolean"], []);
 
 		var violations = PatchContractChecker.Check(contract, FixtureMethod("Target"));
 		Assert.True(violations.Count == 1 && violations[0].Contains("parameter[1] type mismatch"),
@@ -377,7 +377,7 @@ public class PatchContractTests
 	[Fact]
 	public void Check_ParameterRenamed_Reports()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Target", [], ["gamma"]);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "Target", [], ["gamma"]);
 
 		var violations = PatchContractChecker.Check(contract, FixtureMethod("Target"));
 		Assert.True(violations.Count == 1 && violations[0].Contains("patch parameter 'gamma' missing"),
@@ -387,7 +387,7 @@ public class PatchContractTests
 	[Fact]
 	public void Resolve_ConstrainedContract_SelectsTheExactOverload()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Overloaded", ["System.Int32"], []);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "Overloaded", ["System.Int32"], []);
 
 		var resolved = Resolve(contract);
 
@@ -399,7 +399,7 @@ public class PatchContractTests
 	[Fact]
 	public void Resolve_UnconstrainedContractAgainstOverloads_ThrowsAmbiguous()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Overloaded", [], []);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "Overloaded", [], []);
 
 		var ex = Assert.Throws<InvalidOperationException>(() => Resolve(contract));
 
@@ -410,7 +410,7 @@ public class PatchContractTests
 	[Fact]
 	public void Resolve_ExactTypeMismatch_DoesNotFallBackToNameOnly()
 	{
-		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Overloaded", ["System.Single"], []);
+		var contract = new PatchContract("t", "t", typeof(Fixtures).FullName!, "Overloaded", ["System.Single"], []);
 
 		Assert.Null(Resolve(contract));
 	}

@@ -25,6 +25,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// The same contracts feed the contract tests (Phase 3 — the test run calls
 /// BuildContracts and asserts every contract against the game assembly), so a
 /// broken target fails in `dotnet test` BEFORE the game ever launches.
+///
+/// <see cref="VerifyMissing"/> returns the failures as FACTS (which patch class,
+/// which capability owns it, the violation, whether the install gate counts it)
+/// rather than as pre-joined text, so the install decision and the capability
+/// report are projections of one measurement instead of two. The violation text
+/// itself is unchanged.
 /// </summary>
 internal static class PatchInventory
 {
@@ -57,23 +63,38 @@ internal static class PatchInventory
 		}
 
 		// The dynamic patches — reflected targets (internal game types), no
-		// [HarmonyPatch] attribute: one hand-declared contract each, mirroring
-		// InstallDynamicPatches' GetType/GetMethod targets. The postfix shapes
-		// (object __instance / no parameters) carry no name-matching parameters.
-		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalFragile", "Touched", [], []));
-		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalElectric", "Shock", [], []));
-		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalUnstable", "Update", [], []));
-		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalUnstable", "StartTimer", [], []));
-		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalMetamorphic", "Touched", [], []));
-		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalShy", "Touched", [], []));
-		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalEMP", "TryEMP", [], []));
-		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalTeleport", "Touched", [], ["touched"]));
-		contracts.Add(new PatchContract("CrystalDrippingPatch (dynamic)", "CrystalDripping", "Update", [], []));
+		// [HarmonyPatch] attribute: one contract each, DERIVED from the installer's
+		// own target table so a contract row and the binding it describes cannot
+		// drift apart. The postfix shapes (object __instance / no parameters)
+		// carry no name-matching parameters.
+		foreach (var target in DynamicPatchInstaller.Targets)
+		{
+			contracts.Add(Dynamic(target.PatchClass, target.TypeName, target.MethodName, [], target.PatchParameters));
+		}
 
 		return contracts;
 	}
 
-	internal static List<string> VerifyMissing(Harmony harmony)
+	/// <summary>
+	/// The pseudo patch-class name a hand-declared dynamic row carries: those
+	/// rows have no patch class in the assembly (their patch methods are bound by
+	/// reflection), so the name is their identity — the capability catalog claims
+	/// them by it, and the contract tool's lens is documented to miss exactly them.
+	/// </summary>
+	internal const string DynamicSuffix = " (dynamic)";
+
+	/// <summary>True for the hand-declared dynamic rows (they carry no <c>[HarmonyPatch]</c> attribute).</summary>
+	internal static bool IsDynamic(PatchContract contract) =>
+		contract.PatchClass.EndsWith(DynamicSuffix, StringComparison.Ordinal);
+
+	/// <summary>
+	/// Every hook that did NOT land, as facts. The details are the texts this
+	/// guard has always logged, in the same order; <c>BlocksInstall</c> is true
+	/// for all of them, because they are exactly the rows the install gate has
+	/// always refused on (the dynamic targets and the declared game members are
+	/// probed elsewhere and do not block in stage 1).
+	/// </summary>
+	internal static List<PatchVerificationFailure> VerifyMissing(Harmony harmony)
 	{
 		var mine = new HashSet<MethodBase>(harmony.GetPatchedMethods().Where(m =>
 			Harmony.GetPatchInfo(m) is { } info
@@ -81,7 +102,7 @@ internal static class PatchInventory
 				|| info.Postfixes.Any(p => p.owner == harmony.Id)
 				|| info.Transpilers.Any(p => p.owner == harmony.Id))));
 
-		var missing = new List<string>();
+		var missing = new List<PatchVerificationFailure>();
 		foreach (var type in typeof(PatchInventory).Assembly.GetTypes())
 		{
 			if (type.GetCustomAttribute<HarmonyPatch>() is not { } attr)
@@ -93,7 +114,7 @@ internal static class PatchInventory
 			var declaring = info.declaringType;
 			if (declaring == null || info.methodName == null)
 			{
-				missing.Add($"{type.Name}: no resolvable target ({declaring?.Name ?? "?"}.{info.methodName ?? "?"})");
+				missing.Add(Failure(type, $"{type.Name}: no resolvable target ({declaring?.Name ?? "?"}.{info.methodName ?? "?"})"));
 				continue;
 			}
 
@@ -115,7 +136,7 @@ internal static class PatchInventory
 					.ToArray();
 				if (sameName.Length > 1)
 				{
-					missing.Add($"{type.Name}: ambiguous unconstrained contract {declaring.Name}.{info.methodName} has {sameName.Length} overloads; add [HarmonyPatch] argumentTypes.");
+					missing.Add(Failure(type, $"{type.Name}: ambiguous unconstrained contract {declaring.Name}.{info.methodName} has {sameName.Length} overloads; add [HarmonyPatch] argumentTypes."));
 					continue;
 				}
 
@@ -124,17 +145,34 @@ internal static class PatchInventory
 
 			if (target == null || !mine.Contains(target))
 			{
-				missing.Add($"{type.Name} → {declaring.Name}.{info.methodName}");
+				missing.Add(Failure(type, $"{type.Name} → {declaring.Name}.{info.methodName}"));
 				continue;
 			}
 
 			// The signature level: the target exists and is patched, but a game
 			// update may have renamed/re-typed it in a way the name-only lookup
 			// silently accepts — the contract catches what existence cannot.
-			missing.AddRange(PatchContractChecker.Check(ToContract(type, attr), target));
+			foreach (var violation in PatchContractChecker.Check(ToContract(type, attr), target))
+			{
+				missing.Add(Failure(type, violation));
+			}
 		}
 
 		return missing;
+	}
+
+	private static PatchVerificationFailure Failure(Type patchClass, string detail) =>
+		new(patchClass.Name, patchClass.FullName ?? patchClass.Name, detail, blocksInstall: true);
+
+	private static PatchContract Dynamic(
+		string patchClass,
+		string targetType,
+		string methodName,
+		IReadOnlyList<string> parameterTypes,
+		IReadOnlyList<string> patchParameters)
+	{
+		var name = patchClass + DynamicSuffix;
+		return new PatchContract(name, name, targetType, methodName, parameterTypes, patchParameters);
 	}
 
 	private static PatchContract ToContract(Type patchClass, HarmonyPatch attr)
@@ -146,6 +184,7 @@ internal static class PatchInventory
 
 		return new PatchContract(
 			patchClass.Name,
+			patchClass.FullName ?? patchClass.Name,
 			info.declaringType?.FullName ?? "?",
 			info.methodName ?? "?",
 			parameterTypes,

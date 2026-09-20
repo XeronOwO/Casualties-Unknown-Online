@@ -140,7 +140,7 @@ Planned features:
   decision 200 records the mechanism.
 - Deployment: `tools/deploy.ps1` then
   `tools/verify-deploy.ps1 -GameDir "<game-dir>"` → exit 0, `delivered artifact:
-  0.1.0+ee0a5fe7674a07113f96522d9ad33c01246c82ac` (this change's commit), so the
+  0.1.0+2c4a3e320c7d0aefe476bd71da607f5814e1e474` (this change's commit), so the
   running plug-in is this tree's build output.
 
 ## Limits (recorded, not hidden)

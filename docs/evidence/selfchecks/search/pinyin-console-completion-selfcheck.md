@@ -59,9 +59,14 @@ Both stages are recorded by the pinyin-search ticket.
   player-visible `ConfigDescription`, and two evidence documents that still called the console half
   unbuilt), not mechanism defects. The review also re-derived every number in this file from the
   frozen tree.
+- **Second review round** (fix-set verification, report at
+  `%TEMP%\cuo-review-pinyin-stage2-round2.md`): 0 blocker / 0 major / 4 minor / 3 nit, all fixed —
+  the remaining findings were prose precision (three documents narrowed the four built-in ranks to
+  three, the hint's switch-off summary omitted the bare-path rank, one Limits sentence called a
+  now-covered path uncovered, and the checklist named a Debug-level log as a runtime diagnostic).
 - **Deployment**: `tools/deploy.ps1` then
   `tools/verify-deploy.ps1 -GameDir "<game-dir>"` → exit 0, delivered artifact
-  `0.1.0+ee0a5fe7674a07113f96522d9ad33c01246c82ac` == this change's commit, so what runs on the
+  `0.1.0+2c4a3e320c7d0aefe476bd71da607f5814e1e474` == this change's commit, so what runs on the
   machine is this tree's build output.
 
 ## Test coverage split (stated exactly)

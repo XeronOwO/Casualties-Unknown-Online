@@ -76,5 +76,7 @@ one world's live snapshot with an archive the player picks (decision 198,
   than the newest cut; that is the tree-wide absolute-time limitation, not this surface's.
 - The Runtime's refusal text is English and shown verbatim, like every other Runtime message the UI
   displays; the page's own labels are localized in English and Chinese.
+- Deployed to the game folder and verified: `tools/verify-deploy.ps1` → exit 0, delivered artifact
+  `0.1.0+b8c9d00c…` == HEAD's commit, so what runs on the machine is this tree's output.
 - No manual dual-client acceptance was performed: per the development-period rule this is verified
   with unit tests + static evidence + the gates, and the user's acceptance pass covers the rest.

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism table cites PatchInventory, the contract checker, ProbeGame and the tool lens; no unverified cell
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism table, 8 rows citing PatchInventory, DynamicPatchInstaller, ProbeGame, the contract identity; no unverified cell
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 205 contract rows + the 9-row dynamic boundary pinned by a gate; every classification kind covered by the fixture pair; both CLI commands and all four exit codes pinned
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: game-update-contract-toolchain-selfcheck.md, 7 rows each with a test anchor
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 205 attributed + 9 dynamic rows claimed exactly once by the totality gate; the refusal rule pinned for every capability class, not one family
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: adapter-capability-catalog-selfcheck.md, 7 mechanisms x change x evidence, each anchored to a named test
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: the tool CLI runs on the shipped assembly (488 types / 3318 methods / 205 rows); census, reproducibility and parity tests; live-game half out of scope
+      peer log comparison, hotrepl assertions) is decided — evidence: the gate enumerates the adapter assembly itself (caught WorldGen/LayerModifierApplyPatch); report tests are game-free; the stage-2 degradation half is out of scope
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff fixed the ticket order and acceptance on 2026-09-20; decision 201 records the mechanism
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; full suite with build 3678 passed / 0 failed; normative gates 69/69
+      process violation — evidence: the 2026-09-20 handoff fixed this ticket as the next item; decision 202 records the mechanism; the Required/Optional yardstick is the user ruling on the ticket
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; full suite with build 3703 passed / 0 failed; normative gates 69/69
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest new file MemberDiffer 378 lines, SnapshotDiffer 345 (limit 600); no new boolean state field; the tool is new so nothing was deleted, and no plugin file changed
+      dead mechanisms deleted in the same round) — evidence: largest touched file AdapterCapabilityCatalog.cs 282 lines, GameAdapter.cs 565 (PatchInstallLifecycle extracted, limit 600); no new boolean state field; no dead mechanism left
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

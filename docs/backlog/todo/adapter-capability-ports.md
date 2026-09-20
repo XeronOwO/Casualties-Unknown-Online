@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Architecture / adapter seam
 - Source: Loomi architecture review (2026-09-20), item 3
-- Related: `todo/patch-bridge-domain-ports.md`, `todo/adapter-capability-catalog.md`
+- Related: `todo/patch-bridge-domain-ports.md`, `review/adapter-capability-catalog.md`
 
 ## Problem (evidence)
 
@@ -29,7 +29,7 @@ internals through `InternalsVisibleTo`, so the seam is a shared wall rather than
 Capability ports instead of one widening interface. Names settled in the change, roughly:
 `IGameIntegrationLifecycle`, `IWorldBootstrapPort`, `IRemoteInventoryPresentation`,
 `IRemoteMedicalPresentation`, `IPlayerAnchorQuery`, `INativeInputBlocker`, and — once
-`todo/adapter-capability-catalog.md` lands — `IAdapterCapabilityQuery`. A consumer resolves the ports
+`review/adapter-capability-catalog.md` lands — `IAdapterCapabilityQuery`. A consumer resolves the ports
 it actually uses; a version adapter implements per capability rather than the whole surface.
 
 ## Acceptance

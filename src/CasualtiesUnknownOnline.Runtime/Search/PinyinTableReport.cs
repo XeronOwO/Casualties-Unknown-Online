@@ -11,7 +11,9 @@ namespace CasualtiesUnknownOnline.Runtime.Search;
 /// no matter which surface is used first.
 ///
 /// A missing table degrades every surface to the literal substring rule instead
-/// of failing, so silence here would hide a real degradation.
+/// of failing, so silence here would hide a real degradation. The latch is
+/// deliberately one-way: whatever the first call sees is the fact worth keeping,
+/// and a later healthy load does not retract it.
 /// </summary>
 public static class PinyinTableReport
 {

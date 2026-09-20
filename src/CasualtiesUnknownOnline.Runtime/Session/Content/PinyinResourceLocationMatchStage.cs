@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Content;
 /// same matcher core the native crafting search box uses, so both surfaces agree
 /// on what "matches" means. It is deliberately additive: the catalog consults it
 /// only for entries the built-in ranks did not match, so it can never displace
-/// a canonical-id, bare-path or display-name match.
+/// an exact id, an id prefix, a bare-path or a display-name match.
 ///
 /// Reusing that core also brings its literal half: the matcher compares plain
 /// characters anywhere in the name, so with the switch on an ASCII display name

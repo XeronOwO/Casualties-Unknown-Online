@@ -35,8 +35,9 @@ public class RepositoryGateTests
 	public void NoAbsolutePaths_NoTrackedMachinePaths()
 	{
 		var failures = new List<string>();
+		var scanned = 0;
 
-		foreach (var file in EnumerateTrackedFiles())
+		foreach (var file in EnumerateScannedFiles())
 		{
 			if (file.StartsWith("references/", StringComparison.Ordinal)
 				|| file.StartsWith("references\\", StringComparison.Ordinal)
@@ -51,6 +52,7 @@ public class RepositoryGateTests
 				continue;
 			}
 
+			scanned++;
 			var lines = File.ReadAllLines(fullPath);
 			for (var i = 0; i < lines.Length; i++)
 			{
@@ -63,7 +65,7 @@ public class RepositoryGateTests
 			}
 		}
 
-		Assert.True(failures.Count == 0, "Absolute machine paths found in tracked files" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+		Assert.True(failures.Count == 0, $"Absolute machine paths found in {scanned} scanned files (tracked plus untracked-and-not-ignored)" + Environment.NewLine + string.Join(Environment.NewLine, failures));
 	}
 
 	[Fact]
@@ -227,12 +229,18 @@ public class RepositoryGateTests
 		Assert.True(failures.Count == 0, $"Delivery gate failed ({failures.Count} issue(s), {checkedCount} boxes checked)" + Environment.NewLine + string.Join(Environment.NewLine, failures));
 	}
 
-	private static IEnumerable<string> EnumerateTrackedFiles()
+	/// <summary>
+	/// The files this rule cares about: everything git would carry — tracked files AND untracked files that
+	/// are not gitignored. Listing tracked files only made the gate blind to a file that is about to be
+	/// committed, so a run against a dirty tree could pass while the commit that adds the file turns it red
+	/// (measured twice: the adapter capability reporter's log literal, and this suite's own baseline header).
+	/// </summary>
+	private static IEnumerable<string> EnumerateScannedFiles()
 	{
 		var startInfo = new ProcessStartInfo
 		{
 			FileName = "git",
-			Arguments = $"-C \"{RepositoryPaths.Root}\" ls-files",
+			Arguments = $"-C \"{RepositoryPaths.Root}\" ls-files --cached --others --exclude-standard",
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
 			UseShellExecute = false,

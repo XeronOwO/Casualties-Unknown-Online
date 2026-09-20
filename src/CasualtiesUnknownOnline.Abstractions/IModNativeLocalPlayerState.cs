@@ -6,6 +6,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// framework DTO, not a game-assembly type: a mod reads primitive values only
 /// and can never touch the live <c>Body</c> Unity object.
 /// </summary>
+[ApiStability(ApiStabilityLevel.Advanced)]
 public interface IModNativeLocalPlayerState
 {
 	/// <summary>The local body's world X position.</summary>

@@ -187,6 +187,14 @@ person). "It runs" is the floor, not the goal.
     is no case for writing the classic form. Migrate one on sight rather than leaving both styles in
     the tree; `SourceShapeGateTests.ExtensionMethods_UseTheCsharp14ExtensionSyntax` fails on a new
     classic declaration. This is an implementation detail and does not need a user round trip.
+14. `[RULE]` **Minimum visibility, declared stability**: a type or member defaults to the narrowest
+    visibility its implementation needs; only a capability that is designed, documented and reviewed
+    becomes a public third-party contract, and `Runtime`/`GameAdapter` are implementations a mod may
+    patch but is never promised. The `Abstractions` public surface is a recorded, gate-enforced
+    baseline (`docs/api/abstractions-api-baseline.txt`, `ApiSurfaceGateTests`): an addition or a
+    removal fails until the baseline is reviewed and updated, a removal names its reason, and a
+    surface that is not `Stable` declares its level with `[ApiStability]`
+    (`docs/api/advanced-modification-policy.md`).
 
 ## Development Workflow (binding)
 

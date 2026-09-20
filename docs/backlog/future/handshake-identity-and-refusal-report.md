@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Protocol / mod compatibility
 - Source: Loomi architecture review (2026-09-20), item 10
-- Related: `docs/api/mod-api.md` §5/§7, `todo/mod-api-contract-governance.md`
+- Related: `docs/api/mod-api.md` §5/§7, `docs/api/advanced-modification-policy.md`, `review/mod-api-contract-governance.md`
 
 ## What it is
 

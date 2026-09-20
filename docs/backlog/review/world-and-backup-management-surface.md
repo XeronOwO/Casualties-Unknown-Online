@@ -207,4 +207,4 @@ New:
 - Normative gates: `dotnet test tests/CasualtiesUnknownOnline.NormativeGates.Tests` → 69 passed / 0 failed.
 - Full suite with build: `dotnet test CasualtiesUnknownOnline.slnx` → `CasualtiesUnknownOnline.Tests` 3531 passed / 0 failed, gates 69 passed / 0 failed (the 3514 of the previous cycle plus this change's 17 cases). `dotnet format CasualtiesUnknownOnline.slnx` exits 0.
 - Independent adversarial review (fresh context, frozen working tree, no writes by the reviewer): 0 blockers, 1 major, 4 minor, 2 nits — all reproduced numbers matched; the major (the row cache had no invalidation) and every minor/nit were fixed in this same change, and the two items that cannot be machine-verified are in Limits.
-- Deployment: `tools/verify-deploy.ps1 -GameDir "<game-dir>"` — recorded in the delivery checklist for this cycle.
+- Deployment: `tools/deploy.ps1` then `tools/verify-deploy.ps1 -GameDir "<game-dir>"` → exit 0, `delivered artifact: 0.1.0+b8c9d00cdac2bd106122f5f0eacf691b0ff91d3e` (the `+sha` of this change's commit), so the running plug-in is this tree's build output.

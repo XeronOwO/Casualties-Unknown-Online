@@ -48,6 +48,11 @@ powershell -ExecutionPolicy Bypass -File tools/deploy.ps1 -GameDir "<game-dir>"
 
 ## Local development tools
 
+- **Contract toolchain** — `tools/CasualtiesUnknownOnline.ContractTool` snapshots a
+  game-assembly build as metadata and classifies the differences between two
+  builds; the update-day flow is `docs/development/game-update-runbook.md`. It is
+  read-only, referenced by no plugin project, and its snapshots are gitignored
+  artifacts.
 - **HotRepl** — runtime C# evaluation/debug via a local ws endpoint. The hookup
   and port conventions are machine-specific and live in `AGENTS.local.md`.
 - **Sandboxie dual-instance** — used for host/guest runtime testing. The sandbox

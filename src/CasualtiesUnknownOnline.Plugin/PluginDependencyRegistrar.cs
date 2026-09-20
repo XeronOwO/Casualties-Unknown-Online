@@ -161,6 +161,22 @@ internal static class PluginDependencyRegistrar
 				language.Definition)));
 		services.AddSingleton(new LocalizationConfigEditor(config, language));
 
+		// Pinyin search: the game's own crafting search box also matches Chinese
+		// names by pinyin. The default follows the player's system language
+		// (Simplified Chinese → on), and BepInEx only applies a default when the
+		// config file is first written — an explicit choice in the config or the
+		// Online UI always wins afterwards. The console's resource completion is
+		// the ticket's stage 2 and is NOT covered by this option yet.
+		var pinyinSearch = config.Bind("Search", "PinyinSearch", PinyinSearchConfigEditor.DefaultEnabled,
+			new ConfigDescription(
+				"Match Chinese names by pinyin (full pinyin, initials, fuzzy tones) in the crafting search box. Off leaves the native search exactly as it is."));
+		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<PinyinSearchOptions>>(
+			new BepInExOptionsMonitor<PinyinSearchOptions>(
+				config,
+				() => new PinyinSearchOptions { Enabled = pinyinSearch.Value },
+				pinyinSearch.Definition)));
+		services.AddSingleton(new PinyinSearchConfigEditor(config, pinyinSearch));
+
 		// Local player marker color: -1 = automatic SteamId palette, otherwise
 		// a palette index. This is a local preference shared through handshake /
 		// roster messages; config profiles capture it like every other option.

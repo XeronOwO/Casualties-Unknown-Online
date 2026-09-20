@@ -203,6 +203,7 @@ internal sealed class OnlineUiOverlay
 		HostRulesConfigEditor? rulesEditor,
 		LoggingConfigEditor? logging,
 		LocalizationConfigEditor? language,
+		PinyinSearchConfigEditor? pinyinSearch,
 		string? lastJoinError)
 	{
 		var ctx = new OnlineUiContext
@@ -223,6 +224,7 @@ internal sealed class OnlineUiOverlay
 			RulesEditor = rulesEditor,
 			Logging = logging,
 			Language = language,
+			PinyinSearch = pinyinSearch,
 			Profiles = Profiles,
 			Adapter = adapter,
 			WorldLibrary = worldLibrary,

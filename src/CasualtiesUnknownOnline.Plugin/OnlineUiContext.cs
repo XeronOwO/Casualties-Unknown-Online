@@ -60,6 +60,9 @@ internal sealed class OnlineUiContext
 
 	internal LocalizationConfigEditor? Language;
 
+	/// <summary>The pinyin search toggle (local preference; disabled means the native search is untouched).</summary>
+	internal PinyinSearchConfigEditor? PinyinSearch;
+
 	internal ConfigurationProfileStore? Profiles;
 
 	internal IGameAdapter? Adapter;

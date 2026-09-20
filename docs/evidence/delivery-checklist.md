@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: ticket's Mechanism inventory table maps every re-used seam (promotion, reader gate, lease, retention, Continue rule) to a file plus a test
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism matrix maps each seam (native box, predicate operand, item-filter guard) to code plus a test or an explicit gap
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both promotion callers aligned (the trigger is a required parameter) and the move-aside failure contract fixed for both; ticket Family sweep
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket Acceptance has 13 rows mapped to named tests; docs/evidence/selfchecks/saves/world-backup-management-selfcheck.md holds the mechanism matrix
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both surfaces audited: crafting lands now, console is stage 2 with its seam named in the same ticket; PlayerCamera holds the only native search box
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket acceptance maps to PinyinDictionary/PinyinMatcher/NameSearchMatcher/RecipeSearchDecision tests; selfcheck carries the mechanism matrix
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused 31/31, gates 69/69, full suite with build 3531/3531; every refusal lands in LastReport plus one warning line
+      peer log comparison, hotrepl assertions) is decided — evidence: focused 57/57, gates 69/69, full with build 3588/3588; read-path signal plus one-time warnings are the runtime diagnostics
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: user chose the surface (Online UI Worlds page) and the restore semantics (in place, replaced state archived first) on 2026-09-20; decision 198 records both
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; normative gates 69/69; full suite with build 3531 passed / 0 failed
+      process violation — evidence: user chose the reference source and the order (pinyin first, then unified acceptance) on 2026-09-20; decision 199 records the mechanism
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; normative gates 69/69; full suite with build 3588 passed / 0 failed
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest touched classes Plugin 591, OnlineUiOverlay 573, LocalizationCatalog 561; CuoBootstrap stays 599 by registering from the plugin; the new state field is one revision int, replacing the flag the review found dead
+      dead mechanisms deleted in the same round) — evidence: largest new file RecipeSearchScope 129; the gate forced two file splits; CuoBootstrap trimmed to exactly its 600-line cap
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

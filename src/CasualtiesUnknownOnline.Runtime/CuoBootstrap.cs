@@ -83,6 +83,7 @@ public static class CuoBootstrap
 			new MutableOptionsMonitor<LocalizationOptions>(new LocalizationOptions()));
 		services.AddSingleton<IOptionsMonitor<SaveOptions>>(
 			new MutableOptionsMonitor<SaveOptions>(new SaveOptions()));
+		services.AddSingleton<IOptionsMonitor<PinyinSearchOptions>>(new MutableOptionsMonitor<PinyinSearchOptions>(new PinyinSearchOptions()));
 
 		// The logging providers are DI-resolved (registered as ILoggerProvider)
 		// rather than captured as instances, so the extraRegistrations options

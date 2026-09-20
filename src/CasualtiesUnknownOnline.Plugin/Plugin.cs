@@ -53,6 +53,8 @@ public class Plugin : BaseUnityPlugin
 	private LoggingConfigEditor _loggingEditor = null!;
 	private ConfigurationProfileStore _profileStore = null!;
 	private LocalizationConfigEditor _languageEditor = null!;
+
+	private PinyinSearchConfigEditor _pinyinEditor = null!;
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
@@ -114,6 +116,7 @@ public class Plugin : BaseUnityPlugin
 			_rulesEditor = _services.GetRequiredService<HostRulesConfigEditor>();
 			_loggingEditor = _services.GetRequiredService<LoggingConfigEditor>();
 			_languageEditor = _services.GetRequiredService<LocalizationConfigEditor>();
+			_pinyinEditor = _services.GetRequiredService<PinyinSearchConfigEditor>();
 			_profileStore = _services.GetRequiredService<ConfigurationProfileStore>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
@@ -509,7 +512,7 @@ public class Plugin : BaseUnityPlugin
 			_lastJoinError = _ipActions.LastError;
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _adapter, _worldLibrary, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _adapter, _worldLibrary, _localization, _rulesEditor, _loggingEditor, _languageEditor, _pinyinEditor, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

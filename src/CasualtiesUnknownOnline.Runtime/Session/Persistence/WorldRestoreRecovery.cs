@@ -80,7 +80,9 @@ internal sealed class WorldRestoreRecovery(
 				continue;
 			}
 
-			var promotion = _repository.PromoteBackup(worldId, backup);
+			// The refusal trigger, never the player's: this path exists because CUO could not
+			// open what was there, so the snapshot it replaces stays as evidence (§6).
+			var promotion = _repository.PromoteBackup(worldId, backup, WorldPromotionTrigger.RefusedSnapshot);
 			if (!promotion.Success)
 			{
 				account.Add($"backup {backup.FileName} could not be promoted ({promotion.Detail})");

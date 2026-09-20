@@ -355,6 +355,21 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   `.staging/`, and a promotion that cannot finish puts the preserved folder back and refuses. When no
   backup decodes, the continue is refused with the reason it already had and the folder is left exactly
   as it was found.
+- **A restore the PLAYER chooses is the same promotion with a different trigger** (decision 198). The
+  Worlds page lists a world's archives and restores the one the player picks, and the archive is put
+  through the reader's manifest/checksum gate BEFORE anything is replaced: a package that cannot be
+  opened is refused while the working snapshot is still `live/`, instead of being promoted over it and
+  discovered at the next Continue. The replaced snapshot is archived as the pre-restore copy, the
+  chosen archive becomes `live/`, and the restored world becomes the Continue target (restoring a world
+  is also choosing it). Only the fate of the replaced snapshot's folder differs from the recovery: a
+  REFUSED snapshot is kept as `damaged-<stamp>/` evidence, while a snapshot the player deliberately
+  stepped back from is already in `backups/` as that pre-restore archive and is swapped out through the
+  writer's own `.previous/` (removed once the new snapshot is in place) — a `damaged-` folder per
+  restore would accumulate one full snapshot each time under a name that means "refused" and that
+  nothing in the layout ever deletes. If the pre-restore archive could NOT be written, the folder is
+  preserved after all, because then it is the only copy. A player-chosen restore runs only while no
+  world is loaded and no other CUO process holds the world's lease (§5): it replaces the very folder a
+  running world plays from. It participates in the retention policy of §7 like any committed write.
 - If the manifest reads, the load proceeds in **repair mode**. Per domain file:
   - An unreadable domain file is skipped with a warning; the other domains still load.
   - A readable domain file is decoded **entry by entry**: an entry that cannot be materialized —
@@ -560,9 +575,9 @@ verified in-game — an adapter-level reflection host can read the real game lis
   and cutting it there would churn — and prune — the archive set of a world nobody is playing. A cut
   the player asked for always wins the seam; the interval never supersedes it.
 - Retention keeps the newest N archives (default 10), never deletes the newest archive, and never
-  lets a prune failure corrupt a world: the pass runs after every COMMITTED cut, deleting oldest-first,
-  and a file it cannot delete is reported (warning + the cut's own account) while the cut stays
-  committed and the world stays loadable.
+  lets a prune failure corrupt a world: the pass runs after every COMMITTED cut and after a promotion
+  the player asked for (§6), deleting oldest-first, and a file it cannot delete is reported (warning +
+  the cut's own account) while the cut stays committed and the world stays loadable.
 - The interval, the retention count and the autosave switch are configuration, defaulting to an
   interval-based autosave the host can turn off. The surface is the BepInEx `ConfigFile` bridged to
   `IOptionsMonitor<SaveOptions>` (decision 25, `[Save]` section), read at each decision, so an edit

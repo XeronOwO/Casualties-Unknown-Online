@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: ModCommandService/ModRateLimitPolicy/ModLifecycle read at HEAD and in the tree; the ticket's family sweep names every drop path
+      file:line or runtime log) or is explicitly marked unverified — evidence: ticket's Mechanism inventory table maps every re-used seam (promotion, reader gate, lease, retention, Continue rule) to a file plus a test
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the sweep covers all six mod-domain loss paths; the review pass found the Abstractions interface docs stale, fixed in this round
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket maps 6 acceptance rows to tests; review 0 blocker / 1 major / 3 minor / 3 nit — major, m1, m2, n1 fixed, m3 in Limits, n2/n3 pre-existing
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both promotion callers aligned (the trigger is a required parameter) and the move-aside failure contract fixed for both; ticket Family sweep
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: ticket Acceptance has 13 rows mapped to named tests; docs/evidence/selfchecks/saves/world-backup-management-selfcheck.md holds the mechanism matrix
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused 18/18 with a recorded red 3/15; the deadline runs off the harness ICuoService pump; the 10 s value stays a ticket Limit
+      peer log comparison, hotrepl assertions) is decided — evidence: focused 31/31, gates 69/69, full suite with build 3531/3531; every refusal lands in LastReport plus one warning line
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: item taken from the handoff and its own Low priority; a requester-side deadline/cap is a mechanism choice, no gameplay or UI question
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0 (no rewrite); normative gates 69/69; full suite with build 3514/3514 (baseline 3510 + 4 cases)
+      process violation — evidence: user chose the surface (Online UI Worlds page) and the restore semantics (in place, replaced state archived first) on 2026-09-19; decision 198 records both
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: dotnet format exit 0; normative gates 69/69; full suite with build 3531 passed / 0 failed
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: ModContext 592 lines (pre-existing, +3) and ModCommandService 438→508, both under 600; no new state bools; nothing shadowed
+      dead mechanisms deleted in the same round) — evidence: largest touched classes Plugin 591, OnlineUiOverlay 573, LocalizationCatalog 561; CuoBootstrap stays 599 by registering from the plugin; the new state field is one revision int, replacing the flag the review found dead
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

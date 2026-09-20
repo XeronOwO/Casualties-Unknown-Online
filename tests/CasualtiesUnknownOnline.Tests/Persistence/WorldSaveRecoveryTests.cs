@@ -103,7 +103,7 @@ public class WorldSaveRecoveryTests
 
 		var archives = fixture.Repository.ListBackups(fixture.WorldId);
 		Assert.Equal(2, archives.Count);
-		var result = fixture.Repository.PromoteBackup(fixture.WorldId, archives[1]);
+		var result = fixture.Repository.PromoteBackup(fixture.WorldId, archives[1], WorldPromotionTrigger.RefusedSnapshot);
 
 		Assert.True(result.Success, result.Detail);
 		Assert.Contains("good", File.ReadAllText(Path.Combine(fixture.LiveDirectory, SaveTestData.RunFileName)), StringComparison.Ordinal);
@@ -123,7 +123,7 @@ public class WorldSaveRecoveryTests
 		var backup = Assert.Single(fixture.Repository.ListBackups(fixture.WorldId));
 		File.WriteAllBytes(backup.FullPath, SaveTestData.Bytes("this is not a zip archive"));
 
-		var result = fixture.Repository.PromoteBackup(fixture.WorldId, backup);
+		var result = fixture.Repository.PromoteBackup(fixture.WorldId, backup, WorldPromotionTrigger.RefusedSnapshot);
 
 		Assert.False(result.Success);
 		Assert.Contains("could not be unpacked", result.Detail, StringComparison.Ordinal);
@@ -144,8 +144,62 @@ public class WorldSaveRecoveryTests
 			other.WorldId, other.Request(WorldCutKind.MidRun, other.Now, SaveTestData.RunPayload("other"))).Success);
 		var foreign = Assert.Single(other.Repository.ListBackups(other.WorldId));
 
-		Assert.False(fixture.Repository.PromoteBackup(fixture.WorldId, foreign).Success);
+		Assert.False(fixture.Repository.PromoteBackup(fixture.WorldId, foreign, WorldPromotionTrigger.RefusedSnapshot).Success);
 		Assert.False(fixture.Repository.LoadBackup(fixture.WorldId, foreign, new WorldLoadOptions()).Loaded);
+	}
+
+	[Fact]
+	public void PlayerChosenPromotion_ArchivesTheReplacedSnapshotAndLeavesNoEvidenceFolder()
+	{
+		var fixture = SaveTestRepository.Create("save-promotion-choice");
+		Assert.True(fixture.Repository.WriteSnapshot(
+			fixture.WorldId, fixture.Request(WorldCutKind.MidRun, fixture.Now, SaveTestData.RunPayload("kept"))).Success);
+		Assert.True(fixture.Repository.WriteSnapshot(
+			fixture.WorldId, fixture.Request(WorldCutKind.MidRun, fixture.Now.AddMinutes(1), SaveTestData.RunPayload("replaced"))).Success);
+
+		var archives = fixture.Repository.ListBackups(fixture.WorldId);
+		Assert.Equal(2, archives.Count);
+		var result = fixture.Repository.PromoteBackup(fixture.WorldId, archives[1], WorldPromotionTrigger.PlayerChoice);
+
+		Assert.True(result.Success, result.Detail);
+		Assert.Contains("kept", File.ReadAllText(Path.Combine(fixture.LiveDirectory, SaveTestData.RunFileName)), StringComparison.Ordinal);
+
+		// The replaced state is a loadable archive — that IS its copy — so neither the
+		// rejected-snapshot evidence folder nor the transient `.previous` is left behind.
+		Assert.Empty(Directory.GetDirectories(fixture.WorldDirectory, SaveArchiveFormat.DamagedFolderPrefix + "*"));
+		Assert.False(Directory.Exists(Path.Combine(fixture.WorldDirectory, SaveArchiveFormat.PreviousFolderName)));
+		Assert.Contains(result.Account, line => line.Contains("pre-restore backup", StringComparison.Ordinal));
+		Assert.Contains(result.Account, line => line.Contains("its folder was removed", StringComparison.Ordinal));
+		Assert.False(Directory.Exists(fixture.Workspace.StagingDirectory(fixture.WorldId)));
+
+		var preRestore = Assert.Single(fixture.Repository.ListBackups(fixture.WorldId)
+			.Where(backup => !string.Equals(backup.FileName, archives[0].FileName, StringComparison.Ordinal)
+				&& !string.Equals(backup.FileName, archives[1].FileName, StringComparison.Ordinal)));
+		var opened = fixture.Repository.LoadBackup(fixture.WorldId, preRestore, new WorldLoadOptions { VerifyChecksums = true });
+		Assert.True(opened.Loaded, opened.Summary);
+		Assert.Equal(SaveArchiveFormat.CutReasonName(WorldCutReason.PreRestoreBackup), opened.Content!.Manifest.SaveReason);
+	}
+
+	[Fact]
+	public void PlayerChosenPromotion_KeepsTheReplacedFolderWhenNoPreRestoreArchiveCouldBeWritten()
+	{
+		var fixture = SaveTestRepository.Create("save-promotion-choice-evidence");
+		Assert.True(fixture.Repository.WriteSnapshot(
+			fixture.WorldId, fixture.Request(WorldCutKind.MidRun, fixture.Now, SaveTestData.RunPayload("kept"))).Success);
+		Assert.True(fixture.Repository.WriteSnapshot(
+			fixture.WorldId, fixture.Request(WorldCutKind.MidRun, fixture.Now.AddMinutes(1), SaveTestData.RunPayload("replaced"))).Success);
+
+		// A manifest that does not read is what makes the pre-restore archive impossible: the
+		// replaced state can then be copied nowhere else, so its folder IS preserved.
+		File.WriteAllText(Path.Combine(fixture.LiveDirectory, SaveArchiveFormat.ManifestFileName), "{ not json");
+
+		var archives = fixture.Repository.ListBackups(fixture.WorldId);
+		var result = fixture.Repository.PromoteBackup(fixture.WorldId, archives[1], WorldPromotionTrigger.PlayerChoice);
+
+		Assert.True(result.Success, result.Detail);
+		var preserved = Assert.Single(Directory.GetDirectories(fixture.WorldDirectory, SaveArchiveFormat.DamagedFolderPrefix + "*"));
+		Assert.Contains("replaced", File.ReadAllText(Path.Combine(preserved, SaveTestData.RunFileName)), StringComparison.Ordinal);
+		Assert.Contains(result.Account, line => line.Contains("no readable manifest", StringComparison.Ordinal));
 	}
 
 	/// <summary>One real cut through the service, so the world holds a snapshot the production decoder accepts.</summary>

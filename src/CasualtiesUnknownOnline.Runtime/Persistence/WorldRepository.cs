@@ -175,12 +175,12 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	}
 
 	/// <summary>
-	/// Replaces a world's live snapshot with <paramref name="backup"/> (§6, the restore's
-	/// recovery): the refused snapshot is preserved as evidence, the pre-restore copy is
-	/// archived, and the backup becomes <c>live/</c>. False = nothing was promoted and the
-	/// folder was left as it was found.
+	/// Replaces a world's live snapshot with <paramref name="backup"/> (§6): the pre-restore
+	/// copy is archived, the snapshot being replaced is dealt with according to
+	/// <paramref name="trigger"/>, and the backup becomes <c>live/</c>. False = nothing was
+	/// promoted and the folder was left as it was found.
 	/// </summary>
-	internal WorldBackupPromotion.Result PromoteBackup(string worldId, WorldBackup backup)
+	internal WorldBackupPromotion.Result PromoteBackup(string worldId, WorldBackup backup, WorldPromotionTrigger trigger)
 	{
 		var problem = DescribeWorldIdProblem(worldId);
 		if (problem.Length > 0)
@@ -196,7 +196,7 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 			return WorldBackupPromotion.Result.Refused(mismatch);
 		}
 
-		return WorldBackupPromotion.Promote(PathOfWorld(worldId), backup, _utcNow(), _log);
+		return WorldBackupPromotion.Promote(PathOfWorld(worldId), backup, trigger, _utcNow(), _log);
 	}
 
 	private static WorldLoadResult FailedLoad(string worldId, string detail)

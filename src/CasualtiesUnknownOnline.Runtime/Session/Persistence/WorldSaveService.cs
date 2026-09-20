@@ -164,10 +164,12 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	public event Action<WorldRestoreReport>? RestoreReported;
 
 	/// <summary>
-	/// The world the Continue entry opens: the repository's last-opened pointer
-	/// when it still names a world on disk, the newest world otherwise. There is
-	/// no picker yet — choosing the world in-game is the management surface a
-	/// later stage owns.
+	/// The world the Continue entry opens: the repository's last-opened pointer when it
+	/// still names a world that carries a snapshot, the first such world otherwise. The
+	/// Worlds page is the picker that moves that pointer now
+	/// (<see cref="IWorldLibrary.TrySelectWorld"/>), and it reads THIS property to mark
+	/// its row rather than re-deriving the rule — so the page and the native Load button
+	/// cannot disagree about which world is about to open.
 	/// </summary>
 	public string? ContinueWorldId
 	{

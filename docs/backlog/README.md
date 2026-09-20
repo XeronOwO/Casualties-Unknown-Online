@@ -47,11 +47,12 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Systemic save and backup management](todo/systemic-save-backup-management.md) — **Medium** — backup/retention/restore/migration.
 - [Pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium** — crafting-UI and command completion.
 
 ### Review
 
+- [Systemic save and backup management](review/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
+- [World and backup management surface](review/world-and-backup-management-surface.md) — **Medium** — the world/backup picker and the player-chosen restore.
 - [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.
 - [Partial-damage report vs the live delta](review/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
 - [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.

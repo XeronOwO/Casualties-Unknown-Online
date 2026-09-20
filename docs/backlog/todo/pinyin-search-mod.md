@@ -100,6 +100,10 @@ Planned features:
 - Evidence: `PinyinDictionaryTests`, `PinyinMatcherTests`,
   `NameSearchMatcherTests`, `RecipeSearchDecisionTests` and
   `docs/evidence/selfchecks/search/pinyin-search-selfcheck.md`.
+- Deployment: `tools/deploy.ps1` then
+  `tools/verify-deploy.ps1 -GameDir "<game-dir>"` → exit 0, `delivered artifact:
+  0.1.0+74a171e3232691883241c4bf4879cbb2c9e89166` (this change's commit), so the
+  running plug-in is this tree's build output.
 
 ### Stage 2 — console completion (not started)
 

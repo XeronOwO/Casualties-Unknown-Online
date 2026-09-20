@@ -64,6 +64,10 @@ stage 2 and is NOT implemented by this cycle.
   feature claims (`s`↔`sh`, `z`↔`zh`, `c`↔`ch`, the dropped and the added trailing `g`), polyphonic
   readings (纤 xian1/qian4, 长 zhang3/chang2, 中 zhong1/zhong4), tone tolerance, and the
   ASCII/literal cases that must be unaffected.
+- **Deployed to the game folder and verified**: `tools/deploy.ps1` then
+  `tools/verify-deploy.ps1 -GameDir "<game-dir>"` → exit 0, delivered artifact
+  `0.1.0+74a171e3232691883241c4bf4879cbb2c9e89166` == this change's commit, so what runs on the
+  machine is this tree's build output.
 - **Two independent adversarial review rounds** (fresh contexts, frozen tree, reviewers wrote nothing
   into the tree; the second round's full report is on disk at
   `%TEMP%\cuo-review-pinyin-stage1.md`):

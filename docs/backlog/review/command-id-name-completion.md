@@ -55,7 +55,7 @@ Rules:
   display-name prefix, then ordinal id order; at most 20 suggestions.
 - An empty prefix returns the first ≤20 entries in id order (Tab completion is
   still useful on an empty argument).
-- Pinyin matching is explicitly out of scope (see `todo/pinyin-search-mod.md`);
+- Pinyin matching is explicitly out of scope (see `review/pinyin-search-mod.md`);
   the pinyin ticket will plug a matcher in front of this same catalog seam.
 
 ## Acceptance

@@ -59,7 +59,10 @@ Both stages are recorded by the pinyin-search ticket.
   player-visible `ConfigDescription`, and two evidence documents that still called the console half
   unbuilt), not mechanism defects. The review also re-derived every number in this file from the
   frozen tree.
-- **Deployment**: recorded after the artifact is built and verified (see the ticket's Deployment line).
+- **Deployment**: `tools/deploy.ps1` then
+  `tools/verify-deploy.ps1 -GameDir "<game-dir>"` → exit 0, delivered artifact
+  `0.1.0+ee0a5fe7674a07113f96522d9ad33c01246c82ac` == this change's commit, so what runs on the
+  machine is this tree's build output.
 
 ## Test coverage split (stated exactly)
 

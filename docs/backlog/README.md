@@ -47,13 +47,13 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Application layer: first slice](todo/application-layer-first-slice.md) — **Medium** — after acceptance: kernel command gateway, first slice.
-- [Adapter capability ports](todo/adapter-capability-ports.md) — **Medium** — after acceptance: IGameAdapter split by capability.
-- [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — after acceptance: entry, UI and registration separated.
-- [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — after acceptance: per-domain ports, aggregate frozen.
-- [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — after acceptance: registrations and reset contract.
-- [Native-binding session parity](todo/mod-native-binding-handshake-parity.md) — **Medium** — after acceptance: the host can require parity.
-- [Pinyin search as a standalone mod](todo/pinyin-search-standalone-mod.md) — **Medium** — after acceptance: the game-side half moves out; CUO keeps the seam.
+- [Application layer: first slice](todo/application-layer-first-slice.md) — **Medium** — kernel command gateway, first slice.
+- [Adapter capability ports](todo/adapter-capability-ports.md) — **Medium** — IGameAdapter split by capability.
+- [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — entry, UI and registration separated.
+- [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — per-domain ports, aggregate frozen.
+- [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — registrations and reset contract.
+- [Native-binding session parity](todo/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity.
+- [Pinyin search as a standalone mod](todo/pinyin-search-standalone-mod.md) — **Medium** — the game-side half moves out; CUO keeps the seam.
 
 ### Review
 

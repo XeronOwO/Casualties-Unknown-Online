@@ -34,7 +34,7 @@ into a testable Runtime projection.
 | Mechanism | Change | Evidence |
 |---|---|---|
 | Lobby create/join | Same guarded `Plugin` entry points; UI only | `OnlineUiHomeDrawer` |
-| Member interaction buttons | Eligibility moved into `OnlineUiMemberProjection` and still routes through existing `IPlayerInteractionControl`/`IGameAdapter` | `OnlineUiMemberRow` + 8 new projection tests |
+| Member interaction buttons | Eligibility moved into `OnlineUiMemberProjection` and still routes through the existing `IPlayerInteractionControl` and the adapter's capability ports | `OnlineUiMemberRow` + 8 new projection tests |
 | Chat | Unchanged behavior; same chat panel, styled | `OnlineUiOverlay.DrawChatPanel` |
 | Nameplates/arrows | Unchanged behavior | `OnlineUiOverlay.DrawNameplatesAndArrows` |
 | Admin kick/ban/unban | Same `SessionService.KickMember` / `IHostBanService` paths | `OnlineUiAdminDrawer` / `Plugin` delegates |

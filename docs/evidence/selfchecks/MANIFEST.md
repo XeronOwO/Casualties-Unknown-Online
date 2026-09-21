@@ -131,6 +131,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | architecture/phase-e-legacy-inventory-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
 | architecture/composite-command-sequential-semantics-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
 | architecture/application-layer-first-slice-selfcheck.md | Architecture | current | the Application layer as a project, the declared project-direction gate (with its control run), the command admission seam (decision 210) and the kernel-replication move with its seven ports (decision 211) |
+| architecture/adapter-capability-ports-selfcheck.md | Architecture | current | the Game Adapter boundary as ten capability ports with a member-free composition, the call-site census behind the set, the shape gate with its mutation controls, and the `InternalsVisibleTo` census (decision 212) |
 | items/pickup-inflight-selfcheck.md | Items | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/piggyback-drop-cleanup-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/piggyback-facing-restore-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |

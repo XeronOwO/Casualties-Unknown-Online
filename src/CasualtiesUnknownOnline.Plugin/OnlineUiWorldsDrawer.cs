@@ -182,7 +182,7 @@ internal static class OnlineUiWorldsDrawer
 				library.TryRequestRestore(
 					state.BackupRowsWorldId,
 					backup.FileName,
-					ctx.Adapter?.IsInWorldOrGenerating ?? false,
+					ctx.WorldPresence?.IsInWorldOrGenerating ?? false,
 					out _);
 			}
 

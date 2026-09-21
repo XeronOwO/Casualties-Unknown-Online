@@ -8,7 +8,7 @@ ProtocolVersion bump.
 
 Decision summary:
 
-- `IGameAdapter` gains `GetLocalHealItems()` returning a read-only list of
+- `ILocalHealItemQuery` gains `GetLocalHealItems()` returning a read-only list of
   `LocalHealItem` (`InstanceId` + `ItemId`) for the local body's slot-held
   heal-profile items. Instance ids are the wire keys the host already
   understands; item ids are display text only.
@@ -28,7 +28,7 @@ Decision summary:
 |---|---|---|
 | 1 | Wire already supports explicit instance ids | `PlayerHealRequestMsg.ItemInstanceId` (`PlayerHealRequestMsg.cs`); `PlayerInteractionService.Heal.FindHealItemIndex` compares `item.InstanceId == itemInstanceId` before falling back to auto-select |
 | 2 | Existing UI always sent auto-select | `Plugin.TryHealRemoteFromUi` called `SendHealRequest(targetSteamId, 0)` |
-| 3 | Local heal presence was bool-only | `IGameAdapter.HasLocalHealItem()`; no list of usable items for a picker |
+| 3 | Local heal presence was bool-only | `ILocalHealItemQuery.HasLocalHealItem()`; no list of usable items for a picker |
 | 4 | Healable item set is host-authoritative | `RemoteHealProfiles.IsHealItem`; the GameAdapter uses the same registry only for the UI presence list |
 | 5 | Host skips worn items | `FindHealItemIndex` continues on `item.SlotIndex < 0`; the selector therefore lists body slots only |
 
@@ -36,7 +36,7 @@ Decision summary:
 
 | Family member | Change |
 |---|---|
-| `IGameAdapter` / `LocalHealItem` | New read-only list surface; no network or permission semantics |
+| `ILocalHealItemQuery` / `LocalHealItem` | New read-only list surface; no network or permission semantics |
 | `GameAdapter.HealInteraction` | Scans inventory slots and projects `LocalHealItem`; existing `HasLocalHealItem` unchanged |
 | `OnlineUiOverlay` | Renders explicit item buttons; retains auto Heal button |
 | `Plugin` | New `TryHealWithItemFromUi` delegate and `GetLocalHealItems` wiring |

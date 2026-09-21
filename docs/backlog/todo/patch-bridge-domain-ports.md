@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Architecture / adapter seam
 - Source: Loomi architecture review (2026-09-20), item 4
-- Related: `todo/adapter-capability-ports.md`
+- Related: `review/adapter-capability-ports.md`
 
 ## Problem (evidence)
 

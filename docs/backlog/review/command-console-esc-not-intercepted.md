@@ -16,8 +16,8 @@ The command console overlay closes on ESC inside IMGUI `OnGUI`. The game's nativ
 ## Fix
 
 - Added a Unity-free `CuoEscCloseSuppression` policy in Runtime that tracks the command console, Online UI window, and quick panel visibility states, and returns one-frame suppression when any of them closes.
-- `Plugin.Update` now keeps `IGameAdapter.SetOnlineUiModal(true)` for the first frame after an ESC-closing CUO surface closes, so the closing ESC is swallowed by the existing modal input guard. The next frame clears the modal state.
-- Added `IGameAdapter.SetOnlineUiEscapeSurfaceVisible` / `IPatchBridge.IsNonModalEscapeSurfaceOpen`: while the non-modal quick panel is visible, `PauseHandlerTogglePausePatch` suppresses only the native pause toggle, without making the panel fully modal.
+- `Plugin.Update` now keeps `INativeInputBlocker.SetOnlineUiModal(true)` for the first frame after an ESC-closing CUO surface closes, so the closing ESC is swallowed by the existing modal input guard. The next frame clears the modal state.
+- Added `INativeInputBlocker.SetOnlineUiEscapeSurfaceVisible` / `IPatchBridge.IsNonModalEscapeSurfaceOpen`: while the non-modal quick panel is visible, `PauseHandlerTogglePausePatch` suppresses only the native pause toggle, without making the panel fully modal.
 - Covered the whole ESC-closing family: standalone command console, Online UI modal window, and the non-modal quick panel. Added per-surface ESC-consumed logs and a close-frame log, so a deployed run can confirm the guard held on the closing frame.
 
 ## Expected behavior after fix

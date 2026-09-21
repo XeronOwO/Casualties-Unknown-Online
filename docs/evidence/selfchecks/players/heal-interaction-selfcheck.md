@@ -41,7 +41,7 @@ Decision summary:
 
 | # | Mechanism | Evidence |
 |---|---|---|
-| 1 | Online UI surface | `OnlineUiOverlay` shows a Heal button next to an in-world remote member when the remote is alive and `IGameAdapter.HasLocalHealItem()` reports a heal-profile item on the local body |
+| 1 | Online UI surface | `OnlineUiOverlay` shows a Heal button next to an in-world remote member when the remote is alive and `ILocalHealItemQuery.HasLocalHealItem()` reports a heal-profile item on the local body |
 | 2 | Wire request | `PlayerHealRequestMsg` (NetMsg 102, guest → host) carries target SteamId + optional item instance id; `PacketReceiver` locks it guest→host |
 | 3 | Host authority | `PlayerInteractionService.HandleHealRequest` validates in-world, snapshots, healer conscious/alive, target alive, known heal item and limb data |
 | 4 | Heal profiles | `RemoteHealProfiles` + `RemoteHealProfile` + `RemoteHealApplication` define the supported medical-item effects as pure data/logic (no game assembly in Runtime) |

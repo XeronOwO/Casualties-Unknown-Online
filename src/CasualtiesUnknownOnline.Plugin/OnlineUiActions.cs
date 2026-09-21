@@ -15,12 +15,18 @@ internal sealed class OnlineUiActions(
 	SessionService session,
 	IHostBanService hostBan,
 	IPlayerInteractionControl playerInteraction,
-	IGameAdapter? adapter)
+	IRemoteInventoryPresentation? remoteInventory,
+	IRemoteMedicalPresentation? remoteMedical,
+	ITraderRecruitRequest? traderRecruit,
+	ILocalHealItemQuery? localHealItems)
 {
 	private readonly SessionService _session = session;
 	private readonly IHostBanService _hostBan = hostBan;
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
-	private readonly IGameAdapter? _adapter = adapter;
+	private readonly IRemoteInventoryPresentation? _remoteInventory = remoteInventory;
+	private readonly IRemoteMedicalPresentation? _remoteMedical = remoteMedical;
+	private readonly ITraderRecruitRequest? _traderRecruit = traderRecruit;
+	private readonly ILocalHealItemQuery? _localHealItems = localHealItems;
 
 	public bool TakeItemFromRemote(ulong ownerSteamId, ulong itemInstanceId)
 	{
@@ -40,7 +46,7 @@ internal sealed class OnlineUiActions(
 			return false;
 		}
 
-		return _adapter?.OpenRemoteBackpack(targetSteamId, displayName) == true;
+		return _remoteInventory?.OpenRemoteBackpack(targetSteamId, displayName) == true;
 	}
 
 	public bool OpenRemoteMedicalFromUi(ulong targetSteamId, string displayName)
@@ -50,7 +56,7 @@ internal sealed class OnlineUiActions(
 			return false;
 		}
 
-		return _adapter?.OpenRemoteMedical(targetSteamId, displayName) == true;
+		return _remoteMedical?.OpenRemoteMedical(targetSteamId, displayName) == true;
 	}
 
 	public bool CarryRemoteFromUi(ulong targetSteamId)
@@ -137,7 +143,7 @@ internal sealed class OnlineUiActions(
 			return false;
 		}
 
-		return _adapter?.TryRequestTraderRecruit(targetSteamId) == true;
+		return _traderRecruit?.TryRequestTraderRecruit(targetSteamId) == true;
 	}
 
 	public bool KickMemberFromUi(ulong targetSteamId) => _session.KickMember(targetSteamId, "kicked by host");
@@ -146,7 +152,7 @@ internal sealed class OnlineUiActions(
 
 	public bool UnbanMemberFromUi(ulong targetSteamId) => _hostBan.Unban(targetSteamId);
 
-	public bool HasLocalHealItem() => _adapter?.HasLocalHealItem() == true;
+	public bool HasLocalHealItem() => _localHealItems?.HasLocalHealItem() == true;
 
-	public IReadOnlyList<LocalHealItem> GetLocalHealItems() => _adapter?.GetLocalHealItems() ?? [];
+	public IReadOnlyList<LocalHealItem> GetLocalHealItems() => _localHealItems?.GetLocalHealItems() ?? [];
 }

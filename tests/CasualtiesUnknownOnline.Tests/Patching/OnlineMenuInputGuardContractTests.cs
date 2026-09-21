@@ -15,9 +15,9 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 public class OnlineMenuInputGuardContractTests
 {
 	[Fact]
-	public void IGameAdapter_ExposesScopedBlockSurface()
+	public void INativeInputBlocker_ExposesScopedBlockSurface()
 	{
-		var method = typeof(IGameAdapter).GetMethod("SetOnlineUiScopedBlocks");
+		var method = typeof(INativeInputBlocker).GetMethod("SetOnlineUiScopedBlocks");
 		Assert.NotNull(method);
 		Assert.Equal(typeof(void), method!.ReturnType);
 		var parameter = Assert.Single(method.GetParameters());
@@ -30,13 +30,13 @@ public class OnlineMenuInputGuardContractTests
 		var adapter = GameAssemblyHost.Adapter.GetType(
 			"CasualtiesUnknownOnline.GameAdapter.GameAdapter",
 			throwOnError: true)!;
-		Assert.True(typeof(IGameAdapter).IsAssignableFrom(adapter));
+		Assert.True(typeof(INativeInputBlocker).IsAssignableFrom(adapter));
 	}
 
 	[Fact]
-	public void IGameAdapter_ExposesEscapeSurfaceSetter()
+	public void INativeInputBlocker_ExposesEscapeSurfaceSetter()
 	{
-		var method = typeof(IGameAdapter).GetMethod("SetOnlineUiEscapeSurfaceVisible");
+		var method = typeof(INativeInputBlocker).GetMethod("SetOnlineUiEscapeSurfaceVisible");
 		Assert.NotNull(method);
 		Assert.Equal(typeof(void), method!.ReturnType);
 		var parameter = Assert.Single(method.GetParameters());

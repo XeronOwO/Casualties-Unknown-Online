@@ -52,7 +52,7 @@ native radial backpack. This cycle fixes both.
   display clone.
 - **UI action** — "Open backpack" appears in the Players page, quick panel and
   right-click context menu. It closes the CUO windows/panels and calls
-  `IGameAdapter.OpenRemoteBackpack`; the custom item-list detail fallback
+  `IRemoteInventoryPresentation.OpenRemoteBackpack`; the custom item-list detail fallback
   ("View items") was later removed as legacy.
 
 ## 3. Self-check table
@@ -67,7 +67,7 @@ native radial backpack. This cycle fixes both.
 | Radial follows remote clone | `PlayerCameraHandleWhileDraggingPatch` moves `radialMenu` to focus | Static code path; no L0 Unity UI harness by design |
 | Remote view is read-only | `TryPerformRadialAction` + `TryPickupFromUI` blocked while open | Patch contract resolution in `PatchContractTests` |
 | Remote clone container shows contents | `CloneInventoryRenderer.RestoreRemoteContents` | Static code path; no L0 Unity prefab harness by design |
-| UI opens native backpack | `IGameAdapter.OpenRemoteBackpack` + UI action + localizations | `RemoteBackpackContractTests` |
+| UI opens native backpack | `IRemoteInventoryPresentation.OpenRemoteBackpack` + UI action + localizations | `RemoteBackpackContractTests` |
 | No wire/event-matrix break | No NetMsg/ProtocolVersion/event-row changes | `git diff` contains only adapter/plugin/runtime-utility/tests/docs |
 
 ## 4. Verification (development-period, no manual acceptance)

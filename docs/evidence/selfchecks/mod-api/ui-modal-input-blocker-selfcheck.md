@@ -17,7 +17,7 @@ game menu/world controls behind it.
     clickable;
   - restores the captured `AdaptiveButton.enabled` states (guest menu-lock
     rules preserved) and destroys the blockers when the window closes.
-- **`IGameAdapter.SetOnlineUiModal(bool)`**: the Plugin tells the adapter
+- **`INativeInputBlocker.SetOnlineUiModal(bool)`**: the Plugin tells the adapter
   whether the Online UI modal is open, once per frame from `Update`.
 - **`UnityEngine.UIModule.dll`** is now an on-demand GameAdapter reference
   (Canvas/RenderMode types); `references/README.md` updated.

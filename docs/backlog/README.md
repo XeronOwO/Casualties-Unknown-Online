@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Adapter capability ports](todo/adapter-capability-ports.md) — **Medium** — IGameAdapter split by capability.
 - [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — entry, UI and registration separated.
 - [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — per-domain ports, aggregate frozen.
 - [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — registrations and reset contract.
@@ -173,6 +172,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Native-binding mods declare it](review/mod-native-binding-declaration.md) — **Medium** — the tier model and the manifest declaration.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity.
 - [Application layer: first slice](review/application-layer-first-slice.md) — **Medium** — command gateway and the kernel replication move.
+- [Adapter capability ports](review/adapter-capability-ports.md) — **Medium** — ten ports; the aggregate declares nothing.
 
 ### Future
 

@@ -113,3 +113,19 @@ declared in the Application assembly, the Application assembly's reference set c
 GameAdapter, Plugin or game assembly, the Runtime still references the layer, and the three types
 that deliberately stayed (`KernelWireMapper`, `KernelBatchItemProjection`, `KernelEnvelopeHandler`)
 are named with their blocker — so moving one later is an edit to a recorded list, not silent drift.
+
+Adapter-seam addendum:
+`AdapterCapabilityPortShapeTests` freezes the Game Adapter seam. It asserts that `IGameAdapter`
+declares no member of its own (a member added back onto the aggregate fails — the census reads
+methods, properties and events alike), that each capability port declares exactly its pinned member
+census and that no member name is shared by two ports, that the aggregate composes exactly those ten
+ports plus `IDisposable`, that the composition carries exactly fourteen members, and that every port is
+registered EXACTLY ONCE from the one adapter singleton in `PluginDependencyRegistrar` (counted, so an
+unwired port and a duplicate whose last descriptor wins both fail; read as source, because the plugin
+project is not referenced by the tests). Its matcher is pinned by a synthetic composition that declares
+a method, a property and an event — so the check is known to flag the shape it exists for — and the
+port list is the same one the aggregate names, not a second list. Two mutation controls were run in the
+landing cycle: declaring a member back on the aggregate and deleting one port registration each turn it
+red; restoring them turns it green. The aggregate itself is not registered in the composition root:
+nothing resolves the whole adapter, and the compile-time proof that one object implements the
+composition is the class declaration (`docs/backlog/review/adapter-capability-ports.md`).

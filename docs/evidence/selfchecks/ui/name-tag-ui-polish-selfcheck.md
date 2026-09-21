@@ -6,7 +6,7 @@
 |---|---|
 | Nameplate/off-screen path | `OnlineUiOverlay.DrawNameplatesAndArrows` iterates `EntitySyncService.RemotePlayers`, projects each authoritative position and routes through `OffScreenArrowGeometry.Place`. |
 | Player head position | `RemotePlayerRenderer.TryGetRemoteHeadPosition` returns `Body.limbs[0].transform.position` of the live render clone; the game uses `limbs[0]` as the head (`NetBody.GetHeadPos`, reversing/KrokMP/NetBody.cs:934). |
-| Head query boundary | `IGameAdapter.TryGetRemoteHeadPosition` exposes the Game-Adapter-only head lookup to the plugin UI; falls back to the body root when no clone exists. |
+| Head query boundary | `IPlayerAnchorQuery.TryGetRemoteHeadPosition` exposes the Game-Adapter-only head lookup to the plugin UI; falls back to the body root when no clone exists. |
 | Nameplate layout | `NameplateLayout.AboveHead` is pure screen-space geometry (head-anchored, centered, with a head gap) and is L0-tested. |
 | Edge padding | `OffScreenArrowGeometry.Place` is driven with a larger `ScreenEdgeMargin` so arrows/nameplates stay inside UI-safe margins. |
 
@@ -43,6 +43,6 @@
   type/file, no UnityEngine dependency.
 - `OnlineUiOverlay` gains only presentation wiring plus named style constants;
   it remains well below the 600-line gate.
-- `IGameAdapter` gains one narrow read-only UI query; the Game Adapter
+- `IPlayerAnchorQuery` gains one narrow read-only UI query; the Game Adapter
   implementation is a one-line delegation to the existing render clone table.
 - No event/protocol machinery touched; no matrix row changes.

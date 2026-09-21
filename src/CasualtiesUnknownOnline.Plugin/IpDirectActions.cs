@@ -19,7 +19,7 @@ internal sealed class IpDirectActions
 	private readonly IpDirectSteamService _ipSteam;
 	private readonly IpDirectConfigEditor _config;
 	private readonly SessionService _session;
-	private readonly IGameAdapter? _adapter;
+	private readonly IWorldPresenceQuery? _worldPresence;
 	private readonly ILocalizationService _localization;
 	private readonly ILogger<IpDirectActions> _logger;
 
@@ -28,7 +28,7 @@ internal sealed class IpDirectActions
 		IpDirectSteamService ipSteam,
 		IpDirectConfigEditor config,
 		SessionService session,
-		IGameAdapter? adapter,
+		IWorldPresenceQuery? worldPresence,
 		ILocalizationService localization,
 		ILogger<IpDirectActions> logger)
 	{
@@ -36,7 +36,7 @@ internal sealed class IpDirectActions
 		_ipSteam = ipSteam;
 		_config = config;
 		_session = session;
-		_adapter = adapter;
+		_worldPresence = worldPresence;
 		_localization = localization;
 		_logger = logger;
 	}
@@ -131,7 +131,7 @@ internal sealed class IpDirectActions
 			return false;
 		}
 
-		if (_adapter is { IsInWorldOrGenerating: true })
+		if (_worldPresence is { IsInWorldOrGenerating: true })
 		{
 			LastError = _localization.T("lobby.join_blocked_in_world");
 			_logger.LogWarning("IP-direct start refused: a world is running or generating.");

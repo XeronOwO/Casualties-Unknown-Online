@@ -5,27 +5,26 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
 /// <summary>
-/// L0 reflection contract for the native remote medical (WoundView) surface:
-/// the Runtime boundary exposes open/close methods, the GameAdapter implements
-/// them, and the adapter-side static view keeps the read-only focus state.
+/// L0 reflection contract for the native remote medical (WoundView) surface: the
+/// Runtime boundary's remote-medical presentation port exposes the open method,
+/// the GameAdapter implements that port, and the adapter-side static view keeps
+/// the read-only focus state. The view closes itself when the target goes stale
+/// (<c>RemoteMedicalCoordinator.Close</c> from its Update), so the port carries
+/// no close entry point.
 /// </summary>
 [Trait("Category", "Integration")]
 public class RemoteMedicalContractTests
 {
 	[Fact]
-	public void IGameAdapter_ExposesNativeMedicalSurface()
+	public void IRemoteMedicalPresentation_ExposesNativeMedicalSurface()
 	{
-		var open = typeof(IGameAdapter).GetMethod("OpenRemoteMedical");
+		var open = typeof(IRemoteMedicalPresentation).GetMethod("OpenRemoteMedical");
 		Assert.NotNull(open);
 		Assert.Equal(typeof(bool), open!.ReturnType);
 		var openParameters = open.GetParameters();
 		Assert.Equal(2, openParameters.Length);
 		Assert.Equal(typeof(ulong), openParameters[0].ParameterType);
 		Assert.Equal(typeof(string), openParameters[1].ParameterType);
-
-		var close = typeof(IGameAdapter).GetMethod("CloseRemoteMedical");
-		Assert.NotNull(close);
-		Assert.Equal(typeof(void), close!.ReturnType);
 	}
 
 	[Fact]
@@ -34,7 +33,7 @@ public class RemoteMedicalContractTests
 		var adapter = GameAssemblyHost.Adapter.GetType(
 			"CasualtiesUnknownOnline.GameAdapter.GameAdapter",
 			throwOnError: true)!;
-		Assert.True(typeof(IGameAdapter).IsAssignableFrom(adapter));
+		Assert.True(typeof(IRemoteMedicalPresentation).IsAssignableFrom(adapter));
 	}
 
 	[Fact]

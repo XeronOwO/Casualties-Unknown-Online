@@ -64,7 +64,17 @@ public class Plugin : BaseUnityPlugin
 	private PlayerInteractionService _playerInteraction = null!;
 	private IPlayerInteractionVisibility _interactionVisibility = null!;
 	private IModUiControl _modUiControl = null!;
-	private IGameAdapter? _adapter;
+	// The capability ports (review/adapter-capability-ports.md): this shell resolves the
+	// port whose capability it calls. The concrete adapter is kept for the carry
+	// presentation pass — an adapter Update-pump detail rather than a consumer
+	// capability (todo/plugin-host-shell.md owns that coupling).
+	private GameAdapterImpl? _adapter;
+	private IGameIntegrationLifecycle? _lifecycle;
+	private IAdapterCapabilityQuery? _capabilityQuery;
+	private IWorldPresenceQuery? _worldPresence;
+	private IStartGateState? _gateState;
+	private INativeInputBlocker? _inputBlocker;
+	private IPlayerAnchorQuery? _anchorQuery;
 	private IWorldLibrary? _worldLibrary;
 	private ILocationPingControl _locationPings = null!;
 	private ITimeSource _time = null!;
@@ -129,18 +139,31 @@ public class Plugin : BaseUnityPlugin
 			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
 			_interactionVisibility = _services.GetRequiredService<IPlayerInteractionVisibility>();
 			_modUiControl = _services.GetRequiredService<IModUiControl>();
-			_adapter = _services.GetService<IGameAdapter>();
+			_adapter = _services.GetService<GameAdapterImpl>();
+			_lifecycle = _services.GetService<IGameIntegrationLifecycle>();
+			_capabilityQuery = _services.GetService<IAdapterCapabilityQuery>();
+			_worldPresence = _services.GetService<IWorldPresenceQuery>();
+			_gateState = _services.GetService<IStartGateState>();
+			_inputBlocker = _services.GetService<INativeInputBlocker>();
+			_anchorQuery = _services.GetService<IPlayerAnchorQuery>();
 			// The world library the Worlds page drives (decision 198): optional, exactly like the
 			// adapter — a composition without a world repository has nothing to manage, and the
 			// page says so instead of throwing.
 			_worldLibrary = _services.GetService<IWorldLibrary>();
-			_uiActions = new OnlineUiActions(_session, _hostBan, _playerInteraction, _adapter);
+			_uiActions = new OnlineUiActions(
+				_session,
+				_hostBan,
+				_playerInteraction,
+				_services.GetService<IRemoteInventoryPresentation>(),
+				_services.GetService<IRemoteMedicalPresentation>(),
+				_services.GetService<ITraderRecruitRequest>(),
+				_services.GetService<ILocalHealItemQuery>());
 			_ipActions = new IpDirectActions(
 				_router,
 				_ipSteam,
 				_ipConfig,
 				_session,
-				_adapter,
+				_worldPresence,
 				_localization,
 				_services.GetRequiredService<ILogger<IpDirectActions>>());
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
@@ -291,9 +314,9 @@ public class Plugin : BaseUnityPlugin
 			}
 
 			_log.LogInformation("Plugin {PluginGuid} is loaded!", MyPluginInfo.PLUGIN_GUID);
-			if (_adapter is not null)
+			if (_capabilityQuery is not null)
 			{
-				_log.LogInformation("Game Adapter: {Report}", _adapter.CapabilityReport);
+				_log.LogInformation("Game Adapter: {Report}", _capabilityQuery.CapabilityReport);
 			}
 
 			if (_steam.IsInitialized)
@@ -349,10 +372,10 @@ public class Plugin : BaseUnityPlugin
 		// not participate in UGUI input). A non-modal quick panel is not in the
 		// modal guard while open, but its pause-toggle suppression is set below;
 		// its close frame is covered by escCloseFrame.
-		if (_adapter is { } adapter)
+		if (_inputBlocker is { } inputBlocker)
 		{
-			adapter.SetOnlineUiModal(windowVisible || consoleOpen || escCloseFrame);
-			adapter.SetOnlineUiEscapeSurfaceVisible(quickPanelVisible);
+			inputBlocker.SetOnlineUiModal(windowVisible || consoleOpen || escCloseFrame);
+			inputBlocker.SetOnlineUiEscapeSurfaceVisible(quickPanelVisible);
 		}
 
 		if (!_onlineUi.IsCommandConsoleOpen && HotkeyPressed(_interactionPanelKey))
@@ -367,7 +390,7 @@ public class Plugin : BaseUnityPlugin
 		// phase (game Body updates, CUO renderer, Body.Update postfix). The
 		// only Unity phase after Update and before render is LateUpdate, so
 		// that is where the final local-carrier/rider attach pass belongs.
-		if (_adapter is GameAdapterImpl adapter)
+		if (_adapter is { } adapter)
 		{
 			adapter.LateUpdateCarryPresentation();
 		}
@@ -407,7 +430,7 @@ public class Plugin : BaseUnityPlugin
 			return false;
 		}
 
-		if (_adapter is not { IsInWorldOrGenerating: true })
+		if (_worldPresence is not { IsInWorldOrGenerating: true })
 		{
 			return true;
 		}
@@ -427,7 +450,7 @@ public class Plugin : BaseUnityPlugin
 			return false;
 		}
 
-		if (_adapter is not { IsInWorldOrGenerating: true })
+		if (_worldPresence is not { IsInWorldOrGenerating: true })
 		{
 			return true;
 		}
@@ -502,9 +525,9 @@ public class Plugin : BaseUnityPlugin
 	// nameplates and off-screen arrows — see OnlineUiOverlay.cs.
 	private void OnGUI()
 	{
-		if (_adapter is { IsWaitingForReady: true })
+		if (_gateState is { IsWaitingForReady: true })
 		{
-			DrawWaitingOverlay();
+			StartGateOverlay.Draw(_gateState.WaitingText);
 			return; // the HUD is hidden behind the gate overlay
 		}
 
@@ -514,43 +537,8 @@ public class Plugin : BaseUnityPlugin
 			_lastJoinError = _ipActions.LastError;
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _adapter, _worldLibrary, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _inputBlocker, _anchorQuery, _worldPresence, _worldLibrary, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
-	}
-
-	/// <summary>
-	/// Start-gate overlay: the waiting text in a translucent panel pinned to
-	/// the BOTTOM-RIGHT corner (the loading screen's own info slot, #87) over
-	/// the LIVE frozen world. No full-screen blackout: the gate freezes the
-	/// world behind it and the panel keeps the wait readable without turning
-	/// the wait into "a black screen" (the original black-texture attempt).
-	/// </summary>
-	private void DrawWaitingOverlay()
-	{
-		const float margin = 24f;
-		const float height = 64f;
-		var width = Screen.width - (margin * 2f);
-		if (width < 1f)
-		{
-			return;
-		}
-
-		width = Mathf.Min(width, 520f);
-		var rect = new Rect(Screen.width - width - margin, Screen.height - height - margin, width, height);
-
-		var previous = GUI.color;
-		GUI.color = new Color(0f, 0f, 0f, 0.72f);
-		GUI.Box(rect, string.Empty);
-		GUI.color = previous;
-
-		var style = new GUIStyle(GUI.skin.label)
-		{
-			fontSize = 20,
-			alignment = TextAnchor.MiddleRight,
-			padding = new RectOffset(0, 18, 0, 0),
-		};
-		style.normal.textColor = Color.white;
-		GUI.Label(rect, _adapter!.WaitingText, style);
 	}
 
 	private void OnUnityLogMessage(string message, string stackTrace, LogType type)
@@ -572,7 +560,7 @@ public class Plugin : BaseUnityPlugin
 	// items' OnDestroy would otherwise report as player-operation destroys
 	// while the session still looks alive (the echo wiped the host's world
 	// items when a guest quit, #191).
-	private void OnApplicationQuit() => _adapter?.OnApplicationQuit();
+	private void OnApplicationQuit() => _lifecycle?.OnApplicationQuit();
 
 	// SteamManager guidance: never do Steamworks work in OnDestroy (execution
 	// order is not guaranteed); OnDisable is the safe teardown point.

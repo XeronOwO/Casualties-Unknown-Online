@@ -62,7 +62,11 @@ internal sealed class OnlineUiContext
 
 	internal ConfigurationProfileStore? Profiles;
 
-	internal IGameAdapter? Adapter;
+	/// <summary>The head anchor the nameplate/off-screen-indicator overlay pins to; null when the composition has no adapter.</summary>
+	internal IPlayerAnchorQuery? AnchorQuery;
+
+	/// <summary>The world-presence fact the Worlds page gates its armed restore on; null when the composition has no adapter.</summary>
+	internal IWorldPresenceQuery? WorldPresence;
 
 	/// <summary>The world library the Worlds page manages worlds and backups through (decision 198); null when the composition has none.</summary>
 	internal IWorldLibrary? WorldLibrary;

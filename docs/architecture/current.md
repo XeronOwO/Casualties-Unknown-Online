@@ -135,6 +135,27 @@ and the Application assembly's reference set are pinned by `KernelReplicationLay
 (in the Tests project, because the normative gates project targets net8.0 and cannot load the net48
 layer), and GameState keeps its own isolation gate.
 
+The Game Adapter boundary is the same rule on the game-facing side: the Runtime declares the contract,
+`CasualtiesUnknownOnline.GameAdapter` is its only implementation, and
+`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of ten capability ports with no member of its
+own — `IGameIntegrationLifecycle` (the quit broadcast), `IAdapterCapabilityQuery` (the startup
+capability report), `IWorldPresenceQuery`, `IStartGateState`, `ILocalHealItemQuery`,
+`ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
+`IRemoteMedicalPresentation` and `IPlayerAnchorQuery` — so a consumer resolves the port whose
+capability it uses, a version adapter implements per capability, and a test double implements only the
+capability it stands in for. Every port resolves to the one adapter singleton, registered in the
+plugin's composition root (`PluginDependencyRegistrar.Apply`), and `AdapterCapabilityPortShapeTests`
+fails when a member is declared back on the aggregate, when a port's member census changes, or when a
+port is left unregistered. The patch lifecycle itself (probe/install/uninstall) is driven by
+`ICuoService` on the same instance and is not a consumer port, and the members no call site reached
+(`CaptureWorldParams`, `ApplyWorldParams`, `CloseRemoteBackpack`, `CloseRemoteMedical`) were removed
+rather than ported — the call-site census and each removal's reason are in
+`review/adapter-capability-ports.md`. The adapter still reads Runtime-owned decision values through the
+recorded `InternalsVisibleTo` grant (`Runtime/AssemblyInfo.cs`): the patch-contract facts, the
+capability-report types and the mod status/building tables are Runtime-owned values whose port would
+have to make them public or copy them, so the grant stays with its census and reasons
+(decision 212).
+
 ## 5. GameStateKernel
 
 ### 5.1 External interface

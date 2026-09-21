@@ -253,8 +253,27 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<MapsterMapper.IMapper>(
 			new MapsterMapper.Mapper(Mapster.TypeAdapterConfig.GlobalSettings));
 		services.AddSingleton<GameAdapterImpl>();
-		services.AddSingleton<IGameAdapter>(p => p.GetRequiredService<GameAdapterImpl>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
+		// The capability ports (review/adapter-capability-ports.md): a consumer
+		// resolves the port whose capability it uses instead of the whole adapter,
+		// and every port IS the one adapter singleton the implementation is.
+		// The list is pinned against the aggregate's composition by
+		// AdapterCapabilityPortShapeTests, so a new port cannot be left unwired.
+		// `IGameAdapter` itself is deliberately NOT registered: the composition is
+		// the seam's identity and its compile-time proof (the class declaration
+		// implements all ten ports), and nothing in the tree resolves the whole
+		// adapter — a dead registration inside the surface this change narrows is
+		// exactly the drift the shape gate exists to catch.
+		services.AddSingleton<IGameIntegrationLifecycle>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<IAdapterCapabilityQuery>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<IWorldPresenceQuery>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<IStartGateState>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<ILocalHealItemQuery>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<ITraderRecruitRequest>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<INativeInputBlocker>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<IRemoteInventoryPresentation>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<IRemoteMedicalPresentation>(p => p.GetRequiredService<GameAdapterImpl>());
+		services.AddSingleton<IPlayerAnchorQuery>(p => p.GetRequiredService<GameAdapterImpl>());
 		// The world library (decision 198): the worlds and backups the Online UI's Worlds page
 		// manages, and the restore that replaces one world's live snapshot with an archive the
 		// player picked. It is an ICuoService because an armed restore runs at a frame boundary
@@ -266,7 +285,7 @@ internal static class PluginDependencyRegistrar
 			p.GetRequiredService<ISessionControl>(),
 			p.GetRequiredService<ILogger<WorldLibraryService>>(),
 			p.GetService<IOptionsMonitor<SaveOptions>>(),
-			worldActive: () => p.GetRequiredService<IGameAdapter>().IsInWorldOrGenerating));
+			worldActive: () => p.GetRequiredService<IWorldPresenceQuery>().IsInWorldOrGenerating));
 		services.AddSingleton<IWorldLibrary>(p => p.GetRequiredService<WorldLibraryService>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<WorldLibraryService>());
 		// The native world-fact reader/writer of the CUO world archive: the

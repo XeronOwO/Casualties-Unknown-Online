@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: search/pinyin-search-standalone-mod-selfcheck.md, 7 mechanisms, no unverified cell
+      file:line or runtime log) or is explicitly marked unverified — evidence: application-layer-first-slice-selfcheck.md mechanism table, 9 rows, every cell names a file or a test
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: no identifier, type or prose reference to the removed option/stage/patch is left (grep + sweep: selfchecks, comments, decisions 202/209, ticket banner)
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck page's mechanism x change table; every cell names a file or a test
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: every wire path from a frame to the kernel inventoried (the heals outside the seam named); no stale `CanDestroy` citation left
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck page's mechanism x change table; each of the 9 rows names a production type and the test that pins it
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: console half proven on the production composition; CUO-less path + discovery asserted over the built assemblies; in-game box named as user acceptance
+      peer log comparison, hotrepl assertions) is decided — evidence: gateway unit tests + production-composition integration tests + the gate's control run; real-client behaviour explicitly not claimed
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the owner ruled the two open questions 2026-09-21 (a new plug-in project in this repository; the mod's own BepInEx switch); the ticket's stages froze the rest
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; tests 3747 passed (build included), gates 84/84
+      process violation — evidence: owner instruction "finish every remaining todo, then come back" (ticket Gate line, decision 207) froze the order; the stages froze the design
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; tests 3762 passed (build included), gates 93/93
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: GameAdapter 557 lines (cap 600); new types 11-141; RecipeSearchScope keeps its 3 pre-existing bools; CUO's pinyin code, option, UI row and keys deleted in-round
+      dead mechanisms deleted in the same round) — evidence: new types 8-152 lines; Application has no state bools; CuoBootstrap exactly 600 (cap 600, split ticket queued); no dangling `CanDestroy`
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

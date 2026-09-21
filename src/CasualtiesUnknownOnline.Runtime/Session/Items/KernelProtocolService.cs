@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -49,6 +50,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		ItemKernelAuthority authority,
 		RefusedItemCreations refusedCreations,
 		GuestCommandReconciliation pendingCommands,
+		KernelCommandGateway gateway,
 		ILogger<KernelProtocolService> log)
 	{
 		_session = session;
@@ -59,7 +61,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_log = log;
 		_stateStreams = new KernelStateStreamService(session, sender, authority, payloadType => CreateHeader(payloadType, 0));
 		_checkpoints = new GuestCheckpointReceiver(authority, log);
-		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, refusedCreations, log);
+		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, refusedCreations, gateway, log);
 		_authority.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetForSessionEnd;
 	}

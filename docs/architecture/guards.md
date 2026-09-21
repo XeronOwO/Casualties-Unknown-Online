@@ -88,3 +88,20 @@ every `GameCommand` subclass in the GameState kernel to carry an
 
 Phase E addendum: `SourceShapeGateTests.KernelShape_NoStringKeyedStateOrHashtable`
 rejects string-keyed dictionaries or `Hashtable` state in the GameState kernel.
+
+Application-layer addendum:
+`ProjectDirectionGateTests.Tree_FollowsTheDeclaredProjectDirection` enforces the declared project
+direction — GameState, Protocol and Abstractions reference no project, Application is the only path
+from Runtime up to the kernel and may reference GameState/Protocol only, and GameAdapter/Plugin never
+reach GameState directly — over the graph read from `CasualtiesUnknownOnline.slnx` (project
+references AND raw CUO assembly references), with a census floor, a CLASSIFICATION census (every
+solution project must be declared in the layer table or listed as a consumer, so nothing is exempt by
+omission) and every declared project checked for presence; its synthetic cases
+(`...GameStateReferencingUpward_IsRefused`, `...RuntimeReachingGameStateWithoutTheLayer_IsRefused`,
+`...ApplicationReferencingUpward_IsRefused`, `...PluginReachingGameStateDirectly_IsRefused`,
+`...ApplicationReferencingItsLowerLayers_IsAccepted`, `...ConsumersAreNotConstrained`,
+`...UndeclaredProject_IsRefusedInsteadOfSilentlyExempt`, `...AbstractionsReachingDown_IsRefused`) pin
+that the checker still refuses what it must. The declared table is
+`ProjectDirectionPolicy.AllowedReferences` and the exempt set is
+`ProjectDirectionPolicy.ConsumerProjects`; adding a reference means declaring it there in the same
+change.

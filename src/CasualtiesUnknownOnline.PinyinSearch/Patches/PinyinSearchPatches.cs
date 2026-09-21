@@ -1,13 +1,13 @@
-using CasualtiesUnknownOnline.Runtime.Search;
+using CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 using HarmonyLib;
 
-namespace CasualtiesUnknownOnline.GameAdapter.Patches;
+namespace CasualtiesUnknownOnline.PinyinSearch.Patches;
 
 /// <summary>
 /// Pinyin search on the game's own crafting search box. The player keeps using
 /// the native field, the native list, the native "clear" button and the native
 /// category buttons; only the matching rule is extended, and only while the
-/// setting is on.
+/// mod's switch is on.
 ///
 /// The native filter is <c>simpleName.Contains(recipeFilter, OrdinalIgnoreCase)</c>
 /// evaluated inside a compiler-generated lambda, so the extension lands on the

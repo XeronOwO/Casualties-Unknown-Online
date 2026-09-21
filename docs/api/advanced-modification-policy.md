@@ -50,7 +50,7 @@ the framework:
 | Layer | What it is | Ships with the plug-in? | Examples |
 |---|---|---|---|
 | Framework core | A capability the framework's own operation needs: its control plane, its administration and safety surface, its own results reaching the player, the shared simulation | Yes | the command console, the save layer, the session/world/entity domains, the mod loader |
-| Satellite mod | A game-facing feature with no session vocabulary of its own; it works with CUO uninstalled | No — its own mod | pinyin search (`docs/backlog/todo/pinyin-search-standalone-mod.md`) |
+| Satellite mod | A game-facing feature with no session vocabulary of its own; it works with CUO uninstalled | No — its own mod | pinyin search (`docs/backlog/review/pinyin-search-standalone-mod.md`; landed as `src/CasualtiesUnknownOnline.PinyinSearch*`) |
 | Repository tool | Needs neither the game at runtime nor the plug-in's dependency graph; it serves development and verification | No — and it is not a mod | the game-update contract toolchain (`tools/CasualtiesUnknownOnline.ContractTool`, decision 201) |
 | Reusable component | Machinery several consumers can share, with no session vocabulary of its own | Depends on its consumers | the console's input/completion engine; the pinyin matcher core |
 
@@ -67,7 +67,8 @@ the framework:
 
 Worked examples, so the next reader does not re-derive this:
 
-- **Pinyin search** — 1 no, 2 no, 3 yes, 4 game-facing → satellite (ticket above).
+- **Pinyin search** — 1 no, 2 no, 3 yes, 4 game-facing → satellite (ticket above; landed
+  2026-09-21 as its own pair of projects, with the CUO-resident implementation deleted).
 - **The command console** — 1 yes (its verbs and its 200-line output buffer carry the session's own
   results), 2 yes (a host without it loses the administration and save verbs and stops seeing the
   save/restore/starting-supply accounts), 3 no, 5 yes → framework core. Its input/completion engine

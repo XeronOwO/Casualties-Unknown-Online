@@ -10,8 +10,8 @@
 
 `src/CasualtiesUnknownOnline.Plugin/Plugin.cs` is 594 lines and holds four jobs at once: the BepInEx
 entry and host configuration, the Online UI overlay (the IMGUI `OnGUI` path plus the waiting
-overlay), seven config editors (`IpDirectConfigEditor`, `PlayerColorConfigEditor`,
-`HostRulesConfigEditor`, `LoggingConfigEditor`, `LanguageConfigEditor`, `PinyinSearchConfigEditor`,
+overlay), six config editors (`IpDirectConfigEditor`, `PlayerColorConfigEditor`,
+`HostRulesConfigEditor`, `LoggingConfigEditor`, `LanguageConfigEditor`,
 `ConfigurationProfileStore`), the service registration including the adapter
 (`PluginDependencyRegistrar.Apply` as `extraRegistrations`), and direct adapter-state writes — the
 clearest being `GameAdapterImpl.SkipIntro = true` on the join path.

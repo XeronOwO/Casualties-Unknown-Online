@@ -1,10 +1,7 @@
 using CasualtiesUnknownOnline.Abstractions;
-using CasualtiesUnknownOnline.Runtime.Configuration;
-using CasualtiesUnknownOnline.Runtime.Search;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Content;
+namespace CasualtiesUnknownOnline.PinyinSearch.Core;
 
 /// <summary>
 /// The console's pinyin completion stage: a Chinese display name also completes
@@ -20,31 +17,28 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Content;
 /// display-name PREFIX rank offers, and the price of both surfaces sharing one
 /// predicate. The widening is switch-gated and purely additive.
 ///
-/// <c>Search.PinyinSearch</c> is read live from the options monitor (the same
-/// singleton the Game Adapter's patch gate reads), so a config edit applies to
-/// the next keystroke without a restart. Disabled means no match and no reading
+/// The mod's own switch is read live, and disabled means no match and no reading
 /// table load.
 /// </summary>
-public sealed class PinyinResourceLocationMatchStage(
-	IOptionsMonitor<PinyinSearchOptions> options,
-	ILogger<PinyinResourceLocationMatchStage> log) : IResourceLocationMatchStage
+internal sealed class PinyinSearchStage : IResourceLocationMatchStage
 {
 	/// <inheritdoc />
 	public bool Matches(ResourceLocationEntry entry, string prefix)
 	{
-		if (!options.CurrentValue.Enabled || string.IsNullOrEmpty(prefix))
+		if (!PinyinSearchGate.Enabled || string.IsNullOrEmpty(prefix))
 		{
 			return false;
 		}
 
-		PinyinTableReport.ReportOnce(log);
+		PinyinSearchGate.ReportTableOnce();
 
 		if (!PinyinMatcher.Contains(entry.DisplayName, prefix))
 		{
 			return false;
 		}
 
-		log.LogDebug("[Pinyin] console completion '{Prefix}' matched {Id} by display name.", prefix, entry.Id);
+		PinyinSearchGate.Log?.LogDebug(
+			$"[Pinyin] console completion '{prefix}' matched {entry.Id} by display name.");
 		return true;
 	}
 }

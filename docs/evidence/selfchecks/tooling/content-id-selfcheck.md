@@ -100,7 +100,10 @@ the canonical id.
 - **Pinyin matching landed behind this catalog**, not in front of it: it is an
   extra `IResourceLocationMatchStage` ranked after the four built-in ranks
   (decision 200, `../search/pinyin-console-completion-selfcheck.md`), gated by
-  `Search.PinyinSearch`. What stays a residual is the prefab source above.
+  `Search.PinyinSearch`. **Both the stage and that switch moved out of CUO** on
+  2026-09-21 (decision 209, `../search/pinyin-search-standalone-mod-selfcheck.md`):
+  the seam above is unchanged, the stage and its switch are the satellite mod's.
+  What stays a residual here is the prefab source above.
 - **Mod content ids keep the game-table key as the bare registration id.** The
   canonical `namespace:id` is the CUO vocabulary; the game's `Item.GlobalItems`
   key, wire item ids and save ids are unchanged. Consequence: two mods in

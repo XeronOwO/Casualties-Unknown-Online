@@ -140,6 +140,12 @@
          build output is copied here (ExcludeAssets="compile" — no type
          references leak into the test compile). -->
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.GameAdapter\CasualtiesUnknownOnline.GameAdapter.csproj" ExcludeAssets="compile" Private="true" />
+    <!-- The satellite pinyin mod: the Core half is compile-referenced (game-free
+         — the matcher, the switch and the console stage), while the plug-in half
+         binds the game assemblies and is therefore loaded REFLECTIVELY like the
+         Game Adapter (only its build output is copied here). -->
+    <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.PinyinSearch.Core\CasualtiesUnknownOnline.PinyinSearch.Core.csproj" />
+    <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.PinyinSearch\CasualtiesUnknownOnline.PinyinSearch.csproj" ExcludeAssets="compile" Private="true" />
     <!-- The game-update contract toolchain (tools/): its ContractTool tests drive
          both the tool's types and its built executable. The tool references no
          src/ project and is referenced by none, so this edge cannot make it a

@@ -4,6 +4,12 @@
 - Priority: Medium
 - Category: Mod / Tooling / UI / Pinyin / Console
 
+**Superseded in part (2026-09-21).** The implementation this ticket delivered inside CUO was deleted
+when pinyin search became a satellite mod (`docs/backlog/review/pinyin-search-standalone-mod.md`,
+decision 209). The sections below are the record of the CUO-resident state as it stood then; the
+console's completion *seam* (`IModResourceCompletion`, `IResourceLocationMatchStage`) is the part
+that survived, and the matcher, the crafting patch and the switch now live in the mod.
+
 Port the pinyin search behavior from the standalone `JustUnknownCharacters`
 project into CUO. Working name: `CasualtiesUnknownOnline.Pinyin`; a more
 conventional CUO-ecosystem name can be decided during implementation.
@@ -99,7 +105,7 @@ Planned features:
   technical barrier: an independent BepInEx plugin can patch this surface by
   binding the game's own code — the reference mod this work was ported from does
   exactly that — which is why moving it out is its own ticket
-  (`docs/backlog/todo/pinyin-search-standalone-mod.md`).
+  (`docs/backlog/review/pinyin-search-standalone-mod.md`).
 - Evidence: `PinyinDictionaryTests`, `PinyinMatcherTests`,
   `NameSearchMatcherTests`, `RecipeSearchDecisionTests` and
   `docs/evidence/selfchecks/search/pinyin-search-selfcheck.md`.

@@ -54,7 +54,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	private readonly RemoteInventoryOperationApply _remoteInventoryApply;
 	private readonly GameAdapterSessionBinding _sessionBinding;
 	private readonly LatencyInstrumentation _latency;
-	private readonly IOptionsMonitor<PinyinSearchOptions> _pinyinSearchOptions;
 	private readonly PatchInstallLifecycle _patches;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
@@ -75,7 +74,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		ITutorialClawControl tutorialClaw,
 		IWorldSaveControl worldSaves,
 		IOptionsMonitor<RespawnOptions> respawnOptions,
-		IOptionsMonitor<PinyinSearchOptions> pinyinSearchOptions,
 		IHostRules hostRules,
 		WorldEntityKernelProjection worldEntityKernel,
 		WorldEntryFanout worldBackfill,
@@ -97,7 +95,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	{
 		_patches = new PatchInstallLifecycle(log);
 		_latency = latency;
-		_pinyinSearchOptions = pinyinSearchOptions;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
 			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
 		// Composition seam: the adapter owns the DEFERRED creation reports (a drop's
@@ -113,10 +110,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction, _remoteInventoryApply, pushApply, medicalOperationApply);
 		PatchBridge.Bind(_bridge); // the only static seam — Harmony patches read the narrow surface, never this instance
-								   // The pinyin search switch rides the same construction-time discipline:
-								   // the static patch classes read the gate, never this instance. It is not
-								   // adapter state — it is a UI-local read of the live config.
-		PinyinSearchGate.Bind(pinyinSearchOptions, log);
 	}
 
 	public string CapabilityReport { get; private set; } = "Not probed";
@@ -303,7 +296,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		_sessionBinding.Unbind();
 		_domains.Renderer.DestroyAllClones();
 		PatchBridge.Unbind(_bridge);
-		PinyinSearchGate.Unbind(_pinyinSearchOptions);
 	}
 
 	// ---- IGameAdapter ----

@@ -1,8 +1,8 @@
 using System.Linq;
-using CasualtiesUnknownOnline.Runtime.Search;
+using CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 using Xunit;
 
-namespace CasualtiesUnknownOnline.Tests.Search;
+namespace CasualtiesUnknownOnline.Tests.PinyinSearch;
 
 /// <summary>
 /// The vendored hanzi → pinyin reading table: it must be embedded, parsed and

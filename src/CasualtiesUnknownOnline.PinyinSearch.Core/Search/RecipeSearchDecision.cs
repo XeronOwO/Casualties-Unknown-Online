@@ -1,4 +1,4 @@
-namespace CasualtiesUnknownOnline.Runtime.Search;
+namespace CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 
 /// <summary>
 /// The pure decision behind the crafting search scope: whether this refresh
@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Search;
 /// game (the patch layer itself is not; the test project excludes the Game
 /// Adapter from compilation).
 /// </summary>
-public static class RecipeSearchDecision
+internal static class RecipeSearchDecision
 {
 	/// <summary>
 	/// The query the refresh may filter by, or null to leave the native behavior

@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.PinyinSearch</AssemblyName>
+    <Product>Pinyin Search</Product>
+    <Version>0.1.0</Version>
+    <BepInExPluginGuid>CasualtiesUnknownOnline.PinyinSearch</BepInExPluginGuid>
+    <BepInExPluginName>Pinyin Search</BepInExPluginName>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.PinyinSearch</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.PluginInfoProps" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CasualtiesUnknownOnline.PinyinSearch.Core\CasualtiesUnknownOnline.PinyinSearch.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    The game-bound half: the BepInEx shell plus the Harmony patch that extends
+    the game's own crafting search box. Game assemblies are gitignored and
+    copied on demand (references/README.md).
+
+    This project deliberately references NO CUO assembly — that is what makes
+    "works with CUO uninstalled" structural rather than a promise: the crafting
+    half cannot fail to load over a missing CUO, because nothing it loads asks
+    for one. The CUO-facing types live in the Core assembly and are driven by
+    CUO's own lifecycle (docs/api/mod-api.md §2).
+  -->
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\references\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\references\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\references\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\references\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

@@ -4,11 +4,12 @@ using System.Reflection;
 namespace CasualtiesUnknownOnline.GameAdapter.Capabilities;
 
 /// <summary>
-/// A game member a capability depends on that no patch contract can name —
-/// the residual decision 199 records for the pinyin patch, whose read of
-/// <c>PlayerCamera.recipeItemFilter</c> sits inside a compiler-generated lambda.
-/// The probe resolves it by reflection and reports a miss as a reason instead of
-/// assuming the read still works.
+/// A game member a capability depends on that no patch contract can name — the
+/// residual decision 199 records for a read that sits inside a compiler-generated
+/// lambda. The probe resolves it by reflection and reports a miss as a reason
+/// instead of assuming the read still works. (The one row CUO used to declare,
+/// <c>PlayerCamera.recipeItemFilter</c>, left with the pinyin patch: the satellite
+/// pinyin mod asserts that field in its own contract test now.)
 /// </summary>
 internal sealed class AdapterMemberProbe
 {

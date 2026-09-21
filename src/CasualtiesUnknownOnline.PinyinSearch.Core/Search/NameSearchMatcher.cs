@@ -1,6 +1,6 @@
 using System;
 
-namespace CasualtiesUnknownOnline.Runtime.Search;
+namespace CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 
 /// <summary>
 /// The search predicate every pinyin-enabled native surface shares: the
@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Search;
 /// half-typed query behaving exactly as it did before, and the pinyin half is
 /// purely additive.
 /// </summary>
-public static class NameSearchMatcher
+internal static class NameSearchMatcher
 {
 	/// <summary>
 	/// True when <paramref name="query"/> matches <paramref name="name"/> either

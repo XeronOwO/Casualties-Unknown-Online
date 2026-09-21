@@ -1,9 +1,9 @@
 using System.Reflection;
-using CasualtiesUnknownOnline.Runtime.Search;
+using CasualtiesUnknownOnline.PinyinSearch.Core;
+using CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 using HarmonyLib;
-using Microsoft.Extensions.Logging;
 
-namespace CasualtiesUnknownOnline.GameAdapter.Patches;
+namespace CasualtiesUnknownOnline.PinyinSearch.Patches;
 
 /// <summary>
 /// The query the native recipe list is being rebuilt with. The native predicate
@@ -54,7 +54,7 @@ internal static class RecipeSearchScope
 		}
 
 		PinyinSearchGate.ReportTableOnce();
-		PinyinSearchGate.Log?.LogTrace("[Pinyin] recipe list filtered by '{Query}'.", filter);
+		PinyinSearchGate.Log?.LogDebug($"[Pinyin] recipe list filtered by '{filter}'.");
 	}
 
 	/// <summary>Counts one name the native refresh asked for; see <see cref="ReportSilentReadPath"/>.</summary>
@@ -89,8 +89,8 @@ internal static class RecipeSearchScope
 	/// count, which is why the wording states a possibility rather than a
 	/// verdict. What it does NOT prove: a predicate that switched to a different
 	/// name while the row-building loop kept reading <c>simpleName</c> would
-	/// keep this counter fed — that residue is recorded as a limit in the
-	/// ticket, not covered here.
+	/// keep this counter fed — that residue is recorded as a limit, not covered
+	/// here.
 	/// </summary>
 	private static void ReportSilentReadPath()
 	{
@@ -102,8 +102,9 @@ internal static class RecipeSearchScope
 
 		_reportedSilentReadPath = true;
 		PinyinSearchGate.Log?.LogWarning(
-			"[Pinyin] {Count} consecutive refreshes with an active query consulted no recipe name — either the recipe list was empty or the native filter no longer reads Recipe.simpleName, in which case pinyin search is inactive. Reported once.",
-			_silentRefreshes);
+			$"[Pinyin] {_silentRefreshes} consecutive refreshes with an active query consulted no recipe name — "
+			+ "either the recipe list was empty or the native filter no longer reads Recipe.simpleName, in which "
+			+ "case pinyin search is inactive. Reported once.");
 	}
 
 	private static bool HasItemFilter(PlayerCamera camera)
@@ -118,7 +119,8 @@ internal static class RecipeSearchScope
 			{
 				_reportedMissingItemFilter = true;
 				PinyinSearchGate.Log?.LogWarning(
-					"[Pinyin] PlayerCamera.recipeItemFilter is missing — pinyin search keeps the native filter while an item filter may be active.");
+					"[Pinyin] PlayerCamera.recipeItemFilter is missing — pinyin search keeps the native filter "
+					+ "while an item filter may be active.");
 			}
 
 			return true;

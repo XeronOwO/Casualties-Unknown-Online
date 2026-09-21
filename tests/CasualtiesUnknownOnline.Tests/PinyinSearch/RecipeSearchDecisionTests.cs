@@ -1,7 +1,7 @@
-using CasualtiesUnknownOnline.Runtime.Search;
+using CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 using Xunit;
 
-namespace CasualtiesUnknownOnline.Tests.Search;
+namespace CasualtiesUnknownOnline.Tests.PinyinSearch;
 
 /// <summary>
 /// The pure decision behind the crafting search scope — the matrix that decides

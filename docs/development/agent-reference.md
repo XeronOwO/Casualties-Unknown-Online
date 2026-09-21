@@ -9,14 +9,20 @@ that area. Moved verbatim on 2026-09-17.
 ```text
 src/CasualtiesUnknownOnline.Abstractions/  # public API; the ONLY package mods may reference
 src/CasualtiesUnknownOnline.Runtime/       # DI/Logging/BepInEx/Steam/session; never game assemblies
-src/CasualtiesUnknownOnline.GameAdapter/   # the ONLY project referencing game assemblies; HarmonyX
+src/CasualtiesUnknownOnline.GameAdapter/   # the ONLY framework project referencing game assemblies; HarmonyX
 src/CasualtiesUnknownOnline.Plugin/        # BepInEx 5 entry; thin lifecycle driver
+src/CasualtiesUnknownOnline.PinyinSearch/  # satellite mod, game-binding half (BepInEx shell + Harmony patch)
+src/…PinyinSearch.Core/                    # the same mod's game-free half (matcher, switch, console stage)
 CasualtiesUnknownOnline.slnx               # solution
 references/                                # game assemblies, gitignored, copied on demand
 reversing/                                 # reverse-engineering workspace, gitignored
 docs/                                      # architecture, decisions, backlog, feature matrices, selfchecks
 AGENTS.local.md                            # gitignored local notes; never commit
 ```
+
+A satellite mod (policy §1.2) lives in this repository beside the framework and keeps the same
+line: only its game-binding half references the game assemblies, and its game-free half is what the
+test project references directly.
 
 See `docs/README.md` for the documentation index. Before deciding that a system belongs in the
 plug-in or in its own mod, apply the four-layer rule in

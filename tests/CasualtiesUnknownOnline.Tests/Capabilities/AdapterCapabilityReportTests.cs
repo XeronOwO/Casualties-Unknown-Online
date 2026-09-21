@@ -27,14 +27,14 @@ public class AdapterCapabilityReportTests
 			2,
 			[
 				Status("items", AdapterCapabilityKind.Required, 7),
-				Status("pinyin-search", AdapterCapabilityKind.Optional, 2),
+				Status("diagnostics", AdapterCapabilityKind.Optional, 2),
 			],
 			[]);
 
 		var text = report.Render();
 
 		Assert.Contains("[Required] items — 7 contract(s) — OK", text, StringComparison.Ordinal);
-		Assert.Contains("[Optional] pinyin-search — 2 contract(s) — OK", text, StringComparison.Ordinal);
+		Assert.Contains("[Optional] diagnostics — 2 contract(s) — OK", text, StringComparison.Ordinal);
 		Assert.Contains("2 capability(ies), 9 patch contract(s) + 2 dynamic row(s)", text, StringComparison.Ordinal);
 		Assert.Contains(ProbeLine, text, StringComparison.Ordinal);
 		Assert.Contains("verdict: session available", text, StringComparison.Ordinal);
@@ -80,8 +80,8 @@ public class AdapterCapabilityReportTests
 	public void Render_PrintsAProbeOnlyFailureWithItsReason()
 	{
 		var status = new AdapterCapabilityStatus(
-			"pinyin-search",
-			"Pinyin search in the native crafting box",
+			"diagnostics",
+			"CUO's diagnostic hooks",
 			AdapterCapabilityKind.Optional,
 			2,
 			[],

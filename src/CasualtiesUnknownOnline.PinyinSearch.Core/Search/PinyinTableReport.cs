@@ -1,7 +1,7 @@
 using System.Threading;
-using Microsoft.Extensions.Logging;
+using BepInEx.Logging;
 
-namespace CasualtiesUnknownOnline.Runtime.Search;
+namespace CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 
 /// <summary>
 /// The one process-wide report of the embedded reading table's state. Pinyin
@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.Runtime.Search;
 /// deliberately one-way: whatever the first call sees is the fact worth keeping,
 /// and a later healthy load does not retract it.
 /// </summary>
-public static class PinyinTableReport
+internal static class PinyinTableReport
 {
 	private static int _reported;
 
@@ -23,7 +23,7 @@ public static class PinyinTableReport
 	/// Reports the table's state on the first call (Information when loaded,
 	/// warning when it is missing) and does nothing afterwards.
 	/// </summary>
-	public static void ReportOnce(ILogger log)
+	public static void ReportOnce(ManualLogSource log)
 	{
 		if (Interlocked.Exchange(ref _reported, 1) == 1)
 		{
@@ -38,6 +38,6 @@ public static class PinyinTableReport
 			return;
 		}
 
-		log.LogInformation("[Pinyin] search enabled — {Count} characters loaded.", count);
+		log.LogInfo($"[Pinyin] search enabled — {count} characters loaded.");
 	}
 }

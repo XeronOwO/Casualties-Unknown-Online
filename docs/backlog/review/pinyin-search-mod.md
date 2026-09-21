@@ -145,6 +145,9 @@ Planned features:
   `tools/verify-deploy.ps1 -GameDir "<game-dir>"` → exit 0, `delivered artifact:
   0.1.0+2c4a3e320c7d0aefe476bd71da607f5814e1e474` (this change's commit), so the
   running plug-in is this tree's build output.
+- Re-deployed 2026-09-21 at tree `aa686430`, after the contract toolchain, the adapter capability
+  catalog and the Mod API baseline landed: exit 0, 34 deployed files / 33 matched this tree,
+  `delivered artifact: 0.1.0+aa686430ef22cf6144e5c42e0c2562e62db76a4a`.
 
 ## Limits (recorded, not hidden)
 

@@ -68,6 +68,18 @@ Both stages are recorded by the pinyin-search ticket.
   `tools/verify-deploy.ps1 -GameDir "<game-dir>"` → exit 0, delivered artifact
   `0.1.0+2c4a3e320c7d0aefe476bd71da607f5814e1e474` == this change's commit, so what runs on the
   machine is this tree's build output.
+- **Re-deployment after the later landings** (2026-09-21, tree at `aa686430`): the contract toolchain,
+  the adapter capability catalog and the Mod API baseline landed after this stage, so the game folder
+  still held the stage-2 build; re-running `tools/deploy.ps1` then
+  `tools/verify-deploy.ps1 -GameDir "<game-dir>"` gives exit 0 with **34 deployed files, 33 matched
+  this tree** (the single miss is `steam_api64.dll`, the allowed native payload copied from
+  `references/`), and the delivered artifact
+  `0.1.0+aa686430ef22cf6144e5c42e0c2562e62db76a4a` equals this tree's HEAD. SHA-256 (first 16 hex) of
+  the six CUO assemblies: `CasualtiesUnknownOnline.Abstractions` `8D0A57CF21234B00`,
+  `CasualtiesUnknownOnline` `322A9C3EE9FF8DF4`, `CasualtiesUnknownOnline.GameAdapter` `2D8C1B9A4375B912`,
+  `CasualtiesUnknownOnline.GameState` `D540B9DDF6EC55BA`,
+  `CasualtiesUnknownOnline.Protocol` `C78BC85FB142B0B9`,
+  `CasualtiesUnknownOnline.Runtime` `4A888904C661243C`.
 
 ## Test coverage split (stated exactly)
 

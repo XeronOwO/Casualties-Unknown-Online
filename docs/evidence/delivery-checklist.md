@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck stage 3 tables, 8 mechanism rows plus the port/adapter rows, each cell naming a file or a test
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck census + mechanism tables; each of the 21 members names a call site, a port, or its removal reason
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all nine named types accounted for (eight moved, three stay-behinds named with blockers); every consumer of each port is wired in KernelReplicationComposition; the sync-coverage quotes re-pointed (gate-enforced)
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck page's mechanism x change table; each of the 8 stage-3 rows names a production type and the test that pins it (round-2 review M2 also removed two dead port members)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 21 boundary members accounted for (14 ported, 7 removed with call-site evidence); every consumer re-pointed; 3 contract classes re-pointed
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck mechanism x change x evidence table; AdapterCapabilityPortShapeTests (16 cases) pins every port's member census
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: port delegation read against the pre-move call sites + KernelReplicationLayerBoundaryTests + the production-composition kernel families (82 focused cases); real-client behaviour explicitly not claimed
+      peer log comparison, hotrepl assertions) is decided — evidence: build + focused 30/30 + gates 93/93 + full 3789/3789; gate red/green mutation controls; real-client behaviour explicitly not claimed
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: owner instruction "finish every remaining todo, then come back" (ticket Gate line, decision 207) and the handoff's stage-3 direction ("ports first, then the move")
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0 (read-only --verify-no-changes --include over the changed files also exit 0); tests 3773 passed (build included), gates 93/93 with this checklist filled
+      process violation — evidence: owner instruction "finish every remaining todo, then come back" (decision 207) and the ticket's own acceptance list
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format --verify-no-changes --include <changed files> exit 0; gates 93/93; full suite 3789/3789 with build
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: CuoBootstrap 586 lines (was 600, cap 600); moved/added types 9-555 lines; no new state bool; the two uncalled port members deleted after the round-2 review; no dangling old-path citations
+      dead mechanisms deleted in the same round) — evidence: Plugin.cs 584 lines (619 with the port plumbing; cap 600) via the StartGateOverlay extraction; no new state bool; dead Close wrapper deleted
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

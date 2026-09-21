@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Architecture / layering
 - Source: discovered by `review/application-layer-first-slice.md` stage 3 (2026-09-21)
-- Related: `review/application-layer-first-slice.md` (the move that exposed this), `todo/adapter-capability-ports.md`
+- Related: `review/application-layer-first-slice.md` (the move that exposed this), `review/adapter-capability-ports.md`
 
 ## Problem (evidence)
 

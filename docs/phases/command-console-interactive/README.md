@@ -61,7 +61,7 @@ The first slice landed a modal Online UI console page:
 ### Phase 1 — Recon and input-chain evidence
 
 - Document the existing IMGUI/modal chain: `Plugin.Update` →
-  `IGameAdapter.SetOnlineUiModal` → `OnlineMenuInputGuard` →
+  `INativeInputBlocker.SetOnlineUiModal` → `OnlineMenuInputGuard` →
   `PlayerCameraHandleInputPatch` / `PauseHandlerTogglePausePatch`.
 - Decide where the slash hotkey and the standalone overlay hook into that chain.
 - Outcome: this README plus the relevant architecture notes; no production code.

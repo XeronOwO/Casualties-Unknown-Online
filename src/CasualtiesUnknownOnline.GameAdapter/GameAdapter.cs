@@ -114,19 +114,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	public string CapabilityReport { get; private set; } = "Not probed";
 
-	public bool ProbeGame()
+	/// <summary>
+	/// The startup gate <c>ICuoService.Initialize</c> drives: probe the loaded
+	/// game assembly (the four types and the report text live in the patch life
+	/// cycle, declared as the session capability's game types), then install only
+	/// when the probe passes. Not a consumer port — nothing outside this class
+	/// installs or uninstalls patches, so the capability stays internal to the
+	/// adapter instead of being forced on every implementation.
+	/// </summary>
+	private bool ProbeGame()
 	{
-		// The four types and the report text live in the patch life cycle (declared
-		// as the session capability's game types); this stays the interface's
-		// startup gate, and its verdict is unchanged.
 		var ok = PatchInstallLifecycle.ProbeGame(out var report);
 		CapabilityReport = report;
 		return ok;
 	}
 
-	public bool Install() => _patches.Install();
+	private bool Install() => _patches.Install();
 
-	public void Uninstall() => _patches.Uninstall();
+	private void Uninstall() => _patches.Uninstall();
 
 	void ICuoService.Initialize()
 	{
@@ -298,48 +303,40 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		PatchBridge.Unbind(_bridge);
 	}
 
-	// ---- IGameAdapter ----
+	// ---- capability ports (the aggregate declares no member of its own) ----
 
-	bool IGameAdapter.IsWaitingForReady => _domains.Gate.WaitingForReady;
+	bool IStartGateState.IsWaitingForReady => _domains.Gate.WaitingForReady;
 
-	bool IGameAdapter.IsInWorldOrGenerating => _domains.Run.IsInWorldOrGenerating;
+	string IStartGateState.WaitingText => _domains.Gate.WaitingText;
 
-	string IGameAdapter.WaitingText => _domains.Gate.WaitingText;
+	bool IWorldPresenceQuery.IsInWorldOrGenerating => _domains.Run.IsInWorldOrGenerating;
 
-	void IGameAdapter.CaptureWorldParams() => _domains.WorldParams.CaptureAtBoundary();
-
-	void IGameAdapter.ApplyWorldParams(WorldStartParams parameters) => _domains.WorldParams.Apply(parameters);
-
-	void IGameAdapter.OnApplicationQuit() => _domains.ItemWorldSync.SuppressDestroys();
+	void IGameIntegrationLifecycle.OnApplicationQuit() => _domains.ItemWorldSync.SuppressDestroys();
 
 	bool IPlayerInteractionVisibility.HasLineOfSight(ulong observerSteamId, ulong targetSteamId) =>
 		_domains.InteractionVisibility.HasLineOfSight(observerSteamId, targetSteamId);
 
-	bool IGameAdapter.HasLocalHealItem() => _playerInteraction.HasLocalHealItem();
+	bool ILocalHealItemQuery.HasLocalHealItem() => _playerInteraction.HasLocalHealItem();
 
-	IReadOnlyList<LocalHealItem> IGameAdapter.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
+	IReadOnlyList<LocalHealItem> ILocalHealItemQuery.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
 
-	bool IGameAdapter.TryRequestTraderRecruit(ulong targetSteamId) => _domains.TraderRecruit.TryRequest(targetSteamId);
+	bool ITraderRecruitRequest.TryRequestTraderRecruit(ulong targetSteamId) => _domains.TraderRecruit.TryRequest(targetSteamId);
 
-	void IGameAdapter.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
+	void INativeInputBlocker.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
 
-	void IGameAdapter.SetOnlineUiEscapeSurfaceVisible(bool visible) =>
+	void INativeInputBlocker.SetOnlineUiEscapeSurfaceVisible(bool visible) =>
 		_domains.MenuInput.SetNonModalEscapeSurfaceVisible(visible);
 
-	void IGameAdapter.SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks) =>
+	void INativeInputBlocker.SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks) =>
 		_domains.MenuInput.SetScopedBlocks(blocks);
 
-	bool IGameAdapter.OpenRemoteBackpack(ulong targetSteamId, string displayName) =>
+	bool IRemoteInventoryPresentation.OpenRemoteBackpack(ulong targetSteamId, string displayName) =>
 		_domains.RemoteBackpack.Open(targetSteamId, displayName);
 
-	void IGameAdapter.CloseRemoteBackpack() => _domains.RemoteBackpack.Close();
-
-	bool IGameAdapter.OpenRemoteMedical(ulong targetSteamId, string displayName) =>
+	bool IRemoteMedicalPresentation.OpenRemoteMedical(ulong targetSteamId, string displayName) =>
 		_domains.RemoteMedical.Open(targetSteamId, displayName);
 
-	void IGameAdapter.CloseRemoteMedical() => _domains.RemoteMedical.Close();
-
-	bool IGameAdapter.TryGetRemoteHeadPosition(ulong steamId, out float x, out float y)
+	bool IPlayerAnchorQuery.TryGetRemoteHeadPosition(ulong steamId, out float x, out float y)
 	{
 		if (_domains.Renderer.TryGetRemoteHeadPosition(steamId, out var head))
 		{

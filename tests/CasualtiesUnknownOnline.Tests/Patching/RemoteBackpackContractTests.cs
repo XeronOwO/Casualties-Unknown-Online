@@ -7,27 +7,26 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 
 /// <summary>
 /// L0 reflection contract for the native remote-backpack surface: the Runtime
-/// boundary exposes the open/close methods and the GameAdapter implements the
-/// interface, so a UI action can rely on the adapter to open the game's native
-/// radial inventory focused on a remote render clone.
+/// boundary's remote-inventory presentation port exposes the open method and the
+/// GameAdapter implements that port, so a UI action can rely on the adapter to
+/// open the game's native radial inventory focused on a remote render clone. The
+/// view closes itself when it goes stale (<c>RemoteBackpackView.ClearIfStale</c>,
+/// pumped by the coordinator's Update) or on the game's own close, so the port
+/// carries no close entry point.
 /// </summary>
 [Trait("Category", "Integration")]
 public class RemoteBackpackContractTests
 {
 	[Fact]
-	public void IGameAdapter_ExposesNativeBackpackSurface()
+	public void IRemoteInventoryPresentation_ExposesNativeBackpackSurface()
 	{
-		var open = typeof(IGameAdapter).GetMethod("OpenRemoteBackpack");
+		var open = typeof(IRemoteInventoryPresentation).GetMethod("OpenRemoteBackpack");
 		Assert.NotNull(open);
 		Assert.Equal(typeof(bool), open!.ReturnType);
 		var openParameters = open.GetParameters();
 		Assert.Equal(2, openParameters.Length);
 		Assert.Equal(typeof(ulong), openParameters[0].ParameterType);
 		Assert.Equal(typeof(string), openParameters[1].ParameterType);
-
-		var close = typeof(IGameAdapter).GetMethod("CloseRemoteBackpack");
-		Assert.NotNull(close);
-		Assert.Equal(typeof(void), close!.ReturnType);
 	}
 
 	[Fact]
@@ -36,7 +35,7 @@ public class RemoteBackpackContractTests
 		var adapter = GameAssemblyHost.Adapter.GetType(
 			"CasualtiesUnknownOnline.GameAdapter.GameAdapter",
 			throwOnError: true)!;
-		Assert.True(typeof(IGameAdapter).IsAssignableFrom(adapter));
+		Assert.True(typeof(IRemoteInventoryPresentation).IsAssignableFrom(adapter));
 	}
 
 	[Fact]

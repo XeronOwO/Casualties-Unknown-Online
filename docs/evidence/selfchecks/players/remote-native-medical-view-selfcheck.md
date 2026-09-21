@@ -12,7 +12,7 @@ already-synced 1 Hz character snapshot.
 |---|-----------|----------|
 | 1 | Game's native medical UI | `WoundView.UpdateView` reads a `Body` and renders full health/limb text, bars, icons and body diagram (`reversing/.../WoundView.cs`) |
 | 2 | Full remote health/limb data on the wire | `CharacterDataMsg.Health` / `CharacterDataMsg.Limbs` already travel on the 1 Hz character snapshot; `CloneData` holds the latest per-SteamID copy |
-| 3 | Online UI entry point | `IGameAdapter.OpenRemoteMedical` / `OnlineUiOverlay.OpenRemoteMedical` replace the rejected CUO IMGUI panel with the native view |
+| 3 | Online UI entry point | `IRemoteMedicalPresentation.OpenRemoteMedical` / `OnlineUiOverlay.OpenRemoteMedical` replace the rejected CUO IMGUI panel with the native view |
 | 4 | Display-only body copy | `RemoteMedicalCoordinator.TryCreateDisplayBody` clones the "Experiment" template, deactivates it, freezes physics, and maps the remote snapshot onto it |
 | 5 | Read-only interaction guard | `RemoteMedicalPatches` blocks `TakeANap`, radial use/wear, and special limb actions while the remote medical view is open |
 | 6 | Cleanup | `RemoteMedicalView.Close` restores the native panel to the local body, clears the selected limb, and destroys the display copy; `RemoteMedicalCoordinator.Update` also tears down on session/world/panel close |
@@ -32,8 +32,8 @@ already-synced 1 Hz character snapshot.
 
 | Mechanism | Change | Evidence |
 |---|---|---|
-| Runtime boundary exposes native medical surface | `IGameAdapter.OpenRemoteMedical` / `CloseRemoteMedical` exist and return the expected signatures | `RemoteMedicalContractTests` |
-| GameAdapter implements the surface | `GameAdapter` implements `IGameAdapter` | `RemoteMedicalContractTests` |
+| Runtime boundary exposes native medical surface | `IRemoteMedicalPresentation.OpenRemoteMedical` exists with the expected signature; the native view owns its own close | `RemoteMedicalContractTests` |
+| GameAdapter implements the surface | `GameAdapter` implements `IRemoteMedicalPresentation` | `RemoteMedicalContractTests` |
 | Adapter-side remote focus remains a bounded static surface | `RemoteMedicalView` exposes Open/Close/IsOpen with a display body | `RemoteMedicalContractTests` |
 | No dead custom panel remains | file deleted; no source references to `OnlineUiMedicalPanel` | grep/source audit |
 | Native interaction actions are blocked in remote mode | new Harmony prefixes on `WoundView.TakeANap`, `PlayerCamera.TryPerformRadialAction`, `TryPerformSpecialUIAction` | `RemoteMedicalPatches.cs` |

@@ -56,8 +56,6 @@ internal sealed class RemoteBackpackCoordinator(
 		return true;
 	}
 
-	internal void Close() => RemoteBackpackView.Close();
-
 	internal void Update()
 	{
 		RemoteBackpackView.UpdatePendingContainerRefresh();

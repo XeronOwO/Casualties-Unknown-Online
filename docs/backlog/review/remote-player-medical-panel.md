@@ -28,7 +28,7 @@ remote focus, analogous to the native remote backpack.
 This cycle replaces the rejected CUO IMGUI medical panel with the native
 `WoundView` medical UI:
 
-- `IGameAdapter.OpenRemoteMedical(steamId, displayName)` opens the game's own
+- `IRemoteMedicalPresentation.OpenRemoteMedical(steamId, displayName)` opens the game's own
   WoundView medical panel for an in-world remote player.
 - `RemoteMedicalCoordinator` creates a display-only body copy from the
   `"Experiment"` template, projects the remote player's latest 1 Hz

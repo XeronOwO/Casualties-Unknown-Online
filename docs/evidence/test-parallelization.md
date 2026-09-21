@@ -327,14 +327,13 @@ excludes classes that only use pure domain services; a comment-only mention does
 not tag a class (`ModDiscoveryTests` stays in the fast set). Temporary-file
 I/O with GUID-scoped paths and pure in-memory persistence tests also stay in the
 fast set; the tier targets full-stack composition, game-assembly reflection and
-real sockets. Result (re-measured 2026-09-21 after the Application-layer cycle with its kernel-replication move —
-the census grows every cycle, so date it rather than quoting it): **260 classes / 1 694 cases**
-tagged (the move added no tagged class); **2 079 cases** untagged, counted as the
-`[Trait("Category", "Integration")]` attribute occurrences (one per test class) and the two filtered
-runs below. The cycle's delta is one tagged class / 3 cases (`CommandAdmissionIntegrationTests`), one
-fast class / 12 cases (`KernelCommandGatewayTests`) and, from the kernel-replication move, one fast
-class / 11 cases (`KernelReplicationLayerBoundaryTests`); the rest of the jump from the 2026-09-17
-figures is accumulation since that measurement, not a tagging change.
+real sockets. Result (re-measured 2026-09-21 after the adapter capability-port split — the census grows
+every cycle, so date it rather than quoting it): **260 classes / 1 694 cases** tagged (the split added
+no tagged class: it re-pointed three existing tagged contract classes in place); **2 095 cases**
+untagged, counted as the `[Trait("Category", "Integration")]` attribute occurrences (one per test
+class) and the two filtered runs below. The cycle's delta is one fast class / 16 cases
+(`AdapterCapabilityPortShapeTests`); the rest of the jump from the 2026-09-17 figures is accumulation
+since that measurement, not a tagging change.
 
 Inner-loop commands:
 
@@ -348,9 +347,9 @@ dotnet test tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.cs
   --filter "FullyQualifiedName~EntityEventTriggerRelay"
 ```
 
-The fast subset passed 2 079 cases in **21 s wall** and the tagged subset 1 694
-cases in 33 s on the reference host (single run each, `--no-build`, 2026-09-21 re-measurement after
-the kernel-replication move; the earlier same-day figures were 2 068 / 27 s and 1 694 / 41 s, and the
+The fast subset passed 2 095 cases in **20-21 s wall** (two runs) and the tagged subset 1 694
+cases in 37 s on the reference host (single run each, `--no-build`, 2026-09-21 re-measurement after
+the adapter capability-port split; the earlier same-day figures were 2 079 / 21 s and 1 694 / 33 s, and the
 2026-09-17 figures were 1 291 / 14.5 s and 1 306 tagged). Both include
 test-host startup and discovery. The full suite remains the default; the trait is
 metadata only and does not change test semantics.

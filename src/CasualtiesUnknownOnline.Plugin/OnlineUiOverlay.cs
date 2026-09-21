@@ -197,7 +197,9 @@ internal sealed class OnlineUiOverlay
 		ICommandControl commands,
 		ILocationPingControl locationPings,
 		ITimeSource time,
-		IGameAdapter? adapter,
+		INativeInputBlocker? inputBlocker,
+		IPlayerAnchorQuery? anchorQuery,
+		IWorldPresenceQuery? worldPresence,
 		IWorldLibrary? worldLibrary,
 		ILocalizationService localization,
 		HostRulesConfigEditor? rulesEditor,
@@ -224,7 +226,8 @@ internal sealed class OnlineUiOverlay
 			Logging = logging,
 			Language = language,
 			Profiles = Profiles,
-			Adapter = adapter,
+			AnchorQuery = anchorQuery,
+			WorldPresence = worldPresence,
 			WorldLibrary = worldLibrary,
 			LastJoinError = lastJoinError,
 			State = _window.State,
@@ -293,7 +296,7 @@ internal sealed class OnlineUiOverlay
 		// leaking to the menu/world without blocking the rest of the screen.
 		// The command console is handled by the full modal guard, not scoped
 		// blocks.
-		adapter?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectScopedBlocks());
+		inputBlocker?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectScopedBlocks());
 	}
 
 	private IReadOnlyList<OnlineUiBlockRect> CollectScopedBlocks()
@@ -501,7 +504,7 @@ internal sealed class OnlineUiOverlay
 			// the head while standing/crouching/lying; fall back to the body's
 			// authoritative position before the clone exists.
 			var worldPoint = new Vector3(remote.Position.X, remote.Position.Y, 0f);
-			if (ctx.Adapter?.TryGetRemoteHeadPosition(remote.SteamId, out var headX, out var headY) == true)
+			if (ctx.AnchorQuery?.TryGetRemoteHeadPosition(remote.SteamId, out var headX, out var headY) == true)
 			{
 				worldPoint = new Vector3(headX, headY, 0f);
 			}

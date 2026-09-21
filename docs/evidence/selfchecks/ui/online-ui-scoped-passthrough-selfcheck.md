@@ -9,7 +9,7 @@ time despite the router being mutually exclusive.
 
 ## What landed
 
-- **Scoped raycast blocker surface** — `IGameAdapter.SetOnlineUiScopedBlocks`
+- **Scoped raycast blocker surface** — `INativeInputBlocker.SetOnlineUiScopedBlocks`
   accepts `OnlineUiBlockRect` values (GUI space, Y down). The adapter's
   `OnlineMenuInputGuard` maintains transparent full-canvas UGUI blockers with an
   `OnlineScopedRaycastFilter` component: the blocker only accepts raycasts
@@ -30,7 +30,7 @@ time despite the router being mutually exclusive.
 | Mechanism | Change | Evidence |
 |---|---|---|
 | Plugin → adapter | `OnlineUiOverlay.Draw` calls `SetOnlineUiScopedBlocks` with quick-panel/menu rects | `OnlineUiOverlay.cs` |
-| Runtime boundary | `OnlineUiBlockRect` (GUI coords) + `IGameAdapter` method | `Runtime/GameAdapter` |
+| Runtime boundary | `OnlineUiBlockRect` (GUI coords) + the `INativeInputBlocker` method | `Runtime/GameAdapter` |
 | Adapter guard | `OnlineMenuInputGuard.SetScopedBlocks` creates/destroys filtered blockers | `OnlineMenuInputGuard.cs` |
 | UGUI filtering | `OnlineScopedRaycastFilter.IsRaycastLocationValid` converts Y-up screen point to GUI Y-down and tests the rectangles | `OnlineScopedRaycastFilter.cs` |
 | Home UI | mode selector hides the inactive transport section | `OnlineUiHomeDrawer.cs`, `OnlineUiTransportMode.cs` |

@@ -74,7 +74,8 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 ```
 
 - **`[CuoMod]`** is the single manifest source (id / displayName / version /
-  `NetworkMode` / `Permissions` / `Dependencies` / description / `Namespace`).
+  `NetworkMode` / `Permissions` / `Dependencies` / description / `Namespace` /
+  `NativeBinding`).
   `NetworkMode`
   defaults to `Unspecified` and is **rejected at discovery**. Other rejection
   causes: duplicated id, abstract/non-public type, missing public parameterless
@@ -101,6 +102,17 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   (`IModNativeApi`).
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
   cyclic dependencies reject the dependent (transitive failures propagate).
+- **`NativeBinding`** names the game's own code the mod binds — the declared
+  Tier 2 of `docs/api/advanced-modification-policy.md` §1.1, for a mod that
+  patches the game's own types. It is a declared FACT, not a permission and not a
+  rejection cause: `ModPermission` is what CUO enforces, and CUO enforces nothing
+  here (an undeclared binding is undetectable), so the declaration is opt-in
+  honesty. Discovery normalizes a blank value (empty or whitespace-only) to "no
+  declaration" and reports it in the `[Mods] discovered …` line, so a host's log
+  answers "which mod binds the game's own code" without reading any mod's source.
+  It buys visibility, never stability: what it names belongs to the game, and a
+  game update may break it with no CUO decision. Carrying it onto the session
+  handshake is its own change (session parity).
 - **`ICuoMod : ICuoService`** — the standard lifecycle, driven by the
   framework's pump on the Unity main thread. Every stage is exception-isolated.
 - **`IModContext`** — `Logger`, `Network`, `Commands`, `Session`, `State`,

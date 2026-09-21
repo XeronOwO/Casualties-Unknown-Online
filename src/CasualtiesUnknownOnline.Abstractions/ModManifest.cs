@@ -9,7 +9,8 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// handshake actually carry). Mods never construct this themselves.
 /// </summary>
 public sealed class ModManifest(string id, string displayName, string version, NetworkMode networkMode, string? description,
-	ModPermission permissions = ModPermission.None, IReadOnlyList<string>? dependencies = null, string? @namespace = null)
+	ModPermission permissions = ModPermission.None, IReadOnlyList<string>? dependencies = null, string? @namespace = null,
+	string? nativeBinding = null)
 {
 	public string Id { get; } = id;
 
@@ -34,4 +35,13 @@ public sealed class ModManifest(string id, string displayName, string version, N
 	/// the built-in one, and is unique across loaded mods.
 	/// </summary>
 	public string? Namespace { get; } = @namespace;
+
+	/// <summary>
+	/// The mod's declared native binding — the game's own code it patches, or
+	/// null when it declared none. A declared fact, never a promise and never a
+	/// grant: discovery normalizes a blank (empty or whitespace-only) declaration to null and
+	/// rejects nothing for it, and a host may only report or compare it
+	/// (<c>docs/api/advanced-modification-policy.md</c> §1.1).
+	/// </summary>
+	public string? NativeBinding { get; } = nativeBinding;
 }

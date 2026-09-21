@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism table, 9 rows (src + docs + both new gates); no unverified cell
+      file:line or runtime log) or is explicitly marked unverified — evidence: native-binding-declaration-selfcheck.md, 7 mechanisms, no unverified cell
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: drift fixed in every live doc; gate reach extended to extension/modifier/partial/nested shapes; absolute-path scan widened
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: mod-api-contract-governance-selfcheck.md, 9 mechanisms x change x evidence, each anchored to a named test
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: live docs corrected (mod-api §1/§3, policy §1.1+§5, decision 204 quotation); ticket links fixed; new relative-link gate
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: native-binding-declaration-selfcheck.md, 7 mechanisms x change x named test
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: 13 gate tests + real-tree negative controls (added member, stale version line) + census floors on both sides
+      peer log comparison, hotrepl assertions) is decided — evidence: 8 focused cases + the unchanged ModDiscoveryTests; log line asserted through RecordingLogger; wire shape pinned by reflection
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the 2026-09-20 handoff fixed this ticket as the next unblocked item; decision 203 records the mechanism
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0; build 0 warnings/0 errors; full suite 3703 passed + gates 82/82; 13 new gate tests
+      process violation — evidence: decision 204 froze the tier model; the 2026-09-21 owner instruction fixed this ticket inside "finish every remaining todo"
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0; full suite 3713 passed (build included); gates 84/84
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: touched src file 50 lines; gate helper ApiSurfaceGate.cs 674 lines (test-side; the 600-line aggregate gate covers src/), no new bool state
+      dead mechanisms deleted in the same round) — evidence: ModRegistry 366 lines (wc -l, < 600); no new bool state; test class 10 cases (cap 40)
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

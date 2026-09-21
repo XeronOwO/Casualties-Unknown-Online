@@ -1,9 +1,9 @@
 # Native-binding mods declare it instead of hiding
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Mod API / Policy
-- Related: [Native-binding parity in the session handshake](mod-native-binding-handshake-parity.md)
+- Related: [Native-binding parity in the session handshake](../todo/mod-native-binding-handshake-parity.md)
   carries the declaration into the session.
 
 ## Why this exists
@@ -51,17 +51,38 @@ takes the narrowest tier that expresses its feature: the curated `IModNativeApi`
 
 ## Stages
 
-### Stage 1 — the field, the tier model and the visibility (no wire)
+### Stage 1 — the field, the tier model and the visibility (landed, no wire)
 
-- Add `NativeBinding` to `[CuoMod]`, carry it through discovery into the registry and the log line.
-- Land the tier table above in `docs/api/advanced-modification-policy.md` and correct
-  `docs/api/mod-api.md` §1's literal wording (referencing versus binding).
-- Test: a mod declaring a binding is discovered, reported and otherwise behaves exactly as before
-  (no new rejection cause, no new permission); a mod that declares nothing is unaffected.
+- `[CuoMod]` gained `NativeBinding` (`src/CasualtiesUnknownOnline.Abstractions/CuoModAttribute.cs`):
+  the game's own code the mod patches, named by the author, or nothing at all. Discovery trims it,
+  normalizes a blank value (empty or whitespace-only) to "no declaration" instead of rejecting the
+  mod, and carries
+  it into `ModManifest.NativeBinding` — a declared fact, never a grant.
+- The `[Mods] discovered …` line closes its parenthesis with `binds <declaration>` (`-` when the mod
+  declared none), so a host's log answers "which mod binds the game's own code" without reading any
+  mod's source.
+- The tier table landed in `docs/api/advanced-modification-policy.md` §1.1 (decision 204), which is
+  also where `docs/api/mod-api.md` §1's literal wording was corrected (referencing versus binding);
+  §3 now documents the field.
+- The reviewed `Abstractions` baseline gained the two members and the `ModManifest` constructor
+  parameter (`docs/api/abstractions-api-baseline.txt`) — the contract change this ticket makes.
+- Tests: `ModNativeBindingDeclarationTests` (10 cases) — discovered and carried on the manifest,
+  reported in the discovery log, undeclared stays null, a blank value normalizes without rejecting,
+  the declared name is trimmed, the declaration takes no permission/network contract/dependency, it
+  is never a rejection cause, and the wire shape (`ModInfoMsg`) is unchanged. `ModDiscoveryTests`
+  stays green (29 cases in the focused run).
+- Decision 206 records why the declaration is a manifest field rather than a ninth `ModPermission`.
+- Independent adversarial review (fresh context, frozen tree, report at
+  `%TEMP%\cuo-review-native-binding-declaration.md`): 0 blocker / 1 major / 4 minor / 5 nit, all fixed
+  here — the major was the moved ticket's own two outbound links, the minors the stale discovery-log
+  contract in the policy document, decision 204's now-unverifiable quotation, two inconsistent gate
+  figures, and the missing namespace+binding case. The round added
+  `BacklogIntegrityGateTests.EveryRelativeDocumentLink_Resolves`, which resolves every relative link
+  under `docs/` — the move that broke this file's links is exactly what it catches.
 
 ### Stage 2 — session parity
 
-Its own ticket: [Native-binding parity in the session handshake](mod-native-binding-handshake-parity.md).
+Its own ticket: [Native-binding parity in the session handshake](../todo/mod-native-binding-handshake-parity.md).
 
 ## Acceptance
 

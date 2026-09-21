@@ -12,7 +12,7 @@ entitled to when a promise is not given.
 | `CasualtiesUnknownOnline.Abstractions` public API | **The contract.** It is the only assembly a mod may reference (`docs/api/mod-api.md` §1, architecture §5.5). |
 | `CasualtiesUnknownOnline.Runtime` | **Implementation.** Public only because the plugin composes it; no promise to a mod, and it may change shape in any commit. |
 | `CasualtiesUnknownOnline.GameAdapter` | **Implementation.** It is the only project that may reference the game assemblies, so anything it exposes is coupled to a game build by construction. |
-| Game assemblies (`Assembly-CSharp`, Unity modules) | **Reachable through a declaration.** The contract never references them — the adapter is the boundary for everything the API offers — but a mod that needs the game's own code may bind it and declare that binding (§1.1; ticket `docs/backlog/todo/mod-native-binding-declaration.md`). |
+| Game assemblies (`Assembly-CSharp`, Unity modules) | **Reachable through a declaration.** The contract never references them — the adapter is the boundary for everything the API offers — but a mod that needs the game's own code may bind it and declare that binding (§1.1; ticket `docs/backlog/review/mod-native-binding-declaration.md`). |
 
 **The visibility rule (binding).** A type or member defaults to the narrowest visibility its
 implementation needs. Only a capability that is designed, documented and reviewed becomes a
@@ -29,7 +29,7 @@ contract" never has to mean "not allowed" (owner ruling 2026-09-20, decision 204
 |---|---|---|---|
 | 0 | The `Abstractions` public API | The contract: `[ApiStability]` levels and the gated baseline | Nothing beyond the API's own rules |
 | 1 | CUO's own implementation (`Runtime`, `GameAdapter`), patched by name | Allowed and not treated as hostile (§4) | Accepting that a patch carries no promise |
-| 2 | The game's own code | A DECLARED binding: still a CUO mod, visible to the host and parity-checkable | The manifest declaration, and the game-update churn |
+| 2 | The game's own code | A DECLARED binding: still a CUO mod, visible to the host and parity-checkable | The `[CuoMod]` `NativeBinding` declaration (`docs/api/mod-api.md` §3), and the game-update churn |
 | 3 | Anything, as an unmanaged BepInEx plugin | No constraint at all | No visibility at all — no host can see it |
 
 Tier 3 is not an enemy to defeat; it is the reason Tier 2 exists, because a mod that binds the game
@@ -144,7 +144,8 @@ author can rely on these, and their absence is a bug worth reporting:
 - **Your own logger.** `IModContext.Logger` writes as `[Mod:<id>]`, so your lines are attributable
   in a shared log.
 - **Discovery and validation.** `ModRegistry` logs `[Mods] discovered <Id> <Version> (<Mode>,
-  permissions <Permissions>, namespace <Namespace>) — <DisplayName>.` for every accepted mod and a
+  permissions <Permissions>, namespace <Namespace>, binds <NativeBinding>) — <DisplayName>.` for
+  every accepted mod (`binds -` when the mod declared no native binding, §1.1) and a
   `[Mods] <Id> … — skipped.` line naming the reason for every rejected one (empty id, missing
   `NetworkMode`, invalid SemVer, invalid permissions, a namespace conflict, a missing dependency, a
   dependency cycle, a duplicate id).

@@ -3,7 +3,7 @@
 - Status: Todo
 - Priority: Medium
 - Category: Protocol / Mod API
-- Depends on: [Native-binding mods declare it instead of hiding](mod-native-binding-declaration.md)
+- Depends on: [Native-binding mods declare it instead of hiding](../review/mod-native-binding-declaration.md)
   — the manifest field this carries onto the wire.
 
 ## Why this exists
@@ -49,7 +49,7 @@ clean.
 ## Limits
 
 - No detection of undeclared bindings — that limit belongs to
-  [the declaration ticket](mod-native-binding-declaration.md) and is stated there.
+  [the declaration ticket](../review/mod-native-binding-declaration.md) and is stated there.
 - A host that allows a mismatch carries the risk knowingly; its log line is the record.
 - **Why not higher priority**: nothing today depends on it, and the declaration stage has to land
   first; the wire change is small once the field exists.

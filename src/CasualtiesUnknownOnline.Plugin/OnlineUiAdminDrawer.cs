@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session;
 using UnityEngine;
 
@@ -31,6 +32,7 @@ internal static class OnlineUiAdminDrawer
 			DrawEditableRule(ctx, "admin.rule_allow_remote_inventory_take", rules.AllowRemoteInventoryTake, editor.SetAllowRemoteInventoryTake);
 			DrawEditableRule(ctx, "admin.rule_widen_run_settings", rules.WidenRunSettings, editor.SetWidenRunSettings);
 			DrawEditableNumberRule(ctx, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier, v => editor.SetPiggybackWeightMultiplier(v), 0f, 3f);
+			DrawEditableParityRule(ctx, "admin.rule_native_binding_parity", rules.NativeBindingParity, editor.SetNativeBindingParity);
 			DrawEditableRule(ctx, "admin.rule_save_inventory", rules.SaveInventory, editor.SetKeepInventory);
 			DrawEditableRule(ctx, "admin.rule_revive_trader", rules.ReviveFromTrader, editor.SetReviveFromTrader);
 			DrawEditableRule(ctx, "admin.rule_revive_next_level", rules.ReviveOnNextLevel, editor.SetReviveOnNextLevel);
@@ -44,6 +46,7 @@ internal static class OnlineUiAdminDrawer
 			DrawRule(ctx.T("admin.rule_allow_remote_inventory_take"), rules.AllowRemoteInventoryTake, ctx);
 			DrawRule(ctx.T("admin.rule_widen_run_settings"), rules.WidenRunSettings, ctx);
 			DrawNumberRule(ctx, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier);
+			DrawParityRule(ctx, "admin.rule_native_binding_parity", rules.NativeBindingParity);
 			DrawRule(ctx.T("admin.rule_save_inventory"), rules.SaveInventory, ctx);
 			DrawRule(ctx.T("admin.rule_revive_trader"), rules.ReviveFromTrader, ctx);
 			DrawRule(ctx.T("admin.rule_revive_next_level"), rules.ReviveOnNextLevel, ctx);
@@ -95,6 +98,33 @@ internal static class OnlineUiAdminDrawer
 
 		GUILayout.EndHorizontal();
 	}
+
+	/// <summary>The three-way native-binding parity rule: one row, the host's current
+	/// level selected. A toolbar is the existing IMGUI control for a small closed set,
+	/// so the rule keeps the admin page's one-row-per-rule shape.</summary>
+	private static void DrawEditableParityRule(
+		OnlineUiContext ctx,
+		string labelKey,
+		NativeBindingParity value,
+		Action<NativeBindingParity> setter)
+	{
+		GUILayout.BeginHorizontal();
+		GUILayout.Label(ctx.T(labelKey), OnlineUiTheme.Label());
+		GUILayout.FlexibleSpace();
+		var next = GUILayout.Toolbar((int)value, Array.ConvertAll(ParityLabels(ctx), l => new GUIContent(l)), OnlineUiTheme.Button(), GUILayout.Width(190f));
+		if (next != (int)value)
+		{
+			setter((NativeBindingParity)next);
+		}
+
+		GUILayout.EndHorizontal();
+	}
+
+	private static void DrawParityRule(OnlineUiContext ctx, string labelKey, NativeBindingParity value) =>
+		GUILayout.Label($"{ctx.T(labelKey)}: {ParityLabels(ctx)[(int)value]}", OnlineUiTheme.Label());
+
+	private static string[] ParityLabels(OnlineUiContext ctx) =>
+		[ctx.T("admin.parity_allow"), ctx.T("admin.parity_warn"), ctx.T("admin.parity_require")];
 
 	private static void DrawRule(string label, bool value, OnlineUiContext ctx)
 	{

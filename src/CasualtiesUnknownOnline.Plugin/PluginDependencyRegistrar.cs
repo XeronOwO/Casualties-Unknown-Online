@@ -104,6 +104,10 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription(
 				"Host-only: fraction of a carried/rider player's full encumbrance added to the carrier while a carry/piggyback relation is active. 0 disables the movement penalty.",
 				new AcceptableValueRange<double>(0.0, 3.0)));
+		var nativeBindingParity = config.Bind("HostRules", "NativeBindingParity", "warn",
+			new ConfigDescription(
+				"Host-only: how a member's declared native binding is judged when it differs from the host's own for a mod both sides list. allow = no check; warn = admit the member and record the mismatch in the host's log (default); require = refuse the member.",
+				new AcceptableValueList<string>("allow", "warn", "require")));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
 			new BepInExOptionsMonitor<HostRulesOptions>(
 				config,
@@ -115,10 +119,12 @@ internal static class PluginDependencyRegistrar
 					AllowRemoteInventoryTake = allowRemoteInventoryTake.Value,
 					WidenRunSettings = widenRunSettings.Value,
 					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
+					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value),
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
 				allowRemoteInventoryTake.Definition,
-				widenRunSettings.Definition, piggybackWeight.Definition)));
+				widenRunSettings.Definition, piggybackWeight.Definition,
+				nativeBindingParity.Definition)));
 
 		// World archive policy (S4.4, decision 25): the interval autosave and the backup
 		// retention. The runtime reads the monitor at each decision, so a config edit
@@ -199,6 +205,7 @@ internal static class PluginDependencyRegistrar
 			allowRemoteInventoryTake,
 			widenRunSettings,
 			piggybackWeight,
+			nativeBindingParity,
 			permadeath,
 			reviveFromTrader,
 			reviveOnNextLevel,
@@ -396,4 +403,10 @@ internal static class PluginDependencyRegistrar
 		&& Enum.IsDefined(typeof(MelLogLevel), level)
 			? level
 			: MelLogLevel.Information;
+
+	/// <summary>A hand-edited config file bypasses the entry's AcceptableValueList, so an
+	/// unparseable parity value falls back to the conservative default (warn) instead of
+	/// throwing during composition.</summary>
+	private static NativeBindingParity ParseNativeBindingParity(string text) =>
+		NativeBindingParityText.TryParse(text, out var parity) ? parity : NativeBindingParity.Warn;
 }

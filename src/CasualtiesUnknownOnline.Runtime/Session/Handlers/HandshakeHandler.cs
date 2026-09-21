@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -228,6 +229,9 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	/// NetworkMode, invalid permissions, unparseable state-bearing SemVer) is
 	/// rejected. Discovery pending → "not checked yet"
 	/// refusal (the guest's 1 s handshake retry is then checked properly).
+	/// The declared native binding is judged separately, per mod id, by the
+	/// host's parity policy (<see cref="CheckNativeBindingParity"/>) — it is
+	/// never part of the NetworkMode contract.
 	/// </summary>
 	private bool CheckModConsistency(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
@@ -309,6 +313,14 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 					return false;
 				}
 			}
+
+			// The declared native binding is judged apart from the network
+			// contract: it is a declared fact, and only an explicit require policy
+			// turns a difference into a refusal (see the method).
+			if (!CheckNativeBindingParity(sender, hostMod, guestInfo))
+			{
+				return false;
+			}
 		}
 
 		// Member claims a state-bearing mod the host does not run — the host
@@ -326,6 +338,45 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 
 		return true;
 	}
+
+	/// <summary>
+	/// The declared native binding of a mod BOTH sides list, judged by the host's
+	/// parity policy: allow (silent), warn (the member is admitted and the host
+	/// records the mismatch — the default), require (the member is refused, naming
+	/// the mod and both declarations). A mod only one side lists has no counterpart
+	/// to compare and is not judged here — the NetworkMode rows above already
+	/// decide who may lack what, and a declaration is never a rejection cause of
+	/// its own. A blank declaration is "none", exactly as discovery normalizes it.
+	/// Parity stays visibility, never proof: an undeclared binding is invisible to
+	/// this check, and equal declarations do not prove equal behaviour.
+	/// </summary>
+	private bool CheckNativeBindingParity(ulong sender, ModManifest hostMod, ModInfoMsg guestInfo)
+	{
+		var hostBinding = NativeBindingDeclaration.Normalize(hostMod.NativeBinding);
+		var guestBinding = NativeBindingDeclaration.Normalize(guestInfo.NativeBinding);
+		if (NativeBindingDeclaration.Matches(hostBinding, guestBinding))
+		{
+			return true;
+		}
+
+		switch (_hostRules.NativeBindingParity)
+		{
+			case NativeBindingParity.Allow:
+				return true;
+			case NativeBindingParity.Require:
+				_log.LogWarning(
+					"Handshake from {Peer} rejected: {Id} declares native binding {Member} but the host declares {Host} — this host requires native-binding parity.",
+					sender, hostMod.Id, DeclaredBinding(guestBinding), DeclaredBinding(hostBinding));
+				return false;
+			default:
+				_log.LogWarning(
+					"Handshake from {Peer}: {Id} declares native binding {Member} but the host declares {Host} — admitted under the host's warn parity policy (visibility, not proof of identical behaviour).",
+					sender, hostMod.Id, DeclaredBinding(guestBinding), DeclaredBinding(hostBinding));
+				return true;
+		}
+	}
+
+	private static string DeclaredBinding(string? binding) => binding ?? "none";
 
 	private static bool IsStateBearing(NetworkMode mode) =>
 		mode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative;

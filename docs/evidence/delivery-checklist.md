@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: native-binding-declaration-selfcheck.md, 7 mechanisms, no unverified cell
+      file:line or runtime log) or is explicitly marked unverified — evidence: native-binding-handshake-parity-selfcheck.md, 11 mechanisms, no unverified cell
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: live docs corrected (mod-api §1/§3, policy §1.1+§5, decision 204 quotation); ticket links fixed; new relative-link gate
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: native-binding-declaration-selfcheck.md, 7 mechanisms x change x named test
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: policy docs aligned (mod-api §3/§5, policy §1.1, decision 208); declaration ticket + stage-1 selfcheck re-pointed; ticket moved with its relative links
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: native-binding-handshake-parity-selfcheck.md, 11 mechanisms x change x named test
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: 8 focused cases + the unchanged ModDiscoveryTests; log line asserted through RecordingLogger; wire shape pinned by reflection
+      peer log comparison, hotrepl assertions) is decided — evidence: each policy level asserted over the real handshake; the warn/refuse log content read back through RecordingLoggerFactory; wire round-trip + absent-field decode
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: decision 204 froze the tier model; the 2026-09-21 owner instruction fixed this ticket inside "finish every remaining todo"
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0; full suite 3713 passed (build included); gates 84/84
+      process violation — evidence: the ticket froze allow/warn/require, the warn default and per-mod-id granularity; decision 206 fixed the field it carries
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; full suite 3733 passed (build included); gates 84/84
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: ModRegistry 366 lines (wc -l, < 600); no new bool state; test class 10 cases (cap 40)
+      dead mechanisms deleted in the same round) — evidence: HandshakeHandler 383 lines; new types 19/31/35; ModHandshakeTests 35 cases (cap 40); no new bool state
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

@@ -11,11 +11,12 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// Stage 1 of the declared native-binding tier (decision 204): `[CuoMod]`'s
-/// `NativeBinding` is a declared FACT that discovery carries into the manifest
-/// and the discovery log line. It is deliberately NOT a permission, NOT a
-/// rejection cause, and it does not move the wire — carrying it into the session
-/// is its own ticket.
+/// The declared native-binding tier (decision 204): `[CuoMod]`'s `NativeBinding`
+/// is a declared FACT that discovery carries into the manifest, the discovery log
+/// line and the handshake entry (`ModInfoMsg.NativeBinding`, added by the parity
+/// change). It is deliberately NOT a permission, and discovery adds no rejection
+/// cause of its own for it — only the host's explicit `require` parity policy can
+/// refuse a member over a declared difference (`docs/api/mod-api.md` §5).
 ///
 /// The declared mods below are healthy on purpose: every TestNode's production
 /// ModService scans this assembly, so a declared binding must load exactly like
@@ -110,7 +111,7 @@ public class ModNativeBindingDeclarationTests
 	}
 
 	[Fact]
-	public void Declaration_IsNeverARejectionCause()
+	public void Declaration_AddsNoDiscoveryRejectionCause()
 	{
 		var (registry, log) = CreateRegistry();
 
@@ -121,17 +122,36 @@ public class ModNativeBindingDeclarationTests
 	}
 
 	[Fact]
-	public void Declaration_DoesNotMoveTheWireShape()
+	public void Declaration_TravelsOnTheWireShape()
 	{
-		// Stage 1 is deliberately wire-free: the declaration stays local until the
-		// parity ticket carries it onto the handshake (with its own protocol bump).
+		// Stage 1 was deliberately wire-free; the parity ticket carries the
+		// declaration onto the handshake (HandshakeMsg.Mods) with its own protocol
+		// bump. The shape stays pinned here so the next change to ModInfoMsg is a
+		// deliberate one.
 		var properties = typeof(ModInfoMsg).GetProperties()
 			.Select(p => p.Name)
 			.OrderBy(name => name, StringComparer.Ordinal)
 			.ToArray();
 
-		string[] expected = ["Id", "NetworkMode", "Permissions", "Version"];
+		string[] expected = ["Id", "NativeBinding", "NetworkMode", "Permissions", "Version"];
 		Assert.Equal(expected, properties);
+	}
+
+	[Fact]
+	public void DeclaredBinding_RidesTheHandshakeInfo()
+	{
+		// The discovery → wire carrier itself: CurrentModInfos() is what the
+		// handshake sends (SessionPeerMaintenance fills HandshakeMsg.Mods with it),
+		// so this is the one place that proves the declared value actually travels —
+		// a shape test alone would stay green if the field were never filled.
+		var (registry, _) = CreateRegistry();
+
+		registry.Discover(TestAssembly);
+
+		var infos = registry.CurrentModInfos();
+
+		Assert.Equal(DeclaredBinding, infos.Single(i => i.Id == DeclaredModId).NativeBinding);
+		Assert.Null(infos.Single(i => i.Id == "test.nativebindingempty").NativeBinding);
 	}
 
 	[Fact]

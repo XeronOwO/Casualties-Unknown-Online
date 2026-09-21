@@ -1,5 +1,6 @@
 using System.Globalization;
 using BepInEx.Configuration;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 
 namespace CasualtiesUnknownOnline;
@@ -19,6 +20,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _allowRemoteInventoryTake;
 	private readonly ConfigEntry<bool> _widenRunSettings;
 	private readonly ConfigEntry<double> _piggybackWeight;
+	private readonly ConfigEntry<string> _nativeBindingParity;
 	private readonly ConfigEntry<bool> _permadeath;
 	private readonly ConfigEntry<bool> _reviveFromTrader;
 	private readonly ConfigEntry<bool> _reviveOnNextLevel;
@@ -33,6 +35,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> allowRemoteInventoryTake,
 		ConfigEntry<bool> widenRunSettings,
 		ConfigEntry<double> piggybackWeight,
+		ConfigEntry<string> nativeBindingParity,
 		ConfigEntry<bool> permadeath,
 		ConfigEntry<bool> reviveFromTrader,
 		ConfigEntry<bool> reviveOnNextLevel,
@@ -46,6 +49,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_allowRemoteInventoryTake = allowRemoteInventoryTake;
 		_widenRunSettings = widenRunSettings;
 		_piggybackWeight = piggybackWeight;
+		_nativeBindingParity = nativeBindingParity;
 		_permadeath = permadeath;
 		_reviveFromTrader = reviveFromTrader;
 		_reviveOnNextLevel = reviveOnNextLevel;
@@ -64,6 +68,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	internal void SetWidenRunSettings(bool value) => Set(_widenRunSettings, value);
 
 	internal void SetPiggybackWeightMultiplier(double value) => Set(_piggybackWeight, value);
+
+	internal void SetNativeBindingParity(NativeBindingParity value) => Set(_nativeBindingParity, NativeBindingParityText.Format(value));
 
 	internal void SetPermadeath(bool value) => Set(_permadeath, value);
 
@@ -91,6 +97,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 				return TrySetBool(_widenRunSettings, value, out error);
 			case "piggybackweightmultiplier":
 				return TrySetDouble(_piggybackWeight, value, out error);
+			case "nativebindingparity":
+				return TrySetParity(_nativeBindingParity, value, out error);
 			case "permadeath":
 				return TrySetBool(_permadeath, value, out error);
 			case "revivefromtrader":
@@ -133,7 +141,26 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		return true;
 	}
 
+	private bool TrySetParity(ConfigEntry<string> entry, string value, out string? error)
+	{
+		if (!NativeBindingParityText.TryParse(value, out var parsed))
+		{
+			error = $"'{value}' is not one of allow/warn/require.";
+			return false;
+		}
+
+		Set(entry, NativeBindingParityText.Format(parsed));
+		error = null;
+		return true;
+	}
+
 	private void Set(ConfigEntry<bool> entry, bool value)
+	{
+		entry.Value = value;
+		_config.Save();
+	}
+
+	private void Set(ConfigEntry<string> entry, string value)
 	{
 		entry.Value = value;
 		_config.Save();

@@ -286,6 +286,10 @@ internal static class LocalizationCatalog
 		["admin.rule_revive_trader"] = "Revive from trader",
 		["admin.rule_revive_next_level"] = "Revive on next level",
 		["admin.rule_permadeath"] = "Permadeath",
+		["admin.rule_native_binding_parity"] = "Native binding parity",
+		["admin.parity_allow"] = "Allow",
+		["admin.parity_warn"] = "Warn",
+		["admin.parity_require"] = "Require",
 	};
 
 	internal static readonly IReadOnlyDictionary<string, string> Chinese = new Dictionary<string, string>
@@ -565,5 +569,9 @@ internal static class LocalizationCatalog
 		["admin.rule_revive_trader"] = "商人复活",
 		["admin.rule_revive_next_level"] = "下一层复活",
 		["admin.rule_permadeath"] = "永久死亡",
+		["admin.rule_native_binding_parity"] = "原生绑定一致性",
+		["admin.parity_allow"] = "允许",
+		["admin.parity_warn"] = "警告",
+		["admin.parity_require"] = "要求一致",
 	};
 }

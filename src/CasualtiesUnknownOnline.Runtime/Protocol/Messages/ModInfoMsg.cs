@@ -9,6 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// against its own: missing/mismatched mods are rejected per the NetworkMode
 /// policy (RequiresAllPlayers/Synchronized/Authoritative missing or version-
 /// unequal → reject; ClientOnly/Cosmetic differences and host-only mods → pass).
+/// The declared native binding rides the same entry and is judged separately by
+/// the host's parity policy — it never joins the NetworkMode contract.
 /// The enum serializes as its underlying int; Unspecified (0) is an invalid
 /// wire value — the host's shape check rejects it.
 /// </summary>
@@ -32,4 +34,17 @@ public sealed class ModInfoMsg
 	/// </summary>
 	[ProtoMember(4)]
 	public ModPermission Permissions { get; set; }
+
+	/// <summary>
+	/// The member's declared native binding — the game's own code this mod
+	/// patches — or null when it declared none (`[CuoMod] NativeBinding`; a blank
+	/// declaration normalizes to null exactly as discovery normalizes it). The
+	/// host compares it with its own declaration for a mod both sides list and
+	/// applies its <c>NativeBindingParity</c> rule: allow, warn (the default) or
+	/// require. Parity is visibility, never proof — an undeclared binding stays
+	/// invisible and an identical declaration does not prove identical
+	/// behaviour (`docs/api/mod-api.md` §5).
+	/// </summary>
+	[ProtoMember(5)]
+	public string? NativeBinding { get; set; }
 }

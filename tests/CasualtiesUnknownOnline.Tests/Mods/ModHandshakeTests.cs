@@ -1,11 +1,15 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
@@ -19,7 +23,11 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// member is created; ClientOnly/Cosmetic differences and host-only mods pass;
 /// a malformed member list (empty/duplicated id, Unspecified or unknown
 /// NetworkMode) is rejected; a handshake arriving before the discovery scan is
-/// refused as "pending" and passes on the retry.
+/// refused as "pending" and passes on the retry. The declared native binding is
+/// judged separately by the host's parity policy over the mods BOTH sides list:
+/// allow admits silently, warn (the default) admits and records the mismatch,
+/// require refuses and names the mod and both declarations — an undeclared or
+/// blank declaration is a difference, and a mod only one side lists is not judged.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ModHandshakeTests
@@ -31,14 +39,19 @@ public class ModHandshakeTests
 	// The matrix's one mod id — declared per test with the mode/version needed.
 	private const string ModId = "test.matrix";
 
-	private static ModManifest Manifest(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None) =>
-		new(ModId, "Matrix Mod", version, mode, null, permissions);
+	private static ModManifest Manifest(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None, string? binding = null) =>
+		new(ModId, "Matrix Mod", version, mode, null, permissions, nativeBinding: binding);
 
-	private static ModInfoMsg Info(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None) =>
-		new() { Id = ModId, Version = version, NetworkMode = mode, Permissions = permissions };
+	private static ModInfoMsg Info(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None, string? binding = null) =>
+		new() { Id = ModId, Version = version, NetworkMode = mode, Permissions = permissions, NativeBinding = binding };
+
+	/// <summary>A mod the host does not list at all — the parity rule has no counterpart to compare.</summary>
+	private static ModInfoMsg InfoFor(string id, NetworkMode mode, string? binding = null) =>
+		new() { Id = id, Version = "1.0.0", NetworkMode = mode, NativeBinding = binding };
 
 	private static (TestNode Host, TestNode Guest) CreatePair(
-		List<ModManifest> hostMods, List<ModInfoMsg> guestInfos, bool hostComplete = true)
+		List<ModManifest> hostMods, List<ModInfoMsg> guestInfos, bool hostComplete = true,
+		NativeBindingParity parity = NativeBindingParity.Warn, RecordingLoggerFactory? recorder = null)
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
@@ -52,6 +65,12 @@ public class ModHandshakeTests
 			{
 				s.Replace(ServiceDescriptor.Singleton<IModsControl>(hostControl));
 				s.Replace(ServiceDescriptor.Singleton<IModListProvider>(guestProvider));
+				s.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
+					new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { NativeBindingParity = parity })));
+				if (recorder is not null)
+				{
+					s.Replace(ServiceDescriptor.Singleton<ILoggerFactory>(recorder));
+				}
 			});
 		var guest = TestNode.Create(GuestId, network, guestSteam, clock, pumpFirstFrame: true,
 			extraRegistrations: s =>
@@ -227,6 +246,159 @@ public class ModHandshakeTests
 		var (host, _) = CreatePair([], [Info(NetworkMode.ClientOnly)]);
 
 		Assert.True(GuestHandshaken(host), "a local-surface mod the host lacks is the host's business, not a member's");
+	}
+
+	// ---- Native-binding parity (the declared fact, judged apart from the contract) ----
+
+	[Fact]
+	public void EqualNativeBindings_Accepted()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Foo")],
+			[Info(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Foo")],
+			parity: NativeBindingParity.Require);
+
+		Assert.True(GuestHandshaken(host), "equal declarations satisfy even a require policy");
+	}
+
+	[Fact]
+	public void NoDeclarationOnEitherSide_Accepted()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers)],
+			[Info(NetworkMode.RequiresAllPlayers)],
+			parity: NativeBindingParity.Require);
+
+		Assert.True(GuestHandshaken(host), "no declaration on either side is parity, not a difference");
+	}
+
+	[Fact]
+	public void DifferingDeclarations_WarnPolicy_AdmitsAndRecordsTheMismatch()
+	{
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Foo")],
+			[Info(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Bar")],
+			recorder: recorder);
+
+		Assert.True(GuestHandshaken(host), "the default warn policy admits the member");
+		Assert.Contains(
+			recorder.Messages(LogLevel.Warning, "HandshakeHandler"),
+			message => message.Contains(ModId, StringComparison.Ordinal)
+				&& message.Contains("Game.Code.Bar", StringComparison.Ordinal)
+				&& message.Contains("Game.Code.Foo", StringComparison.Ordinal)
+				&& message.Contains("warn parity policy", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void DifferingDeclarations_RequirePolicy_RefusesAndNamesTheModAndBothDeclarations()
+	{
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Foo")],
+			[Info(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Bar")],
+			parity: NativeBindingParity.Require, recorder: recorder);
+
+		Assert.False(GuestHandshaken(host), "require refuses the member before it is created");
+		Assert.Empty(host.Session.Members);
+		Assert.Contains(
+			recorder.Messages(LogLevel.Warning, "HandshakeHandler"),
+			message => message.Contains(ModId, StringComparison.Ordinal)
+				&& message.Contains("Game.Code.Bar", StringComparison.Ordinal)
+				&& message.Contains("Game.Code.Foo", StringComparison.Ordinal)
+				&& message.Contains("requires native-binding parity", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void DifferingDeclarations_AllowPolicy_AdmitsWithoutRecording()
+	{
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Foo")],
+			[Info(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Bar")],
+			parity: NativeBindingParity.Allow, recorder: recorder);
+
+		Assert.True(GuestHandshaken(host));
+		// Every level, not only Warning: "allow is silent" is the documented
+		// contract, so a regression that recorded the mismatch at another level
+		// must fail here too. The filter is proven reachable by the warn/require
+		// cases above, which find their own lines through the same recorder.
+		Assert.DoesNotContain(
+			recorder.Entries.Where(entry => entry.Category.Contains("HandshakeHandler", StringComparison.Ordinal)),
+			entry => entry.Message.Contains(ModId, StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void UndeclaredGuestBinding_RequirePolicy_Refused()
+	{
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Foo")],
+			[Info(NetworkMode.RequiresAllPlayers)],
+			parity: NativeBindingParity.Require, recorder: recorder);
+
+		Assert.False(GuestHandshaken(host), "an undeclared binding is a difference, not an abstention");
+		Assert.Contains(
+			recorder.Messages(LogLevel.Warning, "HandshakeHandler"),
+			message => message.Contains(ModId, StringComparison.Ordinal)
+				&& message.Contains("native binding none", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void UndeclaredHostBinding_WarnPolicy_RecordsTheHostAsNone()
+	{
+		// The mirror image: the host declared none, the member declared one. Both
+		// sides render the undeclared state as "none", so a log reader can tell it
+		// apart from an empty or missing name.
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers)],
+			[Info(NetworkMode.RequiresAllPlayers, binding: "Game.Code.Bar")],
+			recorder: recorder);
+
+		Assert.True(GuestHandshaken(host));
+		Assert.Contains(
+			recorder.Messages(LogLevel.Warning, "HandshakeHandler"),
+			message => message.Contains(ModId, StringComparison.Ordinal)
+				&& message.Contains("the host declares none", StringComparison.Ordinal));
+	}
+
+	[Theory]
+	[InlineData("  Game.Code.Foo  ", "Game.Code.Foo", true)]
+	[InlineData("game.code.foo", "Game.Code.Foo", false)]
+	public void BindingComparison_IsTrimmedAndCaseSensitive(string hostBinding, string guestBinding, bool admitted)
+	{
+		// The comparison is exact after trimming (ordinal, case-sensitive), which
+		// docs/api/mod-api.md §5 states: two spellings of the same name match, two
+		// casings do not — a third-party author must spell the binding identically.
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers, binding: hostBinding)],
+			[Info(NetworkMode.RequiresAllPlayers, binding: guestBinding)],
+			parity: NativeBindingParity.Require);
+
+		Assert.Equal(admitted, GuestHandshaken(host));
+	}
+
+	[Fact]
+	public void BlankGuestBinding_NormalizesToUndeclared_RequirePolicyAccepted()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers)],
+			[Info(NetworkMode.RequiresAllPlayers, binding: "   ")],
+			parity: NativeBindingParity.Require);
+
+		Assert.True(GuestHandshaken(host), "a blank declaration means 'none', exactly as discovery normalizes it");
+	}
+
+	[Fact]
+	public void ModOnlyTheGuestLists_IsNotJudgedByParity()
+	{
+		var (host, _) = CreatePair(
+			[],
+			[InfoFor("test.guestonly", NetworkMode.ClientOnly, binding: "Game.Code.Other")],
+			parity: NativeBindingParity.Require);
+
+		Assert.True(GuestHandshaken(host), "parity compares the declarations of one mod id; a mod the host does not list has no counterpart");
 	}
 
 	// ---- The malformed-list shape checks ----

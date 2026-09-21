@@ -139,6 +139,20 @@ public static class ProtocolVersion
 	/// run's state, whose epoch then no longer matches the live streams). A peer
 	/// without the member would keep restoring whatever set arrived and would
 	/// keep letting a partial set's chunks occupy the slots a live set needs.
-	public const int Current = 34;
+	/// 35: `ModInfoMsg.NativeBinding` — each mod's declared native binding
+	/// (`[CuoMod] NativeBinding`, decision 206) now rides the handshake's mod
+	/// list, and the host judges the entries BOTH sides list against its own
+	/// declaration with its `NativeBindingParity` rule: allow (silent), warn (the
+	/// default — the member is admitted and the host records the mismatch), or
+	/// require (the member is refused, naming the mod and both declarations). A
+	/// peer without the field would declare nothing, so every both-listed mod it
+	/// reports would be compared as "undeclared": a host requiring parity would
+	/// refuse it for a difference it never had the chance to report, and a host
+	/// warning would record `none` against its own declaration for every such mod
+	/// — the rule would exist on one side only, and the member's real bindings
+	/// would stay invisible exactly where the tier promised visibility. Parity
+	/// stays visibility, never proof: an undeclared binding is still invisible and
+	/// an equal declaration does not prove equal behaviour (decision 204).
+	public const int Current = 35;
 
 }

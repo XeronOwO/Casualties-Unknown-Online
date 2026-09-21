@@ -1,7 +1,7 @@
-using CasualtiesUnknownOnline.Runtime.Search;
+using CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 using Xunit;
 
-namespace CasualtiesUnknownOnline.Tests.Search;
+namespace CasualtiesUnknownOnline.Tests.PinyinSearch;
 
 /// <summary>
 /// The shared search predicate: the native literal rule stays first and intact,

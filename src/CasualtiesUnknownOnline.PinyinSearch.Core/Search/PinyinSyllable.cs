@@ -1,4 +1,4 @@
-namespace CasualtiesUnknownOnline.Runtime.Search;
+namespace CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 
 /// <summary>
 /// One reading of a hanzi as the matcher consumes it: the initial and final
@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Search;
 /// matcher and reading table come from PinIn
 /// (<see href="https://github.com/Towdium/PinIn"/>).
 /// </summary>
-public sealed class PinyinSyllable(string[] initials, string[] finals, string tone)
+internal sealed class PinyinSyllable(string[] initials, string[] finals, string tone)
 {
 	/// <summary>The initial alternates including the fuzzy ones (for example ["zh", "z"]); empty for a vowel-initial reading.</summary>
 	public string[] Initials { get; } = initials;

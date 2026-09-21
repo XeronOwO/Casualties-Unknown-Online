@@ -16,7 +16,7 @@ cycle lands the catalog and the probe that answers it, with installation behavio
 | 4 | Game probe | `ProbeGame()`'s four `typeof` reads produced a three-value `CapabilityReport` string nothing else consumed | the four types are declared as the session capability's game types and the probe line rides the report; the verdict and the exact text are unchanged (pinned) | `GameAdapter.cs` (`ProbeGame`, `Initialize`); `Patches/PatchInstallLifecycle.cs` (`ProbeGame`); `Capabilities/AdapterCapabilityReporter.cs` |
 | 5 | Contract identity | `PatchContract` carried the patch class's SIMPLE name (205 rows share 201 names) | it also carries `PatchClassType` (full CLR spelling), and the contract-tool parity gate compares it against the snapshot's own fact | `src/CasualtiesUnknownOnline.Runtime/Patching/PatchContract.cs`; `Patches/PatchInventory.cs`; `tests/.../ContractTool/PatchContractRowParityTests.cs` |
 | 6 | Per-capability status (new) | — | one report line per capability (class, id, contract count, verdict, one indented reason per failure) plus a session verdict line; printed once from `Initialize`, at Error level when the session is refused | `src/CasualtiesUnknownOnline.Runtime/GameAdapter/AdapterCapabilityStatus.cs`, `AdapterCapabilityReport.cs`; `Capabilities/AdapterCapabilityProbe.cs` |
-| 7 | Declared game members (new) | decision 199's pinyin residual (`PlayerCamera.recipeItemFilter`, read inside a compiler-generated lambda) lived in prose only | declared as a member probe and resolved at probe time; a miss becomes a reported reason instead of an assumption | `Capabilities/AdapterMemberProbe.cs`; the `pinyin-search` catalog entry |
+| 7 | Declared game members (new) | decision 199's pinyin residual (`PlayerCamera.recipeItemFilter`, read inside a compiler-generated lambda) lived in prose only | declared as a member probe and resolved at probe time; a miss becomes a reported reason instead of an assumption | `Capabilities/AdapterMemberProbe.cs`; the `pinyin-search` catalog entry (that row left with the pinyin mod on 2026-09-21 — decision 209 — and the mod asserts the field in its own contract test; the probe type stays for the next such row) |
 | 8 | Adapter coordinator size | `GameAdapter.cs` sat at 599 lines — the 600-line gate's edge — and this cycle's wiring would have crossed it | the patch-install life cycle moved to its own collaborator (harmony ownership, PatchAll, dynamic install, verification, refusal/rollback, report publishing); `GameAdapter.cs` is 565 lines | `Patches/PatchInstallLifecycle.cs`; `GameAdapter.cs` |
 | 9 | Wire / protocol / save | — | untouched: no wire shape, no save shape, no `ProtocolVersion` change | `git status` (no `Protocol/`, `GameState/` or wire file touched) |
 
@@ -40,8 +40,9 @@ cycle lands the catalog and the probe that answers it, with installation behavio
   is marked non-blocking and rendered as *reported only*.
 - **Required/Optional is the user's yardstick, not a difficulty ranking.** A feature the vanilla game
   has is Required (items, medical, crafting, world generation, the session itself, and the multiplayer
-  wiring of those systems); CUO's own additions are Optional (the mod content surface, pinyin search,
-  the diagnostic hooks). A class that carries BOTH — `PlayerCameraDragUsePatch` implements the
+  wiring of those systems); CUO's own additions are Optional (the mod content surface, the diagnostic
+  hooks — the `pinyin-search` row was one of these until it left with the pinyin mod, decision 209). A
+  class that carries BOTH — `PlayerCameraDragUsePatch` implements the
   remote-backpack take (a game feature) and the KrokMP-style cross-player use-by-drag seam (ours) — is
   classified by the vanilla path and says so in the catalog; splitting it is stage 3's install-unit work.
 - **Recorded boundaries.** Stage 1 prints, it does not degrade: a Required failure still refuses the

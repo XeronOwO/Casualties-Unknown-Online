@@ -20,6 +20,5 @@ internal static class AdapterCapabilityIds
 	internal const string Save = "save";
 	internal const string Tutorial = "tutorial";
 	internal const string Mods = "mods";
-	internal const string PinyinSearch = "pinyin-search";
 	internal const string Diagnostics = "diagnostics";
 }

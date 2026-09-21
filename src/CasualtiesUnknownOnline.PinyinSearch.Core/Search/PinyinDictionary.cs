@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
-namespace CasualtiesUnknownOnline.Runtime.Search;
+namespace CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 
 /// <summary>
 /// The hanzi → pinyin reading table, loaded once from the embedded
@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.Search;
 /// A missing or unknown character simply has no readings, which degrades the
 /// match to the plain substring rule instead of failing.
 /// </summary>
-public static class PinyinDictionary
+internal static class PinyinDictionary
 {
 	/// <summary>The embedded resource suffix the loader looks for (the file's logical name is namespace-qualified).</summary>
 	private const string ResourceSuffix = ".pinyin_data.txt";

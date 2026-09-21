@@ -1,35 +1,55 @@
+using System;
+using System.IO;
 using System.Linq;
+using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Abstractions;
-using CasualtiesUnknownOnline.Runtime.Configuration;
+using CasualtiesUnknownOnline.PinyinSearch.Core;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Tests.Fakes;
+using CasualtiesUnknownOnline.Tests.Patching;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace CasualtiesUnknownOnline.Tests.Content;
+namespace CasualtiesUnknownOnline.Tests.PinyinSearch;
 
 /// <summary>
-/// The console's pinyin completion stage (ticket stage 2): the acceptance chain
-/// pinyin input → Chinese display name → canonical id, plus the switch-off,
-/// boundary and live-switch paths. The catalog's own tests cover the pluggable
-/// ranking; these cover what the stage itself claims.
+/// The satellite mod's console half at the stage level: the pinyin → Chinese
+/// display name → canonical id chain, the mod's OWN switch (off leaves the
+/// built-in ranking untouched), the live-switch path and the boundary cases.
+/// The matcher rows behind the crafting search box live in
+/// <see cref="PinyinMatcherTests"/>; the production registration path (the
+/// [CuoMod] entry point binding a loaded mod's context) is
+/// <see cref="PinyinSearchModConsoleTests"/>.
+///
+/// The class joins the non-parallel collection because the mod's switch is
+/// process-global state in the mod's own assembly — the static entry every
+/// static patch class and this stage read.
 /// </summary>
-public class PinyinResourceLocationMatchStageTests
+[Collection(GameAssemblyCollection.Name)]
+public class PinyinSearchStageTests
 {
 	private static readonly ResourceLocationEntry Fentanyl =
 		new(ContentId.Parse("cu:fentanyl"), ModContentKind.Item, "芬太尼");
 
-	private static MutableOptionsMonitor<PinyinSearchOptions> Monitor(bool enabled) =>
-		new(new PinyinSearchOptions { Enabled = enabled });
+	/// <summary>Binds the mod's switch to a throwaway config file — the entry every surface reads live.</summary>
+	private static ConfigEntry<bool> Switch(bool enabled)
+	{
+		var path = Path.Combine(Path.GetTempPath(), "cuo-tests", $"pinyin-{Guid.NewGuid():N}.cfg");
+		Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+		return PinyinSearchConfig.Bind(new ConfigFile(path, saveOnInit: true), enabled);
+	}
 
-	private static PinyinResourceLocationMatchStage Stage(MutableOptionsMonitor<PinyinSearchOptions> monitor) =>
-		new(monitor, NullLogger<PinyinResourceLocationMatchStage>.Instance);
+	private static PinyinSearchStage Stage(bool enabled)
+	{
+		Switch(enabled);
+		return new PinyinSearchStage();
+	}
 
 	private static ResourceLocationCatalog Catalog(bool enabled, params ResourceLocationEntry[] entries) =>
 		new(
 			[new StubResourceSource(entries)],
-			[Stage(Monitor(enabled))],
+			[Stage(enabled)],
 			new ModResourceCompletionStore(),
 			NullLogger<ResourceLocationCatalog>.Instance);
 
@@ -41,7 +61,7 @@ public class PinyinResourceLocationMatchStageTests
 	[InlineData("tai")]
 	[InlineData("FENT")]
 	public void Matches_ChineseDisplayName_ByFullPinyinInitialsMixedOrChinese(string query) =>
-		Assert.True(Stage(Monitor(true)).Matches(Fentanyl, query), $"'{query}' must match 芬太尼");
+		Assert.True(Stage(true).Matches(Fentanyl, query), $"'{query}' must match 芬太尼");
 
 	[Theory]
 	[InlineData("fent")]
@@ -70,16 +90,16 @@ public class PinyinResourceLocationMatchStageTests
 	[Fact]
 	public void Suggest_FollowsTheSwitchWithoutRebuildingTheCatalog()
 	{
-		var monitor = Monitor(false);
+		var switchEntry = Switch(false);
 		var catalog = new ResourceLocationCatalog(
 			[new StubResourceSource(Fentanyl)],
-			[Stage(monitor)],
+			[new PinyinSearchStage()],
 			new ModResourceCompletionStore(),
 			NullLogger<ResourceLocationCatalog>.Instance);
 
 		Assert.Empty(catalog.Suggest("ftn"));
 
-		monitor.Set(new PinyinSearchOptions { Enabled = true });
+		switchEntry.Value = true;
 
 		Assert.Equal(["cu:fentanyl"], catalog.Suggest("ftn").Select(e => e.Id.ToString()));
 	}
@@ -100,14 +120,14 @@ public class PinyinResourceLocationMatchStageTests
 	{
 		var entry = new ResourceLocationEntry(ContentId.Parse("mymod:sword"), ModContentKind.Item, "Wooden Sword");
 
-		Assert.True(Stage(Monitor(true)).Matches(entry, "ooden"));
-		Assert.False(Stage(Monitor(true)).Matches(entry, "sword x"));
+		Assert.True(Stage(true).Matches(entry, "ooden"));
+		Assert.False(Stage(true).Matches(entry, "sword x"));
 	}
 
 	[Fact]
 	public void Matches_EmptyDisplayNameOrEmptyPrefix_IsFalse()
 	{
-		var stage = Stage(Monitor(true));
+		var stage = Stage(true);
 		var unnamed = new ResourceLocationEntry(ContentId.Parse("cu:thing"), ModContentKind.Item, "");
 
 		Assert.False(stage.Matches(unnamed, "ftn"));

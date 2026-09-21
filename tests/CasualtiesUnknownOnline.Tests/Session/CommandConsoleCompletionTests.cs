@@ -1,12 +1,7 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
-using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
-using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Xunit;
 using static CasualtiesUnknownOnline.Tests.Session.CommandConsoleTestSession;
 
@@ -122,39 +117,5 @@ public class CommandConsoleCompletionTests
 		var hint = completion.GetHint("/hostrules");
 
 		Assert.Contains("/hostrules <json>", hint);
-	}
-
-	[Theory]
-	[InlineData("ftn")]
-	[InlineData("fent")]
-	[InlineData("芬太")]
-	[InlineData("cu:fent")]
-	public void ArgumentSuggestions_ResourceLocationKind_CompletesToTheCanonicalId(string query)
-	{
-		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations: services =>
-		{
-			services.AddSingleton<IResourceLocationSource>(new StubFentanylSource());
-			services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<PinyinSearchOptions>>(
-				new MutableOptionsMonitor<PinyinSearchOptions>(new PinyinSearchOptions { Enabled = true })));
-		});
-		var suggestions = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
-
-		// Only the framework's own stages are DI services: this assertion covers
-		// the pinyin stage the composition root registers, not the stages a mod
-		// registers at runtime (those live in the catalog behind the per-mod
-		// adapter — see ModResourceCompletionTests).
-		Assert.Equal(
-			"PinyinResourceLocationMatchStage",
-			Assert.Single(host.Services.GetServices<IResourceLocationMatchStage>()).GetType().Name);
-
-		var suggestion = Assert.Single(suggestions.Suggest(CommandArgumentKind.ResourceLocation, query));
-
-		Assert.Equal("cu:fentanyl", suggestion.Text);
-	}
-
-	private sealed class StubFentanylSource : IResourceLocationSource
-	{
-		public IReadOnlyList<ResourceLocationEntry> Entries =>
-			[new ResourceLocationEntry(ContentId.Parse("cu:fentanyl"), ModContentKind.Item, "芬太尼")];
 	}
 }

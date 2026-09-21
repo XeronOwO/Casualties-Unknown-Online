@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 /// medical, crafting, world generation, the session itself). A broken contract
 /// refuses multiplayer as a whole, visibly.</item>
 /// <item><see cref="Optional"/> — a feature CUO adds on top of the vanilla game
-/// (the mod content surface, pinyin search, diagnostics). These may degrade to
+/// (the mod content surface, diagnostics). These may degrade to
 /// off by themselves while the rest of the session keeps working.</item>
 /// </list>
 /// Stage 1 records the class in the catalog and prints it in the probe report;

@@ -23,16 +23,6 @@
     Plugin/GameAdapter down into Runtime, never the other way.
   -->
 
-  <!--
-    The hanzi → pinyin reading table behind the pinyin search (Search/). It is
-    vendored from PinIn (https://github.com/Towdium/PinIn) — the same table the
-    standalone JustUnknownCharacters mod shipped — and is loaded lazily, so a
-    disabled toggle never pays for it.
-  -->
-  <ItemGroup>
-    <EmbeddedResource Include="Search\pinyin_data.txt" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\CasualtiesUnknownOnline.Abstractions\CasualtiesUnknownOnline.Abstractions.csproj" />
     <ProjectReference Include="..\CasualtiesUnknownOnline.Protocol\CasualtiesUnknownOnline.Protocol.csproj" />

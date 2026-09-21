@@ -24,7 +24,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Capabilities;
 /// without a home or a declared owner stops producing patch classes.
 ///
 /// Optional here means "CUO's own addition", which is why the mod content
-/// surface, pinyin search and the diagnostics hooks sit in their own groups: a
+/// surface and the diagnostics hooks sit in their own groups: a
 /// game update that breaks one of them must be able to leave the session running
 /// (stage 2) instead of refusing multiplayer as a whole.
 /// </summary>
@@ -181,16 +181,6 @@ internal static class AdapterCapabilityCatalog
 			[],
 			[],
 			[]),
-		new(
-			AdapterCapabilityIds.PinyinSearch,
-			"Pinyin search in the native crafting box",
-			AdapterCapabilityKind.Optional,
-			[typeof(PinyinSearchPatches)],
-			[],
-			[],
-			// Decision 199's residual: the native filter mode is read as a private field
-			// inside a compiler-generated lambda, which no patch contract can name.
-			[new AdapterMemberProbe(typeof(PlayerCamera), "recipeItemFilter")]),
 		new(
 			AdapterCapabilityIds.Diagnostics,
 			"CUO's diagnostic hooks",

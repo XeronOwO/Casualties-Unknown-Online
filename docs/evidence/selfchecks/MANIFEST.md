@@ -186,6 +186,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | world/world-time-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | items/remote-clone-display-content-id-free-selfcheck.md | Items | current | remote clone container contents no longer carry item-domain instance ids |
 | items/guest-background-ghost-item-ground-sounds-selfcheck.md | Items | current | guest non-authoritative item impact presentation (drop/step/squeak/dust) suppressed |
-| search/pinyin-console-completion-selfcheck.md | UI | current | console resource-id completion matches Chinese display names by pinyin through a pluggable extra catalog stage (decision 200) |
-| search/pinyin-search-selfcheck.md | UI | current | the game's crafting search box matches Chinese recipe names by pinyin behind the `Search.PinyinSearch` switch (decision 199) |
+| search/pinyin-console-completion-selfcheck.md | UI | historical | the CUO-resident console stage it describes (decision 200) was deleted when the stage moved into the satellite pinyin mod (decision 209); the seam it introduced is unchanged |
+| search/pinyin-search-selfcheck.md | UI | historical | the CUO-resident matcher, patch and `Search.PinyinSearch` switch it describes (decision 199) were deleted when the feature moved into the satellite pinyin mod (decision 209) |
+| search/pinyin-search-standalone-mod-selfcheck.md | UI | current | the pinyin search as a satellite mod in this repository: two assemblies split along the binding, its own BepInEx switch, the Tier-2 declaration, and the deletion of CUO's own pinyin code (decision 209) |
 

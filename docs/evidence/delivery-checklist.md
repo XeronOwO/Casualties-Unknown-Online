@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: native-binding-handshake-parity-selfcheck.md, 11 mechanisms, no unverified cell
+      file:line or runtime log) or is explicitly marked unverified — evidence: search/pinyin-search-standalone-mod-selfcheck.md, 7 mechanisms, no unverified cell
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: policy docs aligned (mod-api §3/§5, policy §1.1, decision 208); declaration ticket + stage-1 selfcheck re-pointed; ticket moved with its relative links
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: native-binding-handshake-parity-selfcheck.md, 11 mechanisms x change x named test
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: no identifier, type or prose reference to the removed option/stage/patch is left (grep + sweep: selfchecks, comments, decisions 202/209, ticket banner)
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck page's mechanism x change table; every cell names a file or a test
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: each policy level asserted over the real handshake; the warn/refuse log content read back through RecordingLoggerFactory; wire round-trip + absent-field decode
+      peer log comparison, hotrepl assertions) is decided — evidence: console half proven on the production composition; CUO-less path + discovery asserted over the built assemblies; in-game box named as user acceptance
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket froze allow/warn/require, the warn default and per-mod-id granularity; decision 206 fixed the field it carries
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; full suite 3733 passed (build included); gates 84/84
+      process violation — evidence: the owner ruled the two open questions 2026-09-21 (a new plug-in project in this repository; the mod's own BepInEx switch); the ticket's stages froze the rest
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; tests 3747 passed (build included), gates 84/84
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: HandshakeHandler 383 lines; new types 19/31/35; ModHandshakeTests 35 cases (cap 40); no new bool state
+      dead mechanisms deleted in the same round) — evidence: GameAdapter 557 lines (cap 600); new types 11-141; RecipeSearchScope keeps its 3 pre-existing bools; CUO's pinyin code, option, UI row and keys deleted in-round
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

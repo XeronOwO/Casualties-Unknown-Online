@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CasualtiesUnknownOnline.Runtime.Search;
+namespace CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 
 /// <summary>
 /// The pinyin search matcher: a C# port of PinIn's NFA/backtracking algorithm
@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Search;
 /// else, so both the native crafting search box and the console's resource
 /// completion can share the exact same matching rules.
 /// </summary>
-public static class PinyinMatcher
+internal static class PinyinMatcher
 {
 	/// <summary>
 	/// True when <paramref name="filter"/> matches <paramref name="name"/> by

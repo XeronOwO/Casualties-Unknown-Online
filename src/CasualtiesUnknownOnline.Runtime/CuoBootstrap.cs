@@ -83,7 +83,6 @@ public static class CuoBootstrap
 			new MutableOptionsMonitor<LocalizationOptions>(new LocalizationOptions()));
 		services.AddSingleton<IOptionsMonitor<SaveOptions>>(
 			new MutableOptionsMonitor<SaveOptions>(new SaveOptions()));
-		services.AddSingleton<IOptionsMonitor<PinyinSearchOptions>>(new MutableOptionsMonitor<PinyinSearchOptions>(new PinyinSearchOptions()));
 
 		// The logging providers are DI-resolved (registered as ILoggerProvider)
 		// rather than captured as instances, so the extraRegistrations options
@@ -323,7 +322,8 @@ public static class CuoBootstrap
 		services.AddSingleton<ILocationPingControl>(p => p.GetRequiredService<LocationPingService>());
 		// Content-id vocabulary + its completion stages. The block lives in its
 		// own composition file (the canonical namespace:path catalog the console
-		// completes resource arguments from, plus the pinyin extra stage); the
+		// completes resource arguments from, plus the store a mod's completion
+		// stages land in); the
 		// plugin registers the Game Adapter's vanilla game-content source into
 		// the same list, since only that layer may read the game's item table.
 		ContentVocabularyComposition.AddContentVocabulary(services);

@@ -327,8 +327,11 @@ excludes classes that only use pure domain services; a comment-only mention does
 not tag a class (`ModDiscoveryTests` stays in the fast set). Temporary-file
 I/O with GUID-scoped paths and pure in-memory persistence tests also stay in the
 fast set; the tier targets full-stack composition, game-assembly reflection and
-real sockets. Result: **219 classes / 1 306 cases** tagged; **1 291 cases**
-untagged.
+real sockets. Result (re-measured 2026-09-21 — the census grows every cycle, so
+date it rather than quoting it): **259 classes / 1 691 cases** tagged;
+**2 056 cases** untagged. This cycle's own delta is small (two Integration
+classes added, one removed, one fast class added), so most of the jump from the
+2026-09-17 figures is accumulation since that measurement, not a tagging change.
 
 Inner-loop commands:
 
@@ -342,9 +345,11 @@ dotnet test tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.cs
   --filter "FullyQualifiedName~EntityEventTriggerRelay"
 ```
 
-The fast subset passed 1 291 cases in **14.5 s wall** on the reference host
-(single run, includes test-host startup and discovery). The full suite remains
-the default; the trait is metadata only and does not change test semantics.
+The fast subset passed 2 056 cases in **18 s wall** and the tagged subset 1 690
+cases in 32 s on the reference host (single run each, 2026-09-21 re-measurement;
+the 2026-09-17 figures were 1 291 / 14.5 s and 1 306 tagged). Both include
+test-host startup and discovery. The full suite remains the default; the trait is
+metadata only and does not change test semantics.
 
 ### 9.2 Anti-rot gate for the long pole
 

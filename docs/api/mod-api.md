@@ -944,22 +944,29 @@ display name) and answers exactly one question — does this entry match this
 prefix?
 
 ```csharp
-[CuoMod("com.example.pinyin", "Pinyin Search", "1.0.0", NetworkMode = NetworkMode.Synchronized)]
-public sealed class PinyinMod : ICuoMod
+[CuoMod("cuo.pinyinsearch", "Pinyin Search", "0.1.0", NetworkMode = NetworkMode.ClientOnly,
+    NativeBinding = "PlayerCamera.RefreshRecipeList + Recipe.simpleName getter")]
+public sealed class PinyinSearchMod : ICuoMod
 {
     public void Bind(IModContext context) =>
-        context.ResourceCompletion.TryRegisterMatchStage("pinyin", new PinyinStage());
+        context.ResourceCompletion.TryRegisterMatchStage("pinyin", new PinyinSearchStage());
 
     public void Initialize() { } public void Start() { } public void Update() { }
     public void Stop() { } public void Dispose() { }
 }
 
-internal sealed class PinyinStage : IResourceLocationMatchStage
+internal sealed class PinyinSearchStage : IResourceLocationMatchStage
 {
     public bool Matches(ResourceLocationEntry entry, string prefix) =>
-        entry.DisplayName.Length > 0 && PinyinMatcher.Matches(entry.DisplayName, prefix);
+        entry.DisplayName.Length > 0 && PinyinMatcher.Contains(entry.DisplayName, prefix);
 }
 ```
+
+This is the shape the shipped satellite mod uses
+(`src/CasualtiesUnknownOnline.PinyinSearch.Core/`): `ClientOnly`, because the console completes on
+the client the player is typing on and a member without the mod must still be admitted, plus a
+declared `NativeBinding`, because the same mod also patches the game's own crafting search box
+(§1.1 of `docs/api/advanced-modification-policy.md`).
 
 - **Additive by construction**: the catalog consults a registered stage only
   after its four built-in ranks (exact canonical id, id prefix, bare path
@@ -992,8 +999,9 @@ internal sealed class PinyinStage : IResourceLocationMatchStage
   exception never breaks the console.
 - **Stability**: `IModResourceCompletion`, `IResourceLocationMatchStage` and
   `ResourceLocationEntry` are `Experimental`
-  (`docs/api/advanced-modification-policy.md`); CUO's own pinyin stage is the
-  first consumer of this seam.
+  (`docs/api/advanced-modification-policy.md`); the pinyin search mod is the first consumer of this
+  seam and the worked example of the registration
+  (`src/CasualtiesUnknownOnline.PinyinSearch.Core/PinyinSearchMod.cs`).
 
 ## 5. Handshake consistency (how sessions stay coherent)
 

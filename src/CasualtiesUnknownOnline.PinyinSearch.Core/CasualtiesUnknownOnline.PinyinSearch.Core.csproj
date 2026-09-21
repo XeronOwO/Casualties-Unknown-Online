@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.PinyinSearch.Core</AssemblyName>
+    <Product>Pinyin Search Core</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.PinyinSearch.Core</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    The satellite mod's game-free half: the reading table, the matcher, the
+    shared name predicate, the switch and the CUO completion stage. It
+    references BepInEx.Core (the loading mechanism and the config/log surface
+    every BepInEx plug-in owns) and CUO.Abstractions (the console completion
+    seam) — and NO game assembly.
+
+    Only two types here resolve an Abstractions type (PinyinSearchMod and
+    PinyinSearchStage), and nothing on the crafting path touches them, so the
+    crafting half keeps working with CUO uninstalled: the CLR loads a type when
+    it is first used, and the crafting path uses none of those.
+  -->
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" />
+    <ProjectReference Include="..\CasualtiesUnknownOnline.Abstractions\CasualtiesUnknownOnline.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!-- The vendored reading table (26k characters); loaded lazily on first use. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Search\pinyin_data.txt" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

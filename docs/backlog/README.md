@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — entry, UI and registration separated.
 - [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — per-domain ports, aggregate frozen.
 - [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — registrations and reset contract.
-- [Pinyin search as a standalone mod](todo/pinyin-search-standalone-mod.md) — **Medium** — the game-side half moves out; CUO keeps the seam.
 
 ### Review
 
@@ -170,6 +169,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Restore live-object row loops](review/restore-live-object-loops-containment.md) — **Low** — the last three restore loops are contained.
 - [Dropped mod command requests](review/mod-command-request-timeout.md) — **Low** — the request deadline and the bounded pending map.
 - [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
+- [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Native-binding mods declare it](review/mod-native-binding-declaration.md) — **Medium** — the tier model and the manifest declaration.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity.
 

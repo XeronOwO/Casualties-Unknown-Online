@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using CasualtiesUnknownOnline.Application.Kernel;
 
 namespace CasualtiesUnknownOnline.Runtime.Persistence;
 

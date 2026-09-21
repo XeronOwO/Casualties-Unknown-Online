@@ -1,6 +1,6 @@
 using CasualtiesUnknownOnline.GameState;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Xunit;
+using CasualtiesUnknownOnline.Application.Kernel;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
 

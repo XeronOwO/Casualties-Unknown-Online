@@ -1,6 +1,6 @@
 # Kernel replication namespace relocation
 
-- Status: Resolved (absorbed 2026-09-20 into `in-progress/application-layer-first-slice.md`)
+- Status: Resolved (absorbed 2026-09-20 into `review/application-layer-first-slice.md`)
 - Category: Architecture / maintainability
 - Source: Loomi architecture review (2026-09-04)
 
@@ -20,7 +20,7 @@ exists in the tree. The checkpoint surface is now `WireCheckpointAssembler` and
 It was merged rather than kept because a standalone move would be paid twice: the Application layer
 takes that surface anyway (the 2026-09-20 review's item 5 gives it the "Kernel ↔ Protocol mapping
 entry"), so the relocation is one mechanical step of that work — stage 3 of
-`in-progress/application-layer-first-slice.md` — and not a work item with independent value.
+`review/application-layer-first-slice.md` — and not a work item with independent value.
 
 ## Constraint carried forward
 

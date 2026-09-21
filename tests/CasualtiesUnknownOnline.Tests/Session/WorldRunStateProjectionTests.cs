@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Tests.Session;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Application.Kernel;
 
 namespace CasualtiesUnknownOnline.Tests.World;
 

@@ -20,7 +20,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// that are updated only after an accepted batch. The authority owns the
 /// deterministic kernel, the run epoch, and the operation-id counter.
 /// </summary>
-public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log) : IKernelItemFacts
+public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
+	: IKernelItemFacts, IKernelCommandExecution, IKernelCheckpointSource, IKernelBatchApplication
 {
 	private readonly ILogger<ItemKernelAuthority> _log = log;
 	private readonly HashSet<OperationId> _appliedOperations = [];
@@ -533,6 +534,8 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log) : IKer
 	/// commit journal/result facts through the same authority.
 	/// </summary>
 	internal RunEpoch CurrentRunEpoch => _runEpoch;
+
+	RunEpoch IKernelCheckpointSource.CurrentRunEpoch => _runEpoch;
 
 	internal OperationId NextOperationId() => NextOperation();
 

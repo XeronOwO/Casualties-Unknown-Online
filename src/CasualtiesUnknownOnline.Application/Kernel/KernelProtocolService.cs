@@ -1,19 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// Phase C kernel protocol service. It rides the existing transport as one
-/// <see cref="NetMsg.KernelEnvelope"/> frame whose payload is a
+/// one kernel-envelope frame whose payload is a
 /// <see cref="ProtocolFrame"/>. On the host it executes decoded commands and
 /// broadcasts committed batches; on the guest it restores checkpoints and
 /// applies committed batches to the replay kernel.
@@ -22,17 +20,19 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 {
 	private const int JournalCapacity = 2048;
 
-	private readonly ISessionControl _session;
-	private readonly PacketSender _sender;
-	private readonly ItemKernelAuthority _authority;
+	private readonly IKernelSessionFacts _session;
+	private readonly IKernelFrameSender _sender;
+	private readonly IKernelCheckpointSource _checkpointSource;
+	private readonly IKernelBatchApplication _batches;
 	private readonly RefusedItemCreations _refusedCreations;
-	private readonly GuestCommandReconciliation _pendingCommands;
+	private readonly IKernelPendingCommands _pendingCommands;
+	private readonly IKernelWireCodec _codec;
 	private readonly ILogger<KernelProtocolService> _log;
 	private readonly KernelProtocolCommandHandler _commandHandler;
 	private readonly List<CommittedBatch> _journal = [];
 	private readonly Dictionary<ulong, CommittedBatch> _pendingBatches = [];
 	private readonly KernelStateStreamService _stateStreams;
-	private readonly GuestCheckpointReceiver _checkpoints;
+	private readonly GuestCheckpointReceiver _checkpointReceiver;
 	private readonly HashSet<ulong> _staleStreamEpochWarned = [];
 	private long _nextMessageId;
 
@@ -45,36 +45,42 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	public event Action<ulong, RejectionReason>? CommandRejected;
 
 	public KernelProtocolService(
-		ISessionControl session,
-		PacketSender sender,
-		ItemKernelAuthority authority,
+		IKernelSessionFacts session,
+		IKernelFrameSender sender,
+		IKernelItemFacts items,
+		IKernelCommandExecution execution,
+		IKernelCheckpointSource checkpointSource,
+		IKernelBatchApplication batches,
 		RefusedItemCreations refusedCreations,
-		GuestCommandReconciliation pendingCommands,
+		IKernelPendingCommands pendingCommands,
 		KernelCommandGateway gateway,
+		IKernelWireCodec codec,
 		ILogger<KernelProtocolService> log)
 	{
 		_session = session;
 		_sender = sender;
-		_authority = authority;
+		_checkpointSource = checkpointSource;
+		_batches = batches;
 		_refusedCreations = refusedCreations;
 		_pendingCommands = pendingCommands;
+		_codec = codec;
 		_log = log;
-		_stateStreams = new KernelStateStreamService(session, sender, authority, payloadType => CreateHeader(payloadType, 0));
-		_checkpoints = new GuestCheckpointReceiver(authority, log);
-		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, refusedCreations, gateway, log);
-		_authority.BatchCommitted += BroadcastCommittedBatch;
+		_stateStreams = new KernelStateStreamService(session, sender, checkpointSource, payloadType => CreateHeader(payloadType, 0));
+		_checkpointReceiver = new GuestCheckpointReceiver(batches, codec, log);
+		_commandHandler = new KernelProtocolCommandHandler(session, sender, items, execution, checkpointSource, refusedCreations, gateway, codec, log);
+		_batches.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetForSessionEnd;
 	}
 
 	public void Dispose()
 	{
-		_authority.BatchCommitted -= BroadcastCommittedBatch;
+		_batches.BatchCommitted -= BroadcastCommittedBatch;
 		_session.SessionEnded -= ResetForSessionEnd;
 	}
 
 	public void BroadcastCommittedBatch(CommittedBatch batch)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		if (!_session.IsHost || !_session.SessionActive)
 		{
 			return;
 		}
@@ -91,7 +97,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			CommittedBatch = new CommittedBatchEnvelope
 			{
 				Header = CreateHeader(WirePayloadType.CommittedBatch, batch.OperationId.Value, batch),
-				Batch = KernelWireMapper.ToWireBatch(batch),
+				Batch = _codec.ToWireBatch(batch),
 			},
 		};
 
@@ -100,13 +106,13 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public void SendCheckpoint(ulong targetSteamId)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		if (!_session.IsHost || !_session.SessionActive)
 		{
 			return;
 		}
 
-		var checkpoint = _authority.CreateCheckpoint();
-		var chunks = WireCheckpointAssembler.Split(checkpoint);
+		var checkpoint = _checkpointSource.CreateCheckpoint();
+		var chunks = WireCheckpointAssembler.Split(checkpoint, _codec);
 		foreach (var chunk in chunks)
 		{
 			var frame = new ProtocolFrame
@@ -118,7 +124,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 					Checkpoint = chunk,
 				},
 			};
-			_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);
+			_sender.Send(targetSteamId, frame);
 		}
 
 		foreach (var batch in _journal)
@@ -134,23 +140,23 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 				CommittedBatch = new CommittedBatchEnvelope
 				{
 					Header = CreateHeader(WirePayloadType.CommittedBatch, batch.OperationId.Value, batch),
-					Batch = KernelWireMapper.ToWireBatch(batch),
+					Batch = _codec.ToWireBatch(batch),
 				},
 			};
-			_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);
+			_sender.Send(targetSteamId, frame);
 		}
 
 		_log.LogInformation("Sent kernel checkpoint at revision {Revision} to {Target} with {Journal} tail batch(es).",
 			checkpoint.GlobalRevision, targetSteamId, _journal.Count(b => b.GlobalRevision > checkpoint.GlobalRevision));
 	}
 
-	public ulong CurrentRunEpoch => _authority.CurrentRunEpoch.Value;
+	public ulong CurrentRunEpoch => _checkpointSource.CurrentRunEpoch.Value;
 
-	public void AdoptHostRunEpoch(ulong runEpoch) => _checkpoints.AdoptHostRunEpoch(runEpoch);
+	public void AdoptHostRunEpoch(ulong runEpoch) => _checkpointReceiver.AdoptHostRunEpoch(runEpoch);
 
 	public void SendCommand(WireCommand command, WirePayloadType payloadType)
 	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)
+		if (!_session.IsGuest || !_session.SessionActive || _session.HostSteamId == 0)
 		{
 			return;
 		}
@@ -174,7 +180,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		// when the transport refuses the send, because the window's first repeat is what
 		// heals a send that never left.
 		_pendingCommands.Track(command, header.OperationId, frame, payloadType);
-		_sender.TrySend(_session.HostSteamId, NetMsg.KernelEnvelope, frame);
+		_sender.TrySend(_session.HostSteamId, frame);
 	}
 
 	public void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves) => _stateStreams.SendStateStream(itemMoves);
@@ -209,17 +215,17 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			return;
 		}
 
-		if (_session.Role == SessionRole.Host)
+		if (_session.IsHost)
 		{
 			HandleHostFrame(sender, frame);
 		}
-		else if (_session.Role == SessionRole.Guest)
+		else if (_session.IsGuest)
 		{
 			HandleGuestFrame(sender, frame);
 		}
 		else
 		{
-			_log.LogWarning("Dropped kernel protocol frame from {Sender} while role is {Role}.", sender, _session.Role);
+			_log.LogWarning("Dropped kernel protocol frame from {Sender} while role is {Role}.", sender, _session.RoleName);
 		}
 	}
 
@@ -227,9 +233,9 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public void ResetForSessionEnd()
 	{
-		_authority.ResetForSession();
+		_batches.ResetForSession();
 		_journal.Clear();
-		_checkpoints.ResetForSessionEnd();
+		_checkpointReceiver.ResetForSessionEnd();
 		_pendingBatches.Clear();
 		_nextMessageId = 0;
 		_staleStreamEpochWarned.Clear();
@@ -262,7 +268,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		switch (frame.Kind)
 		{
 			case EnvelopeKind.Checkpoint when frame.Checkpoint is not null:
-				_checkpoints.HandleChunk(sender, frame.Checkpoint);
+				_checkpointReceiver.HandleChunk(sender, frame.Checkpoint);
 				break;
 			case EnvelopeKind.CommittedBatch when frame.CommittedBatch is not null:
 				HandleCommittedBatch(sender, frame.CommittedBatch);
@@ -300,7 +306,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		// reset per session, so a late frame from the previous run would otherwise
 		// look fresh; the header epoch is the authoritative filter (glossary:
 		// "all old-epoch commands, batches, and stream packets are rejected").
-		var currentEpoch = _authority.CurrentRunEpoch.Value;
+		var currentEpoch = _checkpointSource.CurrentRunEpoch.Value;
 		if (envelope.Header.RunEpoch != currentEpoch)
 		{
 			// Warn once per sender: a 20 Hz stream from a mismatched epoch would
@@ -337,7 +343,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	private void HandleCommand(ulong sender, CommandEnvelope envelope)
 	{
-		var currentEpoch = _authority.CreateCheckpoint().RunEpoch.Value;
+		var currentEpoch = _checkpointSource.CreateCheckpoint().RunEpoch.Value;
 		if (envelope.Header.RunEpoch != currentEpoch)
 		{
 			_log.LogWarning("Command from {Sender} has epoch {Epoch}; current is {Current} — dropped.",
@@ -356,11 +362,11 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	private void HandleCommittedBatch(ulong sender, CommittedBatchEnvelope envelope)
 	{
-		var batch = KernelWireMapper.FromWireBatch(envelope.Batch, _authority.CreateCheckpoint().RunEpoch);
-		if (batch.RunEpoch.Value != _authority.CreateCheckpoint().RunEpoch.Value)
+		var batch = _codec.FromWireBatch(envelope.Batch, _checkpointSource.CreateCheckpoint().RunEpoch);
+		if (batch.RunEpoch.Value != _checkpointSource.CreateCheckpoint().RunEpoch.Value)
 		{
 			_log.LogWarning("Batch from {Sender} has epoch {Epoch}; current is {Current} — dropped.",
-				sender, batch.RunEpoch.Value, _authority.CreateCheckpoint().RunEpoch.Value);
+				sender, batch.RunEpoch.Value, _checkpointSource.CreateCheckpoint().RunEpoch.Value);
 			return;
 		}
 
@@ -369,7 +375,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		// with the ORIGINAL batch — a revision this side may already hold.
 		_pendingCommands.ClearCommitted(batch.OperationId.Value);
 
-		var expected = _authority.CurrentGlobalRevision + 1;
+		var expected = _checkpointSource.CurrentGlobalRevision + 1;
 		if (batch.GlobalRevision > expected)
 		{
 			_log.LogWarning("Batch from {Sender} creates a revision gap: expected {Expected}, received {Received} — buffering and requesting range.",
@@ -384,12 +390,12 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	private void ApplyBatchAndDrain(CommittedBatch batch, ulong sender)
 	{
-		if (batch.GlobalRevision < _authority.CurrentGlobalRevision + 1)
+		if (batch.GlobalRevision < _checkpointSource.CurrentGlobalRevision + 1)
 		{
 			return;
 		}
 
-		var result = _authority.Apply(batch);
+		var result = _batches.Apply(batch);
 		if (!result.Success)
 		{
 			_log.LogWarning("Applying batch from {Sender} failed: {Message}", sender, result.Error);
@@ -399,10 +405,10 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_log.LogDebug("Applied kernel batch {Operation} revision {Revision} from {Sender}.",
 			batch.OperationId.Value, batch.GlobalRevision, sender);
 
-		while (_pendingBatches.TryGetValue(_authority.CurrentGlobalRevision + 1, out var next))
+		while (_pendingBatches.TryGetValue(_checkpointSource.CurrentGlobalRevision + 1, out var next))
 		{
-			_pendingBatches.Remove(_authority.CurrentGlobalRevision + 1);
-			var nextResult = _authority.Apply(next);
+			_pendingBatches.Remove(_checkpointSource.CurrentGlobalRevision + 1);
+			var nextResult = _batches.Apply(next);
 			if (!nextResult.Success)
 			{
 				_log.LogWarning("Applying buffered kernel batch {Operation} revision {Revision} failed: {Message}",
@@ -417,7 +423,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	private void RequestRange(ulong start, ulong end)
 	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)
+		if (!_session.IsGuest || !_session.SessionActive || _session.HostSteamId == 0)
 		{
 			return;
 		}
@@ -480,17 +486,17 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			CommittedBatch = new CommittedBatchEnvelope
 			{
 				Header = CreateHeader(WirePayloadType.CommittedBatch, batch.OperationId.Value, batch),
-				Batch = KernelWireMapper.ToWireBatch(batch),
+				Batch = _codec.ToWireBatch(batch),
 			},
 		};
-		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);
+		_sender.Send(targetSteamId, frame);
 	}
 
 	private void SendToGuests(ProtocolFrame frame, bool reliable = true)
 	{
-		foreach (var member in _session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId))
+		foreach (var peerId in _session.HandshakenPeerIds)
 		{
-			_sender.Send(member.SteamId, NetMsg.KernelEnvelope, frame, reliable);
+			_sender.Send(peerId, frame, reliable);
 		}
 	}
 
@@ -504,7 +510,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		new()
 		{
 			ProtocolVersion = ProtocolConstants.EnvelopeVersion,
-			RunEpoch = batch?.RunEpoch.Value ?? _authority.CreateCheckpoint().RunEpoch.Value,
+			RunEpoch = batch?.RunEpoch.Value ?? _checkpointSource.CreateCheckpoint().RunEpoch.Value,
 			SenderId = _session.LocalSteamId,
 			MessageId = (ulong)Interlocked.Increment(ref _nextMessageId),
 			OperationId = operationId,

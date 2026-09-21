@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using Microsoft.Extensions.Logging;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// Guest side of the checkpoint path. It validates every arriving chunk against
@@ -19,9 +19,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// the count check for a slot the live set never fills and blocks every later
 /// set forever.
 /// </summary>
-internal sealed class GuestCheckpointReceiver(ItemKernelAuthority authority, ILogger log)
+internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority, IKernelWireCodec codec, ILogger log)
 {
-	private readonly ItemKernelAuthority _authority = authority;
+	private readonly IKernelBatchApplication _authority = authority;
+	private readonly IKernelWireCodec _codec = codec;
 	private readonly ILogger _log = log;
 	private readonly Dictionary<int, WireCheckpoint> _chunks = [];
 	private readonly HashSet<ulong> _staleEpochWarned = [];
@@ -132,7 +133,7 @@ internal sealed class GuestCheckpointReceiver(ItemKernelAuthority authority, ILo
 	{
 		try
 		{
-			var checkpoint = WireCheckpointAssembler.Assemble([.. _chunks.Values]);
+			var checkpoint = WireCheckpointAssembler.Assemble([.. _chunks.Values], _codec);
 			var result = _authority.Restore(checkpoint);
 			if (result.Success)
 			{

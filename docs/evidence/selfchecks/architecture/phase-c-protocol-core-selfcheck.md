@@ -18,8 +18,8 @@ cutover items are listed at the bottom.
 | Protocol project | `src/CasualtiesUnknownOnline.Protocol/` | Wire DTOs for `CommandEnvelope`, `CommittedBatchEnvelope`, `CheckpointEnvelope`, `StateStreamEnvelope`, shared `EnvelopeHeader`, numeric `WirePayloadType`, version constants, protobuf-net codec. No GameState/Runtime dependency. |
 | Golden wire contract | `tests/.../Protocol/ProtocolCodecTests.cs` | Round-trips for all four envelopes + a fixed golden byte frame for a CommandEnvelope. |
 | Kernel ↔ wire mapping | `Runtime/Session/Items/KernelWireMapper.cs` | Pure mapping between `GameCheckpoint`, `CommittedBatch`, `GameEvent`, `GameCommand` and Protocol wire DTOs. |
-| Checkpoint chunks | `Runtime/Session/Items/WireCheckpointAssembler.cs` | Splits `GameCheckpoint` into fixed-size wire chunks and validates/assembles them back. |
-| Kernel protocol service | `Runtime/Session/Items/KernelProtocolService.cs` + `IKernelProtocolControl` | Host executes wire commands, broadcasts committed batches, sends checkpoint+journal tail; guest applies checkpoints/batches, filters wrong epoch/version/gaps. |
+| Checkpoint chunks | `Application/Kernel/WireCheckpointAssembler.cs` | Splits `GameCheckpoint` into fixed-size wire chunks and validates/assembles them back. |
+| Kernel protocol service | `Application/Kernel/KernelProtocolService.cs` + `IKernelProtocolControl` | Host executes wire commands, broadcasts committed batches, sends checkpoint+journal tail; guest applies checkpoints/batches, filters wrong epoch/version/gaps. |
 | Transport entry | `Runtime/Session/Handlers/KernelEnvelopeHandler.cs` + `NetMsg.KernelEnvelope` | One existing frame id carries all four envelope kinds; direction is Bidirectional. |
 | Idempotent application | `ItemKernelAuthority.Apply` + `BatchApplied` | Guest-side duplicate batches are idempotent by `OperationId`; applied batches raise `BatchApplied` for projection. |
 | Guest projection | `ItemService.OnBatchApplied` | Applies confirmed kernel batches to the legacy world-item table and raises adopter item events (spawn/pickup/drop/destroy/data-update projection). |

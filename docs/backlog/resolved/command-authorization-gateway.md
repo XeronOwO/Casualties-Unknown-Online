@@ -1,6 +1,6 @@
 # Command authorization gateway
 
-- Status: Resolved (absorbed 2026-09-20 into `in-progress/application-layer-first-slice.md`)
+- Status: Resolved (absorbed 2026-09-20 into `review/application-layer-first-slice.md`)
 - Category: Architecture / authority / security
 - Source: Loomi architecture review (2026-09-04)
 
@@ -17,7 +17,7 @@ What changed is ownership, not validity. The same review assigns session-level p
 Application layer, and that layer is itself a promised seam
 (`CasualtiesUnknownOnline.Runtime.csproj`: the direct `GameState` reference "is an interim seam until
 the Application layer exists"). So the gateway became stage 2 of
-`in-progress/application-layer-first-slice.md`: one place that binds the actor to the transport sender,
+`review/application-layer-first-slice.md`: one place that binds the actor to the transport sender,
 applies `HostOnly` / `Owner` / `Observed` centrally and returns the existing `RejectionReason`
 values with a uniform audit line.
 

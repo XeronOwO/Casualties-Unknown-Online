@@ -55,37 +55,37 @@
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "SendToGuests(frame);"
     },
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "_sender.Send(targetSteamId, frame);"
     },
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_log.LogWarning(\"Batch from {Sender} creates a revision gap: expected {Expected}, received {Received} — buffering and requesting range.\","
     },
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
     },
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "SendCheckpoint(sender);"
     },
     {
@@ -649,7 +649,7 @@
     {
       "cluster": "fluids",
       "row": "F4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -679,7 +679,7 @@
     {
       "cluster": "fluids",
       "row": "F5",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/WireCheckpointAssembler.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/WireCheckpointAssembler.cs",
       "quote": "? [.. (checkpoint.Fluids?.Regions ?? []).Select(KernelDomainWireMapper.ToWireFluidRegionState)]"
     },
     {
@@ -733,13 +733,13 @@
     {
       "cluster": "items",
       "row": "I1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
       "cluster": "items",
       "row": "I1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
     },
     {
@@ -793,7 +793,7 @@
     {
       "cluster": "items",
       "row": "I2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelStateStreamService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelStateStreamService.cs",
       "quote": "SendToGuests(frame, reliable: false);"
     },
     {
@@ -943,7 +943,7 @@
     {
       "cluster": "items",
       "row": "I5",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs",
       "quote": "if (_refusedCreations.TryGet(itemId, out var refusal))"
     },
     {
@@ -1051,25 +1051,25 @@
     {
       "cluster": "items",
       "row": "I5",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_pendingCommands.Track(command, header.OperationId, frame, payloadType);"
     },
     {
       "cluster": "items",
       "row": "I5",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_pendingCommands.ClearCommitted(batch.OperationId.Value);"
     },
     {
       "cluster": "items",
       "row": "I5",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_pendingCommands.ClearRejected(itemId);"
     },
     {
       "cluster": "items",
       "row": "I5",
-      "file": "src/CasualtiesUnknownOnline.Runtime/CuoBootstrap.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelReplicationComposition.cs",
       "quote": "services.AddSingleton<GuestCommandReconciliation>();"
     },
     {
@@ -1237,7 +1237,7 @@
     {
       "cluster": "items",
       "row": "I8",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs",
       "quote": "_log.LogInformation(\"Accepted-first missing carried update for item {ItemId} from {Sender}: spawned carried fact.\","
     },
     {
@@ -1369,32 +1369,32 @@
     {
       "cluster": "kernel-protocol",
       "row": "K1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "public void SendCommand(WireCommand command, WirePayloadType payloadType)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "_sender.TrySend(_session.HostSteamId, NetMsg.KernelEnvelope, frame);"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "_sender.TrySend(_session.HostSteamId, frame);"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "public void BroadcastCommittedBatch(CommittedBatch batch)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "var result = _authority.Apply(batch);"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "var result = _batches.Apply(batch);"
     },
     {
       "cluster": "kernel-protocol",
@@ -1405,37 +1405,37 @@
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private const int JournalCapacity = 2048;"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_journal.Add(batch);"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "public void SendCheckpoint(ulong targetSteamId)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "_sender.Send(targetSteamId, frame);"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "SendCheckpoint(sender);"
     },
     {
@@ -1447,7 +1447,7 @@
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -1477,19 +1477,19 @@
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "public void SendCheckpoint(ulong targetSteamId)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "var checkpoint = _authority.CreateCheckpoint();"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "var checkpoint = _checkpointSource.CreateCheckpoint();"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -1507,14 +1507,14 @@
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_session.SessionEnded += ResetForSessionEnd;"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "_authority.ResetForSession();"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "_batches.ResetForSession();"
     },
     {
       "cluster": "kernel-protocol",
@@ -1525,20 +1525,20 @@
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "if (envelope.Header.RunEpoch != currentEpoch)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "if (batch.RunEpoch.Value != _authority.CreateCheckpoint().RunEpoch.Value)"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "if (batch.RunEpoch.Value != _checkpointSource.CreateCheckpoint().RunEpoch.Value)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "RunEpoch = batch?.RunEpoch.Value ?? _authority.CreateCheckpoint().RunEpoch.Value,"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "RunEpoch = batch?.RunEpoch.Value ?? _checkpointSource.CreateCheckpoint().RunEpoch.Value,"
     },
     {
       "cluster": "kernel-protocol",
@@ -1663,7 +1663,7 @@
     {
       "cluster": "players",
       "row": "P2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -1873,13 +1873,13 @@
     {
       "cluster": "players",
       "row": "P6",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "SendToGuests(frame);"
     },
     {
       "cluster": "players",
       "row": "P6",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -2029,7 +2029,7 @@
     {
       "cluster": "players",
       "row": "P9",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void RequestRange(ulong start, ulong end)"
     },
     {
@@ -2251,13 +2251,13 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "SendToGuests(frame);"
     },
     {
       "cluster": "run-world",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -2275,13 +2275,13 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
       "cluster": "run-world",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
     },
     {
@@ -3271,14 +3271,14 @@
     {
       "cluster": "world-entities",
       "row": "E7",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "_authority.BatchCommitted += BroadcastCommittedBatch;"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "_batches.BatchCommitted += BroadcastCommittedBatch;"
     },
     {
       "cluster": "world-entities",
       "row": "E7",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "_sender.Send(member.SteamId, NetMsg.KernelEnvelope, frame, reliable);"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "_sender.Send(peerId, frame, reliable);"
     },
     {
       "cluster": "world-entities",
@@ -3295,7 +3295,7 @@
     {
       "cluster": "world-entities",
       "row": "E7",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -3307,7 +3307,7 @@
     {
       "cluster": "inline",
       "row": "K1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_commandHandler.Handle(sender, envelope);"
     },
     {
@@ -3319,14 +3319,14 @@
     {
       "cluster": "inline",
       "row": "K1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "if (!_session.IsGuest || !_session.SessionActive || _session.HostSteamId == 0)"
     },
     {
       "cluster": "inline",
       "row": "K1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "var expected = _authority.CurrentGlobalRevision + 1;"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "var expected = _checkpointSource.CurrentGlobalRevision + 1;"
     },
     {
       "cluster": "inline",
@@ -3337,49 +3337,49 @@
     {
       "cluster": "inline",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "SendCommand(new WireCommand"
     },
     {
       "cluster": "inline",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "private void HandleRangeRequest(ulong sender, WireCommand command)"
     },
     {
       "cluster": "inline",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "if (_chunks.Count != chunk.ChunkCount)"
     },
     {
       "cluster": "inline",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/WireCheckpointAssembler.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/WireCheckpointAssembler.cs",
       "quote": "if (chunk.RunEpoch != first.RunEpoch || chunk.GlobalRevision != first.GlobalRevision)"
     },
     {
       "cluster": "inline",
       "row": "K2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "_chunks.Clear();"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "public void ResetForSessionEnd()"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_journal.Clear();"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "_stateStreams.Reset();"
     },
     {
@@ -3391,13 +3391,13 @@
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "{"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "public void HandleChunk(ulong sender, CheckpointEnvelope envelope)"
     },
     {
@@ -3883,7 +3883,7 @@
     {
       "cluster": "inline",
       "row": "F4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/WireCheckpointAssembler.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/WireCheckpointAssembler.cs",
       "quote": "Fluids = index == 0"
     },
     {
@@ -3925,7 +3925,7 @@
     {
       "cluster": "inline",
       "row": "I2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "if (envelope.Command.Kind == WireCommandKind.RangeRequest)"
     },
     {
@@ -4057,7 +4057,7 @@
     {
       "cluster": "inline",
       "row": "P2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "RangeStart = start,"
     },
     {
@@ -4075,7 +4075,7 @@
     {
       "cluster": "inline",
       "row": "P2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "return;"
     },
     {
@@ -4429,20 +4429,20 @@
     {
       "cluster": "inline",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "{"
     },
     {
       "cluster": "inline",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "return;"
     },
     {
       "cluster": "inline",
       "row": "N2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
-      "quote": "if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)"
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
+      "quote": "if (!_session.IsGuest || !_session.SessionActive || _session.HostSteamId == 0)"
     },
     {
       "cluster": "inline",
@@ -5167,7 +5167,7 @@
     {
       "cluster": "inline",
       "row": "(none)",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
       "quote": "if (!ProtocolFrameValidator.TryValidate(frame, sender, out var validationError))"
     },
     {
@@ -6043,19 +6043,19 @@
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "if (_expectedHostRunEpoch != 0 && chunk.RunEpoch != _expectedHostRunEpoch)"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "if (_pendingIdentity is { } pending && pending != identity)"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCheckpointReceiver.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/GuestCheckpointReceiver.cs",
       "quote": "if (envelope.Header.RunEpoch != chunk.RunEpoch)"
     },
     {

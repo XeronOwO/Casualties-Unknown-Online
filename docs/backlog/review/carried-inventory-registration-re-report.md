@@ -24,7 +24,8 @@ per-guest transfer table used by cross-player take/arbitration.
 - Consequence at the arbitration seam: `ItemArbitration.AdoptEvidence` logs
   "no transfer-table entry, not arbitrated" and returns null; the kernel state is
   partially healed by the accepted-first carried update path
-  (`src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs:168`),
+  (`src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs`, the
+  `HandleMissingCarriedUpdate` path),
   but the arbitration table is not.
 - `ItemIdWatermark` (NetMsg 64) is the better-behaved sibling: it is monotonic and
   self-heals on the next allocation

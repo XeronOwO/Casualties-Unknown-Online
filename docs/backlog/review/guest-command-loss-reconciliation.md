@@ -34,7 +34,7 @@ had no re-report at all:
 - The host answers a refused operation at once, with the refused creation's own
   reason when its tombstone holds one, and logs a protocol violation when the sender
   simply never reported the creation
-  (`src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs`).
+  (`src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs`).
 
 So one swallowed frame left the two sides disagreeing about where the item is for the
 rest of the run — the guest holding it while the host's table still had it in the

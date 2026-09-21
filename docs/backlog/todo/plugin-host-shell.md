@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Architecture / layering
 - Source: Loomi architecture review (2026-09-20), item 6
-- Related: `in-progress/application-layer-first-slice.md`, `docs/development/agent-reference.md` (repository layout)
+- Related: `review/application-layer-first-slice.md`, `docs/development/agent-reference.md` (repository layout)
 
 ## Problem (evidence)
 

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -26,7 +27,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// one-way. Star topology: every message flows guest → host; the host
 /// arbitrates and decides the fan-out.
 /// </summary>
-public sealed class SessionService : ICuoService, ISessionControl
+public sealed class SessionService : ICuoService, ISessionControl, IKernelSessionFacts
 {
 	private const float PingInterval = 5f;
 
@@ -543,4 +544,13 @@ public sealed class SessionService : ICuoService, ISessionControl
 	}
 
 	void ISessionControl.EndSession() => EndSession();
+
+	bool IKernelSessionFacts.IsHost => Role == SessionRole.Host;
+
+	bool IKernelSessionFacts.IsGuest => Role == SessionRole.Guest;
+
+	string IKernelSessionFacts.RoleName => Role.ToString();
+
+	IEnumerable<ulong> IKernelSessionFacts.HandshakenPeerIds =>
+		Members.Where(member => member.Handshaken && member.SteamId != LocalSteamId).Select(member => member.SteamId);
 }

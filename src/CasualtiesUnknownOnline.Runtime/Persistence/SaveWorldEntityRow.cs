@@ -1,6 +1,6 @@
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Application.Kernel;
 
 namespace CasualtiesUnknownOnline.Runtime.Persistence;
 

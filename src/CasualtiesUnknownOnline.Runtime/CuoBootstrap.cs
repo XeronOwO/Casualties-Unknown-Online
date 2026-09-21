@@ -348,25 +348,11 @@ public static class CuoBootstrap
 		services.AddSingleton<ProjectionHealthCoordinator>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ProjectionHealthCoordinator>());
 		services.AddSingleton<ItemArbitration>();
-		services.AddSingleton<ItemKernelAuthority>();
-		// The Application layer's admission seam (see KernelCommandGateway); it reads the kernel through IKernelItemFacts.
-		services.AddSingleton<IKernelItemFacts>(p => p.GetRequiredService<ItemKernelAuthority>());
-		services.AddSingleton<KernelCommandGateway>();
-		// The host's tombstones for item ids whose creation it refused: shared by
-		// the kernel command path (which answers a later operation with the precise
-		// reason) and the item domain (which records the refusal).
-		services.AddSingleton<RefusedItemCreations>();
-		// Phase C four-envelope kernel protocol: executes wire commands on the
-		// host, applies checkpoints/batches on the guest, and owns the host
-		// journal used by join/reconnect fallback.
-		// Guest-side item-command convergence (sync-coverage audit row I5): the bounded
-		// re-report window that heals a swallowed item command. Its own time edge — the
-		// short-window family, like SessionControlConvergence above, not the unbounded
-		// pending-report tables.
-		services.AddSingleton<GuestCommandReconciliation>();
-		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GuestCommandReconciliation>());
-		services.AddSingleton<KernelProtocolService>();
-		services.AddSingleton<IKernelProtocolControl>(p => p.GetRequiredService<KernelProtocolService>());
+		// Kernel replication: the Application layer's protocol surface, the
+		// Runtime services it reads, and the ports between them — its own feature
+		// block (KernelReplicationComposition), which also keeps this file inside
+		// its architecture line cap.
+		KernelReplicationComposition.AddKernelReplication(services);
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
 		// The item domain's layer-boundary reset, driven by the world domain's

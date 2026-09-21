@@ -56,5 +56,21 @@ public sealed class CuoModAttribute(string id, string displayName, string versio
 	/// </summary>
 	public string[] Dependencies { get; set; } = [];
 
+	/// <summary>
+	/// The game's own code this mod binds — the DECLARED NATIVE BINDING of the
+	/// tiered extension model (<c>docs/api/advanced-modification-policy.md</c>
+	/// §1.1, decision 204): the patched game type or surface, named by the author.
+	/// Optional — a mod that touches no game type omits it.
+	///
+	/// A declared FACT, not a permission: <see cref="ModPermission"/> is what CUO
+	/// enforces, and CUO enforces nothing here — an undeclared binding is
+	/// undetectable (the framework takes no anti-cheat stance), so this
+	/// declaration is opt-in honesty whose only force is another peer's parity
+	/// policy. It buys visibility, never stability: what it names belongs to the
+	/// game, and a game update may break it with no CUO decision. A blank value
+	/// (empty or whitespace-only) counts as no declaration.
+	/// </summary>
+	public string? NativeBinding { get; set; }
+
 	public string? Description { get; set; }
 }

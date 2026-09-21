@@ -113,11 +113,22 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 				continue;
 			}
 
+			// The declared native binding is a declared FACT, never a permission:
+			// it validates nothing and rejects nothing (a declaration adds no
+			// rejection cause), and a blank value (empty or whitespace-only) is a
+			// typo for "none" rather than a declaration, so it normalizes to the
+			// undeclared state.
+			var nativeBinding = attribute.NativeBinding?.Trim();
+			if (nativeBinding is { Length: 0 })
+			{
+				nativeBinding = null;
+			}
+
 			var manifest = new ModManifest(id, attribute.DisplayName, attribute.Version, attribute.NetworkMode,
-				attribute.Description, attribute.Permissions, dependencies, @namespace);
+				attribute.Description, attribute.Permissions, dependencies, @namespace, nativeBinding);
 			candidates.Add(new DiscoveredMod(manifest, type));
-			_log.LogInformation("[Mods] discovered {Id} {Version} ({Mode}, permissions {Permissions}, namespace {Namespace}) — {DisplayName}.",
-				id, manifest.Version, manifest.NetworkMode, manifest.Permissions, @namespace ?? "-", manifest.DisplayName);
+			_log.LogInformation("[Mods] discovered {Id} {Version} ({Mode}, permissions {Permissions}, namespace {Namespace}, binds {NativeBinding}) — {DisplayName}.",
+				id, manifest.Version, manifest.NetworkMode, manifest.Permissions, @namespace ?? "-", nativeBinding ?? "-", manifest.DisplayName);
 		}
 
 		_discovered.AddRange(ClaimNamespaces(OrderByDependencies(candidates)));

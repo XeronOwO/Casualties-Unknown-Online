@@ -508,4 +508,69 @@ public class BacklogIntegrityGateTests
 	private sealed record AnchorExceptionFile(List<AnchorException>? Exceptions);
 
 	private sealed record AnchorException(string Ticket, string Anchor);
+
+	/// <summary>
+	/// A relative link inside a document must resolve. A ticket moving between status folders — or a
+	/// renamed file — otherwise leaves a pointer only a reader discovers: measured 2026-09-21, moving
+	/// one ticket from <c>todo/</c> to <c>review/</c> broke its two outbound links while the whole
+	/// gate set stayed green, because the index gate resolves the index's own links only. Code spans
+	/// are removed before scanning, because the index format itself is documented inside backticks.
+	/// </summary>
+	[Fact]
+	public void EveryRelativeDocumentLink_Resolves()
+	{
+		var broken = new List<string>();
+		var checkedLinks = 0;
+		foreach (var (_, file, text) in DocumentTexts())
+		{
+			foreach (Match match in LinkTarget.Matches(WithoutCodeSpans(text)))
+			{
+				var link = match.Groups[1].Value.Trim();
+				if (link.StartsWith('#') || Uri.IsWellFormedUriString(link, UriKind.Absolute))
+				{
+					continue;
+				}
+
+				var target = link.Split('#')[0];
+				if (target.Length == 0)
+				{
+					continue;
+				}
+
+				checkedLinks++;
+				var directory = Path.GetDirectoryName(RepositoryPaths.File(file))!;
+				var resolved = Path.GetFullPath(Path.Combine(directory, target));
+				if (!File.Exists(resolved) && !Directory.Exists(resolved))
+				{
+					broken.Add(file + " -> " + link);
+				}
+			}
+		}
+
+		Assert.True(checkedLinks >= RelativeLinkFloor,
+			$"link census floor: checked {checkedLinks} relative link(s), expected at least {RelativeLinkFloor} — a scan that matches nothing must not pass.");
+		Assert.True(broken.Count == 0, "dead relative link(s):" + Environment.NewLine + string.Join(Environment.NewLine, broken));
+	}
+
+	/// <summary>The scan's matcher, self-tested below so a later edit cannot silently narrow it.</summary>
+	[Fact]
+	public void RelativeLinkScan_SkipsCodeSpans_AndKeepsRealLinks()
+	{
+		const string Sample = "the row format is `- [Title](path) — one clause`; see [the ticket](../todo/x.md) and [the site](https://example.com/x).";
+
+		var found = LinkTarget.Matches(WithoutCodeSpans(Sample)).Select(match => match.Groups[1].Value).ToArray();
+
+		string[] expected = ["../todo/x.md", "https://example.com/x"];
+		Assert.Equal(expected, found);
+	}
+
+	/// <summary>Measured 2026-09-21: 370 relative links under <c>docs/</c>; the floor is about two thirds of that, so a scan that stopped matching links fails instead of passing quietly.</summary>
+	internal const int RelativeLinkFloor = 250;
+
+	private static readonly Regex CodeSpan = new("`[^`]*`", RegexOptions.Compiled);
+
+	private static readonly Regex LinkTarget = new(@"\]\(([^)]+)\)", RegexOptions.Compiled);
+
+	private static string WithoutCodeSpans(string text) => CodeSpan.Replace(text, string.Empty);
+
 }

@@ -53,6 +53,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.Description|p
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.DisplayName|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.Id|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.Namespace|property|-> string? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.NativeBinding|property|-> string? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.NetworkMode|property|-> NetworkMode { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.Permissions|property|-> ModPermission { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.Version|property|-> string { get; }
@@ -515,10 +516,11 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.Description|prope
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.DisplayName|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.Id|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.Namespace|property|-> string? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.NativeBinding|property|-> string? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.NetworkMode|property|-> NetworkMode { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.Permissions|property|-> ModPermission { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.Version|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.ctor(string id, string displayName, string version, NetworkMode networkMode, string? description, ModPermission permissions = None, IReadOnlyList<string>? dependencies = null, string? namespace = null)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModManifest
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest.ctor(string id, string displayName, string version, NetworkMode networkMode, string? description, ModPermission permissions = None, IReadOnlyList<string>? dependencies = null, string? namespace = null, string? nativeBinding = null)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModManifest
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleAnimation.FramePaths|property|-> List<string> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleAnimation.FramesPerSecond|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleAnimation.Loop|property|-> bool { get; set; }

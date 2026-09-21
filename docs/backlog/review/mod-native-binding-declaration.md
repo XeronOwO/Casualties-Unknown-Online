@@ -3,7 +3,7 @@
 - Status: Review
 - Priority: Medium
 - Category: Mod API / Policy
-- Related: [Native-binding parity in the session handshake](../todo/mod-native-binding-handshake-parity.md)
+- Related: [Native-binding parity in the session handshake](mod-native-binding-handshake-parity.md)
   carries the declaration into the session.
 
 ## Why this exists
@@ -69,7 +69,9 @@ takes the narrowest tier that expresses its feature: the curated `IModNativeApi`
 - Tests: `ModNativeBindingDeclarationTests` (10 cases) — discovered and carried on the manifest,
   reported in the discovery log, undeclared stays null, a blank value normalizes without rejecting,
   the declared name is trimmed, the declaration takes no permission/network contract/dependency, it
-  is never a rejection cause, and the wire shape (`ModInfoMsg`) is unchanged. `ModDiscoveryTests`
+  is never a rejection cause, and the wire shape (`ModInfoMsg`) is unchanged — the parity change
+  (`mod-native-binding-handshake-parity.md`) later added the field and reversed that assertion on
+  purpose. `ModDiscoveryTests`
   stays green (29 cases in the focused run).
 - Decision 206 records why the declaration is a manifest field rather than a ninth `ModPermission`.
 - Independent adversarial review (fresh context, frozen tree, report at
@@ -82,7 +84,7 @@ takes the narrowest tier that expresses its feature: the curated `IModNativeApi`
 
 ### Stage 2 — session parity
 
-Its own ticket: [Native-binding parity in the session handshake](../todo/mod-native-binding-handshake-parity.md).
+Its own ticket: [Native-binding parity in the session handshake](mod-native-binding-handshake-parity.md).
 
 ## Acceptance
 

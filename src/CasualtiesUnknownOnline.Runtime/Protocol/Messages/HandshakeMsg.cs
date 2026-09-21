@@ -6,7 +6,9 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// <summary>
 /// Guest → host: protocol version + local scene state + the guest's declared
 /// mod list (Phase 4 Mod API consistency check — the host validates the
-/// members' lists against its own before admitting them). The list is null
+/// members' lists against its own before admitting them). Each entry also
+/// carries the mod's declared native binding, which the host judges separately
+/// with its parity policy (`NativeBindingParity`). The list is null
 /// for an old client that never sends it — the host treats null as an empty
 /// list (the protocol version gate rejects cross-version sessions anyway,
 /// since this field is a behavioral change: ProtocolVersion 3).

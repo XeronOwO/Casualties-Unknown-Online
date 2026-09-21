@@ -8,10 +8,11 @@ namespace CasualtiesUnknownOnline.Tests.Protocol;
 
 /// <summary>
 /// The Phase 4 Mod API wire additions: the handshake's mod list round-trips
-/// exactly (id/version/NetworkMode), an old client's frame WITHOUT the field
-/// decodes to null (the host treats null as an empty list — the protocol
-/// version gate refuses cross-version sessions anyway), and the mod frame
-/// round-trips its opaque payload byte-for-byte.
+/// exactly (id/version/NetworkMode/permissions and the declared native binding,
+/// whose absence decodes to null = "undeclared"), an old client's frame WITHOUT
+/// the field decodes to null (the host treats null as an empty list — the
+/// protocol version gate refuses cross-version sessions anyway), and the mod
+/// frame round-trips its opaque payload byte-for-byte.
 /// </summary>
 public class ModHandshakeProtocolTests
 {
@@ -23,7 +24,7 @@ public class ModHandshakeProtocolTests
 			Protocol = ProtocolVersion.Current,
 			Mods =
 			[
-				new ModInfoMsg { Id = "mod.a", Version = "1.2.3", NetworkMode = NetworkMode.RequiresAllPlayers, Permissions = ModPermission.SendNetworkMessage },
+				new ModInfoMsg { Id = "mod.a", Version = "1.2.3", NetworkMode = NetworkMode.RequiresAllPlayers, Permissions = ModPermission.SendNetworkMessage, NativeBinding = "Game.PlayerCamera.FixedUpdate" },
 				new ModInfoMsg { Id = "mod.b", Version = "0.9.0", NetworkMode = NetworkMode.ClientOnly },
 			],
 		};
@@ -36,7 +37,25 @@ public class ModHandshakeProtocolTests
 		Assert.Equal("1.2.3", decoded.Mods[0].Version);
 		Assert.Equal(NetworkMode.RequiresAllPlayers, decoded.Mods[0].NetworkMode);
 		Assert.Equal(ModPermission.SendNetworkMessage, decoded.Mods[0].Permissions);
+		Assert.Equal("Game.PlayerCamera.FixedUpdate", decoded.Mods[0].NativeBinding);
 		Assert.Equal(NetworkMode.ClientOnly, decoded.Mods[1].NetworkMode);
+		Assert.Null(decoded.Mods[1].NativeBinding);
+	}
+
+	[Fact]
+	public void ModInfoWithoutNativeBinding_DecodesToNull()
+	{
+		// A peer that declared no binding leaves the field absent — protobuf
+		// decodes it to null, which the host compares as "undeclared".
+		var msg = new HandshakeMsg
+		{
+			Protocol = ProtocolVersion.Current,
+			Mods = [new ModInfoMsg { Id = "mod.a", Version = "1.0.0", NetworkMode = NetworkMode.ClientOnly }],
+		};
+
+		var decoded = NetPacket.DecodePayload<HandshakeMsg>(NetPacket.Encode(NetMsg.Handshake, msg));
+
+		Assert.Null(decoded.Mods![0].NativeBinding);
 	}
 
 	[Fact]

@@ -117,12 +117,9 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 			// it validates nothing and rejects nothing (a declaration adds no
 			// rejection cause), and a blank value (empty or whitespace-only) is a
 			// typo for "none" rather than a declaration, so it normalizes to the
-			// undeclared state.
-			var nativeBinding = attribute.NativeBinding?.Trim();
-			if (nativeBinding is { Length: 0 })
-			{
-				nativeBinding = null;
-			}
+			// undeclared state. The same rule judges the value on the wire
+			// (NativeBindingDeclaration) — one rule, two callers.
+			var nativeBinding = NativeBindingDeclaration.Normalize(attribute.NativeBinding);
 
 			var manifest = new ModManifest(id, attribute.DisplayName, attribute.Version, attribute.NetworkMode,
 				attribute.Description, attribute.Permissions, dependencies, @namespace, nativeBinding);
@@ -149,6 +146,7 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 			Version = d.Manifest.Version,
 			NetworkMode = d.Manifest.NetworkMode,
 			Permissions = d.Manifest.Permissions,
+			NativeBinding = d.Manifest.NativeBinding,
 		})];
 
 	/// <summary>

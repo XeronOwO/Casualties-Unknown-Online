@@ -14,8 +14,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 public interface IModListProvider
 {
 	/// <summary>
-	/// The discovered mods as handshake infos (empty while discovery has not
-	/// run yet — a guest's first handshake may carry an empty list and the 1 s
+	/// The discovered mods as handshake infos — id, version, network mode,
+	/// permissions and the declared native binding (empty while discovery has not
+	/// run yet: a guest's first handshake may carry an empty list and the 1 s
 	/// retry then carries the real one).
 	/// </summary>
 	List<ModInfoMsg> CurrentModInfos();

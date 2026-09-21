@@ -52,4 +52,12 @@ public sealed class HostRulesOptions
 	/// 0 disables the movement penalty, 0.8 is the KrokMP default.
 	/// </summary>
 	public float PiggybackWeightMultiplier { get; set; } = 0.8f;
+
+	/// <summary>
+	/// Host-only: how a member's declared native binding is judged when it differs
+	/// from the host's own for a mod both sides list (allow / warn / require).
+	/// Warn is the default on purpose: the declaration is new, so a host that
+	/// refused by default would lock out every session whose host updated first.
+	/// </summary>
+	public NativeBindingParity NativeBindingParity { get; set; } = NativeBindingParity.Warn;
 }

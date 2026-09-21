@@ -111,8 +111,9 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   declaration" and reports it in the `[Mods] discovered …` line, so a host's log
   answers "which mod binds the game's own code" without reading any mod's source.
   It buys visibility, never stability: what it names belongs to the game, and a
-  game update may break it with no CUO decision. Carrying it onto the session
-  handshake is its own change (session parity).
+  game update may break it with no CUO decision. The declaration also rides the
+  handshake (each `ModInfoMsg` carries it), where the host's `NativeBindingParity`
+  rule judges it against the host's own declaration per mod id — see §5.
 - **`ICuoMod : ICuoService`** — the standard lifecycle, driven by the
   framework's pump on the Unity main thread. Every stage is exception-isolated.
 - **`IModContext`** — `Logger`, `Network`, `Commands`, `Session`, `State`,
@@ -941,6 +942,35 @@ host validates BEFORE the member is created:
 | — | claims RequiresAllPlayers / Synchronized / Authoritative the host lacks | **reject** |
 | — | malformed list (empty/duplicated id, invalid mode/permissions, unparseable state-bearing version) | **reject** |
 | discovery not yet run | anything | **"pending" refusal** — the guest's 1 s retry re-runs the check |
+| any mode | same mod id, a **different declared native binding** (a declaration against none included) | **allow / warn / reject** by the host's `NativeBindingParity` rule: allow is silent, warn (the default) admits the member and records the mismatch, require rejects — naming the mod and both declarations |
+
+**Native-binding parity** is judged apart from the rows above because it is a
+declared fact, not a network contract. Each `ModInfoMsg` carries the mod's
+`NativeBinding` (the `[CuoMod]` declaration, §3); the host compares it with its own
+declaration **per mod id**, and only for a mod both sides list — a mod only one
+side lists has no counterpart to compare, and the rows above already decide who may
+lack what. A blank declaration is "none" on both sides (the same normalization
+discovery applies), so a blank and an absent declaration are the same answer, while
+a declaration against none is a difference. The rule is the host's
+`HostRules` → `NativeBindingParity` entry (`allow` / `warn` / `require`, default
+`warn`), editable on the Online UI's admin page and through the console's host-rule
+command. Warn is the default because the declaration is new: a host that refused by
+default would lock out every session whose host updated first, and an undeclared
+binding is invisible anyway. The comparison is exact after trimming (ordinal,
+case-sensitive): two spellings that differ only in surrounding whitespace match, two
+casings do not — a third-party author must spell the binding identically to pass a
+`require` host.
+
+What parity honestly proves: for a mod both sides list, the two sides' declarations
+agree, so a host that requires it knows every admitted member either declared the
+same binding or was refused. A mod only the member lists is admitted with no binding
+compared at all.
+What it does **not** prove: an undeclared binding is undetectable (CUO takes no
+anti-cheat stance, `advanced-modification-policy.md` §4), so a mod that binds the
+game without declaring it passes every check; and an equal declaration does not
+prove equal behaviour — the same name may cover different patches. A host that
+chooses `allow` carries the risk knowingly, and a `warn` mismatch leaves the log
+line as its record.
 
 Versions are strict SemVer. For state-bearing modes the comparison is
 **precedence equality** (build metadata ignored). Compatibility ranges are still

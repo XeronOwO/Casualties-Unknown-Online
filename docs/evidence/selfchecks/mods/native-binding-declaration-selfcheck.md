@@ -4,7 +4,7 @@ Date: 2026-09-21
 Scope: `[CuoMod]`'s `NativeBinding` — the manifest field, its discovery path, the discovery log
 line, the reviewed `Abstractions` baseline and the policy documents. Stage 2 (carrying the
 declaration onto the handshake behind a host policy) is its own ticket
-(`docs/backlog/todo/mod-native-binding-handshake-parity.md`), so this stage is wire-free on purpose.
+(`docs/backlog/review/mod-native-binding-handshake-parity.md`), so this stage is wire-free on purpose.
 
 ## What landed
 
@@ -36,9 +36,9 @@ declaration onto the handshake behind a host policy) is its own ticket
 | Manifest | New `ModManifest.NativeBinding` and constructor parameter | same test; baseline `ModManifest.ctor(... string? nativeBinding = null)` line |
 | Discovery normalization | Trim; blank (empty or whitespace-only) becomes undeclared | `PaddedBinding_IsTrimmedToTheDeclaredName`, `WhitespaceOnlyBinding_NormalizesToUndeclared_WithoutRejectingTheMod` |
 | Discovery log | `binds <declaration>` / `binds -` | `DeclaredBinding_AppearsInTheDiscoveryLogLine`, `UndeclaredMod_HasNoBinding_AndTheLogSaysSo` |
-| Rejection surface | Unchanged — the declaration adds no rejection cause | `Declaration_IsNeverARejectionCause`; `ModDiscoveryTests` (19 cases) unchanged and green |
+| Rejection surface | Unchanged — the declaration adds no rejection cause | `Declaration_AddsNoDiscoveryRejectionCause` (named `Declaration_IsNeverARejectionCause` in stage 1; the parity change renamed it because a `require` host may now refuse over a declared difference); `ModDiscoveryTests` (19 cases) unchanged and green |
 | Permission surface | Unchanged — the declaration grants nothing | `Declaration_TakesNoPermissionAndNoNetworkContract` |
-| Wire surface | Unchanged — `ModInfoMsg` keeps its four properties | `Declaration_DoesNotMoveTheWireShape` |
+| Wire surface | Stage 1 left it unchanged — `ModInfoMsg` kept its four properties | `Declaration_DoesNotMoveTheWireShape` (stage 1, replaced by `Declaration_TravelsOnTheWireShape` when the parity ticket carried the field onto the handshake) |
 
 ## Verification design
 

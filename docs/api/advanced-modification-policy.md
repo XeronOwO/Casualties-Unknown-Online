@@ -35,7 +35,9 @@ contract" never has to mean "not allowed" (owner ruling 2026-09-20, decision 204
 Tier 3 is not an enemy to defeat; it is the reason Tier 2 exists, because a mod that binds the game
 outside CUO is invisible to every host. CUO does not detect an undeclared binding (§4's
 no-anti-cheat stance), so the declaration is opt-in honesty whose only force is a host's parity
-policy. Whenever the curated native registry (`docs/api/mod-api.md` §4i) can express the feature it
+policy: the declaration rides the session handshake and the host judges it against its own with its
+`NativeBindingParity` rule — allow, warn (the default) or require (`docs/api/mod-api.md` §5).
+Whenever the curated native registry (`docs/api/mod-api.md` §4i) can express the feature it
 is the better answer, and several mods binding the same thing is the promotion signal in §6 — an
 API addition, not a wider tier.
 

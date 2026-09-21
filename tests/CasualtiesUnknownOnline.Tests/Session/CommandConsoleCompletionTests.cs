@@ -139,6 +139,10 @@ public class CommandConsoleCompletionTests
 		});
 		var suggestions = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
 
+		// Only the framework's own stages are DI services: this assertion covers
+		// the pinyin stage the composition root registers, not the stages a mod
+		// registers at runtime (those live in the catalog behind the per-mod
+		// adapter — see ModResourceCompletionTests).
 		Assert.Equal(
 			"PinyinResourceLocationMatchStage",
 			Assert.Single(host.Services.GetServices<IResourceLocationMatchStage>()).GetType().Name);

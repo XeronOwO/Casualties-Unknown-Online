@@ -118,6 +118,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.NativeApi|propert
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Network|property|-> IModNetwork { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.PlayerJoined|event|-> Action<ulong>?
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.PlayerLeft|event|-> Action<ulong>?
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModContext.ResourceCompletion|property|-> IModResourceCompletion { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Session|property|-> ISessionInfo { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.SessionActivated|event|-> Action?
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.SessionEnded|event|-> Action?
@@ -190,6 +191,11 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals.Hunger|prope
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals.Stamina|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals.Temperature|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals.Thirst|property|-> float { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion.IsMatchStageRegistered(string id)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion.MatchStageCount|property|-> int { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion.MatchStageIds|property|-> IReadOnlyCollection<string> { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion.TryRegisterMatchStage(string id, IResourceLocationMatchStage stage)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion.TryUnregisterMatchStage(string id)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.CanWrite|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.Count|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.Keys|property|-> IReadOnlyCollection<string> { get; }
@@ -232,6 +238,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModUiWindow.Button(string te
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModUiWindow.Label(string text)|method|-> void
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModUiWindow.Separator()|method|-> void
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModUiWindow.TextField(string current, int maxLength = 64)|method|-> string
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IResourceLocationMatchStage.Matches(ResourceLocationEntry entry, string prefix)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo.HostSteamId|property|-> ulong { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo.IsHost|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo.LocalSteamId|property|-> ulong { get; }
@@ -677,6 +684,10 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode.HostOnly|enumvalu
 member|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode.RequiresAllPlayers|enumvalue|implicit #6
 member|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode.Synchronized|enumvalue|implicit #4
 member|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode.Unspecified|enumvalue|= 0
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry.DisplayName|property|-> string { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry.Id|property|-> ContentId { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry.Kind|property|-> string { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry.ctor(ContentId id, string kind, string displayName)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry
 type|Stable|CasualtiesUnknownOnline.Abstractions.ApiStabilityAttribute|sealed class|Attribute
 type|Stable|CasualtiesUnknownOnline.Abstractions.ApiStabilityLevel|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind|enum|-
@@ -707,6 +718,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerInventory|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerState|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals|interface|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModState|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport|interface|-
@@ -714,6 +726,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModStructurePlacement|interfac
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModTilePlacement|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModUi|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModUiWindow|interface|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.IResourceLocationMatchStage|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBatteryPreset|enum|-
@@ -769,3 +782,4 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileGenerationStyle|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileSleepQuality|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode|enum|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry|sealed class|-

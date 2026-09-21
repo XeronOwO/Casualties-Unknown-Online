@@ -35,7 +35,8 @@ internal sealed class ModContext(
 	IModStructurePlacer structurePlacer,
 	IModLiquidPlacer liquidPlacer,
 	IModNativeApiProvider nativeApiProvider,
-	IModContentControl contentControl) : IModContext
+	IModContentControl contentControl,
+	ModResourceCompletionStore resourceCompletionStore) : IModContext
 {
 	private readonly ModManifest _manifest = manifest;
 	private readonly SessionService _sessionService = sessionService;
@@ -59,6 +60,7 @@ internal sealed class ModContext(
 	private readonly ModLiquidPlacementAdapter _liquidPlacement = new(manifest, sessionService, liquidPlacer, frameworkLog);
 	private readonly ModNativeApiAdapter _nativeApi = new(manifest, nativeApiProvider, frameworkLog);
 	private readonly IModContentOwnerQuery _contentOwners = new ModContentOwnerQueryAdapter(contentControl);
+	private readonly IModResourceCompletion _resourceCompletion = new ModResourceCompletionAdapter(resourceCompletionStore, manifest, frameworkLog);
 
 	public ILogger Logger { get; } = logger;
 
@@ -86,6 +88,8 @@ internal sealed class ModContext(
 	public IModContent Content => _content;
 
 	public IModContentOwnerQuery ContentOwners => _contentOwners;
+
+	public IModResourceCompletion ResourceCompletion => _resourceCompletion;
 
 	public IModGameState GameState => _gameState;
 

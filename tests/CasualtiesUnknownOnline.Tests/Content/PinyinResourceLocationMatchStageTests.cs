@@ -1,8 +1,9 @@
-using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -27,8 +28,9 @@ public class PinyinResourceLocationMatchStageTests
 
 	private static ResourceLocationCatalog Catalog(bool enabled, params ResourceLocationEntry[] entries) =>
 		new(
-			[new StubSource(entries)],
+			[new StubResourceSource(entries)],
 			[Stage(Monitor(enabled))],
+			new ModResourceCompletionStore(),
 			NullLogger<ResourceLocationCatalog>.Instance);
 
 	[Theory]
@@ -70,8 +72,9 @@ public class PinyinResourceLocationMatchStageTests
 	{
 		var monitor = Monitor(false);
 		var catalog = new ResourceLocationCatalog(
-			[new StubSource(Fentanyl)],
+			[new StubResourceSource(Fentanyl)],
 			[Stage(monitor)],
+			new ModResourceCompletionStore(),
 			NullLogger<ResourceLocationCatalog>.Instance);
 
 		Assert.Empty(catalog.Suggest("ftn"));
@@ -114,9 +117,4 @@ public class PinyinResourceLocationMatchStageTests
 	[Fact]
 	public void Suggest_UnrelatedQuery_ReturnsNothing() =>
 		Assert.Empty(Catalog(true, Fentanyl).Suggest("zzzz"));
-
-	private sealed class StubSource(params ResourceLocationEntry[] entries) : IResourceLocationSource
-	{
-		public IReadOnlyList<ResourceLocationEntry> Entries => entries;
-	}
 }

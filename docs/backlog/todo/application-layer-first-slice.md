@@ -4,7 +4,9 @@
 - Priority: Medium
 - Category: Architecture / layering
 - Source: Loomi architecture review (2026-09-20), item 5; absorbs the former future tickets `command-authorization-gateway.md` and `kernel-replication-namespace-relocation.md`
-- Gate: starts after the unified acceptance pass (user decision 2026-09-20: foundations first, then the acceptance pass)
+- Gate: **superseded 2026-09-21** — the owner's "finish every remaining todo, then come back" instruction
+  replaced the earlier "starts after the unified acceptance pass" ordering (user decision 2026-09-20), so
+  this ticket is worked in backlog order before the single acceptance pass.
 
 ## Problem (evidence)
 

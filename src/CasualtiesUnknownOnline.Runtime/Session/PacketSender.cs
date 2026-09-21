@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -15,7 +16,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// and instead of the session (receive/send are independent mechanisms,
 /// user architecture rule).
 /// </summary>
-public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMonitor traffic)
+public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMonitor traffic) : IKernelFrameSender
 {
 	private readonly INetworkTransport _transport = transport;
 	private readonly NetworkTrafficMonitor _traffic = traffic;
@@ -112,4 +113,14 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 			throw new InvalidOperationException($"Cannot send unregistered message {msg}.");
 		}
 	}
+
+	/// <summary>The Application layer's frame port: every kernel frame rides the same envelope message.</summary>
+	void IKernelFrameSender.Send(ulong targetSteamId, ProtocolFrame frame, bool reliable) =>
+		Send(targetSteamId, NetMsg.KernelEnvelope, frame, reliable);
+
+	bool IKernelFrameSender.TrySend(ulong targetSteamId, ProtocolFrame frame, bool reliable) =>
+		TrySend(targetSteamId, NetMsg.KernelEnvelope, frame, reliable);
+
+	void IKernelFrameSender.SendToAll(IEnumerable<ulong> targetSteamIds, ProtocolFrame frame, bool reliable) =>
+		SendToAll(targetSteamIds, NetMsg.KernelEnvelope, frame, reliable);
 }

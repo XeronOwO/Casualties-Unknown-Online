@@ -16,7 +16,7 @@ decoding the body. `ProtocolFrameValidator.TryValidate` rejects a frame that doe
 not carry exactly one envelope, a header that disagrees with the envelope kind,
 and an unknown critical payload; `KernelProtocolService.HandleFrame` calls it on
 every received frame (`src/CasualtiesUnknownOnline.Protocol/Wire/ProtocolFrameValidator.cs:40-48`,
-`src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:186`).
+`src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs:186`).
 
 | Envelope | Direction | Meaning | Source |
 |---|---|---|---|
@@ -40,8 +40,8 @@ guest it sends commands, restores checkpoints, and applies committed batches to 
 replay kernel. It also owns the journal, checkpoint chunks, pending batches, and
 session reset.
 
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs`
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs`
+- `src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs`
+- `src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs`
 - `src/CasualtiesUnknownOnline.Runtime/Session/Handlers/KernelEnvelopeHandler.cs`
 
 ## Normal data flow
@@ -88,7 +88,7 @@ If a batch gap exists, the guest sends a range request (`RequestRange` /
 `WireCommandKind.RangeRequest`). If the range exceeds the host's journal window,
 the host resends a checkpoint. See `KernelProtocolService.SendCheckpoint`,
 `KernelProtocolService.RequestRange`, and `KernelProtocolService.HandleRangeRequest`
-(`src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs`).
+(`src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs`).
 
 ### Host → Guests: state stream
 
@@ -165,8 +165,8 @@ A rejected command is returned as a `CommandEnvelope` with
 replaced the legacy dedicated `NetMsg.ItemReject` frame. Block-break drop refusal,
 for example, now uses `RejectionReason.BlockAlreadyBroken`.
 
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs`
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/IKernelProtocolControl.cs`
+- `src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs`
+- `src/CasualtiesUnknownOnline.Application/Kernel/IKernelProtocolControl.cs`
 - `docs/decisions/active.md` #158
 
 ## Save / persistence
@@ -228,9 +228,9 @@ classification).
 
 - Four-envelope wire types: `src/CasualtiesUnknownOnline.Protocol/Wire/`
 - Per-event discriminator: `src/CasualtiesUnknownOnline.Protocol/Wire/WireEventKind.cs`
-- Range request/recovery: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs`
-- Kernel protocol transport: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs`
-- Command execution/rejection: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs`
+- Range request/recovery: `src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs`
+- Kernel protocol transport: `src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs`
+- Command execution/rejection: `src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs`
 - Transport entry: `src/CasualtiesUnknownOnline.Runtime/Session/Handlers/KernelEnvelopeHandler.cs`
 - Save/checkpoint: `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldSaveService.cs`
 - Guest→host player stream: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs`

@@ -1,13 +1,10 @@
-using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// Host-side command handling for the Phase C kernel protocol. Kept separate
@@ -22,24 +19,30 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// whose item this host has never judged is NOT held and NOT guessed about: it
 /// is refused at once, loudly, because the sender broke the rule that its
 /// creation report precedes every operation on the same item
-/// (<see cref="PendingItemCreations"/> is the sending half). Before this, a
+/// (the sending half is the pending-creations table). Before this, a
 /// pickup could be parked for a fixed 500 ms window and then answered with a
 /// less precise reason; that window is gone rather than kept as a fallback.
 /// </para>
 /// </summary>
 internal sealed class KernelProtocolCommandHandler(
-	ISessionControl session,
-	PacketSender sender,
-	ItemKernelAuthority authority,
+	IKernelSessionFacts session,
+	IKernelFrameSender sender,
+	IKernelItemFacts items,
+	IKernelCommandExecution execution,
+	IKernelCheckpointSource checkpointSource,
 	RefusedItemCreations refusedCreations,
 	KernelCommandGateway gateway,
+	IKernelWireCodec codec,
 	ILogger log)
 {
-	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
-	private readonly ItemKernelAuthority _authority = authority;
+	private readonly IKernelSessionFacts _session = session;
+	private readonly IKernelFrameSender _sender = sender;
+	private readonly IKernelItemFacts _items = items;
+	private readonly IKernelCommandExecution _execution = execution;
+	private readonly IKernelCheckpointSource _checkpointSource = checkpointSource;
 	private readonly RefusedItemCreations _refusedCreations = refusedCreations;
 	private readonly KernelCommandGateway _gateway = gateway;
+	private readonly IKernelWireCodec _codec = codec;
 	private readonly ILogger _log = log;
 
 	public void Handle(ulong sender, CommandEnvelope envelope)
@@ -74,7 +77,7 @@ internal sealed class KernelProtocolCommandHandler(
 		// future/strict-validation-anti-cheat.md own.
 		if (envelope.Command.Kind == WireCommandKind.ItemUpdateState
 			&& envelope.Command.Data is not null
-			&& _authority.FindItem(envelope.Command.Identity.InstanceId) is null)
+			&& _items.FindItem(envelope.Command.Identity.InstanceId) is null)
 		{
 			HandleMissingCarriedUpdate(sender, envelope);
 			return;
@@ -91,7 +94,7 @@ internal sealed class KernelProtocolCommandHandler(
 		// position is part of the contract: the protocol heals and the
 		// creation-before-operation invariant above still refuse first, and an id
 		// this host never judged still goes to the kernel for its own verdict.
-		var command = KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header);
+		var command = _codec.FromWireCommand(envelope.Command, envelope.Header);
 		var admission = _gateway.AdmitMemberSubmission(sender, command);
 		if (!admission.IsAdmitted)
 		{
@@ -104,7 +107,7 @@ internal sealed class KernelProtocolCommandHandler(
 		}
 
 		command = ResolveCommandRevision(command);
-		if (!_authority.TryExecuteCommand(command, sender, out _, out var rejection))
+		if (!_execution.TryExecuteCommand(command, sender, out _, out var rejection))
 		{
 			if (envelope.Command.Kind == WireCommandKind.ItemSpawn)
 			{
@@ -135,7 +138,7 @@ internal sealed class KernelProtocolCommandHandler(
 		}
 
 		var itemId = envelope.Command.Identity.InstanceId;
-		if (_authority.FindItem(itemId) is not null)
+		if (_items.FindItem(itemId) is not null)
 		{
 			return false;
 		}
@@ -161,7 +164,7 @@ internal sealed class KernelProtocolCommandHandler(
 	/// </summary>
 	private bool TryRefuseRefusedCreation(ulong sender, CommandEnvelope envelope)
 	{
-		if (_authority.FindItem(envelope.Command.Identity.InstanceId) is not null)
+		if (_items.FindItem(envelope.Command.Identity.InstanceId) is not null)
 		{
 			return false;
 		}
@@ -198,17 +201,17 @@ internal sealed class KernelProtocolCommandHandler(
 	private void HandleMissingCarriedUpdate(ulong sender, CommandEnvelope envelope)
 	{
 		var command = envelope.Command;
-		var parent = ToCharacterItem(command.Identity, command.Data);
+		var kernelData = ToKernelData(command.Identity, command.Data);
 		var spawn = new SpawnItemCommand(
 			new OperationId(envelope.Header.OperationId),
 			new ActorId(sender),
 			new RunEpoch(envelope.Header.RunEpoch),
 			AuthorityKind.OwnerPredictedHostValidated,
-			KernelWireMapper.FromWireIdentity(command.Identity),
+			_codec.FromWireIdentity(command.Identity),
 			ItemLocation.Carried(new ActorId(sender)),
 			0,
-			ItemKernelAuthority.ToKernelData(parent));
-		if (_authority.TryExecuteCommand(spawn, sender, out _, out var rejection))
+			kernelData);
+		if (_execution.TryExecuteCommand(spawn, sender, out _, out var rejection))
 		{
 			_log.LogInformation("Accepted-first missing carried update for item {ItemId} from {Sender}: spawned carried fact.",
 				command.Identity.InstanceId, sender);
@@ -224,8 +227,8 @@ internal sealed class KernelProtocolCommandHandler(
 	{
 		var command = envelope.Command;
 		var parentId = command.Identity.InstanceId;
-		var sync = KernelWireMapper.FromWireCommand(command, envelope.Header);
-		if (!_authority.TryExecuteCommand(sync, sender, out _, out var rejection))
+		var sync = _codec.FromWireCommand(command, envelope.Header);
+		if (!_execution.TryExecuteCommand(sync, sender, out _, out var rejection))
 		{
 			_log.LogWarning("Container sync for {ItemId} from {Sender} rejected: {Reason} ({Message}).",
 				parentId, sender, rejection!.Reason, rejection.Message);
@@ -245,7 +248,7 @@ internal sealed class KernelProtocolCommandHandler(
 
 	private void SendCommandRejected(ulong targetSteamId, WireCommand original, RejectionReason reason)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || targetSteamId == 0)
+		if (!_session.IsHost || !_session.SessionActive || targetSteamId == 0)
 		{
 			return;
 		}
@@ -258,7 +261,7 @@ internal sealed class KernelProtocolCommandHandler(
 				Header = new EnvelopeHeader
 				{
 					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
-					RunEpoch = _authority.CreateCheckpoint().RunEpoch.Value,
+					RunEpoch = _checkpointSource.CreateCheckpoint().RunEpoch.Value,
 					SenderId = _session.LocalSteamId,
 					MessageId = 0,
 					PayloadType = WirePayloadType.CommandRejected,
@@ -271,7 +274,7 @@ internal sealed class KernelProtocolCommandHandler(
 				},
 			},
 		};
-		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);
+		_sender.Send(targetSteamId, frame);
 	}
 
 	private GameCommand ResolveCommandRevision(GameCommand command)
@@ -333,17 +336,17 @@ internal sealed class KernelProtocolCommandHandler(
 		return command;
 	}
 
-	private ItemState? FindRevision(ulong itemId) => _authority.FindItem(itemId);
+	private ItemState? FindRevision(ulong itemId) => _items.FindItem(itemId);
 
-	private static CharacterItemMsg ToCharacterItem(WireItemIdentity identity, WireItemData? data)
+	private ItemData ToKernelData(WireItemIdentity identity, WireItemData? data)
 	{
 		var state = new ItemState(
-			KernelWireMapper.FromWireIdentity(identity),
+			_codec.FromWireIdentity(identity),
 			0,
 			ItemLocation.Terminal())
 		{
-			Data = data is null ? ItemData.Empty : KernelWireMapper.FromWireData(data),
+			Data = data is null ? ItemData.Empty : _codec.FromWireData(data),
 		};
-		return ItemKernelAuthority.ToCharacterItem(state);
+		return _codec.ToKernelItemData(state);
 	}
 }

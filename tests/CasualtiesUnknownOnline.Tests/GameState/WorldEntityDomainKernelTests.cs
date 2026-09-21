@@ -6,6 +6,8 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Xunit;
 using System;
 using System.IO;
+using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.Tests.Fakes;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -236,7 +238,7 @@ public class WorldEntityDomainKernelTests
 		Assert.True(RecordOpened(kernel, 3, new EntityPosition(7, 8)).IsAccepted);
 		Assert.True(RecordTrapState(kernel, 4, new EntityPosition(9, 10), 11, TrapPhase.Warning, 4, 500).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
 
 		var state = restored.WorldEntities;
 		Assert.NotNull(state);

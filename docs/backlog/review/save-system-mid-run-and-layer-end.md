@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: User request (2026-09-07) — "添加存档系统，包括层级末尾存档、游戏中途存档。考虑到游戏本体的存档格式不支持中途存档，需要你设计全新的存档格式，建议以常见存储格式为基准（例如 Json），辅以文件压缩。考虑到拓展性，推荐使用目录级压缩格式，而不是单文件压缩。开发时，需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
-- Related: `docs/architecture/save-archive-format.md` (normative format contract), stage tickets in the "Stages" table below, `review/systemic-save-backup-management.md` (backup/restore layer on this format), `review/world-determinism-world-fingerprint.md`, `in-progress/application-layer-first-slice.md` (stage 3 — the relocation absorbed it)
+- Related: `docs/architecture/save-archive-format.md` (normative format contract), stage tickets in the "Stages" table below, `review/systemic-save-backup-management.md` (backup/restore layer on this format), `review/world-determinism-world-fingerprint.md`, `review/application-layer-first-slice.md` (stage 3 — the relocation absorbed it)
 
 ## Functional intent
 

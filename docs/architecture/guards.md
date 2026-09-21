@@ -105,3 +105,11 @@ that the checker still refuses what it must. The declared table is
 `ProjectDirectionPolicy.AllowedReferences` and the exempt set is
 `ProjectDirectionPolicy.ConsumerProjects`; adding a reference means declaring it there in the same
 change.
+
+Application-layer replication addendum:
+`KernelReplicationLayerBoundaryTests` (Tests project — the normative gates project targets net8.0
+and cannot load the net48 layer) pins the stage-3 move: every moved kernel-replication type is
+declared in the Application assembly, the Application assembly's reference set contains no Runtime,
+GameAdapter, Plugin or game assembly, the Runtime still references the layer, and the three types
+that deliberately stayed (`KernelWireMapper`, `KernelBatchItemProjection`, `KernelEnvelopeHandler`)
+are named with their blocker — so moving one later is an edit to a recorded list, not silent drift.

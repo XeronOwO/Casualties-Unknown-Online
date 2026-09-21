@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -100,7 +101,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// remote display clone the guard exists to reject.
 /// </para>
 /// </summary>
-public sealed class GuestCommandReconciliation : ICuoService, IDisposable
+public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKernelPendingCommands
 {
 	/// <summary>The re-report cadence: the first repeat goes out one interval after the report's own edge.</summary>
 	internal const long IntervalMs = 5_000;
@@ -182,6 +183,14 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable
 		_session.SessionEnded -= OnSessionEnded;
 		_authority.CheckpointRestored -= OnCheckpointRestored;
 	}
+
+	/// <summary>The Application layer's pending-command port: the replication surface tracks and closes re-reportable commands through it. Each forwarder goes to the internal method that owns the behaviour, which keeps the doc comments on their implementations.</summary>
+	void IKernelPendingCommands.Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType) =>
+		Track(command, operationId, frame, payloadType);
+
+	void IKernelPendingCommands.ClearCommitted(ulong operationId) => ClearCommitted(operationId);
+
+	void IKernelPendingCommands.ClearRejected(ulong itemId) => ClearRejected(itemId);
 
 	/// <summary>
 	/// A command frame is about to leave this client: queue it (with the exact frame,

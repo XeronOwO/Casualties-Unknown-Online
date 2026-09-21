@@ -118,11 +118,22 @@ GameState / Protocol / Abstractions reference no other CUO project.
 ```
 
 The Application layer exists: the Runtime reaches the kernel through it
-(Runtime -> Application -> GameState) and declares no direct GameState reference. Its first slice is
-the command admission seam (`Kernel/KernelCommandGateway.cs`, "who may submit"), which is a
-session-level decision rather than a domain one; the kernel-replication surface moves there next.
-The declared direction is enforced by `ProjectDirectionGateTests`, and GameState keeps its own
-isolation gate.
+(Runtime -> Application -> GameState) and declares no direct GameState reference. It owns the
+command admission seam (`Kernel/KernelCommandGateway.cs`, "who may submit") — a session-level
+decision rather than a domain one — and the kernel replication surface
+(`Kernel/KernelProtocolService.cs` with its command handler, state-stream, checkpoint and
+domain-mapper companions). The replication surface reads the Runtime through declared ports
+(`IKernelSessionFacts`, `IKernelFrameSender`, `IKernelCommandExecution`, `IKernelCheckpointSource`,
+`IKernelBatchApplication`, `IKernelPendingCommands`, `IKernelWireCodec`), each answered by the
+service that owns the capability, so a Runtime detail does not leak back into the layer. Three types
+stay in the Runtime, each with its blocker recorded in
+`review/application-layer-first-slice.md`: `KernelWireMapper` (its legacy protobuf branches),
+`KernelBatchItemProjection` (its contract and code carry the legacy item DTOs) and
+`KernelEnvelopeHandler` (transport dispatch: frame decode, traffic accounting, the packet-handler
+base). The declared direction is enforced by `ProjectDirectionGateTests`; the moved types' assembly
+and the Application assembly's reference set are pinned by `KernelReplicationLayerBoundaryTests`
+(in the Tests project, because the normative gates project targets net8.0 and cannot load the net48
+layer), and GameState keeps its own isolation gate.
 
 ## 5. GameStateKernel
 

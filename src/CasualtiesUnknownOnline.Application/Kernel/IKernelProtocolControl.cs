@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Wire;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// Control surface for the Phase C four-envelope kernel protocol. The packet

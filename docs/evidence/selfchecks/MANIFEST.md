@@ -130,7 +130,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | architecture/phase-d-world-run-epoch-shadow-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
 | architecture/phase-e-legacy-inventory-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
 | architecture/composite-command-sequential-semantics-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
-| architecture/application-layer-first-slice-selfcheck.md | Architecture | current | the Application layer as a project, the declared project-direction gate (with its control run) and the command admission seam (decision 210); stage 3 of the ticket is still open |
+| architecture/application-layer-first-slice-selfcheck.md | Architecture | current | the Application layer as a project, the declared project-direction gate (with its control run), the command admission seam (decision 210) and the kernel-replication move with its seven ports (decision 211) |
 | items/pickup-inflight-selfcheck.md | Items | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/piggyback-drop-cleanup-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/piggyback-facing-restore-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |

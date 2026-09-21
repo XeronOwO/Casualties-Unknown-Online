@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: application-layer-first-slice-selfcheck.md mechanism table, 9 rows, every cell names a file or a test
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck stage 3 tables, 8 mechanism rows plus the port/adapter rows, each cell naming a file or a test
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: every wire path from a frame to the kernel inventoried (the heals outside the seam named); no stale `CanDestroy` citation left
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck page's mechanism x change table; each of the 9 rows names a production type and the test that pins it
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all nine named types accounted for (eight moved, three stay-behinds named with blockers); every consumer of each port is wired in KernelReplicationComposition; the sync-coverage quotes re-pointed (gate-enforced)
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck page's mechanism x change table; each of the 8 stage-3 rows names a production type and the test that pins it (round-2 review M2 also removed two dead port members)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: gateway unit tests + production-composition integration tests + the gate's control run; real-client behaviour explicitly not claimed
+      peer log comparison, hotrepl assertions) is decided — evidence: port delegation read against the pre-move call sites + KernelReplicationLayerBoundaryTests + the production-composition kernel families (82 focused cases); real-client behaviour explicitly not claimed
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: owner instruction "finish every remaining todo, then come back" (ticket Gate line, decision 207) froze the order; the stages froze the design
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0; tests 3762 passed (build included), gates 93/93
+      process violation — evidence: owner instruction "finish every remaining todo, then come back" (ticket Gate line, decision 207) and the handoff's stage-3 direction ("ports first, then the move")
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format exit 0 (read-only --verify-no-changes --include over the changed files also exit 0); tests 3773 passed (build included), gates 93/93 with this checklist filled
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: new types 8-152 lines; Application has no state bools; CuoBootstrap exactly 600 (cap 600, split ticket queued); no dangling `CanDestroy`
+      dead mechanisms deleted in the same round) — evidence: CuoBootstrap 586 lines (was 600, cap 600); moved/added types 9-555 lines; no new state bool; the two uncalled port members deleted after the round-2 review; no dangling old-path citations
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

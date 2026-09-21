@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// The host's tombstones for item ids whose CREATION it refused: an item a peer

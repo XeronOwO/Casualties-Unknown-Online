@@ -8,6 +8,8 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using System.IO;
+using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.Tests.Fakes;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -119,7 +121,7 @@ public class PlayerDomainKernelTests
 				new PlayerLimbState(1, Broken: false, Dismembered: true, Dislocated: false, Splinted: false, Infected: false, BlockedBleeding: false, IsHead: false, IsVital: false),
 			])).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
 
 		var player = Assert.Single(restored.Players!.Players);
 		var limb = Assert.Single(player.LimbFacts);
@@ -226,7 +228,7 @@ public class PlayerDomainKernelTests
 			MindwipeScriptActive: false);
 		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true, Body: body)).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
 
 		Assert.Equal(body, Assert.Single(restored.Players!.Players).Body);
 	}
@@ -414,7 +416,7 @@ public class PlayerDomainKernelTests
 		var kernel = new GameStateKernel(Epoch);
 		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
 
 		var player = Assert.Single(restored.Players!.Players);
 		Assert.Equal(2001ul, player.SteamId);
@@ -468,7 +470,7 @@ public class PlayerDomainKernelTests
 		Assert.True(Update(kernel, 2, new PlayerState(2002, true, true)).IsAccepted);
 		Assert.True(SetCarry(kernel, 3, 2001, 2002).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
 
 		var carrier = restored.Players!.Players.Single(p => p.SteamId == 2001);
 		Assert.Equal(2002ul, carrier.CarrierOfSteamId);
@@ -693,7 +695,7 @@ public class PlayerDomainKernelTests
 		var skills = new PlayerSkillsState(15, 12, 9, 3.5f, 2.25f, 1.75f);
 		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true, Skills: skills)).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
 
 		Assert.Equal(skills, Assert.Single(restored.Players!.Players).Skills);
 	}

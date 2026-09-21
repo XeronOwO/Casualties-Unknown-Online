@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// The state-stream half of the kernel protocol service. Split out of
@@ -15,14 +13,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// shared envelope header.
 /// </summary>
 internal sealed class KernelStateStreamService(
-	ISessionControl session,
-	PacketSender sender,
-	ItemKernelAuthority authority,
+	IKernelSessionFacts session,
+	IKernelFrameSender sender,
+	IKernelCheckpointSource checkpoints,
 	Func<WirePayloadType, EnvelopeHeader> createHeader)
 {
-	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
-	private readonly ItemKernelAuthority _authority = authority;
+	private readonly IKernelSessionFacts _session = session;
+	private readonly IKernelFrameSender _sender = sender;
+	private readonly IKernelCheckpointSource _checkpoints = checkpoints;
 	private readonly Func<WirePayloadType, EnvelopeHeader> _createHeader = createHeader;
 	private uint _nextItemSnapshotSeq;
 	private uint _nextWorldItemsSnapshotSeq;
@@ -35,7 +33,7 @@ internal sealed class KernelStateStreamService(
 
 	public void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || itemMoves.Count == 0)
+		if (!_session.IsHost || !_session.SessionActive || itemMoves.Count == 0)
 		{
 			return;
 		}
@@ -63,12 +61,12 @@ internal sealed class KernelStateStreamService(
 		}
 
 		var frame = CreateStateStreamFrame(stream, payloadType);
-		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame, reliable);
+		_sender.Send(targetSteamId, frame, reliable);
 	}
 
 	public void BroadcastStateStream(WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		if (!_session.IsHost || !_session.SessionActive)
 		{
 			return;
 		}
@@ -85,23 +83,23 @@ internal sealed class KernelStateStreamService(
 		}
 
 		var frame = CreateStateStreamFrame(stream, payloadType);
-		_sender.SendToAll(targets, NetMsg.KernelEnvelope, frame, reliable);
+		_sender.SendToAll(targets, frame, reliable);
 	}
 
 	public void SendItemStateStreamTo(ulong targetSteamId, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = true, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0 || targetSteamId == 0)
+		if (!_session.IsHost || !_session.SessionActive || items.Count == 0 || targetSteamId == 0)
 		{
 			return;
 		}
 
 		var frame = CreateItemStateStreamFrame(items, payloadType, layerModifierIndex, layerModifierRandomState);
-		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame, reliable);
+		_sender.Send(targetSteamId, frame, reliable);
 	}
 
 	public void BroadcastItemStateStream(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0)
+		if (!_session.IsHost || !_session.SessionActive || items.Count == 0)
 		{
 			return;
 		}
@@ -134,16 +132,16 @@ internal sealed class KernelStateStreamService(
 					LayerModifierIndex = layerModifierIndex,
 					LayerModifierRandomState = layerModifierRandomState,
 					Seq = NextSnapshotSeq(payloadType),
-					BaseGlobalRevision = _authority.CurrentGlobalRevision,
+					BaseGlobalRevision = _checkpoints.CurrentGlobalRevision,
 				},
 			},
 		};
 
 	private void SendToGuests(ProtocolFrame frame, bool reliable)
 	{
-		foreach (var member in _session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId))
+		foreach (var peerId in _session.HandshakenPeerIds)
 		{
-			_sender.Send(member.SteamId, NetMsg.KernelEnvelope, frame, reliable);
+			_sender.Send(peerId, frame, reliable);
 		}
 	}
 

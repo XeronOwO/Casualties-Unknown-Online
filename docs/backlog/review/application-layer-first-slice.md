@@ -1,6 +1,6 @@
 # Application layer: first slice (kernel command gateway and the kernel replication move)
 
-- Status: In progress
+- Status: Review
 - Priority: Medium
 - Category: Architecture / layering
 - Source: Loomi architecture review (2026-09-20), item 5; absorbs the former future tickets `command-authorization-gateway.md` and `kernel-replication-namespace-relocation.md`
@@ -58,12 +58,14 @@
 
 ## Notes
 
-Not in this ticket: migrating the Runtime's 859 source files into the new layer (measured 2026-09-21:
+Not in this ticket: migrating the Runtime's 859 source files into the new layer (measured at HEAD
+`515d197a`; after stage 3 moved eight files out and added two, the same command reads 853 — the
+figure below is the pre-move measurement):
 `find src/CasualtiesUnknownOnline.Runtime -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' | wc -l`;
 the earlier "860" was never reproducible from the tree). Only the first vertical slice
 moves, and later slices migrate when they are touched anyway.
 
-## Progress (stages 1 and 2 landed; stage 3 open)
+## Progress (stages 1-3 landed)
 
 - **Stage 1 done.** `src/CasualtiesUnknownOnline.Application/` exists in the solution, references
   `GameState` + `Protocol` + the logging abstraction and nothing else, and the Runtime reaches the
@@ -101,12 +103,45 @@ moves, and later slices migrate when they are touched anyway.
   distinguished) is recorded in `docs/backlog/future/strict-validation-anti-cheat.md`, not fixed
   here, because declaring the real authority per kind is a behaviour change and this stage moves
   existing checks only.
-- **Stage 3 is a design step, not a move.** `KernelEnvelopeHandler` extends the Runtime's
-  `PacketHandlerBase<TPacket, TContext>` and reads `CurrentFrameLength`, and the other eight types
-  take `ISessionControl`, `PacketSender`, `ItemKernelAuthority`, `RefusedItemCreations` and
-  `GuestCommandReconciliation` from the Runtime; relocating them into the Application layer
-  therefore needs ports for those slices first (and a decision about the packet-handler base). It
-  stays for the next session, in this ticket.
+- **Stage 3 done, with a named scope.** The kernel replication surface moved into
+  `CasualtiesUnknownOnline.Application/Kernel/` under a neutral namespace — six of the nine types the
+  ticket named, plus two kernel-support types (`IKernelProtocolControl`, `RefusedItemCreations`) that
+  were not on that list: `IKernelProtocolControl`,
+  `RefusedItemCreations`, `KernelDomainWireMapper`, `KernelStateStreamService`,
+  `WireCheckpointAssembler`, `GuestCheckpointReceiver`, `KernelProtocolService` and
+  `KernelProtocolCommandHandler`. The move needed ports rather than being mechanical — the types
+  read the session, the transport, the kernel authority, the pending-command table and the item wire
+  mapper — so the layer now declares seven capabilities, each answered by the Runtime service that
+  owns it: `IKernelSessionFacts` (`SessionService`), `IKernelFrameSender` (`PacketSender`),
+  `IKernelCommandExecution` / `IKernelCheckpointSource` / `IKernelBatchApplication`
+  (`ItemKernelAuthority`, beside the existing `IKernelItemFacts`), `IKernelPendingCommands`
+  (`GuestCommandReconciliation`) and `IKernelWireCodec` (`KernelWireCodec`, a thin adapter over the
+  static mapper that stayed behind). `WireCheckpointAssembler` takes the codec as a parameter, so the
+  checkpoint helpers stay pure functions and the tests round-trip through the production adapter
+  (`TestKernelCodec`). `SessionService`, `PacketSender`, `ItemKernelAuthority` and
+  `GuestCommandReconciliation` gained the interface on their declaration: eleven of the port members
+  are explicit forwarders added with this change and the other eleven bind to members that were
+  already public at HEAD, so no new member is reachable by name.
+  The registrations moved out of `CuoBootstrap` into `KernelReplicationComposition` verbatim and at
+  the same position in the registration sequence, so the `ICuoService` update order does not move
+  (`git diff -M` over the two files shows the same lines in the same relative order); the extraction
+  also takes `CuoBootstrap` from 600 to 586 lines.
+- **Three of the nine named types stayed, each with its blocker recorded, and the remaining move is
+  its own ticket** (`todo/legacy-wire-dto-slice.md`): `KernelWireMapper`, because its enemy-combat
+  branches work on the legacy protobuf messages the Game Adapter also references;
+  `KernelBatchItemProjection`, because its contract and its own code carry the legacy item DTOs
+  (`WorldItemTable` / `WorldItem` / `CharacterItemMsg` / `NetVector2`); and `KernelEnvelopeHandler`,
+  because it is the transport side of the seam (packet-handler base, frame length, traffic
+  accounting) — the responsibility split the stage text invited. `KernelReplicationLayerBoundaryTests`
+  pins both halves: the moved types' assembly, the Application assembly's reference set (no
+  Runtime / GameAdapter / Plugin / game assembly), and the three exceptions by name, so moving one
+  later is a deliberate edit to a recorded list rather than a silent drift.
+- **Stage 3 verification.** `dotnet build CasualtiesUnknownOnline.slnx` 0 warnings / 0 errors;
+  the normative gate project 93/93 once the cycle's delivery checklist is filled (mid-cycle, with
+  the checklist reset, the only failure is that checklist's own gate: 92/93) — the direction gate
+  included, and the sync-coverage evidence matrix quotes re-pointed at the moved files and their new
+  lines; the focused kernel families 71/71 plus the new layer-boundary class 11/11; the full suite
+  (3 773 tests + 93 gates) and `dotnet format` are recorded in the cycle's evidence page.
 
 ## Independent adversarial review (2026-09-21, pre-commit)
 

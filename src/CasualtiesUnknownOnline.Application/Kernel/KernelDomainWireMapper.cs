@@ -9,11 +9,11 @@ using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using System;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// Pure wire mappings for non-item kernel domains. Kept separate from
-/// <see cref="KernelWireMapper"/> so the item/wire mapper stays under the
+/// the item/wire mapper so that mapper stays under the
 /// architecture line gate.
 /// </summary>
 public static class KernelDomainWireMapper

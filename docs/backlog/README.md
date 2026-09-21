@@ -45,16 +45,13 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ## Ticket index
 
-### In progress
-
-- [Application layer: first slice](in-progress/application-layer-first-slice.md) — **Medium** — kernel command gateway, first slice.
-
 ### Todo
 
 - [Adapter capability ports](todo/adapter-capability-ports.md) — **Medium** — IGameAdapter split by capability.
 - [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — entry, UI and registration separated.
 - [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — per-domain ports, aggregate frozen.
 - [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — registrations and reset contract.
+- [Legacy wire DTOs](todo/legacy-wire-dto-slice.md) — **Medium** — the remaining kernel-mapper move's precondition.
 
 ### Review
 
@@ -175,6 +172,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Native-binding mods declare it](review/mod-native-binding-declaration.md) — **Medium** — the tier model and the manifest declaration.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity.
+- [Application layer: first slice](review/application-layer-first-slice.md) — **Medium** — command gateway and the kernel replication move.
 
 ### Future
 

@@ -8,7 +8,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// Splits and reassembles a <see cref="GameCheckpoint"/> into
@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// </summary>
 public static class WireCheckpointAssembler
 {
-	public static IReadOnlyList<WireCheckpoint> Split(GameCheckpoint checkpoint)
+	public static IReadOnlyList<WireCheckpoint> Split(GameCheckpoint checkpoint, IKernelWireCodec codec)
 	{
 		var chunks = new List<WireCheckpoint>();
 		var items = checkpoint.Items;
@@ -48,7 +48,7 @@ public static class WireCheckpointAssembler
 				.Take(ProtocolConstants.CheckpointChunkItemCount)
 				.Select(item =>
 				{
-					var wire = KernelWireMapper.ToWireItem(item);
+					var wire = codec.ToWireItem(item);
 					if (useDefinitionTable)
 					{
 						var definitionIndex = definitionIndexes[item.Identity.DefinitionId];
@@ -68,7 +68,7 @@ public static class WireCheckpointAssembler
 				Items = slice,
 				ItemDefinitionTable = index == 0 && useDefinitionTable ? [.. definitionTable] : [],
 				RandomStreams = index == 0
-					? [.. checkpoint.RandomStreams?.Select(KernelWireMapper.ToWireRandomStream) ?? []]
+					? [.. checkpoint.RandomStreams?.Select(codec.ToWireRandomStream) ?? []]
 					: [],
 				Run = index == 0 && checkpoint.Run is not null
 					? KernelDomainWireMapper.ToWireRun(checkpoint.Run)
@@ -94,7 +94,7 @@ public static class WireCheckpointAssembler
 		return chunks;
 	}
 
-	public static GameCheckpoint Assemble(IReadOnlyList<WireCheckpoint> chunks)
+	public static GameCheckpoint Assemble(IReadOnlyList<WireCheckpoint> chunks, IKernelWireCodec codec)
 	{
 		if (chunks.Count == 0)
 		{
@@ -135,12 +135,12 @@ public static class WireCheckpointAssembler
 			.Select(item =>
 			{
 				ExpandItemDefinition(item, definitionTable);
-				return KernelWireMapper.FromWireItem(item);
+				return codec.FromWireItem(item);
 			})
 			.ToList();
 
 		var randomStreams = ordered[0]!.RandomStreams
-			.Select(KernelWireMapper.FromWireRandomStream)
+			.Select(codec.FromWireRandomStream)
 			.ToList();
 
 		var firstRun = ordered[0]!.Run;

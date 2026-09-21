@@ -22,7 +22,7 @@ generation identity:
   legitimate same-generation case — the air-write report was lost, the drops report arrived — whose
   drops are then rolled back and destroyed on the breaker.
 - The kernel path already has the vocabulary: `RunEpoch` rides every `EnvelopeHeader` and is
-  epoch-filtered on both sides (`Runtime/Session/Items/KernelProtocolService.cs`). The direct
+  epoch-filtered on both sides (`Application/Kernel/KernelProtocolService.cs`). The direct
   `NetMsg` world reports (`BlockDamaged`, `BlockPlaced`, `BlockDamageReport`, trap-layout and
   runtime-entity snapshots) do not carry it.
 

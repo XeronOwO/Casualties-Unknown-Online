@@ -155,4 +155,15 @@ plug-in or in its own mod, apply the four-layer rule in
   behavior.
 - `System.Memory` hijacks `.Reverse()` on arrays; use reverse-index loops or
   `Enumerable.Reverse`.
+- Moving a type between projects/namespaces needs the import at every consumer: a file inside the old
+  namespace resolved the type by simple name and so carries no `using` for the new one, and the move
+  then surfaces as CS0246/CS0738 for the MOVED types while same-assembly types still resolve. That
+  signature means a missing `using`, not a build-system mystery — check the consumers' import lists
+  before suspecting stale artifacts, the compiler server, or type visibility.
+- In this repository a plain public constructor in `Abstractions` fails that project's build with
+  `IDE0290` (`.editorconfig` sets it to error, alongside `EnforceCodeStyleInBuild` and
+  `TreatWarningsAsErrors`), and a project that fails to build leaves its consumers compiling against
+  the last good DLL — which looks exactly like "the new type is invisible to the consumer". Use a
+  primary constructor (the repo's `ModManifest` shape); never paper over it with a `#pragma` or an
+  `.editorconfig` severity override, because that only hides the failure the consumer is seeing.
 

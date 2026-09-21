@@ -25,6 +25,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using GameAdapterImpl = CasualtiesUnknownOnline.GameAdapter.GameAdapter;
+// The CUO Application layer is a sibling namespace inside CasualtiesUnknownOnline,
+// and a namespace member beats any using-alias, so bare `Application` here binds to
+// that namespace instead of Unity's type; the alias renames the Unity type.
+using UnityApplication = UnityEngine.Application;
 
 namespace CasualtiesUnknownOnline;
 
@@ -94,8 +98,8 @@ public class Plugin : BaseUnityPlugin
 				hostBanFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.host-bans.bin"),
 				// The CUO world archive lives under the game's persistent-data root,
 				// never in the install folder and never in save.sv (decisions 164/165).
-				savesRoot: Path.Combine(Application.persistentDataPath, "cuo", SaveArchiveFormat.SavesFolderName),
-				gameBuild: Application.version,
+				savesRoot: Path.Combine(UnityApplication.persistentDataPath, "cuo", SaveArchiveFormat.SavesFolderName),
+				gameBuild: UnityApplication.version,
 				extraRegistrations: services => PluginDependencyRegistrar.Apply(Config, services));
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();
@@ -210,7 +214,7 @@ public class Plugin : BaseUnityPlugin
 			CuoBootstrap.Services = _services;
 
 			// Multiplayer games must keep running when the window loses focus.
-			Application.runInBackground = true;
+			UnityApplication.runInBackground = true;
 
 			// The legacy F8/F9/F7 session hotkeys and TargetLobbyId were retired
 			// in favor of the visual Online UI. The F6 quick-panel toggle remains
@@ -262,7 +266,7 @@ public class Plugin : BaseUnityPlugin
 
 			// Forward Unity log messages into CUO's own log so runtime errors
 			// (which BepInEx's DiskLogListener may not capture) are visible.
-			Application.logMessageReceived += OnUnityLogMessage;
+			UnityApplication.logMessageReceived += OnUnityLogMessage;
 
 			foreach (var service in _cuoServices)
 			{
@@ -574,7 +578,7 @@ public class Plugin : BaseUnityPlugin
 	// order is not guaranteed); OnDisable is the safe teardown point.
 	private void OnDisable()
 	{
-		Application.logMessageReceived -= OnUnityLogMessage;
+		UnityApplication.logMessageReceived -= OnUnityLogMessage;
 
 		// Stop in reverse registration order, then release the container — it
 		// disposes every IDisposable singleton it created (ICuoService :

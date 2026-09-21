@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.Application</AssemblyName>
+    <Product>Casualties Unknown: Online Application</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.Application</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    CUO Application: the layer between the Runtime and the deterministic kernel.
+    The Runtime reaches GameState THROUGH this project (Runtime -> Application ->
+    GameState), so a session-level decision — who may submit a command — has one
+    owner instead of one per Runtime entry point, and the kernel-replication
+    surface lives beside the policy that guards it.
+
+    It may reference GameState, Protocol and the logging abstraction, and nothing
+    else: no Runtime, no Plugin/GameAdapter, no Unity/BepInEx/Steamworks/game
+    assembly. The PROJECT references are gate-enforced — the declared table lives
+    in ProjectDirectionGateTests / ProjectDirectionPolicy and adding one means
+    declaring it there in the same change. The package side is a review fact
+    rather than a gated one: the gate reads project references and raw CUO
+    assembly references, not PackageReference entries.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <ProjectReference Include="..\CasualtiesUnknownOnline.GameState\CasualtiesUnknownOnline.GameState.csproj" />
+    <ProjectReference Include="..\CasualtiesUnknownOnline.Protocol\CasualtiesUnknownOnline.Protocol.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

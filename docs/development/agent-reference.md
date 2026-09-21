@@ -8,6 +8,9 @@ that area. Moved verbatim on 2026-09-17.
 
 ```text
 src/CasualtiesUnknownOnline.Abstractions/  # public API; the ONLY package mods may reference
+src/CasualtiesUnknownOnline.GameState/     # the deterministic kernel; references no other project
+src/CasualtiesUnknownOnline.Protocol/      # wire DTOs and codecs only; no kernel/runtime reference
+src/CasualtiesUnknownOnline.Application/   # admission seam + kernel replication; the Runtime's way down to GameState
 src/CasualtiesUnknownOnline.Runtime/       # DI/Logging/BepInEx/Steam/session; never game assemblies
 src/CasualtiesUnknownOnline.GameAdapter/   # the ONLY framework project referencing game assemblies; HarmonyX
 src/CasualtiesUnknownOnline.Plugin/        # BepInEx 5 entry; thin lifecycle driver
@@ -19,6 +22,20 @@ reversing/                                 # reverse-engineering workspace, giti
 docs/                                      # architecture, decisions, backlog, feature matrices, selfchecks
 AGENTS.local.md                            # gitignored local notes; never commit
 ```
+
+**Project direction (declared, gate-enforced).** `GameState`, `Protocol` and `Abstractions` are the
+bottom and reference no other project; `Application` is the only path up from the kernel and may
+reference `GameState` and `Protocol` only; the `Runtime` reaches the kernel through `Application`
+(Runtime -> Application -> GameState) and declares no direct `GameState` reference, so a session-level
+decision such as command eligibility has one owner instead of one per entry point;
+`GameAdapter`/`Plugin` sit above `Runtime` and never reach `GameState` directly. Tests and tools are
+consumers and are not constrained. The declared table is
+`ProjectDirectionPolicy.AllowedReferences` and the consumer list is
+`ProjectDirectionPolicy.ConsumerProjects` in
+`tests/CasualtiesUnknownOnline.NormativeGates.Tests/ProjectDirectionPolicy.cs`; adding a reference —
+or a project — means declaring it there in the same change, and `ProjectDirectionGateTests` fails the
+build otherwise (its synthetic cases pin that the checker still refuses an upward reference, a
+Runtime that skips the layer, an undeclared project and a consumer reaching down).
 
 A satellite mod (policy §1.2) lives in this repository beside the framework and keeps the same
 line: only its game-binding half references the game assemblies, and its game-free half is what the
@@ -172,4 +189,16 @@ plug-in or in its own mod, apply the four-layer rule in
   the last good DLL — which looks exactly like "the new type is invisible to the consumer". Use a
   primary constructor (the repo's `ModManifest` shape); never paper over it with a `#pragma` or an
   `.editorconfig` severity override, because that only hides the failure the consumer is seeing.
+- `CasualtiesUnknownOnline.Application` is a NAMESPACE, and a namespace member beats any
+  `using`-alias, so inside any `CasualtiesUnknownOnline.*` namespace that references the Application
+  assembly a bare `Application` binds to it instead of `UnityEngine.Application` — surfacing as
+  `CS0234: … does not contain 'persistentDataPath'` (or `version`, `runInBackground`,
+  `logMessageReceived`) at the Unity call sites. Alias the Unity type under a non-colliding name
+  (`using UnityApplication = UnityEngine.Application;`) and update those call sites; `Plugin.cs` is
+  the file that carries it today.
+- Each net48 project needs its OWN `System.Runtime.CompilerServices.IsExternalInit` shim for
+  `init`-only accessors and positional records (`GameState`, `Runtime` and `Application` each carry
+  one). A new project that uses a `record`/`init` without it fails with `CS0518: predefined type
+  'System.Runtime.CompilerServices.IsExternalInit' is not defined` even though a sibling project uses
+  the same language feature.
 

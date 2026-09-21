@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Versioning;
@@ -31,12 +32,14 @@ internal sealed class KernelProtocolCommandHandler(
 	PacketSender sender,
 	ItemKernelAuthority authority,
 	RefusedItemCreations refusedCreations,
+	KernelCommandGateway gateway,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly ItemKernelAuthority _authority = authority;
 	private readonly RefusedItemCreations _refusedCreations = refusedCreations;
+	private readonly KernelCommandGateway _gateway = gateway;
 	private readonly ILogger _log = log;
 
 	public void Handle(ulong sender, CommandEnvelope envelope)
@@ -82,15 +85,25 @@ internal sealed class KernelProtocolCommandHandler(
 			return;
 		}
 
-		if (envelope.Command.Kind == WireCommandKind.ItemDestroy
-			&& !CanDestroy(sender, envelope.Command.Identity.InstanceId))
+		// Admission: one seam decides whether a member may submit this command at
+		// all — the actor/sender binding, the declared authority policy, and the
+		// destroy eligibility rule that used to sit at this exact position. The
+		// position is part of the contract: the protocol heals and the
+		// creation-before-operation invariant above still refuse first, and an id
+		// this host never judged still goes to the kernel for its own verdict.
+		var command = KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header);
+		var admission = _gateway.AdmitMemberSubmission(sender, command);
+		if (!admission.IsAdmitted)
 		{
-			_log.LogWarning("Item destroy {ItemId} from {Sender} ignored — not a world item or not owned by the sender.",
-				envelope.Command.Identity.InstanceId, sender);
+			if (admission.AnswersSender && admission.Reason is { } reason)
+			{
+				SendCommandRejected(sender, envelope.Command, reason);
+			}
+
 			return;
 		}
 
-		var command = ResolveCommandRevision(KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header));
+		command = ResolveCommandRevision(command);
 		if (!_authority.TryExecuteCommand(command, sender, out _, out var rejection))
 		{
 			if (envelope.Command.Kind == WireCommandKind.ItemSpawn)
@@ -321,21 +334,6 @@ internal sealed class KernelProtocolCommandHandler(
 	}
 
 	private ItemState? FindRevision(ulong itemId) => _authority.FindItem(itemId);
-
-	private bool CanDestroy(ulong sender, ulong itemId)
-	{
-		var current = _authority.FindItem(itemId);
-		if (current is null)
-		{
-			// Unknown items were handled by TryRefuseUnjudgedOperation above; a
-			// reachable null here means the destroy names an item with no judged
-			// creation, which that check already refused.
-			return true;
-		}
-
-		return current.Value.Location.Kind != ItemLocationKind.Carried
-			|| current.Value.Location.Owner.Value == sender;
-	}
 
 	private static CharacterItemMsg ToCharacterItem(WireItemIdentity identity, WireItemData? data)
 	{

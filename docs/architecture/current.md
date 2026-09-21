@@ -79,6 +79,8 @@ src/
 │   ├── Wire/
 │   ├── Codecs/
 │   └── Versioning/
+├── CasualtiesUnknownOnline.Application/    # admission seam + kernel replication
+│   └── Kernel/
 ├── CasualtiesUnknownOnline.Runtime/        # DI, session, networking, kernel protocol,
 │   │                                       # runtime projections, mod API, diagnostics
 │   ├── Session/
@@ -104,8 +106,9 @@ Dependency direction:
 ```text
 Plugin
   ↓
-Runtime ──────> GameState
-  │
+Runtime ──────> Application ──────> GameState
+  │                  │
+  │                  └───────────> Protocol
   └───────────> Protocol
   │
   └───────────> Abstractions
@@ -114,9 +117,12 @@ GameAdapter ──> Runtime + game assemblies
 GameState / Protocol / Abstractions reference no other CUO project.
 ```
 
-There is no separate `Application` project today. Runtime is the orchestration and
-projection layer; the GameState reference from Runtime is the current seam for
-kernel access. GameState remains dependency-free and wire-free.
+The Application layer exists: the Runtime reaches the kernel through it
+(Runtime -> Application -> GameState) and declares no direct GameState reference. Its first slice is
+the command admission seam (`Kernel/KernelCommandGateway.cs`, "who may submit"), which is a
+session-level decision rather than a domain one; the kernel-replication surface moves there next.
+The declared direction is enforced by `ProjectDirectionGateTests`, and GameState keeps its own
+isolation gate.
 
 ## 5. GameStateKernel
 
@@ -316,8 +322,24 @@ Every Command declares a policy:
 
 "Who simulates" is separated from "who commits the authoritative fact". In the current
 kernel, `AuthorityKind` is recorded on every command/batch but is **not** enforced by
-`GameStateKernel.Execute` itself; runtime callers (such as item authority services and
-`PlayerInteractionAuthorityPolicy`) choose and enforce the appropriate policy.
+`GameStateKernel.Execute` itself; runtime callers choose which policy they STAMP — the item authority
+services stamp `HostOnly` for their own writes and `PlayerInteractionAuthorityPolicy` maps a domain
+authority to a kernel `AuthorityKind` — and until the Application layer existed nothing applied that
+declaration to a member's submission at all.
+
+A command a MEMBER submitted over the wire passes the admission seam in the Application
+layer (`KernelCommandGateway`): it binds the command's actor to the transport sender, refuses the
+authority kinds a member may not author (`HostOnly`, `PresentationOnly`), and applies the item
+destroy eligibility rule once — moved out of the kernel protocol command handler's entry point. It
+decides ELIGIBILITY only (the 2026-09-18 ruling: never what happens to another player's body, reach
+or timing), the kernel still owns every domain verdict, and the seam occupies the position the old
+check held so an eligibility refusal cannot mask a domain one. Two things it deliberately does NOT
+cover: the handler's two protocol heals (a container-sync report and an update for an unknown carried
+id, which materialize the reporter's own carried parent — the host's own write, not a member-authored
+fact) and a guest's range request, which never becomes a command. One caveat is recorded in
+`future/strict-validation-anti-cheat.md`: the wire mapper stamps every member command
+`OwnerPredictedHostValidated`, so the authority half of the policy is currently a no-op and a
+member's submission of a host-only wire kind is not yet distinguished by it.
 
 ### 7.2 Guest prediction model (not implemented in current code)
 

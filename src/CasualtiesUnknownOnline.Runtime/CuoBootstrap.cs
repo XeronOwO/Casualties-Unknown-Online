@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Logging;
 using CasualtiesUnknownOnline.Runtime.Networking;
@@ -348,6 +349,9 @@ public static class CuoBootstrap
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ProjectionHealthCoordinator>());
 		services.AddSingleton<ItemArbitration>();
 		services.AddSingleton<ItemKernelAuthority>();
+		// The Application layer's admission seam (see KernelCommandGateway); it reads the kernel through IKernelItemFacts.
+		services.AddSingleton<IKernelItemFacts>(p => p.GetRequiredService<ItemKernelAuthority>());
+		services.AddSingleton<KernelCommandGateway>();
 		// The host's tombstones for item ids whose creation it refused: shared by
 		// the kernel command path (which answers a later operation with the precise
 		// reason) and the item domain (which records the refusal).

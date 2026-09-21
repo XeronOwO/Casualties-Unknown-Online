@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
@@ -19,7 +20,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// that are updated only after an accepted batch. The authority owns the
 /// deterministic kernel, the run epoch, and the operation-id counter.
 /// </summary>
-public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
+public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log) : IKernelItemFacts
 {
 	private readonly ILogger<ItemKernelAuthority> _log = log;
 	private readonly HashSet<OperationId> _appliedOperations = [];

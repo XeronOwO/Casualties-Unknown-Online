@@ -88,11 +88,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 ///
 /// <para>
 /// One host branch deliberately IGNORES a report instead of refusing it: the
-/// destroy of an item whose judged location is another player's carried item
-/// (<c>KernelProtocolCommandHandler.CanDestroy</c>) — the guard against a remote
-/// display proxy reporting its owner's real instance ids (an unknown item is
-/// refused before that guard, and a world item may be destroyed by any peer, so
-/// the early return fires only for that carried-by-another case). Such a report
+/// destroy of an item whose judged location is another player's carried item —
+/// the admission seam's rule (<c>KernelCommandGateway.MayReportDestroyed</c>, the
+/// handler's former <c>CanDestroy</c>) guarding against a remote display proxy
+/// reporting its owner's real instance ids (an unknown item is refused before
+/// that guard, and a world item may be destroyed by any peer, so the early
+/// return fires only for that carried-by-another case). Such a report
 /// has no verdict to wait for, so it spends its budget and ends in the
 /// "not answered" warning. Answering it with a refusal was rejected: the guest's
 /// rejection path rolls a pickup back, and that rollback would land on the

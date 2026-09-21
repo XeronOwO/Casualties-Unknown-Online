@@ -45,9 +45,12 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ## Ticket index
 
+### In progress
+
+- [Application layer: first slice](in-progress/application-layer-first-slice.md) — **Medium** — kernel command gateway, first slice.
+
 ### Todo
 
-- [Application layer: first slice](todo/application-layer-first-slice.md) — **Medium** — kernel command gateway, first slice.
 - [Adapter capability ports](todo/adapter-capability-ports.md) — **Medium** — IGameAdapter split by capability.
 - [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — entry, UI and registration separated.
 - [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — per-domain ports, aggregate frozen.

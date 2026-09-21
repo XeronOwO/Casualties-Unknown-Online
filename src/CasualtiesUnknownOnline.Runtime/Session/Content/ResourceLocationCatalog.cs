@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Content;
@@ -21,12 +22,20 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Content;
 ///
 /// The four built-in ranks are this class's contract; every
 /// <see cref="IResourceLocationMatchStage"/> is an optional extra rule ranked
-/// after them, so the ranking can grow (pinyin today) without the catalog
-/// knowing what the extra rule is.
+/// after them, so the ranking can grow (pinyin today, a mod's own stage
+/// tomorrow) without the catalog knowing what the extra rule is. The stages
+/// given to the constructor are the framework's own (DI); the stages a mod
+/// registers through <c>IModContext.ResourceCompletion</c> join the same
+/// ranking behind them, in registration order.
+///
+/// A stage runs on the console's typing path, so a stage that throws is
+/// isolated: the entry it was answering for counts as "no match" and the
+/// remaining stages still run (logged at debug — this runs per keystroke).
 /// </summary>
 public sealed class ResourceLocationCatalog(
 	IEnumerable<IResourceLocationSource> sources,
 	IEnumerable<IResourceLocationMatchStage> matchStages,
+	ModResourceCompletionStore modStages,
 	ILogger<ResourceLocationCatalog> log) : IResourceLocationCatalog
 {
 	/// <summary>Maximum number of completion candidates returned for one prefix.</summary>
@@ -37,6 +46,7 @@ public sealed class ResourceLocationCatalog(
 
 	private readonly IReadOnlyList<IResourceLocationSource> _sources = [.. sources];
 	private readonly IReadOnlyList<IResourceLocationMatchStage> _matchStages = [.. matchStages];
+	private readonly ModResourceCompletionStore _modStages = modStages;
 	private readonly ILogger<ResourceLocationCatalog> _log = log;
 
 	public IReadOnlyList<ResourceLocationEntry> Entries
@@ -83,13 +93,17 @@ public sealed class ResourceLocationCatalog(
 			return [.. entries.Take(MaxSuggestions)];
 		}
 
+		// One snapshot per query: a stage is third-party code and may register or
+		// unregister while it is being asked, so the running query ranks the table
+		// as it was when the query started.
+		var modStages = _modStages.Stages;
 		var ranked = new List<(int Rank, ResourceLocationEntry Entry)>();
 		foreach (var entry in entries)
 		{
 			var rank = MatchRank(entry, normalized);
 			if (rank < 0)
 			{
-				rank = MatchStageRank(entry, normalized);
+				rank = MatchStageRank(entry, normalized, modStages);
 			}
 
 			if (rank >= 0)
@@ -142,22 +156,63 @@ public sealed class ResourceLocationCatalog(
 	}
 
 	/// <summary>
-	/// The extra stages, ranked after every built-in rank in registration order.
-	/// A stage is consulted only for an entry the built-in ranks did not match,
-	/// which is equivalent to ranking the stages after (a built-in match is
-	/// always the better rank) and keeps a switched-off stage off the path of
-	/// everything the catalog already matches.
+	/// The extra stages, ranked after every built-in rank: the framework's own
+	/// (constructor) stages first, then the mod stages, each group in
+	/// registration order. A stage is consulted only for an entry the built-in
+	/// ranks did not match, which is equivalent to ranking the stages after (a
+	/// built-in match is always the better rank) and keeps a switched-off stage
+	/// off the path of everything the catalog already matches.
+	///
+	/// The mod stages arrive as the snapshot the query took when it started, so a
+	/// stage that registers or unregisters during the query cannot break it.
 	/// </summary>
-	private int MatchStageRank(ResourceLocationEntry entry, string normalizedPrefix)
+	private int MatchStageRank(
+		ResourceLocationEntry entry,
+		string normalizedPrefix,
+		IReadOnlyList<IResourceLocationMatchStage> modStages)
 	{
-		for (var index = 0; index < _matchStages.Count; index++)
+		var rank = ExtraStageRankOffset;
+		foreach (var stage in _matchStages)
 		{
-			if (_matchStages[index].Matches(entry, normalizedPrefix))
+			if (StageMatches(stage, entry, normalizedPrefix))
 			{
-				return ExtraStageRankOffset + index;
+				return rank;
 			}
+
+			rank++;
+		}
+
+		foreach (var stage in modStages)
+		{
+			if (StageMatches(stage, entry, normalizedPrefix))
+			{
+				return rank;
+			}
+
+			rank++;
 		}
 
 		return -1;
+	}
+
+	/// <summary>
+	/// One stage's answer, isolated. A mod stage is third-party code running on
+	/// the console's typing path, so a stage that throws counts as "no match"
+	/// for this entry and the remaining stages still run; the failure is logged
+	/// at debug because this is per keystroke per entry, where a warning would
+	/// flood the log instead of informing anyone.
+	/// </summary>
+	private bool StageMatches(IResourceLocationMatchStage stage, ResourceLocationEntry entry, string normalizedPrefix)
+	{
+		try
+		{
+			return stage.Matches(entry, normalizedPrefix);
+		}
+		catch (Exception e)
+		{
+			_log.LogDebug(e, "[ContentId] match stage {Stage} threw for {Id} — treated as no match.",
+				stage.GetType().Name, entry.Id);
+			return false;
+		}
 	}
 }

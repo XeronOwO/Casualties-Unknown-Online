@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Search;
 using Microsoft.Extensions.Logging;

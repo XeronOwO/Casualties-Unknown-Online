@@ -122,7 +122,10 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | Member | Semantics |
 |---|---|
 | `Session` | a **SNAPSHOT at bind time**, not a live view — the host never fires `SessionActivated` (it activated at lobby creation), and events fired before discovery are lost. The snapshot is the only reliable "current state". `MemberSteamIds` is the peer member set (the local peer is `LocalSteamId`). |
+| `Logger` | mod-scoped logger — its lines carry the mod id (`[Mod:<id>]`). |
+| `Network` | the mod message channel — see §4. |
 | `Commands` | host-authoritative commands — see §4b. |
+| `ConsoleCommands` | local in-game console commands, with no wire relay — the host-command surface is §4b. |
 | `State` | host-persistent per-mod state — see §4d. |
 | `Data` | runtime scope-declared per-mod data — see §4j. |
 | `StatusRuntime` | runtime per-player/per-limb mod status values — see §4k. |
@@ -130,6 +133,8 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `BuildingRuntime` | per-mod building prefab/instance hooks — see §4f. |
 | `Ui` | local immediate-mode mod UI windows — see §4e. |
 | `Content` | mod content registration — see §4f. |
+| `ContentOwners` | framework-wide content-ownership lookup — see §4f. |
+| `ResourceCompletion` | per-mod resource-completion stages — see §4l. |
 | `GameState` | read-only player-state projection — see §4g. |
 | `EntitySpawn` | world entity spawn — see §4h. |
 | `ItemSpawn` | world item spawn — see §4h. |
@@ -927,6 +932,68 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
 - **No dedicated wire change**: no new NetMsg and no protocol bump; the typed
   frames ride the existing `NetMsg.ModMessage` channel. No generic JObject
   snapshot is introduced.
+
+## 4l. Resource completion (widening the console's vocabulary)
+
+`IModResourceCompletion` — `context.ResourceCompletion` — lets a mod register its
+own completion stages for the console's resource-location argument
+(`CommandArgumentKind.ResourceLocation`). It is the console's completion
+extension point promoted to the mod surface: a stage receives a
+`ResourceLocationEntry` (canonical id, content kind and the owning source's
+display name) and answers exactly one question — does this entry match this
+prefix?
+
+```csharp
+[CuoMod("com.example.pinyin", "Pinyin Search", "1.0.0", NetworkMode = NetworkMode.Synchronized)]
+public sealed class PinyinMod : ICuoMod
+{
+    public void Bind(IModContext context) =>
+        context.ResourceCompletion.TryRegisterMatchStage("pinyin", new PinyinStage());
+
+    public void Initialize() { } public void Start() { } public void Update() { }
+    public void Stop() { } public void Dispose() { }
+}
+
+internal sealed class PinyinStage : IResourceLocationMatchStage
+{
+    public bool Matches(ResourceLocationEntry entry, string prefix) =>
+        entry.DisplayName.Length > 0 && PinyinMatcher.Matches(entry.DisplayName, prefix);
+}
+```
+
+- **Additive by construction**: the catalog consults a registered stage only
+  after its four built-in ranks (exact canonical id, id prefix, bare path
+  prefix, display-name prefix) and ranks the stages behind them in registration
+  order, so a stage can only add candidates — it never displaces what the
+  framework already completes. `ResourceLocationCatalog.MaxSuggestions` (20)
+  stays the catalog's own cap, and an accepted suggestion is always the
+  canonical id.
+- **Per-mod and local**: the stage table belongs to the registering mod (the
+  same id in two mods is two registrations), lives in the local process, and is
+  never sent anywhere — the console completes on the client the player is typing
+  on, so a stage never needs to exist on the host.
+- **No permission flag**: a stage can only widen what the local player's own
+  console offers, so registration is open to every mod — `ModPermission` gates the
+  surfaces that change shared or other players' state, not this one.
+- **Lifetime and query snapshot**: the table lives as long as the process (a mod
+  is discovered once per process, like its content registrations) and
+  `TryUnregisterMatchStage` is the only way a stage leaves it. A completion query
+  ranks the stages that were registered when it started, so a stage that registers
+  or unregisters while it is being asked changes the next query, not the running
+  one. (A stage that calls back into the catalog's own query from inside
+  `Matches` is the mod's own recursion — the catalog promises nothing there.)
+- **Rails**: a mod may hold at most 8 stages. A null stage, a blank id, an id
+  longer than 128 characters, a duplicate id and the cap all return `false` and are logged
+  (`[ContentId]`); `TryUnregisterMatchStage` only ever removes the calling mod's
+  own stage.
+- **Failure isolation**: the catalog contains a stage that throws — that entry
+  counts as "no match", the remaining stages still run, and the failure is
+  logged at debug, because this path runs per keystroke per entry. A mod's
+  exception never breaks the console.
+- **Stability**: `IModResourceCompletion`, `IResourceLocationMatchStage` and
+  `ResourceLocationEntry` are `Experimental`
+  (`docs/api/advanced-modification-policy.md`); CUO's own pinyin stage is the
+  first consumer of this seam.
 
 ## 5. Handshake consistency (how sessions stay coherent)
 

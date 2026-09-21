@@ -1,8 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -16,16 +18,16 @@ namespace CasualtiesUnknownOnline.Tests.Content;
 public class ResourceLocationCatalogTests
 {
 	private static ResourceLocationCatalog CreateCatalog(params IResourceLocationSource[] sources) =>
-		new(sources, [], NullLogger<ResourceLocationCatalog>.Instance);
+		new(sources, [], new ModResourceCompletionStore(), NullLogger<ResourceLocationCatalog>.Instance);
 
 	private static ResourceLocationCatalog CreateCatalogWithStages(
 		IResourceLocationSource source, params IResourceLocationMatchStage[] stages) =>
-		new([source], stages, NullLogger<ResourceLocationCatalog>.Instance);
+		new([source], stages, new ModResourceCompletionStore(), NullLogger<ResourceLocationCatalog>.Instance);
 
 	private static ResourceLocationEntry Entry(string id, string kind = ModContentKind.Item, string displayName = "") =>
 		new(ContentId.Parse(id), kind, string.IsNullOrEmpty(displayName) ? id : displayName);
 
-	private static StubSource Source(params ResourceLocationEntry[] entries) => new(entries);
+	private static StubResourceSource Source(params ResourceLocationEntry[] entries) => new(entries);
 
 	[Fact]
 	public void Entries_MergeSourcesAndDeduplicateByCanonicalId()
@@ -160,7 +162,7 @@ public class ResourceLocationCatalogTests
 				Entry("cu:fenpath", displayName: "Unrelated"),
 				Entry("cu:name", displayName: "芬太尼"),
 				Entry("cu:zzz", displayName: "Stage only")),
-			new StubStage((entry, _) => entry.Id.Path == "zzz"));
+			new StubMatchStage((entry, _) => entry.Id.Path == "zzz"));
 
 		var suggestions = catalog.Suggest(query).Select(e => e.Id.ToString()).ToList();
 
@@ -172,8 +174,8 @@ public class ResourceLocationCatalogTests
 	{
 		var catalog = CreateCatalogWithStages(
 			Source(Entry("cu:aaa", displayName: "None"), Entry("cu:bbb", displayName: "None")),
-			new StubStage((entry, _) => entry.Id.Path == "bbb"),
-			new StubStage((entry, _) => entry.Id.Path == "aaa"));
+			new StubMatchStage((entry, _) => entry.Id.Path == "bbb"),
+			new StubMatchStage((entry, _) => entry.Id.Path == "aaa"));
 
 		var suggestions = catalog.Suggest("zz").Select(e => e.Id.ToString()).ToList();
 
@@ -189,7 +191,7 @@ public class ResourceLocationCatalogTests
 			.Select(i => Entry($"cu:item{i:D2}"))
 			.Reverse()
 			.ToArray();
-		var catalog = CreateCatalogWithStages(Source(entries), new StubStage((_, _) => true));
+		var catalog = CreateCatalogWithStages(Source(entries), new StubMatchStage((_, _) => true));
 
 		var first = catalog.Suggest("zz").Select(e => e.Id.ToString()).ToList();
 		var second = catalog.Suggest("zz").Select(e => e.Id.ToString()).ToList();
@@ -209,7 +211,7 @@ public class ResourceLocationCatalogTests
 		var builtIn = Enumerable.Range(0, ResourceLocationCatalog.MaxSuggestions + 5)
 			.Select(i => Entry($"cu:item{i:D2}"))
 			.ToArray();
-		var catalog = CreateCatalogWithStages(Source([.. stageOnly, .. builtIn]), new StubStage((_, _) => true));
+		var catalog = CreateCatalogWithStages(Source([.. stageOnly, .. builtIn]), new StubMatchStage((_, _) => true));
 
 		var suggestions = catalog.Suggest("cu:item").Select(e => e.Id.ToString()).ToList();
 
@@ -233,7 +235,7 @@ public class ResourceLocationCatalogTests
 		var consulted = false;
 		var catalog = CreateCatalogWithStages(
 			Source(Entry("cu:aaa"), Entry("cu:bbb")),
-			new StubStage((_, _) =>
+			new StubMatchStage((_, _) =>
 			{
 				consulted = true;
 				return true;
@@ -243,13 +245,85 @@ public class ResourceLocationCatalogTests
 		Assert.False(consulted, "an empty prefix takes the catalog's own first-entries path");
 	}
 
-	private sealed class StubStage(Func<ResourceLocationEntry, string, bool> matches) : IResourceLocationMatchStage
+	[Fact]
+	public void Suggest_ThrowingFrameworkStage_CountsAsNoMatchAndTheLaterStageStillMatches()
 	{
-		public bool Matches(ResourceLocationEntry entry, string prefix) => matches(entry, prefix);
+		var log = new RecordingLogger<ResourceLocationCatalog>();
+		var catalog = new ResourceLocationCatalog(
+			[Source(
+				Entry("cu:aaa", displayName: "None"),
+				Entry("cu:bbb", displayName: "None"),
+				Entry("cu:ccc", displayName: "None"))],
+			[
+				new StubMatchStage((entry, _) => entry.Id.Path == "bbb"
+					? throw new InvalidOperationException("stage failure")
+					: entry.Id.Path == "ccc"),
+				new StubMatchStage((entry, _) => entry.Id.Path == "bbb")
+			],
+			new ModResourceCompletionStore(),
+			log);
+
+		// "bbb" is reachable only through the SECOND stage, so the throwing first
+		// stage was treated as "no match" rather than aborting the entry, and
+		// "ccc" — the throwing stage's own match — keeps the rank it earned.
+		Assert.Equal(["cu:ccc", "cu:bbb"], catalog.Suggest("zz").Select(e => e.Id.ToString()));
+		Assert.Contains(
+			log.Entries,
+			entry => entry.Level == LogLevel.Debug
+				&& entry.Message.Contains("treated as no match", StringComparison.Ordinal));
+		Assert.DoesNotContain(log.Entries, entry => entry.Level >= LogLevel.Warning);
 	}
 
-	private sealed class StubSource(params ResourceLocationEntry[] entries) : IResourceLocationSource
+	[Fact]
+	public void Suggest_StageThatRegistersDuringAQuery_SeesTheNextQueryNotTheRunningOne()
 	{
-		public IReadOnlyList<ResourceLocationEntry> Entries => entries;
+		var modStages = new ModResourceCompletionStore();
+		var added = false;
+		var catalog = new ResourceLocationCatalog(
+			[Source(Entry("cu:aaa", displayName: "None"))],
+			[
+				new StubMatchStage((_, _) =>
+				{
+					if (!added)
+					{
+						added = true;
+						modStages.Add(new StubMatchStage((entry, _) => entry.Id.Path == "aaa"));
+					}
+
+					return false;
+				})
+			],
+			modStages,
+			NullLogger<ResourceLocationCatalog>.Instance);
+
+		// The running query ranks the table it started with — no match, and no
+		// failure on the collection the stage just modified...
+		Assert.Empty(catalog.Suggest("zz"));
+		// ...and the next query consults the stage that was added.
+		Assert.Equal(["cu:aaa"], catalog.Suggest("zz").Select(e => e.Id.ToString()));
+	}
+
+	[Fact]
+	public void Suggest_ThrowingModStage_CountsAsNoMatchAndTheLaterStagesStillRun()
+	{
+		var modStages = new ModResourceCompletionStore();
+		var catalog = new ResourceLocationCatalog(
+			[Source(
+				Entry("cu:aaa", displayName: "None"),
+				Entry("cu:bbb", displayName: "None"),
+				Entry("cu:ccc", displayName: "None"))],
+			[new StubMatchStage((entry, _) => entry.Id.Path == "aaa")],
+			modStages,
+			NullLogger<ResourceLocationCatalog>.Instance);
+		modStages.Add(new StubMatchStage((entry, _) => entry.Id.Path == "bbb"
+			? throw new InvalidOperationException("mod stage failure")
+			: entry.Id.Path == "ccc"));
+		modStages.Add(new StubMatchStage((entry, _) => entry.Id.Path == "bbb"));
+
+		// Rank order: the framework stage, then the two mod stages in
+		// registration order. "bbb" is only reachable through the LAST stage,
+		// which proves the throwing stage counted as no match instead of
+		// aborting the query.
+		Assert.Equal(["cu:aaa", "cu:ccc", "cu:bbb"], catalog.Suggest("zz").Select(e => e.Id.ToString()));
 	}
 }

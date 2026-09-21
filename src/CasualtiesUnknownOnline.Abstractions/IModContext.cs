@@ -109,6 +109,15 @@ public interface IModContext
 	IModContentOwnerQuery ContentOwners { get; }
 
 	/// <summary>
+	/// The per-mod resource-completion stage registry: the console's completion
+	/// vocabulary widened by this mod. It is local-only and purely additive (a
+	/// stage ranks after the catalog's built-in ranks) — see
+	/// <see cref="IModResourceCompletion"/> for the full contract.
+	/// </summary>
+	[ApiStability(ApiStabilityLevel.Experimental)]
+	IModResourceCompletion ResourceCompletion { get; }
+
+	/// <summary>
 	/// The read-only game-state projection (currently the latest known player
 	/// character state). Reading requires <see cref="ModPermission.ReadGameState"/>
 	/// — see <see cref="IModGameState"/> for the full contract.

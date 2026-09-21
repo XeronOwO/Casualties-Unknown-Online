@@ -52,6 +52,41 @@ With CUO present, the mod registers its stage through the Stage-1 seam: one mod,
 surfaces. CUO's own pinyin code, option and UI are deleted in the same cycle, and the localization
 keys move to the mod.
 
+## What landed (stage 1, 2026-09-21)
+
+The seam, its registry, its tests and its documentation. Stage 1 was landed on its own because it is
+the CUO-side half the mod registers through.
+
+- **The contract.** `IResourceLocationMatchStage.Matches(ResourceLocationEntry, string)`,
+  `ResourceLocationEntry` (canonical id / kind / display name) and `IModResourceCompletion` live in
+  `CasualtiesUnknownOnline.Abstractions` and carry
+  `[ApiStability(ApiStabilityLevel.Experimental)]`; `IModContext.ResourceCompletion` is the
+  registration entry point. `IResourceLocationMatchStage` and `ResourceLocationEntry` used to live in
+  `Runtime/Session/Content` — the promotion is a move plus the new registry, not a second copy.
+- **The registry.** The mod-visible surface is `IModResourceCompletion`
+  (`IModContext.ResourceCompletion`); `Runtime/Session/Mods/ModResourceCompletionAdapter.cs` is its
+  per-mod implementation — it scopes the stage table to one mod id, validates the id (non-blank, at
+  most 128 characters), caps a mod at 8 stages and logs every refusal. The stages land in
+  `ModResourceCompletionStore` and `ResourceLocationCatalog` reads them, ranking mod stages after the
+  framework's own in registration order. The store is the indirection that keeps the mod domain from
+  depending on the catalog (the catalog already reaches the mod service through its content source, so
+  a direct edge closes a dependency cycle). A query ranks the stages registered when it started, so a
+  stage that registers or unregisters during a query changes the next query, not the running one.
+- **Isolation.** A throwing stage is contained by the catalog: the entry counts as "no match", the
+  later stages still run, and the failure is debug-logged because the path runs per keystroke.
+- **Tests.** `tests/.../Mods/ModResourceCompletionTests.cs` drives two stub mods over one catalog
+  (scope isolation, the id rails, the cap and the freed slot);
+  `tests/.../Mods/ModResourceCompletionConsoleTests.cs` takes a stage from a loaded mod and drives the
+  console's argument-suggestion endpoint with it (the production path end to end). The catalog tests
+  carry the throwing-stage cases and the reentrancy case (a stage that registers during a query sees
+  the next query, not the running one), and `StubMatchStage` / `StubResourceSource` are the shared
+  stubs.
+- **Docs.** `docs/api/mod-api.md` §4l and the §3 member table; the Abstractions baseline records the
+  new types and members.
+
+Stage 2 (the standalone mod) and stage 3 (the console half and CUO's own pinyin removal) are
+untouched, and the open questions below are still open.
+
 ## Acceptance
 
 - Crafting search matches pinyin with CUO absent (the mod alone), with the behaviour the current

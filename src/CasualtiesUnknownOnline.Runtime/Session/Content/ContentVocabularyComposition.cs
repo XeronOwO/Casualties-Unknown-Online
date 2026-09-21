@@ -1,3 +1,5 @@
+using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Content;
@@ -21,6 +23,12 @@ internal static class ContentVocabularyComposition
 		services.AddSingleton<IResourceLocationSource>(p => p.GetRequiredService<BuiltInResourceLocationSource>());
 		services.AddSingleton<ModContentResourceLocationSource>();
 		services.AddSingleton<IResourceLocationSource>(p => p.GetRequiredService<ModContentResourceLocationSource>());
+		// A mod's completion stages land in this store: the catalog reads it and
+		// the per-mod adapter writes it. The store has no dependencies of its own,
+		// and that is what keeps a mod-service → catalog edge out of the graph —
+		// the catalog already reaches the mod service through its content source,
+		// so a direct edge would close a dependency cycle.
+		services.AddSingleton(p => new ModResourceCompletionStore());
 		services.AddSingleton<ResourceLocationCatalog>();
 		services.AddSingleton<IResourceLocationCatalog>(p => p.GetRequiredService<ResourceLocationCatalog>());
 		// Pinyin resource completion is an extra match stage, so the switch-off

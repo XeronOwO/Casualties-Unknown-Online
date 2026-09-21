@@ -47,6 +47,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Bilingual human documentation](todo/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
 - [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — entry, UI and registration separated.
 - [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — per-domain ports, aggregate frozen.
 - [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — registrations and reset contract.

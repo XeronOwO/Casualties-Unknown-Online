@@ -7,5 +7,8 @@
 en/README.md | 1cc622bb6abda71ff72fc8ed83b0b0d99f723883 | zh/README.md | 3b47d132e7bf4849c42cce3dfe386b9dd650da65
 en/reference/glossary.md | 6d353cb72e647381ec133b9784e69fadd53dc59e | zh/reference/glossary.md | cbc4cc4f70fddfc472f2bda3b69805a6eeff2c38
 en/reference/README.md | 8cd6972b48aec5bd990050056c45b687f65842a3 | zh/reference/README.md | bc77861e396de772a59257786d880f456abb6b44
-en/start/README.md | f605d22f8cc8eb7d2a45f4fa804bf4a6e44c8127 | zh/start/README.md | b7b1be0bf2b8c706f9c29faf2e0f84eab64d582b
+en/start/install-and-play.md | f762cbf75d62d2e26c9ff7b116997dd09b7e572b | zh/start/install-and-play.md | f99eba98cd31dcd074fa1195c34b9afcaeb52032
+en/start/README.md | f8ba0a51dc752dbe65f570f663d6e3777aca923e | zh/start/README.md | 813473ef835be8d548d6004ebb8a7188a1654110
+en/start/set-up-dev-environment.md | 994b8d19cd7e51fc57ec065ed12ab8e9b4f1a2c5 | zh/start/set-up-dev-environment.md | 31c229112efa29735e83e873e94d2bf1eadfc8f7
 en/start/what-is-cuo.md | 02358ca767178bbaed9a7bcccabcd791cf307126 | zh/start/what-is-cuo.md | 9b74774bc7e4f5569dba87a9f49ab9a5c46e875c
+en/start/your-first-mod.md | 9fcc1b451f4e385786247f71b380e0b64fda790f | zh/start/your-first-mod.md | 8f1285b2b8b03dfd3a0ac7d335b18a8a9ea660e2

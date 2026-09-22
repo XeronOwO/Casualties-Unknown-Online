@@ -228,7 +228,7 @@ public class CharacterDataStoreTests
 		store.SaveCharacterData(GuestId, Snapshot(GuestId));
 		Assert.NotNull(store.GetSavedCharacter(GuestId));
 
-		store.ResetForSessionEnd();
+		store.ResetSessionState();
 
 		Assert.Null(store.GetSavedCharacter(GuestId));
 	}

@@ -73,6 +73,9 @@ internal sealed class PendingReportFallback
 		session.LocalSceneReported += OnLocalSceneReported;
 	}
 
+	/// <summary>The owner is going away — drop the session subscription (process teardown; the window itself survives a session via <see cref="Reset"/>).</summary>
+	internal void Unbind() => _session.LocalSceneReported -= OnLocalSceneReported;
+
 	/// <summary>
 	/// One frame of the cadence: arm on the first outstanding entry, re-send once
 	/// per window while entries remain. <paramref name="pendingCount"/> is

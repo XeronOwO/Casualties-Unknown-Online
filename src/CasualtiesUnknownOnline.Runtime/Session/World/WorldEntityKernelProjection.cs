@@ -32,7 +32,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// the host cannot drift apart. This is the production rebuild path; the legacy
 /// snapshot message ids and handlers have been removed.
 /// </summary>
-public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
+public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource, ISessionReset, IDisposable
 {
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly ISessionControl _session;
@@ -62,7 +62,7 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 		_projectionHealth = projectionHealth;
 		_audit = audit;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 		_projectionHealth.Register(new ProjectionDomain("world-entities", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 	}
 
@@ -74,8 +74,15 @@ public sealed class WorldEntityKernelProjection : IRestoredWorldEntitySource
 	/// silent) — and the restore's account hears that the half will never arrive, the
 	/// same way <see cref="ItemService.ResetSessionState"/> accounts for the item half.
 	/// </summary>
-	private void OnSessionEnded() =>
+	public void ResetSessionState() =>
 		CancelPendingRestore("the session ended before the restored world-entity facts reached the world-entry seam");
+
+	/// <inheritdoc />
+	public void Dispose()
+	{
+		_kernelAuthority.CheckpointRestored -= OnCheckpointRestored;
+		_session.SessionEnded -= ResetSessionState;
+	}
 
 	/// <summary>Raised when a restored checkpoint carries trap consumptions.</summary>
 	public event Action<IReadOnlyList<EntityEventMsg>>? TrapSnapshotProjected;

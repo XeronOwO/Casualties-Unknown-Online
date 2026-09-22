@@ -23,7 +23,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 /// the session is built) instead of depending on SessionService itself —
 /// acyclic constructor graph, abstract extraction (user rule).
 /// </summary>
-public sealed class EntitySyncService : ICuoService, IEntitySyncControl
+public sealed class EntitySyncService : ICuoService, IEntitySyncControl, ISessionReset
 {
 	/// <summary>
 	/// One member's entity-sync state. Host: one entry per synced guest. Guest:
@@ -89,7 +89,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 		_kernelProtocol.EntityStateStreamReceived += _playerStream.OnEntityStateStreamReceived;
 		session.MemberRemoved += OnMemberRemoved;
-		session.SessionEnded += OnSessionEnded;
+		session.SessionEnded += ResetSessionState;
 	}
 
 	// ---- Public surface (Game Adapter + Plugin HUD) ----
@@ -460,7 +460,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	{
 		_kernelProtocol.EntityStateStreamReceived -= _playerStream.OnEntityStateStreamReceived;
 		_session.MemberRemoved -= OnMemberRemoved;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 	}
 
 	// ---- Member lifecycle ----
@@ -489,14 +489,14 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	/// <summary>Bulk teardown: the session ended (all members gone / host gone) —
 	/// drop every entity and the self-sync flag. Per-member removals during the
 	/// session go through <see cref="OnMemberRemoved"/> instead.</summary>
-	private void OnSessionEnded()
+	public void ResetSessionState()
 	{
 		_entities.Clear();
 		RefreshRemotePlayers();
 		_selfSyncActive = false;
 		_attackSwing.Reset();
 		_swingSeq = 0;
-		_playerStream.ResetSession();
+		_playerStream.ResetSessionState();
 	}
 
 	// ---- Sync decisions ----

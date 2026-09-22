@@ -69,13 +69,13 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_checkpointReceiver = new GuestCheckpointReceiver(batches, codec, log);
 		_commandHandler = new KernelProtocolCommandHandler(session, sender, items, execution, checkpointSource, refusedCreations, gateway, codec, log);
 		_batches.BatchCommitted += BroadcastCommittedBatch;
-		_session.SessionEnded += ResetForSessionEnd;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	public void Dispose()
 	{
 		_batches.BatchCommitted -= BroadcastCommittedBatch;
-		_session.SessionEnded -= ResetForSessionEnd;
+		_session.SessionEnded -= ResetSessionState;
 	}
 
 	public void BroadcastCommittedBatch(CommittedBatch batch)
@@ -231,11 +231,11 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason) => _commandHandler.SendCommandRejected(targetSteamId, itemId, reason);
 
-	public void ResetForSessionEnd()
+	public void ResetSessionState()
 	{
-		_batches.ResetForSession();
+		_batches.ResetSessionState();
 		_journal.Clear();
-		_checkpointReceiver.ResetForSessionEnd();
+		_checkpointReceiver.ResetSessionState();
 		_pendingBatches.Clear();
 		_nextMessageId = 0;
 		_staleStreamEpochWarned.Clear();

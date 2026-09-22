@@ -24,7 +24,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// no kernel command/event is created and the result remains a direct
 /// host→all presentation message.
 /// </summary>
-internal sealed class PlayerPushService : IDisposable
+internal sealed class PlayerPushService : IDisposable, ISessionReset
 {
 	/// <summary>KrokMP's interaction reach (9 world units) × the push server check (1.2).</summary>
 	private const float MaxPushDistance = 9f * 1.2f;
@@ -67,7 +67,7 @@ internal sealed class PlayerPushService : IDisposable
 		_visibility = visibility;
 		_log = log;
 
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	/// <summary>Online UI entry: the local player pushes another in-world player (guest → host on the wire; host handles locally).</summary>
@@ -229,7 +229,7 @@ internal sealed class PlayerPushService : IDisposable
 		return 15f * Math.Max(0.2f, Math.Min(3f, scaled));
 	}
 
-	private void OnSessionEnded() => _lastPushMs.Clear();
+	public void ResetSessionState() => _lastPushMs.Clear();
 
-	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
+	public void Dispose() => _session.SessionEnded -= ResetSessionState;
 }

@@ -20,5 +20,5 @@ public interface IKernelBatchApplication
 	RestoreResult Restore(GameCheckpoint checkpoint);
 
 	/// <summary>The session ended — drop the per-session kernel facts (the run identity and applied-operation memory).</summary>
-	void ResetForSession();
+	void ResetSessionState();
 }

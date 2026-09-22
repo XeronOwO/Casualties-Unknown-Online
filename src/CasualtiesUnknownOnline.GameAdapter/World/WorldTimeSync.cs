@@ -293,7 +293,7 @@ internal sealed class WorldTimeSync(
 	{
 		_requestedSpeed = WorldTimeSpeed.Normal;
 		_appliedSpeed = WorldTimeSpeed.Normal;
-		_initiation.ResetSession();
+		_initiation.ResetSessionState();
 		_nextResendTime = 0f;
 	}
 

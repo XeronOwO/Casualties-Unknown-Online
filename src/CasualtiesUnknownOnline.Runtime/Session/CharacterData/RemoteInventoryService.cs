@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// character-data events and is cleared when the session ends, so a stale
 /// player from a previous lobby can never appear with another run's items.
 /// </summary>
-public sealed class RemoteInventoryService : IDisposable
+public sealed class RemoteInventoryService : IDisposable, ISessionReset
 {
 	private readonly CharacterDataStore _characterData;
 	private readonly SessionService _session;
@@ -32,7 +32,7 @@ public sealed class RemoteInventoryService : IDisposable
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived += OnHostCharacterDataReceived;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	/// <summary>
@@ -82,7 +82,7 @@ public sealed class RemoteInventoryService : IDisposable
 		}
 	}
 
-	private void OnSessionEnded() => _inventories.Clear();
+	public void ResetSessionState() => _inventories.Clear();
 
 	private void Update(ulong steamId, CharacterDataMsg data)
 	{
@@ -100,6 +100,6 @@ public sealed class RemoteInventoryService : IDisposable
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived -= OnHostCharacterDataReceived;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 	}
 }

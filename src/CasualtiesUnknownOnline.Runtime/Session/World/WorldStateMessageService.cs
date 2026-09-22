@@ -21,7 +21,7 @@ internal sealed class WorldStateMessageService(
 	PacketSender sender,
 	ILogger<WorldService> log,
 	EntityEventChannel eventChannel,
-	KernelWorldGenerationSource generations)
+	KernelWorldGenerationSource generations) : ISessionReset
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
@@ -367,7 +367,7 @@ internal sealed class WorldStateMessageService(
 			parameters.RandomState.Length);
 	}
 
-	internal void ResetSessionState()
+	public void ResetSessionState()
 	{
 		WorldParams = null;
 		// The captured run clocks belong to the world that read them: a session that

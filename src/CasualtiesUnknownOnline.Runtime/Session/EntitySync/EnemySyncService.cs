@@ -27,7 +27,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 /// presentation subset travels — position / velocity / rotation / health + a
 /// few animation flags — never the AI internal state.
 /// </summary>
-public sealed class EnemySyncService : ICuoService, IEnemySyncControl
+public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -73,7 +73,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_enemyCombatKernel = new EnemyCombatKernelSubmitter(session, kernelAuthority, kernelProtocol, log);
 		_enemyCombatProjection = new EnemyCombatKernelProjection(kernelAuthority, this, characterData, session, log);
 		_kernelProtocol.EntityStateStreamReceived += OnEntityStateStreamReceived;
-		session.SessionEnded += OnSessionEnded;
+		session.SessionEnded += ResetSessionState;
 		_kernelAuthority.BatchCommitted += OnKernelBatchCommitted;
 		_kernelAuthority.BatchApplied += OnKernelBatchApplied;
 		_kernelAuthority.CheckpointRestored += OnKernelCheckpointRestored;
@@ -260,7 +260,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	{
 		_enemyCombatProjection.Dispose();
 		_kernelProtocol.EntityStateStreamReceived -= OnEntityStateStreamReceived;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 		_kernelAuthority.BatchCommitted -= OnKernelBatchCommitted;
 		_kernelAuthority.BatchApplied -= OnKernelBatchApplied;
 		_kernelAuthority.CheckpointRestored -= OnKernelCheckpointRestored;
@@ -499,7 +499,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private static NetworkEntityId ToRuntimeId(EntityId id) =>
 		new(id.Epoch, id.Counter, id.Generation);
 
-	private void OnSessionEnded()
+	public void ResetSessionState()
 	{
 		_enemies.Clear();
 		_removedEnemies.Clear();

@@ -121,7 +121,7 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 	/// session's host may be serving any run, so the expectation is released with
 	/// the buffered set and the first complete set defines it again.
 	/// </summary>
-	public void ResetForSessionEnd()
+	public void ResetSessionState()
 	{
 		_chunks.Clear();
 		_pendingIdentity = null;

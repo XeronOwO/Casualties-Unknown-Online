@@ -209,11 +209,6 @@ internal sealed class SessionPeerMaintenance(
 
 	internal void ResetWarmup() => _warmupBackoff.Reset();
 
-	internal void ResetForSessionEnd()
-	{
-		ResetHandshakeRetry();
-		ResetWarmup();
-	}
 
 	private HandshakeMsg CreateHandshakeMsg()
 	{

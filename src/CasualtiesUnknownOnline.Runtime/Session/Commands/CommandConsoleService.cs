@@ -27,7 +27,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// no host relay. Host-only commands are enforced by role and use the existing
 /// session/ban services on the host process.
 /// </summary>
-public sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource, ICommandArgumentSuggestions
+public sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource, ICommandArgumentSuggestions, ISessionReset
 {
 	private const int MaxLines = 200;
 
@@ -73,7 +73,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_restoreAudit = restoreAudit;
 		_startingSupplies = startingSupplies;
 		_chat.MessageReceived += OnChatLine;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 		// The console is the player's surface for the save system's three answers: the
 		// cut the frame-end seam resolved (long after /save returned), the Continue
 		// click's own account, and the live-world half of a restore. All three are
@@ -208,7 +208,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	public void Dispose()
 	{
 		_chat.MessageReceived -= OnChatLine;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 		_saves.CutReported -= OnCutReported;
 		_saves.RestoreReported -= OnRestoreReported;
 		_restoreAudit.Reported -= OnRestoreLiveWrite;
@@ -544,7 +544,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return result;
 	}
 
-	private void OnSessionEnded()
+	public void ResetSessionState()
 	{
 		_lines.Clear();
 		AddLine("Session ended.", ConsoleLineKind.Info);

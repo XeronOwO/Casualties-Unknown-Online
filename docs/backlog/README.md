@@ -47,11 +47,11 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — registrations and reset contract.
 - [Legacy wire DTOs](todo/legacy-wire-dto-slice.md) — **Medium** — the remaining kernel-mapper move's precondition.
 
 ### Review
 
+- [Composition root feature modules](review/composition-root-feature-modules.md) — **Medium** — feature modules, one reset contract, binding gate.
 - [Mod API contract governance](review/mod-api-contract-governance.md) — **Medium-High** — visibility rule, stability levels, API baseline.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [Game-update contract toolchain](review/game-update-contract-toolchain.md) — **High** — game-assembly snapshot, classified diff, report.

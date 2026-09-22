@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// keeps no persistent state. The wire plumbing is the
 /// <see cref="LocationPingChannel"/>; the Unity presentation is the Online UI.
 /// </summary>
-public sealed class LocationPingService : ILocationPingControl, IDisposable
+public sealed class LocationPingService : ILocationPingControl, IDisposable, ISessionReset
 {
 	/// <summary>How long a ping remains visible after placement.</summary>
 	public const long LifetimeMs = 5_000;
@@ -39,7 +39,7 @@ public sealed class LocationPingService : ILocationPingControl, IDisposable
 		_time = time;
 		_log = log;
 		_world.LocationPingReceived += OnLocationPingReceived;
-		_session.SessionEnded += Clear;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	public IReadOnlyList<LocationPing> ActivePings
@@ -132,7 +132,7 @@ public sealed class LocationPingService : ILocationPingControl, IDisposable
 			msg.Kind, msg.SenderSteamId, msg.Position.X, msg.Position.Y);
 	}
 
-	private void Clear()
+	public void ResetSessionState()
 	{
 		if (_active.Count > 0)
 		{
@@ -144,6 +144,6 @@ public sealed class LocationPingService : ILocationPingControl, IDisposable
 	public void Dispose()
 	{
 		_world.LocationPingReceived -= OnLocationPingReceived;
-		_session.SessionEnded -= Clear;
+		_session.SessionEnded -= ResetSessionState;
 	}
 }

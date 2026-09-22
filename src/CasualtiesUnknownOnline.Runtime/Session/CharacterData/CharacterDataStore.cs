@@ -30,7 +30,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// <see cref="IItemControl"/> — acyclic constructor graph (ItemService never
 /// depends on this store), abstract extraction (user rule).
 /// </summary>
-public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
+public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -64,7 +64,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		// Memory is further scoped to the session: the host session survives a guest
 		// leaving (that reconnect restore still works), but a real session end (host exit /
 		// lobby switch) clears the table.
-		session.SessionEnded += OnSessionEnded;
+		session.SessionEnded += ResetSessionState;
 	}
 
 	/// <summary>
@@ -139,15 +139,14 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	}
 
 	/// <summary>Session ended: the in-memory saves die with the session; the world archive is what a later start restores from.</summary>
-	public void ResetForSessionEnd()
+	public void ResetSessionState()
 	{
 		_savedCharacters.Clear();
 		_hostData = null;
 	}
 
-	private void OnSessionEnded() => ResetForSessionEnd();
 
-	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
+	public void Dispose() => _session.SessionEnded -= ResetSessionState;
 
 	/// <summary>
 	/// Host side: hand the saved character data back to a reconnecting player,

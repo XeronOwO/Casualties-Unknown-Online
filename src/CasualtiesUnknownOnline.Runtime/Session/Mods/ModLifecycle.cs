@@ -41,7 +41,7 @@ internal sealed class ModLifecycle(
 	IModLiquidPlacer liquidPlacer,
 	IModNativeApiProvider nativeApiProvider,
 	IModContentControl contentControl,
-	ModResourceCompletionStore resourceCompletionStages)
+	ModResourceCompletionStore resourceCompletionStages) : ISessionReset
 {
 	private readonly ModCatalog _catalog = catalog;
 	private readonly ModCommandService _commands = commands;
@@ -75,7 +75,7 @@ internal sealed class ModLifecycle(
 		// The event bridge is subscribed here (construction-time wiring, not late
 		// attachment), forwarded to every mod context discovered later.
 		_session.SessionActivated += OnSessionActivated;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 		((ISessionControl)_session).MemberAdded += OnMemberAdded;
 		((ISessionControl)_session).MemberRemoved += OnMemberRemoved;
 		_channel.ModMessageReceived += OnModMessageReceived;
@@ -114,7 +114,7 @@ internal sealed class ModLifecycle(
 
 		_disposed = true;
 		_session.SessionActivated -= OnSessionActivated;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 		((ISessionControl)_session).MemberAdded -= OnMemberAdded;
 		((ISessionControl)_session).MemberRemoved -= OnMemberRemoved;
 		_channel.ModMessageReceived -= OnModMessageReceived;
@@ -217,7 +217,7 @@ internal sealed class ModLifecycle(
 		}
 	}
 
-	private void OnSessionEnded()
+	public void ResetSessionState()
 	{
 		_commands.FailAllPending("session ended");
 		foreach (var mod in _catalog.Mods)

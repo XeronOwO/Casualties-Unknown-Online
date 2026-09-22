@@ -55,5 +55,4 @@ public interface IKernelProtocolControl
 
 	event Action<ulong, RejectionReason>? CommandRejected;
 
-	void ResetForSessionEnd();
 }

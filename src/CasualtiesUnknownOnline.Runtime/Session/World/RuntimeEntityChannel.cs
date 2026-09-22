@@ -38,7 +38,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// reporter through the existing rejection path so its pending re-report ends.
 /// </para>
 /// </summary>
-public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender sender, RuntimeEntityRegistry runtimeEntities, ItemKernelAuthority kernelAuthority, ILogger<RuntimeEntityChannel> log)
+public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender sender, RuntimeEntityRegistry runtimeEntities, ItemKernelAuthority kernelAuthority, ILogger<RuntimeEntityChannel> log) : IDisposable
 {
 	/// <summary>Fallback windows after which a still-unanswered creation is reported as stalled (once — the entry keeps retrying).</summary>
 	internal const int StallWarnAttempts = 10;
@@ -507,4 +507,7 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 		_log.LogWarning("[EntitySpawn] pending creation table is full ({Cap} creations) — new creations are not re-reported until the host answers (creation {Id} at ({X:F1},{Y:F1}) dropped).",
 			_pendingEntityReports.Cap, msg.Id, msg.Position.X, msg.Position.Y);
 	}
+
+	/// <inheritdoc />
+	public void Dispose() => _entityReportFallback.Unbind();
 }

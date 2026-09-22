@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Chat;
 /// Wire plumbing lives in <see cref="ChatChannel"/>; this service only reacts
 /// to the world channel's receive event and hands UI lines to the overlay.
 /// </summary>
-public sealed class ChatService : IChatControl
+public sealed class ChatService : IChatControl, ISessionReset, IDisposable
 {
 	/// <summary>How many recent lines the local buffer keeps (UI panel height bound).</summary>
 	private const int MaxRecent = 50;
@@ -29,7 +29,7 @@ public sealed class ChatService : IChatControl
 		_world = world;
 		_log = log;
 		_world.ChatReceived += OnChatReceived;
-		_session.SessionEnded += Clear;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	public IReadOnlyList<ChatLine> Recent => _recent;
@@ -101,6 +101,16 @@ public sealed class ChatService : IChatControl
 
 		_log.LogDebug("[Chat] buffer line sender={Sender} len={Length} now={Count}.", senderSteamId, text.Length, _recent.Count);
 		MessageReceived?.Invoke(line);
+	}
+
+	/// <inheritdoc />
+	public void ResetSessionState() => Clear();
+
+	/// <inheritdoc />
+	public void Dispose()
+	{
+		_world.ChatReceived -= OnChatReceived;
+		_session.SessionEnded -= ResetSessionState;
 	}
 
 	private void Clear()

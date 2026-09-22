@@ -35,7 +35,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// </summary>
 public sealed class CraftSyncService(
 	ISessionControl session, PacketSender sender, ItemService items, ItemKernelAuthority kernelAuthority, ItemArbitration arbitration,
-	ILogger<CraftSyncService> log, INativeWorldFacts? nativeWorldFacts = null) : ICraftControl
+	ILogger<CraftSyncService> log, INativeWorldFacts? nativeWorldFacts = null) : ICraftControl, IDisposable
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
@@ -467,4 +467,7 @@ public sealed class CraftSyncService(
 
 	/// <summary>This composition's live recipe table, or null when no reader is registered / no live table exists — never an empty set standing in for "could not read".</summary>
 	private IReadOnlyList<int>? CaptureUnlockedRecipes() => _nativeWorldFacts?.CaptureUnlockedRecipeIndexes();
+
+	/// <inheritdoc />
+	public void Dispose() => _recipeFallback.Unbind();
 }

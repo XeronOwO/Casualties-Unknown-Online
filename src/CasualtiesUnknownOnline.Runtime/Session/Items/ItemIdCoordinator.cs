@@ -22,7 +22,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// per-guest watermark is all the coordination needed.
 /// Split out of ItemService when the 600-line gate demanded it.
 /// </summary>
-public sealed class ItemIdCoordinator
+public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -67,6 +67,9 @@ public sealed class ItemIdCoordinator
 		}
 	}
 
+	/// <inheritdoc />
+	public void Dispose() => _session.MemberAdded -= OnMemberAdded;
+
 	/// <summary>Guest only: an item-instance id was allocated locally — report the counter high-water mark (the host grants it back on a reconnect).</summary>
 	public void SendItemIdWatermark(ulong counter)
 	{
@@ -107,7 +110,7 @@ public sealed class ItemIdCoordinator
 	}
 
 	/// <summary>Session ended: id watermarks and the registration window are session-scoped — a new lobby's host records fresh grants from the new handshakes, and the guest's next world opens its own window.</summary>
-	public void ResetForSessionEnd()
+	public void ResetSessionState()
 	{
 		_watermarks.Clear();
 		_carriedRegistration.Reset();

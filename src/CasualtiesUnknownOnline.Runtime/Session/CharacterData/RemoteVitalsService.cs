@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// player from a previous lobby can never appear with a dead value on the next
 /// run.
 /// </summary>
-public sealed class RemoteVitalsService : IDisposable
+public sealed class RemoteVitalsService : IDisposable, ISessionReset
 {
 	private readonly CharacterDataStore _characterData;
 	private readonly SessionService _session;
@@ -33,7 +33,7 @@ public sealed class RemoteVitalsService : IDisposable
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived += OnHostCharacterDataReceived;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	/// <summary>
@@ -109,7 +109,7 @@ public sealed class RemoteVitalsService : IDisposable
 		}
 	}
 
-	private void OnSessionEnded() => _cache.Clear();
+	public void ResetSessionState() => _cache.Clear();
 
 	private void Update(ulong steamId, CharacterDataMsg data)
 	{
@@ -129,7 +129,7 @@ public sealed class RemoteVitalsService : IDisposable
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived -= OnHostCharacterDataReceived;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 	}
 
 	private sealed class CacheEntry

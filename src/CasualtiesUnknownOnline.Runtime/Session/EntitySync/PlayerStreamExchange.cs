@@ -19,7 +19,7 @@ public sealed class PlayerStreamExchange(
 	ISessionControl session,
 	IEntitySyncControl entities,
 	IKernelProtocolControl kernelProtocol,
-	ILogger log)
+	ILogger log) : ISessionReset
 {
 	/// <summary>Guest side: last applied host stream seq (the unreliable-stream gate).</summary>
 	public uint LastStateSeq { get; set; }
@@ -28,7 +28,7 @@ public sealed class PlayerStreamExchange(
 
 	private uint _nextReportSeq;
 
-	public void ResetSession()
+	public void ResetSessionState()
 	{
 		LastStateSeq = 0;
 		_nextStateSeq = 0;

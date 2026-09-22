@@ -19,7 +19,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// follows the carrier. Both the carrier and the carried player may request
 /// release. Session lifecycle cleanup is owned here.
 /// </summary>
-internal sealed class PlayerCarryService : IDisposable
+internal sealed class PlayerCarryService : IDisposable, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -52,7 +52,7 @@ internal sealed class PlayerCarryService : IDisposable
 		_kernelAuthority = kernelAuthority;
 		_log = log;
 
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 		_session.MemberRemoved += OnMemberRemoved;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 	}
@@ -353,7 +353,7 @@ internal sealed class PlayerCarryService : IDisposable
 
 	// ---- Session cleanup (host-owned carry table + guest mirror) ----
 
-	private void OnSessionEnded()
+	public void ResetSessionState()
 	{
 		_carriedBy.Clear();
 		_carrying.Clear();
@@ -418,7 +418,7 @@ internal sealed class PlayerCarryService : IDisposable
 	/// <summary>Unsubscribe from session lifecycle events.</summary>
 	public void Dispose()
 	{
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 		_session.MemberRemoved -= OnMemberRemoved;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 	}

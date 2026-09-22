@@ -4,6 +4,8 @@
 # reproduces from the working tree, so consistency stays a content comparison.
 # AGENTS.md files are instruction routing, not pages, and are not registered here.
 #
+en/how-to/README.md | f173e540abab439f41dd4f86b080ef7222622116 | zh/how-to/README.md | e5db4ed434daf9dad9df6e9e6a8fb66bf7b5cb45
+en/how-to/send-a-network-message.md | 7bd223928419a5115d47a6ea987f63d5626d90a0 | zh/how-to/send-a-network-message.md | 17d2d5644754217be795ca41f5285a9020add7de
 en/README.md | 1cc622bb6abda71ff72fc8ed83b0b0d99f723883 | zh/README.md | 3b47d132e7bf4849c42cce3dfe386b9dd650da65
 en/reference/glossary.md | 6d353cb72e647381ec133b9784e69fadd53dc59e | zh/reference/glossary.md | cbc4cc4f70fddfc472f2bda3b69805a6eeff2c38
 en/reference/README.md | 8cd6972b48aec5bd990050056c45b687f65842a3 | zh/reference/README.md | bc77861e396de772a59257786d880f456abb6b44

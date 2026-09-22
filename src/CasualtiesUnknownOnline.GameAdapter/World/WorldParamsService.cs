@@ -282,7 +282,7 @@ internal sealed class WorldParamsService(
 	/// host's params (reference identity distinguishes them, but a dead
 	/// marker must never consume the next run's capture).
 	/// </summary>
-	internal void ResetForSessionEnd()
+	internal void ResetSessionState()
 	{
 		_entryParamsCaptured = false;
 		_restorePending = false;

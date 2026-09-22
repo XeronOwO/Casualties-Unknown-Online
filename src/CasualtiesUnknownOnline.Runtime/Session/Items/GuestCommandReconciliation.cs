@@ -101,7 +101,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// remote display clone the guard exists to reject.
 /// </para>
 /// </summary>
-public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKernelPendingCommands
+public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKernelPendingCommands, ISessionReset
 {
 	/// <summary>The re-report cadence: the first repeat goes out one interval after the report's own edge.</summary>
 	internal const long IntervalMs = 5_000;
@@ -139,7 +139,7 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 		_authority = authority;
 		_time = time;
 		_log = log;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 		_authority.CheckpointRestored += OnCheckpointRestored;
 	}
 
@@ -180,7 +180,7 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 
 	void IDisposable.Dispose()
 	{
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 		_authority.CheckpointRestored -= OnCheckpointRestored;
 	}
 
@@ -391,7 +391,7 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 		}
 	}
 
-	private void OnSessionEnded() => ResetPending("the session ended");
+	public void ResetSessionState() => ResetPending("the session ended");
 
 	private void OnCheckpointRestored(GameCheckpoint checkpoint) =>
 		ResetPending($"the world baseline was restored at revision {checkpoint.GlobalRevision}");

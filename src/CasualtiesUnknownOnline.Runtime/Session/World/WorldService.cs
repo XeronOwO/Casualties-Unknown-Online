@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// This facade keeps <see cref="IWorldControl"/> stable for packet handlers and
 /// the Game Adapter without turning one class into a mixed god-object.
 /// </summary>
-public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDisposable
+public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDisposable, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly WorldChannelRelay _channels;
@@ -100,7 +100,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		_kernelAuthority.BatchApplied += _runProjection.OnBatch;
 		_kernelAuthority.BatchCommitted += _runProjection.OnBatch;
 		_kernelAuthority.CheckpointRestored += _runProjection.OnCheckpointRestored;
-		session.SessionEnded += OnSessionEnded;
+		session.SessionEnded += ResetSessionState;
 	}
 
 	public void SetHostRunPending(bool pending) => _startGate.SetHostRunPending(pending);
@@ -145,7 +145,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	// ---- Session reset ----
 
-	private void ResetSessionState()
+	public void ResetSessionState()
 	{
 		_startGate.Reset();
 		_reportFallbacks.Reset();
@@ -160,7 +160,6 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		_blockReports.ResetPendingReports();
 	}
 
-	private void OnSessionEnded() => ResetSessionState();
 
 	/// <summary>
 	/// The world facts the kernel does not own, exposed for the save system's cut
@@ -197,7 +196,8 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		_kernelAuthority.BatchApplied -= _runProjection.OnBatch;
 		_kernelAuthority.BatchCommitted -= _runProjection.OnBatch;
 		_kernelAuthority.CheckpointRestored -= _runProjection.OnCheckpointRestored;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
+		_reportFallbacks.Unbind();
 	}
 
 	// ---- Channel relay ----

@@ -185,7 +185,7 @@ public class WorldTimeLocalInitiationTests
 		initiation.BeginLocalInitiation(WorldTimeSpeed.Fast);
 		initiation.OnAuthoritative(WorldTimeSpeed.Normal, 5f);
 
-		initiation.ResetSession();
+		initiation.ResetSessionState();
 
 		Assert.Equal(WorldTimeSpeed.Normal, initiation.Authoritative);
 		Assert.False(initiation.IsPending);

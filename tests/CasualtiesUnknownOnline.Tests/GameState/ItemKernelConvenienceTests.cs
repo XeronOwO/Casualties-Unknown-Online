@@ -39,7 +39,7 @@ public class ItemKernelConvenienceTests
 		authority.ObserveSpawn(1001, 42, "test_item", 1, 2);
 		Assert.NotNull(authority.FindItem(42));
 
-		authority.ResetForSession();
+		authority.ResetSessionState();
 
 		Assert.Null(authority.FindItem(42));
 	}

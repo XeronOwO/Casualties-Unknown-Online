@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 /// stream use right now?" Reliable control streams are not adapted by this
 /// service; only loss-tolerant streams consult it for a rate.
 /// </summary>
-public sealed class AdaptiveStreamRateService : IDisposable
+public sealed class AdaptiveStreamRateService : IDisposable, ISessionReset
 {
 	private const double MinTrafficWindowElapsedSeconds = 1.0;
 
@@ -34,7 +34,7 @@ public sealed class AdaptiveStreamRateService : IDisposable
 		_traffic = traffic;
 		_stateStreamOptions = stateStreamOptions;
 		_log = log;
-		_traffic.ResetCompleted += Reset;
+		_traffic.ResetCompleted += ResetSessionState;
 	}
 
 	/// <summary>Effective Hz for a unicast stream to one peer.</summary>
@@ -155,13 +155,13 @@ public sealed class AdaptiveStreamRateService : IDisposable
 	}
 
 	/// <summary>Clears the per-session rate-change caches when network health resets.</summary>
-	public void Reset()
+	public void ResetSessionState()
 	{
 		_lastEffectiveHz.Clear();
 		_lastEffectiveIntervalMs.Clear();
 	}
 
-	public void Dispose() => _traffic.ResetCompleted -= Reset;
+	public void Dispose() => _traffic.ResetCompleted -= ResetSessionState;
 
 	private void LogRateChange(
 		AdaptiveStreamId streamId,

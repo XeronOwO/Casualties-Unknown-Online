@@ -493,7 +493,7 @@ internal sealed class RunCoordinator(
 		_hostStartGateAlertPending = false;
 		_hostInWorldSinceMs = 0;
 		_worldFingerprintLogged = false;
-		_params.ResetForSessionEnd();
+		_params.ResetSessionState();
 		// The starting-supplies record is session-scoped: the bodies it holds belong to a world
 		// this client is leaving, and a later run must judge its own. It is cleared here as well
 		// as at a run start, because a session can end with the client still in the world (the

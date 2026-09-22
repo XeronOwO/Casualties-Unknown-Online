@@ -16,7 +16,7 @@ public readonly record struct WorldTimeRampStep(float TimeScale, bool Done);
 /// <see cref="RampSeconds"/> instead of snapping. Pure: no Unity, no clock —
 /// the caller passes its live clock in and applies what this returns.
 /// </summary>
-public sealed class WorldTimeLocalInitiation
+public sealed class WorldTimeLocalInitiation : ISessionReset
 {
 	/// <summary>
 	/// The correction ramp's length in unscaled seconds. It is a presentation
@@ -143,7 +143,7 @@ public sealed class WorldTimeLocalInitiation
 	}
 
 	/// <summary>Session end / host departure: nothing is in flight any more and the shared clock is Normal.</summary>
-	public void ResetSession()
+	public void ResetSessionState()
 	{
 		_phase = Phase.Synced;
 		_authoritative = WorldTimeSpeed.Normal;

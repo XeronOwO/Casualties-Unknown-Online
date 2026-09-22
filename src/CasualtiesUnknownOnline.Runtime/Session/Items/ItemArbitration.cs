@@ -20,7 +20,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 public sealed class ItemArbitration(
 	ISessionControl session,
 	ItemKernelAuthority kernelAuthority,
-	ILogger<ItemArbitration> log)
+	ILogger<ItemArbitration> log) : ISessionReset
 {
 	private readonly ISessionControl _session = session;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
@@ -127,7 +127,7 @@ public sealed class ItemArbitration(
 	/// their table. Unlike <see cref="ClearTransferred"/> this has no role
 	/// gate: the session is already inactive when the teardown event fires.
 	/// </summary>
-	public void ResetForSessionEnd()
+	public void ResetSessionState()
 	{
 		var entries = _transferred.Values.Sum(owned => owned.Count);
 		_transferred.Clear();

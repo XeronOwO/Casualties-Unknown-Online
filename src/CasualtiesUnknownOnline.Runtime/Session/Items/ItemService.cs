@@ -21,7 +21,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// class is deliberately a facade over real top-level responsibilities rather
 /// than a partial-logical god object.
 /// </summary>
-public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldItemLayerReset, IDisposable
+public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldItemLayerReset, IDisposable, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly ILogger<ItemService> _log;
@@ -95,7 +95,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			refusedCreations,
 			_kernelProtocol);
 
-		session.SessionEnded += OnSessionEnded;
+		session.SessionEnded += ResetSessionState;
 	}
 
 	// ===== Item-id coordination =====
@@ -361,18 +361,17 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			_kernelAuthority.QueryItems().Count);
 	}
 
-	private void ResetSessionState()
+	public void ResetSessionState()
 	{
 		CancelRestoredWorldItems("the session ended before the generation reconcile ran");
 		_projection.Clear();
-		_arbitration.ResetForSessionEnd();
-		_idCoordinator.ResetForSessionEnd();
-		_snapshots.ResetForSessionEnd();
+		_arbitration.ResetSessionState();
+		_idCoordinator.ResetSessionState();
+		_snapshots.ResetSessionState();
 		_itemTraffic.Reset();
 		_snapshotStreamReceiver.Reset();
 	}
 
-	private void OnSessionEnded() => ResetSessionState();
 
 	public void Dispose()
 	{
@@ -382,7 +381,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_kernelAuthority.ExternalBatchCommitted -= OnExternalBatchCommitted;
 		_kernelAuthority.BatchApplied -= OnBatchApplied;
 		_kernelAuthority.CheckpointRestored -= OnCheckpointRestored;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
+		_idCoordinator.Dispose();
 	}
 
 	// ===== Generation-time items =====

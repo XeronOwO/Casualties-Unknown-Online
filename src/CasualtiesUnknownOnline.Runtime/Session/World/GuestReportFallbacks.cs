@@ -33,4 +33,12 @@ internal sealed class GuestReportFallbacks(ISessionControl session)
 		_damages.Reset();
 		_breakDrops.Reset();
 	}
+
+	/// <summary>The owning world service is being disposed — release every channel's session subscription.</summary>
+	internal void Unbind()
+	{
+		_blocks.Unbind();
+		_damages.Unbind();
+		_breakDrops.Unbind();
+	}
 }

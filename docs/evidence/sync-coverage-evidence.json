@@ -1508,13 +1508,13 @@
       "cluster": "kernel-protocol",
       "row": "K4",
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
-      "quote": "_session.SessionEnded += ResetForSessionEnd;"
+      "quote": "_session.SessionEnded += ResetSessionState;"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K4",
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
-      "quote": "_batches.ResetForSession();"
+      "quote": "_batches.ResetSessionState();"
     },
     {
       "cluster": "kernel-protocol",
@@ -3368,7 +3368,7 @@
       "cluster": "inline",
       "row": "K4",
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
-      "quote": "public void ResetForSessionEnd()"
+      "quote": "public void ResetSessionState()"
     },
     {
       "cluster": "inline",
@@ -3440,7 +3440,7 @@
       "cluster": "inline",
       "row": "K5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs",
-      "quote": "_playerStream.ResetSession();"
+      "quote": "_playerStream.ResetSessionState();"
     },
     {
       "cluster": "inline",
@@ -4694,7 +4694,7 @@
       "cluster": "inline",
       "row": "R5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamRateService.cs",
-      "quote": "public void Reset()"
+      "quote": "public void ResetSessionState()"
     },
     {
       "cluster": "inline",

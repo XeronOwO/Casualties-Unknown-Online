@@ -22,7 +22,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// disconnect release so the later shrapnel/bandage stages reuse the same
 /// lifecycle.
 /// </summary>
-internal sealed class MedicalOperationSessionService : IMedicalOperationControl, ICuoService
+internal sealed class MedicalOperationSessionService : IMedicalOperationControl, ICuoService, ISessionReset
 {
 	private const float MinimumDeltaMl = 0.01f;
 	private const int OperationTimeoutMs = 15000;
@@ -120,7 +120,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			log);
 
 		_session.MemberRemoved += OnMemberRemoved;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	public event Action<MedicalOperationStartAckMsg>? StartAckReceived;
@@ -449,7 +449,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 		_disposed = true;
 		_session.MemberRemoved -= OnMemberRemoved;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 		_injectionReports.ClearAll();
 		_shrapnel.Dispose();
 		_other.Dispose();
@@ -494,7 +494,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		}
 	}
 
-	private void OnSessionEnded()
+	public void ResetSessionState()
 	{
 		_bodyGate.Clear();
 		_shrapnel.Clear();

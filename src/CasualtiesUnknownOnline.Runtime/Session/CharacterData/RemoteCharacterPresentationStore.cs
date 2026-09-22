@@ -24,7 +24,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// character-data snapshot received for each remote player, so the store keeps
 /// deep copies of those source snapshots as its rebuild baseline.
 /// </summary>
-public sealed class RemoteCharacterPresentationStore : IDisposable
+public sealed class RemoteCharacterPresentationStore : IDisposable, ISessionReset
 {
 	private readonly CharacterDataStore _characterData;
 	private readonly SessionService _session;
@@ -51,7 +51,7 @@ public sealed class RemoteCharacterPresentationStore : IDisposable
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived += OnHostCharacterDataReceived;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	/// <summary>
@@ -104,7 +104,7 @@ public sealed class RemoteCharacterPresentationStore : IDisposable
 		}
 	}
 
-	private void OnSessionEnded() => Clear();
+	public void ResetSessionState() => Clear();
 
 	private void Update(ulong steamId, CharacterDataMsg data)
 	{
@@ -170,6 +170,6 @@ public sealed class RemoteCharacterPresentationStore : IDisposable
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived -= OnHostCharacterDataReceived;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 	}
 }

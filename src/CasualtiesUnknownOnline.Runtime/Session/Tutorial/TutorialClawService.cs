@@ -19,7 +19,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 /// slice — per-side tutorial course state and per-player claw props remain by
 /// design.
 /// </summary>
-public sealed class TutorialClawService : ICuoService, ITutorialClawControl
+public sealed class TutorialClawService : ICuoService, ITutorialClawControl, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -40,7 +40,7 @@ public sealed class TutorialClawService : ICuoService, ITutorialClawControl
 		_time = time;
 		_adaptiveRates = adaptiveRates;
 		_log = log;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	public event Action<TutorialClawStateMsg>? TutorialClawStateReceived;
@@ -102,7 +102,7 @@ public sealed class TutorialClawService : ICuoService, ITutorialClawControl
 	{
 	}
 
-	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
+	public void Dispose() => _session.SessionEnded -= ResetSessionState;
 
 	private void Broadcast()
 	{
@@ -121,7 +121,7 @@ public sealed class TutorialClawService : ICuoService, ITutorialClawControl
 			msg.Seq, msg.HandPosX, msg.HandPosY, msg.HandPosCurrentX, msg.HandPosCurrentY);
 	}
 
-	private void OnSessionEnded()
+	public void ResetSessionState()
 	{
 		_latest = null;
 		_lastSeq = 0;

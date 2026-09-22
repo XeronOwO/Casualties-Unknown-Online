@@ -636,7 +636,7 @@ public class KernelProtocolServiceTests
 
 		// The host is on its second run (epoch 2); this guest process starts at 1
 		// and restores through the real chunked checkpoint path.
-		host.Services.GetRequiredService<ItemKernelAuthority>().ResetForSession();
+		host.Services.GetRequiredService<ItemKernelAuthority>().ResetSessionState();
 		host.Services.GetRequiredService<IKernelProtocolControl>().SendCheckpoint(GuestId);
 
 		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
@@ -662,7 +662,7 @@ public class KernelProtocolServiceTests
 		// The host is on its second run and says so before the entry group: the
 		// instruction carries the identity the member validates that set against.
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
-		hostAuthority.ResetForSession();
+		hostAuthority.ResetSessionState();
 		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
 		host.Services.GetRequiredService<IWorldControl>().SendWorldJoin(isTutorial: false);
 		host.Services.GetRequiredService<IKernelProtocolControl>().SendCheckpoint(GuestId);
@@ -686,7 +686,7 @@ public class KernelProtocolServiceTests
 		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
 		var previousRun = WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint(), TestKernelCodec.Instance);
 
-		hostAuthority.ResetForSession();
+		hostAuthority.ResetSessionState();
 		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
 		host.Services.GetRequiredService<IWorldControl>().SendWorldJoin(isTutorial: false);
 		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
@@ -726,7 +726,7 @@ public class KernelProtocolServiceTests
 		guest.Steam.FireLobbyEntered(LobbyId);
 
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
-		hostAuthority.ResetForSession();
+		hostAuthority.ResetSessionState();
 		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
 
 		// The instruction is what decides, not the set's own stamp and not this side's
@@ -762,7 +762,7 @@ public class KernelProtocolServiceTests
 		// Run 2 reaches this side with NO instruction in front of it (a reconnect's
 		// entry group is sent before the join): that set defines the identity, and the
 		// set that follows it is compared against what it established.
-		hostAuthority.ResetForSession();
+		hostAuthority.ResetSessionState();
 		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
 		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
 		host.Services.GetRequiredService<IKernelProtocolControl>().SendCheckpoint(GuestId);
@@ -789,7 +789,7 @@ public class KernelProtocolServiceTests
 		guest.Steam.FireLobbyEntered(LobbyId);
 
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
-		hostAuthority.ResetForSession();
+		hostAuthority.ResetSessionState();
 		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
 		host.Services.GetRequiredService<IWorldControl>().SendWorldJoin(isTutorial: false);
 		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
@@ -824,7 +824,7 @@ public class KernelProtocolServiceTests
 		guest.Steam.FireLobbyEntered(LobbyId);
 
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
-		hostAuthority.ResetForSession();
+		hostAuthority.ResetSessionState();
 		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
 		host.Services.GetRequiredService<IWorldControl>().SendWorldJoin(isTutorial: false);
 		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
@@ -860,7 +860,7 @@ public class KernelProtocolServiceTests
 		// The host is on run 2 while this guest process is still on 1, so an adopted
 		// restore is visible as the epoch moving.
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
-		hostAuthority.ResetForSession();
+		hostAuthority.ResetSessionState();
 		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
 
 		// Both stamps come from the same checkpoint at send time, so a frame whose

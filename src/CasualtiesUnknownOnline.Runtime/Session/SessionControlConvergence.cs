@@ -46,7 +46,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// (<see cref="ISessionControl.ResendSceneState"/> reports whether it did), so a
 /// session that is not active cannot spend the window on reports that never went out.
 /// </summary>
-internal sealed class SessionControlConvergence : ICuoService
+internal sealed class SessionControlConvergence : ICuoService, ISessionReset
 {
 	/// <summary>The re-report cadence — well inside the guest's 60 s start-gate valve.</summary>
 	internal const long IntervalMs = 5_000;
@@ -93,7 +93,7 @@ internal sealed class SessionControlConvergence : ICuoService
 		_world.WorldReadyReceived += OnGateReleased;
 		_world.WorldSnapshotCompleteReceived += OnEntryGroupComplete;
 		_session.LocalSceneReported += OnLocalSceneReported;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	void ICuoService.Initialize()
@@ -113,7 +113,7 @@ internal sealed class SessionControlConvergence : ICuoService
 		_world.WorldReadyReceived -= OnGateReleased;
 		_world.WorldSnapshotCompleteReceived -= OnEntryGroupComplete;
 		_session.LocalSceneReported -= OnLocalSceneReported;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 	}
 
 	void ICuoService.Update()
@@ -230,7 +230,7 @@ internal sealed class SessionControlConvergence : ICuoService
 
 	private void OnEntryGroupComplete() => _entryGroupComplete = true;
 
-	private void OnSessionEnded() => ResetWindow();
+	public void ResetSessionState() => ResetWindow();
 
 	private string Missing()
 	{

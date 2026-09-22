@@ -21,7 +21,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// deterministic kernel, the run epoch, and the operation-id counter.
 /// </summary>
 public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
-	: IKernelItemFacts, IKernelCommandExecution, IKernelCheckpointSource, IKernelBatchApplication
+	: IKernelItemFacts, IKernelCommandExecution, IKernelCheckpointSource, IKernelBatchApplication, ISessionReset
 {
 	private readonly ILogger<ItemKernelAuthority> _log = log;
 	private readonly HashSet<OperationId> _appliedOperations = [];
@@ -33,7 +33,7 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 
 	/// <summary>Start a fresh authority epoch after a session/run reset.</summary>
-	public void ResetForSession()
+	public void ResetSessionState()
 	{
 		_kernel = new GameStateKernel(new RunEpoch(_kernel.RunEpoch.Value + 1));
 		_nextOperation = 1;
@@ -122,7 +122,7 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	/// The counter is per authority (one per process) and counts ATTEMPTS, not
 	/// archives: restoring the same snapshot twice makes two different writes into the
 	/// live world, so the two must not share an identity. It is deliberately NOT reset
-	/// by <see cref="ResetForSession"/> — it only has to distinguish attempts, and a
+	/// by <see cref="ResetSessionState"/> — it only has to distinguish attempts, and a
 	/// counter that restarted would let a previous session's straggler collide with the
 	/// next session's first restore. A peer's checkpoint cannot move it either: the
 	/// wire checkpoint path is guest-only, and a guest never opens a restore account

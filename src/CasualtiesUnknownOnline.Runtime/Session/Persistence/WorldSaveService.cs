@@ -38,7 +38,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// retention pass — belongs to <see cref="WorldCutTrigger"/>, and the writing half
 /// itself to <see cref="WorldCutWriter"/>.
 /// </summary>
-public sealed class WorldSaveService : IWorldSaveControl, IDisposable
+public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionReset
 {
 	/// <summary>The manifest's cut phase for a cut taken at the layer boundary (§4).</summary>
 	public const string LayerBoundaryCutPhase = "layer-boundary";
@@ -147,7 +147,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_restoreAccount = new WorldRestoreAccountRelay(report => RestoreReported?.Invoke(report), audit);
 
 		_kernel.BatchCommitted += OnBatchCommitted;
-		_session.SessionEnded += OnSessionEnded;
+		_session.SessionEnded += ResetSessionState;
 	}
 
 	public bool IsEnabled => _repository is not null;
@@ -249,7 +249,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	/// that is not the attempt it is open for, or when the half already reported at the
 	/// seam (which is why contributing unconditionally is safe).
 	/// </summary>
-	private void OnSessionEnded() =>
+	public void ResetSessionState() =>
 		_audit?.LiveWriteAbandoned(
 			WorldRestoreHalf.WorldFacts,
 			_worldFacts.AppliedRestoreSequence,
@@ -271,7 +271,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 		_disposed = true;
 		_kernel.BatchCommitted -= OnBatchCommitted;
-		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionEnded -= ResetSessionState;
 		_restoreAccount.Dispose();
 
 		// A clean shutdown refreshes no lease: releasing it here is what keeps the next

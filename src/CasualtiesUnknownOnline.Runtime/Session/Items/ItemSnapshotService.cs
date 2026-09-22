@@ -21,7 +21,7 @@ public sealed class ItemSnapshotService(
 	ISessionControl session,
 	Func<IReadOnlyCollection<WorldItem>> worldItems,
 	IKernelProtocolControl kernelProtocol,
-	ILogger log)
+	ILogger log) : ISessionReset
 {
 	private readonly ISessionControl _session = session;
 	private readonly Func<IReadOnlyCollection<WorldItem>> _worldItems = worldItems;
@@ -49,7 +49,7 @@ public sealed class ItemSnapshotService(
 	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? WorldItemsSnapshotReceived;
 
 	/// <summary>Session ended: the layer-modifier projection belongs to the previous world — the next run publishes its own.</summary>
-	public void ResetForSessionEnd()
+	public void ResetSessionState()
 	{
 		LayerModifierIndex = -1;
 		LayerModifierRandomState = null;

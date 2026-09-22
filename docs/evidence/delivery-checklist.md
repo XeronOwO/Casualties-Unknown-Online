@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: bilingual-human-guide-selfcheck mechanism table (8 rows), each row naming the gate case that proves it
+      file:line or runtime log) or is explicitly marked unverified — evidence: composition-root-modules-selfcheck mechanism table (6 rows); the review re-censused the tree independently (94 subscriptions)
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the layer rule applied to every index (docs, guide, developer, i18n, the AGENTS.md chain) and all 15 topics; the inverse check refuses a stray pair artifact anywhere else
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: bilingual-human-guide-selfcheck (8 mechanism rows); every check has a real-tree run plus a synthetic contract case
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all four unpaired session-lifecycle subscriptions fixed in the same round; the fifth spelling (ResetSession) retired; the Application exemption asserted complete
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: composition-root-modules-selfcheck (6 mechanism rows), each naming the gate fact that proves it; 6 matcher-contract cases in the new gate
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: pairing gate 9/9, gates project 128/128, suite 3795/3795; two real-tree controls (an edited side is named, a stray .zh.md is refused); no real-client claim
+      peer log comparison, hotrepl assertions) is decided — evidence: order pin (18 ICuoService names + content sources + handler discovery), gates 139/139, suite with build 3797 + 139; no real-client claim
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: ticket taken as the handoff ordered it, under the owner's standing "finish every remaining todo, then come back"
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; gates project 127/128 before these boxes and 128/128 after them; suite with build 3795/3795
+      process violation — evidence: the ticket was taken as the handoff ordered it, under the owner's standing instruction; its design decisions are recorded in the ticket itself
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; gates 139/139; full suite with build 3797 + 139 passing
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: HumanDocsPairing 562 lines, HumanDocsPairingGateTests 291 lines, docs/AGENTS.md 711 bytes; no new state field and no dead member left
+      dead mechanisms deleted in the same round) — evidence: CuoBootstrap 586 to 156 lines; 12 composition modules at most 97 lines; two dead members deleted with their reason; no new state field
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

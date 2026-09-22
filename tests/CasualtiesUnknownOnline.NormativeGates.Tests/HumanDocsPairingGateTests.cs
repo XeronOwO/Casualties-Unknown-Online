@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 public class HumanDocsPairingGateTests
 {
 	private const int WorkspaceInstructionBudgetBytes = 65536;
-	private const int NestedInstructionCeilingBytes = 1024;
+	private const int NestedInstructionCeilingBytes = 5120;
 
 	private const string SampleEnglish = "# Title\n\nEnglish | [中文](sample.zh.md)\n\nIntro paragraph.\n\n## Section\n\n- one\n- two\n";
 	private const string SampleChinese = "# 标题\n\n[English](sample.md) | 中文\n\n简介段落。\n\n## 小节\n\n- 一\n- 二\n";

@@ -4,51 +4,39 @@ Instructions for AI coding agents and contributors working in this repository.
 
 ## Document Scope & Classification
 
-- `AGENTS.md` is the shared, portable rule set for every contributor.
-- `AGENTS.local.md` is the machine/person-specific companion: local paths, personal
-  preferences, execution detail, and past mistakes. It is gitignored and never committed.
-- The same rule may exist in both files. `AGENTS.md` states the objective/general principle;
-  `AGENTS.local.md` carries the local detail, examples, and rationale. Where both state the
-  same rule, this file is authoritative for the rule and the local file for execution.
-- Language: this repository is global — contributors and readers may have any native
-  language — so committed content is written in English, the shared working language. Another
-  language is appropriate only where the deliverable explicitly targets that language's
-  audience (localized resources, a community-specific project). Personal, uncommitted
-  communication follows the owner's own preference, recorded in `AGENTS.local.md`.
-- Documentation layers: an agent document answers "how do I do the work" and is English only; a
-  human guide answers "what is this product" and is paired English + Chinese under `docs/guide/`
-  and `docs/developer/`. The layer rule, the pairing contract and the maintenance workflow are
-  `docs/i18n/README.md`; `docs/AGENTS.md` carries the rules for that subtree.
-- Requirement triage: personal/specific → `AGENTS.local.md`; shared/beneficial → this file or
-  `docs/`; ambiguous → ask the user.
-- This repository is the long-term reference implementation for these standards. New projects
-  should adopt rules and gates from here rather than duplicating them in a global agent file.
+- `AGENTS.md` (this file) is the shared, portable rule set. `AGENTS.local.md` is the machine- and
+  person-specific companion — local paths, personal preference, execution detail, past mistakes — and is
+  gitignored and never committed. The same rule may exist in both: this file is authoritative for the
+  rule, the local file for execution.
+- Committed content is English, the shared working language. Another language is appropriate only where
+  the deliverable targets that language's audience; the human documentation is that case, paired
+  English + Chinese under `docs/en/` and `docs/zh/`.
+- This file binds and routes; the pages it links carry the detail, the examples and the long lists. Read
+  the linked page before working in that area.
+- Requirement triage: personal or machine-specific → `AGENTS.local.md`; shared or generally beneficial →
+  this file or `docs/`; ambiguous → ask the user.
+- This repository is the long-term reference implementation for these standards; new projects adopt its
+  rules and gates rather than duplicating them in a global agent file.
+
+[REF] Document system: `docs/AGENTS.md` (binding, auto-loaded under `docs/`) ·
+Contributor pages: `docs/en/contributing/README.md` ·
+Architecture: `docs/architecture/current.md` · Decisions: `docs/decisions/active.md` ·
+Evidence: `docs/evidence/verification.md` · Backlog: `docs/backlog/README.md`.
+Binding architecture and sync rules — host-authoritative ownership, judgment ownership, latency never a
+judgment input, accept-first arbitration, dedicated events over snapshots — are still detail in
+`docs/development/agent-reference.md` until they are rewritten into the internals pages
+(`docs/en/internals/`, being written).
 
 ## Project Overview
 
-**Casualties Unknown: Online (CUO)** is a BepInEx multiplayer mod framework for
-*Casualties Unknown* (Demo). The game has no multiplayer; CUO adds Steam-based
-Host + Guests co-op by reorganizing local-only game state into host-authoritative
-simulation with guest input/state sync.
+**Casualties Unknown: Online (CUO)** is a BepInEx multiplayer mod framework for *Casualties Unknown*
+(Demo). The game has no multiplayer; CUO adds Steam-based Host + Guests co-op by reorganizing local-only
+game state into a host-authoritative simulation with guest input/state sync.
 
-- Stable **CUO Runtime**: protocol, host/guest state machine, mod loading, serialization,
-  tick/snapshot, logging, version negotiation.
-- Replaceable **Game Adapter**: the only layer that knows the game's private types and
-  absorbs game-update churn.
-
-[REF] Active architecture: `docs/architecture/README.md` ·
-Current design: `docs/architecture/current.md` ·
-Decisions: `docs/decisions/active.md` · Evidence: `docs/evidence/verification.md`.
-
-## Reference material (moved out of this file 2026-09-17)
-
-The harness auto-loads this file under a byte budget, so the three sections below — BINDING detail,
-not background — now live in `docs/development/agent-reference.md`. Read the matching section before
-working in that area:
-
-- **Repository layout** — the project map and what each project may reference.
-- **Architecture & sync rules** — the host-authoritative / kernel / domain rules in full.
-- **Known pitfalls** — the recurring traps list.
+- Stable **CUO Runtime**: protocol, host/guest state machine, mod loading, serialization, tick/snapshot,
+  logging, version negotiation.
+- Replaceable **Game Adapter**: the only layer that knows the game's private types and absorbs
+  game-update churn.
 
 ## Build & Commit Gates
 
@@ -58,298 +46,203 @@ dotnet test CasualtiesUnknownOnline.slnx          # must pass before every commi
 dotnet format CasualtiesUnknownOnline.slnx        # mandatory before every commit
 ```
 
-- `[GATE]` All of the above must pass before commit; `dotnet format` is build-enforced.
-- `[RULE]` `dotnet test` also runs `tests/CasualtiesUnknownOnline.NormativeGates.Tests`: the
-  Roslyn fully-qualified-name gate plus C# unit-test ports of the former `tools/check-*.ps1`
-  source/repo/process gates. The rule-to-gate map is `docs/evidence/normative-gates.md`.
-- `[RULE]` Pure documentation-only changes (no `src/`, `tests/`, or `tools/` modifications)
-  skip build/test/gates; review the diff and commit directly. If docs describe a code change,
-  commit them with the code change and run the gates in that same commit.
-- `[RULE]` Test parallelism is contract, not accident. The xUnit v2 runner configuration is
-  `tests/CasualtiesUnknownOnline.Tests/xunit.runner.json`; a test class that writes a
-  process-global static field must join the `GameAssembly` collection
-  (`tests/CasualtiesUnknownOnline.Tests/Patching/GameAssemblyCollection.cs`, enforced by
-  `TestIsolationGateTests`); the test composition must not write a per-node rolling log file
-  (`tests/CasualtiesUnknownOnline.Tests/Fakes/TestLogging.cs`). Keep test classes small enough
-  that no single class dominates the run, and record runtime changes with the three-run median
-  method in `docs/evidence/test-parallelization.md`. Behavior-family splits share stateless
-  helpers and must never duplicate `MemberData` rows (kind shards must stay a partition,
-  asserted by a guard test); a class may share a read-only query facade as an `IClassFixture`
-  (e.g. `DirectionProbe`, which exposes only pure queries and keeps its nodes private), but
-  never a mutable session/world fixture.
+- `[GATE]` All three pass before a commit; `dotnet format` is build-enforced. `dotnet test` also runs
+  `tests/CasualtiesUnknownOnline.NormativeGates.Tests`, the Roslyn fully-qualified-name gate plus the C#
+  ports of the former `tools/check-*.ps1` gates; the rule-to-gate map is
+  `docs/evidence/normative-gates.md`.
+- `[RULE]` A pure documentation change — no `src/`, `tests/` or `tools/` modification — skips build, test
+  and format: review the diff and commit directly. Documentation that describes a code change is
+  committed with that code and the gates run in the same commit.
+- `[RULE]` Test parallelism is contract, not accident: the runner configuration, the `GameAssembly`
+  collection for a class that writes a process-global static, no per-node rolling log file, the 40-case
+  ceiling per test class, the rule that behaviour-family splits never duplicate `MemberData` rows, and
+  the `1x` thread cap. Measured numbers and the three-run median method:
+  `docs/evidence/test-parallelization.md`.
 - `[RULE]` Test feedback tiers: a class that constructs the production composition root, a full
-  simulation world/replay harness, a shared full-stack fixture, the game-assembly reflection
-  host (`GameAssemblyHost`), or real loopback sockets (`IpDirectTransport`) carries
-  `[Trait("Category", "Integration")]`; untagged classes form the fast inner loop. Use
-  `dotnet test ... --filter "Category!=Integration"` for that loop and
-  `--filter "FullyQualifiedName~X"` to target one class or family. The classification and
-  measured subset size are recorded in `docs/evidence/test-parallelization.md` §9.
-- `[RULE]` Anti-rot: no test class may exceed 40 real xUnit cases/data rows (including
-  `MemberData` expansion). `TestClassSizeGateTests.NoTestClass_ExceedsTheCaseLimit` enforces
-  the cap at runtime and its counting/limit contract is asserted by
-  `CaseCounting_SeesMemberDataRowsAndFlagsTheLimit`. Split an oversized class by behaviour
-  family; raising the cap requires the same measured evidence as a stage change.
-- `[RULE]` The runner thread cap stays `1x` (logical processor count). The `2x` and fixed
-  `10`/`12`/`14` alternatives were measured; summed test time inflates with concurrency and
-  must never be compared across thread settings. See
-  `docs/evidence/test-parallelization.md` §7.5 and §9.
-- Target: `net48`, `LangVersion = preview`, nullable enabled, warnings-as-errors.
+  simulation world/replay harness, a shared full-stack fixture, the game-assembly reflection host or real
+  loopback sockets carries `[Trait("Category", "Integration")]`; untagged classes are the fast inner
+  loop (`--filter "Category!=Integration"`).
+- Target `net48`, `LangVersion = preview`, nullable enabled, warnings as errors.
 - NuGet sources: nuget.org + nuget.bepinex.dev + nuget.samboy.dev.
-- Game assemblies are copyrighted and only the Game Adapter may reference them.
-- Packaged plugin deploys via `tools/deploy.ps1`, and the deployment is verified against this
-  tree's build output by `tools/verify-deploy.ps1` (machine path in `AGENTS.local.md`).
+- Game assemblies are copyrighted: only the Game Adapter may reference them.
+- `[RULE]` The packaged plugin deploys via `tools/deploy.ps1 -GameDir "<game-dir>"` and the deployment is
+  verified against this tree's build output by `tools/verify-deploy.ps1`; machine paths live in
+  `AGENTS.local.md`.
+- Detail: `docs/en/contributing/build-and-test.md`.
 
 ## Engineering Discipline
 
-Standards are "done well, not just done". Delivering means passing three reviews before
-hand-off: **architecture** (single responsibility, clean dependencies), **tests** (runtime
-verification of behavior), and **maintainability** (readable and changeable by the next
-person). "It runs" is the floor, not the goal.
+Standards are "done well, not just done". Delivering means passing three reviews before hand-off:
+**architecture** (single responsibility, clean dependencies), **tests** (runtime verification of
+behaviour) and **maintainability** (readable and changeable by the next person). "It runs" is the floor,
+not the goal.
 
-- `[CRITICAL]` No shortcuts: take the proper path when one exists. Manual workarounds, hard
-  coding, copy-paste, and skipped tests borrow against the future.
-- `[CRITICAL]` Pragmatism is not a shield: a suboptimal choice needs an architectural reason,
-  not "not enough time". Do the right thing once.
-- `[CRITICAL]` Root cause over patch stacking: first ask whether an architecture change can
-  eliminate the cause; do not default to piling on features or patches. Do not avoid a needed
-  refactor out of fear of churn — the cost moves, it does not disappear.
-- `[RULE]` Pragmatic future-proofing: leave room for foreseeable evolution, do not pre-build
-  for imagined futures. "We'll deal with it later" is not a default excuse.
-- `[CRITICAL]` Compatibility is never a design input. The compatibility boundary is the
-  protocol-version check at handshake — the host refuses a peer whose `HandshakeMsg.Protocol`
-  differs and the guest ends the session on a mismatched `HandshakeAckMsg.Protocol` — so a change
-  never has to keep an old wire or save shape alive, retain a legacy field, or pick a weaker
-  mechanism to avoid a version bump. Change the wire the mechanism needs and bump
-  `ProtocolVersion.Current` in the same change (`docs/decisions/active.md` holds the numbering
-  policy). "No wire change" / "host untouched" are facts worth recording, never merits or
-  constraints in a design argument — this holds before AND after release.
-- `[RULE]` Self-review happens before hand-off, not after review: structure the change the
-  moment a feature or fix is finished.
-- `[CRITICAL]` Tests must cover core scenarios plus edge, exception, and failure paths.
-  Happy-path-only coverage never proves "done well".
-- `[CRITICAL]` Every key path and logical branch must be observable; choose log level by
-  trigger frequency (high-frequency → Verbose/Debug, low-frequency/exceptional → Warn/Error).
-  Logs carry the context needed to locate a failure: branch, state, ids, input, result. An
-  unobservable key path is unfinished; the standard is "one pass of logging is enough", not
-  "change code → deploy → reproduce → add logs".
+- `[CRITICAL]` No shortcuts: take the proper path when one exists. Manual workarounds, hard coding,
+  copy-paste and skipped tests borrow against the future.
+- `[CRITICAL]` Pragmatism is not a shield: a suboptimal choice needs an architectural reason, not "not
+  enough time". Do the right thing once.
+- `[CRITICAL]` Root cause over patch stacking: ask first whether an architecture change can eliminate the
+  cause. Do not pile on features or patches, and do not avoid a needed refactor out of fear of churn —
+  the cost moves, it does not disappear.
+- `[RULE]` Pragmatic future-proofing: leave room for foreseeable evolution, do not pre-build for imagined
+  futures. "We'll deal with it later" is not a default excuse.
+- `[CRITICAL]` Compatibility is never a design input, before and after release. The boundary is the
+  protocol-version check at handshake — the host refuses a peer whose `HandshakeMsg.Protocol` differs and
+  the guest ends the session on a mismatched `HandshakeAckMsg.Protocol` — so a change never has to keep
+  an old wire or save shape alive, retain a legacy field, or pick a weaker mechanism to avoid a version
+  bump: change the wire the mechanism needs and bump `ProtocolVersion.Current` in the same change
+  (`docs/decisions/active.md` holds the numbering policy). "No wire change" and "host untouched" are
+  facts worth recording, never merits or constraints in a design argument.
+- `[RULE]` Self-review happens before hand-off, not after review.
+- `[CRITICAL]` Tests cover core scenarios plus edge, exception and failure paths. Happy-path-only
+  coverage never proves "done well".
+- `[CRITICAL]` Every key path and logical branch must be observable; choose the log level by trigger
+  frequency (high-frequency → Verbose/Debug, low-frequency or exceptional → Warn/Error) and carry the
+  context that locates a failure: branch, state, ids, input, result. An unobservable key path is
+  unfinished; the standard is "one pass of logging is enough".
+- Detail: `docs/en/contributing/gates-and-rules.md`.
 
 ## Engineering Conventions (binding)
 
-1. `[RULE]` English by default in all code, comments, and committed docs (see
-   *Document Scope & Classification* for the language boundary).
-2. `[RULE]` Modern idiomatic C#: `var`, nullable, `is null`/`is not null`, using aliases for
-   name collisions. **Unity objects are the exception**: use `== null` / `!= null` because the
+1. `[RULE]` English by default in all code, comments and committed docs (see *Document Scope &
+   Classification* for the language boundary).
+2. `[RULE]` Modern idiomatic C#: `var`, nullable, `is null`/`is not null`, collection expressions, using
+   aliases for name collisions. **Unity objects are the exception**: `== null` / `!= null`, because the
    overload detects scene-reload-destroyed objects.
-3. `[RULE]` Evidence-based changes: cite decompiled sources (`reversing/`, file:line — that tree
-   is never edited, so its line numbers are stable) before touching code. For our own `src/` and
-   `tests/`, cite the path plus the quoted text and never a line number: a line number drifts
-   with every edit above it and then has to be re-pointed by hand, while the quoted text is what
-   the claim actually rests on. Fix root causes, not symptoms.
-4. `[CRITICAL]` **Absolute-machine-path red line**: no absolute machine path may ever enter
-   git. Existing tracked absolute paths must be removed, not merely left as historical debt.
-   Local machine paths belong only in gitignored `AGENTS.local.md` or in placeholders such as
-   `<game-dir>`, `<sandbox-root>`. No drive-letter path, UNC path, or any Unix-style absolute
-   path rooted at home, user, temp, var, opt, etc may appear in tracked files. Enforced by
+3. `[RULE]` Evidence-based changes: cite decompiled sources (`reversing/`, file:line — that tree is never
+   edited, so its line numbers are stable) before touching code; for our own `src/` and `tests/` cite the
+   path plus the quoted text and never a line number. Fix root causes, not symptoms.
+4. `[CRITICAL]` **Absolute-machine-path red line**: no absolute machine path may ever enter git — no
+   drive-letter path, UNC path or Unix-style path rooted at home, user, temp, var or opt. Existing
+   tracked absolute paths are removed, not left as historical debt. Local paths belong only in gitignored
+   `AGENTS.local.md` or in placeholders such as `<game-dir>`, `<sandbox-root>`. Enforced by
    `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`.
-5. `[RULE]` Self-learning: record reusable, generalizable knowledge in `AGENTS.md`, `docs/`,
-   or memory; be selective.
-6. `[RULE]` Patch hooks report only verified writes; a Prefix that swallows a write must not let
-   the same Postfix report it. Re-read the written state or pass the verdict explicitly.
-7. `[RULE]` Prefer `using` directives / `using` aliases over fully qualified type names; use
-   fully qualified names only when unavoidable (e.g., HotRepl eval, where `using` is
-   unavailable). Enforced by the Roslyn gate in `FullyQualifiedNameGateTests`.
-8. `[RULE]` Reuse the game's existing native UI whenever a player-facing feature already has
-   one (e.g., backpack, medical panel); do not build a parallel CUO UI to replace it. Prefer a
-   thin adapter focus + patches. If a native UI cannot be reused, record the concrete blocker
-   with evidence and get user direction before adding custom UI.
-9. `[RULE]` **Ask on functional design; execute on implementation**: when the functional design
-   is ambiguous, has multiple reasonable options, or has user-visible tradeoffs, research
-   reference implementations first (e.g. KrokMP, native mechanisms, user-provided references)
-   and still ask the user and confirm the direction before coding. Being allowed to work
-   autonomously is not permission to decide unilaterally, and "build it first, discuss later"
-   is not design confirmation. Once the design and requirements are clear, follow the project
-   specifications and this file without asking about routine implementation details; ask only
-   when a decision is architecture-affecting or not covered by the conventions. **Which backlog
-   item to work on next, and in what order, is not such a decision**: take it from the ticket's
-   own priority, its dependencies and the handoff's suggested order, and proceed — asking the
-   user to pick between work items hands the agent's own judgement back to them.
-10. `[RULE]` **Future backlog items are not work items.** `future/` means "deferred by
-    decision", not "pending implementation". Future items are not included in handoff prompts
-    and are not proactively implemented unless the user explicitly promotes them to `todo/`
-    because a clear need has appeared.
-11. `[RULE]` **Large or multi-stage work is split into stages, not one umbrella ticket.** A
-    ticket that needs deep analysis must say so and be split into stages/steps that each
-    produce verifiable results; do not hide multi-stage work behind one vague todo and do not
-    discover the wrong direction after a big-bang change. Once split, the original umbrella
-    ticket may be dropped — do not keep a parent ticket with no independent incremental value.
-12. `[RULE]` **Empty directories** that must stay in the repository use a 0-byte `.gitkeep`
-    file; do not substitute a placeholder document, and do not leave an untracked empty
-    directory.
-13. `[RULE]` **Extension methods** use the C# 14 `extension` syntax — it is a strict superset of the
-    classic `this X` form (methods plus properties, static members and operators, with the receiver
-    named once in an `extension(T receiver)` block) and it compiles to the same call sites, so there
-    is no case for writing the classic form. Migrate one on sight rather than leaving both styles in
-    the tree; `SourceShapeGateTests.ExtensionMethods_UseTheCsharp14ExtensionSyntax` fails on a new
-    classic declaration. This is an implementation detail and does not need a user round trip.
-14. `[RULE]` **Minimum visibility, declared stability**: a type or member defaults to the narrowest
-    visibility its implementation needs; only a capability that is designed, documented and reviewed
-    becomes a public third-party contract, and `Runtime`/`GameAdapter` are implementations a mod may
-    patch but is never promised. The `Abstractions` public surface is a recorded, gate-enforced
-    baseline (`docs/api/abstractions-api-baseline.txt`, `ApiSurfaceGateTests`): an addition or a
-    removal fails until the baseline is reviewed and updated, a removal names its reason, and a
-    surface that is not `Stable` declares its level with `[ApiStability]`
+5. `[RULE]` Self-learning: record reusable, generalizable knowledge in this file, `docs/`, or memory; be
+   selective.
+6. `[RULE]` Patch hooks report only verified writes: a Prefix that swallows a write must not let the same
+   Postfix report it. Re-read the written state or pass the verdict explicitly.
+7. `[RULE]` Prefer `using` directives and aliases over fully qualified type names; use a fully qualified
+   name only when unavoidable (a HotRepl eval has no `using`). Enforced by `FullyQualifiedNameGateTests`.
+8. `[RULE]` Reuse the game's existing native UI whenever a player-facing feature already has one; do not
+   build a parallel CUO UI to replace it, and prefer a thin adapter plus patches. If a native UI cannot
+   be reused, record the concrete blocker with evidence and get user direction before adding custom UI.
+9. `[RULE]` **Ask on functional design, execute on implementation**: research and confirm a design that is
+   ambiguous, has several reasonable options or has user-visible trade-offs; do not ask about routine
+   implementation detail once design and requirements are clear. **Which backlog item to work on next,
+   and in what order, is not such a decision** — take it from the ticket's priority, its dependencies and
+   the handoff's order.
+10. `[RULE]` **Future backlog items are not work items**: `future/` means "deferred by decision", not
+    "pending implementation", and those items are implemented only when the user promotes them.
+11. `[RULE]` **Large or multi-stage work is split into stages** that each produce a verifiable result; the
+    original umbrella ticket may then be dropped.
+12. `[RULE]` **Empty directories** that must stay in the repository carry a 0-byte `.gitkeep`.
+13. `[RULE]` **Extension methods** use the C# 14 `extension` syntax, a strict superset of the classic
+    `this X` form that compiles to the same call sites; migrate one on sight.
+    `SourceShapeGateTests.ExtensionMethods_UseTheCsharp14ExtensionSyntax` fails on a new classic
+    declaration. This is an implementation detail and needs no user round trip.
+14. `[RULE]` **Minimum visibility, declared stability**: only a capability that is designed, documented
+    and reviewed becomes a public third-party contract, and `Runtime`/`GameAdapter` are implementations a
+    mod may patch but is never promised. The `Abstractions` public surface is a recorded, gate-enforced
+    baseline (`docs/api/abstractions-api-baseline.txt`, `ApiSurfaceGateTests`): an addition or removal
+    fails until the baseline is reviewed and updated, a removal names its reason, and a surface that is
+    not `Stable` declares its level with `[ApiStability]`
     (`docs/api/advanced-modification-policy.md`).
+
+Rationale, the gate behind each item and the full statements: `docs/en/contributing/gates-and-rules.md`.
 
 ## Development Workflow (binding)
 
-Applies to all normal work — features, bug fixes, user-facing changes, and internal
-improvements. It is not reserved for previously rejected items or user-reported problems.
+Applies to all normal work — features, bug fixes, user-facing changes and internal improvements — not
+only to previously rejected items or user-reported problems.
 
-**Hard order:** understand → mechanism inventory → plan + self-check table → user approval
-(large changes only) → red test (defects only) → implement → build/gates → deploy → runtime
-verification → independent adversarial self-check → structure review → commit.
+**Hard order:** understand → mechanism inventory → plan + self-check table → user approval (large
+changes only) → red test (defects only) → implement → build/gates → deploy → runtime verification →
+independent adversarial self-check → structure review → commit.
 
-1. **Frame the task from the user's perspective.**
-   - For user-reported issues: write the exact reproduction steps, expected behavior, and an
-     acceptance matrix covering roles, directions, views, and related families.
-   - For feature work: state the functional intent, user-visible behavior, and scope before
-     coding.
-2. **Resolve functional design before implementation.** If the functional design is ambiguous
-   or has user-visible tradeoffs, research references and ask the user; confirm the direction
-   before implementing. Once design and requirements are clear, proceed autonomously on
-   implementation detail and do not over-ask.
-3. **Check for reusable game UI/mechanisms first.** If the game already has a native surface
-   for the feature, reuse it. If not, document the evidence and get user direction before
-   building custom UI.
-4. **Make the expected failure visible before fixing (defects only).** For user-reported issues
-   and bug fixes, add a regression test or runtime probe that fails on current code, covering
-   the reported scenario and adjacent scenarios, and record the red before implementing. New
-   feature development writes behavior tests directly and does not need a pre-implementation
-   red: with no pre-existing defect there is nothing meaningful to see fail. Red→green is a
-   hard gate for defects: if implementation was made without first seeing the regression test
-   fail, stop and go back to the pre-fix code to record the red before presenting. "The test
-   passes now" is not a substitute for having observed it fail, and a compile error caused by a
-   missing type is not a red. The red step only needs the focused failing test to run; the full
-   suite runs after the fix is in place.
-5. **Implement, then verify against the full matrix.** Build → deploy the latest artifacts →
-   verify deployed artifact identity (hash/timestamp) → run runtime/log/dual-client checks
-   where applicable → confirm every row of the acceptance matrix passes before moving to
-   `review/`. A build that passes without the latest DLLs running is not completion.
-6. **Run an independent adversarial self-check BEFORE the commit.** Use a fresh/independent
-   context (an independent subagent, not the same reasoning path that produced the change).
-   Cover reverse directions, third-party views, edge cases, and regressions of adjacent
-   features. Start it against the FROZEN working tree: implement, run the affected tests and
-   `dotnet format`, then stop editing until the report comes back, and spend that window on
-   non-conflicting work (deployment build, doc drafts, evidence collection). Fix its findings
-   in the SAME commit — a review run after the commit turns every finding into a second commit
-   with its own format + full-suite + deploy + hash-verification round, which is the largest
-   avoidable cost of a cycle (measured 2026-09-17: one extra full round). Editing files while
-   the review runs invalidates its conclusions, so freeze or restart it. Ask for an INTERIM report at
-   the reviewer's first milestone (the reviewer can message the parent): use it to triage and prepare,
-   but do not edit until the final report lands. A reusable prompt template — with the FULL and
-   NARROWED risk tiers, and the rule that every claim copied from an older document must be re-checked
-   against the current tree — lives in `docs/development/review-prompt.md`.
-7. **When a delivery is rejected or verification fails, run a root-cause loop.** Analyze "why
-   was it missed", record the process lesson, and fix the leak before moving on. Moving the
-   ticket back is not enough.
-8. **Keep incomplete or unverified work open.** Do not claim completion, do not reclassify
-   known gaps as future, and do not move to `review/` until the exact scenario and full
-   acceptance matrix are verified.
-9. **Budget the working context; hand off at phase boundaries.** Batching is for small,
-   strongly related work only — never for several large tasks in one sitting. After each task,
-   or each phase of a multi-stage task, evaluate how much context is already consumed (long
-   documents read, large source files, independent review rounds, full-suite runs). When it is
-   close to full, stop at the phase boundary: do not start the next large task, and instead emit
-   a handoff prompt for a fresh session that states what landed, what is verified, and what
-   comes next. An exhausted context produces shallow work, which is a quality failure, not a
-   time problem.
+1. `[RULE]` **Frame the task from the user's perspective**: reproduction steps, expected behaviour and an
+   acceptance matrix (roles, directions, views, related families) for a user-reported issue; functional
+   intent, user-visible behaviour and scope for feature work.
+2. `[RULE]` **Resolve functional design before implementation**: research reference implementations and
+   ask the user when the design is ambiguous or has user-visible trade-offs; once it is clear, proceed
+   autonomously on implementation detail.
+3. `[RULE]` **Check for a reusable native game UI or mechanism first.**
+4. `[GATE]` **Defects only: make the expected failure visible before fixing.** Add a regression test or
+   runtime probe that fails on the current code, covering the reported scenario and its neighbours, and
+   record the red before implementing. A compile error caused by a missing type is not a red, and "the
+   test passes now" is no substitute for having observed it fail.
+5. `[GATE]` **Implement, then verify against the full matrix**: build → deploy the latest artifacts →
+   verify the deployed artifact identity (hash/timestamp) → runtime and log checks where applicable →
+   every acceptance row passes. A build that passes without the latest DLLs running is not completion.
+6. `[GATE]` **Run an independent adversarial self-check BEFORE the commit**, in a fresh context (an
+   independent subagent, not the reasoning path that produced the change) and against the FROZEN working
+   tree; cover reverse directions, third-party views, edge cases and adjacent regressions. Fix its
+   findings in the SAME commit. Request an interim report at the reviewer's first milestone; do not edit
+   until the final report lands. Template, with the FULL and NARROWED tiers:
+   `docs/development/review-prompt.md`.
+7. `[RULE]` **A rejected delivery or a failed verification runs a root-cause loop**: analyse why it was
+   missed, record the process lesson, fix the leak. Moving the ticket back is not enough.
+8. `[CRITICAL]` **Keep incomplete or unverified work open**: no completion claim, no reclassifying a
+   known gap as "future", no moving on before the exact scenario and the full acceptance matrix are
+   verified.
+9. `[RULE]` **Budget the working context; hand off at phase boundaries**: after a task, or a phase of a
+   multi-stage task, judge how much context is spent and stop at the boundary with a handoff that states
+   what landed, what is verified and what comes next — an exhausted context produces shallow work.
+
+Detail: `docs/en/contributing/review-and-delivery.md`.
 
 ### Quality & Delivery
 
-- `[CRITICAL]` No self-assumption: every claim needs source evidence (the path plus the quoted
-  text, never a line number) or runtime evidence. The runtime is the judge, not the plan. A paper
-  review is not a review: key paths need instrumentation or a runtime tool to prove them; ask
-  "how does this chain get proven at runtime?" before hand-off.
-- `[CRITICAL]` **Fix the family, not just the reported case**: when fixing a problem, do not stop
-  at the single symptom or function. Actively inspect similar functions, sibling mechanisms,
-  and other modules for the same defect pattern; align the whole family in the same cycle, or
-  record a backlog item if the remaining cases are genuinely out of scope.
-- `[CRITICAL]` **User-found issues are hard release blockers**: every issue reported by the user
-  must be fixed until the exact reproduction is resolved and verified, not merely until
-  tests/gates pass. Do not stop at "unit tests are green", do not leave a known failing
-  scenario as future work, and do not move it to `review/` while any part of the user-reported
-  behavior is still unverified. Only stop when the fix is demonstrably complete against the
-  user's scenario and no known regression remains; if an external blocker prevents completion,
-  state it explicitly and keep the issue open rather than declaring it done.
-- `[CRITICAL]` **Deployment/artifact verification is part of completion**: after any runtime
-  behavior change, build and deploy the latest artifacts, then verify the deployed artifact
-  identity (hash/timestamp) before reporting the change as complete. A build passing without
-  the latest DLLs running is not completion.
-- `[CRITICAL]` **Development-period verification is simulation/static-evidence based**: no
-  manual dual-client acceptance during feature development. Deployment to the physical machine
-  and dual-client acceptance are the user's release-cycle actions; the user performs final
-  acceptance later.
-- `[CRITICAL]` **Acceptance-readiness audit before review**: for every user-facing feature,
-  before moving it to `review/`, answer explicitly with evidence:
-  1. Does the game already have a native UI for this surface? If yes, reuse it; no parallel
-     custom UI without a documented blocker and user direction.
-  2. Was the whole family audited across all roles, directions, participants, and third-party
-     views, not only the reported side?
-  3. Was the exact user reproduction covered by a test or runtime trace against the latest
-     deployed DLLs, not by generic unit coverage or static reasoning?
-  4. Were unsupported features/operations left as future only with explicit user acceptance? A
-     self-imposed "future" is not a completed parity claim.
-  Passing tests and repo gates is necessary, not sufficient.
-- `[CRITICAL]` **Adversarial self-check must be independent**: after a fix, run an adversarial
-  review in a fresh/independent context (an independent subagent), never from the same reasoning
-  path that produced the fix. Cover reverse directions, third-party views, edge cases, and
-  regressions of adjacent features.
-- `[CRITICAL]` **Rejection root-cause loop**: when the user rejects a delivered item, perform a
-  "why was it missed" analysis and record the process lesson. Moving the ticket back is not
-  enough; the leak must be understood.
-- `[GATE]` Follow `docs/evidence/delivery-checklist.md`; the checklist integrity is verified by
-  `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`. Check off its boxes one
-  line at a time with the Edit tool; bulk checking is forbidden.
+- `[CRITICAL]` No self-assumption: every claim needs source evidence (the path plus the quoted text,
+  never a line number) or runtime evidence. The runtime is the judge, not the plan: a paper review is not
+  a review, so ask "how does this chain get proven at runtime?" before hand-off.
+- `[CRITICAL]` **Fix the family, not just the reported case**: inspect sibling mechanisms and other
+  modules for the same defect pattern and align the whole family in the same cycle, or record a backlog
+  item when the rest is genuinely out of scope.
+- `[CRITICAL]` **User-found issues are hard release blockers**: fix until the exact reproduction is
+  resolved and verified, not merely until tests and gates pass; state an external blocker explicitly
+  rather than declaring the issue done.
+- `[CRITICAL]` **Deployment and artifact verification are part of completion** after any runtime
+  behaviour change.
+- `[CRITICAL]` **Development-period verification is simulation/static-evidence based**: no manual
+  dual-client acceptance during development — deployment to the physical machine and dual-client
+  acceptance are the user's release-cycle actions.
+- `[CRITICAL]` **Acceptance-readiness audit before review**, answered with evidence: does the game
+  already have a native UI for this surface (reuse it); was the whole family audited across roles,
+  directions, participants and third-party views; was the exact reproduction covered by a test or runtime
+  trace against the latest deployed DLLs; were unsupported operations left as future only with explicit
+  user acceptance. Passing tests and gates is necessary, not sufficient.
+- `[CRITICAL]` **The adversarial self-check must be independent** — a fresh context, never the reasoning
+  path that produced the fix.
+- `[GATE]` Follow `docs/evidence/delivery-checklist.md` (integrity checked by
+  `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`): check its boxes one line at a time
+  with evidence on the same line; bulk checking is forbidden.
 
 ### Definition of Done for user-facing changes
 
-A user-facing change is not complete just because tests and gates pass. Before moving to
-`review/` or reporting completion:
-
-- the exact user reproduction no longer reproduces;
-- all roles, directions, participant views, and third-party views are verified;
-- the game's existing native UI is reused where one exists;
-- the latest build is deployed and artifact identity is verified;
-- an independent adversarial self-check has passed;
-- no known failing scenario is left as "future" without explicit user acceptance;
-- the root cause is addressed, not patch-stacked.
-
-See `docs/evidence/delivery-checklist.md` for the executable gate.
+A user-facing change is not complete just because tests and gates pass. Before moving on or reporting
+completion: the exact user reproduction no longer reproduces; all roles, directions, participant views
+and third-party views are verified; the game's existing native UI is reused where one exists; the latest
+build is deployed and its artifact identity is verified; an independent adversarial self-check has
+passed; no known failing scenario is left as "future" without explicit user acceptance; and the root
+cause is addressed rather than patch-stacked. The executable gate is
+`docs/evidence/delivery-checklist.md`.
 
 ## Commit Message Convention
 
-- `[RULE]` Use Conventional Commits for every commit: `type(scope): summary`.
-- Allowed types: `feat`, `fix`, `docs`, `test`, `chore`, `refactor`, `perf`, `revert`, `build`,
-  `ci`, `style`.
-- Scope is a short lowercase domain/path name (for example `protocol`, `carry`, `backlog`,
-  `projection`, `character-sound`, `adaptive-sync`); omit the scope when there is no clear
-  domain.
-- Summary starts with an imperative verb, uses lowercase after the type/scope prefix (proper
-  nouns and acronyms may keep their case), and has no trailing period.
-- Use one line for the summary; optional body text starts after a blank line and is wrapped for
-  readability.
-- Pure documentation/backlog-only changes use `docs(scope): ...`, with `backlog` as the common
-  scope.
-- `[GATE]` The commit gate runs the build, test, and format commands above (documentation-only
-  changes excepted) and the agent commits autonomously once they pass; GPG signing is enabled
-  globally, so commit directly without locating gpg or disabling signing.
+- `[RULE]` Conventional Commits for every commit: `type(scope): summary`, with the allowed types `feat`,
+  `fix`, `docs`, `test`, `chore`, `refactor`, `perf`, `revert`, `build`, `ci`, `style`.
+- Scope is a short lowercase domain or path name (`protocol`, `carry`, `backlog`, `projection`); omit it
+  when there is no clear domain. The summary starts with an imperative verb, stays lowercase after the
+  prefix (proper nouns and acronyms keep their case), has no trailing period and is one line; an optional
+  body starts after a blank line. Pure documentation or backlog changes use `docs(scope): …`.
+- `[GATE]` The commit gate runs the build, test and format commands above (documentation-only changes
+  excepted) and the agent commits autonomously once they pass. GPG signing is enabled globally: commit
+  directly without locating gpg or disabling signing.
 
 ## Development Phases
 
-- The typed deterministic kernel is the only supported architecture; see
-  `docs/architecture/README.md` for the active architecture and `docs/backlog/README.md` for
-  remaining/future work.
-- MVP explicitly excludes: host migration, dedicated server, auto mod install, generic physics
-  sync, client prediction, full anti-cheat. The generic Prediction Runtime is a separate future
-  architecture item.
-
+- The typed deterministic kernel is the only supported architecture; see `docs/architecture/README.md`
+  for the active architecture and `docs/backlog/README.md` for remaining/future work.
+- MVP explicitly excludes: host migration, dedicated server, auto mod install, generic physics sync,
+  client prediction, full anti-cheat. The generic Prediction Runtime is a separate future architecture
+  item.

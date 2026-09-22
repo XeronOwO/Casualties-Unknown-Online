@@ -57,3 +57,9 @@ online panel | 联机面板 | 联机面板(online panel) | 联机界面, 网络�
 unconscious | 昏迷 | 昏迷(unconscious) | 倒地 | alive but unable to act
 deterministic | 确定性 | 确定性(deterministic) | 固定 | same inputs produce the same result
 seed | 种子 | 种子(seed) | 随机数 | the world-generation input carried in the run baseline
+gate | 门禁 | 门禁(gate) | 检查, 关卡 | a repository check that refuses a change breaking a rule; the gates run as tests
+baseline | 基线 | 基线(baseline) | 基准, 底稿 | a recorded, reviewed state a gate compares the tree against
+evidence | 证据 | 证据 | 证明, 凭据 | the recorded proof for a claim: a file, a command result or a runtime trace
+review | 复核 | 复核(review) | 评审, 审查 | the independent check a change passes before delivery
+process record | 流程记录 | 流程记录 | 历史记录, 过程文档 | a document recording what a cycle did (backlog, evidence, decisions); never translated
+breadcrumb | 面包屑 | 面包屑 | 导航条, 路径栏 | the navigation line at the head and tail of a page naming its place

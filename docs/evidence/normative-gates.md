@@ -19,7 +19,7 @@ Automation status legend:
 
 | Rule (AGENTS.md) | Automation status | Gate / evidence |
 |---|---|---|
-| #1 English in code/comments/docs | Review / process | Not reliably automatable; no language-quality gate. |
+| #1 English in code/comments/docs | Review / process | Not reliably automatable; no language-quality gate. The two guide levels are the deliberate, bounded exception, and the pairing gate below is what keeps such a pair consistent. |
 | #2 Modern idiomatic C# (`var`, nullable, `is null`, collection expressions) | dotnet format / .editorconfig | `.editorconfig` + `EnforceCodeStyleInBuild`; nullable is project-wide. |
 | #2 Unity objects use `== null` / `!= null` | Review / process | Documented Unity exception; IDE0031 deliberately disabled because a global `?.` rewrite would break Unity object semantics. |
 | #3 One top-level type per file; file name matches type name | dotnet test (C# port) | `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits`. |
@@ -67,6 +67,13 @@ Automation status legend:
 | The backlog index is a table of POINTERS, not a second copy of its tickets: every ticket is listed exactly once under the section that matches its folder, each row fits a 160-character budget and carries the priority its ticket declares, each ticket's `- Status:` field agrees with its folder, every test anchor a live ticket cites still exists under `tests/`, and no document cites `AGENTS.md` by line number | dotnet test (C# port) | `BacklogIntegrityGateTests.EveryTicketIsIndexedExactlyOnceUnderItsOwnSectionAndEveryLinkResolves` + `BacklogIntegrityGateTests.EveryIndexRowIsAPointerWithinItsBudgetCarryingItsTicketsPriority` + `BacklogIntegrityGateTests.TheStatusFoldersAreTheOnlyOnesAndNoTicketFileSitsLoose` + `BacklogIntegrityGateTests.EveryTicketStatusFieldAgreesWithItsFolder` + `BacklogIntegrityGateTests.EveryDocumentedTestAnchorIsStillDeclared` + `BacklogIntegrityGateTests.NoDocumentCitesAgentsMdByLineNumber`, each with its negative-contract self-test |
 | The Harmony patch bridge is FROZEN per domain: the aggregate declares exactly its pinned census and composes exactly the four earlier patch seams, every seam interface declares its pinned census, the one implementation's public surface is exactly the seams it serves, no member name is shared by two seams, and a migrated domain's members are reachable ONLY through its port — the compiler enforces that direction, because the aggregate neither declares nor composes them | dotnet test (C# port; Roslyn source scan, fast suite) | `PatchBridgePortShapeGateTests.Aggregate_DeclaresExactlyTheFrozenCensus` + `...Aggregate_ComposesExactlyThePinnedSeams` + `...Seam_DeclaresExactlyItsPinnedMembers` + `...ThePort_IsNotReachableThroughTheAggregate` + `...NoMemberName_IsSharedByTwoSeams` + `...Bridge_ImplementsExactlyTheAggregateAndThePorts` + `...Bridge_PublicSurface_IsExactlyTheSeamsItServes` + `...Bridge_DeclaresExactlyThePinnedImplementationMembers` + `...Seam_DeclaresExactlyThePinnedMembers` + `...TheCensus_ReadsDeclarationsAndIgnoresMentions`; the built adapter is covered by `PatchBridgePortContractTests` (Integration) |
 | Deployment/artifact verification | PowerShell + process | `tools/deploy.ps1` and deployment hash/file check. |
+
+## Documentation layers
+
+| Rule (AGENTS.md, *Document Scope & Classification*) | Automation status | Gate / evidence |
+|---|---|---|
+| A document is a layer, not just a file: an agent document answers how to do the work and stays English only, a human guide answers what the product is and is paired English + Chinese. Only `docs/guide/**` and `docs/developer/**` are paired — every topic there carries `foo.md` + `foo.zh.md` + `foo.i18n.yaml`, each side's blob hash equals the recorded one, both language switchers are present and well-formed, the pair mirrors its counterpart's block sequence — heading depth and order, paragraphs, list kind, item numbers and item shape (links, inline code, bold spans), table columns and per-cell shape, verbatim code blocks, and link targets in order including reference definitions, with corpus targets localized and an escaped pipe read as cell content — and a `.zh.md` or `.i18n.yaml` anywhere in the repository's file set outside the two guide trees is an error | dotnet test (C# port) | `HumanDocsPairingGateTests.EveryPairedTopic_HasItsThreeSiblingFiles` (with the discovery floor) + `...EveryPair_MatchesItsRecordedBlobHashes` + `...EveryPair_CarriesBothLanguageSwitchers` + `...EveryPair_MirrorsItsStructureAndLinks` + the inverse check `...NoPairedArtifact_LivesOutsideTheGuideScope`, their synthetic contract cases (`...ThePairingChecks_AcceptAValidPair`, `...ThePairingChecks_FlagEveryContractBreak`, `...TheStructureCheck_IgnoresLineWrappingAndSwitcherWording`), and `...AgentInstructionChain_StaysInsideTheWorkspaceBudget` for the workspace instruction chain (root, `docs/AGENTS.md` and the machine-local file, which compete for one loader budget); policy at [`../i18n/README.md`](../i18n/README.md), renderings at [`../i18n/terminology.md`](../i18n/terminology.md) |
+| Translation quality — whether a counterpart says the same thing accurately, well-termed and naturally | Review / process | The gate compares blob hashes and Markdown structure, never meaning: a re-recorded pair with a sloppy counterpart passes the gate and must not pass review (the limit is stated in `docs/i18n/README.md`). |
 
 ## Former PowerShell checks
 
@@ -120,5 +127,6 @@ syntax tree rather than textual scanning. The gate:
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/SourceShapeGateTests.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/RepositoryGateTests.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/TestIsolationGateTests.cs`
+- `tests/CasualtiesUnknownOnline.NormativeGates.Tests/HumanDocsPairing.cs` and its gate `HumanDocsPairingGateTests.cs`
 - [`test-parallelization.md`](test-parallelization.md)
 - `docs/evidence/delivery-checklist.md`

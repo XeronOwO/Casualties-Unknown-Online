@@ -1,6 +1,6 @@
 # Bilingual documentation: one tree, three layers, paired human-facing docs
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Documentation / process
 - Source: Owner session 2026-09-21 (language split by folder was considered and replaced by the DSH pairing contract; multilingual scope is the human-facing layer only)
@@ -216,3 +216,83 @@ tool available, so the removal cannot be performed from there. Note before doing
 `.gitignore` excludes `docs/handoff/`, so these two files were never tracked by git and there is
 no history to recover them from — the content check above is the only safeguard, and it has been
 done (both files' full text was read and compared against the owning tickets).
+
+State 2026-09-22: executed — `docs/handoff/` no longer exists, and no README or index points at it.
+
+## What landed (2026-09-22)
+
+- **The layer rule where it is read.** `docs/README.md` now opens with the three layers and names each
+  layer's index; `docs/AGENTS.md` (new, 711 bytes) is the agent entry for the subtree and links the
+  detail; the root `AGENTS.md` states the rule in four lines. The nested file stays small because the
+  gate pins its size, and the tracked instruction chain's total with it.
+- **The pairing policy.** `docs/i18n/README.md` carries the layer rule, the paired scope, the
+  three-file pair, the switchers, the structural mirror, the record, the maintenance workflow and the
+  stated limit. `docs/i18n/terminology.md` (5,974 bytes, 52 rows) is the only source of renderings, and
+  its `Never render as` column turns a wording rule into something concrete rather than implied.
+- **Fifteen paired topics, 45 files.** Six player pages under `docs/guide/` and nine developer pages
+  under `docs/developer/`, each as `foo.md` + `foo.zh.md` + `foo.i18n.yaml`. The Chinese side is a guide
+  page, not a translated copy of an agent document: it carries its own reading path into the
+  English-only reference layer, so a Chinese reader is never left facing a wall of English.
+- **The gate.** `HumanDocsPairing.cs` (562 lines, pure functions) plus `HumanDocsPairingGateTests.cs`
+  (291 lines, 9 cases) in `tests/CasualtiesUnknownOnline.NormativeGates.Tests`, with no new toolchain:
+  pair completeness with a discovery floor, recorded blob hashes through `git hash-object`, both
+  switchers, the block-sequence mirror (item and cell shapes counted, escaped pipes read as content)
+  with link localization, the inverse scope check over the repository's file set, the workspace
+  instruction-budget check, and synthetic contract cases that pin the checker against every break class.
+- **Scoped pairing, enforced.** Which pages are paired is a decision per file: only the two guide
+  levels are paired, and the inverse check refuses a `.zh.md` or `.i18n.yaml` anywhere else under
+  `docs/`. `docs/README.md` stays English only as the human entry into all three layers and points a
+  Chinese reader at `docs/guide/README.zh.md`.
+
+### Verification
+
+- `dotnet build CasualtiesUnknownOnline.slnx` (inside the suite run): 0 warnings, 0 errors.
+- `dotnet format CasualtiesUnknownOnline.slnx`: exit 0.
+- Normative gates: 128 total, 9 of them this gate's — 127/128 before the delivery-checklist boxes are
+  filled and 128/128 after them.
+- Full suite with build: 3795/3795.
+- Real-tree control 1: one line appended to `docs/guide/playing.md` with the record untouched turned
+  `EveryPair_MatchesItsRecordedBlobHashes` red and named the pair (recorded `9a9d2273…`, file hashing
+  to `2842c5eb…`); restoring the file made the hash equal the record again.
+- Real-tree control 2: a stray `docs/evidence/stray-check.zh.md` turned
+  `NoPairedArtifact_LivesOutsideTheGuideScope` red with that path, and was removed afterwards.
+- The removal recorded above: `docs/handoff/` does not exist.
+
+### Independent review round (2026-09-22)
+
+A separate review session (fresh context, frozen tree, read-only, report outside the repository)
+returned 0 blocker / 4 major / 8 minor / 3 nit. All were fixed in this commit:
+
+- **major — the mirror compared block kinds, not content.** Reordering two list items, or swapping two
+  table cells, passed. The check now also counts each item's and each cell's language-independent
+  shape (links, inline code, bold spans) and reads reference-style link definitions, and the policy
+  page states the residual limit instead of implying a stronger one: translated words are never
+  compared, so two same-shaped items or cells can still trade places.
+- **major — reporting stopped at the first difference**, so an early insert or drop let the tail line
+  up at shifted indices and replaced a real break with a mislocated message. The comparison now trims
+  the common head and tail, reports the differing window (up to four markers) and always states the
+  length difference.
+- **major — an escaped pipe inside a table cell was counted as a column separator**, which would have
+  reported a column mismatch where the rendered table has none. Cell splitting now honours an escaped
+  pipe and inline code spans.
+- **major — the Chinese pages broke `Never render as`**: 客户端 for guest, 视图 for projection, 副本
+  for backup, 裁决 for arbitration. Every instance was corrected against `terminology.md`; the table
+  gained `save`, `view`, `client` and `online panel` entries so the remaining uses (client-side
+  prediction) have a legal rendering, and the panel name is now consistent across pages.
+- **minor** — stale numbers in this ticket and the fact sheet, a Chinese-side addition the English side
+  did not have, the missing `save` entry, the instruction-budget check excluding the machine-local file
+  that competes for the same budget (it now includes it, and `docs/AGENTS.md` was rewritten to 711
+  bytes so the workspace chain fits at 65,375 of 65,536), the configuration location in
+  `getting-started`, the missing reference-style link coverage, and a comment separating the two
+  failure sources of the hash check.
+- **nit** — `docs/AGENTS.md`'s scope wording, the panel-name inconsistency, and a typo in the
+  `docs/README.md` layer table.
+
+### Limits
+
+- No runtime code and no wire change: nothing in this cycle says anything about host or guest
+  behaviour, and no such claim is made.
+- The gate compares hashes and Markdown structure, never meaning: a re-recorded pair with a sloppy
+  counterpart passes it, and wording stays a review duty.
+- The "every tutorial step executed once against the current build" item is **not** verified in this
+  cycle — no game client was run — so the player-facing steps stay part of the user's acceptance pass.

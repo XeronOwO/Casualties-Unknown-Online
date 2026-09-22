@@ -1,4 +1,5 @@
 # Bilingual documentation: layers, pairing, and the maintenance contract
+> **Superseded (2026-09-22):** the pairing contract below is replaced by [`docs/AGENTS.md`](../AGENTS.md); this page is kept only until the migration finishes.
 
 This page defines which documents exist for people rather than for agents, which of them are
 maintained in two languages, and how a paired document stays consistent. It is the policy the

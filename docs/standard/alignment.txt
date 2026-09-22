@@ -1,0 +1,11 @@
+# CUO pair registry — the English and Chinese page set, confirmed consistent at these contents.
+# Format: <en path> | <en blob hash> | <zh path> | <zh blob hash>
+# Re-record both hashes when either side is edited and the other is updated; a git blob hash
+# reproduces from the working tree, so consistency stays a content comparison.
+# AGENTS.md files are instruction routing, not pages, and are not registered here.
+#
+en/README.md | 1cc622bb6abda71ff72fc8ed83b0b0d99f723883 | zh/README.md | 3b47d132e7bf4849c42cce3dfe386b9dd650da65
+en/reference/glossary.md | 6d353cb72e647381ec133b9784e69fadd53dc59e | zh/reference/glossary.md | cbc4cc4f70fddfc472f2bda3b69805a6eeff2c38
+en/reference/README.md | 8cd6972b48aec5bd990050056c45b687f65842a3 | zh/reference/README.md | bc77861e396de772a59257786d880f456abb6b44
+en/start/README.md | f605d22f8cc8eb7d2a45f4fa804bf4a6e44c8127 | zh/start/README.md | b7b1be0bf2b8c706f9c29faf2e0f84eab64d582b
+en/start/what-is-cuo.md | 02358ca767178bbaed9a7bcccabcd791cf307126 | zh/start/what-is-cuo.md | 9b74774bc7e4f5569dba87a9f49ab9a5c46e875c

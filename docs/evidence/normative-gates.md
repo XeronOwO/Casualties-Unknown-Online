@@ -17,21 +17,21 @@ Automation status legend:
 
 ## Engineering conventions
 
-| Rule (AGENTS.md) | Automation status | Gate / evidence |
+| Rule (AGENTS.md — numbering follows the current *Engineering Conventions* list in the root file; a row whose rule lives elsewhere names its source) | Automation status | Gate / evidence |
 |---|---|---|
 | #1 English in code/comments/docs | Review / process | Not reliably automatable; no language-quality gate. The two guide levels are the deliberate, bounded exception, and the pairing gate below is what keeps such a pair consistent. |
-| #2 Modern idiomatic C# (`var`, nullable, `is null`, collection expressions) | dotnet format / .editorconfig | `.editorconfig` + `EnforceCodeStyleInBuild`; nullable is project-wide. |
+| #2 Modern idiomatic C# (`var`, nullable, `is null`, collection expressions) | dotnet format / .editorconfig | `.editorconfig` raises the style rules to error severity and `EnforceCodeStyleInBuild` in each project file enforces them; nullable is project-wide. |
 | #2 Unity objects use `== null` / `!= null` | Review / process | Documented Unity exception; IDE0031 deliberately disabled because a global `?.` rewrite would break Unity object semantics. |
-| #3 One top-level type per file; file name matches type name | dotnet test (C# port) | `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits`. |
-| #4 Evidence-based changes / cite decompiled sources | Review / process | Human process; not a source-shape rule. |
-| #5 Absolute-machine-path red line (nothing git would carry may contain a drive-letter, UNC or `/home`-style path) | dotnet test (C# port) | `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths` — the scan covers tracked files AND untracked-but-not-gitignored ones, so a brand-new file is checked before it is committed. |
-| #6 Requirement triage | Review / process | Human judgment. |
-| #7 Self-learning / record reusable knowledge | Review / process | Human process. |
-| #8 Architecture-first, get consent | Review / process | Approval process before risky changes. |
-| #9 Patch hooks report only verified writes | dotnet test + runtime | Existing patch-contract tests and adapter contract tests; this is behavioral, not a syntax gate. |
-| #10 Prefer `using` / aliases over fully qualified names | **dotnet test** | Roslyn gate: `FullyQualifiedNameGateTests`. |
-| #11 Attribute/reflection registration for large families | Review / process | Design preference; no reliable syntax gate without false positives. |
-| #12 Reuse native game UI | Review / process | Acceptance-readiness audit; explicitly a human acceptance decision. |
+| Repository structure rules (`docs/development/agent-reference.md`): one top-level type per file, file name matches type name | dotnet test (C# port) | `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits`. |
+| #3 Evidence-based changes / cite decompiled sources | Review / process | Human process; not a source-shape rule. |
+| #4 Absolute-machine-path red line (nothing git would carry may contain a drive-letter, UNC or `/home`-style path) | dotnet test (C# port) | `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths` — the scan covers tracked files AND untracked-but-not-gitignored ones, so a brand-new file is checked before it is committed. |
+| Document scope (root `AGENTS.md`): requirement triage | Review / process | Human judgment. |
+| #5 Self-learning / record reusable knowledge | Review / process | Human process. |
+| Development workflow hard order: plan and self-check table, then user approval for large changes | Review / process | Approval process before risky changes. |
+| #6 Patch hooks report only verified writes | dotnet test + runtime | Existing patch-contract tests and adapter contract tests; this is behavioral, not a syntax gate. |
+| #7 Prefer `using` / aliases over fully qualified names | **dotnet test** | Roslyn gate: `FullyQualifiedNameGateTests`. |
+| Repository structure rules (`docs/development/agent-reference.md`): attribute/reflection registration for large families | Review / process | Design preference; no reliable syntax gate without false positives. |
+| #8 Reuse native game UI | Review / process | Acceptance-readiness audit; explicitly a human acceptance decision. |
 | #13 Extension methods use the C# 14 `extension` syntax | dotnet test (C# port) | `SourceShapeGateTests.ExtensionMethods_UseTheCsharp14ExtensionSyntax` (fails on a classic `this X` declaration under `src` or `tests`; its own matcher contract is pinned by `TheMatcher_SeesEveryClassicExtensionShapeAndIgnoresOrdinaryStatics`). |
 | #14 Minimum visibility, declared stability: only a designed/documented/reviewed capability is a public contract, and the `Abstractions` public surface is a recorded baseline — an addition or removal fails until the baseline is reviewed and updated, a removal names its reason, and a non-`Stable` surface declares its level | dotnet test (C# port) | `ApiSurfaceGateTests.AbstractionsPublicSurface_MatchesTheReviewedBaseline` + `...TheBaselineAndTheScan_MeetTheCensusFloor` + the matcher's own contract (`...TheMatcher_FlagsAnAddedMemberAsAnApiChange`, `...FlagsARemovalWithoutATombstoneAndAcceptsOneWith`, `...FlagsALevelChangeAndAMalformedBaselineLine`, `...IgnoresHowAReferenceIsSpelled`); baseline at [`abstractions-api-baseline.txt`](../api/abstractions-api-baseline.txt), policy at [`advanced-modification-policy.md`](../api/advanced-modification-policy.md) |
 | Dependency pin — Microsoft.Extensions 3.1.x on net48 (architecture blueprint §5) | dotnet test (C# port) | `SourceShapeGateTests.MicrosoftExtensionsPinnedToNet48CompatibleLine`. |

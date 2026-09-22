@@ -3,10 +3,9 @@ using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 using System;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// Pure conversions between player-interaction kernel result payloads and the
@@ -14,7 +13,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// interaction result mapping can grow without pushing the core mapper over the
 /// architecture line gate.
 /// </summary>
-public static class PlayerInteractionWireMapper
+public static class KernelPlayerInteractionWireMapper
 {
 	public static WirePlayerInteraction ToWire(PlayerInventoryTransferEvent e) =>
 		new()
@@ -126,7 +125,7 @@ public static class PlayerInteractionWireMapper
 			Favourited = data.Favourited,
 			SlotIndex = data.SlotIndex,
 			Liquids = [.. data.Liquids.Select(l => new WireLiquidStack { LiquidId = l.LiquidId, Amount = l.Amount })],
-			Components = [.. data.Components.Select(ToWireComponent)],
+			Components = [.. data.Components.Select(KernelComponentWireMapper.ToWire)],
 		};
 
 	private static PlayerInteractionItem? FromWireItem(
@@ -159,41 +158,13 @@ public static class PlayerInteractionWireMapper
 			FromWireData(item.Data),
 			[.. item.Contents.Select(FromWireItem)]);
 
-	private static WireComponentState ToWireComponent(ItemComponentState component) =>
-		new()
-		{
-			TypeName = component.TypeName,
-			Fields = [.. component.Fields.Select(f => new WireComponentField
-			{
-				Name = f.Name,
-				Kind = (int)f.Kind,
-				FloatValue = f.FloatValue,
-				IntValue = f.IntValue,
-				BoolValue = f.BoolValue,
-				StringValue = f.StringValue,
-				StringList = [.. f.StringList],
-			})],
-		};
-
-	private static ItemComponentState FromWireComponent(WireComponentState component) =>
-		new(
-			component.TypeName,
-			[.. component.Fields.Select(f => new ItemComponentField(
-				f.Name,
-				(ItemComponentFieldKind)f.Kind,
-				f.FloatValue,
-				f.IntValue,
-				f.BoolValue,
-				f.StringValue,
-				f.StringList))]);
-
 	private static ItemData FromWireData(WireItemData data) =>
 		new(
 			data.Condition,
 			data.Favourited,
 			data.SlotIndex,
 			[.. data.Liquids.Select(l => new ItemLiquidStack(l.LiquidId, l.Amount))],
-			[.. data.Components.Select(FromWireComponent)]);
+			[.. data.Components.Select(KernelComponentWireMapper.FromWire)]);
 
 	private static WirePlayerInteractionHealth ToWireHealth(PlayerInteractionHealth health) =>
 		new()
@@ -367,56 +338,8 @@ public static class PlayerInteractionWireMapper
 	}
 
 	public static WirePlayerInteractionLimb ToWireLimb(PlayerInteractionLimb limb) =>
-		new()
-		{
-			Index = limb.Index,
-			SkinHealth = limb.SkinHealth,
-			MuscleHealth = limb.MuscleHealth,
-			Broken = limb.Broken,
-			Dislocated = limb.Dislocated,
-			Splinted = limb.Splinted,
-			Infected = limb.Infected,
-			InfectionAmount = limb.InfectionAmount,
-			BleedAmount = limb.BleedAmount,
-			DisinfectionTime = limb.DisinfectionTime,
-			Pain = limb.Pain,
-			DislocationTimer = limb.DislocationTimer,
-			BoneHealTimer = limb.BoneHealTimer,
-			BlockedBleeding = limb.BlockedBleeding,
-			Shrapnel = limb.Shrapnel,
-			FurBloodAmount = limb.FurBloodAmount,
-			BandageSlowAmount = limb.BandageSlowAmount,
-			SkinHealAmount = limb.SkinHealAmount,
-			Dismembered = limb.Dismembered,
-			Components = [.. limb.Components.Select(ToWireComponent)],
-			IsHead = limb.IsHead,
-			IsVital = limb.IsVital,
-		};
+		KernelLimbWireMapper.ToWire(limb);
 
 	public static PlayerInteractionLimb FromWireLimb(WirePlayerInteractionLimb limb) =>
-		new()
-		{
-			Index = limb.Index,
-			SkinHealth = limb.SkinHealth,
-			MuscleHealth = limb.MuscleHealth,
-			Broken = limb.Broken,
-			Dislocated = limb.Dislocated,
-			Splinted = limb.Splinted,
-			Infected = limb.Infected,
-			InfectionAmount = limb.InfectionAmount,
-			BleedAmount = limb.BleedAmount,
-			DisinfectionTime = limb.DisinfectionTime,
-			Pain = limb.Pain,
-			DislocationTimer = limb.DislocationTimer,
-			BoneHealTimer = limb.BoneHealTimer,
-			BlockedBleeding = limb.BlockedBleeding,
-			Shrapnel = limb.Shrapnel,
-			FurBloodAmount = limb.FurBloodAmount,
-			BandageSlowAmount = limb.BandageSlowAmount,
-			SkinHealAmount = limb.SkinHealAmount,
-			Dismembered = limb.Dismembered,
-			Components = [.. limb.Components.Select(FromWireComponent)],
-			IsHead = limb.IsHead,
-			IsVital = limb.IsVital,
-		};
+		KernelLimbWireMapper.FromWire(limb);
 }

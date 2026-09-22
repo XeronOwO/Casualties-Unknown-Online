@@ -3,10 +3,8 @@ using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Xunit;
 using CasualtiesUnknownOnline.Application.Kernel;
-using CasualtiesUnknownOnline.Tests.Fakes;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -94,8 +92,8 @@ public class KernelWireMapperTests
 			new CommandContext(Epoch, Host)).IsAccepted);
 
 		var checkpoint = source.CreateCheckpoint();
-		var chunks = WireCheckpointAssembler.Split(checkpoint, TestKernelCodec.Instance);
-		var restoredCheckpoint = WireCheckpointAssembler.Assemble(chunks, TestKernelCodec.Instance);
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
+		var restoredCheckpoint = WireCheckpointAssembler.Assemble(chunks);
 
 		Assert.Equal(checkpoint.RunEpoch.Value, restoredCheckpoint.RunEpoch.Value);
 		Assert.Equal(checkpoint.GlobalRevision, restoredCheckpoint.GlobalRevision);
@@ -125,7 +123,7 @@ public class KernelWireMapperTests
 		}
 
 		var checkpoint = source.CreateCheckpoint();
-		var chunks = WireCheckpointAssembler.Split(checkpoint, TestKernelCodec.Instance);
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
 
 		Assert.Equal(["shell"], chunks[0].ItemDefinitionTable);
 		Assert.All(chunks.SelectMany(c => c.Items), item =>
@@ -134,7 +132,7 @@ public class KernelWireMapperTests
 			Assert.Equal(1, item.Identity.DefinitionIndex);
 		});
 
-		var restored = WireCheckpointAssembler.Assemble(chunks, TestKernelCodec.Instance);
+		var restored = WireCheckpointAssembler.Assemble(chunks);
 		Assert.Equal(3, restored.Items.Count);
 		Assert.All(restored.Items, item => Assert.Equal("shell", item.Identity.DefinitionId));
 	}
@@ -160,7 +158,7 @@ public class KernelWireMapperTests
 		}
 
 		var checkpoint = source.CreateCheckpoint();
-		var chunks = WireCheckpointAssembler.Split(checkpoint, TestKernelCodec.Instance);
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
 
 		Assert.Empty(chunks[0].ItemDefinitionTable);
 		Assert.All(chunks.SelectMany(c => c.Items), item =>
@@ -169,7 +167,7 @@ public class KernelWireMapperTests
 			Assert.Contains(item.Identity.DefinitionId, ids);
 		});
 
-		var restored = WireCheckpointAssembler.Assemble(chunks, TestKernelCodec.Instance);
+		var restored = WireCheckpointAssembler.Assemble(chunks);
 		Assert.Equal(3, restored.Items.Count);
 		Assert.Equal(["shell", "stone", "wood"], restored.Items.Select(i => i.Identity.DefinitionId).ToArray());
 	}
@@ -190,11 +188,11 @@ public class KernelWireMapperTests
 				new ItemData(1f, false, -1, [], [])),
 			new CommandContext(Epoch, Host)).IsAccepted);
 
-		var chunks = WireCheckpointAssembler.Split(source.CreateCheckpoint(), TestKernelCodec.Instance);
+		var chunks = WireCheckpointAssembler.Split(source.CreateCheckpoint());
 		chunks[0].Items[0].Identity.DefinitionIndex = 5;
 		chunks[0].ItemDefinitionTable = [];
 
-		Assert.Throws<InvalidOperationException>(() => WireCheckpointAssembler.Assemble(chunks, TestKernelCodec.Instance));
+		Assert.Throws<InvalidOperationException>(() => WireCheckpointAssembler.Assemble(chunks));
 	}
 
 	[Fact]
@@ -205,11 +203,11 @@ public class KernelWireMapperTests
 		// checkpoint (the receiver refuses the older set before it is ever mixed in,
 		// but this is the assembler's own contract).
 		var source = new GameStateKernel(Epoch);
-		var live = WireCheckpointAssembler.Split(source.CreateCheckpoint(), TestKernelCodec.Instance);
-		var previousRun = WireCheckpointAssembler.Split(source.CreateCheckpoint(), TestKernelCodec.Instance);
+		var live = WireCheckpointAssembler.Split(source.CreateCheckpoint());
+		var previousRun = WireCheckpointAssembler.Split(source.CreateCheckpoint());
 		previousRun[0].RunEpoch = Epoch.Value + 1;
 
-		Assert.Throws<InvalidOperationException>(() => WireCheckpointAssembler.Assemble([live[0], previousRun[0]], TestKernelCodec.Instance));
+		Assert.Throws<InvalidOperationException>(() => WireCheckpointAssembler.Assemble([live[0], previousRun[0]]));
 	}
 
 	[Fact]
@@ -221,7 +219,7 @@ public class KernelWireMapperTests
 			[],
 			[new RandomStreamState("gen", "state-xyz", [5, 6, 7])]);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(checkpoint, TestKernelCodec.Instance), TestKernelCodec.Instance);
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(checkpoint));
 
 		var stream = Assert.Single(restored.RandomStreams!);
 		Assert.Equal("gen", stream.Name);

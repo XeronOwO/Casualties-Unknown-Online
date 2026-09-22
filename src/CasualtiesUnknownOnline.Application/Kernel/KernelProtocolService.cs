@@ -26,7 +26,6 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly IKernelBatchApplication _batches;
 	private readonly RefusedItemCreations _refusedCreations;
 	private readonly IKernelPendingCommands _pendingCommands;
-	private readonly IKernelWireCodec _codec;
 	private readonly ILogger<KernelProtocolService> _log;
 	private readonly KernelProtocolCommandHandler _commandHandler;
 	private readonly List<CommittedBatch> _journal = [];
@@ -54,7 +53,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		RefusedItemCreations refusedCreations,
 		IKernelPendingCommands pendingCommands,
 		KernelCommandGateway gateway,
-		IKernelWireCodec codec,
+		IKernelItemDataNormalizer itemDataNormalizer,
 		ILogger<KernelProtocolService> log)
 	{
 		_session = session;
@@ -63,11 +62,10 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_batches = batches;
 		_refusedCreations = refusedCreations;
 		_pendingCommands = pendingCommands;
-		_codec = codec;
 		_log = log;
 		_stateStreams = new KernelStateStreamService(session, sender, checkpointSource, payloadType => CreateHeader(payloadType, 0));
-		_checkpointReceiver = new GuestCheckpointReceiver(batches, codec, log);
-		_commandHandler = new KernelProtocolCommandHandler(session, sender, items, execution, checkpointSource, refusedCreations, gateway, codec, log);
+		_checkpointReceiver = new GuestCheckpointReceiver(batches, log);
+		_commandHandler = new KernelProtocolCommandHandler(session, sender, items, execution, checkpointSource, refusedCreations, gateway, itemDataNormalizer, log);
 		_batches.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetSessionState;
 	}
@@ -97,7 +95,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			CommittedBatch = new CommittedBatchEnvelope
 			{
 				Header = CreateHeader(WirePayloadType.CommittedBatch, batch.OperationId.Value, batch),
-				Batch = _codec.ToWireBatch(batch),
+				Batch = KernelWireMapper.ToWireBatch(batch),
 			},
 		};
 
@@ -112,7 +110,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		}
 
 		var checkpoint = _checkpointSource.CreateCheckpoint();
-		var chunks = WireCheckpointAssembler.Split(checkpoint, _codec);
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
 		foreach (var chunk in chunks)
 		{
 			var frame = new ProtocolFrame
@@ -140,7 +138,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 				CommittedBatch = new CommittedBatchEnvelope
 				{
 					Header = CreateHeader(WirePayloadType.CommittedBatch, batch.OperationId.Value, batch),
-					Batch = _codec.ToWireBatch(batch),
+					Batch = KernelWireMapper.ToWireBatch(batch),
 				},
 			};
 			_sender.Send(targetSteamId, frame);
@@ -362,7 +360,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	private void HandleCommittedBatch(ulong sender, CommittedBatchEnvelope envelope)
 	{
-		var batch = _codec.FromWireBatch(envelope.Batch, _checkpointSource.CreateCheckpoint().RunEpoch);
+		var batch = KernelWireMapper.FromWireBatch(envelope.Batch, _checkpointSource.CreateCheckpoint().RunEpoch);
 		if (batch.RunEpoch.Value != _checkpointSource.CreateCheckpoint().RunEpoch.Value)
 		{
 			_log.LogWarning("Batch from {Sender} has epoch {Epoch}; current is {Current} — dropped.",
@@ -486,7 +484,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			CommittedBatch = new CommittedBatchEnvelope
 			{
 				Header = CreateHeader(WirePayloadType.CommittedBatch, batch.OperationId.Value, batch),
-				Batch = _codec.ToWireBatch(batch),
+				Batch = KernelWireMapper.ToWireBatch(batch),
 			},
 		};
 		_sender.Send(targetSteamId, frame);

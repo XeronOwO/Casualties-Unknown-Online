@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using System.IO;
 using CasualtiesUnknownOnline.Application.Kernel;
-using CasualtiesUnknownOnline.Tests.Fakes;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -81,7 +80,7 @@ public class EnemyDomainKernelTests
 		var kernel = new GameStateKernel(Epoch);
 		Assert.True(Upsert(kernel, 1, new EnemyState(EnemyId, "spider", 9f, true, true)).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
 
 		var enemy = Assert.Single(restored.Enemies!.Enemies);
 		Assert.Equal(EnemyId, enemy.EntityId);
@@ -97,7 +96,7 @@ public class EnemyDomainKernelTests
 			new RemoveEnemyCommand(new OperationId(2), Host, Epoch, AuthorityKind.HostOnly, EnemyId),
 			new CommandContext(Epoch, Host)).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
 
 		Assert.Empty(restored.Enemies!.Enemies);
 		Assert.Equal(EnemyId, Assert.Single(restored.Enemies.Removed));

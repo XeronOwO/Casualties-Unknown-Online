@@ -7,7 +7,6 @@ using Xunit;
 using System;
 using System.IO;
 using CasualtiesUnknownOnline.Application.Kernel;
-using CasualtiesUnknownOnline.Tests.Fakes;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -113,7 +112,7 @@ public class WorldDomainKernelTests
 		Assert.True(Start(kernel, 1, Run()).IsAccepted);
 		var checkpoint = kernel.CreateCheckpoint();
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(checkpoint, TestKernelCodec.Instance), TestKernelCodec.Instance);
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(checkpoint));
 
 		var run = restored.Run;
 		Assert.NotNull(run);

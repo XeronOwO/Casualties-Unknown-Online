@@ -32,7 +32,7 @@ internal sealed class KernelProtocolCommandHandler(
 	IKernelCheckpointSource checkpointSource,
 	RefusedItemCreations refusedCreations,
 	KernelCommandGateway gateway,
-	IKernelWireCodec codec,
+	IKernelItemDataNormalizer itemDataNormalizer,
 	ILogger log)
 {
 	private readonly IKernelSessionFacts _session = session;
@@ -42,7 +42,7 @@ internal sealed class KernelProtocolCommandHandler(
 	private readonly IKernelCheckpointSource _checkpointSource = checkpointSource;
 	private readonly RefusedItemCreations _refusedCreations = refusedCreations;
 	private readonly KernelCommandGateway _gateway = gateway;
-	private readonly IKernelWireCodec _codec = codec;
+	private readonly IKernelItemDataNormalizer _itemDataNormalizer = itemDataNormalizer;
 	private readonly ILogger _log = log;
 
 	public void Handle(ulong sender, CommandEnvelope envelope)
@@ -94,7 +94,7 @@ internal sealed class KernelProtocolCommandHandler(
 		// position is part of the contract: the protocol heals and the
 		// creation-before-operation invariant above still refuse first, and an id
 		// this host never judged still goes to the kernel for its own verdict.
-		var command = _codec.FromWireCommand(envelope.Command, envelope.Header);
+		var command = KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header);
 		var admission = _gateway.AdmitMemberSubmission(sender, command);
 		if (!admission.IsAdmitted)
 		{
@@ -207,7 +207,7 @@ internal sealed class KernelProtocolCommandHandler(
 			new ActorId(sender),
 			new RunEpoch(envelope.Header.RunEpoch),
 			AuthorityKind.OwnerPredictedHostValidated,
-			_codec.FromWireIdentity(command.Identity),
+			KernelWireMapper.FromWireIdentity(command.Identity),
 			ItemLocation.Carried(new ActorId(sender)),
 			0,
 			kernelData);
@@ -227,7 +227,7 @@ internal sealed class KernelProtocolCommandHandler(
 	{
 		var command = envelope.Command;
 		var parentId = command.Identity.InstanceId;
-		var sync = _codec.FromWireCommand(command, envelope.Header);
+		var sync = KernelWireMapper.FromWireCommand(command, envelope.Header);
 		if (!_execution.TryExecuteCommand(sync, sender, out _, out var rejection))
 		{
 			_log.LogWarning("Container sync for {ItemId} from {Sender} rejected: {Reason} ({Message}).",
@@ -341,12 +341,12 @@ internal sealed class KernelProtocolCommandHandler(
 	private ItemData ToKernelData(WireItemIdentity identity, WireItemData? data)
 	{
 		var state = new ItemState(
-			_codec.FromWireIdentity(identity),
+			KernelWireMapper.FromWireIdentity(identity),
 			0,
 			ItemLocation.Terminal())
 		{
-			Data = data is null ? ItemData.Empty : _codec.FromWireData(data),
+			Data = data is null ? ItemData.Empty : KernelWireMapper.FromWireData(data),
 		};
-		return _codec.ToKernelItemData(state);
+		return _itemDataNormalizer.ToKernelItemData(state);
 	}
 }

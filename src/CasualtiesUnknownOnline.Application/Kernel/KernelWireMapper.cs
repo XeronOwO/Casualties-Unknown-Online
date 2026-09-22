@@ -8,16 +8,15 @@ using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
-using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
-using CasualtiesUnknownOnline.Application.Kernel;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
-/// Maps between the deterministic kernel model and the Phase C wire DTOs.
-/// This is the only Runtime surface allowed to touch both GameState and
-/// Protocol. The mapper is pure and has no network/session state.
+/// Maps between the deterministic kernel model and the Phase C wire DTOs. The
+/// kernel &lt;-&gt; wire vocabulary is pure, so it lives with the layer that owns
+/// the replication surface; the legacy protobuf messages a version adapter and
+/// the Game Adapter still speak stay on the Runtime side of the boundary. The
+/// mapper is pure and has no network/session state.
 /// </summary>
 public static class KernelWireMapper
 {
@@ -74,26 +73,7 @@ public static class KernelWireMapper
 			Favourited = data.Favourited,
 			SlotIndex = data.SlotIndex,
 			Liquids = [.. data.Liquids.Select(l => new WireLiquidStack { LiquidId = l.LiquidId, Amount = l.Amount })],
-			Components = [.. data.Components.Select(ToWireComponent)],
-		};
-
-	private static WireComponentState ToWireComponent(ItemComponentState component) =>
-		new()
-		{
-			TypeName = component.TypeName,
-			Fields = [.. component.Fields.Select(ToWireField)],
-		};
-
-	private static WireComponentField ToWireField(ItemComponentField field) =>
-		new()
-		{
-			Name = field.Name,
-			Kind = (int)field.Kind,
-			FloatValue = field.FloatValue,
-			IntValue = field.IntValue,
-			BoolValue = field.BoolValue,
-			StringValue = field.StringValue,
-			StringList = [.. field.StringList],
+			Components = [.. data.Components.Select(KernelComponentWireMapper.ToWire)],
 		};
 
 	public static WireCommittedBatch ToWireBatch(CommittedBatch batch) =>
@@ -207,32 +187,32 @@ public static class KernelWireMapper
 			PlayerInventoryTransferEvent transfer => new WireEvent
 			{
 				Kind = WireEventKind.PlayerInventoryTransfer,
-				PlayerInteraction = PlayerInteractionWireMapper.ToWire(transfer),
+				PlayerInteraction = KernelPlayerInteractionWireMapper.ToWire(transfer),
 			},
 			PlayerHealResultEvent heal => new WireEvent
 			{
 				Kind = WireEventKind.PlayerHealResult,
-				PlayerInteraction = PlayerInteractionWireMapper.ToWire(heal),
+				PlayerInteraction = KernelPlayerInteractionWireMapper.ToWire(heal),
 			},
 			PlayerItemUseResultEvent use => new WireEvent
 			{
 				Kind = WireEventKind.PlayerItemUseResult,
-				PlayerInteraction = PlayerInteractionWireMapper.ToWire(use),
+				PlayerInteraction = KernelPlayerInteractionWireMapper.ToWire(use),
 			},
 			EnemyBiteResultEvent bite => new WireEvent
 			{
 				Kind = WireEventKind.EnemyBiteResult,
-				EnemyCombat = EnemyCombatWireMapper.ToWire(bite),
+				EnemyCombat = KernelEnemyCombatWireMapper.ToWire(bite),
 			},
 			EnemyLungeResultEvent lunge => new WireEvent
 			{
 				Kind = WireEventKind.EnemyLungeResult,
-				EnemyCombat = EnemyCombatWireMapper.ToWire(lunge),
+				EnemyCombat = KernelEnemyCombatWireMapper.ToWire(lunge),
 			},
 			EnemyEffectResultEvent effect => new WireEvent
 			{
 				Kind = WireEventKind.EnemyEffectResult,
-				EnemyCombat = EnemyCombatWireMapper.ToWire(effect),
+				EnemyCombat = KernelEnemyCombatWireMapper.ToWire(effect),
 			},
 			EnemyUpsertedEvent upserted => new WireEvent
 			{
@@ -290,16 +270,7 @@ public static class KernelWireMapper
 			data.Favourited,
 			data.SlotIndex,
 			[.. data.Liquids.Select(l => new ItemLiquidStack(l.LiquidId, l.Amount))],
-			[.. data.Components.Select(c => new ItemComponentState(
-				c.TypeName,
-				[.. c.Fields.Select(f => new ItemComponentField(
-					f.Name,
-					(ItemComponentFieldKind)f.Kind,
-					f.FloatValue,
-					f.IntValue,
-					f.BoolValue,
-					f.StringValue,
-					f.StringList))]))]);
+			[.. data.Components.Select(KernelComponentWireMapper.FromWire)]);
 
 	public static CommittedBatch FromWireBatch(WireCommittedBatch batch, RunEpoch fallbackEpoch) =>
 		new(
@@ -364,17 +335,17 @@ public static class KernelWireMapper
 			WireEventKind.PlayerCarryCleared => new PlayerCarryClearedEvent(
 				@event.CarrierSteamId,
 				@event.CarriedSteamId),
-			WireEventKind.PlayerInventoryTransfer => PlayerInteractionWireMapper.FromWireInventoryTransfer(
+			WireEventKind.PlayerInventoryTransfer => KernelPlayerInteractionWireMapper.FromWireInventoryTransfer(
 				@event.PlayerInteraction ?? throw new InvalidOperationException("PlayerInventoryTransfer event lacks interaction payload")),
-			WireEventKind.PlayerHealResult => PlayerInteractionWireMapper.FromWireHealResult(
+			WireEventKind.PlayerHealResult => KernelPlayerInteractionWireMapper.FromWireHealResult(
 				@event.PlayerInteraction ?? throw new InvalidOperationException("PlayerHealResult event lacks interaction payload")),
-			WireEventKind.PlayerItemUseResult => PlayerInteractionWireMapper.FromWireItemUseResult(
+			WireEventKind.PlayerItemUseResult => KernelPlayerInteractionWireMapper.FromWireItemUseResult(
 				@event.PlayerInteraction ?? throw new InvalidOperationException("PlayerItemUseResult event lacks interaction payload")),
-			WireEventKind.EnemyBiteResult => EnemyCombatWireMapper.FromWireBiteResult(
+			WireEventKind.EnemyBiteResult => KernelEnemyCombatWireMapper.FromWireBiteResult(
 				@event.EnemyCombat ?? throw new InvalidOperationException("EnemyBiteResult event lacks enemy combat payload")),
-			WireEventKind.EnemyLungeResult => EnemyCombatWireMapper.FromWireLungeResult(
+			WireEventKind.EnemyLungeResult => KernelEnemyCombatWireMapper.FromWireLungeResult(
 				@event.EnemyCombat ?? throw new InvalidOperationException("EnemyLungeResult event lacks enemy combat payload")),
-			WireEventKind.EnemyEffectResult => EnemyCombatWireMapper.FromWireEffectResult(
+			WireEventKind.EnemyEffectResult => KernelEnemyCombatWireMapper.FromWireEffectResult(
 				@event.EnemyCombat ?? throw new InvalidOperationException("EnemyEffectResult event lacks enemy combat payload")),
 			WireEventKind.EnemyUpserted => new EnemyUpsertedEvent(
 				KernelDomainWireMapper.FromWireEnemyState(@event.EnemyState ?? throw new InvalidOperationException("EnemyUpserted event lacks enemy state"))),
@@ -513,19 +484,19 @@ public static class KernelWireMapper
 				authority,
 				command.CarrierSteamId,
 				command.CarriedSteamId),
-			WireCommandKind.RecordEnemyBite => EnemyCombatWireMapper.FromWireBiteCommand(
+			WireCommandKind.RecordEnemyBite => KernelEnemyCombatWireMapper.FromWireBiteCommand(
 				command.EnemyCombat ?? throw new InvalidOperationException("RecordEnemyBite command lacks enemy combat payload"),
 				operation,
 				actor,
 				epoch,
 				authority),
-			WireCommandKind.RecordEnemyLunge => EnemyCombatWireMapper.FromWireLungeCommand(
+			WireCommandKind.RecordEnemyLunge => KernelEnemyCombatWireMapper.FromWireLungeCommand(
 				command.EnemyCombat ?? throw new InvalidOperationException("RecordEnemyLunge command lacks enemy combat payload"),
 				operation,
 				actor,
 				epoch,
 				authority),
-			WireCommandKind.RecordEnemyEffect => EnemyCombatWireMapper.FromWireEffectCommand(
+			WireCommandKind.RecordEnemyEffect => KernelEnemyCombatWireMapper.FromWireEffectCommand(
 				command.EnemyCombat ?? throw new InvalidOperationException("RecordEnemyEffect command lacks enemy combat payload"),
 				operation,
 				actor,

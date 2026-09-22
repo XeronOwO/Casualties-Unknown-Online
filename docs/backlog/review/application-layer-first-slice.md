@@ -127,7 +127,7 @@ moves, and later slices migrate when they are touched anyway.
   (`git diff -M` over the two files shows the same lines in the same relative order); the extraction
   also takes `CuoBootstrap` from 600 to 586 lines.
 - **Three of the nine named types stayed, each with its blocker recorded, and the remaining move is
-  its own ticket** (`todo/legacy-wire-dto-slice.md`): `KernelWireMapper`, because its enemy-combat
+  its own ticket** (`review/legacy-wire-dto-slice.md`): `KernelWireMapper`, because its enemy-combat
   branches work on the legacy protobuf messages the Game Adapter also references;
   `KernelBatchItemProjection`, because its contract and its own code carry the legacy item DTOs
   (`WorldItemTable` / `WorldItem` / `CharacterItemMsg` / `NetVector2`); and `KernelEnvelopeHandler`,

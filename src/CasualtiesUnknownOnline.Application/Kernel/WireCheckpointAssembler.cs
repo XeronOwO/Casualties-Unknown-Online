@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// </summary>
 public static class WireCheckpointAssembler
 {
-	public static IReadOnlyList<WireCheckpoint> Split(GameCheckpoint checkpoint, IKernelWireCodec codec)
+	public static IReadOnlyList<WireCheckpoint> Split(GameCheckpoint checkpoint)
 	{
 		var chunks = new List<WireCheckpoint>();
 		var items = checkpoint.Items;
@@ -48,7 +48,7 @@ public static class WireCheckpointAssembler
 				.Take(ProtocolConstants.CheckpointChunkItemCount)
 				.Select(item =>
 				{
-					var wire = codec.ToWireItem(item);
+					var wire = KernelWireMapper.ToWireItem(item);
 					if (useDefinitionTable)
 					{
 						var definitionIndex = definitionIndexes[item.Identity.DefinitionId];
@@ -68,7 +68,7 @@ public static class WireCheckpointAssembler
 				Items = slice,
 				ItemDefinitionTable = index == 0 && useDefinitionTable ? [.. definitionTable] : [],
 				RandomStreams = index == 0
-					? [.. checkpoint.RandomStreams?.Select(codec.ToWireRandomStream) ?? []]
+					? [.. checkpoint.RandomStreams?.Select(KernelWireMapper.ToWireRandomStream) ?? []]
 					: [],
 				Run = index == 0 && checkpoint.Run is not null
 					? KernelDomainWireMapper.ToWireRun(checkpoint.Run)
@@ -94,7 +94,7 @@ public static class WireCheckpointAssembler
 		return chunks;
 	}
 
-	public static GameCheckpoint Assemble(IReadOnlyList<WireCheckpoint> chunks, IKernelWireCodec codec)
+	public static GameCheckpoint Assemble(IReadOnlyList<WireCheckpoint> chunks)
 	{
 		if (chunks.Count == 0)
 		{
@@ -135,12 +135,12 @@ public static class WireCheckpointAssembler
 			.Select(item =>
 			{
 				ExpandItemDefinition(item, definitionTable);
-				return codec.FromWireItem(item);
+				return KernelWireMapper.FromWireItem(item);
 			})
 			.ToList();
 
 		var randomStreams = ordered[0]!.RandomStreams
-			.Select(codec.FromWireRandomStream)
+			.Select(KernelWireMapper.FromWireRandomStream)
 			.ToList();
 
 		var firstRun = ordered[0]!.Run;

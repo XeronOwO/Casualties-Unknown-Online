@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Legacy wire DTOs](todo/legacy-wire-dto-slice.md) — **Medium** — the remaining kernel-mapper move's precondition.
 
 ### Review
 
@@ -174,6 +173,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 - [Patch bridge domain ports](review/patch-bridge-domain-ports.md) — **Medium** — per-domain ports; the aggregate is frozen.
 - [Bilingual human documentation](review/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
+- [Legacy wire DTOs](review/legacy-wire-dto-slice.md) — **Medium** — the kernel <-> wire vocabulary moves into the layer; materialization stays.
 
 ### Future
 

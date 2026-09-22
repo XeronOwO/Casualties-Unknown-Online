@@ -684,7 +684,7 @@ public class KernelProtocolServiceTests
 		// set carries.
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
 		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
-		var previousRun = WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint(), TestKernelCodec.Instance);
+		var previousRun = WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint());
 
 		hostAuthority.ResetSessionState();
 		hostAuthority.ObserveSpawn(HostId, 77, "water", 3f, 4f);
@@ -736,7 +736,7 @@ public class KernelProtocolServiceTests
 		host.Services.GetRequiredService<PacketSender>().Send(GuestId, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = false, RunEpoch = 3 });
 
 		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
-		foreach (var chunk in WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint(), TestKernelCodec.Instance))
+		foreach (var chunk in WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint()))
 		{
 			guestKernel.HandleFrame(HostId, CheckpointFrame(chunk));
 		}
@@ -757,7 +757,7 @@ public class KernelProtocolServiceTests
 
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
 		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
-		var previousRun = WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint(), TestKernelCodec.Instance);
+		var previousRun = WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint());
 
 		// Run 2 reaches this side with NO instruction in front of it (a reconnect's
 		// entry group is sent before the join): that set defines the identity, and the
@@ -865,7 +865,7 @@ public class KernelProtocolServiceTests
 
 		// Both stamps come from the same checkpoint at send time, so a frame whose
 		// two stamps disagree is malformed by construction and never restores.
-		var frame = CheckpointFrame(WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint(), TestKernelCodec.Instance)[0]);
+		var frame = CheckpointFrame(WireCheckpointAssembler.Split(hostAuthority.CreateCheckpoint())[0]);
 		frame.Checkpoint!.Header.RunEpoch = 9;
 
 		guest.Services.GetRequiredService<IKernelProtocolControl>().HandleFrame(HostId, frame);

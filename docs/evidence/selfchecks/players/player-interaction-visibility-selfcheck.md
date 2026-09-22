@@ -30,7 +30,7 @@ backpack view cannot be performed through walls.
 | Mechanism | Change | Evidence |
 |---|---|---|
 | Runtime interface | `IPlayerInteractionVisibility` + default allow-all | `Runtime/Session/PlayerInteraction` |
-| DI wiring | default registered in `CuoBootstrap`; plugin replaces with `GameAdapterImpl` | `CuoBootstrap.cs`, `PluginDependencyRegistrar.cs` |
+| DI wiring | default registered in `CuoBootstrap`; the adapter composition replaces the default with `GameAdapter` | `CuoBootstrap.cs`, `GameAdapterComposition.cs` |
 | Adapter oracle | positions + Ground linecast, missing evidence allowed | `GameAdapter/PlayerInteractionVisibility.cs`, `GameAdapter.cs` |
 | Take/carry/heal/use/push | **[superseded 2026-09-19]** the ACTOR's `Send*Request` calls the oracle; the host handlers no longer do | `PlayerInteractionService` subservices |
 | Remote backpack view | coordinator refuses open without LOS | `RemoteBackpackCoordinator.cs` |

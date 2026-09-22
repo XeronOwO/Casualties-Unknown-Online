@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck census + mechanism tables; each of the 21 members names a call site, a port, or its removal reason
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck mechanism table; 12 ports / 16 members, 4 units and 2 measured assembly-reference tables each name their source
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 21 boundary members accounted for (14 ported, 7 removed with call-site evidence); every consumer re-pointed; 3 contract classes re-pointed
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck mechanism x change x evidence table; AdapterCapabilityPortShapeTests (16 cases) pins every port's member census
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: every adapter-side registration moved with its order preserved; 4 consumers re-pointed; 15 evidence pages re-pointed off the old registrar
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: plugin-host-shell-selfcheck mechanism x change x evidence table; AdapterCapabilityPortShapeTests (18 cases) pins the 12-port census
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: build + focused 30/30 + gates 93/93 + full 3789/3789; gate red/green mutation controls; real-client behaviour explicitly not claimed
+      peer log comparison, hotrepl assertions) is decided — evidence: build 0/0 + format exit 0 + gates 100/100 + focused 338/338 + fast 2097/2097; real-client behaviour explicitly not claimed
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: owner instruction "finish every remaining todo, then come back" (decision 207) and the ticket's own acceptance list
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format --verify-no-changes --include <changed files> exit 0; gates 93/93; full suite 3789/3789 with build
+      process violation — evidence: owner instruction "finish every remaining todo, then come back" and the ticket's four ordered stages, taken in that order
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; format --verify-no-changes --include <changed files> exit 0; suite with build 3791/3791; gates 100/100
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: Plugin.cs 584 lines (619 with the port plumbing; cap 600) via the StartGateOverlay extraction; no new state bool; dead Close wrapper deleted
+      dead mechanisms deleted in the same round) — evidence: Plugin.cs 584→294, registrar 413→275, OnlineUiHost 259, GameAdapterComposition 180, LobbySwitchActions 109 — all under the cap; no new state bool
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

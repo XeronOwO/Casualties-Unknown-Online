@@ -25,7 +25,7 @@ the canonical id.
 | 11 | Mod content source | `ModContentResourceLocationSource` (Runtime) → `<namespace>:<id>` for namespaced registrations, display name from the typed DTO (`ModContentDisplayName`), legacy namespace-less registrations skipped, and a bare id registered by several mods skipped (the game table can hold only one). |
 | 12 | Console projection | `CommandConsoleService.SuggestResourceLocations` maps entries to `CommandSuggestion(canonicalId, "kind · displayName")`; the static phase-18 `ConsoleResourceLocationCatalog` is deleted. |
 | 13 | Selector vocabulary | `cuo:player` → `cu:player` in `CommandSelectorSuggestions` and `CommandSelectorFilter.IsTypeMatch` (the `cuo:` placeholder vocabulary is gone). |
-| 14 | DI wiring | Runtime registers the built-in + mod-content sources and the catalog (`CuoBootstrap.cs`); the plugin registers the Game Adapter vanilla source (`PluginDependencyRegistrar.cs`). |
+| 14 | DI wiring | Runtime registers the built-in + mod-content sources and the catalog (`CuoBootstrap.cs`); the adapter composition registers the Game Adapter vanilla source (`GameAdapterComposition.cs`). |
 | 15 | No wire change | Namespaces/content bytes stay process-local; `ModRegistry.CurrentModInfos()` still carries only id/version/mode/permissions, so no `NetMsg`/`ProtocolVersion` change. |
 
 ## 2. Self-check table

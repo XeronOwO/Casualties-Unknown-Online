@@ -124,6 +124,23 @@ internal static class ProjectDirectionPolicy
 	}
 
 	/// <summary>
+	/// Every project <c>CasualtiesUnknownOnline.slnx</c> lists, as its name and
+	/// csproj path. This is the ONE reader of the solution file: the direction gate
+	/// and the game-assembly gate both derive their scan surface from it, so a new
+	/// project cannot slip past either by being absent from a hand-written list.
+	/// </summary>
+	internal static IReadOnlyList<(string Name, string Path)> SolutionProjects(string root)
+	{
+		var solution = XDocument.Load(Path.Combine(root, "CasualtiesUnknownOnline.slnx"));
+		return [.. solution.Descendants()
+			.Where(element => element.Name.LocalName == "Project")
+			.Select(element => element.Attribute("Path")?.Value)
+			.Where(value => !string.IsNullOrEmpty(value))
+			.Select(value => value!.Replace('/', Path.DirectorySeparatorChar))
+			.Select(relative => (Name: Path.GetFileNameWithoutExtension(relative), Path: Path.Combine(root, relative)))];
+	}
+
+	/// <summary>
 	/// Reads the real graph: every project the solution lists, with the CUO
 	/// references each csproj declares — a <c>ProjectReference</c> or a raw
 	/// <c>Reference</c> to a CUO assembly, so an assembly-reference bypass is not
@@ -133,16 +150,11 @@ internal static class ProjectDirectionPolicy
 	/// </summary>
 	internal static IReadOnlyDictionary<string, IReadOnlyList<string>> LoadSolutionGraph(string root)
 	{
-		var solution = XDocument.Load(Path.Combine(root, "CasualtiesUnknownOnline.slnx"));
 		var graph = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
-		foreach (var projectPath in solution.Descendants()
-			.Where(element => element.Name.LocalName == "Project")
-			.Select(element => element.Attribute("Path")?.Value)
-			.Where(value => !string.IsNullOrEmpty(value)))
+		foreach (var (name, path) in SolutionProjects(root))
 		{
-			var relative = projectPath!.Replace('/', Path.DirectorySeparatorChar);
-			var document = XDocument.Load(Path.Combine(root, relative));
-			graph[Path.GetFileNameWithoutExtension(relative)] = [.. document.Descendants()
+			var document = XDocument.Load(path);
+			graph[name] = [.. document.Descendants()
 				.Where(element => element.Name.LocalName == "ProjectReference"
 					|| (element.Name.LocalName == "Reference"
 						&& (element.Attribute("Include")?.Value ?? string.Empty).StartsWith("CasualtiesUnknownOnline.", StringComparison.Ordinal)))

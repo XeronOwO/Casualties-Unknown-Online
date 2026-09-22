@@ -26,31 +26,37 @@
   </ItemGroup>
 
   <!--
-    Game assemblies — gitignored, copied on demand from the game install (see references/README.md).
-    UnityEngine modules are the game's own Unity 2022.3 builds: the template's
-    UnityEngine.Modules 5.6.0 NuGet package mismatched the runtime and Unity could
-    not instantiate the plugin script ("could not be instantiated" in Player.log).
-    Add more modules on demand when the compiler reports missing types.
+    NO game assembly here: the Game Adapter is the only framework project that
+    references Assembly-CSharp (docs/development/agent-reference.md, repository
+    layout), and this project's own code no longer touches a game type — the
+    direct-join intent, the carry pump and the lobby policy all reach the game
+    through the adapter's capability ports. GameAssemblyReferenceGateTests fails
+    the build if a game assembly reference comes back.
+
+    The UnityEngine modules below are the game's own Unity 2022.3 builds:
+    the template's UnityEngine.Modules 5.6.0 NuGet package mismatched the
+    runtime and Unity could not instantiate the plugin script ("could not be
+    instantiated" in Player.log). Each reference below is the measured minimum —
+    the module was removed, the project rebuilt, and the compiler named what went
+    missing:
+      UnityEngine / CoreModule       — BepInEx's BaseUnityPlugin derives from
+                                       MonoBehaviour; Application, Debug, LogType.
+      UnityEngine.InputLegacyModule  — Input.GetKeyDown and KeyCode for the
+                                       console/quick-panel hotkeys.
+      UnityEngine.IMGUIModule        — the Online UI overlay's IMGUI pass.
+      UnityEngine.TextRenderingModule— GUIStyle/GUIText text in that pass.
+      netstandard                    — the game's own copy, never the targeting pack's.
+    SubsystemsModule and SharedInternalsModule were dropped by the same
+    measurement. Re-run it (remove one, build, read the error) before adding a
+    module back.
   -->
   <ItemGroup>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\references\Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\..\references\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\..\references\UnityEngine.CoreModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.SharedInternalsModule">
-      <HintPath>..\..\references\UnityEngine.SharedInternalsModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.SubsystemsModule">
-      <HintPath>..\..\references\UnityEngine.SubsystemsModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">

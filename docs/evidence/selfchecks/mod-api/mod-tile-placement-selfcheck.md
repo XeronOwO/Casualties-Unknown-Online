@@ -35,7 +35,7 @@ the write; no new wire message and no game/Unity type crosses the mod boundary.
 | `ModTilePlacementAdapter` | New per-mod adapter with permission/session/policy gating (top-level, not nested). |
 | `ModLifecycle` / `ModService` | Wired the tile placer through the mod-context construction path. |
 | `CuoBootstrap` | Registered the disabled tile placer in the Runtime default composition. |
-| `PluginDependencyRegistrar` | Replaced the tile placer with the Game Adapter implementation. |
+| `GameAdapterComposition` | Replaced the tile placer with the Game Adapter implementation. |
 | `GameAdapter` | Implements `IModTilePlacer` and writes the local custom block. |
 | `GameAdapterTileContentProvider` | Added `TryPrepareForPlacement` so a placement can force the tile injection before `SetBlock`. |
 | Tests | `ModTilePlacementTests` + `FakeModTilePlacer`. |

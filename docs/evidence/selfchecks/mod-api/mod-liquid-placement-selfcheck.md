@@ -38,7 +38,7 @@ boundary.
 | `ModLiquidPlacementAdapter` | New per-mod adapter with permission/session/policy gating (top-level, not nested). |
 | `ModLifecycle` / `ModService` | Wired the liquid placer through the mod-context construction path. |
 | `CuoBootstrap` | Registered the disabled liquid placer in the Runtime default composition. |
-| `PluginDependencyRegistrar` | Replaced the liquid placer with the Game Adapter implementation. |
+| `GameAdapterComposition` | Replaced the liquid placer with the Game Adapter implementation. |
 | `GameAdapter` | Implements `IModLiquidPlacer` by delegating to the new liquid placement domain. |
 | `LiquidTilePlacement` | New GameAdapter domain: resolves world byte, checks world/air/authority, calls `SetLiquid` / `StartFill`. |
 | Tests | `ModLiquidPlacementTests` + `FakeModLiquidPlacer`. |

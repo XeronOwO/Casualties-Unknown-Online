@@ -123,8 +123,9 @@ arbitration and the commit/broadcast of the effect.
   the wrong number of fragments.
 - **Adapter seam**: `ILocalCharacterCapture.CaptureLocal()`; `LocalCharacterCapture` (GameAdapter)
   captures the live body through the same `CharacterDataCapture` helper the save cut uses, and
-  `PluginDependencyRegistrar` replaces the composition default with it exactly like the visibility
-  oracle, for the same constructor-cycle reason. The default
+  the adapter composition (`GameAdapterComposition` since 2026-09-22; `PluginDependencyRegistrar`
+  before that) replaces the composition default with it exactly like the visibility oracle, for the
+  same constructor-cycle reason. The default
   (`UnavailableLocalCharacterCapture`) captures nothing, and the gate then answers from this side's
   own latest snapshot; when there is none either, the verdict is a refusal ("Target body is
   unavailable.") rather than a host judgment made on the target's behalf.

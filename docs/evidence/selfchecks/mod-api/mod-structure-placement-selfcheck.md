@@ -36,7 +36,7 @@ mod boundary.
 | `ModStructurePlacementAdapter` | New per-mod adapter with permission/session/policy gating (top-level, not nested). |
 | `ModLifecycle` / `ModService` | Wired the structure placer through the mod-context construction path. |
 | `CuoBootstrap` | Registered the disabled structure placer in the Runtime default composition. |
-| `PluginDependencyRegistrar` | Replaced the structure placer with the Game Adapter implementation. |
+| `GameAdapterComposition` | Replaced the structure placer with the Game Adapter implementation. |
 | `GameAdapter` | Implements `IModStructurePlacer` and writes the local multi-block structure. |
 | `GameAdapterStructureContentProvider` | Stores compiled cells and resolves them for placement. |
 | Tests | `ModStructurePlacementTests` + `FakeModStructurePlacer`. |

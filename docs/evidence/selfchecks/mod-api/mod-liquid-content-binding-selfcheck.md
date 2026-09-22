@@ -27,7 +27,7 @@ DTO because mods must not pass game delegate types through Abstractions.
 | `ModLiquidDefinition` | New Abstractions DTO + serialization helpers. |
 | `ModLiquidQuality` | New Abstractions quality DTO. |
 | `GameAdapterLiquidContentProvider` | New GameAdapter provider mapping into `Liquids.Registry`. |
-| `PluginDependencyRegistrar` | Registered the liquid provider as `IContentBindingProvider` and `ICuoService`. |
+| `GameAdapterComposition` | Registered the liquid provider as `IContentBindingProvider` and `ICuoService`. |
 | Tests | `ModLiquidDefinitionTests` round-trip and invalid payload. |
 | Protocol version | Unchanged (no wire). |
 

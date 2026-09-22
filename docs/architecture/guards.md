@@ -118,14 +118,38 @@ Adapter-seam addendum:
 `AdapterCapabilityPortShapeTests` freezes the Game Adapter seam. It asserts that `IGameAdapter`
 declares no member of its own (a member added back onto the aggregate fails — the census reads
 methods, properties and events alike), that each capability port declares exactly its pinned member
-census and that no member name is shared by two ports, that the aggregate composes exactly those ten
-ports plus `IDisposable`, that the composition carries exactly fourteen members, and that every port is
-registered EXACTLY ONCE from the one adapter singleton in `PluginDependencyRegistrar` (counted, so an
-unwired port and a duplicate whose last descriptor wins both fail; read as source, because the plugin
-project is not referenced by the tests). Its matcher is pinned by a synthetic composition that declares
+census and that no member name is shared by two ports, that the aggregate composes exactly those twelve
+ports plus `IDisposable`, that the composition carries exactly sixteen members, and that every port is
+registered EXACTLY ONCE from the one adapter singleton in `GameAdapterComposition` (counted, so an
+unwired port and a duplicate whose last descriptor wins both fail; read as source, because the tests
+load the adapter reflectively and cannot resolve its container). Its matcher is pinned by a synthetic
+composition that declares
 a method, a property and an event — so the check is known to flag the shape it exists for — and the
 port list is the same one the aggregate names, not a second list. Two mutation controls were run in the
-landing cycle: declaring a member back on the aggregate and deleting one port registration each turn it
-red; restoring them turns it green. The aggregate itself is not registered in the composition root:
+adapter cycle's landing (2026-09-21) and RE-RUN for the two ports added on 2026-09-22: declaring a member
+back on the aggregate (with its implementation) and deleting one port registration each turn it red;
+restoring them turns it green. The aggregate itself is not registered in the composition root:
 nothing resolves the whole adapter, and the compile-time proof that one object implements the
-composition is the class declaration (`docs/backlog/review/adapter-capability-ports.md`).
+composition is the class declaration (`docs/backlog/review/adapter-capability-ports.md`; the
+composition moved from the plugin into the adapter project with
+`docs/backlog/review/plugin-host-shell.md`, decision 213).
+
+Game-assembly addendum:
+`GameAssemblyReferenceGateTests` enforces the layout rule that only a declared game-binding project
+compiles against the game's own code. It scans every project `CasualtiesUnknownOnline.slnx` lists —
+through the one shared reader `ProjectDirectionPolicy.SolutionProjects`, so a new project is covered
+the moment the solution names it — for a `Reference` whose Include is exactly `Assembly-CSharp`, and
+allows it only for `CasualtiesUnknownOnline.GameAdapter` (the framework's only game-binding layer) and
+`CasualtiesUnknownOnline.PinyinSearch` (the satellite mod's game-binding half, advanced-modification
+policy §1.2); tests and tools stay unconstrained through the existing
+`ProjectDirectionPolicy.ConsumerProjects`. It carries a census floor (13 projects), a positive half
+(every declared binder is still in the solution and still binds — the gate cannot pass because the
+reference disappeared or the project was renamed) and five synthetic matcher cases, including an
+`Assembly-CSharp-firstpass` sample that must NOT be dragged in by a prefix match. The plugin project's
+built DLL was the measurement that made the rule true: its assembly references carry no
+`Assembly-CSharp`.
+
+Scope of that scan, stated rather than implied: the gate reads each solution project's OWN project
+file. A reference that arrives through an imported `Directory.Build.props` / `Directory.Build.targets`
+or any `<Import>`ed props/targets file is outside it (the tree carries no such file today; if one ever
+appears, the reader has to follow the MSBuild import closure).

@@ -32,7 +32,7 @@ to every peer. No new wire message, no protocol bump.
 | `CuoBootstrap` | Registered the disabled default; the plugin replaces it with the real adapter. |
 | `GameAdapter` | New `GameAdapter.ModEntitySpawn.cs` partial forwarding to `EntitySpawnSync.TrySpawnFromMod`. |
 | `EntitySpawnSync` | New `TrySpawnFromMod`: `Utils.Create` + BuildingEntity check + rotation; a non-entity local object is destroyed. |
-| `Plugin` | Registered the real `IModEntitySpawner` from `GameAdapterImpl`. |
+| `GameAdapterComposition` | Registered the real `IModEntitySpawner` from `GameAdapter`. |
 | Protocol version | Unchanged (no wire change). |
 
 ## 3. Self-check table (mechanism × change × evidence)

@@ -38,7 +38,7 @@ for static content by only binding shared-content network modes.
 | `CustomItemTemplateMarker` | Small marker component identifying runtime templates so the resource/instantiate helpers can activate clones. |
 | `IPatchBridge` / `GameAdapterBridge` | Added `TryResolveItemTemplate` so static patches and internal materializers reach the provider. |
 | `CuoBootstrap` | Registered `ModContentBinder` as `ICuoService` after mod discovery. |
-| `PluginDependencyRegistrar` | Registered the item provider as `IContentBindingProvider`, `ICuoService`, and a `GameAdapter` constructor dependency. |
+| `GameAdapterComposition` | Registered the item provider as `IContentBindingProvider`, `ICuoService`, and a `GameAdapter` constructor dependency. |
 | Tests | `ModItemDefinitionTests`, `ModContentBinderTests`; extended previous content tests. |
 | Protocol version | Unchanged (no wire). |
 

@@ -15,8 +15,9 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// capability it uses and a version adapter implements per capability. Each entry
 /// below pins one port and the members it may declare: a member added back onto
 /// the aggregate, a member moved between ports, a port dropped from the
-/// composition, or a port left unregistered in the plugin's composition root
-/// fails here instead of regrowing the old wide surface silently.
+/// composition, or a port left unregistered in the adapter's composition
+/// (GameAdapterComposition) fails here instead of regrowing the old wide surface
+/// silently.
 /// </summary>
 public class AdapterCapabilityPortShapeTests
 {
@@ -35,13 +36,15 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IRemoteInventoryPresentation), ["OpenRemoteBackpack"]),
 		(typeof(IRemoteMedicalPresentation), ["OpenRemoteMedical"]),
 		(typeof(IPlayerAnchorQuery), ["TryGetRemoteHeadPosition"]),
+		(typeof(IJoinFlowPresentation), ["PrepareForDirectJoin"]),
+		(typeof(ICarryPresentationPump), ["PinCarriedPresentation"]),
 	];
 
-	/// <summary>Where the ports must be registered from the one adapter singleton (checked as source, because the plugin project is not referenced by the tests).</summary>
-	private static readonly string RegistrarPath = Path.GetFullPath(Path.Combine(
+	/// <summary>Where the ports must be registered from the one adapter singleton (checked as source, because the tests load the adapter reflectively and cannot resolve its container).</summary>
+	private static readonly string CompositionPath = Path.GetFullPath(Path.Combine(
 		AppContext.BaseDirectory,
 		"..", "..", "..", "..", "..",
-		"src", "CasualtiesUnknownOnline.Plugin", "PluginDependencyRegistrar.cs"));
+		"src", "CasualtiesUnknownOnline.GameAdapter", "GameAdapterComposition.cs"));
 
 	public static IEnumerable<object[]> PortCensus() =>
 		Ports.Select(entry => new object[] { entry.Port.Name, Census(entry.Members) });
@@ -71,8 +74,8 @@ public class AdapterCapabilityPortShapeTests
 	}
 
 	[Fact]
-	public void Composition_CarriesExactlyFourteenMembers() =>
-		Assert.Equal(14, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+	public void Composition_CarriesExactlySixteenMembers() =>
+		Assert.Equal(16, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()
@@ -90,9 +93,9 @@ public class AdapterCapabilityPortShapeTests
 	[Fact]
 	public void EveryPort_IsRegisteredExactlyOnceFromTheAdapterSingleton()
 	{
-		Assert.True(File.Exists(RegistrarPath), $"composition root not found at {RegistrarPath}");
+		Assert.True(File.Exists(CompositionPath), $"composition root not found at {CompositionPath}");
 
-		var source = File.ReadAllText(RegistrarPath);
+		var source = File.ReadAllText(CompositionPath);
 		var problems = Ports
 			.Select(entry => (Name: entry.Port.Name, Count: CountRegistrations(source, entry.Port.Name)))
 			.Where(pair => pair.Count != 1)
@@ -108,7 +111,7 @@ public class AdapterCapabilityPortShapeTests
 	/// </summary>
 	private static int CountRegistrations(string source, string portName) =>
 		source.Split(
-			[$"AddSingleton<{portName}>(p => p.GetRequiredService<GameAdapterImpl>())"],
+			[$"AddSingleton<{portName}>(p => p.GetRequiredService<GameAdapter>())"],
 			StringSplitOptions.None).Length - 1;
 
 	/// <summary>

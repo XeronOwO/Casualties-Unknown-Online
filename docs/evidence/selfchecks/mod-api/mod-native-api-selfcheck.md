@@ -31,7 +31,7 @@ until a concrete consumer exists and its sync/authority boundary is designed.
 | `DisabledModNativeApiProvider` | Default no-op registration keeping the Runtime-only/test graph constructible. |
 | `CuoBootstrap` | Registered the disabled default; the plugin replaces it with the real adapter. |
 | `GameAdapter` | New `GameAdapter.NativeApi.cs` partial reading local `Body` and returning the framework DTO; no Unity object crosses. |
-| `Plugin` | Registered the real `IModNativeApiProvider` from `GameAdapterImpl`. |
+| `GameAdapterComposition` | Registered the real `IModNativeApiProvider` from `GameAdapter`. |
 | Protocol version | Unchanged (no wire change). |
 
 ## 3. Self-check table (mechanism × change × evidence)

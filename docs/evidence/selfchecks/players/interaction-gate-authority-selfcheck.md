@@ -105,7 +105,7 @@ services (the claim bookkeeping, then the injection start path).
 | Operator halves | one home each, every reason string verbatim | `OtherMedicalOperationStartValidator.cs`, `ShrapnelStartValidator.cs`, `InjectionStartValidator.cs` |
 | Window re-check | the host's own facts re-validated on the answer | `MedicalStartRecheck.cs` |
 | Piece layout | seeded from the answer's live count | `ShrapnelOperationSessionService.CommitStart` → `ShrapnelSessionStateWriter.InitializePieces` |
-| Local capture | adapter seam + composition default | `ILocalCharacterCapture.cs`, `GameAdapter/LocalCharacterCapture.cs`, `PluginDependencyRegistrar.cs` |
+| Local capture | adapter seam + composition default | `ILocalCharacterCapture.cs`, `GameAdapter/LocalCharacterCapture.cs`, `GameAdapterComposition.cs` |
 | Wire | two new ids, protocol bump | `NetMsg.cs` 137/138, `ProtocolVersion.Current = 25` (that cycle's value — the version register carries the current one) |
 | Coverage index | both members declared on the P11 row | `docs/evidence/sync-coverage-matrix.md` (P11, 20 anchors) |
 | Line budget | the injection start path and the shrapnel session's operator/item bookkeeping extracted | `InjectionStartCoordinator.cs` (`MedicalOperationSessionService.cs` 595 → 510); `ShrapnelOperatorBookkeeping.cs` (`ShrapnelOperationSessionService.cs` 597 → 552) |

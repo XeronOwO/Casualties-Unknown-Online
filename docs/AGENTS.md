@@ -21,6 +21,12 @@ Two human blocks, path for path identical:
   (`docs/`, `docs/en/`, `docs/zh/`, `src/`, `tests/`, `tools/`), holds guidance rather than
   knowledge, and stays under its byte ceiling.
 
+Everything that is not a process record belongs in these two blocks, in both languages: the
+architecture and protocol explanations, the mod API contract, the feature tables, and the operations
+and contribution knowledge. A document that only records what a past cycle did — a phase plan, an
+audit, a delivery self-check, a decision register — stays out of the blocks, and its conclusions are
+absorbed into the pages that need them.
+
 ## 2. What a page looks like
 
 One page answers one question, and its title says what the reader can then do.

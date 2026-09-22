@@ -10,8 +10,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// props by <see cref="UtilsCreateTutorialPatch"/>; the item/entity domains
 /// then leave them out of the shared tables instead of double-reporting both
 /// sides' copies (the claw double-give). Prefix/Postfix with __state only —
-/// no cross-call business state (AGENTS.md #10); the scope is disposed on
-/// exception paths too.
+/// no cross-call business state, the sync-chain rule in
+/// `docs/development/agent-reference.md`; the scope is disposed on exception
+/// paths too.
 /// </summary>
 [HarmonyPatch(typeof(TutorialHandler), "Update")]
 internal static class TutorialHandlerUpdatePatch

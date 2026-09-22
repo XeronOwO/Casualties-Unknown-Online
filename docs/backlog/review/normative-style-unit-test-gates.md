@@ -89,7 +89,7 @@ Cover at least:
   `Microsoft.CodeAnalysis.CSharp` 4.8.0). It is part of the solution and the
   normal `dotnet test` run.
 - Implemented `FullyQualifiedNameGate`: a Roslyn syntax-tree scanner for
-  AGENTS.md #10. It reports unnecessary fully qualified type names and
+  AGENTS.md #7. It reports unnecessary fully qualified type names and
   namespace-qualified static/type member accesses, while excluding using
   directives, namespace declaration names, string literals, and enclosing-type
   member-name collisions.

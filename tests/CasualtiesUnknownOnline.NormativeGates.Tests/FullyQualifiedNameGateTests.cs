@@ -7,7 +7,7 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
-/// Unit-test gate for AGENTS.md Engineering Convention #10: prefer using
+/// Unit-test gate for AGENTS.md Engineering Convention #7: prefer using
 /// directives/aliases over fully qualified type names. The test covers the
 /// clear violation, the accepted forms, and the documented ambiguity exception.
 /// It also runs the same Roslyn gate over the repository's C# sources so the
@@ -152,7 +152,7 @@ public class FullyQualifiedNameGateTests
 		Assert.True(parseFailures.Count == 0,
 			"Normative gate could not parse source files" + Environment.NewLine + string.Join(Environment.NewLine, parseFailures));
 		Assert.True(violations.Count == 0,
-			"Repository contains unnecessary fully qualified type names (AGENTS.md #10):\n"
+			"Repository contains unnecessary fully qualified type names (AGENTS.md #7):\n"
 			+ string.Join("\n", violations.Select(v => $"{v.FilePath}:{v.Line}: {v.Text}")));
 	}
 

@@ -21,7 +21,7 @@ Run the canonical commands from [`AGENTS.md`](../../AGENTS.md) before committing
 changes. The normative source-shape gate is now part of `dotnet test`:
 
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests` — Roslyn syntax-tree gate
-  for AGENTS.md #10 (prefer `using`/aliases over fully qualified names), plus
+  for AGENTS.md #7 (prefer `using`/aliases over fully qualified names), plus
   C# unit-test ports of the former `tools/check-*.ps1` gates in
   `SourceShapeGateTests` and `RepositoryGateTests`. The inventory of every
   normative rule's automation status is in

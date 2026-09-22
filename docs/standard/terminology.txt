@@ -63,3 +63,13 @@ evidence | 证据 | 证据 | 证明, 凭据 | the recorded proof for a claim: a 
 review | 复核 | 复核(review) | 评审, 审查 | the independent check a change passes before delivery
 process record | 流程记录 | 流程记录 | 历史记录, 过程文档 | a document recording what a cycle did (backlog, evidence, decisions); never translated
 breadcrumb | 面包屑 | 面包屑 | 导航条, 路径栏 | the navigation line at the head and tail of a page naming its place
+judgment ownership | 判定归属 | 判定归属(judgment ownership) | 决定权, 归属判定 | which machine decides what happens to a player: that player's own client, on its own view and timeline
+read model | 只读模型 | 只读模型(read model) | 只读数据 | projected state meant for reading; a reading is never an arbitration input or a verdict
+vitals | 生命体征 | 生命体征(vitals) | 血量, 生命值 | the projected physiological fields of one player: health, hunger, thirst, stamina, energy, temperature
+content id | 内容 id | 内容 id(content id) | 内容编号, 资源 id | the canonical `namespace:path` address of a registered content definition
+namespace | 命名空间 | 命名空间(namespace) | 前缀, 域 | the mod-declared first half of a content id; context separates it from the C# keyword
+content kind | 内容类别 | 内容类别(content kind) | 内容类型 | the `kind` string a definition is registered under, such as `item` or `recipe`
+schema version | 结构版本 | 结构版本(schema version) | 架构版本, 格式版本号 | the mod-owned version stored with an opaque persisted payload; the framework never migrates it
+mod state | 模组状态 | 模组状态(mod state) | 模组存档, 模组数据 | the host-persistent per-mod key/value table behind `IModState`
+rollback | 回滚 | 回滚(rollback) | 撤销, 退回 | undoing a locally applied action after arbitration refuses the claim
+tombstone | 墓碑 | 墓碑(tombstone) | 标记, 记号 | a recorded refusal that stops a later repeat of the same creation

@@ -9,7 +9,7 @@ Pick the line that matches what you want to do; each line runs from shallow to d
 
 1. **Get it running** — [Start here](start/README.md): what CUO is, how to play it, how to set up a
    development checkout, and a first mod you can watch working.
-2. **Do one thing** — `how-to/`: one task per page, with the steps, a runnable example and the traps.
+2. **[Do one thing](how-to/README.md)** — one task per page, with the steps, a runnable example and the traps.
 3. **Understand why** — `internals/`: who decides what, the deterministic kernel, the protocol, saves,
    the adapter boundary, and the cost of each choice.
 4. **Look something up** — [Reference](reference/README.md): the mod API, protocol messages,

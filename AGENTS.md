@@ -15,6 +15,10 @@ Instructions for AI coding agents and contributors working in this repository.
   language is appropriate only where the deliverable explicitly targets that language's
   audience (localized resources, a community-specific project). Personal, uncommitted
   communication follows the owner's own preference, recorded in `AGENTS.local.md`.
+- Documentation layers: an agent document answers "how do I do the work" and is English only; a
+  human guide answers "what is this product" and is paired English + Chinese under `docs/guide/`
+  and `docs/developer/`. The layer rule, the pairing contract and the maintenance workflow are
+  `docs/i18n/README.md`; `docs/AGENTS.md` carries the rules for that subtree.
 - Requirement triage: personal/specific → `AGENTS.local.md`; shared/beneficial → this file or
   `docs/`; ambiguous → ask the user.
 - This repository is the long-term reference implementation for these standards. New projects

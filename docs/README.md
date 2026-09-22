@@ -4,14 +4,43 @@ This is the semantic index for the CUO documentation. It is organized by reader
 intent, not by file type. If you only read one page, start here and follow the
 reading path.
 
+## Three layers
+
+The tree carries three layers, and every documentation directory declares its layer
+through its index:
+
+| Layer | Index | Language | Reader |
+|---|---|---|---|
+| Agent instruction | [`docs/AGENTS.md`](AGENTS.md) and the root [`AGENTS.md`](../AGENTS.md) | English only | an agent doing the work |
+| Reference / evidence | this map, plus each layer's own `README.md` | English only | a contributor who needs the full detail |
+| Human guide | [`guide/README.md`](guide/README.md) + [`guide/README.zh.md`](guide/README.zh.md), [`developer/README.md`](developer/README.md) + [`developer/README.zh.md`](developer/README.zh.md) | paired English + Chinese | a player, or a developer meeting the product |
+
+The layer rule and the pairing contract are [`i18n/README.md`](i18n/README.md); the
+renderings are [`i18n/terminology.md`](i18n/terminology.md). Only the two guide levels
+are paired — every other document in this tree is English only. 中文读者从这里开始:
+[`guide/README.zh.md`](guide/README.zh.md).
+
 ## Reading path
 
 ```
+What CUO is, and playing it (level 1, paired)
+  → guide/README.md            (中文: guide/README.zh.md)
+  → guide/getting-started.md
+  → guide/playing.md
+  → guide/limitations.md
+
+Building on CUO (level 2, paired)
+  → developer/README.md        (中文: developer/README.zh.md)
+  → developer/overview.md
+  → developer/layers.md
+  → developer/protocol.md
+  → developer/sync-model.md
+
 Why / vision
   → README.md (repo root)
   → AGENTS.md (repo root)
 
-Current architecture
+Current architecture (level 3, English only)
   → architecture/README.md
   → architecture/current.md
   → architecture/domains.md

@@ -46,13 +46,13 @@ internal static class KernelReplicationComposition
 		services.AddSingleton<IKernelProtocolControl>(p => p.GetRequiredService<KernelProtocolService>());
 		// The replication surface's ports. The kernel authority answers four
 		// capabilities (read, execute, checkpoint, apply) and the session, the
-		// transport, the pending-command table and the wire codec answer one each.
+		// transport, the pending-command table and the item-data normalizer answer one each.
 		services.AddSingleton<IKernelCommandExecution>(p => p.GetRequiredService<ItemKernelAuthority>());
 		services.AddSingleton<IKernelCheckpointSource>(p => p.GetRequiredService<ItemKernelAuthority>());
 		services.AddSingleton<IKernelBatchApplication>(p => p.GetRequiredService<ItemKernelAuthority>());
 		services.AddSingleton<IKernelPendingCommands>(p => p.GetRequiredService<GuestCommandReconciliation>());
 		services.AddSingleton<IKernelSessionFacts>(p => p.GetRequiredService<SessionService>());
 		services.AddSingleton<IKernelFrameSender>(p => p.GetRequiredService<PacketSender>());
-		services.AddSingleton<IKernelWireCodec, KernelWireCodec>();
+		services.AddSingleton<IKernelItemDataNormalizer, KernelItemDataNormalizer>();
 	}
 }

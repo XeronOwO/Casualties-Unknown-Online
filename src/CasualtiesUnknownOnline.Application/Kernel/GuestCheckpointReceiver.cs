@@ -19,10 +19,9 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// the count check for a slot the live set never fills and blocks every later
 /// set forever.
 /// </summary>
-internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority, IKernelWireCodec codec, ILogger log)
+internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority, ILogger log)
 {
 	private readonly IKernelBatchApplication _authority = authority;
-	private readonly IKernelWireCodec _codec = codec;
 	private readonly ILogger _log = log;
 	private readonly Dictionary<int, WireCheckpoint> _chunks = [];
 	private readonly HashSet<ulong> _staleEpochWarned = [];
@@ -133,7 +132,7 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 	{
 		try
 		{
-			var checkpoint = WireCheckpointAssembler.Assemble([.. _chunks.Values], _codec);
+			var checkpoint = WireCheckpointAssembler.Assemble([.. _chunks.Values]);
 			var result = _authority.Restore(checkpoint);
 			if (result.Success)
 			{

@@ -8,10 +8,11 @@ namespace CasualtiesUnknownOnline.Tests.Application;
 
 /// <summary>
 /// Pins the kernel-replication slice's layer boundary: the replication surface
-/// lives in the Application assembly and the Application assembly never reaches
-/// back into the Runtime. The types that stayed behind are named here as
-/// DECISIONS with their blocker, so moving one of them later is a deliberate
-/// change to this list rather than a silent drift.
+/// AND the pure kernel &lt;-&gt; wire vocabulary live in the Application assembly,
+/// and the Application assembly never reaches back into the Runtime. The types
+/// that stayed behind are named here as DECISIONS with their blocker, so moving
+/// one of them later is a deliberate change to this list rather than a silent
+/// drift.
 /// </summary>
 public class KernelReplicationLayerBoundaryTests
 {
@@ -28,6 +29,12 @@ public class KernelReplicationLayerBoundaryTests
 	[InlineData("CasualtiesUnknownOnline.Application.Kernel.KernelProtocolCommandHandler")]
 	[InlineData("CasualtiesUnknownOnline.Application.Kernel.KernelStateStreamService")]
 	[InlineData("CasualtiesUnknownOnline.Application.Kernel.GuestCheckpointReceiver")]
+	[InlineData("CasualtiesUnknownOnline.Application.Kernel.KernelWireMapper")]
+	[InlineData("CasualtiesUnknownOnline.Application.Kernel.KernelPlayerInteractionWireMapper")]
+	[InlineData("CasualtiesUnknownOnline.Application.Kernel.KernelEnemyCombatWireMapper")]
+	[InlineData("CasualtiesUnknownOnline.Application.Kernel.KernelLimbWireMapper")]
+	[InlineData("CasualtiesUnknownOnline.Application.Kernel.KernelComponentWireMapper")]
+	[InlineData("CasualtiesUnknownOnline.Application.Kernel.ItemSpawnWireMapper")]
 	public void KernelReplicationType_LivesInTheApplicationAssembly(string fullName)
 	{
 		var assembly = typeof(IKernelProtocolControl).Assembly;
@@ -53,7 +60,10 @@ public class KernelReplicationLayerBoundaryTests
 	[Fact]
 	public void RuntimeReachesTheMovedSurfaceThroughTheApplicationAssembly()
 	{
-		var referenced = typeof(KernelWireMapper).Assembly
+		// The Runtime is still the side that speaks the legacy message set, so the
+		// direction has to hold from there: a Runtime type that reaches the moved
+		// mapper does it through the layer reference, never by reaching past it.
+		var referenced = typeof(KernelEnvelopeHandler).Assembly
 			.GetReferencedAssemblies()
 			.Select(name => name.Name)
 			.ToList();
@@ -62,17 +72,14 @@ public class KernelReplicationLayerBoundaryTests
 	}
 
 	[Fact]
-	public void LegacyCoupledTypes_StayInTheRuntimeForTheirOwnSlice()
+	public void LegacyMaterializationTypes_StayInTheRuntimeWithTheirReason()
 	{
-		// KernelWireMapper maps to the legacy protobuf message set (the enemy-combat
-		// messages the Game Adapter and the character-snapshot store speak), so it
-		// cannot move before those DTOs do; the Application side reaches it through
-		// IKernelWireCodec.
-		Assert.Equal(RuntimeAssembly, typeof(KernelWireMapper).Assembly.GetName().Name);
-
-		// KernelBatchItemProjection carries the same legacy item DTOs (WorldItem,
-		// WorldItemTable, CharacterItemMsg, NetVector2) in its own contract; moving
-		// it is a projection redesign, not a move.
+		// KernelBatchItemProjection is a MATERIALIZATION projection, not a mapper:
+		// its constructor and every output path build the legacy item vocabulary
+		// (WorldItem, WorldItemTable, CharacterItemMsg, NetVector2) and write the
+		// rebuildable world-item table, so it cannot move without redesigning its
+		// output contract into kernel facts plus a Runtime materializer. Recorded in
+		// review/legacy-wire-dto-slice.md with the contract evidence.
 		Assert.Equal(RuntimeAssembly, typeof(KernelBatchItemProjection).Assembly.GetName().Name);
 
 		// KernelEnvelopeHandler is the transport side of the seam (frame decode,

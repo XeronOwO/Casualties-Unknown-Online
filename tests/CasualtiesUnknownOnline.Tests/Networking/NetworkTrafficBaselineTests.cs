@@ -112,7 +112,7 @@ public class NetworkTrafficBaselineTests
 	public void CheckpointSnapshotSize_RepeatedDefinitionIds_OverheadBudget()
 	{
 		var checkpoint = CreateCheckpoint(600);
-		var chunks = WireCheckpointAssembler.Split(checkpoint, TestKernelCodec.Instance);
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
 
 		var frames = chunks
 			.Select(chunk => NetPacket.Encode(NetMsg.KernelEnvelope, new ProtocolFrame
@@ -135,7 +135,7 @@ public class NetworkTrafficBaselineTests
 	public void CheckpointBaseline_RecordsChunkCountSizeAndRestoreTime()
 	{
 		var checkpoint = CreateCheckpoint(600);
-		var chunks = WireCheckpointAssembler.Split(checkpoint, TestKernelCodec.Instance);
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
 
 		Assert.True(chunks.Count > 1, "600 items must split into more than one checkpoint chunk");
 		Assert.Equal(chunks.Count, chunks[0].ChunkCount);
@@ -154,7 +154,7 @@ public class NetworkTrafficBaselineTests
 			.ToList();
 
 		var totalBytes = frames.Sum(f => f.Length);
-		var restoredCheckpoint = WireCheckpointAssembler.Assemble(chunks, TestKernelCodec.Instance);
+		var restoredCheckpoint = WireCheckpointAssembler.Assemble(chunks);
 		var restoreKernel = new GameStateKernel(new RunEpoch(1));
 		var started = Stopwatch.GetTimestamp();
 		var result = restoreKernel.Restore(restoredCheckpoint);

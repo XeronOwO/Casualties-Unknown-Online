@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using System.IO;
 using CasualtiesUnknownOnline.Application.Kernel;
-using CasualtiesUnknownOnline.Tests.Fakes;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -65,7 +64,7 @@ public class FluidDomainKernelTests
 		var kernel = new GameStateKernel(Epoch);
 		Assert.True(Update(kernel, 1, new FluidRegionState(1, 2, 5, 1, 10)).IsAccepted);
 
-		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint(), TestKernelCodec.Instance), TestKernelCodec.Instance);
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
 
 		var region = Assert.Single(restored.Fluids!.Regions);
 		Assert.Equal(1, region.ChunkX);

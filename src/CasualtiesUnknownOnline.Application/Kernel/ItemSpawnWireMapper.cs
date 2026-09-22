@@ -3,7 +3,7 @@ using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 
-namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
 /// Item-spawn wire mapping: the transient initial-drop presentation fields

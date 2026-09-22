@@ -122,13 +122,16 @@ The Application layer exists: the Runtime reaches the kernel through it
 command admission seam (`Kernel/KernelCommandGateway.cs`, "who may submit") — a session-level
 decision rather than a domain one — and the kernel replication surface
 (`Kernel/KernelProtocolService.cs` with its command handler, state-stream, checkpoint and
-domain-mapper companions). The replication surface reads the Runtime through declared ports
-(`IKernelSessionFacts`, `IKernelFrameSender`, `IKernelCommandExecution`, `IKernelCheckpointSource`,
-`IKernelBatchApplication`, `IKernelPendingCommands`, `IKernelWireCodec`), each answered by the
-service that owns the capability, so a Runtime detail does not leak back into the layer. Three types
+domain-mapper companions), together with the pure kernel <-> wire vocabulary
+(`Kernel/KernelWireMapper.cs`, `KernelPlayerInteractionWireMapper`, `KernelEnemyCombatWireMapper`,
+`KernelLimbWireMapper`, `KernelComponentWireMapper`, `ItemSpawnWireMapper`). The replication surface
+reads the Runtime through declared ports (`IKernelSessionFacts`, `IKernelFrameSender`,
+`IKernelCommandExecution`, `IKernelCheckpointSource`, `IKernelBatchApplication`,
+`IKernelPendingCommands`, `IKernelItemDataNormalizer`), each answered by the
+service that owns the capability, so a Runtime detail does not leak back into the layer. Two types
 stay in the Runtime, each with its blocker recorded in
-`review/application-layer-first-slice.md`: `KernelWireMapper` (its legacy protobuf branches),
-`KernelBatchItemProjection` (its contract and code carry the legacy item DTOs) and
+`review/legacy-wire-dto-slice.md`: `KernelBatchItemProjection` (a materialization projection whose
+contract and every output path carry the legacy item DTOs) and
 `KernelEnvelopeHandler` (transport dispatch: frame decode, traffic accounting, the packet-handler
 base). The declared direction is enforced by `ProjectDirectionGateTests`; the moved types' assembly
 and the Application assembly's reference set are pinned by `KernelReplicationLayerBoundaryTests`

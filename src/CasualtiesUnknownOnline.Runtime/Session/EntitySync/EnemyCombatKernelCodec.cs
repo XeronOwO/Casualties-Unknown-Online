@@ -1,7 +1,6 @@
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
-using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using System;
@@ -65,60 +64,6 @@ public static class EnemyCombatKernelCodec
 			SkinHealAmount = limb.SkinHealAmount,
 			Dismembered = limb.Dismembered,
 			Components = [.. limb.Components.Select(ToComponentMessage)],
-			IsHead = limb.IsHead,
-			IsVital = limb.IsVital,
-		};
-
-	public static PlayerInteractionLimb ToPlayerInteractionLimb(EnemyCombatLimb limb) =>
-		new()
-		{
-			Index = limb.Index,
-			SkinHealth = limb.SkinHealth,
-			MuscleHealth = limb.MuscleHealth,
-			Broken = limb.Broken,
-			Dislocated = limb.Dislocated,
-			Splinted = limb.Splinted,
-			Infected = limb.Infected,
-			InfectionAmount = limb.InfectionAmount,
-			BleedAmount = limb.BleedAmount,
-			DisinfectionTime = limb.DisinfectionTime,
-			Pain = limb.Pain,
-			DislocationTimer = limb.DislocationTimer,
-			BoneHealTimer = limb.BoneHealTimer,
-			BlockedBleeding = limb.BlockedBleeding,
-			Shrapnel = limb.Shrapnel,
-			FurBloodAmount = limb.FurBloodAmount,
-			BandageSlowAmount = limb.BandageSlowAmount,
-			SkinHealAmount = limb.SkinHealAmount,
-			Dismembered = limb.Dismembered,
-			Components = [.. limb.Components],
-			IsHead = limb.IsHead,
-			IsVital = limb.IsVital,
-		};
-
-	public static EnemyCombatLimb FromPlayerInteractionLimb(PlayerInteractionLimb limb) =>
-		new()
-		{
-			Index = limb.Index,
-			SkinHealth = limb.SkinHealth,
-			MuscleHealth = limb.MuscleHealth,
-			Broken = limb.Broken,
-			Dislocated = limb.Dislocated,
-			Splinted = limb.Splinted,
-			Infected = limb.Infected,
-			InfectionAmount = limb.InfectionAmount,
-			BleedAmount = limb.BleedAmount,
-			DisinfectionTime = limb.DisinfectionTime,
-			Pain = limb.Pain,
-			DislocationTimer = limb.DislocationTimer,
-			BoneHealTimer = limb.BoneHealTimer,
-			BlockedBleeding = limb.BlockedBleeding,
-			Shrapnel = limb.Shrapnel,
-			FurBloodAmount = limb.FurBloodAmount,
-			BandageSlowAmount = limb.BandageSlowAmount,
-			SkinHealAmount = limb.SkinHealAmount,
-			Dismembered = limb.Dismembered,
-			Components = [.. limb.Components],
 			IsHead = limb.IsHead,
 			IsVital = limb.IsVital,
 		};

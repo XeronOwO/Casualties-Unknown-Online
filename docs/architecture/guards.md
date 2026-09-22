@@ -108,11 +108,14 @@ change.
 
 Application-layer replication addendum:
 `KernelReplicationLayerBoundaryTests` (Tests project — the normative gates project targets net8.0
-and cannot load the net48 layer) pins the stage-3 move: every moved kernel-replication type is
-declared in the Application assembly, the Application assembly's reference set contains no Runtime,
-GameAdapter, Plugin or game assembly, the Runtime still references the layer, and the three types
-that deliberately stayed (`KernelWireMapper`, `KernelBatchItemProjection`, `KernelEnvelopeHandler`)
-are named with their blocker — so moving one later is an edit to a recorded list, not silent drift.
+and cannot load the net48 layer) pins the stage-3 move and the legacy-wire-dto slice: every moved
+kernel-replication type — including the kernel <-> wire vocabulary (`KernelWireMapper`,
+`KernelPlayerInteractionWireMapper`, `KernelEnemyCombatWireMapper`, `KernelLimbWireMapper`,
+`KernelComponentWireMapper`, `ItemSpawnWireMapper`) — is declared in the Application assembly, the
+Application assembly's reference set contains no Runtime, GameAdapter, Plugin or game assembly, the
+Runtime still references the layer, and the two types that deliberately stayed
+(`KernelBatchItemProjection`, `KernelEnvelopeHandler`) are named with their blocker — so moving one
+later is an edit to a recorded list, not silent drift.
 
 Adapter-seam addendum:
 `AdapterCapabilityPortShapeTests` freezes the Game Adapter seam. It asserts that `IGameAdapter`

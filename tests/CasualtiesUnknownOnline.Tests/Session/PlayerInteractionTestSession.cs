@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -98,15 +99,15 @@ internal static class PlayerInteractionTestSession
 			.SelectMany(f => f.CommittedBatch!.Batch.Events);
 
 	internal static PlayerInventoryTransferMsg TransferResult(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
-		PlayerInteractionKernelCodec.ToTransferMessage(PlayerInteractionWireMapper.FromWireInventoryTransfer(
+		PlayerInteractionKernelCodec.ToTransferMessage(KernelPlayerInteractionWireMapper.FromWireInventoryTransfer(
 			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerInventoryTransfer).PlayerInteraction!));
 
 	internal static PlayerHealResultMsg HealResult(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
-		PlayerInteractionKernelCodec.ToHealMessage(PlayerInteractionWireMapper.FromWireHealResult(
+		PlayerInteractionKernelCodec.ToHealMessage(KernelPlayerInteractionWireMapper.FromWireHealResult(
 			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerHealResult).PlayerInteraction!));
 
 	internal static PlayerItemUseResultMsg UseResult(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
-		PlayerInteractionKernelCodec.ToUseMessage(PlayerInteractionWireMapper.FromWireItemUseResult(
+		PlayerInteractionKernelCodec.ToUseMessage(KernelPlayerInteractionWireMapper.FromWireItemUseResult(
 			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerItemUseResult).PlayerInteraction!));
 
 	internal static void SeedHostEntities(TestNode host, ulong guestId, float guestX, float guestY = 0f, bool standing = true)

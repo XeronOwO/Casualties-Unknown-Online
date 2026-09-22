@@ -763,7 +763,7 @@
     {
       "cluster": "items",
       "row": "I1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelWireMapper.cs",
       "quote": "WireCommandKind.ItemTransfer => new TransferItemCommand("
     },
     {
@@ -3403,7 +3403,7 @@
     {
       "cluster": "inline",
       "row": "K4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelWireMapper.cs",
       "quote": "batch.RunEpoch == 0 ? fallbackEpoch : new RunEpoch(batch.RunEpoch),"
     },
     {
@@ -4579,7 +4579,7 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelWireMapper.cs",
       "quote": "WireEventKind.RunStarted => new RunStartedEvent("
     },
     {

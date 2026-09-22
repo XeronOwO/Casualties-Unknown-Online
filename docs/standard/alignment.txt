@@ -4,7 +4,9 @@
 # reproduces from the working tree, so consistency stays a content comparison.
 # AGENTS.md files are instruction routing, not pages, and are not registered here.
 #
-en/how-to/README.md | f173e540abab439f41dd4f86b080ef7222622116 | zh/how-to/README.md | e5db4ed434daf9dad9df6e9e6a8fb66bf7b5cb45
+en/how-to/add-a-ui-panel.md | b03e99bc573f606923b6424bf905d5094baf541c | zh/how-to/add-a-ui-panel.md | c4b46f4a5953a3dcf3407ad69b16af3e9e664756
+en/how-to/declare-permissions-and-commands.md | d8b1cf534cd6fab2a9e3ef7a0305d9245e022c94 | zh/how-to/declare-permissions-and-commands.md | b8f7601e9a7d8f3020ed5a4ee804be9cee79e351
+en/how-to/README.md | 474325778770a7ff27605c28a18ee90221de1703 | zh/how-to/README.md | c7e598eed60224def95d72fed03b8d3f06770d1a
 en/how-to/send-a-network-message.md | 7bd223928419a5115d47a6ea987f63d5626d90a0 | zh/how-to/send-a-network-message.md | 17d2d5644754217be795ca41f5285a9020add7de
 en/README.md | 1cc622bb6abda71ff72fc8ed83b0b0d99f723883 | zh/README.md | 3b47d132e7bf4849c42cce3dfe386b9dd650da65
 en/reference/glossary.md | 6d353cb72e647381ec133b9784e69fadd53dc59e | zh/reference/glossary.md | cbc4cc4f70fddfc472f2bda3b69805a6eeff2c38

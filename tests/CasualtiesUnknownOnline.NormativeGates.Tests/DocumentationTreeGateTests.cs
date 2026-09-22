@@ -169,6 +169,18 @@ public class DocumentationTreeGateTests
 		Assert.Contains("docs/zh/start/a.md", failure, StringComparison.Ordinal);
 	}
 
+	[Fact]
+	public void TheAlignmentHash_IgnoresTheLineEndingStyleOfTheWorkingTree()
+	{
+		// `.gitattributes` checks the tree out with CRLF (`* text=auto eol=crlf`) while the index — and
+		// `git hash-object`, the workflow the registry documents — hold the LF form. A raw-byte hash would
+		// disagree with every recorded pair on any checkout git itself performs.
+		var unix = Encoding.UTF8.GetBytes("first line\nsecond line\n");
+		var windows = Encoding.UTF8.GetBytes("first line\r\nsecond line\r\n");
+
+		Assert.Equal(BlobHash(unix), BlobHash(windows));
+	}
+
 	/// <summary>Every page of one block, repository-relative, without the block's instruction file.</summary>
 	private static IReadOnlyList<string> Pages(string block) =>
 		[.. Directory
@@ -257,14 +269,44 @@ public class DocumentationTreeGateTests
 		return targets;
 	}
 
-	/// <summary>The git blob hash of a file's bytes: `blob &lt;length&gt;\0&lt;content&gt;`, SHA-1.</summary>
+	/// <summary>The git blob hash of a file's contents: `blob &lt;length&gt;\0&lt;content&gt;`, SHA-1.</summary>
+	/// <remarks>
+	/// The contents are hashed as git stores them, with CRLF folded to LF: `.gitattributes` checks this
+	/// tree out with CRLF while the index holds LF, and `git hash-object` — the workflow the registry
+	/// documents — hashes the LF form. Hashing the raw bytes would turn every recorded pair red on any
+	/// checkout git itself performs, which is the one environment the record has to survive.
+	/// </remarks>
 	private static string BlobHash(byte[] content)
 	{
-		var header = Encoding.ASCII.GetBytes($"blob {content.Length}\0");
-		var buffer = new byte[header.Length + content.Length];
+		var stored = AsStored(content);
+		var header = Encoding.ASCII.GetBytes($"blob {stored.Length}\0");
+		var buffer = new byte[header.Length + stored.Length];
 		header.CopyTo(buffer, 0);
-		content.CopyTo(buffer, header.Length);
+		stored.CopyTo(buffer, header.Length);
 		return Convert.ToHexString(SHA1.HashData(buffer)).ToLowerInvariant();
+	}
+
+	/// <summary>The bytes git stores: CRLF folded to LF, everything else left alone.</summary>
+	private static byte[] AsStored(byte[] content)
+	{
+		if (!content.Contains((byte)'\r'))
+		{
+			return content;
+		}
+
+		var buffer = new byte[content.Length];
+		var written = 0;
+		for (var index = 0; index < content.Length; index++)
+		{
+			if (content[index] == (byte)'\r' && index + 1 < content.Length && content[index + 1] == (byte)'\n')
+			{
+				continue;
+			}
+
+			buffer[written++] = content[index];
+		}
+
+		return buffer[..written];
 	}
 
 	private static string Describe(string check, IReadOnlyList<string> failures) =>

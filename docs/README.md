@@ -11,6 +11,7 @@ Two mirrored trees, one page set: 中文 [`zh/`](zh/README.md) and English [`en/
 - **做一件事** —— `zh/how-to/`,一件事一页 *(正在编写)*
 - **弄懂原理** —— `zh/internals/`:谁决定什么、协议、存档、适配器边界 *(正在编写)*
 - **查东西** —— [参考](zh/reference/README.md)与[术语表](zh/reference/glossary.md)
+- **参与开发** —— [贡献者文档](zh/contributing/README.md):构建与测试、门禁、仓库地图、文档规范,以及复核与交付
 
 ## English documentation
 
@@ -18,6 +19,8 @@ Two mirrored trees, one page set: 中文 [`zh/`](zh/README.md) and English [`en/
 - **Do one thing** — `en/how-to/`, one task per page *(being written)*
 - **Understand why** — `en/internals/`: who decides what, the protocol, saves, the adapter boundary *(being written)*
 - **Look something up** — [Reference](en/reference/README.md) and the [glossary](en/reference/glossary.md)
+- **Work on CUO itself** — [Contributing](en/contributing/README.md): build and test, the gates, the
+  repository map, this documentation's own rules, and review and delivery
 
 ## 写文档的规则 / Rules for these pages
 
@@ -31,7 +34,8 @@ Two mirrored trees, one page set: 中文 [`zh/`](zh/README.md) and English [`en/
 
 ## 仍在迁移的英文资料 / Contributor material (English only)
 
-架构、决策、证据与 backlog 是贡献者向的资料,正在被重写进上面两棵树。重写完成前,可用的入口:
+架构、决策、证据与 backlog 是贡献者向的资料,正在被重写进上面两棵树。贡献者线已经落地([中文](zh/contributing/README.md) /
+[English](en/contributing/README.md));重写完成前,其余可用的入口:
 
 - 架构:[当前架构](architecture/current.md)、[协议](architecture/protocol.md)、[领域与投影](architecture/domains.md)、[存档归档格式](architecture/save-archive-format.md)
 - 接口与策略:[模组接口契约](api/mod-api.md)、[扩展与稳定性策略](api/advanced-modification-policy.md)

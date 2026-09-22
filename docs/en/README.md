@@ -14,6 +14,8 @@ Pick the line that matches what you want to do; each line runs from shallow to d
    the adapter boundary, and the cost of each choice.
 4. **Look something up** — [Reference](reference/README.md): the mod API, protocol messages,
    configuration, feature matrices and the [glossary](reference/glossary.md).
+5. **Work on CUO itself** — [Contributing](contributing/README.md): build and test, the gates, the
+   repository map, the documentation rules and the review-and-delivery workflow.
 
 ## How these pages are written
 

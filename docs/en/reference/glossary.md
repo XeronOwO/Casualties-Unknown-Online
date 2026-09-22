@@ -63,6 +63,15 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Host rules** — the gameplay switches the host owns.
 - **Pinyin search** — lets the game's search boxes match Chinese by pinyin.
 
+## Working on CUO
+
+- **Gate** — a repository check that refuses a change which breaks a rule; the gates run as tests.
+- **Baseline** — a recorded, reviewed state that a gate compares the current tree against.
+- **Evidence** — the recorded proof for a claim: a file, a command result or a runtime trace.
+- **Review** — the independent check a change passes before it is delivered.
+- **Process record** — a document that records what a cycle did, such as the backlog, the evidence files or a decision register; it is not part of the human documentation.
+- **Breadcrumb** — the navigation line at the head and the tail of a page, naming where the page sits.
+
 ## Related reading
 
 - [Reference](README.md) — the lookup pages

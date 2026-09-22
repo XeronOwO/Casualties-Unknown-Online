@@ -19,7 +19,7 @@ the same wide class.
 Two signs that a file's shape, not its length, is the problem: its constructor takes dozens of
 services and assembles domain objects itself (the composition root is not separated from the domain
 assembly), and its interface keeps growing with every feature (see
-`review/adapter-capability-ports.md` and `todo/patch-bridge-domain-ports.md`).
+`review/adapter-capability-ports.md` and `review/patch-bridge-domain-ports.md`).
 
 ## At the limit (no headroom)
 
@@ -63,6 +63,14 @@ assembly), and its interface keeps growing with every feature (see
 - `src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs` (~510) — command
   groups register as their own owners (`HostAdminCommands`, `WorldSaveCommands`); a new command
   family must not grow this class.
+- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (574 after the patch-bridge port
+  change on 2026-09-22, from 569) — the one implementation of the frozen `IPatchBridge` aggregate plus
+  the per-domain patch ports the aggregate does not carry (`IFluidPatchPort` today). Every member is a
+  one-line forwarder to a domain handle, so the file grows with the SEAM SURFACE rather than with
+  logic. The seam to split is a port's forwarding half into its own object — the shape the earlier
+  splits already use (`ModContentPatchBridge`, `CarriagePatchBridge`, reached through aggregate
+  properties) — which the port arrangement now makes possible without touching the aggregate; nothing
+  large should land here before that.
 
 ## Split since the last revision
 

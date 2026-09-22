@@ -11,6 +11,19 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// them; instead the DI-owned GameAdapter binds once at construction and the
 /// patches read only this interface — never the service itself (user
 /// architecture rule: state belongs to its owner, DI owns behavior).
+/// <para>
+/// This aggregate is FROZEN: no member may be added to it. New patch work
+/// declares a per-domain port instead — <see cref="IFluidPatchPort"/> is the
+/// first, the fluid domain's members moved there and this interface neither
+/// declares nor inherits them — so a domain change stops editing the shared
+/// interface, a version adapter can replace one domain's behaviour, and a test
+/// double stops growing with the whole surface. The migration is enforced by
+/// the compiler (a call written against this interface cannot reach a member
+/// that MOVED to a port) and pinned by the shape gate
+/// (<c>PatchBridgePortShapeGateTests</c> plus the reflective
+/// <c>PatchBridgePortContractTests</c>), which fails on a member added here or
+/// on the implementation and on a rewrite that folds a port back in.
+/// </para>
 /// </summary>
 internal interface IPatchBridge
 	: IRemoteBackpackPatchBridge, IRemoteMedicalPatchBridge, ICarriagePatchBridge, ISessionSurfacePatchBridge
@@ -374,42 +387,6 @@ internal interface IPatchBridge
 
 	/// <summary>An item was worn straight from the inventory (WearWearable — hand/backpack → limb) — a slot-move report with the limb wear encoding as the new slot, so the peers' clones re-home it immediately.</summary>
 	void OnItemWorn(Item item);
-
-	/// <summary>A fluid fixed-update tick — the session replaces the game's per-side simulation (host: the multi-member pass over every member's viewport; guest: nothing — the grid only changes through the streamed regions).</summary>
-	void OnFluidFixedUpdate();
-
-	/// <summary>The local player drank (DrinkLiquid ran with the full local effect) — report the consumed cell (guest → host; host → broadcast).</summary>
-	void OnFluidDrinkReported(Vector2Int pos);
-
-	/// <summary>
-	/// <c>FluidManager.RenderFluids</c> is about to render. Returns true when
-	/// custom liquid tiles are present and the adapter rendered them (the
-	/// original must be skipped); false keeps the vanilla render path.
-	/// </summary>
-	bool TryRenderCustomLiquids(FluidManager manager);
-
-	/// <summary>Resolve the display colour for a custom world-fluid byte. Returns false for vanilla bytes.</summary>
-	bool TryGetCustomLiquidColor(byte worldByte, out Color color);
-
-	/// <summary>Resolve water info for a custom world-fluid byte. Returns false for vanilla bytes.</summary>
-	bool TryGetCustomWaterInfo(byte worldByte, out float buoyancy, out float drag, out int type);
-
-	/// <summary>Resolve display name/description for a custom world-fluid byte. Returns false for vanilla bytes.</summary>
-	bool TryGetCustomLiquidName(byte worldByte, out string name, out string description);
-
-	/// <summary>
-	/// <c>FluidManager.DrinkLiquid</c> is about to run on a custom world-fluid
-	/// byte. Returns true when the adapter applied the drink (the original must
-	/// be skipped); false lets the vanilla method handle it.
-	/// </summary>
-	bool TryDrinkCustomLiquid(FluidManager fluid, Vector2Int pos, Body body);
-
-	/// <summary>
-	/// <c>Body.HandleVariableUpdates</c> finished — re-apply the local body's
-	/// per-second liquid-tile touch rates. The projection class filters to the
-	/// local body.
-	/// </summary>
-	void ApplyLiquidTileBodyTouch(Body body);
 
 	/// <summary>
 	/// A trader interaction ran locally (the full game method — the acting

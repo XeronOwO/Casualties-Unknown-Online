@@ -16,12 +16,12 @@ internal static class FluidCustomLiquidPatches
 	{
 		private static bool Prefix(FluidManager __instance)
 		{
-			if (PatchBridge.Impl is not { } bridge)
+			if (PatchBridge.Fluid is not { } fluid)
 			{
 				return true;
 			}
 
-			return !bridge.TryRenderCustomLiquids(__instance);
+			return !fluid.TryRenderCustomLiquids(__instance);
 		}
 	}
 
@@ -30,13 +30,13 @@ internal static class FluidCustomLiquidPatches
 	{
 		private static bool Prefix(FluidManager __instance, Vector2Int pos, ref Color __result)
 		{
-			if (PatchBridge.Impl is not { } bridge)
+			if (PatchBridge.Fluid is not { } fluid)
 			{
 				return true;
 			}
 
 			var worldByte = __instance.GetLiquid(pos.x, pos.y);
-			if (bridge.TryGetCustomLiquidColor(worldByte, out var color))
+			if (fluid.TryGetCustomLiquidColor(worldByte, out var color))
 			{
 				__result = color;
 				return false;
@@ -52,13 +52,13 @@ internal static class FluidCustomLiquidPatches
 		private static void Postfix(FluidManager __instance, Vector2Int pos,
 			ref (float buoyancy, float drag, int type) __result)
 		{
-			if (PatchBridge.Impl is not { } bridge)
+			if (PatchBridge.Fluid is not { } fluid)
 			{
 				return;
 			}
 
 			var worldByte = __instance.GetLiquid(pos.x, pos.y);
-			if (bridge.TryGetCustomWaterInfo(worldByte, out var buoyancy, out var drag, out var type))
+			if (fluid.TryGetCustomWaterInfo(worldByte, out var buoyancy, out var drag, out var type))
 			{
 				__result = (buoyancy, drag, type);
 			}
@@ -71,13 +71,13 @@ internal static class FluidCustomLiquidPatches
 		private static void Postfix(FluidManager __instance, Vector2Int pos,
 			ref (string, string) __result)
 		{
-			if (PatchBridge.Impl is not { } bridge)
+			if (PatchBridge.Fluid is not { } fluid)
 			{
 				return;
 			}
 
 			var worldByte = __instance.GetLiquid(pos.x, pos.y);
-			if (bridge.TryGetCustomLiquidName(worldByte, out var name, out var description))
+			if (fluid.TryGetCustomLiquidName(worldByte, out var name, out var description))
 			{
 				__result = (name, description);
 			}
@@ -89,12 +89,12 @@ internal static class FluidCustomLiquidPatches
 	{
 		private static bool Prefix(FluidManager __instance, Vector2Int pos, Body body)
 		{
-			if (PatchBridge.Impl is not { } bridge)
+			if (PatchBridge.Fluid is not { } fluid)
 			{
 				return true;
 			}
 
-			return !bridge.TryDrinkCustomLiquid(__instance, pos, body);
+			return !fluid.TryDrinkCustomLiquid(__instance, pos, body);
 		}
 	}
 
@@ -102,6 +102,6 @@ internal static class FluidCustomLiquidPatches
 	internal static class LiquidTileBodyTouchPatch
 	{
 		private static void Postfix(Body __instance) =>
-			PatchBridge.Impl?.ApplyLiquidTileBodyTouch(__instance);
+			PatchBridge.Fluid?.ApplyLiquidTileBodyTouch(__instance);
 	}
 }

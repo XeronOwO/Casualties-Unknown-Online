@@ -518,7 +518,7 @@
       "cluster": "fluids",
       "row": "F2",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/FluidDrinkPatch.cs",
-      "quote": "bridge.OnFluidDrinkReported(pos);"
+      "quote": "PatchBridge.Fluid is not { } fluid"
     },
     {
       "cluster": "fluids",

@@ -1,6 +1,8 @@
 # Save mod data across sessions
 
-[Documentation](../../README.md) > [How to](README.md) > Save mod data across sessions
+[Documentation](../README.md) > [How to](README.md) > Save mod data across sessions
+
+---
 
 **After this page** your mod keeps its own small amount of data — settings, unlocks, counters — in the
 host's CUO config file (`BepInEx/config/`), shared across worlds, and reads it back on the next run.
@@ -87,4 +89,6 @@ starts. On a guest, `CanWrite` is false and `TrySet` returns false with a log.
 - [Your first mod](../start/your-first-mod.md) — the lifecycle the reads and writes live in
 - [Glossary](../reference/glossary.md) — host, session, world
 
-[Documentation](../../README.md) > [How to](README.md) > Save mod data across sessions
+---
+
+[Documentation](../README.md) > [How to](README.md) > Save mod data across sessions

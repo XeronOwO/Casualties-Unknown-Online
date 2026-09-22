@@ -19,7 +19,10 @@ Two human blocks, path for path identical:
   human navigation, never translated.
 - Each directory carries `README.md` as the human index; `AGENTS.md` sits only at junctions
   (`docs/`, `docs/en/`, `docs/zh/`, `src/`, `tests/`, `tools/`), holds guidance rather than
-  knowledge, and stays under its byte ceiling.
+  knowledge, and stays under its byte ceiling. An index page of either block names its own
+  directory (`docs/en/how-to/`) and lists that section's pages; it carries the same head and tail
+  breadcrumb and thematic breaks as any page, pointing at the entry above it, and needs no
+  `Related reading`.
 
 Everything that is not a process record belongs in these two blocks, in both languages: the
 architecture and protocol explanations, the mod API contract, the feature tables, and the operations
@@ -31,9 +34,9 @@ absorbed into the pages that need them.
 
 One page answers one question, and its title says what the reader can then do.
 
-Breadcrumb head → one-sentence purpose → difficulty and prerequisites → steps → a runnable
-example → why it works this way (link into `internals/`) → pitfalls → how to verify success →
-`Related reading` (3–6 links) → breadcrumb tail.
+Breadcrumb head → thematic break → one-sentence purpose → difficulty and prerequisites → steps → a
+runnable example → why it works this way (link into `internals/`) → pitfalls → how to verify
+success → `Related reading` (3–6 links) → thematic break → breadcrumb tail.
 
 Depth rule: a `start/` page shows the single path that works and then stops; the detail lives in
 `how-to/` or `internals/` and is linked, never duplicated.
@@ -44,17 +47,23 @@ Depth rule: a `start/` page shows the single path that works and then stops; the
   the same change.
 - The Chinese page addresses Chinese readers instead of following the English sentence by sentence:
   same facts, natural Chinese.
-- The language switcher exists only in `docs/README.md`; sub-pages navigate by breadcrumb.
+- The language switcher lives only in the three entry pages (`docs/README.md` and the two block
+  overviews); sub-pages navigate by breadcrumb.
 - Project words are written exactly as `standard/terminology` records them; a new word is recorded
   there before its first use. Invented words, stiff translations and unexplained jargon are
   defects, not style.
+- Chinese punctuation joins Chinese text: `，。、；：？！`, Chinese quotes and full-width
+  parentheses; ASCII punctuation stays inside code, paths, identifiers and any English name or
+  phrase (`Casualties Unknown: Online`).
 
 ## 4. Links
 
 - The first use of a project word in a page links to `reference/glossary.md`.
-- Every page ends with 3–6 `Related reading` links: what the reader most likely needs next.
+- Every content page ends with 3–6 `Related reading` links: what the reader most likely needs
+  next.
 - Breadcrumbs name the real path (`Documentation > How-to > Send a network message`) and link to
-  `docs/README.md` plus the section index.
+  the block's own overview (`docs/en/README.md`) plus the section index; the language switch is not
+  part of a breadcrumb.
 
 ## 5. Truth
 

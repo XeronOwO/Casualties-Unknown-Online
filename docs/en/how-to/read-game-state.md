@@ -1,6 +1,8 @@
 # Read game state
 
-[Documentation](../../README.md) > [How to](README.md) > Read game state
+[Documentation](../README.md) > [How to](README.md) > Read game state
+
+---
 
 **After this page** your mod reads the state CUO already holds about another player — whether they
 are in the world, their vitals and their carried items — and knows how fresh that reading is. Read
@@ -81,4 +83,6 @@ or pick something up. Have them leave the world and read again — `TryGetPlayer
 - [Your first mod](../start/your-first-mod.md) — the lifecycle the reads live in
 - [Glossary](../reference/glossary.md) — projection, snapshot, state stream
 
-[Documentation](../../README.md) > [How to](README.md) > Read game state
+---
+
+[Documentation](../README.md) > [How to](README.md) > Read game state

@@ -6,25 +6,25 @@
 # is edited and the other is updated; a gate reports the drift.
 # AGENTS.md files are instruction routing, not pages, and are not registered here.
 #
-docs/en/contributing/README.md | a123dc6fd6deae14722818634ca045e3a93d84cf | docs/zh/contributing/README.md | 43263e904dd6ba978e45984537e3912907329d48
-docs/en/contributing/build-and-test.md | 0203a7fd5d8fb7517aa7dec6367c25c0ae633113 | docs/zh/contributing/build-and-test.md | 092babf30d8a5fe4a7cfacf9a8444425fb01a81e
-docs/en/contributing/documentation-standard.md | fffa322588ecc1897e74fabab9f6ef3aac4eb478 | docs/zh/contributing/documentation-standard.md | fbb0b803bdf394f27919082b9519080f5dc1e7bf
-docs/en/contributing/gates-and-rules.md | 202da04744206ad5dce100c6af89d94cbb015902 | docs/zh/contributing/gates-and-rules.md | 702637740612016e49583e0abc0f23f9f1918d16
-docs/en/contributing/repository-map-and-pitfalls.md | c8dad2d5e900c6b278e898a531b04de20dbd7e6b | docs/zh/contributing/repository-map-and-pitfalls.md | 513452aed54290ff65d1a94f08d1c36042d72d0b
-docs/en/contributing/review-and-delivery.md | 797053af3bf1f4eda2b6e5678be81f11a2b8b27c | docs/zh/contributing/review-and-delivery.md | ba78f45abede636826c4f6296c93b1bfcf43c493
-docs/en/how-to/add-a-ui-panel.md | b03e99bc573f606923b6424bf905d5094baf541c | docs/zh/how-to/add-a-ui-panel.md | c4b46f4a5953a3dcf3407ad69b16af3e9e664756
-docs/en/how-to/declare-permissions-and-commands.md | d8b1cf534cd6fab2a9e3ef7a0305d9245e022c94 | docs/zh/how-to/declare-permissions-and-commands.md | b8f7601e9a7d8f3020ed5a4ee804be9cee79e351
-docs/en/how-to/decide-which-side-judges-an-action.md | ca621a17b3804b9076980a37d1359495dfe70625 | docs/zh/how-to/decide-which-side-judges-an-action.md | ce983098a8b8e5fd4a3f27403119d1c2bfc878cf
-docs/en/how-to/read-game-state.md | 4261700a4ef1e11c93fcc30073f990d8333156e4 | docs/zh/how-to/read-game-state.md | c9d047d8996c8f14b62247c4f59582dd37efbcfe
-docs/en/how-to/README.md | d73dac9d32be8f90a770f5c00a5aa1b0fa3a0b31 | docs/zh/how-to/README.md | 1041e8ee68792af54ed0d042c6facde1467b1ef7
-docs/en/how-to/register-content.md | 8b99b6299b15fbf1415768219153c98b62a94ca8 | docs/zh/how-to/register-content.md | 0a98e67f76e05dff8f46552c98baae10ab0ff626
-docs/en/how-to/save-mod-data-across-sessions.md | a4f5ac7066dc868c3aa8a62ede0914bcda39dc15 | docs/zh/how-to/save-mod-data-across-sessions.md | 7c12726dc0021a3d837cc1ac40ccd923f68865c2
-docs/en/how-to/send-a-network-message.md | 7bd223928419a5115d47a6ea987f63d5626d90a0 | docs/zh/how-to/send-a-network-message.md | 17d2d5644754217be795ca41f5285a9020add7de
-docs/en/README.md | b27c555fcd339eb03c94610899e01ca48eceae78 | docs/zh/README.md | c38fa2cdaa5ce628ab6ab720b019a282be38ccaf
-docs/en/reference/glossary.md | 6833de069faf8e917165babb45a1b66f932a2578 | docs/zh/reference/glossary.md | 7bbc94b8befc5217f8e8df9ef3a23e14ef52f8b3
-docs/en/reference/README.md | 8cd6972b48aec5bd990050056c45b687f65842a3 | docs/zh/reference/README.md | bc77861e396de772a59257786d880f456abb6b44
-docs/en/start/install-and-play.md | f762cbf75d62d2e26c9ff7b116997dd09b7e572b | docs/zh/start/install-and-play.md | f99eba98cd31dcd074fa1195c34b9afcaeb52032
-docs/en/start/README.md | 051512356e6b7761360e1aad6eb51332383b1103 | docs/zh/start/README.md | 813473ef835be8d548d6004ebb8a7188a1654110
-docs/en/start/set-up-dev-environment.md | 994b8d19cd7e51fc57ec065ed12ab8e9b4f1a2c5 | docs/zh/start/set-up-dev-environment.md | 31c229112efa29735e83e873e94d2bf1eadfc8f7
-docs/en/start/what-is-cuo.md | 02358ca767178bbaed9a7bcccabcd791cf307126 | docs/zh/start/what-is-cuo.md | dddaa9bd79abf8918f552ce5ff6dc53a3a675c0b
-docs/en/start/your-first-mod.md | 9fcc1b451f4e385786247f71b380e0b64fda790f | docs/zh/start/your-first-mod.md | 8f1285b2b8b03dfd3a0ac7d335b18a8a9ea660e2
+docs/en/contributing/README.md | ffac48cf4e71a91239198ef64b1a50f5ba275618 | docs/zh/contributing/README.md | 891c0e1ab09c0c96510bf9af4450307060a238a0
+docs/en/contributing/build-and-test.md | 55a17a58b7b492cfda0f11e1075ecfaa4b51f0e4 | docs/zh/contributing/build-and-test.md | 0f48e0746789110316c7fdf32b3a84131a085289
+docs/en/contributing/documentation-standard.md | 1a59c1b4f5438547e2427ac63a010b84c9081176 | docs/zh/contributing/documentation-standard.md | f34f46f790af65bf6ab7855e44aeaf01684eda74
+docs/en/contributing/gates-and-rules.md | 3ab62b57af78e8a5a3a8f10b3d1fde051e6d476f | docs/zh/contributing/gates-and-rules.md | b110d13f1e16466b8dce03dce71fd5c4c8b67c68
+docs/en/contributing/repository-map-and-pitfalls.md | 21dca3f969803fc65d90f72357ceebe9dfb20214 | docs/zh/contributing/repository-map-and-pitfalls.md | 261691fb63eb9592864d6baf567093dbc34fd33b
+docs/en/contributing/review-and-delivery.md | db2b300ac14f2b69115e28b4c962ca6b8518f0ac | docs/zh/contributing/review-and-delivery.md | 8e66cdedd745ed7b7718dfb566e5bf9fe097c58d
+docs/en/how-to/add-a-ui-panel.md | 211aa62c13c3b596806c96475a9be0f116dbae86 | docs/zh/how-to/add-a-ui-panel.md | fe0e825634b74beb59eb4af30f61ca91bd47b457
+docs/en/how-to/declare-permissions-and-commands.md | 9e31d4dddf0d8d1f42c8d8c8a66f161b9a464cb2 | docs/zh/how-to/declare-permissions-and-commands.md | 63e43f596aa5db6784c5ed4aaebd74989318376f
+docs/en/how-to/decide-which-side-judges-an-action.md | 6bb53afd0bed50bf618d9632d87956ca6529fec5 | docs/zh/how-to/decide-which-side-judges-an-action.md | abb1f425e83967c93b1da805933d7c82875d862b
+docs/en/how-to/read-game-state.md | 04051ef4d7cf1d8838397745ad72b1829569a584 | docs/zh/how-to/read-game-state.md | 73700dafd90824ec8be5b55f5b8fef6eafcb6d48
+docs/en/how-to/README.md | 7c6c14e3ccb3750bb496c9b8301238a4c025bc68 | docs/zh/how-to/README.md | 1c90531b5c02054c03dfad52c1c7b1898ff9b8a5
+docs/en/how-to/register-content.md | 4412ebe5a3c7211ba898029333c246b8e12fa0c3 | docs/zh/how-to/register-content.md | 11064e8df4c877da936bc570c1cc6ebf5957f8e6
+docs/en/how-to/save-mod-data-across-sessions.md | ec69020bd60fe6f300ec3576342ae31ea3ad8f7c | docs/zh/how-to/save-mod-data-across-sessions.md | 96c889ddef2788b44524902384b5e9f9ed224a8e
+docs/en/how-to/send-a-network-message.md | df1dd68e390e76c9f1a006751b5d924f7da667a0 | docs/zh/how-to/send-a-network-message.md | 9a84b7691fa4e0314ddf95f65dc14f40cfb17d51
+docs/en/README.md | b4325ffb7deb651b6d805e54db5f8717f77a2ac3 | docs/zh/README.md | 93fad3bf2c2d2156813effc8bddbad07d8026a8e
+docs/en/reference/glossary.md | dbb04e8f64d3d3c16bd4c142842df705d1582be0 | docs/zh/reference/glossary.md | 51edf39a84bf84eea1545e6b4644ea5ac1bda454
+docs/en/reference/README.md | 5d813fb459c349094b06b837a16ffe3b38764303 | docs/zh/reference/README.md | 8c3e63e80cbfdda46bc69cbe98c375bec15d69a5
+docs/en/start/install-and-play.md | 1417009e3bba042787350f21d4f37a5fea271585 | docs/zh/start/install-and-play.md | 7b55d58bf61838eb5bfe225d11882b01e572adfc
+docs/en/start/README.md | eca8a61db0347f0854a09f59079f901de5a16c3e | docs/zh/start/README.md | eabe3a1bc74fb1ec665012ac7b9051900c1503fe
+docs/en/start/set-up-dev-environment.md | 6ae9fa5c64de11d0dde274ffa01d4eae4eeb6ad6 | docs/zh/start/set-up-dev-environment.md | c19f77df8c0acd3e0a9dee2a7a89c77d94971d50
+docs/en/start/what-is-cuo.md | 062db17bb99dfd3bf1e5fec87cccfd081e90df66 | docs/zh/start/what-is-cuo.md | 12631eb9527265097d0943d0d4a431f1c72dba62
+docs/en/start/your-first-mod.md | 54e5f013feb45a77d0bcc08ddd88e7b6a52f9ad7 | docs/zh/start/your-first-mod.md | 0e65a522bda28f4ea48bf55b5163cb6113452129

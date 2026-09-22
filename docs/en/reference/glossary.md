@@ -1,6 +1,8 @@
 # Glossary
 
-[Documentation](../../README.md) > [Reference](README.md) > Glossary
+[Documentation](../README.md) > [Reference](README.md) > Glossary
+
+---
 
 Every word this documentation uses, explained in everyday language. A term is linked to this page on
 its first use in a page. The exact Chinese rendering of each term is registered in
@@ -88,4 +90,6 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - [Start here](../start/README.md) — the first-run line
 - [Term registry](../../standard/terminology.txt) — the file every Chinese page takes its wording from
 
-[Documentation](../../README.md) > [Reference](README.md) > Glossary
+---
+
+[Documentation](../README.md) > [Reference](README.md) > Glossary

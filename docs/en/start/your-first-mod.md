@@ -1,6 +1,8 @@
 # Your first mod
 
-[Documentation](../../README.md) > [Start](README.md) > Your first mod
+[Documentation](../README.md) > [Start](README.md) > Your first mod
+
+---
 
 **After this page** you have read a working CUO mod end to end — the two files it takes, what the
 framework hands you, and how to watch it run. The code is
@@ -100,4 +102,6 @@ CUO still works. From then on, `Update` runs once per frame.
 - [Glossary](../reference/glossary.md) — mod, patch, adapter, handshake
 - [Reference](../reference/README.md) — where the full mod API will live
 
-[Documentation](../../README.md) > [Start](README.md) > Your first mod
+---
+
+[Documentation](../README.md) > [Start](README.md) > Your first mod

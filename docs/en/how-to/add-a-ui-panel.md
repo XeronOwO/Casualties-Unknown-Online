@@ -1,6 +1,8 @@
 # Add a panel to the interface
 
-[Documentation](../../README.md) > [How to](README.md) > Add a panel to the interface
+[Documentation](../README.md) > [How to](README.md) > Add a panel to the interface
+
+---
 
 **After this page** your mod has its own window inside the CUO interface, and you know what that
 window may and may not touch. Read [Your first mod](../start/your-first-mod.md) first.
@@ -66,4 +68,6 @@ log line from the message handler.
   window may drive
 - [Your first mod](../start/your-first-mod.md) — where `Bind` and the context come from
 
-[Documentation](../../README.md) > [How to](README.md) > Add a panel to the interface
+---
+
+[Documentation](../README.md) > [How to](README.md) > Add a panel to the interface

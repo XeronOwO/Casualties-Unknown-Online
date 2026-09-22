@@ -1,6 +1,8 @@
 # Build, test and deploy the plugin
 
-[Documentation](../../README.md) > [Contributing](README.md) > Build, test and deploy the plugin
+[Documentation](../README.md) > [Contributing](README.md) > Build, test and deploy the plugin
+
+---
 
 **After this page** you can build the solution, run the smallest test subset that can catch your
 change, deploy the plugin into your own game, and open the log that explains a failure. You need a
@@ -129,4 +131,6 @@ powershell -ExecutionPolicy Bypass -File tools/verify-deploy.ps1 -GameDir "<game
 - [Test parallelization](../../evidence/test-parallelization.md) — the measured classification and numbers
 - [Game-update runbook](../../development/game-update-runbook.md) — what to do the day the game updates
 
-[Documentation](../../README.md) > [Contributing](README.md) > Build, test and deploy the plugin
+---
+
+[Documentation](../README.md) > [Contributing](README.md) > Build, test and deploy the plugin

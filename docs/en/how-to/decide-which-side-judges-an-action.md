@@ -1,6 +1,8 @@
 # Decide which side judges an action
 
-[Documentation](../../README.md) > [How to](README.md) > Decide which side judges an action
+[Documentation](../README.md) > [How to](README.md) > Decide which side judges an action
+
+---
 
 **After this page** you can place a new decision on the right machine — judgment ownership: which
 client judges whether something happened, and what the host keeps for itself. Read
@@ -80,4 +82,6 @@ acceptance step no test can replace.
 - [Your first mod](../start/your-first-mod.md) — the lifecycle the decision lives in
 - [Glossary](../reference/glossary.md) — kernel, event, projection, rollback
 
-[Documentation](../../README.md) > [How to](README.md) > Decide which side judges an action
+---
+
+[Documentation](../README.md) > [How to](README.md) > Decide which side judges an action

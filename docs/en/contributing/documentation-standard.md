@@ -1,6 +1,8 @@
 # Writing documentation
 
-[Documentation](../../README.md) > [Contributing](README.md) > Writing documentation
+[Documentation](../README.md) > [Contributing](README.md) > Writing documentation
+
+---
 
 **After this page** you can add a page to the documentation, keep its other-language side in step,
 and know which parts a gate checks. The binding rules live in [`../../AGENTS.md`](../../AGENTS.md),
@@ -30,13 +32,14 @@ which an agent loads automatically on entering `docs/`; this page is the human e
 
 One page answers one question and its title says what the reader can then do:
 
-head breadcrumb → one-sentence purpose ("After this page you can …") → difficulty and prerequisites
-→ steps → a runnable example → why it works this way → pitfalls → how to check that it worked →
-`Related reading` (3–6 links) → tail breadcrumb.
+head breadcrumb → thematic break → one-sentence purpose ("After this page you can …") → difficulty
+and prerequisites → steps → a runnable example → why it works this way → pitfalls → how to check
+that it worked → `Related reading` (3–6 links) → thematic break → tail breadcrumb.
 
 A `start/` page shows the single path that works and stops there; the detail belongs in `how-to/` or
-`internals/` and is linked, never duplicated. An index page is the exception: it is a list of links,
-with no breadcrumb of its own.
+`internals/` and is linked, never duplicated. An index page is the exception: it lists the section's pages, names its own directory
+(`docs/en/how-to/`), carries the same head-and-tail breadcrumb and thematic breaks as any other page
+— pointing at the entry one level above it — and needs no `Related reading`.
 
 ## Language
 
@@ -54,15 +57,20 @@ with no breadcrumb of its own.
   carry no switcher of their own.
 - A paired artifact in the older sibling shape (`foo.zh.md`, `foo.i18n.yaml`) belongs only to the
   trees still being migrated; do not add one under `docs/en/` or `docs/zh/`.
+- Chinese punctuation joins Chinese text: `，。、；：？！`, Chinese quotes and full-width
+  parentheses; ASCII punctuation stays inside code spans, paths, identifiers and any English name or
+  phrase (`Casualties Unknown: Online`). The gate refuses the plain defect — an ASCII connective
+  between two Chinese characters; judging the rest stays a review duty.
 
 ## Links
 
 - Use relative links, and make sure they resolve: a gate walks every markdown link target in the two
   blocks.
 - The head breadcrumb sits in the first lines and both breadcrumbs name the real path, for example
-  `Documentation > How-to > Send a network message`, and link to `docs/README.md` and the section
-  index.
-- End the page with 3–6 `Related reading` links: what the reader most likely needs next.
+  `Documentation > How-to > Send a network message`, and link to the block's own overview
+  (`docs/en/README.md`) and the section index.
+- End a content page with 3–6 `Related reading` links: what the reader most likely needs next; an
+  index page needs none.
 - The first use of a project word in a page links to [`../reference/glossary.md`](../reference/glossary.md).
 
 ## Truth
@@ -121,4 +129,6 @@ natural, or whether a claim is true; that stays a review duty, checked against t
 - [Glossary](../reference/glossary.md) — the words a page may use, in everyday language
 - [Terminology registry](../../standard/terminology.txt) — the exact Chinese rendering of each word
 
-[Documentation](../../README.md) > [Contributing](README.md) > Writing documentation
+---
+
+[Documentation](../README.md) > [Contributing](README.md) > Writing documentation

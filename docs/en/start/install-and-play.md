@@ -1,6 +1,8 @@
 # Install and play
 
-[Documentation](../../README.md) > [Start](README.md) > Install and play
+[Documentation](../README.md) > [Start](README.md) > Install and play
+
+---
 
 **After this page** CUO is installed, you have hosted or joined a session, and you know what the
 three most common failures mean. A mod author needs the same steps to run a build of their own.
@@ -52,4 +54,6 @@ Without Steam, the configuration file carries a direct-IP mode under the `IpDire
 - [Set up a development checkout](set-up-dev-environment.md) — build CUO yourself
 - [Glossary](../reference/glossary.md) — host, guest, lobby, protocol version
 
-[Documentation](../../README.md) > [Start](README.md) > Install and play
+---
+
+[Documentation](../README.md) > [Start](README.md) > Install and play

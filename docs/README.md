@@ -8,7 +8,7 @@ Two mirrored trees, one page set: 中文 [`zh/`](zh/README.md) and English [`en/
 ## 中文文档
 
 - **[从这里开始](zh/start/README.md)** —— CUO 是什么、怎么玩、怎么搭开发环境、写第一个模组(由浅入深)
-- **做一件事** —— `zh/how-to/`,一件事一页 *(正在编写)*
+- **[做一件事](zh/how-to/README.md)** —— 一件事一页:步骤、能跑的例子、常见坑,以及怎么验证真的成了
 - **弄懂原理** —— `zh/internals/`:谁决定什么、协议、存档、适配器边界 *(正在编写)*
 - **查东西** —— [参考](zh/reference/README.md)与[术语表](zh/reference/glossary.md)
 - **参与开发** —— [贡献者文档](zh/contributing/README.md):构建与测试、门禁、仓库地图、文档规范,以及复核与交付
@@ -16,7 +16,7 @@ Two mirrored trees, one page set: 中文 [`zh/`](zh/README.md) and English [`en/
 ## English documentation
 
 - **[Start here](en/start/README.md)** — what CUO is, how to play it, how to set up a development checkout, and a first mod you can watch working
-- **Do one thing** — `en/how-to/`, one task per page *(being written)*
+- **[Do one thing](en/how-to/README.md)** — one task per page: the steps, a runnable example, the traps, and how to check that it worked
 - **Understand why** — `en/internals/`: who decides what, the protocol, saves, the adapter boundary *(being written)*
 - **Look something up** — [Reference](en/reference/README.md) and the [glossary](en/reference/glossary.md)
 - **Work on CUO itself** — [Contributing](en/contributing/README.md): build and test, the gates, the

@@ -40,6 +40,10 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Revision** — the kernel's own increasing order number; not a mod version.
 - **Epoch** — the identity of one run; traffic from an old run is rejected.
 - **Deterministic** — the same inputs produce the same result.
+- **Vitals** — the projected state of one player's body: health, hunger, thirst, stamina, energy, temperature.
+- **Read model** — state meant for reading. A reading is what CUO last heard, never a verdict.
+- **Judgment ownership** — whose machine decides what happens to a player: that player's own client, on its own screen and timeline; the host keeps the world and the arbitration.
+- **Rollback** — undoing a locally applied action after the host's arbitration refused the claim.
 
 ## Joining and versions
 
@@ -55,6 +59,12 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Native** — the game's own code and behaviour.
 - **World archive** — CUO's save layout: one folder per world, with cuts and backups.
 - **Lease** — the record naming which process is writing a world folder.
+- **Mod state** — the small key/value table a mod keeps in the host's save, so its data survives a restart.
+- **Content id** — the canonical `namespace:path` address of one registered content definition.
+- **Namespace** — the mod-declared first half of a content id; it is what keeps two mods' ids apart.
+- **Content kind** — the kind a definition is registered under, such as `item`, `recipe` or `tile`.
+- **Schema version** — the version a mod stores next to its own opaque payload; the framework carries it and never migrates it.
+- **Tombstone** — a recorded refusal that stops the same creation being retried.
 
 ## Interface and comfort
 

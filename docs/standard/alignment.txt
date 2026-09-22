@@ -1,18 +1,18 @@
 # CUO pair registry — the English and Chinese page set, confirmed consistent at these contents.
-# Format: <en path> | <en blob hash> | <zh path> | <zh blob hash>
+# Format: <en path> | <en blob hash> | <zh path> | <zh blob hash>   (paths are repository-relative)
 # Re-record both hashes when either side is edited and the other is updated; a git blob hash
 # reproduces from the working tree, so consistency stays a content comparison.
 # AGENTS.md files are instruction routing, not pages, and are not registered here.
 #
-en/how-to/add-a-ui-panel.md | b03e99bc573f606923b6424bf905d5094baf541c | zh/how-to/add-a-ui-panel.md | c4b46f4a5953a3dcf3407ad69b16af3e9e664756
-en/how-to/declare-permissions-and-commands.md | d8b1cf534cd6fab2a9e3ef7a0305d9245e022c94 | zh/how-to/declare-permissions-and-commands.md | b8f7601e9a7d8f3020ed5a4ee804be9cee79e351
-en/how-to/README.md | 474325778770a7ff27605c28a18ee90221de1703 | zh/how-to/README.md | c7e598eed60224def95d72fed03b8d3f06770d1a
-en/how-to/send-a-network-message.md | 7bd223928419a5115d47a6ea987f63d5626d90a0 | zh/how-to/send-a-network-message.md | 17d2d5644754217be795ca41f5285a9020add7de
-en/README.md | 1cc622bb6abda71ff72fc8ed83b0b0d99f723883 | zh/README.md | 3b47d132e7bf4849c42cce3dfe386b9dd650da65
-en/reference/glossary.md | 6d353cb72e647381ec133b9784e69fadd53dc59e | zh/reference/glossary.md | cbc4cc4f70fddfc472f2bda3b69805a6eeff2c38
-en/reference/README.md | 8cd6972b48aec5bd990050056c45b687f65842a3 | zh/reference/README.md | bc77861e396de772a59257786d880f456abb6b44
-en/start/install-and-play.md | f762cbf75d62d2e26c9ff7b116997dd09b7e572b | zh/start/install-and-play.md | f99eba98cd31dcd074fa1195c34b9afcaeb52032
-en/start/README.md | f8ba0a51dc752dbe65f570f663d6e3777aca923e | zh/start/README.md | 813473ef835be8d548d6004ebb8a7188a1654110
-en/start/set-up-dev-environment.md | 994b8d19cd7e51fc57ec065ed12ab8e9b4f1a2c5 | zh/start/set-up-dev-environment.md | 31c229112efa29735e83e873e94d2bf1eadfc8f7
-en/start/what-is-cuo.md | 02358ca767178bbaed9a7bcccabcd791cf307126 | zh/start/what-is-cuo.md | 9b74774bc7e4f5569dba87a9f49ab9a5c46e875c
-en/start/your-first-mod.md | 9fcc1b451f4e385786247f71b380e0b64fda790f | zh/start/your-first-mod.md | 8f1285b2b8b03dfd3a0ac7d335b18a8a9ea660e2
+docs/en/how-to/add-a-ui-panel.md | b03e99bc573f606923b6424bf905d5094baf541c | docs/zh/how-to/add-a-ui-panel.md | c4b46f4a5953a3dcf3407ad69b16af3e9e664756
+docs/en/how-to/declare-permissions-and-commands.md | d8b1cf534cd6fab2a9e3ef7a0305d9245e022c94 | docs/zh/how-to/declare-permissions-and-commands.md | b8f7601e9a7d8f3020ed5a4ee804be9cee79e351
+docs/en/how-to/README.md | 474325778770a7ff27605c28a18ee90221de1703 | docs/zh/how-to/README.md | c7e598eed60224def95d72fed03b8d3f06770d1a
+docs/en/how-to/send-a-network-message.md | 7bd223928419a5115d47a6ea987f63d5626d90a0 | docs/zh/how-to/send-a-network-message.md | 17d2d5644754217be795ca41f5285a9020add7de
+docs/en/README.md | 1cc622bb6abda71ff72fc8ed83b0b0d99f723883 | docs/zh/README.md | 3b47d132e7bf4849c42cce3dfe386b9dd650da65
+docs/en/reference/glossary.md | 6d353cb72e647381ec133b9784e69fadd53dc59e | docs/zh/reference/glossary.md | cbc4cc4f70fddfc472f2bda3b69805a6eeff2c38
+docs/en/reference/README.md | 8cd6972b48aec5bd990050056c45b687f65842a3 | docs/zh/reference/README.md | bc77861e396de772a59257786d880f456abb6b44
+docs/en/start/install-and-play.md | f762cbf75d62d2e26c9ff7b116997dd09b7e572b | docs/zh/start/install-and-play.md | f99eba98cd31dcd074fa1195c34b9afcaeb52032
+docs/en/start/README.md | f8ba0a51dc752dbe65f570f663d6e3777aca923e | docs/zh/start/README.md | 813473ef835be8d548d6004ebb8a7188a1654110
+docs/en/start/set-up-dev-environment.md | 994b8d19cd7e51fc57ec065ed12ab8e9b4f1a2c5 | docs/zh/start/set-up-dev-environment.md | 31c229112efa29735e83e873e94d2bf1eadfc8f7
+docs/en/start/what-is-cuo.md | 02358ca767178bbaed9a7bcccabcd791cf307126 | docs/zh/start/what-is-cuo.md | 9b74774bc7e4f5569dba87a9f49ab9a5c46e875c
+docs/en/start/your-first-mod.md | 9fcc1b451f4e385786247f71b380e0b64fda790f | docs/zh/start/your-first-mod.md | 8f1285b2b8b03dfd3a0ac7d335b18a8a9ea660e2

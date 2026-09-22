@@ -67,8 +67,9 @@ Depth rule: a `start/` page shows the single path that works and then stops; the
 ## 6. What machines check, and what they cannot
 
 Gates check path parity between the two blocks, link targets that exist, the page shape above, the
-`AGENTS.md` byte ceilings and the terminology blacklist. A gate proves presence and shape; it cannot
-tell whether a page teaches. Wording quality remains a review duty.
+`AGENTS.md` byte ceilings and the pair alignment record. A gate proves presence and shape; it cannot
+tell whether a page teaches, and it cannot tell whether a rendering is natural. Wording stays a
+review duty, checked against `standard/terminology.txt`.
 
 ## 7. Decay control
 

@@ -15,7 +15,7 @@ internal static class PreRunScriptIntroSkipPatch
 {
 	private static void Prefix()
 	{
-		if (GameAdapter.SkipIntro)
+		if (GameAdapter.IsIntroSkipped)
 		{
 			typeof(PreRunScript).GetField("didIntro",
 				BindingFlags.NonPublic | BindingFlags.Static)?.SetValue(null, true);

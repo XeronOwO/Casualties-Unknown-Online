@@ -327,13 +327,15 @@ excludes classes that only use pure domain services; a comment-only mention does
 not tag a class (`ModDiscoveryTests` stays in the fast set). Temporary-file
 I/O with GUID-scoped paths and pure in-memory persistence tests also stay in the
 fast set; the tier targets full-stack composition, game-assembly reflection and
-real sockets. Result (re-measured 2026-09-21 after the adapter capability-port split — the census grows
-every cycle, so date it rather than quoting it): **260 classes / 1 694 cases** tagged (the split added
-no tagged class: it re-pointed three existing tagged contract classes in place); **2 095 cases**
+real sockets. Result (re-measured 2026-09-22 after the plugin-host-shell change — the census grows
+every cycle, so date it rather than quoting it): **260 classes / 1 694 cases** tagged (neither recent
+change added a tagged class: the adapter split re-pointed three existing tagged contract classes in
+place, and the shell change added none); **2 097 cases**
 untagged, counted as the `[Trait("Category", "Integration")]` attribute occurrences (one per test
-class) and the two filtered runs below. The cycle's delta is one fast class / 16 cases
-(`AdapterCapabilityPortShapeTests`); the rest of the jump from the 2026-09-17 figures is accumulation
-since that measurement, not a tagging change.
+class) and the two filtered runs below. The adapter cycle's delta was one fast class / 16 cases
+(`AdapterCapabilityPortShapeTests`); this cycle's is 2 fast cases in that same class (its census went
+from ten ports to twelve), and the rest of the jump from the 2026-09-17 figures is accumulation since
+that measurement, not a tagging change.
 
 Inner-loop commands:
 

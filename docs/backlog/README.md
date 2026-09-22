@@ -48,7 +48,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Bilingual human documentation](todo/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
-- [Plugin as a host shell](todo/plugin-host-shell.md) — **Medium** — entry, UI and registration separated.
 - [Patch bridge domain ports](todo/patch-bridge-domain-ports.md) — **Medium** — per-domain ports, aggregate frozen.
 - [Composition root feature modules](todo/composition-root-feature-modules.md) — **Medium** — registrations and reset contract.
 - [Legacy wire DTOs](todo/legacy-wire-dto-slice.md) — **Medium** — the remaining kernel-mapper move's precondition.
@@ -174,6 +173,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity.
 - [Application layer: first slice](review/application-layer-first-slice.md) — **Medium** — command gateway and the kernel replication move.
 - [Adapter capability ports](review/adapter-capability-ports.md) — **Medium** — ten ports; the aggregate declares nothing.
+- [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
 ### Future
 

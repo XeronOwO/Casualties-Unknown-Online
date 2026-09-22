@@ -5,26 +5,15 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
-using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
-using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
-using CasualtiesUnknownOnline.Runtime.Session.Commands;
-using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
-using CasualtiesUnknownOnline.Runtime.Session.Mods;
-using CasualtiesUnknownOnline.Runtime.Session.HostRules;
-using CasualtiesUnknownOnline.Runtime.Session.Persistence;
-using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
-using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Steam;
-using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
-using GameAdapterImpl = CasualtiesUnknownOnline.GameAdapter.GameAdapter;
 // The CUO Application layer is a sibling namespace inside CasualtiesUnknownOnline,
 // and a namespace member beats any using-alias, so bare `Application` here binds to
 // that namespace instead of Unity's type; the alias renames the Unity type.
@@ -32,6 +21,14 @@ using UnityApplication = UnityEngine.Application;
 
 namespace CasualtiesUnknownOnline;
 
+/// <summary>
+/// The BepInEx 5 entry: host configuration, the Unity lifecycle forwarded into the
+/// container's <c>ICuoService</c> pump, and the Steam callbacks on the launch path.
+/// Registration belongs to <see cref="PluginDependencyRegistrar"/> (which calls the
+/// adapter's own composition), the Online UI to <see cref="OnlineUiHost"/>, and the
+/// lobby-switch policy to <see cref="LobbySwitchActions"/> — the shell itself names
+/// no adapter type, only the capability ports it consumes.
+/// </summary>
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 [BepInProcess("CasualtiesUnknown.exe")]
 public class Plugin : BaseUnityPlugin
@@ -42,49 +39,16 @@ public class Plugin : BaseUnityPlugin
 	private ICuoService[] _cuoServices = [];
 	private ILogger<Plugin> _log = null!;
 	private SteamService _steam = null!;
-	private CuoNetworkRouter _router = null!;
-	private IpDirectSteamService _ipSteam = null!;
-	private IpDirectConfigEditor _ipConfig = null!;
-	private PlayerColorConfigEditor _colorConfig = null!;
-	private IpDirectActions _ipActions = null!;
-	private SessionService _session = null!;
-	private IHostBanService _hostBan = null!;
-	private IHostRules _hostRules = null!;
-	private ICommandControl _commands = null!;
-	private ConsoleInputSession _consoleInput = null!;
-	private ILocalizationService _localization = null!;
-	private HostRulesConfigEditor _rulesEditor = null!;
-	private LoggingConfigEditor _loggingEditor = null!;
-	private ConfigurationProfileStore _profileStore = null!;
-	private LocalizationConfigEditor _languageEditor = null!;
-
-	private EntitySyncService _entities = null!;
-	private RemoteVitalsService _remoteVitals = null!;
-	private RemoteInventoryService _remoteInventory = null!;
-	private PlayerInteractionService _playerInteraction = null!;
-	private IPlayerInteractionVisibility _interactionVisibility = null!;
-	private IModUiControl _modUiControl = null!;
-	// The capability ports (review/adapter-capability-ports.md): this shell resolves the
-	// port whose capability it calls. The concrete adapter is kept for the carry
-	// presentation pass — an adapter Update-pump detail rather than a consumer
-	// capability (todo/plugin-host-shell.md owns that coupling).
-	private GameAdapterImpl? _adapter;
+	private LobbySwitchActions _lobby = null!;
+	private OnlineUiHost _onlineUi = null!;
+	// The capability ports (review/adapter-capability-ports.md): the shell resolves
+	// the port whose capability it calls and never the concrete adapter.
 	private IGameIntegrationLifecycle? _lifecycle;
+	private ICarryPresentationPump? _carryPump;
+	private IJoinFlowPresentation? _joinFlow;
 	private IAdapterCapabilityQuery? _capabilityQuery;
-	private IWorldPresenceQuery? _worldPresence;
-	private IStartGateState? _gateState;
-	private INativeInputBlocker? _inputBlocker;
-	private IPlayerAnchorQuery? _anchorQuery;
-	private IWorldLibrary? _worldLibrary;
-	private ILocationPingControl _locationPings = null!;
-	private ITimeSource _time = null!;
-	private LocationPingInputHandler _locationPingInput = null!;
 	private ConfigEntry<string> _interactionPanelKey = null!;
 	private ulong? _pendingJoinLobbyId;
-	private string? _lastJoinError;
-	private OnlineUiOverlay _onlineUi = null!;
-	private OnlineUiActions _uiActions = null!;
-	private readonly CuoEscCloseSuppression _escCloseSuppression = new();
 
 	private void Awake()
 	{
@@ -114,124 +78,10 @@ public class Plugin : BaseUnityPlugin
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();
 			_steam = _services.GetRequiredService<SteamService>();
-			_router = _services.GetRequiredService<CuoNetworkRouter>();
-			_ipSteam = _router.IpDirectSteam;
-			_ipConfig = _services.GetRequiredService<IpDirectConfigEditor>();
-			_colorConfig = _services.GetRequiredService<PlayerColorConfigEditor>();
-			_ipSteam.SetDisplayName(_ipConfig.DisplayName);
-			_router.SetLocalPlayerColor(_colorConfig.CurrentColor);
-			_session = _services.GetRequiredService<SessionService>();
-			_hostBan = _services.GetRequiredService<IHostBanService>();
-			_hostRules = _services.GetRequiredService<IHostRules>();
-			_commands = _services.GetRequiredService<ICommandControl>();
-			_consoleInput = _services.GetRequiredService<ConsoleInputSession>();
-			_localization = _services.GetRequiredService<ILocalizationService>();
-			_rulesEditor = _services.GetRequiredService<HostRulesConfigEditor>();
-			_loggingEditor = _services.GetRequiredService<LoggingConfigEditor>();
-			_languageEditor = _services.GetRequiredService<LocalizationConfigEditor>();
-			_profileStore = _services.GetRequiredService<ConfigurationProfileStore>();
-			_entities = _services.GetRequiredService<EntitySyncService>();
-			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
-			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
-			// Ensure the registry-backed remote-presentation domain is alive and
-			// subscribed to the character-data stream even before any UI opens.
-			_ = _services.GetRequiredService<RemoteCharacterPresentationStore>();
-			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
-			_interactionVisibility = _services.GetRequiredService<IPlayerInteractionVisibility>();
-			_modUiControl = _services.GetRequiredService<IModUiControl>();
-			_adapter = _services.GetService<GameAdapterImpl>();
 			_lifecycle = _services.GetService<IGameIntegrationLifecycle>();
+			_carryPump = _services.GetService<ICarryPresentationPump>();
+			_joinFlow = _services.GetService<IJoinFlowPresentation>();
 			_capabilityQuery = _services.GetService<IAdapterCapabilityQuery>();
-			_worldPresence = _services.GetService<IWorldPresenceQuery>();
-			_gateState = _services.GetService<IStartGateState>();
-			_inputBlocker = _services.GetService<INativeInputBlocker>();
-			_anchorQuery = _services.GetService<IPlayerAnchorQuery>();
-			// The world library the Worlds page drives (decision 198): optional, exactly like the
-			// adapter — a composition without a world repository has nothing to manage, and the
-			// page says so instead of throwing.
-			_worldLibrary = _services.GetService<IWorldLibrary>();
-			_uiActions = new OnlineUiActions(
-				_session,
-				_hostBan,
-				_playerInteraction,
-				_services.GetService<IRemoteInventoryPresentation>(),
-				_services.GetService<IRemoteMedicalPresentation>(),
-				_services.GetService<ITraderRecruitRequest>(),
-				_services.GetService<ILocalHealItemQuery>());
-			_ipActions = new IpDirectActions(
-				_router,
-				_ipSteam,
-				_ipConfig,
-				_session,
-				_worldPresence,
-				_localization,
-				_services.GetRequiredService<ILogger<IpDirectActions>>());
-			_cuoServices = [.. _services.GetServices<ICuoService>()];
-			_onlineUi = new OnlineUiOverlay(_consoleInput)
-			{
-				// The UI delegates are the same guarded paths the F8/F9 hotkeys
-				// use — one lobby-switch policy, two entry points.
-				JoinLobby = TryJoinLobbyFromUi,
-				CreateLobby = TryCreateLobbyFromUi,
-				LeaveLobby = TryLeaveLobbyFromUi,
-				CreateIpHost = _ipActions.CreateHost,
-				JoinIp = _ipActions.Join,
-				LeaveIp = _ipActions.Leave,
-				IpConfig = _ipConfig,
-				ColorConfig = _colorConfig,
-				ChangePlayerColor = index =>
-				{
-					_colorConfig.SetColorIndex(index);
-					var color = _colorConfig.CurrentColor;
-					_router.SetLocalPlayerColor(color);
-					_session.ReportLocalPlayerColor(color);
-				},
-				Profiles = _profileStore,
-				TakeItem = _uiActions.TakeItemFromRemote,
-				OpenRemoteBackpack = (id, name) =>
-				{
-					var opened = _uiActions.OpenRemoteBackpackFromUi(id, name);
-					if (opened)
-					{
-						_onlineUi.CloseWindow();
-						_onlineUi.CloseQuickPanel();
-					}
-
-					return opened;
-				},
-				OpenRemoteMedical = (id, name) =>
-				{
-					var opened = _uiActions.OpenRemoteMedicalFromUi(id, name);
-					if (opened)
-					{
-						_onlineUi.CloseWindow();
-						_onlineUi.CloseQuickPanel();
-					}
-
-					return opened;
-				},
-				CarryRemote = _uiActions.CarryRemoteFromUi,
-				PiggybackRemote = _uiActions.PiggybackRemoteFromUi,
-				CarryOnBackRemote = _uiActions.CarryOnBackRemoteFromUi,
-				DropCarried = _uiActions.DropCarryFromUi,
-				HealRemote = _uiActions.HealRemoteFromUi,
-				HasHealItem = _uiActions.HasLocalHealItem,
-				HealWithItem = _uiActions.HealWithItemFromUi,
-				GetLocalHealItems = _uiActions.GetLocalHealItems,
-				PushRemote = _uiActions.PushRemoteFromUi,
-				RecruitPlayer = _uiActions.RecruitPlayerFromUi,
-				KickMember = _uiActions.KickMemberFromUi,
-				BanMember = _uiActions.BanMemberFromUi,
-				UnbanMember = _uiActions.UnbanMemberFromUi,
-			};
-
-			_locationPings = _services.GetRequiredService<ILocationPingControl>();
-			_time = _services.GetRequiredService<ITimeSource>();
-			_locationPingInput = new LocationPingInputHandler(
-				_session,
-				_locationPings,
-				_onlineUi,
-				_services.GetRequiredService<ILogger<LocationPingInputHandler>>());
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
 			CuoBootstrap.Services = _services;
@@ -245,6 +95,17 @@ public class Plugin : BaseUnityPlugin
 			_interactionPanelKey = Config.Bind("Session", "InteractionPanelKey", "F6",
 				"Hotkey to toggle the standalone player-interaction quick panel. See UnityEngine.KeyCode names.");
 
+			_lobby = new LobbySwitchActions(
+				_steam,
+				_services.GetRequiredService<CuoNetworkRouter>(),
+				_services.GetRequiredService<SessionService>(),
+				_services.GetService<IWorldPresenceQuery>(),
+				_services.GetRequiredService<ILocalizationService>(),
+				_services.GetRequiredService<ILogger<LobbySwitchActions>>());
+			_onlineUi = new OnlineUiHost(_services, _interactionPanelKey, _lobby);
+
+			_cuoServices = [.. _services.GetServices<ICuoService>()];
+
 			// Steam friends "Join Game" with the game not running launches it
 			// with "+connect_lobby <id>" on the command line. GameLobbyJoinRequested_t
 			// also fires once Steam initializes, but the command line is
@@ -256,8 +117,9 @@ public class Plugin : BaseUnityPlugin
 				// Right-click "Join Game": the menu's content-warning/intro screen
 				// is skipped (the follow-host pump then starts the run as soon as
 				// PreRunScript exists instead of waiting for the player to click
-				// through the intro).
-				GameAdapterImpl.SkipIntro = true;
+				// through the intro). The shell states the intent; how the intro is
+				// presented stays the adapter's business.
+				_joinFlow?.PrepareForDirectJoin();
 				_log.LogInformation("+connect_lobby {LobbyId} on the command line.", _pendingJoinLobbyId.Value);
 			}
 
@@ -265,7 +127,7 @@ public class Plugin : BaseUnityPlugin
 			_steam.LobbyCreated += lobbyId => _log.LogInformation("Lobby created: {LobbyId}", lobbyId);
 			_steam.LobbyEntered += lobbyId =>
 			{
-				_lastJoinError = null;
+				_lobby.LastError = null;
 				_log.LogInformation("Lobby entered: {LobbyId}", lobbyId);
 			};
 			// Steam friends "Join Game" (right-click → join) fires
@@ -273,7 +135,7 @@ public class Plugin : BaseUnityPlugin
 			_steam.JoinRequested += lobbyId =>
 			{
 				_log.LogInformation("Join requested via Steam friends — joining lobby {LobbyId}.", lobbyId);
-				if (CanSwitchLobbyForJoin())
+				if (_lobby.CanJoin())
 				{
 					_steam.JoinLobby(lobbyId);
 				}
@@ -284,7 +146,7 @@ public class Plugin : BaseUnityPlugin
 			_steam.LobbyJoinFailed += (lobbyId, reason) =>
 			{
 				_log.LogWarning("Lobby {LobbyId} join failed: {Reason}", lobbyId, reason);
-				_lastJoinError = $"Join {lobbyId} failed: {reason}";
+				_lobby.LastError = $"Join {lobbyId} failed: {reason}";
 			};
 
 			// Forward Unity log messages into CUO's own log so runtime errors
@@ -300,7 +162,7 @@ public class Plugin : BaseUnityPlugin
 			// failed, F8 retries it and joins the pending lobby then (Update).
 			if (_pendingJoinLobbyId is not null && _steam.IsInitialized)
 			{
-				if (CanSwitchLobbyForJoin())
+				if (_lobby.CanJoin())
 				{
 					_steam.JoinLobby(_pendingJoinLobbyId.Value);
 				}
@@ -334,6 +196,8 @@ public class Plugin : BaseUnityPlugin
 		}
 	}
 
+	// The Unity lifecycle half: every stage forwards to the container's services,
+	// which is all this shell does with the frame.
 	private void Update()
 	{
 		foreach (var service in _cuoServices)
@@ -341,68 +205,14 @@ public class Plugin : BaseUnityPlugin
 			RunLifecycle(service, "Update", s => s.Update());
 		}
 
-		// `/` opens the standalone command console directly in game. While it is
-		// open the same modal guard blocks background UI and game input so the
-		// input box stays the only interactive surface.
-		if (!_onlineUi.IsCommandConsoleOpen && Input.GetKeyDown(KeyCode.Slash))
-		{
-			_onlineUi.OpenCommandConsole();
-		}
-
-		_locationPingInput.TryHandle();
-
-		// The command console, Online UI window, and quick panel can all close
-		// on ESC inside OnGUI, while the game's native pause input runs in
-		// Update. Depending on Unity event ordering, this Update may observe a
-		// surface as already closed in the same frame the ESC is still active.
-		// Keep the modal guard active for that first closed frame so
-		// PlayerCamera.HandleInput cannot see the same ESC and open the pause
-		// menu; the next frame clears it.
-		var consoleOpen = _onlineUi.IsCommandConsoleOpen;
-		var windowVisible = _onlineUi.IsWindowVisible;
-		var quickPanelVisible = _onlineUi.IsQuickPanelVisible;
-		var escCloseFrame = _escCloseSuppression.Update(consoleOpen, windowVisible, quickPanelVisible);
-		if (escCloseFrame)
-		{
-			_log.LogInformation("CUO ESC-closing surface closed this frame — keeping native input modal for one frame to swallow the closing ESC.");
-		}
-
-		// Keep the game's background UI input suppressed while the Online UI
-		// modal window or the standalone command console is open (IMGUI does
-		// not participate in UGUI input). A non-modal quick panel is not in the
-		// modal guard while open, but its pause-toggle suppression is set below;
-		// its close frame is covered by escCloseFrame.
-		if (_inputBlocker is { } inputBlocker)
-		{
-			inputBlocker.SetOnlineUiModal(windowVisible || consoleOpen || escCloseFrame);
-			inputBlocker.SetOnlineUiEscapeSurfaceVisible(quickPanelVisible);
-		}
-
-		if (!_onlineUi.IsCommandConsoleOpen && HotkeyPressed(_interactionPanelKey))
-		{
-			_onlineUi.ToggleQuickPanel();
-		}
+		_onlineUi.Update();
 	}
 
-	private void LateUpdate()
-	{
-		// The carry presentation must be pinned after every frame's Update
-		// phase (game Body updates, CUO renderer, Body.Update postfix). The
-		// only Unity phase after Update and before render is LateUpdate, so
-		// that is where the final local-carrier/rider attach pass belongs.
-		if (_adapter is { } adapter)
-		{
-			adapter.LateUpdateCarryPresentation();
-		}
-	}
-
-	/// <summary>Returns true when the configured hotkey string maps to a valid Unity KeyCode and that key was pressed this frame.</summary>
-	private bool HotkeyPressed(ConfigEntry<string> entry)
-	{
-		return Enum.TryParse<KeyCode>(entry.Value, ignoreCase: true, out var key)
-			&& Enum.IsDefined(typeof(KeyCode), key)
-			&& Input.GetKeyDown(key);
-	}
+	// The carry presentation must be pinned after every frame's Update phase (game
+	// Body updates, CUO renderer, Body.Update postfix). The only Unity phase after
+	// Update and before render is LateUpdate, so that is where the final
+	// local-carrier/rider attach pass belongs.
+	private void LateUpdate() => _carryPump?.PinCarriedPresentation();
 
 	// Forwards one lifecycle stage to a service; a failing service is logged
 	// and never allowed to break the frame loop or the shutdown sequence.
@@ -416,90 +226,6 @@ public class Plugin : BaseUnityPlugin
 		{
 			_log.LogError(ex, "ICuoService.{Stage} failed for {ServiceType}", stage, service.GetType().Name);
 		}
-	}
-
-	private bool EnsureSteamReady(SteamService steam) => steam.Initialize();
-
-	/// <summary>Join policy: a lobby join always changes identity, so any active world/generation blocks it. The reason is visible on the test HUD.</summary>
-	private bool CanSwitchLobbyForJoin()
-	{
-		if (_ipSteam.IsActive)
-		{
-			_lastJoinError = _localization.T("ip.blocked_active_session");
-			_log.LogWarning("Steam lobby join refused: an IP-direct session is active.");
-			return false;
-		}
-
-		if (_worldPresence is not { IsInWorldOrGenerating: true })
-		{
-			return true;
-		}
-
-		_lastJoinError = _localization.T("lobby.join_blocked_in_world");
-		_log.LogWarning("Lobby join refused: a world is running or generating.");
-		return false;
-	}
-
-	/// <summary>Create policy: menu is always allowed; in a world only the solo->host conversion is (no session, no identity change away from another host).</summary>
-	private bool CanSwitchLobbyForCreate()
-	{
-		if (_ipSteam.IsActive)
-		{
-			_lastJoinError = _localization.T("ip.blocked_active_session");
-			_log.LogWarning("Steam lobby create refused: an IP-direct session is active.");
-			return false;
-		}
-
-		if (_worldPresence is not { IsInWorldOrGenerating: true })
-		{
-			return true;
-		}
-
-		if (LobbySwitchGuard.CanCreateLobby(_session.Role, _session.SessionActive, worldFlowActive: true))
-		{
-			return true;
-		}
-
-		_lastJoinError = _localization.T("lobby.join_blocked_in_world");
-		_log.LogWarning("Lobby create refused: a sessioned world is running or generating.");
-		return false;
-	}
-
-	/// <summary>Online UI Join button path — same guards as the F9 hotkey, with
-	/// the lobby id coming from the text field instead of the config.</summary>
-	private bool TryJoinLobbyFromUi(string lobbyId)
-	{
-		if (!EnsureSteamReady(_steam) || !CanSwitchLobbyForJoin() || !ulong.TryParse(lobbyId, out var lobbyIdValue))
-		{
-			return false;
-		}
-
-		_steam.JoinLobby(lobbyIdValue);
-		return true;
-	}
-
-	/// <summary>Online UI Create button path — same policy as the F8 hotkey.</summary>
-	private bool TryCreateLobbyFromUi()
-	{
-		if (!EnsureSteamReady(_steam) || !CanSwitchLobbyForCreate())
-		{
-			return false;
-		}
-
-		_steam.CreateLobby();
-		return true;
-	}
-
-	/// <summary>Online UI Leave Lobby / Close Room path.</summary>
-	private bool TryLeaveLobbyFromUi()
-	{
-		if (!EnsureSteamReady(_steam))
-		{
-			return false;
-		}
-
-		_steam.LeaveLobby();
-		return true;
 	}
 
 	// Steam launches the game with "+connect_lobby <id>" when the user clicks
@@ -522,24 +248,8 @@ public class Plugin : BaseUnityPlugin
 	}
 
 	// The Online UI overlay (IMGUI): lobby create/join panel, member status,
-	// nameplates and off-screen arrows — see OnlineUiOverlay.cs.
-	private void OnGUI()
-	{
-		if (_gateState is { IsWaitingForReady: true })
-		{
-			StartGateOverlay.Draw(_gateState.WaitingText);
-			return; // the HUD is hidden behind the gate overlay
-		}
-
-		_onlineUi.IpDirectActive = _router.IsIpDirectActive;
-		if (_ipActions.LastError is not null)
-		{
-			_lastJoinError = _ipActions.LastError;
-		}
-
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _inputBlocker, _anchorQuery, _worldPresence, _worldLibrary, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
-		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
-	}
+	// nameplates and off-screen arrows — composed and drawn by OnlineUiHost.
+	private void OnGUI() => _onlineUi.Draw();
 
 	private void OnUnityLogMessage(string message, string stackTrace, LogType type)
 	{

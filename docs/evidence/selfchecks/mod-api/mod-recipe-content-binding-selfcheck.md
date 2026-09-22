@@ -28,7 +28,7 @@ injects them once per table generation.
 | `ModRecipeIngredient` | New Abstractions ingredient DTO. |
 | `ModRecipeCategory` | New plain category constants. |
 | `GameAdapterRecipeContentProvider` | New GameAdapter provider routing to `Recipes.recipes`. |
-| `PluginDependencyRegistrar` | Registered the recipe provider as `IContentBindingProvider` and `ICuoService`. |
+| `GameAdapterComposition` | Registered the recipe provider as `IContentBindingProvider` and `ICuoService`. |
 | Tests | `ModRecipeDefinitionTests` round-trip and invalid payload. |
 | Protocol version | Unchanged (no wire). |
 

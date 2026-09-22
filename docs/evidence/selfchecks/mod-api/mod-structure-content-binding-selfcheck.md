@@ -31,7 +31,7 @@ exposed through `IModStructurePlacement`.
 | `ModStructureDefinition` | New Abstractions DTO + serialization helpers. |
 | `GameAdapterStructureContentProvider` | New GameAdapter provider (validation + compiled cell registry). |
 | `GameAdapterDomains` / `GameAdapter` | Wired the structure provider into the adapter's owned domain set. |
-| `PluginDependencyRegistrar` | Registered the structure provider as `IContentBindingProvider` and `ICuoService`. |
+| `GameAdapterComposition` | Registered the structure provider as `IContentBindingProvider` and `ICuoService`. |
 | `docs/api/mod-api.md` | Added typed structure content + current structure binding scope. |
 | Tests | `ModStructureDefinitionTests` round-trip and invalid payload. |
 | Protocol version | Unchanged (no wire). |

@@ -33,7 +33,7 @@ game/Unity type crosses the mod boundary.
 | `ModContext` | Added `ModItemSpawnAdapter` with permission/session/policy gating. |
 | `ModLifecycle` / `ModService` | Wired the item spawner through the mod-context construction path. |
 | `CuoBootstrap` | Registered the disabled item spawner in the Runtime default composition. |
-| `PluginDependencyRegistrar` | Replaced the item spawner with the Game Adapter implementation. |
+| `GameAdapterComposition` | Replaced the item spawner with the Game Adapter implementation. |
 | `GameAdapter` | Implements `IModItemSpawner` and creates/rejects local item copies. |
 | Tests | `ModItemSpawnTests` + `FakeModItemSpawner`. |
 | Protocol version | Unchanged (no wire). |

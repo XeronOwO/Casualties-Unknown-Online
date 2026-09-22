@@ -115,9 +115,9 @@ New:
   a filesystem refusal there returns a refusal instead of throwing out of the primitive, which is what
   the recovery path needs when it promotes inside a Continue click. Static evidence only — see Limits.
 - **Registration stays out of the composition root.** `CuoBootstrap` sits at 599 lines (`SourceShape`
-  fails above 600, so 2 lines of headroom), so `WorldLibraryService` is registered from the plugin's own
-  `extraRegistrations` (`PluginDependencyRegistrar.Apply`), the same place the adapter-facing ports and
-  config monitors are registered — and it is registered after the game adapter so the frame boundary
+  fails above 600, so 2 lines of headroom), so `WorldLibraryService` is registered from the adapter's own
+  composition (`GameAdapterComposition.Register`, called from the plugin's `extraRegistrations` since
+  2026-09-22), the same place the adapter-facing ports and the config monitors are registered — and it is registered after the game adapter so the frame boundary
   reads this frame's "is a world loaded" fact.
 - The protocol stays 34: this is a local disk and UI surface (a fact, never a design input —
   decisions 137/188).

@@ -5917,7 +5917,7 @@
     {
       "cluster": "world-blocks",
       "row": "W6",
-      "file": "src/CasualtiesUnknownOnline.Plugin/PluginDependencyRegistrar.cs",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/GameAdapterComposition.cs",
       "quote": "services.AddSingleton<ILiveTrapLayoutSource>(p => p.GetRequiredService<LiveTrapLayoutSource>());"
     },
     {

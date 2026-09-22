@@ -137,14 +137,17 @@ layer), and GameState keeps its own isolation gate.
 
 The Game Adapter boundary is the same rule on the game-facing side: the Runtime declares the contract,
 `CasualtiesUnknownOnline.GameAdapter` is its only implementation, and
-`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of ten capability ports with no member of its
-own — `IGameIntegrationLifecycle` (the quit broadcast), `IAdapterCapabilityQuery` (the startup
+`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of twelve capability ports with no member of
+its own — `IGameIntegrationLifecycle` (the quit broadcast), `IAdapterCapabilityQuery` (the startup
 capability report), `IWorldPresenceQuery`, `IStartGateState`, `ILocalHealItemQuery`,
 `ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
-`IRemoteMedicalPresentation` and `IPlayerAnchorQuery` — so a consumer resolves the port whose
+`IRemoteMedicalPresentation`, `IPlayerAnchorQuery`, `IJoinFlowPresentation` (the direct-join intent)
+and `ICarryPresentationPump` (the late-frame carry pin) — so a consumer resolves the port whose
 capability it uses, a version adapter implements per capability, and a test double implements only the
 capability it stands in for. Every port resolves to the one adapter singleton, registered in the
-plugin's composition root (`PluginDependencyRegistrar.Apply`), and `AdapterCapabilityPortShapeTests`
+adapter's OWN composition (`GameAdapterComposition.Register`, in the adapter project because the
+Runtime must not reference it and the plugin must not know adapter types; the plugin's config pass
+calls it once), and `AdapterCapabilityPortShapeTests`
 fails when a member is declared back on the aggregate, when a port's member census changes, or when a
 port is left unregistered. The patch lifecycle itself (probe/install/uninstall) is driven by
 `ICuoService` on the same instance and is not a consumer port, and the members no call site reached
@@ -155,6 +158,14 @@ recorded `InternalsVisibleTo` grant (`Runtime/AssemblyInfo.cs`): the patch-contr
 capability-report types and the mod status/building tables are Runtime-owned values whose port would
 have to make them public or copy them, so the grant stays with its census and reasons
 (decision 212).
+
+The entry above it is a host shell (decision 213, `review/plugin-host-shell.md`): `Plugin.cs` is
+BepInEx configuration, Unity lifecycle forwarding and the Steam callbacks, the presentation is
+`OnlineUiHost` (overlay composition, the frame-time input/modal rules, the IMGUI pass), the lobby
+policy is `LobbySwitchActions` (one policy for the Steam callbacks and the UI buttons), registration
+is `PluginDependencyRegistrar` (the BepInEx config bridge and the plugin-side editors) plus
+`GameAdapterComposition`, and the plugin project references NO game assembly —
+`GameAssemblyReferenceGateTests` fails the build if one comes back.
 
 ## 5. GameStateKernel
 

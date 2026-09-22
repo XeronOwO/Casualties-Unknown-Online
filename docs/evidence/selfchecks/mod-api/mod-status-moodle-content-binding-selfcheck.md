@@ -35,7 +35,7 @@ mod-data domain boundary and therefore remain separate future work.
 | `ModMoodleAnimation` | New Abstractions DTO for ordered moodle icon animation frames. |
 | `GameAdapterStatusContentProvider` | New GameAdapter provider (validation + static registry). |
 | `GameAdapterMoodleContentProvider` | New GameAdapter provider (validation + static registry). |
-| `PluginDependencyRegistrar` | Registered both providers as `IContentBindingProvider` and `ICuoService`. |
+| `GameAdapterComposition` | Registered both providers as `IContentBindingProvider` and `ICuoService`. |
 | `docs/api/mod-api.md` | Added typed status/moodle content + current binding scope. |
 | Tests | `ModStatusDefinitionTests`, `ModMoodleDefinitionTests`, reflective `StatusMoodleContentProviderTests`. |
 | Protocol version | Unchanged (no wire). |

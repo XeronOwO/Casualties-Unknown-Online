@@ -36,7 +36,7 @@ runtime drop behavior are deliberately not part of this initial seam.
 | `WorldGenerationGetBlockInfoPatch` | New Harmony prefix for custom tile `BlockInfo`. |
 | `IPatchBridge` / `GameAdapterBridge` | Added `TryGetCustomBlockInfo` so the static patch reaches the state-owning provider. |
 | `GameAdapterDomains` / `GameAdapter` | Wired the tile provider into the adapter's owned domain set. |
-| `PluginDependencyRegistrar` | Registered the tile provider as `IContentBindingProvider` and `ICuoService`. |
+| `GameAdapterComposition` | Registered the tile provider as `IContentBindingProvider` and `ICuoService`. |
 | Tests | `ModTileDefinitionTests` round-trip and invalid payload. |
 | Protocol version | Unchanged (no wire). |
 

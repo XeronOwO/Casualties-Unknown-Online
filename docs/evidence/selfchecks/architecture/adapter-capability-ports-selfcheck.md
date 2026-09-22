@@ -12,7 +12,8 @@ transient-state number, and one over-general census sentence).
 
 ## What landed
 
-- **The boundary is ten ports.** `IGameAdapter` is now a composition (`IGameIntegrationLifecycle`,
+- **The boundary is ten ports here** (`review/plugin-host-shell.md` added two more — the join-flow
+  intent and the carry pump — bringing it to twelve on 2026-09-22). `IGameAdapter` is now a composition (`IGameIntegrationLifecycle`,
   `IAdapterCapabilityQuery`, `IWorldPresenceQuery`, `IStartGateState`, `ILocalHealItemQuery`,
   `ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
   `IRemoteMedicalPresentation`, `IPlayerAnchorQuery`, plus `IDisposable`) and declares no member of its
@@ -32,11 +33,11 @@ transient-state number, and one over-general census sentence).
 |---|---|---|
 | `OnApplicationQuit` | `Plugin.OnApplicationQuit` (Unity's quit broadcast) | `IGameIntegrationLifecycle` |
 | `CapabilityReport` | `Plugin` startup log line | `IAdapterCapabilityQuery` |
-| `IsInWorldOrGenerating` | `Plugin`'s two lobby-switch guards, `IpDirectActions.CanStart`, `OnlineUiWorldsDrawer` (Worlds page), `PluginDependencyRegistrar` (`WorldLibraryService.worldActive`) | `IWorldPresenceQuery` |
-| `IsWaitingForReady`, `WaitingText` | `Plugin.OnGUI` gate check and start-gate overlay | `IStartGateState` |
+| `IsInWorldOrGenerating` | `LobbySwitchActions`' two guards, `IpDirectActions.CanStart`, `OnlineUiWorldsDrawer` (Worlds page), `GameAdapterComposition` (`WorldLibraryService.worldActive`) | `IWorldPresenceQuery` |
+| `IsWaitingForReady`, `WaitingText` | `OnlineUiHost.Draw` gate check and start-gate overlay | `IStartGateState` |
 | `HasLocalHealItem`, `GetLocalHealItems` | `OnlineUiActions` (Online UI heal selector) | `ILocalHealItemQuery` |
 | `TryRequestTraderRecruit` | `OnlineUiActions.RecruitPlayerFromUi` | `ITraderRecruitRequest` |
-| `SetOnlineUiModal`, `SetOnlineUiEscapeSurfaceVisible` | `Plugin.Update` (modal + ESC-surface guard) | `INativeInputBlocker` |
+| `SetOnlineUiModal`, `SetOnlineUiEscapeSurfaceVisible` | `OnlineUiHost.Update` (modal + ESC-surface guard) | `INativeInputBlocker` |
 | `SetOnlineUiScopedBlocks` | `OnlineUiOverlay.Draw` (scoped raycast blocks) | `INativeInputBlocker` |
 | `OpenRemoteBackpack` | `OnlineUiActions.OpenRemoteBackpackFromUi` | `IRemoteInventoryPresentation` |
 | `OpenRemoteMedical` | `OnlineUiActions.OpenRemoteMedicalFromUi` | `IRemoteMedicalPresentation` |
@@ -49,11 +50,11 @@ transient-state number, and one over-general census sentence).
 
 | Mechanism | Change | Evidence |
 |---|---|---|
-| `IGameAdapter` | Composition of ten ports + `IDisposable`, zero own members | `AdapterCapabilityPortShapeTests.Aggregate_DeclaresNoMemberOfItsOwn`, `.Aggregate_ComposesExactlyThePinnedPorts` |
-| Each port | One file, XML doc naming the capability and its consumers | `AdapterCapabilityPortShapeTests.Port_DeclaresExactlyItsPinnedMembers` (10 rows), `.NoMemberName_IsSharedByTwoPorts`, `.Composition_CarriesExactlyFourteenMembers` |
+| `IGameAdapter` | Composition of twelve ports + `IDisposable`, zero own members | `AdapterCapabilityPortShapeTests.Aggregate_DeclaresNoMemberOfItsOwn`, `.Aggregate_ComposesExactlyThePinnedPorts` |
+| Each port | One file, XML doc naming the capability and its consumers | `AdapterCapabilityPortShapeTests.Port_DeclaresExactlyItsPinnedMembers` (12 rows), `.NoMemberName_IsSharedByTwoPorts`, `.Composition_CarriesExactlySixteenMembers` |
 | `GameAdapter` | Per-port explicit implementations; `ProbeGame`/`Install`/`Uninstall` private; the removed `Close*`/world-param implementations deleted | `dotnet build` (the aggregate would not compile without every port), contract tests below |
-| DI wiring | Every port registered EXACTLY ONCE from the one `GameAdapterImpl` singleton in `PluginDependencyRegistrar.Apply`; the aggregate is not registered (nothing resolves it) | `AdapterCapabilityPortShapeTests.EveryPort_IsRegisteredExactlyOnceFromTheAdapterSingleton` (source pin, counted) |
-| Consumers | `Plugin` (5 ports + the concrete adapter for `LateUpdateCarryPresentation`), `OnlineUiActions` (4 ports), `OnlineUiOverlay`/`OnlineUiContext`/`OnlineUiWorldsDrawer` (anchor + world presence), `IpDirectActions` + the registrar (world presence) | `dotnet build`; the port registrations above |
+| DI wiring | Every port registered EXACTLY ONCE from the one `GameAdapter` singleton in `GameAdapterComposition.Register`; the aggregate is not registered (nothing resolves it) | `AdapterCapabilityPortShapeTests.EveryPort_IsRegisteredExactlyOnceFromTheAdapterSingleton` (source pin, counted) |
+| Consumers | `Plugin` (4 ports: lifecycle, capability report, join flow, carry pump — no concrete adapter), `OnlineUiHost` (input blocker, anchor, world presence, start gate), `OnlineUiActions` (4 ports), `OnlineUiOverlay`/`OnlineUiContext`/`OnlineUiWorldsDrawer` (anchor + world presence), `IpDirectActions` + `GameAdapterComposition` (world presence) | `dotnet build`; the port registrations above |
 | Native UI contracts | The three reflection contract tests point at the ports: `IRemoteInventoryPresentation`/`IRemoteMedicalPresentation`/`INativeInputBlocker`; the two behaviour-pinned natives keep asserting the adapter implements the port | `RemoteBackpackContractTests`, `RemoteMedicalContractTests`, `OnlineMenuInputGuardContractTests` |
 | Gate matcher | A synthetic composition that declares a method, a property and an event is flagged; a clean one is not | `AdapterCapabilityPortShapeTests.AggregateCheck_FlagsAMemberDeclaredOnTheComposition` |
 | Gate controls (red → green) | Declaring `ProbeRegrowth()` back on the aggregate turned `Aggregate_DeclaresNoMemberOfItsOwn` red; deleting one port registration turned `EveryPort_IsRegisteredExactlyOnceFromTheAdapterSingleton` red; reverting both turned the class green | same two tests, run in the landing cycle |
@@ -99,5 +100,6 @@ decision 212 rather than reduced.
   plugin's container is not resolved in a test, because the tests project does not reference the plugin
   project.
 - The adapter's read of Runtime internals is recorded with its census, not reduced (above).
-- `Plugin.cs` keeps one concrete-adapter call (`LateUpdateCarryPresentation`) — an adapter Update-pump
-  detail, not a consumer capability; `todo/plugin-host-shell.md` owns that coupling.
+- `Plugin.cs` keeps no concrete-adapter call any more: the carry pump is the `ICarryPresentationPump`
+  port and the composition moved to the adapter project (`review/plugin-host-shell.md`, landed
+  2026-09-22).

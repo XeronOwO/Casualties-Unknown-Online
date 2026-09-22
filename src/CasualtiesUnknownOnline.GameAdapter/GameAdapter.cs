@@ -41,12 +41,16 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, IPlayerInteractionVisibility
 {
-	/// <summary>
-	/// Set when the game was launched via a Steam friends "Join Game"
-	/// (+connect_lobby): the content-warning/intro screen is skipped so the
-	/// menu is usable immediately — the follow-host pump needs PreRunScript.
-	/// </summary>
-	public static bool SkipIntro { get; set; }
+	// Set by the join-flow port (IJoinFlowPresentation.PrepareForDirectJoin) when the
+	// game was launched via a Steam friends "Join Game" (+connect_lobby): the
+	// content-warning/intro screen is skipped so the menu is usable immediately — the
+	// follow-host pump needs PreRunScript. It stays static because the patch that reads
+	// it (PreRunScriptIntroSkipPatch) runs before any adapter instance is involved; the
+	// INTENT is the port, and this field is the adapter's own business.
+	private static bool _skipIntro;
+
+	/// <summary>Read by <c>PreRunScriptIntroSkipPatch</c>: true once the direct-join intent was declared.</summary>
+	internal static bool IsIntroSkipped => _skipIntro;
 
 	private readonly GameAdapterDomains _domains;
 	private readonly GameAdapterBridge _bridge;
@@ -274,15 +278,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	}
 
 	/// <summary>
-	/// Late-frame carry presentation pass. Called from the plugin's
-	/// <c>LateUpdate</c> after every game/cuo Update has run. This is the final
-	/// carrier-side pin: every remote rider clone must sit on the local
-	/// carrier's final body transform for the frame that is about to render,
-	/// even if a game script (or the native body simulation) moved the carrier
+	/// Late-frame carry presentation pass (the <see cref="ICarryPresentationPump"/>
+	/// port). The host shell calls it from LateUpdate after every game/cuo Update has
+	/// run. This is the final carrier-side pin: every remote rider clone must sit on
+	/// the local carrier's final body transform for the frame that is about to
+	/// render, even if a game script (or the native body simulation) moved the carrier
 	/// after <see cref="RemotePlayerRenderer.Update"/> or after
 	/// <see cref="BodyUpdatePatch"/> re-pinned it.
 	/// </summary>
-	public void LateUpdateCarryPresentation()
+	void ICarryPresentationPump.PinCarriedPresentation()
 	{
 		var localBody = _domains.Run.LocalBody;
 		if (localBody == null) // Unity object — ==
@@ -349,6 +353,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		y = 0f;
 		return false;
 	}
+
+	void IJoinFlowPresentation.PrepareForDirectJoin() => _skipIntro = true;
 
 	// ---- Mod runtime boundaries (Phase 4 Mod API) ----
 

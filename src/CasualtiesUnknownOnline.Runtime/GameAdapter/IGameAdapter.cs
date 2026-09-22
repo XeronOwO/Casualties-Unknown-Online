@@ -14,7 +14,9 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 /// <see cref="IStartGateState"/>, <see cref="ILocalHealItemQuery"/>,
 /// <see cref="ITraderRecruitRequest"/>, <see cref="INativeInputBlocker"/>,
 /// <see cref="IRemoteInventoryPresentation"/>,
-/// <see cref="IRemoteMedicalPresentation"/>, <see cref="IPlayerAnchorQuery"/>).
+/// <see cref="IRemoteMedicalPresentation"/>,
+/// <see cref="IPlayerAnchorQuery"/>, <see cref="IJoinFlowPresentation"/>,
+/// <see cref="ICarryPresentationPump"/>).
 /// A version adapter therefore implements per capability, and a test double
 /// implements only the capability it stands in for.
 ///
@@ -34,6 +36,8 @@ public interface IGameAdapter :
 	IRemoteInventoryPresentation,
 	IRemoteMedicalPresentation,
 	IPlayerAnchorQuery,
+	IJoinFlowPresentation,
+	ICarryPresentationPump,
 	IDisposable
 {
 }

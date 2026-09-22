@@ -1,6 +1,8 @@
 # Register content
 
-[Documentation](../../README.md) > [How to](README.md) > Register content
+[Documentation](../README.md) > [How to](README.md) > Register content
+
+---
 
 **After this page** your mod registers content of its own — an item, a recipe, a tile, a status — and
 the framework treats it as part of the world. Read [Your first mod](../start/your-first-mod.md) and
@@ -133,4 +135,6 @@ wrong `NetworkMode` shows up as content that exists locally and never binds into
 - [Your first mod](../start/your-first-mod.md) — the `Bind` lifecycle
 - [Glossary](../reference/glossary.md) — mod, adapter, handshake
 
-[Documentation](../../README.md) > [How to](README.md) > Register content
+---
+
+[Documentation](../README.md) > [How to](README.md) > Register content

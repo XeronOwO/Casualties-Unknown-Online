@@ -1,7 +1,11 @@
 # How to do one thing
 
-One task per page: what you want to do, the steps, a runnable example, the traps, and how to check
-that it worked. Every page assumes you have read [Your first mod](../start/your-first-mod.md).
+[Documentation](../README.md) > How to
+
+---
+
+One task per page, in `docs/en/how-to/`: what you want to do, the steps, a runnable example, the
+traps, and how to check that it worked. Every page assumes you have read [Your first mod](../start/your-first-mod.md).
 
 - [Send a message to the other players](send-a-network-message.md) — the mod network: who may send
   what, and what happens to a message that never arrives.
@@ -19,3 +23,7 @@ that it worked. Every page assumes you have read [Your first mod](../start/your-
 
 The exact contracts behind these pages are in `../reference/`; the reasoning behind them is in
 `../internals/`.
+
+---
+
+[Documentation](../README.md) > How to

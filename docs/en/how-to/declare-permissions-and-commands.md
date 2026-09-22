@@ -1,6 +1,8 @@
 # Declare permissions and host commands
 
-[Documentation](../../README.md) > [How to](README.md) > Declare permissions and host commands
+[Documentation](../README.md) > [How to](README.md) > Declare permissions and host commands
+
+---
 
 **After this page** your mod declares what it is allowed to do, and registers a command that runs on
 the host. Read [Your first mod](../start/your-first-mod.md) first.
@@ -92,4 +94,6 @@ guest's callback fires with a timeout failure instead of hanging.
 - [Your first mod](../start/your-first-mod.md) — the attribute and the lifecycle
 - [Reference](../reference/README.md) — the full mod API will live there
 
-[Documentation](../../README.md) > [How to](README.md) > Declare permissions and host commands
+---
+
+[Documentation](../README.md) > [How to](README.md) > Declare permissions and host commands

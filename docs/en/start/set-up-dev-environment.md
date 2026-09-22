@@ -1,6 +1,8 @@
 # Set up a development checkout
 
-[Documentation](../../README.md) > [Start](README.md) > Set up a development checkout
+[Documentation](../README.md) > [Start](README.md) > Set up a development checkout
+
+---
 
 **After this page** the solution builds and the test suite runs on your machine. You need the .NET
 SDK and a Windows machine: every project targets `net48` because the game runs BepInEx 5 on Mono.
@@ -45,4 +47,6 @@ dependency, refuses sandbox paths, and never touches BepInEx's own DLLs. Close t
 - [Install and play](install-and-play.md) — what a player does with the same folder
 - [Glossary](../reference/glossary.md) — runtime, adapter, kernel
 
-[Documentation](../../README.md) > [Start](README.md) > Set up a development checkout
+---
+
+[Documentation](../README.md) > [Start](README.md) > Set up a development checkout

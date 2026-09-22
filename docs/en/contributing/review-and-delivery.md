@@ -1,6 +1,8 @@
 # Review and delivery
 
-[Documentation](../../README.md) > [Contributing](README.md) > Review and delivery
+[Documentation](../README.md) > [Contributing](README.md) > Review and delivery
+
+---
 
 **After this page** you can take a change from "understood" to "committed" in the order this
 repository expects, run the reviews it has to pass, and write the commit. Read
@@ -148,4 +150,6 @@ while any required box is unchecked.
 - [Delivery checklist](../../evidence/delivery-checklist.md) — the executable gate for a cycle
 - [Independent review template](../../development/review-prompt.md) — the prompt for step 6
 
-[Documentation](../../README.md) > [Contributing](README.md) > Review and delivery
+---
+
+[Documentation](../README.md) > [Contributing](README.md) > Review and delivery

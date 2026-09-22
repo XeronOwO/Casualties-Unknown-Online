@@ -1,75 +1,75 @@
 # CUO term registry — the only source of Chinese renderings.
 # Format: English | 中文 | first use on a Chinese page | never render as | notes
 # A Chinese page writes the 中文 column; the first time a term appears it uses the
-# "first use" spelling and 中文 alone afterwards. A new term is added here before it is
+# “first use” spelling and 中文 alone afterwards. A new term is added here before it is
 # used, so two pages cannot invent two renderings of one mechanism.
 # Readers meet these words through docs/zh/reference/glossary.md (English: docs/en/reference/glossary.md).
 #
-host | 主机 | 主机(host) | 服务器, 服主 | the player whose game owns the world; there is no dedicated server
-guest | 客机 | 客机(guest) | 客户端, 访客 | the joining player's game; the other half of host
-session | 会话 | 会话(session) | 房间, 对局 | one host plus its connected guests
-lobby | 大厅 | 大厅(lobby) | 房间, 组队界面 | the Steam lobby that carries membership
-world | 世界 | 世界(world) | 地图, 存档 | the saved unit; a world holds many layers
-save | 存档 | 存档 | 世界, 世界归档 | one stored progress file; the CUO unit of saving is the 世界归档, not a file
-view (of one player) | 画面 | 画面 | 视图, 视角 | what one machine renders; the derived state itself is 投影
+host | 主机 | 主机（host） | 服务器，服主 | the player whose game owns the world; there is no dedicated server
+guest | 客机 | 客机（guest） | 客户端，访客 | the joining player's game; the other half of host
+session | 会话 | 会话（session） | 房间，对局 | one host plus its connected guests
+lobby | 大厅 | 大厅（lobby） | 房间，组队界面 | the Steam lobby that carries membership
+world | 世界 | 世界（world） | 地图，存档 | the saved unit; a world holds many layers
+save | 存档 | 存档 | 世界，世界归档 | one stored progress file; the CUO unit of saving is the 世界归档, not a file
+view (of one player) | 画面 | 画面 | 视图，视角 | what one machine renders; the derived state itself is 投影
 client (a machine in a session) | 客户端 | 客户端 | — | a machine, never a role: the two roles are 主机 and 客机
-layer | 层 | 层(layer) | 关卡, 楼层 | one generated level of a run
-run | 局 | 局(run) | 轮次, 运行 | one playthrough, from world entry to death or end
-kernel | 内核 | 内核(kernel) | 核心 | the typed deterministic state engine
-authoritative | 权威 | 权威(authoritative) | 主导, 官方 | 主机权威 = host-authoritative
+layer | 层 | 层（layer） | 关卡，楼层 | one generated level of a run
+run | 局 | 局（run） | 轮次，运行 | one playthrough, from world entry to death or end
+kernel | 内核 | 内核（kernel） | 核心 | the typed deterministic state engine
+authoritative | 权威 | 权威（authoritative） | 主导，官方 | 主机权威 = host-authoritative
 arbitration | 仲裁 | 仲裁 | 裁决 | how a conflict between two claims is settled
-command | 指令 | 指令(command) | 命令 | a typed request to the kernel
+command | 指令 | 指令（command） | 命令 | a typed request to the kernel
 console command | 控制台命令 | 控制台命令 | 指令 | typed in the CUO console, for example `/save`
 event | 事件 | 事件 | 消息 | a fact the kernel accepted
-batch | 批次 | 批次(batch) | 数据包, 包 | one atomic committed set of facts
-checkpoint | 检查点 | 检查点(checkpoint) | 存档点 | full authoritative state, used by join and reconnect
-state stream | 状态流 | 状态流(state stream) | 数据流, 同步流 | unreliable high-frequency field updates
-projection | 投影 | 投影(projection) | 映射, 视图 | a derived consumer: Unity objects, clones, wire, saves
-revision | 修订号 | 修订号(revision) | 版本号 | the kernel's monotonic order, not the mod version
-epoch | 运行纪元 | 运行纪元(epoch) | 时代, 周期 | run identity; stale traffic from an old run is rejected
-native | 原生 | 原生(native) | 本地, 官方 | the game's own code and behaviour
-patch | 补丁 | 补丁(patch) | 插件 | one Harmony hook; a plugin is 插件
-mod | 模组 | 模组(mod) | 模块, MOD | third-party content loaded through the mod API
-adapter | 适配器 | 适配器(Game Adapter) | 转接头, 适配层 | the only layer that knows the game's private types
-runtime | 运行时 | 运行时(Runtime) | 运行环境 | the stable CUO layer: protocol, session, mod loading
-snapshot | 快照 | 快照(snapshot) | 截图 | a point-in-time copy of state
-carry | 背负 | 背负(carry) | 携带 | one player carrying another; carried items are 随身物品
-revive | 救活 | 救活(revive) | 复活 | bringing a downed teammate back at a trader
-respawn | 重生 | 重生(respawn) | 复活 | the game placing a dead player back into the world
-permadeath | 永久死亡 | 永久死亡(permadeath) | 一命模式 | death is terminal
+batch | 批次 | 批次（batch） | 数据包，包 | one atomic committed set of facts
+checkpoint | 检查点 | 检查点（checkpoint） | 存档点 | full authoritative state, used by join and reconnect
+state stream | 状态流 | 状态流（state stream） | 数据流，同步流 | unreliable high-frequency field updates
+projection | 投影 | 投影（projection） | 映射，视图 | a derived consumer: Unity objects, clones, wire, saves
+revision | 修订号 | 修订号（revision） | 版本号 | the kernel's monotonic order, not the mod version
+epoch | 运行纪元 | 运行纪元（epoch） | 时代，周期 | run identity; stale traffic from an old run is rejected
+native | 原生 | 原生（native） | 本地，官方 | the game's own code and behaviour
+patch | 补丁 | 补丁（patch） | 插件 | one Harmony hook; a plugin is 插件
+mod | 模组 | 模组（mod） | 模块， MOD | third-party content loaded through the mod API
+adapter | 适配器 | 适配器（Game Adapter） | 转接头，适配层 | the only layer that knows the game's private types
+runtime | 运行时 | 运行时（Runtime） | 运行环境 | the stable CUO layer: protocol, session, mod loading
+snapshot | 快照 | 快照（snapshot） | 截图 | a point-in-time copy of state
+carry | 背负 | 背负（carry） | 携带 | one player carrying another; carried items are 随身物品
+revive | 救活 | 救活（revive） | 复活 | bringing a downed teammate back at a trader
+respawn | 重生 | 重生（respawn） | 复活 | the game placing a dead player back into the world
+permadeath | 永久死亡 | 永久死亡（permadeath） | 一命模式 | death is terminal
 item | 物品 | 物品 | 道具 | anything the kernel tracks as an item
 container | 容器 | 容器 | 箱子 | an item that holds other items
-capability | 能力 | 能力(capability) | 功能 | per-type composed behaviour such as battery or liquid
+capability | 能力 | 能力（capability） | 功能 | per-type composed behaviour such as battery or liquid
 protocol version | 协议版本 | 协议版本 | 游戏版本 | checked when a guest joins
-handshake | 握手 | 握手(handshake) | 连接协商 | the join-time version and identity exchange
-lease | 租约 | 租约(lease) | 锁 | `world.lease` names the process writing a world folder
-cut | 切片 | 切片(cut) | 裁剪, 分段 | one save write of the live world
+handshake | 握手 | 握手（handshake） | 连接协商 | the join-time version and identity exchange
+lease | 租约 | 租约（lease） | 锁 | `world.lease` names the process writing a world folder
+cut | 切片 | 切片（cut） | 裁剪，分段 | one save write of the live world
 backup | 备份 | 备份 | 副本 | a compressed copy of an earlier cut
-world archive | 世界归档 | 世界归档(world archive) | 存档文件, 存档包 | the CUO save layout: one folder per world
-remote clone | 远端克隆体 | 远端克隆体(remote clone) | 替身, 影子 | the local stand-in showing another player's character
-nameplate | 名牌 | 名牌(nameplate) | 姓名牌 | the label above a character
-off-screen arrow | 屏幕外箭头 | 屏幕外箭头(off-screen arrow) | 边缘指示器 | points at a teammate outside the view
-pinyin search | 拼音搜索 | 拼音搜索(pinyin search) | 拼音输入 | lets native search boxes match Chinese by pinyin
-world generation | 世界生成 | 世界生成(world generation) | 地图生成 | deterministic generation from the run's seed and settings
-host rules | 主机规则 | 主机规则(host rules) | 房主设置 | host-owned gameplay switches
-interaction panel | 交互面板 | 交互面板(interaction panel) | 操作面板 | the CUO panel opened with the configured key, `F6` by default
-online panel | 联机面板 | 联机面板(online panel) | 联机界面, 网络面板 | the CUO overlay that creates or joins a session
-unconscious | 昏迷 | 昏迷(unconscious) | 倒地 | alive but unable to act
-deterministic | 确定性 | 确定性(deterministic) | 固定 | same inputs produce the same result
-seed | 种子 | 种子(seed) | 随机数 | the world-generation input carried in the run baseline
-gate | 门禁 | 门禁(gate) | 检查, 关卡 | a repository check that refuses a change breaking a rule; the gates run as tests
-baseline | 基线 | 基线(baseline) | 基准, 底稿 | a recorded, reviewed state a gate compares the tree against
-evidence | 证据 | 证据 | 证明, 凭据 | the recorded proof for a claim: a file, a command result or a runtime trace
-review | 复核 | 复核(review) | 评审, 审查 | the independent check a change passes before delivery
-process record | 流程记录 | 流程记录 | 历史记录, 过程文档 | a document recording what a cycle did (backlog, evidence, decisions); never translated
-breadcrumb | 面包屑 | 面包屑 | 导航条, 路径栏 | the navigation line at the head and tail of a page naming its place
-judgment ownership | 判定归属 | 判定归属(judgment ownership) | 决定权, 归属判定 | which machine decides what happens to a player: that player's own client, on its own view and timeline
-read model | 只读模型 | 只读模型(read model) | 只读数据 | projected state meant for reading; a reading is never an arbitration input or a verdict
-vitals | 生命体征 | 生命体征(vitals) | 血量, 生命值 | the projected physiological fields of one player: health, hunger, thirst, stamina, energy, temperature
-content id | 内容 id | 内容 id(content id) | 内容编号, 资源 id | the canonical `namespace:path` address of a registered content definition
-namespace | 命名空间 | 命名空间(namespace) | 前缀, 域 | the mod-declared first half of a content id; context separates it from the C# keyword
-content kind | 内容类别 | 内容类别(content kind) | 内容类型 | the `kind` string a definition is registered under, such as `item` or `recipe`
-schema version | 结构版本 | 结构版本(schema version) | 架构版本, 格式版本号 | the mod-owned version stored with an opaque persisted payload; the framework never migrates it
-mod state | 模组状态 | 模组状态(mod state) | 模组存档, 模组数据 | the host-persistent per-mod key/value table behind `IModState`
-rollback | 回滚 | 回滚(rollback) | 撤销, 退回 | undoing a locally applied action after arbitration refuses the claim
-tombstone | 墓碑 | 墓碑(tombstone) | 标记, 记号 | a recorded refusal that stops a later repeat of the same creation
+world archive | 世界归档 | 世界归档（world archive） | 存档文件，存档包 | the CUO save layout: one folder per world
+remote clone | 远端克隆体 | 远端克隆体（remote clone） | 替身，影子 | the local stand-in showing another player's character
+nameplate | 名牌 | 名牌（nameplate） | 姓名牌 | the label above a character
+off-screen arrow | 屏幕外箭头 | 屏幕外箭头（off-screen arrow） | 边缘指示器 | points at a teammate outside the view
+pinyin search | 拼音搜索 | 拼音搜索（pinyin search） | 拼音输入 | lets native search boxes match Chinese by pinyin
+world generation | 世界生成 | 世界生成（world generation） | 地图生成 | deterministic generation from the run's seed and settings
+host rules | 主机规则 | 主机规则（host rules） | 房主设置 | host-owned gameplay switches
+interaction panel | 交互面板 | 交互面板（interaction panel） | 操作面板 | the CUO panel opened with the configured key, `F6` by default
+online panel | 联机面板 | 联机面板（online panel） | 联机界面，网络面板 | the CUO overlay that creates or joins a session
+unconscious | 昏迷 | 昏迷（unconscious） | 倒地 | alive but unable to act
+deterministic | 确定性 | 确定性（deterministic） | 固定 | same inputs produce the same result
+seed | 种子 | 种子（seed） | 随机数 | the world-generation input carried in the run baseline
+gate | 门禁 | 门禁（gate） | 检查，关卡 | a repository check that refuses a change breaking a rule; the gates run as tests
+baseline | 基线 | 基线（baseline） | 基准，底稿 | a recorded, reviewed state a gate compares the tree against
+evidence | 证据 | 证据 | 证明，凭据 | the recorded proof for a claim: a file, a command result or a runtime trace
+review | 复核 | 复核（review） | 评审，审查 | the independent check a change passes before delivery
+process record | 流程记录 | 流程记录 | 历史记录，过程文档 | a document recording what a cycle did (backlog, evidence, decisions); never translated
+breadcrumb | 面包屑 | 面包屑 | 导航条，路径栏 | the navigation line at the head and tail of a page naming its place
+judgment ownership | 判定归属 | 判定归属（judgment ownership） | 决定权，归属判定 | which machine decides what happens to a player: that player's own client, on its own view and timeline
+read model | 只读模型 | 只读模型（read model） | 只读数据 | projected state meant for reading; a reading is never an arbitration input or a verdict
+vitals | 生命体征 | 生命体征（vitals） | 血量，生命值 | the projected physiological fields of one player: health, hunger, thirst, stamina, energy, temperature
+content id | 内容 id | 内容 id（content id） | 内容编号，资源 id | the canonical `namespace:path` address of a registered content definition
+namespace | 命名空间 | 命名空间（namespace） | 前缀，域 | the mod-declared first half of a content id; context separates it from the C# keyword
+content kind | 内容类别 | 内容类别（content kind） | 内容类型 | the `kind` string a definition is registered under, such as `item` or `recipe`
+schema version | 结构版本 | 结构版本（schema version） | 架构版本，格式版本号 | the mod-owned version stored with an opaque persisted payload; the framework never migrates it
+mod state | 模组状态 | 模组状态（mod state） | 模组存档，模组数据 | the host-persistent per-mod key/value table behind `IModState`
+rollback | 回滚 | 回滚（rollback） | 撤销，退回 | undoing a locally applied action after arbitration refuses the claim
+tombstone | 墓碑 | 墓碑（tombstone） | 标记，记号 | a recorded refusal that stops a later repeat of the same creation

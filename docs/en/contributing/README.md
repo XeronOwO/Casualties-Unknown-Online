@@ -1,7 +1,12 @@
 # Contributing
 
-What a change to CUO has to satisfy before it is called done: the commands, the gates, the map of the
-tree, the rules the pages follow, and the review the change goes through.
+[Documentation](../README.md) > Contributing
+
+---
+
+What a change to CUO has to satisfy before it is called done, in `docs/en/contributing/`: the
+commands, the gates, the map of the tree, the rules the pages follow, and the review the change goes
+through.
 
 1. [Build, test and deploy](build-and-test.md) — the commands, the smallest test subset that can fail,
    and the log that explains a failure.
@@ -20,3 +25,7 @@ carries the measured numbers this section deliberately does not restate.
 
 These pages are written for a contributor; the binding rules an agent must follow are
 [`AGENTS.md`](../../../AGENTS.md) at the repository root.
+
+---
+
+[Documentation](../README.md) > Contributing

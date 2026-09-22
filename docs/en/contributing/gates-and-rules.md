@@ -1,6 +1,8 @@
 # The gates and the rules a change must satisfy
 
-[Documentation](../../README.md) > [Contributing](README.md) > The gates and the rules a change must satisfy
+[Documentation](../README.md) > [Contributing](README.md) > The gates and the rules a change must satisfy
+
+---
 
 **After this page** you can say which rule a change has to satisfy, which gate refuses it when it does
 not, and what a new gate has to look like to be accepted. Nothing has to be read first; the commands
@@ -169,4 +171,6 @@ A gate's declaration must equal what it can reach:
 - [Rule-to-gate map](../../evidence/normative-gates.md) — every rule with the gate or process that enforces it
 - [Active decisions](../../decisions/active.md) — the recorded decisions the rules rest on
 
-[Documentation](../../README.md) > [Contributing](README.md) > The gates and the rules a change must satisfy
+---
+
+[Documentation](../README.md) > [Contributing](README.md) > The gates and the rules a change must satisfy

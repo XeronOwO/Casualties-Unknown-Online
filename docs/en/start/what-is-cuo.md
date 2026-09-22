@@ -1,6 +1,8 @@
 # What CUO is
 
-[Documentation](../../README.md) > [Start](README.md) > What CUO is
+[Documentation](../README.md) > [Start](README.md) > What CUO is
+
+---
 
 **After this page** you can say what CUO adds to the game, what one session looks like, and which
 problems it deliberately does not solve. There is nothing to install or read first.
@@ -68,4 +70,6 @@ If you are here to write a mod rather than to play:
 - [Glossary](../reference/glossary.md) — every word this documentation uses, in everyday language
 - [Reference](../reference/README.md) — what the lookup pages will hold
 
-[Documentation](../../README.md) > [Start](README.md) > What CUO is
+---
+
+[Documentation](../README.md) > [Start](README.md) > What CUO is

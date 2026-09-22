@@ -1,6 +1,8 @@
 # Send a message to the other players
 
-[Documentation](../../README.md) > [How to](README.md) > Send a message to the other players
+[Documentation](../README.md) > [How to](README.md) > Send a message to the other players
+
+---
 
 **After this page** your mod can talk to the other machines in a session, and you know what the
 framework does with a message that never arrives. Read [Your first mod](../start/your-first-mod.md)
@@ -116,4 +118,6 @@ The policy is *accepted loss*, not guaranteed delivery:
 - [Reference](../reference/README.md) — where the full mod API will live
 - [Glossary](../reference/glossary.md) — host, guest, session, handshake
 
-[Documentation](../../README.md) > [How to](README.md) > Send a message to the other players
+---
+
+[Documentation](../README.md) > [How to](README.md) > Send a message to the other players

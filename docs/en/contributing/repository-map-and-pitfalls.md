@@ -1,6 +1,8 @@
 # Repository map and pitfalls
 
-[Documentation](../../README.md) > [Contributing](README.md) > Repository map and pitfalls
+[Documentation](../README.md) > [Contributing](README.md) > Repository map and pitfalls
+
+---
 
 **After this page** you can say which project a new file belongs to, what it may reference, and which
 traps this repository is known for. Read [Build, test and deploy](build-and-test.md) first if you have
@@ -116,4 +118,6 @@ the four-layer rule in [advanced-modification-policy.md](../../api/advanced-modi
 - [Writing documentation](documentation-standard.md) — where a page goes instead of a stray file
 - [Advanced modification policy](../../api/advanced-modification-policy.md) — the four-layer rule and the stability tiers
 
-[Documentation](../../README.md) > [Contributing](README.md) > Repository map and pitfalls
+---
+
+[Documentation](../README.md) > [Contributing](README.md) > Repository map and pitfalls

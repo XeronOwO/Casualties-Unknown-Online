@@ -15,9 +15,9 @@ internal static class FluidDrinkPatch
 {
 	private static void Postfix(FluidManager __instance, Vector2Int pos, Body body)
 	{
-		if (PatchBridge.Impl is not { } bridge || !bridge.IsSessionActive)
+		if (PatchBridge.Fluid is not { } fluid || PatchBridge.Impl is not { IsSessionActive: true })
 		{
-			return;
+			return; // solo, or no fluid port bound — nothing to report
 		}
 
 		if (PlayerCamera.main == null || body != PlayerCamera.main.body) // Unity objects — ==
@@ -25,6 +25,6 @@ internal static class FluidDrinkPatch
 			return;
 		}
 
-		bridge.OnFluidDrinkReported(pos);
+		fluid.OnFluidDrinkReported(pos);
 	}
 }

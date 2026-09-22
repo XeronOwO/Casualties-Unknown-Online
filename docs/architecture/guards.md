@@ -153,3 +153,23 @@ Scope of that scan, stated rather than implied: the gate reads each solution pro
 file. A reference that arrives through an imported `Directory.Build.props` / `Directory.Build.targets`
 or any `<Import>`ed props/targets file is outside it (the tree carries no such file today; if one ever
 appears, the reader has to follow the MSBuild import closure).
+
+Patch-bridge port addendum:
+`PatchBridgePortShapeGateTests` freezes the Harmony patch seam the same way the adapter addendum
+freezes the adapter seam. It pins `IPatchBridge`'s declared census (96 members — one added back onto
+the aggregate fails, and so does one removed without a port to carry it), the aggregate's composition
+(the four earlier patch seams), every seam interface's own census (the four composed seams,
+`IModContentPatchBridge` and the new `IFluidPatchPort`), the one implementation's composition, public
+surface (= exactly the seams it serves) and non-public members, and the static seam's census — a new
+accessor is a new door and is a red. The direction rule is enforced by the COMPILER rather than by the
+gate: a migrated domain's members are neither declared nor composed by the aggregate, so a patch
+written against `IPatchBridge` cannot reach them, which
+`ThePort_IsNotReachableThroughTheAggregate` states as a fact. It reads source with Roslyn, so the fast
+suite covers it without the game assemblies; `PatchBridgePortContractTests` (reflective, Integration)
+asserts the same facts on the built adapter. Mutation controls were run on 2026-09-22: a public member
+added to `GameAdapterBridge` alone turned `Bridge_PublicSurface_IsExactlyTheSeamsItServes` red (18/19);
+declaring a member back on the aggregate (implemented on the class) plus re-declaring one of the port's
+members on the aggregate turned `Aggregate_DeclaresExactlyTheFrozenCensus`,
+`ThePort_IsNotReachableThroughTheAggregate` and `Bridge_PublicSurface_IsExactlyTheSeamsItServes` red
+(16/19); restoring the tree turned it green (19/19)
+(`docs/backlog/review/patch-bridge-domain-ports.md`, decision 214).

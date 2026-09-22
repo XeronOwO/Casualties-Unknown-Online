@@ -15,12 +15,12 @@ internal static class FluidSimulationPatch
 {
 	private static bool Prefix()
 	{
-		if (PatchBridge.Impl is not { } bridge || !bridge.IsSessionActive)
+		if (PatchBridge.Fluid is not { } fluid || PatchBridge.Impl is not { IsSessionActive: true })
 		{
-			return true; // solo — the original per-side simulation
+			return true; // solo, or no fluid port bound — the original per-side simulation
 		}
 
-		bridge.OnFluidFixedUpdate(); // host: the multi-member pass; guest: nothing
+		fluid.OnFluidFixedUpdate(); // host: the multi-member pass; guest: nothing
 		return false;
 	}
 }

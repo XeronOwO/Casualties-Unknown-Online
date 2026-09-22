@@ -327,15 +327,17 @@ excludes classes that only use pure domain services; a comment-only mention does
 not tag a class (`ModDiscoveryTests` stays in the fast set). Temporary-file
 I/O with GUID-scoped paths and pure in-memory persistence tests also stay in the
 fast set; the tier targets full-stack composition, game-assembly reflection and
-real sockets. Result (re-measured 2026-09-22 after the plugin-host-shell change — the census grows
-every cycle, so date it rather than quoting it): **260 classes / 1 694 cases** tagged (neither recent
-change added a tagged class: the adapter split re-pointed three existing tagged contract classes in
-place, and the shell change added none); **2 097 cases**
-untagged, counted as the `[Trait("Category", "Integration")]` attribute occurrences (one per test
+real sockets. Result (re-measured 2026-09-22 after the patch-bridge port change — the census grows
+every cycle, so date it rather than quoting it): **261 classes / 1 698 cases** tagged (this change
+added one tagged class, `PatchBridgePortContractTests`, 4 cases); **2 097 cases**
+untagged — unchanged by this change, which added no untagged case to this project, so the figure is the
+same measurement as the previous cycle's — counted as the `[Trait("Category", "Integration")]` attribute
+occurrences (one per test
 class) and the two filtered runs below. The adapter cycle's delta was one fast class / 16 cases
-(`AdapterCapabilityPortShapeTests`); this cycle's is 2 fast cases in that same class (its census went
-from ten ports to twelve), and the rest of the jump from the 2026-09-17 figures is accumulation since
-that measurement, not a tagging change.
+(`AdapterCapabilityPortShapeTests`); the shell cycle's was 2 fast cases in that same class (its census
+went from ten ports to twelve); this cycle's is the tagged quartet, its shape gate (19 cases) living in
+the net8.0 gates project rather than here; the rest of the jump from the 2026-09-17 figures is
+accumulation since that measurement, not a tagging change.
 
 Inner-loop commands:
 
@@ -349,9 +351,10 @@ dotnet test tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.cs
   --filter "FullyQualifiedName~EntityEventTriggerRelay"
 ```
 
-The fast subset passed 2 095 cases in **20-21 s wall** (two runs) and the tagged subset 1 694
-cases in 37 s on the reference host (single run each, `--no-build`, 2026-09-21 re-measurement after
-the adapter capability-port split; the earlier same-day figures were 2 079 / 21 s and 1 694 / 33 s, and the
+The fast subset passed 2 097 cases in **17 s wall** and the tagged subset 1 698
+cases in 31 s on the reference host (single run each, `--no-build`, 2026-09-22 re-measurement after
+the patch-bridge port change; the earlier same-day plugin-host-shell measurement was 2 097 / 20-21 s
+fast and 1 694 / 37 s tagged, and the
 2026-09-17 figures were 1 291 / 14.5 s and 1 306 tagged). Both include
 test-host startup and discovery. The full suite remains the default; the trait is
 metadata only and does not change test semantics.

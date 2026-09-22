@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Architecture / adapter seam
 - Source: Loomi architecture review (2026-09-20), item 3
-- Related: `todo/patch-bridge-domain-ports.md`, `review/adapter-capability-catalog.md`
+- Related: `review/patch-bridge-domain-ports.md`, `review/adapter-capability-catalog.md`
 
 ## Problem (evidence)
 

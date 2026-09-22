@@ -159,6 +159,18 @@ capability-report types and the mod status/building tables are Runtime-owned val
 have to make them public or copy them, so the grant stays with its census and reasons
 (decision 212).
 
+The static seam those patch classes read is frozen the same way (decision 214,
+`review/patch-bridge-domain-ports.md`): `IPatchBridge` is the aggregate the patch classes read through
+`PatchBridge` — 87 of the 118 files in `GameAdapter/Patches/` today; the rest patch without reporting or
+reach their own seam — and a domain's patch surface now lives in its own port instead of on the
+aggregate. The fluid domain's eight members moved into `IFluidPatchPort` — the aggregate neither
+declares nor composes it, so a call written against `IPatchBridge` cannot reach them at all, and the
+one implementation serves the port through `PatchBridge.Fluid` — which keeps the shared wall from
+widening: a member added to the aggregate is a build failure, not a review note. The item, character,
+world/run, interaction and mod-content domains keep using the aggregate and migrate one at a time, when
+their own work touches them; `PatchBridgePortShapeGateTests` pins the census of every seam and
+`PatchBridgePortContractTests` asserts the same facts on the built adapter.
+
 The entry above it is a host shell (decision 213, `review/plugin-host-shell.md`): `Plugin.cs` is
 BepInEx configuration, Unity lifecycle forwarding and the Steam callbacks, the presentation is
 `OnlineUiHost` (overlay composition, the frame-time input/modal rules, the IMGUI pass), the lobby

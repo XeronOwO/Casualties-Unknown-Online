@@ -17,8 +17,13 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// binds this object once at construction; the patches read only this narrow
 /// surface. Keeping the bridge in its own top-level class removes the entire
 /// forwarding half from the adapter coordinator.
+/// <para>
+/// It also serves the per-domain patch ports the aggregate deliberately does not
+/// carry (<see cref="IFluidPatchPort"/> today) — the seam resolves a port by
+/// casting the bound bridge, so this declaration is what makes it reachable.
+/// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort
 {
 	private readonly RemoteBackpackOperationHandler _remoteBackpackOps = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);

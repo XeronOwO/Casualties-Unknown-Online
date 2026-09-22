@@ -16,7 +16,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// overwrites); the guest never simulates and renders the streamed regions
 /// (FluidRegionApplication); the player's drinking is a report → host-execute →
 /// relay chain (FluidInteractionSync). The patches are thin adapters calling
-/// the bridge's OnFluidFixedUpdate / OnFluidDrinkReported.
+/// the fluid patch port's OnFluidFixedUpdate / OnFluidDrinkReported (and the
+/// custom-liquid resolution) — the port, not the frozen patch-bridge aggregate
+/// (<c>review/patch-bridge-domain-ports.md</c>).
 /// </summary>
 internal sealed class FluidWorldSync(
 	IWorldControl world, ISessionControl session, IEntitySyncControl entities,

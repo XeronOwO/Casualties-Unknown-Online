@@ -6,6 +6,12 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// binds this bridge once at construction; patches read the narrow
 /// <see cref="IPatchBridge"/> surface instead of the service itself.
 /// Bind/Unbind are the only writes and happen at construction/disposal.
+/// <para>
+/// The bound bridge also serves the per-domain patch ports the frozen aggregate
+/// does not carry (<see cref="Fluid"/>): each accessor casts the one bound
+/// object, so a patch states which domain it depends on and cannot reach the
+/// rest through that reference (<c>review/patch-bridge-domain-ports.md</c>).
+/// </para>
 /// </summary>
 internal static class PatchBridge
 {
@@ -18,6 +24,9 @@ internal static class PatchBridge
 
 	/// <summary>The session-surface half of the same bound bridge (CUO modal / non-modal ESC surfaces).</summary>
 	public static ISessionSurfacePatchBridge? SessionSurface => _bound?.SessionSurface;
+
+	/// <summary>The fluid domain's patch port (the simulation tick, the local drink report, the custom-liquid resolution and the tile-touch re-application). The aggregate does not declare those members any more, so this accessor is the only way a patch reaches the fluid domain.</summary>
+	public static IFluidPatchPort? Fluid => _bound as IFluidPatchPort;
 
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 

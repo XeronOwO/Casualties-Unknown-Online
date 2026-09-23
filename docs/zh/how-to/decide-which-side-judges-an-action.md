@@ -55,6 +55,7 @@
 - [读取游戏状态](read-game-state.md) —— 客户端能读什么，以及为什么读数不是结论
 - [声明权限与主机命令](declare-permissions-and-commands.md) —— 主机那一侧的面
 - [你的第一个模组](../start/your-first-mod.md) —— 这个决定所处的生命周期
+- [谁来决定玩家身上发生的事](../internals/judgment-ownership.md) —— 这一页背后的道理
 - [术语表](../reference/glossary.md) —— 内核、事件、投影、回滚
 
 ---

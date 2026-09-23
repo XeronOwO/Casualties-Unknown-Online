@@ -21,8 +21,8 @@ traps, and how to check that it worked. Every page assumes you have read [Your f
 - [Decide which side judges an action](decide-which-side-judges-an-action.md) — whose client decides,
   and what the host keeps.
 
-The exact contracts behind these pages are in `../reference/`; the reasoning behind them is in
-`../internals/`.
+The exact contracts behind these pages are in [Reference](../reference/README.md); the reasoning behind
+them is in [Internals](../internals/README.md).
 
 ---
 

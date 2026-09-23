@@ -92,6 +92,7 @@ guest's callback fires with a timeout failure instead of hanging.
 
 - [Send a message to the other players](send-a-network-message.md) — the channel a report travels on
 - [Your first mod](../start/your-first-mod.md) — the attribute and the lifecycle
+- [Permissions and what they protect](../internals/permissions-and-security.md) — what each flag enforces, and what it does not
 - [Reference](../reference/README.md) — the full mod API will live there
 
 ---

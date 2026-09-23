@@ -15,8 +15,8 @@ Pick the line that matches what you want to do; each line runs from shallow to d
 1. **Get it running** — [Start here](start/README.md): what CUO is, how to play it, how to set up a
    development checkout, and a first mod you can watch working.
 2. **[Do one thing](how-to/README.md)** — one task per page, with the steps, a runnable example and the traps.
-3. **Understand why** — `internals/`: who decides what, the deterministic kernel, the protocol, saves,
-   the adapter boundary, and the cost of each choice.
+3. **[Understand why](internals/README.md)** — who decides what, the deterministic kernel, the protocol,
+   saves, the adapter boundary, and the cost of each choice.
 4. **Look something up** — [Reference](reference/README.md): the mod API, protocol messages,
    configuration, feature matrices and the [glossary](reference/glossary.md).
 5. **Work on CUO itself** — [Contributing](contributing/README.md): build and test, the gates, the
@@ -31,7 +31,8 @@ and a few links to read next. A project word is linked on its first use in a pag
 ## Still English only
 
 Architecture, decisions, evidence and the backlog are contributor material and are being rewritten
-into these two blocks. Until that finishes, the working entry points are:
+into these two blocks. Until that finishes, start with [Internals](internals/README.md) for the
+mechanisms themselves; the entries below are the records behind that section:
 
 - Architecture: [current](../architecture/current.md), [protocol](../architecture/protocol.md),
   [domains and projections](../architecture/domains.md), [save archive format](../architecture/save-archive-format.md)

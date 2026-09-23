@@ -23,9 +23,9 @@ Contributor pages: `docs/en/contributing/README.md` ·
 Architecture: `docs/architecture/current.md` · Decisions: `docs/decisions/active.md` ·
 Evidence: `docs/evidence/verification.md` · Backlog: `docs/backlog/README.md`.
 Binding architecture and sync rules — host-authoritative ownership, judgment ownership, latency never a
-judgment input, accept-first arbitration, dedicated events over snapshots — are still detail in
-`docs/development/agent-reference.md` until they are rewritten into the internals pages
-(`docs/en/internals/`, being written).
+judgment input, accept-first arbitration, dedicated events over snapshots — are explained in
+`docs/en/internals/` (the same paths under `docs/zh/`); the agent-side detail stays in
+`docs/development/agent-reference.md`.
 
 ## Project Overview
 

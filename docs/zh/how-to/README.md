@@ -14,7 +14,7 @@
 - [让模组数据跨会话保留](save-mod-data-across-sessions.md) —— 模组自己的小表，由主机写入，下次开局读回。
 - [判断一个动作由哪一侧判定](decide-which-side-judges-an-action.md) —— 谁的客户端判定，主机又留着什么。
 
-这些页面背后的精确契约在 `../reference/`，设计原因在 `../internals/`。
+这些页面背后的精确契约在[参考](../reference/README.md)，设计原因在[弄懂原理](../internals/README.md)。
 
 ---
 

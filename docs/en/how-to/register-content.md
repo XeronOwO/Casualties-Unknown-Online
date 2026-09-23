@@ -133,6 +133,7 @@ wrong `NetworkMode` shows up as content that exists locally and never binds into
 - [Save mod data across sessions](save-mod-data-across-sessions.md) — the other half of what a mod persists
 - [Read game state](read-game-state.md) — what you can read back about a player
 - [Your first mod](../start/your-first-mod.md) — the `Bind` lifecycle
+- [The life of a mod](../internals/mod-loading-lifecycle.md) — discovery, and what another player has to have
 - [Glossary](../reference/glossary.md) — mod, adapter, handshake
 
 ---

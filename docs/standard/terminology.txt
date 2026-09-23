@@ -73,3 +73,16 @@ schema version | 结构版本 | 结构版本（schema version） | 架构版本�
 mod state | 模组状态 | 模组状态（mod state） | 模组存档，模组数据 | the host-persistent per-mod key/value table behind `IModState`
 rollback | 回滚 | 回滚（rollback） | 撤销，退回 | undoing a locally applied action after arbitration refuses the claim
 tombstone | 墓碑 | 墓碑（tombstone） | 标记，记号 | a recorded refusal that stops a later repeat of the same creation
+envelope | 信封 | 信封（envelope） | 包，封包 | one framed kernel message: a command, a committed batch, a checkpoint or a state stream
+domain | 领域 | 领域 | 模块，子系统 | one slice of the kernel state with its own typed model and rules: items, players, enemies, fluids
+effect | 效果 | 效果 | 影响，特效 | what an outer layer must do after a committed batch; derived by projections, never stored in the batch
+reduce | 归约 | 归约 | 简化，应用 | applying the accepted events of a batch to the authoritative state, the same way on every machine
+permission | 权限 | 权限 | 许可，授权 | a capability a mod declares on its attribute; CUO grants nothing implicitly
+network mode | 网络模式 | 网络模式（network mode） | 联机模式，网络类型 | a mod's contract with the session: who must have it, and where it runs
+lifecycle | 生命周期 | 生命周期 | 生存期，寿命 | the calls the framework makes on a mod: bind, initialize, start, update, stop, dispose
+seam | 接缝 | 接缝 | 接口，边界，缝 | a named boundary where one side may be checked or replaced, such as a cut seam
+port | 端口 | 端口 | 接口，插口 | a narrow interface a capability is reached through; the adapter is composed of capability ports
+admission | 准入 | 准入 | 许可，入场 | the host's decision whether a member's submission may reach the kernel at all
+native binding | 原生绑定 | 原生绑定（native binding） | 原生接口，游戏绑定 | the game surface a mod declares it patches; a declared fact, never enforced
+native api | 原生操作注册表 | 原生操作注册表 | 原生接口，游戏 API，原生操作登记表 | the curated registry of game-side operations a mod may call through AccessNativeApi
+building runtime | 建筑运行时 | 建筑运行时 | 建筑数据，建筑存储 | the host-persistent mod building table the adapter turns into Unity behaviour

@@ -80,6 +80,7 @@ acceptance step no test can replace.
 - [Read game state](read-game-state.md) — what a client may read, and why it is not a verdict
 - [Declare permissions and host commands](declare-permissions-and-commands.md) — the host-side surface
 - [Your first mod](../start/your-first-mod.md) — the lifecycle the decision lives in
+- [Who decides what happens to a player](../internals/judgment-ownership.md) — the reasoning behind this page
 - [Glossary](../reference/glossary.md) — kernel, event, projection, rollback
 
 ---

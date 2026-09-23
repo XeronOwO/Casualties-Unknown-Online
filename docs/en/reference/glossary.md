@@ -32,6 +32,7 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 ## How the state works
 
 - **Kernel** — the part of CUO that owns the authoritative state.
+- **Domain** — one slice of the kernel's state with its own typed model and rules, such as items or fluids.
 - **Command** — a typed request for something to happen; it may be refused.
 - **Event** — a fact the kernel accepted, which every machine will follow.
 - **Batch** — one atomic set of accepted facts.
@@ -39,6 +40,9 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **State stream** — high-frequency field updates that may be dropped and superseded.
 - **Snapshot** — a point-in-time copy of state.
 - **Projection** — a view built from the authoritative state, such as the objects you see.
+- **Envelope** — one framed message of the kernel protocol: a command, a committed batch, a checkpoint or a state stream.
+- **Effect** — what an outer layer must do after a batch, such as move an object or play a sound; derived, never stored.
+- **Reduce** — applying a batch's accepted events to the authoritative state, the same way on every machine.
 - **Revision** — the kernel's own increasing order number; not a mod version.
 - **Epoch** — the identity of one run; traffic from an old run is rejected.
 - **Deterministic** — the same inputs produce the same result.
@@ -46,6 +50,7 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Read model** — state meant for reading. A reading is what CUO last heard, never a verdict.
 - **Judgment ownership** — whose machine decides what happens to a player: that player's own client, on its own screen and timeline; the host keeps the world and the arbitration.
 - **Rollback** — undoing a locally applied action after the host's arbitration refused the claim.
+- **Admission** — the host's decision whether a member's submission may reach the kernel at all.
 
 ## Joining and versions
 
@@ -55,6 +60,10 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 ## Mods and the code
 
 - **Mod** — third-party content loaded through the mod API.
+- **Permission** — a capability a mod declares on its attribute; CUO grants nothing implicitly.
+- **Network mode** — a mod's contract with the session: which members must have it, and where it runs.
+- **Lifecycle** — the calls the framework makes on a mod, from bind to dispose.
+- **Native binding** — the game surface a mod declares it patches; a declared fact, never a promise or a grant.
 - **Patch** — one change applied to existing code; a plugin is not a patch.
 - **Adapter** — the only layer that knows the game's private types and absorbs game updates.
 - **Runtime** — the stable CUO layer: protocol, session, mod loading.
@@ -83,6 +92,8 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Review** — the independent check a change passes before it is delivered.
 - **Process record** — a document that records what a cycle did, such as the backlog, the evidence files or a decision register; it is not part of the human documentation.
 - **Breadcrumb** — the navigation line at the head and the tail of a page, naming where the page sits.
+- **Seam** — a named boundary where one side may be checked or replaced.
+- **Port** — a narrow interface a capability is reached through; the adapter is a composition of capability ports.
 
 ## Related reading
 

@@ -16,7 +16,7 @@ watch working. It assumes no knowledge of CUO and none of the game's internals.
    and how to watch it work.
 
 Depth boundary: this line only goes as far as "you can use it". How each mechanism works is in
-`../internals/`; the exact contracts are in `../reference/`.
+[Internals](../internals/README.md); the exact contracts are in `../reference/`.
 
 ---
 

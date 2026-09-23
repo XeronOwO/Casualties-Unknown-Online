@@ -99,6 +99,7 @@ if (context.ContentOwners.TryGetOwner(ModContentKind.Item, "example:wooden.sword
 - [让模组数据跨会话保留](save-mod-data-across-sessions.md) —— 模组要持久化的另一半
 - [读取游戏状态](read-game-state.md) —— 关于玩家你能读回什么
 - [你的第一个模组](../start/your-first-mod.md) —— `Bind` 的生命周期
+- [模组的一生](../internals/mod-loading-lifecycle.md) —— 发现过程，以及别人必须装什么
 - [术语表](../reference/glossary.md) —— 模组、适配器、握手
 
 ---

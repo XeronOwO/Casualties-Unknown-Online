@@ -52,6 +52,7 @@ context.Ui.Register("status", "My Mod Status", window =>
 - [给其他玩家发消息](send-a-network-message.md) —— 按钮调用的那个方法
 - [声明权限与主机命令](declare-permissions-and-commands.md) —— 窗口能驱动的另一种面
 - [你的第一个模组](../start/your-first-mod.md) —— `Bind` 与 context 从哪来
+- [权限与安全](../internals/permissions-and-security.md) —— 为什么本地窗口不需要任何标志
 
 ---
 

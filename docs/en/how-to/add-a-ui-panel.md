@@ -67,6 +67,7 @@ log line from the message handler.
 - [Declare permissions and host commands](declare-permissions-and-commands.md) — the other surface a
   window may drive
 - [Your first mod](../start/your-first-mod.md) — where `Bind` and the context come from
+- [Permissions and what they protect](../internals/permissions-and-security.md) — why a local window needs no flag
 
 ---
 

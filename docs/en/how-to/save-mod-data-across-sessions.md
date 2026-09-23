@@ -87,6 +87,7 @@ starts. On a guest, `CanWrite` is false and `TrySet` returns false with a log.
 - [Register content](register-content.md) — the other half of what a mod brings with it
 - [Declare permissions and host commands](declare-permissions-and-commands.md) — `WriteGameState` and host commands
 - [Your first mod](../start/your-first-mod.md) — the lifecycle the reads and writes live in
+- [How a world is saved](../internals/save-archive.md) — the archive this table is stored in
 - [Glossary](../reference/glossary.md) — host, session, world
 
 ---

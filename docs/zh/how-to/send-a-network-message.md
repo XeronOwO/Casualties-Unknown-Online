@@ -100,6 +100,7 @@ public sealed class PingMod : ICuoMod
 - [你的第一个模组](../start/your-first-mod.md) —— 这里用到的生命周期与 context
 - [做一件事](README.md) —— 其他任务
 - [参考](../reference/README.md) —— 完整的模组接口将来放在这里
+- [谁来决定玩家身上发生的事](../internals/judgment-ownership.md) —— 为什么客机向上报、由主机回答
 - [术语表](../reference/glossary.md) —— 主机、客机、会话、握手
 
 ---

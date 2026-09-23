@@ -62,6 +62,7 @@ if (context.State.TryGet("loadout", out var bytes))
 - [注册内容](register-content.md) —— 模组自带东西的另一半
 - [声明权限与主机命令](declare-permissions-and-commands.md) —— `WriteGameState` 与主机命令
 - [你的第一个模组](../start/your-first-mod.md) —— 读写所处的生命周期
+- [世界怎么存档](../internals/save-archive.md) —— 这张表所存进的那套归档
 - [术语表](../reference/glossary.md) —— 主机、会话、世界
 
 ---

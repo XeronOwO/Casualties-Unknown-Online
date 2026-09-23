@@ -59,6 +59,7 @@ if (context.GameState.CanRead && context.GameState.TryGetPlayer(steamId, out var
 - [给其他玩家发消息](send-a-network-message.md) —— 读到的数据需要送出去时怎么办
 - [判断一个动作由哪一侧判定](decide-which-side-judges-an-action.md) —— 为什么“读数”不等于“结论”
 - [你的第一个模组](../start/your-first-mod.md) —— 读数据所处的生命周期
+- [状态流与快照](../internals/state-and-snapshots.md) —— 读数从哪来，以及为什么它不是结论
 - [术语表](../reference/glossary.md) —— 投影、快照、状态流
 
 ---

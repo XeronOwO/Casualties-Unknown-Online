@@ -13,7 +13,7 @@
 
 1. **先跑起来** —— [从这里开始](start/README.md)：CUO 是什么、怎么玩、怎么搭开发环境，以及一个能亲眼看到效果的第一个模组。
 2. **[做一件事](how-to/README.md)** —— 一件事一页，有步骤、有能跑的例子，还有常见坑。
-3. **弄懂原理** —— `internals/`：谁决定什么、确定性内核、协议、存档、适配器边界，以及每种选择的代价。
+3. **[弄懂原理](internals/README.md)** —— 谁决定什么、确定性内核、协议、存档、适配器边界，以及每种选择的代价。
 4. **查东西** —— [参考](reference/README.md)：模组接口、协议消息、配置项、特性矩阵，还有[术语表](reference/glossary.md)。
 5. **参与 CUO 自身的开发** —— [贡献者文档](contributing/README.md)：构建与测试、门禁、仓库地图、文档规范，以及复核与交付流程。
 
@@ -23,7 +23,7 @@
 
 ## 仍然是英文的部分
 
-架构、决策、证据与 backlog 是贡献者向的资料，正在被重写进这两棵文档树。重写完成之前，可用的入口是：
+架构、决策、证据与 backlog 是贡献者向的资料，正在被重写进这两棵文档树。重写完成之前，机制本身先读[弄懂原理](internals/README.md)；下面这些是那个分区背后的记录：
 
 - 架构：[当前架构](../architecture/current.md)、[协议](../architecture/protocol.md)、[领域与投影](../architecture/domains.md)、[存档归档格式](../architecture/save-archive-format.md)
 - 接口与策略：[模组接口契约](../api/mod-api.md)、[扩展与稳定性策略](../api/advanced-modification-policy.md)

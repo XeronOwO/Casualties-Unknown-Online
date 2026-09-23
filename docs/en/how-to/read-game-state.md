@@ -81,6 +81,7 @@ or pick something up. Have them leave the world and read again — `TryGetPlayer
 - [Send a message to the other players](send-a-network-message.md) — what to do when what you read has to travel
 - [Decide which side judges an action](decide-which-side-judges-an-action.md) — why a reading is not a verdict
 - [Your first mod](../start/your-first-mod.md) — the lifecycle the reads live in
+- [State streams and snapshots](../internals/state-and-snapshots.md) — where a reading comes from, and why it is not a verdict
 - [Glossary](../reference/glossary.md) — projection, snapshot, state stream
 
 ---

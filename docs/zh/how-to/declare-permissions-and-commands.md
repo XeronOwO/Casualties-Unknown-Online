@@ -70,6 +70,7 @@ context.Commands.TryExecute("heal", new[] { "alice" }, result =>
 
 - [给其他玩家发消息](send-a-network-message.md) —— 上报所走的通道
 - [你的第一个模组](../start/your-first-mod.md) —— 特性与生命周期
+- [权限与安全](../internals/permissions-and-security.md) —— 每个标志强制什么，以及不强制什么
 - [参考](../reference/README.md) —— 完整的模组接口将来放在这里
 
 ---

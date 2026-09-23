@@ -86,3 +86,9 @@ admission | 准入 | 准入 | 许可，入场 | the host's decision whether a me
 native binding | 原生绑定 | 原生绑定（native binding） | 原生接口，游戏绑定 | the game surface a mod declares it patches; a declared fact, never enforced
 native api | 原生操作注册表 | 原生操作注册表 | 原生接口，游戏 API，原生操作登记表 | the curated registry of game-side operations a mod may call through AccessNativeApi
 building runtime | 建筑运行时 | 建筑运行时 | 建筑数据，建筑存储 | the host-persistent mod building table the adapter turns into Unity behaviour
+feature matrix | 特性矩阵 | 特性矩阵 | 特征表，功能矩阵 | the table of game features and their sync status; the CSV file is the machine copy
+configuration profile | 配置档案 | 配置档案（configuration profile） | 配置模板，配置方案 | a named snapshot of every configuration setting, stored beside the config file
+payload | 载荷 | 载荷 | 数据包，内容体 | the opaque bytes a message or a content definition carries; the framework never reads inside them
+hot reload | 热重载 | 热重载 | 热更新，动态加载 | a configuration edit taking effect without restarting the game
+chainloader | 链加载器 | 链加载器 | 加载器，启动器 | BepInEx's own plugin loader, which loads and wakes each plugin
+log sink | 日志接收器 | 日志接收器 | 输出端，日志目的地 | one destination a log entry is written to

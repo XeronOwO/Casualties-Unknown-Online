@@ -58,8 +58,10 @@ powershell -ExecutionPolicy Bypass -File tools/deploy.ps1 -GameDir "<game-dir>"
 - **Sandboxie dual-instance** — used for host/guest runtime testing. The sandbox
   paths and shadow-cache procedure are in `AGENTS.local.md`; never deploy into a
   sandbox path with `tools/deploy.ps1`.
-- **Logs** — BepInEx `LogOutput.log`, `BepInEx/logs/latest.log`, and `CUO.log`;
-  their exact locations and troubleshooting notes are in `AGENTS.local.md`.
+- **Logs** — BepInEx `LogOutput.log` for load-time problems and `BepInEx/logs/latest.log` for the
+  session (with `BepInEx/logs/<date>-<n>.log.gz` as the previous session's archive); `CUO.log` is the
+  pre-rollover legacy file, archived at start-up and no longer written. The lookup page is
+  `docs/en/reference/logs.md`; machine paths and troubleshooting notes are in `AGENTS.local.md`.
 
 ## Documentation map
 

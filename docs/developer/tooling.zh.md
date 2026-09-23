@@ -19,8 +19,8 @@
 ## 日志
 
 - `BepInEx/LogOutput.log` —— 链加载与启动异常。
-- `BepInEx/logs/latest.log` —— Unity 侧抛出的运行时异常。
-- `CUO.log` —— CUO 自己的日志,级别由配置的 `Logging` 段控制。
+- `BepInEx/logs/latest.log` —— CUO 自己的滚动日志:这一局的经过、Unity 侧抛出的运行时异常,级别由配置的 `Logging` 段控制;上一局的日志在启动时压缩成 `BepInEx/logs/<日期>-<n>.log.gz`。
+- `CUO.log` —— 滚动改造之前的遗留单文件日志,今天不再写入;它若存在,下一次启动时会被压缩进 `BepInEx/logs/` 并删除。完整说明见 `docs/zh/reference/logs.md`。
 
 ## 模拟框架
 

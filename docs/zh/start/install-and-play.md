@@ -38,7 +38,7 @@ CUO 是一个 BepInEx 插件，它不改动游戏安装目录：
 - **加入被拒绝，或者客机刚连上就退回菜单。** 两边对[协议版本](../reference/glossary.md)的认知不一致，通常发生在版本不同的构建之间。所有人跑同一个构建就好。
 - **大厅里什么都没有。** 检查 Steam 是否在运行、游戏是否通过 Steam 启动。
 - **游戏更新后某个功能不对劲。** 适配器（Game Adapter）找不到它依赖的东西，于是停用那部分而不是崩溃；日志里会写明它跳过了什么。
-- **日志位置：** `BepInEx/LogOutput.log`、`BepInEx/logs/latest.log` 与 `CUO.log`。
+- **日志位置：** 加载期的问题看 `BepInEx/LogOutput.log`，这一局做了什么看 `BepInEx/logs/latest.log`（详见[日志速查](../reference/logs.md)）。
 
 ## 相关阅读
 

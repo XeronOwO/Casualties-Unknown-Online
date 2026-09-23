@@ -15,7 +15,7 @@ A frame carries exactly one envelope; the kind is explicit so receivers can reje
 unknown/unsupported envelopes before touching the payload.
 ```
 
-帧在任何人动它之前先过结构校验。`src/CasualtiesUnknownOnline.Protocol/Wire/ProtocolFrameValidator.cs` 会拒绝这些情况：帧里没有信封、装了不止一个信封、头部与信封种类对不上、头部的发送方不是传输层的发送方、载荷判别值不属于这一类信封，以及未知的**关键**载荷。表现类载荷是刻意豁免的：注释说，未知的表现载荷故意不作致命错误，这样将来可选的表现效果能直接搭在协议上，不必为此抬一次关键版本号。
+帧在任何人动它之前先过结构校验，具体拒绝哪些形状是[协议消息](../reference/protocol-messages.md)里那份契约。表现类载荷是刻意豁免的：`src/CasualtiesUnknownOnline.Protocol/Wire/ProtocolFrameValidator.cs` 的注释说，未知的表现载荷故意不作致命错误，这样将来可选的表现效果能直接搭在协议上，不必为此抬一次关键版本号。
 
 ## 四种信封
 

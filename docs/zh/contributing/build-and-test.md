@@ -84,8 +84,10 @@ powershell -ExecutionPolicy Bypass -File tools/verify-deploy.ps1 -GameDir "<game
 | 位置 | 它能告诉你什么 |
 |---|---|
 | `BepInEx/LogOutput.log` | 链加载与启动期异常 |
-| `BepInEx/logs/latest.log` | Unity 侧抛出的运行期异常（`[ERR][Unity:Exception]`） |
-| `CUO.log` | CUO 自己的日志；级别由配置里的 `Logging` 段决定 |
+| `BepInEx/logs/latest.log` | CUO 自己的滚动日志：这一局的经过、Unity 侧抛出的运行期异常（带 `[Unity:Exception]` 的 `[ERR]` 行），级别由配置里的 `[Logging]` 段决定 |
+| `BepInEx/logs/*.log.gz` | 上一局的日志，启动时压缩出来 |
+
+完整的查阅页 —— 一行日志的形状、该搜什么、排查顺序 —— 在[日志速查](../reference/logs.md)。
 
 ## 常见坑
 

@@ -51,6 +51,7 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Judgment ownership** — whose machine decides what happens to a player: that player's own client, on its own screen and timeline; the host keeps the world and the arbitration.
 - **Rollback** — undoing a locally applied action after the host's arbitration refused the claim.
 - **Admission** — the host's decision whether a member's submission may reach the kernel at all.
+- **Payload** — the opaque bytes a message or a content definition carries; CUO never reads inside them.
 
 ## Joining and versions
 
@@ -83,6 +84,8 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Interaction panel** — the CUO panel opened with the configured key, `F6` by default.
 - **Host rules** — the gameplay switches the host owns.
 - **Pinyin search** — lets the game's search boxes match Chinese by pinyin.
+- **Configuration profile** — a named snapshot of every setting, saved beside the config file.
+- **Hot reload** — a settings change taking effect without restarting the game.
 
 ## Working on CUO
 
@@ -94,6 +97,7 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Breadcrumb** — the navigation line at the head and the tail of a page, naming where the page sits.
 - **Seam** — a named boundary where one side may be checked or replaced.
 - **Port** — a narrow interface a capability is reached through; the adapter is a composition of capability ports.
+- **Feature matrix** — the table of game features and whether each one is synced; the CSV file is the machine copy.
 
 ## Related reading
 

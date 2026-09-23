@@ -36,4 +36,4 @@ the host's address and `JoinPort` to the port the host listens on.
 - The lobby shows nothing: check that Steam is running and that the game was started through Steam.
 - A feature misbehaves after a game update: the adapter could not find something it depends on and
   disables that part instead of crashing. The logs name what was skipped.
-- Logs live in `BepInEx/LogOutput.log`, `BepInEx/logs/latest.log` and `CUO.log`.
+- Logs live in `BepInEx/LogOutput.log` (load-time problems) and `BepInEx/logs/latest.log` (what the session did); `CUO.log` is the pre-rollover legacy file and is no longer written, and the lookup page is `docs/en/reference/logs.md`.

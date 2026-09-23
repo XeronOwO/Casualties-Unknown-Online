@@ -20,8 +20,8 @@ name the rule they enforce, so a failure message usually already says what to ch
 ## Logs
 
 - `BepInEx/LogOutput.log` — chain loading and startup exceptions.
-- `BepInEx/logs/latest.log` — runtime exceptions raised on the Unity side.
-- `CUO.log` — CUO's own log, with its level controlled by the `Logging` configuration section.
+- `BepInEx/logs/latest.log` — CUO's own rolling log: the session's story and the runtime exceptions raised on the Unity side, at the level the `Logging` section sets; the previous session is compressed to `BepInEx/logs/<date>-<n>.log.gz` at start-up.
+- `CUO.log` — the pre-rollover single-file log, not written any more; if it exists it is compressed into `BepInEx/logs/` at the next start-up and deleted. The full lookup is `docs/en/reference/logs.md`.
 
 ## The simulation harness
 

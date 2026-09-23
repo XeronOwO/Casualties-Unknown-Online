@@ -20,13 +20,11 @@ A frame carries exactly one envelope; the kind is explicit so receivers can reje
 unknown/unsupported envelopes before touching the payload.
 ```
 
-The frame is checked structurally before anything acts on it.
-`src/CasualtiesUnknownOnline.Protocol/Wire/ProtocolFrameValidator.cs` refuses a frame that contains no
-envelope or more than one, a header that disagrees with the envelope kind, a header whose sender is not
-the transport sender, a payload discriminator that does not belong to that envelope family, and an
-unknown **critical** payload. Presentation payloads are deliberately exempt: "Unknown presentation
-payloads are intentionally non-fatal so future optional effects can ride the protocol without requiring
-a new critical version bump."
+The frame is checked structurally before anything acts on it; the exact list of refusals is the contract
+in [Protocol messages](../reference/protocol-messages.md). Presentation payloads are deliberately
+exempt — `src/CasualtiesUnknownOnline.Protocol/Wire/ProtocolFrameValidator.cs` states it: "Unknown
+presentation payloads are intentionally non-fatal so future optional effects can ride the protocol
+without requiring a new critical version bump."
 
 ## The four envelopes
 

@@ -46,7 +46,8 @@ Without Steam, the configuration file carries a direct-IP mode under the `IpDire
   Steam.
 - **Something misbehaves after a game update.** The [adapter](../reference/glossary.md) could not
   find what it depends on and disables that part instead of crashing; the logs name what it skipped.
-- **Where the logs are:** `BepInEx/LogOutput.log`, `BepInEx/logs/latest.log` and `CUO.log`.
+- **Where the logs are:** `BepInEx/LogOutput.log` for load-time problems, and
+  `BepInEx/logs/latest.log` for what the session did ([Logs](../reference/logs.md)).
 
 ## Related reading
 

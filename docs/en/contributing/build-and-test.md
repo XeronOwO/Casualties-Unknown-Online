@@ -102,8 +102,10 @@ powershell -ExecutionPolicy Bypass -File tools/verify-deploy.ps1 -GameDir "<game
 | Where | What it tells you |
 |---|---|
 | `BepInEx/LogOutput.log` | chain loading and start-up exceptions |
-| `BepInEx/logs/latest.log` | runtime exceptions on the Unity side (`[ERR][Unity:Exception]`) |
-| `CUO.log` | CUO's own log; its level comes from the `Logging` configuration section |
+| `BepInEx/logs/latest.log` | CUO's own rolling log: the session's story, runtime exceptions raised on the Unity side (`[ERR]` lines carrying `[Unity:Exception]`), and the level the `[Logging]` section sets |
+| `BepInEx/logs/*.log.gz` | the previous session, compressed at start-up |
+
+The full lookup — the shape of a line, what to search for and the triage order — is [Logs](../reference/logs.md).
 
 ## Traps
 

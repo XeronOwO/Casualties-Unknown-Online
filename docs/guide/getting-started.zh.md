@@ -31,4 +31,4 @@ CUO 是一个 BepInEx 插件。它不改动游戏本体:它的文件在插件目
 - 大厅里什么都看不到:确认 Steam 正在运行,并且游戏是通过 Steam 启动的。
 - 游戏更新后某个功能表现异常:适配器找不到它依赖的东西,于是停用那部分而不是崩溃。日志里会写明
   被跳过了什么。
-- 日志位于 `BepInEx/LogOutput.log`、`BepInEx/logs/latest.log` 和 `CUO.log`。
+- 日志位于 `BepInEx/LogOutput.log`(加载期问题)与 `BepInEx/logs/latest.log`(这一局做了什么);`CUO.log` 是滚动改造之前的遗留文件,已不再写入。完整说明见 `docs/zh/reference/logs.md`。

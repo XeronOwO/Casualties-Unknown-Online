@@ -21,6 +21,61 @@ no longer a frozen render proxy. The teleport acceptance below was not re-tested
 The teleport itself was not re-tested in this pass; the acceptance criteria below stand until the
 rework re-verifies them.
 
+## Carried clone root/limb separation: the mechanism is unproven (2026-09-25 cycle)
+
+This cycle set out to close the half of the 2026-09-07 mechanism below that the suppression left
+live — a dead or unconscious carried body still publishes exact limb poses, because
+`CarriedBodyPose.ShouldPublishExactLimbPoses` returns true for it — and ended by establishing that
+the mechanism itself is unproven. What landed is therefore the measurement, not a placement change.
+
+What the cycle's inventory found against that note's step 4:
+
+- The visible limb transforms are children of the body's own hierarchy: `Body.HandleVisuals` places
+  them with a local write derived from the animator node, and `Body.Stand` counter-moves every limb
+  by the root's own shift. Both only make sense if a root write carries the limbs.
+- A remote clone's limb rigidbodies are frozen when the clone is created (`RemoteBodyFactory`) and
+  re-frozen every frame (`BodyUpdatePatch`), so the hierarchy is that clone's only driver.
+- The carried LOCAL rider is the control case: `CarriedBodyPlacement.ApplyLocalRiderPose` writes its
+  root on every carried frame with the root and every limb rigidbody frozen, nothing re-anchoring
+  them, and no report describes the rider's own body coming apart.
+
+So "the limbs stay at the previous pose tick's world coordinates" is a hypothesis the current code
+contradicts, and it was never verified at runtime either (this ticket records that the teleport was
+not re-tested after 2026-09-07). A first cut of this cycle that shipped a per-frame re-anchor was
+deleted for exactly that reason: it wrote what the hierarchy had already written. The independent
+review that settled it is `%TEMP%/cuo-review-carry-limb-anchor.md` (session artifact).
+
+Landed — read-only instrumentation, no rendered frame changes:
+
+- `CarriedLimbAnchor` (Runtime, pure): the reference shape of the applied exact poses as
+  root-relative offsets in application (parents-first) order, the gate
+  `ShouldMeasureAgainstPinnedRoot(isCarriedRider, hasExactLimbPose)`, and `TryTarget`.
+- `RagdollPoseApplication` captures that shape as it applies the poses, and
+  `MeasurePinnedRootSeparation` reads every rendered limb against it. It writes nothing, and a test
+  pins that property.
+- `CarriedBodyPlacement.ApplyRidePose` takes the reading right after it writes the root — the one
+  point in the frame where the question is live (also pinned by a test).
+- The 1 Hz clone diagnostics print `limbSeparation=<largest reading in the window>` for every clone
+  that renders exact poses, zero included. It is a Debug line: a session that wants it sets
+  `Logging.MinimumLevel=Debug`, the same prerequisite the rider trace documents.
+- Release and detach clear the reference shape and the window, so a later relation is never reported
+  against the old one.
+
+How the reading decides this ticket: zero is the expected result (the hierarchy carried the limbs) and
+means the note's step 4 should be corrected in place; a non-zero value is the separation, in game
+units, for that limb on that screen — and a re-anchor (translate the captured shape by the root's
+travel) is then the fix to land, with this ticket as its evidence.
+
+Coverage: `CarriedLimbAnchorTests` (rule matrix, reference shape, clearing, the after-the-root-write
+ordering, and the probe's read-only property) and
+`CarriedRiderMountTests.CarriedLimbMeasurementSurface_IsWiredIntoTheRidePose`. Cycle evidence:
+`docs/evidence/selfchecks/players/carry-rider-limb-anchor-selfcheck.md`.
+
+Still the two-client run's, and why this ticket stays open: the original repro (host-on-guest and
+guest-on-host, the carrier moving, on the participant views) against the deployed build, the same
+with a limp rider reading `limbSeparation`, and the acceptance criteria below. Nothing in this cycle
+claims that run.
+
 ## Root-cause fix (2026-09-07)
 
 The mount rework fixed the Body-root hierarchy, but the visible limbs still
@@ -197,6 +252,10 @@ No carry authority, wire protocol, release semantics, or host rules changed.
 ## Evidence
 
 - Selfcheck: `docs/evidence/selfchecks/players/carried-rider-placement-smoothing-selfcheck.md`
+- Exact-limb-pose follow selfcheck: `docs/evidence/selfchecks/players/carry-rider-limb-anchor-selfcheck.md`
+- Exact-pose anchor rule: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/CarriedLimbAnchor.cs`
+- Exact-pose capture + re-anchor: `src/CasualtiesUnknownOnline.GameAdapter/Character/RagdollPoseApplication.cs`
+- Anchor state + diagnostic window: `src/CasualtiesUnknownOnline.GameAdapter/Character/RemoteBodyDriver.cs`
 - Shared placement: `src/CasualtiesUnknownOnline.GameAdapter/Character/CarriedBodyPlacement.cs`
 - Rider own-client placement: `src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs`
 - Remote rider-clone attach: `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs`

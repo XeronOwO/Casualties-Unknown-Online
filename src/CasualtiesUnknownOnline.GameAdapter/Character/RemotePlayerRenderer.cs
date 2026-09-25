@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -347,6 +348,17 @@ internal sealed class RemotePlayerRenderer(
 	/// </summary>
 	private static void DetachCarriedRiderRoot(Body riderClone)
 	{
+		// The clone is not a carried rider on this frame: drop the exact-pose
+		// reference shape with the mount, so a later re-attach cannot be measured
+		// (or reported) against a shape and a root that belong to the old
+		// relation.
+		var driver = riderClone.GetComponent<RemoteBodyDriver>();
+		if (driver != null) // Unity object — ==
+		{
+			driver.LimbAnchor.Clear();
+			driver.LimbSeparationWindowMax = 0f;
+		}
+
 		var root = riderClone.transform.parent;
 		if (root == null) // Unity object — ==
 		{
@@ -410,6 +422,23 @@ internal sealed class RemotePlayerRenderer(
 			if (isMountedToLocalCarrier)
 			{
 				carryTag += ", mounted-to-local-carrier";
+			}
+
+			// A clone rendering exact owner limb poses is measured against the
+			// root the ride pose pinned (nothing is written): a non-zero reading
+			// is how far its limbs were left behind. The field is printed for
+			// every such clone, zero included, so "measured zero" and "not
+			// measured" cannot be confused; it is a Debug line, so a session that
+			// wants it raises Logging.MinimumLevel (see CarrySimulationTrace).
+			var poseDriver = clone != null ? clone.GetComponent<RemoteBodyDriver>() : null;
+			if (poseDriver != null) // Unity object — ==
+			{
+				if (poseDriver.RagdollPoseActive)
+				{
+					carryTag += $", limbSeparation={poseDriver.LimbSeparationWindowMax.ToString("0.###", CultureInfo.InvariantCulture)}";
+				}
+
+				poseDriver.LimbSeparationWindowMax = 0f;
 			}
 
 			_log.LogDebug("Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}{CarryTag}",

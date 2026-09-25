@@ -12,6 +12,8 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// interpolation, final script ordering) could still separate the pair. The fix
 /// re-parents a local carrier's rider clone under a neutral-scale mount, so the
 /// mount scale math and the attach/detach surface must be correct and stable.
+/// The same pass also reads whether a clone's exact limb poses travelled with
+/// the root it just wrote, so that read-only surface is pinned here too.
 /// </summary>
 [Trait("Category", "Integration")]
 public class CarriedRiderMountTests
@@ -68,6 +70,33 @@ public class CarriedRiderMountTests
 		Assert.True(Math.Abs(GetVectorComponent(result, "x") - expectedX) < 0.0001f);
 		Assert.True(Math.Abs(GetVectorComponent(result, "y") - expectedY) < 0.0001f);
 		Assert.True(Math.Abs(GetVectorComponent(result, "z") - expectedZ) < 0.0001f);
+	}
+
+	[Fact]
+	public void CarriedLimbMeasurementSurface_IsWiredIntoTheRidePose()
+	{
+		// The ride pose is the one frame point where the clone's root has just
+		// been written, so it owns the read-only limb check and the per-clone
+		// reference shape that check reads: both must exist on the built adapter
+		// with this shape.
+		var application = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Character.RagdollPoseApplication",
+			throwOnError: true)!;
+		var measure = application.GetMethod("MeasurePinnedRootSeparation", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("RagdollPoseApplication.MeasurePinnedRootSeparation not found.");
+		Assert.True(measure.IsStatic);
+		Assert.Equal("Void", measure.ReturnType.Name);
+		Assert.Equal("Body", measure.GetParameters()[0].ParameterType.Name);
+
+		var driver = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Character.RemoteBodyDriver",
+			throwOnError: true)!;
+		var anchor = driver.GetField("LimbAnchor", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("RemoteBodyDriver.LimbAnchor not found.");
+		Assert.Equal("CarriedLimbAnchor", anchor.FieldType.Name);
+		var window = driver.GetField("LimbSeparationWindowMax", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("RemoteBodyDriver.LimbSeparationWindowMax not found.");
+		Assert.Equal("Single", window.FieldType.Name);
 	}
 
 	private static object NewVector3(float x, float y, float z) =>

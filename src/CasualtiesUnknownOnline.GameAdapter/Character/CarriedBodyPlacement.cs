@@ -51,7 +51,10 @@ internal static class CarriedBodyPlacement
 	/// The carrier follow for a REMOTE RIDER CLONE, which is a frozen render
 	/// proxy: on top of the shared follow it holds the proxy pose gates
 	/// (non-standing, no movement input) that the clone's skipped simulation
-	/// would otherwise maintain.
+	/// would otherwise maintain. Placing the root is also where the read-only
+	/// limb check runs: this pass runs on every rendered frame while the exact
+	/// poses arrive from the stream, so it is the one place where "did the limbs
+	/// follow the root" can be read.
 	/// </summary>
 	public static void ApplyRidePose(
 		Body body,
@@ -64,6 +67,11 @@ internal static class CarriedBodyPlacement
 		ApplyCarrierFollow(body, carrierPosition, carrierIsRight, carrierCrouching, carrierVelocity, carrierLookTarget);
 		body.standing = false;
 		body.moveDir = Vector2.zero;
+		// The root was just written, so this is the frame's one chance to read
+		// whether the clone's exact limb poses actually travelled with it. The
+		// check writes NOTHING: the hierarchy is expected to have carried the
+		// limbs, and a non-zero reading is the evidence that would justify a fix.
+		RagdollPoseApplication.MeasurePinnedRootSeparation(body);
 	}
 
 	/// <summary>

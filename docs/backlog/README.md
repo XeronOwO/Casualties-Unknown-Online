@@ -49,7 +49,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [The one-top-level-type gate misses `readonly` records](todo/source-shape-gate-modifier-blindness.md) — **Medium** — the matcher spells modifiers by hand.
 - [A dead or unconscious carried body stops simulating](todo/carried-unconscious-body-simulation.md) — **Medium** — vitals frozen behind the pinned pose.
-- [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — reopened: the rider's body is frozen as a render proxy.
+- [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
 - [Manual world acceleration must not end when a player moves](todo/world-acceleration-survives-movement.md) — **High** — the shared clock ignores movement.
 - [World-time acceleration is gated on being asleep](todo/world-time-local-initiation.md) — **Medium** — reopened: the movement reset is superseded.
 - [Guest hears only some block-break sounds](todo/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the hit relay loses part of the cadence.

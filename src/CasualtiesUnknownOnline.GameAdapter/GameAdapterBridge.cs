@@ -237,7 +237,11 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void EmitRemoteDragIntents(RemoteDragOutcome outcome) => _remoteDragIntents.Emit(outcome);
 
+	public void EmitRemoteWhileDraggingFrame(RemoteDragOutcome outcome) => _remoteDragIntents.EmitWhileDraggingFrame(outcome);
+
 	public void ReportRemoteGestureNotCarried(string gesture) => _remoteDragIntents.ReportGestureNotCarried(gesture);
+
+	public void ReportProxyNotOperable(Item item, string what) => _remoteDragIntents.ReportProxyNotOperable(item, what);
 
 	public void OnPickUpResult(string itemId, int slot, string home, Vector2 position) =>
 		domains.Log.LogInformation("[PickUpResult] {Item} → {Home} (slot {Slot}) at ({X:F1},{Y:F1}).", itemId, home, slot, position.x, position.y);

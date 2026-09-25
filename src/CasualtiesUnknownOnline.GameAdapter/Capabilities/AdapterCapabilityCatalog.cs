@@ -83,6 +83,7 @@ internal static class AdapterCapabilityCatalog
 				typeof(PlayerCameraDragUsePatch), typeof(PlayerCameraUpdateWearablesPatch),
 				typeof(PlayerCameraTryPerformRadialActionPatch), typeof(PlayerCameraHandleWhileDraggingPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragContainerLoadPatch), typeof(RemoteDragMutationPatches.RemoteDragContainerUnloadPatch),
+				typeof(RemoteDragMutationPatches.RemoteDragLiquidDrainPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragBodyPickUpPatch), typeof(RemoteDragMutationPatches.RemoteDragBodySwapSlotsPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragBodyDropItemPatch), typeof(RemoteDragMutationPatches.RemoteDragBodyDropSlotPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragBodyDropWearablePatch), typeof(RemoteDragMutationPatches.RemoteDragBodyCombinePatch),

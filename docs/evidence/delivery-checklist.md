@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: remote-inventory-native-parity-design-selfcheck mechanism table, 8 rows (PlayerCamera.cs:1353/1367/1456/1500/1686/1713/1729/1745, Container.cs:110/116/154, Body.cs:1356/1388/1413)
+      file:line or runtime log) or is explicitly marked unverified — evidence: remote-inventory-native-intent-stage2-selfcheck "What landed" table, one row per mechanism with its anchor inside the row
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the drag pipeline swept whole (14 UI branches + 4 world fallbacks + 2 while-dragging actions in one map); the medical/context-menu families recorded as a stage 3 audit instead of assumed covered
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: remote-inventory-native-parity-design-selfcheck (mechanism inventory, delta table, decisions table, verification table, adversarial review round, limits); the review verified 61 anchors and its 7 findings were fixed before this commit
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the container family swept whole (R4/R5/R13/W1/W4 plus both while-dragging sites in one capture seam); radial and item-interaction families stay recorded for stage 3
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: remote-inventory-native-intent-stage2-selfcheck (landed 8 rows, amended-design 6 rows with anchors, decisions 5 rows, verification and limits)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: design section 3.2 rule 5 (unclassified release is logged) plus the stage 1-3 intent-mapping and refusal tests; this stage's proof is static (branch-to-call anchors) and the gate run
+      peer log comparison, hotrepl assertions) is decided — evidence: test-expectation red observed (5/61, %TEMP%\cuo-red-stage2.txt) then focused 61/61 and full 3874/3874 with build; the scene-bound halves are code facts in the selfcheck
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff instruction (stage 0 design first for the Critical rework ticket) and the ticket's own design principles, which are the user's 2026-09-21 ruling
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: documentation-only cycle (no src/tests/tools change) so build and format are skipped by the rule; focused normative gate run 149 passed
+      process violation — evidence: the handoff names stage 2 of the rework ticket as the next work item; design §3/§4 and decision 217 froze the plan it executes
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors, `dotnet format` exit 0, focused 64/64, full 3877/3877 with build, gates 148/149 open then 149/149 closed (logs in %TEMP%\cuo-*stage2*.txt)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: docs-only diff, no class touched; the 595-line PlayerRemoteInventoryService was deleted in stage 1 and replaced by the 269-line PlayerRemoteInventoryIntentService (decision 218) (design section 3.6)
+      dead mechanisms deleted in the same round) — evidence: largest touched class 423 lines (RemoteDragIntentCapture.cs); the stage 1 batch-refusal latch deleted with its branch; the new window kind is a typed enum, not a bool
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

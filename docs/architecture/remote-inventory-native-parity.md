@@ -1,11 +1,11 @@
 # Remote Inventory Operations: Native Parity Design
 
-Status: **stage 1 landed** — the native intent path is implemented (decision 218): the release window
-and its capture seam, the owner-side replay, the validating/arbitrating host half, and the deletion of
-the clone-edit path this document replaces. Stages 2-4 of
+Status: **stage 2 landed** — the native intent path (stage 1, decision 218) plus the container family
+and the while-dragging body (stage 2, decision 219): the container-expansion batch, the liquid drain
+tick, the restored while-dragging frame and the open-container-window path. Stages 3-4 of
 `docs/backlog/todo/remote-inventory-native-parity-rework.md` are still open, so the gestures whose
-intents arrive there (the container-expansion batch, the drain tick, the radial use/wear branch, the
-item-interaction family) are refused with one logged line instead of running on a proxy.
+intents arrive there (the radial use/wear branch, combine, battery, the favourite toggle and the
+trader hand-in) are refused with one logged line instead of running on a proxy.
 
 The `reversing/Assembly-CSharp/Assembly-CSharp/*.cs` anchors below carry line numbers on purpose:
 that tree is never edited (it is the decompiled game and is not tracked), so its line numbers are
@@ -153,12 +153,13 @@ cross-player authority policies still decide *whether* this family of operations
 The viewer keeps running the game's own gesture code path; CUO intercepts only the *mutation calls*
 that path makes:
 
-1. `HandleReleaseDragging` opens a **release window** when the dragged item is a remote display
-   proxy (and a second window kind for the two while-dragging sites of §2.2). The window is closed by
-   the same patch's finalizer, so a throwing native body cannot leak it into the next frame. It is a
-   **call bracket, not a time bracket**: it spans exactly one `HandleReleaseDragging` invocation (or
-   one `HandleWhileDragging` frame), so the only calls inside it are the ones the native body itself
-   makes. A projection rebuild — `CloneInventoryRenderer` calls `Container.LoadItem` and
+1. **Two bracket kinds, each spanning exactly one native invocation.** `HandleReleaseDragging` opens
+   a **release window** when the dragged item is a remote display proxy, and `HandleWhileDragging`
+   opens a **while-dragging window** for each frame the two continuous sites of §2.2 need one. Both
+   are closed by the same patch's finalizer, so a throwing native body cannot leak a window into the
+   next frame. A window is a **call bracket, not a time bracket**: it spans exactly one native
+   invocation, so the only calls inside it are the ones the native body itself makes. A projection
+   rebuild — `CloneInventoryRenderer` calls `Container.LoadItem` and
    `Container.UnloadItem` on its clones while it rebuilds the remote backpack — a packet pump, or any
    other Unity callback cannot be captured by construction, and the interception stays a local drag
    concern rather than a global one.
@@ -182,7 +183,13 @@ that path makes:
    four steps as independent `if`s, so a take-out of one container followed by a move into a
    DIFFERENT one is the native order, and two intents reproduce it. Merging those into one would make
    the take-out conditional on the second container accepting the item, which the native code never
-   does — `Container.LoadItem`'s refusal leaves the item exactly where the take-out put it.
+   does — `Container.LoadItem`'s refusal leaves the item exactly where the take-out put it. **One
+   native loop is one intent (stage 2)**: R5's container-expansion loop unloads and loads every direct
+   child of the dragged container's own container, and the whole loop is ONE
+   `MoveContainerChildren` intent — the native source of the children is `dragItem.container`, the
+   dragged item's OWN container component, so the owner enumerates them and its own
+   `Container.CanHoldItem` decides which of them move. One intent per child would make the owner run
+   the loop once per child, on a container the first run has already emptied.
 5. The window fails closed and loud: a release that the native dispatch consumed but that produced no
    intent is logged as an unclassified gesture. A native gesture CUO has never seen must be
    observable, never a silent no-op.
@@ -202,6 +209,21 @@ that path makes:
    branch then makes are captured under the pair rules of §3.2.4; and (c) the steps internal to a
    captured call (R9's two drops, the `unload` half of a container move) are absorbed into that
    call's intent rather than executed twice, on the wrong body.
+7. **The while-dragging frame is its own bracket kind (implementation amendment, stage 2).** The
+   while-dragging body reads the local scene as well — `this.body.DoPickupCheck(this.dragItem, true)`
+   is the drain tick's gate — so a proxy drag opens the same window under the while-dragging kind for
+   each frame, the pickup check is answered for the dragged proxy exactly as in a release bracket, and
+   the frame's mutations are captured instead of running on a proxy. The favourite toggle is the one
+   exception, and it is refused rather than captured: it is a direct `favourited` field write on the
+   HOVERED item, a store Harmony cannot take at a call seam, so the frame that would write it is
+   skipped with one logged line and the intent arrives with the stage that builds that seam (§3.3).
+   The drain tick is the frame's other mutation and it is captured with the AMOUNT the frame removed,
+   never the per-stack list the viewer computed from its proxy: the owner re-derives the distribution
+   from the stack its own item has, so a stale proxy stack cannot leak into the owner's item. A proxy
+   the bracket did NOT take (it carries no authoritative identity, or the bracket belongs to another
+   item) keeps the native body running for its own feedback while the seam refuses its drain call and
+   reports it once per dragged proxy — no path may mutate a display proxy, and the release path fails
+   closed for the same shape.
 
 ### 3.3 The intent vocabulary (wire)
 
@@ -234,14 +256,16 @@ pickup on the destination side, and the host arbitrates the item id first-writer
 R1 and R7 produce no intent (they are consumed native no-ops), and R14 plus the container-window
 open of §2.3 are local UI on the viewer and never travel.
 
-**Stage 1 carries eight of these members** — `DropItem`, `DropWearable`, `TakeOutOfContainer`,
+**Stage 1 carried eight of these members** — `DropItem`, `DropWearable`, `TakeOutOfContainer`,
 `MoveIntoContainer`, `SwapSlots`, `PickUpToSlot`, `TransferToBody` and `ApplyToLimb` — because they
-are what the release branch can produce once the suppressions of §3.6 come off. The rest arrive with
-the stages that restore the branches producing them: `MoveContainerChildren` with the container
-stage, `Drain` and `ToggleFavourite` with the while-dragging body, `CombineItems`,
-`LoadBattery`/`UnloadBattery`, `UseItem`/`WearItem` and `GiveToTrader` with the item-interaction
-stage. Until then the window refuses those calls with one logged line naming the gesture — refused,
-never run on a proxy, never a silent no-op.
+are what the release branch can produce once the suppressions of §3.6 come off. **Stage 2 adds
+`MoveContainerChildren`** (R5, with the container-expansion gesture) **and `Drain`** (the
+while-dragging drain tick, with the restored while-dragging body). The rest arrive with the stages that
+restore the branches producing them: `ToggleFavourite` with the item-interaction stage — it is the one
+case that needs a store-level seam rather than a call seam (§3.2.6) — and `CombineItems`,
+`LoadBattery`/`UnloadBattery`, `UseItem`/`WearItem` and `GiveToTrader` with the radial and
+item-interaction branches. Until then the window refuses those calls with one logged line naming the
+gesture — refused, never run on a proxy, never a silent no-op.
 
 A slot intent's **body operand comes from the hit itself**, not from a CUO rule. An inventory button
 of the owner's *projected* body resolves to the owner — the item stays the owner's and changes slot
@@ -312,8 +336,10 @@ boundary; no dual shape is kept.
   remote view is open, which is exactly why the native drain tick and the favourite toggle cannot
   happen; `Patches/PlayerCameraTryPerformRadialActionPatch.cs` answers R10 with a flat "not
   consumed", so `UseItem` and `WearWearable` can never become intents; and `RemoteProxyDragPolicy`'s
-  release-cancel rule is absorbed by the window's own fail-closed case. Stage 1 removes the first and
-  the last, stage 2 restores the while-dragging body, stage 3 the radial branch.
+  release-cancel rule is absorbed by the window's own fail-closed case. Stage 1 removed the first and
+  the last; stage 2 restored the while-dragging body, with its favourite write still refused and
+  logged (§3.2.6) until the item-interaction stage builds that seam; stage 3 restores the radial
+  branch.
 
 ## 4. Stage plan
 
@@ -321,7 +347,7 @@ boundary; no dual shape is kept.
 |---|---|---|
 | 0 | This record: mechanism inventory, intent vocabulary, ticket adjudication, decision record | design frozen before code |
 | 1 | Inventory and slot family: move, swap, transfer to the requester, drop, take-out; window + capture seam; owner-side executor; host validate/arbitrate/record; clone-edit path deleted; protocol bumped | **landed** (decision 218): the reported drop and slot rows no longer route through a host mirror edit; the window, the replay and the host half are covered by intent, window-state and host-contract tests |
-| 2 | The container-expansion gesture (R5), nested containers and the trash bag, the while-dragging drain tick and the container-window refresh; the vanish case is a regression test here | matrix rows 3-5, and the container half of rows 1-2 |
+| 2 | The container-expansion gesture (R5), nested containers and the trash bag, the while-dragging drain tick and the container-window refresh; the vanish case is a regression test here | **landed** (decision 219): R5 is one `MoveContainerChildren` intent the owner evaluates on its own children, the while-dragging body runs again with each frame's drain tick as one `Drain` intent carrying the amount, and the vanish case is pinned by a regression on the host's copy of the owner's inventory; matrix rows 3-5 are code facts here — the operating feel stays the user's acceptance run |
 | 3 | Item interactions: use, wear, combine, battery, favourite, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | matrix rows 6-8 |
 | 4 | Family audit and acceptance: both directions, a third peer, worn items, containers and the craft screen; the display rows carried over from the absorbed tickets | the rework ticket's matrix |
 
@@ -369,6 +395,40 @@ boundary; no dual shape is kept.
     the ring (the owner's body). That corner is recorded here rather than silently changed.
   - The remote-inventory presentation (`RemoteItemPresentation`, `CloneInventoryRenderer`) is
     untouched: this stage changes interaction only.
+  - Stage 2 leaves, deliberately and observably:
+    - The drain is the one CONTINUOUS intent: it arrives once per frame, so it does NOT trigger the
+      per-intent immediate character re-report the discrete kinds trigger — sixty full reports a
+      second is not a cadence. Un-evented continuous item state (decay, battery charge, liquid)
+      already rides the periodic character snapshot, so the drained level reaches the other clients at
+      that cadence while the owner's own screen drains natively. Its happy path logs at Debug for the
+      same reason; a refusal keeps its Information/Warning line.
+    - The favourite toggle through the remote view stays refused with one Information line per dragged
+      proxy. The window cannot take it: the native branch writes the `favourited` FIELD of the hovered
+      item, so there is no call to intercept, and the frame that would write it is skipped instead.
+      The intent and its store-level seam arrive with the item-interaction stage.
+    - The children of an expansion batch are enumerated on the OWNER. The requester's projection
+      decides only whether the native loop runs at all (its own `CanHoldItem` reads the clones), and
+      the owner's guard then decides per child which items actually move — the native partial outcome,
+      where a child the guard refuses stays where it is and the rest still move.
+    - The radial weight readout (`PlayerCamera.HandleRadialMenu`) still prints the LOCAL body's
+      encumbrance while the remote ring is open, because the native code reads `PlayerCamera.body`.
+      That is a display detail outside this stage's interaction scope and it is recorded for the stage
+      4 family audit rather than changed here.
+    - The pickup-feasibility gate (`Body.DoPickupCheck`) is answered for the dragged proxy in BOTH
+      bracket kinds, from one pure predicate on the window
+      (`RemoteDragIntentCapture.AnswersPickupCheckFor`) rather than from the seam that happens to need
+      it: the release branch reads it first (`PlayerCamera.cs:1467`) and the drain tick reads it again
+      every frame (`:1729`), and both compare the local body against an item standing where the remote
+      player stands. A proxy that is not the dragged one, or that carries no authoritative id, keeps
+      the native answer.
+    - Holding the favourite key over a remote inventory button skips that ONE frame's native
+      while-dragging pass — the only way to stop a field store Harmony cannot intercept — so that
+      frame's drain tick is skipped with it, and the refusal line names that cost. One frame per key
+      press; the frame bracket still never merges ticks across frames.
+    - A continuous intent refreshes the item's first-writer-wins lease for as long as the gesture runs
+      (the operator holds the item, which is the lease's purpose), and a competing continuous intent's
+      refusal logs at Debug: the lease's original rationale — the owner's next report normally arrives
+      well inside it — does not describe a kind that deliberately does not re-report per frame.
 
 ## Related reading
 

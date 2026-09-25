@@ -37,4 +37,27 @@ public enum RemoteInventoryIntentKind
 
 	/// <summary><c>PlayerCamera.ApplyWoundItem(item)</c> — the dragged item is applied to a limb of the acting body (R11); the owner consumes/updates the item.</summary>
 	ApplyToLimb = 8,
+
+	/// <summary>
+	/// R5's per-child loop (<c>PlayerCamera.cs:1585</c>): the dragged item's OWN
+	/// container is emptied into the hit container, one direct child at a time,
+	/// with the native <c>Container.CanHoldItem</c> gate in front of each pair. The
+	/// dragged item is the operand because the native source of the children is
+	/// <c>dragItem.container</c> — the item's own container component — so the owner
+	/// enumerates the children on the real objects and decides there which of them
+	/// fit, never on the viewer's projection.
+	/// </summary>
+	MoveContainerChildren = 9,
+
+	/// <summary>
+	/// <c>WaterContainerItem.Drain</c> — the while-dragging liquid drain tick
+	/// (<c>PlayerCamera.cs:1729</c> is its gate, <c>:1731</c> the call), which the
+	/// native code runs every frame with
+	/// <c>CalculateDrain(0.2f * Time.deltaTime * Capacity)</c>. The operand is the
+	/// drained AMOUNT, not the per-stack list the native caller computed: the owner
+	/// re-derives the distribution from its own stack, so the amount is the
+	/// semantic both sides share and a stale stack on the viewer cannot leak into
+	/// the owner's item.
+	/// </summary>
+	Drain = 10,
 }

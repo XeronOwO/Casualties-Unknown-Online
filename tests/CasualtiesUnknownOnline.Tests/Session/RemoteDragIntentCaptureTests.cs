@@ -16,6 +16,7 @@ public class RemoteDragIntentCaptureTests
 	private const ulong Owner = 7001;
 	private const ulong Local = 7002;
 	private const ulong Item = 42;
+	private const ulong OtherItem = 43;
 	private const ulong Container = 77;
 	private const ulong OtherContainer = 78;
 
@@ -183,17 +184,202 @@ public class RemoteDragIntentCaptureTests
 	}
 
 	[Fact]
-	public void ContainerChildBatch_IsRefusedOnceForTheWholeGesture()
+	public void ContainerChildBatch_IsOneMoveContainerChildrenIntentForTheWholeGesture()
 	{
+		// R5 (PlayerCamera.cs:1585): with expanddesc held, the native loop unloads
+		// every direct child out of the DRAGGED item's own container and loads it
+		// into the hit container. One intent per child would make the owner run the
+		// whole loop once per child — on a container the first run already emptied —
+		// so the gesture is ONE intent and the owner enumerates the children itself.
 		var window = Open();
-		window.CaptureContainerUnload(99, Container);
+		window.CaptureContainerUnload(99, Item);
 		window.CaptureContainerLoad(99, Container);
-		window.CaptureContainerUnload(100, Container);
+		window.CaptureContainerUnload(100, Item);
 		window.CaptureContainerLoad(100, Container);
 
 		var outcome = window.Close();
 
+		var intent = Assert.Single(outcome.Intents);
+		Assert.Equal(RemoteInventoryIntentKind.MoveContainerChildren, intent.Kind);
+		Assert.Equal(Item, intent.ItemInstanceId);
+		Assert.Equal(Container, intent.TargetContainerInstanceId);
+		Assert.Empty(outcome.Refusals);
+	}
+
+	[Fact]
+	public void ContainerChildBatchWithoutItsLoad_IsRefused()
+	{
+		// The native loop never leaves a child unloaded: it calls the pair for every
+		// child its guard admitted. A bare unload of a child is not a gesture the
+		// vocabulary can name, so it stays observable instead of becoming an intent.
+		var window = Open();
+		window.CaptureContainerUnload(99, Item);
+
+		var outcome = window.Close();
+
 		Assert.Empty(outcome.Intents);
+		Assert.Single(outcome.Refusals);
+	}
+
+	[Fact]
+	public void AContainerCallAboutAChildTheBatchNeverUnloaded_IsRefused()
+	{
+		var window = Open();
+		window.CaptureContainerLoad(99, Container);
+		window.CaptureContainerUnload(99, OtherContainer);
+
+		var outcome = window.Close();
+
+		Assert.Empty(outcome.Intents);
+		Assert.Equal(2, outcome.Refusals.Count);
+	}
+
+	[Fact]
+	public void ContainerChildBatchReachingTwoTargets_IsRefusedWhole()
+	{
+		// The native loop resolves its target container once per invocation, so this
+		// shape is defensive: a batch sent against the first target would be a gesture
+		// the native code never makes.
+		var window = Open();
+		window.CaptureContainerUnload(99, Item);
+		window.CaptureContainerLoad(99, Container);
+		window.CaptureContainerUnload(100, Item);
+		window.CaptureContainerLoad(100, OtherContainer);
+
+		var outcome = window.Close();
+
+		Assert.Empty(outcome.Intents);
+		Assert.Single(outcome.Refusals);
+	}
+
+	[Fact]
+	public void ThePickupGate_IsAnsweredForTheDraggedProxyInBothBracketKinds()
+	{
+		// The native release opens with `DoPickupCheck(dragItem, false)`
+		// (PlayerCamera.cs:1467) and the drain tick gates on
+		// `DoPickupCheck(dragItem, true)` (:1729). Both compare the LOCAL body against
+		// an item that stands where the remote player stands, so both must be answered
+		// for the dragged proxy — the frame bracket exactly as the release bracket.
+		var closed = new RemoteDragIntentCapture();
+		Assert.False(closed.AnswersPickupCheckFor(Item));
+
+		var release = Open();
+		Assert.True(release.AnswersPickupCheckFor(Item));
+		Assert.False(release.AnswersPickupCheckFor(OtherItem));
+
+		var frame = new RemoteDragIntentCapture();
+		frame.OpenWhileDragging(Item, Owner);
+		Assert.True(frame.AnswersPickupCheckFor(Item));
+		Assert.False(frame.AnswersPickupCheckFor(OtherItem));
+		Assert.False(frame.AnswersPickupCheckFor(0));
+	}
+
+	[Fact]
+	public void OnlyAWhileDraggingFrame_CapturesTheContinuousCalls()
+	{
+		// A proxy no frame bracket took — no authoritative identity, or another item's
+		// bracket — must not have its native drain run: the seam asks this and refuses
+		// the call instead.
+		var frame = new RemoteDragIntentCapture();
+		frame.OpenWhileDragging(Item, Owner);
+		Assert.True(frame.CapturesContinuousCallsFor(Item));
+		Assert.False(frame.CapturesContinuousCallsFor(OtherItem));
+
+		var release = Open();
+		Assert.False(release.CapturesContinuousCallsFor(Item));
+
+		var closed = new RemoteDragIntentCapture();
+		Assert.False(closed.CapturesContinuousCallsFor(Item));
+	}
+
+	[Fact]
+	public void TheDrainTick_IsOneIntentCarryingThatFramesAmount()
+	{
+		// The while-dragging bracket spans one frame, and the native tick runs once
+		// per frame (PlayerCamera.cs:1732): every frame is its own intent, so the
+		// owner's drain follows the native timing instead of a merged approximation.
+		var window = new RemoteDragIntentCapture();
+		window.OpenWhileDragging(Item, Owner);
+		window.CaptureDrain(Item, 0.25f);
+
+		var outcome = window.Close();
+
+		var intent = Assert.Single(outcome.Intents);
+		Assert.Equal(RemoteInventoryIntentKind.Drain, intent.Kind);
+		Assert.Equal(Item, intent.ItemInstanceId);
+		Assert.Equal(0.25f, intent.Amount);
+		Assert.Empty(outcome.Refusals);
+	}
+
+	[Fact]
+	public void AWhileDraggingFrameWithoutADrain_ProducesNothingAndNoRefusal()
+	{
+		// Most frames of a drag are not drain frames; the release path's
+		// unclassified-gesture rule must not fire sixty times a second here.
+		var window = new RemoteDragIntentCapture();
+		window.OpenWhileDragging(Item, Owner);
+
+		var outcome = window.Close();
+
+		Assert.Empty(outcome.Intents);
+		Assert.Empty(outcome.Refusals);
+		Assert.False(outcome.IsUnclassified);
+	}
+
+	[Fact]
+	public void ADrainOutsideAWhileDraggingFrame_IsRefused()
+	{
+		var window = Open();
+		window.CaptureDrain(Item, 0.25f);
+
+		var outcome = window.Close();
+
+		Assert.Empty(outcome.Intents);
+		Assert.Single(outcome.Refusals);
+	}
+
+	[Fact]
+	public void ADrainWithAnUnusableAmount_IsRefused()
+	{
+		var window = new RemoteDragIntentCapture();
+		window.OpenWhileDragging(Item, Owner);
+		window.CaptureDrain(Item, float.NaN);
+		window.CaptureDrain(Item, -1f);
+
+		var outcome = window.Close();
+
+		Assert.Empty(outcome.Intents);
+		Assert.Equal(2, outcome.Refusals.Count);
+	}
+
+	[Fact]
+	public void AReleaseOnlyCallInsideAWhileDraggingFrame_IsRefusedAndItsIntentDropped()
+	{
+		// Defensive: the while-dragging body makes no release call today, and a
+		// bracket that swallowed one would send a gesture the frame never produced.
+		var window = new RemoteDragIntentCapture();
+		window.OpenWhileDragging(Item, Owner);
+		window.CapturePickUp(Item, 1);
+
+		var outcome = window.Close();
+
+		Assert.Empty(outcome.Intents);
+		Assert.Single(outcome.Refusals);
+	}
+
+	[Fact]
+	public void AWhileDraggingFrameKeepsItsDrainWhenAReleaseCallSlipsIn()
+	{
+		var window = new RemoteDragIntentCapture();
+		window.OpenWhileDragging(Item, Owner);
+		window.CaptureDrain(Item, 0.5f);
+		window.CaptureDropItem(Item);
+
+		var outcome = window.Close();
+
+		var intent = Assert.Single(outcome.Intents);
+		Assert.Equal(RemoteInventoryIntentKind.Drain, intent.Kind);
+		Assert.Equal(0.5f, intent.Amount);
 		Assert.Single(outcome.Refusals);
 	}
 

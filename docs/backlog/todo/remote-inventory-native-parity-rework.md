@@ -133,14 +133,47 @@ What it settled, one line each:
    `PlayerRemoteInventoryService`'s mirror-edit halves, `RemoteBackpackOperationHandler`,
    `RemoteInventoryOperationApply` and `RemoteProxyDragPolicy`.
 
+## Stage 2 — containers and the while-dragging body (landed)
+
+The container family and the restored while-dragging body ride the stage 1 seam, with
+`ProtocolVersion.Current` bumped in the same change (36 → 37, the handshake stays the compatibility
+boundary) and decision 219 for the two rules the implementation settled.
+
+What it settled, one line each:
+
+1. **The container-expansion gesture (R5) is ONE intent.** `MoveContainerChildren` names the dragged
+   container and the target container; the owner enumerates the dragged item's OWN container
+   (`dragItem.container`) and its own `Container.CanHoldItem` decides per child which items move, so
+   the native partial outcome is reproduced where the items are. One intent per child would make the
+   owner run the loop once per child, on a container the first run has already emptied.
+2. **The while-dragging body runs again, in its own bracket kind.** One bracket per
+   `HandleWhileDragging` frame, the drain tick's `Body.DoPickupCheck` gate answered for the dragged
+   proxy, and the radial menu still anchored to the focused clone instead of the local body.
+3. **The drain tick is one intent per frame, carrying the amount.** The owner replays
+   `WaterContainerItem.Drain(CalculateDrain(amount))` on its own stack — never the per-stack list the
+   viewer computed from its proxy — so the distribution is derived where the item really is.
+4. **A continuous kind does not re-report per frame.** The immediate authoritative character
+   re-report stays with the discrete kinds; the drained state rides the periodic character snapshot
+   the game's own un-evented item state (decay, battery charge, liquids) already uses, and the
+   continuous happy path logs at Debug while a refusal keeps its Information/Warning line.
+5. **The favourite toggle stays refused, observably.** It is a direct `favourited` field write on the
+   hovered item, so there is no call to intercept: the frame that would write it is skipped with one
+   line per dragged proxy, and the intent plus its store-level seam arrive with stage 3.
+6. **The vanish case is pinned by a regression.** A container take-out and re-insert for a guest owner
+   must leave the host's own copy of that inventory untouched, so nothing is left for the owner's next
+   report to overwrite — the deleted mirror edit was the cause, and its absence is now asserted.
+7. **The container-window path was re-checked against the restored branch.** `OpenContainer` tracking
+   and the rebuild-time re-bind are keyed by the authoritative instance id and stay valid; the window's
+   contents ride the projection, and the row stays a real-machine acceptance item.
+
 ## Staged plan
 
 - **Stage 0 — design.** Done, see above.
 - **Stage 1 — the native intent path.** Done, see above: the window, the capture seam, the owner-side
   replay, the host half and the deletion of the clone-edit path, protocol bumped in the same change.
-- **Stage 2 — containers.** The container-expansion gesture (R5, refused observably today), nested
-  containers and the trash bag, the while-dragging drain tick (the while-dragging body is restored
-  here), the open-container-window refresh; the vanish case is a regression test here.
+- **Stage 2 — containers.** Done, see above: R5 as one owner-evaluated `MoveContainerChildren`
+  intent, the restored while-dragging body with the per-frame drain tick, and the vanish case as a
+  host-copy regression.
 - **Stage 3 — item interactions.** Use/wear (the radial branch is restored here), combine, battery,
   favourite, the trader gesture, and the held-remote-item medical chain.
 - **Stage 4 — family audit and acceptance.** Both directions, a third peer, worn items, containers

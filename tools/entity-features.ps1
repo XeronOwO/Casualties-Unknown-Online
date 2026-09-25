@@ -20,8 +20,8 @@
       remove-entity <entity>          delete a row
       add-feature <feature>           add a column (every row gains a blank cell)
 
-    -Doc <docs/features/entities.md>  advisory: warn (not fail) when a feature
-                                     column has no matching "###" section.
+    -Doc <doc.md>                    optional advisory: warn (not fail) when a
+                                     feature column has no "### <feature>" section.
 
     The sync column is the completeness gate: every entity row must end up
     covered (with a path), excluded (with a reason), or missing (with a

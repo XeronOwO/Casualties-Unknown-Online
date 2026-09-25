@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: legacy-wire-dto-slice-selfcheck mechanism table (10 rows); closure re-censused at HEAD 26632345
+      file:line or runtime log) or is explicitly marked unverified — evidence: legacy-tree-migration-selfcheck mechanism table (7 rows); old-path census re-run over docs/, src/, tests/ and tools/
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both duplicated component conversions and the enemy-limb copy collapsed to one spelling; every mapper caller re-censused
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: legacy-wire-dto-slice-selfcheck, 10 mechanism rows plus the machine field-set check
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: each old-path family re-pointed whole (blocks, registers, architecture map, src XML docs, tests, tools) and the two homeless conclusions absorbed first
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: legacy-tree-migration-selfcheck mechanism table, 7 rows, each naming the file, gate or census that carries it
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: assembly/layer assertions in KernelReplicationLayerBoundaryTests; gates 139/139; suite 3803 + 139; no real-client claim
+      peer log comparison, hotrepl assertions) is decided — evidence: focused documentation/protocol/entity gates -> normative-gates project -> full suite with build -> negative control (an old path restored must turn a gate red); no real-client claim
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: ticket taken as the handoff ordered it under the owner's standing instruction; design recorded as decision 215
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors; dotnet format exit 0; gates 139/139; suite with build 3803 passing
+      process violation — evidence: the handoff instruction fixes this stage's order (absorb conclusions, re-point, then delete) and the non-deletable list; the structure choices follow docs/AGENTS.md, not a user round trip
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build "0 个警告 0 个错误"; dotnet format exit 0; gate project 145/145; full suite with build 145 + 3803 passing
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: moved files 526/345/60 lines, new vocabulary 51-145; dead codec forwarder deleted with its port; projection decided with contract evidence
+      dead mechanisms deleted in the same round) — evidence: touched C# <= 600 lines (largest 576); retired pairing gate, the docs/api scan block and Normalize() deleted with their trees; src changes are comments only
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

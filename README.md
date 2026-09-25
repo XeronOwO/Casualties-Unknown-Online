@@ -6,7 +6,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 
 ## Status
 
-**Active development — architecture evolution complete.** Phases 0–4 (feasibility, single-player entity sync, entity lifecycle, game core loop, public Mod API) are complete and runtime-verified; the typed deterministic game-state kernel migration (Phases A–E) is also complete. See [`docs/README.md`](docs/README.md) for the full documentation map, [`docs/architecture/README.md`](docs/architecture/README.md) for the active architecture, [`docs/decisions/active.md`](docs/decisions/active.md) for landed decisions, and [`docs/api/mod-api.md`](docs/api/mod-api.md) for the binding Mod API contract.
+**Active development — architecture evolution complete.** Phases 0–4 (feasibility, single-player entity sync, entity lifecycle, game core loop, public Mod API) are complete and runtime-verified; the typed deterministic game-state kernel migration (Phases A–E) is also complete. See [`docs/README.md`](docs/README.md) for the full documentation map, [`docs/architecture/README.md`](docs/architecture/README.md) for the active architecture, [`docs/decisions/active.md`](docs/decisions/active.md) for landed decisions, and [`docs/en/reference/mod-api.md`](docs/en/reference/mod-api.md) for the binding Mod API contract.
 
 ## Architecture in Brief
 
@@ -36,11 +36,11 @@ All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment in
 - [`docs/architecture/current.md`](docs/architecture/current.md) — current typed deterministic kernel design
 - [`docs/architecture/domains.md`](docs/architecture/domains.md) — domain ownership and projections
 - [`docs/architecture/protocol.md`](docs/architecture/protocol.md) — four-envelope protocol and data flow
+- [`docs/en/contributing/build-and-test.md`](docs/en/contributing/build-and-test.md) — build, test and deploy the plugin
 - [`docs/evidence/verification.md`](docs/evidence/verification.md) — evidence chain, gates, replay/simulation
-- [`docs/operations/README.md`](docs/operations/README.md) — shared operations/tooling/deployment guidance
 - [`docs/decisions/active.md`](docs/decisions/active.md) — landed binding decisions
 - [`docs/decisions/index.md`](docs/decisions/index.md) — numeric decision index
-- [`docs/api/mod-api.md`](docs/api/mod-api.md) — Phase 4 Mod API contract
+- [`docs/en/reference/mod-api.md`](docs/en/reference/mod-api.md) — the Mod API contract
 - [`docs/backlog/README.md`](docs/backlog/README.md) — open bugs, work, decisions, future
 
 ## Development

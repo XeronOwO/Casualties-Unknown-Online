@@ -41,7 +41,7 @@ own typed model and invariants.
 | [projection-framework.md](projection-framework.md) | **Active** global unified projection framework contract and migration status. |
 | [mod-status-domain.md](mod-status-domain.md) | Design proposal for the runtime mod-status domain boundary (not implemented). |
 | [protocol.md](protocol.md) | **Active** four-envelope protocol and data-flow reference. |
-| [phase-decisions.md](phase-decisions.md) | Compressed Phase A–E decision record. |
+| [../decisions/archive.md](../decisions/archive.md) | The archived decision rows, including most of the Phase A–E record; the rows that still constrain current work are in [`../decisions/active.md`](../decisions/active.md). |
 | [status.md](evolution/status.md) | Completed phase tracker and handoff state. |
 | [session-workflow.md](evolution/session-workflow.md) | Historical process rules for independent phase sessions. |
 | [architecture-guards.md](guards.md) | Active architecture guard list and landed guard automation. |

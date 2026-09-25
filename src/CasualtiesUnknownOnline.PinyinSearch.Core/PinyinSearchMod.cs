@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.PinyinSearch.Core;
 /// and no crafting path reaches it.
 ///
 /// The declared native binding names the game code the mod patches — the Tier 2
-/// declaration of <c>docs/api/advanced-modification-policy.md</c> §1.1, which
+/// declaration of the tiers section of <c>docs/en/reference/modification-policy.md</c>, which
 /// buys visibility, never stability. The same sentence lives in the mod's
 /// documentation; a host's discovery log is where the claim is checked
 /// (<c>[Mods] discovered … binds …</c>).

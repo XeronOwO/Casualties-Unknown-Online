@@ -49,7 +49,7 @@ public class BacklogIntegrityGateTests
 	};
 
 	/// <summary>Point-in-time records are deliberately NOT anchor-checked: a selfcheck, an audit or a closed ticket is the record of what was true when it was written, so a test renamed afterwards must not force history to be rewritten. Everything else under <c>docs/</c> — the live backlog folders, the decisions register, the architecture specs, the evidence pages — is gated, which is where a dead anchor means a live claim pointing at nothing. Internal because the backlog cross-reference gate exempts exactly the same records.</summary>
-	internal static readonly string[] RecordPrefixes = ["backlog/done/", "backlog/resolved/", "evidence/selfchecks/", "history/"];
+	internal static readonly string[] RecordPrefixes = ["backlog/done/", "backlog/resolved/", "evidence/selfchecks/"];
 
 	/// <summary>Every markdown document under <c>docs/</c> except the records above is anchor-checked: an evidence page that points at a test nobody declares is the same rot one directory over.</summary>
 	private static IEnumerable<(string Folder, string File, string Text)> DocumentTexts() =>

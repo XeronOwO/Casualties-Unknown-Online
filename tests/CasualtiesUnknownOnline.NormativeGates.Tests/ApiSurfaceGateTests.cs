@@ -38,7 +38,7 @@ public class ApiSurfaceGateTests
 		Assert.Fail(
 			$"The Abstractions public surface no longer matches its reviewed baseline. Review the candidate at "
 			+ $"{ApiSurfaceGate.EmittedBaselinePath}, update {ApiSurfaceGate.BaselinePath} (a removal also needs a "
-			+ $"'{ApiSurfaceGate.RemovalMarker} <key> — <reason>' tombstone), and see docs/api/advanced-modification-policy.md."
+			+ $"'{ApiSurfaceGate.RemovalMarker} <key> — <reason>' tombstone), and see docs/en/reference/modification-policy.md."
 			+ Environment.NewLine + comparison.Describe());
 	}
 

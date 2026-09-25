@@ -237,7 +237,7 @@ internal static class ApiSurfaceGate
 	{
 		var builder = new StringBuilder();
 		builder.AppendLine("# CUO Mod API public surface baseline — the reviewed record of the ONLY assembly a mod may");
-		builder.AppendLine("# reference. Policy: docs/api/advanced-modification-policy.md. Gate: ApiSurfaceGateTests.");
+		builder.AppendLine("# reference. Policy: docs/en/reference/modification-policy.md. Gate: ApiSurfaceGateTests.");
 		builder.AppendLine("#");
 		builder.AppendLine("# One entry per line, '|'-separated; a leading '#' starts a comment.");
 		builder.AppendLine("#   type|<level>|<fully qualified name>|<kind and modifiers>|<base list, '-' when there is none>");

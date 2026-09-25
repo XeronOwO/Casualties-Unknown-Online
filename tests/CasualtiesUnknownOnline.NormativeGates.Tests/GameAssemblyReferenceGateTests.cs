@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// The game-assembly binding gate. The Game Adapter is the framework's only
 /// game-binding layer and the satellite pinyin mod's game-binding half is the one
 /// declared exception (<c>docs/development/agent-reference.md</c>, Repository
-/// Layout; <c>docs/api/advanced-modification-policy.md</c> §1.2), so every other
+/// Layout; <c>docs/en/contributing/repository-map-and-pitfalls.md</c>), so every other
 /// framework project compiles against the adapter's ports, the Runtime and the
 /// engine modules instead of the game's own code. Tests and tools are consumers
 /// and stay unconstrained (<see cref="ProjectDirectionPolicy.ConsumerProjects"/>).
@@ -44,7 +44,7 @@ public class GameAssemblyReferenceGateTests
 	private static readonly Dictionary<string, string> DeclaredGameBinding = new(StringComparer.Ordinal)
 	{
 		["CasualtiesUnknownOnline.GameAdapter"] = "the framework's only game-binding layer (architecture.md §4)",
-		["CasualtiesUnknownOnline.PinyinSearch"] = "the satellite mod's game-binding half (advanced-modification-policy §1.2)",
+		["CasualtiesUnknownOnline.PinyinSearch"] = "the satellite mod's game-binding half (docs/en/contributing/repository-map-and-pitfalls.md, Where a new system belongs)",
 	};
 
 	/// <summary>The solution lists 13 projects; a scan that read fewer has broken, not improved.</summary>

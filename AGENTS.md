@@ -146,7 +146,7 @@ not the goal.
     baseline (`docs/contracts/abstractions-api-baseline.txt`, `ApiSurfaceGateTests`): an addition or removal
     fails until the baseline is reviewed and updated, a removal names its reason, and a surface that is
     not `Stable` declares its level with `[ApiStability]`
-    (`docs/api/advanced-modification-policy.md`).
+    (`docs/en/reference/modification-policy.md`).
 
 Rationale, the gate behind each item and the full statements: `docs/en/contributing/gates-and-rules.md`.
 

@@ -78,6 +78,23 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Schema version** — the version a mod stores next to its own opaque payload; the framework carries it and never migrates it.
 - **Tombstone** — a recorded refusal that stops the same creation being retried.
 
+## Contracts and modification
+
+- **Contract** — a surface CUO promises to keep; every other surface is an implementation.
+- **Implementation** — a surface with no promise: a mod may patch it, and it may change shape in any commit.
+- **Public surface** — every public type and member a caller can reach; the reviewed list of them is the baseline.
+- **Stability level** — what a public surface declares with `[ApiStability]`; a surface without the attribute is `Stable`.
+- **Tier** — how a mod binds CUO: the contract, CUO's own implementation, a declared native binding, or an unmanaged plugin.
+- **Promotion funnel** — how a need becomes an API: a patch, then a second consumer, then an experimental surface, then a stable one.
+- **Diagnostics** — the log lines an author may rely on; their absence is a bug worth reporting.
+- **Framework core** — a capability the framework's own operation needs; it ships with the plug-in.
+- **Satellite mod** — a game-facing feature that still makes sense with CUO uninstalled, so it is its own mod.
+- **Repository tool** — a development or verification tool that sits outside the plug-in's dependency graph.
+- **Reusable component** — shared machinery that waits for its second consumer before it is extracted.
+- **Enemy** — a hostile creature the game's own AI drives; its movement is host-authoritative.
+- **Runtime spawn** — an entity created during play rather than by world generation.
+- **Attack announcement** — the host publishes that an attack happened, and the client it lands on judges what it did.
+
 ## Interface and comfort
 
 - **Online panel** — the CUO overlay that creates or joins a session.

@@ -82,4 +82,4 @@ delivery-gate requirement before any code change.
 - [ ] Record decisions in `docs/decisions/active.md`.
 - [ ] Update `docs/backlog/README.md` if open work changed.
 - [ ] Update `docs/architecture/README.md` if directory/phase info changed.
-- [ ] Update `docs/history/architecture-blueprint.md` when the historical blueprint is superseded.
+- [ ] Update `docs/architecture/current.md` (and the page the design belongs to) when the design it describes has moved.

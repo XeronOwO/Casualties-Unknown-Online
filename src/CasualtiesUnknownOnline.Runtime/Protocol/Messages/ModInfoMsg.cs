@@ -43,7 +43,7 @@ public sealed class ModInfoMsg
 	/// applies its <c>NativeBindingParity</c> rule: allow, warn (the default) or
 	/// require. Parity is visibility, never proof — an undeclared binding stays
 	/// invisible and an identical declaration does not prove identical
-	/// behaviour (`docs/api/mod-api.md` §5).
+	/// behaviour (the "Handshake consistency" section of `docs/en/reference/mod-api.md`).
 	/// </summary>
 	[ProtoMember(5)]
 	public string? NativeBinding { get; set; }

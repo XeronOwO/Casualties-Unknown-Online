@@ -26,10 +26,11 @@ tools/entity-features.ps1 validate | list | get <entity> [feature] | set <entity
 - The CSV is UTF-8 without BOM; a cell may not contain a comma (use `/` to separate values).
 - Every read validates first and every write validates after — a misaligned row aborts with exit 1,
   never silently.
-- The narrative pages are `docs/features/items.md`, `docs/features/entities.md` and
-  `docs/features/enemies.md`. The entity narrative table and the entity CSV are cross-checked by
-  `EntityFeaturesDocConsistencyTests`, so a cell edited in one has to be refreshed in the other in the
-  same change.
+- The narrative lives on this page: the item section below for the item rows, and the
+  [Entities by family](#entities-by-family) tables for the entity rows, with the enemy design itself in
+  [How enemies stay in step](../internals/enemy-sync.md). The entity tables and the entity CSV are
+  cross-checked by `EntityFeaturesDocConsistencyTests`, so an entity added, dropped or re-verdicted in
+  one has to be refreshed in the other in the same change.
 
 ## What `sync` means
 
@@ -229,7 +230,8 @@ The serialized `Openable` components are all in `resources.assets` (17 instances
 `Structures/BrickLoot`, and `instantOpen` only on `foodbox` — the root prefab plus the nested copy inside
 `BioContainer`. Every other `Openable` is lockpick.
 
-**Creatures** — the host-authoritative enemy domain, whose own page is `docs/features/enemies.md`.
+**Creatures** — the host-authoritative enemy domain, whose own page is
+[How enemies stay in step](../internals/enemy-sync.md).
 
 | Entity | Sync | Path |
 |---|---|---|

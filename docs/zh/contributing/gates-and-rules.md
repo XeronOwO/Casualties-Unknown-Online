@@ -91,7 +91,7 @@
     才算对第三方公开的契约。`Runtime` 和 `GameAdapter` 是[模组（mod）](../reference/glossary.md)可以打补丁但从未被承诺的实现。
     `Abstractions` 的公开面是受门禁保护的基线（[abstractions-api-baseline.txt](../../contracts/abstractions-api-baseline.txt)）：
     增一项或删一项都会失败，直到基线被复核并更新；删除必须写明理由；不是 `Stable` 的面要用 `[ApiStability]` 声明自己的级别
-    （[advanced-modification-policy.md](../../api/advanced-modification-policy.md)）。
+    （[修改策略](../reference/modification-policy.md)）。
 
 ## 兼容边界
 

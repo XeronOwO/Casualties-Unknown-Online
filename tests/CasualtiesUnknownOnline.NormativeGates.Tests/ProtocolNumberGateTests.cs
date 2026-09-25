@@ -12,28 +12,31 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// document states the rule and points at the constant, it never restates the
 /// number. The number lives in exactly one place — <c>ProtocolVersion.Current</c>
 /// — and its own doc comment is the wire-change log, so a copied number is a
-/// future lie (the drift this gate was written for: <c>docs/api/mod-api.md</c>
-/// claimed 31 while the constant was 34, and the decision that defines the
-/// numbering policy claimed 31 too).
+/// future lie (the drift this gate was written for: the mod API contract claimed
+/// 31 while the constant was 34, and the decision that defines the numbering
+/// policy claimed 31 too).
 ///
 /// Scan surface and its boundary, stated rather than implied: only the documents
-/// that state CURRENT facts are scanned — <c>AGENTS.md</c>, <c>docs/api/**/*.md</c>,
-/// the active decision register, and the live architecture/development/evidence
-/// pages named in <see cref="LiveDocumentPaths"/>. Records of a past state
-/// (<c>docs/evidence/**</c> self-checks, backlog tickets, the architecture
-/// evolution log, <c>docs/architecture/phase-decisions.md</c>) are exempt on
-/// purpose: they are history, they must keep the number they were written with, and
-/// rewriting them would destroy the record. What the gate recognizes is the CLAIM
-/// shape (a claim word or <c>=</c> followed by a number), so a historical arrow such
-/// as "23 → 24" and a bare pointer to the constant both pass; a phrasing that claims
-/// the current value without one of those words is the matcher's known blind spot.
+/// that state CURRENT facts are scanned — <c>AGENTS.md</c>, the live architecture,
+/// development and evidence pages named in <see cref="LiveDocumentPaths"/>, the
+/// active decision register, and the six mod-facing reference pages under
+/// <c>docs/en|zh/reference/</c> (the mod API contract, the modification policy and
+/// the protocol-message table, in both blocks) that state the contract a mod codes
+/// against.
+/// Records of a past state (<c>docs/evidence/**</c> self-checks, backlog tickets,
+/// the architecture evolution logs) are exempt on purpose: they are history, they
+/// must keep the number they were written with, and rewriting them would destroy
+/// the record. What the gate recognizes is the CLAIM shape (a claim word or
+/// <c>=</c> followed by a number), so a historical arrow such as "23 → 24" and a
+/// bare pointer to the constant both pass; a phrasing that claims the current value
+/// without one of those words is the matcher's known blind spot.
 /// </summary>
 public class ProtocolNumberGateTests
 {
 	private const string VersionSource = "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs";
 
-	/// <summary>Census floor: the live surface carries eleven documents (measured 2026-09-20); the fixed paths are existence-checked, so a scan that finds fewer is a broken scan or a deleted live doc, not a clean tree.</summary>
-	private const int LiveDocumentFloor = 11;
+	/// <summary>Census floor: the live surface carries fifteen documents (measured 2026-09-25); the fixed paths are existence-checked, so a scan that finds fewer is a broken scan or a deleted live doc, not a clean tree.</summary>
+	private const int LiveDocumentFloor = 15;
 
 	private static readonly string[] LiveDocumentPaths =
 	[
@@ -45,7 +48,13 @@ public class ProtocolNumberGateTests
 		"docs/architecture/protocol.md",
 		"docs/architecture/domains.md",
 		"docs/development/agent-reference.md",
-		"docs/evidence/normative-gates.md"
+		"docs/evidence/normative-gates.md",
+		"docs/en/reference/mod-api.md",
+		"docs/en/reference/modification-policy.md",
+		"docs/en/reference/protocol-messages.md",
+		"docs/zh/reference/mod-api.md",
+		"docs/zh/reference/modification-policy.md",
+		"docs/zh/reference/protocol-messages.md"
 	];
 
 	private static readonly Regex VersionLineRegex = new(@"ProtocolVersion\.Current|protocol version", RegexOptions.IgnoreCase);
@@ -104,17 +113,6 @@ public class ProtocolNumberGateTests
 		foreach (var document in LiveDocumentPaths)
 		{
 			yield return document;
-		}
-
-		var apiDirectory = RepositoryPaths.File("docs/api");
-		if (!Directory.Exists(apiDirectory))
-		{
-			yield break;
-		}
-
-		foreach (var document in Directory.EnumerateFiles(apiDirectory, "*.md", SearchOption.AllDirectories).OrderBy(path => path, StringComparer.Ordinal))
-		{
-			yield return Path.GetRelativePath(RepositoryPaths.Root, document).Replace(Path.DirectorySeparatorChar, '/');
 		}
 	}
 

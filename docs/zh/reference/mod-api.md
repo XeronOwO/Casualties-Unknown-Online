@@ -8,7 +8,7 @@
 
 ## 模组可以引用什么
 
-`CUO.Abstractions` 是模组唯一引用的程序集，而这句话说的是**契约**，不是给模组划的围栏：按名字给 CUO 自己的实现打[补丁](glossary.md)是允许的，但不带任何承诺；需要用到游戏自己代码的模组，通过声明式的[原生绑定](glossary.md)这一层去绑。哪一层是承诺、哪一层只是实现，模组可以改什么、作者能指望哪些诊断信息，写在 `docs/api/advanced-modification-policy.md`，它的 §1.1 就是那张层级表。
+`CUO.Abstractions` 是模组唯一引用的程序集，而这句话说的是**契约**，不是给模组划的围栏：按名字给 CUO 自己的实现打[补丁](glossary.md)是允许的，但不带任何承诺；需要用到游戏自己代码的模组，通过声明式的[原生绑定](glossary.md)这一层去绑。哪一层是承诺、哪一层只是实现，模组可以改什么、作者能指望哪些诊断信息，写在[修改策略](modification-policy.md)，它的层级一节就是那张表。
 
 ## 模组是怎么被加载的
 
@@ -52,7 +52,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `SpawnEntity` | 世界实体生成（`IModEntitySpawn`）、世界物品生成（`IModItemSpawn`），以及地块／方块、结构与液体的放置接口面（`IModTilePlacement`、`IModStructurePlacement`、`IModLiquidPlacement`） |
 | `AccessNativeApi` | 经过筛选的原生／游戏私有操作[注册表](glossary.md)（`IModNativeApi`） |
 
-**`Dependencies`** 列出的模组 id 会先于依赖方加载。**`NativeBinding`** 声明模组绑定的是游戏自己的哪些代码 —— 即 `docs/api/advanced-modification-policy.md` §1.1 里的 Tier 2。它是声明出来的**事实**，不是权限，也不是拒绝原因：`ModPermission` 才是 CUO 强制的部分，而这里 CUO 什么都不强制，所以未声明也无从探测，这条声明是「自愿坦白」，唯一的作用力来自同伴的对等规则。发现阶段会把空值（空串或纯空白）归一成「没有声明」，并写进 `[Mods] discovered …` 那行日志，于是主机的日志不用读任何模组源码就能回答「哪个模组绑了游戏自己的代码」。它买到的是可见性，绝不是稳定性：它点名的是游戏的东西，一次游戏更新就可能弄坏它，而 CUO 无从置喙。这条声明还会随[握手](glossary.md)一起走（每个 `ModInfoMsg` 都带着它），由主机的 `NativeBindingParity` 规则按模组 id 判定 —— 见[握手一致性](#握手一致性)。
+**`Dependencies`** 列出的模组 id 会先于依赖方加载。**`NativeBinding`** 声明模组绑定的是游戏自己的哪些代码 —— 即[修改策略](modification-policy.md)里的 Tier 2。它是声明出来的**事实**，不是权限，也不是拒绝原因：`ModPermission` 才是 CUO 强制的部分，而这里 CUO 什么都不强制，所以未声明也无从探测，这条声明是「自愿坦白」，唯一的作用力来自同伴的对等规则。发现阶段会把空值（空串或纯空白）归一成「没有声明」，并写进 `[Mods] discovered …` 那行日志，于是主机的日志不用读任何模组源码就能回答「哪个模组绑了游戏自己的代码」。它买到的是可见性，绝不是稳定性：它点名的是游戏的东西，一次游戏更新就可能弄坏它，而 CUO 无从置喙。这条声明还会随[握手](glossary.md)一起走（每个 `ModInfoMsg` 都带着它），由主机的 `NativeBindingParity` 规则按模组 id 判定 —— 见[握手一致性](#握手一致性)。
 
 ## 生命周期与上下文
 
@@ -365,7 +365,7 @@ internal sealed class PinyinSearchStage : IResourceLocationMatchStage
 - **生命周期与查询快照**：这张表与进程同寿（模组每个进程只发现一次，和它的内容注册一样），`TryUnregisterMatchStage` 是阶段离开它的唯一途径。一次补全查询按它开始时已注册的阶段排序，所以查询进行中又有阶段注册或注销，改变的是下一次查询，不是正在跑的那次。（阶段在 `Matches` 里回调目录自己的查询，那是模组自己的递归 —— 目录在那里不做任何承诺。）
 - **安全栏**：一个模组最多持有 8 个阶段。阶段为 null、id 为空白、id 超过 128 字符、id 重复以及超过上限，都会返回 `false` 并留日志（`[ContentId]`）；`TryUnregisterMatchStage` 只会移除调用方模组自己的阶段。
 - **失败隔离**：目录里有一个阶段抛异常时，这条条目按「不匹配」算，其余阶段照常运行，失败按 debug 级别记录 —— 因为这条路径是逐按键、逐条目在跑。模组的异常永远不会弄坏控制台。
-- **稳定性**：`IModResourceCompletion`、`IResourceLocationMatchStage` 与 `ResourceLocationEntry` 属于 `Experimental`（`docs/api/advanced-modification-policy.md`）；已随仓库发布的拼音搜索模组是这条接缝的第一个消费者，也是注册方式的完整示例（`src/CasualtiesUnknownOnline.PinyinSearch.Core/PinyinSearchMod.cs`）。
+- **稳定性**：`IModResourceCompletion`、`IResourceLocationMatchStage` 与 `ResourceLocationEntry` 属于 `Experimental`（见[修改策略](modification-policy.md)）；已随仓库发布的拼音搜索模组是这条接缝的第一个消费者，也是注册方式的完整示例（`src/CasualtiesUnknownOnline.PinyinSearch.Core/PinyinSearchMod.cs`）。
 
 ## 握手一致性
 
@@ -384,9 +384,9 @@ internal sealed class PinyinSearchStage : IResourceLocationMatchStage
 
 **原生绑定对等**单独判定，因为它声明的是事实，不是网络契约。每个 `ModInfoMsg` 都带该模组的 `NativeBinding`；主机**按模组 id**与自己的声明比较，而且只比较两边都列出的模组 —— 只有一侧列出的模组没有对照物，上表也已经决定了谁能缺什么。空白声明在两侧都算「没有」（发现阶段用的是同一套归一），所以空白与缺失是同一个答案，而「声明了、对面没有」算不同。规则是主机 `HostRules` 里的 `NativeBindingParity` 项（`allow`／`warn`／`require`，默认 `warn`），可以在联机界面的管理页上改，也可以用控制台的主机规则命令改。默认取 warn 是因为这条声明刚出现：默认拒绝的主机会把「主机先更新」的每一个会话都锁在门外，而未声明的绑定本来就看不见。比较在去除首尾空白后逐字符进行（区分大小写）：只有周围空白不同的两种写法算相同，大小写不同则不算 —— 第三方作者要通过一台 `require` 的主机，就得把绑定名写得一模一样。
 
-对等规则诚实证明的是：对两边都列出的模组，两边的声明一致，所以开启 require 的主机知道每个被准入的成员要么声明了同样的绑定、要么被拒。它**不能**证明的是：未声明的绑定无从探测（CUO 不站反作弊立场，见 `docs/api/advanced-modification-policy.md` §4），所以一个绑了游戏却不声明的模组能通过所有检查；而声明相同也不证明行为相同 —— 同一个名字可能盖着不同的补丁。选择 `allow` 的主机是明知风险仍然承担，`warn` 下的不一致则留下那行日志作为记录。
+对等规则诚实证明的是：对两边都列出的模组，两边的声明一致，所以开启 require 的主机知道每个被准入的成员要么声明了同样的绑定、要么被拒。它**不能**证明的是：未声明的绑定无从探测（CUO 不站反作弊立场，见[修改策略](modification-policy.md)），所以一个绑了游戏却不声明的模组能通过所有检查；而声明相同也不证明行为相同 —— 同一个名字可能盖着不同的补丁。选择 `allow` 的主机是明知风险仍然承担，`warn` 下的不一致则留下那行日志作为记录。
 
-版本是严格的 SemVer；带状态的模式按**优先级相等**比较（忽略构建元数据）。兼容范围不会被推断；它们本该对照的那个面已经存在：`docs/api/advanced-modification-policy.md` 定下了稳定性层级，`docs/contracts/abstractions-api-baseline.txt` 是经过复核的公开接口面记录，由 `ApiSurfaceGateTests` 强制。
+版本是严格的 SemVer；带状态的模式按**优先级相等**比较（忽略构建元数据）。兼容范围不会被推断；它们本该对照的那个面已经存在：[修改策略](modification-policy.md)定下了稳定性分级，`docs/contracts/abstractions-api-baseline.txt` 是经过复核的公开接口面记录，由 `ApiSurfaceGateTests` 强制。
 
 ## 一个模组的布局
 

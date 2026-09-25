@@ -1,5 +1,5 @@
 {
-  "//": "Anchors that a GATED document cites but that no test declares any more. Every entry must still be cited by its document (the gate fails on a stale exception) and must carry a reason. Add here only for a HISTORICAL record inside a gated document — a red/green log or a dated pass narrative — never to excuse a live claim: a live claim whose anchor is gone is a finding, not an exception. Point-in-time record folders (docs/evidence/selfchecks/, docs/history/, docs/backlog/done/, docs/backlog/resolved/) are out of scope entirely and need no entries.",
+  "//": "Anchors that a GATED document cites but that no test declares any more. Every entry must still be cited by its document (the gate fails on a stale exception) and must carry a reason. Add here only for a HISTORICAL record inside a gated document — a red/green log or a dated pass narrative — never to excuse a live claim: a live claim whose anchor is gone is a finding, not an exception. Point-in-time record folders (docs/evidence/selfchecks/, docs/backlog/done/, docs/backlog/resolved/) are out of scope entirely and need no entries — the one canonical list is BacklogIntegrityGateTests.RecordPrefixes.",
   "exceptions": [
     {
       "ticket": "docs/backlog/review/runtime-entity-spawn-backfill.md",

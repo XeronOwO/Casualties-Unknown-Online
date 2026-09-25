@@ -18,13 +18,15 @@ hand in that cycle. Nothing in the tree fails when one of those paths goes stale
   reviewer reproduced the failure by restoring the old literal and running `validate`: exit 1 with a
   file-not-found error from `tools/item-features.ps1`.
 - **The item matrix has no consistency test.** `EntityFeaturesDocConsistencyTests` copies
-  `entity-features-matrix.csv` into the test output and cross-checks the narrative table against it;
-  no test reads `item-features-matrix.csv` at all, so its shape and its agreement with
-  `docs/en|zh/reference/feature-matrices.md` are review-only facts.
-- **What is already covered:** the markdown links to the CSVs (`docs/features/items.md`,
-  `docs/features/entities.md`, `docs/contracts/README.md`) are walked by the documentation-tree and
-  backlog link gates, so a move that forgets a link fails. The gap is the tool literals and the
-  inline-code path mentions, which no gate reads.
+  `entity-features-matrix.csv` and the entity narrative page into the test output and cross-checks the
+  page's entity tables against the CSV — entity coverage and the sync verdict, deliberately not the
+  path wording, which the page phrases in its own words; no test reads `item-features-matrix.csv` at
+  all, so its shape and its agreement with `docs/en|zh/reference/feature-matrices.md` are review-only
+  facts.
+- **What is already covered:** the markdown links to the CSVs (`docs/contracts/README.md`, and the
+  narrative pages `docs/en/reference/feature-matrices.md` + `docs/zh/reference/feature-matrices.md`)
+  are walked by the documentation-tree and backlog link gates, so a move that forgets a link fails. The
+  gap is the tool literals and the inline-code path mentions, which no gate reads.
 
 ## Suggested shape
 

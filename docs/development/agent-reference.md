@@ -43,7 +43,7 @@ test project references directly.
 
 See `docs/README.md` for the documentation index. Before deciding that a system belongs in the
 plug-in or in its own mod, apply the four-layer rule in
-`docs/api/advanced-modification-policy.md` §1.2 ("which systems live where").
+`docs/en/contributing/repository-map-and-pitfalls.md` ("Where a new system belongs").
 
 
 ## Architecture & Sync Rules
@@ -160,8 +160,7 @@ plug-in or in its own mod, apply the four-layer rule in
 
 ## Known Pitfalls
 
-`[REF]` Detailed pitfalls list (historical blueprint, still applicable):
-`docs/history/architecture-blueprint.md` §10. Keep these in mind:
+`[REF]` The traps this repository is known for. Keep these in mind:
 
 - A number in a committed document (a count, a line count, a suite total) must be reproducible
   from the tree it describes, or carry its source; a figure measured from an uncommitted

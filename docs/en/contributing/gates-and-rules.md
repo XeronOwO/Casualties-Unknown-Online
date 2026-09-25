@@ -124,7 +124,7 @@ verification of behaviour) and **maintainability** (readable and changeable by t
     ([abstractions-api-baseline.txt](../../contracts/abstractions-api-baseline.txt)): an addition or a
     removal fails until the baseline is reviewed and updated, a removal names its reason, and a
     surface that is not `Stable` declares its level with `[ApiStability]`
-    ([advanced-modification-policy.md](../../api/advanced-modification-policy.md)).
+    ([the modification policy](../reference/modification-policy.md)).
 
 ## The compatibility boundary
 

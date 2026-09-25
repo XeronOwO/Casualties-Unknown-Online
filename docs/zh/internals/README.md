@@ -14,7 +14,8 @@ CUO 为什么这样设计，都在 `docs/zh/internals/`：系统的形状、谁�
 6. [世界怎么存档](save-archive.md) —— 世界归档、两个切片接缝，以及一次存档背后的事务。
 7. [适配器与游戏更新](adapter-and-updates.md) —— 唯一认识游戏的那一层，以及它怎么吸收变动。
 8. [适配器背后的游戏](game-internals.md) —— CUO 必须了解的游戏部分，以及一次更新可能挪动什么。
-9. [权限与安全](permissions-and-security.md) —— 声明的权限强制什么，以及 CUO 刻意不防什么。
+9. [敌人怎么保持一致](enemy-sync.md) —— 为什么客机根本不模拟敌人，以及一次攻击由谁判定。
+10. [权限与安全](permissions-and-security.md) —— 声明的权限强制什么，以及 CUO 刻意不防什么。
 
 这条线的下一站是[贡献者文档](../contributing/README.md)：怎么构建、测试、复核并记录对上面任何一项的改动。
 

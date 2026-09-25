@@ -49,9 +49,44 @@ undeclared project and a consumer reaching down are all refused.
 
 A satellite mod lives in this repository beside the framework and keeps the same line: only its
 game-binding half references the game assemblies, and its game-free half is what the test project
-references directly. Before deciding whether a system belongs in the plug-in or in its own mod, apply
-the four-layer rule in [advanced-modification-policy.md](../../api/advanced-modification-policy.md)
-§1.2 ("which systems live where").
+references directly.
+
+## Where a new system belongs
+
+[The modification policy](../reference/modification-policy.md) says how a mod may bind CUO; this section
+says where a **feature** belongs — the question a contributor actually asks, "should this be its own
+mod?". Four layers, in order of distance from the framework:
+
+| Layer | What it is | Ships with the plug-in? | Examples |
+|---|---|---|---|
+| Framework core | A capability the framework's own operation needs: its control plane, its administration and safety surface, its own results reaching the player, the shared simulation | Yes | the command console, the save layer, the session/world/entity domains, the mod loader |
+| Satellite mod | A game-facing feature with no session vocabulary of its own; it works with CUO uninstalled | No — its own mod | pinyin search (`src/CasualtiesUnknownOnline.PinyinSearch*`) |
+| Repository tool | Needs neither the game at runtime nor the plug-in's dependency graph; it serves development and verification | No — and it is not a mod | the contract toolchain (`tools/CasualtiesUnknownOnline.ContractTool`) |
+| Reusable component | Machinery several consumers can share, with no session vocabulary of its own | Depends on its consumers | the console's input/completion engine; the pinyin matcher core |
+
+**The test** — six questions, in order; the first two decide on their own:
+
+1. Does its vocabulary name session, authority, world, save or mod state? Yes → framework core.
+2. Does the framework still work without it — its administration, its safety surface, its own results
+   reaching the player? No → framework core.
+3. Does it still make sense with CUO uninstalled? No → framework core; yes → keep asking.
+4. Is it game-facing experience or session-facing capability? Session-facing → framework core.
+5. Would extracting it create a two-way dependency, or force the framework to publish a large new
+   contract? Yes → framework core, or a component rather than a satellite.
+6. Does it need the game's own code? Yes → the satellite binds it through the declared tier.
+
+Worked examples, so the next reader does not re-derive this:
+
+- **Pinyin search** — 1 no, 2 no, 3 yes, 4 game-facing → a satellite. It landed as its own pair of
+  projects, with the CUO-resident implementation deleted.
+- **The command console** — 1 yes (its verbs and its output buffer carry the session's own results),
+  2 yes (a host without it loses the administration and save verbs and stops seeing the
+  save/restore/starting-supply accounts), 3 no, 5 yes → framework core. Its input/completion engine is
+  the component candidate, and the [promotion funnel](../reference/modification-policy.md) says a
+  component waits for its second consumer.
+
+A split is never free: each shipped artifact adds its own build, deploy, verification and acceptance
+surface, and a framework whose control plane is an optional add-on has made governance optional.
 
 ## Where a document goes
 
@@ -59,10 +94,16 @@ the four-layer rule in [advanced-modification-policy.md](../../api/advanced-modi
   ([Writing documentation](documentation-standard.md)).
 - `docs/standard/` — the terminology and pair-alignment registries the rules depend on.
 - `docs/contracts/` — the machine baselines and tables the gates and tools read
-  ([`abstractions-api-baseline.txt`, the two feature matrices](../../contracts/README.md)); the JSON
-  baselines under `docs/evidence/` still sit beside their subject.
-- `docs/api/` — legacy pages whose conclusions are moving into the blocks; deleting them is the last
-  step of the migration.
+  ([`abstractions-api-baseline.txt`, the feature matrices and the event-replay matrix](../../contracts/README.md));
+  the JSON baselines under `docs/evidence/` still sit beside their subject.
+- `docs/architecture/` — the architecture specifications in English: the active design
+  ([`current.md`](../../architecture/current.md), [`domains.md`](../../architecture/domains.md),
+  [`protocol.md`](../../architecture/protocol.md), `guards.md`, `projection-framework.md`,
+  `mod-status-domain.md`, `save-archive-format.md`, `glossary.md`) and the completed evolution history
+  under [`evolution/`](../../architecture/README.md). Contributor material, outside the human
+  navigation.
+- `docs/development/` — the agent-facing reference pages: the repository layout and pitfalls, the
+  review prompt, and the game-update runbook.
 - `docs/backlog/`, `docs/evidence/`, `docs/decisions/` and the other process records — English only,
   outside the human navigation; their conclusions belong in the pages above.
 
@@ -118,7 +159,7 @@ the four-layer rule in [advanced-modification-policy.md](../../api/advanced-modi
 - [Gates and binding rules](gates-and-rules.md) — the rules behind these gates
 - [Build, test and deploy](build-and-test.md) — the commands that run them
 - [Writing documentation](documentation-standard.md) — where a page goes instead of a stray file
-- [Advanced modification policy](../../api/advanced-modification-policy.md) — the four-layer rule and the stability tiers
+- [The modification policy](../reference/modification-policy.md) — the stability tiers and what a mod may patch
 
 ---
 

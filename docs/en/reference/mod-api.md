@@ -17,7 +17,7 @@ not a fence around what a mod may do: patching CUO's own implementation by name 
 no promise, and a mod that needs the game's own code binds it through the declared
 [native binding](glossary.md) tier. Which surface is a promise, which is only an implementation, what a
 mod may patch and what diagnostics an author can expect are
-`docs/api/advanced-modification-policy.md`; its §1.1 is the tier table.
+[The modification policy](modification-policy.md); its tiers section is the one to read.
 
 ## How a mod is loaded
 
@@ -80,7 +80,7 @@ and their live enforcement points:
 | `AccessNativeApi` | the curated native/game-private operation registry (`IModNativeApi`) |
 
 **`Dependencies`** are mod ids loaded before the dependent. **`NativeBinding`** names the game's own
-code a mod binds — the declared Tier 2 of `docs/api/advanced-modification-policy.md` §1.1. It is a
+code a mod binds — the declared Tier 2 of [The modification policy](modification-policy.md). It is a
 declared FACT, not a permission and not a rejection cause: `ModPermission` is what CUO enforces, and
 CUO enforces nothing here, so an undeclared binding is undetectable and the declaration is opt-in
 honesty whose only force is another peer's parity policy. Discovery normalizes a blank value (empty or
@@ -591,7 +591,7 @@ internal sealed class PinyinSearchStage : IResourceLocationMatchStage
   the remaining stages still run, and the failure is logged at debug, because this path runs per
   keystroke per entry. A mod's exception never breaks the console.
 - **Stability**: `IModResourceCompletion`, `IResourceLocationMatchStage` and `ResourceLocationEntry` are
-  `Experimental` (`docs/api/advanced-modification-policy.md`); the shipped pinyin search mod is the
+  `Experimental` (see [The modification policy](modification-policy.md)); the shipped pinyin search mod is the
   first consumer and the worked example
   (`src/CasualtiesUnknownOnline.PinyinSearch.Core/PinyinSearchMod.cs`).
 
@@ -627,14 +627,14 @@ a third-party author must spell the binding identically to pass a `require` host
 What parity proves: for a mod both sides list, the two sides' declarations agree, so a host that
 requires it knows every admitted member either declared the same binding or was refused. What it does
 **not** prove: an undeclared binding is undetectable (CUO takes no anti-cheat stance,
-`docs/api/advanced-modification-policy.md` §4), so a mod that binds the game without declaring it
+[The modification policy](modification-policy.md)), so a mod that binds the game without declaring it
 passes every check; and an equal declaration does not prove equal behaviour — the same name may cover
 different patches. A host that chooses `allow` carries the risk knowingly, and a `warn` mismatch leaves
 the log line as its record.
 
 Versions are strict SemVer, and for state-bearing modes the comparison is **precedence equality**
 (build metadata ignored). Compatibility ranges are not inferred; the surface they would have to be
-checked against is the stability levels in `docs/api/advanced-modification-policy.md` and the reviewed
+checked against is the stability levels in [The modification policy](modification-policy.md) and the reviewed
 public surface in `docs/contracts/abstractions-api-baseline.txt`, enforced by `ApiSurfaceGateTests`.
 
 ## The layout of a mod

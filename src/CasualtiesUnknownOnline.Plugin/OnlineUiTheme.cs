@@ -38,6 +38,8 @@ internal static class OnlineUiTheme
 
 	private static GUIStyle? _launcher;
 
+	private static float _launcherAlpha = float.NaN;
+
 	private static GUIStyle? _tabActive;
 
 	private static GUIStyle? _tabInactive;
@@ -56,7 +58,29 @@ internal static class OnlineUiTheme
 
 	internal static GUIStyle CloseButton() => _closeButton ??= CreateCloseButton();
 
-	internal static GUIStyle Launcher() => _launcher ??= CreateLauncher();
+	/// <summary>
+	/// The launcher style at the given opacity (0..1). The launcher's idle fade re-derives its text
+	/// colours from the theme palette instead of pushing the alpha through the ambient <c>GUI.color</c>
+	/// tint, which the launcher's draw path never consumes. The colours are re-derived only when the
+	/// alpha CHANGES: the launcher holds one alpha for seconds at a time (the idle window, the
+	/// translucent floor, a hover), and every <c>GUIStyleState</c> access allocates a wrapper, so a
+	/// steady alpha must not touch the style at all. One control uses this style, so re-deriving it is
+	/// deterministic.
+	/// </summary>
+	internal static GUIStyle Launcher(float alpha)
+	{
+		var style = _launcher ??= CreateLauncher();
+		if (alpha.Equals(_launcherAlpha))
+		{
+			return style;
+		}
+
+		_launcherAlpha = alpha;
+		style.normal.textColor = WithAlpha(Accent, alpha);
+		style.hover.textColor = WithAlpha(Text, alpha);
+		style.active.textColor = WithAlpha(Accent, alpha);
+		return style;
+	}
 
 	internal static GUIStyle Tab(bool active) => active
 		? _tabActive ??= CreateTab(active: true)
@@ -81,14 +105,28 @@ internal static class OnlineUiTheme
 		return style;
 	}
 
-	internal static void DrawBackground(Rect rect)
+	internal static void DrawBackground(Rect rect) => DrawFrame(rect, Panel, Border, alphaBlend: false);
+
+	/// <summary>
+	/// The same panel and border at a scaled alpha, alpha-BLENDED. The launcher's idle fade needs both
+	/// halves of that sentence: the shared path above hands its colours to the explicit-colour
+	/// <c>GUI.DrawTexture</c> overload, which takes them verbatim — the ambient <c>GUI.color</c> tint
+	/// never reaches it — and it asks for <c>alphaBlend: false</c>. Folding the alpha into the colours
+	/// and blending them is the one combination in which a translucent launcher is drawn translucent.
+	/// </summary>
+	internal static void DrawBackground(Rect rect, float alpha) =>
+		DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha), alphaBlend: true);
+
+	private static void DrawFrame(Rect rect, Color panel, Color border, bool alphaBlend)
 	{
-		GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, Panel, 0f, 0f);
-		GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, Border, 0f, 0f);
-		GUI.DrawTexture(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, Border, 0f, 0f);
-		GUI.DrawTexture(new Rect(rect.x, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, Border, 0f, 0f);
-		GUI.DrawTexture(new Rect(rect.xMax - 1f, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, Border, 0f, 0f);
+		GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, panel, 0f, 0f);
+		GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, border, 0f, 0f);
+		GUI.DrawTexture(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, border, 0f, 0f);
+		GUI.DrawTexture(new Rect(rect.x, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, border, 0f, 0f);
+		GUI.DrawTexture(new Rect(rect.xMax - 1f, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, border, 0f, 0f);
 	}
+
+	private static Color WithAlpha(Color color, float alpha) => new(color.r, color.g, color.b, color.a * alpha);
 
 	/// <summary>Full-screen-facing overlay background for transient/compact
 	/// surfaces such as the Minecraft-like command console. Unlike the modal

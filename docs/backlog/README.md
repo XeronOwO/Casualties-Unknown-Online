@@ -1,4 +1,4 @@
-﻿# CUO Backlog
+# CUO Backlog
 
 DevOps-style issue/requirement backlog. Every item has its own ticket file under one
 status folder; moving a ticket to another folder is the status transition.
@@ -51,9 +51,9 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
 - [Two native DamageBlock callers stay unhooked](todo/unhooked-damage-block-callers.md) — **Low-Medium** — the footstep crush and the burrow report nothing.
 - [Local-only item and body sounds](todo/unhooked-item-and-body-sound-families.md) — **Low-Medium** — medical, tool and gesture clips report nothing.
-- [CUO launcher button covers the view](todo/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
 - [Remove the Online UI console page](todo/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 - [An earthquake's clock write ends an acceleration](todo/world-acceleration-quake-direct-write.md) — **Medium** — the direct-write sibling.
+- [Online UI panels ask for alphaBlend false](todo/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — their panel alpha may never blend.
 
 ### Review
 
@@ -187,6 +187,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
 - [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
+- [CUO launcher button covers the view](review/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
 
 ### Future
 

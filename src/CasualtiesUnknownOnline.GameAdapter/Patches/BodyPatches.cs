@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 using UnityEngine;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -25,11 +26,16 @@ internal static class BodyPatches
 	{
 		// GetComponentInParent: the driver lives on the Body GameObject.
 		// == null: Unity object (a missing component is managed-null, same check).
-		// A carried local body is also proxy-driven: its simulation is skipped
-		// and GameAdapter.CarryInteraction moves its transform instead.
+		// A remote clone and a dead/unconscious carried body (the pinned-ragdoll
+		// presentation) skip the original simulation. A conscious/alive carried
+		// rider does NOT: the carry relation owns its transform, not its
+		// simulation, so it keeps the whole native per-frame pass.
 		private static bool Prefix(Body __instance) =>
-			__instance.GetComponentInParent<RemoteBodyDriver>() == null
-			&& !CarriedBodyDriver.IsCarrying(__instance);
+			!CarriedBodySimulation.SkipsNativeSimulation(
+				__instance.GetComponentInParent<RemoteBodyDriver>() != null,
+				CarriedBodyDriver.IsCarrying(__instance),
+				__instance.alive,
+				__instance.conscious);
 	}
 
 
@@ -38,13 +44,20 @@ internal static class BodyPatches
 	{
 		// Limb.Update (Limb.cs:498+) simulates wounds/infection, writes shader
 		// params from those numbers and consumes Random (Limb.cs:535) — none of
-		// it applies to a render clone (its vitals are not synced). Skip.
+		// it applies to a render clone (its vitals are not synced), while a
+		// carried rider's own limbs must keep simulating it. The decision is
+		// the body's, not the limb's: read the parent body's rule.
 		// GetComponentInParent: the driver lives on the Body GameObject.
 		// == null: Unity object (a missing component is managed-null, same check).
-		// A carried local body is likewise proxy-driven while carried.
-		private static bool Prefix(Limb __instance) =>
-			__instance.GetComponentInParent<RemoteBodyDriver>() == null
-			&& !CarriedBodyDriver.IsCarryingInParent(__instance);
+		private static bool Prefix(Limb __instance)
+		{
+			var body = __instance.body; // Unity object — ==
+			return !CarriedBodySimulation.SkipsNativeSimulation(
+				__instance.GetComponentInParent<RemoteBodyDriver>() != null,
+				CarriedBodyDriver.IsCarryingInParent(__instance),
+				body != null && body.alive,
+				body != null && body.conscious);
+		}
 	}
 
 	[HarmonyPatch(typeof(Body), "Attack")]
@@ -207,7 +220,7 @@ internal static class BodyPatches
 			internal bool WasGrounded;
 		}
 
-		private static void Prefix(Body __instance, out LandingState __state)
+		private static bool Prefix(Body __instance, out LandingState __state)
 		{
 			__state = new LandingState
 			{
@@ -215,10 +228,33 @@ internal static class BodyPatches
 					&& !CarriedBodyDriver.IsCarrying(__instance), // Unity objects — ==
 				WasGrounded = __instance.grounded,
 			};
+			// A carried body has no ground contact of its own — the carrier under
+			// it is the one standing on the terrain — so the whole native ground
+			// pass stays with the carrier: the landing dust and the Grounded
+			// clip, the impact/footstep sounds, the toxicity and slippery reads,
+			// and the low-health-block damage query (Body.cs:2702-2711) a guest
+			// rider could otherwise run against the world from a position it is
+			// only being carried at. `grounded` stays false, which also keeps the
+			// native auto-stand (Body.cs:2364-2367) out of reach of a body whose
+			// velocity is the carrier's.
+			if (CarriedBodySimulation.CarrierOwnsGroundContact(
+				CarriedBodyDriver.IsCarrying(__instance),
+				__instance.alive,
+				__instance.conscious))
+			{
+				__instance.grounded = false;
+				var fields = Traverse.Create(__instance);
+				fields.Field("slidingLeft").SetValue(false);
+				fields.Field("slidingRight").SetValue(false);
+				return false;
+			}
+
 			if (__state.IsLocalBody)
 			{
 				__state.Scope = CallContext.Enter(CallContext.Origin.CharacterLandingImpact);
 			}
+
+			return true;
 		}
 
 		private static void Postfix(Body __instance, LandingState __state)

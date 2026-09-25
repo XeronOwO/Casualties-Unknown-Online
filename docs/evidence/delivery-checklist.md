@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: legacy-tree-followups-selfcheck mechanism table, 8 rows naming the file or gate that carries each
+      file:line or runtime log) or is explicitly marked unverified — evidence: carried-rider-simulation-selfcheck mechanism table, 6 rows (Body.cs:2574/818/888/2297, Limb.cs:498, Body.cs:127/2114/3162)
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: each family swept whole: both stale doc paths, the id-grammar comment, all eight how-to pages, both tools and both reference pages
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: legacy-tree-followups-selfcheck mechanism table (8 rows) + verification table + limits
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the skip family swept whole (FixedUpdate/Update/Limb.Update read one rule); suppression family re-evaluated, 4 rows; sibling case ticketed
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: carried-rider-simulation-selfcheck mechanism table (6 rows) + red→green record + verification table + limits
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused gate filter -> gate project -> full suite with build -> two negative controls (a broken tool literal, a renamed column); no runtime claim
+      peer log comparison, hotrepl assertions) is decided — evidence: CarrySimulationTrace (Information per relation change + per-second Debug rider trace); red 2/7 -> green 221/0; gates 148 passed
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff fixes the work order (leftover fixes, then the todo ticket); gate shape follows the ticket's own suggested shape and docs/AGENTS.md
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings 0 errors; format exit 0; gate project 148/148; full suite with build 148 + 3803, 0 failed
+      process violation — evidence: decision 216 + the ticket's own goal/notes (the carry relation owns the transform, not the simulation); handoff fixed the order
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings 0 errors; format exit 0; gate project 148/148; full suite with build 148 + 3813, 0 failed
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: new gate class 194 lines; the three src files changed on comment lines only; the migrated ticket deleted and its index row re-pointed
+      dead mechanisms deleted in the same round) — evidence: touched files 178/301/380/534/127/42 lines; no new state bools (mode derived per frame); carry-proxy overload + its 2 tests deleted
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

@@ -1,4 +1,4 @@
-# CUO Backlog
+﻿# CUO Backlog
 
 DevOps-style issue/requirement backlog. Every item has its own ticket file under one
 status folder; moving a ticket to another folder is the status transition.
@@ -48,7 +48,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
-- [Carried rider's own body stops simulating](todo/carried-rider-own-body-stops-simulating.md) — **Critical** — flat ECG and twitching limbs while carried.
+- [A dead or unconscious carried body stops simulating](todo/carried-unconscious-body-simulation.md) — **Medium** — vitals frozen behind the pinned pose.
 - [Remote backpack parity](todo/remote-backpack-native-interaction-parity.md) — **Critical** — reopened: a remote backpack is not operable.
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — reopened: the rider's body is frozen as a render proxy.
 - [Manual world acceleration must not end when a player moves](todo/world-acceleration-survives-movement.md) — **High** — the shared clock ignores movement.
@@ -159,6 +159,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [DI cycle guard / diagnostics](review/di-cycle-guard.md) — ValidateOnBuild and the re-entrancy guard.
 - [Legacy View-items remote detail](review/remove-legacy-view-items-remote-inventory-detail.md) — **Low** — the inline path is removed.
 - [Idle-sit suppression while carried](review/carried-player-idle-sit-suppression.md) — **Medium** — the native sit pose is suppressed.
+- [Carried rider's own body stops simulating](review/carried-rider-own-body-stops-simulating.md) — **Critical** — the rider's own client keeps simulating.
 - [Carrier sit while carrying](review/carrier-sit-while-carrying.md) — **Medium** — the carrier half of the family.
 - [Carry vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — **Medium** — riders publish the torso anchor.
 - [Guest container ghost drops on host](review/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.

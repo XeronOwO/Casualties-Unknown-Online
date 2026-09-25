@@ -1,14 +1,17 @@
+using HarmonyLib;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
-/// Pure placement/restore rules shared by the two carry presentation paths:
-/// the carried player's own client follows the remote carrier
+/// The carry placement/restore rules, shared by the two riders: the carried
+/// player's own client follows the remote carrier
 /// (<see cref="PlayerInteractionApply"/>), and the carrier's own client pins the
 /// remote rider clone to the local body (<see cref="RemotePlayerRenderer"/>).
-/// Also owns the release-side physics restore so a dropped/rider body does not
-/// stay frozen or floating.
+/// The follow writes only what the carry relation owns — position, velocity,
+/// facing, crouch pose and look target — so the local rider's own simulation
+/// and pose stay the game's own. Also owns the release-side physics restore so a
+/// dropped/rider body does not stay frozen or floating.
 /// </summary>
 internal static class CarriedBodyPlacement
 {
@@ -45,14 +48,102 @@ internal static class CarriedBodyPlacement
 	}
 
 	/// <summary>
-	/// Applies the complete rider presentation onto a carried/rider Body using
-	/// one shared rule. Both the rider's own client (following the remote
-	/// carrier) and the carrier's client (pinning the remote rider clone) call
-	/// this, so every presentation field — position, velocity, facing,
-	/// crouching pose, standing/move-dir gates and look target — can never
-	/// diverge between the two sides.
+	/// The carrier follow for a REMOTE RIDER CLONE, which is a frozen render
+	/// proxy: on top of the shared follow it holds the proxy pose gates
+	/// (non-standing, no movement input) that the clone's skipped simulation
+	/// would otherwise maintain.
 	/// </summary>
 	public static void ApplyRidePose(
+		Body body,
+		Vector3 carrierPosition,
+		bool carrierIsRight,
+		bool carrierCrouching,
+		Vector2 carrierVelocity,
+		Vector2? carrierLookTarget)
+	{
+		ApplyCarrierFollow(body, carrierPosition, carrierIsRight, carrierCrouching, carrierVelocity, carrierLookTarget);
+		body.standing = false;
+		body.moveDir = Vector2.zero;
+	}
+
+	/// <summary>
+	/// The carrier follow for the LOCAL carried rider. The rider is not a proxy:
+	/// its own per-frame simulation and pose keep running
+	/// (<see cref="Runtime.Session.EntitySync.CarriedBodySimulation"/>),
+	/// so this writes only what the carry relation owns — the transform, the
+	/// reported velocity, the facing/crouch pose, the aim point and the movement
+	/// input gate. Its <c>standing</c> is never written: the body's own native
+	/// state decides the pose.
+	/// </summary>
+	public static void ApplyLocalRiderPose(
+		Body body,
+		Vector3 carrierPosition,
+		bool carrierIsRight,
+		bool carrierCrouching,
+		Vector2 carrierVelocity,
+		Vector2? carrierLookTarget)
+	{
+		ApplyCarrierFollow(body, carrierPosition, carrierIsRight, carrierCrouching, carrierVelocity, carrierLookTarget);
+		// The movement input gate is also asserted in BodyUpdatePatch before the
+		// native Body.Update runs (the placement's own frame position relative
+		// to it is not guaranteed); zeroing it here keeps the value honest for
+		// readers between the two writes.
+		body.moveDir = Vector2.zero;
+		// The carry relation owns the physics as well as the transform: the root
+		// must not integrate against the placement, and the visible limbs must
+		// not be simulated bodies under a root that is teleported every frame
+		// (that is the limb-twitch family). BodyUpdatePatch re-asserts this after
+		// the native pass, which can ragdoll a rider whose legs are gone
+		// (Body.cs:2772) and re-enable limb physics (Body.cs:1723).
+		body.rb.simulated = false;
+		foreach (var limb in body.limbs)
+		{
+			limb.rb.simulated = false;
+		}
+	}
+
+	/// <summary>
+	/// Release-side restore for a LOCAL body that was carried. The carry
+	/// relation took three things from the body — the root transform, the
+	/// physics of the root and its limbs, and the native movement gate — and
+	/// the relation may have started while the body was in either presentation
+	/// mode or changed mode mid-relation, so the restore hands all three back
+	/// from the body's OWN current state instead of from a recorded mode: that
+	/// cannot go stale, and no release path can leave the player unable to move.
+	/// </summary>
+	public static void RestoreLocalBody(Body body)
+	{
+		body.rb.simulated = true;
+		body.moveDir = Vector2.zero;
+		body.rb.velocity = Vector2.zero;
+		// The movement gate is handed back unconditionally: BodyUpdatePatch held
+		// it shut on every frame the rider was simulating, including frames
+		// before the rider lost consciousness. A start gate that still holds the
+		// player re-locks it in the same frame (BodyUpdatePatch prefix).
+		Traverse.Create(body).Field("movingAllowed").SetValue(true);
+		// A standing body's visible limbs are animator-driven and stay out of
+		// physics (the game's own Stand() disables them, Body.cs:1687); a
+		// non-standing body is a ragdoll and needs its limb physics back.
+		var ragdolled = !body.standing;
+		foreach (var limb in body.limbs)
+		{
+			limb.rb.simulated = ragdolled;
+		}
+
+		// The carried follow wrote Body.isRight while the body's native flip
+		// path was skipped or frozen. Restore the visual scale to match the
+		// logical facing so the released body's HandleVisuals can flip normally
+		// again (a stale scale sign makes the auto-flip condition fight the
+		// render).
+		BodyFacing.Apply(body);
+	}
+
+	/// <summary>
+	/// The follow both riders share: the carrier's own transform/facing/crouch
+	/// pose and velocity drive the rider, and the rider's body root is placed at
+	/// the carrier's back with the facing scale reconciled.
+	/// </summary>
+	private static void ApplyCarrierFollow(
 		Body body,
 		Vector3 carrierPosition,
 		bool carrierIsRight,
@@ -64,58 +155,14 @@ internal static class CarriedBodyPlacement
 		body.rb.velocity = carrierVelocity;
 		body.isRight = carrierIsRight;
 		body.crouching = carrierCrouching;
-		body.standing = false;
-		body.moveDir = Vector2.zero;
 		if (carrierLookTarget is { } lookTarget)
 		{
 			body.targetLookPos = lookTarget;
 		}
 
-		// Facing is rendered through transform.localScale.x; Body.Update is
-		// skipped on both carry paths, so the shared write must reconcile the
-		// visual scale with logical facing every time.
-		BodyFacing.Apply(body);
-	}
-
-	/// <summary>
-	/// Release-side restore for a LOCAL body that was carried. The carried
-	/// presentation path froze the body and limb rigidbodies (the same
-	/// render-proxy freeze used for remote clones), so destroying the driver
-	/// alone leaves the body unable to fall, move or stand. Re-enable the
-	/// physics, then restore the native standing/ragdoll pose for the body's
-	/// current alive/conscious state.
-	/// </summary>
-	public static void RestoreLocalBody(Body body)
-	{
-		body.rb.simulated = true;
-		body.moveDir = Vector2.zero;
-		body.rb.velocity = Vector2.zero;
-
-		foreach (var limb in body.limbs)
-		{
-			limb.rb.simulated = true;
-		}
-
-		if (body.conscious && body.alive)
-		{
-			body.Stand(true);
-		}
-		else
-		{
-			body.Ragdoll();
-			// Ragdoll only limbs-enables when the body was standing; the carried
-			// proxy path already left standing=false, so re-assert the physics
-			// enable directly as well.
-			foreach (var limb in body.limbs)
-			{
-				limb.rb.simulated = true;
-			}
-		}
-
-		// The carried follow wrote Body.isRight while the body's native flip
-		// path was skipped. Restore the visual scale to match the logical
-		// facing so the released body's HandleVisuals can flip normally again
-		// (a stale scale sign makes the auto-flip condition fight the render).
+		// Facing is rendered through transform.localScale.x; the native flip
+		// path reads the carrier's facing while carried, so the shared write
+		// must reconcile the visual scale with logical facing every time.
 		BodyFacing.Apply(body);
 	}
 }

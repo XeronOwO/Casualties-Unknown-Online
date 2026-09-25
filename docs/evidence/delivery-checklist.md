@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (6 rows): the 2026-09-07 hypothesis is marked not supported, against decompiled Body.cs and RemoteBodyFactory
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: 26 native SetTimeScale call sites + 4 direct clock writes inventoried, the reset family classified by their own flags.
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §1: conscious clone suppressed, limp clone measured, non-carried ragdoll untouched, carried local rider named the control case
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (rule matrix, shape/order/clearing, ordering pin, read-only pin, reflection surface, family 257/257, full 3918 + 149)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §1 sibling audit: sleep, pause/death, Slowmo, console and the quake direct write classified; the quake one ticketed.
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §3: 7+17+6 rule rows + 5 pins; focused 155 (%LOCALAPPDATA%/Temp/cuo-focus4.txt), full 3953/3953, gates 148/148.
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: the 1 Hz clone diagnostic's limbSeparation (Debug level) is the session's number; the static half is the source and reflection pins (selfcheck §4)
+      peer log comparison, hotrepl assertions) is decided — evidence: selfcheck §4 (the reachable red on the frozen HEAD) + §5 (the rows a session must show); the swallowed branch logs at Debug.
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff names the Critical carry ticket as the next work item; its fix design (mount + pose suppression) is decision 216, not this change
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full 3918/3918 with build and gates 149/149 on the frozen tree (%TEMP%/cuo-full-verify.txt); format exit 0 on the final C# state
+      process violation — evidence: the ticket carries the user's 2026-09-21 ruling and its frozen acceptance matrix; the handoff names this High ticket next.
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full 3953/3953 with build + gates 148/148, 149/149 with the checklist case (%LOCALAPPDATA%/Temp/cuo-full-verify.txt); dotnet format exit 0.
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: touched files 101/166/117/176/474/163/111 lines (largest 474 of 600); the speculative re-anchor path was deleted, one read-only reference object added
+      dead mechanisms deleted in the same round) — evidence: touched files 135/500/48/536/491/198 lines (largest 536 of 600); one pure rule + its decision table own the routing, nothing left dead.
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

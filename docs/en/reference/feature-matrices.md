@@ -13,8 +13,8 @@ in [Who decides what happens to a player](../internals/judgment-ownership.md).
 
 | Matrix | File | Shape |
 |---|---|---|
-| Items | `docs/features/item-features-matrix.csv` | one row per item (192 rows), 12 feature columns |
-| Entities | `docs/features/entity-features-matrix.csv` | one row per entity (67 rows), 10 columns |
+| Items | `docs/contracts/item-features-matrix.csv` | one row per item (192 rows), 12 feature columns |
+| Entities | `docs/contracts/entity-features-matrix.csv` | one row per entity (67 rows), 10 columns |
 
 Read them with the tool, never by hand: a misaligned row is detected before any output is trusted.
 

@@ -10,8 +10,8 @@
 
 | 矩阵 | 文件 | 形状 |
 |---|---|---|
-| 物品 | `docs/features/item-features-matrix.csv` | 一行一个物品（192 行），12 个特性列 |
-| 实体 | `docs/features/entity-features-matrix.csv` | 一行一个实体（67 行），10 列 |
+| 物品 | `docs/contracts/item-features-matrix.csv` | 一行一个物品（192 行），12 个特性列 |
+| 实体 | `docs/contracts/entity-features-matrix.csv` | 一行一个实体（67 行），10 列 |
 
 用工具读，不要手翻：列数错位的行在任何输出被信任之前就会被查出来。
 

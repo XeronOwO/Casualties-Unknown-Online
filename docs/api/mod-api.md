@@ -1051,7 +1051,7 @@ Versions are strict SemVer. For state-bearing modes the comparison is
 **precedence equality** (build metadata ignored). Compatibility ranges are still
 not inferred, but the surface they would have to be checked against is no longer
 missing: `docs/api/advanced-modification-policy.md` fixes the stability levels
-(and the visibility rule behind them) and `docs/api/abstractions-api-baseline.txt`
+(and the visibility rule behind them) and `docs/contracts/abstractions-api-baseline.txt`
 is the reviewed record of the public surface, enforced by `ApiSurfaceGateTests`.
 
 ## 6. Reference layout of a mod

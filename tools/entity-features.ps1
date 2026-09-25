@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Maintains docs/entity-features-matrix.csv — the world entity x feature matrix.
+    Maintains docs/contracts/entity-features-matrix.csv — the world entity x feature matrix.
 
 .DESCRIPTION
     The CSV is the single source for which world entity has which feature and
@@ -20,7 +20,7 @@
       remove-entity <entity>          delete a row
       add-feature <feature>           add a column (every row gains a blank cell)
 
-    -Doc <docs/entity-features.md>    advisory: warn (not fail) when a feature
+    -Doc <docs/features/entities.md>  advisory: warn (not fail) when a feature
                                      column has no matching "###" section.
 
     The sync column is the completeness gate: every entity row must end up
@@ -54,7 +54,7 @@ Set-StrictMode -Version 2.0
 
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$matrixPath = Join-Path $scriptDir '..\docs\entity-features-matrix.csv'
+$matrixPath = Join-Path $scriptDir '..\docs\contracts\entity-features-matrix.csv'
 $entityColumn = 'entity'
 
 # Splits one CSV line into cells, honoring quoted cells ("a,b" stays one cell).

@@ -143,7 +143,7 @@ not the goal.
 14. `[RULE]` **Minimum visibility, declared stability**: only a capability that is designed, documented
     and reviewed becomes a public third-party contract, and `Runtime`/`GameAdapter` are implementations a
     mod may patch but is never promised. The `Abstractions` public surface is a recorded, gate-enforced
-    baseline (`docs/api/abstractions-api-baseline.txt`, `ApiSurfaceGateTests`): an addition or removal
+    baseline (`docs/contracts/abstractions-api-baseline.txt`, `ApiSurfaceGateTests`): an addition or removal
     fails until the baseline is reviewed and updated, a removal names its reason, and a surface that is
     not `Stable` declares its level with `[ApiStability]`
     (`docs/api/advanced-modification-policy.md`).

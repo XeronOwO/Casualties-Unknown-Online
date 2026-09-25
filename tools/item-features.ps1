@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Maintains docs/item-features-matrix.csv — the item x feature matrix.
+    Maintains docs/contracts/item-features-matrix.csv — the item x feature matrix.
 
 .DESCRIPTION
     The CSV is the single source for which item has which feature. Every
@@ -18,7 +18,7 @@
       remove-item <item>              delete a row
       add-feature <feature>           add a column (every row gains a blank cell)
 
-    -Doc <docs/item-features.md>     advisory: warn (not fail) when a feature
+    -Doc <docs/features/items.md>    advisory: warn (not fail) when a feature
                                      column has no matching "###" section.
 
 .EXAMPLE
@@ -48,7 +48,7 @@ Set-StrictMode -Version 2.0
 
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$matrixPath = Join-Path $scriptDir '..\docs\item-features-matrix.csv'
+$matrixPath = Join-Path $scriptDir '..\docs\contracts\item-features-matrix.csv'
 $itemColumn = 'item'
 
 # Splits one CSV line into cells, honoring quoted cells ("a,b" stays one cell).

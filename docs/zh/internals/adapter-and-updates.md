@@ -50,7 +50,7 @@ must fail loud — a silently missing hook is how sync bugs hide).
 
 ## 承诺了什么，没承诺什么
 
-- **`Abstractions` 才是承诺。** 它是唯一带稳定性契约的接口面，而且即便在那里，公开表面也是一份登记在册的[基线](../reference/glossary.md)：增删一个成员是经过复核的动作（`ApiSurfaceGateTests` 拿当前表面与 `docs/api/abstractions-api-baseline.txt` 比对）。
+- **`Abstractions` 才是承诺。** 它是唯一带稳定性契约的接口面，而且即便在那里，公开表面也是一份登记在册的[基线](../reference/glossary.md)：增删一个成员是经过复核的动作（`ApiSurfaceGateTests` 拿当前表面与 `docs/contracts/abstractions-api-baseline.txt` 比对）。
 - **`Runtime` 与 `GameAdapter` 是实现。** 模组可以给它们打[补丁](../reference/glossary.md)，而一个在 CUO 更新之后失效的补丁，是那个模组自己的问题，不是被违背的承诺。
 - **游戏自己的代码什么都不是承诺。** 适配器绑的东西属于游戏；一次游戏更新可以在 CUO 毫不知情的情况下弄坏它 —— 这正是这道边界存在的理由。
 

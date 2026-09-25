@@ -386,7 +386,7 @@ internal sealed class PinyinSearchStage : IResourceLocationMatchStage
 
 对等规则诚实证明的是：对两边都列出的模组，两边的声明一致，所以开启 require 的主机知道每个被准入的成员要么声明了同样的绑定、要么被拒。它**不能**证明的是：未声明的绑定无从探测（CUO 不站反作弊立场，见 `docs/api/advanced-modification-policy.md` §4），所以一个绑了游戏却不声明的模组能通过所有检查；而声明相同也不证明行为相同 —— 同一个名字可能盖着不同的补丁。选择 `allow` 的主机是明知风险仍然承担，`warn` 下的不一致则留下那行日志作为记录。
 
-版本是严格的 SemVer；带状态的模式按**优先级相等**比较（忽略构建元数据）。兼容范围不会被推断；它们本该对照的那个面已经存在：`docs/api/advanced-modification-policy.md` 定下了稳定性层级，`docs/api/abstractions-api-baseline.txt` 是经过复核的公开接口面记录，由 `ApiSurfaceGateTests` 强制。
+版本是严格的 SemVer；带状态的模式按**优先级相等**比较（忽略构建元数据）。兼容范围不会被推断；它们本该对照的那个面已经存在：`docs/api/advanced-modification-policy.md` 定下了稳定性层级，`docs/contracts/abstractions-api-baseline.txt` 是经过复核的公开接口面记录，由 `ApiSurfaceGateTests` 强制。
 
 ## 一个模组的布局
 

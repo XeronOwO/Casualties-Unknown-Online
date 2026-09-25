@@ -12,9 +12,9 @@
 - `docs/en/` 是英文，`docs/zh/` 是中文。目录、文件名、页面集合完全一致：增、删、改名、移动，都必须在中英两侧同一次改动里完成。
 - 每棵树内部分为 `start/`（入门，按顺序读）、`how-to/`（一件事一页）、`internals/`（为什么这样设计）、
   `reference/`（查阅：接口、协议、配置、矩阵、术语）和 `contributing/`（构建、门禁、复核（review）、本规范）。
-- `docs/standard/` 放这套文档自身依赖的登记表：术语表与配对对齐记录。代码和门禁读取的机器基线目前就放在被描述对象的旁边——
-  `docs/api/abstractions-api-baseline.txt`，以及 `docs/evidence/` 下的那些 JSON 基线；规范另外声明了一个 `docs/contracts/` 分区，
-  用来收拢它们，目前还是空的。
+- `docs/standard/` 放这套文档自身依赖的登记表：术语表与配对对齐记录。代码和门禁读取的机器基线与表格放在
+  [`docs/contracts/`](../../contracts/README.md)——`Abstractions` 基线加两张特性矩阵——而 `docs/evidence/`
+  下的那些 JSON 基线仍留在被描述对象的旁边。
 - 一份文档是一个层次，不只是文件：agent 文档（如 `AGENTS.md`）回答“这活怎么做”，只有英文；
   人类页面回答“这个产品是什么”，中英成对。
 - 流程记录（`docs/backlog/`、`docs/evidence/`、`docs/decisions/` 以及各周期的日志）保持英文、留在原路径、不进人类导航；

@@ -66,7 +66,7 @@ internal sealed class ApiSurfaceComparison(
 /// <summary>
 /// The public-surface gate behind the Mod API governance rule: the Abstractions
 /// assembly is the only CUO assembly a mod may reference, so its public surface is
-/// a reviewed artifact (<c>docs/api/abstractions-api-baseline.txt</c>) rather than
+/// a reviewed artifact (<c>docs/contracts/abstractions-api-baseline.txt</c>) rather than
 /// whatever the latest commit happens to declare. The gate re-derives the surface
 /// from the project's source with Roslyn and compares it with that record: an
 /// addition, a removal without a tombstone, a signature, modifier or
@@ -89,7 +89,7 @@ internal sealed class ApiSurfaceComparison(
 internal static class ApiSurfaceGate
 {
 	internal const string ProjectSourceDir = "src/CasualtiesUnknownOnline.Abstractions";
-	internal const string BaselinePath = "docs/api/abstractions-api-baseline.txt";
+	internal const string BaselinePath = "docs/contracts/abstractions-api-baseline.txt";
 	internal const string EmittedBaselinePath = "artifacts/api-surface/abstractions-api-baseline.txt";
 
 	/// <summary>Census floors: roughly 60% of the measured tree (92 source files, 92 public types and 756 entries at 2026-09-20), so a scan that silently finds nothing cannot pass.</summary>

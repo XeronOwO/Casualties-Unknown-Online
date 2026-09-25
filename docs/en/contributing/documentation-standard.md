@@ -16,9 +16,9 @@ which an agent loads automatically on entering `docs/`; this page is the human e
   (why it works this way), `reference/` (lookup: API, protocol, configuration, matrices, glossary) and
   `contributing/` (build, gates, review, this standard).
 - `docs/standard/` holds the registries this work depends on: the terminology list and the pair
-  alignment record. Machine baselines that code and gates read live beside their subject today —
-  `docs/api/abstractions-api-baseline.txt`, the JSON baselines under `docs/evidence/`; the standard
-  declares a `docs/contracts/` section for them, which is not populated yet.
+  alignment record. Machine baselines and tables that code and gates read live in
+  [`docs/contracts/`](../../contracts/README.md) — the `Abstractions` baseline and the two feature
+  matrices — while the JSON baselines under `docs/evidence/` still sit beside their subject.
 - A document is a layer, not just a file: an agent document answers "how do I do the work" and is
   English only, while a human page answers "what is the product" and is paired English + Chinese.
 - Process records — `docs/backlog/`, `docs/evidence/`, `docs/decisions/` and the per-cycle logs — stay

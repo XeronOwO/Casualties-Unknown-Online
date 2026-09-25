@@ -34,6 +34,6 @@ the mod API stay untouched.
 
 ## Where the detail is
 
-`docs/api/abstractions-api-baseline.txt` is the recorded public surface,
+`docs/contracts/abstractions-api-baseline.txt` is the recorded public surface,
 `docs/api/advanced-modification-policy.md` defines the stability levels, and the
 [current architecture](../architecture/current.md) holds the full dependency diagram.

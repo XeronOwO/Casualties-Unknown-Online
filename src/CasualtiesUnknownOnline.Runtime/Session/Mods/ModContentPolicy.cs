@@ -17,7 +17,7 @@ internal static class ModContentPolicy
 
 	/// <summary>
 	/// Content ids must already be canonical <see cref="ContentId"/> path
-	/// segments: lower-case ASCII <c>[a-z0-9][a-z0-9_.-]{0,95}</c>. Upper-case,
+	/// segments: lower-case ASCII <c>[a-z0-9][a-z0-9_.-]{0,94}</c>. Upper-case,
 	/// whitespace, the namespace separator, and over-length ids are refused so
 	/// the framework can always derive an unambiguous <c>namespace:id</c>.
 	/// </summary>

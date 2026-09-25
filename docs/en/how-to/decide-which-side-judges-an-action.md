@@ -1,6 +1,6 @@
 # Decide which side judges an action
 
-[Documentation](../README.md) > [How to](README.md) > Decide which side judges an action
+[Documentation](../README.md) > [How-to](README.md) > Decide which side judges an action
 
 ---
 
@@ -85,4 +85,4 @@ acceptance step no test can replace.
 
 ---
 
-[Documentation](../README.md) > [How to](README.md) > Decide which side judges an action
+[Documentation](../README.md) > [How-to](README.md) > Decide which side judges an action

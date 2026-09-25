@@ -47,7 +47,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Feature-matrix tooling has no path gate](todo/feature-matrix-tool-path-gate.md) — **Low-Medium** — tool and page paths are unverified.
+
 
 
 ### Review
@@ -176,6 +176,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Patch bridge domain ports](review/patch-bridge-domain-ports.md) — **Medium** — per-domain ports; the aggregate is frozen.
 - [Bilingual human documentation](review/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
 - [Legacy wire DTOs](review/legacy-wire-dto-slice.md) — **Medium** — the kernel <-> wire vocabulary moves into the layer; materialization stays.
+- [Feature-matrix tooling has no path gate](review/feature-matrix-tool-path-gate.md) — **Low-Medium** — the tool literals and both column lists are gated.
 
 ### Future
 

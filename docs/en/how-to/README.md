@@ -1,6 +1,6 @@
 # How to do one thing
 
-[Documentation](../README.md) > How to
+[Documentation](../README.md) > How-to
 
 ---
 
@@ -26,4 +26,4 @@ them is in [Internals](../internals/README.md).
 
 ---
 
-[Documentation](../README.md) > How to
+[Documentation](../README.md) > How-to

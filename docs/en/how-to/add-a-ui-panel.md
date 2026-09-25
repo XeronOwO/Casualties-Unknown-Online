@@ -1,6 +1,6 @@
 # Add a panel to the interface
 
-[Documentation](../README.md) > [How to](README.md) > Add a panel to the interface
+[Documentation](../README.md) > [How-to](README.md) > Add a panel to the interface
 
 ---
 
@@ -71,4 +71,4 @@ log line from the message handler.
 
 ---
 
-[Documentation](../README.md) > [How to](README.md) > Add a panel to the interface
+[Documentation](../README.md) > [How-to](README.md) > Add a panel to the interface

@@ -1,6 +1,6 @@
 # Save mod data across sessions
 
-[Documentation](../README.md) > [How to](README.md) > Save mod data across sessions
+[Documentation](../README.md) > [How-to](README.md) > Save mod data across sessions
 
 ---
 
@@ -92,4 +92,4 @@ starts. On a guest, `CanWrite` is false and `TrySet` returns false with a log.
 
 ---
 
-[Documentation](../README.md) > [How to](README.md) > Save mod data across sessions
+[Documentation](../README.md) > [How-to](README.md) > Save mod data across sessions

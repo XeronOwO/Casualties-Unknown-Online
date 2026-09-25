@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// guests before their own world generation. The game's world gen is fully
 /// non-deterministic (no seed, Unity global Random everywhere) — restoring the
 /// host's Random.state plus run settings is the only way to produce the same
-/// world on both sides (see docs/game-internals.md).
+/// world on both sides (see docs/en/internals/game-internals.md).
 /// </summary>
 public sealed class WorldStartParams
 {

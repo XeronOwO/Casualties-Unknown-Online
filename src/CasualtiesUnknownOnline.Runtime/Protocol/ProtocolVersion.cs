@@ -207,6 +207,20 @@ public static class ProtocolVersion
 	/// keep the silent break for itself, and every relay it forwarded downstream
 	/// would carry the silence further, so one session would mix two audible
 	/// behaviours.
-	public const int Current = 40;
+	/// 41: `CharacterSoundKind.Consume` — a local body's ingest/meal one-shot
+	/// sounds (an edible `ItemInfo.useAction`'s `eatCrunch` / `eatFlesh` /
+	/// `glass` / `crystalenemylaugh` (Item.cs:2387/1789/2463/3588-3589), a
+	/// container use action's `drink` / `pills` (`WaterContainerItem.Drink`,
+	/// WaterContainerItem.cs:214, reached from the container use actions in
+	/// Item.cs), and the meal-end `burp` of `Body.HandleVisuals`
+	/// (Body.cs:3142)) now ride the
+	/// existing `CharacterSoundMsg` event, captured from two call-identity
+	/// scopes the capture did not have (the local `Body.UseItem` /
+	/// `Body.UseItemInHand` action, and the local body's `Body.HandleVisuals`).
+	/// Those clips play inside the item's own use action, which opened no
+	/// scope, so only the side that chewed or drank heard it (user report
+	/// 2026-09-21). A peer without the kind would drop those events and keep
+	/// the reported silence, so one session would mix two audible behaviours.
+	public const int Current = 41;
 
 }

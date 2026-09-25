@@ -12,7 +12,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// <c>Body.FootStep</c> / <c>Body.HandleGroundedState</c> /
 /// <c>PantSound.Update</c> / <c>PantSound.Bark</c> / <c>PantSound.TryGrowl</c> /
 /// <c>LockpingMinigame.Update</c> / direct placeable-item uses
-/// (<c>Body.UseItem</c> / <c>Body.UseItemInHand</c>);
+/// (<c>Body.UseItem</c> / <c>Body.UseItemInHand</c>) / the local body's
+/// <c>Body.HandleVisuals</c>;
 /// any block hit sound that fires during an attack is excluded before this
 /// policy sees it, because <c>WorldGeneration.DamageBlock</c> opens its own
 /// innermost <c>DamageBlockOrigin</c> scope.
@@ -34,6 +35,21 @@ public static class CharacterSoundPolicy
 		Yawn = 9,
 		LockpickPain = 10,
 		ItemPlacement = 11,
+
+		/// <summary>Inside a local body's item-use action (<c>Body.UseItem</c> /
+		/// <c>Body.UseItemInHand</c>) — only the INGEST clips are classified from
+		/// this scope (the eat clips, and the container drink's <c>"drink"</c> /
+		/// <c>"pills"</c>, which is what "drinking/pouring" reduces to on the
+		/// item-use path). It also wraps every other item use (medical, tools,
+		/// gestures); those sounds are not classified here, and the ones that
+		/// need their own carrier are recorded in
+		/// <c>docs/backlog/review/host-eating-sound-not-heard-on-guest.md</c>.</summary>
+		ItemUse = 12,
+
+		/// <summary>Inside <c>Body.HandleVisuals</c>, whose meal-end burp timer
+		/// plays <c>"burp"</c> (Body.cs:3137-3142) — the scope exists for that
+		/// one clip, the way <see cref="LockpickPain"/> exists for <c>"gore2"</c>.</summary>
+		Burp = 13,
 	}
 
 	/// <summary>
@@ -67,6 +83,8 @@ public static class CharacterSoundPolicy
 			Origin.Yawn => CharacterSoundKind.Yawn,
 			Origin.LockpickPain => clip == "gore2" ? CharacterSoundKind.Pain : null,
 			Origin.ItemPlacement => clip is "scrapmetal" or "ropeplace" ? CharacterSoundKind.ItemPlacement : null,
+			Origin.ItemUse => clip is "eatCrunch" or "eatFlesh" or "glass" or "crystalenemylaugh" or "drink" or "pills" ? CharacterSoundKind.Consume : null,
+			Origin.Burp => clip == "burp" ? CharacterSoundKind.Consume : null,
 			_ => null,
 		};
 	}

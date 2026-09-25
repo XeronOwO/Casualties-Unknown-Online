@@ -14,8 +14,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// together with everyone else's release.
 /// 2. Character action-sound capture: inside the Body.Attack / ThrowItem /
 /// TryExertSound / FootStep / PantSound.Update / PantSound.TryGrowl /
-/// LockpingMinigame.Update call-identity scopes, every real string sound is
-/// reported with its EXACT clip. Block hit sounds are excluded by the innermost
+/// LockpingMinigame.Update / local item use / Body.HandleVisuals call-identity
+/// scopes, every real string sound is reported with its EXACT clip. Block hit sounds are excluded by the innermost
 /// DamageBlockOrigin scope (WorldGeneration.DamageBlock opens it around the
 /// native roll), and replays are excluded by the RemoteApply scope — the
 /// patch is a thin adapter, the classification is the pure
@@ -54,6 +54,8 @@ internal static class SoundPlayPatch
 				CallContext.Origin.CharacterVocalization => CharacterSoundPolicy.Origin.Yawn,
 				CallContext.Origin.CharacterGrowl => CharacterSoundPolicy.Origin.Growl,
 				CallContext.Origin.CharacterLockpickPain => CharacterSoundPolicy.Origin.LockpickPain,
+				CallContext.Origin.CharacterItemUse => CharacterSoundPolicy.Origin.ItemUse,
+				CallContext.Origin.CharacterBurp => CharacterSoundPolicy.Origin.Burp,
 				_ => CharacterSoundPolicy.Origin.None,
 			};
 			if (CharacterSoundPolicy.Classify(origin, clip) is { } kind)

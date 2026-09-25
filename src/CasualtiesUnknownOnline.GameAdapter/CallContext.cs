@@ -84,6 +84,20 @@ internal static class CallContext
 
 		/// <summary>Inside PantSound.TryGrowl — the local low-happiness growl string reports from this scope.</summary>
 		CharacterGrowl,
+
+		/// <summary>Inside a local body's item-use action (<c>Body.UseItem</c> /
+		/// <c>Body.UseItemInHand</c>, every usable item). The edible use actions
+		/// play their ingest clips (<c>"eatCrunch"</c> / <c>"eatFlesh"</c> /
+		/// <c>"glass"</c> / <c>"crystalenemylaugh"</c>) inside this scope, and the
+		/// policy classifies exactly those; the direct placeable family keeps its
+		/// own innermost <see cref="CharacterItemPlacement"/> scope.</summary>
+		CharacterItemUse,
+
+		/// <summary>Inside <c>Body.HandleVisuals</c> for a local body — the meal-end
+		/// <c>"burp"</c> (Body.cs:3137-3142) reports from this scope. The scope
+		/// exists for that one clip, the way <see cref="CharacterLockpickPain"/>
+		/// exists for <c>"gore2"</c>.</summary>
+		CharacterBurp,
 	}
 
 	/// <summary>Stack bound — real nesting is 2-3 levels (remote apply → container load → hooks).</summary>

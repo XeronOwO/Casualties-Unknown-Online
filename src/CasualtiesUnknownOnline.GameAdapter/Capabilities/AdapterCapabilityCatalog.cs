@@ -136,7 +136,7 @@ internal static class AdapterCapabilityCatalog
 			[
 				typeof(BodyPatches), typeof(BodyUpdatePatch), typeof(BodyNapPatch), typeof(BodyWorkoutPatch),
 				typeof(CarryEncumbrancePatch), typeof(FacialExpressionHeadPatch), typeof(PantSoundPatches),
-				typeof(TalkerPatch), typeof(SoundPlayPatch), typeof(SoundPlayAudioClipPatch),
+				typeof(TalkerPatch), typeof(SoundPlayPatch), typeof(SoundPlayAudioClipPatch), typeof(BurpSoundPatches),
 			],
 			[],
 			[],

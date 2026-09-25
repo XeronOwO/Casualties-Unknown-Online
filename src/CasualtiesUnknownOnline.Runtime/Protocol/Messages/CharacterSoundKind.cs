@@ -51,4 +51,16 @@ public enum CharacterSoundKind : byte
 	/// Item.cs:2203/2246/2287 — the exact one-shot <c>"scrapmetal"</c> /
 	/// <c>"ropeplace"</c> clip at the placement point).</summary>
 	ItemPlacement = 11,
+
+	/// <summary>The local body ingested something or finished a meal: an edible
+	/// <c>ItemInfo.useAction</c> played <c>"eatCrunch"</c> / <c>"eatFlesh"</c> /
+	/// <c>"glass"</c> / <c>"crystalenemylaugh"</c> at the eater's body
+	/// (Item.cs:2387/1789/2463/3588-3589 …), a container use action drank and
+	/// played <c>"drink"</c> / <c>"pills"</c> (<c>WaterContainerItem.Drink</c>,
+	/// WaterContainerItem.cs:214, reached from the container use actions in
+	/// Item.cs), or the meal-end burp timer played <c>"burp"</c> in
+	/// <c>Body.HandleVisuals</c> (Body.cs:3142). They all run
+	/// locally only, so without this event the other players never hear the
+	/// reported meal (user report 2026-09-21).</summary>
+	Consume = 12,
 }

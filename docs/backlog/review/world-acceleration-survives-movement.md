@@ -4,7 +4,7 @@
 - Priority: High
 - Category: World / session (world-time initiation)
 - Source: User acceptance finding (2026-09-21) and ruling the same day: the host started the acceleration and it stopped as soon as the host moved. In-world actions during an acceleration (mining and the like) are normal, vanilla-supported play and CUO must not gate them; the acceleration ends only when the player ends it (the accelerate key back to 1x), through the sleep gate, or through the death/pause transitions.
-- Related: `todo/world-time-local-initiation.md` (the delivery this reopens), `resolved/sleep-behavior-policy.md`, `done/world-time-manual-acceleration.md`, `review/enemy-hit-determination-local.md`
+- Related: `review/world-time-local-initiation.md` (the delivery this reopens), `resolved/sleep-behavior-policy.md`, `done/world-time-manual-acceleration.md`, `review/enemy-hit-determination-local.md`
 
 ## Evidence (what actually ends an acceleration)
 

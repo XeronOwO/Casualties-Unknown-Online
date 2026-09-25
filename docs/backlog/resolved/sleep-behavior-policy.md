@@ -3,7 +3,7 @@
 - Status: Resolved
 - Category: Gameplay / sleeping policy
 - Source: User backlog (2026-09-05)
-- Superseded in part by: `todo/world-time-local-initiation.md` (user ruling 2026-09-18 — the manual-acceleration half only; the all-unconscious sleep gate stands)
+- Superseded in part by: `review/world-time-local-initiation.md` (user ruling 2026-09-18 — the manual-acceleration half only; the all-unconscious sleep gate stands)
 
 ## Decision
 
@@ -14,7 +14,7 @@
   treated as ordinary sleep.** It is not a voluntary world-time request; remote
   presentation already rides the existing sleeping/nap path (standard variant
   when no nap tracker is present).
-- **SUPERSEDED IN PART (2026-09-18) — see `todo/world-time-local-initiation.md`.**
+- **SUPERSEDED IN PART (2026-09-18) — see `review/world-time-local-initiation.md`.**
   The original decision read: world-time acceleration remains the existing cooperative
   host-authoritative policy; the shared clock accelerates only when every in-world alive
   player is unconscious (`WorldTimePolicy.DecideSleepSpeed`); any awake player blocks
@@ -35,7 +35,7 @@
 - `WorldTimeSync.cs` — the sleep fast-forward's local suppression plus the
   host's all-unconscious application. The MANUAL half of this record's
   host-authoritative reading was superseded on 2026-09-18 (see
-  `todo/world-time-local-initiation.md`); the sleep half is what this bullet
+  `review/world-time-local-initiation.md`); the sleep half is what this bullet
   still stands for.
 - `NapAndDogShakeSyncSelfcheck` — sleeping/nap remote presentation.
 - `CloneFacePresentation` / `RemoteBodyFactory` — remote face/vitals

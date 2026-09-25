@@ -1,6 +1,6 @@
 # World-time acceleration is gated on being asleep
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: World / session (world-time initiation)
 - Source: User ruling 2026-09-18 (design alignment session): the shared clock stays shared, but the OPERATION must be immediate and local — a player who presses accelerate accelerates at once, the host arbitrates, and the broadcast brings everyone else in with an acceptable delay. Sleep keeps its "everyone unconscious" gate.
@@ -17,6 +17,11 @@ manual fast-forward"), which describe the shipped behaviour.
 This ticket is moved back to `todo/`; the requirement, the native evidence and the replacement
 acceptance matrix are recorded in `review/world-acceleration-survives-movement.md`. The local-first
 and accept-first half of this delivery stands.
+
+**Back to `review/` (2026-09-25):** the replacement requirement shipped in `b045b974`
+(`fix(world-time): only an announced speed change owns the shared clock`, decision 223) with its
+own ticket in `review/`, so nothing on this ticket is open; the superseded movement rows stay as
+the record of what the earlier delivery shipped.
 
 ## Problem (evidence)
 

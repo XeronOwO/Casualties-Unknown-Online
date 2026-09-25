@@ -1,7 +1,7 @@
 # World Time Flow — Self-Check (revised 2026-09-25)
 
 Delivery fact sheet for the multiplayer world-time domain (backlog:
-`todo/world-time-local-initiation.md` and
+`review/world-time-local-initiation.md` and
 `review/world-acceleration-survives-movement.md`; the original sheet landed
 2026-08-16 with the host-authoritative model of ProtocolVersion 13). The wire
 version is whatever `ProtocolVersion.Current` declares — its own doc comment is

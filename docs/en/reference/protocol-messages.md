@@ -227,7 +227,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 65 | `CarriedInventory` | guest → host | the guest's carried inventory with self-assigned ids |
 | 105 | `DynamiteExplosion` | report plus relay | a dynamite detonation (the terrain/building/item facts ride their own channels) |
 | 97 | `PlayerInventoryTakeRequest` | guest → host | take one carried item from another in-world player |
-| 125 / 126 | `RemoteInventoryOperationRequest` / `RemoteInventoryApply` | guest → host / host → owner | a remote-backpack gesture (drop/move-to-container/pour/combine/use/wear/battery/slot/favourite) and its execution on the owner's own body |
+| 125 / 126 | `RemoteInventoryIntentRequest` / `RemoteInventoryIntent` | guest → host / host → owner | one NATIVE inventory intent captured from the viewer's own drag release — the native call plus its operand ids — and its replay on the owner's real items, with the game's own guards, animations and sounds |
 
 **Trade, speech and chat**
 

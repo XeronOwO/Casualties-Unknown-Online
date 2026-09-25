@@ -1,8 +1,11 @@
 # Remote Inventory Operations: Native Parity Design
 
-Status: **stage 0 design record** — decisions only, no behaviour change. Stages 1-4 of
-`docs/backlog/todo/remote-inventory-native-parity-rework.md` are not implemented yet, so the
-clone-edit path this document replaces is still the live code.
+Status: **stage 1 landed** — the native intent path is implemented (decision 218): the release window
+and its capture seam, the owner-side replay, the validating/arbitrating host half, and the deletion of
+the clone-edit path this document replaces. Stages 2-4 of
+`docs/backlog/todo/remote-inventory-native-parity-rework.md` are still open, so the gestures whose
+intents arrive there (the container-expansion batch, the drain tick, the radial use/wear branch, the
+item-interaction family) are refused with one logged line instead of running on a proxy.
 
 The `reversing/Assembly-CSharp/Assembly-CSharp/*.cs` anchors below carry line numbers on purpose:
 that tree is never edited (it is the decompiled game and is not tracked), so its line numbers are
@@ -183,6 +186,22 @@ that path makes:
 5. The window fails closed and loud: a release that the native dispatch consumed but that produced no
    intent is logged as an unclassified gesture. A native gesture CUO has never seen must be
    observable, never a silent no-op.
+6. **The branch's guards are answered by the body the ring shows (implementation amendment, stage 1).**
+   The inventory in §2 assumed the native branch classifies a display proxy the way it classifies a
+   real item. It does not. The branch reads `PlayerCamera.body`, which is always the LOCAL body, while
+   the inventory ring and the dragged item belong to the displayed clone (`InvButtonBodyPatch`
+   redirects every `InvButton`'s body). A proxy is therefore never "held" or "worn" by the body the
+   branch asks; R8's swap guard never passes; the world fallbacks W2/W3 never fire; R9's
+   occupying-slot step resolves a slot of the requestER's own body; and the release's first gate,
+   `Body.DoPickupCheck(dragItem, false)`, measures the distance between the local body and a proxy
+   standing where the remote player stands — it would drop the whole release silently. The stage 1
+   window therefore carries three additions, and they are what keeps the classification the game's
+   own instead of a CUO table: (a) while the bracket is open, the predicates the branch reads —
+   `HoldingItem`, `GetItem`, `GetWearable`, `DoPickupCheck` — are answered from the displayed body,
+   so R8's guard, R9's own steps and W2/W3 see the proxy exactly as that body does; (b) the calls the
+   branch then makes are captured under the pair rules of §3.2.4; and (c) the steps internal to a
+   captured call (R9's two drops, the `unload` half of a container move) are absorbed into that
+   call's intent rather than executed twice, on the wrong body.
 
 ### 3.3 The intent vocabulary (wire)
 
@@ -214,6 +233,15 @@ no cross-player transfer: its two halves are the native release on the owner's s
 pickup on the destination side, and the host arbitrates the item id first-writer-wins between them.
 R1 and R7 produce no intent (they are consumed native no-ops), and R14 plus the container-window
 open of §2.3 are local UI on the viewer and never travel.
+
+**Stage 1 carries eight of these members** — `DropItem`, `DropWearable`, `TakeOutOfContainer`,
+`MoveIntoContainer`, `SwapSlots`, `PickUpToSlot`, `TransferToBody` and `ApplyToLimb` — because they
+are what the release branch can produce once the suppressions of §3.6 come off. The rest arrive with
+the stages that restore the branches producing them: `MoveContainerChildren` with the container
+stage, `Drain` and `ToggleFavourite` with the while-dragging body, `CombineItems`,
+`LoadBattery`/`UnloadBattery`, `UseItem`/`WearItem` and `GiveToTrader` with the item-interaction
+stage. Until then the window refuses those calls with one logged line naming the gesture — refused,
+never run on a proxy, never a silent no-op.
 
 A slot intent's **body operand comes from the hit itself**, not from a CUO rule. An inventory button
 of the owner's *projected* body resolves to the owner — the item stays the owner's and changes slot
@@ -261,13 +289,15 @@ boundary; no dual shape is kept.
 
 ### 3.6 What is deleted, and where the new code lives
 
-- Deleted with the clone-edit path: `PlayerRemoteInventoryService`'s mirror-edit halves (drop, move
-  to container, pour, their kernel command builders and item-tree helpers), the CUO operation enum,
-  and the `RemoteBackpackOperationHandler` gesture table.
-- `PlayerRemoteInventoryService` keeps only the host half of this design: validate, arbitrate,
-  record, and forward the intent to the owner. Its file stands at 595 lines today, so the change is
-  measured before it is edited and the file is split if the host half plus its plumbing still crosses
-  the architecture line gate.
+- Deleted with the clone-edit path (stage 1): `PlayerRemoteInventoryService`'s mirror-edit halves
+  (drop, move to container, pour, their kernel command builders and item-tree helpers) together with
+  the service itself, `RemoteBackpackOperationHandler`'s gesture table, `RemoteInventoryOperationApply`
+  and the operation enum with its request/apply message pair.
+- The host half that replaced it is `PlayerRemoteInventoryIntentService` (269 lines against the
+  deleted service's 595): validate, arbitrate first-writer-wins per item instance, forward to the
+  owner. The split this section planned was not needed — the measurement above the architecture line
+  gate is part of the change, which is why the deleted service is gone rather than kept beside its
+  replacement.
 - New adapter code: the release-window capture (the proxy decision plus the mutation-call
   interception) and the owner-side intent executor that replays the native call. Patches report only
   verified writes, so an intercepted call that produced no intent must not be reported as one.
@@ -290,9 +320,9 @@ boundary; no dual shape is kept.
 | Stage | Scope | Exit |
 |---|---|---|
 | 0 | This record: mechanism inventory, intent vocabulary, ticket adjudication, decision record | design frozen before code |
-| 1 | Inventory and slot family: move, swap, transfer to the requester, drop, take-out; window + capture seam; owner-side executor; host validate/arbitrate/record; clone-edit path deleted; protocol bumped | reported behaviour 1 and 2 no longer reproduce; intent tests green |
-| 2 | Containers: move into and out of a container, nested containers, the trash bag, the while-dragging drain, the container-window gesture; the vanish case is a regression test here | matrix rows 3-5 |
-| 3 | Item interactions: use, wear, combine, battery, favourite, and the held-remote-item chain (close the backpack, use the held item from the medical panel) | matrix rows 6-8 |
+| 1 | Inventory and slot family: move, swap, transfer to the requester, drop, take-out; window + capture seam; owner-side executor; host validate/arbitrate/record; clone-edit path deleted; protocol bumped | **landed** (decision 218): the reported drop and slot rows no longer route through a host mirror edit; the window, the replay and the host half are covered by intent, window-state and host-contract tests |
+| 2 | The container-expansion gesture (R5), nested containers and the trash bag, the while-dragging drain tick and the container-window refresh; the vanish case is a regression test here | matrix rows 3-5, and the container half of rows 1-2 |
+| 3 | Item interactions: use, wear, combine, battery, favourite, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | matrix rows 6-8 |
 | 4 | Family audit and acceptance: both directions, a third peer, worn items, containers and the craft screen; the display rows carried over from the absorbed tickets | the rework ticket's matrix |
 
 ## 5. Adjudicated tickets
@@ -306,12 +336,39 @@ boundary; no dual shape is kept.
 
 ## 6. Recorded limits of this stage
 
-- No behaviour changed: the design is not evidence that any reported reproduction is fixed.
 - The mechanism inventory covers the drag pipeline of `PlayerCamera`. The medical-panel and
   context-menu interaction families reach the same native mutation calls through different UI paths;
   stage 3 audits them against the same capture seam instead of assuming they are covered.
 - The two-client feel (native animation, sound and timing on the operator's screen) remains the
-  user's release-cycle acceptance; this stage produces no runtime evidence for it.
+  user's release-cycle acceptance; no automated test can produce it.
+- Stage 1 leaves, deliberately and observably:
+  - The report hooks that answer "what did this write do?" must never observe a redirected
+    predicate: `BodyItemPatches`' pickup/drop/swap reports, `PickupSync.OnPickedUp` and
+    `ItemSlotSync.OnSlotMoved` all skip a display proxy (or a call the window took), because a
+    proxy has no `ItemInstanceId` and the id-less branch would allocate it a fresh one — the
+    "extra item" family this repository has hit before.
+  - A proxy released onto the radial centre or held over the drain is refused with one Information
+    line (the radial release is consumed, so the world fallbacks cannot turn it into a drop or a
+    take-out nobody asked for); the drain report is rate-limited to one line per dragged proxy.
+  - A release that produced no intent is only logged as an unknown gesture when it is none of the
+    three classified native no-ops (R1 its own slot, R7 a wearable that cannot be held, R14 the
+    craft button).
+  - A display proxy that carries no authoritative identity cancels its drag before the native body
+    runs, which is the fail-closed rule the deleted release-cancel policy held.
+  - A local item released over an in-world remote player keeps the landed cross-player use route
+    (`PatchBridge.TryHandleDraggedItemUseOnRemote`), which the window patch calls before the native
+    body.
+  - `TransferToBody` and `ApplyToLimb` still run on their landed host-authoritative paths (the
+    custody transfer's snapshot edit plus the transfer event, and the cross-player use path). The
+    owner-side native release animation for the custody move is not implemented; it belongs to the
+    family audit.
+  - W4 (a world container under the pointer) resolves that container on the owner's side by instance
+    id. A container the owner's scene cannot resolve is refused with one logged line.
+  - A LOCAL item dragged while the remote backpack view is open now runs the native branch: it is no
+    longer cancelled the way the deleted ordering patch cancelled it, and its slot operand comes from
+    the ring (the owner's body). That corner is recorded here rather than silently changed.
+  - The remote-inventory presentation (`RemoteItemPresentation`, `CloneInventoryRenderer`) is
+    untouched: this stage changes interaction only.
 
 ## Related reading
 

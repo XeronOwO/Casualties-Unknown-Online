@@ -31,9 +31,9 @@ public class RemoteUseOnSelfTests
 		items.AdoptTransferredItem(GuestId, 42, water);
 
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
 			{
-				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				Kind = RemoteInventoryIntentKind.ApplyToLimb,
 				OwnerSteamId = GuestId,
 				ItemInstanceId = 42,
 				TargetLimbIndex = -1,
@@ -75,9 +75,9 @@ public class RemoteUseOnSelfTests
 		items.AdoptTransferredItem(GuestId, 42, water);
 
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
 			{
-				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				Kind = RemoteInventoryIntentKind.ApplyToLimb,
 				OwnerSteamId = GuestId,
 				ItemInstanceId = 42,
 				TargetLimbIndex = -1,
@@ -103,9 +103,9 @@ public class RemoteUseOnSelfTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
 			{
-				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				Kind = RemoteInventoryIntentKind.ApplyToLimb,
 				OwnerSteamId = HostId,
 				ItemInstanceId = 77,
 				TargetLimbIndex = -1,
@@ -135,9 +135,9 @@ public class RemoteUseOnSelfTests
 		items.AdoptTransferredItem(GuestId, 42, water);
 
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
 			{
-				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				Kind = RemoteInventoryIntentKind.ApplyToLimb,
 				OwnerSteamId = GuestId,
 				ItemInstanceId = 42,
 				TargetLimbIndex = -1,
@@ -161,9 +161,9 @@ public class RemoteUseOnSelfTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bandage", slot: -2)));
 
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
 			{
-				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				Kind = RemoteInventoryIntentKind.ApplyToLimb,
 				OwnerSteamId = GuestId,
 				ItemInstanceId = 42,
 				TargetLimbIndex = -1,

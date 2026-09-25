@@ -205,14 +205,14 @@ public sealed class InteractionGateAuthorityTests
 		var hostFrames = CaptureHostMessages(host);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
 			{
-				Kind = RemoteInventoryOperationKind.Drop,
+				Kind = RemoteInventoryIntentKind.DropItem,
 				OwnerSteamId = HostId,
 				ItemInstanceId = 42,
 			});
 
-		Assert.DoesNotContain(NetMsg.RemoteInventoryOperationRequest, hostFrames);
+		Assert.DoesNotContain(NetMsg.RemoteInventoryIntentRequest, hostFrames);
 	}
 
 	[Fact]

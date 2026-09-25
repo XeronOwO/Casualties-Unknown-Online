@@ -98,15 +98,51 @@ What it settled, one line each:
 6. **The protocol is bumped with stage 1** — the vocabulary replaces the wire enum, so the wire
    changes; the handshake check is the compatibility boundary and no dual shape is kept.
 
+## Stage 1 — the native intent path (landed)
+
+The wire, the capture seam, the owner-side replay and the host half replaced the clone-edit path in
+one change, with `ProtocolVersion.Current` bumped (35 → 36, the handshake stays the compatibility
+boundary) and decision 218 for the seam's shape.
+
+What it settled, one line each:
+
+1. **The release window is a call bracket.** `PlayerCameraDragUsePatch` opens it for a display proxy
+   and its finalizer closes it, so the only calls inside it are the ones the game's own release
+   branch makes — a projection rebuild (`CloneInventoryRenderer` loads and unloads its clones) or any
+   other Unity callback cannot be captured by construction.
+2. **That branch's guards are answered by the body the ring shows.** The native branch reads
+   `PlayerCamera.body` — always the local body — while the inventory ring and the dragged proxy
+   belong to the displayed clone, so `RemoteDragPredicatePatches` answers `HoldingItem`, `GetItem`,
+   `GetWearable` and `DoPickupCheck` from that body, and `DropItem(int)` (R9's occupying-slot step)
+   is absorbed instead of dropping an item of the requester's own body.
+3. **The window coalesces the native pairs and names the rest**: `UnloadItem` + `LoadItem` on one
+   container is one `MoveIntoContainer`, R9's own drops are absorbed by its slot pick-up, and the
+   vocabulary carries `DropItem`, `DropWearable`, `TakeOutOfContainer`, `SwapSlots`, `PickUpToSlot`
+   and `TransferToBody` (the ring back on the requester's body).
+4. **A gesture whose intent a later stage carries is refused, logged and never run on a proxy**
+   (combine, battery, favourite, the container-expansion batch, the trader hand-in), and a release
+   that produced nothing is logged as an unclassified native gesture — never a silent no-op.
+5. **The owner replays the native call** (`RemoteIntentApplier`) on the real items resolved by
+   instance id, with R9's own sequence and no `force: true`; a guard refusal is the native refusal
+   and is logged with the intent, the item and the reason.
+6. **The host validates and forwards; it never models inventory contents.** Session permission,
+   membership, the ownership fact, the operands and the destination body; the item is arbitrated
+   first-writer-wins (`RemoteIntentArbitration`). `TransferToBody` and `ApplyToLimb` keep the landed
+   take and cross-player use paths.
+7. **Deleted with the clone-edit path:** the operation enum with its request/apply pair,
+   `PlayerRemoteInventoryService`'s mirror-edit halves, `RemoteBackpackOperationHandler`,
+   `RemoteInventoryOperationApply` and `RemoteProxyDragPolicy`.
+
 ## Staged plan
 
 - **Stage 0 — design.** Done, see above.
-- **Stage 1 — the operation path.** Owner-side execution plus host validation for the inventory and
-  slot family (move/swap, transfer to the requester, drop), replacing the clone-edit path.
-- **Stage 2 — containers.** Move into and out of a container, nested containers, the trash bag,
-  pour, and the open-container-window gesture; the vanish case is a regression test here.
-- **Stage 3 — item interactions.** Use/wear/combine/battery/favourite and the held-remote-item
-  chains (close the backpack, then use the held item from the medical panel).
+- **Stage 1 — the native intent path.** Done, see above: the window, the capture seam, the owner-side
+  replay, the host half and the deletion of the clone-edit path, protocol bumped in the same change.
+- **Stage 2 — containers.** The container-expansion gesture (R5, refused observably today), nested
+  containers and the trash bag, the while-dragging drain tick (the while-dragging body is restored
+  here), the open-container-window refresh; the vanish case is a regression test here.
+- **Stage 3 — item interactions.** Use/wear (the radial branch is restored here), combine, battery,
+  favourite, the trader gesture, and the held-remote-item medical chain.
 - **Stage 4 — family audit and acceptance.** Both directions, a third peer, worn items, containers
   and the craft screen against the matrix below; the projection tickets re-evaluated.
 

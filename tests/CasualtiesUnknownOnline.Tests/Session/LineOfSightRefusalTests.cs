@@ -101,9 +101,9 @@ public class LineOfSightRefusalTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
 			{
-				Kind = RemoteInventoryOperationKind.Drop,
+				Kind = RemoteInventoryIntentKind.DropItem,
 				OwnerSteamId = HostId,
 				ItemInstanceId = 42,
 			});

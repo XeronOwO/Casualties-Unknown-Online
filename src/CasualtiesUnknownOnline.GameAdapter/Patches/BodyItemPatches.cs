@@ -49,6 +49,14 @@ internal static class BodyItemPatches
 		private static void Postfix(Body __instance, IDisposable __state, int slot1, int slot2)
 		{
 			__state.Dispose();
+			if (RemoteDragIntentWindow.Current.DestinationIsOwnerBody)
+			{
+				// The release window owns this call: its prefix skipped the original
+				// and its slot reads are answered by the displayed body, so nothing
+				// was swapped locally and nothing may be reported here.
+				return;
+			}
+
 			PatchBridge.Impl?.OnInventoryChanged();
 			PatchBridge.Impl?.OnSlotMoved(__instance, slot1, "Swap");
 			PatchBridge.Impl?.OnSlotMoved(__instance, slot2, "Swap");
@@ -83,6 +91,15 @@ internal static class BodyItemPatches
 		// craft report (the coordinator's inventory diff), never a per-call one.
 		private static void Postfix(Body __instance, Item item)
 		{
+			// A display proxy is another player's item rendered here, never a local
+			// pickup: while the release window answers HoldingItem from the displayed
+			// body this read would otherwise report the proxy and allocate it a fresh
+			// id (the "extra item" family).
+			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+			{
+				return;
+			}
+
 			if (CallContext.Current != CallContext.Origin.InternalReorder
 				&& CallContext.Current != CallContext.Origin.Craft
 				&& __instance.HoldingItem(item))
@@ -107,6 +124,11 @@ internal static class BodyItemPatches
 	{
 		private static void Prefix(Body __instance, Item item)
 		{
+			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==; a display proxy is never a local drop
+			{
+				return;
+			}
+
 			if (CallContext.Current != CallContext.Origin.InternalReorder
 				&& CallContext.Current != CallContext.Origin.Craft // a destroyed material's DropItem (RecipeItem.cs:182) — its fact rides the craft report
 				&& __instance.HoldingItem(item))

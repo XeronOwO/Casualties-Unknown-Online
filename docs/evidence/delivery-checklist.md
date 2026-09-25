@@ -47,7 +47,7 @@ evidence file.
       process violation — evidence: the handoff instruction (stage 0 design first for the Critical rework ticket) and the ticket's own design principles, which are the user's 2026-09-21 ruling
 - [x] Build + dotnet format + dotnet test normative gates pass — evidence: documentation-only cycle (no src/tests/tools change) so build and format are skipped by the rule; focused normative gate run 149 passed
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: docs-only diff, no class touched; the 595-line PlayerRemoteInventoryService is re-measured and split in stage 1 (design section 3.6)
+      dead mechanisms deleted in the same round) — evidence: docs-only diff, no class touched; the 595-line PlayerRemoteInventoryService was deleted in stage 1 and replaced by the 269-line PlayerRemoteInventoryIntentService (decision 218) (design section 3.6)
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

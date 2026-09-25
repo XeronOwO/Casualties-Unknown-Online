@@ -732,19 +732,19 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
-		public void SendRemoteInventoryOperation(RemoteInventoryOperationRequestMsg msg)
+		public void SendRemoteInventoryIntent(RemoteInventoryIntentMsg msg)
 		{
 		}
 
-		public void HandleRemoteInventoryOperation(ulong sender, RemoteInventoryOperationRequestMsg msg)
+		public void HandleRemoteInventoryIntentRequest(ulong sender, RemoteInventoryIntentMsg msg)
 		{
 		}
 
-		public void FireRemoteInventoryApplyReceived(RemoteInventoryApplyMsg msg)
+		public void FireRemoteInventoryIntentReceived(RemoteInventoryIntentMsg msg)
 		{
 		}
 
-		public event Action<RemoteInventoryApplyMsg>? RemoteInventoryApplyReceived
+		public event Action<RemoteInventoryIntentMsg>? RemoteInventoryIntentReceived
 		{
 			add { }
 			remove { }

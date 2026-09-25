@@ -55,7 +55,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	private readonly GameAdapterDomains _domains;
 	private readonly GameAdapterBridge _bridge;
 	private readonly PlayerInteractionApply _playerInteraction;
-	private readonly RemoteInventoryOperationApply _remoteInventoryApply;
+	private readonly RemoteIntentApplier _remoteInventoryApply;
 	private readonly GameAdapterSessionBinding _sessionBinding;
 	private readonly LatencyInstrumentation _latency;
 	private readonly PatchInstallLifecycle _patches;
@@ -108,7 +108,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		items.RegisterPendingCreationSource(new PendingItemCreationReports(_domains.ItemWorldSync, _domains.EntityEventSync, _domains.BlockBreakSync));
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
-		_remoteInventoryApply = new RemoteInventoryOperationApply(_domains);
+		_remoteInventoryApply = new RemoteIntentApplier(_domains);
 		var pushApply = new PlayerPushApply(_domains);
 		var medicalOperationApply = new MedicalOperationApply(_domains);
 

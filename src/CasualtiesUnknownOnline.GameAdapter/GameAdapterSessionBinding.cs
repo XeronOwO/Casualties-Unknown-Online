@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class GameAdapterSessionBinding(
 	GameAdapterDomains domains,
 	PlayerInteractionApply playerInteraction,
-	RemoteInventoryOperationApply remoteInventoryApply,
+	RemoteIntentApplier remoteInventoryApply,
 	PlayerPushApply pushApply,
 	MedicalOperationApply medicalOperationApply)
 {
@@ -61,7 +61,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.PlayerInteraction.CarryStateChanged += playerInteraction.OnCarryStateChanged; // cross-player carry: set/clear the local carried-body driver
 		domains.PlayerInteraction.HealReceived += playerInteraction.OnPlayerHealReceived; // cross-player heal: consume the local item and/or apply the target's post-heal state
 		domains.PlayerInteraction.UseReceived += playerInteraction.OnPlayerItemUseReceived; // cross-player consumable use: consume/update the user's item and/or apply the target's post-use state
-		domains.PlayerInteraction.RemoteInventoryApplyReceived += remoteInventoryApply.Apply; // native remote-backpack operations execute on the owner's real local body
+		domains.PlayerInteraction.RemoteInventoryIntentReceived += remoteInventoryApply.Apply; // native intents replay on the owner's real local body
 		domains.PlayerInteraction.PushReceived += pushApply.Apply; // cross-player push: apply local target ragdoll/pusher cost and play the push sound
 		domains.PlayerInteraction.MedicalOperations.StateReceived += medicalOperationApply.OnStateReceived; // medical session: refresh local item/body/display with authoritative progress
 		domains.PlayerInteraction.MedicalOperations.EndCommittedReceived += medicalOperationApply.OnEndCommittedReceived; // medical session: single terminal local apply
@@ -115,7 +115,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.PlayerInteraction.CarryStateChanged -= playerInteraction.OnCarryStateChanged;
 		domains.PlayerInteraction.HealReceived -= playerInteraction.OnPlayerHealReceived;
 		domains.PlayerInteraction.UseReceived -= playerInteraction.OnPlayerItemUseReceived;
-		domains.PlayerInteraction.RemoteInventoryApplyReceived -= remoteInventoryApply.Apply;
+		domains.PlayerInteraction.RemoteInventoryIntentReceived -= remoteInventoryApply.Apply;
 		domains.PlayerInteraction.PushReceived -= pushApply.Apply;
 		domains.PlayerInteraction.MedicalOperations.StateReceived -= medicalOperationApply.OnStateReceived;
 		domains.PlayerInteraction.MedicalOperations.EndCommittedReceived -= medicalOperationApply.OnEndCommittedReceived;

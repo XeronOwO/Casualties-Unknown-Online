@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -25,7 +26,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort
 {
-	private readonly RemoteBackpackOperationHandler _remoteBackpackOps = new(domains);
+	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
 	private readonly ModContentPatchBridge _modContent = new(domains);
 	private readonly CarriagePatchBridge _carriage = new(domains);
@@ -230,101 +231,13 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool TryStartRemoteWoundSpecial(Limb limb) =>
 		_remoteMedicalOps.TryStartRemoteWoundSpecial(limb);
 
-	public bool TryHandleRemoteBackpackTake(Item dragItem)
-	{
-		if (!RemoteBackpackView.IsOpen || dragItem == null) // Unity object — ==
-		{
-			return false;
-		}
+	public ulong LocalSteamId => _remoteDragIntents.LocalSteamId;
 
-		if (dragItem.GetComponent<RemoteCloneRender>() == null) // Unity object — ==
-		{
-			return false;
-		}
+	public void ReportRemoteDragUnresolved(Item dragItem) => _remoteDragIntents.ReportUnresolved(dragItem);
 
-		var itemId = GetRemoteProxyItemId(dragItem);
-		if (itemId == 0)
-		{
-			domains.Log.LogWarning("[BackpackView] refused remote take: dragged display item {ItemId} has no bound instance id.", dragItem.id);
-			return false;
-		}
+	public void EmitRemoteDragIntents(RemoteDragOutcome outcome) => _remoteDragIntents.Emit(outcome);
 
-		var owner = RemoteBackpackView.FocusedSteamId;
-		if (owner == 0)
-		{
-			domains.Log.LogWarning("[BackpackView] refused remote take: the native view has no focused owner.");
-			return false;
-		}
-
-		var focused = RemoteBackpackView.FocusedBody;
-		if (focused == null || !dragItem.transform.IsChildOf(focused.transform)) // Unity objects — ==
-		{
-			domains.Log.LogWarning("[BackpackView] refused remote take: dragged display item {ItemId} is not under the focused remote clone ({Owner}).",
-				dragItem.id, owner);
-			return false;
-		}
-
-		domains.PlayerInteraction.SendTakeRequest(owner, itemId);
-		domains.Log.LogInformation("[BackpackView] requested take of {ItemId} (id {InstanceId}) from {Owner}.",
-			dragItem.id, itemId, owner);
-		return true;
-	}
-
-	public bool TryHandleRemoteBackpackDrop(Item dragItem) => _remoteBackpackOps.TryDrop(dragItem);
-
-	public bool TryHandleRemoteBackpackMoveToContainer(Item dragItem, Item targetContainer) =>
-		_remoteBackpackOps.TryMoveToContainer(dragItem, targetContainer);
-
-	public bool TryHandleRemoteBackpackPour(Item dragItem) => _remoteBackpackOps.TryPour(dragItem);
-
-	public bool TryHandleRemoteBackpackCombine(Item dragItem, Item target) =>
-		_remoteBackpackOps.TryCombine(dragItem, target);
-
-	public bool TryHandleRemoteBackpackUse(Item dragItem) => _remoteBackpackOps.TryUse(dragItem);
-
-	public bool TryHandleRemoteBackpackWear(Item dragItem) => _remoteBackpackOps.TryWear(dragItem);
-
-	public bool TryHandleRemoteBackpackBatteryLoad(Item dragItem, Item target) =>
-		_remoteBackpackOps.TryLoadBattery(dragItem, target);
-
-	public bool TryHandleRemoteBackpackBatteryUnload(Item dragItem, Item target) =>
-		_remoteBackpackOps.TryUnloadBattery(dragItem, target);
-
-	public bool TryHandleRemoteBackpackFavoriteToggle(Item item) =>
-		_remoteBackpackOps.TryToggleFavorite(item);
-
-	public bool TryHandleRemoteBackpackMoveToSlot(Item dragItem, int targetSlot) =>
-		_remoteBackpackOps.TryMoveToSlot(dragItem, targetSlot);
-
-	public bool TryHandleRemoteProxyTransferToLocal(Item dragItem) => _remoteBackpackOps.TryTransferToLocal(dragItem);
-
-	public bool TryHandleRemoteHeldItemUse(Item dragItem, int limbIndex) =>
-		_remoteBackpackOps.TryUseOnSelf(dragItem, limbIndex);
-
-	public bool CancelRemoteProxyDrag(PlayerCamera camera, string reason)
-	{
-		if (camera == null || camera.dragItem == null) // Unity objects — ==
-		{
-			return false;
-		}
-
-		var item = camera.dragItem;
-		if (item.GetComponent<RemoteCloneRender>() == null) // Unity object — ==
-		{
-			return false;
-		}
-
-		var itemId = GetRemoteProxyItemId(item);
-		if (camera.dragImage != null) // Unity object — ==
-		{
-			camera.dragImage.enabled = false;
-		}
-
-		camera.dragItem = null;
-		domains.Log.LogWarning("[BackpackView] cancelled remote display-proxy drag ({Reason}) for {ItemId} (id {InstanceId}).",
-			reason, item.id, itemId);
-		return true;
-	}
+	public void ReportRemoteGestureNotCarried(string gesture) => _remoteDragIntents.ReportGestureNotCarried(gesture);
 
 	public void OnPickUpResult(string itemId, int slot, string home, Vector2 position) =>
 		domains.Log.LogInformation("[PickUpResult] {Item} → {Home} (slot {Slot}) at ({X:F1},{Y:F1}).", itemId, home, slot, position.x, position.y);

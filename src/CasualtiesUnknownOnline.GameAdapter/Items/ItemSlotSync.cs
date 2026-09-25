@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ internal sealed class ItemSlotSync(IItemControl items, ISessionControl session, 
 	internal void OnSlotMoved(Body body, int slot, string origin)
 	{
 		var item = body.GetItem(slot);
-		if (item == null) // Unity object — ==; empty slot
+		if (item == null || item.GetComponentInParent<RemoteCloneRender>() != null) // Unity objects — ==; empty slot, or a display proxy the release window's redirected read resolved
 		{
 			return;
 		}

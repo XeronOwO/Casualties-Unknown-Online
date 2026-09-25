@@ -47,6 +47,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [The one-top-level-type gate misses `readonly` records](todo/source-shape-gate-modifier-blindness.md) — **Medium** — the matcher spells modifiers by hand.
 - [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [A dead or unconscious carried body stops simulating](todo/carried-unconscious-body-simulation.md) — **Medium** — vitals frozen behind the pinned pose.
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — reopened: the rider's body is frozen as a render proxy.

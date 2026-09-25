@@ -2047,50 +2047,62 @@
     {
       "cluster": "players",
       "row": "P10",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryService.cs",
-      "quote": "_sender.Send(_session.HostSteamId, NetMsg.RemoteInventoryOperationRequest, msg);"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryIntentService.cs",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.RemoteInventoryIntentRequest, msg);"
     },
     {
       "cluster": "players",
       "row": "P10",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryService.cs",
-      "quote": "_sender.Send(owner, NetMsg.RemoteInventoryApply, apply);"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryIntentService.cs",
+      "quote": "_sender.Send(owner, NetMsg.RemoteInventoryIntent, msg);"
     },
     {
       "cluster": "players",
       "row": "P10",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/RemoteBackpackOperationHandler.cs",
-      "quote": "domains.PlayerInteraction.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg"
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/RemoteDragIntentDispatcher.cs",
+      "quote": "domains.PlayerInteraction.SendRemoteInventoryIntent(msg);"
     },
     {
       "cluster": "players",
       "row": "P10",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/RemoteInventoryOperationApply.cs",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/RemoteIntentApplier.cs",
       "quote": "domains.CharacterDataSync.ReportInventoryChanged(body);"
     },
     {
       "cluster": "players",
       "row": "P10",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/RemoteInventoryOperationApply.cs",
-      "quote": "ReportAffectedState(source);"
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/RemoteDragIntentWindow.cs",
+      "quote": "internal static RemoteDragIntentCapture Current { get; } = new();"
     },
     {
       "cluster": "players",
       "row": "P10",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
-      "quote": "RemoteInventoryOperationRequest = 125, // guest → host: perform a remote-player inventory operation (drop / move-to-container / pour / combine / use / wear / battery / slot / favourite)"
+      "quote": "RemoteInventoryIntentRequest = 125, // guest → host: one native inventory intent captured from the local drag release"
     },
     {
       "cluster": "players",
       "row": "P10",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryService.cs",
-      "quote": "if (!TryExecuteItemCommand(BuildDropOrSpawnCommand(owner, original, ItemLocation.World(position.X, position.Y)), out var rejection))"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryIntentService.cs",
+      "quote": "_take.HandleRemoteBackpackTransferToBody(requester, owner, msg.ItemInstanceId, msg.TargetSlotIndex);"
     },
     {
       "cluster": "players",
       "row": "P10",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
       "quote": "MergeTransferredItems(steamId, data);"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteIntentArbitration.cs",
+      "quote": "internal bool TryAdmit(ulong requester, ulong itemInstanceId, long nowMs, out ulong holder)"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/RemoteDragMutationPatches.cs",
+      "quote": "internal static class RemoteDragMutationPatches"
     },
     {
       "cluster": "players",
@@ -4272,18 +4284,6 @@
     },
     {
       "cluster": "inline",
-      "row": "P10",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryService.cs",
-      "quote": "_take.HandleRemoteBackpackTake(requester, owner, original.InstanceId);"
-    },
-    {
-      "cluster": "inline",
-      "row": "P10",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/RemoteInventoryOperationApply.cs",
-      "quote": "_log.LogWarning(\"[RemoteApply] native {Kind} skipped: local body is not ready.\", msg.Kind);"
-    },
-    {
-      "cluster": "inline",
       "row": "P11",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
       "quote": "MedicalOperationStartRequest = 127, // guest → host: begin a medical operation"
@@ -5354,7 +5354,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 35;"
+      "quote": "public const int Current = 36;"
     },
     {
       "cluster": "world-blocks",
@@ -5546,7 +5546,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 35;"
+      "quote": "public const int Current = 36;"
     },
     {
       "cluster": "inline",

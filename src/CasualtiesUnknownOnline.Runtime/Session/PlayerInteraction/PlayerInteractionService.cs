@@ -21,7 +21,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 public sealed class PlayerInteractionService : IPlayerInteractionControl, IDisposable
 {
 	private readonly PlayerInventoryTakeService _take;
-	private readonly PlayerRemoteInventoryService _remoteInventory;
+	private readonly PlayerRemoteInventoryIntentService _remoteInventory;
 	private readonly PlayerCarryService _carry;
 	private readonly PlayerKernelCarryProjection _carryKernelProjection;
 	private readonly PlayerHealService _heal;
@@ -40,10 +40,10 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		remove => _take.TransferReceived -= value;
 	}
 
-	public event Action<RemoteInventoryApplyMsg>? RemoteInventoryApplyReceived
+	public event Action<RemoteInventoryIntentMsg>? RemoteInventoryIntentReceived
 	{
-		add => _remoteInventory.ApplyReceived += value;
-		remove => _remoteInventory.ApplyReceived -= value;
+		add => _remoteInventory.IntentReceived += value;
+		remove => _remoteInventory.IntentReceived -= value;
 	}
 
 	public event Action<PlayerCarryStateMsg>? CarryStateChanged
@@ -91,7 +91,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);
-		_remoteInventory = new PlayerRemoteInventoryService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, _itemUse, _take, log);
+		_remoteInventory = new PlayerRemoteInventoryIntentService(session, sender, access, hostRules, visibility, _itemUse, _take, time, log);
 		_carry = new PlayerCarryService(
 			session,
 			sender,
@@ -116,14 +116,14 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void HandleTakeRequest(ulong sender, PlayerInventoryTakeRequestMsg msg) =>
 		_take.HandleTakeRequest(sender, msg);
 
-	public void SendRemoteInventoryOperation(RemoteInventoryOperationRequestMsg msg) =>
-		_remoteInventory.SendRemoteInventoryOperation(msg);
+	public void SendRemoteInventoryIntent(RemoteInventoryIntentMsg msg) =>
+		_remoteInventory.SendRemoteInventoryIntent(msg);
 
-	public void HandleRemoteInventoryOperation(ulong sender, RemoteInventoryOperationRequestMsg msg) =>
-		_remoteInventory.HandleRemoteInventoryOperation(sender, msg);
+	public void HandleRemoteInventoryIntentRequest(ulong sender, RemoteInventoryIntentMsg msg) =>
+		_remoteInventory.HandleRemoteInventoryIntentRequest(sender, msg);
 
-	public void FireRemoteInventoryApplyReceived(RemoteInventoryApplyMsg msg) =>
-		_remoteInventory.FireRemoteInventoryApplyReceived(msg);
+	public void FireRemoteInventoryIntentReceived(RemoteInventoryIntentMsg msg) =>
+		_remoteInventory.FireRemoteInventoryIntentReceived(msg);
 
 	public void FireTransferReceived(PlayerInventoryTransferMsg msg) =>
 		_take.FireTransferReceived(msg);

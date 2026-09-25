@@ -153,6 +153,16 @@ public static class ProtocolVersion
 	/// would stay invisible exactly where the tier promised visibility. Parity
 	/// stays visibility, never proof: an undeclared binding is still invisible and
 	/// an equal declaration does not prove equal behaviour (decision 204).
-	public const int Current = 35;
+	/// 36: `RemoteInventoryIntentMsg` replaces the remote-inventory operation
+	/// enum and its request/apply message pair. The wire carries the native call
+	/// the viewer's own drag pipeline made, keyed by authoritative instance ids;
+	/// the host validates permission, membership, ownership and the destination
+	/// body and forwards it, and the owner replays that call on the real objects,
+	/// so the game's inventory semantics are implemented once, where the items
+	/// are. A peer without the message would send the deleted operation kind,
+	/// which the registry drops, and would ignore every intent addressed to its
+	/// own body, so its items would stay where the viewer did not move them while
+	/// every other peer's projection followed the abandoned request.
+	public const int Current = 36;
 
 }

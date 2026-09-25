@@ -31,7 +31,7 @@ public class GuestToHostDirectionTests(DirectionProbe probe) : IClassFixture<Dir
 		NetMsg.PlayerItemUseRequest,
 		NetMsg.PlayerPushRequest,
 		NetMsg.TraderRecruitRequest,
-		NetMsg.RemoteInventoryOperationRequest,
+		NetMsg.RemoteInventoryIntentRequest,
 		NetMsg.MedicalOperationStartRequest,
 		NetMsg.MedicalOperationUpdate,
 		NetMsg.MedicalOperationEndRequest,

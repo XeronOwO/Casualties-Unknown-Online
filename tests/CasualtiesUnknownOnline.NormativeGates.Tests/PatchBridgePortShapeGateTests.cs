@@ -164,20 +164,10 @@ public class PatchBridgePortShapeGateTests
 	[
 		("IRemoteBackpackPatchBridge", AdapterDir + "IRemoteBackpackPatchBridge.cs", true,
 		[
-			"CancelRemoteProxyDrag",
-			"TryHandleRemoteBackpackBatteryLoad",
-			"TryHandleRemoteBackpackBatteryUnload",
-			"TryHandleRemoteBackpackCombine",
-			"TryHandleRemoteBackpackDrop",
-			"TryHandleRemoteBackpackFavoriteToggle",
-			"TryHandleRemoteBackpackMoveToContainer",
-			"TryHandleRemoteBackpackMoveToSlot",
-			"TryHandleRemoteBackpackPour",
-			"TryHandleRemoteBackpackTake",
-			"TryHandleRemoteBackpackUse",
-			"TryHandleRemoteBackpackWear",
-			"TryHandleRemoteHeldItemUse",
-			"TryHandleRemoteProxyTransferToLocal",
+			"EmitRemoteDragIntents",
+			"LocalSteamId",
+			"ReportRemoteDragUnresolved",
+			"ReportRemoteGestureNotCarried",
 		]),
 		("IRemoteMedicalPatchBridge", AdapterDir + "IRemoteMedicalPatchBridge.cs", true,
 		[
@@ -224,7 +214,7 @@ public class PatchBridgePortShapeGateTests
 		"_carriage",
 		"_modContent",
 		"_remoteMedicalOps",
-		"_remoteBackpackOps",
+		"_remoteDragIntents",
 	];
 
 	/// <summary>The static seam's whole census: the one field holding the bound bridge, and the accessors — the aggregate's plus one per port-shaped seam. A new accessor is a new door and is a red.</summary>
@@ -242,8 +232,16 @@ public class PatchBridgePortShapeGateTests
 	/// <summary>The aggregate census floor — a pin emptied alongside its source would otherwise pass by checking nothing.</summary>
 	private const int AggregateFloor = 90;
 
-	/// <summary>The composed seams' floor, for the same reason.</summary>
-	private const int ComposedSeamFloor = 20;
+	/// <summary>
+	/// The composed seams' floor, for the same reason. It moved from 20 to 10
+	/// when the remote-inventory rework (decision 218) deleted the fourteen
+	/// gesture-per-operation members of <c>IRemoteBackpackPatchBridge</c>: the
+	/// mechanism they served — CUO classifying the release into an operation
+	/// enum — no longer exists, and the four members that replaced them are the
+	/// whole surface the patches read. The floor stays a floor: a seam emptied
+	/// alongside its pin still fails here.
+	/// </summary>
+	private const int ComposedSeamFloor = 10;
 
 	public static IEnumerable<object[]> SeamCensus() =>
 		Seams.Select(seam => new object[] { seam.Interface, seam.File, Census(seam.Members) });

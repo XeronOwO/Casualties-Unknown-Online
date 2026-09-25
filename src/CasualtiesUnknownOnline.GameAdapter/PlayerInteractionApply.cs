@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -21,6 +22,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 {
 	private PlayerCarryStateMsg? _pendingCarryState;
+	private readonly CarrySimulationTrace _carryTrace = new();
 
 	public void OnPlayerInventoryTransfer(PlayerInventoryTransferMsg msg)
 	{
@@ -125,6 +127,12 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return;
 		}
 
+		var keepsNativeSimulation = KeepsNativeSimulation(localBody);
+		// One trace tick per carried frame, whether or not a carrier anchor was
+		// available: the frame count and the carry-follow count are only
+		// comparable when the frames without an anchor are visible as such.
+		_carryTrace.Tick(localBody, driver.CarrierSteamId, keepsNativeSimulation, domains.Log);
+
 		// Use the remote carrier's RENDER clone as the anchor when it exists:
 		// that clone is already smoothed by SessionStatePump, so the local rider
 		// follows the same visual carrier position the player sees instead of
@@ -133,14 +141,14 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		if (domains.Renderer.TryGetRemoteBody(driver.CarrierSteamId, out var carrierBody)
 			&& carrierBody != null) // Unity object — ==
 		{
-			CarriedBodyPlacement.ApplyRidePose(
+			CarriedBodyPlacement.ApplyLocalRiderPose(
 				localBody,
 				carrierBody.transform.position,
 				carrierBody.isRight,
 				carrierBody.crouching,
 				carrierBody.rb.velocity,
 				carrierBody.targetLookPos);
-			domains.Run.RefreshLocalBodyState();
+			TraceRider(localBody);
 			return;
 		}
 
@@ -150,13 +158,28 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return;
 		}
 
-		CarriedBodyPlacement.ApplyRidePose(
+		CarriedBodyPlacement.ApplyLocalRiderPose(
 			localBody,
 			new Vector3(carrier.Position.X, carrier.Position.Y, 0f),
 			carrier.IsRight,
 			carrier.Crouching,
 			new Vector2(carrier.Velocity.X, carrier.Velocity.Y),
 			new Vector2(carrier.LookPos.X, carrier.LookPos.Y));
+		TraceRider(localBody);
+	}
+
+	/// <summary>
+	/// Whether the local body keeps its own per-frame simulation while carried
+	/// (a conscious/alive rider does — the carry relation owns its transform, not
+	/// its simulation).
+	/// </summary>
+	private static bool KeepsNativeSimulation(Body body) =>
+		CarriedBodySimulation.KeepsNativeSimulation(isLocalCarriedBody: true, body.alive, body.conscious);
+
+	/// <summary>One carry-follow write for the trace, then the immediate re-report.</summary>
+	private void TraceRider(Body rider)
+	{
+		_carryTrace.CountCarryFollow();
 		domains.Run.RefreshLocalBodyState();
 	}
 
@@ -341,8 +364,13 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			}
 
 			driver.CarrierSteamId = msg.CarrierSteamId;
-			body.standing = false;
-			domains.Log.LogInformation("[Carry] local body is carried by {Carrier}.", msg.CarrierSteamId);
+			// The rider is NOT a render proxy any more: its own per-frame
+			// simulation keeps running while the carry relation owns only the
+			// transform, so nothing writes Body.standing here. The rigidbody
+			// leaves the game's integrator before the first placement write, so
+			// the body cannot be moved twice in the frame the relation starts.
+			body.rb.simulated = false;
+			CarrySimulationTrace.LogAttached(body, msg.CarrierSteamId, KeepsNativeSimulation(body), domains.Log);
 			return;
 		}
 
@@ -367,7 +395,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			driver.CarrierSteamId = 0;
 			CarriedBodyPlacement.RestoreLocalBody(body);
 			Object.Destroy(driver);
-			domains.Log.LogInformation("[Carry] local body released by {Carrier}; physics restored.", msg.CarrierSteamId);
+			CarrySimulationTrace.LogReleased(body, msg.CarrierSteamId, domains.Log);
 		}
 	}
 

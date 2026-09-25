@@ -71,14 +71,17 @@ public static class CarriedBodyPose
 
 	/// <summary>
 	/// Whether the 20 Hz player stream may publish exact world-space limb poses
-	/// for a carried rider. A conscious/alive piggyback rider is a frozen
-	/// carry-presentation proxy, not a physics ragdoll: the shared ride-pose and
-	/// the local-carrier mount drive its Body root, and the remote clone must
-	/// keep the visual-standing render path so HandleVisuals keeps its visible
-	/// limbs attached to that Body. Publishing exact limb poses would let
-	/// <c>RagdollPoseApplication</c> pin the clone's visible limbs to the
-	/// rider's own world-space coordinates, so the carrier-side mount moves only
-	/// the Body root and the limbs still appear to teleport.
+	/// for a carried rider. Every peer sees a conscious/alive piggyback rider
+	/// through a FROZEN carry-presentation clone, not a physics ragdoll: the
+	/// shared carrier follow and the local-carrier mount drive that clone's Body
+	/// root, and the clone must keep the visual-standing render path so
+	/// HandleVisuals keeps its visible limbs attached to that Body. Publishing
+	/// exact limb poses would let <c>RagdollPoseApplication</c> pin the clone's
+	/// visible limbs to the rider's own world-space coordinates, so the
+	/// carrier-side mount moves only the Body root and the limbs still appear to
+	/// teleport. The rider's OWN body is no longer a proxy — it keeps its own
+	/// simulation (<c>CarriedBodySimulation</c>) — but what peers render is
+	/// still this clone path.
 	/// Dead/unconscious carried bodies keep exact limb poses so the remote clone
 	/// preserves the true corpse/comatose presentation.
 	/// </summary>

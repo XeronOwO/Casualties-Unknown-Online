@@ -1,4 +1,4 @@
-# Carry/piggyback riding movement teleport and rider/carrier position mismatch
+﻿# Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
 - Status: Todo
 - Priority: Critical
@@ -12,8 +12,11 @@ medical panel shows an almost flat ECG although the heart rate is real, and the 
 twitch with a growing frequency; releasing the carry restores normal behaviour. The cause is the
 carried body's own per-frame simulation being skipped — the render-proxy treatment this ticket's
 "Current implementation" describes; it is tracked as
-`todo/carried-rider-own-body-stops-simulating.md`. This ticket is moved back to `todo/` so the
-carried-rider presentation is reworked as one family instead of adding another suppression.
+`review/carried-rider-own-body-stops-simulating.md`. This ticket is moved back to `todo/` so the
+carried-rider presentation is reworked as one family instead of adding another suppression. That
+rework landed in the 2026-09-21 cycle (decision 216): a conscious/alive rider's own client keeps the
+native per-frame simulation and the carry relation owns only its transform, so the rider's body is
+no longer a frozen render proxy. The teleport acceptance below was not re-tested in that cycle.
 
 The teleport itself was not re-tested in this pass; the acceptance criteria below stand until the
 rework re-verifies them.

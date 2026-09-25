@@ -50,8 +50,25 @@ public class CarriedBodyReleaseTests
 	{
 		var method = Placement.GetMethod("RestoreLocalBody", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("CarriedBodyPlacement.RestoreLocalBody not found.");
-		Assert.Single(method.GetParameters());
+		var parameters = method.GetParameters();
+		// The restore reads the body's OWN state (standing / alive / conscious)
+		// instead of taking a recorded mode: the relation can change mode
+		// mid-carry, so a mode argument could go stale and leave the movement
+		// gate or the limb physics behind.
+		Assert.Single(parameters);
+		Assert.Equal("Body", parameters[0].ParameterType.Name);
+	}
+
+	[Fact]
+	public void LocalRiderFollowEntryPoint_ExistsOnCarriedBodyPlacement()
+	{
+		// The local rider has its own follow: ApplyRidePose holds the proxy pose
+		// gates and belongs to the remote rider clone, while the local rider's
+		// pose stays the body's own.
+		var method = Placement.GetMethod("ApplyLocalRiderPose", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("CarriedBodyPlacement.ApplyLocalRiderPose not found.");
 		Assert.Equal("Body", method.GetParameters()[0].ParameterType.Name);
+		Assert.True(method.GetParameters().Length >= 6, "the local rider follow must accept body, anchor, facing, crouch, velocity and look target.");
 	}
 
 	[Fact]

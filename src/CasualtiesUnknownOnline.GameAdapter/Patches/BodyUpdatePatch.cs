@@ -9,9 +9,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
 /// The <c>Body.Update</c> render-proxy and carry-participant presentation
-/// patch. Local players keep the original simulation; remote clones and
-/// carried/carrying bodies get the visual-only proxy path. This also holds the
-/// native idle-sit suppression for every half of a carry relation.
+/// patch. A remote clone gets the visual-only proxy path; every LOCAL body —
+/// carried or not — runs the original simulation, because a carried rider's
+/// own client must keep advancing vitals, the heart progression behind the ECG
+/// animation, limb state and sounds (<see cref="CarriedBodySimulation"/>). Only
+/// the rider's movement input and the native idle-sit are gated while carried.
+/// This also holds the native idle-sit suppression for both halves of a carry
+/// relation, and the frozen presentation of a dead/unconscious carried body.
 /// </summary>
 [HarmonyPatch(typeof(Body), "Update")]
 internal static class BodyUpdatePatch
@@ -22,10 +26,15 @@ internal static class BodyUpdatePatch
 
 	private static bool Prefix(Body __instance)
 	{
-		if (__instance.GetComponentInParent<RemoteBodyDriver>() == null
-			&& !CarriedBodyDriver.IsCarrying(__instance)) // Unity objects — ==
+		var isRemoteClone = __instance.GetComponentInParent<RemoteBodyDriver>() != null;
+		var isCarried = CarriedBodyDriver.IsCarrying(__instance);
+		if (!CarriedBodySimulation.SkipsNativeSimulation(
+			isRemoteClone,
+			isCarried,
+			__instance.alive,
+			__instance.conscious))
 		{
-			// Local player: while the start gate holds us, lock movement
+			// Local body: while the start gate holds us, lock movement
 			// (the game's own movingAllowed — Body.cs:4322) every frame;
 			// the release restores it in GameAdapter.UpdateStartGate.
 			if (PatchBridge.Impl is { IsWaitingForReady: true })
@@ -42,19 +51,44 @@ internal static class BodyUpdatePatch
 				__instance.idleTime = 0f;
 			}
 
-			return true; // local player: original behavior
+			// A carried rider keeps its whole simulation but not its movement
+			// input: the carrier owns the position (PlayerInteractionApply
+			// writes it every frame), so the body's own input must not fight the
+			// placement. movingAllowed is the game's own movement gate
+			// (Body.cs:127 moveForce, Body.cs:2114 jump) and it also removes the
+			// native idle-sit condition (Body.cs:3162), so the rider can neither
+			// walk off the carrier's back nor sit down while carried.
+			if (CarriedBodySimulation.SuppressesMovement(isCarried, __instance.alive, __instance.conscious))
+			{
+				__instance.moveDir = Vector2.zero;
+				__instance.idleTime = 0f;
+				Traverse.Create(__instance).Field("movingAllowed").SetValue(false);
+				// The carry relation owns the rider's POSE as well as its
+				// position, exactly as the frozen presentation did: asserting
+				// standing here keeps the game's own HandleVisuals driving the
+				// visible limbs from the animator (a non-standing body skips that
+				// copy, Body.cs:3224-3252). A rider the native pass collapses
+				// anyway — legs gone or in shock, Body.cs:2772 — falls back to
+				// the limp pose in the same frame, with its limb physics frozen
+				// here and again after the pass, so nothing simulates under a root
+				// the placement teleports every frame.
+				__instance.standing = true;
+				FreezeRigidbodies(__instance);
+			}
+
+			return true; // local body: original behavior
 		}
 
 		UpdateGrounded(__instance);
 		UpdateCrouchAmount(__instance);
 		// The 12s idle timer makes the original sit down (Body.cs:3162-3166);
 		// a render proxy must stay in its standing pose — reset the timer.
-		// A carry-participant body (local rider, carrier-side rider clone,
-		// or any remote carrier clone) is held at zero every frame, not only
-		// after the 11s pre-sit threshold, so the sit condition can never
-		// begin accumulating on either half of the relation.
+		// A carry-participant body (carrier-side rider clone, or any remote
+		// carrier clone) is held at zero every frame, not only after the 11s
+		// pre-sit threshold, so the sit condition can never begin accumulating
+		// on either half of the relation.
 		var remoteDriver = __instance.GetComponent<RemoteBodyDriver>(); // Unity object — ==
-		var isCarryParticipant = CarriedBodyDriver.IsCarrying(__instance)
+		var isCarryParticipant = isCarried
 			|| (remoteDriver != null && (remoteDriver.IsCarriedRider || remoteDriver.IsCarrier));
 		if (CarriedBodyPose.ShouldZeroIdleTimer(isCarryParticipant) || __instance.idleTime > 11f)
 		{
@@ -87,20 +121,10 @@ internal static class BodyUpdatePatch
 		// synced standing value is restored immediately after the visual
 		// pass and remains the semantic state for SessionStatePump/LyingPose.
 		var originalStanding = __instance.standing;
-		var isRemoteClone = __instance.GetComponentInParent<RemoteBodyDriver>() != null;
-		// A conscious/alive local rider is a frozen carry presentation, not a
-		// corpse: HandleVisuals must keep driving its standing limbs just like
-		// it does for a remote rider clone, otherwise the rider's own view can
-		// freeze in the pre-carry pose while the carrier/third-party clones
-		// continue to animate — the visible mismatch behind the carry family.
-		var isCarryRenderProxy = CarriedBodyDriver.IsCarrying(__instance)
-			&& __instance.alive
-			&& __instance.conscious;
 		var visualStanding = RenderProxyPose.EffectiveVisualStanding(
 			originalStanding,
 			isRemoteClone,
-			remoteDriver != null && remoteDriver.RagdollPoseActive,
-			isCarryRenderProxy);
+			remoteDriver != null && remoteDriver.RagdollPoseActive);
 		if (!originalStanding && visualStanding)
 		{
 			__instance.standing = true;
@@ -137,7 +161,7 @@ internal static class BodyUpdatePatch
 		// that ignored it would stand straight while the owner visibly slouches.
 		var proxyLegSpeed = remoteDriver != null
 			? remoteDriver.LegSpeedMult
-			: __instance.legSpeedMult; // local carried body: use its own owner-computed value; the 1 Hz snapshot sends the same value to remote clones
+			: __instance.legSpeedMult; // a carried body that no longer simulates keeps its own last value; the 1 Hz snapshot sends the owner's value to remote clones
 		var crouchParam = Body.InOutSine(Mathf.Clamp01(
 			BodyPosePresentation.ProxyCrouchInput(__instance.crouchAmount, proxyLegSpeed))) * 10000f;
 		__instance.bodyAnimator.SetFloat("CrouchAmount", crouchParam);
@@ -165,6 +189,33 @@ internal static class BodyUpdatePatch
 	/// </summary>
 	private static void Postfix(Body __instance)
 	{
+		if (CarriedBodySimulation.SuppressesMovement(
+			CarriedBodyDriver.IsCarrying(__instance),
+			__instance.alive,
+			__instance.conscious))
+		{
+			// The native pass runs between the prefix and here, and it can
+			// re-enable the limb rigidbodies it collapsed through Ragdoll()
+			// (Body.cs:1723). Re-assert the carry relation's ownership of the
+			// rider's physics AFTER the pass, so no limb is ever simulated under
+			// a root the placement teleports each frame.
+			FreezeRigidbodies(__instance);
+
+			// An already-playing native sit clip must be left ACTIVELY: zeroing
+			// the idle timer cannot exit ExperimentSit/ArmsSit on its own, and
+			// the native exit branch needs a non-idle frame (Body.cs:3145-3166),
+			// which a stationary carrier never produces for a rider whose input
+			// is gated. This is a carry-presentation assertion, not a proxy-only
+			// one, so the local rider keeps it.
+			if (CarriedBodyPose.ShouldExitSit(true, IsCurrentClipSit(__instance)))
+			{
+				__instance.bodyAnimator.Play("Grounded");
+				__instance.armsAnimator.Play("Grounded");
+			}
+
+			return;
+		}
+
 		if (!IsLocalCarrier(__instance))
 		{
 			return;

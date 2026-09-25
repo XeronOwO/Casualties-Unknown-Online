@@ -197,6 +197,21 @@ public class CarriedBodyPoseTests
 		Assert.DoesNotContain("var isCarried = _playerInteraction.TryGetCarried", text);
 	}
 
+	[Fact]
+	public void SimulatingCarriedRider_IsACarryParticipantWhoseSitMustBeExited()
+	{
+		// The two rules compose for the LOCAL rider: its own client keeps the
+		// simulation (so the native pass, not a proxy, owns the pose) AND it must
+		// still actively leave a sit clip it was picked up in, because the native
+		// exit branch needs a non-idle frame (Body.cs:3145-3166) while a carried
+		// rider's input is gated and its velocity is the carrier's.
+		Assert.True(CarriedBodySimulation.SuppressesMovement(
+			isLocalCarriedBody: true,
+			alive: true,
+			conscious: true));
+		Assert.True(CarriedBodyPose.ShouldExitSit(isCarryParticipant: true, currentClipIsSit: true));
+	}
+
 	private static string FindRepositoryRoot()
 	{
 		var directory = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);

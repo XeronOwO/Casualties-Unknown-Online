@@ -463,11 +463,11 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnLimbStateEvent(Limb limb) => domains.CharacterDataSync.ReportLimbStateEvent(limb);
 
-	public bool OnTimeScaleSetRequested(PlayerCamera.SpeedType speed, bool force) =>
-		domains.WorldTimeSync.OnTimeScaleSetRequested(speed, force);
+	public bool OnTimeScaleSetRequested(PlayerCamera.SpeedType speed, bool switchSound, bool force) =>
+		domains.WorldTimeSync.OnTimeScaleSetRequested(speed, switchSound, force);
 
-	public void OnLocalTimeScaleChanged(PlayerCamera.SpeedType speed) =>
-		domains.WorldTimeSync.OnLocalTimeScaleChanged(speed);
+	public void OnLocalTimeScaleChanged(PlayerCamera.SpeedType speed, bool switchSound, bool force) =>
+		domains.WorldTimeSync.OnLocalTimeScaleChanged(speed, switchSound, force);
 
 	public ulong OnHeaterCookBegin(Item item) => domains.HeaterCookSync.OnCookCandidate(item);
 

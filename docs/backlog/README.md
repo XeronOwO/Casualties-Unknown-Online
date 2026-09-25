@@ -50,13 +50,13 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The one-top-level-type gate misses `readonly` records](todo/source-shape-gate-modifier-blindness.md) — **Medium** — the matcher spells modifiers by hand.
 - [A dead or unconscious carried body stops simulating](todo/carried-unconscious-body-simulation.md) — **Medium** — vitals frozen behind the pinned pose.
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
-- [Manual world acceleration must not end when a player moves](todo/world-acceleration-survives-movement.md) — **High** — the shared clock ignores movement.
 - [World-time acceleration is gated on being asleep](todo/world-time-local-initiation.md) — **Medium** — reopened: the movement reset is superseded.
 - [Guest hears only some block-break sounds](todo/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the hit relay loses part of the cadence.
 - [Host eating sound on the guest](todo/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume path reports nothing.
 - [Remote medical panel hides actions](todo/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hide, not disable, the local-only controls.
 - [CUO launcher button covers the view](todo/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
 - [Remove the Online UI console page](todo/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
+- [An earthquake's clock write ends an acceleration](todo/world-acceleration-quake-direct-write.md) — **Medium** — the direct-write sibling.
 
 ### Review
 
@@ -183,6 +183,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](review/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
 - [Legacy wire DTOs](review/legacy-wire-dto-slice.md) — **Medium** — the kernel <-> wire vocabulary moves into the layer; materialization stays.
 - [Feature-matrix tooling has no path gate](review/feature-matrix-tool-path-gate.md) — **Low-Medium** — the tool literals and both column lists are gated.
+
+- [Manual world acceleration must not end when a player moves](review/world-acceleration-survives-movement.md) — **High** — only announced speeds own the clock.
 
 ### Future
 

@@ -182,6 +182,17 @@ public static class ProtocolVersion
 	/// unrepresentable — its own radial-centre release could not become a use or a
 	/// wear at all — while every other peer's projection kept the items exactly
 	/// where the viewer's gesture never moved them.
-	public const int Current = 38;
+	/// 39: the world-time routing rule — only an ANNOUNCED
+	/// `PlayerCamera.SetTimeScale` change (`switchSound`, the game's own marker
+	/// for a speed change that plays its speed sound) owns the shared clock. A
+	/// silent automatic reset — the native movement rule above all, and with it
+	/// the in-world event resets — no longer becomes a `WorldTimeRequest` and is
+	/// no longer adopted as the host's standing request, so a member's movement
+	/// no longer ends the session-wide acceleration for everyone (user ruling
+	/// 2026-09-21, decision 223). A peer without the rule would keep reporting
+	/// its own movement as a speed intent and would keep expecting this side's
+	/// movement reports, so the reported defect would come back in exactly the
+	/// session that mixes the two behaviours.
+	public const int Current = 39;
 
 }

@@ -4,7 +4,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
 /// World-time authority (host owns Time.timeScale). In a live session every
-/// SetTimeScale call is routed through the world-time domain:
+/// SetTimeScale call is routed through the world-time domain, and the native
+/// flags decide what the call is (WorldTimeScaleCall):
 /// - a CUO authoritative apply (WorldTimeApply) runs unchanged;
 /// - the vanilla unconscious-screen fast-forward is suppressed by its own
 ///   HandleUnconsciousScreen scope before it reaches the bridge;
@@ -14,12 +15,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 ///   client's clock at once and becomes a WorldTimeRequest report that the host
 ///   answers; UnconsciousFast/DyingFast are host-owned and swallowed;
 ///   Slowmo/Paused and forced local transitions stay local-only (recorded
-///   presentation semantics).
+///   presentation semantics);
+/// - a silent automatic reset (switchSound false and not forced — above all the
+///   native movement rule, PlayerCamera.cs:921-924) is NOT a speed intent: it is
+///   swallowed on BOTH sides so the standing acceleration survives it and the
+///   clock is not dipped (user ruling 2026-09-21, decision 223).
+/// Both patch methods therefore take the native flags: a router that cannot see
+/// switchSound cannot tell a speed change from a reset.
 /// </summary>
 [HarmonyPatch(typeof(PlayerCamera), "SetTimeScale")]
 internal static class PlayerCameraSetTimeScalePatch
 {
-	private static bool Prefix(PlayerCamera.SpeedType speed, bool force)
+	private static bool Prefix(PlayerCamera.SpeedType speed, bool switchSound, bool force)
 	{
 		var origin = CallContext.Current;
 		if (origin == CallContext.Origin.WorldTimeApply)
@@ -33,8 +40,9 @@ internal static class PlayerCameraSetTimeScalePatch
 		}
 
 		return PatchBridge.Impl is not { IsSessionActive: true } bridge
-			|| bridge.OnTimeScaleSetRequested(speed, force);
+			|| bridge.OnTimeScaleSetRequested(speed, switchSound, force);
 	}
 
-	private static void Postfix(PlayerCamera.SpeedType speed) => PatchBridge.Impl?.OnLocalTimeScaleChanged(speed);
+	private static void Postfix(PlayerCamera.SpeedType speed, bool switchSound, bool force) =>
+		PatchBridge.Impl?.OnLocalTimeScaleChanged(speed, switchSound, force);
 }

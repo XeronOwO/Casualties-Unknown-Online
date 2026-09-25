@@ -126,15 +126,20 @@ internal interface IPatchBridge
 
 	/// <summary>
 	/// PlayerCamera.SetTimeScale is starting (outside CUO apply/sleep-suppress
-	/// scopes). Returns whether the ORIGINAL method may run: the host always
-	/// may (it is the time authority); a guest may only run local-only speeds
-	/// (Slowmo/Paused) or forced local transitions — Normal/Fast/SuperFast
-	/// become host requests, UnconsciousFast/DyingFast are host-owned.
+	/// scopes), carrying the native flags that say what the call IS
+	/// (WorldTimeScaleCall). Returns whether the ORIGINAL method may run: for an
+	/// announced change the host always may (it is the time authority) and the
+	/// postfix adopts it as the request; a guest may run local-only speeds
+	/// (Slowmo/Paused) or forced local transitions, while an announced
+	/// Normal/Fast/SuperFast becomes a host request and UnconsciousFast/DyingFast
+	/// are host-owned. A SILENT automatic reset — the native movement rule above
+	/// all — does not run on EITHER side: it is not a speed intent, so the
+	/// session-wide acceleration survives it (user ruling 2026-09-21).
 	/// </summary>
-	bool OnTimeScaleSetRequested(PlayerCamera.SpeedType speed, bool force);
+	bool OnTimeScaleSetRequested(PlayerCamera.SpeedType speed, bool switchSound, bool force);
 
-	/// <summary>PlayerCamera.SetTimeScale finished — the host reports the speed it just applied so the world-time domain can broadcast it (guests never report; apply/sleep scopes never report).</summary>
-	void OnLocalTimeScaleChanged(PlayerCamera.SpeedType speed);
+	/// <summary>PlayerCamera.SetTimeScale finished — the host reports the speed it just applied so the world-time domain can broadcast it (guests never report; apply/sleep scopes never report; a silent automatic reset is not an intent and is never adopted).</summary>
+	void OnLocalTimeScaleChanged(PlayerCamera.SpeedType speed, bool switchSound, bool force);
 
 	/// <summary>A building entity was damaged (Body.cs:1946 attack, explosion diff, or cactus collision self-damage) — report it (the entity's health is local-only otherwise). <c>playHitSound</c> is true for attack/explosion damage (the receiver replays the entity's own hitSound) and false for silent damage sources such as cactus collision self-damage. <c>playHitFlash</c> is true only for a Body.Attack melee hit (the receiver replays the native red HitFlash).</summary>
 	void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound = true, bool playHitFlash = false);

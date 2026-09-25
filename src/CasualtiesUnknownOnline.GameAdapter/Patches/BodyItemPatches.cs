@@ -66,14 +66,36 @@ internal static class BodyItemPatches
 		}
 	}
 
-	/// <summary>SwitchHands drops both hands and picks them back (Body.cs:1113-1133) — an internal swap, not world events; same origin scope as SwapSlots.</summary>
+	/// <summary>SwitchHands drops both hands and picks them back (Body.cs:1113-1133) — an internal swap, not world events; same origin scope as SwapSlots.
+	/// A remote medical focus is a read-only view of another body and the hand switch is one of its
+	/// local-only action surfaces, so the keyboard path (PlayerCamera.HandleInput → Body.SwitchHands)
+	/// is blocked there; the HUD control's own path is PlayerCamera.SwitchHands (RemoteMedicalPatches).
+	/// This ONE prefix owns both verdicts: a blocked call swapped nothing, so it passes a null scope and
+	/// the postfix reports nothing — a prefix that swallows a write must not let the postfix report it.</summary>
 	[HarmonyPatch(typeof(Body), "SwitchHands")]
 	internal static class SwitchHandsPatch
 	{
-		private static void Prefix(out IDisposable __state) => __state = CallContext.Enter(CallContext.Origin.InternalReorder);
-
-		private static void Postfix(Body __instance, IDisposable __state)
+		private static bool Prefix(out IDisposable? __state)
 		{
+			if (RemoteMedicalView.IsOpen)
+			{
+				__state = null;
+				return false;
+			}
+
+			__state = CallContext.Enter(CallContext.Origin.InternalReorder);
+			return true;
+		}
+
+		private static void Postfix(Body __instance, IDisposable? __state)
+		{
+			if (__state is null)
+			{
+				// Blocked by the remote medical focus: the native swap never ran, so
+				// nothing moved and nothing may be reported.
+				return;
+			}
+
 			__state.Dispose();
 			PatchBridge.Impl?.OnInventoryChanged();
 			PatchBridge.Impl?.OnSlotMoved(__instance, 0, "Hands");

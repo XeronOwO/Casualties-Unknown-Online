@@ -30,18 +30,21 @@ internal static class RemoteMedicalPatches
 		{
 			if (!RemoteMedicalView.IsOpen)
 			{
+				// The focus can end while the panel itself stays open (the target
+				// left the world). Hand the surfaces back here too, so a local
+				// panel never keeps a control this class hid.
+				RemoteMedicalLocalControls.Restore();
 				return;
 			}
 
-			// The native UpdateView sets napbutton.interactable from the
-			// display body's canTakeNap every frame. In remote focus the nap
-			// action is already blocked by the TakeANap prefix, but the button
-			// must also be visibly disabled so the viewer is never invited to
-			// sleep on another player's display body.
-			if (__instance.napbutton != null) // Unity object — ==
-			{
-				__instance.napbutton.interactable = false;
-			}
+			// The nap action is blocked by the TakeANap prefix below; the nap
+			// control, the workout list and the HUD main/off-hand switch must not
+			// be PRESENTED in a read-only remote view at all (user ruling
+			// 2026-09-21) — a disabled control still invites the viewer. The call
+			// is idempotent and re-asserted every frame: the native UpdateView
+			// keeps writing napbutton.interactable from the display body's
+			// canTakeNap.
+			RemoteMedicalLocalControls.Hide(__instance);
 		}
 	}
 
@@ -109,6 +112,17 @@ internal static class RemoteMedicalPatches
 	[HarmonyPatch(typeof(WoundView), "TakeANap")]
 	internal static class RemoteMedicalWoundViewNoNapPatch
 	{
+		private static bool Prefix() => !RemoteMedicalView.IsOpen;
+	}
+
+	[HarmonyPatch(typeof(PlayerCamera), "SwitchHands")]
+	internal static class RemoteMedicalBlockHandSwitchPatch
+	{
+		// The HUD main/off-hand switch is a local-only action surface: in a remote
+		// medical focus it is hidden (RemoteMedicalLocalControls) and both of its
+		// entry points are blocked. This is the HUD control's own method; the
+		// keyboard path lands in Body.SwitchHands, whose patch must report nothing
+		// for a swap that never ran (BodyItemPatches.SwitchHandsPatch).
 		private static bool Prefix() => !RemoteMedicalView.IsOpen;
 	}
 

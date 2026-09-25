@@ -75,18 +75,21 @@ internal static class AdapterCapabilityCatalog
 				typeof(ContainerItemPatches), typeof(UtilsCreateDropPatch), typeof(GunStatePatches), typeof(GunFirePatch),
 				typeof(HeldItemDirectionPatch), typeof(DynamiteExplodePatch), typeof(PlushScriptCollisionEnter2DPatch),
 				typeof(InvButtonBodyPatch), typeof(DoPickupCheckPatch), typeof(LiquidAffectPatches),
-				// The drag/radial/wearable seams carry the remote-inventory release window:
-				// the native release branch runs, the window captures the mutation calls it
-				// makes, and the display-body predicates answer its guards from the body the
-				// inventory ring is showing (the vanilla remote-take path keeps this class
-				// Required).
+				// The drag/radial/wearable seams carry the remote-inventory release and
+				// while-dragging windows: the native release and while-dragging bodies run,
+				// the windows capture the mutation calls and field stores they make, and the
+				// display-body predicates answer the release branch's guards from the body
+				// the inventory ring is showing (the vanilla remote-take path keeps this
+				// class Required). R10 (the radial centre) is no longer suppressed: its
+				// use/wear calls are captured like every other mutation.
 				typeof(PlayerCameraDragUsePatch), typeof(PlayerCameraUpdateWearablesPatch),
-				typeof(PlayerCameraTryPerformRadialActionPatch), typeof(PlayerCameraHandleWhileDraggingPatch),
+				typeof(PlayerCameraHandleWhileDraggingPatch), typeof(PlayerCameraRadialActionProbePatch),
 				typeof(RemoteDragMutationPatches.RemoteDragContainerLoadPatch), typeof(RemoteDragMutationPatches.RemoteDragContainerUnloadPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragLiquidDrainPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragBodyPickUpPatch), typeof(RemoteDragMutationPatches.RemoteDragBodySwapSlotsPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragBodyDropItemPatch), typeof(RemoteDragMutationPatches.RemoteDragBodyDropSlotPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragBodyDropWearablePatch), typeof(RemoteDragMutationPatches.RemoteDragBodyCombinePatch),
+				typeof(RemoteDragMutationPatches.RemoteDragBodyUseItemPatch), typeof(RemoteDragMutationPatches.RemoteDragBodyWearPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragBatteryLoadPatch), typeof(RemoteDragMutationPatches.RemoteDragBatteryUnloadPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragApplyWoundItemPatch), typeof(RemoteDragMutationPatches.RemoteDragTraderGivePatch),
 				typeof(RemoteDragPredicatePatches.RemoteDragHoldingItemPatch), typeof(RemoteDragPredicatePatches.RemoteDragHoldingSlotPatch),

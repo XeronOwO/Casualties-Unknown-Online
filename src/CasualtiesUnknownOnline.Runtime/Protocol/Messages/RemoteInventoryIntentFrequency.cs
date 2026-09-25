@@ -9,7 +9,9 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// the viewer's dispatcher, the host half and the owner's applier cannot disagree
 /// about it. A refusal of a continuous kind keeps its Information/Warning line,
 /// and every discrete kind keeps the Information line that makes one gesture
-/// traceable end to end.
+/// traceable end to end. The second axis — which bracket kind can produce a member
+/// — lives beside it for the same reason: the window's fail-closed rule has to tell
+/// a call that frame cannot make apart from the frame's own captures.
 /// </summary>
 internal static class RemoteInventoryIntentFrequency
 {
@@ -17,5 +19,14 @@ internal static class RemoteInventoryIntentFrequency
 	{
 		/// <summary>True for the kinds a per-frame native gesture produces — their happy path logs below Information.</summary>
 		public bool IsContinuousGesture() => kind == RemoteInventoryIntentKind.Drain;
+
+		/// <summary>
+		/// True for the kinds the while-dragging frame produces: the continuous drain
+		/// tick and the <c>favourited</c> field store, which the native code writes on
+		/// the hovered item inside <c>HandleWhileDragging</c> and nowhere else. Every
+		/// other member comes from a release branch.
+		/// </summary>
+		public bool IsWhileDraggingGesture() =>
+			kind is RemoteInventoryIntentKind.Drain or RemoteInventoryIntentKind.ToggleFavourite;
 	}
 }

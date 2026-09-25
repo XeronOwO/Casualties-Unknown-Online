@@ -60,8 +60,20 @@ internal static class CraftingPatches
 	[HarmonyPatch(typeof(Body), "CombineItems")]
 	internal static class BodyCombinePatch
 	{
+		/// <summary>
+		/// The owner's replay of a remote combine is NOT a local craft operation: it runs
+		/// inside a RemoteApply scope, and its facts travel through that intent's own
+		/// authoritative re-report (the applier's immediate inventory report). Committing
+		/// the craft report here would put an operation the local player never made into
+		/// the operation trace and onto the wire as a second report channel for one
+		/// intent. The check has to sit HERE, before the begin call: the begin pushes a
+		/// Craft scope on top of the caller's origin, so inside the sync class
+		/// <c>CallContext.Current</c> is already Craft and a guard there never fires.
+		/// </summary>
+		private static bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+
 		private static void Prefix(Body __instance, Item it1, Item it2, out object? __state) =>
-			__state = PatchBridge.Impl?.OnCombineBegin(__instance, it1, it2);
+			__state = IsRemoteApply ? null : PatchBridge.Impl?.OnCombineBegin(__instance, it1, it2);
 
 		private static void Postfix(object? __state)
 		{

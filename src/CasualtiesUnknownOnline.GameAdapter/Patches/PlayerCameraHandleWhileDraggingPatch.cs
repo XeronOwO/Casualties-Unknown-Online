@@ -8,31 +8,31 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
 /// The while-dragging frame of the remote backpack view. The game's own
-/// <c>HandleWhileDragging</c> body now RUNS for the remote view: its hover
+/// <c>HandleWhileDragging</c> body RUNS for the remote view: its hover
 /// feedback, cursor, drag-image motion and radial state are the native ones, and
-/// the continuous mutations it makes — the liquid drain tick, once per frame —
-/// are captured by the while-dragging window instead of mutating a display proxy.
-/// A proxy the window cannot bracket (no authoritative identity, or another item's
-/// bracket) keeps the native body running for its feedback while the mutation seams
-/// refuse the calls: the drain tick is skipped and reported
-/// (<c>RemoteDragLiquidDrainPatch</c>), and the favourite write is covered below,
-/// so no path mutates a proxy.
+/// the mutations it makes — the liquid drain tick and the <c>favourited</c> field
+/// store — are captured by the while-dragging window instead of mutating a display
+/// proxy. A proxy the window cannot bracket (no authoritative identity, or another
+/// item's bracket) keeps the native body running for its feedback while the
+/// mutation seams refuse the calls: the drain tick is skipped and reported
+/// (<c>RemoteDragLiquidDrainPatch</c>), and the favourite store is put back and
+/// reported here, so no path mutates a proxy.
 ///
 /// Two things stay CUO's, because that body reads the LOCAL scene. The radial menu
 /// is anchored to the focused clone instead of the local body (the game anchors it
 /// to the body, which is what made a remote view look broken). And the favourite
-/// toggle — a direct <c>favourited</c> field write on the hovered item, which
-/// Harmony has no call seam to intercept — is refused with one log line for the
-/// frame it would happen, so a display proxy is never written; that frame's native
-/// pass is skipped with it (the line says so), and the intent arrives with the stage
-/// that builds that seam.
+/// toggle is the one mutation the game expresses as a FIELD write with no call
+/// behind it (<c>PlayerCamera.cs:1747</c>), so this patch reads the frame's own
+/// candidate buttons before the native body and compares them after: the native
+/// condition still decides whether the store happens, and CUO only turns the store
+/// it observes into an intent for the owner.
 /// </summary>
 [HarmonyPatch(typeof(PlayerCamera), "HandleWhileDragging")]
 internal static class PlayerCameraHandleWhileDraggingPatch
 {
-	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts, out bool __state)
+	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts, out FavouriteFrameState __state)
 	{
-		__state = false;
+		__state = SnapshotFavourites(uiCasts);
 		if (!RemoteBackpackView.IsOpen || RemoteBackpackView.FocusedBody is not { } focused)
 		{
 			if (__instance.radialOpen)
@@ -50,62 +50,104 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 			return false;
 		}
 
-		if (RefuseFavouriteOverAProxy(uiCasts))
-		{
-			return false;
-		}
-
-		OpenWhileDraggingWindow(__instance, out __state);
+		__state.BracketOpened = OpenWhileDraggingWindow(__instance);
 		AnchorRadialToTheFocusedClone(__instance, focused);
 		return true;
 	}
 
-	private static void Finalizer(bool __state)
+	/// <summary>
+	/// The frame's own mutations become intents here, BEFORE the bracket closes. A
+	/// finalizer runs even when the native body threw, so a field store the body
+	/// already made is never left on a display proxy and never silently lost — which
+	/// is why the comparison is not a postfix.
+	/// </summary>
+	private static void Finalizer(FavouriteFrameState __state)
 	{
-		if (__state)
+		CaptureFavouriteStores(__state);
+		if (__state.BracketOpened)
 		{
 			PatchBridge.Impl?.EmitRemoteWhileDraggingFrame(RemoteDragIntentWindow.Current.Close());
 		}
 	}
 
 	/// <summary>
-	/// The native favourite toggle (<c>PlayerCamera.cs:1745</c>) writes the HOVERED
-	/// inventory button's item — not the dragged one — and it is a field store, so
-	/// the window's call seams cannot take it. With the remote ring open that item is
-	/// a display proxy, so the frame that would write it is skipped instead: the
-	/// gesture is refused with one Information line and no proxy is mutated, the same
-	/// rule every other intent a later stage carries follows. The hover test mirrors
-	/// the native one (<c>:1736</c>): the first inventory button that overlaps the
-	/// raycasts, and only when it carries an item.
+	/// The items of the frame's overlapping inventory buttons, with the
+	/// <c>favourited</c> value each one carries before the native body runs. The
+	/// native store writes the item of the first inventory button that overlaps the
+	/// raycasts (<c>PlayerCamera.cs:1736-1747</c>), so those buttons are exactly the
+	/// candidates; the same button reached twice by the raycast list is one candidate.
 	/// </summary>
-	private static bool RefuseFavouriteOverAProxy(List<RaycastResult> uiCasts)
+	private static FavouriteFrameState SnapshotFavourites(List<RaycastResult> uiCasts)
 	{
-		if (!Input.GetKeyDown(KeyBinds.GetBind("favourite")))
+		var candidates = new List<FavouriteCandidate>();
+		if (!RemoteBackpackView.IsOpen)
 		{
-			return false;
+			return new FavouriteFrameState(candidates);
 		}
 
 		foreach (var raycastResult in uiCasts)
 		{
 			var button = raycastResult.gameObject.GetComponent<InvButton>();
-			if (button == null || !button.Overlaps(uiCasts)) // Unity object — ==
+			if (button == null || !button.Overlaps(uiCasts)) // Unity object — ==; the native gate (PlayerCamera.cs:1736)
 			{
 				continue;
 			}
 
-			var hovered = button.GetItem();
-			if (hovered == null) // Unity object — ==
+			var item = button.GetItem();
+			if (item == null || Contains(candidates, item)) // Unity object — ==
 			{
-				return false;
+				continue;
 			}
 
-			if (!RemoteDragProxyQuery.IsProxy(hovered))
+			candidates.Add(new FavouriteCandidate(item, item.favourited));
+		}
+
+		return new FavouriteFrameState(candidates);
+	}
+
+	/// <summary>
+	/// The frame's favourite stores. A store on a display proxy becomes an intent for
+	/// the owner and the proxy's field goes back to the value the frame started with —
+	/// no path may mutate a proxy, and the projection carries the owner's authoritative
+	/// value back. A proxy no while-dragging bracket took is refused with one line,
+	/// exactly like the drain seam. A store on a LOCAL item is left alone: that is the
+	/// native local gesture, unchanged by the remote view being open.
+	/// </summary>
+	private static void CaptureFavouriteStores(FavouriteFrameState state)
+	{
+		foreach (var candidate in state.Candidates)
+		{
+			var item = candidate.Item;
+			if (item == null || item.favourited == candidate.Favourited) // Unity object — ==
 			{
-				return false;
+				continue;
 			}
 
-			PatchBridge.Impl?.ReportRemoteGestureNotCarried("favourite toggle through the remote view (this frame's native while-dragging pass is skipped with it, including that frame's drain tick)");
-			return true;
+			if (!RemoteDragProxyQuery.IsProxy(item))
+			{
+				continue;
+			}
+
+			item.favourited = candidate.Favourited;
+			var itemId = RemoteDragProxyQuery.InstanceId(item);
+			if (itemId == 0 || !RemoteDragIntentWindow.Current.IsOpen)
+			{
+				PatchBridge.Impl?.ReportProxyNotOperable(item, "the favourite toggle");
+				continue;
+			}
+
+			RemoteDragIntentWindow.Current.CaptureFavourite(itemId, RemoteDragProxyQuery.OwnerSteamId(item));
+		}
+	}
+
+	private static bool Contains(List<FavouriteCandidate> candidates, Item item)
+	{
+		foreach (var candidate in candidates)
+		{
+			if (candidate.Item == item) // Unity object — ==
+			{
+				return true;
+			}
 		}
 
 		return false;
@@ -119,27 +161,23 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 	/// item dragged while the remote view is open is not bracketed: nothing it does
 	/// would be a remote intent.
 	/// </summary>
-	private static void OpenWhileDraggingWindow(PlayerCamera camera, out bool state)
+	private static bool OpenWhileDraggingWindow(PlayerCamera camera)
 	{
-		state = false;
 		var dragItem = camera.dragItem;
 		if (dragItem == null || dragItem.GetComponent<RemoteCloneRender>() == null) // Unity objects — ==
 		{
-			return;
+			return false;
 		}
 
-		var marker = dragItem.GetComponent<RemoteInventoryItemId>();
-		var itemId = marker != null ? marker.Id : 0; // Unity object — ==
-		var owner = marker != null && marker.OwnerSteamId != 0
-			? marker.OwnerSteamId
-			: RemoteBackpackView.FocusedSteamId;
+		var itemId = RemoteDragProxyQuery.InstanceId(dragItem);
+		var owner = RemoteDragProxyQuery.OwnerSteamId(dragItem);
 		if (itemId == 0 || owner == 0)
 		{
-			return;
+			return false;
 		}
 
 		RemoteDragIntentWindow.Current.OpenWhileDragging(itemId, owner);
-		state = true;
+		return true;
 	}
 
 	/// <summary>
@@ -154,5 +192,16 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 		RemoteBackpackView.UpdateSmoothPosition(screen);
 		camera.radialMenu.transform.position = RemoteBackpackView.SmoothPosition;
 		camera.radialCircle.enabled = false;
+	}
+
+	/// <summary>One inventory button's item and the <c>favourited</c> value it carried before the frame ran.</summary>
+	private readonly record struct FavouriteCandidate(Item Item, bool Favourited);
+
+	/// <summary>The frame's favourite candidates, plus whether this patch opened the frame's bracket.</summary>
+	private struct FavouriteFrameState(List<FavouriteCandidate> candidates)
+	{
+		internal List<FavouriteCandidate> Candidates { get; } = candidates;
+
+		internal bool BracketOpened { get; set; }
 	}
 }

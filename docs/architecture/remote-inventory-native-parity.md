@@ -1,11 +1,12 @@
 # Remote Inventory Operations: Native Parity Design
 
-Status: **stage 2 landed** — the native intent path (stage 1, decision 218) plus the container family
-and the while-dragging body (stage 2, decision 219): the container-expansion batch, the liquid drain
-tick, the restored while-dragging frame and the open-container-window path. Stages 3-4 of
-`docs/backlog/todo/remote-inventory-native-parity-rework.md` are still open, so the gestures whose
-intents arrive there (the radial use/wear branch, combine, battery, the favourite toggle and the
-trader hand-in) are refused with one logged line instead of running on a proxy.
+Status: **stage 3 landed** — the native intent path (stage 1, decision 218), the container family
+and the while-dragging body (stage 2, decision 219) and the item interactions (stage 3, decision 220):
+R10's radial-centre use and wear, combine, the battery load/unload pair, the while-dragging favourite
+store and the trader hand-in, each of them an intent the owner replays on its real items. Stage 4 of
+`docs/backlog/todo/remote-inventory-native-parity-rework.md` — the family audit and the acceptance run
+— is still open, so the rows it re-checks (both directions, a third peer, worn items, the craft screen)
+are code facts here rather than verified behaviour.
 
 The `reversing/Assembly-CSharp/Assembly-CSharp/*.cs` anchors below carry line numbers on purpose:
 that tree is never edited (it is the decompiled game and is not tracked), so its line numbers are
@@ -192,7 +193,10 @@ that path makes:
    the loop once per child, on a container the first run has already emptied.
 5. The window fails closed and loud: a release that the native dispatch consumed but that produced no
    intent is logged as an unclassified gesture. A native gesture CUO has never seen must be
-   observable, never a silent no-op.
+   observable, never a silent no-op. **Stage 3 adds one classified no-op to that list**: R10 consumes
+   a release for an item that is neither wearable nor usable without running anything at all, and the
+   radial probe records the native method's own `true` answer for it — the window never re-derives
+   that branch's geometry to recognise the case.
 6. **The branch's guards are answered by the body the ring shows (implementation amendment, stage 1).**
    The inventory in §2 assumed the native branch classifies a display proxy the way it classifies a
    real item. It does not. The branch reads `PlayerCamera.body`, which is always the LOCAL body, while
@@ -213,10 +217,10 @@ that path makes:
    while-dragging body reads the local scene as well — `this.body.DoPickupCheck(this.dragItem, true)`
    is the drain tick's gate — so a proxy drag opens the same window under the while-dragging kind for
    each frame, the pickup check is answered for the dragged proxy exactly as in a release bracket, and
-   the frame's mutations are captured instead of running on a proxy. The favourite toggle is the one
-   exception, and it is refused rather than captured: it is a direct `favourited` field write on the
-   HOVERED item, a store Harmony cannot take at a call seam, so the frame that would write it is
-   skipped with one logged line and the intent arrives with the stage that builds that seam (§3.3).
+   the frame's mutations are captured instead of running on a proxy. The favourite toggle was the one
+   exception in stage 2 — a direct `favourited` field write on the HOVERED item, which no call seam
+   takes, so that frame was skipped with one logged line — and **stage 3 builds the seam that observes
+   it instead (§3.2.8)**, so no frame is skipped for it any more.
    The drain tick is the frame's other mutation and it is captured with the AMOUNT the frame removed,
    never the per-stack list the viewer computed from its proxy: the owner re-derives the distribution
    from the stack its own item has, so a stale proxy stack cannot leak into the owner's item. A proxy
@@ -224,6 +228,21 @@ that path makes:
    item) keeps the native body running for its own feedback while the seam refuses its drain call and
    reports it once per dragged proxy — no path may mutate a display proxy, and the release path fails
    closed for the same shape.
+8. **The one mutation with no call behind it is observed across the frame bracket (implementation
+   amendment, stage 3).** The favourite store has no seam Harmony can take without rewriting the
+   method's IL, and the stage-2 answer — skip the frame — cost that frame's drain tick and produced no
+   intent. The frame bracket is the seam instead: the while-dragging patch reads the `favourited` value
+   of every inventory button the frame's own raycasts reach before the native body runs and compares it
+   afterwards, so the native condition (`GetKeyDown(favourite)` on the first overlapping button,
+   `PlayerCamera.cs:1736-1747`) still decides whether a store happens and CUO only turns the store it
+   observes into `ToggleFavourite` (§3.2.3's rule that the classification is the game's own holds: no
+   CUO replica of that condition exists). The observed proxy's field is put back to the value the frame
+   started with — no path may mutate a display proxy — and the projection already carries `favourited`
+   as a source value (`RemoteItemPresentation.SourceValues`), so the operator's star lights up from the
+   owner's own answer rather than from a predicted one. A flipped proxy the bracket did not take (no
+   authoritative identity, or no open bracket) is put back and reported once, exactly like the drain
+   seam, and a flipped LOCAL item is left alone — that store is the local gesture, unchanged by the
+   remote view being open.
 
 ### 3.3 The intent vocabulary (wire)
 
@@ -241,31 +260,34 @@ never a CUO semantic taxonomy, and never a mirrored result.
 | `DropWearable` | `body.DropWearable(item)` (W3) | item |
 | `UseItem` | `body.UseItem(item)` (R10) | item |
 | `WearItem` | `body.WearWearable(item)` (R10) | item |
-| `CombineItems` | `body.CombineItems(target, item)` (R6) | item, target item |
-| `LoadBattery` | `target.battery.LoadBattery(item)` (R3) | item, target item |
+| `CombineItems` | `body.CombineItems(target, item)` (R6) | item, target item (the FIRST argument — the receiver) |
+| `LoadBattery` | `target.battery.LoadBattery(item)` (R3) | item (the battery), target item |
 | `UnloadBattery` | `target.battery.UnloadBattery(false)` (R2) | target item |
-| `ToggleFavourite` | the `favourited` write (§2.2) | item |
+| `ToggleFavourite` | the `favourited` write (§2.2) | item (the HOVERED one) |
 | `Drain` | `WaterContainerItem.Drain(amount)` (§2.2) | item, amount |
 | `ApplyToLimb` | `ApplyWoundItem` → `useLimbAction` / `ApplyToLimb` (R11) | item, limb |
-| `GiveToTrader` | `currentTrader.GiveItem(item)` (R12) | item |
+| `GiveToTrader` | `currentTrader.GiveItem(item)` (R12) | item, trader position |
 | `TransferToBody` | the two-sided transfer: the owner releases (`Container.UnloadItem` / `Body.DropItem`), the destination body runs R9's own sequence — drop the occupying slot item when the destination slot is held, then `Body.PickUpItem(item, slot, false)` | item, destination body, slot |
 
 `TransferToBody` is the one intent with no single native call behind it, because the native world has
 no cross-player transfer: its two halves are the native release on the owner's side and the native
 pickup on the destination side, and the host arbitrates the item id first-writer-wins between them.
 R1 and R7 produce no intent (they are consumed native no-ops), and R14 plus the container-window
-open of §2.3 are local UI on the viewer and never travel.
+open of §2.3 are local UI on the viewer and never travel. **Stage 3 corrects one operand row**: R12's
+native call reads `PlayerCamera.currentTrader`, and the OWNER's client has no trader open, so the
+trader itself is an operand — the intent carries its world position, the identity the trade domain
+already keys its messages by (`TraderSwingMsg.Position`, `TradeStateSync.FindTraderAt`).
 
 **Stage 1 carried eight of these members** — `DropItem`, `DropWearable`, `TakeOutOfContainer`,
 `MoveIntoContainer`, `SwapSlots`, `PickUpToSlot`, `TransferToBody` and `ApplyToLimb` — because they
 are what the release branch can produce once the suppressions of §3.6 come off. **Stage 2 adds
 `MoveContainerChildren`** (R5, with the container-expansion gesture) **and `Drain`** (the
-while-dragging drain tick, with the restored while-dragging body). The rest arrive with the stages that
-restore the branches producing them: `ToggleFavourite` with the item-interaction stage — it is the one
-case that needs a store-level seam rather than a call seam (§3.2.6) — and `CombineItems`,
-`LoadBattery`/`UnloadBattery`, `UseItem`/`WearItem` and `GiveToTrader` with the radial and
-item-interaction branches. Until then the window refuses those calls with one logged line naming the
-gesture — refused, never run on a proxy, never a silent no-op.
+while-dragging drain tick, with the restored while-dragging body). **Stage 3 adds the seven
+item-interaction members** — `UseItem`, `WearItem`, `CombineItems`, `LoadBattery`, `UnloadBattery`,
+`ToggleFavourite` and `GiveToTrader` — together with the message's second item operand
+(`TargetItemInstanceId`) and its trader operand, and `ProtocolVersion.Current` is bumped in the same
+change (37 → 38, the handshake stays the compatibility boundary). No member of the vocabulary is
+refused any more: every gesture §2.2 and §2.3 list now becomes an intent the owner replays.
 
 A slot intent's **body operand comes from the hit itself**, not from a CUO rule. An inventory button
 of the owner's *projected* body resolves to the owner — the item stays the owner's and changes slot
@@ -304,6 +326,22 @@ and reaches the requester through the existing item and sound sync paths. Stage 
 sounds those paths already carry before any of them is re-sent; the design adds no second feedback
 path.
 
+**The stage-3 audit, with the sync inventory as its evidence.** The existing paths carry item STATE
+(condition, `favourited`, liquids, container contents — the item events plus the periodic character
+snapshot), the player-character one-shots (P5 `CharacterSound`, whose policy classifies only its own
+call-identity scopes and the direct placeable uses), and a handful of world-mechanism sounds replayed
+by hand at their own event's replay site (the battery charger's `batteryinsert`). They do **not** carry
+an item's own sound: `combine` and `waterpour` (`Body.CombineItems` / `Body.CombineLiquids`),
+`batteryinsert` (`BatteryItem.LoadBattery` / `UnloadBattery`) and `eatFlesh` / `eatCrunch` / `drink`
+(the `Stats.useAction` delegates) are `Sound.Play` calls *inside* the mutation, so they are heard by
+whichever client runs the call — today for every player, in a session, not only for the
+remote-inventory case. The operator's screen therefore keeps the native branch-level feedback (the
+ring, the cursor, the drag image, the favourite key's own UI click, the alerts, and the backpack sound
+the container branches play at dispatch level) and the authoritative result through the projection,
+while the mutation-internal sound and animation happen where the mutation happens, on the owner's
+client. Re-sending those sounds needs a channel that does not exist and would change local-versus-
+remote for every player, so it is recorded as a limit (§6) instead of being invented here.
+
 ### 3.5 Protocol
 
 The intent vocabulary replaces the current remote-inventory operation enum and its request/apply
@@ -325,21 +363,33 @@ boundary; no dual shape is kept.
 - New adapter code: the release-window capture (the proxy decision plus the mutation-call
   interception) and the owner-side intent executor that replays the native call. Patches report only
   verified writes, so an intercepted call that produced no intent must not be reported as one.
+  **Stage 3 widened both halves**: the interception now covers `Body.UseItem` / `Body.WearWearable`
+  (R10), `Body.CombineItems` (R6), `BatteryItem.LoadBattery` / `UnloadBattery` (R2/R3) and
+  `TraderScript.GiveItem` (R12), the while-dragging patch observes the `favourited` store across its
+  frame bracket, and the executor replays all seven kinds on the owner's real items. The report-hook
+  audit that came with it found two hooks that would have reported a call the window took:
+  `UseItemPatches`' `OnItemUsed` (which would have stated a use of an item the operator never touched,
+  and stamped an instance id on a proxy doing it) and `WearWearablePatch`'s unconditional
+  "re-report right away" — both now skip a display proxy, and `TraderPatches.GiveItemPatch` reports
+  only a hand-in whose credit really moved, which the window's capture makes mandatory (the
+  requester's captured call would otherwise have credited the trader for an item nobody gave).
 - The owner-side apply path is REPLACED, not extended: `GameAdapter/RemoteInventoryOperationApply.cs`
   — which today replays seven kinds and passes `force: true` to `Body.PickUpItem`, bypassing the
   native guards the owner is supposed to inherit — goes with `RemoteInventoryApplyMsg` and its
   runtime handler, and the intent executor takes its place.
 - **The suppressions that have to come off.** The design depends on the native branch running, and
-  today three patches hold it shut: `Patches/PlayerCameraDragUsePatch.cs` owns the ordering table and
+  three patches held it shut: `Patches/PlayerCameraDragUsePatch.cs` owned the ordering table and
   the proxy-release cancel (only the window bracket and the proxy decision survive);
-  `Patches/PlayerCameraHandleWhileDraggingPatch.cs` skips the whole while-dragging body while the
-  remote view is open, which is exactly why the native drain tick and the favourite toggle cannot
-  happen; `Patches/PlayerCameraTryPerformRadialActionPatch.cs` answers R10 with a flat "not
-  consumed", so `UseItem` and `WearWearable` can never become intents; and `RemoteProxyDragPolicy`'s
+  `Patches/PlayerCameraHandleWhileDraggingPatch.cs` skipped the whole while-dragging body while the
+  remote view is open, which is exactly why the native drain tick and the favourite toggle could not
+  happen; `Patches/PlayerCameraTryPerformRadialActionPatch.cs` answered R10 with a flat "not
+  consumed", so `UseItem` and `WearWearable` could never become intents; and `RemoteProxyDragPolicy`'s
   release-cancel rule is absorbed by the window's own fail-closed case. Stage 1 removed the first and
   the last; stage 2 restored the while-dragging body, with its favourite write still refused and
-  logged (§3.2.6) until the item-interaction stage builds that seam; stage 3 restores the radial
-  branch.
+  logged (§3.2.7) until the item-interaction stage built that seam; **stage 3 removed the third and
+  replaced it with the radial probe** (`Patches/PlayerCameraRadialActionProbePatch.cs`, which only
+  records the native branch's own no-op answer for §3.2.5) **and replaced the favourite refusal with
+  the frame-bracket observation of §3.2.8**, so no gesture of §2.2/§2.3 is suppressed any more.
 
 ## 4. Stage plan
 
@@ -348,7 +398,7 @@ boundary; no dual shape is kept.
 | 0 | This record: mechanism inventory, intent vocabulary, ticket adjudication, decision record | design frozen before code |
 | 1 | Inventory and slot family: move, swap, transfer to the requester, drop, take-out; window + capture seam; owner-side executor; host validate/arbitrate/record; clone-edit path deleted; protocol bumped | **landed** (decision 218): the reported drop and slot rows no longer route through a host mirror edit; the window, the replay and the host half are covered by intent, window-state and host-contract tests |
 | 2 | The container-expansion gesture (R5), nested containers and the trash bag, the while-dragging drain tick and the container-window refresh; the vanish case is a regression test here | **landed** (decision 219): R5 is one `MoveContainerChildren` intent the owner evaluates on its own children, the while-dragging body runs again with each frame's drain tick as one `Drain` intent carrying the amount, and the vanish case is pinned by a regression on the host's copy of the owner's inventory; matrix rows 3-5 are code facts here — the operating feel stays the user's acceptance run |
-| 3 | Item interactions: use, wear, combine, battery, favourite, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | matrix rows 6-8 |
+| 3 | Item interactions: use, wear, combine, battery, favourite, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | **landed** (decision 220): the seven item-interaction kinds ride the stage-1 seam with the message's second item operand and its trader operand (`ProtocolVersion.Current` 37 → 38), R10's use/wear branch runs again, the favourite store is observed across the frame bracket, and matrix rows 6-8 are code facts here — the operating feel, the item sounds the operator does not hear (§3.4) and the medical chain's real-machine behaviour stay the user's acceptance run |
 | 4 | Family audit and acceptance: both directions, a third peer, worn items, containers and the craft screen; the display rows carried over from the absorbed tickets | the rework ticket's matrix |
 
 ## 5. Adjudicated tickets
@@ -362,11 +412,13 @@ boundary; no dual shape is kept.
 
 ## 6. Recorded limits of this stage
 
-- The mechanism inventory covers the drag pipeline of `PlayerCamera`. The medical-panel and
-  context-menu interaction families reach the same native mutation calls through different UI paths;
-  stage 3 audits them against the same capture seam instead of assuming they are covered.
+- The mechanism inventory covers the drag pipeline of `PlayerCamera`; the medical-panel and
+  craft-screen paths were audited against the same capture seam in stage 3 and the audit's result is
+  recorded under the stage-3 limits below.
 - The two-client feel (native animation, sound and timing on the operator's screen) remains the
-  user's release-cycle acceptance; no automated test can produce it.
+  user's release-cycle acceptance; no automated test can produce it. Stage 3 sharpens that: the item's
+  own sound is one of the things the operator does not hear (§3.4), and whether that is acceptable on
+  the real machine is the user's call.
 - Stage 1 leaves, deliberately and observably:
   - The report hooks that answer "what did this write do?" must never observe a redirected
     predicate: `BodyItemPatches`' pickup/drop/swap reports, `PickupSync.OnPickedUp` and
@@ -376,9 +428,13 @@ boundary; no dual shape is kept.
   - A proxy released onto the radial centre or held over the drain is refused with one Information
     line (the radial release is consumed, so the world fallbacks cannot turn it into a drop or a
     take-out nobody asked for); the drain report is rate-limited to one line per dragged proxy.
+    **Stage 3 removed the radial half of this**: R10 runs again, so a release inside the circle is a
+    use, a wear, or the native no-op of §3.2.5 — and a release outside the circle falls through to the
+    world fallbacks, which is what it does locally.
   - A release that produced no intent is only logged as an unknown gesture when it is none of the
     three classified native no-ops (R1 its own slot, R7 a wearable that cannot be held, R14 the
-    craft button).
+    craft button). **Stage 3 added a fourth: R10's consumption of a release that has no action to run
+    (§3.2.5).**
   - A display proxy that carries no authoritative identity cancels its drag before the native body
     runs, which is the fail-closed rule the deleted release-cancel policy held.
   - A local item released over an in-world remote player keeps the landed cross-player use route
@@ -405,7 +461,8 @@ boundary; no dual shape is kept.
     - The favourite toggle through the remote view stays refused with one Information line per dragged
       proxy. The window cannot take it: the native branch writes the `favourited` FIELD of the hovered
       item, so there is no call to intercept, and the frame that would write it is skipped instead.
-      The intent and its store-level seam arrive with the item-interaction stage.
+      The intent and its store-level seam arrive with the item-interaction stage. **Stage 3 built that
+      seam (§3.2.8): the frame runs, and the store it observes becomes `ToggleFavourite`.**
     - The children of an expansion batch are enumerated on the OWNER. The requester's projection
       decides only whether the native loop runs at all (its own `CanHoldItem` reads the clones), and
       the owner's guard then decides per child which items actually move — the native partial outcome,
@@ -424,11 +481,52 @@ boundary; no dual shape is kept.
     - Holding the favourite key over a remote inventory button skips that ONE frame's native
       while-dragging pass — the only way to stop a field store Harmony cannot intercept — so that
       frame's drain tick is skipped with it, and the refusal line names that cost. One frame per key
-      press; the frame bracket still never merges ticks across frames.
+      press; the frame bracket still never merges ticks across frames. **Stage 3 removed that cost:
+      the frame runs natively and only the field store it observes becomes an intent (§3.2.8), so the
+      frame's drain tick survives a favourite key press.**
     - A continuous intent refreshes the item's first-writer-wins lease for as long as the gesture runs
       (the operator holds the item, which is the lease's purpose), and a competing continuous intent's
       refusal logs at Debug: the lease's original rationale — the owner's next report normally arrives
       well inside it — does not describe a kind that deliberately does not re-report per frame.
+  - Stage 3 leaves, deliberately and observably:
+    - **The item sounds inside a replayed call are heard where the call runs.** §3.4's audit found no
+      existing path that carries an item's own sound, so `combine`, `waterpour`, `batteryinsert` and
+      the `useAction` eating/drinking clips play on the owner's client — the client that performs the
+      mutation — while the operator's screen keeps the branch-level native feedback and the
+      authoritative result through the projection. Carrying them would need a channel that does not
+      exist and would change local-versus-remote for every player, so it is recorded rather than
+      invented here; the operator-side item sound is therefore a real-machine acceptance question.
+    - **The radial-centre release is now the native branch's own answer, including its no-op.** R10
+      consumes a release for an item that is neither wearable nor usable without running anything; the
+      probe records that as a classified no-op instead of letting it read as an unclassified gesture
+      (§3.2.5), and a pointer that is NOT inside the circle falls through to the world fallbacks
+      exactly as it does locally — so a proxy can now be dropped by that path, which is the native
+      meaning of the gesture and no longer a refusal.
+    - **One use/wear release can be two intents.** The native branch tests `wearable` and `usable` as
+      independent `if`s, so an item carrying both flags produces `WearItem` followed by `UseItem` in
+      the native order; the owner replays them in that order.
+    - **The trader hand-in is position-keyed**, because the owner's client has no trader open: the
+      intent carries the trader's world position and the owner resolves its own same-position trader
+      with the trade domain's tolerance (`TraderLocator`). An owner whose scene has no trader there
+      refuses with one line, and the trader's own credit total is the verified write — a hand-in the
+      trader refuses (a container that still holds something, a valueless or already-bought item, the
+      lifetime credit cap) credits nothing and is logged as the native refusal it is.
+    - **The medical-panel and craft-screen paths were audited, not assumed.** Every mutation call of
+      this family has exactly one caller outside `PlayerCamera`'s drag pipeline: the touch auto-wear
+      (`Body.cs:527`, which cannot reach a display proxy — a proxy is parented to the clone, never a
+      world item), and the craft screen's own consumption and battery calls (`Recipe.cs:179`,
+      `RecipeItem.cs:163`, `RecipeResult.cs:67`), which are local UI on the viewer and whose facts ride
+      the landed craft report; the medical panel reaches these calls only through
+      `PlayerCamera.ApplyWoundItem` (R11, captured by the release window) and the landed
+      host-authoritative medical-operation session. The design's §6 note also named a context-menu
+      family: `UIUtil.IsPointerOverContextMenu` is defined in the game build and **no** code calls it
+      or sets the tag, so that half has no counterpart to cover — a prefab-carried tag cannot be ruled
+      out from the decompiled tree, which is why this is recorded as an audit result and not as
+      coverage.
+    - **A crafted/consumed item's ids still come from the landed paths.** `BatteryItem.UnloadBattery`
+      creates a battery item on the owner's body and `AutoPickUpItem` hands it to the body; the
+      immediate authoritative re-report stamps and states it like every other carried item
+      (`CarriedInventoryReporter`), which is why the new kinds need no id plumbing of their own.
 
 ## Related reading
 

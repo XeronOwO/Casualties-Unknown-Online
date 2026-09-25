@@ -170,6 +170,18 @@ public static class ProtocolVersion
 	/// container-expansion gesture refused as unrepresentable and could not drain a
 	/// remote container at all, while every other peer's projection kept the
 	/// children and the liquid exactly where the viewer's gesture never moved them.
-	public const int Current = 37;
+	/// 38: `RemoteInventoryIntentMsg` gains the item-interaction family — `UseItem`
+	/// and `WearItem` (R10's radial-centre branch, which runs again on the viewer),
+	/// `CombineItems` and `LoadBattery`/`UnloadBattery` (calls with TWO item
+	/// operands, which is why the message gains `TargetItemInstanceId`),
+	/// `ToggleFavourite` (the while-dragging `favourited` store, which the viewer
+	/// detects by comparing the field across the frame bracket because the native
+	/// code has no call behind it) and `GiveToTrader` (which carries the trader's
+	/// world position, the identity the trade domain already keys its messages by).
+	/// A peer without them would refuse every one of those gestures as
+	/// unrepresentable — its own radial-centre release could not become a use or a
+	/// wear at all — while every other peer's projection kept the items exactly
+	/// where the viewer's gesture never moved them.
+	public const int Current = 38;
 
 }

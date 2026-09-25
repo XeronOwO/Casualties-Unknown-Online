@@ -320,6 +320,15 @@ internal static class BodyPatches
 
 		private static void Postfix(Item item, bool __state)
 		{
+			if (RemoteDragProxyQuery.IsProxy(item))
+			{
+				// The release window took the call (R10's wear, PlayerCamera.cs:1642):
+				// the native body never ran on this client, so there is nothing local to
+				// report — not even the "re-report right away" below, which would state an
+				// unchanged local inventory. The owner's replay reports the wear.
+				return;
+			}
+
 			PatchBridge.Impl?.OnInventoryChanged();
 			// Report only a wear that actually landed: the item is parented to
 			// a limb (Body.cs:1508). Failed paths (already worn, limb missing,

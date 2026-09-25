@@ -101,6 +101,8 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 			TargetBodySteamId = intent.TargetBodySteamId,
 			TargetLimbIndex = intent.TargetLimbIndex,
 			Amount = intent.Amount,
+			TargetItemInstanceId = intent.TargetItemInstanceId,
+			TargetTraderPosition = intent.TargetTraderPosition,
 		};
 
 		if (intent.Kind.IsContinuousGesture())
@@ -112,8 +114,8 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 		}
 		else
 		{
-			domains.Log.LogInformation("[RemoteIntent] {Kind} captured for item {Item} of {Owner} (container {Container}, slot {Slot}, body {Body}, limb {Limb}).",
-				msg.Kind, msg.ItemInstanceId, msg.OwnerSteamId, msg.TargetContainerInstanceId, msg.TargetSlotIndex, msg.TargetBodySteamId, msg.TargetLimbIndex);
+			domains.Log.LogInformation("[RemoteIntent] {Kind} captured for item {Item} of {Owner} (container {Container}, slot {Slot}, body {Body}, limb {Limb}, target item {TargetItem}, trader {Trader}).",
+				msg.Kind, msg.ItemInstanceId, msg.OwnerSteamId, msg.TargetContainerInstanceId, msg.TargetSlotIndex, msg.TargetBodySteamId, msg.TargetLimbIndex, msg.TargetItemInstanceId, msg.TargetTraderPosition is { } trader ? $"({trader.X}, {trader.Y})" : "none");
 		}
 
 		domains.PlayerInteraction.SendRemoteInventoryIntent(msg);

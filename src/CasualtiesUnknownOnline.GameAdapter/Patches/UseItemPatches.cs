@@ -9,7 +9,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// Body.cs:2475). Both report the post-use digest so the host can validate and
 /// correct the item's state; the report fires only when the use action ACTUALLY
 /// ran (the prefix mirrors the caller's guard — UseItemInHand falls through to
-/// an attack when the hand is not usable).
+/// an attack when the hand is not usable). A display proxy is never a local use:
+/// the remote-view radial release makes the call against the owner's proxy and the
+/// release window takes it before the body runs, so its hook must report nothing —
+/// otherwise a host operating a guest's ring would state a use of an item it never
+/// touched (and stamp an instance id on a proxy while doing it).
 /// </summary>
 internal static class UseItemPatches
 {
@@ -24,6 +28,7 @@ internal static class UseItemPatches
 			var hand = __instance.handSlot;
 			var item = __instance.HoldingItem(hand) ? __instance.GetItem(hand) : null;
 			__state = item != null && __instance.conscious && item.Stats.usable && item.Stats.usableWithLMB
+				&& !RemoteDragProxyQuery.IsProxy(item)
 				? item
 				: null; // Unity object — == (a destroyed item is not managed-null)
 		}
@@ -40,7 +45,8 @@ internal static class UseItemPatches
 	[HarmonyPatch(typeof(Body), "UseItem")]
 	internal static class UseItemPatch
 	{
-		private static void Prefix(Item item, out bool __state) => __state = item.Stats.usable;
+		private static void Prefix(Item item, out bool __state) =>
+			__state = item.Stats.usable && !RemoteDragProxyQuery.IsProxy(item);
 
 		private static void Postfix(Item item, bool __state)
 		{

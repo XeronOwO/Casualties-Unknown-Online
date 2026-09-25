@@ -15,39 +15,30 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// gesture CUO has never seen is observable instead of a silent no-op. A
 /// WHILE-DRAGGING window spans one <c>PlayerCamera.HandleWhileDragging</c> frame,
 /// which carries the continuous actions rather than a release branch — the liquid
-/// drain tick runs every frame, so every frame is its own intent.
+/// drain tick runs every frame, so every frame is its own intent — plus the one
+/// mutation with no native call behind it: the <c>favourited</c> field store on the
+/// hovered item, which the Game Adapter reports here after comparing that field
+/// across the bracket (<see cref="CaptureFavourite"/>). The item-interaction half of
+/// the vocabulary — R10's use and wear, R6's combine, R2/R3's battery calls, the
+/// favourite store and R12's trader hand-in — lives on the same state, in
+/// <c>RemoteDragIntentCapture.ItemInteractions.cs</c>.
 ///
 /// It holds no Unity types on purpose: the decision logic is testable without a
 /// scene (the Game Adapter resolves the ids and asks the window, then skips the
 /// original call when the window took it).
 /// </summary>
-internal sealed class RemoteDragIntentCapture
+internal sealed partial class RemoteDragIntentCapture
 {
 	private readonly List<RemoteDragIntent> _intents = [];
 	private readonly List<string> _refusals = [];
 
-	/// <summary>
-	/// The container calls captured so far, in native call order. A pending entry
-	/// is the `unload` half of the native pair: it becomes a
-	/// <see cref="RemoteInventoryIntentKind.MoveIntoContainer"/> when the matching
-	/// `load` arrives for the same container, and a
-	/// <see cref="RemoteInventoryIntentKind.TakeOutOfContainer"/> when the bracket
-	/// closes without one. The list — not a single slot — is what keeps a release
-	/// that takes an item out of one container and puts it into another (W1 + W4 in
-	/// one `TryPerformWorldActions`, `PlayerCamera.cs:1686`) as two intents in the
-	/// native order.
-	/// </summary>
-	private readonly List<PendingContainerCall> _containerCalls = [];
-
-	/// <summary>The children the container-expansion loop (R5) unloaded out of the dragged item's own container inside this bracket.</summary>
-	private readonly HashSet<ulong> _batchChildren = [];
+	/// <summary>The container-call pairing rules of this bracket, in their own state machine.</summary>
+	private readonly RemoteContainerMoveCapture _containerMoves = new();
 
 	private bool _heldItemDropped;
 	private bool _slotPickUpSeen;
 	private RemoteDragNoOp _noOp;
 	private RemoteDragWindowKind _kind;
-	private ulong _batchTargetContainerId;
-	private bool _batchTargetConflict;
 
 	internal bool IsOpen { get; private set; }
 
@@ -92,10 +83,7 @@ internal sealed class RemoteDragIntentCapture
 	{
 		_intents.Clear();
 		_refusals.Clear();
-		_containerCalls.Clear();
-		_batchChildren.Clear();
-		_batchTargetContainerId = 0;
-		_batchTargetConflict = false;
+		_containerMoves.Reset(draggedItemId, Refuse);
 		_heldItemDropped = false;
 		_slotPickUpSeen = false;
 		DraggedItemId = draggedItemId;
@@ -207,82 +195,15 @@ internal sealed class RemoteDragIntentCapture
 	/// first half of one container-expansion iteration (R5), or a take into the
 	/// world on its own.
 	/// </summary>
-	internal void CaptureContainerUnload(ulong itemInstanceId, ulong containerInstanceId)
-	{
-		if (itemInstanceId == DraggedItemId)
-		{
-			_containerCalls.Add(new PendingContainerCall(itemInstanceId, containerInstanceId, Pending: true));
-			return;
-		}
-
-		// R5's per-child loop unloads each direct child out of the dragged item's
-		// OWN container (the native source is `dragItem.container`,
-		// PlayerCamera.cs:1589), so an unload whose source is the dragged item is the
-		// batch's first half. The child identities are kept only to match the load
-		// that follows: the intent carries the dragged item, and the owner enumerates
-		// the children on the real objects.
-		if (containerInstanceId == DraggedItemId)
-		{
-			_batchChildren.Add(itemInstanceId);
-			return;
-		}
-
-		Refuse($"container unload of item {itemInstanceId} from container {containerInstanceId}, which is neither the dragged proxy itself nor its own container");
-	}
+	internal void CaptureContainerUnload(ulong itemInstanceId, ulong containerInstanceId) =>
+		_containerMoves.Unload(itemInstanceId, containerInstanceId);
 
 	/// <summary>
 	/// <c>Container.LoadItem(item)</c> — the second half of the native move pair for
 	/// the same container, or of one container-expansion iteration.
 	/// </summary>
-	internal void CaptureContainerLoad(ulong itemInstanceId, ulong containerInstanceId)
-	{
-		if (itemInstanceId == DraggedItemId)
-		{
-			// The matching pending unload on THIS container makes the pair one move;
-			// an unload still pending on another container stays pending and closes as
-			// its own take-out, which is the native order of a release that takes an
-			// item out of one container and drops it into another (W1 + W4).
-			for (var index = _containerCalls.Count - 1; index >= 0; index--)
-			{
-				var pending = _containerCalls[index];
-				if (pending.Pending && pending.ContainerInstanceId == containerInstanceId)
-				{
-					_containerCalls[index] = pending with { Pending = false };
-					return;
-				}
-			}
-
-			_containerCalls.Add(new PendingContainerCall(itemInstanceId, containerInstanceId, Pending: false));
-			return;
-		}
-
-		// The second half of one R5 iteration: a child this bracket already saw
-		// unloaded out of the dragged container now loads into the hit container.
-		// Every child of that loop shares the target, so the first completed pair
-		// names the ONE intent the gesture is and the remaining pairs are the same
-		// gesture — one intent per child would make the owner run the loop once per
-		// child on a container the first run already emptied.
-		if (_batchChildren.Contains(itemInstanceId) && containerInstanceId != DraggedItemId)
-		{
-			if (_batchTargetContainerId == 0)
-			{
-				_batchTargetContainerId = containerInstanceId;
-			}
-			else if (_batchTargetContainerId != containerInstanceId)
-			{
-				// The native loop resolves its target container once per invocation, so
-				// two targets inside one bracket is not a gesture this vocabulary can
-				// name: the batch is refused whole rather than sent against the first
-				// target. (Defensive — no native path produces it.)
-				_batchTargetConflict = true;
-				Refuse($"container-expansion batch reaching two targets ({_batchTargetContainerId} and {containerInstanceId})");
-			}
-
-			return;
-		}
-
-		Refuse($"container load of item {itemInstanceId} into container {containerInstanceId}, which is neither the dragged proxy itself nor one of its unloaded children");
-	}
+	internal void CaptureContainerLoad(ulong itemInstanceId, ulong containerInstanceId) =>
+		_containerMoves.Load(itemInstanceId, containerInstanceId);
 
 	/// <summary><c>PlayerCamera.ApplyWoundItem</c>: the dragged item is applied to a limb (R11).</summary>
 	internal void CaptureApplyToLimb(ulong itemInstanceId, int limbIndex)
@@ -350,10 +271,7 @@ internal sealed class RemoteDragIntentCapture
 		}
 
 		var outcome = new RemoteDragOutcome([.. _intents], [.. _refusals], DraggedItemId, OwnerSteamId, _noOp, _kind);
-		_containerCalls.Clear();
-		_batchChildren.Clear();
-		_batchTargetContainerId = 0;
-		_batchTargetConflict = false;
+		_containerMoves.Reset(0, Refuse);
 		_heldItemDropped = false;
 		_slotPickUpSeen = false;
 		_noOp = RemoteDragNoOp.None;
@@ -367,30 +285,7 @@ internal sealed class RemoteDragIntentCapture
 	/// <summary>Emit what the native release branch did, in native call order.</summary>
 	private void AppendReleaseIntents()
 	{
-		if (_batchTargetConflict)
-		{
-			// The refusal already names both targets; a half-applied batch would be a
-			// gesture the native loop never makes.
-		}
-		else if (_batchTargetContainerId != 0)
-		{
-			Add(RemoteInventoryIntentKind.MoveContainerChildren, DraggedItemId, _batchTargetContainerId, -1, 0, -1);
-		}
-		else if (_batchChildren.Count > 0)
-		{
-			Refuse($"container-expansion unload of {_batchChildren.Count} child item(s) with no load behind it — the native loop never leaves a child unloaded, so this gesture is not one the vocabulary can name");
-		}
-
-		foreach (var call in _containerCalls)
-		{
-			if (call.Pending)
-			{
-				Add(RemoteInventoryIntentKind.TakeOutOfContainer, call.ItemInstanceId, call.ContainerInstanceId, -1, 0, -1);
-				continue;
-			}
-
-			Add(RemoteInventoryIntentKind.MoveIntoContainer, call.ItemInstanceId, call.ContainerInstanceId, -1, 0, -1);
-		}
+		_containerMoves.AppendIntents(_intents);
 
 		if (_heldItemDropped && !_slotPickUpSeen)
 		{
@@ -399,25 +294,37 @@ internal sealed class RemoteDragIntentCapture
 	}
 
 	/// <summary>
-	/// A while-dragging frame carries the continuous native calls and nothing else.
-	/// A release-only capture reaching it would be a gesture that frame cannot
-	/// produce, so it is refused and its intent is dropped rather than sent as
-	/// something the native body never did.
+	/// A while-dragging frame carries the continuous native calls and the field-store
+	/// seam, and nothing else. A release-only capture reaching it would be a gesture
+	/// that frame cannot produce, so it is refused and its intent is dropped rather
+	/// than sent as something the native body never did — while the frame's OWN kinds
+	/// (the drain tick, the favourite store) are kept.
 	/// </summary>
 	private void RefuseReleaseCallsInAWhileDraggingFrame()
 	{
-		if (_containerCalls.Count == 0 && _batchChildren.Count == 0 && !_heldItemDropped && !_slotPickUpSeen)
+		if (!_containerMoves.HasCalls && !_heldItemDropped && !_slotPickUpSeen)
 		{
 			return;
 		}
 
 		Refuse("a release-only mutation call inside a while-dragging frame");
-		_intents.RemoveAll(intent => !intent.Kind.IsContinuousGesture());
+		_intents.RemoveAll(intent => !intent.Kind.IsWhileDraggingGesture());
 	}
 
-	private void Add(RemoteInventoryIntentKind kind, ulong itemInstanceId, ulong containerInstanceId, int slotIndex, ulong bodySteamId, int limbIndex, float amount = 0f) =>
-		_intents.Add(new RemoteDragIntent(kind, itemInstanceId, containerInstanceId, slotIndex, bodySteamId, limbIndex) { Amount = amount });
-
-	/// <summary>One captured container call: pending until its `load` on the same container turns it into a move.</summary>
-	private readonly record struct PendingContainerCall(ulong ItemInstanceId, ulong ContainerInstanceId, bool Pending);
+	private void Add(
+		RemoteInventoryIntentKind kind,
+		ulong itemInstanceId,
+		ulong containerInstanceId,
+		int slotIndex,
+		ulong bodySteamId,
+		int limbIndex,
+		float amount = 0f,
+		ulong targetItemInstanceId = 0,
+		NetVector2Msg? targetTraderPosition = null) =>
+		_intents.Add(new RemoteDragIntent(kind, itemInstanceId, containerInstanceId, slotIndex, bodySteamId, limbIndex)
+		{
+			Amount = amount,
+			TargetItemInstanceId = targetItemInstanceId,
+			TargetTraderPosition = targetTraderPosition,
+		});
 }

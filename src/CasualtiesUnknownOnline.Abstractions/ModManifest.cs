@@ -41,7 +41,7 @@ public sealed class ModManifest(string id, string displayName, string version, N
 	/// null when it declared none. A declared fact, never a promise and never a
 	/// grant: discovery normalizes a blank (empty or whitespace-only) declaration to null and
 	/// rejects nothing for it, and a host may only report or compare it
-	/// (<c>docs/api/advanced-modification-policy.md</c> §1.1).
+	/// (the tiers section of <c>docs/en/reference/modification-policy.md</c>).
 	/// </summary>
 	public string? NativeBinding { get; } = nativeBinding;
 }

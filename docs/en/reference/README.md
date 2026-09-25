@@ -9,6 +9,7 @@ states the contract and links to [Internals](../internals/README.md) for the rea
 
 - [Glossary](glossary.md) — every word this documentation uses, in everyday language.
 - [The mod API contract](mod-api.md) — what a mod declares, what CUO enforces, and what each surface promises.
+- [The modification policy](modification-policy.md) — which surface is a promise, what a mod may patch, and how a need becomes an API.
 - [Protocol messages](protocol-messages.md) — the four envelopes, the shared header, the recovery paths and every message id.
 - [Configuration keys](configuration.md) — every setting, its default and its legal range.
 - [Feature matrices](feature-matrices.md) — which game features are synced, which are excluded by design, and which are still open.

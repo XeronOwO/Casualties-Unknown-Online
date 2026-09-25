@@ -4,7 +4,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
 /// Declares the <see cref="ApiStabilityLevel"/> of a public CUO surface
-/// (<c>docs/api/advanced-modification-policy.md`). A type without the attribute
+/// (<c>docs/en/reference/modification-policy.md</c>). A type without the attribute
 /// is <see cref="ApiStabilityLevel.Stable"/>; a member without the attribute
 /// carries its declaring type's level. The attribute is a declaration for
 /// authors and for the public-surface gate

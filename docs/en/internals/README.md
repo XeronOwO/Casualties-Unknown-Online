@@ -25,8 +25,10 @@ and the exact contracts are in `../reference/`.
    it absorbs churn.
 8. [The game behind the adapter](game-internals.md) — the parts of the game CUO has to know about, and
    what a game update can move.
-9. [Permissions and what they protect](permissions-and-security.md) — what a declared permission
-   enforces, and what CUO deliberately does not defend against.
+9. [How enemies stay in step](enemy-sync.md) — why a guest never simulates an enemy, and who judges an
+   attack.
+10. [Permissions and what they protect](permissions-and-security.md) — what a declared permission
+    enforces, and what CUO deliberately does not defend against.
 
 The last page of the line is [Contributing](../contributing/README.md): how to build, test, review and
 document a change to any of this.

@@ -10,10 +10,11 @@ design. They are **audit evidence**, not the current open-work view — see
   vs historical, and note. Use it before citing any selfcheck as current evidence.
 - Each file corresponds to one delivery cycle or architecture phase.
 - The canonical feature sync status lives in
-  [`../../features/items.md`](../../features/items.md) and
-  [`../../features/entities.md`](../../features/entities.md).
+  [`../../en/reference/feature-matrices.md`](../../en/reference/feature-matrices.md)
+  (and its Chinese counterpart `docs/zh/reference/feature-matrices.md`), over the
+  machine tables in [`../../contracts/`](../../contracts/README.md).
 - Code search / runtime debugging paths are in
-  [`../../features/game-internals.md`](../../features/game-internals.md).
+  [`../../en/internals/game-internals.md`](../../en/internals/game-internals.md).
 - Older sheets may describe mechanisms that were later replaced (for example the
   legacy `ItemReject` frame or pre-kernel item wire paths). Those references are
   snapshots of the delivery at that time, not current behavior. Verify current

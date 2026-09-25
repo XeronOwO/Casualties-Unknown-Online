@@ -2,8 +2,9 @@
 
 Traceability index of original decision numbers. The active normative register is
 [`tech-decisions.md`](active.md); historical delivery detail is in
-[`tech-decisions-archive.md`](archive.md); Phase A–E detail is in
-[`architecture-evolution/phase-decisions.md`](../architecture/phase-decisions.md).
+[`tech-decisions-archive.md`](archive.md), which also carries most of the Phase A–E
+decision rows (the ones that still constrain current work are in the active
+register); the evolution narrative is in `docs/architecture/evolution/`.
 Some early entries share numbers (`15` and `30` appear twice); the file order is
 authoritative.
 
@@ -17,7 +18,7 @@ authoritative.
 | 6 | Patch contracts + contract tests (landed 2026-08-12, the game-update guard) |
 | 7 | Replay archive + regression (landed 2026-08-12) |
 | 8 | Entity-event behavior suite (landed 2026-08-12, Phase 5) |
-| 9 | Mod API first round (landed 2026-08-13; `docs/api/mod-api.md` is the binding contract) |
+| 9 | Mod API first round (landed 2026-08-13; `docs/en/reference/mod-api.md` is the binding contract) |
 | 10 | Crafting domain (landed 2026-08-13) |
 | 11 | Cross-domain fix round (2026-08-13 — #191/#192/#194) |
 | 12 | Reconnect-restore rounds (2026-08-13, ProtocolVersion 5) |

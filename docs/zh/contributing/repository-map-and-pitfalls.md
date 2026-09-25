@@ -41,19 +41,43 @@ artifacts/                                     # 门禁与工具产物,不进 gi
 新增一条引用——或者新增一个工程——就要在同一次改动里在那里声明，否则 `ProjectDirectionGateTests` 会失败；
 它的构造用例钉住了四种拒绝：向上引用、运行时（Runtime）绕过那一层、未登记的新工程、消费者向下伸手。
 
-卫星模组（mod）住在本仓库里、和框架并排，守同一条线：只有绑游戏的那一半引用游戏程序集，不碰游戏的那一半才是测试工程直接引用的部分。
-在决定一个系统该待在插件里还是自成模组之前，先套用
-[advanced-modification-policy.md](../../api/advanced-modification-policy.md) §1.2 的四层规则。
+卫星模组（satellite mod）住在本仓库里、和框架并排，守同一条线：只有绑游戏的那一半引用游戏程序集，不碰游戏的那一半才是测试工程直接引用的部分。
+
+## 一个新系统该待在哪里
+
+[修改策略](../reference/modification-policy.md)讲的是模组可以怎样绑定 CUO；这一节讲的是**一个特性**该待在哪里 —— 也就是贡献者真正会问的那个问题：「这东西该自成模组吗？」。四层，按离框架的远近排列：
+
+| 层 | 它是什么 | 随插件发布吗 | 例子 |
+|---|---|---|---|
+| 框架核心 | 框架自身运转需要的能力：它的控制面、它的管理与安全面、它自己的结果送到玩家那里、以及共享的模拟 | 是 | 控制台、存档层、会话／世界／实体各领域、模组加载器 |
+| 卫星模组 | 面向游戏、本身没有会话词汇的特性；CUO 没装它照样成立 | 否 —— 它自成模组 | 拼音搜索（`src/CasualtiesUnknownOnline.PinyinSearch*`） |
+| 仓库工具 | 运行期不需要游戏，也不进插件的依赖图；它服务于开发与验证 | 否 —— 而且它不是模组 | 契约工具链（`tools/CasualtiesUnknownOnline.ContractTool`） |
+| 可复用组件 | 几处消费者能共用的机器部件，本身没有会话词汇 | 取决于它的消费者 | 控制台的输入／补全引擎；拼音匹配核心 |
+
+**那六个问题** —— 按顺序问，前两个自己就能定案：
+
+1. 它的词汇里有没有会话、权威、世界、存档或模组状态？有 → 框架核心。
+2. 没有它，框架还转得动吗 —— 它的管理功能、它的安全面、它自己的结果送到玩家那里？转不动 → 框架核心。
+3. CUO 没装的时候它还成立吗？不成立 → 框架核心；成立 → 继续往下问。
+4. 它是面向游戏的体验，还是面向会话的能力？面向会话 → 框架核心。
+5. 把它抽出去会不会造出双向依赖，或者逼框架公开一大片新契约？会 → 框架核心，或者做成组件而不是卫星。
+6. 它需要游戏自己的代码吗？需要 → 这个卫星按声明出来的层级去绑。
+
+两个现成的例子，免得下一位重新推导：
+
+- **拼音搜索** —— 1 否、2 否、3 是、4 面向游戏 → 卫星。它最后落成自己的一对工程，住在 CUO 里的那份实现被删掉了。
+- **控制台** —— 1 是（它的动词和它的输出缓冲区承载着这次会话自己的结果），2 是（没有它的主机就少了管理与会话存档动词，也看不到存档／恢复／起始补给那几笔账），3 否，5 是 → 框架核心。它的输入／补全引擎才是组件的候选，而[提升漏斗](../reference/modification-policy.md)说组件要等到第二个消费者出现。
+
+拆出去从来不是免费的：每多一个交付物，就多一份构建、部署、验证与验收面；而一个把控制面做成可选附加件的框架，等于把治理也做成了可选项。
 
 ## 文档该放哪儿
 
 - `docs/en/` 与 `docs/zh/` —— 成对的人类文档，路径一一对应（[文档编写规范](documentation-standard.md)）。
 - `docs/standard/` —— 规则依赖的两份登记表：术语与配对对齐。
-- `docs/contracts/` —— 门禁与工具读取的机器基线和表格（[`abstractions-api-baseline.txt` 加两张特性矩阵](../../contracts/README.md)）；
-  `docs/evidence/` 下的那些 JSON 基线仍留在被描述对象的旁边。
-- `docs/api/` —— 旧页面，结论正在搬进两棵树；迁移的最后一步会删掉它们。
-- `docs/backlog/`、`docs/evidence/`、`docs/decisions/` 等流程记录 —— 只有英文，不进人类导航；
-  它们的结论要吸收进上面那些页面。
+- `docs/contracts/` —— 门禁与工具读取的机器基线和表格（[`abstractions-api-baseline.txt`、特性矩阵与事件重放矩阵](../../contracts/README.md)）；`docs/evidence/` 下的那些 JSON 基线仍留在被描述对象的旁边。
+- `docs/architecture/` —— 英文的架构规格：现役设计（[`current.md`](../../architecture/current.md)、[`domains.md`](../../architecture/domains.md)、[`protocol.md`](../../architecture/protocol.md)、`guards.md`、`projection-framework.md`、`mod-status-domain.md`、`save-archive-format.md`、`glossary.md`）以及 [`evolution/`](../../architecture/README.md) 下已完成的演进历史。属于贡献者材料，不进人类导航。
+- `docs/development/` —— 面向代理的参考页：仓库布局与坑、复核提示词，以及游戏更新手册。
+- `docs/backlog/`、`docs/evidence/`、`docs/decisions/` 等流程记录 —— 只有英文，不进人类导航；它们的结论要吸收进上面那些页面。
 
 ## 已知的坑
 
@@ -95,7 +119,7 @@ artifacts/                                     # 门禁与工具产物,不进 gi
 - [门禁与绑定规则](gates-and-rules.md) —— 这些门禁背后的规则
 - [构建、测试与部署](build-and-test.md) —— 跑这些门禁的命令
 - [文档编写规范](documentation-standard.md) —— 一页文档该放哪儿
-- [扩展与稳定性策略](../../api/advanced-modification-policy.md) —— 四层规则与稳定性分级
+- [修改策略](../reference/modification-policy.md) —— 稳定性分级，以及模组可以给什么打补丁
 
 ---
 

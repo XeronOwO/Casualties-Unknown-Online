@@ -25,7 +25,7 @@ namespace CasualtiesUnknownOnline.Tests.PinyinSearch;
 /// it — the property the "works with CUO uninstalled" claim rests on;</item>
 /// <item>the declaration CUO reports (<c>[CuoMod]</c> <c>NativeBinding</c> and the
 /// local network mode) is present, because a mod that patches the game owes it
-/// (<c>docs/api/advanced-modification-policy.md</c> §1.1);</item>
+/// (the tiers section of <c>docs/en/reference/modification-policy.md</c>);</item>
 /// <item>the game-side contract the crafting patch binds still resolves — both
 /// Harmony targets and the private field the item-filter guard reads. This is the
 /// game-update churn the mod took over from CUO, so it is checked where the mod

@@ -2,7 +2,8 @@ namespace CasualtiesUnknownOnline.Runtime.Configuration;
 
 /// <summary>
 /// How a host treats a member whose declared native binding differs from the
-/// host's own for a mod BOTH sides list (`docs/api/mod-api.md` §5). Parity
+/// host's own for a mod BOTH sides list (the "Handshake consistency" section of
+/// `docs/en/reference/mod-api.md`). Parity
 /// compares declarations only: an undeclared binding stays invisible, so an equal
 /// declaration is visibility, never proof of identical behaviour.
 /// </summary>

@@ -18,8 +18,8 @@
       remove-item <item>              delete a row
       add-feature <feature>           add a column (every row gains a blank cell)
 
-    -Doc <docs/features/items.md>    advisory: warn (not fail) when a feature
-                                     column has no matching "###" section.
+    -Doc <doc.md>                    optional advisory: warn (not fail) when a
+                                     feature column has no "### <feature>" section.
 
 .EXAMPLE
     tools/item-features.ps1 validate

@@ -31,7 +31,7 @@
     "works with CUO uninstalled" structural rather than a promise: the crafting
     half cannot fail to load over a missing CUO, because nothing it loads asks
     for one. The CUO-facing types live in the Core assembly and are driven by
-    CUO's own lifecycle (docs/api/mod-api.md §2).
+    CUO's own lifecycle (docs/en/reference/mod-api.md, "How a mod is loaded").
   -->
   <ItemGroup>
     <Reference Include="0Harmony">

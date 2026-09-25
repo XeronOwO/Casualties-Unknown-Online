@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.PinyinSearch;
 /// uninstalled it is the whole mod — the crafting search box is extended from
 /// here. Its Awake touches BepInEx, Unity and the game only, never a CUO API
 /// (the CUO-facing types live in the Core assembly and are driven by CUO's own
-/// lifecycle, <c>docs/api/mod-api.md</c> §2), so it may run before or after the
+/// lifecycle, "How a mod is loaded" in <c>docs/en/reference/mod-api.md</c>), so it may run before or after the
 /// CUO plug-in's Awake.
 /// </summary>
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]

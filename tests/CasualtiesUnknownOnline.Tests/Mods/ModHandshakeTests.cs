@@ -369,7 +369,7 @@ public class ModHandshakeTests
 	public void BindingComparison_IsTrimmedAndCaseSensitive(string hostBinding, string guestBinding, bool admitted)
 	{
 		// The comparison is exact after trimming (ordinal, case-sensitive), which
-		// docs/api/mod-api.md §5 states: two spellings of the same name match, two
+		// "Handshake consistency" in docs/en/reference/mod-api.md states: two spellings of the same name match, two
 		// casings do not — a third-party author must spell the binding identically.
 		var (host, _) = CreatePair(
 			[Manifest(NetworkMode.RequiresAllPlayers, binding: hostBinding)],

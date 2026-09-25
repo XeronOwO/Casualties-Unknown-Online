@@ -71,7 +71,7 @@ public class RepositoryGateTests
 	[Fact]
 	public void EventReplayMatrix_Completeness()
 	{
-		var path = RepositoryPaths.File("docs/event-replay-matrix.csv");
+		var path = RepositoryPaths.File("docs/contracts/event-replay-matrix.csv");
 		Assert.True(File.Exists(path), "event-replay-matrix.csv missing");
 		var lines = File.ReadAllLines(path);
 		Assert.True(lines.Length > 0, "event-replay matrix is empty");

@@ -22,7 +22,7 @@ tools/entity-features.ps1 validate | list | get <entity> [feature] | set <entity
 
 - CSV 是 UTF-8 无 BOM；单元格里不能有半角逗号（多个值用 `/` 分隔）。
 - 每次读之前先校验，每次写之后也校验 —— 列数错位会以退出码 1 中止，绝不静默。
-- 叙事页是 `docs/features/items.md`、`docs/features/entities.md` 与 `docs/features/enemies.md`。实体叙事表与实体 CSV 由 `EntityFeaturesDocConsistencyTests` 交叉核对，所以两边必须同一次改动里一起刷新。
+- 叙事就在本页：物品那一行看下面的小节，实体那一行看[实体按族列出](#实体按族列出)几张表；敌人本身的设计在[敌人怎么保持一致](../internals/enemy-sync.md)。实体叙事表与实体 CSV 由 `EntityFeaturesDocConsistencyTests` 交叉核对，所以实体只要新增、删除，或 `sync` 列改了取值，就必须在同一次改动里把两边一起刷新。
 
 ## `sync` 列的三个取值
 
@@ -205,7 +205,7 @@ tools/entity-features.ps1 validate | list | get <entity> [feature] | set <entity
 
 序列化下来的 `Openable` 组件都在 `resources.assets` 里（17 个实例、11 个根预制体）：`isKeypad` 只在 `dropcapsule` 预制体以及 `Structures/BrickLoot` 里那两个嵌套的 `dropcapsule` 道具上为 true，`instantOpen` 只在 `foodbox`（根预制体，以及 `BioContainer` 里那份嵌套副本）上为 true。其余 `Openable` 都是撬锁。
 
-**生物** —— 主机权威的敌人领域，它自己的页面是 `docs/features/enemies.md`。
+**生物** —— 主机权威的敌人领域，它自己的页面是[敌人怎么保持一致](../internals/enemy-sync.md)。
 
 | 实体 | 同步 | 路径 |
 |---|---|---|

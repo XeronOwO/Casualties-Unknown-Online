@@ -1,9 +1,6 @@
 # docs/ — document-system rules
 
 Binding rules for every page under `docs/`. Human entry: [README.md](README.md).
-**Status:** these rules supersede the per-page sibling pairing contract that
-[i18n/README.md](i18n/README.md) still describes; that file survives only until the migration
-finishes.
 
 ## 1. Where a page lives
 
@@ -15,16 +12,19 @@ Two human blocks, path for path identical:
   `contributing/` (build, gates, review, this standard).
 - `standard/` — document-system registries (terminology, alignment record).
 - `contracts/` — machine baselines and tables that code and gates read.
-- `backlog/`, `evidence/`, `decisions/`, `history/`, `phases/` — process records: not part of the
-  human navigation, never translated.
-- Each directory carries `README.md` as the human index; `AGENTS.md` sits only at junctions
+- `backlog/`, `evidence/`, `decisions/` — process records: not part of the human navigation, never
+  translated.
+- `architecture/`, `development/` — the architecture specifications and the agent-facing pages:
+  English only, and outside the human navigation for the same reason.
+- Each human directory carries `README.md` as its index (a section of either block, `docs/`,
+  `standard/`, `contracts/`, `architecture/`, `backlog/`); `AGENTS.md` sits only at junctions
   (`docs/`, `docs/en/`, `docs/zh/`, `src/`, `tests/`, `tools/`), holds guidance rather than
   knowledge, and stays under its byte ceiling. An index page of either block names its own
   directory (`docs/en/how-to/`) and lists that section's pages; it carries the same head and tail
   breadcrumb and thematic breaks as any page, pointing at the entry above it, and needs no
   `Related reading`.
 
-Everything that is not a process record belongs in these two blocks, in both languages: the
+Everything a reader needs belongs in these two blocks, in both languages: the
 architecture and protocol explanations, the mod API contract, the feature tables, and the operations
 and contribution knowledge. A document that only records what a past cycle did — a phase plan, an
 audit, a delivery self-check, a decision register — stays out of the blocks, and its conclusions are

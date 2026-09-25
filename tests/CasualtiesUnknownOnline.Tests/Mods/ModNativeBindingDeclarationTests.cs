@@ -16,7 +16,8 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// line and the handshake entry (`ModInfoMsg.NativeBinding`, added by the parity
 /// change). It is deliberately NOT a permission, and discovery adds no rejection
 /// cause of its own for it — only the host's explicit `require` parity policy can
-/// refuse a member over a declared difference (`docs/api/mod-api.md` §5).
+/// refuse a member over a declared difference (the "Handshake consistency" section of
+/// `docs/en/reference/mod-api.md`).
 ///
 /// The declared mods below are healthy on purpose: every TestNode's production
 /// ModService scans this assembly, so a declared binding must load exactly like

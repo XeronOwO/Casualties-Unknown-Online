@@ -55,8 +55,9 @@ A `start/` page shows the single path that works and stops there; the detail bel
   [`../README.md`](../README.md) and [`../../zh/README.md`](../../zh/README.md) — that is
   `docs/README.md`, `docs/en/README.md` and `docs/zh/README.md`. Sub-pages navigate by breadcrumb and
   carry no switcher of their own.
-- A paired artifact in the older sibling shape (`foo.zh.md`, `foo.i18n.yaml`) belongs only to the
-  trees still being migrated; do not add one under `docs/en/` or `docs/zh/`.
+- The older sibling shape (`foo.zh.md`, `foo.i18n.yaml`) is retired: a pair is the mirrored path, and a
+  file in that shape must not be added anywhere under `docs/`. None is left in the tree, so this one is
+  held by review rather than by a gate.
 - Chinese punctuation joins Chinese text: `，。、；：？！`, Chinese quotes and full-width
   parentheses; ASCII punctuation stays inside code spans, paths, identifiers and any English name or
   phrase (`Casualties Unknown: Online`). The gate refuses the plain defect — an ASCII connective

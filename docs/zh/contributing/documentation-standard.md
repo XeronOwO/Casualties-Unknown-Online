@@ -41,8 +41,7 @@
 - 语言切换链接只出现在三个入口页：[`../../README.md`](../../README.md)、
   [`../../en/README.md`](../../en/README.md)、[`../README.md`](../README.md)——也就是 `docs/README.md`、
   `docs/en/README.md`、`docs/zh/README.md`。子页面靠面包屑导航，自己不写切换链接。
-- 旧式“兄弟文件”形态的配对产物（`foo.zh.md`、`foo.i18n.yaml`）只属于还在迁移中的旧目录；
-  不要在 `docs/en/` 或 `docs/zh/` 下面新增这种文件。
+- 旧式“兄弟文件”形态（`foo.zh.md`、`foo.i18n.yaml`）已经退役：一配对就是路径镜像，`docs/` 下面任何地方都不许再新增这种文件。库里已无这种产物，这条靠复核守住。
 - 中文正文用中文标点：`，。、；：？！`、中文引号与全角括号；ASCII 标点只留在代码、路径、标识符，以及英文专名或英文短语里（如 `Casualties Unknown: Online`）。门禁只拦最直白的一种：两个汉字之间的 ASCII 标点；其余靠复核。
 
 ## 链接

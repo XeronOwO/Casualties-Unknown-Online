@@ -1,5 +1,5 @@
 # CUO Mod API public surface baseline — the reviewed record of the ONLY assembly a mod may
-# reference. Policy: docs/api/advanced-modification-policy.md. Gate: ApiSurfaceGateTests.
+# reference. Policy: docs/en/reference/modification-policy.md. Gate: ApiSurfaceGateTests.
 #
 # One entry per line, '|'-separated; a leading '#' starts a comment.
 #   type|<level>|<fully qualified name>|<kind and modifiers>|<base list, '-' when there is none>

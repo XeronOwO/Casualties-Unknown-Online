@@ -4747,8 +4747,8 @@
     {
       "cluster": "inline",
       "row": "R7",
-      "file": "docs/history/audits/worldgen-determinism-audit.md",
-      "quote": "compare `[GenStream]` segment fingerprints and `[WorldFingerprint]` between"
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/WorldFingerprintLog.cs",
+      "quote": "The one-shot world fingerprint logged at world entry"
     },
     {
       "cluster": "inline",

@@ -188,12 +188,13 @@
 
   <!-- The event-replay matrix audit data (the check-event-replay gate's
        source) — a test asserts its integrity (ReplayMatrixDataTests). The
-       entity-features CSV + narrative doc ride along for the narrative-vs-CSV
-       consistency gate (EntityFeaturesDocConsistencyTests). -->
+       entity-features CSV + the narrative page ride along for the
+       narrative-vs-CSV consistency gate (EntityFeaturesDocConsistencyTests,
+       which reads the page's entity tables). -->
   <ItemGroup>
-    <None Include="..\..\docs\event-replay-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\contracts\event-replay-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\docs\contracts\entity-features-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\docs\features\entities.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\en\reference\feature-matrices.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">

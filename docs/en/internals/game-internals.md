@@ -30,6 +30,10 @@ There is no "spawn the player" call to intercept. The player is a scene prefab �
   key binds and the mouse, and writes `body.moveDir` and `body.targetLookPos`. The physics step —
   `Body.cs:2297`, `private void FixedUpdate()` — turns that into forces and velocity. Nothing else reads
   `moveDir`.
+- The binds themselves come from `KeyBinds.GetBind("up"|"down"|"left"|"right"|"jump"|"attack"|…)`, a
+  cached table of configurable keycodes, and `HandleInput()` is the single place the game collects
+  input — it steps aside on a frame where the console or a UI panel is open. Everything the game does
+  with input hangs off that one call, which is why CUO's own surfaces do not have to compete for it.
 - The body's own state is a set of plain fields: `Body.cs:203` `public bool alive`, `:213`
   `public bool conscious`, `:3745` `public Limb[] limbs` (index 0 is the head).
 
@@ -49,6 +53,13 @@ This is why the run baseline in the kernel carries the generation inputs at all 
 rarity multipliers — and why a save taken at a layer boundary has to be taken **after** the layer
 advance commits: the checkpoint has to describe the layer that is about to be generated, not the one
 that just ended.
+
+The fields that define a run in progress — `WorldGeneration.totalTraveled`, `biomeDepth` and
+`biomeOverride` — are read and written through `HarmonyTraverse`, because the game exposes no setter
+for any of them; `biomeOverride` is an enum of `None`/`Tutorial`/`Debug` that decides which generation
+branch runs. `WorldStartParams.LoadedRun` is the exception worth remembering: it has no backing field
+on `WorldGeneration` at all, so on the wire it stays false — a guest's layer still matches because what
+drives generation is the restored `Random.state`, not that flag.
 
 ## The native save is not a world save
 
@@ -76,17 +87,31 @@ would fight the frozen state (the IK aim handles, the limb hinge joints) are dis
 clone has to be created after the world exists, because the body's own `Awake` reaches into world
 generation for its sound mixer.
 
-The proxy recipe is verified in the decompiled sources and listed in
-`docs/features/game-internals.md`; what it means for CUO is the same rule as everywhere else — one side
-owns a body, the other side renders what it is told.
+The proxy recipe is a per-component decision, verified in the decompiled sources under `reversing/`:
+
+- **`Body.Update` must run on a proxy.** Its `HandleVisuals` branch (`Body.cs:3123+`) drives the limb
+  poses from the body and arm animators and casts for `grounded`; a proxy that skipped it would keep
+  uninitialized limb sprites and animate nothing. While the owner is active the clone suppresses the
+  animator-to-visible copy, so the poses the stream carries are not overwritten.
+- **`Limb.Update` (`Limb.cs:498+`) is safe to leave running.** It writes the limb's shader parameters
+  and runs heal and infection timers; it never moves a limb.
+- **`IKHandle.Update` (`IKHandle.cs:40-57`) is disabled.** It lerps its target toward
+  `Camera.main.ScreenToWorldPoint(Input.mousePosition)` and draws a line renderer at it, so a clone
+  drew its aim line at the *local* player's mouse — the "head looking at the mouse" symptom.
+- **The cloned limbs' `HingeJoint2D` is disabled** with the rest of the physics
+  (`FixedUpdate` skipped, `Rigidbody2D.simulated` false), and the root transform is written every frame
+  from the peer's report.
+
+What that means for CUO is the same rule as everywhere else — one side owns a body, the other side
+renders what it is told.
 
 ## KrokMP is a reference, not a model
 
 The decompiled KrokMP mod in `reversing/` is read for facts about the game, not as a design to follow:
 it broadcasts body state to clones whose physics still run, and it replaces generation coroutines
 outright. CUO's answers to the same problems — one owner per body, a deterministic kernel, a render
-proxy with frozen physics — are the opposite where it matters, and the contrast is recorded in
-`docs/features/game-internals.md`.
+proxy with frozen physics — are the opposite where it matters, and that contrast is why this page
+exists.
 
 ## Related reading
 

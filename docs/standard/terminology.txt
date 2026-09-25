@@ -92,3 +92,17 @@ payload | 载荷 | 载荷 | 数据包，内容体 | the opaque bytes a message o
 hot reload | 热重载 | 热重载 | 热更新，动态加载 | a configuration edit taking effect without restarting the game
 chainloader | 链加载器 | 链加载器 | 加载器，启动器 | BepInEx's own plugin loader, which loads and wakes each plugin
 log sink | 日志接收器 | 日志接收器 | 输出端，日志目的地 | one destination a log entry is written to
+enemy | 敌人 | 敌人 | 怪物，敌对生物 | a hostile creature the game's own AI drives; its movement is host-authoritative
+contract | 契约 | 契约 | 接口，协议 | a surface with a stability promise; every other surface is an implementation
+implementation | 实现 | 实现 | 底层，内部代码 | a surface with no promise: a mod may patch it, and it may change in any commit
+public surface | 公开接口面 | 公开接口面 | 公开接口，公有 API | every public type and member a caller can reach, recorded in the baseline
+stability level | 稳定性分级 | 稳定性分级（stability level） | 稳定等级，稳定级别 | the level a public surface declares with `[ApiStability]`; no attribute means `Stable`
+tier | 层级 | 层级（tier） | 等级，层次 | how a mod binds CUO: the contract, CUO's implementation, a declared native binding, or an unmanaged plugin
+promotion funnel | 提升漏斗 | 提升漏斗 | 升级流程，晋升通道 | how a need becomes an API: a patch, then a second consumer, then an experimental surface, then a stable one
+framework core | 框架核心 | 框架核心 | 内核，框架主体 | a capability the framework's own operation needs; it ships with the plug-in
+satellite mod | 卫星模组 | 卫星模组（satellite mod） | 附属模组，子模组 | a game-facing mod that still makes sense with CUO uninstalled
+repository tool | 仓库工具 | 仓库工具 | 开发脚本，辅助工具 | a development or verification tool outside the plug-in's dependency graph
+reusable component | 可复用组件 | 可复用组件 | 公共库，共享模块 | shared machinery that waits for its second consumer before it is extracted
+diagnostics | 诊断信息 | 诊断信息 | 日志，诊断输出 | the log lines an author may rely on; their absence is a bug worth reporting
+attack announcement | 攻击公布 | 攻击公布（attack announcement） | 攻击广播，攻击通知 | the host publishes the attack, the client it lands on judges it
+runtime spawn | 运行时生成 | 运行时生成 | 动态生成，临时生成 | an entity created during play rather than by world generation

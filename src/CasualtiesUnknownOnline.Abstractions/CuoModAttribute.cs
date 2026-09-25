@@ -58,7 +58,7 @@ public sealed class CuoModAttribute(string id, string displayName, string versio
 
 	/// <summary>
 	/// The game's own code this mod binds — the DECLARED NATIVE BINDING of the
-	/// tiered extension model (<c>docs/api/advanced-modification-policy.md</c>
+	/// tiered extension model (<c>docs/en/reference/modification-policy.md</c>
 	/// §1.1, decision 204): the patched game type or surface, named by the author.
 	/// Optional — a mod that touches no game type omits it.
 	///

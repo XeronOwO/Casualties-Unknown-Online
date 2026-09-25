@@ -47,8 +47,18 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-
-
+- [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
+- [Carried rider's own body stops simulating](todo/carried-rider-own-body-stops-simulating.md) — **Critical** — flat ECG and twitching limbs while carried.
+- [Remote backpack parity](todo/remote-backpack-native-interaction-parity.md) — **Critical** — reopened: a remote backpack is not operable.
+- [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — reopened: the rider's body is frozen as a render proxy.
+- [Manual world acceleration must not end when a player moves](todo/world-acceleration-survives-movement.md) — **High** — the shared clock ignores movement.
+- [Remote backpack item projection](todo/remote-backpack-item-projection-acceptance-issues.md) — **High** — reopened: Tab transfer and held-item self-use.
+- [World-time acceleration is gated on being asleep](todo/world-time-local-initiation.md) — **Medium** — reopened: the movement reset is superseded.
+- [Guest hears only some block-break sounds](todo/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the hit relay loses part of the cadence.
+- [Host eating sound on the guest](todo/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume path reports nothing.
+- [Remote medical panel hides actions](todo/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hide, not disable, the local-only controls.
+- [CUO launcher button covers the view](todo/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
+- [Remove the Online UI console page](todo/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 
 ### Review
 
@@ -66,7 +76,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
 - [Session control convergence](review/session-control-convergence.md) — **Medium** — the bounded scene re-report window and the re-ack loop.
 - [Guest command loss is not reconciled](review/guest-command-loss-reconciliation.md) — **Medium** — the bounded per-item re-report queue.
-- [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — the manual key acts locally; the host arbitrates.
 - [World/layer generation identity](review/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
 - [Remaining generation-relative families](review/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.
 - [An item can be operated on before its creation is registered](review/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
@@ -96,7 +105,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Sync completeness audit](review/sync-event-and-periodic-fallback-coverage-audit.md) — **High** — the 64-row evidence matrix.
 - [Namespaced ID system](review/id-system-namespaced-ids.md) — **Medium** — the `ContentId` vocabulary.
 - [Command completion by id/name](review/command-id-name-completion.md) — **Medium** — canonical id, bare path or display name.
-- [Remote backpack item projection](review/remote-backpack-item-projection-acceptance-issues.md) — **High** — Tab transfer and held-item self-use.
 - [Global unified projection framework](review/global-projection-framework.md) — **High** — the rebuildable-domain contract.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical panel acceptance issues](review/remote-medical-panel-acceptance-issues.md) — **High** — opiate ramp, breathing and ECG.
@@ -112,7 +120,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Normative requirements as gates](review/normative-style-unit-test-gates.md) — **High** — the Roslyn gate and rule inventory.
 - [Player pain vocalizations and bark](review/sync-player-pain-vocalizations-and-bark.md) — **Medium** — they ride the character-sound event.
 - [Metal-scrap placement sound on guest](review/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium** — sounds ride the sound event.
-- [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — **Critical** — root container sync.
 - [Tab opens the backpack then closes](review/tab-backpack-open-close-immediately.md) — **Medium** — remote Close wrote the radial state.
 - [Entity drop loses fresh state on the guest](review/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — full drop state is preserved.
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — **High** — the overlay with live suggestions.
@@ -154,7 +161,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Idle-sit suppression while carried](review/carried-player-idle-sit-suppression.md) — **Medium** — the native sit pose is suppressed.
 - [Carrier sit while carrying](review/carrier-sit-while-carrying.md) — **Medium** — the carrier half of the family.
 - [Carry vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — **Medium** — riders publish the torso anchor.
-- [Carry rider position smoothing](review/carry-piggyback-rider-position-smoothing.md) — **Critical** — exact limb poses are suppressed.
 - [Guest container ghost drops on host](review/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.
 - [Trap destruction drop quantity desync](review/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.

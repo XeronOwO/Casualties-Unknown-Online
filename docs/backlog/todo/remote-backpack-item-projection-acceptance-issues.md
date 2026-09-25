@@ -1,10 +1,18 @@
 # Remote backpack item projection acceptance issues (projection rework needed)
 
-- Status: Review
+- Status: Todo
 - Priority: High
 - Category: Remote inventory / item projection / container sync
-- Parent: `docs/backlog/review/remote-backpack-native-interaction-parity.md`
+- Parent: `docs/backlog/todo/remote-backpack-native-interaction-parity.md`
 - Source: User acceptance findings (2026-09-06) on the remote-backpack review ticket.
+
+## Reopened (2026-09-21 acceptance pass)
+
+The unified acceptance pass reproduces this ticket's findings on the deployed build: an item taken
+out of a remote container disappears shortly afterwards, and the remote-backpack items cannot be
+operated. The user ruled that the remote item surface is to be replaced by an end-to-end native
+path rather than patched further; this ticket is moved back to `todo/` and its findings feed
+`todo/remote-inventory-native-parity-rework.md`.
 
 ## Context
 

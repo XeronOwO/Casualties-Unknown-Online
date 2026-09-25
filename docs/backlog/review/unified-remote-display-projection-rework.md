@@ -37,7 +37,7 @@ helpers (`CloneFacePresentation`, `CloneBodyPosePresentation`,
 `CloneInventoryRenderer`. The work was split into concrete phases and the
 umbrella is now code-complete at the projection architecture level; the
 remaining remote-backpack *interaction* issues are tracked in their own ticket
-(`docs/backlog/review/remote-backpack-item-projection-acceptance-issues.md`),
+(`docs/backlog/todo/remote-backpack-item-projection-acceptance-issues.md`),
 not hidden under this umbrella.
 
 ## Phases completed

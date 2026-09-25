@@ -1,10 +1,22 @@
 # World-time acceleration is gated on being asleep
 
-- Status: Review
+- Status: Todo
 - Priority: Medium
 - Category: World / session (world-time initiation)
 - Source: User ruling 2026-09-18 (design alignment session): the shared clock stays shared, but the OPERATION must be immediate and local — a player who presses accelerate accelerates at once, the host arbitrates, and the broadcast brings everyone else in with an acceptable delay. Sleep keeps its "everyone unconscious" gate.
 - Related: `resolved/sleep-behavior-policy.md` (the 2026-09-05 decision this supersedes in part), `review/enemy-hit-determination-local.md`, `review/remote-interaction-local-gating.md`, `review/item-creation-registration-first.md` (the same ruling's other families), `review/sync-cadence-review.md`
+
+## Reopened (2026-09-21 acceptance pass)
+
+The user reports that the acceleration ended as soon as the host moved, and rules that movement
+must no longer change the world speed: an acceleration ends only when the player ends it, through
+the sleep gate, or through the death/pause transitions. That supersedes §4 ("the only movement
+rule left is the native one") and acceptance row 7 ("a player presses a movement key during a
+manual fast-forward"), which describe the shipped behaviour.
+
+This ticket is moved back to `todo/`; the requirement, the native evidence and the replacement
+acceptance matrix are recorded in `todo/world-acceleration-survives-movement.md`. The local-first
+and accept-first half of this delivery stands.
 
 ## Problem (evidence)
 

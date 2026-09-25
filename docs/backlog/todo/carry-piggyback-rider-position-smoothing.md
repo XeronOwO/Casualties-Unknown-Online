@@ -1,9 +1,22 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Review (2026-09-07 root-cause exact-limb-pose suppression; code-complete, full suite + independent adversarial review + deployed-hash verification complete; awaiting final unified acceptance pass)
+- Status: Todo
 - Priority: Critical
 - Category: Player interaction / movement sync / carry-piggyback presentation
 - Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user re-reported that the teleport still exists, so this cycle replaced the pin-only approach on the participant carrier side with a true transform-parent carry mount.
+
+## Reopened (2026-09-21 acceptance pass)
+
+A new defect of the same mechanism was found: while the guest carries the host, the host's own
+medical panel shows an almost flat ECG although the heart rate is real, and the panel's limbs
+twitch with a growing frequency; releasing the carry restores normal behaviour. The cause is the
+carried body's own per-frame simulation being skipped — the render-proxy treatment this ticket's
+"Current implementation" describes; it is tracked as
+`todo/carried-rider-own-body-stops-simulating.md`. This ticket is moved back to `todo/` so the
+carried-rider presentation is reworked as one family instead of adding another suppression.
+
+The teleport itself was not re-tested in this pass; the acceptance criteria below stand until the
+rework re-verifies them.
 
 ## Root-cause fix (2026-09-07)
 

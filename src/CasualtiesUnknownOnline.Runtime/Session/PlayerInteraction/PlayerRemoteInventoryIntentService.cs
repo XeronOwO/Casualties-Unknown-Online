@@ -130,13 +130,36 @@ internal sealed class PlayerRemoteInventoryIntentService(
 
 		if (!_arbitration.TryAdmit(requester, msg.ItemInstanceId, _time.NowMs, out var holder))
 		{
-			_log.LogInformation("[RemoteIntent] refused {Kind} for item {Item}: first-writer-wins — {Holder} is already operating it.",
-				msg.Kind, msg.ItemInstanceId, holder);
+			// A competing continuous intent would write this line on every frame it is
+			// held, so it keeps the frequency rule too: Debug for a continuous kind,
+			// Information for a discrete one.
+			if (msg.Kind.IsContinuousGesture())
+			{
+				_log.LogDebug("[RemoteIntent] refused {Kind} for item {Item}: first-writer-wins — {Holder} is already operating it.",
+					msg.Kind, msg.ItemInstanceId, holder);
+			}
+			else
+			{
+				_log.LogInformation("[RemoteIntent] refused {Kind} for item {Item}: first-writer-wins — {Holder} is already operating it.",
+					msg.Kind, msg.ItemInstanceId, holder);
+			}
+
 			return;
 		}
 
-		_log.LogInformation("[RemoteIntent] {Requester} → {Owner} {Kind} (item {Item}, container {Container}, slot {Slot}, body {Body}, limb {Limb}).",
-			requester, owner, msg.Kind, msg.ItemInstanceId, msg.TargetContainerInstanceId, msg.TargetSlotIndex, msg.TargetBodySteamId, msg.TargetLimbIndex);
+		if (msg.Kind.IsContinuousGesture())
+		{
+			// The while-dragging drain tick arrives every frame: its accepted path
+			// logs at Debug and only a refusal keeps the Information line, which is
+			// the level rule for a high-frequency trigger.
+			_log.LogDebug("[RemoteIntent] {Requester} → {Owner} {Kind} (item {Item}, amount {Amount}).",
+				requester, owner, msg.Kind, msg.ItemInstanceId, msg.Amount);
+		}
+		else
+		{
+			_log.LogInformation("[RemoteIntent] {Requester} → {Owner} {Kind} (item {Item}, container {Container}, slot {Slot}, body {Body}, limb {Limb}).",
+				requester, owner, msg.Kind, msg.ItemInstanceId, msg.TargetContainerInstanceId, msg.TargetSlotIndex, msg.TargetBodySteamId, msg.TargetLimbIndex);
+		}
 
 		switch (msg.Kind)
 		{
@@ -185,9 +208,26 @@ internal sealed class PlayerRemoteInventoryIntentService(
 				refusal = string.Empty;
 				return true;
 			case RemoteInventoryIntentKind.MoveIntoContainer:
+			case RemoteInventoryIntentKind.MoveContainerChildren:
+				// The operand contract is the same for both: the item is the moved
+				// item for the first kind and the SOURCE container for the second, and
+				// neither may name itself as the destination.
 				if (msg.TargetContainerInstanceId == 0 || msg.TargetContainerInstanceId == msg.ItemInstanceId)
 				{
 					refusal = $"invalid target container {msg.TargetContainerInstanceId}.";
+					return false;
+				}
+
+				refusal = string.Empty;
+				return true;
+			case RemoteInventoryIntentKind.Drain:
+				// The amount is the drain tick's operand. A non-finite value would
+				// poison the owner's liquid stacks through the native call, and a
+				// negative one would add liquid; a large finite amount is no more than
+				// the gesture can legitimately do over time, so it is not bounded here.
+				if (float.IsNaN(msg.Amount) || float.IsInfinity(msg.Amount) || msg.Amount < 0f)
+				{
+					refusal = $"unusable drain amount {msg.Amount}.";
 					return false;
 				}
 

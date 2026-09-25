@@ -163,6 +163,13 @@ public static class ProtocolVersion
 	/// which the registry drops, and would ignore every intent addressed to its
 	/// own body, so its items would stay where the viewer did not move them while
 	/// every other peer's projection followed the abandoned request.
-	public const int Current = 36;
+	/// 37: `RemoteInventoryIntentMsg` gains the container family — the
+	/// `MoveContainerChildren` kind (R5's per-child loop, which the owner evaluates
+	/// on the real children) and the `Drain` kind with its `Amount` operand (the
+	/// while-dragging liquid drain tick). A peer without them would have its
+	/// container-expansion gesture refused as unrepresentable and could not drain a
+	/// remote container at all, while every other peer's projection kept the
+	/// children and the liquid exactly where the viewer's gesture never moved them.
+	public const int Current = 37;
 
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -6,27 +7,32 @@ using UnityEngine.EventSystems;
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// Keeps the native radial inventory attached to the focused remote clone and
-/// shows that player's name while the remote backpack view is open. The game
-/// otherwise anchors the radial menu to the local body (PlayerCamera.cs:1923),
-/// which is exactly what makes a remote-inventory view look broken.
+/// The while-dragging frame of the remote backpack view. The game's own
+/// <c>HandleWhileDragging</c> body now RUNS for the remote view: its hover
+/// feedback, cursor, drag-image motion and radial state are the native ones, and
+/// the continuous mutations it makes — the liquid drain tick, once per frame —
+/// are captured by the while-dragging window instead of mutating a display proxy.
+/// A proxy the window cannot bracket (no authoritative identity, or another item's
+/// bracket) keeps the native body running for its feedback while the mutation seams
+/// refuse the calls: the drain tick is skipped and reported
+/// (<c>RemoteDragLiquidDrainPatch</c>), and the favourite write is covered below,
+/// so no path mutates a proxy.
 ///
-/// This is still a prefix that skips the original while-dragging body for the
-/// remote view: that body contains native mutations against the HOVERED item
-/// (the favourite toggle) and the continuous liquid drain, and the hovered item
-/// here is a display proxy. Both are reported when the gesture is actually made,
-/// so a player who presses the key or holds a water container over the drain gets
-/// a line instead of a silent nothing; their intents arrive with the stages that
-/// restore this body.
+/// Two things stay CUO's, because that body reads the LOCAL scene. The radial menu
+/// is anchored to the focused clone instead of the local body (the game anchors it
+/// to the body, which is what made a remote view look broken). And the favourite
+/// toggle — a direct <c>favourited</c> field write on the hovered item, which
+/// Harmony has no call seam to intercept — is refused with one log line for the
+/// frame it would happen, so a display proxy is never written; that frame's native
+/// pass is skipped with it (the line says so), and the intent arrives with the stage
+/// that builds that seam.
 /// </summary>
 [HarmonyPatch(typeof(PlayerCamera), "HandleWhileDragging")]
 internal static class PlayerCameraHandleWhileDraggingPatch
 {
-	/// <summary>The proxy the drain refusal was last reported for — one line per drag, not one per frame.</summary>
-	private static ulong _drainReportedItemId;
-
-	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts)
+	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts, out bool __state)
 	{
+		__state = false;
 		if (!RemoteBackpackView.IsOpen || RemoteBackpackView.FocusedBody is not { } focused)
 		{
 			if (__instance.radialOpen)
@@ -37,62 +43,116 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 			return true;
 		}
 
-		if (Input.GetKeyDown(KeyBinds.GetBind("favourite")))
+		if (Camera.main == null) // Unity object — ==
 		{
-			PatchBridge.Impl?.ReportRemoteGestureNotCarried("favourite toggle through the remote view");
+			// The native body dereferences the main camera (PlayerCamera.cs:1774);
+			// a frame without one cannot run it.
+			return false;
 		}
 
-		ReportDrainOnce(__instance, uiCasts);
-
-		if (Camera.main == null) // Unity object — ==
+		if (RefuseFavouriteOverAProxy(uiCasts))
 		{
 			return false;
 		}
 
-		var screen = (Vector2)Camera.main.WorldToScreenPoint(focused.transform.position);
-		RemoteBackpackView.UpdateSmoothPosition(screen);
-		__instance.radialMenu.transform.position = RemoteBackpackView.SmoothPosition;
-		__instance.radialCircle.enabled = false;
+		OpenWhileDraggingWindow(__instance, out __state);
+		AnchorRadialToTheFocusedClone(__instance, focused);
+		return true;
+	}
 
-		// Keep the dragged image following the mouse so the drag still feels
-		// native before the release produces its intent.
-		if (__instance.dragItem != null) // Unity object — ==
+	private static void Finalizer(bool __state)
+	{
+		if (__state)
 		{
-			__instance.dragImage.rectTransform.position = Input.mousePosition;
+			PatchBridge.Impl?.EmitRemoteWhileDraggingFrame(RemoteDragIntentWindow.Current.Close());
+		}
+	}
+
+	/// <summary>
+	/// The native favourite toggle (<c>PlayerCamera.cs:1745</c>) writes the HOVERED
+	/// inventory button's item — not the dragged one — and it is a field store, so
+	/// the window's call seams cannot take it. With the remote ring open that item is
+	/// a display proxy, so the frame that would write it is skipped instead: the
+	/// gesture is refused with one Information line and no proxy is mutated, the same
+	/// rule every other intent a later stage carries follows. The hover test mirrors
+	/// the native one (<c>:1736</c>): the first inventory button that overlaps the
+	/// raycasts, and only when it carries an item.
+	/// </summary>
+	private static bool RefuseFavouriteOverAProxy(List<RaycastResult> uiCasts)
+	{
+		if (!Input.GetKeyDown(KeyBinds.GetBind("favourite")))
+		{
+			return false;
+		}
+
+		foreach (var raycastResult in uiCasts)
+		{
+			var button = raycastResult.gameObject.GetComponent<InvButton>();
+			if (button == null || !button.Overlaps(uiCasts)) // Unity object — ==
+			{
+				continue;
+			}
+
+			var hovered = button.GetItem();
+			if (hovered == null) // Unity object — ==
+			{
+				return false;
+			}
+
+			if (!RemoteDragProxyQuery.IsProxy(hovered))
+			{
+				return false;
+			}
+
+			PatchBridge.Impl?.ReportRemoteGestureNotCarried("favourite toggle through the remote view (this frame's native while-dragging pass is skipped with it, including that frame's drain tick)");
+			return true;
 		}
 
 		return false;
 	}
 
 	/// <summary>
-	/// The native drain tick (PlayerCamera.cs:1729) runs every frame while a water
-	/// container is dragged over the drain object; the drain object is only active
-	/// for a water container that still holds liquid (:1896), so hovering it is
-	/// the gesture. One report per dragged proxy.
+	/// Open the while-dragging bracket for this frame when the dragged item is a
+	/// display proxy with an authoritative identity — the same resolution the release
+	/// window uses, and for the same reason: a proxy without an identity can never
+	/// name an item to replay, and its calls must still not run on the proxy. A LOCAL
+	/// item dragged while the remote view is open is not bracketed: nothing it does
+	/// would be a remote intent.
 	/// </summary>
-	private static void ReportDrainOnce(PlayerCamera camera, List<RaycastResult> uiCasts)
+	private static void OpenWhileDraggingWindow(PlayerCamera camera, out bool state)
 	{
-		if (camera.liquidDrainObject == null || camera.dragItem == null) // Unity objects — ==
+		state = false;
+		var dragItem = camera.dragItem;
+		if (dragItem == null || dragItem.GetComponent<RemoteCloneRender>() == null) // Unity objects — ==
 		{
 			return;
 		}
 
-		var itemId = RemoteDragProxyQuery.InstanceId(camera.dragItem);
-		if (itemId == 0 || itemId == _drainReportedItemId)
+		var marker = dragItem.GetComponent<RemoteInventoryItemId>();
+		var itemId = marker != null ? marker.Id : 0; // Unity object — ==
+		var owner = marker != null && marker.OwnerSteamId != 0
+			? marker.OwnerSteamId
+			: RemoteBackpackView.FocusedSteamId;
+		if (itemId == 0 || owner == 0)
 		{
 			return;
 		}
 
-		foreach (var raycastResult in uiCasts)
-		{
-			if (raycastResult.gameObject != camera.liquidDrainObject) // Unity object — ==
-			{
-				continue;
-			}
+		RemoteDragIntentWindow.Current.OpenWhileDragging(itemId, owner);
+		state = true;
+	}
 
-			_drainReportedItemId = itemId;
-			PatchBridge.Impl?.ReportRemoteGestureNotCarried("the liquid drain tick through the remote view");
-			return;
-		}
+	/// <summary>
+	/// The game anchors the radial menu to the local body; with a remote backpack
+	/// open the ring belongs to the focused clone, so the menu follows that clone's
+	/// screen position and the use/wear circle stays hidden. The native body still
+	/// runs and still colours that circle — only where it sits is CUO's.
+	/// </summary>
+	private static void AnchorRadialToTheFocusedClone(PlayerCamera camera, Body focused)
+	{
+		var screen = (Vector2)Camera.main.WorldToScreenPoint(focused.transform.position);
+		RemoteBackpackView.UpdateSmoothPosition(screen);
+		camera.radialMenu.transform.position = RemoteBackpackView.SmoothPosition;
+		camera.radialCircle.enabled = false;
 	}
 }

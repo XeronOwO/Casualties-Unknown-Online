@@ -165,7 +165,9 @@ public class PatchBridgePortShapeGateTests
 		("IRemoteBackpackPatchBridge", AdapterDir + "IRemoteBackpackPatchBridge.cs", true,
 		[
 			"EmitRemoteDragIntents",
+			"EmitRemoteWhileDraggingFrame",
 			"LocalSteamId",
+			"ReportProxyNotOperable",
 			"ReportRemoteDragUnresolved",
 			"ReportRemoteGestureNotCarried",
 		]),

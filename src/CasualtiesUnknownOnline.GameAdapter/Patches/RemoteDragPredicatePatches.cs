@@ -118,17 +118,21 @@ internal static class RemoteDragPredicatePatches
 	/// <c>Body.DoPickupCheck</c> for the dragged display proxy. The check is a
 	/// world-space distance/line-of-sight test between the local body and the item;
 	/// a proxy stands where the remote player stands, so the native gate would drop
-	/// the release before any branch ran. The body that displays the proxy is the
-	/// one that can answer it.
+	/// the release before any branch ran — and in a while-dragging frame it would
+	/// drop that frame's drain tick the same way. The body that displays the proxy is
+	/// the one that can answer it, and
+	/// <see cref="RemoteDragIntentCapture.AnswersPickupCheckFor"/> is the one place
+	/// that decides whether this call is that case (both bracket kinds answer; an
+	/// item that is not the dragged proxy, or that carries no authoritative id,
+	/// keeps the native answer).
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "DoPickupCheck")]
 	internal static class RemoteDragPickupCheckPatch
 	{
 		private static bool Prefix(Item item, ref bool __result)
 		{
-			var window = RemoteDragIntentWindow.Current;
-			if (!window.IsOpen || !RemoteDragProxyQuery.IsProxy(item)
-				|| RemoteDragProxyQuery.InstanceId(item) != window.DraggedItemId)
+			if (!RemoteDragProxyQuery.IsProxy(item)
+				|| !RemoteDragIntentWindow.Current.AnswersPickupCheckFor(RemoteDragProxyQuery.InstanceId(item)))
 			{
 				return true;
 			}

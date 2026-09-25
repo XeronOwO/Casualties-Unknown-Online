@@ -5354,7 +5354,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 36;"
+      "quote": "public const int Current = 37;"
     },
     {
       "cluster": "world-blocks",
@@ -5546,7 +5546,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 36;"
+      "quote": "public const int Current = 37;"
     },
     {
       "cluster": "inline",

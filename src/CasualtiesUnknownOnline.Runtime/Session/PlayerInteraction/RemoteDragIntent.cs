@@ -9,4 +9,8 @@ internal readonly record struct RemoteDragIntent(
 	ulong TargetContainerInstanceId,
 	int TargetSlotIndex,
 	ulong TargetBodySteamId,
-	int TargetLimbIndex);
+	int TargetLimbIndex)
+{
+	/// <summary>The drained amount for <see cref="RemoteInventoryIntentKind.Drain"/> — that kind's operand; 0 for every other kind.</summary>
+	internal float Amount { get; init; }
+}

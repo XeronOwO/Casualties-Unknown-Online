@@ -71,6 +71,48 @@ public class RemoteInventoryIntentWireTests
 		Assert.Equal(-1, decoded.TargetLimbIndex);
 	}
 
+	[Theory]
+	[InlineData(0f)]
+	[InlineData(0.25f)]
+	[InlineData(1500f)]
+	public void TheDrainAmount_RoundTripsThroughTheWire(float amount)
+	{
+		// Zero is a legal amount — a frame whose delta time made the tick empty still
+		// runs the native call — and protobuf's default-zero rule preserves it: unlike
+		// a slot or a limb index, this operand has no "not used" state to be told
+		// apart from, so it needs no `value + 1` encoding.
+		var decoded = RoundTrip(new RemoteInventoryIntentMsg
+		{
+			Kind = RemoteInventoryIntentKind.Drain,
+			OwnerSteamId = 42,
+			ItemInstanceId = 7,
+			Amount = amount,
+		});
+
+		Assert.Equal(RemoteInventoryIntentKind.Drain, decoded.Kind);
+		Assert.Equal(amount, decoded.Amount);
+	}
+
+	[Fact]
+	public void TheContainerChildBatchOperands_RoundTripThroughTheWire()
+	{
+		var decoded = RoundTrip(new RemoteInventoryIntentMsg
+		{
+			Kind = RemoteInventoryIntentKind.MoveContainerChildren,
+			OwnerSteamId = 42,
+			ItemInstanceId = 7,
+			TargetContainerInstanceId = 8,
+			TargetSlotIndex = -1,
+			TargetLimbIndex = -1,
+		});
+
+		Assert.Equal(RemoteInventoryIntentKind.MoveContainerChildren, decoded.Kind);
+		Assert.Equal(7UL, decoded.ItemInstanceId);
+		Assert.Equal(8UL, decoded.TargetContainerInstanceId);
+		Assert.Equal(-1, decoded.TargetSlotIndex);
+		Assert.Equal(-1, decoded.TargetLimbIndex);
+	}
+
 	private static RemoteInventoryIntentMsg RoundTrip(RemoteInventoryIntentMsg msg) =>
 		NetPacket.DecodePayload<RemoteInventoryIntentMsg>(NetPacket.Encode(NetMsg.RemoteInventoryIntent, msg));
 }

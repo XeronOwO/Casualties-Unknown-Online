@@ -1,13 +1,15 @@
+using System.Collections.Generic;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// The mutation seams of the remote display-proxy release window. The game's own
-/// release branch runs on the viewer's client; each native mutation entry point
-/// it can reach asks the window first, and the original call is skipped whenever
-/// the window took it — so a display proxy is never mutated, and the call the
-/// native branch made becomes the intent the owner replays.
+/// The mutation seams of the remote display-proxy drag windows. The game's own
+/// drag branch runs on the viewer's client; each native mutation entry point it can
+/// reach asks the window first, and the original call is skipped whenever the
+/// window took it — so a display proxy is never mutated, and the call the native
+/// body made becomes the intent the owner replays. The release bracket carries the
+/// discrete intents; the while-dragging bracket carries the continuous ones.
 /// </summary>
 internal static class RemoteDragMutationPatches
 {
@@ -33,11 +35,11 @@ internal static class RemoteDragMutationPatches
 	}
 
 	/// <summary>
-	/// <c>Container.UnloadItem</c> inside the release window: the first half of the
+	/// <c>Container.UnloadItem</c> inside a drag window: the first half of the
 	/// native move pair, or — with no load on that container behind it — the take
-	/// into the world (W1). The container-expansion batch (R5) unloads each child
-	/// of the dragged container, which the window records as a gesture this stage
-	/// cannot carry yet.
+	/// into the world (W1). The container-expansion loop (R5) unloads each child
+	/// out of the dragged item's OWN container, which the window records as the
+	/// batch's first half.
 	/// </summary>
 	[HarmonyPatch(typeof(Container), "UnloadItem")]
 	internal static class RemoteDragContainerUnloadPatch
@@ -57,6 +59,73 @@ internal static class RemoteDragMutationPatches
 
 			window.CaptureContainerUnload(RemoteDragProxyQuery.InstanceId(item), RemoteDragProxyQuery.InstanceId(__instance.GetComponent<Item>()));
 			return false;
+		}
+	}
+
+	/// <summary>
+	/// <c>WaterContainerItem.Drain</c> from the while-dragging body's liquid tick
+	/// (<c>PlayerCamera.cs:1729</c> gates it, <c>:1731-1732</c> calls it). The caller
+	/// hands over the per-stack list it computed from the PROXY's stack; the intent
+	/// carries the amount that list removes instead, because the owner must derive the
+	/// distribution from the stack its own item really has. The local call is skipped
+	/// — a display proxy is never mutated — and the owner's facts reach this client
+	/// through the projection.
+	///
+	/// A proxy that NO open while-dragging bracket took is refused instead of run:
+	/// that is the proxy carrying no authoritative identity (the release path fails
+	/// closed for the same shape), or a bracket that belongs to another item. The
+	/// native call would mutate a display proxy for a gesture that cannot become an
+	/// intent, so it is skipped with one line per dragged proxy.
+	/// </summary>
+	[HarmonyPatch(typeof(WaterContainerItem), "Drain")]
+	internal static class RemoteDragLiquidDrainPatch
+	{
+		/// <summary>The proxy whose refusal was last reported — one line per drag, not one per frame.</summary>
+		private static int _reportedItemInstanceId;
+
+		private static bool Prefix(WaterContainerItem __instance, List<float> toRemove)
+		{
+			var item = __instance.GetComponent<Item>();
+			if (item == null || !RemoteDragProxyQuery.IsProxy(item)) // Unity object — ==
+			{
+				// A real local item: the native call is the local gesture.
+				return true;
+			}
+
+			var window = RemoteDragIntentWindow.Current;
+			var itemId = RemoteDragProxyQuery.InstanceId(item);
+			if (!window.CapturesContinuousCallsFor(itemId))
+			{
+				ReportNotOperableOnce(item);
+				return false;
+			}
+
+			if (toRemove is null)
+			{
+				window.Refuse("a liquid drain tick without its removal list");
+				return false;
+			}
+
+			var amount = 0f;
+			foreach (var part in toRemove)
+			{
+				amount += part;
+			}
+
+			window.CaptureDrain(itemId, amount);
+			return false;
+		}
+
+		private static void ReportNotOperableOnce(Item item)
+		{
+			var instanceId = item.GetInstanceID();
+			if (instanceId == _reportedItemInstanceId)
+			{
+				return;
+			}
+
+			_reportedItemInstanceId = instanceId;
+			PatchBridge.Impl?.ReportProxyNotOperable(item, "the liquid drain tick");
 		}
 	}
 

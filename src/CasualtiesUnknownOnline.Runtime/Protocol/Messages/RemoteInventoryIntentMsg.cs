@@ -76,4 +76,15 @@ public sealed class RemoteInventoryIntentMsg
 		get => _limbSelection <= 0 ? -1 : _limbSelection - 1;
 		set => _limbSelection = value >= 0 ? value + 1 : 0;
 	}
+
+	/// <summary>
+	/// The liquid quantity <see cref="RemoteInventoryIntentKind.Drain"/> removes,
+	/// in the container's own units (<c>WaterContainerItem.Drain</c>). Zero is a
+	/// legal value — the native tick still runs on a frame whose delta time made
+	/// the amount zero — and it needs no <c>value + 1</c> encoding: unlike a slot
+	/// or a limb index there is no "no operand" state to tell it apart from, so
+	/// protobuf's default-zero rule round-trips it unchanged.
+	/// </summary>
+	[ProtoMember(8)]
+	public float Amount { get; set; }
 }

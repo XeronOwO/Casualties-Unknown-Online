@@ -1,9 +1,17 @@
 # Remote backpack native interaction parity
 
-- Status: Todo
+- Status: Resolved
 - Priority: Critical
 - Category: Remote inventory / co-op interaction parity / container sync
 - Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction; user now reports the remote-backpack operation problem still exists with behavior identical to before any fix and marks it a super-priority issue.
+
+## Superseded (2026-09-21, stage 0 of the rework)
+
+This ticket is absorbed into `docs/backlog/todo/remote-inventory-native-parity-rework.md` and is kept
+as the record of the rejected delivery. Its operation map below describes the CUO routing table and
+the mirror-edit path that the rework deletes; its acceptance matrix is carried into that ticket's
+matrix. The design that replaces it is `docs/architecture/remote-inventory-native-parity.md`
+(decision 217). Nothing in this file is a live work item any more.
 
 ## Reopened (2026-09-21 acceptance pass)
 
@@ -22,7 +30,7 @@ the acceptance matrix below stays as that rework's input.
 
 The user opened this review ticket for acceptance and found the following
 issues. They are recorded in
-`docs/backlog/todo/remote-backpack-item-projection-acceptance-issues.md`; this
+`docs/backlog/resolved/remote-backpack-item-projection-acceptance-issues.md`; this
 ticket is **not accepted** until those issues are resolved.
 
 1. Host holds metal scrap at 75% durability; guest opens the host backpack and sees 100% durability.

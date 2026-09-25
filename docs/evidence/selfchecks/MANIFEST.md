@@ -152,8 +152,9 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/ragdoll-limb-pose-sync-selfcheck.md | Players | current | exact owner limb poses now ride the 20 Hz player stream |
 | README.md | Other | current | candidate current evidence; verify before citing |
 | items/remote-backpack-container-take-selfcheck.md | Items | current | candidate current evidence; verify before citing |
-| items/remote-backpack-native-interaction-parity-selfcheck.md | Items | current | full native remote-backpack operation parity plus container/nested apply follow-up; latest cycle adds top-level root sync, open-container background drop, guarded apply, and detach-before-destroy; awaiting final user dual-client acceptance |
-| players/remote-backpack-held-item-transfer-selfcheck.md | Players | current | dedicated Tab transfer, held-item self-use, drain-object pour/edge-drop, non-destructive container apply, main-hand slot routing; awaiting final user dual-client acceptance |
+| items/remote-backpack-native-interaction-parity-selfcheck.md | Items | historical | superseded by the stage 0 design (decision 217): the CUO routing table and the host mirror-edit path it describes are deleted by the native-intent rework; its container findings stay the rework's acceptance input |
+| items/remote-inventory-native-parity-design-selfcheck.md | Items | current | stage 0 of the native-parity rework: the native gesture inventory, the intent vocabulary and the ticket adjudication; design only, no behaviour change, stages 1-4 still open |
+| players/remote-backpack-held-item-transfer-selfcheck.md | Players | historical | superseded by the stage 0 design (decision 217): the Tab-transfer and held-item kinds it describes are replaced by native intents (`TransferToBody`); its reported rows feed the rework's acceptance matrix |
 | players/remote-backpack-drag-escape-selfcheck.md | Other | historical | superseded by native remote-backpack parity cycle (Tab-switch transfer) |
 | items/remote-container-content-view-selfcheck.md | Items | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | items/remote-container-destroy-authority-selfcheck.md | Items | current | candidate current evidence; verify before citing |

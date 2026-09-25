@@ -39,6 +39,7 @@ own typed model and invariants.
 | [current-architecture.md](current.md) | **Active** current architecture: kernel core, transaction/authority model, guards, non-goals. |
 | [domains.md](domains.md) | **Active** domain ownership and projection map. |
 | [projection-framework.md](projection-framework.md) | **Active** global unified projection framework contract and migration status. |
+| [remote-inventory-native-parity.md](remote-inventory-native-parity.md) | **Design (stage 0)** remote inventory operations run the native call on the owner's client; stages 1-4 not implemented. |
 | [mod-status-domain.md](mod-status-domain.md) | Design proposal for the runtime mod-status domain boundary (not implemented). |
 | [protocol.md](protocol.md) | **Active** four-envelope protocol and data-flow reference. |
 | [../decisions/archive.md](../decisions/archive.md) | The archived decision rows, including most of the Phase A–E record; the rows that still constrain current work are in [`../decisions/active.md`](../decisions/active.md). |

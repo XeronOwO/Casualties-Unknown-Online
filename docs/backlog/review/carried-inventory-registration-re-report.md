@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / items / arbitration
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I8)
-- Related: `todo/remote-backpack-native-interaction-parity.md`, `todo/remote-backpack-item-projection-acceptance-issues.md`, `review/guest-command-loss-reconciliation.md` (the sibling swallowed-guest-report landing)
+- Related: `resolved/remote-backpack-native-interaction-parity.md`, `resolved/remote-backpack-item-projection-acceptance-issues.md`, `review/guest-command-loss-reconciliation.md` (the sibling swallowed-guest-report landing)
 
 ## Problem (evidence)
 

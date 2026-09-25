@@ -1,6 +1,6 @@
 # Send a message to the other players
 
-[Documentation](../README.md) > [How to](README.md) > Send a message to the other players
+[Documentation](../README.md) > [How-to](README.md) > Send a message to the other players
 
 ---
 
@@ -114,11 +114,11 @@ The policy is *accepted loss*, not guaranteed delivery:
 ## Related reading
 
 - [Your first mod](../start/your-first-mod.md) — the lifecycle and the context used here
-- [How to](README.md) — the other tasks
+- [How-to](README.md) — the other tasks
 - [Reference](../reference/README.md) — where the full mod API will live
 - [Who decides what happens to a player](../internals/judgment-ownership.md) — why a guest reports upward and the host answers
 - [Glossary](../reference/glossary.md) — host, guest, session, handshake
 
 ---
 
-[Documentation](../README.md) > [How to](README.md) > Send a message to the other players
+[Documentation](../README.md) > [How-to](README.md) > Send a message to the other players

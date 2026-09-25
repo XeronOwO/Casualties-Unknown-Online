@@ -29,25 +29,25 @@ normative-gate run afterwards is NOT optional: it is the only thing that proves 
 before the commit.
 
 **Evidence rule (added 2026-09-17)**: a checked box carries a short evidence suffix on the
-SAME line — `- [x] <item> — evidence: <command/file/result>` — because a bare checkmark
+SAME line — `- [ ] <item> — evidence: <command/file/result>` — because a bare checkmark
 records that someone decided the step was done, not what proved it. Keep it to one clause
 (a command, a file, or a measured result); the full detail belongs in the cycle's ticket or
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: legacy-tree-migration-selfcheck mechanism table (7 rows); old-path census re-run over docs/, src/, tests/ and tools/
+      file:line or runtime log) or is explicitly marked unverified — evidence: legacy-tree-followups-selfcheck mechanism table, 8 rows naming the file or gate that carries each
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: each old-path family re-pointed whole (blocks, registers, architecture map, src XML docs, tests, tools) and the two homeless conclusions absorbed first
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: legacy-tree-migration-selfcheck mechanism table, 7 rows, each naming the file, gate or census that carries it
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: each family swept whole: both stale doc paths, the id-grammar comment, all eight how-to pages, both tools and both reference pages
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: legacy-tree-followups-selfcheck mechanism table (8 rows) + verification table + limits
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: focused documentation/protocol/entity gates -> normative-gates project -> full suite with build -> negative control (an old path restored must turn a gate red); no real-client claim
+      peer log comparison, hotrepl assertions) is decided — evidence: focused gate filter -> gate project -> full suite with build -> two negative controls (a broken tool literal, a renamed column); no runtime claim
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff instruction fixes this stage's order (absorb conclusions, re-point, then delete) and the non-deletable list; the structure choices follow docs/AGENTS.md, not a user round trip
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build "0 个警告 0 个错误"; dotnet format exit 0; gate project 145/145; full suite with build 145 + 3803 passing
+      process violation — evidence: the handoff fixes the work order (leftover fixes, then the todo ticket); gate shape follows the ticket's own suggested shape and docs/AGENTS.md
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings 0 errors; format exit 0; gate project 148/148; full suite with build 148 + 3803, 0 failed
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: touched C# <= 600 lines (largest 576); retired pairing gate, the docs/api scan block and Normalize() deleted with their trees; src changes are comments only
+      dead mechanisms deleted in the same round) — evidence: new gate class 194 lines; the three src files changed on comment lines only; the migrated ticket deleted and its index row re-pointed
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

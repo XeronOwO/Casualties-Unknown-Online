@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// sounds (clones were audible to the local player), RNG consumption) are
 /// skipped. Only the animator-driven visuals (HandleVisuals, Body.cs:3123+)
 /// plus the few visual-input fields it reads (grounded, crouchAmount) are
-/// maintained. See docs/game-internals.md §Clone &amp; Render Chain.
+/// maintained. See the "A remote player is a clone of the scene's own character" section of docs/en/internals/game-internals.md.
 /// </summary>
 internal static class BodyPatches
 {

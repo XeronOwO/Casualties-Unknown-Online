@@ -1,6 +1,6 @@
 # Declare permissions and host commands
 
-[Documentation](../README.md) > [How to](README.md) > Declare permissions and host commands
+[Documentation](../README.md) > [How-to](README.md) > Declare permissions and host commands
 
 ---
 
@@ -97,4 +97,4 @@ guest's callback fires with a timeout failure instead of hanging.
 
 ---
 
-[Documentation](../README.md) > [How to](README.md) > Declare permissions and host commands
+[Documentation](../README.md) > [How-to](README.md) > Declare permissions and host commands

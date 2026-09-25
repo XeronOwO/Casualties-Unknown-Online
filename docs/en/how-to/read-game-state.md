@@ -1,6 +1,6 @@
 # Read game state
 
-[Documentation](../README.md) > [How to](README.md) > Read game state
+[Documentation](../README.md) > [How-to](README.md) > Read game state
 
 ---
 
@@ -86,4 +86,4 @@ or pick something up. Have them leave the world and read again — `TryGetPlayer
 
 ---
 
-[Documentation](../README.md) > [How to](README.md) > Read game state
+[Documentation](../README.md) > [How-to](README.md) > Read game state

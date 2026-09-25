@@ -1,6 +1,6 @@
 # Register content
 
-[Documentation](../README.md) > [How to](README.md) > Register content
+[Documentation](../README.md) > [How-to](README.md) > Register content
 
 ---
 
@@ -138,4 +138,4 @@ wrong `NetworkMode` shows up as content that exists locally and never binds into
 
 ---
 
-[Documentation](../README.md) > [How to](README.md) > Register content
+[Documentation](../README.md) > [How-to](README.md) > Register content

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: the two carriers of a break, the native presentation binding (WorldGeneration.cs:741-750), 5 native DamageBlock call sites censused.
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: the two use-action invocation sites, the container drink, HandleVisuals' single burp play, the wire fields — all from source.
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §2: every break carrier walked (report, re-report, relay, correction, snapshot), the silent siblings named, the 2 unhooked callers ticketed.
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §3: 10 rule rows; RemoteBreakPresentationTests (8+6 rows) + 5 routing pins in BlockBreakPresentationGateTests.
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §2: the item-use family walked; the review's drinking gap fixed here; the world-liquid drink and 4 more families ticketed.
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §3: 11 rows; policy 6 positive + 8 negative clips, Consume round-trips, 16 gate cases.
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: selfcheck §4/§5: the reachable red is the routing pins; the audible half is Unity-bound and listed as the session's rows 1-6.
+      peer log comparison, hotrepl assertions) is decided — evidence: selfcheck §4/§5: routing pins red 4/6 on the pre-fix tree; the audible half is Unity-bound, session rows 1-7.
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff names this Medium-High ticket next and its acceptance matrix is the user's 2026-09-21 report; no work-item question asked.
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full 3971/3971 + gates 158/158 with build (%TEMP%/cuo-full-verify.txt); dotnet format exit 0.
+      process violation — evidence: the handoff names this Medium ticket next and its acceptance matrix is the user's 2026-09-21 report; no work-item question asked.
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full with build 3979/3979 + gates 175/175 (%TEMP%/cuo-full-verify.txt); dotnet format exit 0 (cuo-format.txt).
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: touched files 557/566/449/563/264/82/58 lines (max 566 of 600); no new state bool (the cell's own state is the once-only guard); the receive paths' raw writes deleted, 0 left.
+      dead mechanisms deleted in the same round) — evidence: touched files 300/307/285/242/223/143/94/72/66/37 (max 307 of 600); no new state bool; both hooks share one scope decision, no duplicated branch left.
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

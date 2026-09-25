@@ -9,11 +9,11 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
 /// The character-action event (CharacterSoundMsg): a player's attack/throw/
-/// exert/gunfire/footstep/landing plays locally and travels as one dedicated
-/// reliable message — guest reports reach the host (whose adapter replays it on
-/// the guest's clone) and relay to the other guests; the host's own event
-/// broadcasts to every guest. One event = one message; there is no snapshot
-/// fallback to assert (the event has no persistent state).
+/// exert/gunfire/footstep/landing/placement/ingest plays locally and travels as
+/// one dedicated reliable message — guest reports reach the host (whose adapter
+/// replays it on the guest's clone) and relay to the other guests; the host's
+/// own event broadcasts to every guest. One event = one message; there is no
+/// snapshot fallback to assert (the event has no persistent state).
 /// </summary>
 [Trait("Category", "Integration")]
 public class CharacterSoundSyncTests
@@ -37,11 +37,12 @@ public class CharacterSoundSyncTests
 			CharacterSoundKind.Growl => "growl7",
 			CharacterSoundKind.Yawn => "yawn1",
 			CharacterSoundKind.ItemPlacement => "scrapmetal",
+			CharacterSoundKind.Consume => "eatCrunch",
 			_ => "BSSwing3",
 		},
 		Position = new NetVector2Msg { X = 10f, Y = 20f },
 		Volume = 0.7f,
-		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire && kind != CharacterSoundKind.Bark && kind != CharacterSoundKind.ItemPlacement,
+		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire && kind != CharacterSoundKind.Bark && kind != CharacterSoundKind.ItemPlacement && kind != CharacterSoundKind.Consume,
 		TwoDimensional = kind == CharacterSoundKind.Exert || kind == CharacterSoundKind.GunFire,
 		RecoilDegrees = recoilDegrees,
 	};
@@ -179,6 +180,51 @@ public class CharacterSoundSyncTests
 			"the host's placement sound must reach G2");
 	}
 
+
+	[Fact]
+	public void Consume_RoundTripsTheIngestClipAndItsSpatialFacts()
+	{
+		var decoded = NetPacket.DecodePayload<CharacterSoundMsg>(
+			NetPacket.Encode(NetMsg.CharacterSound, Sound(kind: CharacterSoundKind.Consume)));
+
+		Assert.Equal(CharacterSoundKind.Consume, decoded.Kind);
+		Assert.Equal("eatCrunch", decoded.Clip);
+		Assert.False(decoded.FollowOwner, "a native eat call passes no follow transform — the captured fact is the position");
+		Assert.False(decoded.TwoDimensional);
+	}
+
+	[Fact]
+	public void BurpConsume_CarriesTheFollowFactTheNativeCallHad()
+	{
+		// The meal-end burp call passes the body transform as its follow target
+		// (Body.cs:3142), unlike the eat clips — the capture reports what the call
+		// was, so the same kind arrives with FollowOwner true for a burp.
+		var source = Sound(kind: CharacterSoundKind.Consume);
+		source.Clip = "burp";
+		source.FollowOwner = true;
+
+		var decoded = NetPacket.DecodePayload<CharacterSoundMsg>(
+			NetPacket.Encode(NetMsg.CharacterSound, source));
+
+		Assert.Equal(CharacterSoundKind.Consume, decoded.Kind);
+		Assert.Equal("burp", decoded.Clip);
+		Assert.True(decoded.FollowOwner);
+	}
+
+	[Fact]
+	public void HostConsumeSound_BroadcastsToBothGuests()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.Host.Services.GetRequiredService<CharacterDataStore>()
+			.SendCharacterSound(Sound(HostId, kind: CharacterSoundKind.Consume));
+		w.Driver.Tick(33);
+
+		Assert.True(w.ReceivedCount(w.G1, NetMsg.CharacterSound) == 1,
+			"the host's meal sound must reach G1");
+		Assert.True(w.ReceivedCount(w.G2, NetMsg.CharacterSound) == 1,
+			"the host's meal sound must reach G2");
+	}
 
 	[Fact]
 	public void GuestRelay_FiresTheEventOnTheOtherGuest()

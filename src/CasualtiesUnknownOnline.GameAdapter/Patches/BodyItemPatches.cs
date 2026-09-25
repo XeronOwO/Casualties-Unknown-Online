@@ -17,10 +17,13 @@ internal static class BodyItemPatches
 {
 	/// <summary>
 	/// Per-call state for the direct placeable-use hooks: the item condition
-	/// before the native use (the success signal) plus the placement-sound
-	/// capture scope. The scope must be limited to the direct placeable family;
-	/// opening it for every item use would misclassify eating/syringe/other
-	/// one-shot sounds as placement sounds.
+	/// before the native use (the success signal) plus the sound-capture scope.
+	/// The scope is one decision with two branches — the placement scope for the
+	/// direct placeable family, the item-use scope for every other usable item
+	/// (whose native use actions are where the ingest sounds play). The
+	/// classification, not the scope's breadth, keeps the families apart: the
+	/// placement branch reports only <c>"scrapmetal"</c>/<c>"ropeplace"</c>, the
+	/// item-use branch only the ingest clips.
 	/// </summary>
 	private sealed class DirectPlaceableUseState
 	{
@@ -205,6 +208,10 @@ internal static class BodyItemPatches
 	/// gated/failed attempts (canPlaceBlock false, occupied target, low
 	/// condition) are not marked as swings. It rides the existing
 	/// IsAttacking / SwingSeq 20 Hz entity stream — no new wire message.
+	/// The same hook opens the sound-capture scope for the use
+	/// (<see cref="OpenUseSoundScope"/>): the placement scope for a direct
+	/// placeable, the item-use scope otherwise, which is where an edible item's
+	/// native use action plays its ingest sounds.
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "UseItem")]
 	internal static class DirectPlaceableUseItemPatch
@@ -214,10 +221,7 @@ internal static class BodyItemPatches
 			__state = new DirectPlaceableUseState
 			{
 				ConditionBefore = item.condition,
-				SoundScope = IsEligibleLocalUse(__instance)
-					&& DirectPlaceableArmSwingPolicy.ShouldOpenPlacementSoundScope(item.id, __instance.conscious)
-					? CallContext.Enter(CallContext.Origin.CharacterItemPlacement)
-					: null,
+				SoundScope = OpenUseSoundScope(__instance, item.id),
 			};
 		}
 
@@ -240,7 +244,10 @@ internal static class BodyItemPatches
 	/// placeable-item family before the swing reaches the peers. The
 	/// placement-sound scope opens only while conscious: an unconscious
 	/// <c>UseItemInHand</c> falls back to <c>Body.Attack</c> and must never be
-	/// reported as an item placement.
+	/// reported as an item placement. It opens the same sound-capture scope as
+	/// <see cref="DirectPlaceableUseItemPatch"/>: the LMB use is the ordinary way
+	/// an edible item reaches its use action, so without this hook half of the
+	/// reported meal stays silent on the other clients.
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "UseItemInHand")]
 	internal static class DirectPlaceableUseItemInHandPatch
@@ -251,10 +258,8 @@ internal static class BodyItemPatches
 			__state = new DirectPlaceableUseState
 			{
 				ConditionBefore = item != null ? item.condition : -1f, // Unity object — ==
-				SoundScope = item != null
-					&& DirectPlaceableArmSwingPolicy.ShouldOpenPlacementSoundScope(item.id, __instance.conscious)
-					&& IsEligibleLocalUse(__instance)
-					? CallContext.Enter(CallContext.Origin.CharacterItemPlacement)
+				SoundScope = item != null // Unity object — ==
+					? OpenUseSoundScope(__instance, item.id)
 					: null,
 			};
 		}
@@ -276,4 +281,20 @@ internal static class BodyItemPatches
 		body.GetComponentInParent<RemoteBodyDriver>() == null
 		&& !CarriedBodyDriver.IsCarrying(body) // Unity objects — ==
 		&& CallContext.Current == CallContext.Origin.LocalAction;
+
+	/// <summary>
+	/// The capture scope for one local item use: the placement scope for a direct
+	/// placeable (its native action plays the placement clip), the item-use scope
+	/// otherwise — the edible use actions play <c>"eatCrunch"</c> /
+	/// <c>"eatFlesh"</c> / <c>"glass"</c> / <c>"crystalenemylaugh"</c> inside this
+	/// call and the policy classifies exactly those clips, while every other item
+	/// use stays silent. Null for anything that is not this client's own body
+	/// action (a render clone, a carried body, a remote application).
+	/// </summary>
+	private static IDisposable? OpenUseSoundScope(Body body, string itemId) =>
+		!IsEligibleLocalUse(body)
+			? null
+			: DirectPlaceableArmSwingPolicy.ShouldOpenPlacementSoundScope(itemId, body.conscious)
+				? CallContext.Enter(CallContext.Origin.CharacterItemPlacement)
+				: CallContext.Enter(CallContext.Origin.CharacterItemUse);
 }

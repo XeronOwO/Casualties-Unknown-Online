@@ -79,6 +79,37 @@ public class CharacterSoundPatchTests
 		Assert.True(HasContract("PantSound", "Bark"), "the PantSound.Bark capture-scope contract must be declared");
 		Assert.True(HasContract("PantSound", "TryGrowl"), "the PantSound.TryGrowl capture-scope contract must be declared");
 		Assert.True(HasContract("LockpingMinigamePainPatch", "LockpingMinigame", "Update"), "the LockpingMinigame.Update lockpick-pain capture-scope contract must be declared");
+		Assert.True(HasContract("Body", "HandleVisuals"), "the Body.HandleVisuals meal-end capture-scope contract must be declared");
+	}
+
+	[Fact]
+	public void BurpSoundPatches_OpenAndCloseTheMealEndScope()
+	{
+		var container = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Patches.BurpSoundPatches",
+			throwOnError: false);
+		Assert.NotNull(container);
+
+		var patch = container!.GetNestedType("BodyHandleVisualsBurpPatch", BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("BurpSoundPatches.BodyHandleVisualsBurpPatch not found.");
+
+		var prefix = patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("Prefix not found.");
+		var prefixParameters = prefix.GetParameters();
+		Assert.True(prefixParameters.Length == 2
+			&& prefixParameters[0].Name == "__instance"
+			&& prefixParameters[0].ParameterType.FullName == "Body"
+			&& prefixParameters[1].Name == "__state"
+			&& prefixParameters[1].ParameterType == typeof(IDisposable).MakeByRefType(),
+			$"BodyHandleVisualsBurpPatch.Prefix must be (Body __instance, out IDisposable? __state), got {prefixParameters.Length} parameter(s)");
+
+		var postfix = patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("Postfix not found.");
+		var postfixParameters = postfix.GetParameters();
+		Assert.True(postfixParameters.Length == 1
+			&& postfixParameters[0].Name == "__state"
+			&& postfixParameters[0].ParameterType == typeof(IDisposable),
+			$"BodyHandleVisualsBurpPatch.Postfix must be (IDisposable? __state), got {postfixParameters.Length} parameter(s)");
 	}
 
 	[Fact]

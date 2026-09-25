@@ -14,6 +14,9 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// unknown scopes are never reportable; inside the attack scope any non-empty
 /// non-exert string sound is the swing clip (block hit sounds never reach the
 /// policy — the innermost DamageBlockOrigin scope excludes them in the adapter).
+/// The item-use and burp scopes are clip WHITELISTS instead: they wrap whole
+/// native methods (a local item use, Body.HandleVisuals), so only the ingest
+/// clips are Consume and every other sound in them stays unreported.
 /// </summary>
 public class CharacterSoundPolicyTests
 {
@@ -134,6 +137,45 @@ public class CharacterSoundPolicyTests
 		Assert.Null(CharacterSoundPolicy.Classify((CharacterSoundPolicy.Origin)placementOrigin, "BSSwing3"));
 		Assert.Null(CharacterSoundPolicy.Classify((CharacterSoundPolicy.Origin)placementOrigin, "unlock"));
 	}
+
+	[Fact]
+	public void ItemUseScope_ClassifiesTheIngestFamilyAsConsume()
+	{
+		// The container drink is the same ingest family: WaterContainerItem.Drink
+		// plays its clip at the drinker's body from inside the container use
+		// action (WaterContainerItem.cs:214), with "drink" or "pills" as the
+		// only two clip arguments the item table passes.
+		foreach (var clip in new[] { "eatCrunch", "eatFlesh", "glass", "crystalenemylaugh", "drink", "pills" })
+		{
+			Assert.Equal(CharacterSoundKind.Consume,
+				CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.ItemUse, clip));
+		}
+	}
+
+	[Fact]
+	public void ItemUseScope_LeavesTheOtherItemSoundsSilent()
+	{
+		// The scope wraps EVERY local item use (medical, tools, gestures); only
+		// the ingest clips may be reported from it — the ticket's whole-family
+		// audit records the rest with their own carriers.
+		foreach (var clip in new[] { "syringe", "splint", "goo", "combine", "waterpour", "switch", "scrapmetal", "BSSwing3" })
+		{
+			Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.ItemUse, clip));
+		}
+	}
+
+	[Fact]
+	public void BurpScope_ClassifiesTheMealEndOnly()
+	{
+		Assert.Equal(CharacterSoundKind.Consume, CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Burp, "burp"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Burp, "eatCrunch"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Burp, ""));
+	}
+
+	[Fact]
+	public void ConsumeKind_IsDefinedInTheWireEnum() =>
+		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)12),
+			"CharacterSoundKind.Consume must be defined for the ingest/meal one-shot event.");
 
 	[Fact]
 	public void EmptyOrUnknownCalls_AreNotReportable()

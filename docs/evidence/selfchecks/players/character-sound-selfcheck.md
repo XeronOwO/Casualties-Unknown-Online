@@ -25,6 +25,14 @@ the existing `BuildingEntityDamaged` relay (no extra message).
 > scrapmetal/climbingrope/scaffoldingpack placement sounds replay through the
 > existing dedicated one-shot event path — see
 > `direct-placeable-arm-swing-selfcheck.md`.
+> Note (ProtocolVersion 41): the same `CharacterSoundMsg` event was later
+> extended with `CharacterSoundKind.Consume` so a local body's ingest clips
+> (`eatCrunch` / `eatFlesh` / `glass` / `crystalenemylaugh`, and the container
+> drink's `drink` / `pills` from `WaterContainerItem.cs:214`) and its meal-end
+> `burp` replay on the peers — the capture gained the local item-use scope and
+> the `Body.HandleVisuals` meal-end scope, which that delivery's call-site
+> census had not covered — see
+> `../presentation/host-eating-sound-not-heard-on-guest-selfcheck.md`.
 
 ## 1. Mechanism inventory
 

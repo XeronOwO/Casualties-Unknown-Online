@@ -21,7 +21,28 @@ public class SourceShapeGateTests
 	private static readonly string ItemsDir = RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/Items");
 
 	private static readonly Regex NamespaceRegex = new(@"^namespace\s+([A-Za-z0-9_.]+)\s*(\{|;)", RegexOptions.Multiline);
-	private static readonly Regex TopLevelTypeRegex = new(@"^(public\s+|internal\s+|sealed\s+|static\s+|abstract\s+|partial\s+)*(class|struct|interface|enum|record)\s+(\w+)");
+	/// <summary>
+	/// A top-level type declaration, matched on the FACTS the language defines rather than on the
+	/// modifier spellings this repository happens to use (the previous version spelled them by hand
+	/// and could not see <c>readonly</c> or <c>file</c>, so two types sat in one file with a green
+	/// gate): an optional attribute run, then any number of the modifiers a type declaration may
+	/// carry in any order, then the type keyword — <c>record struct</c>/<c>record class</c> included,
+	/// because that is one two-word keyword and the NAME follows it.
+	///
+	/// The rule counts DEPTH-0 declarations only, and that IS the rule (the test's own name says
+	/// top-level): a nested type belongs to its owner — its lines count toward the owner's aggregate
+	/// — and is not a second top-level type. 306 nested declarations across 130 files take that shape
+	/// today, and the seven files the widening exposed were the entire depth-0 offender set.
+	///
+	/// Declared limits, both measured at the widening (2026-09-25): the scan is line-based, so a
+	/// declaration wrapped across lines is missed (zero such declarations in <c>src/</c>), and a
+	/// top-level <c>delegate</c> is not matched (its name does not follow its keyword; zero such
+	/// declarations in <c>src/</c>). The keyword set is the five type keywords and their two-word
+	/// records.
+	/// </summary>
+	private static readonly Regex TopLevelTypeRegex = new(
+		@"^(?:\[[^\r\n]*\]\s*)*(?:(?:public|internal|private|protected|file|static|sealed|abstract|readonly|partial|unsafe|new|ref)\s+)*(?:class|struct|interface|enum|record(?:\s+(?:class|struct))?)\s+(?<name>\w+)");
+
 	private static readonly Regex BoolStateFieldRegex = new(@"^\s*(private|internal|public|protected)?\s*(static\s+)?bool\s+_\w+\s*;");
 	private static readonly Regex GameCommandBaseRegex = new(@":\s*GameCommand(?:\s|\()", RegexOptions.Multiline);
 	private static readonly Regex StringKeyedDictionaryRegex = new(@"Dictionary\s*<\s*string\s*,");
@@ -42,6 +63,11 @@ public class SourceShapeGateTests
 	/// <summary>Guards the scan against silently checking nothing — the tree carries roughly two thousand C# files under these roots.</summary>
 	private const int ScannedFileFloor = 1500;
 
+	/// <summary>The same guard for the one-top-level-type scan: <c>src/</c> measured 1668 top-level type declarations across 1662 C# files when the matcher was widened (2026-09-25; 1670 files once the seven files it exposed were split); the floors sit near 60% of that and catch a scan that sees nothing or almost nothing. What catches a NARROWED pattern is the matcher's own samples — a dropped modifier fails a sample, not a floor.</summary>
+	private const int SourceFileFloor = 1000;
+
+	private const int TopLevelTypeFloor = 1000;
+
 	/// <summary>Test-data attributes carry sample SOURCE TEXT as strings — this gate's own matcher contract among them — and a sample is not a declaration, so those lines are skipped rather than read as code.</summary>
 	private static readonly Regex TestDataLineRegex = new(@"^\s*\[(?:InlineData|MemberData|TheoryData)\b");
 
@@ -50,14 +76,18 @@ public class SourceShapeGateTests
 
 	private sealed record ArchitectureDebtEntry(int Lines, int BoolFlags);
 
+	/// <summary>One top-level type per file, plus the aggregate line and boolean-flag ceilings keyed by the type's full name. Nested declarations are their owner's business and are counted there, not here.</summary>
 	[Fact]
 	public void Architecture_OneTopLevelTypePerFileAndAggregateLimits()
 	{
 		var failures = new List<string>();
 		var types = new Dictionary<string, (int Lines, int BoolFlags)>(StringComparer.Ordinal);
+		var scanned = 0;
+		var topLevelTypes = 0;
 
 		foreach (var file in EnumerateCSharpFiles(Src))
 		{
+			scanned++;
 			var lines = File.ReadAllLines(file);
 			var text = string.Join("\n", lines);
 			var ns = NamespaceRegex.Match(text);
@@ -68,9 +98,9 @@ public class SourceShapeGateTests
 			foreach (var line in lines)
 			{
 				var trimmed = line.TrimStart();
-				if (depth == 0 && TopLevelTypeRegex.IsMatch(trimmed))
+				if (TryReadTopLevelTypeName(trimmed, depth, out var typeName))
 				{
-					topLevel.Add(TopLevelTypeRegex.Match(trimmed).Groups[3].Value);
+					topLevel.Add(typeName);
 				}
 
 				depth += trimmed.Count(c => c == '{') - trimmed.Count(c => c == '}');
@@ -80,9 +110,11 @@ public class SourceShapeGateTests
 				}
 			}
 
+			topLevelTypes += topLevel.Count;
+
 			if (topLevel.Count > 1)
 			{
-				failures.Add($"{Relative(file)} : {topLevel.Count} top-level types (rule: one per file)");
+				failures.Add($"{Relative(file)} : {topLevel.Count} top-level type declarations — {string.Join(", ", topLevel)} (rule: one top-level type per file; a nested declaration belongs to its owner and does not count)");
 				continue;
 			}
 
@@ -116,7 +148,80 @@ public class SourceShapeGateTests
 			}
 		}
 
+		Assert.True(
+			scanned >= SourceFileFloor,
+			$"the scan only saw {scanned} C# file(s) under src/; the root or the enumeration broke and this rule would pass by checking nothing");
+		Assert.True(
+			topLevelTypes >= TopLevelTypeFloor,
+			$"the scan only saw {topLevelTypes} top-level type declaration(s); the matcher narrowed and this rule would pass by checking almost nothing");
 		Assert.True(failures.Count == 0, "Architecture gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	/// <summary>The two facts a declaration must satisfy to be a top-level type of this file: the line IS a type declaration (the matcher above), and it is not nested — brace depth 0. Read once, so the name the scan counts cannot disagree with the test that admitted it.</summary>
+	private static bool TryReadTopLevelTypeName(string trimmedLine, int depth, out string name)
+	{
+		name = "";
+		if (depth != 0)
+		{
+			return false;
+		}
+
+		var match = TopLevelTypeRegex.Match(trimmedLine);
+		if (!match.Success)
+		{
+			return false;
+		}
+
+		name = match.Groups["name"].Value;
+		return true;
+	}
+
+	/// <summary>The matcher's own contract: every modifier the language allows on a type declaration, in any order, the attribute run, and the two-word record keyword — plus the shapes that must NOT count, so the widening cannot be "fixed" by matching anything that mentions a type. The declared boundaries are pinned here as negatives too: a mention in a doc comment (with or without declaration text after it) and a top-level <c>delegate</c>, whose name does not follow its keyword.</summary>
+	[Theory]
+	[InlineData("public class Foo", true)]
+	[InlineData("internal sealed class Foo", true)]
+	[InlineData("internal readonly record struct Foo(", true)]
+	[InlineData("public sealed record Foo(", true)]
+	[InlineData("public readonly record struct Point(int X, int Y);", true)]
+	[InlineData("public sealed record struct Row(int X);", true)]
+	[InlineData("public record class Node;", true)]
+	[InlineData("file class Foo", true)]
+	[InlineData("static partial class Foo", true)]
+	[InlineData("public static class Foo", true)]
+	[InlineData("private readonly struct Foo", true)]
+	[InlineData("protected abstract class Foo", true)]
+	[InlineData("public unsafe struct Foo", true)]
+	[InlineData("internal ref struct Foo", true)]
+	[InlineData("[Serializable] public sealed class Foo", true)]
+	[InlineData("[Obsolete(\"x\")] internal readonly record struct Foo(", true)]
+	[InlineData("public enum Foo", true)]
+	[InlineData("public interface IFoo", true)]
+	[InlineData("// internal readonly record struct Foo - the shape this gate used to miss", false)]
+	[InlineData("/// <summary>sealed record Foo sits beside its owner here</summary>", false)]
+	[InlineData("/// public class Foo", false)]
+	[InlineData("var foo = new Foo();", false)]
+	[InlineData("public void Record(int x) { }", false)]
+	[InlineData("private static readonly int _foo = 0;", false)]
+	[InlineData("using Foo = System.Collections.Generic.List<int>;", false)]
+	[InlineData("[assembly: InternalsVisibleTo(\"X\")]", false)]
+	[InlineData("[Serializable]", false)]
+	[InlineData("public delegate void Handler(int x);", false)]
+	public void TheMatcher_SeesEveryDeclarationShapeAndIgnoresMentions(string line, bool expected) =>
+		Assert.Equal(expected, TopLevelTypeRegex.IsMatch(line));
+
+	/// <summary>Two facts the samples above cannot state: a NESTED declaration (depth 1+) is not a top-level type, and the name after a two-word record keyword is the name — the hand-spelled matcher read the second keyword instead.</summary>
+	[Theory]
+	[InlineData("public class Foo", 0, "Foo")]
+	[InlineData("internal readonly record struct Foo(", 0, "Foo")]
+	[InlineData("public sealed record struct Point(int X, int Y);", 0, "Point")]
+	[InlineData("public record class Node;", 0, "Node")]
+	[InlineData("public sealed class Widget", 3, "")]
+	[InlineData("private sealed record Nested", 1, "")]
+	public void OnlyADepthZeroDeclarationCounts_AndTheNameFollowsTheKeyword(string line, int depth, string expected)
+	{
+		var found = TryReadTopLevelTypeName(line, depth, out var name);
+		Assert.Equal(expected.Length > 0, found);
+		Assert.Equal(expected, name);
 	}
 
 	[Fact]

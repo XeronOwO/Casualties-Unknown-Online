@@ -2,9 +2,6 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
-/// <summary>One ramp step: the <c>Time.timeScale</c> to write, and whether the ramp reached its target.</summary>
-public readonly record struct WorldTimeRampStep(float TimeScale, bool Done);
-
 /// <summary>
 /// The initiator-side half of the world-time model (user ruling 2026-09-18,
 /// decision 184): a manual speed change takes effect on the player's OWN client

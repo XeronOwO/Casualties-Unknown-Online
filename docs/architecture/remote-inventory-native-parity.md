@@ -1,12 +1,16 @@
 # Remote Inventory Operations: Native Parity Design
 
-Status: **stage 3 landed** — the native intent path (stage 1, decision 218), the container family
-and the while-dragging body (stage 2, decision 219) and the item interactions (stage 3, decision 220):
-R10's radial-centre use and wear, combine, the battery load/unload pair, the while-dragging favourite
-store and the trader hand-in, each of them an intent the owner replays on its real items. Stage 4 of
-`docs/backlog/todo/remote-inventory-native-parity-rework.md` — the family audit and the acceptance run
-— is still open, so the rows it re-checks (both directions, a third peer, worn items, the craft screen)
-are code facts here rather than verified behaviour.
+Status: **stage 4 landed** — the native intent path (stage 1, decision 218), the container family
+and the while-dragging body (stage 2, decision 219), the item interactions (stage 3, decision 220) and
+the family audit with the acceptance preparation (stage 4, decision 221): R10's radial-centre use and
+wear, combine, the battery load/unload pair, the while-dragging favourite store and the trader hand-in,
+each of them an intent the owner replays on its real items, with the acceptance matrix audited row by
+row. The audit changed no behaviour; its verdicts, the two re-evaluated projection tickets and the
+three limits the run has to judge are in
+`docs/evidence/selfchecks/items/remote-inventory-native-intent-stage4-audit.md`, and the run itself —
+both directions, a third peer, worn items, containers and the craft screen on the real machine — is the
+user's release-cycle action, with its steps in
+`docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md`.
 
 The `reversing/Assembly-CSharp/Assembly-CSharp/*.cs` anchors below carry line numbers on purpose:
 that tree is never edited (it is the decompiled game and is not tracked), so its line numbers are
@@ -399,7 +403,7 @@ boundary; no dual shape is kept.
 | 1 | Inventory and slot family: move, swap, transfer to the requester, drop, take-out; window + capture seam; owner-side executor; host validate/arbitrate/record; clone-edit path deleted; protocol bumped | **landed** (decision 218): the reported drop and slot rows no longer route through a host mirror edit; the window, the replay and the host half are covered by intent, window-state and host-contract tests |
 | 2 | The container-expansion gesture (R5), nested containers and the trash bag, the while-dragging drain tick and the container-window refresh; the vanish case is a regression test here | **landed** (decision 219): R5 is one `MoveContainerChildren` intent the owner evaluates on its own children, the while-dragging body runs again with each frame's drain tick as one `Drain` intent carrying the amount, and the vanish case is pinned by a regression on the host's copy of the owner's inventory; matrix rows 3-5 are code facts here — the operating feel stays the user's acceptance run |
 | 3 | Item interactions: use, wear, combine, battery, favourite, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | **landed** (decision 220): the seven item-interaction kinds ride the stage-1 seam with the message's second item operand and its trader operand (`ProtocolVersion.Current` 37 → 38), R10's use/wear branch runs again, the favourite store is observed across the frame bracket, and matrix rows 6-8 are code facts here — the operating feel, the item sounds the operator does not hear (§3.4) and the medical chain's real-machine behaviour stay the user's acceptance run |
-| 4 | Family audit and acceptance: both directions, a third peer, worn items, containers and the craft screen; the display rows carried over from the absorbed tickets | the rework ticket's matrix |
+| 4 | Family audit and acceptance: both directions, a third peer, worn items, containers and the craft screen; the display rows carried over from the absorbed tickets | **landed** (decision 221): every matrix row is traced to its mechanism and its test, the craft screen is proved unable to reach a display proxy, the container-window re-bind and the owner-side worn-item resolution are confirmed, the two directions are shown to share one validation path, and the three remaining limits are named as the acceptance run's judgement items — no behaviour changed, and the run itself stays the user's |
 
 ## 5. Adjudicated tickets
 
@@ -527,11 +531,34 @@ boundary; no dual shape is kept.
       creates a battery item on the owner's body and `AutoPickUpItem` hands it to the body; the
       immediate authoritative re-report stamps and states it like every other carried item
       (`CarriedInventoryReporter`), which is why the new kinds need no id plumbing of their own.
+  - Stage 4 leaves, deliberately and observably (the stage changed no behaviour; its evidence is the
+    stage-4 audit record, decision 221):
+    - **The craft screen is a dead end for a display proxy, and that is the row's expectation.** The
+      recipe's material search reads `PlayerCamera.main.body`'s own tree and a `Physics2D` overlap that
+      needs an enabled collider, while every clone render disables its collider and carries the display
+      marker instead of an `ItemInstanceId` — so a recipe opened from a remote item produces no native
+      inventory intent, no host round trip FOR THE REMOTE ITEM and no proxy mutation. The craft itself
+      still rides the landed craft report, because what it consumes is the OPERATOR's own materials;
+      the row is about the owner's item, and the owner's item is untouched.
+    - **A craft opened from a remote item consumes the OPERATOR's own matching materials.** That is the
+      native local UI's own rule (the material list is the local body plus nearby world items), and it
+      is recorded here rather than changed: the row asks for the native local UI on the viewer, not for
+      a cross-player craft.
+    - **The radial weight readout still prints the operator's own encumbrance** (`PlayerCamera.cs:1901`
+      reads `PlayerCamera.body`, and the clone bodies receive no encumbrance projection). A correct
+      readout needs the owner's value projected onto the clone plus a readout patch; it is a display
+      feature this design does not add, and the acceptance run judges whether it is acceptable.
+    - **`TransferToBody` and `ApplyToLimb` keep their landed host-authoritative paths, and the owner's
+      body runs no release animation for the custody move**, because the native world has no
+      cross-player release call to replay — the transfer is a CUO-side custody move.
+    - **The third peer's view has no automated three-client test.** It is the landed character-data
+      path every other remote fact uses, with no per-viewer branch in this family, but this repository
+      drives no three-client session through it, so the row stays a real-machine item.
 
 ## Related reading
 
 - [Backlog index](../backlog/README.md) — where this work sits in the queue.
-- [Remote inventory native parity rework](../backlog/todo/remote-inventory-native-parity-rework.md) — the ticket this design serves.
+- [Remote inventory native parity rework](../backlog/review/remote-inventory-native-parity-rework.md) — the ticket this design serves.
 - [Current architecture](current.md) — the kernel and authority model the host half rides.
 - [Projection framework](projection-framework.md) — the display half this design leaves in place.
 - [Active decisions](../decisions/active.md) — the protocol numbering policy and this cycle's decision.

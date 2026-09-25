@@ -45,9 +45,18 @@ internal sealed class OnlineUiWindow
 	private void DrawLauncherButton(OnlineUiContext ctx)
 	{
 		var rect = new Rect(Screen.width - 170f, 12f, 158f, 34f);
-		OnlineUiTheme.DrawBackground(rect);
-		var label = ctx.T("launcher") + (_state.Visible ? " ▲" : " ▼");
-		if (GUI.Button(rect, label, OnlineUiTheme.Launcher()))
+
+		// The launcher must not cover the play area while it is idle. The pointer's hover
+		// fact is the rule's only input besides the clock, and the alpha it returns is
+		// folded into the colours themselves — the frame's and the label's — rather than
+		// pushed through GUI.color: the explicit-colour DrawTexture overload behind the
+		// themed frame takes its colour verbatim, so a tint would leave the panel (the
+		// launcher's whole visible surface) opaque.
+		var hovered = Event.current != null && rect.Contains(Event.current.mousePosition);
+		var alpha = _state.LauncherFade.Evaluate(ctx.Time.NowMs, hovered);
+
+		OnlineUiTheme.DrawBackground(rect, alpha);
+		if (GUI.Button(rect, _state.LauncherLabel(ctx.T("launcher")), OnlineUiTheme.Launcher(alpha)))
 		{
 			_state.Visible = !_state.Visible;
 			if (_state.Visible && _state.Page == OnlineUiPage.Home && ctx.Session.Role != SessionRole.None)

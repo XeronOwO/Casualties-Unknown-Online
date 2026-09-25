@@ -31,4 +31,20 @@ public sealed class BlockPlacedMsg
 	/// </summary>
 	[ProtoMember(4)]
 	public WorldGenerationMsg? Generation { get; set; }
+
+	/// <summary>
+	/// The air write is the block-removal half of a DAMAGE ROLL (protocol 40): the
+	/// source side computed the break inside the game's own <c>DamageBlock</c>, so
+	/// it played the native break presentation there (the broken block's hit and
+	/// step sounds, its break particles) — and the receiving side must present the
+	/// same break when it applies this write, because the air write arrives BEFORE
+	/// the drops-carrying break report and the report therefore never runs its own
+	/// native roll on that cell. False for a placement, for an
+	/// earthquake/environment air write (<c>SetBlock</c> inside
+	/// <c>WorldGeneration.Update</c>, silent on the side that ran it), for a
+	/// state snapshot and for a correction: their source played no presentation,
+	/// so none may be invented on the receiving side.
+	/// </summary>
+	[ProtoMember(5)]
+	public bool PlayerBreak { get; set; }
 }

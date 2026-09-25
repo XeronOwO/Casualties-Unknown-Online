@@ -22,7 +22,7 @@ public sealed class PendingBlockReportTable
 	/// <summary>Same bound as the host's deviation table — a fully-mined world cannot grow the table without bound.</summary>
 	public const int DefaultCap = 65536;
 
-	private readonly Dictionary<(int X, int Y), ushort> _entries = [];
+	private readonly Dictionary<(int X, int Y), (ushort Block, bool PlayerBreak)> _entries = [];
 	private readonly int _cap;
 
 	public PendingBlockReportTable()
@@ -42,11 +42,11 @@ public sealed class PendingBlockReportTable
 
 	/// <summary>
 	/// Upsert the cell's pending block — a newer local write at the same cell
-	/// supersedes the older report (the host only needs the current value).
-	/// Returns false when the cap refused a NEW cell (an existing cell always
-	/// updates).
+	/// supersedes the older report (the host only needs the current value, and the
+	/// newer write's own claim). Returns false when the cap refused a NEW cell (an
+	/// existing cell always updates).
 	/// </summary>
-	public bool Report(int x, int y, ushort block)
+	public bool Report(int x, int y, ushort block, bool playerBreak)
 	{
 		var key = (x, y);
 		if (!_entries.ContainsKey(key) && _entries.Count >= _cap)
@@ -54,7 +54,7 @@ public sealed class PendingBlockReportTable
 			return false;
 		}
 
-		_entries[key] = block;
+		_entries[key] = (block, playerBreak);
 		return true;
 	}
 
@@ -64,7 +64,7 @@ public sealed class PendingBlockReportTable
 	/// <summary>The world baseline was replaced (layer regeneration / reconnect / session end) — every pending report belongs to the previous world.</summary>
 	public void Clear() => _entries.Clear();
 
-	/// <summary>The unacknowledged cells to re-report. Every entry is an independent idempotent report, so the order is irrelevant.</summary>
-	public IReadOnlyList<DamagedBlock> Entries =>
-		[.. _entries.Select(entry => new DamagedBlock(entry.Key.X, entry.Key.Y, entry.Value))];
+	/// <summary>The unacknowledged cells to re-report, each with the claim its live report carried. Every entry is an independent idempotent report, so the order is irrelevant.</summary>
+	public IReadOnlyList<PendingBlockReport> Entries =>
+		[.. _entries.Select(entry => new PendingBlockReport(entry.Key.X, entry.Key.Y, entry.Value.Block, entry.Value.PlayerBreak))];
 }

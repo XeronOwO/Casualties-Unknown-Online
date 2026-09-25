@@ -249,16 +249,30 @@ internal sealed partial class WorldEventSync(
 				_blockBreaks.OnBlockAirWrite(pos);
 			}
 
+			// Is this write the block-removal half of a damage ROLL? The native
+			// DamageBlock opens its own call-identity scope around the roll
+			// (WorldGenerationDamageBlockPatch), so a break that ran inside one
+			// played the game's break presentation on THIS side: the hit and step
+			// sounds of the block that just went, and its break particles. The
+			// receiving side must present the same break, because its own copy of
+			// the air write arrives BEFORE the drops-carrying break report and the
+			// report's native roll therefore never runs there (see
+			// RemoteBreakPresentation). An earthquake/environment break — the
+			// game's own SetBlock air write inside WorldGeneration.Update — and a
+			// placement are NOT this: nothing was played here, so nothing is
+			// invented there.
+			var playerBreak = block == 0 && CallContext.Current == CallContext.Origin.DamageBlockOrigin;
+
 			// A world mutation in a live session: the source applied it locally
 			// (local compute) — host broadcasts it, guest reports it for
 			// arbitration. Solo (no session) never sends.
 			if (_session.Role == SessionRole.Host)
 			{
-				_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);
+				_world.BroadcastBlockPlaced(0, pos.x, pos.y, block, playerBreak);
 			}
 			else if (_session.Role == SessionRole.Guest)
 			{
-				_world.SendBlockPlacedReport(pos.x, pos.y, block);
+				_world.SendBlockPlacedReport(pos.x, pos.y, block, playerBreak);
 			}
 		}
 	}
@@ -275,8 +289,18 @@ internal sealed partial class WorldEventSync(
 	/// break for the drops arbitration: when that sender's BlockDamaged report
 	/// (the drops carrier) arrives later, the record proves the break was the
 	/// first writer (see _recentBroken).
+	/// <para>
+	/// The WRITE ITSELF goes through <see cref="RemoteBlockWrite"/>: an air write
+	/// the message marks as a player's break is applied with the game's OWN damage
+	/// roll, so this side presents the break — the broken block's hit and step
+	/// sounds and its break particles — exactly as the side that computed it did.
+	/// The air write arrives before the drops-carrying break report, so that report
+	/// can no longer present anything on a cell this write already made air. The
+	/// claim rides the relay unchanged, so every peer downstream presents the same
+	/// one break, and a placement or an environment write stays silent everywhere.
+	/// </para>
 	/// </summary>
-	private void OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block, WorldGenerationRelation generation)
+	private void OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block, bool playerBreak, WorldGenerationRelation generation)
 	{
 		// A report cannot be arbitrated against a half-generated world: while
 		// (re)generating, every cell belongs to the previous layer. The guest's
@@ -312,10 +336,10 @@ internal sealed partial class WorldEventSync(
 					return;
 				}
 
-				WorldGeneration.world.SetBlock(pos, block);
+				RemoteBlockWrite.Apply(WorldGeneration.world, pos, block, playerBreak, _log);
 				_blockBreaks.ForgetBlockDamageAccounting(pos);
 				_world.ReportBlockState(x, y, block); // the mutation is a world difference too
-				_world.BroadcastBlockPlaced(0, x, y, block); // everyone, the reporter included — the echo is its acknowledgement (same-value SetBlock is idempotent)
+				_world.BroadcastBlockPlaced(0, x, y, block, playerBreak); // everyone, the reporter included — the echo is its acknowledgement (same-value SetBlock is idempotent); the break claim rides the relay so peers downstream present it too
 				if (block == 0)
 				{
 					// A player break (its BlockDamaged report follows) — or a
@@ -328,7 +352,7 @@ internal sealed partial class WorldEventSync(
 			else
 			{
 				var changed = WorldGeneration.world.GetBlock(pos) != block;
-				WorldGeneration.world.SetBlock(pos, block);
+				RemoteBlockWrite.Apply(WorldGeneration.world, pos, block, playerBreak, _log);
 				_blockBreaks.ForgetBlockDamageAccounting(pos);
 				if (changed && block == 0)
 				{

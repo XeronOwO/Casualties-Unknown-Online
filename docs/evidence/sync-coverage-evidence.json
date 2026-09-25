@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1012,
+  "count": 1015,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -2618,13 +2618,13 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);"
+      "quote": "_world.BroadcastBlockPlaced(0, pos.x, pos.y, block, playerBreak);"
     },
     {
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.SendBlockPlacedReport(pos.x, pos.y, block);"
+      "quote": "_world.SendBlockPlacedReport(pos.x, pos.y, block, playerBreak);"
     },
     {
       "cluster": "world-blocks",
@@ -2780,7 +2780,7 @@
       "cluster": "world-blocks",
       "row": "W3",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);"
+      "quote": "_world.BroadcastBlockPlaced(0, pos.x, pos.y, block, playerBreak);"
     },
     {
       "cluster": "world-blocks",
@@ -4760,7 +4760,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/GuestReportRecovery.cs",
-      "quote": "_blocks.Report(x, y, block);"
+      "quote": "_blocks.Report(x, y, block, playerBreak);"
     },
     {
       "cluster": "inline",
@@ -4772,7 +4772,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.BroadcastBlockPlaced(0, x, y, block); // everyone, the reporter included — the echo is its acknowledgement (same-value SetBlock is idempotent)"
+      "quote": "_world.BroadcastBlockPlaced(0, x, y, block, playerBreak); // everyone, the reporter included — the echo is its acknowledgement (same-value SetBlock is idempotent); the break claim rides the relay so peers downstream present it too"
     },
     {
       "cluster": "inline",
@@ -4838,7 +4838,25 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "_world.BroadcastBlockPlaced(0, cell.x, cell.y, 0); // everyone, the reporter included — its echo acknowledges the pending air-write report (same-value SetBlock(0) is a no-op locally)"
+      "quote": "_world.BroadcastBlockPlaced(0, cell.x, cell.y, 0, playerBreak: true); // everyone, the reporter included — its echo acknowledges the pending air-write report (same-value SetBlock(0) is a no-op locally), and the break claim lets every side downstream present it"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/RemoteBreakPresentation.cs",
+      "quote": "playerBreak && writtenBlock == 0 && cellHeldBlock ? Action.NativeBreak : Action.WriteOnly;"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/RemoteBlockWrite.cs",
+      "quote": "world.DamageBlock(cell, RemoteBreakPresentation.LethalDamage(health, currentDamage), true, false, true);"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
+      "quote": "var playerBreak = block == 0 && CallContext.Current == CallContext.Origin.DamageBlockOrigin;"
     },
     {
       "cluster": "inline",
@@ -5354,7 +5372,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 39;"
+      "quote": "public const int Current = 40;"
     },
     {
       "cluster": "world-blocks",
@@ -5546,7 +5564,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 39;"
+      "quote": "public const int Current = 40;"
     },
     {
       "cluster": "inline",
@@ -5882,7 +5900,7 @@
       "cluster": "cadence-review",
       "row": "W1",
       "file": "tests/CasualtiesUnknownOnline.Tests/World/GuestBlockReportRecoveryTests.cs",
-      "quote": "Assert.Equal(5L, reportBytes);"
+      "quote": "Assert.Equal(7L, reportBytes);"
     },
     {
       "cluster": "cadence-review",

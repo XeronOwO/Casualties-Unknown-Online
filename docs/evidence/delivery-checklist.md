@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: 26 native SetTimeScale call sites + 4 direct clock writes inventoried, the reset family classified by their own flags.
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: the two carriers of a break, the native presentation binding (WorldGeneration.cs:741-750), 5 native DamageBlock call sites censused.
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §1 sibling audit: sleep, pause/death, Slowmo, console and the quake direct write classified; the quake one ticketed.
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §3: 7+17+6 rule rows + 5 pins; focused 155 (%LOCALAPPDATA%/Temp/cuo-focus4.txt), full 3953/3953, gates 148/148.
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §2: every break carrier walked (report, re-report, relay, correction, snapshot), the silent siblings named, the 2 unhooked callers ticketed.
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §3: 10 rule rows; RemoteBreakPresentationTests (8+6 rows) + 5 routing pins in BlockBreakPresentationGateTests.
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: selfcheck §4 (the reachable red on the frozen HEAD) + §5 (the rows a session must show); the swallowed branch logs at Debug.
+      peer log comparison, hotrepl assertions) is decided — evidence: selfcheck §4/§5: the reachable red is the routing pins; the audible half is Unity-bound and listed as the session's rows 1-6.
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket carries the user's 2026-09-21 ruling and its frozen acceptance matrix; the handoff names this High ticket next.
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full 3953/3953 with build + gates 148/148, 149/149 with the checklist case (%LOCALAPPDATA%/Temp/cuo-full-verify.txt); dotnet format exit 0.
+      process violation — evidence: the handoff names this Medium-High ticket next and its acceptance matrix is the user's 2026-09-21 report; no work-item question asked.
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full 3971/3971 + gates 158/158 with build (%TEMP%/cuo-full-verify.txt); dotnet format exit 0.
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: touched files 135/500/48/536/491/198 lines (largest 536 of 600); one pure rule + its decision table own the routing, nothing left dead.
+      dead mechanisms deleted in the same round) — evidence: touched files 557/566/449/563/264/82/58 lines (max 566 of 600); no new state bool (the cell's own state is the once-only guard); the receive paths' raw writes deleted, 0 left.
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

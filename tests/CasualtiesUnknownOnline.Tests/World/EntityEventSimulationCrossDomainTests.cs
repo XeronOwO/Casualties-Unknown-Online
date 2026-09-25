@@ -109,7 +109,7 @@ public class EntityEventSimulationCrossDomainTests
 		var w = EntityEventSimWorld.Create();
 		var g2Blocks = new List<(int X, int Y, ushort Block)>();
 		var g2Drops = new List<ulong>();
-		w.G2.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (_, x, y, block, _) => g2Blocks.Add((x, y, block));
+		w.G2.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (_, x, y, block, _, _) => g2Blocks.Add((x, y, block));
 		w.G2.Transport.MessageReceived += (_, frame) =>
 		{
 			if ((NetMsg)frame[0] != NetMsg.KernelEnvelope)
@@ -142,7 +142,7 @@ public class EntityEventSimulationCrossDomainTests
 			// The explosion's side effects, exactly the channels the production
 			// executor's consequences ride.
 			var world = w.Host.Services.GetRequiredService<IWorldControl>();
-			world.BroadcastBlockPlaced(w.Host.SteamId, 10, 11, 42); // the crater (SetBlock consequence)
+			world.BroadcastBlockPlaced(w.Host.SteamId, 10, 11, 42, playerBreak: false); // the crater (SetBlock consequence — an environment write, no break claim)
 			w.Host.Services.GetRequiredService<ItemService>().SendItemSpawned(
 				500, new CharacterItemMsg { ItemId = "dropped_ore", Condition = 1f },
 				new NetVector2(10f, 20f), new NetVector2(1f, 2f), 0f, false, 0f); // the drops

@@ -80,10 +80,10 @@ carried-inventory registration already use.
 | Worst case the phase covers | a report made at the END of the documented ~30 s swallow window is re-sent 5 000 ms later, still inside the phase |
 | Declared boundary (pinned by a test, not implied) | a set that first becomes outstanding in the last seconds of the phase is ~30 s past the swallow window and gets the steady step (`PendingReportFallbackTests.SetArmedAtTheEndOfTheEntryPhase_IsOnTheSteadyStep`) |
 | Dense re-sends per entry phase, worst case | 11 — the twelfth deadline lands exactly on the phase boundary, where the steady step governs — and only while the set stays unacknowledged; 0 when the host's answer arrives before a step elapses |
-| One re-report frame, measured in the simulation world | 5 bytes (the id byte plus the protobuf body of a one-cell `BlockPlaced` report, with no world/layer generation stamp committed in that world) — `GuestBlockReportRecoveryTests.SwallowedReportInsideTheEntryWindow_ConvergesOnTheEntryStep` asserts exactly this number |
-| Extra traffic for one outstanding cell report, worst case | 11 x 5 bytes = 55 bytes across the entry minute; the steady one-a-minute cadence is unchanged, so the recorded traffic baseline is unaffected |
+| One re-report frame, measured in the simulation world | 7 bytes (the id byte plus the protobuf body of a one-cell `BlockPlaced` report — the cell, the block and the write's own 2-byte break claim, which is on the wire because a break's report is never silent, with no world/layer generation stamp committed in that world) — `GuestBlockReportRecoveryTests.SwallowedReportInsideTheEntryWindow_ConvergesOnTheEntryStep` asserts exactly this number |
+| Extra traffic for one outstanding cell report, worst case | 11 x 7 bytes = 77 bytes across the entry minute; the steady one-a-minute cadence is unchanged, so the recorded traffic baseline is unaffected |
 
-The 5-byte figure is the frame `PacketSender` hands the transport, which is what this suite can
+The 7-byte figure is the frame `PacketSender` hands the transport, which is what this suite can
 measure; Steam's own message framing is not part of it.
 
 ## The 60 s steady cycles that remain

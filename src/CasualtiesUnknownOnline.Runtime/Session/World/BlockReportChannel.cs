@@ -185,9 +185,9 @@ internal sealed class BlockReportChannel(
 			RemoteBlockDamageLedger.DefaultCap, sender, resolution.X, resolution.Y);
 	}
 
-	public event Action<ulong, int, int, ushort, WorldGenerationRelation>? BlockPlacedReceived;
+	public event Action<ulong, int, int, ushort, bool, WorldGenerationRelation>? BlockPlacedReceived;
 
-	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block, WorldGenerationMsg? generation)
+	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block, bool playerBreak, WorldGenerationMsg? generation)
 	{
 		var relation = RelateReportGeneration(generation, "BlockPlaced", sender);
 		if (relation == WorldGenerationRelation.Stale)
@@ -201,30 +201,30 @@ internal sealed class BlockReportChannel(
 			return;
 		}
 
-		OnBlockPlacedReceived(sender, x, y, block, relation);
+		OnBlockPlacedReceived(sender, x, y, block, playerBreak, relation);
 	}
 
-	/// <summary>Guest: a block was placed locally — record it as an unacknowledged pending report and send it (the host arbitrates + answers; a swallowed report is re-reported by the fallback).</summary>
-	public void SendBlockPlacedReport(int x, int y, ushort block)
+	/// <summary>Guest: a block was placed locally — record it as an unacknowledged pending report and send it (the host arbitrates + answers; a swallowed report is re-reported by the fallback). The write's presentation claim is recorded with the entry: a re-report must reach the same verdict, so a lost break report cannot turn a break into a silent write.</summary>
+	public void SendBlockPlacedReport(int x, int y, ushort block, bool playerBreak)
 	{
 		if (!_session.SessionActive)
 		{
 			return;
 		}
 
-		_guestReports.ReportBlock(x, y, block);
+		_guestReports.ReportBlock(x, y, block, playerBreak);
 		_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
-			new BlockPlacedMsg { X = x, Y = y, Block = block, Generation = _generations.Stamp() });
+			new BlockPlacedMsg { X = x, Y = y, Block = block, PlayerBreak = playerBreak, Generation = _generations.Stamp() });
 	}
 
-	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block)
+	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block, bool playerBreak)
 	{
 		if (!_session.SessionActive)
 		{
 			return;
 		}
 
-		var msg = new BlockPlacedMsg { X = x, Y = y, Block = block, Generation = _generations.Stamp() };
+		var msg = new BlockPlacedMsg { X = x, Y = y, Block = block, PlayerBreak = playerBreak, Generation = _generations.Stamp() };
 		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockPlaced, msg);
 	}
 
@@ -284,19 +284,25 @@ internal sealed class BlockReportChannel(
 	/// <summary>Guest only: re-report every unacknowledged block mutation to the host (the fallback pump's action).</summary>
 	public void ResendPendingBlockReports() => _guestReports.ResendBlocks();
 
-	/// <summary>Host only: answer a guest's refused block report with the host's authoritative block at that cell.</summary>
+	/// <summary>
+	/// Host only: answer a guest's refused block report with the host's
+	/// authoritative block at that cell. A correction carries no presentation
+	/// claim: it is this host's current cell value, not a break this side watched
+	/// happen — the reporter already presented its own break where it computed it
+	/// (see <see cref="GuestReportRecovery.SendBlockPlacedCorrection"/>).
+	/// </summary>
 	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block) =>
 		_guestReports.SendBlockPlacedCorrection(targetSteamId, x, y, block);
 
-	/// <summary>Guest: the host answered for this cell (relay or correction) — its value is authoritative, the pending report is done.</summary>
-	private void OnBlockPlacedReceived(ulong sender, int x, int y, ushort block, WorldGenerationRelation generation)
+	/// <summary>Guest: the host answered for this cell (relay or correction) — its value is authoritative, the pending report is done. The write's presentation claim travels with the answer (a correction carries none).</summary>
+	private void OnBlockPlacedReceived(ulong sender, int x, int y, ushort block, bool playerBreak, WorldGenerationRelation generation)
 	{
 		if (_session.Role == SessionRole.Guest)
 		{
 			_guestReports.AnswerBlock(x, y);
 		}
 
-		BlockPlacedReceived?.Invoke(sender, x, y, block, generation);
+		BlockPlacedReceived?.Invoke(sender, x, y, block, playerBreak, generation);
 	}
 
 	/// <summary>

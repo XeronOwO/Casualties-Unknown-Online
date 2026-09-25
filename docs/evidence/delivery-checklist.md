@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: remote-inventory-native-intent-stage4-audit §2, the matrix's 15 rows, each carrying its implementation anchor
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (6 rows): the 2026-09-07 hypothesis is marked not supported, against decompiled Body.cs and RemoteBodyFactory
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 15 matrix rows audited in one pass across both directions, worn items, containers, the craft screen and the container window (audit §2-§3)
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: remote-inventory-native-intent-stage4-audit (matrix 15 rows, findings §3, limits §4, projection verdicts §5)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §1: conscious clone suppressed, limp clone measured, non-carried ragdoll untouched, carried local rider named the control case
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (rule matrix, shape/order/clearing, ordering pin, read-only pin, reflection surface, family 257/257, full 3918 + 149)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: a code-fact anchor per row plus the acceptance checklist's session rows, 3 judgement items and failure-capture steps; no test here renders a frame
+      peer log comparison, hotrepl assertions) is decided — evidence: the 1 Hz clone diagnostic's limbSeparation (Debug level) is the session's number; the static half is the source and reflection pins (selfcheck §4)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff names stage 4 of the rework ticket as the next work item; design §4's stage table froze it (decision 217)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: 3906/3906 with build; gates 149/149 and 148/148 filtered, post-fix (%TEMP%\cuo-stage4-full-final.txt); doc-only cycle, format skipped
+      process violation — evidence: the handoff names the Critical carry ticket as the next work item; its fix design (mount + pose suppression) is decision 216, not this change
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full 3918/3918 with build and gates 149/149 on the frozen tree (%TEMP%/cuo-full-verify.txt); format exit 0 on the final C# state
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: no src/ or tests/ file changed; stage 3's measured aggregates stand (window 511 lines, RemoteContainerMoveCapture 176)
+      dead mechanisms deleted in the same round) — evidence: touched files 101/166/117/176/474/163/111 lines (largest 474 of 600); the speculative re-anchor path was deleted, one read-only reference object added
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

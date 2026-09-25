@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
@@ -47,6 +48,24 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 
 	/// <summary>True when the stream has delivered exact owner limb-pose facts; BodyPatches must let those transforms win over the animator skeleton.</summary>
 	public bool RagdollPoseActive;
+
+	/// <summary>
+	/// The shape of the exact limb poses currently rendered on this clone,
+	/// captured relative to the body root when they were applied. It is a
+	/// REFERENCE for the read-only check <see cref="CarriedLimbAnchor"/> documents
+	/// — whether a carried rider clone's limbs actually travelled with the root
+	/// the ride pose pinned — and never a placement source itself.
+	/// </summary>
+	public readonly CarriedLimbAnchor LimbAnchor = new();
+
+	/// <summary>
+	/// Largest limb-to-pinned-root separation read inside the current 1 Hz
+	/// clone-diagnostic window. Zero is the expected reading (the transform
+	/// hierarchy carries a clone's limbs with its root); a non-zero value is the
+	/// runtime evidence that the carried clone's limbs were left behind.
+	/// Read and reset by <see cref="RemotePlayerRenderer"/>'s diagnostics.
+	/// </summary>
+	public float LimbSeparationWindowMax;
 
 	/// <summary>Last applied attack-swing flag — the ArmsSwing clip plays only on the flag's rising edge.</summary>
 	public bool PrevAttacking;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -13,6 +14,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// World-space is a deliberate choice: the visible limb transforms are not
 /// reliably centered on the Body transform, and local offsets leave the clone
 /// upright/underground even when every limb value is synced.
+/// It also owns the read-only measurement of whether a carried clone's limbs
+/// actually followed the root the ride pose pinned
+/// (<see cref="MeasurePinnedRootSeparation"/>).
 /// </summary>
 internal static class RagdollPoseApplication
 {
@@ -23,11 +27,21 @@ internal static class RagdollPoseApplication
 			if (driver != null) // Unity object — ==
 			{
 				driver.RagdollPoseActive = false;
+				driver.LimbAnchor.Clear();
 			}
 
 			return;
 		}
 
+		// A tick replaces the whole shape, captured in the same parents-first
+		// order the poses are written in: a nested limb is measured after the
+		// parent whose move it inherits, and a reading can never mix two ticks.
+		if (driver != null) // Unity object — ==
+		{
+			driver.LimbAnchor.Clear();
+		}
+
+		var root = body.transform.position;
 		// World-space writes must happen parents-first: when visible limbs are
 		// nested, setting a child's world transform before its parent would be
 		// shifted by the parent's subsequent move. Sorting by transform depth
@@ -53,11 +67,76 @@ internal static class RagdollPoseApplication
 			// reads limb.rb.position/rotation even on a render clone.
 			limb.rb.position = position;
 			limb.rb.rotation = pose.RotationZ;
+			if (driver != null) // Unity object — ==
+			{
+				driver.LimbAnchor.Capture(pose.Index, position.x, position.y, root.x, root.y);
+			}
 		}
 
 		if (driver != null) // Unity object — ==
 		{
 			driver.RagdollPoseActive = true;
+		}
+	}
+
+	/// <summary>
+	/// Measures how far this clone's rendered limbs sit from the position a rigid
+	/// follow of its body root would put them, after the ride pose pinned that
+	/// root. This is a READ-ONLY probe: the limb placement the game's own
+	/// transform hierarchy performs is the only one, because the hierarchy facts
+	/// (the visible limbs are children of the body root and a clone's limb
+	/// rigidbodies are frozen) say a root write carries them. Zero therefore means
+	/// the hierarchy carried every limb — the expected reading — while a non-zero
+	/// value is the runtime evidence that the ticket's "limbs left behind"
+	/// hypothesis is live on that screen, which is the only thing that could
+	/// justify repositioning limbs here. The window maximum is kept on the driver
+	/// for the 1 Hz clone diagnostics.
+	/// </summary>
+	internal static void MeasurePinnedRootSeparation(Body body)
+	{
+		var driver = body.GetComponent<RemoteBodyDriver>();
+		if (driver == null // Unity object — ==
+			|| !CarriedLimbAnchor.ShouldMeasureAgainstPinnedRoot(driver.IsCarriedRider, driver.RagdollPoseActive))
+		{
+			return;
+		}
+
+		var anchor = driver.LimbAnchor;
+		if (anchor.IsEmpty)
+		{
+			return;
+		}
+
+		var root = body.transform.position;
+		var separation = 0f;
+		for (var order = 0; order < anchor.Count; order++)
+		{
+			if (!anchor.TryTarget(order, root.x, root.y, out var index, out var x, out var y)
+				|| index < 0
+				|| index >= body.limbs.Length)
+			{
+				continue;
+			}
+
+			var limb = body.limbs[index];
+			if (limb == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var position = limb.transform.position;
+			var deltaX = position.x - x;
+			var deltaY = position.y - y;
+			var distance = (float)Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+			if (distance > separation)
+			{
+				separation = distance;
+			}
+		}
+
+		if (separation > driver.LimbSeparationWindowMax)
+		{
+			driver.LimbSeparationWindowMax = separation;
 		}
 	}
 

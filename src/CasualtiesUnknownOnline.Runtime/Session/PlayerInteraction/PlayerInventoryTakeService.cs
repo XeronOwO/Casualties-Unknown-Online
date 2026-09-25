@@ -83,13 +83,25 @@ internal sealed class PlayerInventoryTakeService(
 	/// take rules are not applied to this dedicated gesture.
 	/// </summary>
 	public void HandleRemoteBackpackTake(ulong requester, ulong owner, ulong itemId) =>
-		HandleTakeCore(requester, owner, itemId, allowConsciousSource: true);
+		HandleTakeCore(requester, owner, itemId, allowConsciousSource: true, requestedSlot: -1);
+
+	/// <summary>
+	/// Host-only native-intent half of <c>TransferToBody</c>: the requester's
+	/// own R9 slot release becomes one custody transfer whose destination slot
+	/// is the slot that release named. The destination body's occupying item is
+	/// dropped by the destination's own native apply (R9's first step), so the
+	/// host names the slot and falls back to the first free one — observably —
+	/// only when the named slot cannot take the item.
+	/// </summary>
+	public void HandleRemoteBackpackTransferToBody(ulong requester, ulong owner, ulong itemId, int targetSlot) =>
+		HandleTakeCore(requester, owner, itemId, allowConsciousSource: true, requestedSlot: targetSlot);
 
 	private void HandleTakeCore(
 		ulong sender,
 		ulong owner,
 		ulong itemId,
-		bool allowConsciousSource)
+		bool allowConsciousSource,
+		int requestedSlot = -1)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -152,7 +164,7 @@ internal sealed class PlayerInventoryTakeService(
 			return;
 		}
 
-		var targetSlot = PlayerCharacterAccess.FirstEmptySlot(target);
+		var targetSlot = ResolveDestinationSlot(target, to, requestedSlot);
 		if (targetSlot < 0)
 		{
 			_log.LogWarning("[Take] refused: {To} has no empty inventory slot.", to);
@@ -191,6 +203,40 @@ internal sealed class PlayerInventoryTakeService(
 			ToSteamId = to,
 			Item = transferred,
 		});
+	}
+
+	/// <summary>
+	/// The destination slot of a custody transfer: the slot the native release
+	/// named when the recipient's own report shows it free, otherwise the first
+	/// free slot, with the substitution logged — the item must never be lost to
+	/// an unusable slot.
+	/// </summary>
+	private int ResolveDestinationSlot(CharacterDataMsg target, ulong recipient, int requestedSlot)
+	{
+		var count = target.SlotCount > 0 ? target.SlotCount : 3;
+		var occupied = false;
+		foreach (var item in target.Items)
+		{
+			if (item.SlotIndex == requestedSlot)
+			{
+				occupied = true;
+				break;
+			}
+		}
+
+		if (requestedSlot >= 0 && requestedSlot < count && !occupied)
+		{
+			return requestedSlot;
+		}
+
+		var fallback = PlayerCharacterAccess.FirstEmptySlot(target);
+		if (requestedSlot >= 0)
+		{
+			_log.LogInformation("[Take] destination slot {Slot} is not free for {To}; using slot {Fallback} instead.",
+				requestedSlot, recipient, fallback);
+		}
+
+		return fallback;
 	}
 
 	/// <summary>

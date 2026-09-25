@@ -54,7 +54,7 @@ public class RemoteBackpackContractTests
 	}
 
 	[Fact]
-	public void PatchBridge_ExposesRemoteBackpackTakeSurface()
+	public void PatchBridge_ExposesTheReleaseWindowSurface()
 	{
 		var bridge = GameAssemblyHost.Adapter.GetType(
 			"CasualtiesUnknownOnline.GameAdapter.IPatchBridge",
@@ -64,38 +64,23 @@ public class RemoteBackpackContractTests
 			throwOnError: true)!;
 		Assert.True(Array.Exists(bridge.GetInterfaces(), i => i == remoteBridge));
 
-		var take = remoteBridge.GetMethod("TryHandleRemoteBackpackTake");
-		Assert.NotNull(take);
-		Assert.Equal(typeof(bool), take!.ReturnType);
-		var parameter = Assert.Single(take.GetParameters());
-		Assert.Equal("Item", parameter.ParameterType.Name);
+		var local = remoteBridge.GetProperty("LocalSteamId");
+		Assert.NotNull(local);
+		Assert.Equal(typeof(ulong), local!.PropertyType);
 
-		var cancel = remoteBridge.GetMethod("CancelRemoteProxyDrag");
-		Assert.NotNull(cancel);
-		Assert.Equal(typeof(bool), cancel!.ReturnType);
-		var cancelParameters = cancel.GetParameters();
-		Assert.Equal(2, cancelParameters.Length);
-		Assert.Equal("PlayerCamera", cancelParameters[0].ParameterType.Name);
-		Assert.Equal(typeof(string), cancelParameters[1].ParameterType);
+		var unresolved = remoteBridge.GetMethod("ReportRemoteDragUnresolved");
+		Assert.NotNull(unresolved);
+		Assert.Equal(typeof(void), unresolved!.ReturnType);
+		Assert.Equal("Item", Assert.Single(unresolved.GetParameters()).ParameterType.Name);
 
-		foreach (var name in new[]
-		{
-			"TryHandleRemoteBackpackDrop",
-			"TryHandleRemoteBackpackMoveToContainer",
-			"TryHandleRemoteBackpackPour",
-			"TryHandleRemoteBackpackCombine",
-			"TryHandleRemoteBackpackUse",
-			"TryHandleRemoteBackpackWear",
-			"TryHandleRemoteBackpackBatteryLoad",
-			"TryHandleRemoteBackpackBatteryUnload",
-			"TryHandleRemoteBackpackFavoriteToggle",
-			"TryHandleRemoteBackpackMoveToSlot",
-			"TryHandleRemoteProxyTransferToLocal",
-		})
-		{
-			var method = remoteBridge.GetMethod(name);
-			Assert.NotNull(method);
-			Assert.Equal(typeof(bool), method!.ReturnType);
-		}
+		var notCarried = remoteBridge.GetMethod("ReportRemoteGestureNotCarried");
+		Assert.NotNull(notCarried);
+		Assert.Equal(typeof(void), notCarried!.ReturnType);
+		Assert.Equal(typeof(string), Assert.Single(notCarried.GetParameters()).ParameterType);
+
+		var emit = remoteBridge.GetMethod("EmitRemoteDragIntents");
+		Assert.NotNull(emit);
+		Assert.Equal(typeof(void), emit!.ReturnType);
+		Assert.Equal("RemoteDragOutcome", Assert.Single(emit.GetParameters()).ParameterType.Name);
 	}
 }

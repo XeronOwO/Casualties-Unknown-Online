@@ -185,7 +185,7 @@ Host: start normal Batch/Stream
 | 65 | `CarriedInventory` | 客机 → 主机 | 客机随身背包与它自己分配的 id |
 | 105 | `DynamiteExplosion` | 上报加转发 | 一次炸药起爆（地形／建筑／物品事实各走自己的通道） |
 | 97 | `PlayerInventoryTakeRequest` | 客机 → 主机 | 从另一名世界内玩家身上拿走一件随身物品 |
-| 125 / 126 | `RemoteInventoryOperationRequest` / `RemoteInventoryApply` | 客机 → 主机／主机 → 本人 | 远端背包的一次手势（丢下／移进容器／倒出／合并／使用／穿戴／电池／槽位／收藏），以及在本人身体上的执行 |
+| 125 / 126 | `RemoteInventoryIntentRequest` / `RemoteInventoryIntent` | 客机 → 主机／主机 → 本人 | 从操作者本地拖放中捕获的一次原生背包意图（原生调用加其操作数 id），以及物主在真实物品上重放该调用，沿用游戏自身的判定、动画与音效 |
 
 **交易、说话与聊天**
 

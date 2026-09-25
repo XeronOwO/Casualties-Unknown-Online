@@ -233,13 +233,13 @@ public enum NetMsg : byte
 	// members, source excluded)
 	LocationPing = 124, // bidirectional: guest → host report of a local middle-click marker; host → guest broadcast/relay
 
-	// Remote backpack native-interaction parity (host authority: the native
-	// remote-backpack view maps pour/drop/container gestures to host-validated
-	// semantic operations; take/transfer-to-local continues to ride the existing
-	// PlayerInventoryTakeRequest path)
-	RemoteInventoryOperationRequest = 125, // guest → host: perform a remote-player inventory operation (drop / move-to-container / pour / combine / use / wear / battery / slot / favourite)
+	// Remote inventory native-intent parity (host authority: the game's own drag
+	// pipeline runs on the viewer and CUO captures the mutation call it made, the
+	// host validates permission/membership/ownership/destination, the owner
+	// replays that native call on the real objects)
+	RemoteInventoryIntentRequest = 125, // guest → host: one native inventory intent captured from the local drag release
 
-	RemoteInventoryApply = 126, // host → owner: execute the host-validated native inventory operation on the owner's own local body
+	RemoteInventoryIntent = 126, // host → owner: replay this validated native inventory intent on the real local body
 
 	// Remote medical operation sessions (host authority: the host owns the
 	// operation registry, item/limb reservations, incremental progress and the

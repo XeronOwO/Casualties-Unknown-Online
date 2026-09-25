@@ -23,17 +23,17 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: a take request arrived (from the wire or the host's own UI).</summary>
 	void HandleTakeRequest(ulong sender, PlayerInventoryTakeRequestMsg msg);
 
-	/// <summary>Any role: request a remote-backpack inventory operation (drop / move-to-container / pour) — guest → host on the wire, host handles locally.</summary>
-	void SendRemoteInventoryOperation(RemoteInventoryOperationRequestMsg msg);
+	/// <summary>Any role: report one native inventory intent captured from the local drag release — guest → host on the wire, host handles locally.</summary>
+	void SendRemoteInventoryIntent(RemoteInventoryIntentMsg msg);
 
-	/// <summary>Host only: a remote-backpack inventory operation request arrived (from the wire or the host's own UI).</summary>
-	void HandleRemoteInventoryOperation(ulong sender, RemoteInventoryOperationRequestMsg msg);
+	/// <summary>Host only: a native inventory intent arrived (from the wire or the host's own client).</summary>
+	void HandleRemoteInventoryIntentRequest(ulong sender, RemoteInventoryIntentMsg msg);
 
-	/// <summary>Any role: a host-validated native remote-backpack operation must be applied to the local player's own body.</summary>
-	void FireRemoteInventoryApplyReceived(RemoteInventoryApplyMsg msg);
+	/// <summary>Any role: a host-validated native inventory intent must be replayed on the local player's own body.</summary>
+	void FireRemoteInventoryIntentReceived(RemoteInventoryIntentMsg msg);
 
-	/// <summary>An authoritative host-validated native remote-backpack operation arrived for the local player's own body.</summary>
-	event Action<RemoteInventoryApplyMsg>? RemoteInventoryApplyReceived;
+	/// <summary>An authoritative host-validated native inventory intent arrived for the local player's own body.</summary>
+	event Action<RemoteInventoryIntentMsg>? RemoteInventoryIntentReceived;
 
 	/// <summary>Raise a received transfer for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireTransferReceived(PlayerInventoryTransferMsg msg);

@@ -16,7 +16,7 @@ stale by the peer's own latency:
   local player) and runs a Ground linecast between them. It is consumed by host-side
   services — `OtherMedicalOperationSessionService`, `MedicalOperationSessionService`,
   `ShrapnelOperationSessionService`, `PlayerCarryService`, `PlayerPushService`,
-  `PlayerInventoryTakeService`, `PlayerRemoteInventoryService`, `PlayerItemUseService`,
+  `PlayerInventoryTakeService`, `PlayerRemoteInventoryIntentService`, `PlayerItemUseService`,
   `PlayerHealService` — so a guest-vs-guest interaction is gated by the HOST's picture of
   where both players stand. **FIXED in stage 1 (2026-09-19) — see "What landed".**
 - Operation preconditions: `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/OtherMedicalOperationStartValidator.cs`

@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -60,6 +61,15 @@ internal sealed class PickupSync(
 
 	internal void OnPickedUp(Item item)
 	{
+		// A display proxy is another player's item rendered here: the release
+		// window answers the body predicates from the displayed body, so without
+		// this guard a redirected read would report a proxy pickup and allocate the
+		// clone a fresh id (the "extra item" family).
+		if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+		{
+			return;
+		}
+
 		if (IsRemoteApply)
 		{
 			return;

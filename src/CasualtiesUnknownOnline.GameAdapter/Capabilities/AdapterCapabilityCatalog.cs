@@ -75,11 +75,22 @@ internal static class AdapterCapabilityCatalog
 				typeof(ContainerItemPatches), typeof(UtilsCreateDropPatch), typeof(GunStatePatches), typeof(GunFirePatch),
 				typeof(HeldItemDirectionPatch), typeof(DynamiteExplodePatch), typeof(PlushScriptCollisionEnter2DPatch),
 				typeof(InvButtonBodyPatch), typeof(DoPickupCheckPatch), typeof(LiquidAffectPatches),
-				// The drag/radial/wearable seams carry the remote-backpack take and the
-				// cross-player use-by-drag path (the KrokMP-style seam lives inside the class,
-				// so the vanilla remote-take path keeps this class Required).
+				// The drag/radial/wearable seams carry the remote-inventory release window:
+				// the native release branch runs, the window captures the mutation calls it
+				// makes, and the display-body predicates answer its guards from the body the
+				// inventory ring is showing (the vanilla remote-take path keeps this class
+				// Required).
 				typeof(PlayerCameraDragUsePatch), typeof(PlayerCameraUpdateWearablesPatch),
 				typeof(PlayerCameraTryPerformRadialActionPatch), typeof(PlayerCameraHandleWhileDraggingPatch),
+				typeof(RemoteDragMutationPatches.RemoteDragContainerLoadPatch), typeof(RemoteDragMutationPatches.RemoteDragContainerUnloadPatch),
+				typeof(RemoteDragMutationPatches.RemoteDragBodyPickUpPatch), typeof(RemoteDragMutationPatches.RemoteDragBodySwapSlotsPatch),
+				typeof(RemoteDragMutationPatches.RemoteDragBodyDropItemPatch), typeof(RemoteDragMutationPatches.RemoteDragBodyDropSlotPatch),
+				typeof(RemoteDragMutationPatches.RemoteDragBodyDropWearablePatch), typeof(RemoteDragMutationPatches.RemoteDragBodyCombinePatch),
+				typeof(RemoteDragMutationPatches.RemoteDragBatteryLoadPatch), typeof(RemoteDragMutationPatches.RemoteDragBatteryUnloadPatch),
+				typeof(RemoteDragMutationPatches.RemoteDragApplyWoundItemPatch), typeof(RemoteDragMutationPatches.RemoteDragTraderGivePatch),
+				typeof(RemoteDragPredicatePatches.RemoteDragHoldingItemPatch), typeof(RemoteDragPredicatePatches.RemoteDragHoldingSlotPatch),
+				typeof(RemoteDragPredicatePatches.RemoteDragGetItemPatch), typeof(RemoteDragPredicatePatches.RemoteDragGetWearablePatch),
+				typeof(RemoteDragPredicatePatches.RemoteDragPickupCheckPatch), typeof(RemoteDragPredicatePatches.RemoteDragOpenContainerPatch),
 			],
 			[],
 			[],

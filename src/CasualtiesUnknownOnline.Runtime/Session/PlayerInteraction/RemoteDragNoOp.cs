@@ -18,4 +18,13 @@ internal enum RemoteDragNoOp
 
 	/// <summary>R14 and the container-window open of the design's §2.3: local UI on the viewer, never an intent.</summary>
 	LocalUiOnly = 3,
+
+	/// <summary>
+	/// R10 with nothing to run: the release landed inside the radial circle
+	/// (<c>PlayerCamera.cs:1638</c>) and the dragged item is neither wearable nor
+	/// usable, so the native branch consumed it without calling anything. The native
+	/// method's own answer is what names this — CUO never re-derives the branch's
+	/// geometry.
+	/// </summary>
+	RadialCentreWithoutAnAction = 4,
 }

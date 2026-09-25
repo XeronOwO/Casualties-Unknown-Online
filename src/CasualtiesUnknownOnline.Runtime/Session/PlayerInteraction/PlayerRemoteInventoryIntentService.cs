@@ -157,8 +157,9 @@ internal sealed class PlayerRemoteInventoryIntentService(
 		}
 		else
 		{
-			_log.LogInformation("[RemoteIntent] {Requester} → {Owner} {Kind} (item {Item}, container {Container}, slot {Slot}, body {Body}, limb {Limb}).",
-				requester, owner, msg.Kind, msg.ItemInstanceId, msg.TargetContainerInstanceId, msg.TargetSlotIndex, msg.TargetBodySteamId, msg.TargetLimbIndex);
+			_log.LogInformation("[RemoteIntent] {Requester} → {Owner} {Kind} (item {Item}, container {Container}, slot {Slot}, body {Body}, limb {Limb}, target item {TargetItem}, trader {Trader}).",
+				requester, owner, msg.Kind, msg.ItemInstanceId, msg.TargetContainerInstanceId, msg.TargetSlotIndex, msg.TargetBodySteamId, msg.TargetLimbIndex, msg.TargetItemInstanceId,
+				msg.TargetTraderPosition is { } trader ? $"({trader.X}, {trader.Y})" : "none");
 		}
 
 		switch (msg.Kind)
@@ -275,6 +276,53 @@ internal sealed class PlayerRemoteInventoryIntentService(
 				if (item.SlotIndex < 0)
 				{
 					refusal = $"item {msg.ItemInstanceId} is worn (slot {item.SlotIndex}) — the held-item flow covers carried slot items only.";
+					return false;
+				}
+
+				refusal = string.Empty;
+				return true;
+			case RemoteInventoryIntentKind.UseItem:
+			case RemoteInventoryIntentKind.WearItem:
+			case RemoteInventoryIntentKind.UnloadBattery:
+			case RemoteInventoryIntentKind.ToggleFavourite:
+				// One item operand, and the ownership fact above already named it: the
+				// native call reads nothing else the host could check.
+				refusal = string.Empty;
+				return true;
+			case RemoteInventoryIntentKind.CombineItems:
+			case RemoteInventoryIntentKind.LoadBattery:
+				// The two-item kinds name a second item, and it must be one of the
+				// OWNER's own items — the same ownership fact, checked for the second
+				// operand. What the native guard then makes of the pair (combineable,
+				// a slot that takes that battery) is the owner's business.
+				if (msg.TargetItemInstanceId == 0 || msg.TargetItemInstanceId == msg.ItemInstanceId)
+				{
+					refusal = $"invalid target item {msg.TargetItemInstanceId}.";
+					return false;
+				}
+
+				if (!TryFindItem(owner.Items, msg.TargetItemInstanceId, out _))
+				{
+					refusal = $"the owner has no item instance {msg.TargetItemInstanceId}.";
+					return false;
+				}
+
+				refusal = string.Empty;
+				return true;
+			case RemoteInventoryIntentKind.GiveToTrader:
+				// The trader is an operand because the owner has no trader open: a
+				// missing or unusable position would make the owner resolve a trader
+				// that is not the one the requester pointed at, so it is refused here.
+				if (msg.TargetTraderPosition is not { } trader)
+				{
+					refusal = "the trader hand-in carries no trader position.";
+					return false;
+				}
+
+				if (float.IsNaN(trader.X) || float.IsInfinity(trader.X)
+					|| float.IsNaN(trader.Y) || float.IsInfinity(trader.Y))
+				{
+					refusal = $"unusable trader position ({trader.X}, {trader.Y}).";
 					return false;
 				}
 

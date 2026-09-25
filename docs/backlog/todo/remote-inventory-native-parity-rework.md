@@ -166,6 +166,50 @@ What it settled, one line each:
    and the rebuild-time re-bind are keyed by the authoritative instance id and stay valid; the window's
    contents ride the projection, and the row stays a real-machine acceptance item.
 
+## Stage 3 — item interactions (landed)
+
+The item-interaction family rides the stage 1 seam, with `ProtocolVersion.Current` bumped in the same
+change (37 → 38, the handshake stays the compatibility boundary) and decision 220 for the two rules
+the implementation settled. Cycle evidence:
+`docs/evidence/selfchecks/items/remote-inventory-native-intent-stage3-selfcheck.md`. What it settled,
+one line each:
+
+1. **The favourite toggle is observed across the frame bracket, not intercepted.** It is a direct
+   `favourited` field store on the HOVERED item with no call behind it, so the while-dragging patch
+   compares the field of the frame's own candidate buttons before and after the native body: the
+   native condition still decides whether a store happens, the store it observes becomes
+   `ToggleFavourite`, and the proxy's field goes back to the value the frame started with. The stage-2
+   price for this gesture — skipping the frame and losing its drain tick — is gone.
+2. **R10 runs again.** The suppression patch is deleted and `Body.UseItem` / `Body.WearWearable` are
+   captured like every other mutation; the branch's two independent `if`s can produce `WearItem` then
+   `UseItem` from one release, and the one native outcome that consumes a release and runs nothing (an
+   item that is neither wearable nor usable inside the circle) is recorded as a classified no-op from
+   the native method's own answer.
+3. **A two-item call names both operands.** `CombineItems` carries the hit item — the receiver the
+   native call takes first — and `LoadBattery` carries the receiving item, so the message gains
+   `TargetItemInstanceId`; `UnloadBattery` names the HIT item alone because that is all the native call
+   reads.
+4. **The frozen vocabulary's `GiveToTrader` row is corrected.** Its native call reads
+   `PlayerCamera.currentTrader`, which the owner's client does not have, so the trader itself is an
+   operand carried as its world position — the identity the trade domain already keys its messages by —
+   and the trader's own credit total is the verified write.
+5. **The report-hook rule was applied to the family, not just to the new seams.** `OnItemUsed` and the
+   wearable "re-report right away" now skip a display proxy, and the trader's `GiveItem` report fires
+   only when the credit really moved — without which the requester's captured call would have credited
+   the trader for an item nobody gave.
+6. **Two audits concluded with evidence rather than assumption.** The item sounds played inside a
+   replayed call (`combine`, `waterpour`, `batteryinsert`, the `useAction` clips) are carried by no
+   existing path and stay on the client that runs the mutation: recorded as a limit, because the design
+   adds no second feedback path. Every mutation call of the family has exactly one other caller outside
+   the drag pipeline (the touch auto-wear, which cannot reach a proxy; the craft screen's own
+   consumption and battery calls, which are local UI), the medical panel reaches them through the
+   captured `ApplyWoundItem` and the landed medical-operation session, and the design's context-menu
+   note has no counterpart — `UIUtil.IsPointerOverContextMenu` has no caller in the build.
+7. **The held-remote-item medical chain keeps its landed path.** Matrix row 8's semantics (the owner's
+   item state is consumed, the requester's body takes the effect) are `PlayerItemUseService`'s
+   host-authoritative flow, which the `ApplyToLimb` intent already routes to; this stage audited that
+   route instead of re-implementing it, and row 8's real-machine behaviour stays the user's run.
+
 ## Staged plan
 
 - **Stage 0 — design.** Done, see above.
@@ -174,8 +218,9 @@ What it settled, one line each:
 - **Stage 2 — containers.** Done, see above: R5 as one owner-evaluated `MoveContainerChildren`
   intent, the restored while-dragging body with the per-frame drain tick, and the vanish case as a
   host-copy regression.
-- **Stage 3 — item interactions.** Use/wear (the radial branch is restored here), combine, battery,
-  favourite, the trader gesture, and the held-remote-item medical chain.
+- **Stage 3 — item interactions.** Done, see above: the seven item-interaction kinds with the second
+  item operand and the trader operand, the favourite store observed across the frame bracket, R10's
+  use/wear branch restored with its no-op classified, and the sound / medical-path audits concluded.
 - **Stage 4 — family audit and acceptance.** Both directions, a third peer, worn items, containers
   and the craft screen against the matrix below; the projection tickets re-evaluated.
 

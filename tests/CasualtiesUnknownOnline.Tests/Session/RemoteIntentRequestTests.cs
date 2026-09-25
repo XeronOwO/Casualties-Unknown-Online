@@ -457,4 +457,127 @@ public class RemoteIntentRequestTests
 		Assert.Null(intent);
 		Assert.DoesNotContain(received, r => r.Msg == NetMsg.RemoteInventoryIntent);
 	}
+
+	[Fact]
+	public void TwoItemIntent_WithBothItemsOfTheOwner_IsForwarded()
+	{
+		var (host, guest, _) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42), Item(43, slot: 1)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.CombineItems,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetItemInstanceId = 43,
+			});
+
+		Assert.NotNull(intent);
+		Assert.Equal(RemoteInventoryIntentKind.CombineItems, intent!.Kind);
+		Assert.Equal(42UL, intent.ItemInstanceId);
+		Assert.Equal(43UL, intent.TargetItemInstanceId);
+	}
+
+	[Fact]
+	public void TwoItemIntent_WithASecondItemTheOwnerDoesNotCarry_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.LoadBattery,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetItemInstanceId = 999,
+			});
+
+		Assert.Null(intent);
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.RemoteInventoryIntent);
+	}
+
+	[Fact]
+	public void TwoItemIntent_ThatNamesItsOwnItemAsTheTarget_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.CombineItems,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetItemInstanceId = 42,
+			});
+
+		Assert.Null(intent);
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.RemoteInventoryIntent);
+	}
+
+	[Fact]
+	public void TraderHandIn_WithAPosition_IsForwardedToTheOwner()
+	{
+		var (host, guest, _) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToTrader,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetTraderPosition = new NetVector2Msg(120f, -30f),
+			});
+
+		Assert.NotNull(intent);
+		Assert.Equal(RemoteInventoryIntentKind.GiveToTrader, intent!.Kind);
+		Assert.Equal(120f, intent.TargetTraderPosition!.X);
+		Assert.Equal(-30f, intent.TargetTraderPosition.Y);
+	}
+
+	[Fact]
+	public void TraderHandIn_WithoutATraderPosition_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToTrader,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+			});
+
+		Assert.Null(intent);
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.RemoteInventoryIntent);
+	}
 }

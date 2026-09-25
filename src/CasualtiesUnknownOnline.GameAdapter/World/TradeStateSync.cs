@@ -33,8 +33,6 @@ internal sealed class TradeStateSync(
 	AdaptiveStreamRateService adaptiveRates,
 	ILogger<TradeStateSync> log)
 {
-	private const float PositionTolerance = 2f; // matching tolerance (the trader's transform is the position key)
-
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
 	private readonly TradeExecutor _executor = executor;
@@ -258,19 +256,8 @@ internal sealed class TradeStateSync(
 		};
 	}
 
-	/// <summary>Position-keyed trader lookup — both sides generated the same trader at the same place (WorldGeneration.cs:3438-3447), so the transform position is the identity.</summary>
-	private static TraderScript? FindTraderAt(NetVector2Msg pos)
-	{
-		foreach (var trader in Object.FindObjectsOfType<TraderScript>()) // Unity object registry
-		{
-			if (Vector2.Distance(trader.transform.position, new Vector2(pos.X, pos.Y)) < PositionTolerance)
-			{
-				return trader;
-			}
-		}
-
-		return null;
-	}
+	/// <summary>Position-keyed trader lookup — the shared one, so the identity tolerance cannot drift from the applier's trader hand-in.</summary>
+	private static TraderScript? FindTraderAt(NetVector2Msg pos) => TraderLocator.FindAt(pos);
 
 	/// <summary>The acting player's state bits the trader's methods read (MeetPlayer's
 	/// bandage + hostility, Threaten's success lerp, TryHug's failure gate).</summary>

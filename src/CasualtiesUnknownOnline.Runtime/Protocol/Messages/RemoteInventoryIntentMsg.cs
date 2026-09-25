@@ -87,4 +87,25 @@ public sealed class RemoteInventoryIntentMsg
 	/// </summary>
 	[ProtoMember(8)]
 	public float Amount { get; set; }
+
+	/// <summary>
+	/// The second item operand of the two-item kinds: the hit item the native
+	/// branch read for <see cref="RemoteInventoryIntentKind.CombineItems"/>
+	/// (<c>Body.CombineItems(target, item)</c>, where the target is the receiver)
+	/// and the receiving item of
+	/// <see cref="RemoteInventoryIntentKind.LoadBattery"/>. 0 when the kind takes
+	/// one item only.
+	/// </summary>
+	[ProtoMember(9)]
+	public ulong TargetItemInstanceId { get; set; }
+
+	/// <summary>
+	/// The trader's world position for
+	/// <see cref="RemoteInventoryIntentKind.GiveToTrader"/> — the position key the
+	/// trade domain already uses (<c>TraderSwingMsg.Position</c>) — or null when the
+	/// kind takes no trader operand. The member is nullable on purpose: an absent
+	/// operand must be tellable apart from a trader that really stands at (0,0).
+	/// </summary>
+	[ProtoMember(10)]
+	public NetVector2Msg? TargetTraderPosition { get; set; }
 }

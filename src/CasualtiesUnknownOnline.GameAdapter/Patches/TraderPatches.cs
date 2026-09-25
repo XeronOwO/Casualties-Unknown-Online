@@ -106,11 +106,44 @@ internal static class TraderPatches
 		}
 	}
 
+	/// <summary>
+	/// GiveItem: report the locally-executed hand-in with the id read BEFORE the call (the
+	/// game destroys the item on success, so a Postfix cannot read it afterwards), and
+	/// only when the write is verified — the trader's lifetime credit really moved. The
+	/// reported VALUE is that verified credit, not the item's own value: the native method
+	/// clamps the credit to what is left of <c>MAX_VALUE_GIVEN</c>
+	/// (<c>TraderScript.cs:620-627</c>) while the item can be worth more, and a hand-in
+	/// that credited nothing (the cap already reached) must report nothing at all —
+	/// otherwise the host would credit more than this client did. A call the remote drag
+	/// window took is not a local hand-in: the OWNER's trader performs it.
+	/// </summary>
 	[HarmonyPatch(typeof(TraderScript), "GiveItem")]
 	internal static class GiveItemPatch
 	{
-		private static void Postfix(TraderScript __instance, Item item) =>
-			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.GiveItem, item.id, item.Stats.GetValue(item), null);
+		private static void Prefix(TraderScript __instance, Item item, out GiveItemState __state) =>
+			__state = new GiveItemState(
+				item != null ? item.id : string.Empty, // Unity object — ==
+				__instance != null ? __instance.totalValueGiven : 0, // Unity object — ==
+				item != null && RemoteDragProxyQuery.IsProxy(item) && RemoteDragIntentWindow.Current.IsOpen); // Unity object — ==
+
+		private static void Postfix(TraderScript __instance, GiveItemState __state)
+		{
+			if (__state.TakenByTheRemoteDragWindow || __instance == null) // Unity object — ==
+			{
+				return;
+			}
+
+			var credited = __instance.totalValueGiven - __state.CreditBefore;
+			if (credited <= 0)
+			{
+				return;
+			}
+
+			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.GiveItem, __state.ItemId, credited, null);
+		}
+
+		/// <summary>What the Postfix needs after a call that destroys its item.</summary>
+		private readonly record struct GiveItemState(string ItemId, int CreditBefore, bool TakenByTheRemoteDragWindow);
 	}
 
 	[HarmonyPatch(typeof(TraderScript), "TryHaggle")]

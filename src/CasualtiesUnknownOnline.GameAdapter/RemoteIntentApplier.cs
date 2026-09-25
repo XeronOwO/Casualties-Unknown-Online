@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
@@ -75,6 +76,27 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 					break;
 				case RemoteInventoryIntentKind.Drain:
 					ApplyDrain(item, msg.Amount);
+					break;
+				case RemoteInventoryIntentKind.UseItem:
+					ApplyUseItem(body, item);
+					break;
+				case RemoteInventoryIntentKind.WearItem:
+					ApplyWearItem(body, item);
+					break;
+				case RemoteInventoryIntentKind.CombineItems:
+					ApplyCombineItems(body, msg.ItemInstanceId, msg.TargetItemInstanceId);
+					break;
+				case RemoteInventoryIntentKind.LoadBattery:
+					ApplyLoadBattery(body, msg.ItemInstanceId, msg.TargetItemInstanceId);
+					break;
+				case RemoteInventoryIntentKind.UnloadBattery:
+					ApplyUnloadBattery(item);
+					break;
+				case RemoteInventoryIntentKind.ToggleFavourite:
+					ApplyToggleFavourite(item);
+					break;
+				case RemoteInventoryIntentKind.GiveToTrader:
+					ApplyGiveToTrader(item, msg.TargetTraderPosition);
 					break;
 				case RemoteInventoryIntentKind.SwapSlots:
 					ApplySwapSlots(body, item, msg.TargetSlotIndex);
@@ -297,4 +319,183 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 
 	private static bool IsValidSlot(Body body, int slot) =>
 		RemoteIntentSlotRelease.IsValidSlot(body.slots.Length, slot);
+
+	/// <summary>
+	/// <c>Body.UseItem(item)</c> (R10, <c>PlayerCamera.cs:1646</c>): the owner's own
+	/// body runs the native use action, so the item's effect, sound and animation
+	/// happen where the item is, and the landed item-use report states the result.
+	/// The native method refuses a non-usable item silently, so that refusal is named
+	/// here instead of looking like a lost intent.
+	/// </summary>
+	private void ApplyUseItem(Body body, Item item)
+	{
+		if (!item.Stats.usable)
+		{
+			_log.LogWarning("[RemoteIntent] use refused: item {Item} is not usable, so the native call would have been a silent no-op.", item.id);
+			return;
+		}
+
+		body.UseItem(item);
+	}
+
+	/// <summary>
+	/// <c>Body.WearWearable(item)</c> (R10, <c>PlayerCamera.cs:1642</c>): the native
+	/// wear runs on the owner with its own guards — an occupied wear slot, a
+	/// dismembered limb and the pickup check all decide there. The wearable flag is
+	/// tested first because the native method dereferences the wear slot and the target
+	/// limb without testing it.
+	/// </summary>
+	private void ApplyWearItem(Body body, Item item)
+	{
+		if (!item.Stats.wearable)
+		{
+			_log.LogWarning("[RemoteIntent] wear refused: item {Item} is not wearable, so the native call would have dereferenced a wear slot it does not have.", item.id);
+			return;
+		}
+
+		body.WearWearable(item);
+	}
+
+	/// <summary>
+	/// <c>Body.CombineItems(target, item)</c> (R6, <c>PlayerCamera.cs:1602</c>): the
+	/// native pair runs on the owner's real items, so the guard order is the game's own
+	/// — <c>CanCombine</c> admits a gun/magazine pair, a magazine/round pair, a liquid
+	/// transfer or the condition merge, and every other pair is a silent no-op. The
+	/// committed fact is the landed craft report, which commits ONE report only when the
+	/// terminal state actually moved, so a refused pair reports nothing. WHICH item is
+	/// the receiver comes from <see cref="RemoteItemInteractionOperands"/>: the native
+	/// call takes it first, and a swap here would charge the wrong item silently.
+	/// </summary>
+	private void ApplyCombineItems(Body body, ulong itemInstanceId, ulong targetItemInstanceId)
+	{
+		var (receiverId, consumedId) = RemoteItemInteractionOperands.CombineTargets(itemInstanceId, targetItemInstanceId);
+		if (ResolveCarried(body, receiverId, "combine") is not { } receiver
+			|| ResolveCarried(body, consumedId, "combine") is not { } consumed)
+		{
+			return;
+		}
+
+		body.CombineItems(receiver, consumed);
+	}
+
+	/// <summary>
+	/// <c>BatteryItem.LoadBattery(item)</c> (R3, <c>PlayerCamera.cs:1550</c>): the
+	/// dragged battery's real item enters the target's real battery slot, which charges
+	/// the target and destroys the battery. The native method returns silently on an
+	/// occupied slot, on a battery larger than the slot allows and on an item that is
+	/// not a battery, so the slot's own state is what tells a write from a refusal.
+	/// Which item receives comes from <see cref="RemoteItemInteractionOperands"/>.
+	/// </summary>
+	private void ApplyLoadBattery(Body body, ulong itemInstanceId, ulong targetItemInstanceId)
+	{
+		var (receiverId, batteryId) = RemoteItemInteractionOperands.BatteryLoadTargets(itemInstanceId, targetItemInstanceId);
+		if (ResolveCarried(body, batteryId, "battery load") is not { } battery
+			|| ResolveCarried(body, receiverId, "battery load") is not { } receiver)
+		{
+			return;
+		}
+
+		if (receiver.battery == null) // Unity object — ==
+		{
+			_log.LogWarning("[RemoteIntent] battery load refused: item {Target} carries no battery component on the owner's body.", receiver.id);
+			return;
+		}
+
+		receiver.battery.LoadBattery(battery);
+		if (!receiver.battery.hasBattery)
+		{
+			_log.LogWarning("[RemoteIntent] battery load refused by the native guard: item {Target} still has no battery (the slot was occupied, or {Battery} is not a battery it takes).",
+				receiver.id, battery.id);
+			return;
+		}
+
+		_log.LogInformation("[RemoteIntent] the native load charged item {Target} from battery {Battery} (the battery item was consumed).", receiver.id, battery.id);
+	}
+
+	/// <summary>
+	/// <c>BatteryItem.UnloadBattery(false)</c> (R2, <c>PlayerCamera.cs:1545</c>): the
+	/// hit item's own battery is ejected into a new item and auto-picked-up by the
+	/// owner's body; the item is reported by the immediate character re-report like
+	/// every other carried fact. The slot's own state is the verified write.
+	/// </summary>
+	private void ApplyUnloadBattery(Item item)
+	{
+		if (item.battery == null) // Unity object — ==
+		{
+			_log.LogWarning("[RemoteIntent] battery unload refused: item {Item} carries no battery component on the owner's body.", item.id);
+			return;
+		}
+
+		if (!item.battery.hasBattery)
+		{
+			_log.LogWarning("[RemoteIntent] battery unload refused by the native guard: item {Item} has no battery in its slot (the native method returns without doing anything).", item.id);
+			return;
+		}
+
+		item.battery.UnloadBattery(false);
+		if (item.battery.hasBattery)
+		{
+			_log.LogWarning("[RemoteIntent] battery unload did not clear item {Item}'s slot.", item.id);
+			return;
+		}
+
+		_log.LogInformation("[RemoteIntent] the native unload ejected item {Item}'s battery onto the owner's body.", item.id);
+	}
+
+	/// <summary>
+	/// The while-dragging <c>favourited</c> store (<c>PlayerCamera.cs:1747</c>): the
+	/// owner flips its OWN item's field — the toggle is the native gesture, and both
+	/// values are named so the line says what the gesture did even though the field has
+	/// no event of its own.
+	/// </summary>
+	private void ApplyToggleFavourite(Item item)
+	{
+		var before = item.favourited;
+		item.favourited = !before;
+		_log.LogInformation("[RemoteIntent] favourite of item {Item} is now {Now} (was {Before}).", item.id, item.favourited, before);
+	}
+
+	/// <summary>
+	/// <c>TraderScript.GiveItem(item)</c> (R12, <c>PlayerCamera.cs:1663</c>): the trader
+	/// the REQUESTER had open is resolved by the position the trade domain already keys
+	/// its messages by, because the owner's client has no
+	/// <c>PlayerCamera.currentTrader</c>. The credit and the item's destruction are the
+	/// game's own, and the trader's own credit total is the verified write.
+	/// </summary>
+	private void ApplyGiveToTrader(Item item, NetVector2Msg? traderPosition)
+	{
+		if (traderPosition is null)
+		{
+			_log.LogWarning("[RemoteIntent] trader hand-in refused: the intent carries no trader position.");
+			return;
+		}
+
+		if (TraderLocator.FindAt(traderPosition) is not { } trader)
+		{
+			_log.LogWarning("[RemoteIntent] trader hand-in refused: the owner's scene has no trader at ({X}, {Y}).", traderPosition.X, traderPosition.Y);
+			return;
+		}
+
+		var creditBefore = trader.totalValueGiven;
+		trader.GiveItem(item);
+		if (trader.totalValueGiven <= creditBefore)
+		{
+			_log.LogWarning("[RemoteIntent] trader hand-in refused by the native rule: item {Item} was not accepted (a container that still holds something, a valueless or already-bought item, or the lifetime credit cap).", item.id);
+			return;
+		}
+
+		_log.LogInformation("[RemoteIntent] the native trader hand-in accepted item {Item} at ({X}, {Y}).", item.id, traderPosition.X, traderPosition.Y);
+	}
+
+	/// <summary>The second item operand, resolved on the owner's own body: the host checked the ownership fact, this resolves the live object.</summary>
+	private Item? ResolveCarried(Body body, ulong itemInstanceId, string what)
+	{
+		var target = CarriedItemLocator.FindById(body, itemInstanceId);
+		if (target == null) // Unity object — ==
+		{
+			_log.LogWarning("[RemoteIntent] {What} refused: item {Item} is not carried by the owner's body.", what, itemInstanceId);
+		}
+
+		return target;
+	}
 }

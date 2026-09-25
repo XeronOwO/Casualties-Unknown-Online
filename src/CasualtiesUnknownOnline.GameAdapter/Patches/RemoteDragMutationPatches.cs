@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -233,57 +234,122 @@ internal static class RemoteDragMutationPatches
 	}
 
 	/// <summary>
-	/// <c>Body.CombineItems</c> inside the release window. The native branch
-	/// combines the hovered slot item with the dragged item; with a display proxy in
-	/// either position that is a cross-item interaction whose own intent arrives in
-	/// a later stage, so the call is refused and never runs on a proxy.
+	/// <c>Body.CombineItems</c> inside the release window (R6). The native branch
+	/// combines the hit item with the dragged item and the FIRST argument is the
+	/// receiver — a gun takes the magazine, a container with space takes the liquid,
+	/// the condition merge credits <c>it1</c> — so the intent names both operands and
+	/// the owner evaluates the call on its own real pair.
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "CombineItems")]
 	internal static class RemoteDragBodyCombinePatch
 	{
-		private static bool Prefix()
+		private static bool Prefix(Item it1, Item it2)
 		{
 			var window = RemoteDragIntentWindow.Current;
-			if (!window.IsOpen)
+			if (!window.IsOpen
+				|| (!RemoteDragProxyQuery.IsProxy(it1) && !RemoteDragProxyQuery.IsProxy(it2)))
 			{
 				return true;
 			}
 
-			window.Refuse("combine two items through the remote view (item-interaction intents arrive in a later stage)");
+			// The native call is CombineItems(hitItem, dragItem)
+			// (PlayerCamera.cs:1602): it1 is the hit item and it2 the dragged proxy.
+			window.CaptureCombine(
+				RemoteDragProxyQuery.InstanceId(it2),
+				RemoteDragProxyQuery.InstanceId(it1),
+				RemoteDragProxyQuery.OwnerSteamId(it1));
 			return false;
 		}
 	}
 
-	/// <summary>Battery load inside the release window: a battery interaction across two items, carried by a later stage's intent.</summary>
+	/// <summary><c>Body.UseItem</c> inside the release window (R10, <c>PlayerCamera.cs:1646</c>): the radial-centre use of the dragged proxy, replayed by the owner on its real item.</summary>
+	[HarmonyPatch(typeof(Body), "UseItem")]
+	internal static class RemoteDragBodyUseItemPatch
+	{
+		private static bool Prefix(Item item)
+		{
+			var window = RemoteDragIntentWindow.Current;
+			if (!window.IsOpen || !RemoteDragProxyQuery.IsProxy(item))
+			{
+				return true;
+			}
+
+			window.CaptureUseItem(RemoteDragProxyQuery.InstanceId(item));
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// <c>Body.WearWearable</c> inside the release window (R10,
+	/// <c>PlayerCamera.cs:1642</c>). The native branch tests <c>wearable</c> and
+	/// <c>usable</c> as two independent <c>if</c>s, so this call and
+	/// <see cref="RemoteDragBodyUseItemPatch"/> can both fire inside ONE release:
+	/// that pair is the native order, not a duplicate.
+	/// </summary>
+	[HarmonyPatch(typeof(Body), "WearWearable")]
+	internal static class RemoteDragBodyWearPatch
+	{
+		private static bool Prefix(Item item)
+		{
+			var window = RemoteDragIntentWindow.Current;
+			if (!window.IsOpen || !RemoteDragProxyQuery.IsProxy(item))
+			{
+				return true;
+			}
+
+			window.CaptureWearItem(RemoteDragProxyQuery.InstanceId(item));
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Battery load inside the release window (R3): the dragged battery item goes
+	/// into the HIT item's battery slot, so the intent carries both — the battery is
+	/// consumed there and the receiving item is charged.
+	/// </summary>
 	[HarmonyPatch(typeof(BatteryItem), "LoadBattery")]
 	internal static class RemoteDragBatteryLoadPatch
 	{
-		private static bool Prefix()
+		private static bool Prefix(BatteryItem __instance, Item battery)
 		{
 			var window = RemoteDragIntentWindow.Current;
-			if (!window.IsOpen)
+			if (!window.IsOpen
+				|| (!RemoteDragProxyQuery.IsProxy(battery) && !RemoteDragProxyQuery.IsProxy(__instance)))
 			{
 				return true;
 			}
 
-			window.Refuse("battery load through the remote view (item-interaction intents arrive in a later stage)");
+			var target = __instance.GetComponent<Item>();
+			window.CaptureBatteryLoad(
+				RemoteDragProxyQuery.InstanceId(battery),
+				RemoteDragProxyQuery.InstanceId(target),
+				RemoteDragProxyQuery.OwnerSteamId(target));
 			return false;
 		}
 	}
 
-	/// <summary>Battery unload inside the release window: same family as <see cref="RemoteDragBatteryLoadPatch"/>.</summary>
+	/// <summary>
+	/// Battery unload inside the release window (R2, <c>PlayerCamera.cs:1545</c>):
+	/// the HIT item's own battery is ejected. The native call reads nothing else —
+	/// the dragged item only told the dispatch the direction — so the hit item is
+	/// the single operand. A call on an item that is not a display proxy is a local
+	/// battery unload and keeps the native path.
+	/// </summary>
 	[HarmonyPatch(typeof(BatteryItem), "UnloadBattery")]
 	internal static class RemoteDragBatteryUnloadPatch
 	{
-		private static bool Prefix()
+		private static bool Prefix(BatteryItem __instance)
 		{
 			var window = RemoteDragIntentWindow.Current;
-			if (!window.IsOpen)
+			if (!window.IsOpen || !RemoteDragProxyQuery.IsProxy(__instance))
 			{
 				return true;
 			}
 
-			window.Refuse("battery unload through the remote view (item-interaction intents arrive in a later stage)");
+			var target = __instance.GetComponent<Item>();
+			window.CaptureBatteryUnload(
+				RemoteDragProxyQuery.InstanceId(target),
+				RemoteDragProxyQuery.OwnerSteamId(target));
 			return false;
 		}
 	}
@@ -313,19 +379,29 @@ internal static class RemoteDragMutationPatches
 		}
 	}
 
-	/// <summary>Trader hand-in inside the release window: the gesture's intent is not carried yet, so it is refused instead of handing a proxy to the trader.</summary>
+	/// <summary>
+	/// Trader hand-in inside the release window (R12, <c>PlayerCamera.cs:1663</c>):
+	/// the dragged proxy is handed to the trader the requester has the trade menu
+	/// open on. The trader is an operand because the OWNER's client has no
+	/// <c>PlayerCamera.currentTrader</c>: the intent carries the trader's world
+	/// position, the identity the trade domain already keys its messages by
+	/// (<c>TraderSwingMsg.Position</c>, <c>TradeStateSync.FindTraderAt</c>).
+	/// </summary>
 	[HarmonyPatch(typeof(TraderScript), "GiveItem")]
 	internal static class RemoteDragTraderGivePatch
 	{
-		private static bool Prefix()
+		private static bool Prefix(TraderScript __instance, Item item)
 		{
 			var window = RemoteDragIntentWindow.Current;
-			if (!window.IsOpen)
+			if (!window.IsOpen || !RemoteDragProxyQuery.IsProxy(item))
 			{
 				return true;
 			}
 
-			window.Refuse("give to trader through the remote view (no intent for this gesture yet)");
+			var position = __instance.transform.position;
+			window.CaptureGiveToTrader(
+				RemoteDragProxyQuery.InstanceId(item),
+				new NetVector2Msg(position.x, position.y));
 			return false;
 		}
 	}

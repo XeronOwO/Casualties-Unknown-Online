@@ -52,11 +52,8 @@ internal static class PlayerCameraDragUsePatch
 			return;
 		}
 
-		var marker = dragItem.GetComponent<RemoteInventoryItemId>();
-		var itemId = marker != null ? marker.Id : 0; // Unity object — ==
-		var owner = marker != null && marker.OwnerSteamId != 0
-			? marker.OwnerSteamId
-			: RemoteBackpackView.FocusedSteamId;
+		var itemId = RemoteDragProxyQuery.InstanceId(dragItem);
+		var owner = RemoteDragProxyQuery.OwnerSteamId(dragItem);
 		if (itemId == 0 || owner == 0)
 		{
 			// Fail closed: the native body would mutate the display proxy. This is

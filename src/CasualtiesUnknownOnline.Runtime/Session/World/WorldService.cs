@@ -445,13 +445,13 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public void SendGeyserStateSnapshot(IReadOnlyList<GeyserStateEntryMsg> geysers) => _messages.SendGeyserStateSnapshot(geysers);
 
-	public event Action<ulong, int, int, ushort, WorldGenerationRelation>? BlockPlacedReceived { add => _blockReports.BlockPlacedReceived += value; remove => _blockReports.BlockPlacedReceived -= value; }
+	public event Action<ulong, int, int, ushort, bool, WorldGenerationRelation>? BlockPlacedReceived { add => _blockReports.BlockPlacedReceived += value; remove => _blockReports.BlockPlacedReceived -= value; }
 
-	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block, WorldGenerationMsg? generation) => _blockReports.FireBlockPlacedReceived(sender, x, y, block, generation);
+	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block, bool playerBreak, WorldGenerationMsg? generation) => _blockReports.FireBlockPlacedReceived(sender, x, y, block, playerBreak, generation);
 
-	public void SendBlockPlacedReport(int x, int y, ushort block) => _blockReports.SendBlockPlacedReport(x, y, block);
+	public void SendBlockPlacedReport(int x, int y, ushort block, bool playerBreak) => _blockReports.SendBlockPlacedReport(x, y, block, playerBreak);
 
-	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block) => _blockReports.BroadcastBlockPlaced(excludeSteamId, x, y, block);
+	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block, bool playerBreak) => _blockReports.BroadcastBlockPlaced(excludeSteamId, x, y, block, playerBreak);
 
 	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block) => _blockReports.SendBlockPlacedCorrection(targetSteamId, x, y, block);
 

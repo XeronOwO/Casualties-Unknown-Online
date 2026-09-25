@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -41,7 +42,7 @@ public class GuestBlockReportRecoveryTests
 	private static List<(ulong Sender, int X, int Y, ushort Block)> RecordHostReports(ItemSimWorld w)
 	{
 		var reports = new List<(ulong Sender, int X, int Y, ushort Block)>();
-		w.Host.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (sender, x, y, block, _) =>
+		w.Host.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (sender, x, y, block, _, _) =>
 			reports.Add((sender, x, y, block));
 		return reports;
 	}
@@ -56,7 +57,7 @@ public class GuestBlockReportRecoveryTests
 		var reports = new List<(ulong Sender, int X, int Y, ushort Block)>();
 		var hostBlocks = new Dictionary<(int X, int Y), ushort>();
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
-		hostWorld.BlockPlacedReceived += (sender, x, y, block, generation) =>
+		hostWorld.BlockPlacedReceived += (sender, x, y, block, playerBreak, generation) =>
 		{
 			if (generation == WorldGenerationRelation.Stale)
 			{
@@ -76,7 +77,7 @@ public class GuestBlockReportRecoveryTests
 			}
 
 			hostBlocks[(x, y)] = block;
-			hostWorld.BroadcastBlockPlaced(0, x, y, block); // accepted: relay to everyone, the reporter included (its acknowledgement)
+			hostWorld.BroadcastBlockPlaced(0, x, y, block, playerBreak); // accepted: relay to everyone, the reporter included (its acknowledgement), the write's own break claim riding along
 		};
 		return (reports, hostBlocks);
 	}
@@ -98,7 +99,7 @@ public class GuestBlockReportRecoveryTests
 			}
 		};
 
-		w.G1.Services.GetRequiredService<IWorldControl>().SendBlockPlacedReport(5, 7, 0);
+		w.G1.Services.GetRequiredService<IWorldControl>().SendBlockPlacedReport(5, 7, 0, playerBreak: true);
 		w.Driver.Tick(33);
 
 		var expected = WorldGenerationReports.StampOf(w.G1);
@@ -106,6 +107,42 @@ public class GuestBlockReportRecoveryTests
 		Assert.NotNull(msg.Generation);
 		Assert.Equal(expected.RunEpoch, msg.Generation!.RunEpoch);
 		Assert.Equal(expected.LayerIndex, msg.Generation.LayerIndex);
+	}
+
+	[Fact]
+	public void ReReport_CarriesTheWritesOwnBreakClaim()
+	{
+		// A break's air write is the FIRST thing the host may ever learn about that
+		// write when the live report was swallowed, and the presentation rides the
+		// write: the fallback's re-report must still say the write is a break. The
+		// claim is stored with the entry, never re-derived from "the block value is
+		// 0" — a guest's own quake break is an air write too and must stay silent on
+		// every other side, exactly as it was silent on the side that ran it.
+		using var w = ItemSimWorld.Create();
+		var framed = new List<BlockPlacedMsg>();
+		w.Host.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.BlockPlaced)
+			{
+				framed.Add(NetPacket.DecodePayload<BlockPlacedMsg>(frame));
+			}
+		};
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
+		guestWorld.SendBlockPlacedReport(5, 7, 0, playerBreak: true);
+		guestWorld.SendBlockPlacedReport(6, 8, 0, playerBreak: false);
+		w.Driver.Tick(33);
+		Assert.Empty(framed);
+
+		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
+		w.Driver.Tick(61_000);
+
+		Assert.Equal(2, framed.Count);
+		Assert.True(framed.Single(msg => msg.X == 5 && msg.Y == 7).PlayerBreak,
+			"the break's re-report must still claim the break — the host applies a claimed write through the game's own break presentation");
+		Assert.False(framed.Single(msg => msg.X == 6 && msg.Y == 8).PlayerBreak,
+			"an environment air write stays silent: its source played no break presentation");
 	}
 
 	[Fact]
@@ -118,7 +155,7 @@ public class GuestBlockReportRecoveryTests
 
 		// The lazy-P2P window: the live report never lands.
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		guestWorld.SendBlockPlacedReport(5, 7, 0, playerBreak: true);
 		w.Driver.Tick(33);
 		Assert.Empty(reports);
 
@@ -149,10 +186,10 @@ public class GuestBlockReportRecoveryTests
 		hostBlocks[(9, 9)] = HostBlock; // the host's world already holds a block there
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 		var answers = new List<(int X, int Y, ushort Block)>();
-		guestWorld.BlockPlacedReceived += (_, x, y, block, _) => answers.Add((x, y, block));
+		guestWorld.BlockPlacedReceived += (_, x, y, block, _, _) => answers.Add((x, y, block));
 
 		// A placement the host must refuse (the cell is occupied) — first-writer-wins.
-		guestWorld.SendBlockPlacedReport(9, 9, 7);
+		guestWorld.SendBlockPlacedReport(9, 9, 7, playerBreak: false);
 		w.Driver.Tick(33);
 
 		var answer = Assert.Single(answers);
@@ -172,7 +209,7 @@ public class GuestBlockReportRecoveryTests
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		guestWorld.SendBlockPlacedReport(5, 7, 0, playerBreak: true);
 		w.Driver.Tick(33);
 
 		// Prove the entry is outstanding: once the link heals the fallback
@@ -201,7 +238,7 @@ public class GuestBlockReportRecoveryTests
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		guestWorld.SendBlockPlacedReport(5, 7, 0, playerBreak: true);
 		w.Driver.Tick(33);
 		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
 
@@ -223,7 +260,7 @@ public class GuestBlockReportRecoveryTests
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		guestWorld.SendBlockPlacedReport(5, 7, 0, playerBreak: true);
 		w.Driver.Tick(33);
 		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
 		w.Driver.Tick(61_000);
@@ -243,7 +280,7 @@ public class GuestBlockReportRecoveryTests
 		using var w = ItemSimWorld.Create();
 		_ = RecordHostReports(w); // recording only — the entry stays outstanding
 		var guestWorld = w.G1.Services.GetRequiredService<WorldService>();
-		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		guestWorld.SendBlockPlacedReport(5, 7, 0, playerBreak: true);
 		w.Driver.Tick(33);
 		Assert.Equal(1, guestWorld.PendingBlockReportCount);
 
@@ -280,7 +317,7 @@ public class GuestBlockReportRecoveryTests
 		// 29 s in — inside the swallow window — and the live report never lands.
 		w.Driver.Tick(29_000);
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		guestWorld.SendBlockPlacedReport(5, 7, 0, playerBreak: true);
 		w.Driver.Tick(33);
 		Assert.Empty(reports);
 
@@ -296,11 +333,13 @@ public class GuestBlockReportRecoveryTests
 
 		// Convergence costs exactly ONE re-report frame (the host's echo cleared the
 		// pending entry). The measured size is the frame the sender hands the
-		// transport — the id byte plus the protobuf body of a one-cell report, with no
-		// world/layer generation stamp committed in this simulation world — and pinning
-		// it here is what keeps docs/evidence/sync-cadence-measurements.md reproducible.
+		// transport — the id byte plus the protobuf body of a one-cell report: the
+		// cell, the block, the break claim (2 bytes — a break's report is never
+		// silent, so the bool is on the wire) and no world/layer generation stamp
+		// committed in this simulation world — and pinning it here is what keeps
+		// docs/evidence/sync-cadence-measurements.md reproducible.
 		Assert.Equal(1, framedReports);
-		Assert.Equal(5L, reportBytes);
+		Assert.Equal(7L, reportBytes);
 
 		w.Driver.Tick(61_000);
 		Assert.Single(reports);
@@ -318,7 +357,7 @@ public class GuestBlockReportRecoveryTests
 		w.Driver.Tick(61_000); // ... and the entry phase (12 x 5 s) is over
 
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.SendBlockPlacedReport(5, 7, 0);
+		guestWorld.SendBlockPlacedReport(5, 7, 0, playerBreak: true);
 		w.Driver.Tick(33);
 		Assert.Empty(reports);
 

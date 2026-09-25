@@ -52,8 +52,8 @@ internal sealed class GuestReportRecovery(
 	/// <summary>How many unacknowledged guest block reports are waiting for the host's answer (the fallback pump's work check).</summary>
 	internal int PendingBlockCount => _blocks.Count;
 
-	/// <summary>Guest: record the cell BEFORE its live report is sent — a send that never lands is exactly what the fallback exists for.</summary>
-	internal void ReportBlock(int x, int y, ushort block) => _blocks.Report(x, y, block);
+	/// <summary>Guest: record the cell BEFORE its live report is sent — a send that never lands is exactly what the fallback exists for. The write's presentation claim (<paramref name="playerBreak"/>) is recorded with it: a re-report is the first time the host may learn of that write, so it must carry the same claim.</summary>
+	internal void ReportBlock(int x, int y, ushort block, bool playerBreak) => _blocks.Report(x, y, block, playerBreak);
 
 	/// <summary>Guest: the host answered for this cell (relay echo or correction) — its value is authoritative, the pending report is done.</summary>
 	internal void AnswerBlock(int x, int y) => _blocks.Answer(x, y);
@@ -79,7 +79,7 @@ internal sealed class GuestReportRecovery(
 		foreach (var entry in _blocks.Entries)
 		{
 			_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
-				new BlockPlacedMsg { X = entry.X, Y = entry.Y, Block = entry.Block, Generation = _generations.Stamp() });
+				new BlockPlacedMsg { X = entry.X, Y = entry.Y, Block = entry.Block, PlayerBreak = entry.PlayerBreak, Generation = _generations.Stamp() });
 		}
 
 		_log.LogInformation("[BlockSync] re-reported {Count} unacknowledged block mutation(s) to the host.",
@@ -100,7 +100,7 @@ internal sealed class GuestReportRecovery(
 			return;
 		}
 
-		_sender.Send(targetSteamId, NetMsg.BlockPlaced, new BlockPlacedMsg { X = x, Y = y, Block = block, Generation = _generations.Stamp() });
+		_sender.Send(targetSteamId, NetMsg.BlockPlaced, new BlockPlacedMsg { X = x, Y = y, Block = block, PlayerBreak = false, Generation = _generations.Stamp() });
 		_log.LogDebug("[BlockSync] answered {Peer}'s report at ({X},{Y}) with the authoritative block {Block}.",
 			targetSteamId, x, y, block);
 	}

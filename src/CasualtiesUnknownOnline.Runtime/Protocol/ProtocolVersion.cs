@@ -193,6 +193,20 @@ public static class ProtocolVersion
 	/// its own movement as a speed intent and would keep expecting this side's
 	/// movement reports, so the reported defect would come back in exactly the
 	/// session that mixes the two behaviours.
-	public const int Current = 39;
+	/// 40: `BlockPlacedMsg.PlayerBreak` — an air write that is the block-removal
+	/// half of a damage roll now says so, and the receiving side applies it
+	/// through the game's own damage roll (the broken block's hit/step sounds and
+	/// its break particles) instead of a raw `SetBlock(0)`. A player's break
+	/// reaches the other sides as two facts of one break: the air write, sent the
+	/// instant the block is gone, and the drops-carrying break report one frame
+	/// later (the drops' `Item.Start` folds in first). The air write therefore
+	/// always lands first, so the report's own native roll finds the cell already
+	/// air and never runs, and the break was inaudible on every side that did not
+	/// compute it — while the side that did heard it, which is the user report
+	/// this member answers. A peer without it would apply the air write raw and
+	/// keep the silent break for itself, and every relay it forwarded downstream
+	/// would carry the silence further, so one session would mix two audible
+	/// behaviours.
+	public const int Current = 40;
 
 }

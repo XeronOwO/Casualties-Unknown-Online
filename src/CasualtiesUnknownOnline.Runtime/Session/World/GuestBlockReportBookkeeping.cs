@@ -25,16 +25,18 @@ internal sealed class GuestBlockReportBookkeeping(ILogger<WorldService> log)
 	internal int Count => _table.Count;
 
 	/// <summary>The unacknowledged cells to re-report, in table order — every entry is an independent idempotent report.</summary>
-	internal IReadOnlyList<DamagedBlock> Entries => _table.Entries;
+	internal IReadOnlyList<PendingBlockReport> Entries => _table.Entries;
 
 	/// <summary>
 	/// Record the cell as unacknowledged BEFORE the live report is sent: a send
-	/// that never lands is exactly what the fallback exists for. A cell the cap
-	/// refuses is logged once per overflow episode, never dropped silently.
+	/// that never lands is exactly what the fallback exists for. The write's own
+	/// presentation claim rides the entry — the re-report must not lose it. A cell
+	/// the cap refuses is logged once per overflow episode, never dropped
+	/// silently.
 	/// </summary>
-	internal void Report(int x, int y, ushort block)
+	internal void Report(int x, int y, ushort block, bool playerBreak)
 	{
-		if (_table.Report(x, y, block))
+		if (_table.Report(x, y, block, playerBreak))
 		{
 			return;
 		}

@@ -533,14 +533,34 @@ internal sealed class BlockBreakSync(
 	/// air-write report. A report that carried the break's drops has already had
 	/// them registered and relayed by <see cref="AcceptBreak"/> (the case where
 	/// the air-write message was lost with it), so this only converges the STATE.
+	/// <para>
+	/// The block itself goes through <see cref="RemoteBlockWrite"/>: when it still
+	/// stands here — the lost-air-write shape, where the breaker's air write never
+	/// arrived — this side would otherwise learn the cell was air without ever
+	/// hearing the break, so the write runs the game's own damage roll (the native
+	/// break presentation) and the relay carries the break claim for every peer
+	/// downstream. A cell already air is only written.
+	/// </para>
 	/// </summary>
 	private void OnRemoteDamageBrokeBlock(ulong sender, Vector2Int cell)
 	{
+		// The break is real, so this side's block must go — and when it still
+		// STANDS here (the accepted report arrived without its air write: the
+		// lost-air-write shape) it goes through the game's own damage roll, which
+		// is the native break presentation the air write normally carried. A cell
+		// already air (the air write landed first, or the apply above just broke
+		// it) has nothing left to present and is only written.
+		var world = WorldGeneration.world;
+		if (world != null) // Unity object — ==
+		{
+			RemoteBlockWrite.Apply(world, cell, 0, playerBreak: true, _log);
+		}
+
 		_world.ReportBlockState(cell.x, cell.y, 0);
-		_world.BroadcastBlockPlaced(0, cell.x, cell.y, 0); // everyone, the reporter included — its echo acknowledges the pending air-write report (same-value SetBlock(0) is a no-op locally)
+		_world.BroadcastBlockPlaced(0, cell.x, cell.y, 0, playerBreak: true); // everyone, the reporter included — its echo acknowledges the pending air-write report (same-value SetBlock(0) is a no-op locally), and the break claim lets every side downstream present it
 		OnBlockAirWrite(cell);
 		_buildingEntities.MarkSupportLossRemote(cell);
-		_log.LogInformation("[BlockBreak] {Sender}'s remote damage broke the block at ({X},{Y}) without an air-write report — recorded the block-state difference and relayed it.",
+		_log.LogInformation("[BlockBreak] {Sender}'s remote damage broke the block at ({X},{Y}) without an air-write report — the block went through the game's own roll when it still stood here (see the applier's Debug line for which of the two shapes ran), the block-state difference was recorded and the break relayed with its claim.",
 			sender, cell.x, cell.y);
 	}
 }

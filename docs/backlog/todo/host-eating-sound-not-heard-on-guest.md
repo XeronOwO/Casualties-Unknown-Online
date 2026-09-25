@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Character/item audio sync
 - Source: User acceptance finding (2026-09-21): the host eats and the guest does not hear the eating sound at all.
-- Related: `review/sync-player-pain-vocalizations-and-bark.md` (the one-shot character-sound relay this extends), `todo/guest-hears-only-some-block-break-sounds.md` (the same acceptance pass's other audio finding), `review/host-metal-scrap-block-place-sound-not-synced-to-guest.md`
+- Related: `review/sync-player-pain-vocalizations-and-bark.md` (the one-shot character-sound relay this extends), `review/guest-hears-only-some-block-break-sounds.md` (the same acceptance pass's other audio finding), `review/host-metal-scrap-block-place-sound-not-synced-to-guest.md`
 
 ## Evidence
 

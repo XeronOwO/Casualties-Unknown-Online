@@ -63,11 +63,19 @@ public interface IWorldControl
 	/// </summary>
 	void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true, bool playHitFlash = false);
 
-	/// <summary>Guest: a block was placed locally — record it as an unacknowledged pending report and send it (the host arbitrates + answers; a swallowed report is re-reported by the fallback).</summary>
-	void SendBlockPlacedReport(int x, int y, ushort block);
+	/// <summary>
+	/// Guest: a block was placed locally — record it as an unacknowledged pending
+	/// report and send it (the host arbitrates + answers; a swallowed report is
+	/// re-reported by the fallback). <paramref name="playerBreak"/> is the write's
+	/// own claim, carried on the wire: an air write that is the block-removal half
+	/// of a local damage roll says so, so the receiving side presents the break
+	/// through the game's own damage roll instead of a silent raw write (see
+	/// <see cref="RemoteBreakPresentation"/>).
+	/// </summary>
+	void SendBlockPlacedReport(int x, int y, ushort block, bool playerBreak);
 
-	/// <summary>Host only: broadcast a placed block to every member except <paramref name="excludeSteamId"/> (0 = everyone — the arbitration relay includes the reporter, whose echo is its acknowledgement).</summary>
-	void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block);
+	/// <summary>Host only: broadcast a placed block to every member except <paramref name="excludeSteamId"/> (0 = everyone — the arbitration relay includes the reporter, whose echo is its acknowledgement). <paramref name="playerBreak"/> rides the write unchanged, so a relayed break stays presentable on every side downstream of the host and an environment write stays silent everywhere.</summary>
+	void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block, bool playerBreak);
 
 	/// <summary>
 	/// Host only: answer a guest's block report with the host's authoritative
@@ -133,9 +141,10 @@ public interface IWorldControl
 	/// </summary>
 	void HandleBlockDamageReport(ulong sender, IReadOnlyList<BlockDamageEntryMsg> entries, WorldGenerationMsg? generation);
 
-	void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block, WorldGenerationMsg? generation);
+	void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block, bool playerBreak, WorldGenerationMsg? generation);
 
-	event Action<ulong, int, int, ushort, WorldGenerationRelation>? BlockPlacedReceived;
+	/// <summary>A block write arrived — the message's own presentation claim rides the event, so the apply path can present a relayed break through the game's own damage roll and leave every other write silent (see <see cref="RemoteBreakPresentation"/>).</summary>
+	event Action<ulong, int, int, ushort, bool, WorldGenerationRelation>? BlockPlacedReceived;
 
 	void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash);
 

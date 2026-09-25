@@ -11,7 +11,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// gets the host's current cell back) and host → guest as that answer. The
 /// answer happens after arbitration, so this handler only surfaces the event;
 /// the adapter validates and answers via BroadcastBlockPlaced /
-/// SendBlockPlacedCorrection.
+/// SendBlockPlacedCorrection. The message's own presentation claim rides the
+/// event unchanged: a write that was the block-removal half of a damage roll is
+/// applied through the game's own damage roll, so the break is heard on this side
+/// too (see RemoteBreakPresentation).
 /// </summary>
 [PacketHandler(NetMsg.BlockPlaced, NetMessageDirection.Bidirectional)]
 public sealed class BlockPlacedHandler(ILogger<BlockPlacedHandler> log) : PacketHandlerBase<BlockPlacedMsg, IWorldHandlerContext>
@@ -20,7 +23,7 @@ public sealed class BlockPlacedHandler(ILogger<BlockPlacedHandler> log) : Packet
 
 	protected override void Handle(ulong sender, BlockPlacedMsg msg, IWorldHandlerContext ctx)
 	{
-		ctx.World.FireBlockPlacedReceived(sender, msg.X, msg.Y, msg.Block, msg.Generation);
+		ctx.World.FireBlockPlacedReceived(sender, msg.X, msg.Y, msg.Block, msg.PlayerBreak, msg.Generation);
 		_log.LogDebug("Block placed at ({X},{Y}) type {Block} from {Sender}.", msg.X, msg.Y, msg.Block, sender);
 	}
 }

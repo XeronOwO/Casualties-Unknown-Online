@@ -192,7 +192,7 @@
        consistency gate (EntityFeaturesDocConsistencyTests). -->
   <ItemGroup>
     <None Include="..\..\docs\event-replay-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\docs\features\entity-features-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\contracts\entity-features-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\docs\features\entities.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

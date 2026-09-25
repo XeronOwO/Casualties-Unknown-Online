@@ -58,9 +58,11 @@ the four-layer rule in [advanced-modification-policy.md](../../api/advanced-modi
 - `docs/en/` and `docs/zh/` — the paired human documentation, path for path identical
   ([Writing documentation](documentation-standard.md)).
 - `docs/standard/` — the terminology and pair-alignment registries the rules depend on.
-- `docs/api/` and `docs/evidence/` — the machine baselines the gates read today
-  (`abstractions-api-baseline.txt`, the JSON baselines). The standard declares a `docs/contracts/`
-  section for them; it is not populated yet.
+- `docs/contracts/` — the machine baselines and tables the gates and tools read
+  ([`abstractions-api-baseline.txt`, the two feature matrices](../../contracts/README.md)); the JSON
+  baselines under `docs/evidence/` still sit beside their subject.
+- `docs/api/` — legacy pages whose conclusions are moving into the blocks; deleting them is the last
+  step of the migration.
 - `docs/backlog/`, `docs/evidence/`, `docs/decisions/` and the other process records — English only,
   outside the human navigation; their conclusions belong in the pages above.
 

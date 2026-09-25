@@ -121,7 +121,7 @@ verification of behaviour) and **maintainability** (readable and changeable by t
     its implementation needs; only a capability that is designed, documented and reviewed becomes a
     public third-party contract. `Runtime` and `GameAdapter` are implementations a mod may patch but
     is never promised. The `Abstractions` public surface is a recorded, gate-enforced baseline
-    ([abstractions-api-baseline.txt](../../api/abstractions-api-baseline.txt)): an addition or a
+    ([abstractions-api-baseline.txt](../../contracts/abstractions-api-baseline.txt)): an addition or a
     removal fails until the baseline is reviewed and updated, a removal names its reason, and a
     surface that is not `Stable` declares its level with `[ApiStability]`
     ([advanced-modification-policy.md](../../api/advanced-modification-policy.md)).

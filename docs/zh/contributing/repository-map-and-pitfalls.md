@@ -49,8 +49,9 @@ artifacts/                                     # 门禁与工具产物,不进 gi
 
 - `docs/en/` 与 `docs/zh/` —— 成对的人类文档，路径一一对应（[文档编写规范](documentation-standard.md)）。
 - `docs/standard/` —— 规则依赖的两份登记表：术语与配对对齐。
-- `docs/api/` 与 `docs/evidence/` —— 门禁当前读取的机器基线（`abstractions-api-baseline.txt`，以及那些 JSON 基线）。
-  规范另外声明了一个 `docs/contracts/` 分区来收拢它们，目前还是空的。
+- `docs/contracts/` —— 门禁与工具读取的机器基线和表格（[`abstractions-api-baseline.txt` 加两张特性矩阵](../../contracts/README.md)）；
+  `docs/evidence/` 下的那些 JSON 基线仍留在被描述对象的旁边。
+- `docs/api/` —— 旧页面，结论正在搬进两棵树；迁移的最后一步会删掉它们。
 - `docs/backlog/`、`docs/evidence/`、`docs/decisions/` 等流程记录 —— 只有英文，不进人类导航；
   它们的结论要吸收进上面那些页面。
 

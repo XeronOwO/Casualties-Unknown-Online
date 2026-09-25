@@ -635,7 +635,7 @@ the log line as its record.
 Versions are strict SemVer, and for state-bearing modes the comparison is **precedence equality**
 (build metadata ignored). Compatibility ranges are not inferred; the surface they would have to be
 checked against is the stability levels in `docs/api/advanced-modification-policy.md` and the reviewed
-public surface in `docs/api/abstractions-api-baseline.txt`, enforced by `ApiSurfaceGateTests`.
+public surface in `docs/contracts/abstractions-api-baseline.txt`, enforced by `ApiSurfaceGateTests`.
 
 ## The layout of a mod
 

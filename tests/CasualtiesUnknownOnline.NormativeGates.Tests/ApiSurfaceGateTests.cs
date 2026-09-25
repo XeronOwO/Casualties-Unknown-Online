@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// Gate + contract tests for the Mod API public-surface baseline
-/// (<c>docs/api/abstractions-api-baseline.txt</c>). The first test re-derives the
+/// (<c>docs/contracts/abstractions-api-baseline.txt</c>). The first test re-derives the
 /// Abstractions public surface from the project's source and compares it with the
 /// recorded one; the rest pin the comparison's own contract with synthetic
 /// sources, so the gate cannot pass by finding nothing.

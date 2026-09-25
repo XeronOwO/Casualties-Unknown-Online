@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// is <see cref="ApiStabilityLevel.Stable"/>; a member without the attribute
 /// carries its declaring type's level. The attribute is a declaration for
 /// authors and for the public-surface gate
-/// (<c>docs/api/abstractions-api-baseline.txt</c>) — it is not an enforcement
+/// (<c>docs/contracts/abstractions-api-baseline.txt</c>) — it is not an enforcement
 /// mechanism of its own, and it changes nothing at runtime.
 /// </summary>
 [AttributeUsage(

@@ -12,7 +12,7 @@ Each feature section states the mechanic, its decompiled implementation
 CUO sync status (with `src/` references).
 
 The full item × feature matrix lives in
-[`item-features-matrix.csv`](item-features-matrix.csv) — one row per item
+[`item-features-matrix.csv`](../contracts/item-features-matrix.csv) — one row per item
 (~190), maintained by `tools/item-features.ps1` (see Usage below). Read the
 matrix with `list`/`get`, never by hand: a misaligned row is detected by
 `validate` before any output is trusted.

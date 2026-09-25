@@ -13,7 +13,7 @@
 - [特性矩阵](feature-matrices.md) —— 哪些游戏特性已同步、哪些是设计内排除、哪些还开着。
 - [日志速查](logs.md) —— 三个日志文件、一行日志的形状，以及该搜什么。
 
-这些页面背后的机器可读登记在 [`../../standard/`](../../standard/README.md)。
+这些页面背后的机器可读登记在 [`../../standard/`](../../standard/README.md)，它们点名的基线与表格在 [`../../contracts/`](../../contracts/README.md)。
 
 ---
 

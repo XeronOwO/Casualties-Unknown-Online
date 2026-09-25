@@ -47,6 +47,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Feature-matrix tooling has no path gate](todo/feature-matrix-tool-path-gate.md) — **Low-Medium** — tool and page paths are unverified.
+
 
 ### Review
 

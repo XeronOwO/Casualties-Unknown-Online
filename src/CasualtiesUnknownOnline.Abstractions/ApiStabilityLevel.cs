@@ -6,7 +6,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// differs from its type, on that member); a surface without the attribute is
 /// <see cref="Stable"/>, so a level is a deliberate declaration and never a
 /// default that happened. The recorded surface — level included — is
-/// <c>docs/api/abstractions-api-baseline.txt</c>, and the policy behind the
+/// <c>docs/contracts/abstractions-api-baseline.txt</c>, and the policy behind the
 /// levels is <c>docs/api/advanced-modification-policy.md</c>.
 /// </summary>
 public enum ApiStabilityLevel

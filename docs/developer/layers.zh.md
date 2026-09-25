@@ -30,6 +30,6 @@
 
 ## 细节在哪里
 
-`docs/api/abstractions-api-baseline.txt` 是记录在案的公开表面,
+`docs/contracts/abstractions-api-baseline.txt` 是记录在案的公开表面,
 `docs/api/advanced-modification-policy.md` 定义稳定性等级,
 [当前架构](../architecture/current.md)保存完整的依赖图。

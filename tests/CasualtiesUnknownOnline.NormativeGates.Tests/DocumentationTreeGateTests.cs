@@ -24,7 +24,7 @@ public class DocumentationTreeGateTests
 	private const int MinimumIndexPages = 10;
 
 	private static readonly string[] ScannedLooseFiles =
-		["docs/README.md", "docs/AGENTS.md", "docs/standard/README.md", "docs/en/AGENTS.md", "docs/zh/AGENTS.md"];
+		["docs/README.md", "docs/AGENTS.md", "docs/standard/README.md", "docs/contracts/README.md", "docs/en/AGENTS.md", "docs/zh/AGENTS.md"];
 
 	[Fact]
 	public void EveryPage_HasItsCounterpartInTheOtherBlock()

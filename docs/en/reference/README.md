@@ -14,7 +14,8 @@ states the contract and links to [Internals](../internals/README.md) for the rea
 - [Feature matrices](feature-matrices.md) — which game features are synced, which are excluded by design, and which are still open.
 - [Logs](logs.md) — the three log files, the shape of a line, and what to search for.
 
-The machine-readable registries behind these pages are in [`../../standard/`](../../standard/README.md).
+The machine-readable registries behind these pages are in [`../../standard/`](../../standard/README.md),
+and the baselines and tables they name are in [`../../contracts/`](../../contracts/README.md).
 
 ---
 

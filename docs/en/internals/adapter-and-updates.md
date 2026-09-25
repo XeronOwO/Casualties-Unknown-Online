@@ -80,7 +80,7 @@ The work is bounded by the boundary, and it goes in this order:
 
 - **`Abstractions` is the promise.** It is the only surface with a stability contract, and even there
   the public surface is a recorded baseline: adding or removing a member is a reviewed act
-  (`ApiSurfaceGateTests` compares the surface against `docs/api/abstractions-api-baseline.txt`).
+  (`ApiSurfaceGateTests` compares the surface against `docs/contracts/abstractions-api-baseline.txt`).
 - **`Runtime` and `GameAdapter` are implementations.** A mod may patch them, and a patch that stops
   working after a CUO update is that mod's problem — not a broken promise.
 - **The game's own code is not a promise at all.** What the adapter binds belongs to the game; a game

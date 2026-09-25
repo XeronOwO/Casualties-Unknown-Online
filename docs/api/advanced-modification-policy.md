@@ -97,7 +97,7 @@ any other API change.
 
 ## 3. The public-surface baseline
 
-`docs/api/abstractions-api-baseline.txt` is the reviewed record of the `Abstractions` public
+`docs/contracts/abstractions-api-baseline.txt` is the reviewed record of the `Abstractions` public
 surface — every public type, its base list, and every public member with its signature and its
 level. `ApiSurfaceGateTests` re-derives the surface from the project's source and compares:
 

@@ -14,7 +14,7 @@ randomness, its replay presentation (what the other side sees/hears), and its
 CUO sync status (with the covering `src/` mechanism or the exclusion reason).
 
 The full entity × feature matrix lives in
-[`entity-features-matrix.csv`](entity-features-matrix.csv) — one row per
+[`entity-features-matrix.csv`](../contracts/entity-features-matrix.csv) — one row per
 entity (~70), maintained by `tools/entity-features.ps1` (see Usage below).
 Read the matrix with `list`/`get`, never by hand: a misaligned row is
 detected by `validate` before any output is trusted.

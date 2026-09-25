@@ -1,10 +1,21 @@
 # Remote backpack item projection acceptance issues (projection rework needed)
 
-- Status: Todo
+- Status: Resolved
 - Priority: High
 - Category: Remote inventory / item projection / container sync
-- Parent: `docs/backlog/todo/remote-backpack-native-interaction-parity.md`
+- Parent: `docs/backlog/resolved/remote-backpack-native-interaction-parity.md`
+- Superseded by: `todo/remote-inventory-native-parity-rework.md` (absorbed 2026-09-21, stage 0)
 - Source: User acceptance findings (2026-09-06) on the remote-backpack review ticket.
+
+## Why this record is closed without further code
+
+The user ruled (2026-09-21) that the remote item surface is replaced by an end-to-end native path
+rather than patched again. This ticket's reported rows are the rework ticket's acceptance input:
+the interactive rows are covered by that ticket's matrix, and the two display-only rows (durability
+source values, container content rendering) belong to the landed projection seam in
+`review/unified-remote-display-projection-rework.md`. The design is
+`docs/architecture/remote-inventory-native-parity.md` (decision 217). Nothing in this file is a live
+work item any more.
 
 ## Reopened (2026-09-21 acceptance pass)
 

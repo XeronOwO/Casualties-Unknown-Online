@@ -49,10 +49,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [A dead or unconscious carried body stops simulating](todo/carried-unconscious-body-simulation.md) — **Medium** — vitals frozen behind the pinned pose.
-- [Remote backpack parity](todo/remote-backpack-native-interaction-parity.md) — **Critical** — reopened: a remote backpack is not operable.
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — reopened: the rider's body is frozen as a render proxy.
 - [Manual world acceleration must not end when a player moves](todo/world-acceleration-survives-movement.md) — **High** — the shared clock ignores movement.
-- [Remote backpack item projection](todo/remote-backpack-item-projection-acceptance-issues.md) — **High** — reopened: Tab transfer and held-item self-use.
 - [World-time acceleration is gated on being asleep](todo/world-time-local-initiation.md) — **Medium** — reopened: the movement reset is superseded.
 - [Guest hears only some block-break sounds](todo/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the hit relay loses part of the cadence.
 - [Host eating sound on the guest](todo/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume path reports nothing.
@@ -209,6 +207,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Command authorization gateway](resolved/command-authorization-gateway.md) — absorbed into the Application-layer ticket.
 - [Kernel replication namespace move](resolved/kernel-replication-namespace-relocation.md) — absorbed into the Application-layer ticket.
 - [Runtime DI feature lifecycle](resolved/runtime-di-feature-registration-lifecycle.md) — rewritten as the composition-root ticket.
+- [Remote backpack parity](resolved/remote-backpack-native-interaction-parity.md) — **Critical** — absorbed: its routing table is deleted.
+- [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
 

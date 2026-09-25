@@ -1,15 +1,28 @@
 # Remote backpack native interaction parity
 
-- Status: Review (critical / super-priority; code-complete, latest DLLs deployed and artifact-verified, awaiting final user dual-client acceptance)
+- Status: Todo
 - Priority: Critical
 - Category: Remote inventory / co-op interaction parity / container sync
 - Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction; user now reports the remote-backpack operation problem still exists with behavior identical to before any fix and marks it a super-priority issue.
+
+## Reopened (2026-09-21 acceptance pass)
+
+The unified acceptance pass reports the reported reproductions still fail: with the guest opening
+the host's backpack nothing inside can be operated at all, and with the host opening the guest's
+backpack an item moved into the trash bag can be taken out but disappears a short time later while
+the owner's items cannot be dropped. The user rejects the implementation as a whole: the design is
+to be replaced rather than patched again, and operating another player's items must be
+indistinguishable from operating one's own (function, animation, UI, sound).
+
+This ticket is moved back to `todo/`. The rework that replaces it — with the root-cause analysis of
+the two execution worlds and the staged plan — is `todo/remote-inventory-native-parity-rework.md`;
+the acceptance matrix below stays as that rework's input.
 
 ## Acceptance findings (2026-09-06)
 
 The user opened this review ticket for acceptance and found the following
 issues. They are recorded in
-`docs/backlog/review/remote-backpack-item-projection-acceptance-issues.md`; this
+`docs/backlog/todo/remote-backpack-item-projection-acceptance-issues.md`; this
 ticket is **not accepted** until those issues are resolved.
 
 1. Host holds metal scrap at 75% durability; guest opens the host backpack and sees 100% durability.

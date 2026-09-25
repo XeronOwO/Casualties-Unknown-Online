@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Network / sync coverage / enemies (hit-determination authority)
 - Source: User ruling 2026-09-18 (design alignment session): hit determination must run on the victim's client. A host-side verdict punishes high-latency players — damage arrives after the victim's own screen showed a dodge, and several hits can land inside one round trip. Gameplay experience is the highest standard. Supersedes `resolved/enemy-attack-delivery-recovery.md`.
-- Related: `review/enemy-snapshot-binding-recovery.md` (the binding the victim's own judgment depends on), `review/remote-interaction-local-gating.md` (the same authority rule for interaction gates), `review/world-time-local-initiation.md` (the same rule for a shared world clock)
+- Related: `review/enemy-snapshot-binding-recovery.md` (the binding the victim's own judgment depends on), `review/remote-interaction-local-gating.md` (the same authority rule for interaction gates), `todo/world-time-local-initiation.md` (the same rule for a shared world clock)
 
 ## Problem (evidence)
 

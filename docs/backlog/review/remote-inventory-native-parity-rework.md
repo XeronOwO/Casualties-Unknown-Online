@@ -1,6 +1,6 @@
 # Remote inventory operations: run the native path end to end
 
-- Status: Todo
+- Status: Review
 - Priority: Critical
 - Category: Remote inventory / native interaction parity / architecture rework
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
@@ -210,6 +210,46 @@ one line each:
    host-authoritative flow, which the `ApplyToLimb` intent already routes to; this stage audited that
    route instead of re-implementing it, and row 8's real-machine behaviour stays the user's run.
 
+## Stage 4 — family audit and acceptance preparation (landed)
+
+No runtime behaviour changed in this stage. The acceptance matrix was audited row by row against the
+mechanism that implements it, the test that pins it and the part only a session can settle; every
+verdict and its anchors are in the cycle evidence
+(`docs/evidence/selfchecks/items/remote-inventory-native-intent-stage4-audit.md`), together with
+decision 221. What it settled, one line each:
+
+1. **The craft screen cannot consume a remote item (row 15).** The recipe's material search reads the
+   LOCAL body and a world overlap that needs an enabled collider, and every clone render disables its
+   collider and carries no authoritative instance id — so the native local UI runs, nothing about the
+   OWNER's item travels and no proxy is mutated. The craft consumes the operator's own matching
+   materials, which is the native behaviour, and it still rides the landed craft report for those
+   materials; it is recorded rather than changed.
+2. **The container window re-binds by authoritative instance id** (`RemoteBackpackView`), and the
+   window's rows are proxies like every other clone render, so a gesture made from it enters the same
+   release window.
+3. **Worn items resolve on the owner**: `CarriedItemLocator` searches the local body's whole carried
+   subtree and skips display proxies, which is what `ApplyWearItem` and `DropWearable` need.
+4. **Both directions share one validation path**: the host's own gesture enters
+   `HandleRemoteInventoryIntentRequest` with the local SteamId, and the same forwarding rule carries it
+   to a guest owner, so rows 1 and 2 differ only in which hop carries the payload.
+5. **The third peer's view is the landed authoritative path**, not a per-viewer branch: the owner's
+   immediate re-report is the character-data path every other remote fact uses. No test in this
+   repository drives three clients through this family, so the row stays the acceptance run's.
+6. **The two adjudicated projection tickets stay landed** and are not reopened: the interaction rework
+   adds no display requirement their seam does not carry, and the interactive rows their boundary
+   deferred are the ones audited here.
+7. **Three limits are the acceptance run's judgement items**, each with its evidence and its reason in
+   the audit's §4: the item's own sound plays where the mutation runs, the radial weight readout shows
+   the operator's own encumbrance, and the custody transfer keeps its host-authoritative path with no
+   owner-side release animation. The checklist carries them as explicit questions, because none of them
+   can be settled without a decision this ticket does not take.
+
+The acceptance checklist
+(`docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md`) carries the
+reported behaviour, the rows that need a session, the three judgement items and the build-identity
+step. With this stage the ticket's development work is complete; the run itself is the user's
+release-cycle action.
+
 ## Staged plan
 
 - **Stage 0 — design.** Done, see above.
@@ -221,8 +261,9 @@ one line each:
 - **Stage 3 — item interactions.** Done, see above: the seven item-interaction kinds with the second
   item operand and the trader operand, the favourite store observed across the frame bracket, R10's
   use/wear branch restored with its no-op classified, and the sound / medical-path audits concluded.
-- **Stage 4 — family audit and acceptance.** Both directions, a third peer, worn items, containers
-  and the craft screen against the matrix below; the projection tickets re-evaluated.
+- **Stage 4 — family audit and acceptance.** Done, see above: the matrix was audited row by row, the
+  two projection tickets were re-evaluated, and the limits the earlier stages recorded are the
+  acceptance run's judgement items; the run itself stays the user's release-cycle action.
 
 ## Acceptance matrix
 
@@ -242,7 +283,7 @@ one line each:
 | 12 | The operator's own screen during any row above | The same animation, UI feedback and sounds as operating their own inventory |
 | 13 | Host holds metal scrap at 75% condition and the guest opens the host's backpack | The guest sees 75%, and the value follows the owner's later changes (absorbed from `resolved/remote-backpack-item-projection-acceptance-issues.md`) |
 | 14 | Move a water bottle, dog food, a lantern and metal scrap into the remote trash bag | Every item the native weight and tag rules allow enters immediately and stays (the absorbed selective-insertion finding) |
-| 15 | Craft screen from a remote item, and opening a remote container's window | Native local UI on the viewer: no intent, no host round trip, and no proxy mutation |
+| 15 | Craft screen from a remote item, and opening a remote container's window | Native local UI on the viewer: no native inventory intent and no host round trip for the remote item (the craft consumes the operator's own materials and so still rides the landed craft report), and no proxy mutation |
 
 The two absorbed tickets' remaining rows are covered by rows 3-9 above: the trash-bag take-out and
 re-insert vanish (rows 3-4), pour and edge drop (row 5), main-hand and other slot placement (row 6),
@@ -254,7 +295,10 @@ chain (row 8). Their original text stays in git and in the two `resolved/` recor
 The implementation cycle adds tests for the intent -> native-call mapping and keeps the item/kernel
 suites green; the deployed-artifact identity is checked. The operating feel on the requester's
 screen and the two-client behaviour are the user's release-cycle acceptance. Rows 1-4 of the
-reported behaviour must be re-run on the deployed build until they no longer reproduce.
+reported behaviour must be re-run on the deployed build until they no longer reproduce. Stage 4
+consolidates that run — its steps, its expected outcomes, its three judgement items and the
+build-identity check — in
+`docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md`.
 
 ## Non-goals
 

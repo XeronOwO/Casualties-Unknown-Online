@@ -48,7 +48,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [The one-top-level-type gate misses `readonly` records](todo/source-shape-gate-modifier-blindness.md) — **Medium** — the matcher spells modifiers by hand.
-- [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [A dead or unconscious carried body stops simulating](todo/carried-unconscious-body-simulation.md) — **Medium** — vitals frozen behind the pinned pose.
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — reopened: the rider's body is frozen as a render proxy.
 - [Manual world acceleration must not end when a player moves](todo/world-acceleration-survives-movement.md) — **High** — the shared clock ignores movement.
@@ -61,6 +60,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [Remote inventory native parity rework](review/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [Composition root feature modules](review/composition-root-feature-modules.md) — **Medium** — feature modules, one reset contract, binding gate.
 - [Mod API contract governance](review/mod-api-contract-governance.md) — **Medium-High** — visibility rule, stability levels, API baseline.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.

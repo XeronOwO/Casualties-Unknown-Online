@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: remote-inventory-native-intent-stage3-selfcheck "What landed" table, 10 rows, each carrying its anchor
+      file:line or runtime log) or is explicitly marked unverified — evidence: remote-inventory-native-intent-stage4-audit §2, the matrix's 15 rows, each carrying its implementation anchor
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all seven item-interaction kinds landed together, plus the three report hooks they exposed and both design-named audits (sounds, non-drag UI paths)
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: remote-inventory-native-intent-stage3-selfcheck (landed 10 rows, amended-design 6 rows, decisions 6 rows, verification and limits)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 15 matrix rows audited in one pass across both directions, worn items, containers, the craft screen and the container window (audit §2-§3)
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: remote-inventory-native-intent-stage4-audit (matrix 15 rows, findings §3, limits §4, projection verdicts §5)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: test-expectation red observed (11/87, %TEMP%\cuo-red-stage3.txt) then focused 93/93 and full 3906/3906 with build; the scene-bound halves are code facts in the selfcheck
+      peer log comparison, hotrepl assertions) is decided — evidence: a code-fact anchor per row plus the acceptance checklist's session rows, 3 judgement items and failure-capture steps; no test here renders a frame
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff names stage 3 of the rework ticket as the next work item; design §3/§4 and decision 217 froze the plan it executes
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors, `dotnet format` exit 0, focused 93/93 (%TEMP%\cuo-stage3-focused.txt), full 3906/3906 with build, gates 148/148 open then 149/149 closed (%TEMP%\cuo-stage3-{full,gates}.txt)
+      process violation — evidence: the handoff names stage 4 of the rework ticket as the next work item; design §4's stage table froze it (decision 217)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: 3906/3906 with build; gates 149/149 and 148/148 filtered, post-fix (%TEMP%\cuo-stage4-full-final.txt); doc-only cycle, format skipped
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: window aggregate 511 lines after the extraction the aggregate gate forced, RemoteContainerMoveCapture 176; the R10 suppression patch and its catalog row deleted; the new no-op is a typed enum value
+      dead mechanisms deleted in the same round) — evidence: no src/ or tests/ file changed; stage 3's measured aggregates stand (window 511 lines, RemoteContainerMoveCapture 176)
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

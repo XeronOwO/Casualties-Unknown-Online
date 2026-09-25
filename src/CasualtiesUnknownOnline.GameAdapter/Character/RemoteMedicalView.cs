@@ -76,12 +76,19 @@ internal static class RemoteMedicalView
 		var display = DisplayBody;
 		var wasOpen = IsOpen;
 
-		// Clear the static state BEFORE toggling the native panel: the toggle
-		// postfix observes RemoteMedicalView.IsOpen and would otherwise re-enter
-		// Close while this instance is still half-destroyed.
+		// Clear the static state BEFORE toggling the native panel: with IsOpen already
+		// false the panel-toggle postfix returns immediately instead of re-entering
+		// Close, and the IsNativeWoundViewOpen() guard below keeps an already-closed
+		// panel from being toggled twice.
 		_displayBody = null;
 		_targetSteamId = 0;
 		_displayName = "";
+
+		// Give the local-only action surfaces back on EVERY close call, not only the
+		// ones that still see an open focus: a display body destroyed under the focus
+		// (IsOpen already false while the local panel is up) must not leave a hidden
+		// control behind. A no-op when nothing was hidden.
+		RemoteMedicalLocalControls.Restore();
 
 		if (!wasOpen)
 		{

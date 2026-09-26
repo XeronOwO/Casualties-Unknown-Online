@@ -71,6 +71,6 @@ Evidence: `docs/evidence/selfchecks/items/guest-background-ghost-item-ground-sou
 - Not adding a host-authored item-impact sound stream; the host already does
   not broadcast these one-shot physical sounds, and the fix removes only the
   non-authoritative local echo. SUPERSEDED 2026-09-26 by
-  `todo/suppressed-native-call-sounds-stay-unheard.md`: the impact presentation —
+  `review/suppressed-native-call-sounds-stay-unheard.md`: the impact presentation —
   the sound AND the dust — is now carried from the authority side through
   `ItemImpact`, and the guest-side suppression this ticket landed is unchanged.

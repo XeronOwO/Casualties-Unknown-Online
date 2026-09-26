@@ -340,7 +340,7 @@ this audit censused, the ingest clips (`eatFlesh` / `eatCrunch` / `drink`), the 
 item-feedback and body one-shot families now ride that same `CharacterSound` event, captured from the
 call-identity scope the native call runs in (`review/host-eating-sound-not-heard-on-guest.md`,
 `review/unhooked-item-and-body-sound-families.md`). The same family's 2026-09-26 follow-up cycle
-(`todo/suppressed-native-call-sounds-stay-unheard.md`) added the producers whose native call never
+(`review/suppressed-native-call-sounds-stay-unheard.md`) added the producers whose native call never
 ran on the acting side: the remote limb treatment plays the item's own limb-action clip from the
 operator's client inside the treatment scope (the remote view blocks the native apply), and the
 native `BandageMinigame`'s own physics step carries `bandage` for the local and the remote treatment
@@ -521,7 +521,7 @@ boundary; no dual shape is kept.
       gesture runs under `RemoteApply`, whose sounds are deliberately not reported as the local player's
       action, so it still plays on the owner's client alone — the operator-side item sound is therefore
       a real-machine acceptance question, now carried by
-      `todo/suppressed-native-call-sounds-stay-unheard.md`.
+      `review/suppressed-native-call-sounds-stay-unheard.md`.
     - **The radial-centre release is now the native branch's own answer, including its no-op.** R10
       consumes a release for an item that is neither wearable nor usable without running anything; the
       probe records that as a classified no-op instead of letting it read as an unclassified gesture

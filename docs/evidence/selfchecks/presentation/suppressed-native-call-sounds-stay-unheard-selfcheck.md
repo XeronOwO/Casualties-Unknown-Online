@@ -1,6 +1,6 @@
 # Self-check — the sounds whose native call is suppressed
 
-- Ticket: `docs/backlog/todo/suppressed-native-call-sounds-stay-unheard.md` (2026-09-26 cycle, HEAD started at `04557ce1`)
+- Ticket: `docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md` (2026-09-26 cycle, HEAD started at `04557ce1`)
 - Change: the two rows the item and body sound cycle recorded as out of family are carried — the
   remote limb treatment plays the clip the blocked native limb action would have played, the bandage
   minigame's own step carries `bandage` for the local and remote treatment alike, and a world-item

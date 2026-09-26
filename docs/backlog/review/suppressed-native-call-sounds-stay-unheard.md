@@ -1,6 +1,6 @@
 # Sounds whose native call is suppressed never reach the peers
 
-- Status: Todo
+- Status: Review
 - Priority: Low
 - Category: Audio sync / report coverage
 - Source: the 2026-09-26 census of `review/unhooked-item-and-body-sound-families.md` — closing that family's routing left two rows whose clip is not merely unreported: the native call that would play it is suppressed or blocked on every side.

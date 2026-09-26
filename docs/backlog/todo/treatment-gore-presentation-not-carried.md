@@ -3,8 +3,8 @@
 - Status: Todo
 - Priority: Low
 - Category: Audio sync / report coverage
-- Source: the independent adversarial review of the `todo/suppressed-native-call-sounds-stay-unheard.md` cycle (2026-09-26) — its census read the delegates of the accepted medical items but not what those delegates CALL, so two groups were recorded as "natively silent" although they play a 3D gore clip.
-- Related: `todo/suppressed-native-call-sounds-stay-unheard.md` (the cycle that censused the accepted surface and recorded these rows as uncarried), `review/unhooked-item-and-body-sound-families.md`
+- Source: the independent adversarial review of the `review/suppressed-native-call-sounds-stay-unheard.md` cycle (2026-09-26) — its census read the delegates of the accepted medical items but not what those delegates CALL, so two groups were recorded as "natively silent" although they play a 3D gore clip.
+- Related: `review/suppressed-native-call-sounds-stay-unheard.md` (the cycle that censused the accepted surface and recorded these rows as uncarried), `review/unhooked-item-and-body-sound-families.md`
 
 ## The gap
 

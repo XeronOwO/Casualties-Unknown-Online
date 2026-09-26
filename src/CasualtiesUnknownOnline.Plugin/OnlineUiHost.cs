@@ -60,6 +60,9 @@ internal sealed class OnlineUiHost
 	private readonly IWorldLibrary? _worldLibrary;
 	private readonly IStartGateState? _gateState;
 	private readonly CuoEscCloseSuppression _escCloseSuppression = new();
+	// The one-shot read-only probe of the game's own UI (S1 of the Online UI overhaul) — the adapter
+	// reads, this class only decides nothing and the Runtime's policy decides when to stop.
+	private readonly OnlineUiNativeFactsProbe _nativeFacts;
 
 	internal OnlineUiHost(IServiceProvider services, ConfigEntry<string> quickPanelKey, LobbySwitchActions lobby)
 	{
@@ -97,6 +100,9 @@ internal sealed class OnlineUiHost
 		// page says so instead of throwing.
 		_worldLibrary = services.GetService<IWorldLibrary>();
 		_gateState = services.GetService<IStartGateState>();
+		_nativeFacts = new OnlineUiNativeFactsProbe(
+			services.GetRequiredService<ILogger<OnlineUiNativeFactsProbe>>(),
+			services.GetService<IOnlineUiNativeFactsQuery>());
 
 		var ipConfig = services.GetRequiredService<IpDirectConfigEditor>();
 		var colorConfig = services.GetRequiredService<PlayerColorConfigEditor>();
@@ -213,6 +219,10 @@ internal sealed class OnlineUiHost
 		{
 			_onlineUi.ToggleQuickPanel();
 		}
+
+		// S1's read-only probe of the game's own UI: it needs no surface of its own, asks at most once
+		// per interval, and stops for good once it has a complete reading (see the Runtime policy).
+		_nativeFacts.Update(_time.NowMs);
 	}
 
 	/// <summary>

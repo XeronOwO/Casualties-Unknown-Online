@@ -46,8 +46,10 @@ assembly), and its interface keeps growing with every feature (see
   the runtime-spawn materialization, the frozen-copy lifecycle). What is left to extract next is
   the HOST CAPTURE half (`CaptureHostEnemies` / `EnsureMapping` / `Bind` / `Capture` ≈ 110 lines);
   the shared entity↔id table is what currently ties it to the guest binding half.
-- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (~583) — the pump order is the seam
-  contract, so any further per-frame step should go into a domain, not into `Update`.
+- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (~573) — the pump order is the seam
+  contract, so any further per-frame step should go into a domain, not into `Update`. (The Online UI's
+  native-facts port added one field and one explicit member; the per-frame reading lives in its own
+  `OnlineUi/` collaborator.)
 - `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs` (~582) — the run-lifecycle phase
   machine plus the body-state publish path. It grew by one line in the S2 in-game gap fix (the
   WorldJoin follow cancels a queued local character restore); a split is due before anything else

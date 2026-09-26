@@ -1,6 +1,6 @@
 # The Online UI's art and controls are placeholders
 
-- Status: Todo
+- Status: In progress
 - Priority: High
 - Category: Online UI / presentation and interaction
 - Source: User request (2026-09-26). Three asks in the user's words: much of the Online UI is simplified and does not match this game's style, and the game's own art style should be the reference; the "dropdown" is a button that lists buttons after it is clicked, which reads wrong (is there no dropdown control?); and the colour choice is half-done — the player should be free to pick, with a palette or an RGB input, instead of a few presets. The user's own reading of the cause: the simple UI was a speed choice when the online layer was pushed forward, and it should now be done properly.
@@ -97,6 +97,38 @@ adversarial review → one commit.
    swatch. The wire is untouched.
 4. **S4 — retirement pass.** Retire the scoped raycast blocker for the migrated surfaces and decide the
    two surfaces IMGUI still owns (the world-space overlays and the command console overlay).
+
+## What landed — S1 (2026-09-26)
+
+The stage's premise was that the four unknowns need a runtime reading and that the host which can take
+one is adapter-side, because only the adapter may reach the game's canvas. Both landed; the reading
+itself needs one game run (self-check: `docs/evidence/selfchecks/ui/online-ui-native-facts-selfcheck.md`).
+
+- **The probe.** `IOnlineUiNativeFactsQuery.Capture()` (Runtime port, adapter implementation) builds a
+  CUO canvas under the game's own main canvas, instantiates `Special/GameSettingDropdown` and
+  `Special/GameSettingInput` into it, reads the game's font asset, a row's `Image` sprite / type /
+  pixels-per-unit multiplier / 9-slice border, a bounded census of the live canvas' image styles and
+  `PlayerCamera.uiScale`, and disposes the probe the moment a reading is complete — or, at the latest,
+  when the adapter is disposed; between attempts the inactive canvas and its rows stay in place, because
+  two of the four facts appear at different moments and rebuilding them per retry would be waste. The
+  hierarchy is inactive from its first statement, so nothing renders, takes input or joins the game's
+  `EventSystem`.
+- **The pure half.** The Runtime owns when to stop asking (`OnlineUiNativeFactsCapturePolicy`: 500 ms
+  between attempts, a five-minute deadline, an attempt budget, four terminal states) and how a reading
+  reads (`OnlineUiNativeFactsReport`, `OnlineUiNativeStyleCensus`) — 29 facts across four classes that
+  need no game.
+- **The boundary held.** Unity objects stay adapter-side: the port carries plain values
+  (`OnlineUiNativeFacts`), the plugin resolves it optionally and prints the report once, and the plugin
+  project still binds no game assembly. The adapter's port census is 13 ports / 17 members.
+- **Deliberately not spawned: `Special/SettingsMenu`.** Its `Start` builds the whole settings screen and
+  claims the static `SettingsMenu.instance` that the game's own `OpenMenu` returns early on, and its
+  `Close`/`ResetToDefault` write the settings file (`SettingsMenu.cs`), so only the row prefabs are a
+  safe probe target. The rule is pinned with a mutation control that adds exactly that load.
+- **The reading is pending, by design.** Nothing was deployed this cycle, so the four values come from
+  the first game run with the built plugin: the probe logs them once under the `CUO UI native facts`
+  prefix, and logs a single warning naming what stayed missing if the deadline passes. S2 must not
+  depend on the values before they land — it can be built against the host and the reading's shape,
+  which is what this stage fixes.
 
 ## Non-goals
 

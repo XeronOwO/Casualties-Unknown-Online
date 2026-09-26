@@ -81,6 +81,15 @@
       <HintPath>..\..\references\UnityEngine.UIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <!--
+      Unity.TextMeshPro — the game's own TMP build. The Online UI's native side reads a settings row's
+      font asset (a serialized prefab property, so no decompiled source can answer it) and the later
+      stages build their own labels on the game's own font.
+    -->
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\..\references\Unity.TextMeshPro.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>..\..\references\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>False</Private>

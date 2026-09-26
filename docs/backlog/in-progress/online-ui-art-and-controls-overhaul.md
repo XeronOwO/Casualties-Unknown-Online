@@ -100,8 +100,21 @@ adversarial review → one commit.
 4. **S3 — free colour (landed 2026-09-26).** The hex field and swatch grid on the uGUI controls, the config entry and its
    profile carry, the free-colour path through `PlayerColorValue`/`PlayerColorResolver`, and a live
    swatch. The wire is untouched.
-5. **S4 — retirement pass.** Retire the scoped raycast blocker for the migrated surfaces and decide the
-   two surfaces IMGUI still owns (the world-space overlays and the command console overlay).
+5. **S4 — retirement pass (landed 2026-09-26).** The blocking the migration made redundant — or harmful —
+   is retired: CUO's own guard leaves CUO's own surface alone (a blocker laid over it covered the launcher
+   and the window and swallowed every click on them), and both world input paths now ask ONE pointer
+   census, which knows the launcher's rectangle. The IMGUI faces were then decided one by one: the command
+   console overlay STAYS IMGUI (a developer surface with a text input, and the reason the modal blocker
+   survives), while the quick panel and the player context menu move in S5 and the world-space overlays in
+   S6.
+6. **S5 — the last player-facing IMGUI panels.** The quick panel and the in-world player context menu onto
+   the game's own controls, on the surface S2a/S2b proved. They are the last consumers of
+   `SetOnlineUiScopedBlocks` / `OnlineUiBlockRect` / `OnlineScopedRaycastFilter`, so that mechanism retires
+   with them (the same round, not a later one).
+7. **S6 — the world-space overlays.** The nameplates, the off-screen arrows, the network HUD and the
+   location pings onto TMP labels on CUO's canvas, so their typography comes from the game's own font asset
+   rather than from the IMGUI skin's built-in font. They take no input, which is why they were the last
+   face left: what is left to win there is the look, and no control is involved.
 
 ## What landed — S1 (2026-09-26)
 
@@ -182,7 +195,9 @@ with the one control that is small enough to be judged on its own. Self-check:
   run shows whether it happens in practice).
 - **The launcher's rect is on no input-blocking census** (`IsPointerOverUi` and the scoped blocks cover the
   IMGUI surfaces only), so a middle-click over the launcher still pings: pre-existing launcher behaviour,
-  and the surface's input-blocking story belongs to the S4 retirement pass.
+  and the surface's input-blocking story belongs to the S4 retirement pass. **(Closed by S4: the launcher's
+  polled rectangle is a fact of the pointer census both world input paths ask, and the guard no longer
+  covers CUO's own canvas at all.)**
 - **The EventSystem rule pins "no ENABLED one"** — which is what `EventSystem.current` reports; the game
   dereferences it unguarded from its pointer-over-UI path, so the distinction is expected to be
   unobservable in practice.
@@ -315,6 +330,99 @@ the surface S2a/S2b proved carries both. Self-check:
   `<color=#RRGGBBAA>` tag — is the user's judgement.
 - **The window still needs the adapter** (no canvas, no picker) — the trade S2a recorded, and the reason
   S4 owns the remaining IMGUI surfaces.
+
+## What landed — S4 (2026-09-26)
+
+The retirement pass. The stage's premise was that the input blocking built for an IMGUI-only UI needs an
+item-by-item verdict once the surfaces it was built for are uGUI — and the first verdict was that one of
+those items was not merely redundant but harmful. Self-check:
+`docs/evidence/selfchecks/ui/online-ui-input-blocking-retirement-selfcheck.md`.
+
+- **The defect the pass found: CUO's own guard covered CUO's own surface.** `OnlineUiSurfaceHost` creates
+  CUO's canvas under the game's canvas and builds the launcher and the window as its children; both
+  blocker sweeps in `OnlineMenuInputGuard` then walked `Object.FindObjectsOfType<Canvas>()` with no
+  exclusion, added a full-rect transparent `Image` (`raycastTarget = true`) to every active screen-space
+  canvas — CUO's own included — and called `SetAsLastSibling()`. Within CUO's canvas that blocker is the
+  last child, so it draws over and raycasts before the launcher and the window: the click is consumed by a
+  graphic with no handler. The modal opens the frame AFTER the window does (`OnlineUiHost.Update` reads
+  the window's visibility before draining the click that opened it), so this was the normal path, not a
+  race: with the window open, its tabs, its page controls, the colour field, its own × and the launcher
+  were all unanswerable. The pass retires exactly that: the surface marks the root it builds
+  (`OnlineUiSurfaceMarker`) and every sweep asks the marker, so a blocker meant for the GAME's UI can never
+  land on CUO's.
+- **The launcher enters the pointer census.** S2a recorded that the launcher's rectangle was on no
+  input-blocking census: a middle-click over it pinged the world and a right-click there opened the
+  in-world menu. The fact was already crossing the seam — the surface polls the launcher's rectangle every
+  frame for the idle fade — so the same flip now also feeds `OnlineUiPointerCensus` (Runtime, pure), and
+  both world input paths ask that one rule instead of keeping a list each.
+- **One rule, two questions, one rectangle source.** `BlocksWorldPing` (the middle-click ping) and
+  `BlocksWorldMenu` (the in-world right-click) share the facts — pointer over the launcher, pointer over
+  the window, the IMGUI panels' rectangles, and the modal flag — and differ in exactly the way the two
+  paths always did: a modal CUO surface owns the SCREEN, so no ping becomes a world ping anywhere, while a
+  right-click outside the window's own rectangle still targets a player. The adapter's scoped blockers and
+  the census are built from one method (`OnlineUiOverlay.CollectOverlayRects`), so a click cannot be
+  blocked on one path and leak on the other.
+- **The console's mutual exclusion is now explicit.** With the blocker no longer covering CUO's canvas,
+  the launcher is clickable while the command console overlay is open — and the console is a modal surface
+  that owns the input, so `ToggleWindow` refuses and logs (at information level, because the plugin's own
+  default minimum is Information) instead of letting a launcher click open the window behind it. That
+  refusal used to be an accident of the blocker.
+- **A pointer fact is retracted when the view that reported it dies.** The launcher and the window report a
+  FLIP only and a rebuilt view starts un-hovered, so `OnlineUiSurfaceHost.DestroySurface` queues a
+  hover-left for each of them before dropping them: a census left holding "the pointer is over CUO's UI" is
+  global and would block every world ping and every in-world right-click until the pointer happened to
+  leave the launcher again. The independent review found that hole; the fix and its pin landed in the same
+  round.
+- **The mechanism audit, item by item.** What the IMGUI era left behind, and what each piece is for now:
+  `SetOnlineUiModal` is the patches' gate (`PlayerCameraHandleInputPatch` returns false on it,
+  `PauseHandlerTogglePausePatch` reads it) and stays; its full-screen blockers and its `AdaptiveButton`
+  sweep stay for the GAME's canvases and controls, narrowed by the ownership rule;
+  `SetOnlineUiScopedBlocks` / `OnlineUiBlockRect` / `OnlineScopedRaycastFilter` still serve the two IMGUI
+  panels, which cannot be seen by uGUI; `SetOnlineUiEscapeSurfaceVisible` still serves the quick panel's
+  non-modal ESC. Nothing was deleted from that set — the redundant part was the blocking ON the migrated
+  surface, and the two facts the guard must never touch again are pinned.
+- **Deleted in the same round.** `OnlineUiQuickPanel.Contains` — the census asks the panel's rectangle
+  through the one rect list now, so the panel's own point test had no caller left.
+- **The pins moved with it, in the same change.** `OnlineUiInputBlockingPinTests` is new (7 pins + 11
+  real-source mutation rows, one Matcher registry); `OnlineUiSurfacePinTests`' two launcher-hover clauses
+  became the census's launcher fact (same contract, one more reader); `OnlineUiBlockRectTests`,
+  `OnlineUiLauncherFadeTests`' theme census and `AdapterCapabilityPortShapeTests` are untouched and green
+  (no port was added — 14 ports / 19 members).
+
+### Limits recorded with S4
+
+- **That the click lands is a game observation.** The retired blocker's ordering argument is read from the
+  code (last sibling, transparent graphic, the same premise the guard itself was built on), and the pins
+  hold the shape — but whether the game's own controls answer again, at the game's UI scale, on the first
+  real run is the user's.
+- **The census facts are up to two frames old on the ping path.** The middle-click is handled in
+  `OnlineUiHost.Update` BEFORE the frame's intents are drained, and the surface polls the pointer at the
+  END of the frame, so a middle-click within about two frames (~33 ms) of arriving on the launcher still
+  pings; the leaving direction is one frame. The right-click path runs in the IMGUI pass after `Update`, so
+  it sees the same frame's facts. The IMGUI panels' rectangles are read live in the same call.
+- **The ownership rule is opt-in per root.** The surface marks the root it builds; an ACTIVE CUO canvas
+  built elsewhere without the marker would read as the game's and be blocked. Nothing is missed today — the
+  only other CUO canvas, the S1 probe's, is `root.SetActive(false)` from its first statement, so
+  `FindObjectsOfType<Canvas>` never sees it.
+- **Whether a CUO control could ever be an `AdaptiveButton` is not decidable from this tree** (the game's
+  prefabs live outside the repository), so the third sweep's ownership clause is the rule applied uniformly
+  rather than a fix for an observed object.
+- **The context menu keeps its last rectangle while the console is open** (its bounds are only written while
+  it is drawn), so the census can block a right-click there; the menu is not drawn in that state and its
+  click path is gated on the console being closed, so it is not a reachable input path.
+- **The console-versus-world-menu asymmetry is the caller's gate.** The census deliberately does not count
+  a modal surface as "the world menu is blocked here" (the IMGUI window's behaviour); while the console is
+  open the context menu is not drawn and the window and quick panel are closed, so the reachable states
+  are the intended ones — but a future surface that drew the context menu while the console is open would
+  find the census permissive outside the panels, and that gate is where it would be answered.
+- **The guard pin's census counts the sweeps that exist.** It requires every current sweep to ask the
+  ownership predicate; a THIRD sweep added later that never asks it would not raise the count and would
+  not be caught (declared in the pin's own coverage note).
+- **The ticket's goal is not reached yet.** The quick panel and the player context menu are still IMGUI
+  panels of the flat theme, and the world-space overlays still draw with the IMGUI skin's font: the
+  player-facing art ask stays open until S5 and S6 land, which is why this ticket stays in progress.
+- **The S1 chrome reading is still pending**, so nothing in this pass used it — the retirement depends on
+  no runtime reading at all.
 
 ## Non-goals
 

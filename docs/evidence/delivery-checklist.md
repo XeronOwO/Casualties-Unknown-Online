@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (9 cited rows): hex idiom, four-float wire, profile store, model vocabulary, input field, intent channel, consumers, routing, no picker
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (11 cited rows): surface hierarchy, guard sweeps, modal timing, both input paths, polled facts, patches, scoped filter, console ownership, frame accounting
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (8 rows): six pages and the two other dropdowns untouched, colour consumers, identity/wire path, profiles, pin sets, IMGUI surfaces, wire/save
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (16 rows): codec, round trip, labels, stored colour, parse-only commit, palette, Auto, live swatch, tinted block, id-less preview, consumers, carry, edit lifetime
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (12 rows): both blocker kinds + the button sweep, the scoped mechanism, the ESC surface, ping/right-click/ESC paths, the launcher-under-console rule, ports, wire, remaining IMGUI faces
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (16 rows): ownership rule, marker, launcher fact, both paths, rect source, retraction, console order, census facts, observability, dead code, the untouched pin sets
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: codec + catalogue by unit cases; picker and block by 9 pins + 9 real-source mutations; the look and the typing need the user's run (selfcheck §7)
+      peer log comparison, hotrepl assertions) is decided — evidence: the census rule by 10 pure facts, the wiring by 7 pins × 11 real-source mutations, the red recorded before the fix (15/0/15); the click landing, a rebuild in play and the console rule need one game run (selfcheck §7)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket's Decision (2026-09-26, user ruling) froze the hex field + swatch grid and the local-config scope; no work-choice question asked (AGENTS.md rule 9)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0; focused 281/281; format exit 0; gates 288/288; full WITH build 4282+287 exit 0 — logs cuo-s3-{build2,focus2,format1,gates3,full1}.txt
+      process violation — evidence: the ticket's Decision (2026-09-26, user ruling) froze the uGUI destination and the staged plan; the handoff named S4 as the retirement pass; no work-choice question asked (AGENTS.md rule 9)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0 (cuo-s4-build2.txt); focus 313/313 (cuo-s4-focus5.txt); format exit 0 (cuo-s4-format2.txt); full WITH build 4314+288 exit 0 (cuo-s4-full2.txt); gates 288/288 (cuo-s4-gates2.txt)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest touched 530/505/476 (< 600; the 613-line control view split into view+factory); palette index, ColorKeys, colour dropdown, index delegate deleted
+      dead mechanisms deleted in the same round) — evidence: largest touched 552/453/286/243 (< 600); OnlineUiQuickPanel.Contains deleted; two hand-kept surface lists replaced by one Runtime rule + one rect source
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

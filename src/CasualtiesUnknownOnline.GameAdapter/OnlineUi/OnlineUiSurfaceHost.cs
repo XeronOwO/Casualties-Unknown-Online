@@ -134,6 +134,10 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 
 		var root = new GameObject(RootName);
 		root.transform.SetParent(parent, worldPositionStays: false);
+		// Marked before anything is built under it: the adapter's own input guard asks this marker to
+		// leave the hierarchy alone, because a blocker meant for the game's UI must never land on CUO's
+		// own controls (S4 — the retirement pass).
+		root.AddComponent<OnlineUiSurfaceMarker>();
 		var canvas = root.AddComponent<Canvas>();
 		canvas.overrideSorting = true;
 		canvas.sortingOrder = SortingOrder;
@@ -223,6 +227,12 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 		// Unity object — == (Dispose may run after the scene unloaded the whole hierarchy)
 		if (_root != null)
 		{
+			// The pointer facts die with the view that reported them. The views report only a FLIP and a
+			// rebuilt one starts un-hovered, so a surface rebuilt while the pointer sat on the launcher
+			// would retract nothing — and both facts are global, so a stale one blocks every world ping
+			// and every in-world right-click until the pointer happens to leave the launcher again.
+			_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.LauncherHoverLeft));
+			_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.WindowHoverLeft));
 			Object.Destroy(_root);
 		}
 

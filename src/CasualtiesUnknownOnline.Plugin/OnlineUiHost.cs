@@ -328,8 +328,9 @@ internal sealed class OnlineUiHost
 	/// <summary>
 	/// Drains what the player did on the native surface and turns it into the same calls the IMGUI
 	/// controls made before they moved onto the game's own controls: a launcher click toggles the window,
-	/// a hover flips the idle fade's only other input, the window's own close control closes it, and every
-	/// page control's interaction lands on the action registered under its id.
+	/// a hover flips the idle fade's only other input and the pointer census's launcher fact, the
+	/// window's own close control closes it, and every page control's interaction lands on the action
+	/// registered under its id.
 	/// </summary>
 	private void DrainSurfaceIntents()
 	{
@@ -347,9 +348,13 @@ internal sealed class OnlineUiHost
 					break;
 				case OnlineUiIntentKind.LauncherHoverEntered:
 					_launcherHovered = true;
+					// The same polled fact answers "is the pointer on CUO's UI?" for the two world input
+					// paths (S4): one fact, two readers.
+					_onlineUi.SetPointerOverLauncher(true);
 					break;
 				case OnlineUiIntentKind.LauncherHoverLeft:
 					_launcherHovered = false;
+					_onlineUi.SetPointerOverLauncher(false);
 					break;
 				case OnlineUiIntentKind.WindowHoverEntered:
 					_onlineUi.SetPointerOverWindow(true);

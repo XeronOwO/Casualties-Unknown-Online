@@ -102,11 +102,12 @@ internal sealed class OnlineUiOverlay
 	private readonly OnlineUiWindow _window = new();
 
 	/// <summary>
-	/// True while the pointer is inside the modal window's rect. The window is the game's own uGUI now,
-	/// so its rect is the surface's fact and the plugin receives it as a hover flip; it is the fact that
-	/// keeps an in-world right-click inside the window from opening the player context menu.
+	/// Which CUO surface the pointer is over, and which world input that forbids (S4). The two facts
+	/// about the migrated controls are the native surface's own polls — the plugin receives them as hover
+	/// flips — and the rectangles of the panels CUO still draws itself are this class's; what turns them
+	/// into an answer is the Runtime's rule, asked by both world input paths.
 	/// </summary>
-	private bool _pointerOverWindow;
+	private readonly OnlineUiPointerCensus _pointerCensus = new();
 
 	private readonly OnlineUiPlayerContextMenu _contextMenu = new();
 
@@ -140,7 +141,14 @@ internal sealed class OnlineUiOverlay
 	internal OnlineUiWindow Window => _window;
 
 	/// <summary>Records the pointer-over-window fact the native surface reports as a hover flip.</summary>
-	internal void SetPointerOverWindow(bool over) => _pointerOverWindow = over;
+	internal void SetPointerOverWindow(bool over) => _pointerCensus.OverWindow = over;
+
+	/// <summary>
+	/// Records the pointer-over-launcher fact the native surface reports as a hover flip. It is the same
+	/// polled fact the idle fade reads, and it is what keeps a middle-click over the launcher from
+	/// pinging the world and a right-click there from opening the in-world menu (S2a's recorded limit).
+	/// </summary>
+	internal void SetPointerOverLauncher(bool over) => _pointerCensus.OverLauncher = over;
 
 	internal bool IsQuickPanelVisible => _quickPanel.IsVisible;
 
@@ -170,6 +178,18 @@ internal sealed class OnlineUiOverlay
 	/// </summary>
 	internal void ToggleWindow(SessionRole role)
 	{
+		// The command console is a modal surface of its own and owns the input while it is open. Now
+		// that CUO's own guard no longer covers CUO's own canvas (S4), nothing else stops a click on the
+		// launcher from opening the window behind the console — so the launcher's rule says it here,
+		// where the surface's own opening rule already lives. Information, not Debug: a swallowed click
+		// is the player's, and the plugin's own default log level is Information, so a line nobody can
+		// see would not make the refusal observable.
+		if (_commandOverlay.IsOpen)
+		{
+			Plugin.Logger.LogInfo("Online UI launcher click ignored: the command console owns the input.");
+			return;
+		}
+
 		_window.State.Visible = !_window.State.Visible;
 		if (_window.State.Visible && _window.State.Page == OnlineUiPage.Home && role != SessionRole.None)
 		{
@@ -184,24 +204,32 @@ internal sealed class OnlineUiOverlay
 	internal void ToggleQuickPanel() => _quickPanel.Toggle();
 
 	/// <summary>
-	/// True when a world middle-click should not become a location ping:
-	/// the modal command console/window is open, or the pointer is inside a
-	/// non-modal CUO surface (quick panel / player context menu).
+	/// True when a world middle-click should not become a location ping: a modal CUO surface is open
+	/// (the command console or the window), or the pointer is inside any CUO surface — the launcher and
+	/// the window through the surface's own polls, the quick panel and the player context menu through
+	/// their rectangles.
 	/// </summary>
 	internal bool IsPointerOverUi(Vector2 mousePosition)
 	{
-		if (IsCommandConsoleOpen || IsWindowVisible)
-		{
-			return true;
-		}
-
+		RefreshPointerCensus();
 		var gui = new Vector2(mousePosition.x, Screen.height - mousePosition.y);
-		if (_quickPanel.IsVisible && _quickPanel.Contains(gui))
-		{
-			return true;
-		}
+		return _pointerCensus.BlocksWorldPing(gui.x, gui.y);
+	}
 
-		return _contextMenu.IsOpen && _contextMenu.Contains(gui);
+	/// <summary>
+	/// One path's question to the census. The IMGUI panels are read live: their rectangles are this
+	/// class's state, and a panel toggled this frame must be recognised on this frame's click.
+	/// </summary>
+	private void RefreshPointerCensus()
+	{
+		_pointerCensus.ModalSurfaceOpen = IsCommandConsoleOpen || IsWindowVisible;
+		_pointerCensus.OverlayRects = CollectOverlayRects();
+	}
+
+	private bool BlocksWorldMenu(Vector2 guiPoint)
+	{
+		RefreshPointerCensus();
+		return _pointerCensus.BlocksWorldMenu(guiPoint.x, guiPoint.y);
 	}
 
 	/// <summary>
@@ -248,10 +276,17 @@ internal sealed class OnlineUiOverlay
 		// leaking to the menu/world without blocking the rest of the screen.
 		// The command console is handled by the full modal guard, not scoped
 		// blocks.
-		inputBlocker?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectScopedBlocks());
+		inputBlocker?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectOverlayRects());
 	}
 
-	private IReadOnlyList<OnlineUiBlockRect> CollectScopedBlocks()
+	/// <summary>
+	/// The GUI-space rectangles of the surfaces CUO still draws itself — the quick panel and the player
+	/// context menu — in ONE place: the adapter's scoped raycast blockers and the plugin's pointer
+	/// census read the same list, so a click that is blocked on one path cannot leak on the other. An
+	/// open panel that is not drawn this pass is not included, because its rectangle is only current
+	/// while it is drawn.
+	/// </summary>
+	private IReadOnlyList<OnlineUiBlockRect> CollectOverlayRects()
 	{
 		var blocks = new List<OnlineUiBlockRect>(2);
 		if (_contextMenu.IsOpen)
@@ -351,25 +386,12 @@ internal sealed class OnlineUiOverlay
 		var mouse = evt.mousePosition;
 		if (evt.button == 1)
 		{
-			// Right-clicks inside the Online window belong to the UI, not the
-			// world; never open/re-target/close the in-world menu from there.
-			// The rect is the game's own control now, so the fact comes from
-			// the surface's pointer poll rather than from a plugin-side rect.
-			if (_pointerOverWindow)
-			{
-				return;
-			}
-
-			// Right-clicks inside the standalone quick panel belong to that UI,
-			// not the world; never open/re-target the in-world menu from there.
-			if (_quickPanel.IsVisible && _quickPanel.Contains(mouse))
-			{
-				return;
-			}
-
-			// A right-click inside an already-open menu is left for the menu
-			// buttons (or a future switch); it must not re-target/re-close.
-			if (_contextMenu.IsOpen && _contextMenu.Contains(mouse))
+			// Right-clicks inside a CUO surface belong to the UI, not the world: never open,
+			// re-target or close the in-world menu from one. The launcher's and the window's
+			// rectangles are the native surface's own polls (the migrated controls are uGUI, so the
+			// plugin keeps no rectangle for them); the two IMGUI panels and the modal flag are the
+			// same rule's other facts.
+			if (BlocksWorldMenu(mouse))
 			{
 				return;
 			}

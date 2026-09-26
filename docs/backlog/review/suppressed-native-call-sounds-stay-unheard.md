@@ -50,7 +50,7 @@ the second half plays from a minigame the delegate starts, or plays nothing at a
 | `clottingmush` | `goo` (:1589) | remote-treatment table |
 | `chestdrain` | `syringe` (:1613) | remote-treatment table |
 | `splint` · `carcasssplint` | `splint` (:1483 / :1509) | remote-treatment table |
-| `tweezers` | `tweezeruse` (:1700) | remote-treatment table |
+| `tweezers` | `tweezeruse` (:1700) — its ONLY clip; the shrapnel minigame's `gore{N}` sits behind `!this.hasTweezers` (ShrapnelMinigame.cs:109) | remote-treatment table |
 | `wrench` | `wrenchhit` (:4864) | remote-treatment table |
 | `disinfectant` · `spraybottle` | `spray` (:2100 / :2124) | remote-treatment table |
 | `paincream` (reliefcream) · `woundglue` (woundglue) | `cream` (Liquids.cs:1074 / :1100, reached through `WaterContainerItem.ApplyToLimb`) | remote-treatment table, keyed by the LIQUID the item holds |
@@ -58,7 +58,7 @@ the second half plays from a minigame the delegate starts, or plays nothing at a
 | `saline` · `ringersolution` · `ceftriaxone` · `morphine` · `opium` · `heroin` · `fentanyl` · `naloxone` · `syringe` | none — the delegate starts `SyringeMinigame`, whose own cues are 2D screen feedback | deliberately silent, recorded |
 | `aed` · `manualdefibrillator` | none — `AEDMinigame` / `ManualDefibMinigame` cues are 2D | deliberately silent, recorded |
 | `tourniquet` · `icepack` · `makeshiftwrench` · `adhesivebandage` | none — the delegate plays no clip at all | deliberately silent, recorded |
-| amputating tools (`machete` … `flimsyknife`) · `medicalsuture` · `tweezers`' SECOND clip | `gore` + `gore{N}` (amputation completion: `Limb.Dismember` → Limb.cs:91-99; `medicalsuture`'s delegate calls `Body.DoGoreSound`, Item.cs:378 → Body.cs:2443-2446; `ShrapnelMinigame.cs:71` for tweezers) | UNCARRIED, ticketed — `todo/treatment-gore-presentation-not-carried.md`. The clip comes from the LIMB/minigame path rather than the item's limb action, and the dismemberment is applied on the PATIENT's client, which already plays the game's own `Dismember` locally: the carrier has to be decided with that double-play census (the independent review of this cycle found these rows had been recorded as natively silent, which they are not) |
+| amputating tools (`machete` … `flimsyknife`) · `medicalsuture` | `gore` + `gore{N}` (amputation completion: `Limb.Dismember` → Limb.cs:91-99; `medicalsuture`'s delegate calls `Body.DoGoreSound`, Item.cs:378 → Body.cs:2443-2446) | CARRIED (2026-09-26 follow-up cycle, `review/treatment-gore-presentation-carried.md`): the gore clips join the medical set and are captured by the minigame STEP that plays them (`AmputationMinigameSoundPatch` + `ShrapnelMinigameSoundPatch`, the `BandageMinigameSoundPatches` shape), and the suture's blocked delegate clip is a row of the treatment table (`medicalsuture` → `"gore"`). The carrier came after a census: the operator's minigame dismembers the DISPLAYED limb and the patient's client applies the dismemberment through the kernel projection without ever calling the native `Dismember` (no double-play), the relay drops the source's own echo, and `ShrapnelMinigame.cs:109` keeps the break path off the tweezers — whose `gore` this cycle re-read as NOT played at all (both break conditions sit behind `!this.hasTweezers`), so the carried `tweezeruse` row is their only clip |
 
 The world-item impact family is the two native collision presentations the guest-side guard
 suppresses: `Item.OnCollisionEnter2D` (`drop` + the landing block's step sound + `DustMini`,
@@ -82,7 +82,7 @@ velocity > 3) and `PlushScript.OnCollisionEnter2D` (the plush's own squeak, velo
 | 2 | The same, with an item whose limb action starts the native `BandageMinigame` (bandage, ripped dressing, rag, …) | every peer hears `bandage` once when the wrap completes | the minigame-step scope pin + the classification pin; the audible half is the user's dual-client pass |
 | 3 | A LOCAL limb treatment with a bandage item (no remote view) | every other peer hears `bandage` — the clip the previous cycle's census missed | same pins (the scope is the treatment's, not the view's) |
 | 4 | An injection (morphine / saline / syringe …), the AED and the manual defibrillator | unchanged: no 3D clip plays natively, so no peer hears one; the 2D minigame cues stay the acting player's own | the uncarried rows of the census + the 2D pin |
-| 4b | An amputation, a medical suture, or the shrapnel removal | UNCARRIED this cycle: the gore clip the limb/minigame path plays stays where it is played — `todo/treatment-gore-presentation-not-carried.md` carries the row and its double-play question | that ticket's census (this cycle's acceptance does not claim it) |
+| 4b | An amputation, a medical suture, or a bare-handed shrapnel removal | CARRIED by the follow-up cycle (`review/treatment-gore-presentation-carried.md`): every peer hears the `gore` clip(s) the acting client's own minigame step played, exactly once, at the patient's live position; the suture's blocked delegate clip is the treatment table's own row, and the tweezers play nothing | that cycle's census, gate pins (`AmputationMinigameSoundPatch` + `ShrapnelMinigameSoundPatch` + the medical set + the table row) and its own self-check; the audible half is the user's dual-client pass |
 | 5 | Any world item lands (host-side or guest-side drop, a container spilling, a falling stack) | every client hears the `drop` clip and its landing block's step sound once and sees one dust puff; the host's own copy keeps its native presentation | the impact-event pin + the replay decision pin + the suppressed-guest pin; the audible/visible half is the user's dual-client pass |
 | 6 | A plush toy is knocked into anything | every client hears the plush's own squeak once | same pins |
 | 7 | Solo / no active session | nothing is reported, local presentation unchanged | the session-active guards |
@@ -113,8 +113,15 @@ velocity > 3) and `PlushScript.OnCollisionEnter2D` (the plush's own squeak, velo
   the amputating tools (the native `AmputationMinigame`'s completion → `Limb.Dismember`) play a 3D
   `gore` / `gore{N}` that this table does not carry, and the suture's row had even been recorded as
   "natively silent". The rows are now recorded truthfully as UNCARRIED with the reason, and the
-  carrier decision is ticketed (`todo/treatment-gore-presentation-not-carried.md`) because the
+  carrier decision is ticketed (`review/treatment-gore-presentation-carried.md`) because the
   dismemberment is also applied on the patient's own client — the double-play census comes first.
+- **The gore rows are carried by their own cycle** (2026-09-26 follow-up,
+  `review/treatment-gore-presentation-carried.md`): the user ruled for carrying the clip, so the
+  amputation and shrapnel minigame STEPS that play it are captured where they run
+  (`AmputationMinigameSoundPatch` + `ShrapnelMinigameSoundPatch`), the `gore` / `gore{N}` clips join the medical set, and the suture's
+  blocked delegate clip is a treatment-table row. The carrier was decided on the census, not assumed:
+  what the review recorded as a possible double-play resolved the other way — the patient's client
+  never runs the native `Dismember`.
 - **The wire books keep up in the same change**: the new host-only message joins the vocabulary index
   and the sync-coverage matrix (row I9, `Transient-by-design` — no fallback by design), and
   `ProtocolVersion.Current` moves to 43 with its per-number log entry.

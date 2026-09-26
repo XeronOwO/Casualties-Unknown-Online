@@ -38,15 +38,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// because its clip comes from the native minigame's own step (captured by
 /// <c>BandageMinigameSoundPatches</c>, announced to the peers by that scope); the
 /// syringe/defibrillator families because their minigames play only 2D screen feedback, which the
-/// user's ruling keeps local; and TWO groups are here because their clip does not come from the
-/// item's limb action at all — <c>medicalsuture</c>'s delegate calls <c>Body.DoGoreSound</c>
-/// (<c>gore{1..5}</c>, Body.cs:2443-2446), and the amputating tools' delegate starts the native
-/// <c>AmputationMinigame</c>, whose completion dismembers the limb and plays the limb's own gore
-/// presentation (<c>gore</c> + <c>gore{N}</c>, Limb.cs:91-99). That presentation runs on the limb
-/// and minigame path rather than through the item's limb action, and the dismemberment is also
-/// applied on the patient's own client, so carrying it is its own decision with its own census
-/// (who plays on which client, and whether the patient would then hear it twice) —
-/// <c>todo/treatment-gore-presentation-not-carried.md</c>.</description></item>
+/// user's ruling keeps local; and the amputating tools because their clip comes from the
+/// amputation minigame's completion rather than from the item's limb action — the same
+/// per-step shape, captured where it plays by <c>AmputationMinigameSoundPatch</c> and
+/// <c>ShrapnelMinigameSoundPatch</c> (<c>review/treatment-gore-presentation-carried.md</c> holds that
+/// census).</description></item>
 /// </list>
 /// </summary>
 public static class RemoteMedicalTreatmentSoundCatalog
@@ -68,6 +64,13 @@ public static class RemoteMedicalTreatmentSoundCatalog
 			["carcasssplint"] = "splint",
 			["chestdrain"] = "syringe",
 			["clottingmush"] = "goo",
+			// The suture's own delegate plays the limb's gore roll (Item.cs:378 →
+			// Body.DoGoreSound). The blocked call is suppressed in the remote view, so
+			// the clip has to come from here; the body's roll picks one of five
+			// variants, and this table names the base clip the limb's own Dismember
+			// plays first (Limb.cs:98) — the variation is native flavour, not a
+			// second fact to carry.
+			["medicalsuture"] = "gore",
 			["musharm"] = "goo",
 			["splint"] = "splint",
 			["tweezers"] = "tweezeruse",
@@ -126,7 +129,10 @@ public static class RemoteMedicalTreatmentSoundCatalog
 		"makeshiftwrench",
 		// Amputating tools — the delegate starts the native AmputationMinigame, whose
 		// COMPLETION plays the limb's gore presentation (Limb.Dismember → "gore" +
-		// Body.DoGoreSound → "gore{N}"), which this table does not carry.
+		// Body.DoGoreSound → "gore{N}"). This table carries nothing for them: the clip
+		// belongs to the minigame's own step, captured where it plays
+		// (AmputationMinigameSoundPatch), which is why the operator of a remote amputation
+		// and every peer now hear it while the table's rows stay item-action facts.
 		"claws",
 		"crudecleaver",
 		"flimsyknife",
@@ -134,9 +140,6 @@ public static class RemoteMedicalTreatmentSoundCatalog
 		"sickle",
 		"titaniummachete",
 		"titaniummultitool",
-		// The suture's delegate calls Body.DoGoreSound ("gore{1..5}") directly — a
-		// limb-presentation clip, not an item-action clip (Item.cs:378).
-		"medicalsuture",
 	];
 
 	/// <summary>The clip this item's native limb action would have played, when it plays one itself.</summary>

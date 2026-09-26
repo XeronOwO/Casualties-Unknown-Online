@@ -339,7 +339,14 @@ this audit censused, the ingest clips (`eatFlesh` / `eatCrunch` / `drink`), the 
 (`combine`, `waterpour`) and — since the 2026-09-26 cycle — the limb-treatment, world-drink,
 item-feedback and body one-shot families now ride that same `CharacterSound` event, captured from the
 call-identity scope the native call runs in (`review/host-eating-sound-not-heard-on-guest.md`,
-`review/unhooked-item-and-body-sound-families.md`). `batteryinsert` is NOT among them: it plays inside
+`review/unhooked-item-and-body-sound-families.md`). The same family's 2026-09-26 follow-up cycle
+(`todo/suppressed-native-call-sounds-stay-unheard.md`) added the producers whose native call never
+ran on the acting side: the remote limb treatment plays the item's own limb-action clip from the
+operator's client inside the treatment scope (the remote view blocks the native apply), and the
+native `BandageMinigame`'s own physics step carries `bandage` for the local and the remote treatment
+alike. A world-ITEM impact does not ride this path — it has no acting player to attribute it to, so
+the authority reports it through its own host-only `ItemImpact` event and the guests replay the
+game's own drop/step/dust presentation. `batteryinsert` is NOT among them: it plays inside
 `BatteryItem.LoadBattery` / `UnloadBattery` (BatteryItem.cs:100/117), where no capture scope is opened,
 so its only carrier stays the charger's own hand replay. Those `Sound.Play` calls are otherwise *inside*
 the mutation, so they are heard by whichever client runs the call — today for every player, in a

@@ -50,6 +50,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
 - [Online UI panels ask for alphaBlend false](todo/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — their panel alpha may never blend.
 - [Sounds whose native call is suppressed](todo/suppressed-native-call-sounds-stay-unheard.md) — **Low** — the blocked treatment and the suppressed item impact.
+- [Treatment gore presentation not carried](todo/treatment-gore-presentation-not-carried.md) — **Low** — the amputation/suture gore the review found.
 
 ### Review
 

@@ -141,11 +141,19 @@ public static class CharacterSoundPolicy
 	/// drainer's <c>"drainuse"</c> at :1658, and <c>Item.DrawBlood</c>'s
 	/// <c>"syringe"</c> at :7123 reached from the two liquid-container use
 	/// actions), which runs under <c>CharacterItemUse</c>. A medical clip is
-	/// therefore reportable from EITHER scope — the independent review of this
+	/// therefore reportable from EITHER scope — the independent review of that
 	/// cycle found the four sites silently uncarried while only the limb-action
-	/// scope classified them.</summary>
+	/// scope classified them.
+	/// <para>
+	/// <c>"bandage"</c> joins the set with its own producer: the native
+	/// <c>BandageMinigame.PhysicsUpdate</c> plays it when a wrap completes
+	/// (BandageMinigame.cs:112), frames after the limb action that STARTED the
+	/// minigame returned — so the local treatment left it on the acting client
+	/// alone, and the remote treatment (which CUO drives through the same native
+	/// minigame) did too.
+	/// </para></summary>
 	private static bool IsMedicalClip(string clip) =>
-		clip is "syringe" or "splint" or "goo" or "boneweld" or "drainuse" or "tweezeruse" or "spray" or "laser" or "wrenchhit" or "cream";
+		clip is "bandage" or "syringe" or "splint" or "goo" or "boneweld" or "drainuse" or "tweezeruse" or "spray" or "laser" or "wrenchhit" or "cream";
 
 	private static bool IsExertClip(string clip) =>
 		clip.StartsWith("exert", StringComparison.Ordinal);

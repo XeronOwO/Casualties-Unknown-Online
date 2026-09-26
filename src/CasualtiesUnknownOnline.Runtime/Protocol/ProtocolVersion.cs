@@ -232,6 +232,17 @@ public static class ProtocolVersion
 	/// (the same shape as the consume report). A peer without the kinds would
 	/// drop those events and keep the reported silence, so one session would
 	/// mix two audible behaviours.
-	public const int Current = 42;
+	/// 43: `ItemImpact` — a world-item impact's native presentation (the `drop`
+	/// clip, the landing block's step sound and the `DustMini` puff of
+	/// `Item.OnCollisionEnter2D`, or the plush squeak of
+	/// `PlushScript.OnCollisionEnter2D`) now reaches the other members from the
+	/// side that SIMULATES the landing. A guest's world-item copies are
+	/// non-authoritative and their collision presentation is suppressed
+	/// (`NonAuthoritativeItemImpactPolicy`), so without the event a guest heard
+	/// AND saw nothing when a world item landed — its own drops included — while
+	/// the host had the full native presentation. A peer without the message
+	/// would keep the reported silence and the missing dust, so one session would
+	/// mix two presentations of the same landing.
+	public const int Current = 43;
 
 }

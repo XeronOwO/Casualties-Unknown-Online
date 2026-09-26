@@ -78,24 +78,44 @@ internal sealed class RemoteMedicalOperationHandler
 			return false;
 		}
 
+		if (!TryDispatchLimbUse(dragItem, limbIndex, target, instance.Id))
+		{
+			return false;
+		}
+
+		// The native limb action — the call that would have played the item's own
+		// clip at the treated limb — is blocked in this view, so the treatment was
+		// silent on every side. Play what it would have played, inside the scope
+		// the character-sound capture reads: the operator hears it here and every
+		// other member receives it through the existing relay.
+		PlayTreatmentSound(dragItem, limbIndex);
+		return true;
+	}
+
+	/// <summary>
+	/// Route one accepted limb-treatment gesture to the domain that owns it.
+	/// Every refusal returns false, and the caller plays no clip for it.
+	/// </summary>
+	private bool TryDispatchLimbUse(Item dragItem, int limbIndex, ulong target, ulong itemInstanceId)
+	{
 		if (RemoteBandageMinigameCatalog.IsBandageItem(dragItem.id))
 		{
-			return _otherOps.TryStartRemoteBandageUse(dragItem, limbIndex, target, instance.Id);
+			return _otherOps.TryStartRemoteBandageUse(dragItem, limbIndex, target, itemInstanceId);
 		}
 
 		if (RemoteOtherMedicalCatalog.IsAed(dragItem.id))
 		{
-			return _otherOps.TryStartRemoteAedUse(dragItem, limbIndex, target, instance.Id);
+			return _otherOps.TryStartRemoteAedUse(dragItem, limbIndex, target, itemInstanceId);
 		}
 
 		if (RemoteOtherMedicalCatalog.IsManualDefibrillator(dragItem.id))
 		{
-			return _otherOps.TryStartRemoteManualDefibUse(dragItem, limbIndex, target, instance.Id);
+			return _otherOps.TryStartRemoteManualDefibUse(dragItem, limbIndex, target, itemInstanceId);
 		}
 
 		if (RemoteOtherMedicalCatalog.IsAmputationTool(dragItem.id))
 		{
-			return _otherOps.TryStartRemoteAmputationUse(dragItem, limbIndex, target, instance.Id);
+			return _otherOps.TryStartRemoteAmputationUse(dragItem, limbIndex, target, itemInstanceId);
 		}
 
 		if (RemoteOtherMedicalCatalog.IsDislocationWrench(dragItem.id)
@@ -105,31 +125,72 @@ internal sealed class RemoteMedicalOperationHandler
 			&& dislocationDisplay.limbs[limbIndex] is { } wrenchLimb
 			&& wrenchLimb.dislocated)
 		{
-			return _otherOps.TryStartRemoteDislocationUse(wrenchLimb, wrench: true, dragItem, target, instance.Id);
+			return _otherOps.TryStartRemoteDislocationUse(wrenchLimb, wrench: true, dragItem, target, itemInstanceId);
 		}
 
 		if (RemoteHealProfiles.IsHealItem(dragItem.id))
 		{
-			_domains.PlayerInteraction.SendHealRequest(target, instance.Id, limbIndex);
+			_domains.PlayerInteraction.SendHealRequest(target, itemInstanceId, limbIndex);
 			_domains.Log.LogInformation("[MedicalView] requested heal of {Target} limb {Limb} with {ItemId} (id {InstanceId}).",
-				target, limbIndex, dragItem.id, instance.Id);
+				target, limbIndex, dragItem.id, itemInstanceId);
 			return true;
 		}
 
 		if (RemoteMedicineCatalog.IsInjectableItem(dragItem.id))
 		{
-			return TryStartRemoteSyringeUse(dragItem, limbIndex, target, instance.Id);
+			return TryStartRemoteSyringeUse(dragItem, limbIndex, target, itemInstanceId);
 		}
 
 		if (dragItem.id == "tweezers")
 		{
-			return _shrapnelOps.TryStartRemoteShrapnelUse(dragItem, limbIndex, target, instance.Id);
+			return _shrapnelOps.TryStartRemoteShrapnelUse(dragItem, limbIndex, target, itemInstanceId);
 		}
 
-		_domains.PlayerInteraction.SendUseRequest(target, instance.Id, limbIndex);
+		_domains.PlayerInteraction.SendUseRequest(target, itemInstanceId, limbIndex);
 		_domains.Log.LogInformation("[MedicalView] requested use of {Target} limb {Limb} with {ItemId} (id {InstanceId}).",
-			target, limbIndex, dragItem.id, instance.Id);
+			target, limbIndex, dragItem.id, itemInstanceId);
 		return true;
+	}
+
+	/// <summary>
+	/// Play the clip(s) this item's own native limb action would have played, at
+	/// the treated limb of the displayed body — the position the peers replay it
+	/// at. The item's row and, for a topical container, the applied liquid's row
+	/// are separate facts because the native path plays them from separate calls;
+	/// an item the census records as natively silent plays nothing.
+	/// </summary>
+	private void PlayTreatmentSound(Item dragItem, int limbIndex)
+	{
+		var display = RemoteMedicalView.DisplayBody;
+		if (display == null // Unity object — ==
+			|| limbIndex < 0
+			|| limbIndex >= display.limbs.Length
+			|| display.limbs[limbIndex] == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var limb = display.limbs[limbIndex];
+		var position = limb.body != null ? limb.body.transform.position : limb.transform.position; // Unity objects — ==
+
+		using var scope = CallContext.Enter(CallContext.Origin.CharacterMedicalUse);
+
+		RemoteMedicalTreatmentSoundCatalog.TryGetClip(dragItem.id, out var clip);
+		if (clip is not null)
+		{
+			Sound.Play(clip, position, false, true, null, 1f, 1f, false, false);
+		}
+
+		if (dragItem.GetComponent<WaterContainerItem>() is { } container) // Unity object — ==
+		{
+			foreach (var liquid in container.stack)
+			{
+				if (RemoteMedicalTreatmentSoundCatalog.TryGetLiquidClip(liquid.liquidId, out var liquidClip) && liquidClip != clip)
+				{
+					Sound.Play(liquidClip, position, false, true, null, 1f, 1f, false, false);
+				}
+			}
+		}
 	}
 
 	internal bool TryStartRemoteShrapnelSpecial(Limb limb) =>

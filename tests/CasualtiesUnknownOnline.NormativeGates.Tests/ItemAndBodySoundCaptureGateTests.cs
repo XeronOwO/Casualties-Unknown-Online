@@ -70,6 +70,32 @@ public class ItemAndBodySoundCaptureGateTests
 	private const string CoroutineFile =
 		"src/CasualtiesUnknownOnline.GameAdapter/Patches/ScopedCoroutine.cs";
 
+	private const string BandageMinigamePatchFile =
+		"src/CasualtiesUnknownOnline.GameAdapter/Patches/BandageMinigameSoundPatches.cs";
+
+	private const string TreatmentTableFile =
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteMedicalTreatmentSoundCatalog.cs";
+
+	private const string RemoteMedicalHandlerFile =
+		"src/CasualtiesUnknownOnline.GameAdapter/RemoteMedicalOperationHandler.cs";
+
+	private const string OtherMedicalCatalogFile =
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteOtherMedicalCatalog.cs";
+
+	private const string MedicineCatalogFile =
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteMedicineCatalog.cs";
+
+	private const string TopicalCatalogFile =
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteTopicalCatalog.cs";
+
+	/// <summary>The catalogs whose entries define what the remote limb gesture accepts — the scan surface the treatment table must decide for, derived from the eligibility check itself rather than restated.</summary>
+	private static readonly string[] AcceptedItemCatalogFiles =
+	[
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteHealProfiles.cs",
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteBandageMinigameCatalog.cs",
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteLimbToolCatalog.cs",
+	];
+
 	/// <summary>
 	/// The carried census, one row per capture decision: the clips that decision
 	/// must classify. A row's selector is either a policy <c>Origin</c> row (which
@@ -82,7 +108,7 @@ public class ItemAndBodySoundCaptureGateTests
 	/// </summary>
 	private static readonly (string Selector, string[] Clips)[] Census =
 	[
-		("IsMedicalClip", ["boneweld", "cream", "drainuse", "goo", "laser", "spray", "splint", "syringe", "tweezeruse", "wrenchhit"]),
+		("IsMedicalClip", ["bandage", "boneweld", "cream", "drainuse", "goo", "laser", "spray", "splint", "syringe", "tweezeruse", "wrenchhit"]),
 		("IsIngestClip", ["crystalenemylaugh", "drink", "eatCrunch", "eatFlesh", "glass", "pills"]),
 		("IsItemUseFeedbackClip", ["centrifuge", "combine", "drop", "error", "flashlighttoggle"]),
 		("Origin.WorldDrink", ["drink", "pills"]),
@@ -90,8 +116,8 @@ public class ItemAndBodySoundCaptureGateTests
 		("Origin.BodySound", ["dogshake", "stretch", "vomit1", "vomit2"]),
 	];
 
-	/// <summary>The census floor — a pin emptied alongside its policy would otherwise pass by checking nothing (the pinned census holds 30 clips).</summary>
-	private const int MinimumCensusedClips = 26;
+	/// <summary>The census floor — a pin emptied alongside its policy would otherwise pass by checking nothing (the pinned census holds 31 clips).</summary>
+	private const int MinimumCensusedClips = 27;
 
 	/// <summary>
 	/// The clips the decision leaves LOCAL, with the reason the ticket records:
@@ -177,6 +203,119 @@ public class ItemAndBodySoundCaptureGateTests
 	}
 
 	[Fact]
+	public void TheBandageMinigameStep_IsCapturedInsideTheLimbTreatmentScope()
+	{
+		// The bandage family's clip is NOT played by the delegate ApplyWoundItem
+		// runs: that delegate only STARTS the native minigame. The wrap that plays
+		// "bandage" (BandageMinigame.cs:112, 3D, at the item) happens frames later,
+		// after ApplyWoundItem returned and its scope closed — so both the local
+		// treatment and the remote one (CUO drives the same native minigame) left
+		// the clip on the acting client alone. The scope therefore belongs on the
+		// minigame's PER-STEP physics update, not on the limb action.
+		Assert.True(
+			File.Exists(RepositoryPaths.File(BandageMinigamePatchFile)),
+			$"{BandageMinigamePatchFile} is missing — BandageMinigame.PhysicsUpdate plays \"bandage\" outside every capture scope");
+
+		var patch = RepositoryPaths.ReadText(BandageMinigamePatchFile);
+
+		Assert.True(
+			AnchorsOn(patch, "BandageMinigame", "PhysicsUpdate"),
+			"the bandage capture must bind BandageMinigame.PhysicsUpdate — the step that plays \"bandage\" when a wrap completes");
+		var code = WithoutComments(patch);
+
+		Assert.Contains("CallContext.Origin.CharacterMedicalUse", code, StringComparison.Ordinal);
+		Assert.Contains("CallContext.Enter(", code, StringComparison.Ordinal);
+		Assert.Contains("CaptureScopeGuard.IsLocalAction()", code, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void TheRemoteTreatmentTable_DecidesEveryAcceptedMedicalItem()
+	{
+		// The remote view blocks the native limb action, so the clip the native
+		// delegate would have played has to be played by the medical domain — and
+		// the clip identity is native knowledge the blocked call took with it.
+		// The table is that knowledge, and this pin makes it a DECIDED row per
+		// accepted item: a new catalog entry cannot ship undecided, and a clip
+		// invented outside the medical set cannot ship at all.
+		Assert.True(
+			File.Exists(RepositoryPaths.File(TreatmentTableFile)),
+			$"{TreatmentTableFile} is missing — the remote limb treatment plays no clip without it");
+
+		var table = RepositoryPaths.ReadText(TreatmentTableFile);
+		var accepted = AcceptedItemIds();
+
+		foreach (var file in AcceptedItemCatalogFiles)
+		{
+			Assert.True(
+				KeyIds(RepositoryPaths.ReadText(file), "Registry").Count > 0,
+				$"no item ids could be read from {file} — its items would then look decided by absence");
+		}
+
+		Assert.True(accepted.Count >= 45, $"only {accepted.Count} accepted medical item id(s) could be read from the catalogs — one catalog stopped being read, or the surface was emptied");
+
+		var decided = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var id in KeyIds(table, "TreatmentClips"))
+		{
+			Assert.True(decided.Add(id), $"`{id}` is decided twice in the treatment table");
+		}
+
+		foreach (var id in LiteralIds(table, "UncarriedItems"))
+		{
+			Assert.True(decided.Add(id), $"`{id}` is decided twice in the treatment table (silent rows must not repeat a clip row)");
+		}
+
+		foreach (var id in LiteralIds(table, "LiquidDrivenItems"))
+		{
+			Assert.True(decided.Add(id), $"`{id}` is decided twice in the treatment table (a liquid-driven item must not repeat another row)");
+		}
+
+		Assert.True(decided.Count >= 49, $"the treatment table decides only {decided.Count} item(s) — the table (or one of its groups) was emptied, not the decision");
+
+		var missing = accepted.Where(id => !decided.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+		Assert.True(
+			missing.Length == 0,
+			$"the remote limb gesture accepts [{string.Join(", ", missing)}] but the treatment table decides nothing for them — every accepted item needs a clip row or a recorded silence");
+
+		var medical = ClipsOf(RepositoryPaths.ReadText(PolicyFile), "IsMedicalClip");
+		var clips = ClipValues(table, "TreatmentClips");
+		Assert.True(clips.Count >= 15, $"only {clips.Count} clip row(s) could be read from the treatment table — the table was emptied, not the decision");
+
+		foreach (var clip in clips)
+		{
+			Assert.True(
+				medical.Contains(clip),
+				$"the treatment table names `{clip}`, which the medical clip set does not classify — a peer would drop the report");
+		}
+	}
+
+	[Fact]
+	public void TheRemoteTreatmentPlaySite_PlaysOnlyAfterASuccessfulDispatch()
+	{
+		// One place decides: the handler dispatches first (every refusal path
+		// returns before it), and only a dispatched operation plays the clip — so
+		// a refused or ineligible gesture stays as silent as it is today, and the
+		// bandage family (whose clip the native minigame itself plays) is not
+		// double-played by the table.
+		Assert.True(File.Exists(RepositoryPaths.File(RemoteMedicalHandlerFile)), $"{RemoteMedicalHandlerFile} is missing");
+
+		var handler = RepositoryPaths.ReadText(RemoteMedicalHandlerFile);
+
+		var handlerCode = WithoutComments(handler);
+
+		Assert.Contains("RemoteMedicalTreatmentSoundCatalog", handlerCode, StringComparison.Ordinal);
+		Assert.Contains("private void PlayTreatmentSound(", handlerCode, StringComparison.Ordinal);
+
+		var guard = handler.IndexOf("if (!TryDispatchLimbUse(", StringComparison.Ordinal);
+		var play = handler.IndexOf("PlayTreatmentSound(dragItem, limbIndex);", StringComparison.Ordinal);
+		Assert.True(guard >= 0, "TryHandleLimbUse must dispatch through TryDispatchLimbUse so the play site has one success gate");
+		Assert.True(play > guard, "the treatment clip must be played AFTER the dispatch succeeded");
+
+		var playBody = MethodBody(handler, "private void PlayTreatmentSound(");
+		Assert.Contains("CallContext.Enter(CallContext.Origin.CharacterMedicalUse)", playBody, StringComparison.Ordinal);
+		Assert.Contains("Sound.Play(", playBody, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void EveryCensusRow_MatchesThePolicyClassification()
 	{
 		var policy = RepositoryPaths.ReadText(PolicyFile);
@@ -233,7 +372,8 @@ public class ItemAndBodySoundCaptureGateTests
 			RepositoryPaths.ReadText(MedicalPatchFile),
 			RepositoryPaths.ReadText(WorldDrinkPatchFile),
 			RepositoryPaths.ReadText(GesturePatchFile),
-			RepositoryPaths.ReadText(BodySoundPatchFile));
+			RepositoryPaths.ReadText(BodySoundPatchFile),
+			RepositoryPaths.ReadText(BandageMinigamePatchFile));
 
 		Assert.False(
 			AnchorsOn(patches, "SyringeMinigame", "Update"),
@@ -275,10 +415,138 @@ public class ItemAndBodySoundCaptureGateTests
 		}
 	}
 
+	[Theory]
+	[InlineData("private static readonly IReadOnlyDictionary<string, string> TreatmentClips =\n\tnew Dictionary<string, string>(StringComparer.Ordinal)\n\t{\n\t\t[\"splint\"] = \"splint\",\n\t\t[\"chestdrain\"] = \"syringe\",\n\t};", 2, "chestdrain", 2)]
+	[InlineData("// a doc mention of TreatmentClips = [\"ghost\"] over\nprivate static readonly IReadOnlyDictionary<string, string> TreatmentClips =\n\tnew Dictionary<string, string>(StringComparer.Ordinal)\n\t{\n\t\t[\"splint\"] = \"splint\",\n\t};", 1, "splint", 1)]
+	public void TheTableReader_ReadsTheClipRows(string source, int expectedIds, string expectedId, int expectedClips)
+	{
+		var ids = KeyIds(source, "TreatmentClips");
+
+		Assert.Equal(expectedIds, ids.Count);
+		Assert.Contains(expectedId, ids);
+		Assert.Equal(expectedClips, ClipValues(source, "TreatmentClips").Count);
+	}
+
+	[Theory]
+	[InlineData("// using var scope = CallContext.Enter(CallContext.Origin.CharacterMedicalUse);", "CallContext.Enter(", false)]
+	[InlineData("using var scope = CallContext.Enter(CallContext.Origin.CharacterMedicalUse);", "CallContext.Enter(", true)]
+	public void TheCommentStripper_DoesNotLetACommentedLineSatisfyAPin(string source, string marker, bool expected) =>
+		Assert.Equal(expected, WithoutComments(source).Contains(marker, StringComparison.Ordinal));
+
+	[Theory]
+	[InlineData("private static readonly string[] UncarriedItems =\n\t[\n\t\t\"syringe\",\n\t\t\"aed\",\n\t];", 2, "aed")]
+	[InlineData("// a doc mention of UncarriedItems must never hold \"ghost\"\nprivate static readonly string[] UncarriedItems =\n\t[\n\t\t\"aed\",\n\t];", 1, "aed")]
+	[InlineData("// only a doc mention of UncarriedItems with \"ghost\" inside", 0, "")]
+	public void TheTableReader_ReadsTheUncarriedRows(string source, int expectedCount, string expectedId)
+	{
+		var ids = LiteralIds(source, "UncarriedItems");
+
+		Assert.Equal(expectedCount, ids.Count);
+		if (expectedCount > 0)
+		{
+			Assert.Contains(expectedId, ids);
+		}
+	}
+
+	[Theory]
+	[InlineData("void PlayTreatmentSound(Item item, int limbIndex)\n{\n\tusing var scope = CallContext.Enter(CallContext.Origin.CharacterMedicalUse);\n}", "PlayTreatmentSound", true)]
+	[InlineData("// a doc mention of PlayTreatmentSound( … )", "PlayTreatmentSound", false)]
+	public void TheMethodBodyReader_ReadsTheMethodRange(string source, string method, bool expected)
+	{
+		var body = MethodBody(source, method);
+
+		Assert.Equal(expected, body.Contains("CallContext.Enter(", StringComparison.Ordinal));
+	}
+
+	/// <summary>The source with line comments removed — every reader below works on this, so a doc mention can never satisfy (or mislead) a pin.</summary>
+	private static string WithoutComments(string source) => Regex.Replace(source, @"//[^\n]*", "");
+
+	/// <summary>A named declaration's own text, up to its own <c>};</c> / <c>];</c> terminator, or "" when the declaration is gone.</summary>
+	private static string NamedBlock(string source, string name)
+	{
+		var clean = WithoutComments(source);
+		var start = clean.IndexOf(name, StringComparison.Ordinal);
+		if (start < 0)
+		{
+			return "";
+		}
+
+		var objectEnd = clean.IndexOf("};", start, StringComparison.Ordinal);
+		var arrayEnd = clean.IndexOf("];", start, StringComparison.Ordinal);
+		var end = objectEnd < 0 ? arrayEnd : arrayEnd < 0 ? objectEnd : Math.Min(objectEnd, arrayEnd);
+		return end < 0 ? "" : clean[start..end];
+	}
+
+	/// <summary>The <c>["id"] =</c> keys of a named dictionary — the accepted-item catalogs and the treatment table's clip rows.</summary>
+	private static IReadOnlyList<string> KeyIds(string source, string name) =>
+	[
+		.. Regex.Matches(NamedBlock(source, name), @"\[""(?<id>[a-z0-9_]+)""\]\s*=")
+			.Select(match => match.Groups["id"].Value)
+			.Distinct(StringComparer.Ordinal)
+			.OrderBy(id => id, StringComparer.Ordinal),
+	];
+
+	/// <summary>The string literals of a named list (or of the whole file) — an explicit silent-row set, or a catalog written as bare lists.</summary>
+	private static IReadOnlyList<string> LiteralIds(string source, string name) =>
+	[
+		.. Regex.Matches(NamedBlock(source, name), @"""(?<id>[a-z0-9_]+)""")
+			.Select(match => match.Groups["id"].Value)
+			.Distinct(StringComparer.Ordinal)
+			.OrderBy(id => id, StringComparer.Ordinal),
+	];
+
+	private static IReadOnlyList<string> LiteralIds(string source) =>
+	[
+		.. Regex.Matches(WithoutComments(source), @"""(?<id>[a-z0-9_]+)""")
+			.Select(match => match.Groups["id"].Value)
+			.Distinct(StringComparer.Ordinal)
+			.OrderBy(id => id, StringComparer.Ordinal),
+	];
+
+	/// <summary>The right-hand clip of every treatment row — one entry per ROW (two items may share one clip, and that is the decision being pinned).</summary>
+	private static IReadOnlyList<string> ClipValues(string source, string name) =>
+	[
+		.. Regex.Matches(NamedBlock(source, name), @"\]\s*=\s*""(?<clip>[a-z0-9_]+)""")
+			.Select(match => match.Groups["clip"].Value)
+			.OrderBy(clip => clip, StringComparer.Ordinal),
+	];
+
+	/// <summary>A method's own body — its signature up to the next closing brace at the class-body indentation.</summary>
+	private static string MethodBody(string source, string method)
+	{
+		var clean = WithoutComments(source);
+		var start = clean.IndexOf(method, StringComparison.Ordinal);
+		if (start < 0)
+		{
+			return "";
+		}
+
+		var end = clean.IndexOf("\n\t}", start, StringComparison.Ordinal);
+		return end < 0 ? clean[start..] : clean[start..end];
+	}
+
+	/// <summary>Every item id the remote limb gesture accepts, read from the catalogs the eligibility check itself consults, plus the handler's own literal surface.</summary>
+	private static IReadOnlyList<string> AcceptedItemIds()
+	{
+		var ids = new SortedSet<string>(StringComparer.Ordinal);
+
+		foreach (var file in AcceptedItemCatalogFiles)
+		{
+			ids.UnionWith(KeyIds(RepositoryPaths.ReadText(file), "Registry"));
+		}
+
+		ids.UnionWith(LiteralIds(RepositoryPaths.ReadText(OtherMedicalCatalogFile)));
+		ids.UnionWith(KeyIds(RepositoryPaths.ReadText(MedicineCatalogFile), "InjectionAmounts"));
+		ids.UnionWith(KeyIds(RepositoryPaths.ReadText(TopicalCatalogFile), "TopicalAmounts"));
+		ids.Add("tweezers"); // the handler's own literal surface (dragItem.id == "tweezers")
+
+		return [.. ids];
+	}
+
 	/// <summary>The anchor form the pins read: the declaring type AND the method, never a bare method name (a same-shaped anchor on another type must not pass) — and never a mention inside a line comment.</summary>
 	private static bool AnchorsOn(string source, string declaringType, string method) =>
 		Regex.IsMatch(
-			Regex.Replace(source, @"//[^\n]*", ""),
+			WithoutComments(source),
 			$@"\[HarmonyPatch\(typeof\({Regex.Escape(declaringType)}\), ""{Regex.Escape(method)}""\)\]");
 
 	/// <summary>One policy row's own text (<c>Origin.ItemUse => …</c> up to its terminating comma), or "" when the row is gone.</summary>

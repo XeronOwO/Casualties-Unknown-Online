@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1015,
+  "count": 1025,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5372,7 +5372,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 42;"
+      "quote": "public const int Current = 43;"
     },
     {
       "cluster": "world-blocks",
@@ -5564,7 +5564,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 42;"
+      "quote": "public const int Current = 43;"
     },
     {
       "cluster": "inline",
@@ -6093,6 +6093,66 @@
       "row": "R3",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs",
       "quote": "public void SendWorldJoin(bool isTutorial) => _messages.SendWorldJoin(isTutorial, _kernelAuthority.CurrentRunEpoch.Value);"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "ItemImpact = 141, // host → guest: the authority played a world-item impact presentation at this position"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/ItemImpactHandler.cs",
+      "quote": "[PacketHandler(NetMsg.ItemImpact, NetMessageDirection.HostToGuest)]"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/IItemControl.cs",
+      "quote": "void SendItemImpact(ItemImpactMsg msg);"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemMessageFlowService.cs",
+      "quote": "_session.Broadcast(NetMsg.ItemImpact, msg);"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemMessageFlowService.cs",
+      "quote": "public event Action<ulong, ItemImpactMsg>? ItemImpactReceived;"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Items/NonAuthoritativeItemImpactPolicy.cs",
+      "quote": "isSessionActive && isHostMode && isStandaloneWorldItem;"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/ItemCollisionEnter2DPatch.cs",
+      "quote": "if (collision.relativeVelocity.magnitude > 3f && NonAuthoritativeItemImpactGuard.ShouldReport(__instance))"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldItemImpactReplay.cs",
+      "quote": "Sound.Play(\"drop\", position, false, true, null, 1f, 1f, false, false);"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldItemImpactSync.cs",
+      "quote": "_items.SendItemImpact(new ItemImpactMsg"
+    },
+    {
+      "cluster": "inline",
+      "row": "I9",
+      "file": "docs/backlog/todo/suppressed-native-call-sounds-stay-unheard.md",
+      "quote": "**The world-item impact is carried, sound AND dust**"
     }
   ]
 }

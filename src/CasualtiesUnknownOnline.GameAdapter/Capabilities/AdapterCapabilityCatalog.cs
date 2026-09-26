@@ -138,7 +138,7 @@ internal static class AdapterCapabilityCatalog
 				typeof(CarryEncumbrancePatch), typeof(FacialExpressionHeadPatch), typeof(PantSoundPatches),
 				typeof(TalkerPatch), typeof(SoundPlayPatch), typeof(SoundPlayAudioClipPatch), typeof(BurpSoundPatches),
 				typeof(MedicalSoundPatches), typeof(WorldDrinkSoundPatches), typeof(InventoryGestureSoundPatches),
-				typeof(BodySoundPatches),
+				typeof(BodySoundPatches), typeof(BandageMinigameSoundPatches),
 			],
 			[],
 			[],

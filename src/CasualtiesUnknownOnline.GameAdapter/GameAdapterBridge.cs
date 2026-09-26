@@ -298,6 +298,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 			source, item.id, id);
 	}
 
+	public void OnWorldItemImpact(Vector2 position, ItemImpactKind kind, byte soundIndex) =>
+		domains.WorldItemImpactSync.Report(position, kind, soundIndex);
+
 	public void OnItemDestroyed(Item item) => domains.ItemWorldSync.OnItemDestroyed(item);
 
 	public void OnItemPickupStart(Item item) => domains.PickupSync.OnPickupStart(item);

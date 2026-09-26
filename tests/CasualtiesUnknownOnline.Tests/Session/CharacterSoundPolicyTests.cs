@@ -211,6 +211,19 @@ public class CharacterSoundPolicyTests
 	}
 
 	[Fact]
+	public void BandageMinigameClip_IsCarriedFromTheLimbTreatmentScope()
+	{
+		// "bandage" is played by the native BandageMinigame's own physics step
+		// (BandageMinigame.cs:112, 3D, at the carried item) — frames after the limb
+		// action that started the minigame returned, so the scope that carries it is
+		// the minigame's PER-STEP one. The clip has to be inside the medical set, or
+		// that scope would capture a call the policy refuses to classify.
+		Assert.Equal(CharacterSoundKind.Medical,
+			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Medical, "bandage"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Medical, "bandagex"));
+	}
+
+	[Fact]
 	public void WorldDrinkScope_ClassifiesTheWorldDrinkClipsOnly()
 	{
 		Assert.Equal(CharacterSoundKind.Drink,

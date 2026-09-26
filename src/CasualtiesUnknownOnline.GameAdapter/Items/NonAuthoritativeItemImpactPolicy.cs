@@ -13,4 +13,14 @@ internal static class NonAuthoritativeItemImpactPolicy
 {
 	internal static bool ShouldSuppress(bool isSessionActive, bool isHostMode, bool isStandaloneWorldItem) =>
 		isSessionActive && !isHostMode && isStandaloneWorldItem;
+
+	/// <summary>
+	/// The reporting half of the same rule: the side that still SIMULATES the
+	/// landing keeps the native presentation and reports it, so every guest can
+	/// present the same impact. Host-side, live session, standalone world item —
+	/// exactly the case <see cref="ShouldSuppress"/> takes away from a guest, so
+	/// the two halves can never both be true nor both be false for one impact.
+	/// </summary>
+	internal static bool ShouldReport(bool isSessionActive, bool isHostMode, bool isStandaloneWorldItem) =>
+		isSessionActive && isHostMode && isStandaloneWorldItem;
 }

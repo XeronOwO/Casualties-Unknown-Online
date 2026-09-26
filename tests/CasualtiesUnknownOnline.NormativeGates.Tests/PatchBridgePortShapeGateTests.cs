@@ -143,6 +143,7 @@ public class PatchBridgePortShapeGateTests
 		"OnTrapTriggered",
 		"OnWorldBloodSpawn",
 		"OnWorldGenerate",
+		"OnWorldItemImpact",
 		"OnWorldJoinRequested",
 		"OnXalorisSepticTick",
 		"ResetGenStreamToBaseline",

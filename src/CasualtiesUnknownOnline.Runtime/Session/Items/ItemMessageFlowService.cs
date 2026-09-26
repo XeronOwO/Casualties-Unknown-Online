@@ -264,4 +264,30 @@ internal sealed class ItemMessageFlowService(
 
 	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 		=> _snapshots.FireWorldItemsSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
+
+	// ===== World-item impact presentations (one-shot: the authority's landing) =====
+
+	/// <summary>An authority's world-item impact arrived — the receiver replays the presentation on its own world.</summary>
+	public event Action<ulong, ItemImpactMsg>? ItemImpactReceived;
+
+	public void FireItemImpactReceived(ulong sender, ItemImpactMsg msg) =>
+		ItemImpactReceived?.Invoke(sender, msg);
+
+	/// <summary>
+	/// Report a world-item impact presentation the authority's native collision
+	/// call just played: host → every synced member. A guest never sends — its
+	/// world-item copies are the non-authoritative half whose collision
+	/// presentation is suppressed, so the host's copy is the only source of the
+	/// landing. One impact = one message; the presentation is transient and has no
+	/// snapshot fallback.
+	/// </summary>
+	public void SendItemImpact(ItemImpactMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.Broadcast(NetMsg.ItemImpact, msg);
+	}
 }

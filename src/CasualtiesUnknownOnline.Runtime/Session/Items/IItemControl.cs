@@ -134,6 +134,21 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>A guest's carried inventory with self-assigned ids arrived (its local generation finished) — the Game Adapter seeds the owner's fact table.</summary>
 	event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived;
 
+	/// <summary>
+	/// Host only: report a world-item impact presentation this side's native
+	/// collision call just played (the <c>drop</c> clip, the landing block's step
+	/// sound and the dust, or a plush's squeak), so every guest presents the same
+	/// landing. A guest never sends: its world-item copies are the
+	/// non-authoritative, suppressed half of the family, so the host's copy is the
+	/// only source of an authoritative landing.
+	/// </summary>
+	void SendItemImpact(ItemImpactMsg msg);
+
+	void FireItemImpactReceived(ulong sender, ItemImpactMsg msg);
+
+	/// <summary>An authority's world-item impact arrived — the receiver replays the presentation on its own world.</summary>
+	event Action<ulong, ItemImpactMsg>? ItemImpactReceived;
+
 	/// <summary>Host only: the item's live state (position/velocity/rotation/condition) — the periodic keyframe must broadcast the CURRENT state, not the spawn-time one (stale positions yank settled items around; a stale condition re-aligns the peers' decay to the wrong value).</summary>
 	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition);
 

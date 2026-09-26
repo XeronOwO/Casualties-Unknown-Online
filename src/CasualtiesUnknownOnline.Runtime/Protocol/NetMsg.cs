@@ -307,4 +307,12 @@ public enum NetMsg : byte
 	// stamp it is compared against.
 	RunFacts = 140, // host → guest: the absolute run clock base and the layer's timer accounting, stamped with the run-baseline generation
 
+	// World-item impact presentation (one-shot: the side that SIMULATES the
+	// landing plays the native collision presentation — the "drop" clip, the
+	// landing block's step sound and the dust, or a plush's own squeak — while a
+	// guest's non-authoritative world-item copies have theirs suppressed). The
+	// authority reports, every guest replays; there is no guest → host report,
+	// because a guest never simulates an authoritative landing.
+	ItemImpact = 141, // host → guest: the authority played a world-item impact presentation at this position
+
 }

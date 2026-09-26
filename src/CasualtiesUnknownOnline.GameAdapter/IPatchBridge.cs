@@ -348,6 +348,13 @@ internal interface IPatchBridge
 	/// observable without making collision callbacks noisy at normal levels.</summary>
 	void OnNonAuthoritativeItemImpactSuppressed(Item item, string source);
 
+	/// <summary>The AUTHORITY half of the same family: this side simulated a
+	/// standalone world item's impact and its native presentation just ran
+	/// (drop/step sound + dust, or a plush's squeak) — report it so every guest
+	/// replays the same impact instead of hearing and seeing nothing. Only a
+	/// live host reaches this; a guest copy is the suppressed half.</summary>
+	void OnWorldItemImpact(Vector2 position, ItemImpactKind kind, byte soundIndex);
+
 	void OnItemDestroyed(Item item);
 
 	/// <summary>True while this side may run the Heater cooker's native conversion (host/solo, or a guest without an active session). A guest in a live session returns false — its world items are layer-isolated and the host's ItemCook broadcast owns the conversion.</summary>

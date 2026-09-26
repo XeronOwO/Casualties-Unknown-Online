@@ -248,6 +248,7 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | players/remote-medical-treatment-operations-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | presentation/host-eating-sound-not-heard-on-guest-selfcheck.md | Other | current | the ingest clips and the meal-end burp reach every other side as the dedicated one-shot character sound (decision 225) |
 | presentation/unhooked-item-and-body-sound-families-selfcheck.md | Other | current | the medical, world-drink, gesture and coroutine one-shot sounds reach every other side through the same dedicated character-sound event; the 2D prompts stay local by decision |
+| presentation/suppressed-native-call-sounds-stay-unheard-selfcheck.md | Other | current | the remote limb treatment plays the clip its blocked native limb action would have played and the bandage minigame's own step is captured; a world-item impact reaches every member as the authority's own drop/step/dust (ItemImpact, protocol 43) |
 | presentation/unified-remote-display-projection-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | protocol/global-adaptive-report-rate-stage-3-cumulative-streams-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | protocol/global-adaptive-report-rate-stage-4-high-frequency-domains-selfcheck.md | Other | current | candidate current evidence; verify before citing |

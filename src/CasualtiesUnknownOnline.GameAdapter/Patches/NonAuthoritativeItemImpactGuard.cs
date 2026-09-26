@@ -17,6 +17,18 @@ internal static class NonAuthoritativeItemImpactGuard
 			bridge.IsHostMode,
 			ItemWorldSync.IsStandaloneWorldItem(item));
 
+	/// <summary>
+	/// The authority half of the same rule: this side simulated the landing, so
+	/// its native presentation runs and is reported to the guests. One predicate
+	/// for both collision hooks, the way the suppression already is.
+	/// </summary>
+	internal static bool ShouldReport(Item item) =>
+		PatchBridge.Impl is { } bridge
+		&& NonAuthoritativeItemImpactPolicy.ShouldReport(
+			bridge.IsSessionActive,
+			bridge.IsHostMode,
+			ItemWorldSync.IsStandaloneWorldItem(item));
+
 	internal static bool Suppress(Item item, string source)
 	{
 		if (!ShouldSuppress(item))

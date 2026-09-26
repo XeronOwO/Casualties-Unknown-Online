@@ -218,6 +218,12 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public void FireBuildingDropsReceived(ulong sender, IReadOnlyList<TrapDropEntryMsg> drops) => _messageFlow.FireBuildingDropsReceived(sender, drops);
 
+	public void SendItemImpact(ItemImpactMsg msg) => _messageFlow.SendItemImpact(msg);
+
+	public event Action<ulong, ItemImpactMsg>? ItemImpactReceived { add => _messageFlow.ItemImpactReceived += value; remove => _messageFlow.ItemImpactReceived -= value; }
+
+	public void FireItemImpactReceived(ulong sender, ItemImpactMsg msg) => _messageFlow.FireItemImpactReceived(sender, msg);
+
 	public void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason) =>
 		_messageFlow.SendItemReject(targetSteamId, itemId, reason);
 

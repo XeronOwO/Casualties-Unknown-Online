@@ -79,7 +79,7 @@ No wire protocol, save shape, host rule or command/chat behaviour changed.
   Other unreferenced families are untouched: the same census finds 81 declared-and-unreferenced keys
   elsewhere in the catalogue (59 `medical.*`, 8 `prefs.*`, 3 `member.*`, 3 `hud.*`, 3 `common.*`, and
   one each of `chat.`, `home.`, `ip.`, `lobby.`, `players.`), recorded as
-  `todo/catalogue-and-manifest-census-drift.md` so that policy is decided once instead of per cycle.
+  `review/catalogue-and-manifest-census-drift.md` so that policy is decided once instead of per cycle.
   Nothing renders the overlay's controls line from the catalogue today, which this cycle records
   instead of changing the overlay.
 

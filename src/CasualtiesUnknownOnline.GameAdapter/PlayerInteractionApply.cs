@@ -127,11 +127,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return;
 		}
 
-		var keepsNativeSimulation = KeepsNativeSimulation(localBody);
+		var mode = SimulationMode(localBody);
 		// One trace tick per carried frame, whether or not a carrier anchor was
 		// available: the frame count and the carry-follow count are only
 		// comparable when the frames without an anchor are visible as such.
-		_carryTrace.Tick(localBody, driver.CarrierSteamId, keepsNativeSimulation, domains.Log);
+		_carryTrace.Tick(localBody, driver.CarrierSteamId, mode, domains.Log);
 
 		// Use the remote carrier's RENDER clone as the anchor when it exists:
 		// that clone is already smoothed by SessionStatePump, so the local rider
@@ -169,12 +169,13 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 	}
 
 	/// <summary>
-	/// Whether the local body keeps its own per-frame simulation while carried
-	/// (a conscious/alive rider does — the carry relation owns its transform, not
-	/// its simulation).
+	/// The treatment the body patches will apply to this LOCAL body while it is
+	/// carried: a conscious/alive rider keeps its own per-frame simulation, a dead
+	/// or unconscious one keeps only the vitals half of it (its pose stays the
+	/// pinned ragdoll the carry relation owns). The trace names it in the log.
 	/// </summary>
-	private static bool KeepsNativeSimulation(Body body) =>
-		CarriedBodySimulation.KeepsNativeSimulation(isLocalCarriedBody: true, body.alive, body.conscious);
+	private static CarriedBodySimulation.Mode SimulationMode(Body body) =>
+		CarriedBodySimulation.Treatment(isRemoteClone: false, isLocalCarriedBody: true, body.alive, body.conscious);
 
 	/// <summary>One carry-follow write for the trace, then the immediate re-report.</summary>
 	private void TraceRider(Body rider)
@@ -370,7 +371,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			// leaves the game's integrator before the first placement write, so
 			// the body cannot be moved twice in the frame the relation starts.
 			body.rb.simulated = false;
-			CarrySimulationTrace.LogAttached(body, msg.CarrierSteamId, KeepsNativeSimulation(body), domains.Log);
+			CarrySimulationTrace.LogAttached(body, msg.CarrierSteamId, SimulationMode(body), domains.Log);
 			return;
 		}
 

@@ -15,7 +15,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// animation, limb state and sounds (<see cref="CarriedBodySimulation"/>). Only
 /// the rider's movement input and the native idle-sit are gated while carried.
 /// This also holds the native idle-sit suppression for both halves of a carry
-/// relation, and the frozen presentation of a dead/unconscious carried body.
+/// relation, and the pinned presentation of a dead/unconscious carried body —
+/// whose own client still runs the VITALS stages of the native pass
+/// (<see cref="RunVitalsSubset"/>) under that frozen pose.
 /// </summary>
 [HarmonyPatch(typeof(Body), "Update")]
 internal static class BodyUpdatePatch
@@ -23,6 +25,31 @@ internal static class BodyUpdatePatch
 	private static readonly MethodInfo HandleVisualsMethod =
 		AccessTools.Method(typeof(Body), "HandleVisuals")
 		?? throw new InvalidOperationException("Body.HandleVisuals not found.");
+
+	// The vitals half of the native Body.Update (Body.cs:2574-2591), resolved
+	// once for the pinned carried body whose whole pass is skipped: the counter
+	// stage (the only writer of tempDiffFromNormal, Body.cs:3367, which the
+	// circulation stage reads, Body.cs:712), circulation/bleeding, temperature,
+	// radiation sickness and the periodic checks.
+	private static readonly MethodInfo HandleVariableUpdatesMethod =
+		AccessTools.Method(typeof(Body), "HandleVariableUpdates")
+		?? throw new InvalidOperationException("Body.HandleVariableUpdates not found.");
+
+	private static readonly MethodInfo HandleBodyMethod =
+		AccessTools.Method(typeof(Body), "HandleBody")
+		?? throw new InvalidOperationException("Body.HandleBody not found.");
+
+	private static readonly MethodInfo HandleBodyTemperatureMethod =
+		AccessTools.Method(typeof(Body), "HandleBodyTemperature")
+		?? throw new InvalidOperationException("Body.HandleBodyTemperature not found.");
+
+	private static readonly MethodInfo HandleRadiationSicknessMethod =
+		AccessTools.Method(typeof(Body), "HandleRadiationSickness")
+		?? throw new InvalidOperationException("Body.HandleRadiationSickness not found.");
+
+	private static readonly MethodInfo HandlePeriodicChecksMethod =
+		AccessTools.Method(typeof(Body), "HandlePeriodicChecks")
+		?? throw new InvalidOperationException("Body.HandlePeriodicChecks not found.");
 
 	private static bool Prefix(Body __instance)
 	{
@@ -77,6 +104,29 @@ internal static class BodyUpdatePatch
 			}
 
 			return true; // local body: original behavior
+		}
+
+		// A dead or unconscious LOCAL carried body is presented as a physics
+		// ragdoll pinned to a moving carrier: its pose, its physics, its ground
+		// contact and its sounds stay with the carry relation, so the whole native
+		// pass stays skipped. Its VITALS do not — the body is still a body, and
+		// the game itself advances them for every local body (Body.Update runs for
+		// a corpse, Limb.Update carries no alive guard). Run exactly the vital-sign
+		// stages of the native Update (Body.cs:2574-2591) in the game's own order,
+		// with the rigidbodies frozen before and after: HandleBody can ragdoll the
+		// body (Body.cs:2772-2780 — its second call site is not behind the standing
+		// guard) and Ragdoll() re-enables limb physics whenever it does run
+		// (Body.cs:1723), so the trailing freeze is what guarantees no limb is left
+		// simulating under a root the placement teleports every frame.
+		if (CarriedBodySimulation.RunsVitalsSubset(
+			isRemoteClone,
+			isCarried,
+			__instance.alive,
+			__instance.conscious))
+		{
+			FreezeRigidbodies(__instance);
+			RunVitalsSubset(__instance);
+			FreezeRigidbodies(__instance);
 		}
 
 		UpdateGrounded(__instance);
@@ -236,6 +286,29 @@ internal static class BodyUpdatePatch
 
 	private static bool IsLocalCarrier(Body body) =>
 		PatchBridge.Impl?.IsLocalCarrier(body) == true;
+
+	/// <summary>
+	/// The vital-sign stages of the native <c>Body.Update</c> (Body.cs:2574-2591),
+	/// in the game's own order, for a pinned carried body whose pose and physics
+	/// the carry relation owns. The counter stage is in because it is the only
+	/// writer of <c>tempDiffFromNormal</c> (Body.cs:3367), which the circulation
+	/// stage reads (Body.cs:712). Deliberately OUT, each for its own reason:
+	/// <c>HandleDogWaterShaking</c> (a conscious-only animation trigger,
+	/// Body.cs:3326), <c>HandleGroundedState</c> (the carrier is the body standing
+	/// on the terrain), <c>HandlePhysics</c> (the ragdoll stand timer and pose,
+	/// Body.cs:3080-3083), <c>HandleVisuals</c> (the pinned presentation path owns
+	/// the visuals) and <c>HandleSounds</c> (the fall scream reads the rigidbody
+	/// velocity, which is the carrier's, Body.cs:2751).
+	/// </summary>
+	private static void RunVitalsSubset(Body body)
+	{
+		var painkillers = body.GetComponent<Painkillers>();
+		HandleVariableUpdatesMethod.Invoke(body, []);
+		HandleBodyMethod.Invoke(body, [painkillers]);
+		HandleBodyTemperatureMethod.Invoke(body, [painkillers]);
+		HandleRadiationSicknessMethod.Invoke(body, []);
+		HandlePeriodicChecksMethod.Invoke(body, []);
+	}
 
 	private static void FreezeRigidbodies(Body body)
 	{

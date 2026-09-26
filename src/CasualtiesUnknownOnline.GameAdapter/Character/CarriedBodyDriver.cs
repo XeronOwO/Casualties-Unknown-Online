@@ -13,8 +13,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// so the carried player's own client moves its body to the carrier's back and
 /// reports that position through the normal 20 Hz/1 Hz streams — all other
 /// peers see the carried body through ordinary entity state, without a separate
-/// carry-specific render network. A dead or unconscious carried body still uses
-/// the frozen pinned-ragdoll presentation.
+/// carry-specific render network. A dead or unconscious carried body keeps the
+/// pinned-ragdoll presentation, and its own client still runs the VITAL-SIGN
+/// stages of the game's native <c>Body.Update</c> (bleeding, temperature,
+/// radiation, the periodic checks, limb wound/infection state) — the pose, the
+/// physics, the ground contact and the sounds stay with the carry relation.
 /// </summary>
 internal sealed class CarriedBodyDriver : MonoBehaviour
 {
@@ -36,13 +39,6 @@ internal sealed class CarriedBodyDriver : MonoBehaviour
 	internal static bool IsCarrying(Body body)
 	{
 		var driver = body.GetComponent<CarriedBodyDriver>();
-		return IsActivelyCarried(driver != null, driver != null ? driver.CarrierSteamId : 0); // Unity object — ==
-	}
-
-	/// <summary>True when the given Limb's parent Body still has an active carried-body driver.</summary>
-	internal static bool IsCarryingInParent(Component component)
-	{
-		var driver = component.GetComponentInParent<CarriedBodyDriver>();
 		return IsActivelyCarried(driver != null, driver != null ? driver.CarrierSteamId : 0); // Unity object — ==
 	}
 }

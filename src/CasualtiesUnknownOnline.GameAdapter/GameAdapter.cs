@@ -5,11 +5,13 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -39,7 +41,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, IPlayerInteractionVisibility
+public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, IPlayerInteractionVisibility
 {
 	// Set by the join-flow port (IJoinFlowPresentation.PrepareForDirectJoin) when the
 	// game was launched via a Steam friends "Join Game" (+connect_lobby): the
@@ -59,6 +61,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	private readonly GameAdapterSessionBinding _sessionBinding;
 	private readonly LatencyInstrumentation _latency;
 	private readonly PatchInstallLifecycle _patches;
+	// The Online UI's read-only probe of the game's own UI (ticket online-ui-art-and-controls-overhaul,
+	// S1): it owns the CUO canvas parented under the game's main canvas and the game's settings rows.
+	private readonly OnlineUiNativeFactsCapture _onlineUiNativeFacts = new();
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(
@@ -301,6 +306,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	void IDisposable.Dispose()
 	{
+		_onlineUiNativeFacts.Dispose();
 		_domains.WorldTimeSync.Unbind();
 		_sessionBinding.Unbind();
 		_domains.Renderer.DestroyAllClones();
@@ -355,6 +361,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	}
 
 	void IJoinFlowPresentation.PrepareForDirectJoin() => _skipIntro = true;
+
+	/// <summary>
+	/// The Online UI's read-only probe of the game's own UI (ticket online-ui-art-and-controls-overhaul,
+	/// S1). Only the adapter can reach the game's canvas and prefabs, so the later stages read the font,
+	/// the row styles, the chrome styles and the canvas scale from this one call.
+	/// </summary>
+	OnlineUiNativeFacts IOnlineUiNativeFactsQuery.Capture() => _onlineUiNativeFacts.Capture();
 
 	// ---- Mod runtime boundaries (Phase 4 Mod API) ----
 

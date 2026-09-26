@@ -51,7 +51,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Two native DamageBlock callers stay unhooked](todo/unhooked-damage-block-callers.md) — **Low-Medium** — the footstep crush and the burrow report nothing.
 - [Local-only item and body sounds](todo/unhooked-item-and-body-sound-families.md) — **Low-Medium** — medical, tool and gesture clips report nothing.
 - [Online UI panels ask for alphaBlend false](todo/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — their panel alpha may never blend.
-- [Two censuses that drifted](todo/catalogue-and-manifest-census-drift.md) — **Low-Medium** — the catalogue's orphan keys and the selfcheck index drift.
 
 ### Review
 
@@ -189,6 +188,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [CUO launcher button covers the view](review/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
 - [A dead or unconscious carried body stops simulating](review/carried-unconscious-body-simulation.md) — **Medium** — vitals advance behind the pinned pose.
 - [Remove the Online UI console page](review/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
+
+- [Two censuses that drifted](review/catalogue-and-manifest-census-drift.md) — **Low-Medium** — orphan catalogue keys and the selfcheck index, gated.
 
 ### Future
 

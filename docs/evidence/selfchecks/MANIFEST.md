@@ -1,6 +1,6 @@
 # Self-Check Evidence Manifest
 
-All files under `docs/selfchecks/` are historical/per-delivery evidence records. This manifest marks the current-vs-historical boundary from the 2026-08-30 content audit. "historical" means the wire path/mechanism described is no longer the active path; the user-visible feature may still exist through a newer kernel/protocol path.
+All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence records. This manifest marks the current-vs-historical boundary from the 2026-08-30 content audit. "historical" means the wire path/mechanism described is no longer the active path; the user-visible feature may still exist through a newer kernel/protocol path.
 
 | File | Domain | Status | Note |
 |---|---|---|---|
@@ -202,4 +202,70 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | documentation/legacy-tree-followups-selfcheck.md | Documentation | current | the cycle after the migration: two dead doc paths and an off-by-one grammar comment in `src/`, the English how-to breadcrumb brought to the standard spelling, and the feature-matrix tool-path gate (tool literals plus the item column list) |
 | documentation/legacy-tree-migration-selfcheck.md | Documentation | current | the last migration stage: two conclusions absorbed as pages, every live inbound reference re-pointed, the old `docs/` trees deleted, the event-replay table moved into `docs/contracts/`, and the retired sibling-pairing gate's budget check left with `AgentInstructionBudgetGateTests` |
 | tooling/one-top-level-type-gate-selfcheck.md | Other | current | the one-top-level-type gate sees every modifier and the two-word record keyword, and the seven files it exposed are split one type per file |
+| architecture/composition-root-modules-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
+| architecture/di-cycle-guard-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
+| architecture/legacy-wire-dto-slice-selfcheck.md | Architecture | current | the kernel-to-wire vocabulary moved into the Application layer (ticket `review/legacy-wire-dto-slice.md`) |
+| architecture/projection-health-coordinator-selfcheck.md | Architecture | current | projection failure auto-recovery: a stalled projection is observed and healed instead of dropping silently |
+| enemies/enemy-hit-determination-local-selfcheck.md | Enemies/World | current | candidate current evidence; verify before citing |
+| items/remote-inventory-native-intent-stage2-selfcheck.md | Items | current | remote inventory native parity stage 2: the container family |
+| items/remote-inventory-native-intent-stage3-selfcheck.md | Items | current | remote inventory native parity stage 3: item interaction |
+| items/remote-inventory-native-intent-stage4-audit.md | Items | current | remote inventory native parity stage 4: the family audit and acceptance preparation |
+| items/remote-inventory-native-parity-acceptance-checklist.md | Items | current | the real-machine acceptance checklist the remote inventory native parity rework landed with |
+| mod-api/mod-building-drop-worldgen-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-content-owner-query-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-item-advanced-behavior-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-item-fixed-drop-sources-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-item-spawn-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-item-visual-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-item-worldgen-loot-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-liquid-content-binding-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-liquid-placement-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-recipe-content-binding-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-runtime-data-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-status-moodle-content-binding-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-status-moodle-row-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-status-projection-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-status-runtime-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-status-wire-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-structure-content-binding-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-structure-placement-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-structure-worldgen-distribution-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-tile-content-binding-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-tile-ore-worldgen-projection-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-tile-placement-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mods/native-binding-declaration-selfcheck.md | Other | current | the declared native-binding tier, stage 1: the declaration |
+| mods/native-binding-handshake-parity-selfcheck.md | Other | current | native-binding parity in the session handshake |
+| players/carried-unconscious-body-simulation-selfcheck.md | Players | current | a dead or unconscious carried body keeps the vitals half of the native per-frame pass; the carry relation keeps pose, physics, ground contact and sounds (decision 227) |
+| players/carrier-sit-suppression-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| players/carry-rider-limb-anchor-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| players/interaction-gate-authority-selfcheck.md | Players | current | each client judges its own side; twelve host-side judging sites retired |
+| players/medical-operation-concurrency-selfcheck.md | Players | current | medical operations settle per unit (ticket `review/concurrent-medical-operations.md`) |
+| players/remote-medical-operation-session-realtime-injection-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| players/remote-medical-panel-acceptance-projection-selfcheck.md | Players | historical | superseded: `RemoteMedicalDisplayProjection` and the acceptance rows it carried were replaced by the unified remote display projection (its own ticket link points at the retired `docs/backlog/todo/` path) |
+| players/remote-medical-panel-selfcheck.md | Players | historical | the rejected CUO IMGUI medical panel; superseded by the native WoundView remote focus - no parallel CUO medical panel (its own ticket link points at the retired `docs/backlog/todo/` path) |
+| players/remote-medical-stage-2-shrapnel-session-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| players/remote-medical-stage-3-other-actions-selfcheck.md | Players | historical | stage 3's exclusive-limb lease was superseded 2026-09-19 by per-unit settlement (`players/medical-operation-concurrency-selfcheck.md`), and the sheet's own protocol row records `ProtocolVersion.Current = 14` against the tree's 41 |
+| players/remote-medical-treatment-operations-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| presentation/host-eating-sound-not-heard-on-guest-selfcheck.md | Other | current | the ingest clips and the meal-end burp reach every other side as the dedicated one-shot character sound (decision 225) |
+| presentation/unified-remote-display-projection-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| protocol/global-adaptive-report-rate-stage-3-cumulative-streams-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| protocol/global-adaptive-report-rate-stage-4-high-frequency-domains-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| protocol/ip-direct-name-validation-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| saves/world-backup-management-selfcheck.md | Other | current | the Online UI's Worlds page and the player-chosen restore (decision 198) |
+| tooling/adapter-capability-catalog-selfcheck.md | Other | current | the adapter capability catalog and probe aggregation; the installers' target table is the one hand-written surface |
+| tooling/config-profile-templates-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| tooling/content-id-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| tooling/game-update-contract-toolchain-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| tooling/mod-api-contract-governance-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| ui/command-console-selfcheck.md | UI | current | the in-game command console; the modal Online UI console page it once sat beside was deleted 2026-09-26 (decision 228), so the slash-opened overlay is the only command and chat surface |
+| ui/cuo-launcher-idle-fade-selfcheck.md | UI | current | the launcher button's idle fade (ticket `review/cuo-launcher-button-obscures-the-view.md`) |
+| ui/dead-player-context-menu-title-selfcheck.md | UI | current | candidate current evidence; verify before citing |
+| ui/location-ping-selfcheck.md | UI | current | candidate current evidence; verify before citing |
+| ui/name-tag-ui-polish-selfcheck.md | UI | current | candidate current evidence; verify before citing |
+| ui/tab-backpack-instant-close-selfcheck.md | UI | current | candidate current evidence; verify before citing |
+| world/guest-hears-only-some-block-break-sounds-selfcheck.md | World/Entities | current | a break is presented on every side through the game's own damage roll, carried by the air write's `PlayerBreak` claim (decision 224) |
+| world/quake-direct-write-selfcheck.md | World/Entities | current | the game's direct `Time.timeScale` write is adopted by the host and the adopted speed is re-stated silently, so the speed HUD follows (decision 226) |
+| world/runtime-entity-identity-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
+| world/world-acceleration-survives-movement-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
+| tooling/catalogue-and-manifest-census-selfcheck.md | Other | current | the catalogue's declared keys now equal the keys the product source reads (73 orphan keys deleted), and the self-check manifest is the complete per-file index it claims: both censuses are gates (decision 229) |
 

@@ -134,7 +134,7 @@ Disposition, all in this commit:
   tree compared before and after (§6).
 - **N3 — the new selfcheck had no MANIFEST row.** Fixed: the row is added. The pre-existing drift (198
   rows against 262 files) and the manifest intro's stale `docs/selfchecks/` path are recorded as
-  `todo/catalogue-and-manifest-census-drift.md` rather than fixed here.
+  `review/catalogue-and-manifest-census-drift.md` rather than fixed here.
 - **N4 — the ticket's `## Evidence` kept the pre-change tense** ("on both surfaces"). Fixed: "at the
   time of the ruling".
 - **N5 — "deleted rather than left as orphans" read as a policy the cycle does not apply
@@ -166,7 +166,7 @@ real-session rows, a limit the reviewer agreed with rather than treated as a gap
 - `console.hint` and `console.overlay.controls` had no reader anywhere in the tree at HEAD, before
   this cycle's deletion; the two `console.*` keys the page family left behind are removed with it.
   81 further declared-and-unreferenced keys exist in other families and are deliberately NOT swept
-  here — recorded as `todo/catalogue-and-manifest-census-drift.md` so the policy is decided once.
+  here — recorded as `review/catalogue-and-manifest-census-drift.md` so the policy is decided once.
   Nothing renders the overlay's controls line from the catalogue today, recorded rather than changed.
 - The MANIFEST's pre-existing incompleteness (198 rows against 262 files) is untouched beyond adding
   this cycle's own row; see the same ticket.

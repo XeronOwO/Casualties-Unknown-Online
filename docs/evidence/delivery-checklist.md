@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: the page shell, the drawer and its command-buffer read, the window state and the key census
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: the two tables, the four read shapes, the key-carrying helper, the manifest census, the 81-key reconciliation
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3: pages, drawer, state and keys changed; the command buffer narrowed to the overlay; the overlay itself untouched
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 8 rows - enum, tab row, switch, drawer, command buffer, window state, key census, the overlay key
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3: 73 keys deleted; prefs.color/admin.rule/worlds.kind kept by shape; both tables in step; the console-page pin untouched
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 7 rows - tables, census, helper convention, key producer, dangling direction, manifest, matcher
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: red2 8/13/21 on the HEAD-shaped tree (%TEMP%/cuo-red2-online-ui-console.txt); pin 21/21; family 178/178; gates 208/208
+      peer log comparison, hotrepl assertions) is decided — evidence: red 4/22/26 with the delivered matchers on the HEAD-shaped tree (%TEMP%/cuo-red3-census-gate.txt); gates 26/26; family 109/109
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user's 2026-09-21 deletion ruling recorded in the ticket and decision 228; no work-item question asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full WITH build 4075/4075 + gates 209/209 exit 0 (%TEMP%/cuo-full4-online-ui-console.txt); build 0/0; format exit 0, no file changed
+      process violation — evidence: the ticket the review opened carries its own "What done looks like"; no work-item question asked, no new user-facing decision
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0 with git status identical before and after (%TEMP%/cuo-format3-census.txt); full suite with build 4075 + gates 232 exit 0 (%TEMP%/cuo-full-prereview3.txt)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: the drawer file and the state field deleted with their last readers; the new pin is 522 lines; no new state was added
+      dead mechanisms deleted in the same round) — evidence: the catalogue shrank 561 -> 415 lines; the new census gate is 462 lines and SourceScan 170, both inside the architecture gate; no new state; 73 dead keys deleted with their readers' shapes kept
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

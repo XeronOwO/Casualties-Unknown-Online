@@ -48,7 +48,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
-- [Online UI art and controls are placeholders](todo/online-ui-art-and-controls-overhaul.md) — **High** — the UI must read as native and offer real controls.
+- [Online UI art and controls are placeholders](todo/online-ui-art-and-controls-overhaul.md) — **High** — rebuild on uGUI with the game's own controls.
 
 ### Review
 

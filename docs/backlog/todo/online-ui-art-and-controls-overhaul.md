@@ -28,13 +28,78 @@ game's own visual language.
 - No regression: the existing actions, hotkeys, layout anchors, translation keys, the launcher's idle
   fade and the blended frames keep working, and the gates that pin them stay green.
 
-## Open design questions (the user's call, to be asked with the research in hand)
+## Decision (2026-09-26, user ruling)
 
-- How far the restyle goes: every Online UI surface, or the window family first.
-- The colour input's form: a palette plus an RGB/hex field, or a native-style picker.
-- What "the game's style" means on the surfaces the game itself has no equivalent for.
+- **Destination: rebuild the Online UI on uGUI, reusing the game's own controls and art — staged.** The
+  game is uGUI + TextMeshPro with zero IMGUI, so "reads as the game" is not reachable from the IMGUI
+  shell: `GUIStyle.font` cannot take a `TMP_FontAsset`, every control would stay hand-rolled, and an
+  IMGUI window is invisible to the game's `EventSystem` — the reason `OnlineMenuInputGuard` exists.
+- **Colour input: a hex field plus a swatch grid.** The game has no colour picker and no player-colour
+  feature at all (every `SetColor` site is a crystal or an effect; no `ColorPicker`/HSV class in the
+  assembly), so rule 8's "reuse the native UI" cannot be satisfied on this surface — this is the recorded
+  blocker, and the chosen form follows the game's own hex idiom
+  (`ConsoleSettings.hexBackgroundColor/hexTextColor` parsed by `ColorUtility.TryParseHtmlString`,
+  `ConsoleScript.cs:1635-1643`). A swatch grid sits beside it for speed.
+- **Scope call (technical, recorded rather than asked):** the non-goal below means the game save and the
+  session, not a local UI preference. An arbitrary colour is not an index, so the colour needs a new
+  local config entry, and that entry rides the Preferences profiles like every other preference key; the
+  wire is untouched because `NetColorRgbaMsg` already carries four floats.
+- **The pins are a design input, not cleanup:** the stage that moves a pinned surface re-pins it in the
+  same change (the launcher's rect and idle-fade contract, the theme's draw census, the blended-frame
+  census), and the pin set stays green throughout.
+
+## Reconnaissance (2026-09-26)
+
+The fact base the overhaul is built on (full report `%TEMP%/cuo-ui-recon.md`, session artifact):
+
+- **The "dropdown" is confirmed**: `OnlineUiPreferencesDrawer.DrawDropdown` renders a `GUILayout.Button`
+  showing the current value and, when open, one more button per option **inline in the page's flow** — no
+  overlay, no click-away dismissal, no keyboard, no max height, no own scroll. Three call sites (log
+  level, language, player colour) and three independent open/closed booleans on `OnlineUiWindowState`.
+- **The colour limit is local only**: the picker offers eight `ColorKeys` and the config stores an `int`
+  index, while the wire already carries four floats (`NetColorRgbaMsg` on the handshake, join and colour
+  messages; `MemberPresenceTable.SelectedColor`; `OnlineUiContext.PlayerColor`).
+- **The game uses uGUI + TextMeshPro and zero IMGUI** (no `OnGUI`, `GUIStyle`, `GUILayout` or `GUI.*` in
+  the whole decompiled assembly). It has a real dropdown (`TMP_Dropdown`, `SettingsMenu.cs:105-116`,
+  `RunSettingDisplay.cs:108-113`) plus Slider, Toggle and `TMP_InputField`, built from `Resources.Load`
+  prefabs (`Utils.cs:10-19`: `Special/SettingsMenu`,
+  `Special/GameSettingFloat|Int|Dropdown|Bool|Input|Language`). Interactions play
+  `PlayerCamera.PlayUISound("miniClick"/"click")`, and there is a global `PlayerCamera.uiScale` the mod
+  never consults — the mod has no UI sound, no scale and no tooltip outside its console.
+- **The look is prefab-serialised**: fonts are TMP assets and `Image.type`/9-slice never appears in code,
+  so neither can be read from the decompiled tree — they need a runtime probe or come free by
+  instantiating the game's own prefabs.
+- **Reuse is mechanically cheap**: `UnityEngine.UI.dll` and `UnityEngine.IMGUIModule.dll` ship in the
+  game's `Managed` (and `UnityEngine.UI.dll` is already vendored in `references/`); the game-assembly
+  binding gate forbids only `Assembly-CSharp`. Canvas anchors exist (`PreRunScript.instance.mainCanvas`,
+  `PlayerCamera.main.mainCanvas`).
+- **Our own pins are the hardest constraint**: `OnlineUiLauncherFadeTests` pins the theme and the
+  launcher as source text with explicit ceilings (six `GUI.DrawTexture(` calls in the theme, five in the
+  frame, a five-row surface census, the launcher's verbatim rect); `OnlineUiOverlay.cs` sits at 576 lines
+  against the 600-line aggregate gate. `ui/online-ui-selfcheck.md` is historical — do not cite it.
+
+## Stages
+
+Each stage is a cycle of its own: red where behaviour changes → implement → gates → independent
+adversarial review → one commit.
+
+1. **S1 — facts and host.** A read-only runtime probe for the four unknowns (the active `TMP_FontAsset`,
+   a live settings row's `Image.sprite` / `Image.type` / `pixelsPerUnitMultiplier`, the chrome colours,
+   `PlayerCamera.uiScale`) plus a uGUI host that parents a canvas under
+   `PreRunScript.instance.mainCanvas` / `PlayerCamera.main.mainCanvas` and instantiates
+   `Special/GameSettingDropdown` and `Special/GameSettingInput`. Verifiable here: the pure parts by test,
+   the rest by build and the gate set; the logged values come from one game run.
+2. **S2 — the window family on uGUI.** The window shell, tabs and page controls on the game's own control
+   prefabs, with the launcher button and its idle fade re-pinned for uGUI. The IMGUI theme stays only for
+   the surfaces not yet migrated.
+3. **S3 — free colour.** The hex field and swatch grid on the uGUI controls, the config entry and its
+   profile carry, the free-colour path through `PlayerColorValue`/`PlayerColorResolver`, and a live
+   swatch. The wire is untouched.
+4. **S4 — retirement pass.** Retire the scoped raycast blocker for the migrated surfaces and decide the
+   two surfaces IMGUI still owns (the world-space overlays and the command console overlay).
 
 ## Non-goals
 
-- Not a mod-facing UI API and not a new window framework for other mods' windows.
-- Not a change to any wire, save, session or gameplay behaviour: this is presentation and interaction.
+- Not a mod-facing UI API and not a window framework for other mods' windows.
+- Not a change to the game save, the session, the wire or any gameplay behaviour. A local UI preference
+  is in scope — see the scope call above.

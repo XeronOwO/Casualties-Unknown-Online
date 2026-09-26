@@ -247,6 +247,7 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | players/remote-medical-stage-3-other-actions-selfcheck.md | Players | historical | stage 3's exclusive-limb lease was superseded 2026-09-19 by per-unit settlement (`players/medical-operation-concurrency-selfcheck.md`), and the sheet's own protocol row records `ProtocolVersion.Current = 14` against the tree's 41 |
 | players/remote-medical-treatment-operations-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | presentation/host-eating-sound-not-heard-on-guest-selfcheck.md | Other | current | the ingest clips and the meal-end burp reach every other side as the dedicated one-shot character sound (decision 225) |
+| presentation/unhooked-item-and-body-sound-families-selfcheck.md | Other | current | the medical, world-drink, gesture and coroutine one-shot sounds reach every other side through the same dedicated character-sound event; the 2D prompts stay local by decision |
 | presentation/unified-remote-display-projection-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | protocol/global-adaptive-report-rate-stage-3-cumulative-streams-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | protocol/global-adaptive-report-rate-stage-4-high-frequency-domains-selfcheck.md | Other | current | candidate current evidence; verify before citing |

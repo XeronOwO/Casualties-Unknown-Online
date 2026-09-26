@@ -38,11 +38,17 @@ public class CharacterSoundSyncTests
 			CharacterSoundKind.Yawn => "yawn1",
 			CharacterSoundKind.ItemPlacement => "scrapmetal",
 			CharacterSoundKind.Consume => "eatCrunch",
+			CharacterSoundKind.Medical => "syringe",
+			CharacterSoundKind.Drink => "drink",
+			CharacterSoundKind.Utility => "flashlighttoggle",
+			CharacterSoundKind.Gesture => "waterpour",
+			CharacterSoundKind.BodySound => "vomit1",
 			_ => "BSSwing3",
 		},
 		Position = new NetVector2Msg { X = 10f, Y = 20f },
 		Volume = 0.7f,
-		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire && kind != CharacterSoundKind.Bark && kind != CharacterSoundKind.ItemPlacement && kind != CharacterSoundKind.Consume,
+		FollowOwner = kind is CharacterSoundKind.AttackSwing or CharacterSoundKind.Exert or CharacterSoundKind.Footstep
+			or CharacterSoundKind.LandingImpact or CharacterSoundKind.Pain or CharacterSoundKind.Growl or CharacterSoundKind.Yawn,
 		TwoDimensional = kind == CharacterSoundKind.Exert || kind == CharacterSoundKind.GunFire,
 		RecoilDegrees = recoilDegrees,
 	};
@@ -238,5 +244,69 @@ public class CharacterSoundSyncTests
 		w.Driver.Tick(33);
 
 		Assert.True(applied == 1, "the relayed sound must fire the received event on the other guest");
+	}
+
+	[Fact]
+	public void ItemAndBodyFamilies_RoundTripTheirKindsClipsAndSpatialFacts()
+	{
+		// The medical, drink, utility and gesture families are position-based:
+		// every native call of theirs passes follow: null, so the captured fact is
+		// the position (the treated limb, the item, the drinker's body).
+		foreach (var (kind, clip) in new (CharacterSoundKind Kind, string Clip)[]
+		{
+			(CharacterSoundKind.Medical, "syringe"),
+			(CharacterSoundKind.Drink, "drink"),
+			(CharacterSoundKind.Utility, "flashlighttoggle"),
+			(CharacterSoundKind.Gesture, "waterpour"),
+		})
+		{
+			var decoded = NetPacket.DecodePayload<CharacterSoundMsg>(
+				NetPacket.Encode(NetMsg.CharacterSound, Sound(kind: kind)));
+
+			Assert.Equal(kind, decoded.Kind);
+			Assert.Equal(clip, decoded.Clip);
+			Assert.False(decoded.FollowOwner, "these clips play position-based — the captured fact is the position, not the actor's body");
+			Assert.False(decoded.TwoDimensional);
+		}
+	}
+
+	[Fact]
+	public void BodySoundFamily_CarriesTheFollowFactTheNativeCallHad()
+	{
+		// A BodySound clip is NOT uniformly position-based: the water shake passes
+		// base.transform as its follow target (Body.cs:2553) while the vomit and
+		// the nap stretch pass null — the wire carries the per-call fact, so the
+		// same kind arrives with either value.
+		var positionBased = NetPacket.DecodePayload<CharacterSoundMsg>(
+			NetPacket.Encode(NetMsg.CharacterSound, Sound(kind: CharacterSoundKind.BodySound)));
+		Assert.Equal("vomit1", positionBased.Clip);
+		Assert.False(positionBased.FollowOwner);
+
+		var followBased = Sound(kind: CharacterSoundKind.BodySound);
+		followBased.Clip = "dogshake";
+		followBased.FollowOwner = true;
+		var decodedFollow = NetPacket.DecodePayload<CharacterSoundMsg>(
+			NetPacket.Encode(NetMsg.CharacterSound, followBased));
+		Assert.Equal("dogshake", decodedFollow.Clip);
+		Assert.True(decodedFollow.FollowOwner);
+	}
+
+	[Fact]
+	public void HostLimbTreatmentSound_BroadcastsToBothGuests_AndNeverReturnsToTheHost()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostStore = w.Host.Services.GetRequiredService<CharacterDataStore>();
+		var hostHeardItsOwnSound = 0;
+		hostStore.CharacterSoundReceived += (_, _) => hostHeardItsOwnSound++;
+
+		hostStore.SendCharacterSound(Sound(HostId, kind: CharacterSoundKind.Medical));
+		w.Driver.Tick(33);
+
+		Assert.True(hostHeardItsOwnSound == 0,
+			"the host's own sound must not come back to it — the star relay excludes the source and the receiver drops a self-echo");
+		Assert.True(w.ReceivedCount(w.G1, NetMsg.CharacterSound) == 1,
+			"the host's limb-treatment sound must reach G1");
+		Assert.True(w.ReceivedCount(w.G2, NetMsg.CharacterSound) == 1,
+			"the host's limb-treatment sound must reach G2");
 	}
 }

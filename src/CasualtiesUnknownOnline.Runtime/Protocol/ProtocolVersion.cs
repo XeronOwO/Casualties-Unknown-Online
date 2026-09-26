@@ -221,6 +221,17 @@ public static class ProtocolVersion
 	/// scope, so only the side that chewed or drank heard it (user report
 	/// 2026-09-21). A peer without the kind would drop those events and keep
 	/// the reported silence, so one session would mix two audible behaviours.
-	public const int Current = 41;
+	/// 42: `CharacterSoundKind.Medical` / `Drink` / `Utility` / `Gesture` /
+	/// `BodySound` — the item and body one-shot families outside the ingest
+	/// scope now ride the same `CharacterSoundMsg` event from five newly
+	/// captured call identities (the local camera's `PlayerCamera.ApplyWoundItem`
+	/// limb treatment, `FluidManager.DrinkLiquid`, `Body.CombineLiquids`, the
+	/// already-open `InternalReorder` / `Craft` inventory scopes, and the local
+	/// body's own one-shot coroutines, scoped per step). Each clip plays inside
+	/// the native call that runs on ONE client, so only that client heard it
+	/// (the same shape as the consume report). A peer without the kinds would
+	/// drop those events and keep the reported silence, so one session would
+	/// mix two audible behaviours.
+	public const int Current = 42;
 
 }

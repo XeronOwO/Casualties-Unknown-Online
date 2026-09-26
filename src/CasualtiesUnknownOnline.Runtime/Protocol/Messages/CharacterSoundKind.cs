@@ -63,4 +63,41 @@ public enum CharacterSoundKind : byte
 	/// locally only, so without this event the other players never hear the
 	/// reported meal (user report 2026-09-21).</summary>
 	Consume = 12,
+
+	/// <summary>The local camera's <c>PlayerCamera.ApplyWoundItem</c> treated a limb with a
+	/// medical item — the item's own <c>useLimbAction</c> delegate
+	/// (PlayerCamera.cs:754) or the container's <c>WaterContainerItem.ApplyToLimb</c>
+	/// (:760). The clip (<c>syringe</c> / <c>splint</c> / <c>goo</c> /
+	/// <c>boneweld</c> / <c>drainuse</c> / <c>tweezeruse</c> / <c>spray</c> /
+	/// <c>laser</c> / <c>wrenchhit</c> / <c>cream</c>) plays at the TREATED LIMB's
+	/// body position, which may be another player's body — the native call passes
+	/// no follow transform, so the position travels and every side replays it
+	/// where the treatment happened.</summary>
+	Medical = 13,
+
+	/// <summary>The local body drank from a world liquid:
+	/// <c>FluidManager.DrinkLiquid</c>'s own water-branch <c>"drink"</c>
+	/// (FluidManager.cs:314) and the liquid registry's <c>onDrink</c> clip
+	/// (Liquids.cs:1501). The container-drink half of "drinking" rides
+	/// <see cref="Consume"/>.</summary>
+	Drink = 14,
+
+	/// <summary>A local item use played its own device/utility feedback clip —
+	/// <c>flashlighttoggle</c> / <c>error</c> / <c>centrifuge</c> /
+	/// <c>combine</c> / <c>drop</c>, all inside the item's use action. The state
+	/// they accompany already syncs through its own domain; they are carried
+	/// because the world should SOUND the same on every side.</summary>
+	Utility = 15,
+
+	/// <summary>An inventory-internal gesture played its clip — SwitchHands /
+	/// SwapSlots (<c>switch</c>, Body.cs:1131/1427), CombineItems
+	/// (<c>combine</c>, :1284) and CombineLiquids (<c>waterpour</c>, :1250).</summary>
+	Gesture = 16,
+
+	/// <summary>The local body's own one-shot outside the item path: the Vomiter
+	/// vomit routines (<c>vomit1</c> / <c>vomit2</c>, Vomiter.cs:86/125), the nap
+	/// <c>stretch</c> (Body.cs:2510) and the water <c>dogshake</c> (:2553). The
+	/// 2D <c>vomitwarning</c> / <c>bloodvomitwarning</c> screen feedback is NOT
+	/// here by decision — it is the acting player's own HUD prompt.</summary>
+	BodySound = 17,
 }

@@ -5,7 +5,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// <summary>
 /// ONE player-character action presentation event (attack swing / throw
 /// swing / exert / gun fire / footstep / landing impact / pain / bark /
-/// growl / yawn / direct placeable-item placement / ingest and meal-end
+/// growl / yawn / direct placeable-item placement / ingest, meal-end,
+/// limb-treatment, world-drink, inventory-gesture and body one-shot
 /// sounds) — the dedicated trigger
 /// event, star semantics.
 /// The owner's local simulation already played the sound (the patch captured

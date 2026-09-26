@@ -153,15 +153,111 @@ public class CharacterSoundPolicyTests
 	}
 
 	[Fact]
+	public void ItemUseScope_ClassifiesTheItemUseFeedbackAsUtility()
+	{
+		// The item's own device/utility feedback rides the SAME use-action scope
+		// as the ingest clips: the native call is a 3D one-shot at the item, and
+		// the decision is that the world should sound the same on every side.
+		foreach (var clip in new[] { "flashlighttoggle", "error", "centrifuge", "combine", "drop" })
+		{
+			Assert.Equal(CharacterSoundKind.Utility,
+				CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.ItemUse, clip));
+		}
+	}
+
+	[Fact]
+	public void MedicalClips_AreCarriedFromBOTHTheLimbActionAndTheItemUseScope()
+	{
+		// Four censused medical sites play their clip from the item's WORLD use
+		// action, not from the limb-action choke point (Item.cs:515 "splint",
+		// :1443 "goo", :1658 "drainuse" and :7123 "syringe" through
+		// Item.DrawBlood) — those run under CharacterItemUse. The medical set is
+		// therefore consulted from BOTH scopes; listing it under the limb scope
+		// alone left exactly those four sites silent (this cycle's independent
+		// review found it).
+		foreach (var clip in new[] { "syringe", "splint", "goo", "boneweld", "drainuse", "tweezeruse", "spray", "laser", "wrenchhit", "cream" })
+		{
+			Assert.Equal(CharacterSoundKind.Medical,
+				CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.ItemUse, clip));
+		}
+	}
+
+	[Fact]
 	public void ItemUseScope_LeavesTheOtherItemSoundsSilent()
 	{
-		// The scope wraps EVERY local item use (medical, tools, gestures); only
-		// the ingest clips may be reported from it — the ticket's whole-family
-		// audit records the rest with their own carriers.
-		foreach (var clip in new[] { "syringe", "splint", "goo", "combine", "waterpour", "switch", "scrapmetal", "BSSwing3" })
+		// The scope wraps EVERY local item use (medical, tools, gestures): the
+		// ingest clips, the medical set and the item's own feedback report from
+		// it; everything else has its own carrier (the gesture scopes) or is not
+		// a character sound at all.
+		foreach (var clip in new[] { "waterpour", "switch", "scrapmetal", "BSSwing3", "waterflow1" })
 		{
 			Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.ItemUse, clip));
 		}
+	}
+
+	[Fact]
+	public void MedicalScope_ClassifiesTheLimbTreatmentClipsOnly()
+	{
+		foreach (var clip in new[] { "syringe", "splint", "goo", "boneweld", "drainuse", "tweezeruse", "spray", "laser", "wrenchhit", "cream" })
+		{
+			Assert.Equal(CharacterSoundKind.Medical,
+				CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Medical, clip));
+		}
+
+		foreach (var clip in new[] { "eatCrunch", "combine", "scrapmetal", "BSSwing3", "" })
+		{
+			Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Medical, clip));
+		}
+	}
+
+	[Fact]
+	public void WorldDrinkScope_ClassifiesTheWorldDrinkClipsOnly()
+	{
+		Assert.Equal(CharacterSoundKind.Drink,
+			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.WorldDrink, "drink"));
+		Assert.Equal(CharacterSoundKind.Drink,
+			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.WorldDrink, "pills"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.WorldDrink, "eatFlesh"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.WorldDrink, "waterflow1"));
+	}
+
+	[Fact]
+	public void GestureScope_ClassifiesTheInventoryGesturesOnly()
+	{
+		foreach (var clip in new[] { "switch", "waterpour", "combine" })
+		{
+			Assert.Equal(CharacterSoundKind.Gesture,
+				CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.InventoryGesture, clip));
+		}
+
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.InventoryGesture, "drop"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.InventoryGesture, "flashlighttoggle"));
+	}
+
+	[Fact]
+	public void BodySoundScope_ClassifiesTheBodyOneShots_AndLeavesTheTwoDimensionalPrompts()
+	{
+		foreach (var clip in new[] { "vomit1", "vomit2", "stretch", "dogshake" })
+		{
+			Assert.Equal(CharacterSoundKind.BodySound,
+				CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.BodySound, clip));
+		}
+
+		// The 2D screen prompts are the acting player's own HUD feedback: they
+		// play in Vomiter.Vomit / VomitBlood (Sound.Play at Vector2.zero with the
+		// 2D flag), outside every wrapped routine, and stay local by decision.
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.BodySound, "vomitwarning"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.BodySound, "bloodvomitwarning"));
+	}
+
+	[Fact]
+	public void BodyFamilyKinds_AreDefinedInTheWireEnum()
+	{
+		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)13), "CharacterSoundKind.Medical must be defined.");
+		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)14), "CharacterSoundKind.Drink must be defined.");
+		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)15), "CharacterSoundKind.Utility must be defined.");
+		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)16), "CharacterSoundKind.Gesture must be defined.");
+		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)17), "CharacterSoundKind.BodySound must be defined.");
 	}
 
 	[Fact]

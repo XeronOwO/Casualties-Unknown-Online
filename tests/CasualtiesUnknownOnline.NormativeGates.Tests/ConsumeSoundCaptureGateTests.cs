@@ -68,15 +68,15 @@ public class ConsumeSoundCaptureGateTests
 	/// <summary>The whole wire surface this gate treats as pinned: a kind added to (or removed from) the enum is a red until it is reviewed here.</summary>
 	private static readonly string[] WireKinds =
 	[
-		"AttackSwing", "Bark", "Consume", "Exert", "Footstep", "Growl", "GunFire",
-		"ItemPlacement", "LandingImpact", "Pain", "ThrowSwing", "Yawn",
+		"AttackSwing", "Bark", "BodySound", "Consume", "Drink", "Exert", "Footstep", "Gesture", "Growl",
+		"GunFire", "ItemPlacement", "LandingImpact", "Medical", "Pain", "ThrowSwing", "Utility", "Yawn",
 	];
 
-	/// <summary>The kind-census floor — a pin emptied alongside its source would otherwise pass by checking nothing.</summary>
-	private const int MinimumWireKinds = 11;
+	/// <summary>The kind-census floor — a pin emptied alongside its source would otherwise pass by checking nothing (17 kinds are pinned today).</summary>
+	private const int MinimumWireKinds = 15;
 
-	/// <summary>The capture-origin floor: the character capture scopes referenced today (attack, throw, placement, exert, footstep, landing, vocalization, lockpick pain, bark, growl, item use, burp).</summary>
-	private const int MinimumCharacterOrigins = 10;
+	/// <summary>The capture-origin floor: the character capture scopes referenced today (attack, throw, placement, exert, footstep, landing, vocalization, lockpick pain, bark, growl, item use, burp, limb treatment, world drink, inventory gesture, body one-shot — 16 in all). The floor sits just under that count on purpose: it exists to catch a broken matcher or a vanishing scope, not to tolerate four of them going missing silently.</summary>
+	private const int MinimumCharacterOrigins = 14;
 
 	/// <summary>The native ingest clips the policy must classify (the edible use actions' clips plus the container drink's two clip arguments) — the meal-end <c>burp</c> is the second decision row of the same family.</summary>
 	private static readonly string[] IngestClips = ["eatCrunch", "eatFlesh", "glass", "crystalenemylaugh", "drink", "pills"];
@@ -132,9 +132,19 @@ public class ConsumeSoundCaptureGateTests
 		var policy = RepositoryPaths.ReadText(PolicyFile);
 
 		// The DECISION expressions themselves, not a clip name mentioned in a doc
-		// comment: a row gutted to `null` must fail here.
+		// comment: a row gutted to `null` must fail here. The item-use row now
+		// splits into the ingest helper and the item's own feedback helper — the
+		// wider item/body census is pinned by ItemAndBodySoundCaptureGateTests.
 		Assert.Contains(
-			"Origin.ItemUse => clip is \"eatCrunch\" or \"eatFlesh\" or \"glass\" or \"crystalenemylaugh\" or \"drink\" or \"pills\" ? CharacterSoundKind.Consume : null,",
+			"Origin.ItemUse => IsIngestClip(clip) ? CharacterSoundKind.Consume",
+			policy,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			"IsIngestClip(string clip) =>",
+			policy,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			"clip is \"eatCrunch\" or \"eatFlesh\" or \"glass\" or \"crystalenemylaugh\" or \"drink\" or \"pills\";",
 			policy,
 			StringComparison.Ordinal);
 		Assert.Contains(

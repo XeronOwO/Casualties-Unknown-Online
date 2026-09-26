@@ -9,7 +9,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// <summary>
 /// The player-character action-presentation chain (attack swing / throw
 /// swing / exert / gun fire / footstep / landing impact / PantSound
-/// vocalizations / direct placeable placement / ingest and meal-end sounds): the source side's
+/// vocalizations / direct placeable placement / ingest, meal-end, limb-treatment,
+/// world-drink, inventory-gesture and body one-shot sounds): the source side's
 /// <c>Sound.Play</c> call is captured by the patches (call-identity scope for
 /// the swings/exert/footstep/landing/vocalizations, the GunScript.Fire postfix
 /// for gun fire), the exact clip + position + volume/follow + recoil facts travel as

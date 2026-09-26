@@ -334,15 +334,20 @@ path.
 (condition, `favourited`, liquids, container contents — the item events plus the periodic character
 snapshot), the player-character one-shots (P5 `CharacterSound`, whose policy classifies only its own
 call-identity scopes and the direct placeable uses), and a handful of world-mechanism sounds replayed
-by hand at their own event's replay site (the battery charger's `batteryinsert`). They do **not** carry
-an item's own sound: `combine` and `waterpour` (`Body.CombineItems` / `Body.CombineLiquids`),
-`batteryinsert` (`BatteryItem.LoadBattery` / `UnloadBattery`) and `eatFlesh` / `eatCrunch` / `drink`
-(the `Stats.useAction` delegates) are `Sound.Play` calls *inside* the mutation, so they are heard by
-whichever client runs the call — today for every player, in a session, not only for the
-remote-inventory case. The operator's screen therefore keeps the native branch-level feedback (the
-ring, the cursor, the drag image, the favourite key's own UI click, the alerts, and the backpack sound
-the container branches play at dispatch level) and the authoritative result through the projection,
-while the mutation-internal sound and animation happen where the mutation happens, on the owner's
+by hand at their own event's replay site (the battery charger's `batteryinsert`). Of the item sounds
+this audit censused, the ingest clips (`eatFlesh` / `eatCrunch` / `drink`), the inventory gestures
+(`combine`, `waterpour`) and — since the 2026-09-26 cycle — the limb-treatment, world-drink,
+item-feedback and body one-shot families now ride that same `CharacterSound` event, captured from the
+call-identity scope the native call runs in (`review/host-eating-sound-not-heard-on-guest.md`,
+`review/unhooked-item-and-body-sound-families.md`). `batteryinsert` is NOT among them: it plays inside
+`BatteryItem.LoadBattery` / `UnloadBattery` (BatteryItem.cs:100/117), where no capture scope is opened,
+so its only carrier stays the charger's own hand replay. Those `Sound.Play` calls are otherwise *inside*
+the mutation, so they are heard by whichever client runs the call — today for every player, in a
+session, not only for the remote-inventory case. The operator's screen therefore keeps the native
+branch-level feedback (the ring, the cursor, the drag image, the favourite key's own UI click, the
+alerts, and the backpack sound the container branches play at dispatch level) and the authoritative
+result through the projection, while the mutation-internal sound and animation happen where the
+mutation happens, on the owner's
 client. Re-sending those sounds needs a channel that does not exist and would change local-versus-
 remote for every player, so it is recorded as a limit (§6) instead of being invented here.
 
@@ -495,11 +500,21 @@ boundary; no dual shape is kept.
   - Stage 3 leaves, deliberately and observably:
     - **The item sounds inside a replayed call are heard where the call runs.** §3.4's audit found no
       existing path that carries an item's own sound, so `combine`, `waterpour`, `batteryinsert` and
-      the `useAction` eating/drinking clips play on the owner's client — the client that performs the
-      mutation — while the operator's screen keeps the branch-level native feedback and the
-      authoritative result through the projection. Carrying them would need a channel that does not
-      exist and would change local-versus-remote for every player, so it is recorded rather than
-      invented here; the operator-side item sound is therefore a real-machine acceptance question.
+      the `useAction` eating/drinking clips played on the owner's client — the client that performs the
+      mutation — while the operator's screen kept the branch-level native feedback and the
+      authoritative result through the projection. The dedicated one-shot character-sound event now
+      carries the ingest clips, the inventory gestures (`combine`, `waterpour`) and — since the
+      2026-09-26 cycle — the limb-treatment, world-drink, item-feedback and body one-shot families
+      wherever a LOCAL action plays them (the ingest half:
+      `review/host-eating-sound-not-heard-on-guest.md`; the later families:
+      `review/unhooked-item-and-body-sound-families.md`). `batteryinsert` is NOT among them: it plays
+      inside `BatteryItem.LoadBattery` / `UnloadBattery` (BatteryItem.cs:100/117), where no capture
+      scope is opened, so its only carrier stays the charger's own hand replay. What stays as
+      recorded here is the REMOTE-driven case: a use replayed by the item's owner for another player's
+      gesture runs under `RemoteApply`, whose sounds are deliberately not reported as the local player's
+      action, so it still plays on the owner's client alone — the operator-side item sound is therefore
+      a real-machine acceptance question, now carried by
+      `todo/suppressed-native-call-sounds-stay-unheard.md`.
     - **The radial-centre release is now the native branch's own answer, including its no-op.** R10
       consumes a release for an item that is neither wearable nor usable without running anything; the
       probe records that as a classified no-op instead of letting it read as an unclassified gesture

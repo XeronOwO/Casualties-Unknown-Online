@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Two native DamageBlock callers stay unhooked](todo/unhooked-damage-block-callers.md) — **Low-Medium** — the footstep crush and the burrow report nothing.
 - [Local-only item and body sounds](todo/unhooked-item-and-body-sound-families.md) — **Low-Medium** — medical, tool and gesture clips report nothing.
 - [Remove the Online UI console page](todo/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
-- [An earthquake's clock write ends an acceleration](todo/world-acceleration-quake-direct-write.md) — **Medium** — the direct-write sibling.
 - [Online UI panels ask for alphaBlend false](todo/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — their panel alpha may never blend.
 
 ### Review
@@ -182,6 +181,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Feature-matrix tooling has no path gate](review/feature-matrix-tool-path-gate.md) — **Low-Medium** — the tool literals and both column lists are gated.
 
 - [Manual world acceleration must not end when a player moves](review/world-acceleration-survives-movement.md) — **High** — only announced speeds own the clock.
+- [An earthquake's clock write ends an acceleration](review/world-acceleration-quake-direct-write.md) — **Medium** — the host adopts it, vanilla-style.
 - [Guest hears only some block-break sounds](review/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the break was silent on the other side.
 - [Host eating sound on the guest](review/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume family rides the one-shot event.
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.

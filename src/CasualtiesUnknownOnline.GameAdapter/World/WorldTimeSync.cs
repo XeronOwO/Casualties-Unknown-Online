@@ -24,8 +24,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// (WorldTimePolicy): the all-unconscious gate owns the clock while it applies
 /// and clears the request, otherwise the standing request is honored. Direct
 /// Time.timeScale writers (quake reset, console) are re-adopted by the host pump
-/// and corrected on guests; the 5 s resend + world-entry fan-out heal late
-/// joiners and local-only effects.
+/// — silently re-stating the game's own speed state so the HUD follows the
+/// actual clock — and corrected on guests; the 5 s resend + world-entry fan-out
+/// heal late joiners and local-only effects.
 /// </summary>
 internal sealed class WorldTimeSync(
 	ISessionControl session,
@@ -411,14 +412,24 @@ internal sealed class WorldTimeSync(
 
 	/// <summary>
 	/// The host's actual Time.timeScale moved to another domain speed without a
-	/// SetTimeScale call (e.g. the quake start resets 1×, WorldGeneration.cs:
-	/// 870, or a console write) — adopt it as the request so the broadcast
-	/// keeps guests on the same clock.
+	/// SetTimeScale call — the game's own DIRECT writer (the quake start resets
+	/// 1×, WorldGeneration.cs:870; the console's `timescale` command,
+	/// ConsoleScript.cs:815; and the two the pump never reaches, the run start
+	/// PreRunScript.cs:64 and the scene reload WorldGeneration.cs:1036). The
+	/// verdict is <see cref="WorldTimeDirectWrite.Classify"/>: the host ADOPTS the
+	/// value as the standing request so the broadcast keeps guests on the same
+	/// clock — the owner ruled 2026-09-26 (decision 226) that vanilla stands here
+	/// and an earthquake's reset is NEVER suppressed. The native write moved the
+	/// CLOCK, not the game's own speed state, so the adopted speed is re-stated
+	/// SILENTLY: the clock already runs it (no dip) and the native reset played no
+	/// sound, while PlayerCamera.curTimeScale — what HandleTimescaleIcons lights
+	/// the HUD's speed icons from (PlayerCamera.cs:2146) — would otherwise keep
+	/// showing the acceleration the quake just ended.
 	/// </summary>
 	private void AdoptDirectTimeScaleWrite()
 	{
 		var actual = WorldTimeSpeedScale.FromTimeScale(Time.timeScale);
-		if (actual == null || actual == _appliedSpeed)
+		if (actual is null || WorldTimeDirectWrite.Classify(actual, _appliedSpeed, isHost: true) != WorldTimeDirectWrite.Verdict.Adopt)
 		{
 			return;
 		}
@@ -426,19 +437,23 @@ internal sealed class WorldTimeSync(
 		_log.LogInformation("[WorldTime] host direct timeScale write {Scale} adopted as {Speed}.", Time.timeScale, actual);
 		_requestedSpeed = actual.Value;
 		_appliedSpeed = actual.Value;
+		ApplyLocalTime(_appliedSpeed, switchSound: false, force: false);
 		_worldTime.Broadcast(_appliedSpeed);
 	}
 
 	/// <summary>
 	/// The guest's actual Time.timeScale moved to another domain speed without
 	/// a relayed SetTimeScale (console, a forced local transition) — enforce
-	/// the last host speed. Slowmo/Paused values are deliberately not domain
-	/// speeds, so local-only effects are left alone.
+	/// the last host speed. The verdict is WorldTimeDirectWrite.Classify: the
+	/// shared clock is the host's, so this screen is put back on the applied
+	/// speed. A guest never sees the quake's own write (its quake timer is frozen
+	/// by WorldGenerationUpdatePatch), and Slowmo/Paused values are deliberately
+	/// not domain speeds, so local-only effects are left alone.
 	/// </summary>
 	private void EnforceAppliedSpeed()
 	{
 		var actual = WorldTimeSpeedScale.FromTimeScale(Time.timeScale);
-		if (actual != null && actual != _appliedSpeed)
+		if (actual is not null && WorldTimeDirectWrite.Classify(actual, _appliedSpeed, isHost: false) == WorldTimeDirectWrite.Verdict.Restore)
 		{
 			ApplyLocalTime(_appliedSpeed);
 		}

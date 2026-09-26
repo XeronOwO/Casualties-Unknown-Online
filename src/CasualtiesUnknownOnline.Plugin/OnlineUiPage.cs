@@ -10,6 +10,5 @@ internal enum OnlineUiPage
 
 	/// <summary>The world library: the worlds on disk, their backups, and the restore (decision 198).</summary>
 	Worlds,
-	Console,
 	Preferences,
 }

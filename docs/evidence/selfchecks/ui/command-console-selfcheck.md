@@ -1,9 +1,12 @@
 # In-game command console — self-check
 
 Owner cycle: interactive in-game command console. This selfcheck covers the
-final behavior: a slash-opened standalone console in addition to the modal
-Online UI console page. The command execution chain remains local and uses the
-existing text-chat send path; no wire message or protocol version was added.
+final behavior: a slash-opened standalone console, which at the time of this
+sheet sat beside the modal Online UI console page — that page was deleted on
+2026-09-26 (`docs/backlog/review/remove-the-online-ui-console-page.md`, decision
+228), leaving this overlay the only command and chat surface. The command
+execution chain remains local and uses the existing text-chat send path; no wire
+message or protocol version was added.
 
 ## 1. Mechanism inventory
 
@@ -22,7 +25,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | 11 | Standalone overlay | `CommandConsoleOverlay` draws a compact translucent bottom panel with full history and a focused input only when the input session is open; recent console lines are also shown as fading notifications while the panel is closed. |
 | 12 | Slash hotkey / modal routing | `Plugin.Update` opens the console on `KeyCode.Slash` and calls `INativeInputBlocker.SetOnlineUiModal` for the console as well as the Online UI window. |
 | 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay handles Escape. `CuoEscCloseSuppression` + `Plugin.Update` keep the modal guard active for the first frame after any CUO ESC-closing surface closes, and `IsNonModalEscapeSurfaceOpen` suppresses the pause toggle while the non-modal quick panel is open. This issue is now tracked at `docs/backlog/review/command-console-esc-not-intercepted.md`. |
-| 14 | Console page polish | `OnlineUiConsoleDrawer` removes the instruction hint and renders full history with no fade, matching the standalone console. |
+| 14 | Console page polish (DELETED 2026-09-26) | `OnlineUiConsoleDrawer` removed the instruction hint and rendered full history with no fade, matching the standalone console; the page itself was deleted with `docs/backlog/review/remove-the-online-ui-console-page.md` (decision 228), so the slash-opened overlay above is the only command and chat surface. |
 | 15 | Selection/clipboard | `ConsoleInputSession` owns selection ranges; the overlay renders selection highlight and wires Ctrl+A/C/X/V to the Unity system clipboard. |
 | 16 | Undo/redo | `ConsoleInputSession` keeps bounded undo/redo stacks; Ctrl+Z/Ctrl+Y restore editing state. |
 | 17 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |

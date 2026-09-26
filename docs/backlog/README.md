@@ -50,8 +50,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
 - [Two native DamageBlock callers stay unhooked](todo/unhooked-damage-block-callers.md) — **Low-Medium** — the footstep crush and the burrow report nothing.
 - [Local-only item and body sounds](todo/unhooked-item-and-body-sound-families.md) — **Low-Medium** — medical, tool and gesture clips report nothing.
-- [Remove the Online UI console page](todo/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 - [Online UI panels ask for alphaBlend false](todo/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — their panel alpha may never blend.
+- [Two censuses that drifted](todo/catalogue-and-manifest-census-drift.md) — **Low-Medium** — the catalogue's orphan keys and the selfcheck index drift.
 
 ### Review
 
@@ -188,6 +188,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
 - [CUO launcher button covers the view](review/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
 - [A dead or unconscious carried body stops simulating](review/carried-unconscious-body-simulation.md) — **Medium** — vitals advance behind the pinned pose.
+- [Remove the Online UI console page](review/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 
 ### Future
 

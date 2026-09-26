@@ -1,4 +1,4 @@
-﻿# Self-Check Evidence Manifest
+# Self-Check Evidence Manifest
 
 All files under `docs/selfchecks/` are historical/per-delivery evidence records. This manifest marks the current-vs-historical boundary from the 2026-08-30 content audit. "historical" means the wire path/mechanism described is no longer the active path; the user-visible feature may still exist through a newer kernel/protocol path.
 
@@ -21,6 +21,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/carried-rider-simulation-selfcheck.md | Players | current | rider keeps the native per-frame simulation while the carry relation owns the transform; the ECG/twitch rows await the user's dual-client run |
 | players/carried-rider-placement-smoothing-selfcheck.md | Players | current | carried-ride placement smoothing, vertical consistency, and local-carrier mount rework landed |
 | ui/chat-selfcheck.md | UI | current | candidate current evidence; verify before citing |
+| ui/online-ui-console-page-removal-selfcheck.md | UI | current | the Online UI window's duplicated console page is deleted (decision 228); the slash-opened overlay is the only command and chat surface |
 | presentation/building-entity-hit-flash-sync-selfcheck.md | Other | current | melee red HitFlash replays on non-attacker views through BuildingEntityDamaged |
 | presentation/clone-face-presentation-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | presentation/remote-clone-face-vitals-selfcheck.md | Other | current | candidate current evidence; verify before citing |

@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Online UI / presentation
 - Source: User acceptance finding (2026-09-21): the `CUO 联机` button in the top-right corner blocks the game view; the user asks for a design fix, for example becoming semi-transparent after a period without use.
-- Related: `todo/remove-the-online-ui-console-page.md` (the other Online UI window change from the same acceptance pass), `done/player-list-polish.md`
+- Related: `review/remove-the-online-ui-console-page.md` (the other Online UI window change from the same acceptance pass), `done/player-list-polish.md`
 
 ## Evidence
 

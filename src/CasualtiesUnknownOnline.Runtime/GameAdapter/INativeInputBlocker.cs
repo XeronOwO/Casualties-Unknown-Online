@@ -1,12 +1,18 @@
-using System.Collections.Generic;
-
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
 /// How the CUO Online UI tells the adapter which native input to suppress. The
 /// game's own menu/world input is read by UGUI raycasts and custom button
-/// inputs, and IMGUI does not participate in that input path, so the adapter has
-/// to be told which CUO surfaces cover the screen.
+/// inputs, so the adapter has to be told which CUO surfaces own the frame.
+///
+/// <para>
+/// Only the MODAL fact is left here (ticket online-ui-art-and-controls-overhaul, S5): every CUO surface
+/// is a uGUI control on the game's own canvas now, so the non-modal ones — the quick panel and the
+/// in-world player context menu — block their own pixels through the game's own raycasts, and the
+/// rectangle-list member the IMGUI era needed (<c>SetOnlineUiScopedBlocks</c>, with its
+/// <c>OnlineUiBlockRect</c> value and the adapter's <c>OnlineScopedRaycastFilter</c>) retired with the
+/// panels that were its only consumers.
+/// </para>
 /// </summary>
 public interface INativeInputBlocker
 {
@@ -17,15 +23,6 @@ public interface INativeInputBlocker
 	/// on the UI's non-control areas do not leak to the menu/world behind it.
 	/// </summary>
 	void SetOnlineUiModal(bool visible);
-
-	/// <summary>
-	/// Sets the screen-space rectangles occupied by non-modal CUO Online UI
-	/// surfaces (quick panel, right-click context menu). The adapter adds
-	/// transparent UGUI raycast blockers that only intercept pointer input
-	/// inside those rectangles, so clicks outside a small panel still reach the
-	/// game world/menu. Pass an empty list to clear them.
-	/// </summary>
-	void SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks);
 
 	/// <summary>
 	/// Tells the Game Adapter whether a non-modal CUO surface that closes on ESC

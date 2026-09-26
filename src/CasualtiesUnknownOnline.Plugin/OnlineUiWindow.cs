@@ -10,10 +10,11 @@ namespace CasualtiesUnknownOnline;
 ///
 /// <para>
 /// This class no longer draws anything. It knows which page is open, builds the tab row and the page's
-/// rows through <see cref="OnlineUiPageBuilder"/>, and dispatches the intents that come back from the
-/// surface to the action each control id was registered under — the same pairing the IMGUI controls
-/// used to make inline. The shell's own chrome (its frame, its close control, its scroll) belongs to
-/// the surface, so nothing here knows about pixels.
+/// rows through <see cref="OnlineUiPageBuilder"/>, and registers every control's action in the frame's
+/// shared action table — the same pairing the IMGUI controls used to make inline (S5 moved the table up to
+/// <see cref="OnlineUiOverlay"/>, because the quick panel and the player context menu register in it too).
+/// The shell's own chrome (its frame, its close control, its scroll) belongs to the surface, so nothing
+/// here knows about pixels.
 /// </para>
 ///
 /// <para>
@@ -25,19 +26,16 @@ namespace CasualtiesUnknownOnline;
 internal sealed class OnlineUiWindow
 {
 	private readonly OnlineUiWindowState _state = new();
-	private readonly Dictionary<string, Action<OnlineUiIntent>> _actions = [];
 
 	internal OnlineUiWindowState State => _state;
 
 	/// <summary>
-	/// The window's model for this frame, or null when the window is not shown. The rebuild happens every
-	/// frame the window is open (the pages show live session facts, as their IMGUI rows did) and the
-	/// action table is rebuilt with it, so an intent always meets the registration that produced its
-	/// control.
+	/// The window's model for this frame, or null when the window is not shown. It is rebuilt every frame
+	/// the window is open (the pages show live session facts, as their IMGUI rows did) and the actions are
+	/// registered with it, so an intent always meets the registration that produced its control.
 	/// </summary>
-	internal OnlineUiWindowModel? Build(OnlineUiContext ctx)
+	internal OnlineUiWindowModel? Build(OnlineUiContext ctx, Dictionary<string, Action<OnlineUiIntent>> actions)
 	{
-		_actions.Clear();
 		if (!_state.Visible)
 		{
 			// A closed window abandons the colour field's half-typed text with it: the field is rebuilt from
@@ -49,9 +47,9 @@ internal sealed class OnlineUiWindow
 
 		// The shell's own close control: the surface owns the button (it is chrome), this is what its
 		// click means.
-		_actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;
+		actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;
 
-		var page = new OnlineUiPageBuilder(ctx, _actions);
+		var page = new OnlineUiPageBuilder(ctx, actions);
 		BuildTabs(page);
 		switch (_state.Page)
 		{
@@ -76,22 +74,6 @@ internal sealed class OnlineUiWindow
 		}
 
 		return new OnlineUiWindowModel(ctx.T("window.title"), page.Tabs, page.Rows);
-	}
-
-	/// <summary>
-	/// Runs the action registered under the intent's control id. False means the id is not in this
-	/// frame's model — the control the player acted on is gone (the page changed, the member left), and
-	/// a click on a control that no longer exists is dropped rather than guessed at.
-	/// </summary>
-	internal bool Apply(OnlineUiIntent intent)
-	{
-		if (!_actions.TryGetValue(intent.ControlId, out var action))
-		{
-			return false;
-		}
-
-		action(intent);
-		return true;
 	}
 
 	private void BuildTabs(OnlineUiPageBuilder page)

@@ -253,7 +253,10 @@ internal static class OnlineUiMemberListDrawer
 		return actions;
 	}
 
-	/// <summary>The Players page's path: the card as display-list rows for the game's own controls.</summary>
+	/// <summary>The member card as display-list rows for the game's own controls: the Players page, and —
+	/// since S5 — the quick panel, which renders the same card for its one target. There is no second
+	/// renderer any more, so <see cref="AdminActions"/> and <see cref="InteractionActions"/> are answered
+	/// once for every surface.</summary>
 	internal static void Build(OnlineUiContext ctx, OnlineUiPageBuilder page, IReadOnlyList<OnlineUiMemberRow> rows)
 	{
 		if (rows.Count == 0)
@@ -286,54 +289,6 @@ internal static class OnlineUiMemberListDrawer
 			}
 
 			page.Space();
-		}
-	}
-
-	/// <summary>
-	/// The IMGUI path, for the quick panel alone: the same card, drawn by CUO while that panel is still
-	/// IMGUI (S4 decides whether it moves onto the surface). It is not a second source of eligibility —
-	/// both renderers read <see cref="AdminActions"/> and <see cref="InteractionActions"/>.
-	/// </summary>
-	internal static void BuildImgui(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows)
-	{
-		if (rows.Count == 0)
-		{
-			GUILayout.Label(ctx.T("member.no_members"), OnlineUiTheme.MutedLabel());
-			return;
-		}
-
-		foreach (var row in rows)
-		{
-			GUILayout.BeginVertical();
-			GUILayout.BeginHorizontal();
-			GUILayout.Label(Identity(ctx, row), OnlineUiTheme.Label());
-			GUILayout.FlexibleSpace();
-			foreach (var action in AdminActions(ctx, row))
-			{
-				DrawImguiButton(action);
-			}
-
-			GUILayout.EndHorizontal();
-
-			GUILayout.Label(Status(ctx, row), OnlineUiTheme.MutedLabel());
-
-			GUILayout.BeginHorizontal();
-			foreach (var action in InteractionActions(ctx, row))
-			{
-				DrawImguiButton(action);
-			}
-
-			GUILayout.EndHorizontal();
-			GUILayout.EndVertical();
-			GUILayout.Space(4f);
-		}
-	}
-
-	private static void DrawImguiButton(OnlineUiMemberAction action)
-	{
-		if (GUILayout.Button(action.Label, OnlineUiTheme.Button(), GUILayout.Width(action.Width)))
-		{
-			action.Invoke();
 		}
 	}
 }

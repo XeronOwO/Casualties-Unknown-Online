@@ -343,9 +343,6 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	void INativeInputBlocker.SetOnlineUiEscapeSurfaceVisible(bool visible) =>
 		_domains.MenuInput.SetNonModalEscapeSurfaceVisible(visible);
 
-	void INativeInputBlocker.SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks) =>
-		_domains.MenuInput.SetScopedBlocks(blocks);
-
 	bool IRemoteInventoryPresentation.OpenRemoteBackpack(ulong targetSteamId, string displayName) =>
 		_domains.RemoteBackpack.Open(targetSteamId, displayName);
 

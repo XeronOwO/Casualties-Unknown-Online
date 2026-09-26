@@ -32,7 +32,7 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IStartGateState), ["IsWaitingForReady", "WaitingText"]),
 		(typeof(ILocalHealItemQuery), ["GetLocalHealItems", "HasLocalHealItem"]),
 		(typeof(ITraderRecruitRequest), ["TryRequestTraderRecruit"]),
-		(typeof(INativeInputBlocker), ["SetOnlineUiEscapeSurfaceVisible", "SetOnlineUiModal", "SetOnlineUiScopedBlocks"]),
+		(typeof(INativeInputBlocker), ["SetOnlineUiEscapeSurfaceVisible", "SetOnlineUiModal"]),
 		(typeof(IRemoteInventoryPresentation), ["OpenRemoteBackpack"]),
 		(typeof(IRemoteMedicalPresentation), ["OpenRemoteMedical"]),
 		(typeof(IPlayerAnchorQuery), ["TryGetRemoteHeadPosition"]),
@@ -76,8 +76,8 @@ public class AdapterCapabilityPortShapeTests
 	}
 
 	[Fact]
-	public void Composition_CarriesExactlyNineteenMembers() =>
-		Assert.Equal(19, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+	public void Composition_CarriesExactlyEighteenMembers() =>
+		Assert.Equal(18, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

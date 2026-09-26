@@ -1,18 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 
 /// <summary>
-/// The Online UI's input blocking after the migration (ticket online-ui-art-and-controls-overhaul, S4 —
-/// the retirement pass). Two facts hold the family together and neither is visible from a unit test:
-/// CUO's own guard must never lay a blocker over CUO's own surface, because that surface is uGUI and
-/// blocks its own pixels (a blocker above it swallows every click on the launcher and the window); and
-/// both world input paths — the middle-click ping and the in-world right-click menu — must ask ONE
-/// pointer census, which knows the launcher's rectangle as well as the window's (the launcher was on
-/// neither path's list, the limit S2a recorded).
+/// The Online UI's input blocking after the migration (ticket online-ui-art-and-controls-overhaul, S4 for
+/// the retirement pass, S5 for the two panels). Three facts hold the family together and none is visible
+/// from a unit test: CUO's own guard must never lay a blocker over CUO's own surface, because that surface
+/// is uGUI and blocks its own pixels (a blocker above it swallows every click on the launcher, the window
+/// and the panels); both world input paths — the middle-click ping and the in-world right-click menu — must
+/// ask ONE pointer census, which knows every surface; and every surface's fact must come from that
+/// surface's own poll on the game's canvas, because S5 retired the rectangle list the two IMGUI panels
+/// needed.
 ///
 /// <para>
 /// Every pin carries a mutation of the REAL source as its negative sample — the rows of
@@ -22,10 +24,10 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// </para>
 ///
 /// <para>
-/// What these pins cannot see: whether a click really reaches the game's own controls behind the
-/// surface, whether the pointer really lands on the launcher's pixels at the game's UI scale, and
-/// whether the console's mutual exclusion reads right in play — those are run observations. The pins
-/// hold the shape the adapter and the plugin were built to.
+/// What these pins cannot see: whether a click really reaches the game's own controls behind the surface,
+/// whether the pointer really lands on the launcher's or a panel's pixels at the game's UI scale, and
+/// whether the console's mutual exclusion reads right in play — those are run observations. The pins hold
+/// the shape the adapter and the plugin were built to.
 /// </para>
 /// </summary>
 public sealed class OnlineUiInputBlockingPinTests
@@ -34,7 +36,7 @@ public sealed class OnlineUiInputBlockingPinTests
 	public void TheGuardNeverBlocksCuosOwnSurface() =>
 		Assert.True(
 			GuardsItsOwnSurface(AdapterRoot("OnlineMenuInputGuard.cs")),
-			"CUO's own guard must leave CUO's own surface alone in every sweep it makes: its blockers exist for surfaces the game's EventSystem cannot see, and one over CUO's own canvas makes the launcher and the window unclickable");
+			"CUO's own guard must leave CUO's own surface alone in every sweep it makes: its blockers exist for surfaces the game's EventSystem cannot see, and one over CUO's own canvas makes the launcher, the window and the panels unclickable");
 
 	[Fact]
 	public void TheSurfaceMarksItsOwnCanvas() =>
@@ -49,16 +51,28 @@ public sealed class OnlineUiInputBlockingPinTests
 			"the launcher's pointer fact must reach the census: without it a middle-click over the launcher pings the world and a right-click there opens the in-world menu (S2a's recorded limit)");
 
 	[Fact]
-	public void BothWorldInputPathsAskTheCensus() =>
+	public void ThePanelsEnterThePointerCensus() =>
 		Assert.True(
-			BothPathsAskTheCensus(Plugin("OnlineUiOverlay.cs")),
-			"the world middle-click and the world right-click must ask the same rule: two hand-kept lists of surfaces are how the launcher came to be on neither");
+			FeedsThePanelFacts(Plugin("OnlineUiHost.cs")),
+			"both panels' pointer facts must reach the census the same way the launcher's and the window's do: they are uGUI controls now, so the surface's poll is the only fact there is");
 
 	[Fact]
-	public void OneRectSourceFeedsTheBlockerAndTheCensus() =>
+	public void ThePanelsPollTheirOwnRect() =>
 		Assert.True(
-			OneRectSource(Plugin("OnlineUiOverlay.cs")),
-			"the adapter's scoped blockers and the plugin's census must read the SAME rectangle list, or a click can be blocked on one path and leak on the other");
+			PollsBothPanelRects(Adapter("OnlineUiSurfaceHost.cs")),
+			"each panel must be polled on every frame the surface pushes, or a panel opened or closed under the pointer never reports the flip the census reads");
+
+	[Fact]
+	public void TheRetiredRectangleApiIsGoneFromTheSource() =>
+		Assert.True(
+			NoScopedRectangleApi(SourceSources()),
+			"the scoped rectangle API (SetOnlineUiScopedBlocks / OnlineUiBlockRect / OnlineScopedRaycastFilter) had exactly two consumers — the IMGUI panels — and retired with them: a rectangle list regrown anywhere means a surface is being blocked from outside again");
+
+	[Fact]
+	public void BothWorldInputPathsAskTheCensus() =>
+		Assert.True(
+			BothPathsAskTheCensus(Plugin("OnlineUiOverlay.cs"), Plugin("OnlineUiPlayerContextMenu.cs")),
+			"the world middle-click and the world right-click must ask the same rule: two hand-kept lists of surfaces are how the launcher came to be on neither");
 
 	[Fact]
 	public void TheConsoleKeepsTheLauncherFromOpeningASecondSurface() =>
@@ -75,16 +89,21 @@ public sealed class OnlineUiInputBlockingPinTests
 	public static TheoryData<string, string, string, string, string> Mutations => new()
 	{
 		{ nameof(TheGuardNeverBlocksCuosOwnSurface), "adapter-root/OnlineMenuInputGuard.cs", "&& !OnlineUiSurfaceMarker.IsInside(canvas);", "&& true;", "a guard that blocks CUO's own canvas again" },
-		{ nameof(TheGuardNeverBlocksCuosOwnSurface), "adapter-root/OnlineMenuInputGuard.cs", "private int CreateScopedBlockers()\n\t{\n\t\tvar created = 0;\n\t\tforeach (var canvas in Object.FindObjectsOfType<Canvas>())\n\t\t{\n\t\t\tif (!IsBlockable(canvas))", "private int CreateScopedBlockers()\n\t{\n\t\tvar created = 0;\n\t\tforeach (var canvas in Object.FindObjectsOfType<Canvas>())\n\t\t{\n\t\t\tif (canvas == null)", "one sweep that stops asking the ownership rule" },
+		{ nameof(TheGuardNeverBlocksCuosOwnSurface), "adapter-root/OnlineMenuInputGuard.cs", "private int CreateRaycastBlockers()\n\t{\n\t\tvar created = 0;\n\t\tforeach (var canvas in Object.FindObjectsOfType<Canvas>())\n\t\t{\n\t\t\tif (!IsBlockable(canvas))", "private int CreateRaycastBlockers()\n\t{\n\t\tvar created = 0;\n\t\tforeach (var canvas in Object.FindObjectsOfType<Canvas>())\n\t\t{\n\t\t\tif (canvas == null)", "the sweep that stops asking the ownership rule" },
 		{ nameof(TheGuardNeverBlocksCuosOwnSurface), "adapter-root/OnlineMenuInputGuard.cs", "|| OnlineUiSurfaceMarker.IsInside(button)", "|| false", "a modal sweep that disables a control CUO's own surface put there" },
 		{ nameof(TheSurfaceMarksItsOwnCanvas), "adapter/OnlineUiSurfaceHost.cs", "root.AddComponent<OnlineUiSurfaceMarker>();", "// (no marker)", "a surface the guard cannot recognise as CUO's own" },
 		{ nameof(TheLauncherEntersThePointerCensus), "plugin/OnlineUiHost.cs", "_onlineUi.SetPointerOverLauncher(true);", "// the launcher's pointer fact is dropped", "a launcher hover that never reaches the census" },
-		{ nameof(BothWorldInputPathsAskTheCensus), "plugin/OnlineUiOverlay.cs", "return _pointerCensus.BlocksWorldPing(gui.x, gui.y);", "return IsCommandConsoleOpen || IsWindowVisible;", "a ping path that only knows the modal flag again" },
-		{ nameof(BothWorldInputPathsAskTheCensus), "plugin/OnlineUiOverlay.cs", "return _pointerCensus.BlocksWorldMenu(guiPoint.x, guiPoint.y);", "return _contextMenu.IsOpen && _contextMenu.Contains(guiPoint);", "a right-click path that keeps its own list of surfaces" },
-		{ nameof(OneRectSourceFeedsTheBlockerAndTheCensus), "plugin/OnlineUiOverlay.cs", "inputBlocker?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectOverlayRects());", "inputBlocker?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : []);", "a blocker list that no longer matches the census" },
+		{ nameof(ThePanelsEnterThePointerCensus), "plugin/OnlineUiHost.cs", "_onlineUi.SetPointerOverQuickPanel(true);", "// the quick panel's pointer fact is dropped", "a quick panel hover that never reaches the census" },
+		{ nameof(ThePanelsEnterThePointerCensus), "plugin/OnlineUiHost.cs", "_onlineUi.SetPointerOverContextMenu(true);", "// the context menu's pointer fact is dropped", "a context menu hover that never reaches the census" },
+		{ nameof(ThePanelsPollTheirOwnRect), "adapter/OnlineUiSurfaceHost.cs", "_quickPanel?.PollPointer(_intents);", "// the quick panel's pointer is never polled", "a panel whose pointer fact never reaches the plugin" },
+		{ nameof(ThePanelsPollTheirOwnRect), "adapter/OnlineUiSurfaceHost.cs", "_contextMenu?.PollPointer(_intents);", "// the context menu's pointer is never polled", "a menu whose pointer fact never reaches the plugin" },
+		{ nameof(TheRetiredRectangleApiIsGoneFromTheSource), "adapter-root/OnlineMenuInputGuard.cs", "private static bool IsBlockable(Canvas canvas)", "internal void SetOnlineUiScopedBlocks() { }\n\n\tprivate static bool IsBlockable(Canvas canvas)", "the retired rectangle-list API regrown on the guard" },
+		{ nameof(BothWorldInputPathsAskTheCensus), "plugin/OnlineUiOverlay.cs", "return _pointerCensus.BlocksWorldPing();", "return IsCommandConsoleOpen || IsWindowVisible;", "a ping path that only knows the modal flag again" },
+		{ nameof(BothWorldInputPathsAskTheCensus), "plugin/OnlineUiOverlay.cs", "return _pointerCensus.BlocksWorldMenu();", "return _contextMenu.IsOpen;", "a right-click path that keeps its own list of surfaces" },
 		{ nameof(TheConsoleKeepsTheLauncherFromOpeningASecondSurface), "plugin/OnlineUiOverlay.cs", "Plugin.Logger.LogInfo(\"Online UI launcher click ignored: the command console owns the input.\");", "// the launcher opens the window behind the console", "a launcher that opens a second surface behind the console" },
 		{ nameof(TheConsoleKeepsTheLauncherFromOpeningASecondSurface), "plugin/OnlineUiOverlay.cs", "if (_commandOverlay.IsOpen)\n\t\t{\n\t\t\tPlugin.Logger.LogInfo(\"Online UI launcher click ignored: the command console owns the input.\");\n\t\t\treturn;\n\t\t}\n\n\t\t_window.State.Visible = !_window.State.Visible;", "_window.State.Visible = !_window.State.Visible;\n\n\t\tif (_commandOverlay.IsOpen)\n\t\t{\n\t\t\tPlugin.Logger.LogInfo(\"Online UI launcher click ignored: the command console owns the input.\");\n\t\t\treturn;\n\t\t}", "a refusal that runs after the window has already opened" },
 		{ nameof(ThePointerFactsDieWithTheSurface), "adapter/OnlineUiSurfaceHost.cs", "_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.LauncherHoverLeft));", "// the launcher's stale pointer fact is kept", "a surface that leaves the census holding a fact its view no longer reports" },
+		{ nameof(ThePointerFactsDieWithTheSurface), "adapter/OnlineUiSurfaceHost.cs", "_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.QuickPanelHoverLeft));", "// the quick panel's stale pointer fact is kept", "a surface that retracts three facts and forgets the fourth" },
 	};
 
 	/// <summary>
@@ -111,17 +130,19 @@ public sealed class OnlineUiInputBlockingPinTests
 		nameof(TheGuardNeverBlocksCuosOwnSurface) => GuardsItsOwnSurface,
 		nameof(TheSurfaceMarksItsOwnCanvas) => MarksItsOwnCanvas,
 		nameof(TheLauncherEntersThePointerCensus) => FeedsTheLauncherFact,
-		nameof(BothWorldInputPathsAskTheCensus) => BothPathsAskTheCensus,
-		nameof(OneRectSourceFeedsTheBlockerAndTheCensus) => OneRectSource,
+		nameof(ThePanelsEnterThePointerCensus) => FeedsThePanelFacts,
+		nameof(ThePanelsPollTheirOwnRect) => PollsBothPanelRects,
+		nameof(TheRetiredRectangleApiIsGoneFromTheSource) => source => NoScopedRectangleApi([source]),
+		nameof(BothWorldInputPathsAskTheCensus) => broken => BothPathsAskTheCensus(broken, Plugin("OnlineUiPlayerContextMenu.cs")),
 		nameof(TheConsoleKeepsTheLauncherFromOpeningASecondSurface) => TheConsoleOwnsTheInput,
 		nameof(ThePointerFactsDieWithTheSurface) => RetractsThePointerFacts,
 		_ => throw new InvalidOperationException($"no matcher is registered for the pin `{pin}`"),
 	};
 
 	/// <summary>
-	/// The guard's ownership rule: one predicate that every screen-space sweep asks, and the modal
-	/// sweep's own version of it for the game's custom buttons. The predicate is what the two blockers
-	/// (full-screen and scoped) share, so the count of its call sites is the pin's census of sweeps.
+	/// The guard's ownership rule: one predicate every screen-space sweep asks, and the modal sweep's own
+	/// version of it for the game's custom buttons. The scoped rectangle sweep is gone with the panels (S5),
+	/// so the full-screen blocker is the only canvas sweep left — the count is the pin's census of them.
 	/// COVERAGE LIMIT, recorded rather than implied: the count sees the sweeps that exist — a THIRD sweep
 	/// added later that never asks the predicate would not raise the count and would not be caught here.
 	/// </summary>
@@ -131,7 +152,7 @@ public sealed class OnlineUiInputBlockingPinTests
 		var blockable = Flatten(ExtractMember(guardSource, "private static bool IsBlockable("));
 
 		return blockable.Contains("&& !OnlineUiSurfaceMarker.IsInside(canvas);", StringComparison.Ordinal)
-			&& CountOf(flat, "if (!IsBlockable(canvas))") == 2
+			&& CountOf(flat, "if (!IsBlockable(canvas))") == 1
 			&& flat.Contains("|| OnlineUiSurfaceMarker.IsInside(button)", StringComparison.Ordinal);
 	}
 
@@ -160,31 +181,68 @@ public sealed class OnlineUiInputBlockingPinTests
 				StringComparison.Ordinal);
 	}
 
-	/// <summary>
-	/// Both world paths ask the census and nothing else: the ping converts the pointer to GUI space and
-	/// asks the Runtime's rule, the right-click asks it too — and the plugin keeps no second copy of the
-	/// window's pointer fact.
-	/// </summary>
-	private static bool BothPathsAskTheCensus(string overlaySource)
+	/// <summary>Both panels' flips reach the census, in both directions each: four facts, four cases.</summary>
+	private static bool FeedsThePanelFacts(string hostSource)
 	{
-		var flat = Flatten(overlaySource);
+		var flat = Flatten(hostSource);
 
-		return flat.Contains("var gui = new Vector2(mousePosition.x, Screen.height - mousePosition.y);", StringComparison.Ordinal)
-			&& flat.Contains("return _pointerCensus.BlocksWorldPing(gui.x, gui.y);", StringComparison.Ordinal)
-			&& flat.Contains("if (BlocksWorldMenu(mouse))", StringComparison.Ordinal)
-			&& flat.Contains("return _pointerCensus.BlocksWorldMenu(guiPoint.x, guiPoint.y);", StringComparison.Ordinal)
-			&& !flat.Contains("_pointerOverWindow", StringComparison.Ordinal);
+		return flat.Contains(
+				"case OnlineUiIntentKind.QuickPanelHoverEntered: _onlineUi.SetPointerOverQuickPanel(true); break;",
+				StringComparison.Ordinal)
+			&& flat.Contains(
+				"case OnlineUiIntentKind.QuickPanelHoverLeft: _onlineUi.SetPointerOverQuickPanel(false); break;",
+				StringComparison.Ordinal)
+			&& flat.Contains(
+				"case OnlineUiIntentKind.ContextMenuHoverEntered: _onlineUi.SetPointerOverContextMenu(true); break;",
+				StringComparison.Ordinal)
+			&& flat.Contains(
+				"case OnlineUiIntentKind.ContextMenuHoverLeft: _onlineUi.SetPointerOverContextMenu(false); break;",
+				StringComparison.Ordinal);
 	}
 
-	/// <summary>The scoped blockers the adapter builds and the rectangles the census reads are one list.</summary>
-	private static bool OneRectSource(string overlaySource)
+	/// <summary>
+	/// Both panels are applied and polled on every pushed frame, and each polls its own rectangle through
+	/// the same call the window uses — the fact is the surface's, and the plugin only holds the last answer.
+	/// </summary>
+	private static bool PollsBothPanelRects(string surfaceSource)
+	{
+		var flat = Flatten(surfaceSource);
+
+		return flat.Contains("ApplyPanel(_quickPanel, frame.QuickPanel); _quickPanel?.PollPointer(_intents);", StringComparison.Ordinal)
+			&& flat.Contains("ApplyPanel(_contextMenu, frame.ContextMenu); _contextMenu?.PollPointer(_intents);", StringComparison.Ordinal)
+			&& Flatten(Adapter("OnlineUiPanelView.cs"))
+				.Contains("RectTransformUtility.RectangleContainsScreenPoint(_rect, Input.mousePosition, camera)", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The rectangles the IMGUI panels needed are gone from the source: no scoped-block member, no GUI-space
+	/// rectangle value, no raycast filter. The scan reads every <c>.cs</c> under <c>src/</c> with comments
+	/// cut, so a mention in a doc comment is not an offence and a type regrown under a new name is the only
+	/// thing this cannot see (a name-based scan is the shape that can be pinned).
+	/// </summary>
+	private static bool NoScopedRectangleApi(IReadOnlyList<string> sources) =>
+		sources.All(source =>
+			!source.Contains("SetOnlineUiScopedBlocks", StringComparison.Ordinal)
+			&& !source.Contains("OnlineUiBlockRect", StringComparison.Ordinal)
+			&& !source.Contains("OnlineScopedRaycastFilter", StringComparison.Ordinal));
+
+	/// <summary>
+	/// Both world paths ask the census and nothing else: the ping asks the Runtime's rule, the right-click
+	/// path hands the menu the census's own answer, and the plugin keeps no second copy of any surface's
+	/// pointer fact.
+	/// </summary>
+	private static bool BothPathsAskTheCensus(string overlaySource, string menuSource)
 	{
 		var flat = Flatten(overlaySource);
 
-		return flat.Contains("_pointerCensus.OverlayRects = CollectOverlayRects();", StringComparison.Ordinal)
+		return flat.Contains("return _pointerCensus.BlocksWorldPing();", StringComparison.Ordinal)
 			&& flat.Contains(
-				"inputBlocker?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectOverlayRects());",
-				StringComparison.Ordinal);
+				"_contextMenu.HandleInput(ctx, _pointerCensus.OverContextMenu, BlocksWorldMenu);",
+				StringComparison.Ordinal)
+			&& flat.Contains("return _pointerCensus.BlocksWorldMenu();", StringComparison.Ordinal)
+			&& !flat.Contains("_pointerOverWindow", StringComparison.Ordinal)
+			&& !flat.Contains("_contextMenu.Contains(", StringComparison.Ordinal)
+			&& Flatten(menuSource).Contains("if (blockedByCuiSurface())", StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -204,17 +262,20 @@ public sealed class OnlineUiInputBlockingPinTests
 	}
 
 	/// <summary>
-	/// Both pointer facts are retracted where the views that reported them die. The views report a FLIP
-	/// only and a rebuilt one starts un-hovered, so a surface rebuilt while the pointer sat on the
-	/// launcher would otherwise leave the census holding "the pointer is over CUO's UI" for good — and
-	/// that fact is global, so it would block every world ping and every in-world right-click.
+	/// Every pointer fact is retracted where the view that reported it dies — the launcher's, the window's
+	/// and (S5) both panels'. The views report a FLIP only and a rebuilt one starts un-hovered, so a surface
+	/// rebuilt while the pointer sat on one of them would otherwise leave the census holding "the pointer is
+	/// over CUO's UI" for good — and that fact is global, so it would block every world ping and every
+	/// in-world right-click.
 	/// </summary>
 	private static bool RetractsThePointerFacts(string surfaceSource)
 	{
 		var body = Flatten(ExtractMember(surfaceSource, "private void DestroySurface()"));
 
 		return body.Contains("_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.LauncherHoverLeft));", StringComparison.Ordinal)
-			&& body.Contains("_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.WindowHoverLeft));", StringComparison.Ordinal);
+			&& body.Contains("_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.WindowHoverLeft));", StringComparison.Ordinal)
+			&& body.Contains("_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.QuickPanelHoverLeft));", StringComparison.Ordinal)
+			&& body.Contains("_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.ContextMenuHoverLeft));", StringComparison.Ordinal);
 	}
 
 	private static string Read(string file)
@@ -236,9 +297,20 @@ public sealed class OnlineUiInputBlockingPinTests
 
 	private static string Adapter(string fileName) => ReadNormalised(Path.Combine(GameAdapterDirectory, "OnlineUi", fileName));
 
-	/// <summary>The adapter's own root: the input guard and the scoped raycast filter are not part of the
+	/// <summary>The adapter's own root: the input guard and the surface host are not part of the
 	/// <c>OnlineUi/</c> view folder, so the mutation rows name them separately.</summary>
 	private static string AdapterRoot(string fileName) => ReadNormalised(Path.Combine(GameAdapterDirectory, fileName));
+
+	/// <summary>Every <c>.cs</c> file under <c>src/</c>, comments cut — the scan surface of the "the retired
+	/// rectangle API stays retired" rule.</summary>
+	private static IReadOnlyList<string> SourceSources() =>
+	[
+		.. Directory.GetFiles(Path.Combine(FindRepositoryRoot(), "src"), "*.cs", SearchOption.AllDirectories)
+			.Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+				&& !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+			.OrderBy(path => path, StringComparer.Ordinal)
+			.Select(path => StripComments(ReadNormalised(path))),
+	];
 
 	/// <summary>The member's declaration line and its body, up to the next member (a line that starts at
 	/// one tab with a declaration or with its doc comment).</summary>

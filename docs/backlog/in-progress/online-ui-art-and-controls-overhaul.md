@@ -107,7 +107,7 @@ adversarial review → one commit.
    console overlay STAYS IMGUI (a developer surface with a text input, and the reason the modal blocker
    survives), while the quick panel and the player context menu move in S5 and the world-space overlays in
    S6.
-6. **S5 — the last player-facing IMGUI panels.** The quick panel and the in-world player context menu onto
+6. **S5 — the last player-facing IMGUI panels (landed 2026-09-26).** The quick panel and the in-world player context menu onto
    the game's own controls, on the surface S2a/S2b proved. They are the last consumers of
    `SetOnlineUiScopedBlocks` / `OnlineUiBlockRect` / `OnlineScopedRaycastFilter`, so that mechanism retires
    with them (the same round, not a later one).
@@ -423,6 +423,103 @@ those items was not merely redundant but harmful. Self-check:
   player-facing art ask stays open until S5 and S6 land, which is why this ticket stays in progress.
 - **The S1 chrome reading is still pending**, so nothing in this pass used it — the retirement depends on
   no runtime reading at all.
+
+## What landed — S5 (2026-09-26)
+
+The last two player-facing IMGUI panels are controls of CUO's own surface, and the machinery that existed
+only because they were IMGUI retired in the same round. Self-check:
+`docs/evidence/selfchecks/ui/online-ui-panels-selfcheck.md`.
+
+- **One panel view serves both.** `OnlineUiPanelView` (GameAdapter, `OnlineUi/`) is the window's shell
+  without the window: the game's own row prefab gives it the frame's sprite, `Image.type` and
+  pixels-per-unit multiplier and every label's font, its rows go through the same
+  `OnlineUiWindowRowView` / `OnlineUiControlView` / `OnlineUiRowLayout` machinery the pages use, and it
+  reports what the player does as the same intents. It is built twice on the surface — the quick panel and
+  the player context menu — with the two hover kinds its caller hands it, because each panel is its own
+  fact in the census. The game-row template reader it shares with the window moved into
+  `OnlineUiControlFactory.ReadRowTemplate`, so the game's art is read in one place.
+- **The panels are models, not draws.** `OnlineUiQuickPanel` (docked bottom-right, width 340 — the IMGUI
+  panel's own rect) and `OnlineUiPlayerContextMenu` (at the click point, width 240) build
+  `OnlineUiPanelModel`s; the menus, the target selectors, the eligibility rules and the two pickers
+  (`QuickPanelTargetPicker`, `RemoteTargetPicker`) are unchanged. Their rows come from the SAME member card
+  the Players page renders, through `OnlineUiMemberListDrawer.Build`, so eligibility is answered once.
+- **One action table for three surfaces.** `OnlineUiOverlay.BuildSurfaces` clears one table, lets the
+  window and both panels register into it in the same frame, and `Apply` dispatches an intent to the
+  registration that produced its control (`OnlineUiWindow.Apply` moved up with it). Each panel namespaces
+  its ids (`quick.`, `menu.` — `OnlineUiPageBuilder` gained the prefix), so one surface's click can never
+  be applied to another's control.
+- **The pointer census lost its geometry.** All four facts — launcher, window, quick panel, context menu —
+  are the surface's own polls now, reported as hover flips and pushed into `OnlineUiPointerCensus`; the two
+  questions are parameterless, `OnlineUiBlockRect` and the adapter's `OnlineScopedRaycastFilter` are
+  deleted, and `INativeInputBlocker` lost `SetOnlineUiScopedBlocks` with them (14 ports / 18 members,
+  `AdapterCapabilityPortShapeTests` re-pinned in the same change). The one exception is by design: the
+  context menu's own click-away close reads the census's menu fact instead of a rectangle of its own.
+- **The point-anchored panel is placed by a Runtime rule.** `OnlineUiPanelPlacement.ForPointer` clamps the
+  menu's corner into the screen (the pointer offset, both edges, and a panel too large hanging from the top
+  so its first rows stay visible) and is tested without Unity; the adapter lays the panel out first
+  (`LayoutRebuilder.ForceRebuildLayoutImmediate`) so the rule clamps against the real height.
+- **The surface finally covers the game's canvas.** A nested canvas is not resized by Unity, so CUO's
+  canvas rect is now set to stretch the game's own — without it, "the launcher's top-right corner", "the
+  window's centre" and the quick panel's dock were all placed against an arbitrary rect rather than the
+  screen. This is the premise S2a's rects already assumed; it is stated and pinned here rather than left
+  to be discovered in play.
+- **Deleted in the same round.** The scoped-block mechanism (`SetOnlineUiScopedBlocks`, `OnlineUiBlockRect`,
+  `OnlineScopedRaycastFilter`, the guard's scoped sweep and its `ScopedBlocksEqual`),
+  `OnlineUiOverlay.CollectOverlayRects`, the panels' own rectangles (`OnlineUiPlayerContextMenu.Contains` /
+  `Bounds` / `_lastRect`, `OnlineUiQuickPanel.Bounds` / `_rect` and the IMGUI panel's fixed size — the
+  surface owns the rect each panel occupies now), the IMGUI member card (`BuildImgui`, `DrawImguiButton`),
+  and the theme's now-unused panel frame and styles (`Panel`, `PanelLight`, `Border`, `DrawBackground`,
+  `DrawFrame`, `CloseButton`, `Tab`, `Label`, `Section`) — the console overlay is the only themed IMGUI draw
+  left, which is what `OnlineUiLauncherFadeTests`' census now pins (one blended rectangle, a ceiling).
+- **The pins moved with it, in the same change.** `OnlineUiPanelSurfacePinTests` is new (10 pins + 20
+  real-source mutation rows); `OnlineUiInputBlockingPinTests` gained the panels' fact pins and the
+  "retired rectangle API stays retired" tree scan (9 pins + 16 rows); `OnlineUiPointerCensusTests` was
+  rewritten for the parameterless rule; `OnlineUiPanelPlacementTests` is new (7 cases);
+  `OnlineUiSurfacePinTests`, `OnlineUiWindowSurfacePinTests`, `OnlineUiLauncherFadeTests`,
+  `AdapterCapabilityPortShapeTests` and `OnlineMenuInputGuardContractTests` were re-anchored (the last also
+  gained a negative: the guard must not carry a scoped setter again); `OnlineUiBlockRectTests` was deleted
+  with its type.
+- **The independent review found one real defect in the first cut, fixed in the same round.** The placement
+  clamp passed a screen-pixel pointer beside canvas-unit sizes, so it held only at a canvas scale of 1; the
+  pointer is converted into the canvas once and the whole rule is asked in the canvas's own units now, with
+  a mutation row that fails if the two are mixed again.
+
+### Limits recorded with S5
+
+- **How the panels read, and whether the click lands, is the user's run.** No test in this tree
+  instantiates a `GameObject`: whether the game's own row prefabs behave inside a content-sized panel,
+  whether the docked quick panel and the menu at the pointer read as this game, whether the wheel/typing/
+  click reach them at the game's UI scale, and whether the menu's own corner is where the player expects
+  are all game observations.
+- **The canvas rect change is a premise fix, not a measured one.** Stretching CUO's canvas over the game's
+  is what makes every anchored control mean what S2a/S2b/S5 say it means, and it is pinned — but whether
+  the game's canvas rect (and its scale) is the one the player sees is a run observation, and the change
+  lands under the already-deployed launcher and window as well.
+- **The menu's height is read after a forced layout.** The clamp needs the panel's own height and a
+  `ContentSizeFitter` writes it at the end of the frame, so `PlaceAtPoint` rebuilds the layout immediately
+  on every frame the menu is up. That is a small synchronous cost per frame while the menu is open, chosen
+  over a one-frame jump.
+- **The placement rule reasons in the canvas's units, not in pixels.** The review's catch: the surface is
+  scaled by the game's UI scale, so the clamp is asked with the pointer converted into the canvas once, the
+  panel's own laid-out size and the canvas's bounds — which makes the margin and the pointer offset scale
+  with the UI rather than staying a fixed pixel count (a small, deliberate difference from the IMGUI menu,
+  which clamped in pixels).
+- **The quick panel's drawn size is its content's now.** Its width and dock are the IMGUI rect's (340, 16
+  from the corner), but its height follows the rows instead of the fixed 420 the IMGUI panel reserved, so a
+  short panel hugs its content and a long one grows upward from the dock.
+- **The panels need the adapter**, exactly as the window does: no surface, no canvas, no panels — the trade
+  S2a recorded.
+- **The quick panel's layout is no longer hand-wrapped.** The IMGUI panel put up to four targets on one line
+  and the rest one per line; the surface wraps them by the Runtime's own rule, which is a slightly
+  different (and more regular) shape for five or more candidates.
+- **The S1 chrome reading is still pending**, so the panels' tints are the window's tints, not the game's
+  own chrome colours.
+- **The context menu keeps its own pointer fact one frame old**, like the window's: the poll runs at the end
+  of the frame that pushed the model, so a menu that appears under the pointer reports the hover on the
+  following frame. Its click-away close is judged against that fact.
+- **The ticket's goal is not reached yet.** The world-space overlays (nameplates, off-screen arrows, the
+  network HUD, the location pings) still draw with the IMGUI skin's font: S6 is what closes the art ask,
+  which is why this ticket stays in progress.
 
 ## Non-goals
 

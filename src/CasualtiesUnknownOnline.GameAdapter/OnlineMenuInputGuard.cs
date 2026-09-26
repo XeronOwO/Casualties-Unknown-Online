@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.OnlineUi;
-using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -10,21 +9,26 @@ using Object = UnityEngine.Object;
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
-/// Suppresses background game UI input while the CUO Online UI modal window is
-/// open. The Online UI is IMGUI, so Unity's UGUI EventSystem does not know it
-/// is covering the screen; without this guard, clicks on the window's blank
-/// areas fall through to the game menu/world behind it. This guard disables
-/// the game's custom <see cref="AdaptiveButton"/> input and adds transparent
-/// UGUI raycast blockers on active screen-space canvases, then restores the
-/// original state when the modal closes.
+/// Suppresses background game UI input while a CUO surface that owns the screen is open: the standalone
+/// command console overlay, or the modal Online UI window. The console is IMGUI, so Unity's UGUI
+/// EventSystem does not know it is covering the screen; without this guard, clicks on its blank areas fall
+/// through to the game menu/world behind it. This guard disables the game's custom
+/// <see cref="AdaptiveButton"/> input and adds transparent UGUI raycast blockers on the game's active
+/// screen-space canvases, then restores the original state when the modal closes.
 ///
 /// <para>
 /// Everything here is aimed at the GAME's UI, never at CUO's own (ticket
-/// online-ui-art-and-controls-overhaul, S4): the surfaces that migrated onto the
-/// game's canvas are uGUI now and block their own pixels, so a blocker over CUO's
-/// own canvas would cover the launcher and the window and swallow every click the
-/// player makes on them. Every sweep therefore asks
+/// online-ui-art-and-controls-overhaul, S4): every CUO surface is a uGUI control on the game's canvas now
+/// and blocks its own pixels, so a blocker over CUO's own canvas would cover the launcher, the window and
+/// both panels and swallow every click the player makes on them. Every sweep therefore asks
 /// <see cref="OnlineUiSurfaceMarker"/>, and the surface marks its root.
+/// </para>
+///
+/// <para>
+/// The rectangle-list member the IMGUI era needed for the non-modal panels is gone (S5): the quick panel
+/// and the in-world player context menu are controls of that surface now, so they need no blocker of
+/// their own — the game's own raycasts stop at them, and the pointer census keeps the two world input
+/// paths out of them.
 /// </para>
 /// </summary>
 internal sealed class OnlineMenuInputGuard(
@@ -35,8 +39,6 @@ internal sealed class OnlineMenuInputGuard(
 	private readonly ILogger<OnlineMenuInputGuard> _log = log;
 	private readonly List<AdaptiveButton> _buttons = [];
 	private readonly List<GameObject> _blockers = [];
-	private readonly List<GameObject> _scopedBlockers = [];
-	private IReadOnlyList<OnlineUiBlockRect> _scopedBlocks = [];
 
 	private bool _modal;
 	private bool _nonModalEscapeSurfaceOpen;
@@ -61,27 +63,6 @@ internal sealed class OnlineMenuInputGuard(
 		else
 		{
 			EndModal();
-		}
-	}
-
-	/// <summary>Sets the non-modal CUO Online UI rectangles that should block
-	/// background UGUI raycasts. Empty clears all scoped blockers.</summary>
-	internal void SetScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks)
-	{
-		if (ScopedBlocksEqual(_scopedBlocks, blocks))
-		{
-			return;
-		}
-
-		_scopedBlocks = [.. blocks];
-		DestroyScopedBlockers();
-		if (_scopedBlocks.Count > 0)
-		{
-			var canvasCount = CreateScopedBlockers();
-			_log.LogDebug(
-				"Online UI scoped blocks set: {RectCount} rectangle(s) blocked on {CanvasCount} screen-space canvas(es).",
-				_scopedBlocks.Count,
-				canvasCount);
 		}
 	}
 
@@ -161,7 +142,7 @@ internal sealed class OnlineMenuInputGuard(
 	/// Whether CUO's own guard may put a blocker on this canvas: an active screen-space canvas that is
 	/// NOT part of CUO's own surface. The ownership clause is the S4 retirement — CUO's surface is uGUI
 	/// and answers the EventSystem itself, so a blocker laid over its canvas would sit above the
-	/// launcher and the window and take every click meant for them.
+	/// launcher, the window and the panels and take every click meant for them.
 	/// </summary>
 	private static bool IsBlockable(Canvas canvas)
 	{
@@ -215,72 +196,5 @@ internal sealed class OnlineMenuInputGuard(
 		}
 
 		_blockers.Clear();
-	}
-
-	private int CreateScopedBlockers()
-	{
-		var created = 0;
-		foreach (var canvas in Object.FindObjectsOfType<Canvas>())
-		{
-			if (!IsBlockable(canvas))
-			{
-				continue;
-			}
-
-			var blocker = new GameObject("CUO Online Scoped Input Blocker")
-			{
-				layer = canvas.gameObject.layer,
-			};
-			var rect = blocker.AddComponent<RectTransform>();
-			rect.SetParent(canvas.transform, false);
-			rect.anchorMin = Vector2.zero;
-			rect.anchorMax = Vector2.one;
-			rect.offsetMin = Vector2.zero;
-			rect.offsetMax = Vector2.zero;
-			blocker.transform.SetAsLastSibling();
-
-			var image = blocker.AddComponent<Image>();
-			image.raycastTarget = true;
-			image.color = new Color(0f, 0f, 0f, 0f);
-			var filter = blocker.AddComponent<OnlineScopedRaycastFilter>();
-			filter.SetBlocks(_scopedBlocks);
-			_scopedBlockers.Add(blocker);
-			created++;
-		}
-
-		return created;
-	}
-
-	private void DestroyScopedBlockers()
-	{
-		foreach (var blocker in _scopedBlockers)
-		{
-			if (blocker != null) // Unity object — ==
-			{
-				Object.Destroy(blocker);
-			}
-		}
-
-		_scopedBlockers.Clear();
-	}
-
-	private static bool ScopedBlocksEqual(
-		IReadOnlyList<OnlineUiBlockRect> current,
-		IReadOnlyList<OnlineUiBlockRect> next)
-	{
-		if (current.Count != next.Count)
-		{
-			return false;
-		}
-
-		for (var i = 0; i < current.Count; i++)
-		{
-			if (current[i] != next[i])
-			{
-				return false;
-			}
-		}
-
-		return true;
 	}
 }

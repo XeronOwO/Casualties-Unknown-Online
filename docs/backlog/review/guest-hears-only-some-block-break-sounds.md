@@ -4,7 +4,7 @@
 - Priority: Medium-High
 - Category: World audio / block damage sync
 - Source: User acceptance finding (2026-09-21): while the host mines continuously the guest hears only part of the block hit/break sounds, although every hit plays a sound for the host.
-- Related: `review/host-metal-scrap-block-place-sound-not-synced-to-guest.md` (its non-goal stated that block hit/break sounds "already replay through the native remote DamageBlock apply path" — this report falsifies that claim for the BREAK half, and that non-goal is corrected here), `review/sync-player-pain-vocalizations-and-bark.md`, `review/guest-background-ghost-item-ground-sounds.md`, `todo/unhooked-damage-block-callers.md` (the same family's remaining report-coverage gap)
+- Related: `review/host-metal-scrap-block-place-sound-not-synced-to-guest.md` (its non-goal stated that block hit/break sounds "already replay through the native remote DamageBlock apply path" — this report falsifies that claim for the BREAK half, and that non-goal is corrected here), `review/sync-player-pain-vocalizations-and-bark.md`, `review/guest-background-ghost-item-ground-sounds.md`, `review/unhooked-damage-block-callers.md` (the same family's report-coverage gap, closed by re-anchoring the hook on the overload every native roll enters)
 
 ## Root cause (from source, not from the report's narration)
 
@@ -106,6 +106,7 @@ run remain the user's release-cycle actions.
 - No continuous audio stream and no per-frame sound messages (the claim rides an existing message as
   one bool).
 - Not re-designing block damage authority; only the audible outcome and its carrier.
-- Not re-anchoring `WorldGenerationDamageBlockPatch` to the inner overload — the two unhooked native
-  callers (footstep crush, spider burrow) are a report-COVERAGE gap and are ticketed separately:
-  `todo/unhooked-damage-block-callers.md`.
+- Re-anchoring `WorldGenerationDamageBlockPatch` to the inner overload was out of THIS cycle — the two
+  unhooked native callers (footstep crush, spider burrow) were a report-COVERAGE gap and were ticketed
+  separately; that ticket has since landed and did the re-anchor:
+  `review/unhooked-damage-block-callers.md`.

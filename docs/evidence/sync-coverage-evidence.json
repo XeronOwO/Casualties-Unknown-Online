@@ -2660,7 +2660,7 @@
       "cluster": "world-blocks",
       "row": "W2",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationDamageBlockPatch.cs",
-      "quote": "PatchBridge.Impl?.OnBlockDamaged(pos, dmg, bonusMetal, applied);"
+      "quote": "PatchBridge.Impl?.OnBlockDamaged(__state.Cell, dmg, bonusMetal, applied);"
     },
     {
       "cluster": "world-blocks",

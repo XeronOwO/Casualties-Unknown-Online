@@ -92,7 +92,9 @@ internal sealed class BlockBreakSync(
 	/// Called from the DamageBlock patch after a LOCAL block damage was applied:
 	/// report it so the peer applies the same damage at the same cell (raw damage +
 	/// MetalBonus — the receiver's own DamageBlock applies the same metallic
-	/// multiplier to the same generated block). CUO records nothing here on the
+	/// multiplier to the same generated block). The patch hands the CELL over: it
+	/// binds the game's body overload, which already holds it, so this path never
+	/// converts a world position. CUO records nothing here on the
 	/// HOST: the host's row IS the authority and it never re-reports its own
 	/// damage. A GUEST records the hit's own contribution — the damage this call
 	/// added to the cell, in the game's accumulated units — BEFORE its delta report
@@ -102,7 +104,7 @@ internal sealed class BlockBreakSync(
 	/// one frame so the drops' Item.Start folds into the pending break (one
 	/// message, one verdict), and the frame-end flush sends it.
 	/// </summary>
-	internal void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal, float applied)
+	internal void OnBlockDamaged(Vector2Int cell, float dmg, bool bonusMetal, float applied)
 	{
 		if (IsRemoteApply || !_session.SessionActive)
 		{
@@ -115,7 +117,6 @@ internal sealed class BlockBreakSync(
 			return;
 		}
 
-		var cell = world.WorldToBlockPos(pos);
 		var op = _trace.NextOperationId();
 		if (world.GetBlock(cell) != 0)
 		{

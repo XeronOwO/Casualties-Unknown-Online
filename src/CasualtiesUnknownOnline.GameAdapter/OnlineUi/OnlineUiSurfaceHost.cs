@@ -51,6 +51,7 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 
 	private GameObject? _root;
 	private OnlineUiLauncherView? _launcher;
+	private OnlineUiWindowView? _window;
 	private bool _reportedMissingCanvas;
 
 	internal OnlineUiSurfaceHost(ILogger log)
@@ -70,6 +71,22 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 
 		_launcher.Apply(frame.LauncherLabel, frame.LauncherAlpha);
 		_launcher.PollHover(_intents);
+
+		if (_window is null)
+		{
+			return;
+		}
+
+		// A null window is "the window is closed": the object stays, so reopening it does not rebuild its
+		// controls. The pointer is polled either way — closing the window under the pointer has to report
+		// the pointer as out, or the next world right-click would be read as a click inside the window.
+		_window.SetVisible(frame.Window is not null);
+		if (frame.Window is { } model)
+		{
+			_window.Apply(model);
+		}
+
+		_window.PollPointer(_intents);
 	}
 
 	/// <summary>Takes the oldest queued intent (a click, a hover flip), oldest first.</summary>
@@ -133,6 +150,9 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 
 		_root = root;
 		_launcher = launcher;
+		// The window family rides on the same surface (S2b): one shell built once with the launcher, shown
+		// and hidden by the frames that carry a window model.
+		_window = OnlineUiWindowView.Create(root.transform, _log, _intents.Enqueue);
 		if (!launcher.UsesGamePrefab)
 		{
 			_log.LogWarning(
@@ -208,5 +228,6 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 
 		_root = null;
 		_launcher = null;
+		_window = null;
 	}
 }

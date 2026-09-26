@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
 
@@ -9,6 +8,13 @@ namespace CasualtiesUnknownOnline;
 /// Mutable local UI state for the Online UI window. This is presentation state
 /// only; it is owned by <see cref="OnlineUiWindow"/> and never crosses into the
 /// Runtime or the wire.
+///
+/// <para>
+/// Since ticket online-ui-art-and-controls-overhaul (S2b) the window is built as a display list for the
+/// game's own controls: the scroll offset and the three "options open" booleans the IMGUI dropdown
+/// impostor needed are gone, because the game's scroll view and the game's dropdown own those states
+/// themselves.
+/// </para>
 /// </summary>
 internal sealed class OnlineUiWindowState
 {
@@ -19,14 +25,6 @@ internal sealed class OnlineUiWindowState
 	internal string LobbyIdInput = "";
 
 	internal string? Error;
-
-	internal Vector2 Scroll;
-
-	internal bool LogLevelOptionsOpen;
-
-	internal bool LanguageOptionsOpen;
-
-	internal bool ColorOptionsOpen;
 
 	internal string ProfileNameInput = "";
 
@@ -39,12 +37,11 @@ internal sealed class OnlineUiWindowState
 	/// <summary>
 	/// The Worlds page's rows, and the library revision they were read at. They are read ON DEMAND
 	/// rather than every frame: listing worlds enumerates the repository's folders and their backup
-	/// files, and an IMGUI draw runs more than once per frame while the page is open. A reload
-	/// happens when the library's <see cref="IWorldLibrary.Revision"/> no longer matches
-	/// <see cref="SeenRevision"/> — which covers the first draw (the sentinel starts below every
-	/// real revision), every committed cut of any trigger, and every management action — and when
-	/// Refresh is clicked. A list that is merely left open therefore does not go stale, and a draw
-	/// pass touches no directory.
+	/// files, and the page is rebuilt on every frame the window is open. A reload happens when the
+	/// library's <see cref="IWorldLibrary.Revision"/> no longer matches <see cref="SeenRevision"/> —
+	/// which covers the first build (the sentinel starts below every real revision), every committed cut
+	/// of any trigger, and every management action — and when Refresh is clicked. A list that is merely
+	/// left open therefore does not go stale, and a frame that changes nothing touches no directory.
 	/// </summary>
 	internal List<WorldLibraryEntry> WorldRows = [];
 

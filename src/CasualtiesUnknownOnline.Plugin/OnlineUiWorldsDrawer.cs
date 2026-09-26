@@ -1,10 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
 
@@ -16,11 +17,11 @@ namespace CasualtiesUnknownOnline;
 /// Two rules shape the whole page:
 /// <list type="number">
 /// <item>it READS on demand. Listing worlds walks the repository's folders and their backup
-/// files, and an IMGUI draw callback runs more than once per frame — so the rows live in the
+/// files, and the page is rebuilt on every frame the window is open — so the rows live in the
 /// window state and are reloaded only when <see cref="IWorldLibrary.Revision"/> moved (the
-/// first draw, every committed cut of any trigger, every management action) or when Refresh is
-/// clicked. A list left open on screen therefore follows the world, while a draw pass touches
-/// no directory;</item>
+/// first build, every committed cut of any trigger, every management action) or when Refresh is
+/// clicked. A list left open on screen therefore follows the world, while a frame that changes
+/// nothing touches no directory;</item>
 /// <item>it only ARMS what it may not do itself. A restore replaces the snapshot of a world
 /// the player is not currently playing, at a frame boundary, exactly once — so the click
 /// records the intent through <see cref="IWorldLibrary.TryRequestRestore"/> and the pump does
@@ -31,15 +32,21 @@ namespace CasualtiesUnknownOnline;
 ///
 /// The refusals and results this page shows come from the Runtime and are shown verbatim,
 /// exactly like the console shows a cut report: one wording, one owner.
+///
+/// <para>
+/// Since ticket online-ui-art-and-controls-overhaul (S2b) the page builds a display list instead of
+/// drawing itself; every button is a row on the game's own control and its click comes back as an
+/// intent carrying the id registered here.
+/// </para>
 /// </summary>
 internal static class OnlineUiWorldsDrawer
 {
-	internal static void Draw(OnlineUiContext ctx)
+	internal static void Build(OnlineUiContext ctx, OnlineUiPageBuilder page)
 	{
 		var library = ctx.WorldLibrary;
 		if (library is null || !library.IsEnabled)
 		{
-			GUILayout.Label(ctx.T("worlds.unavailable"), OnlineUiTheme.MutedLabel());
+			page.Muted(ctx.T("worlds.unavailable"));
 			return;
 		}
 
@@ -47,103 +54,106 @@ internal static class OnlineUiWorldsDrawer
 
 		// ONE staleness rule for every way the data can move: the library bumps its revision on
 		// every committed cut (any trigger — a /save, the autosave, a layer boundary, a menu
-		// return), on every management action, and this starts at -1 so the first draw loads.
+		// return), on every management action, and this starts at -1 so the first build loads.
 		if (state.SeenRevision != library.Revision)
 		{
 			Reload(ctx, library);
 		}
 
-		DrawHeader(ctx, library);
-		DrawStatus(ctx, library);
-		DrawWorlds(ctx, library);
-		DrawBackups(ctx, library);
+		BuildHeader(ctx, page, library);
+		BuildStatus(ctx, page, library);
+		BuildWorlds(ctx, page, library);
+		BuildBackups(ctx, page, library);
 	}
 
-	private static void DrawHeader(OnlineUiContext ctx, IWorldLibrary library)
-	{
-		GUILayout.BeginHorizontal();
-		GUILayout.Label(ctx.T("worlds.section"), OnlineUiTheme.Section());
-		GUILayout.FlexibleSpace();
-		if (GUILayout.Button(ctx.T("worlds.refresh"), OnlineUiTheme.Button(), GUILayout.Width(110f)))
-		{
-			Reload(ctx, library);
-		}
-
-		GUILayout.EndHorizontal();
-	}
+	private static void BuildHeader(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library) =>
+		page.Row(
+			page.LabelElement(ctx.T("worlds.section"), OnlineUiTextStyle.Section, OnlineUiTheme.Accent),
+			page.ButtonElement("worlds.refresh", ctx.T("worlds.refresh"), () => Reload(ctx, library), width: 110f));
 
 	/// <summary>The one line that says what the last action did — or why it did nothing.</summary>
-	private static void DrawStatus(OnlineUiContext ctx, IWorldLibrary library)
+	private static void BuildStatus(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library)
 	{
 		if (ctx.Session.Role == SessionRole.Guest)
 		{
-			GUILayout.Label(ctx.T("worlds.host_only"), OnlineUiTheme.MutedLabel());
+			page.Muted(ctx.T("worlds.host_only"));
 		}
 
 		if (library.HasArmedRestore)
 		{
-			GUILayout.Label(ctx.T("worlds.restore_queued"), OnlineUiTheme.Status(OnlineUiTheme.Warning));
+			page.Status(ctx.T("worlds.restore_queued"), OnlineUiTheme.Warning);
 			return;
 		}
 
 		if (library.LastReport is { } report)
 		{
-			GUILayout.Label(
+			page.Status(
 				ctx.F("worlds.last_action", report.Detail),
-				OnlineUiTheme.Status(report.Succeeded ? OnlineUiTheme.Positive : OnlineUiTheme.Error));
+				report.Succeeded ? OnlineUiTheme.Positive : OnlineUiTheme.Error);
 		}
 	}
 
-	private static void DrawWorlds(OnlineUiContext ctx, IWorldLibrary library)
+	private static void BuildWorlds(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library)
 	{
 		if (ctx.State.WorldRows.Count == 0)
 		{
-			GUILayout.Label(ctx.T("worlds.empty"), OnlineUiTheme.MutedLabel());
+			page.Muted(ctx.T("worlds.empty"));
 			return;
 		}
 
 		foreach (var row in ctx.State.WorldRows)
 		{
-			DrawWorldRow(ctx, library, row);
+			BuildWorldRow(ctx, page, library, row);
 		}
 	}
 
-	private static void DrawWorldRow(OnlineUiContext ctx, IWorldLibrary library, WorldLibraryEntry row)
+	private static void BuildWorldRow(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library, WorldLibraryEntry row)
 	{
 		var state = ctx.State;
-		GUILayout.Label(row.World.DisplayName, OnlineUiTheme.Label());
-		GUILayout.Label(
-			ctx.F("worlds.row_detail", row.World.LayerIndex, row.World.PlayerCount, row.BackupCount, LocalTime(row.World.LastSavedUtc)),
-			OnlineUiTheme.MutedLabel());
+		page.Label(row.World.DisplayName);
+		page.Muted(ctx.F(
+			"worlds.row_detail",
+			row.World.LayerIndex,
+			row.World.PlayerCount,
+			row.BackupCount,
+			LocalTime(row.World.LastSavedUtc)));
 
-		GUILayout.BeginHorizontal();
+		var elements = new List<OnlineUiElementModel>(2);
 		if (!row.HasSnapshot)
 		{
-			GUILayout.Label(ctx.T("worlds.no_snapshot"), OnlineUiTheme.MutedLabel());
+			elements.Add(page.LabelElement(ctx.T("worlds.no_snapshot"), OnlineUiTextStyle.Muted, OnlineUiTheme.Muted));
 		}
 		else if (row.IsSelected)
 		{
-			GUILayout.Label(ctx.T("worlds.continue_target"), OnlineUiTheme.MutedLabel());
+			elements.Add(page.LabelElement(ctx.T("worlds.continue_target"), OnlineUiTextStyle.Muted, OnlineUiTheme.Muted));
 		}
-		else if (GUILayout.Button(ctx.T("worlds.select"), OnlineUiTheme.Button(), GUILayout.Width(180f)))
+		else
 		{
 			// A refusal is not swallowed: the library records it and the status line above shows
-			// its reason on the next draw.
-			library.TrySelectWorld(row.World.WorldId, out _);
+			// its reason on the next frame.
+			elements.Add(page.ButtonElement(
+				$"worlds.select.{row.World.WorldId}",
+				ctx.T("worlds.select"),
+				() => library.TrySelectWorld(row.World.WorldId, out _),
+				width: 180f));
 		}
 
-		if (GUILayout.Button(ctx.T("worlds.show_backups"), OnlineUiTheme.Button(), GUILayout.Width(120f)))
-		{
-			state.BackupRowsWorldId = row.World.WorldId;
-			state.BackupRows = [.. library.ListBackups(row.World.WorldId)];
-			state.PendingRestoreFile = "";
-		}
+		elements.Add(page.ButtonElement(
+			$"worlds.backups.{row.World.WorldId}",
+			ctx.T("worlds.show_backups"),
+			() =>
+			{
+				state.BackupRowsWorldId = row.World.WorldId;
+				state.BackupRows = [.. library.ListBackups(row.World.WorldId)];
+				state.PendingRestoreFile = "";
+			},
+			width: 120f));
 
-		GUILayout.EndHorizontal();
-		GUILayout.Space(6f);
+		page.Row([.. elements]);
+		page.Space();
 	}
 
-	private static void DrawBackups(OnlineUiContext ctx, IWorldLibrary library)
+	private static void BuildBackups(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library)
 	{
 		var state = ctx.State;
 		if (state.BackupRowsWorldId.Length == 0)
@@ -151,57 +161,61 @@ internal static class OnlineUiWorldsDrawer
 			return;
 		}
 
-		GUILayout.Label(ctx.F("worlds.backups_section", DisplayNameOf(state, state.BackupRowsWorldId)), OnlineUiTheme.Section());
+		page.Section(ctx.F("worlds.backups_section", DisplayNameOf(state, state.BackupRowsWorldId)));
 		if (state.BackupRows.Count == 0)
 		{
-			GUILayout.Label(ctx.T("worlds.backups_empty"), OnlineUiTheme.MutedLabel());
+			page.Muted(ctx.T("worlds.backups_empty"));
 			return;
 		}
 
 		foreach (var backup in state.BackupRows)
 		{
-			DrawBackupRow(ctx, library, backup);
+			BuildBackupRow(ctx, page, library, backup);
 		}
 	}
 
-	private static void DrawBackupRow(OnlineUiContext ctx, IWorldLibrary library, WorldBackup backup)
+	private static void BuildBackupRow(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library, WorldBackup backup)
 	{
 		var state = ctx.State;
-		GUILayout.Label(
-			ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup)),
-			OnlineUiTheme.Label());
+		page.Label(ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup)));
 
 		if (string.Equals(state.PendingRestoreFile, backup.FileName, StringComparison.Ordinal))
 		{
-			GUILayout.Label(ctx.F("worlds.restore_confirm", backup.FileName), OnlineUiTheme.MutedLabel());
-			GUILayout.BeginHorizontal();
-			if (GUILayout.Button(ctx.T("worlds.restore_confirm_yes"), OnlineUiTheme.Button(), GUILayout.Width(150f)))
-			{
-				state.PendingRestoreFile = "";
-				// Armed here, executed by the frame pump: this code runs inside a draw callback.
-				library.TryRequestRestore(
-					state.BackupRowsWorldId,
-					backup.FileName,
-					ctx.WorldPresence?.IsInWorldOrGenerating ?? false,
-					out _);
-			}
-
-			if (GUILayout.Button(ctx.T("worlds.restore_cancel"), OnlineUiTheme.Button(), GUILayout.Width(110f)))
-			{
-				state.PendingRestoreFile = "";
-			}
-
-			GUILayout.EndHorizontal();
+			page.Muted(ctx.F("worlds.restore_confirm", backup.FileName));
+			page.Row(
+				page.ButtonElement(
+					$"worlds.restore_yes.{backup.FileName}",
+					ctx.T("worlds.restore_confirm_yes"),
+					() =>
+					{
+						state.PendingRestoreFile = "";
+						// Armed here, executed by the frame pump: this code runs inside a model build.
+						library.TryRequestRestore(
+							state.BackupRowsWorldId,
+							backup.FileName,
+							ctx.WorldPresence?.IsInWorldOrGenerating ?? false,
+							out _);
+					},
+					width: 150f),
+				page.ButtonElement(
+					$"worlds.restore_cancel.{backup.FileName}",
+					ctx.T("worlds.restore_cancel"),
+					() => state.PendingRestoreFile = "",
+					width: 110f));
 		}
-		else if (GUILayout.Button(ctx.T("worlds.restore"), OnlineUiTheme.Button(), GUILayout.Width(120f)))
+		else
 		{
-			state.PendingRestoreFile = backup.FileName;
+			page.Button(
+				$"worlds.restore.{backup.FileName}",
+				ctx.T("worlds.restore"),
+				() => state.PendingRestoreFile = backup.FileName,
+				width: 120f);
 		}
 
-		GUILayout.Space(4f);
+		page.Space();
 	}
 
-	/// <summary>Re-reads what the page shows. Cheap enough to run on demand, far too costly to run per draw pass.</summary>
+	/// <summary>Re-reads what the page shows. Cheap enough to run on demand, far too costly to run per frame.</summary>
 	private static void Reload(OnlineUiContext ctx, IWorldLibrary library)
 	{
 		var state = ctx.State;

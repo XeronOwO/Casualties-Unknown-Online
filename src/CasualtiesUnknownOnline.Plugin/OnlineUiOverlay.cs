@@ -2,18 +2,10 @@ using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Configuration;
-using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
-using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
-using CasualtiesUnknownOnline.Runtime.Session.HostRules;
-using CasualtiesUnknownOnline.Runtime.Session.Persistence;
-using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
-using CasualtiesUnknownOnline.Runtime.Session.World;
-using CasualtiesUnknownOnline.Runtime.Steam;
-using CasualtiesUnknownOnline.Runtime.Time;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -109,6 +101,13 @@ internal sealed class OnlineUiOverlay
 
 	private readonly OnlineUiWindow _window = new();
 
+	/// <summary>
+	/// True while the pointer is inside the modal window's rect. The window is the game's own uGUI now,
+	/// so its rect is the surface's fact and the plugin receives it as a hover flip; it is the fact that
+	/// keeps an in-world right-click inside the window from opening the player context menu.
+	/// </summary>
+	private bool _pointerOverWindow;
+
 	private readonly OnlineUiPlayerContextMenu _contextMenu = new();
 
 	private readonly OnlineUiQuickPanel _quickPanel = new();
@@ -136,6 +135,12 @@ internal sealed class OnlineUiOverlay
 	private bool _lastHadSession;
 
 	internal bool IsWindowVisible => _window.State.Visible;
+
+	/// <summary>The window's shell state and model builder, driven by <see cref="OnlineUiHost"/>.</summary>
+	internal OnlineUiWindow Window => _window;
+
+	/// <summary>Records the pointer-over-window fact the native surface reports as a hover flip.</summary>
+	internal void SetPointerOverWindow(bool over) => _pointerOverWindow = over;
 
 	internal bool IsQuickPanelVisible => _quickPanel.IsVisible;
 
@@ -199,81 +204,14 @@ internal sealed class OnlineUiOverlay
 		return _contextMenu.IsOpen && _contextMenu.Contains(gui);
 	}
 
-	internal void Draw(
-		SteamService steam,
-		SessionService session,
-		EntitySyncService entities,
-		RemoteVitalsService vitals,
-		RemoteInventoryService inventory,
-		IPlayerInteractionControl playerInteraction,
-		IPlayerInteractionVisibility? interactionVisibility,
-		IHostBanService hostBan,
-		IHostRules hostRules,
-		ICommandControl commands,
-		ILocationPingControl locationPings,
-		ITimeSource time,
-		INativeInputBlocker? inputBlocker,
-		IPlayerAnchorQuery? anchorQuery,
-		IWorldPresenceQuery? worldPresence,
-		IWorldLibrary? worldLibrary,
-		ILocalizationService localization,
-		HostRulesConfigEditor? rulesEditor,
-		LoggingConfigEditor? logging,
-		LocalizationConfigEditor? language,
-		string? lastJoinError)
+	/// <summary>
+	/// The IMGUI pass: the surfaces CUO still draws itself — the nameplates and off-screen arrows, the
+	/// network HUD, the location pings, the player context menu, the quick panel and the command console.
+	/// The modal window is NOT drawn here any more: since S2b it is the game's own controls on the native
+	/// surface, built from the model <see cref="OnlineUiHost"/> pushes.
+	/// </summary>
+	internal void Draw(OnlineUiContext ctx, INativeInputBlocker? inputBlocker)
 	{
-		var ctx = new OnlineUiContext
-		{
-			Steam = steam,
-			Session = session,
-			Entities = entities,
-			Vitals = vitals,
-			Inventory = inventory,
-			PlayerInteraction = playerInteraction,
-			Visibility = interactionVisibility,
-			HostBan = hostBan,
-			HostRules = hostRules,
-			Commands = commands,
-			LocationPings = locationPings,
-			Time = time,
-			Localization = localization,
-			RulesEditor = rulesEditor,
-			Logging = logging,
-			Language = language,
-			Profiles = Profiles,
-			AnchorQuery = anchorQuery,
-			WorldPresence = worldPresence,
-			WorldLibrary = worldLibrary,
-			LastJoinError = lastJoinError,
-			State = _window.State,
-			JoinLobby = JoinLobby,
-			CreateLobby = CreateLobby,
-			LeaveLobby = LeaveLobby,
-			CreateIpHost = CreateIpHost,
-			JoinIp = JoinIp,
-			LeaveIp = LeaveIp,
-			IpConfig = IpConfig,
-			ColorConfig = ColorConfig,
-			ChangePlayerColor = ChangePlayerColor,
-			IpDirectActive = IpDirectActive,
-			TakeItem = TakeItem,
-			OpenRemoteBackpack = OpenRemoteBackpack,
-			OpenRemoteMedical = OpenRemoteMedical,
-			CarryRemote = CarryRemote,
-			PiggybackRemote = PiggybackRemote,
-			CarryOnBackRemote = CarryOnBackRemote,
-			DropCarried = DropCarried,
-			HealRemote = HealRemote,
-			HealWithItem = HealWithItem,
-			PushRemote = PushRemote,
-			RecruitPlayer = RecruitPlayer,
-			KickMember = KickMember,
-			BanMember = BanMember,
-			UnbanMember = UnbanMember,
-			GetLocalHealItems = GetLocalHealItems,
-			HasHealItem = HasHealItem,
-		};
-
 		// ESC closes the modal Online UI. The native PlayerCamera.HandleInput
 		// pause/menu handling is short-circuited by the adapter while the modal
 		// is open, and the one-frame `CuoEscCloseSuppression` keeps the modal
@@ -295,10 +233,9 @@ internal sealed class OnlineUiOverlay
 
 		if (!_commandOverlay.IsOpen)
 		{
-			_window.Draw(ctx);
 			UpdateDelayedStatus(ctx);
 			DrawNetworkHud(ctx);
-			DrawNameplatesAndArrows(ctx, entities);
+			DrawNameplatesAndArrows(ctx, ctx.Entities);
 			LocationPingOverlay.Draw(ctx);
 			DrawPlayerContextMenu(ctx);
 			_quickPanel.Draw(ctx);
@@ -416,7 +353,9 @@ internal sealed class OnlineUiOverlay
 		{
 			// Right-clicks inside the Online window belong to the UI, not the
 			// world; never open/re-target/close the in-world menu from there.
-			if (_window.ContainsPoint(mouse))
+			// The rect is the game's own control now, so the fact comes from
+			// the surface's pointer poll rather than from a plugin-side rect.
+			if (_pointerOverWindow)
 			{
 				return;
 			}

@@ -53,6 +53,18 @@ public sealed class OnlineUiSurfacePinTests
 		Assert.False(DrivesTheSurfaceWithTheRule(broken));
 	}
 
+	/// <summary>The window rides in the same frame: a push that carries no window model shows no window at
+	/// all, which is the regression the S2b half of this pin exists for.</summary>
+	[Fact]
+	public void ThePinRejectsAPluginThatPushesNoWindow()
+	{
+		var host = PluginSource("OnlineUiHost.cs");
+		var broken = host.Replace("_onlineUi.Window.Build(ctx)", "null");
+
+		Assert.True(host != broken, "the window mutation's anchor text is gone — re-anchor this mutation before trusting it");
+		Assert.False(DrivesTheSurfaceWithTheRule(broken));
+	}
+
 	[Fact]
 	public void TheLaunchersClickKeepsTheWindowsOpeningRule()
 	{
@@ -284,16 +296,18 @@ public sealed class OnlineUiSurfacePinTests
 	/// <summary>
 	/// The plugin's half: drain what the player did before pushing what to show, ask the Runtime rule with
 	/// the runtime clock and the hover fact, build the caption from the Runtime's own rule, and hand the
-	/// rule's answer to the surface. Every intent kind has its own case, and the click's case is the
-	/// window's opening rule.
+	/// rule's answer AND the window's model to the surface. Every intent kind has its own case — the
+	/// launcher's three, the window's own pointer fact, and the control interactions the window family
+	/// reports (ticket online-ui-art-and-controls-overhaul, S2b) — and the click's case is the window's
+	/// opening rule.
 	/// </summary>
 	private static bool DrivesTheSurfaceWithTheRule(string hostSource)
 	{
 		var flat = Flatten(hostSource);
 
-		return flat.Contains("DrainSurfaceIntents(); PushSurfaceFrame();", StringComparison.Ordinal)
+		return flat.Contains("DrainSurfaceIntents(); PushSurfaceFrame(ctx);", StringComparison.Ordinal)
 			&& flat.Contains(
-				"_surface.Push(new OnlineUiFrame(label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered)));",
+				"_surface.Push(new OnlineUiFrame(label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered), _onlineUi.Window.Build(ctx)));",
 				StringComparison.Ordinal)
 			&& flat.Contains("label = _launcherLabel = OnlineUiLauncherText.Label(caption, open);", StringComparison.Ordinal)
 			&& flat.Contains(
@@ -304,6 +318,12 @@ public sealed class OnlineUiSurfacePinTests
 				StringComparison.Ordinal)
 			&& flat.Contains(
 				"case OnlineUiIntentKind.LauncherHoverLeft: _launcherHovered = false; break;",
+				StringComparison.Ordinal)
+			&& flat.Contains(
+				"case OnlineUiIntentKind.WindowHoverEntered: _onlineUi.SetPointerOverWindow(true); break;",
+				StringComparison.Ordinal)
+			&& flat.Contains(
+				"case OnlineUiIntentKind.WindowHoverLeft: _onlineUi.SetPointerOverWindow(false); break;",
 				StringComparison.Ordinal);
 	}
 

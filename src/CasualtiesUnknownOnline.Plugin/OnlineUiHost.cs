@@ -55,6 +55,7 @@ internal sealed class OnlineUiHost
 	private readonly HostRulesConfigEditor _rulesEditor;
 	private readonly LoggingConfigEditor _loggingEditor;
 	private readonly LocalizationConfigEditor _languageEditor;
+	private readonly ConfigurationProfileStore _profiles;
 	private readonly INativeInputBlocker? _inputBlocker;
 	private readonly IPlayerAnchorQuery? _anchorQuery;
 	private readonly IWorldPresenceQuery? _worldPresence;
@@ -69,6 +70,10 @@ internal sealed class OnlineUiHost
 	// Online UI is simply unreachable from the game's UI.
 	private readonly IOnlineUiSurface? _surface;
 	private readonly OnlineUiLauncherFade _launcherFade = new();
+
+	// This frame's context, assembled once in Update and read again by the IMGUI pass (OnGUI runs after
+	// Update in the same frame), so the window's model and the surfaces drawn here see one set of facts.
+	private OnlineUiContext? _context;
 
 	private bool _launcherHovered;
 	private string _launcherCaption = "";
@@ -101,6 +106,7 @@ internal sealed class OnlineUiHost
 		_rulesEditor = services.GetRequiredService<HostRulesConfigEditor>();
 		_loggingEditor = services.GetRequiredService<LoggingConfigEditor>();
 		_languageEditor = services.GetRequiredService<LocalizationConfigEditor>();
+		_profiles = services.GetRequiredService<ConfigurationProfileStore>();
 		// The capability ports are optional here exactly as they are in the
 		// container: a composition without an adapter draws the UI without them.
 		_inputBlocker = services.GetService<INativeInputBlocker>();
@@ -157,7 +163,7 @@ internal sealed class OnlineUiHost
 				_router.SetLocalPlayerColor(color);
 				_session.ReportLocalPlayerColor(color);
 			},
-			Profiles = services.GetRequiredService<ConfigurationProfileStore>(),
+			Profiles = _profiles,
 			TakeItem = uiActions.TakeItemFromRemote,
 			OpenRemoteBackpack = (id, name) => OpenNativeSurface(uiActions.OpenRemoteBackpackFromUi(id, name)),
 			OpenRemoteMedical = (id, name) => OpenNativeSurface(uiActions.OpenRemoteMedicalFromUi(id, name)),
@@ -236,16 +242,84 @@ internal sealed class OnlineUiHost
 		// per interval, and stops for good once it has a complete reading (see the Runtime policy).
 		_nativeFacts.Update(_time.NowMs);
 
-		// S2a's live surface: what the player did on the game's own launcher first (so a click this
-		// frame is already reflected in the caption below), then this frame's state.
+		_onlineUi.IpDirectActive = _router.IsIpDirectActive;
+		if (_ipActions.LastError is not null)
+		{
+			_lobby.LastError = _ipActions.LastError;
+		}
+
+		var ctx = _context = BuildContext();
+
+		// S2a's live surface, and S2b's window family on it: what the player did on the game's own
+		// controls first (so a click this frame is already reflected in the caption and the model
+		// below), then this frame's state — the window's model is built with the actions that answer it.
 		DrainSurfaceIntents();
-		PushSurfaceFrame();
+		PushSurfaceFrame(ctx);
 	}
 
 	/// <summary>
+	/// The frame's context: the runtime facts and the action delegates the Online UI reads. It is
+	/// assembled in one place because both consumers need the same one — the window's model build (here
+	/// in Update) and the IMGUI pass (in Draw) — and because the delegates are the same guarded paths the
+	/// Steam callbacks use: one lobby-switch policy, two entry points.
+	/// </summary>
+	private OnlineUiContext BuildContext() => new()
+	{
+		Steam = _steam,
+		Session = _session,
+		Entities = _entities,
+		Vitals = _remoteVitals,
+		Inventory = _remoteInventory,
+		PlayerInteraction = _playerInteraction,
+		Visibility = _interactionVisibility,
+		HostBan = _hostBan,
+		HostRules = _hostRules,
+		Commands = _commands,
+		LocationPings = _locationPings,
+		Time = _time,
+		Localization = _localization,
+		RulesEditor = _rulesEditor,
+		Logging = _loggingEditor,
+		Language = _languageEditor,
+		Profiles = _profiles,
+		AnchorQuery = _anchorQuery,
+		WorldPresence = _worldPresence,
+		WorldLibrary = _worldLibrary,
+		LastJoinError = _lobby.LastError,
+		State = _onlineUi.Window.State,
+		JoinLobby = _onlineUi.JoinLobby,
+		CreateLobby = _onlineUi.CreateLobby,
+		LeaveLobby = _onlineUi.LeaveLobby,
+		CreateIpHost = _onlineUi.CreateIpHost,
+		JoinIp = _onlineUi.JoinIp,
+		LeaveIp = _onlineUi.LeaveIp,
+		IpConfig = _onlineUi.IpConfig,
+		ColorConfig = _onlineUi.ColorConfig,
+		ChangePlayerColor = _onlineUi.ChangePlayerColor,
+		IpDirectActive = _router.IsIpDirectActive,
+		TakeItem = _onlineUi.TakeItem,
+		OpenRemoteBackpack = _onlineUi.OpenRemoteBackpack,
+		OpenRemoteMedical = _onlineUi.OpenRemoteMedical,
+		CarryRemote = _onlineUi.CarryRemote,
+		PiggybackRemote = _onlineUi.PiggybackRemote,
+		CarryOnBackRemote = _onlineUi.CarryOnBackRemote,
+		DropCarried = _onlineUi.DropCarried,
+		HealRemote = _onlineUi.HealRemote,
+		HealWithItem = _onlineUi.HealWithItem,
+		PushRemote = _onlineUi.PushRemote,
+		RecruitPlayer = _onlineUi.RecruitPlayer,
+		KickMember = _onlineUi.KickMember,
+		BanMember = _onlineUi.BanMember,
+		UnbanMember = _onlineUi.UnbanMember,
+		GetLocalHealItems = _onlineUi.GetLocalHealItems,
+		HasHealItem = _onlineUi.HasHealItem,
+	};
+
+	/// <summary>
 	/// Drains what the player did on the native surface and turns it into the same calls the IMGUI
-	/// launcher made before it moved onto the game's own button: a click toggles the window, a hover flips
-	/// the idle fade's only other input.
+	/// controls made before they moved onto the game's own controls: a launcher click toggles the window,
+	/// a hover flips the idle fade's only other input, the window's own close control closes it, and every
+	/// page control's interaction lands on the action registered under its id.
 	/// </summary>
 	private void DrainSurfaceIntents()
 	{
@@ -267,17 +341,46 @@ internal sealed class OnlineUiHost
 				case OnlineUiIntentKind.LauncherHoverLeft:
 					_launcherHovered = false;
 					break;
+				case OnlineUiIntentKind.WindowHoverEntered:
+					_onlineUi.SetPointerOverWindow(true);
+					break;
+				case OnlineUiIntentKind.WindowHoverLeft:
+					_onlineUi.SetPointerOverWindow(false);
+					break;
+				case OnlineUiIntentKind.ControlInvoked:
+				case OnlineUiIntentKind.ControlToggled:
+				case OnlineUiIntentKind.ControlSelected:
+				case OnlineUiIntentKind.ControlChanged:
+				case OnlineUiIntentKind.ControlEdited:
+					ApplyControlIntent(intent);
+					break;
 			}
 		}
 	}
 
 	/// <summary>
-	/// The launcher's frame: the caption for the window's current state and the opacity the idle rule
-	/// derives from the pointer fact the surface reported. The caption is rebuilt only when its inputs
-	/// change — the launcher holds one caption for seconds at a time, and concatenating it on every
-	/// update would allocate for nothing (the same discipline the IMGUI launcher's cached label had).
+	/// Runs the action the intent's control id was registered under. An id the current model does not
+	/// carry means the control is gone (the page changed, the member left between the click and this
+	/// frame): the intent is dropped and logged rather than applied to whatever took its place.
 	/// </summary>
-	private void PushSurfaceFrame()
+	private void ApplyControlIntent(OnlineUiIntent intent)
+	{
+		if (!_onlineUi.Window.Apply(intent))
+		{
+			_log.LogDebug(
+				"Online UI: an intent for the control `{Control}` arrived after the window stopped offering it — dropped.",
+				intent.ControlId);
+		}
+	}
+
+	/// <summary>
+	/// The surface's frame: the launcher's caption and the opacity the idle rule derives from the pointer
+	/// fact it reported, plus the window's model while the window is open. The caption and the model are
+	/// rebuilt only when their inputs change — the launcher holds one caption for seconds at a time, and
+	/// concatenating it on every update would allocate for nothing (the same discipline the IMGUI
+	/// launcher's cached label had).
+	/// </summary>
+	private void PushSurfaceFrame(OnlineUiContext ctx)
 	{
 		if (_surface is null)
 		{
@@ -294,7 +397,7 @@ internal sealed class OnlineUiHost
 			label = _launcherLabel = OnlineUiLauncherText.Label(caption, open);
 		}
 
-		_surface.Push(new OnlineUiFrame(label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered)));
+		_surface.Push(new OnlineUiFrame(label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered), _onlineUi.Window.Build(ctx)));
 	}
 
 	/// <summary>
@@ -309,13 +412,7 @@ internal sealed class OnlineUiHost
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.IpDirectActive = _router.IsIpDirectActive;
-		if (_ipActions.LastError is not null)
-		{
-			_lobby.LastError = _ipActions.LastError;
-		}
-
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _inputBlocker, _anchorQuery, _worldPresence, _worldLibrary, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lobby.LastError);
+		_onlineUi.Draw(_context ??= BuildContext(), _inputBlocker);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace CasualtiesUnknownOnline;
 
 /// <summary>
@@ -7,43 +5,46 @@ namespace CasualtiesUnknownOnline;
 /// runtime — transport/lobby state, role, handshake, per-member RTT and entity
 /// sync state. Real traffic/health metrics are recorded in logs; this page is
 /// the readable live snapshot.
+///
+/// <para>
+/// Since ticket online-ui-art-and-controls-overhaul (S2b) the page builds a display list instead of
+/// drawing itself: the rows go to the game's own controls on the native surface, and the ping button's
+/// click comes back as an intent.
+/// </para>
 /// </summary>
 internal static class OnlineUiNetworkDrawer
 {
-	internal static void Draw(OnlineUiContext ctx)
+	internal static void Build(OnlineUiContext ctx, OnlineUiPageBuilder page)
 	{
 		var steam = ctx.Steam;
 		var session = ctx.Session;
 
-		GUILayout.Label(ctx.T("network.connection"), OnlineUiTheme.Section());
+		page.Section(ctx.T("network.connection"));
 		if (ctx.IpDirectActive)
 		{
-			GUILayout.Label(ctx.F("network.mode", ctx.T("ip.mode_label")), OnlineUiTheme.Label());
-			GUILayout.Label(ctx.F("network.address", ctx.IpConfig?.ListenPort.ToString() ?? ""), OnlineUiTheme.MutedLabel());
+			page.Label(ctx.F("network.mode", ctx.T("ip.mode_label")));
+			page.Muted(ctx.F("network.address", ctx.IpConfig?.ListenPort.ToString() ?? ""));
 		}
 		else
 		{
-			GUILayout.Label(ctx.F("network.steam", ctx.T(steam.IsInitialized ? "common.initialized" : "common.not_initialized")), OnlineUiTheme.Label());
-			GUILayout.Label(ctx.F("network.lobby", steam.CurrentLobbyId == 0 ? ctx.T("common.none") : steam.CurrentLobbyId.ToString()), OnlineUiTheme.MutedLabel());
+			page.Label(ctx.F("network.steam", ctx.T(steam.IsInitialized ? "common.initialized" : "common.not_initialized")));
+			page.Muted(ctx.F("network.lobby", steam.CurrentLobbyId == 0 ? ctx.T("common.none") : steam.CurrentLobbyId.ToString()));
 		}
 
-		GUILayout.Label(ctx.F("network.role", ctx.RoleName(session.Role)), OnlineUiTheme.MutedLabel());
-		GUILayout.Label(ctx.F("network.handshake", ctx.T(session.SessionActive ? "common.active" : "common.idle")), OnlineUiTheme.MutedLabel());
-		GUILayout.Label(ctx.F("network.entity_sync", ctx.T(ctx.Entities.EntitySyncActive ? "common.active" : "common.off")), OnlineUiTheme.MutedLabel());
-		GUILayout.Label(ctx.F("network.local_player", ctx.T(session.LocalInWorld ? "common.in_world" : "common.menu")), OnlineUiTheme.MutedLabel());
-		GUILayout.Label(session.LastRttMs >= 0f ? ctx.F("network.last_rtt", $"{session.LastRttMs:F1} ms") : ctx.T("common.no_ping"), OnlineUiTheme.MutedLabel());
-		if (GUILayout.Button(ctx.T("network.ping"), OnlineUiTheme.Button(), GUILayout.Width(90f)))
-		{
-			session.RequestPing();
-		}
+		page.Muted(ctx.F("network.role", ctx.RoleName(session.Role)));
+		page.Muted(ctx.F("network.handshake", ctx.T(session.SessionActive ? "common.active" : "common.idle")));
+		page.Muted(ctx.F("network.entity_sync", ctx.T(ctx.Entities.EntitySyncActive ? "common.active" : "common.off")));
+		page.Muted(ctx.F("network.local_player", ctx.T(session.LocalInWorld ? "common.in_world" : "common.menu")));
+		page.Muted(session.LastRttMs >= 0f ? ctx.F("network.last_rtt", $"{session.LastRttMs:F1} ms") : ctx.T("common.no_ping"));
+		page.Button("network.ping", ctx.T("network.ping"), session.RequestPing, width: 90f);
 
-		GUILayout.Space(8f);
-		GUILayout.Label(ctx.T("network.peer_rtt"), OnlineUiTheme.Section());
+		page.Space();
+		page.Section(ctx.T("network.peer_rtt"));
 		foreach (var member in session.Members)
 		{
 			var name = ctx.DisplayName(member.SteamId);
 			var rtt = member.RttMs >= 0f ? $"{member.RttMs:F0} ms" : ctx.T("common.pending");
-			GUILayout.Label($"{name}: {rtt}", OnlineUiTheme.MutedLabel());
+			page.Muted($"{name}: {rtt}");
 		}
 	}
 }

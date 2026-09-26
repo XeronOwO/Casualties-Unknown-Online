@@ -86,7 +86,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnBlockSet(Vector2Int pos, ushort block) => domains.WorldEventSync.OnBlockSet(pos, block);
 
-	public void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal, float applied) => domains.BlockBreakSync.OnBlockDamaged(pos, dmg, bonusMetal, applied);
+	public void OnBlockDamaged(Vector2Int cell, float dmg, bool bonusMetal, float applied) => domains.BlockBreakSync.OnBlockDamaged(cell, dmg, bonusMetal, applied);
 
 	public void OnCustomTileBroken(WorldGeneration world, Vector2Int cell, ushort block) =>
 		domains.TileContent.TrySpawnDrops(world, cell, block);

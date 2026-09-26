@@ -115,7 +115,13 @@ internal interface IPatchBridge
 
 	void OnBlockSet(Vector2Int pos, ushort block);
 
-	void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal, float applied);
+	/// <summary>
+	/// A LOCAL <c>WorldGeneration.DamageBlock</c> roll finished: the raw damage
+	/// plus how much THIS call added to the cell's row. The CELL travels, not a
+	/// world position — the patch binds the overload that already holds it, and
+	/// the peers apply the report by cell.
+	/// </summary>
+	void OnBlockDamaged(Vector2Int cell, float dmg, bool bonusMetal, float applied);
 
 	/// <summary>
 	/// A local block break hit a custom tile index. The Game Adapter spawns the

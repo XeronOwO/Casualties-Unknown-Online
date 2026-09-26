@@ -1,4 +1,4 @@
-﻿# Carry/piggyback riding movement teleport and rider/carrier position mismatch
+# Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
 - Status: Todo
 - Priority: Critical
@@ -75,6 +75,16 @@ Still the two-client run's, and why this ticket stays open: the original repro (
 guest-on-host, the carrier moving, on the participant views) against the deployed build, the same
 with a limp rider reading `limbSeparation`, and the acceptance criteria below. Nothing in this cycle
 claims that run.
+
+## External blocker (2026-09-26)
+
+The reading that decides the note above has still not been taken, and it is the one thing this ticket
+waits for: it needs a dual-client run on the physical machine (a limp carried rider,
+`Logging.MinimumLevel=Debug`, the 1 Hz clone diagnostics read for `limbSeparation`), and the
+instrumented build has not been deployed there — deployment and dual-client runs are the release-cycle
+actions. The ticket therefore stays open in `todo/` with its mechanism question recorded rather than
+guessed at, and with its acceptance criteria unverified. Nothing in the cycle that closed the Online UI
+panel ticket claims any part of that run.
 
 ## Root-cause fix (2026-09-07)
 

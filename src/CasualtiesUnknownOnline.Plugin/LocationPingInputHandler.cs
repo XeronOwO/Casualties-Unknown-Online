@@ -33,7 +33,7 @@ internal sealed class LocationPingInputHandler(
 			return false;
 		}
 
-		if (_overlay.IsPointerOverUi(Input.mousePosition))
+		if (_overlay.IsPointerOverUi())
 		{
 			return false;
 		}

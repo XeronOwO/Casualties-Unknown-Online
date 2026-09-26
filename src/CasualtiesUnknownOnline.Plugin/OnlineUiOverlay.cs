@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Configuration;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -11,8 +11,11 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline;
 
 /// <summary>
-/// The Online UI overlay. It owns the IMGUI composition (the new CUO Online
-/// window and world nameplates/off-screen arrows).
+/// The Online UI overlay: the composition of CUO's surfaces and the frame-time rules that turn what the
+/// player does on them into calls. It owns the window, the quick panel and the player context menu as
+/// MODELS — built together into one action table every frame and pushed to the game's own controls by
+/// <see cref="OnlineUiHost"/> — and the IMGUI pass that is left (the world-space overlays: nameplates and
+/// off-screen arrows, the network HUD, the location pings, and the command console).
 /// The old top-left status/lobby/member dump is gone: the same runtime facts
 /// are now presented through the tabbed <see cref="OnlineUiWindow"/>.
 /// </summary>
@@ -102,12 +105,21 @@ internal sealed class OnlineUiOverlay
 	private readonly OnlineUiWindow _window = new();
 
 	/// <summary>
-	/// Which CUO surface the pointer is over, and which world input that forbids (S4). The two facts
-	/// about the migrated controls are the native surface's own polls — the plugin receives them as hover
-	/// flips — and the rectangles of the panels CUO still draws itself are this class's; what turns them
-	/// into an answer is the Runtime's rule, asked by both world input paths.
+	/// Which CUO surface the pointer is over, and which world input that forbids (S4). Every fact is the
+	/// native surface's own poll — the migrated controls are uGUI, so the plugin receives the pointer as
+	/// hover flips for the launcher, the window and the two panels (S5) — and what turns them into an
+	/// answer is the Runtime's rule, asked by both world input paths.
 	/// </summary>
 	private readonly OnlineUiPointerCensus _pointerCensus = new();
+
+	/// <summary>
+	/// This frame's action table (S5): every interactive control the three surfaces offer is registered
+	/// here under the id it carries, and the intent that comes back is dispatched to the registration that
+	/// produced it. It is rebuilt together with the models on every frame the frame is built — a page's
+	/// controls and a panel's actions are live facts — and the panels' ids are namespaced, so one surface's
+	/// click can never be applied to another's control.
+	/// </summary>
+	private readonly Dictionary<string, Action<OnlineUiIntent>> _actions = [];
 
 	private readonly OnlineUiPlayerContextMenu _contextMenu = new();
 
@@ -149,6 +161,12 @@ internal sealed class OnlineUiOverlay
 	/// pinging the world and a right-click there from opening the in-world menu (S2a's recorded limit).
 	/// </summary>
 	internal void SetPointerOverLauncher(bool over) => _pointerCensus.OverLauncher = over;
+
+	/// <summary>Records the pointer-over-quick-panel fact the surface reports as a hover flip (S5).</summary>
+	internal void SetPointerOverQuickPanel(bool over) => _pointerCensus.OverQuickPanel = over;
+
+	/// <summary>Records the pointer-over-context-menu fact the surface reports as a hover flip (S5).</summary>
+	internal void SetPointerOverContextMenu(bool over) => _pointerCensus.OverContextMenu = over;
 
 	internal bool IsQuickPanelVisible => _quickPanel.IsVisible;
 
@@ -205,40 +223,69 @@ internal sealed class OnlineUiOverlay
 
 	/// <summary>
 	/// True when a world middle-click should not become a location ping: a modal CUO surface is open
-	/// (the command console or the window), or the pointer is inside any CUO surface — the launcher and
-	/// the window through the surface's own polls, the quick panel and the player context menu through
-	/// their rectangles.
+	/// (the command console or the window), or the pointer is inside any CUO surface — all four of them
+	/// through the surface's own polls since S5, which is why there is no point to pass.
 	/// </summary>
-	internal bool IsPointerOverUi(Vector2 mousePosition)
+	internal bool IsPointerOverUi()
 	{
 		RefreshPointerCensus();
-		var gui = new Vector2(mousePosition.x, Screen.height - mousePosition.y);
-		return _pointerCensus.BlocksWorldPing(gui.x, gui.y);
+		return _pointerCensus.BlocksWorldPing();
 	}
 
 	/// <summary>
-	/// One path's question to the census. The IMGUI panels are read live: their rectangles are this
-	/// class's state, and a panel toggled this frame must be recognised on this frame's click.
+	/// This frame's three surfaces, built from ONE action table: the window while it is open, the quick
+	/// panel while it is shown, the in-world player menu while it is open. Null means "that surface is not
+	/// shown" for each of them. <see cref="OnlineUiHost"/> pushes the result as the surface's frame, and
+	/// the controls' clicks come back through <see cref="Apply"/>.
 	/// </summary>
-	private void RefreshPointerCensus()
+	internal OnlineUiSurfaceModels BuildSurfaces(OnlineUiContext ctx)
 	{
+		_actions.Clear();
+		return new OnlineUiSurfaceModels(
+			_window.Build(ctx, _actions),
+			_quickPanel.Build(ctx, _actions),
+			_contextMenu.Build(ctx, _actions));
+	}
+
+	/// <summary>
+	/// Runs the action the intent's control id was registered under. False means the id is not in this
+	/// frame's table — the control the player acted on is gone (the page changed, the member left, the
+	/// panel closed) — and a click on a control that no longer exists is dropped rather than guessed at.
+	/// </summary>
+	internal bool Apply(OnlineUiIntent intent)
+	{
+		if (!_actions.TryGetValue(intent.ControlId, out var action))
+		{
+			return false;
+		}
+
+		action(intent);
+		return true;
+	}
+
+	/// <summary>
+	/// The one fact that is still read here rather than polled: whether a CUO surface owns the whole
+	/// screen. The four pointer facts are pushed in by the surface's own hover flips, and a panel toggled
+	/// this frame is recognised by the click that closes it, because the toggle happens before the click
+	/// that follows it.
+	/// </summary>
+	private void RefreshPointerCensus() =>
 		_pointerCensus.ModalSurfaceOpen = IsCommandConsoleOpen || IsWindowVisible;
-		_pointerCensus.OverlayRects = CollectOverlayRects();
-	}
 
-	private bool BlocksWorldMenu(Vector2 guiPoint)
+	private bool BlocksWorldMenu()
 	{
 		RefreshPointerCensus();
-		return _pointerCensus.BlocksWorldMenu(guiPoint.x, guiPoint.y);
+		return _pointerCensus.BlocksWorldMenu();
 	}
 
 	/// <summary>
-	/// The IMGUI pass: the surfaces CUO still draws itself — the nameplates and off-screen arrows, the
-	/// network HUD, the location pings, the player context menu, the quick panel and the command console.
-	/// The modal window is NOT drawn here any more: since S2b it is the game's own controls on the native
-	/// surface, built from the model <see cref="OnlineUiHost"/> pushes.
+	/// The IMGUI pass: the surfaces CUO still draws itself — the world-space overlays (nameplates and
+	/// off-screen arrows, the network HUD, the location pings) and the command console — plus the two
+	/// gestures that belong to the world rather than to a control: the window's ESC and the in-world
+	/// right-click that opens the player menu. The modal window and the two panels are the game's own
+	/// controls on the native surface and are NOT drawn here (S2b for the window, S5 for the panels).
 	/// </summary>
-	internal void Draw(OnlineUiContext ctx, INativeInputBlocker? inputBlocker)
+	internal void Draw(OnlineUiContext ctx)
 	{
 		// ESC closes the modal Online UI. The native PlayerCamera.HandleInput
 		// pause/menu handling is short-circuited by the adapter while the modal
@@ -265,45 +312,14 @@ internal sealed class OnlineUiOverlay
 			DrawNetworkHud(ctx);
 			DrawNameplatesAndArrows(ctx, ctx.Entities);
 			LocationPingOverlay.Draw(ctx);
-			DrawPlayerContextMenu(ctx);
-			_quickPanel.Draw(ctx);
+			// The world's own gestures: the right-click that opens the player menu, and the quick panel's
+			// ESC. Both panels are controls of the surface now, so this is input only — nothing is drawn.
+			_contextMenu.HandleInput(ctx, _pointerCensus.OverContextMenu, BlocksWorldMenu);
+			_quickPanel.HandleInput();
 		}
 
 		_commandOverlay.Draw(ctx);
-
-		// Non-modal CUO surfaces (quick panel, right-click context menu) are
-		// IMGUI and invisible to UGUI; scoped blockers keep their pixels from
-		// leaking to the menu/world without blocking the rest of the screen.
-		// The command console is handled by the full modal guard, not scoped
-		// blocks.
-		inputBlocker?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectOverlayRects());
 	}
-
-	/// <summary>
-	/// The GUI-space rectangles of the surfaces CUO still draws itself — the quick panel and the player
-	/// context menu — in ONE place: the adapter's scoped raycast blockers and the plugin's pointer
-	/// census read the same list, so a click that is blocked on one path cannot leak on the other. An
-	/// open panel that is not drawn this pass is not included, because its rectangle is only current
-	/// while it is drawn.
-	/// </summary>
-	private IReadOnlyList<OnlineUiBlockRect> CollectOverlayRects()
-	{
-		var blocks = new List<OnlineUiBlockRect>(2);
-		if (_contextMenu.IsOpen)
-		{
-			blocks.Add(FromRect(_contextMenu.Bounds));
-		}
-
-		if (_quickPanel.IsVisible)
-		{
-			blocks.Add(FromRect(_quickPanel.Bounds));
-		}
-
-		return blocks;
-	}
-
-	private static OnlineUiBlockRect FromRect(Rect rect) =>
-		new(rect.x, rect.y, rect.width, rect.height);
 
 	private void UpdateDelayedStatus(OnlineUiContext ctx)
 	{
@@ -367,95 +383,6 @@ internal sealed class OnlineUiOverlay
 		{
 			_statusMessage = null;
 		}
-	}
-
-	private void DrawPlayerContextMenu(OnlineUiContext ctx)
-	{
-		HandleContextMenuInput(ctx);
-		_contextMenu.Draw(ctx);
-	}
-
-	private void HandleContextMenuInput(OnlineUiContext ctx)
-	{
-		var evt = Event.current;
-		if (evt == null || evt.type != EventType.MouseDown)
-		{
-			return;
-		}
-
-		var mouse = evt.mousePosition;
-		if (evt.button == 1)
-		{
-			// Right-clicks inside a CUO surface belong to the UI, not the world: never open,
-			// re-target or close the in-world menu from one. The launcher's and the window's
-			// rectangles are the native surface's own polls (the migrated controls are uGUI, so the
-			// plugin keeps no rectangle for them); the two IMGUI panels and the modal flag are the
-			// same rule's other facts.
-			if (BlocksWorldMenu(mouse))
-			{
-				return;
-			}
-
-			if (TryFindRemoteCandidatesAt(mouse, ctx, out var candidates))
-			{
-				_contextMenu.Open(candidates[0], candidates, mouse);
-				evt.Use();
-			}
-			else if (_contextMenu.IsOpen)
-			{
-				_contextMenu.Close();
-				evt.Use();
-			}
-
-			return;
-		}
-
-		if (evt.button == 0 && _contextMenu.IsOpen && !_contextMenu.Contains(mouse))
-		{
-			_contextMenu.Close();
-		}
-	}
-
-	private static bool TryFindRemoteCandidatesAt(Vector2 guiMouse, OnlineUiContext ctx, out IReadOnlyList<ulong> steamIds)
-	{
-		var camera = Camera.main;
-		if (camera == null)
-		{
-			steamIds = [];
-			return false;
-		}
-
-		const float radius = 48f;
-		var screenTargets = new List<RemoteScreenTarget>();
-		var remotePlayers = ctx.Entities.RemotePlayers;
-		for (var i = 0; i < remotePlayers.Count; i++)
-		{
-			var remote = remotePlayers[i];
-			if (remote.IsLocal || !ctx.Session.IsRemoteInWorld(remote.SteamId))
-			{
-				continue;
-			}
-
-			var world = new Vector3(remote.Position.X, remote.Position.Y, 0f);
-			var screen = camera.WorldToScreenPoint(world);
-			if (screen.z < 0f)
-			{
-				continue;
-			}
-
-			var gui = new Vector2(screen.x, Screen.height - screen.y);
-			screenTargets.Add(new RemoteScreenTarget(remote.SteamId, gui.x, gui.y));
-		}
-
-		var matches = RemoteTargetPicker.Find(screenTargets, guiMouse.x, guiMouse.y, radius);
-		var result = new List<ulong>(matches.Count);
-		foreach (var match in matches)
-		{
-			result.Add(match.SteamId);
-		}
-
-		steamIds = result;
-		return result.Count > 0;
 	}
 
 	private static void DrawNameplatesAndArrows(OnlineUiContext ctx, EntitySyncService entities)

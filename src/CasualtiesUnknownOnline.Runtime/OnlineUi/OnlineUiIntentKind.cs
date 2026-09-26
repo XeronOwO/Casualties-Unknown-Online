@@ -5,7 +5,7 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// semantics: a click is "this control was clicked", not "the window is now open" — the plugin decides
 /// what that means, exactly as the IMGUI controls' inline handlers did before the surfaces moved onto
 /// the game's own controls (ticket online-ui-art-and-controls-overhaul, S2a for the launcher, S2b for
-/// the window family).
+/// the window family, S5 for the quick panel and the player context menu).
 /// </summary>
 public enum OnlineUiIntentKind
 {
@@ -25,6 +25,18 @@ public enum OnlineUiIntentKind
 
 	/// <summary>The pointer left the window's rect.</summary>
 	WindowHoverLeft,
+
+	/// <summary>The pointer entered the quick panel's rect.</summary>
+	QuickPanelHoverEntered,
+
+	/// <summary>The pointer left the quick panel's rect.</summary>
+	QuickPanelHoverLeft,
+
+	/// <summary>The pointer entered the in-world player context menu's rect.</summary>
+	ContextMenuHoverEntered,
+
+	/// <summary>The pointer left the in-world player context menu's rect.</summary>
+	ContextMenuHoverLeft,
 
 	/// <summary>A button was clicked — a page control or a tab (<see cref="OnlineUiIntent.ControlId"/>).</summary>
 	ControlInvoked,

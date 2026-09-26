@@ -107,7 +107,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 	[Fact]
 	public void AnIntentForAControlTheWindowNoLongerOffersIsDropped() =>
 		Assert.True(
-			DropsIntentsForGoneControls(Plugin("OnlineUiWindow.cs"), Plugin("OnlineUiHost.cs")),
+			DropsIntentsForGoneControls(Plugin("OnlineUiOverlay.cs"), Plugin("OnlineUiHost.cs")),
 			"an intent whose id is no longer in the frame's model is dropped and logged: the control the player clicked is gone, and the click must not be applied to whatever took its place");
 
 	[Fact]
@@ -119,7 +119,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 	public static TheoryData<string, string, string, string, string> Mutations => new()
 	{
 		{ nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs), "adapter/OnlineUiControlFactory.cs", "\"Special/GameSettingBool\"", "\"Special/GameSettingNonexistent\"", "a hand-built checkbox instead of the game's row" },
-		{ nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs), "adapter/OnlineUiWindowView.cs", "ReadGameRowTemplate(root.transform, out var typography", "ReadNoTemplate(out var typography", "a frame whose art and typography are guessed" },
+		{ nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs), "adapter/OnlineUiWindowView.cs", "OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography", "OnlineUiControlFactory.ReadNoTemplate(out var typography", "a frame whose art and typography are guessed" },
 		{ nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel), "adapter/OnlineUiSurfaceHost.cs", "_window.SetVisible(frame.Window is not null);", "_window.SetVisible(true);", "a window that never closes" },
 		{ nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel), "adapter/OnlineUiSurfaceHost.cs", "_window.PollPointer(_intents);", "// poll removed", "a window whose pointer fact never reaches the plugin" },
 		{ nameof(TheWindowHangsOnTheSameCanvasAsTheLauncher), "adapter/OnlineUiSurfaceHost.cs", "_window = OnlineUiWindowView.Create(root.transform, _log, _intents.Enqueue);", "_window = null;", "a window that is never built on CUO's canvas" },
@@ -132,8 +132,8 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(TheTitleBarDragsTheWindow), "adapter/OnlineUiWindowDragHandler.cs", "_target.anchoredPosition += eventData.delta / scale;", "_target.anchoredPosition += Vector2.zero;", "a title bar that does not drag" },
 		{ nameof(ThePluginDispatchesEveryIntentKind), "plugin/OnlineUiHost.cs", "case OnlineUiIntentKind.ControlEdited:", "case OnlineUiIntentKind.ControlInvoked:", "an intent kind the plugin silently drops" },
 		{ nameof(AControlTakesTheGamesRowSizeWhenTheModelGivesNone), "adapter/OnlineUiControlFactory.cs", "layout.preferredHeight = authoredHeight;", "layout.preferredHeight = -1f;", "a control whose prefab size is never seeded into the layout" },
-		{ nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped), "plugin/OnlineUiWindow.cs", "if (!_actions.TryGetValue(intent.ControlId, out var action))", "if (false)", "an intent applied without checking that its control still exists" },
-		{ nameof(TheCloseControlIsTheShellsAndItsMeaningIsThePlugins), "plugin/OnlineUiWindow.cs", "_actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;", "_actions[\"window.dismiss\"] = _ => _state.Visible = false;", "a close control whose two halves disagree about its id" },
+		{ nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped), "plugin/OnlineUiOverlay.cs", "if (!_actions.TryGetValue(intent.ControlId, out var action))", "if (false)", "an intent applied without checking that its control still exists" },
+		{ nameof(TheCloseControlIsTheShellsAndItsMeaningIsThePlugins), "plugin/OnlineUiWindow.cs", "actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;", "actions[\"window.dismiss\"] = _ => _state.Visible = false;", "a close control whose two halves disagree about its id" },
 	};
 
 	/// <summary>
@@ -157,7 +157,13 @@ public sealed class OnlineUiWindowSurfacePinTests
 
 	private static Func<string, bool> Matcher(string pin) => pin switch
 	{
-		nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs) => broken => UsesTheGamesRowPrefabs(broken, Adapter("OnlineUiWindowView.cs")),
+		// Two mutation rows point at this pin — one for the factory, one for the window view — while the
+		// matcher has two slots, so the broken source is routed by the type it declares: feeding a mutated
+		// window view into the factory slot would make the row pass on the wrong clause instead of the one it
+		// claims to control (the hole the S5 review found, kept closed here).
+		nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs) => broken => broken.Contains("internal static class OnlineUiControlFactory", StringComparison.Ordinal)
+			? UsesTheGamesRowPrefabs(broken, Adapter("OnlineUiWindowView.cs"))
+			: UsesTheGamesRowPrefabs(Adapter("OnlineUiControlFactory.cs"), broken),
 		nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel) => TheFrameDrivesVisibility,
 		nameof(TheWindowHangsOnTheSameCanvasAsTheLauncher) => CreatedUnderCuosCanvas,
 		nameof(TheRowsAreWrappedByTheRuntimesOwnRule) => WrappedByTheRuntimeRule,
@@ -174,7 +180,8 @@ public sealed class OnlineUiWindowSurfacePinTests
 		_ => throw new InvalidOperationException($"no matcher is registered for the pin `{pin}`"),
 	};
 
-	/// <summary>The game's own row prefabs, one per kind, and the frame's art read from the same family.</summary>
+	/// <summary>The game's own row prefabs, one per kind, and the frame's art read from the same family — the
+	/// reader moved into the factory in S5, because a panel reads the same template for its own frame.</summary>
 	private static bool UsesTheGamesRowPrefabs(string controlSource, string windowSource)
 	{
 		var flat = Flatten(controlSource);
@@ -184,7 +191,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 			&& flat.Contains("OnlineUiElementKind.Dropdown => \"Special/GameSettingDropdown\",", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiElementKind.TextField => \"Special/GameSettingInt\",", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiElementKind.Slider => \"Special/GameSettingFloat\",", StringComparison.Ordinal)
-			&& Flatten(windowSource).Contains("ReadGameRowTemplate(root.transform, out var typography", StringComparison.Ordinal);
+			&& Flatten(windowSource).Contains("OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography", StringComparison.Ordinal);
 	}
 
 	/// <summary>The frame is the only thing that opens and closes the window, and its rect is polled even
@@ -311,13 +318,15 @@ public sealed class OnlineUiWindowSurfacePinTests
 			&& flat.Contains("layout.preferredWidth = authoredWidth;", StringComparison.Ordinal);
 	}
 
-	private static bool DropsIntentsForGoneControls(string windowSource, string hostSource)
+	private static bool DropsIntentsForGoneControls(string overlaySource, string hostSource)
 	{
-		var flat = Flatten(windowSource);
+		// S5 moved the action table up to the overlay, because the two panels register in it as well: the
+		// window's "is this control still offered" check is the table's own lookup now.
+		var flat = Flatten(overlaySource);
 
 		return flat.Contains("if (!_actions.TryGetValue(intent.ControlId, out var action))", StringComparison.Ordinal)
 			&& flat.Contains("return false;", StringComparison.Ordinal)
-			&& Flatten(hostSource).Contains("if (!_onlineUi.Window.Apply(intent))", StringComparison.Ordinal);
+			&& Flatten(hostSource).Contains("if (!_onlineUi.Apply(intent))", StringComparison.Ordinal);
 	}
 
 	private static bool ClosesThroughTheSharedId(string windowSource, string windowViewSource)
@@ -325,7 +334,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		var flat = Flatten(windowSource);
 		var view = Flatten(windowViewSource);
 
-		return flat.Contains("_actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;", StringComparison.Ordinal)
+		return flat.Contains("actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;", StringComparison.Ordinal)
 			&& view.Contains("OnlineUiElementModel.Button(OnlineUiControlIds.WindowClose, CloseCaption, CloseWidth)", StringComparison.Ordinal);
 	}
 

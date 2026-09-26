@@ -328,9 +328,9 @@ internal sealed class OnlineUiHost
 	/// <summary>
 	/// Drains what the player did on the native surface and turns it into the same calls the IMGUI
 	/// controls made before they moved onto the game's own controls: a launcher click toggles the window,
-	/// a hover flips the idle fade's only other input and the pointer census's launcher fact, the
-	/// window's own close control closes it, and every page control's interaction lands on the action
-	/// registered under its id.
+	/// a hover flips the idle fade's only other input or the pointer census's fact for the surface it
+	/// belongs to, the window's own close control closes it, and every page or panel control's interaction
+	/// lands on the action registered under its id.
 	/// </summary>
 	private void DrainSurfaceIntents()
 	{
@@ -362,6 +362,20 @@ internal sealed class OnlineUiHost
 				case OnlineUiIntentKind.WindowHoverLeft:
 					_onlineUi.SetPointerOverWindow(false);
 					break;
+				// The two panels (S5) report their own pointer flips the same way — one fact each, and both
+				// world input paths read them off the one census.
+				case OnlineUiIntentKind.QuickPanelHoverEntered:
+					_onlineUi.SetPointerOverQuickPanel(true);
+					break;
+				case OnlineUiIntentKind.QuickPanelHoverLeft:
+					_onlineUi.SetPointerOverQuickPanel(false);
+					break;
+				case OnlineUiIntentKind.ContextMenuHoverEntered:
+					_onlineUi.SetPointerOverContextMenu(true);
+					break;
+				case OnlineUiIntentKind.ContextMenuHoverLeft:
+					_onlineUi.SetPointerOverContextMenu(false);
+					break;
 				case OnlineUiIntentKind.ControlInvoked:
 				case OnlineUiIntentKind.ControlToggled:
 				case OnlineUiIntentKind.ControlSelected:
@@ -374,24 +388,29 @@ internal sealed class OnlineUiHost
 	}
 
 	/// <summary>
-	/// Runs the action the intent's control id was registered under. An id the current model does not
-	/// carry means the control is gone (the page changed, the member left between the click and this
-	/// frame): the intent is dropped and logged rather than applied to whatever took its place.
+	/// Runs the action the intent's control id was registered under. An id the current frame's table does
+	/// not carry means the control is gone (the page changed, the member left between the click and this
+	/// frame, the panel closed): the intent is dropped and logged rather than applied to whatever took its
+	/// place. Information, not Debug: a swallowed click is the player's, and the plugin's own default log
+	/// level is Information, so a line nobody can see would not make the drop observable (the same reason
+	/// the console's launcher refusal logs at Information).
 	/// </summary>
 	private void ApplyControlIntent(OnlineUiIntent intent)
 	{
-		if (!_onlineUi.Window.Apply(intent))
+		if (!_onlineUi.Apply(intent))
 		{
-			_log.LogDebug(
-				"Online UI: an intent for the control `{Control}` arrived after the window stopped offering it — dropped.",
+			_log.LogInformation(
+				"Online UI: an intent for the control `{Control}` arrived after its surface stopped offering it — dropped.",
 				intent.ControlId);
 		}
 	}
 
 	/// <summary>
 	/// The surface's frame: the launcher's caption and the opacity the idle rule derives from the pointer
-	/// fact it reported, plus the window's model while the window is open. The caption and the model are
-	/// rebuilt only when their inputs change — the launcher holds one caption for seconds at a time, and
+	/// fact it reported, plus every surface that is open this frame — the window, and since S5 the quick
+	/// panel and the in-world player context menu. All three models are built together from ONE action
+	/// table (so an intent always meets the registration that produced its control), and the caption is
+	/// rebuilt only when its inputs change — the launcher holds one caption for seconds at a time, and
 	/// concatenating it on every update would allocate for nothing (the same discipline the IMGUI
 	/// launcher's cached label had).
 	/// </summary>
@@ -412,7 +431,13 @@ internal sealed class OnlineUiHost
 			label = _launcherLabel = OnlineUiLauncherText.Label(caption, open);
 		}
 
-		_surface.Push(new OnlineUiFrame(label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered), _onlineUi.Window.Build(ctx)));
+		var surfaces = _onlineUi.BuildSurfaces(ctx);
+		_surface.Push(new OnlineUiFrame(
+			label,
+			_launcherFade.Evaluate(_time.NowMs, _launcherHovered),
+			surfaces.Window,
+			surfaces.QuickPanel,
+			surfaces.ContextMenu));
 	}
 
 	/// <summary>
@@ -427,7 +452,7 @@ internal sealed class OnlineUiHost
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.Draw(_context ??= BuildContext(), _inputBlocker);
+		_onlineUi.Draw(_context ??= BuildContext());
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

@@ -68,7 +68,7 @@ consumer calls — the exact cost this ticket exists to remove).
 | `IStartGateState` | `IsWaitingForReady`, `WaitingText` | `Plugin.OnGUI` (gate) and the start-gate overlay |
 | `ILocalHealItemQuery` | `HasLocalHealItem`, `GetLocalHealItems` | `OnlineUiActions` |
 | `ITraderRecruitRequest` | `TryRequestTraderRecruit` | `OnlineUiActions` |
-| `INativeInputBlocker` | `SetOnlineUiModal`, `SetOnlineUiScopedBlocks`, `SetOnlineUiEscapeSurfaceVisible` | `Plugin.Update` (modal + ESC surface), `OnlineUiOverlay.Draw` (scoped blocks) |
+| `INativeInputBlocker` | `SetOnlineUiModal`, `SetOnlineUiEscapeSurfaceVisible` | `Plugin.Update` (modal + ESC surface). Its third member, `SetOnlineUiScopedBlocks`, retired on 2026-09-26 with the two IMGUI panels that were its only consumers (ticket `in-progress/online-ui-art-and-controls-overhaul.md`, S5), so the port is 14 ports / 18 members |
 | `IRemoteInventoryPresentation` | `OpenRemoteBackpack` | `OnlineUiActions.OpenRemoteBackpackFromUi` |
 | `IRemoteMedicalPresentation` | `OpenRemoteMedical` | `OnlineUiActions.OpenRemoteMedicalFromUi` |
 | `IPlayerAnchorQuery` | `TryGetRemoteHeadPosition` | `OnlineUiOverlay`'s nameplate / off-screen-arrow pass |

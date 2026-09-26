@@ -40,6 +40,12 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 	/// <summary>The name CUO's canvas carries in the scene, so a log line can be tied to an object.</summary>
 	internal const string RootName = "CUO Online UI Surface";
 
+	/// <summary>The quick panel's object name in the scene.</summary>
+	internal const string QuickPanelName = "CUO Online UI Quick Panel";
+
+	/// <summary>The in-world player context menu's object name in the scene.</summary>
+	internal const string ContextMenuName = "CUO Online UI Player Menu";
+
 	/// <summary>Where CUO's canvas sorts: above the game's own UI.</summary>
 	internal const int SortingOrder = 30_000;
 
@@ -52,6 +58,8 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 	private GameObject? _root;
 	private OnlineUiLauncherView? _launcher;
 	private OnlineUiWindowView? _window;
+	private OnlineUiPanelView? _quickPanel;
+	private OnlineUiPanelView? _contextMenu;
 	private bool _reportedMissingCanvas;
 
 	internal OnlineUiSurfaceHost(ILogger log)
@@ -87,6 +95,32 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 		}
 
 		_window.PollPointer(_intents);
+
+		// The two panels ride the same rule (S5): a null model is "that panel is not shown", and each one
+		// polls its own rect because each is its own fact in the pointer census.
+		ApplyPanel(_quickPanel, frame.QuickPanel);
+		_quickPanel?.PollPointer(_intents);
+		ApplyPanel(_contextMenu, frame.ContextMenu);
+		_contextMenu?.PollPointer(_intents);
+	}
+
+	/// <summary>
+	/// Shows or hides one panel and applies its model. A hidden panel keeps its controls (reopening one
+	/// must not rebuild them), and its pointer is still polled above, because a panel that closes under
+	/// the pointer has to report the pointer as out.
+	/// </summary>
+	private static void ApplyPanel(OnlineUiPanelView? panel, OnlineUiPanelModel? model)
+	{
+		if (panel is null)
+		{
+			return;
+		}
+
+		panel.SetVisible(model is not null);
+		if (model is not null)
+		{
+			panel.Apply(model);
+		}
 	}
 
 	/// <summary>Takes the oldest queued intent (a click, a hover flip), oldest first.</summary>
@@ -142,6 +176,18 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 		canvas.overrideSorting = true;
 		canvas.sortingOrder = SortingOrder;
 		root.AddComponent<GraphicRaycaster>();
+
+		// CUO's canvas covers the GAME's canvas exactly. A nested canvas is not resized by Unity, so
+		// without this its rect is whatever a fresh RectTransform starts with, and every anchored control —
+		// the launcher's top-right corner, the window's centre, the docked quick panel — would be placed
+		// against that instead of against the screen the player is looking at.
+		var canvasRect = (RectTransform)root.transform;
+		canvasRect.anchorMin = Vector2.zero;
+		canvasRect.anchorMax = Vector2.one;
+		canvasRect.pivot = new Vector2(0.5f, 0.5f);
+		canvasRect.offsetMin = Vector2.zero;
+		canvasRect.offsetMax = Vector2.zero;
+
 		EnsureEventSystem(root.transform);
 
 		var launcher = OnlineUiLauncherView.TryCreate(root.transform, OnLauncherClicked);
@@ -157,6 +203,22 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 		// The window family rides on the same surface (S2b): one shell built once with the launcher, shown
 		// and hidden by the frames that carry a window model.
 		_window = OnlineUiWindowView.Create(root.transform, _log, _intents.Enqueue);
+		// The last two IMGUI panels became panels of this surface (S5): the quick panel docked in the
+		// canvas's bottom-right corner, and the in-world player context menu where the player clicked.
+		_quickPanel = OnlineUiPanelView.Create(
+			QuickPanelName,
+			root.transform,
+			_log,
+			_intents.Enqueue,
+			OnlineUiIntentKind.QuickPanelHoverEntered,
+			OnlineUiIntentKind.QuickPanelHoverLeft);
+		_contextMenu = OnlineUiPanelView.Create(
+			ContextMenuName,
+			root.transform,
+			_log,
+			_intents.Enqueue,
+			OnlineUiIntentKind.ContextMenuHoverEntered,
+			OnlineUiIntentKind.ContextMenuHoverLeft);
 		if (!launcher.UsesGamePrefab)
 		{
 			_log.LogWarning(
@@ -233,11 +295,15 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 			// and every in-world right-click until the pointer happens to leave the launcher again.
 			_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.LauncherHoverLeft));
 			_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.WindowHoverLeft));
+			_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.QuickPanelHoverLeft));
+			_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.ContextMenuHoverLeft));
 			Object.Destroy(_root);
 		}
 
 		_root = null;
 		_launcher = null;
 		_window = null;
+		_quickPanel = null;
+		_contextMenu = null;
 	}
 }

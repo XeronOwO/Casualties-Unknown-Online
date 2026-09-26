@@ -6,29 +6,44 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline;
 
 /// <summary>
-/// The Online UI window's page builder: what a page drawer writes to instead of drawing (ticket
-/// online-ui-art-and-controls-overhaul, S2b). A drawer appends rows and controls, and every interactive
-/// control registers the action its id carries — the model goes to the game's own surface as a value,
-/// and the intent that comes back is dispatched to the action registered under the same id.
+/// The Online UI's display-list builder: what a page drawer — and, since S5, a panel — writes to instead
+/// of drawing (ticket online-ui-art-and-controls-overhaul, S2b for the window, S5 for the two panels). A
+/// builder appends rows and controls, and every interactive control registers the action its id carries —
+/// the model goes to the game's own surface as a value, and the intent that comes back is dispatched to
+/// the action registered under the same id.
 ///
 /// <para>
 /// This is the one place that knows the pairing, and it exists because both halves live in the plugin:
 /// the <see cref="OnlineUiContext"/> the drawers already read, and the action delegates the previous
-/// IMGUI controls called inline. Ids are rebuilt together with the model on every frame the window is
-/// open, so an intent from the frame before always finds the action that produced its control; an id
-/// that is gone by the time the intent arrives is dropped by the window, never guessed at.
+/// IMGUI controls called inline. Ids are rebuilt together with the model on every frame a surface is up,
+/// so an intent from the frame before always finds the action that produced its control; an id that is
+/// gone by the time the intent arrives is dropped by <see cref="OnlineUiOverlay.Apply"/>, never guessed
+/// at.
+/// </para>
+///
+/// <para>
+/// The optional <paramref name="idPrefix"/> namespaces one surface's ids. The window and the two panels
+/// share one action table, and a member's interaction buttons carry the same ids wherever they are
+/// rendered (the member card is one card, built by one method) — the prefix is what keeps "the quick
+/// panel's Carry on this member" and "the Players page's Carry on this member" two separate intents
+/// instead of one registration overwriting the other.
 /// </para>
 /// </summary>
 internal sealed class OnlineUiPageBuilder
 {
 	private readonly Dictionary<string, Action<OnlineUiIntent>> _actions;
+	private readonly string _idPrefix;
 	private readonly List<OnlineUiRowModel> _rows = [];
 	private readonly List<OnlineUiElementModel> _tabs = [];
 
-	internal OnlineUiPageBuilder(OnlineUiContext context, Dictionary<string, Action<OnlineUiIntent>> actions)
+	internal OnlineUiPageBuilder(
+		OnlineUiContext context,
+		Dictionary<string, Action<OnlineUiIntent>> actions,
+		string idPrefix = "")
 	{
 		Context = context;
 		_actions = actions;
+		_idPrefix = idPrefix;
 	}
 
 	/// <summary>The runtime facts and action delegates the drawers read.</summary>
@@ -56,8 +71,9 @@ internal sealed class OnlineUiPageBuilder
 	/// <summary>Adds one tab to the window's tab row; the click selects <paramref name="select"/>'s page.</summary>
 	internal void Tab(string id, string label, bool selected, Action select)
 	{
-		_actions[id] = _ => select();
-		_tabs.Add(OnlineUiElementModel.Button(id, label, width: TabWidth, selected: selected));
+		var key = Key(id);
+		_actions[key] = _ => select();
+		_tabs.Add(OnlineUiElementModel.Button(key, label, width: TabWidth, selected: selected));
 	}
 
 	/// <summary>One row holding <paramref name="elements"/>, in order.</summary>
@@ -85,8 +101,9 @@ internal sealed class OnlineUiPageBuilder
 	/// <summary>A push button; <paramref name="clicked"/> runs when its id comes back as an intent.</summary>
 	internal void Button(string id, string text, Action clicked, float width = 0f, bool selected = false)
 	{
-		_actions[id] = _ => clicked();
-		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Button(id, text, width, selected)]));
+		var key = Key(id);
+		_actions[key] = _ => clicked();
+		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Button(key, text, width, selected)]));
 	}
 
 	/// <summary>A push button appended to <paramref name="elements"/>, for a row built by the caller.
@@ -99,8 +116,9 @@ internal sealed class OnlineUiPageBuilder
 		float width = 0f,
 		bool selected = false)
 	{
-		_actions[id] = _ => clicked();
-		return OnlineUiElementModel.Button(id, text, width, selected);
+		var key = Key(id);
+		_actions[key] = _ => clicked();
+		return OnlineUiElementModel.Button(key, text, width, selected);
 	}
 
 	/// <summary>A label appended to <paramref name="elements"/>, for a row built by the caller.</summary>
@@ -110,8 +128,9 @@ internal sealed class OnlineUiPageBuilder
 	/// <summary>A text field appended to <paramref name="elements"/>, for a row built by the caller.</summary>
 	internal OnlineUiElementModel TextFieldElement(string id, string label, string value, int maxLength, Action<string> edited, float width = 0f)
 	{
-		_actions[id] = intent => edited(intent.Text);
-		return OnlineUiElementModel.TextField(id, label, value, width, maxLength);
+		var key = Key(id);
+		_actions[key] = intent => edited(intent.Text);
+		return OnlineUiElementModel.TextField(key, label, value, width, maxLength);
 	}
 
 	/// <summary>
@@ -126,19 +145,21 @@ internal sealed class OnlineUiPageBuilder
 		Action? clicked = null,
 		float width = 0f)
 	{
-		if (clicked is not null && id.Length > 0)
+		var key = Key(id);
+		if (clicked is not null && key.Length > 0)
 		{
-			_actions[id] = _ => clicked();
+			_actions[key] = _ => clicked();
 		}
 
-		return OnlineUiElementModel.ColorSwatch(id, color.ToRgba(), width);
+		return OnlineUiElementModel.ColorSwatch(key, color.ToRgba(), width);
 	}
 
 	/// <summary>A checkbox with its caption; <paramref name="toggled"/> gets the value it now holds.</summary>
 	internal void Toggle(string id, string text, bool value, Action<bool> toggled)
 	{
-		_actions[id] = intent => toggled(intent.Flag);
-		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Toggle(id, text, value)]));
+		var key = Key(id);
+		_actions[key] = intent => toggled(intent.Flag);
+		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Toggle(key, text, value)]));
 	}
 
 	/// <summary>A row of label plus dropdown; <paramref name="selected"/> gets the chosen option's index.</summary>
@@ -150,8 +171,9 @@ internal sealed class OnlineUiPageBuilder
 		Action<int> selected,
 		float width = 0f)
 	{
-		_actions[id] = intent => selected(intent.Index);
-		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Dropdown(id, label, options, optionIndex, width)]));
+		var key = Key(id);
+		_actions[key] = intent => selected(intent.Index);
+		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Dropdown(key, label, options, optionIndex, width)]));
 	}
 
 	/// <summary>A row of label plus slider; <paramref name="changed"/> gets the value it now holds.</summary>
@@ -165,7 +187,15 @@ internal sealed class OnlineUiPageBuilder
 		Action<float> changed,
 		float width = 0f)
 	{
-		_actions[id] = intent => changed(intent.Number);
-		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Slider(id, label, value, minimum, maximum, valueText, width)]));
+		var key = Key(id);
+		_actions[key] = intent => changed(intent.Number);
+		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Slider(key, label, value, minimum, maximum, valueText, width)]));
 	}
+
+	/// <summary>
+	/// One control's id as this builder's surface carries it: the caller's id, namespaced. An EMPTY id stays
+	/// empty — the model's "this element is no control at all" (the colour picker's preview block) — because
+	/// prefixing it would turn nothing into a control the surface reports.
+	/// </summary>
+	private string Key(string id) => id.Length == 0 ? "" : _idPrefix + id;
 }

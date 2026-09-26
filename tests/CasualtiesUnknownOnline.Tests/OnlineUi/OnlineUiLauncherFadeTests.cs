@@ -17,56 +17,51 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// clock, its answer handed to the surface) and the Unity half is the surface itself (the alpha landing
 /// on the launcher's CanvasGroup) — neither is visible from this file any more.
 ///
-/// What stays here besides the matrix is the IMGUI theme's own contract, which neither S2a nor S2b ends:
-/// the surfaces the theme still draws must keep drawing blended frames, and its draw census is a CEILING,
-/// so a new unblended draw path — or a launcher quietly regrown in IMGUI — cannot appear unnoticed.
+/// What stays here besides the matrix is the IMGUI theme's own contract, which S5 reduced to its last
+/// surface: every themed surface still drawn in IMGUI must draw through the blended frame — the command
+/// console overlay is the only one left, because the quick panel and the player context menu are controls
+/// of the game's own canvas now — and the theme's draw census is a CEILING of exactly one rectangle, so a
+/// second IMGUI panel (or a launcher quietly regrown in IMGUI) cannot appear unnoticed.
 /// </summary>
 public sealed class OnlineUiLauncherFadeTests
 {
 	/// <summary>
-	/// Every surface that still draws through the IMGUI theme, and the draw it must make. Three of the
-	/// five rows the panel-blending ticket enumerated are left: S2a moved the launcher onto the game's own
-	/// control, and S2b moved the modal window family with it, so the quick panel, the context menu and
-	/// the console overlay are the remaining ones. A surface that hand-rolls an unblended rectangle of its
-	/// own, or a new surface that appears without joining this census, is the same defect one level up.
+	/// Every surface that still draws through the IMGUI theme, and the draw it must make. One row is left:
+	/// S2a moved the launcher onto the game's own control, S2b the modal window family, and S5 the quick
+	/// panel and the player context menu — so the command console overlay, a developer surface with a text
+	/// input, is the only themed IMGUI draw there is. A surface that hand-rolls an unblended rectangle of
+	/// its own, or a new surface that appears without joining this census, is the same defect one level up.
 	/// </summary>
 	[Fact]
 	public void EveryRemainingThemedSurface_DrawsThroughTheBlendedFrame()
 	{
-		var surfaces = new (string File, string Call)[]
-		{
-			("OnlineUiQuickPanel.cs", "OnlineUiTheme.DrawBackground(rect);"),
-			("OnlineUiPlayerContextMenu.cs", "OnlineUiTheme.DrawBackground(rect);"),
-			("CommandConsoleOverlay.cs", "OnlineUiTheme.DrawOverlayBackground(rect);"),
-		};
+		const string overlay = "CommandConsoleOverlay.cs";
+		const string call = "OnlineUiTheme.DrawOverlayBackground(rect);";
 
-		foreach (var (file, call) in surfaces)
-		{
-			Assert.True(
-				ReadSource(file).Contains(call, StringComparison.Ordinal),
-				$"{file} no longer draws its frame through `{call}` — a themed surface that stops using the blended frame is the defect this census exists for");
-		}
+		Assert.True(
+			ReadSource(overlay).Contains(call, StringComparison.Ordinal),
+			$"{overlay} no longer draws its frame through `{call}` — a themed surface that stops using the blended frame is the defect this census exists for");
 
 		// The overlay is drawn from FOUR methods (the history panel, the closed-console notifications,
 		// the suggestion list and the tooltip), so the census counts them: losing one of the four would
 		// leave the representative row above intact.
-		Assert.Equal(4, CountOf(ReadSource("CommandConsoleOverlay.cs"), "OnlineUiTheme.DrawOverlayBackground(rect);"));
+		Assert.Equal(4, CountOf(ReadSource(overlay), call));
 
 		// The flag's spelling, not one spelling of it: `false` with any spacing is the defect.
 		Assert.DoesNotMatch(@"StretchToFill,\s*false", ReadThemeSource());
 	}
 
 	/// <summary>
-	/// The theme's own half: every frame it still draws is blended, and its draw census is a ceiling. The
-	/// three mutation cases below all assert the same helper is FALSE on a broken theme, so this positive
-	/// case is what keeps them from passing on a theme that lost the frames altogether.
+	/// The theme's own half: the ONE rectangle it still paints is the console overlay's, and it is blended.
+	/// The two mutation cases below both assert the same helper is FALSE on a broken theme, so this positive
+	/// case is what keeps them from passing on a theme that lost the draw altogether.
 	/// </summary>
 	[Fact]
-	public void TheThemeKeepsEveryRemainingFrameBlended()
+	public void TheThemeKeepsItsLastFrameBlended()
 	{
 		Assert.True(
-			PinsTheBlendedFrame(ReadThemeSource()),
-			"the IMGUI surfaces that are still themed must keep drawing blended frames — the palette's alphas are dead on a draw that does not ask for blending");
+			PinsTheBlendedOverlay(ReadThemeSource()),
+			"the one surface still drawn in IMGUI must keep drawing a blended frame — the palette's alpha is dead on a draw that does not ask for blending");
 	}
 
 	/// <summary>The overlay half of the same fact: the console's background is drawn by its own member,
@@ -82,39 +77,22 @@ public sealed class OnlineUiLauncherFadeTests
 		Assert.True(
 			theme != broken,
 			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
-		Assert.False(PinsTheBlendedFrame(broken));
+		Assert.False(PinsTheBlendedOverlay(broken));
 	}
 
-	/// <summary>A frame draw that stops asking for blending leaves the palette's alphas with nothing to
-	/// apply them, while every call site above still reads correctly.</summary>
+	/// <summary>The census is a ceiling as well as a count: a second rectangle painted by this theme means a
+	/// surface that should have moved onto the game's own controls did not (the panels did, in S5).</summary>
 	[Fact]
-	public void TheThemePinRejectsAHardCodedBlendFlag()
+	public void TheThemePinRejectsASecondRectangle()
 	{
 		var theme = ReadThemeSource();
-		var broken = theme.Replace(
-			"ScaleMode.StretchToFill, true, 0f, panel",
-			"ScaleMode.StretchToFill, false, 0f, panel");
+		const string call = "GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, OverlayPanel, 0f, 0f);";
+		var broken = theme.Replace(call, call + "\n\t\t" + call);
 
 		Assert.True(
 			theme != broken,
 			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
-		Assert.False(PinsTheBlendedFrame(broken));
-	}
-
-	/// <summary>The shared overload must keep handing BOTH palette colours to the frame draw: a frame
-	/// drawn with the panel colour twice loses the border and still contains the call.</summary>
-	[Fact]
-	public void TheThemePinRejectsAFrameThatLosesItsBorder()
-	{
-		var theme = ReadThemeSource();
-		var broken = theme.Replace(
-			"DrawFrame(rect, Panel, Border)",
-			"DrawFrame(rect, Panel, Panel)");
-
-		Assert.True(
-			theme != broken,
-			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
-		Assert.False(PinsTheBlendedFrame(broken));
+		Assert.False(PinsTheBlendedOverlay(broken));
 	}
 
 	[Fact]
@@ -259,28 +237,22 @@ public sealed class OnlineUiLauncherFadeTests
 	}
 
 	/// <summary>
-	/// The theme half: the shared panel overload must hand the theme's own colours to the shared frame
-	/// draw, and that draw must ASK FOR BLENDING — the palette's alphas (Panel 0.96, Border 0.9,
-	/// OverlayPanel 0.58) are dead on a draw that does not, because the explicit-colour
-	/// <c>DrawTexture</c> overload hands the flag to the native draw verbatim. The console overlay is the
-	/// same fact one member over. The draw counts are a CEILING as well as a census: the five frame draws
-	/// plus the overlay's own are every rectangle this theme paints, so a sixth draw (the launcher
-	/// regrown in IMGUI, under any name) cannot appear unnoticed.
+	/// The theme half: the ONE rectangle this theme still paints — the console overlay's background — must
+	/// hand its own palette colour to the draw and ASK FOR BLENDING, because the palette's alpha
+	/// (OverlayPanel 0.58) is dead on a draw that does not: the explicit-colour <c>DrawTexture</c> overload
+	/// hands the flag to the native draw verbatim. The draw count is a CEILING as well as a census: one is
+	/// every rectangle this theme paints, so a second draw (a panel or a launcher regrown in IMGUI, under
+	/// any name) cannot appear unnoticed.
 	/// </summary>
-	private static bool PinsTheBlendedFrame(string themeSource)
+	private static bool PinsTheBlendedOverlay(string themeSource)
 	{
-		var sharedOverload = Flatten(ExtractMember(themeSource, "internal static void DrawBackground(Rect rect)"));
-		var frame = Flatten(ExtractMember(themeSource, "private static void DrawFrame("));
 		var overlay = Flatten(ExtractMember(themeSource, "internal static void DrawOverlayBackground("));
+		var theme = Flatten(themeSource);
 
-		return sharedOverload.Contains("DrawFrame(rect, Panel, Border)", StringComparison.Ordinal)
-			&& CountOf(frame, "ScaleMode.StretchToFill, true, 0f, panel") == 1
-			&& CountOf(frame, "ScaleMode.StretchToFill, true, 0f, border") == 4
-			&& !frame.Contains("StretchToFill, false,", StringComparison.Ordinal)
-			&& overlay.Contains("ScaleMode.StretchToFill, true, 0f, OverlayPanel", StringComparison.Ordinal)
+		return overlay.Contains("ScaleMode.StretchToFill, true, 0f, OverlayPanel", StringComparison.Ordinal)
 			&& !overlay.Contains("StretchToFill, false,", StringComparison.Ordinal)
-			&& CountOf(frame, "GUI.DrawTexture(") == 5
-			&& CountOf(Flatten(themeSource), "GUI.DrawTexture(") == 6;
+			&& CountOf(theme, "GUI.DrawTexture(") == 1
+			&& !theme.Contains("DrawFrame(", StringComparison.Ordinal);
 	}
 
 	private static void AssertAlpha(float expected, float actual) =>

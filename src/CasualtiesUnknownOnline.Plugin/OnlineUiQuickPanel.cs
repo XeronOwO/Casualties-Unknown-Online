@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
@@ -13,27 +14,42 @@ namespace CasualtiesUnknownOnline;
 /// (carry/piggyback/drop/heal/use/push/recruit/take). The panel never opens
 /// the full Online window; it can be toggled from a configurable session
 /// hotkey.
+///
+/// <para>
+/// Since S5 it draws nothing: it builds a <see cref="OnlineUiPanelModel"/> for the game's own controls on
+/// CUO's surface (docked in the canvas's bottom-right corner, which is the rect the IMGUI panel occupied),
+/// and the click that comes back is dispatched to the action registered under the id the control carried.
+/// The one gesture that stays here is ESC, because the frame's keys are read by the IMGUI pass the console
+/// still uses — the panel owns no keys of its own.
+/// </para>
 /// </summary>
 internal sealed class OnlineUiQuickPanel
 {
-	private const float Width = 340f;
-	private const float Height = 420f;
-	private const float CloseButtonSize = 24f;
-	private const float TargetButtonHeight = 24f;
+	/// <summary>The panel's width in the surface's canvas units — the IMGUI panel's own rect.</summary>
+	internal const float Width = 340f;
+
+	/// <summary>The width one target button asks for; the surface wraps the row by the Runtime's rule when
+	/// the candidates do not fit one line.</summary>
+	private const float TargetButtonWidth = 96f;
+
+	/// <summary>Every id this panel registers is namespaced, so a control of the panel and a control of the
+	/// window (or of the context menu) can never be the same intent.</summary>
+	private const string IdPrefix = "quick.";
 
 	private bool _visible;
 	private ulong? _target;
-	private Rect _rect;
 
 	internal bool IsVisible => _visible;
-
-	internal Rect Bounds => _rect;
 
 	internal void Toggle() => _visible = !_visible;
 
 	internal void Close() => _visible = false;
 
-	internal void Draw(OnlineUiContext ctx)
+	/// <summary>
+	/// ESC closes the panel. It is read in the IMGUI pass, not by the panel's controls, and only while the
+	/// command console is closed — the console is the other surface with a claim on the key.
+	/// </summary>
+	internal void HandleInput()
 	{
 		if (!_visible)
 		{
@@ -46,52 +62,47 @@ internal sealed class OnlineUiQuickPanel
 			Plugin.Logger.LogInfo("Quick panel ESC consumed; closing panel.");
 			Close();
 			evt.Use();
-			return;
 		}
+	}
+
+	/// <summary>
+	/// The panel's model for this frame, or null while it is hidden. The rows are the same ones the Players
+	/// page renders — the panel's single target's member card, built by
+	/// <see cref="OnlineUiMemberListDrawer.Build"/> — so the eligibility rules are answered once for both
+	/// surfaces, and the target selector plus the local "get down" row are the panel's own.
+	/// </summary>
+	internal OnlineUiPanelModel? Build(OnlineUiContext ctx, Dictionary<string, Action<OnlineUiIntent>> actions)
+	{
+		if (!_visible)
+		{
+			return null;
+		}
+
+		var page = new OnlineUiPageBuilder(ctx, actions, IdPrefix);
+		actions[OnlineUiControlIds.QuickPanelClose] = _ => Close();
 
 		var rows = OnlineUiMemberListDrawer.BuildRows(ctx);
 		var candidates = BuildCandidates(ctx, rows);
 		var local = ctx.Entities.LocalPlayer.Position;
 		_target = QuickPanelTargetPicker.Resolve(_target, local.X, local.Y, candidates);
 
-		var rect = new Rect(Screen.width - Width - 16f, Screen.height - Height - 16f, Width, Height);
-		_rect = rect;
-		OnlineUiTheme.DrawBackground(rect);
-		GUILayout.BeginArea(new Rect(rect.x + 8f, rect.y + 8f, rect.width - 16f, rect.height - 16f));
-
-		GUILayout.BeginHorizontal();
-		GUILayout.Label(ctx.T("quick.title"), OnlineUiTheme.Section());
-		GUILayout.FlexibleSpace();
-		if (GUILayout.Button("×", OnlineUiTheme.CloseButton(), GUILayout.Width(CloseButtonSize), GUILayout.Height(CloseButtonSize)))
-		{
-			Close();
-		}
-
-		GUILayout.EndHorizontal();
-
 		if (_target is not { } target)
 		{
-			GUILayout.Label(ctx.T("quick.no_players"), OnlineUiTheme.MutedLabel());
-			GUILayout.EndArea();
-			return;
+			page.Muted(ctx.T("quick.no_players"));
+			return OnlineUiPanelModel.Docked(ctx.T("quick.title"), OnlineUiControlIds.QuickPanelClose, Width, page.Rows);
 		}
 
+		DrawTargetSelector(ctx, page, rows, target);
 		var targetRow = rows.First(row => row.SteamId == target);
-		DrawTargetSelector(ctx, rows, target);
-		GUILayout.Space(4f);
-		OnlineUiMemberListDrawer.BuildImgui(ctx, [targetRow]);
+		OnlineUiMemberListDrawer.Build(ctx, page, [targetRow]);
 
 		var localRow = rows.FirstOrDefault(r => r.IsLocal);
 		if (localRow is { CanRequestDrop: true, InWorld: true })
 		{
-			GUILayout.Space(6f);
-			if (GUILayout.Button(ctx.T("member.get_down"), OnlineUiTheme.Button(), GUILayout.Height(28f)))
-			{
-				ctx.DropCarried?.Invoke(localRow.SteamId);
-			}
+			page.Button("get_down", ctx.T("member.get_down"), () => ctx.DropCarried?.Invoke(localRow.SteamId));
 		}
 
-		GUILayout.EndArea();
+		return OnlineUiPanelModel.Docked(ctx.T("quick.title"), OnlineUiControlIds.QuickPanelClose, Width, page.Rows);
 	}
 
 	private static IReadOnlyList<QuickPanelTargetCandidate> BuildCandidates(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows)
@@ -116,7 +127,13 @@ internal sealed class OnlineUiQuickPanel
 		return candidates;
 	}
 
-	private void DrawTargetSelector(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows, ulong selected)
+	/// <summary>
+	/// The target selector: one button per in-world remote member, the current target marked the way a tab
+	/// marks the open page. The IMGUI panel laid four candidates out on one line and the rest one per line;
+	/// the surface wraps them by the Runtime's own rule instead, which is the same shape one rule further
+	/// down.
+	/// </summary>
+	private void DrawTargetSelector(OnlineUiContext ctx, OnlineUiPageBuilder page, IReadOnlyList<OnlineUiMemberRow> rows, ulong selected)
 	{
 		var remoteRows = rows.Where(row => !row.IsLocal && row.InWorld).ToList();
 		if (remoteRows.Count <= 1)
@@ -124,32 +141,18 @@ internal sealed class OnlineUiQuickPanel
 			return;
 		}
 
-		GUILayout.Label(ctx.T("quick.target"), OnlineUiTheme.MutedLabel());
-		if (remoteRows.Count <= 4)
-		{
-			GUILayout.BeginHorizontal();
-			foreach (var row in remoteRows)
-			{
-				DrawTargetButton(ctx, row, selected);
-			}
-
-			GUILayout.EndHorizontal();
-			return;
-		}
-
+		page.Muted(ctx.T("quick.target"));
+		var elements = new List<OnlineUiElementModel>(remoteRows.Count);
 		foreach (var row in remoteRows)
 		{
-			DrawTargetButton(ctx, row, selected);
+			elements.Add(page.ButtonElement(
+				$"target.{row.SteamId:X}",
+				row.Name,
+				() => _target = row.SteamId,
+				TargetButtonWidth,
+				selected: row.SteamId == selected));
 		}
-	}
 
-	private void DrawTargetButton(OnlineUiContext ctx, OnlineUiMemberRow row, ulong selected)
-	{
-		var isSelected = row.SteamId == selected;
-		var label = isSelected ? $"{row.Name} ✓" : row.Name;
-		if (GUILayout.Button(label, OnlineUiTheme.Tab(isSelected), GUILayout.Height(TargetButtonHeight)))
-		{
-			_target = row.SteamId;
-		}
+		page.Row([.. elements]);
 	}
 }

@@ -54,12 +54,13 @@ public sealed class OnlineUiSurfacePinTests
 	}
 
 	/// <summary>The window rides in the same frame: a push that carries no window model shows no window at
-	/// all, which is the regression the S2b half of this pin exists for.</summary>
+	/// all, which is the regression the S2b half of this pin exists for. S5's two panels ride the same
+	/// frame, built by the same call.</summary>
 	[Fact]
 	public void ThePinRejectsAPluginThatPushesNoWindow()
 	{
 		var host = PluginSource("OnlineUiHost.cs");
-		var broken = host.Replace("_onlineUi.Window.Build(ctx)", "null");
+		var broken = host.Replace("var surfaces = _onlineUi.BuildSurfaces(ctx);", "var surfaces = new OnlineUiSurfaceModels(null, null, null);");
 
 		Assert.True(host != broken, "the window mutation's anchor text is gone — re-anchor this mutation before trusting it");
 		Assert.False(DrivesTheSurfaceWithTheRule(broken));
@@ -297,8 +298,8 @@ public sealed class OnlineUiSurfacePinTests
 	/// The plugin's half: drain what the player did before pushing what to show, ask the Runtime rule with
 	/// the runtime clock and the hover fact, build the caption from the Runtime's own rule, and hand the
 	/// rule's answer AND the window's model to the surface. Every intent kind has its own case — the
-	/// launcher's three, the window's own pointer fact, and the control interactions the window family
-	/// reports (ticket online-ui-art-and-controls-overhaul, S2b) — and the click's case is the window's
+	/// launcher's three, the window's own pointer fact, the two panels' (S5), and the control interactions
+	/// the window family and the panels report — and the click's case is the window's
 	/// opening rule. S4 put the pointer census's launcher fact on the same two hover cases, so the idle
 	/// fade and the world input paths read one polled fact.
 	/// </summary>
@@ -308,7 +309,7 @@ public sealed class OnlineUiSurfacePinTests
 
 		return flat.Contains("DrainSurfaceIntents(); PushSurfaceFrame(ctx);", StringComparison.Ordinal)
 			&& flat.Contains(
-				"_surface.Push(new OnlineUiFrame(label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered), _onlineUi.Window.Build(ctx)));",
+				"var surfaces = _onlineUi.BuildSurfaces(ctx); _surface.Push(new OnlineUiFrame( label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered), surfaces.Window, surfaces.QuickPanel, surfaces.ContextMenu));",
 				StringComparison.Ordinal)
 			&& flat.Contains("label = _launcherLabel = OnlineUiLauncherText.Label(caption, open);", StringComparison.Ordinal)
 			&& flat.Contains(

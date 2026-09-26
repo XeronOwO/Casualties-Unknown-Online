@@ -110,6 +110,48 @@ internal static class OnlineUiControlFactory
 	internal static TextMeshProUGUI? CaptionOn(Built built) =>
 		built.UsedPrefab ? ChildText(built.Root.transform, 0) : built.Root.GetComponent<TextMeshProUGUI>();
 
+	/// <summary>
+	/// Reads what the game's own row prefab carries — the font and size of its label, and the sprite, type
+	/// and pixels-per-unit multiplier of its background — so a surface's chrome (the window's frame, a
+	/// panel's) and every label on it are the game's rather than a guess. The template instance is
+	/// destroyed in the same call: it exists to be read.
+	/// </summary>
+	internal static void ReadRowTemplate(
+		Transform parent,
+		out OnlineUiControlView.Typography typography,
+		out Sprite? sprite,
+		out Image.Type imageType,
+		out float pixelsPerUnit)
+	{
+		const float fallbackSize = 14f;
+		sprite = null;
+		imageType = Image.Type.Simple;
+		pixelsPerUnit = 1f;
+
+		var prefab = Resources.Load<GameObject>(ButtonRowPrefabPath);
+		if (prefab is null)
+		{
+			typography = new OnlineUiControlView.Typography(TMP_Settings.defaultFontAsset, fallbackSize);
+			return;
+		}
+
+		var probe = Object.Instantiate(prefab, parent);
+		probe.SetActive(false);
+		var label = probe.transform.childCount > 0 ? probe.transform.GetChild(0).GetComponent<TextMeshProUGUI>() : null;
+		var image = probe.GetComponent<Image>();
+		var font = label != null && label.font != null ? label.font : TMP_Settings.defaultFontAsset;
+		var size = label != null && label.fontSize > 0f ? label.fontSize : fallbackSize;
+		typography = new OnlineUiControlView.Typography(font, size);
+		if (image != null)
+		{
+			sprite = image.sprite;
+			imageType = image.type;
+			pixelsPerUnit = image.pixelsPerUnitMultiplier;
+		}
+
+		Object.Destroy(probe);
+	}
+
 	/// <summary>The child at <paramref name="index"/>, or null when the row carries fewer.</summary>
 	internal static Transform? ChildAt(Transform root, int index) =>
 		root.childCount > index ? root.GetChild(index) : null;

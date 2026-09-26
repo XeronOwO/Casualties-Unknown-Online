@@ -46,6 +46,13 @@ transient-state number, and one over-general census sentence).
 | `CaptureWorldParams`, `ApplyWorldParams` | none — `WorldParamsService` calls `CaptureAtBoundary()` from its own generation boundary and `EnsureGuestApplied` calls `Apply` | removed from the boundary (both domain paths stay live) |
 | `CloseRemoteBackpack`, `CloseRemoteMedical` | none — the views close themselves (`RemoteBackpackView.ClearIfStale`, `RemoteMedicalCoordinator`'s staleness edges) and opening one closes the other | removed from the boundary; `RemoteBackpackCoordinator.Close` became unreachable and was deleted |
 
+**Update (2026-09-26, the Online UI overhaul's S5):** `SetOnlineUiScopedBlocks` (the row above) retired
+with the two IMGUI panels that were its only consumers — the quick panel and the in-world player context
+menu are controls of CUO's own uGUI surface now (ticket
+`in-progress/online-ui-art-and-controls-overhaul.md`). `INativeInputBlocker` is
+`SetOnlineUiModal` + `SetOnlineUiEscapeSurfaceVisible`, the composition is 14 ports / 18 members, and
+`OnlineUiBlockRect` / `OnlineScopedRaycastFilter` are gone with the member.
+
 ## Mechanism inventory
 
 | Mechanism | Change | Evidence |

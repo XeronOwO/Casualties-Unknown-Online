@@ -1,8 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using UnityEngine;
-using System;
 
 namespace CasualtiesUnknownOnline;
 
@@ -14,33 +14,41 @@ namespace CasualtiesUnknownOnline;
 /// instead of Physics2D hits). The menu reuses the same projected member rows
 /// and action delegates as the Players page, so it never duplicates the
 /// eligibility rules.
+///
+/// <para>
+/// Since S5 it draws nothing: it builds a <see cref="OnlineUiPanelModel"/> for the game's own controls on
+/// CUO's surface, placed at the screen point the player clicked and clamped into the screen by the
+/// Runtime's own rule. The gesture that opens it stays in the IMGUI pass — the right-click and the
+/// click-away are the world's, not a control's — while what closes it on a pick is the action the control
+/// reports.
+/// </para>
 /// </summary>
 internal sealed class OnlineUiPlayerContextMenu
 {
-	private const float Width = 240f;
-	private const float RowHeight = 28f;
-	private const float TitleHeight = 30f;
-	private const float SelectorHeight = 28f;
-	private const float FramePadding = 6f;
-	private const float Gap = 4f;
-	private const float TargetLabelWidth = 54f;
-	private const float BottomPadding = 8f;
+	/// <summary>The menu's width in the surface's canvas units — the IMGUI menu's own rect.</summary>
+	internal const float Width = 240f;
+
+	/// <summary>The width one candidate button asks for.</summary>
+	private const float CandidateButtonWidth = 70f;
+
+	/// <summary>Every id this menu registers is namespaced, so a control of the menu and a control of the
+	/// window (or of the quick panel) can never be the same intent.</summary>
+	private const string IdPrefix = "menu.";
 
 	private ulong? _targetSteamId;
 	private IReadOnlyList<ulong> _candidateSteamIds = [];
+
+	/// <summary>Where the player right-clicked, in GUI space (origin top-left, Y down) — the space the
+	/// IMGUI pass reads pointer events in.</summary>
 	private Vector2 _position;
-	private Rect _lastRect;
-	private static GUIStyle? _menuButton;
 
 	internal bool IsOpen => _targetSteamId.HasValue;
 
-	internal Rect Bounds => _lastRect;
-
-	internal void Open(ulong steamId, IReadOnlyList<ulong> candidates, Vector2 screenPosition)
+	internal void Open(ulong steamId, IReadOnlyList<ulong> candidates, Vector2 guiPosition)
 	{
 		_targetSteamId = steamId;
 		_candidateSteamIds = [.. candidates];
-		_position = screenPosition;
+		_position = guiPosition;
 	}
 
 	internal void Close()
@@ -49,13 +57,62 @@ internal sealed class OnlineUiPlayerContextMenu
 		_candidateSteamIds = [];
 	}
 
-	internal bool Contains(Vector2 point) => _lastRect.Contains(point);
+	/// <summary>
+	/// The world gesture this menu answers: a right-click opens it on the nearest candidate (or closes it
+	/// when the click is not near anyone), and a left-click outside it closes it. Both questions about CUO
+	/// surfaces are asked of the caller, because the census is the one rule that answers them — a click
+	/// inside any CUO surface belongs to that surface, never to the world menu.
+	/// </summary>
+	internal void HandleInput(OnlineUiContext ctx, bool pointerOverMenu, Func<bool> blockedByCuiSurface)
+	{
+		var evt = Event.current;
+		if (evt == null || evt.type != EventType.MouseDown)
+		{
+			return;
+		}
 
-	internal void Draw(OnlineUiContext ctx)
+		var mouse = evt.mousePosition;
+		if (evt.button == 1)
+		{
+			// Right-clicks inside a CUO surface belong to the UI, not the world: never open, re-target or
+			// close the in-world menu from one.
+			if (blockedByCuiSurface())
+			{
+				return;
+			}
+
+			if (TryFindRemoteCandidatesAt(mouse, ctx, out var candidates))
+			{
+				Open(candidates[0], candidates, mouse);
+				evt.Use();
+			}
+			else if (IsOpen)
+			{
+				Close();
+				evt.Use();
+			}
+
+			return;
+		}
+
+		// The pointer-over-menu fact is the surface's own poll (the menu is a control of CUO's canvas now),
+		// which is why this no longer asks a rectangle of its own.
+		if (evt.button == 0 && IsOpen && !pointerOverMenu)
+		{
+			Close();
+		}
+	}
+
+	/// <summary>
+	/// The menu's model for this frame, or null while it is closed. Every action is registered under the
+	/// position it has in this frame's list, so a click lands on the action that produced its control; the
+	/// menu closes on the pick, the way the IMGUI button did.
+	/// </summary>
+	internal OnlineUiPanelModel? Build(OnlineUiContext ctx, Dictionary<string, Action<OnlineUiIntent>> actions)
 	{
 		if (_targetSteamId is not { } target)
 		{
-			return;
+			return null;
 		}
 
 		var rows = OnlineUiMemberListDrawer.BuildRows(ctx);
@@ -63,109 +120,103 @@ internal sealed class OnlineUiPlayerContextMenu
 		if (row is null || row.IsLocal || !row.InWorld)
 		{
 			Close();
-			return;
+			return null;
 		}
 
-		var actions = BuildActions(ctx, row);
-		var contentWidth = Width - (FramePadding * 2f);
-		var buttonStyle = MenuButton();
-		var titleStyle = OnlineUiTheme.Section();
-		var title = BuildContextTitle(ctx, row);
+		var page = new OnlineUiPageBuilder(ctx, actions, IdPrefix);
+		DrawTargetSelector(ctx, page, rows, target);
 
-		var titleHeight = Mathf.Max(TitleHeight - 4f, titleStyle.CalcHeight(new GUIContent(title), contentWidth));
-		var selectorHeight = MeasureTargetSelectorHeight(ctx, rows, contentWidth);
-		var actionsHeight = 0f;
-		foreach (var action in actions)
+		var menuActions = BuildActions(ctx, row);
+		for (var index = 0; index < menuActions.Count; index++)
 		{
-			actionsHeight += ButtonHeight(action.Label, buttonStyle, contentWidth);
-		}
-
-		var contentHeight = titleHeight + selectorHeight + actionsHeight;
-		var height = contentHeight + (FramePadding * 2f) + BottomPadding;
-		var x = Mathf.Clamp(_position.x + 8f, 4f, Mathf.Max(4f, Screen.width - Width - 4f));
-		var y = Mathf.Clamp(_position.y - 8f, 4f, Mathf.Max(4f, Screen.height - height - 4f));
-		var rect = new Rect(x, y, Width, height);
-		_lastRect = rect;
-
-		OnlineUiTheme.DrawBackground(rect);
-
-		var left = rect.x + FramePadding;
-		var yCursor = rect.y + FramePadding;
-		GUI.Label(new Rect(left, yCursor, contentWidth, titleHeight), title, titleStyle);
-		yCursor += titleHeight;
-
-		if (_candidateSteamIds.Count > 1)
-		{
-			yCursor = DrawTargetSelector(ctx, rows, left, yCursor, contentWidth, selectorHeight, buttonStyle);
-		}
-
-		foreach (var action in actions)
-		{
-			var rowHeight = ButtonHeight(action.Label, buttonStyle, contentWidth);
-			if (GUI.Button(new Rect(left, yCursor, contentWidth, rowHeight), action.Label, buttonStyle))
+			var action = menuActions[index];
+			page.Button($"action.{index}", action.Label, () =>
 			{
 				action.Action();
 				Close();
-				return;
-			}
-
-			yCursor += rowHeight;
-		}
-	}
-
-	private float DrawTargetSelector(
-		OnlineUiContext ctx,
-		IReadOnlyList<OnlineUiMemberRow> rows,
-		float left,
-		float y,
-		float width,
-		float height,
-		GUIStyle buttonStyle)
-	{
-		var count = _candidateSteamIds.Count;
-		var available = width - TargetLabelWidth - (Gap * (count - 1));
-		var buttonWidth = Mathf.Max(40f, available / count);
-
-		GUI.Label(new Rect(left, y, TargetLabelWidth, height), ctx.T("member.select_target"), OnlineUiTheme.MutedLabel());
-
-		var bx = left + TargetLabelWidth;
-		foreach (var candidate in _candidateSteamIds)
-		{
-			var label = ContextTitle(ctx, rows, candidate);
-			var rowHeight = Mathf.Max(SelectorHeight - 4f, buttonStyle.CalcHeight(new GUIContent(label), buttonWidth) + 4f);
-			if (GUI.Button(new Rect(bx, y, buttonWidth, rowHeight), label, buttonStyle))
-			{
-				_targetSteamId = candidate;
-			}
-
-			bx += buttonWidth + Gap;
+			});
 		}
 
-		return y + height;
+		return OnlineUiPanelModel.AtPoint(
+			BuildContextTitle(ctx, row),
+			_position.x,
+			Screen.height - _position.y,
+			Width,
+			page.Rows);
 	}
 
-	private float MeasureTargetSelectorHeight(
-		OnlineUiContext ctx,
-		IReadOnlyList<OnlineUiMemberRow> rows,
-		float width)
+	/// <summary>The selector shown only when the click was near more than one member: the current pick is
+	/// marked the way a tab marks the open page.</summary>
+	private void DrawTargetSelector(OnlineUiContext ctx, OnlineUiPageBuilder page, IReadOnlyList<OnlineUiMemberRow> rows, ulong selected)
 	{
 		if (_candidateSteamIds.Count <= 1)
 		{
-			return 0f;
+			return;
 		}
 
-		var count = _candidateSteamIds.Count;
-		var available = width - TargetLabelWidth - (Gap * (count - 1));
-		var buttonWidth = Mathf.Max(40f, available / count);
-		var buttonStyle = MenuButton();
-		var height = SelectorHeight;
+		var elements = new List<OnlineUiElementModel>(_candidateSteamIds.Count + 1)
+		{
+			page.LabelElement(ctx.T("member.select_target"), OnlineUiTextStyle.Muted, OnlineUiTheme.Muted),
+		};
 		foreach (var candidate in _candidateSteamIds)
 		{
-			var label = ContextTitle(ctx, rows, candidate);
-			height = Mathf.Max(height, buttonStyle.CalcHeight(new GUIContent(label), buttonWidth) + 4f);
+			elements.Add(page.ButtonElement(
+				$"target.{candidate:X}",
+				ContextTitle(ctx, rows, candidate),
+				() => _targetSteamId = candidate,
+				CandidateButtonWidth,
+				selected: candidate == selected));
 		}
 
-		return height;
+		page.Row([.. elements]);
+	}
+
+	/// <summary>
+	/// Which remote players the click was near. The remote clones have no colliders, so the candidates come
+	/// from the authoritative entity positions projected through the camera and a radius rule of their own
+	/// (<see cref="RemoteTargetPicker"/>); the picker is the Runtime's and is unchanged by the move onto the
+	/// surface.
+	/// </summary>
+	private static bool TryFindRemoteCandidatesAt(Vector2 guiMouse, OnlineUiContext ctx, out IReadOnlyList<ulong> steamIds)
+	{
+		var camera = Camera.main;
+		if (camera == null)
+		{
+			steamIds = [];
+			return false;
+		}
+
+		const float radius = 48f;
+		var screenTargets = new List<RemoteScreenTarget>();
+		var remotePlayers = ctx.Entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
+		{
+			var remote = remotePlayers[i];
+			if (remote.IsLocal || !ctx.Session.IsRemoteInWorld(remote.SteamId))
+			{
+				continue;
+			}
+
+			var world = new Vector3(remote.Position.X, remote.Position.Y, 0f);
+			var screen = camera.WorldToScreenPoint(world);
+			if (screen.z < 0f)
+			{
+				continue;
+			}
+
+			var gui = new Vector2(screen.x, Screen.height - screen.y);
+			screenTargets.Add(new RemoteScreenTarget(remote.SteamId, gui.x, gui.y));
+		}
+
+		var matches = RemoteTargetPicker.Find(screenTargets, guiMouse.x, guiMouse.y, radius);
+		var result = new List<ulong>(matches.Count);
+		foreach (var match in matches)
+		{
+			result.Add(match.SteamId);
+		}
+
+		steamIds = result;
+		return result.Count > 0;
 	}
 
 	private static string ContextTitle(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows, ulong steamId)
@@ -176,12 +227,6 @@ internal sealed class OnlineUiPlayerContextMenu
 
 	private static string BuildContextTitle(OnlineUiContext ctx, OnlineUiMemberRow row)
 		=> OnlineUiMemberLabel.FormatContextTitle(row.Name, row.IsDead, ctx.T("member.context_dead"));
-
-	private static float ButtonHeight(string label, GUIStyle style, float width)
-	{
-		var textHeight = style.CalcHeight(new GUIContent(label), width);
-		return Mathf.Max(RowHeight, textHeight + 4f);
-	}
 
 	private static List<MenuAction> BuildActions(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
@@ -261,16 +306,6 @@ internal sealed class OnlineUiPlayerContextMenu
 		}
 
 		return actions;
-	}
-
-	private static GUIStyle MenuButton()
-	{
-		_menuButton ??= new GUIStyle(OnlineUiTheme.Button())
-		{
-			margin = new RectOffset(0, 0, 0, 0),
-		};
-
-		return _menuButton;
 	}
 
 	private sealed class MenuAction

@@ -272,4 +272,5 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | world/world-acceleration-survives-movement-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | tooling/catalogue-and-manifest-census-selfcheck.md | Other | current | the catalogue's declared keys now equal the keys the product source reads (73 orphan keys deleted), and the self-check manifest is the complete per-file index it claims: both censuses are gates (decision 229) |
 | world/unhooked-damage-block-callers-selfcheck.md | World/Entities | current | the block-damage hook is anchored on the overload every native roll enters (the footstep crush and the spider burrow included) and the report carries the cell; the anchor is pinned by `DamageBlockHookCoverageGateTests` |
+| ui/online-ui-panel-blending-selfcheck.md | UI | current | every themed frame is drawn alpha-blended, so the palette's alphas are live: the modal window, the quick panel, the context menu and the console overlay follow the launcher's already-blended frame (ticket `review/online-ui-panels-request-alpha-blend-false.md`) |
 

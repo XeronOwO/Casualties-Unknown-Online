@@ -49,7 +49,8 @@
   independent review proved with the game's own `UnityEngine.IMGUIModule.dll` IL that the
   explicit-colour `DrawTexture` overload takes its colour verbatim, so the tint dimmed only the label
   and left the panel at alpha 0.96 — the reported defect intact. The launcher's frame now also draws
-  with `alphaBlend: true`, the shared modal path keeps its own flags untouched.
+  with `alphaBlend: true` (the shared panels followed in
+  `review/online-ui-panels-request-alpha-blend-false.md`, so every themed frame blends now).
 - **No per-pass allocation.** The label comes from a cached pair in `OnlineUiWindowState` instead of
   a per-pass concatenation, so the draw path builds no string, and the launcher style is re-derived
   only when the alpha changes — a `GUIStyleState` access allocates, and the launcher holds one alpha
@@ -58,9 +59,10 @@
   alternative holds native style-state pointers this cycle cannot verify.
 - **The rect and the click are unchanged** (a fade, not a move), and the cycle touches no wire,
   protocol, save, session or gameplay code.
-- **Sibling recorded, not folded in:** the theme's shared panels ask for `alphaBlend: false`, which
-  may make their claimed translucency unattainable; that question is
-  `todo/online-ui-panels-request-alpha-blend-false.md`.
+- **Sibling resolved in its own cycle:** the theme's shared panels asked for `alphaBlend: false`, which
+  could make their claimed translucency unattainable; that question was carried by
+  `review/online-ui-panels-request-alpha-blend-false.md`, whose cycle made every themed frame blended
+  (the launcher's own frame already was).
 
 Red, ladder, the adversarial review's dispositions and the limits (no rendered pixels here — the
 acceptance run is the judge): `docs/evidence/selfchecks/ui/cuo-launcher-idle-fade-selfcheck.md`.

@@ -61,11 +61,12 @@ run, and the development-period standard here is static and simulation evidence.
 The launcher was the only always-drawn opaque control in the family, so no sibling needed the same
 fix. Two adjacent facts are recorded rather than changed:
 
-- The theme's shared panels (`DrawBackground(rect)` and `DrawOverlayBackground`) pass
+- The theme's shared panels (`DrawBackground(rect)` and `DrawOverlayBackground`) passed
   `alphaBlend: false`. Whether that suppresses blending is not decidable without the game, and if it
-  does, those panels are opaque where their comments claim translucency. New ticket:
-  `docs/backlog/todo/online-ui-panels-request-alpha-blend-false.md` (Low-Medium). The launcher's own
-  frame takes the blended path this cycle.
+  did, those panels were opaque where their comments claim translucency. The launcher's own frame took
+  the blended path this cycle; the shared panels followed in their own cycle
+  (`docs/backlog/review/online-ui-panels-request-alpha-blend-false.md`), which made every themed frame
+  blended.
 - AGENTS rule 8 (reuse the game's native UI): the launcher's origin self-check already records "The
   main-menu entry is a top-right IMGUI launcher, not yet a cloned native `AdaptiveButton` in the
   game's own main-menu list" as an accepted limitation, and this ticket's non-goals keep the window
@@ -121,7 +122,7 @@ with build, the gate counts) and corrected one of them.
 | m3 | minor | "Normative gates 209/209 unfiltered" was not reproducible after the checklist reset (measured 208/209, the failure being the checklist gate) | accepted: both figures are stated in §5 with their measurement points; the final unfiltered run closes the cycle |
 | m4 | minor | The `GUI.color` restore was not exception-safe, and the global tint is sticky across frames | moot after B1: the fix removes the global tint from the path entirely, so there is nothing to restore or leak |
 | m5 | minor | Acceptance rows 3, 4 and 5 were assumed rather than pinned | landed for row 4 (the per-pass label allocation is gone and the pin forbids it; the idempotence facts cover the "no flicker" half) and for row 5's mechanism (the rule's inputs are pinned to the clock and the pointer); rows 1–3 stay as §7 states — the rendered pixels and a real click have no probe in this tree |
-| m6 | minor | `DrawBackground` passes `alphaBlend: false`, which may make any alpha through that call dead on arrival | landed as scoped: the launcher's frame takes the blended path this cycle; the shared panels' question is recorded as the new Low-Medium ticket named in §3, because flipping them changes surfaces this ticket does not cover and the rendered pixels are unverifiable here |
+| m6 | minor | `DrawBackground` passes `alphaBlend: false`, which may make any alpha through that call dead on arrival | landed as scoped: the launcher's frame takes the blended path this cycle; the shared panels' question is recorded as the new Low-Medium ticket named in §3, because flipping them changes surfaces this ticket does not cover and the rendered pixels are unverifiable here. Followed up in `review/online-ui-panels-request-alpha-blend-false.md`: every themed frame is blended now |
 | n1 | nit | `OnlineUiWindowState` sits exactly at the gate's five-boolean ceiling | noted: the change adds no boolean (three cached strings); the ceiling is recorded in §7 as the reason the label cache is strings rather than flags |
 | n2 | nit | Two documented-everywhere-but-the-ticket behaviours: the idle window starts at the first evaluation, and the clock wrap yields one opaque blip per ~24.9 days | recorded in §7 as intended behaviours with their user-visible consequence, not defects |
 | F1 | major (second pass, on the repair) | The theme half was unpinned: no test named `DrawFrame`, `alphaBlend` or `WithAlpha`, so reverting the alpha overload to the unblended path left the panel opaque with a fully green suite — the same defect class one level down, moved from the call site into the theme by the repair itself | landed: `TheThemeFoldsTheAlphaIntoABlendedFrame` reads `OnlineUiTheme.cs` and requires the folded, blended alpha overload, the unchanged parameterless overload, and the shared frame draw passing its own blending argument into all five draws; the exact revert is an asserted-False negative sample |
@@ -138,7 +139,8 @@ with build, the gate counts) and corrected one of them.
   judge, and it should confirm that the *panel* — not only the label — changes opacity at idle.
 - **The native `Graphics::Internal_DrawTexture` body is not inspectable here.** `alphaBlend: true`
   and the folded colour are chosen from the managed IL of the module the game loads; the shared panel
-  path's `alphaBlend: false` question is the ticketed item above.
+  path's `alphaBlend: false` question was closed in its own cycle by making every themed frame blended
+  (`docs/backlog/review/online-ui-panels-request-alpha-blend-false.md`).
 - **IMGUI has no runtime probe in this tree**, so the draw-path pins are source contracts with
   negative samples, not behaviour tests; a real click and a real frame are outside them.
 - **No deployment, no game session, no dual-client check** — per the development-period standard.

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (13 rows): the relay chain, the two minigame steps, the four Dismember callers, the parked display position, the anchor-query read
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (8 rows): the frame draw, the three callers, the flag's contract, the native body's absence, the five surfaces, the sibling draws
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: ticket census: producers split carried vs named-uncarried; tweezers and observer halves decided per path
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 8 rows (two step scopes, the clip set, the table row, the position window, the observer guard, capability, gate surface)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3: the plugin's other draws are the default/tint path; the launcher was already blended; no paired human page owed
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (7 rows): the frame census, the overlay census, the five surfaces, the fade contract, no call-site change, structure, red
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: red 3/26/29 with the frozen gate; focus 29/29 and review-fix 93 + 63 green (cuo-red-gore-presentation.txt, cuo-focus2-gore-presentation.txt)
+      peer log comparison, hotrepl assertions) is decided — evidence: red 4/15/19 pre-change, focus 19/19 twice, format exit 0 with identical shortstat, full suite with build 4134 + 287, exit 0
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff picked the item; the user froze the design (carry the gore); the census ran before the carriers
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0, status/diffstat identical; unfiltered full suite with build 4132 + 288, exit 0 (cuo-full-final-gore-presentation.txt)
+      process violation — evidence: item taken from the ticket's own priority (no work-choice question asked); the launcher review and the documented intent froze the design
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0 + identical shortstat (135/56); full suite with build 4134 + 287, exit 0 (cuo-full-panel-blending.txt)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: RemoteMedicalOperationHandler 581, catalog 158, policy 177 lines (the gate caught the handler at 601; the lookup moved out); no new state
+      dead mechanisms deleted in the same round) — evidence: OnlineUiTheme 264->271 lines (< 600), the dead blend parameter deleted; no new state or type; pins in the existing test class
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

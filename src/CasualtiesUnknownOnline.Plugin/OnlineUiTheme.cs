@@ -105,35 +105,42 @@ internal static class OnlineUiTheme
 		return style;
 	}
 
-	internal static void DrawBackground(Rect rect) => DrawFrame(rect, Panel, Border, alphaBlend: false);
+	/// <summary>
+	/// The modal frame's panel and border, at the palette's own alphas, ALPHA-BLENDED. Every frame this
+	/// theme draws is blended, and that flag is the whole point: the theme's colours carry an alpha of
+	/// their own (<see cref="Panel"/> 0.96, <see cref="Border"/> 0.9, <see cref="OverlayPanel"/> 0.58),
+	/// while this overload of <c>GUI.DrawTexture</c> hands the colour AND the flag to the draw verbatim —
+	/// the ambient <c>GUI.color</c> tint never reaches it. A frame that does not ask for blending leaves
+	/// those alphas with nothing to apply them, which is the opposite of the translucent "operator
+	/// console" look this file documents.
+	/// </summary>
+	internal static void DrawBackground(Rect rect) => DrawFrame(rect, Panel, Border);
 
 	/// <summary>
-	/// The same panel and border at a scaled alpha, alpha-BLENDED. The launcher's idle fade needs both
-	/// halves of that sentence: the shared path above hands its colours to the explicit-colour
-	/// <c>GUI.DrawTexture</c> overload, which takes them verbatim — the ambient <c>GUI.color</c> tint
-	/// never reaches it — and it asks for <c>alphaBlend: false</c>. Folding the alpha into the colours
-	/// and blending them is the one combination in which a translucent launcher is drawn translucent.
+	/// The same panel and border at a SCALED alpha, blended the same way. The launcher's idle fade needs
+	/// both halves of that sentence: the alpha is folded into the colours, and the frame is drawn
+	/// blended — the one combination in which a translucent launcher is drawn translucent.
 	/// </summary>
 	internal static void DrawBackground(Rect rect, float alpha) =>
-		DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha), alphaBlend: true);
+		DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha));
 
-	private static void DrawFrame(Rect rect, Color panel, Color border, bool alphaBlend)
+	private static void DrawFrame(Rect rect, Color panel, Color border)
 	{
-		GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, panel, 0f, 0f);
-		GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, border, 0f, 0f);
-		GUI.DrawTexture(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, border, 0f, 0f);
-		GUI.DrawTexture(new Rect(rect.x, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, border, 0f, 0f);
-		GUI.DrawTexture(new Rect(rect.xMax - 1f, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0f, border, 0f, 0f);
+		GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, panel, 0f, 0f);
+		GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, border, 0f, 0f);
+		GUI.DrawTexture(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, border, 0f, 0f);
+		GUI.DrawTexture(new Rect(rect.x, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, border, 0f, 0f);
+		GUI.DrawTexture(new Rect(rect.xMax - 1f, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, border, 0f, 0f);
 	}
 
 	private static Color WithAlpha(Color color, float alpha) => new(color.r, color.g, color.b, color.a * alpha);
 
 	/// <summary>Full-screen-facing overlay background for transient/compact
-	/// surfaces such as the Minecraft-like command console. Unlike the modal
-	/// Online UI panel, this remains translucent so the world stays visible
-	/// behind the command history.</summary>
+	/// surfaces such as the Minecraft-like command console: the same blended
+	/// frame draw, at the overlay palette's own 0.58 alpha, so the world stays
+	/// visible behind the command history.</summary>
 	internal static void DrawOverlayBackground(Rect rect) =>
-		GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, OverlayPanel, 0f, 0f);
+		GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, OverlayPanel, 0f, 0f);
 
 	private static GUIStyle CreateWindow()
 	{

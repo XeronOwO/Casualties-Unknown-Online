@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using UnityEngine;
@@ -38,13 +37,6 @@ internal sealed class OnlineUiWindowState
 	internal OnlineUiTransportMode TransportMode = OnlineUiTransportMode.Steam;
 
 	/// <summary>
-	/// The launcher button's idle fade (<see cref="OnlineUiLauncherFade"/>): presentation-only local
-	/// state, owned here and never carried into the Runtime or the wire, so an idle launcher stops
-	/// covering the play area.
-	/// </summary>
-	internal OnlineUiLauncherFade LauncherFade { get; } = new();
-
-	/// <summary>
 	/// The Worlds page's rows, and the library revision they were read at. They are read ON DEMAND
 	/// rather than every frame: listing worlds enumerates the repository's folders and their backup
 	/// files, and an IMGUI draw runs more than once per frame while the page is open. A reload
@@ -66,28 +58,4 @@ internal sealed class OnlineUiWindowState
 
 	/// <summary>The archive a first click picked, waiting for the confirming second click (empty = no confirmation pending).</summary>
 	internal string PendingRestoreFile = "";
-
-	private string _launcherLabelText = "";
-
-	private string _launcherLabelOpen = "";
-
-	private string _launcherLabelClosed = "";
-
-	/// <summary>
-	/// The launcher's label for the current open/closed state, rebuilt only when its translated text
-	/// changes. An IMGUI frame draws the window once per event (a Layout and a Repaint pass at least),
-	/// and building "CUO ONLINE ▲" on every pass would allocate inside the draw path the idle fade
-	/// runs in; presentation-only state, like the fade beside it.
-	/// </summary>
-	internal string LauncherLabel(string translated)
-	{
-		if (_launcherLabelText != translated)
-		{
-			_launcherLabelText = translated;
-			_launcherLabelOpen = translated + " ▲";
-			_launcherLabelClosed = translated + " ▼";
-		}
-
-		return Visible ? _launcherLabelOpen : _launcherLabelClosed;
-	}
 }

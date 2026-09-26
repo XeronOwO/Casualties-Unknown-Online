@@ -157,6 +157,21 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Programmatic close (ESC, X button, or a remote-open path); the modal guard sees it on the next frame's adapter call.</summary>
 	internal void CloseWindow() => _window.State.Visible = false;
 
+	/// <summary>
+	/// Toggles the modal window from the native launcher (the game's own button, ticket
+	/// online-ui-art-and-controls-overhaul S2a). Opening it while a session is already running lands on
+	/// the Players page: the Home page is the host/join form, and the launcher's click says the player
+	/// wants to see who is in the session — the same rule the IMGUI launcher applied.
+	/// </summary>
+	internal void ToggleWindow(SessionRole role)
+	{
+		_window.State.Visible = !_window.State.Visible;
+		if (_window.State.Visible && _window.State.Page == OnlineUiPage.Home && role != SessionRole.None)
+		{
+			_window.State.Page = OnlineUiPage.Players;
+		}
+	}
+
 	/// <summary>Closes the standalone player-interaction quick panel.</summary>
 	internal void CloseQuickPanel() => _quickPanel.Close();
 

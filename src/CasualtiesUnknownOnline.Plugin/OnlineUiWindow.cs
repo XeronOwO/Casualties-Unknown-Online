@@ -1,13 +1,16 @@
 using UnityEngine;
-using CasualtiesUnknownOnline.Runtime.Session;
 
 namespace CasualtiesUnknownOnline;
 
 /// <summary>
-/// The CUO Online UI window shell: the launcher button, the draggable IMGUI
-/// window, the page tabs and the scrollable page host. Page content lives in
-/// the <c>OnlineUi*Drawer</c> classes; this class owns only the shell and the
-/// local presentation state.
+/// The CUO Online UI window shell: the draggable IMGUI window, the page tabs and the
+/// scrollable page host. Page content lives in the <c>OnlineUi*Drawer</c> classes;
+/// this class owns only the shell and the local presentation state.
+///
+/// The launcher button is no longer part of this shell: since S2a it is the game's own
+/// control on the native surface (<c>OnlineUiSurfaceHost</c>), driven by
+/// <see cref="OnlineUiHost"/> and toggling this window through
+/// <see cref="OnlineUiOverlay.ToggleWindow"/>.
 /// </summary>
 internal sealed class OnlineUiWindow
 {
@@ -27,7 +30,6 @@ internal sealed class OnlineUiWindow
 	internal void Draw(OnlineUiContext ctx)
 	{
 		ctx.State = _state;
-		DrawLauncherButton(ctx);
 
 		if (!_state.Visible)
 		{
@@ -40,30 +42,6 @@ internal sealed class OnlineUiWindow
 		}
 
 		_windowRect = GUI.Window(WindowId, _windowRect, id => DrawWindowContents(ctx), "", OnlineUiTheme.Window());
-	}
-
-	private void DrawLauncherButton(OnlineUiContext ctx)
-	{
-		var rect = new Rect(Screen.width - 170f, 12f, 158f, 34f);
-
-		// The launcher must not cover the play area while it is idle. The pointer's hover
-		// fact is the rule's only input besides the clock, and the alpha it returns is
-		// folded into the colours themselves — the frame's and the label's — rather than
-		// pushed through GUI.color: the explicit-colour DrawTexture overload behind the
-		// themed frame takes its colour verbatim, so a tint would leave the panel (the
-		// launcher's whole visible surface) opaque.
-		var hovered = Event.current != null && rect.Contains(Event.current.mousePosition);
-		var alpha = _state.LauncherFade.Evaluate(ctx.Time.NowMs, hovered);
-
-		OnlineUiTheme.DrawBackground(rect, alpha);
-		if (GUI.Button(rect, _state.LauncherLabel(ctx.T("launcher")), OnlineUiTheme.Launcher(alpha)))
-		{
-			_state.Visible = !_state.Visible;
-			if (_state.Visible && _state.Page == OnlineUiPage.Home && ctx.Session.Role != SessionRole.None)
-			{
-				_state.Page = OnlineUiPage.Players;
-			}
-		}
 	}
 
 	private void DrawWindowContents(OnlineUiContext ctx)

@@ -41,7 +41,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, IPlayerInteractionVisibility
+public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnlineUiSurface, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, IPlayerInteractionVisibility
 {
 	// Set by the join-flow port (IJoinFlowPresentation.PrepareForDirectJoin) when the
 	// game was launched via a Steam friends "Join Game" (+connect_lobby): the
@@ -64,6 +64,10 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, ICuoS
 	// The Online UI's read-only probe of the game's own UI (ticket online-ui-art-and-controls-overhaul,
 	// S1): it owns the CUO canvas parented under the game's main canvas and the game's settings rows.
 	private readonly OnlineUiNativeFactsCapture _onlineUiNativeFacts = new();
+	// The Online UI's LIVE surface (ticket online-ui-art-and-controls-overhaul, S2a): CUO's canvas
+	// parented under the game's canvas with the game's own launcher control on it. The probe above READS
+	// the game's UI; this one IS the UI — it renders, takes input and owns the game objects.
+	private readonly OnlineUiSurfaceHost _onlineUiSurface;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(
@@ -103,6 +107,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, ICuoS
 		IStartingSupplyPublisher startingSupplies)
 	{
 		_patches = new PatchInstallLifecycle(log);
+		_onlineUiSurface = new OnlineUiSurfaceHost(log);
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
 			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
@@ -307,6 +312,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, ICuoS
 	void IDisposable.Dispose()
 	{
 		_onlineUiNativeFacts.Dispose();
+		_onlineUiSurface.Dispose();
 		_domains.WorldTimeSync.Unbind();
 		_sessionBinding.Unbind();
 		_domains.Renderer.DestroyAllClones();
@@ -368,6 +374,15 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, ICuoS
 	/// the row styles, the chrome styles and the canvas scale from this one call.
 	/// </summary>
 	OnlineUiNativeFacts IOnlineUiNativeFactsQuery.Capture() => _onlineUiNativeFacts.Capture();
+
+	/// <summary>
+	/// The Online UI's live surface (ticket online-ui-art-and-controls-overhaul, S2a). The Runtime pushes
+	/// what to show; the surface puts it on the game's own controls and reports the player's clicks and
+	/// hover back. Nothing about the game's objects crosses this seam in either direction.
+	/// </summary>
+	void IOnlineUiSurface.Push(OnlineUiFrame frame) => _onlineUiSurface.Push(frame);
+
+	bool IOnlineUiSurface.TryDequeueIntent(out OnlineUiIntent intent) => _onlineUiSurface.TryDequeueIntent(out intent);
 
 	// ---- Mod runtime boundaries (Phase 4 Mod API) ----
 

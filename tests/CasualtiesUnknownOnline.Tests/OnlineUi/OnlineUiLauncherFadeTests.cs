@@ -11,48 +11,31 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// panel over the play area on every frame, with no idle state and no way to see through it
 /// (<c>docs/backlog/review/cuo-launcher-button-obscures-the-view.md</c>).
 ///
-/// The rule is pure (Runtime, no Unity dependency) and its matrix is tested here. The IMGUI draw has
-/// no runtime probe in this tree, so the path from the rule to the pixels is pinned against the
-/// source — as a MECHANISM, and in BOTH halves, because the first cut of this cycle showed how easily
-/// the two drift apart: it delivered the alpha through the ambient <c>GUI.color</c> tint, which the
-/// explicit-colour <c>GUI.DrawTexture</c> overload never consumes, so the panel (the launcher's whole
-/// visible surface) stayed opaque while the suite was green. The window pin therefore requires the
-/// alpha at the frame draw and at the label's style, and the theme pin requires that frame draw to
-/// fold the alpha AND blend it. Every pin carries negative samples — the pre-change bodies among them
-/// — so neither can pass vacuously.
+/// The rule is pure (Runtime, no Unity dependency) and its matrix is tested here. How the rule reaches
+/// the pixels is pinned in <c>OnlineUiSurfacePinTests</c> since S2a, when the launcher moved onto the
+/// game's own control: the Runtime half is the plugin's frame push (the rule asked with the runtime
+/// clock, its answer handed to the surface) and the Unity half is the surface itself (the alpha landing
+/// on the launcher's CanvasGroup) — neither is visible from this file any more.
+///
+/// What stays here besides the matrix is the IMGUI theme's own contract, which S2a does not end: the
+/// surfaces the theme still draws must keep drawing blended frames, and its draw census is a CEILING, so
+/// a new unblended draw path — or a launcher quietly regrown in IMGUI — cannot appear unnoticed.
 /// </summary>
 public sealed class OnlineUiLauncherFadeTests
 {
-	[Fact]
-	public void TheLauncherDrawFoldsTheIdleAlphaIntoTheFrameAndTheLabel()
-	{
-		var body = ReadFlattenedLauncherDrawBody();
-
-		Assert.True(PinsTheIdleFade(body), $"the launcher draw does not deliver the idle-fade alpha: {body}");
-	}
-
-	[Fact]
-	public void TheThemeFoldsTheAlphaIntoABlendedFrame()
-	{
-		var theme = ReadThemeSource();
-
-		Assert.True(PinsTheBlendedFrame(theme), "the theme does not fold the launcher's alpha into an alpha-blended frame");
-	}
-
 	/// <summary>
-	/// Every surface that draws a themed frame, and the draw it must make. The theme's own blending is
-	/// only half the fact: a surface that hand-rolls an unblended rectangle of its own, or a new surface
-	/// that appears without joining this census, is the same defect one level up. The five rows are the
-	/// surfaces the panel-blending ticket enumerated — the modal window, its launcher, the quick panel,
-	/// the context menu and the console overlay.
+	/// Every surface that still draws through the IMGUI theme, and the draw it must make. Four of the
+	/// five rows the panel-blending ticket enumerated are left: S2a moved the launcher onto the game's own
+	/// control, so the modal window's frame, the quick panel, the context menu and the console overlay are
+	/// the remaining ones. A surface that hand-rolls an unblended rectangle of its own, or a new surface
+	/// that appears without joining this census, is the same defect one level up.
 	/// </summary>
 	[Fact]
-	public void EveryThemedSurface_DrawsThroughTheBlendedFrame()
+	public void EveryRemainingThemedSurface_DrawsThroughTheBlendedFrame()
 	{
 		var surfaces = new (string File, string Call)[]
 		{
 			("OnlineUiWindow.cs", "OnlineUiTheme.DrawBackground(new Rect(0f, 0f, _windowRect.width, _windowRect.height));"),
-			("OnlineUiWindow.cs", "OnlineUiTheme.DrawBackground(rect, alpha);"),
 			("OnlineUiQuickPanel.cs", "OnlineUiTheme.DrawBackground(rect);"),
 			("OnlineUiPlayerContextMenu.cs", "OnlineUiTheme.DrawBackground(rect);"),
 			("CommandConsoleOverlay.cs", "OnlineUiTheme.DrawOverlayBackground(rect);"),
@@ -74,6 +57,19 @@ public sealed class OnlineUiLauncherFadeTests
 		Assert.DoesNotMatch(@"StretchToFill,\s*false", ReadThemeSource());
 	}
 
+	/// <summary>
+	/// The theme's own half: every frame it still draws is blended, and its draw census is a ceiling. The
+	/// three mutation cases below all assert the same helper is FALSE on a broken theme, so this positive
+	/// case is what keeps them from passing on a theme that lost the frames altogether.
+	/// </summary>
+	[Fact]
+	public void TheThemeKeepsEveryRemainingFrameBlended()
+	{
+		Assert.True(
+			PinsTheBlendedFrame(ReadThemeSource()),
+			"the IMGUI surfaces that are still themed must keep drawing blended frames — the palette's alphas are dead on a draw that does not ask for blending");
+	}
+
 	/// <summary>The overlay half of the same fact: the console's background is drawn by its own member,
 	/// so a blend flag flipped there alone would leave every other pin green.</summary>
 	[Fact]
@@ -90,69 +86,8 @@ public sealed class OnlineUiLauncherFadeTests
 		Assert.False(PinsTheBlendedFrame(broken));
 	}
 
-	/// <summary>The body exactly as it stood at HEAD (671e63c1): an opaque frame drawn every pass, no
-	/// pointer fact and no rule. This is the cycle's red, made reproducible.</summary>
-	[Fact]
-	public void ThePinRejectsThePreChangeDraw() => Assert.False(PinsTheIdleFade(Flatten(PreChangeBody)));
-
-	/// <summary>A draw that asks the rule and then discards the answer satisfies a substring-only pin,
-	/// so the pin requires the value at the call sites.</summary>
-	[Fact]
-	public void ThePinRejectsAFadeThatNeverReachesTheControl() => Assert.False(PinsTheIdleFade(Flatten(DiscardedFadeBody)));
-
-	/// <summary>A draw that asks the rule and then overwrites the answer keeps every call site intact,
-	/// so the pin also requires the alpha to be assigned exactly once — from the rule.</summary>
-	[Fact]
-	public void ThePinRejectsAnAlphaThatIsOverwritten() => Assert.False(PinsTheIdleFade(Flatten(OverwrittenAlphaBody)));
-
-	/// <summary>
-	/// Four mutations of the REAL theme source, each a defect no call-site pin can see because the call
-	/// sites stay byte-identical: an unfolded call site, an unfolded helper, a label that keeps the
-	/// palette's opacity, and a frame draw that stops asking for blending. The NotEqual guards keep a
-	/// mutation from silently becoming a no-op when the theme's text drifts.
-	/// </summary>
-	[Fact]
-	public void TheThemePinRejectsAnUnfoldedCallSite()
-	{
-		var theme = ReadThemeSource();
-		var broken = theme.Replace(
-			"DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha))",
-			"DrawFrame(rect, Panel, Border)");
-
-		Assert.True(
-			theme != broken,
-			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
-		Assert.False(PinsTheBlendedFrame(broken));
-	}
-
-	[Fact]
-	public void TheThemePinRejectsAnUnfoldedWithAlphaHelper()
-	{
-		var theme = ReadThemeSource();
-		var broken = theme.Replace(
-			"new(color.r, color.g, color.b, color.a * alpha)",
-			"color");
-
-		Assert.True(
-			theme != broken,
-			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
-		Assert.False(PinsTheBlendedFrame(broken));
-	}
-
-	[Fact]
-	public void TheThemePinRejectsALabelThatKeepsFullOpacity()
-	{
-		var theme = ReadThemeSource();
-		var broken = theme.Replace(
-			"style.normal.textColor = WithAlpha(Accent, alpha);",
-			"style.normal.textColor = Accent;");
-
-		Assert.True(
-			theme != broken,
-			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
-		Assert.False(PinsTheBlendedFrame(broken));
-	}
-
+	/// <summary>A frame draw that stops asking for blending leaves the palette's alphas with nothing to
+	/// apply them, while every call site above still reads correctly.</summary>
 	[Fact]
 	public void TheThemePinRejectsAHardCodedBlendFlag()
 	{
@@ -160,6 +95,22 @@ public sealed class OnlineUiLauncherFadeTests
 		var broken = theme.Replace(
 			"ScaleMode.StretchToFill, true, 0f, panel",
 			"ScaleMode.StretchToFill, false, 0f, panel");
+
+		Assert.True(
+			theme != broken,
+			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
+		Assert.False(PinsTheBlendedFrame(broken));
+	}
+
+	/// <summary>The shared overload must keep handing BOTH palette colours to the frame draw: a frame
+	/// drawn with the panel colour twice loses the border and still contains the call.</summary>
+	[Fact]
+	public void TheThemePinRejectsAFrameThatLosesItsBorder()
+	{
+		var theme = ReadThemeSource();
+		var broken = theme.Replace(
+			"DrawFrame(rect, Panel, Border)",
+			"DrawFrame(rect, Panel, Panel)");
 
 		Assert.True(
 			theme != broken,
@@ -190,7 +141,7 @@ public sealed class OnlineUiLauncherFadeTests
 		const long start = 1_000_000;
 		var rampStart = start + OnlineUiLauncherFade.IdleDelayMs;
 
-		// the idle window starts at the first draw pass, so every case below has to
+		// the idle window starts at the first evaluation, so every case below has to
 		// establish that baseline before it advances the clock
 		AssertAlpha(1f, fade.Evaluate(start, hovered: false));
 
@@ -235,7 +186,7 @@ public sealed class OnlineUiLauncherFadeTests
 	}
 
 	[Fact]
-	public void RepeatedEvaluationsOnTheSamePassDoNotAdvanceTheIdleTime()
+	public void RepeatedEvaluationsOnTheSameUpdateDoNotAdvanceTheIdleTime()
 	{
 		var fade = new OnlineUiLauncherFade();
 		const long start = 1_000_000;
@@ -248,7 +199,7 @@ public sealed class OnlineUiLauncherFadeTests
 			AssertAlpha(first, fade.Evaluate(midRamp, hovered: false));
 		}
 
-		// the next real pass continues the same ramp rather than restarting it
+		// the next real frame continues the same ramp rather than restarting it
 		AssertAlpha(
 			OnlineUiLauncherFade.IdleAlpha,
 			fade.Evaluate(start + OnlineUiLauncherFade.IdleDelayMs + OnlineUiLauncherFade.FadeMs, hovered: false));
@@ -309,111 +260,29 @@ public sealed class OnlineUiLauncherFadeTests
 	}
 
 	/// <summary>
-	/// The launcher's draw mechanism: the pointer fact comes from the current IMGUI event, in the same
-	/// GUI space as the button rect; the rule is asked once per pass with the runtime clock
-	/// (<c>Environment.TickCount</c>, which <c>Time.timeScale</c> does not move) and its answer is
-	/// assigned exactly once; the alpha reaches BOTH visible halves; it does not travel through the
-	/// ambient GUI tint, which the explicit-colour <c>DrawTexture</c> overload ignores; the pass builds
-	/// no label string; and the rect and the click keep their meaning.
-	/// </summary>
-	private static bool PinsTheIdleFade(string body) =>
-		body.Contains("rect.Contains(Event.current.mousePosition)", StringComparison.Ordinal)
-		&& body.Contains("var alpha = _state.LauncherFade.Evaluate(ctx.Time.NowMs, hovered);", StringComparison.Ordinal)
-		&& CountOf(body, "alpha") == 3
-		&& body.Contains("OnlineUiTheme.DrawBackground(rect, alpha);", StringComparison.Ordinal)
-		&& body.Contains("OnlineUiTheme.Launcher(alpha)", StringComparison.Ordinal)
-		&& !body.Contains("GUI.color", StringComparison.Ordinal)
-		&& !body.Contains("ctx.T(\"launcher\") + ", StringComparison.Ordinal)
-		&& body.Contains("new Rect(Screen.width - 170f, 12f, 158f, 34f);", StringComparison.Ordinal)
-		&& body.Contains("_state.Visible = !_state.Visible;", StringComparison.Ordinal);
-
-	/// <summary>
-	/// The theme half: BOTH panel overloads must hand the theme's own colours to the shared frame draw,
-	/// the alpha-taking one scaled, and the frame draw must ASK FOR BLENDING — the palette's alphas
-	/// (Panel 0.96, Border 0.9, OverlayPanel 0.58) are dead on a draw that does not, because the
-	/// explicit-colour <c>DrawTexture</c> overload hands the flag to the native draw verbatim. The
-	/// console overlay is the same fact one member over.
+	/// The theme half: the shared panel overload must hand the theme's own colours to the shared frame
+	/// draw, and that draw must ASK FOR BLENDING — the palette's alphas (Panel 0.96, Border 0.9,
+	/// OverlayPanel 0.58) are dead on a draw that does not, because the explicit-colour
+	/// <c>DrawTexture</c> overload hands the flag to the native draw verbatim. The console overlay is the
+	/// same fact one member over. The draw counts are a CEILING as well as a census: the five frame draws
+	/// plus the overlay's own are every rectangle this theme paints, so a sixth draw (the launcher
+	/// regrown in IMGUI, under any name) cannot appear unnoticed.
 	/// </summary>
 	private static bool PinsTheBlendedFrame(string themeSource)
 	{
-		var alphaOverload = Flatten(ExtractMember(themeSource, "internal static void DrawBackground(Rect rect, float alpha)"));
 		var sharedOverload = Flatten(ExtractMember(themeSource, "internal static void DrawBackground(Rect rect)"));
 		var frame = Flatten(ExtractMember(themeSource, "private static void DrawFrame("));
 		var overlay = Flatten(ExtractMember(themeSource, "internal static void DrawOverlayBackground("));
-		var withAlpha = Flatten(ExtractMember(themeSource, "private static Color WithAlpha("));
-		var launcher = Flatten(ExtractMember(themeSource, "internal static GUIStyle Launcher("));
 
-		return alphaOverload.Contains("DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha))", StringComparison.Ordinal)
-			&& sharedOverload.Contains("DrawFrame(rect, Panel, Border)", StringComparison.Ordinal)
+		return sharedOverload.Contains("DrawFrame(rect, Panel, Border)", StringComparison.Ordinal)
 			&& CountOf(frame, "ScaleMode.StretchToFill, true, 0f, panel") == 1
 			&& CountOf(frame, "ScaleMode.StretchToFill, true, 0f, border") == 4
 			&& !frame.Contains("StretchToFill, false,", StringComparison.Ordinal)
 			&& overlay.Contains("ScaleMode.StretchToFill, true, 0f, OverlayPanel", StringComparison.Ordinal)
 			&& !overlay.Contains("StretchToFill, false,", StringComparison.Ordinal)
-			// …and the census is a CEILING too: a sixth draw added later (say the panel again, under
-			// another name) would repaint the launcher opaque while the required draws stay intact
 			&& CountOf(frame, "GUI.DrawTexture(") == 5
-			// …and the whole theme file is capped the same way: its five frame draws plus the console
-			// overlay's own draw are every rectangle it paints, so a new unblended draw path cannot
-			// appear unnoticed
-			&& CountOf(Flatten(themeSource), "GUI.DrawTexture(") == 6
-			// The fold itself and the label half of it: a helper that returns its colour unchanged, or
-			// a style that keeps the palette's full opacity, leaves the control opaque while every call
-			// site above still reads correctly.
-			&& withAlpha.Contains("new(color.r, color.g, color.b, color.a * alpha)", StringComparison.Ordinal)
-			&& launcher.Contains("style.normal.textColor = WithAlpha(Accent, alpha);", StringComparison.Ordinal)
-			&& launcher.Contains("style.hover.textColor = WithAlpha(Text, alpha);", StringComparison.Ordinal)
-			&& launcher.Contains("style.active.textColor = WithAlpha(Accent, alpha);", StringComparison.Ordinal)
-			// the folds must also be the LAST word on those colours: a further assignment afterwards
-			// would put the label back to full opacity with the folds still in place
-			&& CountOf(launcher, "textColor =") == 3;
+			&& CountOf(Flatten(themeSource), "GUI.DrawTexture(") == 6;
 	}
-
-	private const string PreChangeBody = """
-		private void DrawLauncherButton(OnlineUiContext ctx)
-		{
-			var rect = new Rect(Screen.width - 170f, 12f, 158f, 34f);
-			OnlineUiTheme.DrawBackground(rect);
-			var label = ctx.T("launcher") + (_state.Visible ? " ▲" : " ▼");
-			if (GUI.Button(rect, label, OnlineUiTheme.Launcher()))
-			{
-				_state.Visible = !_state.Visible;
-				if (_state.Visible && _state.Page == OnlineUiPage.Home && ctx.Session.Role != SessionRole.None)
-				{
-					_state.Page = OnlineUiPage.Players;
-				}
-			}
-		}
-		""";
-
-	private const string DiscardedFadeBody = """
-		private void DrawLauncherButton(OnlineUiContext ctx)
-		{
-			var rect = new Rect(Screen.width - 170f, 12f, 158f, 34f);
-			var hovered = Event.current != null && rect.Contains(Event.current.mousePosition);
-			var alpha = _state.LauncherFade.Evaluate(ctx.Time.NowMs, hovered);
-			OnlineUiTheme.DrawBackground(rect);
-			if (GUI.Button(rect, _state.LauncherLabel(ctx.T("launcher")), OnlineUiTheme.Launcher()))
-			{
-				_state.Visible = !_state.Visible;
-			}
-		}
-		""";
-
-	private const string OverwrittenAlphaBody = """
-		private void DrawLauncherButton(OnlineUiContext ctx)
-		{
-			var rect = new Rect(Screen.width - 170f, 12f, 158f, 34f);
-			var hovered = Event.current != null && rect.Contains(Event.current.mousePosition);
-			var alpha = _state.LauncherFade.Evaluate(ctx.Time.NowMs, hovered);
-			alpha = 1f;
-			OnlineUiTheme.DrawBackground(rect, alpha);
-			if (GUI.Button(rect, _state.LauncherLabel(ctx.T("launcher")), OnlineUiTheme.Launcher(alpha)))
-			{
-				_state.Visible = !_state.Visible;
-			}
-		}
-		""";
 
 	private static void AssertAlpha(float expected, float actual) =>
 		Assert.True(Math.Abs(expected - actual) < 1e-4f, $"expected alpha {expected}, got {actual}");
@@ -430,9 +299,6 @@ public sealed class OnlineUiLauncherFadeTests
 
 		return count;
 	}
-
-	private static string ReadFlattenedLauncherDrawBody() =>
-		Flatten(ExtractMember(ReadSource("OnlineUiWindow.cs"), "private void DrawLauncherButton"));
 
 	private static string ReadThemeSource() => ReadSource("OnlineUiTheme.cs");
 

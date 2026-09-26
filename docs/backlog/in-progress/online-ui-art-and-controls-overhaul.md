@@ -89,13 +89,18 @@ adversarial review → one commit.
    `PreRunScript.instance.mainCanvas` / `PlayerCamera.main.mainCanvas` and instantiates
    `Special/GameSettingDropdown` and `Special/GameSettingInput`. Verifiable here: the pure parts by test,
    the rest by build and the gate set; the logged values come from one game run.
-2. **S2 — the window family on uGUI.** The window shell, tabs and page controls on the game's own control
-   prefabs, with the launcher button and its idle fade re-pinned for uGUI. The IMGUI theme stays only for
-   the surfaces not yet migrated.
-3. **S3 — free colour.** The hex field and swatch grid on the uGUI controls, the config entry and its
+2. **S2a — the native surface and the launcher (landed 2026-09-26).** CUO's canvas parented under the
+   game's canvas, ACTIVE and interactive, with the launcher button on the game's own control prefab and
+   the idle fade applied to that control. The launcher is the slice that proves the whole mechanism —
+   canvas lifecycle, a game prefab instantiated for real, uGUI input, hover, the game's own click sound,
+   the intent channel — before six pages ride on it, and it is small enough for one game run to judge.
+3. **S2b — the window family on the surface.** The window shell, tabs and page controls on the game's own
+   control prefabs, drawing on the surface S2a proved. The IMGUI theme then stays only for the surfaces
+   not yet migrated.
+4. **S3 — free colour.** The hex field and swatch grid on the uGUI controls, the config entry and its
    profile carry, the free-colour path through `PlayerColorValue`/`PlayerColorResolver`, and a live
    swatch. The wire is untouched.
-4. **S4 — retirement pass.** Retire the scoped raycast blocker for the migrated surfaces and decide the
+5. **S4 — retirement pass.** Retire the scoped raycast blocker for the migrated surfaces and decide the
    two surfaces IMGUI still owns (the world-space overlays and the command console overlay).
 
 ## What landed — S1 (2026-09-26)
@@ -129,6 +134,58 @@ itself needs one game run (self-check: `docs/evidence/selfchecks/ui/online-ui-na
   prefix, and logs a single warning naming what stayed missing if the deadline passes. S2 must not
   depend on the values before they land — it can be built against the host and the reading's shape,
   which is what this stage fixes.
+
+## What landed — S2a (2026-09-26)
+
+The mechanism first, the window second: S2a makes the game's own UI a surface CUO stands on, and proves it
+with the one control that is small enough to be judged on its own. Self-check:
+`docs/evidence/selfchecks/ui/online-ui-native-surface-selfcheck.md`.
+
+- **The live surface.** `OnlineUiSurfaceHost` (GameAdapter) creates CUO's canvas as a CHILD of the game's
+  own canvas — active, sorting 30000, with a `GraphicRaycaster`, the in-run canvas preferred over the
+  pre-run one, rebuilt when the canvas it hung on is destroyed or deactivated, and an EventSystem created
+  only when the scene has none so the game's input stack is never duplicated. A frame that arrives before
+  the game has a canvas is dropped; the surface never throws at the frame callback and owns nothing that
+  outlives the adapter.
+- **The launcher is the game's control.** `OnlineUiLauncherView` instantiates
+  `Special/GameSettingLanguage` — the same button-row prefab the game's settings screen uses for a
+  language row — and stretches it into the launcher's rect (right margin 12, top margin 12, 158 by 34,
+  top-right anchor): its sprite, 9-slice, font and scale come with the prefab instead of being guessed, and
+  the caption comes from the Runtime's own rule. The idle fade's alpha lands on the control's
+  `CanvasGroup`, so both halves fade together, and the pointer fact is POLLED from the rect (uGUI's
+  enter/exit callbacks fire on movement, so a launcher appearing under a stationary pointer would never
+  report the hover that keeps it opaque). A click queues the intent BEFORE the game's own `miniClick`
+  plays. If the game ever moves the prefab, a plain uGUI button keeps the window reachable and a warning
+  names the miss.
+- **The Runtime half.** `OnlineUiFrame` (caption + opacity), `OnlineUiIntent`/`OnlineUiIntentKind` (the
+  click, the hover flips), `OnlineUiLauncherText` (the `▲`/`▼` marker rule) and the port
+  `IOnlineUiSurface` (`Push` / `TryDequeueIntent`) — plain values, no Unity object crossing the seam, the
+  14th port and the 19th member of the adapter composition.
+- **The plugin's half.** `OnlineUiHost` drains the intents (the click calls the overlay's
+  `ToggleWindow`, which keeps the Home → Players landing while a session runs) and pushes one frame per
+  update, the rule asked with the runtime clock and the caption rebuilt only when its inputs change. The
+  IMGUI launcher, its theme style and its alpha overload are deleted; the theme now draws only the
+  surfaces that have not migrated (the modal window's frame, the quick panel, the context menu, the
+  console overlay), and a pin scans the plugin for the IMGUI launcher's own fingerprints growing back.
+- **Not yet proven, by design.** Nothing was deployed and no game ran, so the picture itself — the game's
+  prefab instantiated for real, the click, the hover, the sound, and whether the launcher reads as this
+  game — is the user's run. S2b does not depend on it beyond the mechanism it inherits.
+
+### Limits recorded with S2a
+
+- **The "no second launcher" pin is a fingerprint scan, not a proof of absence.** It looks for the theme's
+  launcher style, the alpha overload the launcher used, and the launcher's GUI-space rect over the plugin
+  tree; a launcher regrown at ANOTHER rect, or drawn through a different call, would slip past it — the
+  rect literal is what catches the ordinary regression.
+- **The surface rebuilds whenever the game's canvas is deactivated**, costing one canvas destroy and one
+  instantiation of the game's prefab on the next frame; it recovers, and the churn is unmeasured (a game
+  run shows whether it happens in practice).
+- **The launcher's rect is on no input-blocking census** (`IsPointerOverUi` and the scoped blocks cover the
+  IMGUI surfaces only), so a middle-click over the launcher still pings: pre-existing launcher behaviour,
+  and the surface's input-blocking story belongs to the S4 retirement pass.
+- **The EventSystem rule pins "no ENABLED one"** — which is what `EventSystem.current` reports; the game
+  dereferences it unguarded from its pointer-over-UI path, so the distinction is expected to be
+  unobservable in practice.
 
 ## Non-goals
 

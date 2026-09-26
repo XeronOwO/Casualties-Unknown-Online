@@ -39,6 +39,7 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IJoinFlowPresentation), ["PrepareForDirectJoin"]),
 		(typeof(ICarryPresentationPump), ["PinCarriedPresentation"]),
 		(typeof(IOnlineUiNativeFactsQuery), ["Capture"]),
+		(typeof(IOnlineUiSurface), ["Push", "TryDequeueIntent"]),
 	];
 
 	/// <summary>Where the ports must be registered from the one adapter singleton (checked as source, because the tests load the adapter reflectively and cannot resolve its container).</summary>
@@ -75,8 +76,8 @@ public class AdapterCapabilityPortShapeTests
 	}
 
 	[Fact]
-	public void Composition_CarriesExactlySeventeenMembers() =>
-		Assert.Equal(17, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+	public void Composition_CarriesExactlyNineteenMembers() =>
+		Assert.Equal(19, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

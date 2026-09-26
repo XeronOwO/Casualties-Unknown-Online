@@ -58,7 +58,7 @@ public static class GameAdapterComposition
 		// AdapterCapabilityPortShapeTests, so a new port cannot be left unwired.
 		// `IGameAdapter` itself is deliberately NOT registered: the composition is
 		// the seam's identity and its compile-time proof (the class declaration
-		// implements all thirteen ports), and nothing in the tree resolves the whole
+		// implements all fourteen ports), and nothing in the tree resolves the whole
 		// adapter — a dead registration inside the surface this change narrows is
 		// exactly the drift the shape gate exists to catch.
 		services.AddSingleton<IGameIntegrationLifecycle>(p => p.GetRequiredService<GameAdapter>());
@@ -74,6 +74,9 @@ public static class GameAdapterComposition
 		services.AddSingleton<IJoinFlowPresentation>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ICarryPresentationPump>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IOnlineUiNativeFactsQuery>(p => p.GetRequiredService<GameAdapter>());
+		// The Online UI's live surface (S2a): the adapter owns CUO's canvas under the game's canvas and
+		// the game's own launcher control on it, and the plugin drives it with frames over this port.
+		services.AddSingleton<IOnlineUiSurface>(p => p.GetRequiredService<GameAdapter>());
 		// The world library (decision 198): the worlds and backups the Online UI's Worlds page
 		// manages, and the restore that replaces one world's live snapshot with an archive the
 		// player picked. It is an ICuoService because an armed restore runs at a frame boundary

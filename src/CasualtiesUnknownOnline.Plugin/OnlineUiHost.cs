@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -63,6 +64,16 @@ internal sealed class OnlineUiHost
 	// The one-shot read-only probe of the game's own UI (S1 of the Online UI overhaul) — the adapter
 	// reads, this class only decides nothing and the Runtime's policy decides when to stop.
 	private readonly OnlineUiNativeFactsProbe _nativeFacts;
+	// The LIVE native surface (S2a): the game's own launcher control, which this class drives with a
+	// frame per update and reads back as intents. Optional like every adapter port — without one the
+	// Online UI is simply unreachable from the game's UI.
+	private readonly IOnlineUiSurface? _surface;
+	private readonly OnlineUiLauncherFade _launcherFade = new();
+
+	private bool _launcherHovered;
+	private string _launcherCaption = "";
+	private bool _launcherLabelOpen;
+	private string? _launcherLabel;
 
 	internal OnlineUiHost(IServiceProvider services, ConfigEntry<string> quickPanelKey, LobbySwitchActions lobby)
 	{
@@ -100,6 +111,7 @@ internal sealed class OnlineUiHost
 		// page says so instead of throwing.
 		_worldLibrary = services.GetService<IWorldLibrary>();
 		_gateState = services.GetService<IStartGateState>();
+		_surface = services.GetService<IOnlineUiSurface>();
 		_nativeFacts = new OnlineUiNativeFactsProbe(
 			services.GetRequiredService<ILogger<OnlineUiNativeFactsProbe>>(),
 			services.GetService<IOnlineUiNativeFactsQuery>());
@@ -223,6 +235,66 @@ internal sealed class OnlineUiHost
 		// S1's read-only probe of the game's own UI: it needs no surface of its own, asks at most once
 		// per interval, and stops for good once it has a complete reading (see the Runtime policy).
 		_nativeFacts.Update(_time.NowMs);
+
+		// S2a's live surface: what the player did on the game's own launcher first (so a click this
+		// frame is already reflected in the caption below), then this frame's state.
+		DrainSurfaceIntents();
+		PushSurfaceFrame();
+	}
+
+	/// <summary>
+	/// Drains what the player did on the native surface and turns it into the same calls the IMGUI
+	/// launcher made before it moved onto the game's own button: a click toggles the window, a hover flips
+	/// the idle fade's only other input.
+	/// </summary>
+	private void DrainSurfaceIntents()
+	{
+		if (_surface is null)
+		{
+			return;
+		}
+
+		while (_surface.TryDequeueIntent(out var intent))
+		{
+			switch (intent.Kind)
+			{
+				case OnlineUiIntentKind.LauncherToggled:
+					_onlineUi.ToggleWindow(_session.Role);
+					break;
+				case OnlineUiIntentKind.LauncherHoverEntered:
+					_launcherHovered = true;
+					break;
+				case OnlineUiIntentKind.LauncherHoverLeft:
+					_launcherHovered = false;
+					break;
+			}
+		}
+	}
+
+	/// <summary>
+	/// The launcher's frame: the caption for the window's current state and the opacity the idle rule
+	/// derives from the pointer fact the surface reported. The caption is rebuilt only when its inputs
+	/// change — the launcher holds one caption for seconds at a time, and concatenating it on every
+	/// update would allocate for nothing (the same discipline the IMGUI launcher's cached label had).
+	/// </summary>
+	private void PushSurfaceFrame()
+	{
+		if (_surface is null)
+		{
+			return;
+		}
+
+		var caption = _localization.T("launcher");
+		var open = _onlineUi.IsWindowVisible;
+		var label = _launcherLabel;
+		if (label is null || _launcherCaption != caption || _launcherLabelOpen != open)
+		{
+			_launcherCaption = caption;
+			_launcherLabelOpen = open;
+			label = _launcherLabel = OnlineUiLauncherText.Label(caption, open);
+		}
+
+		_surface.Push(new OnlineUiFrame(label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered)));
 	}
 
 	/// <summary>

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (7 rows): the canvas sources, uiScale, the row layout, the destructive settings-menu prefab, the serialised font/9-slice
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (9 rows): the canvas sources and uiScale, the language-row prefab shape, PlayUISound→Sound.cs, the EventSystem rule, the launcher's rect precedent
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (6 rows): the IMGUI theme untouched (launcher pins green), the adapter port pattern, the input guard, mod UI, the plugin's one pre-existing adapter coupling, wire/save/gameplay untouched
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (9 rows): census, report, policy, colour, the host pins, six mutation controls, the plugin driver, the port census, gates/structure
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (7 rows): the four remaining IMGUI surfaces, the fingerprint scan against a second launcher, the modal guard, the other ports, the S1 probe, mod UI/console, wire/save/gameplay untouched
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (12 rows): the caption, the fade matrix, the plugin's push, the intents, the rect, the whole-surface alpha, the canvas/rebuild pin, the click sound, the EventSystem rule, nine mutation controls, the port census, gates/structure
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: the probe logs one reading under `CUO UI native facts` plus a warning naming the missing parts; the pure halves by unit cases, the host by source pins + six mutation controls; the four values need the user's game run
+      peer log comparison, hotrepl assertions) is decided — evidence: the pure halves by unit cases, the surface by source pins + nine real-source mutation controls; the picture, hover, click and sound need the user's game run (selfcheck §7)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket's own `## Decision (2026-09-26, user ruling)` froze the uGUI destination and S1's scope; item and order taken from the ticket's stages and the handoff (no work-choice question asked)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0 (cuo-s1-format-final.txt); full suite WITH build 4183 + 288, exit 0 (cuo-s1-full-gate.txt); focused OnlineUi 151/151, new classes 48/48
+      process violation — evidence: the ticket's `## Decision (2026-09-26, user ruling)` froze the uGUI destination; the S2a/S2b split is a recorded scope call in the ticket's stage list, no work-choice question asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0; focused 192/192 (cuo-s2a-focus-final.txt); format exit 0; gates 288/288 (cuo-s2a-gates-complete.txt); full WITH build 4205 + 288 (cuo-s2a-full-gate.txt)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: GameAdapter.cs 573 lines (< 600); the 13 new files are 14-179 lines, one top-level type each; the capture holds one nullable host field and no boolean sprawl
+      dead mechanisms deleted in the same round) — evidence: adapter files 212/196 lines, Runtime 8-30, GameAdapter.cs 588 (< 600); launcher draw, theme style, alpha overload and window-state fade/label deleted in the same round
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

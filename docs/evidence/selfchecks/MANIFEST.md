@@ -142,7 +142,7 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | players/player-interaction-service-split-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-interaction-visibility-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-inventory-take-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
-| players/player-color-and-head-tags-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| players/player-color-and-head-tags-selfcheck.md | Players | current | the head-tag half still holds; its COLOUR half is superseded by S3 of the Online UI overhaul (`in-progress/online-ui-art-and-controls-overhaul.md`): the `PlayerColorIndex` entry, `PlayerColorResolver.TryGet` and the preset-only picker it describes are deleted, and the colour is a free `[UI] PlayerColor` hex value now |
 | players/player-push-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-quick-panel-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/remove-legacy-view-items-remote-inventory-selfcheck.md | Players | current | candidate current evidence; verify before citing |
@@ -276,4 +276,5 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | ui/online-ui-native-facts-selfcheck.md | UI | current | S1 of the Online UI overhaul: the read-only probe of the game's own UI (font asset, settings-row style, chrome census, `PlayerCamera.uiScale`) plus the uGUI host under the game's canvas; the four values await one game run (`in-progress/online-ui-art-and-controls-overhaul.md`) |
 | ui/online-ui-native-surface-selfcheck.md | UI | current | S2a of the Online UI overhaul: the LIVE surface under the game's canvas and the launcher moved onto the game's own button-row prefab, with the idle fade applied to it and the click returning as an intent; the visual result awaits one game run (`in-progress/online-ui-art-and-controls-overhaul.md`) |
 | ui/online-ui-window-family-selfcheck.md | UI | current | S2b of the Online UI overhaul: the window shell, the tab row and all six pages moved off IMGUI onto the game's own settings rows through a Runtime display list and an intent channel; the look, the layout and the input await one game run (`in-progress/online-ui-art-and-controls-overhaul.md`) |
+| ui/online-ui-free-color-selfcheck.md | UI | current | S3 of the Online UI overhaul: the player colour became a free hex value with a palette of blocks, a pure Runtime codec and a new local preference that profiles carry; how a tinted block reads and how the field takes typing await one game run (`in-progress/online-ui-art-and-controls-overhaul.md`) |
 

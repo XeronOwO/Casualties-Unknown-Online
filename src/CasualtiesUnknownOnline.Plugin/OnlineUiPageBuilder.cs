@@ -114,6 +114,26 @@ internal sealed class OnlineUiPageBuilder
 		return OnlineUiElementModel.TextField(id, label, value, width, maxLength);
 	}
 
+	/// <summary>
+	/// A block of <paramref name="color"/> appended to <paramref name="elements"/>, for a row built by the
+	/// caller — the colour picker's swatch. <paramref name="clicked"/> null, or an empty id, makes it a
+	/// PREVIEW rather than a control: nothing is registered, so the block reports nothing when it is
+	/// clicked, exactly as the model says an element with no id does.
+	/// </summary>
+	internal OnlineUiElementModel ColorSwatchElement(
+		string id,
+		PlayerColorValue color,
+		Action? clicked = null,
+		float width = 0f)
+	{
+		if (clicked is not null && id.Length > 0)
+		{
+			_actions[id] = _ => clicked();
+		}
+
+		return OnlineUiElementModel.ColorSwatch(id, color.ToRgba(), width);
+	}
+
 	/// <summary>A checkbox with its caption; <paramref name="toggled"/> gets the value it now holds.</summary>
 	internal void Toggle(string id, string text, bool value, Action<bool> toggled)
 	{

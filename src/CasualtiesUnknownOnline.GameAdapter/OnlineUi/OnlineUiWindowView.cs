@@ -372,7 +372,7 @@ internal sealed class OnlineUiWindowView
 
 		_structureDirty = true;
 		var view = OnlineUiControlView.Create(element, parent, _typography, _report);
-		if (!view.UsesGamePrefab && _reportedMissingPrefabs.Add(element.Kind))
+		if (view.MissedGamePrefab && _reportedMissingPrefabs.Add(element.Kind))
 		{
 			_log.LogWarning(
 				"Online UI window: the game's own row prefab for {Kind} could not be loaded — that control falls back to a plain placeholder.",
@@ -478,7 +478,7 @@ internal sealed class OnlineUiWindowView
 		imageType = Image.Type.Simple;
 		pixelsPerUnit = 1f;
 
-		var prefab = Resources.Load<GameObject>(OnlineUiControlView.ButtonRowPrefabPath);
+		var prefab = Resources.Load<GameObject>(OnlineUiControlFactory.ButtonRowPrefabPath);
 		if (prefab is null)
 		{
 			typography = new OnlineUiControlView.Typography(TMP_Settings.defaultFontAsset, fallbackSize);

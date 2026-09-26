@@ -31,4 +31,9 @@ public enum OnlineUiElementKind
 
 	/// <summary>A slider over a continuous range, with its value shown beside it.</summary>
 	Slider,
+
+	/// <summary>A block of one colour (ticket online-ui-art-and-controls-overhaul, S3): the colour
+	/// picker's swatch. With an id it is a control the player clicks to choose that colour; with no id it
+	/// is the plain preview of the colour the player carries now, which reports nothing.</summary>
+	ColorSwatch,
 }

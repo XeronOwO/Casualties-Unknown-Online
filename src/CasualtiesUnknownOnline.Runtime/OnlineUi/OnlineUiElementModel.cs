@@ -30,6 +30,8 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// <item><description><see cref="OnlineUiElementKind.Slider"/> — <c>Id</c>, <c>Text</c> (the row's
 /// label), <c>Number</c>, <c>Minimum</c>, <c>Maximum</c>, <c>Value</c> (the formatted value shown beside
 /// the slider), <c>Width</c>.</description></item>
+/// <item><description><see cref="OnlineUiElementKind.ColorSwatch"/> — <c>Id</c> (EMPTY = a preview that
+/// reports nothing), <c>Color</c> (the block's own fill), <c>Width</c>.</description></item>
 /// </list>
 ///
 /// <para>
@@ -195,6 +197,32 @@ public readonly record struct OnlineUiElementModel(
 			Number: value,
 			Minimum: minimum,
 			Maximum: maximum,
+			Flag: false,
+			OptionIndex: -1,
+			MaxLength: 0,
+			Options: null);
+
+	/// <summary>
+	/// A block of <paramref name="color"/>. A non-empty <paramref name="id"/> makes it a swatch the player
+	/// clicks, and that click arrives as that id; an EMPTY id makes it a preview of the colour the player
+	/// carries now, which is nothing to click and reports nothing — the same way a label carries no id.
+	/// </summary>
+	public static OnlineUiElementModel ColorSwatch(
+		string id,
+		OnlineUiNativeRgba color,
+		float width = 0f) =>
+		new(
+			OnlineUiElementKind.ColorSwatch,
+			Id: id,
+			Text: "",
+			Style: OnlineUiTextStyle.Default,
+			Color: color,
+			Width: width,
+			Selected: false,
+			Value: "",
+			Number: 0f,
+			Minimum: 0f,
+			Maximum: 0f,
 			Flag: false,
 			OptionIndex: -1,
 			MaxLength: 0,

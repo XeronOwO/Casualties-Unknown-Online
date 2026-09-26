@@ -39,11 +39,11 @@ internal sealed class OnlineUiOverlay
 	/// <summary>The IP-direct config editor (address/port/display name fields).</summary>
 	internal IpDirectConfigEditor? IpConfig;
 
-	/// <summary>The local player color config editor (palette selection).</summary>
+	/// <summary>The local player colour config editor (the stored colour, or automatic).</summary>
 	internal PlayerColorConfigEditor? ColorConfig;
 
-	/// <summary>Invoked when the user changes the local player color palette index.</summary>
-	internal Action<int>? ChangePlayerColor;
+	/// <summary>Invoked when the user picks a local player colour; null returns the marker to automatic.</summary>
+	internal Action<PlayerColorValue?>? ChangePlayerColor;
 
 	/// <summary>Full CUO config template store (saved named BepInEx profiles).</summary>
 	internal ConfigurationProfileStore? Profiles;

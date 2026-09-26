@@ -27,9 +27,11 @@ internal static class BodyPatches
 		// GetComponentInParent: the driver lives on the Body GameObject.
 		// == null: Unity object (a missing component is managed-null, same check).
 		// A remote clone and a dead/unconscious carried body (the pinned-ragdoll
-		// presentation) skip the original simulation. A conscious/alive carried
-		// rider does NOT: the carry relation owns its transform, not its
-		// simulation, so it keeps the whole native per-frame pass.
+		// presentation) skip the original physics step. Their per-frame pass is
+		// BodyUpdatePatch's call: the clone gets visuals only, the pinned ragdoll
+		// runs its vitals stages. A conscious/alive carried rider does NOT skip:
+		// the carry relation owns its transform, not its simulation, so it keeps
+		// the whole native per-frame pass.
 		private static bool Prefix(Body __instance) =>
 			!CarriedBodySimulation.SkipsNativeSimulation(
 				__instance.GetComponentInParent<RemoteBodyDriver>() != null,
@@ -44,20 +46,17 @@ internal static class BodyPatches
 	{
 		// Limb.Update (Limb.cs:498+) simulates wounds/infection, writes shader
 		// params from those numbers and consumes Random (Limb.cs:535) — none of
-		// it applies to a render clone (its vitals are not synced), while a
-		// carried rider's own limbs must keep simulating it. The decision is
-		// the body's, not the limb's: read the parent body's rule.
+		// it applies to a render clone (its vitals are not synced on this client).
+		// Every LOCAL body's limbs keep simulating, carried or not: a dead or
+		// unconscious carried body keeps the vital-sign stages of its per-frame
+		// pass, and the game runs Limb.Update for a corpse too (no alive guard in
+		// it). The limb pass is the limb half of the carried-body family, decided
+		// by the proxy flag alone (CarriedBodySimulation.RunsLimbSimulation).
 		// GetComponentInParent: the driver lives on the Body GameObject.
 		// == null: Unity object (a missing component is managed-null, same check).
-		private static bool Prefix(Limb __instance)
-		{
-			var body = __instance.body; // Unity object — ==
-			return !CarriedBodySimulation.SkipsNativeSimulation(
-				__instance.GetComponentInParent<RemoteBodyDriver>() != null,
-				CarriedBodyDriver.IsCarryingInParent(__instance),
-				body != null && body.alive,
-				body != null && body.conscious);
-		}
+		private static bool Prefix(Limb __instance) =>
+			CarriedBodySimulation.RunsLimbSimulation(
+				__instance.GetComponentInParent<RemoteBodyDriver>() != null);
 	}
 
 	[HarmonyPatch(typeof(Body), "Attack")]

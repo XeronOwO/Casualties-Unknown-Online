@@ -1,4 +1,4 @@
-﻿# A carried rider's own body stops simulating (flat ECG, twitching limbs)
+# A carried rider's own body stops simulating (flat ECG, twitching limbs)
 
 - Status: Review
 - Priority: Critical
@@ -65,8 +65,9 @@ not its simulation. Recorded as decision 216.
 - `CarriedBodySimulation` (new, `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/`) makes the
   skip decision in ONE place for `Body.FixedUpdate`, `Body.Update` and `Limb.Update`: a remote clone
   skips (presentation proxy), a conscious/alive carried rider does not, and a dead/unconscious
-  carried body keeps the frozen pinned-ragdoll presentation (its pose is a physics ragdoll pinned to
-  a moving carrier — recorded as its own ticket, `todo/carried-unconscious-body-simulation.md`).
+  carried body keeps the pinned-ragdoll presentation (its pose is a physics ragdoll pinned to
+  a moving carrier; the vitals half of its pass followed in
+  `review/carried-unconscious-body-simulation.md`).
 - `BodyUpdatePatch` now gates only the rider's movement input before the original Update runs:
   `moveDir` is zeroed and the game's own private `movingAllowed` is held false, which is the
   movement-force (`Body.cs:127`) and jump (`Body.cs:2114`) gate AND the native idle-sit condition

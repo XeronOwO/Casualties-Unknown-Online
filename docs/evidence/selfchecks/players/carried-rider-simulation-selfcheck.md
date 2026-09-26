@@ -1,4 +1,4 @@
-﻿# Carried rider keeps its own per-frame simulation — self-check (2026-09-21)
+# Carried rider keeps its own per-frame simulation — self-check (2026-09-21)
 
 Ticket: `docs/backlog/review/carried-rider-own-body-stops-simulating.md` (decision 216). Cycle scope:
 a carried rider's own client must keep the game's per-frame body simulation; only the transform and
@@ -59,5 +59,6 @@ could not re-run the build or the suite; every number in this file is this cycle
   presentation that the twitch candidates all lived in (fake visual standing, per-frame re-freeze of
   the limbs, pose-input neutralization) and made the cadence measurable, but the confirmation is the
   runtime trace, not this record.
-- A dead or unconscious carried body is deliberately out of scope and keeps the frozen presentation;
-  its own ticket records what it would take (`todo/carried-unconscious-body-simulation.md`).
+- A dead or unconscious carried body was deliberately out of scope in this cycle and kept the frozen
+  presentation; the follow-up cycle gave it the vitals half
+  (`review/carried-unconscious-body-simulation.md`).

@@ -1,4 +1,5 @@
 using System.Globalization;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -17,8 +18,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 ///   its delta (the ECG animation driver the flat trace was missing), the pose
 ///   and movement gates and how many carry placement writes and frames the
 ///   window saw — the cadence that a twitch would show up in.
-/// The per-second trace is Debug on purpose (high frequency by construction);
-/// a diagnostic run raises <c>Logging.MinimumLevel</c> to capture it.
+/// The <c>mode=</c> field names the treatment the body patches apply, taken from
+/// <see cref="CarriedBodySimulation.Treatment"/>: <c>native-simulation</c>,
+/// <c>vitals-only</c> (the pinned ragdoll whose vitals still advance) or
+/// <c>pinned-ragdoll</c> (a proxied clone), so a log from a real session says
+/// which simulation a carried body actually got. The per-second trace is Debug on
+/// purpose (high frequency by construction); a diagnostic run raises
+/// <c>Logging.MinimumLevel</c> to capture it.
 /// </summary>
 internal sealed class CarrySimulationTrace
 {
@@ -41,10 +47,10 @@ internal sealed class CarrySimulationTrace
 
 	/// <summary>
 	/// Records one frame of the local carried rider and emits the per-second
-	/// trace. <paramref name="keepsNativeSimulation"/> is the mode the body
-	/// patches are applying this frame.
+	/// trace. <paramref name="mode"/> is the treatment the body patches are
+	/// applying to this body this frame.
 	/// </summary>
-	internal void Tick(Body rider, ulong carrierSteamId, bool keepsNativeSimulation, ILogger log)
+	internal void Tick(Body rider, ulong carrierSteamId, CarriedBodySimulation.Mode mode, ILogger log)
 	{
 		var now = Time.unscaledTime;
 		if (!_windowOpen)
@@ -66,7 +72,7 @@ internal sealed class CarrySimulationTrace
 		log.LogDebug(
 			"[Carry] rider {Carrier} frame window: mode={Mode} frames={Frames} carryFollows={Follows} elapsed={Elapsed} heartRate={HeartRate} heartProg={HeartProg} heartProgPerSecond={HeartProgRate} heartRateDrift={HeartRateDrift} standing={Standing} rbSimulated={RbSimulated} grounded={Grounded} velocity=({VelX},{VelY}) moveDir=({MoveX},{MoveY}) movingAllowed={MovingAllowed} moved={Moved}",
 			carrierSteamId,
-			keepsNativeSimulation ? "native-simulation" : "pinned-ragdoll",
+			ModeLabel(mode),
 			_windowFrames,
 			_windowCarryFollows,
 			Format(elapsed),
@@ -93,11 +99,11 @@ internal sealed class CarrySimulationTrace
 	/// that instant, so a log from a real session says whether the body's
 	/// simulation runs at all.
 	/// </summary>
-	internal static void LogAttached(Body rider, ulong carrierSteamId, bool keepsNativeSimulation, ILogger log) =>
+	internal static void LogAttached(Body rider, ulong carrierSteamId, CarriedBodySimulation.Mode mode, ILogger log) =>
 		log.LogInformation(
 			"[Carry] rider simulation attached to carrier {Carrier}: mode={Mode} standing={Standing} rbSimulated={RbSimulated} heartRate={HeartRate} heartProg={HeartProg} (set Logging.MinimumLevel=Debug for the per-second rider trace)",
 			carrierSteamId,
-			keepsNativeSimulation ? "native-simulation" : "pinned-ragdoll",
+			ModeLabel(mode),
 			rider.standing,
 			rider.rb.simulated,
 			Format(rider.heartRate),
@@ -116,6 +122,17 @@ internal sealed class CarrySimulationTrace
 			rider.rb.simulated,
 			Format(rider.heartRate),
 			Format(rider.heartProg));
+
+	/// <summary>
+	/// The trace word for the rule's treatment. One word per mode, so a session
+	/// log says which simulation a carried body got without a decoder.
+	/// </summary>
+	private static string ModeLabel(CarriedBodySimulation.Mode mode) => mode switch
+	{
+		CarriedBodySimulation.Mode.Full => "native-simulation",
+		CarriedBodySimulation.Mode.VitalsOnly => "vitals-only",
+		_ => "pinned-ragdoll",
+	};
 
 	private void OpenWindow(Body rider, float now)
 	{

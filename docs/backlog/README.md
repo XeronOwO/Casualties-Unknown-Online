@@ -47,7 +47,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [A dead or unconscious carried body stops simulating](todo/carried-unconscious-body-simulation.md) — **Medium** — vitals frozen behind the pinned pose.
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
 - [Two native DamageBlock callers stay unhooked](todo/unhooked-damage-block-callers.md) — **Low-Medium** — the footstep crush and the burrow report nothing.
 - [Local-only item and body sounds](todo/unhooked-item-and-body-sound-families.md) — **Low-Medium** — medical, tool and gesture clips report nothing.
@@ -188,6 +187,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
 - [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
 - [CUO launcher button covers the view](review/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
+- [A dead or unconscious carried body stops simulating](review/carried-unconscious-body-simulation.md) — **Medium** — vitals advance behind the pinned pose.
 
 ### Future
 

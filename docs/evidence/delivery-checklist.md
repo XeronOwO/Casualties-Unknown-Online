@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: the four direct writers (census txt), curTimeScale's only writer, the HUD text/icon split, the apply-scope seam
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: Body.cs:2574-2591 chain, tempDiffFromNormal's only writer (:3367), Ragdoll's standing guard (:1719), Limb.Update has no alive guard
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3: quake adopted / guest timer frozen / console kept / reload and run-start unreached; the routed family and the sleep gate untouched
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 7 rows - the rule contract, the pinned adoption shape and order, the census, structure and gates
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3: four populations classified, FixedUpdate still skipped, the limb pass follows the body rule, every exclusion given a reason
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 8 rows - the rule, the stage set, the two freezes, the exclusions, the limb gate, the physics gate, dead code, the trace
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: red 8/16/24 on the HEAD-body adapter (%TEMP%/cuo-red-quake-direct-write.txt); focused 24/24; full with build 4027/4027 + gates 208/208
+      peer log comparison, hotrepl assertions) is decided — evidence: red 14/23/37 on the HEAD-shaped adapter (%TEMP%/cuo-red2-carried-vitals.txt); focused 37/37; family 273/273; gates 209/209
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the owner's "follow vanilla" ruling froze the design (decision 226); no work-item question asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full WITH build 4027/4027 + gates 208/208 exit 0 (%TEMP%/cuo-full-quake-direct-write.txt); dotnet format exit 0
+      process violation — evidence: the handoff instruction and the ticket's own Goal froze the design (vitals half, pinned pose); no work-item question asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full WITH build 4054/4054 + gates 208/208 exit 0 (%TEMP%/cuo-full-carried-vitals.txt); dotnet format exit 0
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: WorldTimeSync 511→526 lines, new rule 60 lines, no state bool, nothing left dead; the pin's census covers the adoption shape
+      dead mechanisms deleted in the same round) — evidence: BodyUpdatePatch 339->411 lines, CarriedBodySimulation 62->127, no new state, IsCarryingInParent deleted with its last caller
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

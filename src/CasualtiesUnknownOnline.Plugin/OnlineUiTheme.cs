@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -30,8 +31,6 @@ internal static class OnlineUiTheme
 
 	internal static readonly Color Error = new(0.9f, 0.38f, 0.34f, 1f);
 
-	private static GUIStyle? _window;
-
 	private static GUIStyle? _button;
 
 	private static GUIStyle? _closeButton;
@@ -40,15 +39,11 @@ internal static class OnlineUiTheme
 
 	private static GUIStyle? _tabInactive;
 
-	private static GUIStyle? _label;
-
 	private static GUIStyle? _mutedLabel;
 
-	private static GUIStyle? _title;
+	private static GUIStyle? _label;
 
 	private static GUIStyle? _section;
-
-	internal static GUIStyle Window() => _window ??= CreateWindow();
 
 	internal static GUIStyle Button() => _button ??= CreateButton();
 
@@ -58,13 +53,19 @@ internal static class OnlineUiTheme
 		? _tabActive ??= CreateTab(active: true)
 		: _tabInactive ??= CreateTab(active: false);
 
-	internal static GUIStyle Label() => _label ??= CreateLabel();
-
 	internal static GUIStyle MutedLabel() => _mutedLabel ??= CreateMutedLabel();
 
-	internal static GUIStyle Title() => _title ??= CreateTitle();
+	/// <summary>The body-text style of the surfaces still drawn in IMGUI (the quick panel's member card).</summary>
+	internal static GUIStyle Label() => _label ??= CreateLabel();
 
 	internal static GUIStyle Section() => _section ??= CreateSection();
+
+	/// <summary>
+	/// One theme colour as the plain value the window model and the game's own controls carry: the
+	/// palette stays in this file (the one place that owns it), and the surface receives the channels
+	/// instead of a palette of its own (ticket online-ui-art-and-controls-overhaul, S2b).
+	/// </summary>
+	internal static OnlineUiNativeRgba ToRgba(Color color) => new(color.r, color.g, color.b, color.a);
 
 	internal static GUIStyle Status(Color color)
 	{
@@ -103,28 +104,6 @@ internal static class OnlineUiTheme
 	/// visible behind the command history.</summary>
 	internal static void DrawOverlayBackground(Rect rect) =>
 		GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, OverlayPanel, 0f, 0f);
-
-	private static GUIStyle CreateWindow()
-	{
-		var style = new GUIStyle(GUI.skin.window)
-		{
-			fontSize = 13,
-			padding = new RectOffset(0, 0, 0, 0),
-		};
-		style.normal.background = null;
-		style.normal.textColor = Text;
-		// The default GUI window style has hover/active/focused backgrounds
-		// that tint the whole window on click; keep the click visual neutral so
-		// the Online UI background does not "switch color". Input blocking is
-		// handled by OnlineMenuInputGuard, not by a visual active state.
-		style.hover.background = null;
-		style.hover.textColor = Text;
-		style.active.background = null;
-		style.active.textColor = Text;
-		style.focused.background = null;
-		style.focused.textColor = Text;
-		return style;
-	}
 
 	private static GUIStyle CreateButton()
 	{
@@ -187,18 +166,6 @@ internal static class OnlineUiTheme
 			richText = true,
 		};
 		style.normal.textColor = Muted;
-		return style;
-	}
-
-	private static GUIStyle CreateTitle()
-	{
-		var style = new GUIStyle(GUI.skin.label)
-		{
-			fontSize = 16,
-			fontStyle = FontStyle.Bold,
-			alignment = TextAnchor.MiddleLeft,
-		};
-		style.normal.textColor = Accent;
 		return style;
 	}
 

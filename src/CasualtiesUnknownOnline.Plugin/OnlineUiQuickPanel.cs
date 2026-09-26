@@ -81,7 +81,7 @@ internal sealed class OnlineUiQuickPanel
 		var targetRow = rows.First(row => row.SteamId == target);
 		DrawTargetSelector(ctx, rows, target);
 		GUILayout.Space(4f);
-		OnlineUiMemberListDrawer.Draw(ctx, [targetRow]);
+		OnlineUiMemberListDrawer.BuildImgui(ctx, [targetRow]);
 
 		var localRow = rows.FirstOrDefault(r => r.IsLocal);
 		if (localRow is { CanRequestDrop: true, InWorld: true })

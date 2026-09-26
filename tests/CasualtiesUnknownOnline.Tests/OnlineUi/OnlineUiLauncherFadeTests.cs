@@ -17,25 +17,24 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// clock, its answer handed to the surface) and the Unity half is the surface itself (the alpha landing
 /// on the launcher's CanvasGroup) — neither is visible from this file any more.
 ///
-/// What stays here besides the matrix is the IMGUI theme's own contract, which S2a does not end: the
-/// surfaces the theme still draws must keep drawing blended frames, and its draw census is a CEILING, so
-/// a new unblended draw path — or a launcher quietly regrown in IMGUI — cannot appear unnoticed.
+/// What stays here besides the matrix is the IMGUI theme's own contract, which neither S2a nor S2b ends:
+/// the surfaces the theme still draws must keep drawing blended frames, and its draw census is a CEILING,
+/// so a new unblended draw path — or a launcher quietly regrown in IMGUI — cannot appear unnoticed.
 /// </summary>
 public sealed class OnlineUiLauncherFadeTests
 {
 	/// <summary>
-	/// Every surface that still draws through the IMGUI theme, and the draw it must make. Four of the
+	/// Every surface that still draws through the IMGUI theme, and the draw it must make. Three of the
 	/// five rows the panel-blending ticket enumerated are left: S2a moved the launcher onto the game's own
-	/// control, so the modal window's frame, the quick panel, the context menu and the console overlay are
-	/// the remaining ones. A surface that hand-rolls an unblended rectangle of its own, or a new surface
-	/// that appears without joining this census, is the same defect one level up.
+	/// control, and S2b moved the modal window family with it, so the quick panel, the context menu and
+	/// the console overlay are the remaining ones. A surface that hand-rolls an unblended rectangle of its
+	/// own, or a new surface that appears without joining this census, is the same defect one level up.
 	/// </summary>
 	[Fact]
 	public void EveryRemainingThemedSurface_DrawsThroughTheBlendedFrame()
 	{
 		var surfaces = new (string File, string Call)[]
 		{
-			("OnlineUiWindow.cs", "OnlineUiTheme.DrawBackground(new Rect(0f, 0f, _windowRect.width, _windowRect.height));"),
 			("OnlineUiQuickPanel.cs", "OnlineUiTheme.DrawBackground(rect);"),
 			("OnlineUiPlayerContextMenu.cs", "OnlineUiTheme.DrawBackground(rect);"),
 			("CommandConsoleOverlay.cs", "OnlineUiTheme.DrawOverlayBackground(rect);"),

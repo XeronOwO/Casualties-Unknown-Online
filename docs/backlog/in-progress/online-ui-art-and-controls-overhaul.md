@@ -94,7 +94,7 @@ adversarial review → one commit.
    the idle fade applied to that control. The launcher is the slice that proves the whole mechanism —
    canvas lifecycle, a game prefab instantiated for real, uGUI input, hover, the game's own click sound,
    the intent channel — before six pages ride on it, and it is small enough for one game run to judge.
-3. **S2b — the window family on the surface.** The window shell, tabs and page controls on the game's own
+3. **S2b — the window family on the surface (landed 2026-09-26).** The window shell, tabs and page controls on the game's own
    control prefabs, drawing on the surface S2a proved. The IMGUI theme then stays only for the surfaces
    not yet migrated.
 4. **S3 — free colour.** The hex field and swatch grid on the uGUI controls, the config entry and its
@@ -186,6 +186,72 @@ with the one control that is small enough to be judged on its own. Self-check:
 - **The EventSystem rule pins "no ENABLED one"** — which is what `EventSystem.current` reports; the game
   dereferences it unguarded from its pointer-over-UI path, so the distinction is expected to be
   unobservable in practice.
+
+## What landed — S2b (2026-09-26)
+
+The window that S2a made reachable stopped being an IMGUI panel of its own. It is now a display list the
+game's own settings rows render, driven through the same surface, the same frames and the same intent
+channel the launcher proved. Self-check:
+`docs/evidence/selfchecks/ui/online-ui-window-family-selfcheck.md`.
+
+- **The model (Runtime, pure).** `OnlineUiElementKind` (label, button, text field, toggle, dropdown,
+  slider), `OnlineUiTextStyle`, `OnlineUiElementModel` (one flat record, a factory per kind),
+  `OnlineUiRowModel`, `OnlineUiWindowModel` and `OnlineUiControlIds`; `OnlineUiFrame` carries the window
+  (null = closed), `OnlineUiIntent` carries the control id and the payload, and
+  `OnlineUiRowLayout.LineOf` is the pure wrap rule — whether a member's twelve buttons form two lines or
+  three is decided, and tested, without a Unity runtime.
+- **The controls are the game's.** The adapter instantiates the settings screen's own rows:
+  `Special/GameSettingLanguage` for every button and the tab row, `GameSettingBool` for a checkbox,
+  `GameSettingDropdown` for the three choices, `GameSettingFloat` for a slider (child 2 shows the value),
+  `GameSettingInt`'s `TMP_InputField` for a text field. The window's frame reuses that prefab's sprite,
+  `Image.type` and pixels-per-unit multiplier, and every label takes the game's font and size from it — so
+  the only thing CUO still chooses is the tint.
+- **The shell.** `OnlineUiWindowView` owns the frame, the draggable title bar, the close control, the tab
+  row and the scrolling page, and reconciles one model per frame: a control is reused when its kind and id
+  still match, written only where it changed, and destroyed when the model drops it. The frame is a raycast
+  target, so a click inside the window can no longer reach the world behind it, and the window's own rect
+  is polled into the fact that keeps an in-world right-click out of the world menu.
+- **The plugin builds, it does not draw.** `OnlineUiPageBuilder` is what a page writes to; every control
+  registers the action its id carries, so the model goes out as a value and the intent comes back to the
+  same registration (an id the current model no longer offers is dropped and logged). `OnlineUiWindow`
+  keeps the tab row and the `switch (_state.Page)` dispatch; the six drawers became `Build(ctx, page)`.
+- **The user's three asks, where S2b touches them.** The "dropdown" that listed buttons inline is gone:
+  log level, language, player colour and the native-binding parity level are the game's own
+  `TMP_Dropdown`, which opens, tracks the pointer and closes on click-away, Escape and selection. The
+  hand-rolled toolbar and the `Toggle`-as-button shape are gone with it. (The free colour input is S3.)
+- **Deleted in the same round.** The IMGUI window and its `GUI.Window`, the theme's window/title/label
+  styles, `OnlineUiWindowState.Scroll` and the three dropdown booleans, and the overlay's 21-parameter
+  draw call (it now takes the frame's context). The theme now draws only the quick panel, the context menu
+  and the console overlay.
+- **The controls carry the prefabs' own size.** The adapter seeds each view's `LayoutElement` with the
+  game's row prefab `sizeDelta`, because the game places those rows by hand and a layout group reads
+  nothing off a rect — without that seed a row whose prefab carries no layout value would lay out at zero
+  height. A model width hint still wins over the seed.
+- **The pins moved with it, in the same change.** `OnlineUiLauncherFadeTests`' theme census lost the
+  window's row; `OnlineUiConsolePageRemovalPinTests` re-anchored the tab row and the page dispatch onto the
+  model build (same contract: six tabs, `tab.<page>` keys read from source, one case per page);
+  `OnlineUiSurfacePinTests` pins the new frame shape and gained a "pushes no window" mutation;
+  `OnlineUiWindowSurfacePinTests` is new (14 pins + 16 real-source mutation rows) and
+  `OnlineUiRowLayoutTests` covers the wrap rule including the line spacing. No port was added (14 ports /
+  19 members).
+
+### Limits recorded with S2b
+
+- **The look, the layout and the input are the user's run.** No test can instantiate a `GameObject`, so
+  whether the game's row prefabs behave when instantiated ACTIVE, whether the layout reproduces the IMGUI
+  window's shape, whether the wheel/typing/click reach the controls, and whether the result reads as this
+  game are all game-run observations. The S1 reading that could align the chrome colours is still pending.
+- **The window depends on the native surface.** A composition without an adapter has no canvas and
+  therefore no window — the trade S2a already made for the launcher, and the reason S4 owns the remaining
+  IMGUI surfaces.
+- **The pointer-over-window fact is one frame old** (it is polled and reported as a flip), so a world
+  right-click in the frame the window appears or disappears is judged against the previous frame.
+- **The free-text field borrows the integer row's prefab** — the only input field a mod can reach — and
+  sets its content type and character limit on the instance.
+- **Layout hints are hints, and the sizes are seeded.** A width that does not match what a prefab actually
+  prefers shows up as a row wider or narrower than intended; the prefab's own `sizeDelta` is seeded into
+  each control's layout so nothing collapses, but whether the authored size reads well here is a run
+  observation.
 
 ## Non-goals
 

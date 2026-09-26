@@ -22,14 +22,18 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// other test.
 ///
 /// What the matchers prove: the page enum is exactly the six surviving pages, in order; the tab row
-/// is exactly one tab per page with a <c>tab.&lt;page&gt;</c> label, in the same order, and the whole
-/// window file draws exactly six tabs; the page switch is exactly one case per page; the console
-/// drawer file is deleted, its type is referenced nowhere in the plugin source, and no plugin file
-/// but the overlay names <c>ctx.Commands</c>; the window state no longer carries the page's input
-/// field; and the catalogue's <c>tab.</c>/<c>console.</c> keys are exactly the keys some source file
-/// READS through <c>T(...)</c>, in both languages — an orphan key, a dangling reference, and a key
-/// that survives only inside a comment or a log literal all fail, and the overlay's own key staying
-/// read is part of that census.
+/// BUILDS exactly one tab per page with a <c>tab.&lt;page&gt;</c> label, in the same order, and the whole
+/// window file builds exactly six tabs; the page dispatch is exactly one case per page, each calling that
+/// page's builder; the console drawer file is deleted, its type is referenced nowhere in the plugin
+/// source, and no plugin file but the overlay names <c>ctx.Commands</c>; the window state no longer
+/// carries the page's input field; and the catalogue's <c>tab.</c>/<c>console.</c> keys are exactly the
+/// keys some source file READS through <c>T(...)</c>, in both languages — an orphan key, a dangling
+/// reference, and a key that survives only inside a comment or a log literal all fail, and the overlay's
+/// own key staying read is part of that census.
+///
+/// The tab row and the page dispatch moved from IMGUI drawing to model building in S2b of the art and
+/// controls overhaul, and the anchors moved with them: the contract is the same one — one tab per
+/// surviving page, one case per page — expressed where the window is built now.
 ///
 /// What the matchers cannot see: a rendering. "No Console tab in the window" and "<c>/</c> still opens
 /// the overlay with completion, history and suggestions" are the user's real-session rows; no test in
@@ -120,11 +124,11 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	[Fact]
 	public void ThePinRejectsAReAddedConsoleTabCall()
 	{
-		// HEAD's tab row, verbatim: the console tab back in front of Preferences
+		// the tab row back in front of Preferences, in the shape the model build spells it
 		var mutated = Mutate(
 			ReadWindowSource(),
-			"""DrawTab(ctx.T("tab.preferences"), OnlineUiPage.Preferences);""",
-			"""DrawTab(ctx.T("tab.console"), OnlineUiPage.Console); DrawTab(ctx.T("tab.preferences"), OnlineUiPage.Preferences);""");
+			"""BuildTab(page, OnlineUiPage.Preferences, "tab.preferences", page.T("tab.preferences"));""",
+			"""BuildTab(page, OnlineUiPage.Console, "tab.console", page.T("tab.console")); BuildTab(page, OnlineUiPage.Preferences, "tab.preferences", page.T("tab.preferences"));""");
 		Assert.False(TabRowHolds(mutated));
 	}
 
@@ -132,7 +136,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	public void ThePinRejectsATabRowMissingAPage()
 	{
 		// the census is a ceiling too: a dropped tab leaves the remaining ones intact
-		var mutated = Mutate(ReadWindowSource(), "DrawTab(ctx.T(\"tab.preferences\"), OnlineUiPage.Preferences);", string.Empty);
+		var mutated = Mutate(ReadWindowSource(), """BuildTab(page, OnlineUiPage.Preferences, "tab.preferences", page.T("tab.preferences"));""", string.Empty);
 		Assert.False(TabRowHolds(mutated));
 	}
 
@@ -152,8 +156,8 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	{
 		var mutated = Mutate(
 			ReadWindowSource(),
-			"OnlineUiHomeDrawer.Draw(ctx);",
-			"OnlineUiConsoleDrawer.Draw(ctx);");
+			"OnlineUiHomeDrawer.Build(ctx, page);",
+			"OnlineUiConsoleDrawer.Build(ctx, page);");
 		Assert.False(NoConsoleDrawerReference(mutated));
 	}
 
@@ -182,11 +186,11 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	[Fact]
 	public void ThePinRejectsASeventhTabDrawnOutsideTheTabRow()
 	{
-		// the tab row's own body stays byte-perfect; the extra tab is drawn by the content pass
+		// the tab row's own body stays byte-perfect; the extra tab is built by the page pass
 		var mutated = Mutate(
 			ReadWindowSource(),
-			"DrawTabs(ctx);",
-			"DrawTabs(ctx);\n\t\tDrawTab(ctx.T(\"tab.home\"), OnlineUiPage.Home);");
+			"BuildTabs(page);",
+			"BuildTabs(page);\n\t\tBuildTab(page, OnlineUiPage.Home, \"tab.home\", page.T(\"tab.home\"));");
 		Assert.False(TabRowHolds(mutated));
 	}
 
@@ -196,8 +200,8 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		// no drawer type name and no tab./console. key: only the command-buffer census can see it
 		var mutated = Mutate(
 			ReadWindowSource(),
-			"OnlineUiPreferencesDrawer.Draw(ctx);",
-			"OnlineUiPreferencesDrawer.Draw(ctx); Logger.Info(ctx.Commands.Lines.Count);");
+			"OnlineUiPreferencesDrawer.Build(ctx, page);",
+			"OnlineUiPreferencesDrawer.Build(ctx, page); Logger.Info(ctx.Commands.Lines.Count);");
 		Assert.False(LeavesTheCommandBufferAlone(mutated));
 	}
 
@@ -207,8 +211,8 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		// the field match is word-bounded: the console input SESSION is not the deleted buffer
 		var mutated = Mutate(
 			ReadWindowStateSource(),
-			"internal Vector2 Scroll;",
-			"internal ConsoleInputSession Session = null!;\n\n\tinternal Vector2 Scroll;");
+			"internal string ProfileNameInput = \"\";",
+			"internal ConsoleInputSession Session = null!;\n\n\tinternal string ProfileNameInput = \"\";");
 		Assert.True(WindowStateHolds(mutated));
 	}
 
@@ -245,12 +249,12 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		Assert.False(CatalogueAndReferencesAgree(ReadCatalogueSource(), ReadReferencedSource() + mutated));
 	}
 
-	private const string TabRowAnchor = "private void DrawTabs(OnlineUiContext ctx)";
+	private const string TabRowAnchor = "private void BuildTabs(OnlineUiPageBuilder page)";
 	private const string PageSwitchAnchor = "switch (_state.Page)";
 	private const string ConsoleDrawerType = "OnlineUiConsoleDrawer";
 	private const string CommandBufferAnchor = "ctx.Commands";
-	private const string TabCallAnchor = "DrawTab(";
-	private const string TabRowCallAnchor = "DrawTabs(ctx);";
+	private const string TabCallAnchor = "BuildTab(";
+	private const string TabRowCallAnchor = "BuildTabs(page);";
 	private const string UiKeyPattern = "(?:tab|console)\\.[a-zA-Z_.]+";
 
 	private static readonly Regex DeclaredKeyPattern = new($@"\[""({UiKeyPattern})""\]", RegexOptions.Compiled);
@@ -276,9 +280,9 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	/// <summary>The surviving page set, in enum order: the tab row and the switch both follow it.</summary>
 	private const string ExpectedPageBody = "Home, Players, Network, Admin, Worlds, Preferences,";
 
-	private const string ExpectedTabRow = """private void DrawTabs(OnlineUiContext ctx) { GUILayout.BeginHorizontal(); DrawTab(ctx.T("tab.home"), OnlineUiPage.Home); DrawTab(ctx.T("tab.players"), OnlineUiPage.Players); DrawTab(ctx.T("tab.network"), OnlineUiPage.Network); DrawTab(ctx.T("tab.admin"), OnlineUiPage.Admin); DrawTab(ctx.T("tab.worlds"), OnlineUiPage.Worlds); DrawTab(ctx.T("tab.preferences"), OnlineUiPage.Preferences); GUILayout.EndHorizontal(); }""";
+	private const string ExpectedTabRow = """private void BuildTabs(OnlineUiPageBuilder page) { BuildTab(page, OnlineUiPage.Home, "tab.home", page.T("tab.home")); BuildTab(page, OnlineUiPage.Players, "tab.players", page.T("tab.players")); BuildTab(page, OnlineUiPage.Network, "tab.network", page.T("tab.network")); BuildTab(page, OnlineUiPage.Admin, "tab.admin", page.T("tab.admin")); BuildTab(page, OnlineUiPage.Worlds, "tab.worlds", page.T("tab.worlds")); BuildTab(page, OnlineUiPage.Preferences, "tab.preferences", page.T("tab.preferences")); }""";
 
-	private const string ExpectedPageSwitch = """switch (_state.Page) { case OnlineUiPage.Home: OnlineUiHomeDrawer.Draw(ctx); break; case OnlineUiPage.Players: OnlineUiPlayersDrawer.Draw(ctx); break; case OnlineUiPage.Network: OnlineUiNetworkDrawer.Draw(ctx); break; case OnlineUiPage.Admin: OnlineUiAdminDrawer.Draw(ctx); break; case OnlineUiPage.Worlds: OnlineUiWorldsDrawer.Draw(ctx); break; case OnlineUiPage.Preferences: OnlineUiPreferencesDrawer.Draw(ctx); break; }""";
+	private const string ExpectedPageSwitch = """switch (_state.Page) { case OnlineUiPage.Home: OnlineUiHomeDrawer.Build(ctx, page); break; case OnlineUiPage.Players: OnlineUiPlayersDrawer.Build(ctx, page); break; case OnlineUiPage.Network: OnlineUiNetworkDrawer.Build(ctx, page); break; case OnlineUiPage.Admin: OnlineUiAdminDrawer.Build(ctx, page); break; case OnlineUiPage.Worlds: OnlineUiWorldsDrawer.Build(ctx, page); break; case OnlineUiPage.Preferences: OnlineUiPreferencesDrawer.Build(ctx, page); break; }""";
 
 	private static bool PageEnumHolds(string source) => PageEnum(source) == ExpectedPageBody;
 

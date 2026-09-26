@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace CasualtiesUnknownOnline;
 
 /// <summary>
@@ -7,24 +5,29 @@ namespace CasualtiesUnknownOnline;
 /// session controls live on the Home page; this page shows the local player
 /// state and every member card with vitals, native remote-backpack access and
 /// direct player-interaction actions.
+///
+/// <para>
+/// Since ticket online-ui-art-and-controls-overhaul (S2b) the page builds a display list instead of
+/// drawing itself; the member cards themselves are built by <see cref="OnlineUiMemberListDrawer"/>.
+/// </para>
 /// </summary>
 internal static class OnlineUiPlayersDrawer
 {
-	internal static void Draw(OnlineUiContext ctx)
+	internal static void Build(OnlineUiContext ctx, OnlineUiPageBuilder page)
 	{
 		var steam = ctx.Steam;
 		var session = ctx.Session;
 		if (!ctx.IpDirectActive && steam.CurrentLobbyId == 0)
 		{
-			GUILayout.Label(ctx.T("players.not_in_session"), OnlineUiTheme.MutedLabel());
+			page.Muted(ctx.T("players.not_in_session"));
 			return;
 		}
 
-		GUILayout.Space(8f);
-		GUILayout.Label(ctx.T("players.section"), OnlineUiTheme.Section());
-		GUILayout.Label(session.LocalInWorld ? ctx.T("players.local_in_world") : ctx.T("players.local_menu"), OnlineUiTheme.MutedLabel());
+		page.Space();
+		page.Section(ctx.T("players.section"));
+		page.Muted(session.LocalInWorld ? ctx.T("players.local_in_world") : ctx.T("players.local_menu"));
 
 		var rows = OnlineUiMemberListDrawer.BuildRows(ctx);
-		OnlineUiMemberListDrawer.Draw(ctx, rows);
+		OnlineUiMemberListDrawer.Build(ctx, page, rows);
 	}
 }

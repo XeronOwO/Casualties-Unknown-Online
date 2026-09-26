@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (9 rows): the canvas sources and uiScale, the language-row prefab shape, PlayUISound→Sound.cs, the EventSystem rule, the launcher's rect precedent
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (9 rows): the settings-row prefab wiring (SettingsMenu.cs child 0 = label, child 1 = control), the hand-placed rows, the two forbidden prefabs, S2a's surface, the intent channel, the polled pointer, the modal guard, the canvas scale, the right-click guard
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (7 rows): the four remaining IMGUI surfaces, the fingerprint scan against a second launcher, the modal guard, the other ports, the S1 probe, mod UI/console, wire/save/gameplay untouched
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (12 rows): the caption, the fade matrix, the plugin's push, the intents, the rect, the whole-surface alpha, the canvas/rebuild pin, the click sound, the EventSystem rule, nine mutation controls, the port census, gates/structure
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (8 rows): all six pages moved with no second renderer, the member card's eligibility answered once for the model and the quick panel's remaining IMGUI card, the four re-anchored pin sets, the untouched S1 probe and port census, the still-IMGUI surfaces, the modal guard, wire/save untouched
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4 (17 rows): the wrap rule, the game's own prefabs and the template read, the frame-driven visibility, the canvas, the reconcile, the focused-field rule, the id-at-interaction-time rule, the polled rect, the raycast frame, the drag, the intent dispatch and its drop, the close id, the console-page contract, the fade/theme census, the port census, gates/structure
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: the pure halves by unit cases, the surface by source pins + nine real-source mutation controls; the picture, hover, click and sound need the user's game run (selfcheck §7)
+      peer log comparison, hotrepl assertions) is decided — evidence: the wrap rule and the model factories by unit cases; the window by 13 source pins + 15 real-source mutation rows (OnlineUiWindowSurfacePinTests) and the two re-anchored pin sets; the look, the layout and the input need the user's game run (selfcheck §7)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket's `## Decision (2026-09-26, user ruling)` froze the uGUI destination; the S2a/S2b split is a recorded scope call in the ticket's stage list, no work-choice question asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0; focused 192/192 (cuo-s2a-focus-final.txt); format exit 0; gates 288/288 (cuo-s2a-gates-complete.txt); full WITH build 4205 + 288 (cuo-s2a-full-gate.txt)
+      process violation — evidence: the ticket's `## Decision (2026-09-26, user ruling)` froze the uGUI destination and the reuse rule, and the S2b stage is the ticket's own stage list; no work-choice question asked (AGENTS.md rule 9)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0 (cuo-s2b-build9.txt); focused 232/232 (cuo-s2b-focus10.txt); format exit 0 with the code in the log (cuo-s2b-format3.txt); gates 288/288 (cuo-s2b-gates-final.txt); full WITH build 4245 + 288, exit 0 (cuo-s2b-full-final.txt)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: adapter files 212/196 lines, Runtime 8-30, GameAdapter.cs 588 (< 600); launcher draw, theme style, alpha overload and window-state fade/label deleted in the same round
+      dead mechanisms deleted in the same round) — evidence: largest touched files 556/530/505 lines (< 600, the window view split when it reached 595); the IMGUI window, the theme's window/title styles, `State.Scroll`, the three dropdown open booleans, the overlay's 21-parameter draw call and the unreachable `Enabled` path all deleted in the same round
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

@@ -60,6 +60,7 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 	private OnlineUiWindowView? _window;
 	private OnlineUiPanelView? _quickPanel;
 	private OnlineUiPanelView? _contextMenu;
+	private OnlineUiWorldOverlayView? _worldOverlay;
 	private bool _reportedMissingCanvas;
 
 	internal OnlineUiSurfaceHost(ILogger log)
@@ -79,6 +80,12 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 
 		_launcher.Apply(frame.LauncherLabel, frame.LauncherAlpha);
 		_launcher.PollHover(_intents);
+
+		// The world-space overlays (S6) — the nameplates, the off-screen arrows, the network readout and the
+		// location pings — are labels on this canvas too, and they take no input: nothing about the surfaces
+		// below depends on them. They are applied first so this method reads in the same order the canvas
+		// draws (the overlay is its first child), not because the order decides anything.
+		_worldOverlay?.Apply(frame.World);
 
 		if (_window is null)
 		{
@@ -219,6 +226,10 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 			_intents.Enqueue,
 			OnlineUiIntentKind.ContextMenuHoverEntered,
 			OnlineUiIntentKind.ContextMenuHoverLeft);
+		// The world-space overlays are the LAST view built and the FIRST child drawn: the layer puts itself
+		// behind the launcher, the window and the two panels, because a nameplate belongs over the world and
+		// not over the window the player has open (S6).
+		_worldOverlay = OnlineUiWorldOverlayView.Create(root.transform, _log);
 		if (!launcher.UsesGamePrefab)
 		{
 			_log.LogWarning(
@@ -305,5 +316,6 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 		_window = null;
 		_quickPanel = null;
 		_contextMenu = null;
+		_worldOverlay = null;
 	}
 }

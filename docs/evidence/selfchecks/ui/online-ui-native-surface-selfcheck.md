@@ -1,6 +1,6 @@
 # The Online UI's native surface and its launcher — self-check (2026-09-26)
 
-Ticket: `docs/backlog/in-progress/online-ui-art-and-controls-overhaul.md` (High; **stage S2a**, the first
+Ticket: `docs/backlog/review/online-ui-art-and-controls-overhaul.md` (High; **stage S2a**, the first
 half of the stage the ticket calls S2). Cycle scope: the game's own UI stops being a picture the mod reads
 and becomes a surface the mod stands on. CUO's canvas is parented under the game's canvas, the launcher is
 the game's own button-row prefab, the idle fade's alpha is applied to that control, and the player's click

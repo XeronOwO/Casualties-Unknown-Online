@@ -52,6 +52,12 @@ run, and the development-period standard here is static and simulation evidence.
 | `OnlineUiOverlay.DrawNetworkHud` | Returns early unless a session or IP-direct link exists (`if (!ctx.IpDirectActive && ctx.Steam.CurrentLobbyId == 0 && ctx.Session.Role == SessionRole.None)`) and draws `GUI.Label` text only — no panel by design |
 | `OnlineUiOverlay.DrawNameplatesAndArrows` | Per remote player, in world, `GUI.Label` only |
 | `LocationPingOverlay.Draw` | Returns early when `pings.Count == 0`; pings expire and already fade, by folding alpha into the colour it assigns (`color.a *= Mathf.Clamp01(...)`) |
+
+**Superseded by S6 of the Online UI overhaul (2026-09-26)**: the three rows above name members and a class
+that are deleted — the network readout, the nameplates, the arrows and the pings are labels on CUO's own
+canvas now (`OnlineUiWorldOverlayView`, `ui/online-ui-world-overlay-selfcheck.md`). The precedent they were
+read for still holds: the overlay fades its own text by folding alpha into the colour it assigns, and the
+launcher's idle fade is untouched by that stage.
 | `OnlineUiQuickPanel.Draw` | `if (!_visible)` early return — hotkey-toggled |
 | `OnlineUiPlayerContextMenu.Draw` | Only while a target is selected (`IsOpen => _targetSteamId.HasValue`) |
 | `CommandConsoleOverlay.Draw` | Only while open; its closed-console notifications are transient and fade per line |

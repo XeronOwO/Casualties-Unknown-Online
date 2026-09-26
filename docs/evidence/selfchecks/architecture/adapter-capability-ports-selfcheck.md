@@ -49,7 +49,7 @@ transient-state number, and one over-general census sentence).
 **Update (2026-09-26, the Online UI overhaul's S5):** `SetOnlineUiScopedBlocks` (the row above) retired
 with the two IMGUI panels that were its only consumers — the quick panel and the in-world player context
 menu are controls of CUO's own uGUI surface now (ticket
-`in-progress/online-ui-art-and-controls-overhaul.md`). `INativeInputBlocker` is
+`review/online-ui-art-and-controls-overhaul.md`). `INativeInputBlocker` is
 `SetOnlineUiModal` + `SetOnlineUiEscapeSurfaceVisible`, the composition is 14 ports / 18 members, and
 `OnlineUiBlockRect` / `OnlineScopedRaycastFilter` are gone with the member.
 

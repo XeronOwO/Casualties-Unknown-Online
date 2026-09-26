@@ -1,6 +1,6 @@
 # The Online UI's native facts probe — self-check (2026-09-26)
 
-Ticket: `docs/backlog/in-progress/online-ui-art-and-controls-overhaul.md` (High; **stage S1 of four**).
+Ticket: `docs/backlog/review/online-ui-art-and-controls-overhaul.md` (High; **stage S1 of four**).
 Cycle scope: the game's own UI as FACTS. A read-only runtime probe reads the four unknowns the ticket
 names — the active TMP font asset, a live settings row's `Image` sprite / `Image.type` /
 `pixelsPerUnitMultiplier`, the game chrome's image styles and `PlayerCamera.uiScale` — and the uGUI host

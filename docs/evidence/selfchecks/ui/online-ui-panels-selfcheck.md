@@ -108,7 +108,9 @@ in `CasualtiesUnknownOnline.Tests` and **288 passed / 0 failed** in the normativ
 - **The quick panel's target row wraps by the Runtime's rule now**, not by the IMGUI panel's "four on one
   line, then one per line": with five or more candidates the shape differs (more regular, not identical).
 - **The S1 chrome reading is still pending**, so the panels' tints are the window's tints.
-- **The ticket is not done**: the world-space overlays still draw with the IMGUI skin's font (S6).
+- **The ticket was not done at this stage**: the world-space overlays still drew with the IMGUI skin's font.
+  **Closed by S6 (2026-09-26)**: they are labels on CUO's canvas now —
+  `ui/online-ui-world-overlay-selfcheck.md`.
 
 ## 6. The independent review, and how each finding was disposed of
 

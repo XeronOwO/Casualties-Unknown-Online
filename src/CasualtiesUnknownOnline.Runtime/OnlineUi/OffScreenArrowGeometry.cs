@@ -6,15 +6,24 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// Pure geometry for nameplate/off-screen-marker UI. Kept in the Runtime (no
 /// UnityEngine dependency) so the Online UI's edge math is covered by L0 unit
 /// tests instead of requiring a live camera or game window.
+///
+/// <para>
+/// Every length here is in whatever unit the caller asks in, as long as it asks in ONE of them: the live
+/// surface projects a world position into the canvas and then asks this rule with the canvas's own rect,
+/// its own margin and its own size (S6), which is what keeps the marker's margin scaling with the game's
+/// UI rather than staying a fixed pixel count.
+/// </para>
 /// </summary>
 public static class OffScreenArrowGeometry
 {
 	/// <summary>
-	/// Map a world-projected screen point (GUI coordinates) to either its
-	/// on-screen position or a clamped position on the edge rectangle plus the
-	/// dominant arrow direction. A point inside the margin rectangle is
-	/// considered on-screen (nameplate territory); outside it becomes an
-	/// off-screen arrow pinned to the nearest edge.
+	/// Map a world-projected point (origin top-left, Y growing down — the convention the returned
+	/// placement and <see cref="NameplateLayout"/> are written in) to either its on-screen position or a
+	/// clamped position on the edge rectangle plus the dominant arrow direction. A point inside the margin
+	/// rectangle is considered on-screen (nameplate territory); outside it becomes an off-screen arrow
+	/// pinned to the nearest edge. <paramref name="screenWidth"/>, <paramref name="screenHeight"/> and
+	/// <paramref name="margin"/> are the caller's units, the same ones <paramref name="x"/> and
+	/// <paramref name="y"/> are in.
 	/// </summary>
 	public static OffScreenArrowPlacement Place(float x, float y, float screenWidth, float screenHeight, float margin)
 	{

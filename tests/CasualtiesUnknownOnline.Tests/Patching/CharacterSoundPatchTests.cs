@@ -80,6 +80,13 @@ public class CharacterSoundPatchTests
 		Assert.True(HasContract("PantSound", "TryGrowl"), "the PantSound.TryGrowl capture-scope contract must be declared");
 		Assert.True(HasContract("LockpingMinigamePainPatch", "LockpingMinigame", "Update"), "the LockpingMinigame.Update lockpick-pain capture-scope contract must be declared");
 		Assert.True(HasContract("Body", "HandleVisuals"), "the Body.HandleVisuals meal-end capture-scope contract must be declared");
+		Assert.True(HasContract("ApplyWoundItemSoundPatch", "PlayerCamera", "ApplyWoundItem"), "the PlayerCamera.ApplyWoundItem limb-treatment capture-scope contract must be declared");
+		Assert.True(HasContract("DrinkLiquidSoundPatch", "FluidManager", "DrinkLiquid"), "the FluidManager.DrinkLiquid world-drink capture-scope contract must be declared");
+		Assert.True(HasContract("CombineLiquidsSoundPatch", "Body", "CombineLiquids"), "the Body.CombineLiquids gesture capture-scope contract must be declared");
+		Assert.True(HasContract("VomitSoundPatch", "Vomiter", "DoVomit"), "the Vomiter.DoVomit capture contract must be declared");
+		Assert.True(HasContract("BloodVomitSoundPatch", "Vomiter", "DoBloodVomit"), "the Vomiter.DoBloodVomit capture contract must be declared");
+		Assert.True(HasContract("NapStretchSoundPatch", "Body", "NapCoroutine"), "the Body.NapCoroutine capture contract must be declared");
+		Assert.True(HasContract("WaterShakeSoundPatch", "Body", "WaterShake"), "the Body.WaterShake capture contract must be declared");
 	}
 
 	[Fact]

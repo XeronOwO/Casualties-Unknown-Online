@@ -41,8 +41,11 @@ the same change — its doc comment in `ProtocolVersion.cs` is the per-number lo
 - **Silent siblings were named, not papered over** (ticket row 5): the placement clips already ride
   `ItemPlacement`; the inventory-gesture clips (`switch` / `combine` / `waterpour`), the medical/limb item
   clips, the tool clips and the `Vomiter` sickness clips are censused with their native sites and their
-  reasons in `docs/backlog/todo/unhooked-item-and-body-sound-families.md` — the medical/limb row needs a
-  subject (patient) decision, and the gesture row is deliberate local feedback whose state already syncs.
+  reasons in `docs/backlog/review/unhooked-item-and-body-sound-families.md`. Two notes from that
+  ticket's own work: its "the medical/limb row needs a subject (patient) decision" was refuted (the
+  native calls pass `follow: null` with a world position, so the position travels), and the gesture row
+  ended up CARRIED rather than left as local feedback, under the user's 2026-09-26 decision that every
+  3D world sound is carried while 2D screen feedback stays local.
 - **The remote-driven replay is out of reach by design**: an ingest use that the item's owner replays for
   another player's inventory gesture (`RemoteIntentApplier.ApplyUseItem` → `Body.UseItem` under
   `RemoteApply`) is not reported, because the capture scope is local-action only. Recorded in the ticket
@@ -108,7 +111,7 @@ the same change — its doc comment in `ProtocolVersion.cs` is the per-number lo
   for another player's inventory gesture (`RemoteIntentApplier.ApplyUseItem` under `RemoteApply`) plays for
   the owner alone and is not reported. Carrying it needs an echo decision (whose sound it is, and whether
   the operator's client would double-play) and is recorded in
-  `todo/unhooked-item-and-body-sound-families.md` with the architecture page's own §3.4 note.
+  `review/unhooked-item-and-body-sound-families.md` with the architecture page's own §3.4 note.
 - The whitelist is a clip list: a future game item whose ingest plays a NEW clip name needs its row added
   to `CharacterSoundPolicy.Classify` (the gate pins the kind census and the scope routing, not the game's
   item data — that data lives in the decompiled assembly and is not our source surface).
@@ -121,7 +124,7 @@ the same change — its doc comment in `ProtocolVersion.cs` is the per-number lo
 - A drink from a WORLD liquid tile (`FluidManager.DrinkLiquid` → the water branch's own `Sound.Play("drink")`
   at FluidManager.cs:314, reached from `Body.HandlePhysics`) stays silent on the peers: the only hook on
   that path is a state report (`FluidDrinkPatch`), and the sound runs outside both capture scopes. It needs
-  its own scope/decision and is censused in `todo/unhooked-item-and-body-sound-families.md`.
+  its own scope/decision and is censused in `review/unhooked-item-and-body-sound-families.md`.
 - The census method matters as much as the census result: enumerating literal `Sound.Play(` calls in the
   file that DEFINES a use action misses every clip the called COMPONENTS play (this cycle's own miss, found
   by the review). A future ingest clip hunt must follow the delegate's callees, not just its text.

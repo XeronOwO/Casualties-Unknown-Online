@@ -98,6 +98,40 @@ internal static class CallContext
 		/// exists for that one clip, the way <see cref="CharacterLockpickPain"/>
 		/// exists for <c>"gore2"</c>.</summary>
 		CharacterBurp,
+
+		/// <summary>Inside <c>PlayerCamera.ApplyWoundItem</c> on THIS client's own
+		/// camera — the choke point every local limb action enters (the item's own
+		/// <c>useLimbAction</c> delegate at PlayerCamera.cs:754 and the container's
+		/// <c>WaterContainerItem.ApplyToLimb</c> at :760), where the medical clips
+		/// play at the treated limb's position — which may be another player's
+		/// body. Opened only for a plain local action on the local camera: the
+		/// remote medical view blocks the native call and a drag-release window
+		/// captures the intent instead of applying it, so a remote-driven
+		/// treatment never reports as this player's action.</summary>
+		CharacterMedicalUse,
+
+		/// <summary>Inside <c>FluidManager.DrinkLiquid</c> for the local body — the
+		/// world-liquid drink (<c>"drink"</c> at FluidManager.cs:314 and the
+		/// liquid registry's own <c>onDrink</c> clip at Liquids.cs:1501) reports
+		/// from this scope. The container-drink half of "drinking" rides
+		/// <see cref="CharacterItemUse"/> instead.</summary>
+		CharacterWorldDrink,
+
+		/// <summary>Inside <c>Body.CombineLiquids</c> — the transfer UI's finish
+		/// (LiquidTransfer.cs:38) plays <c>"waterpour"</c> there and opens no
+		/// scope of its own. The other two inventory gestures need none: SwitchHands
+		/// / SwapSlots already run inside <see cref="InternalReorder"/> and
+		/// CombineItems inside <see cref="Craft"/>, whose origins the capture map
+		/// classifies.</summary>
+		CharacterInventoryGesture,
+
+		/// <summary>Inside a local body's own one-shot coroutine — the Vomiter
+		/// vomit routines (<c>"vomit1"</c> / <c>"vomit2"</c>), the nap
+		/// <c>"stretch"</c> and the water <c>"dogshake"</c>. Entered per coroutine
+		/// STEP: a coroutine body runs in its state machine's MoveNext after the
+		/// patched method already returned, so a scope around the method would be
+		/// disposed before the first body statement.</summary>
+		CharacterBodySound,
 	}
 
 	/// <summary>Stack bound — real nesting is 2-3 levels (remote apply → container load → hooks).</summary>

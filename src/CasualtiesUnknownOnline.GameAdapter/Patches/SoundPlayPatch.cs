@@ -14,8 +14,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// together with everyone else's release.
 /// 2. Character action-sound capture: inside the Body.Attack / ThrowItem /
 /// TryExertSound / FootStep / PantSound.Update / PantSound.TryGrowl /
-/// LockpingMinigame.Update / local item use / Body.HandleVisuals call-identity
-/// scopes, every real string sound is reported with its EXACT clip. Block hit sounds are excluded by the innermost
+/// LockpingMinigame.Update / local item use / Body.HandleVisuals /
+/// PlayerCamera.ApplyWoundItem / FluidManager.DrinkLiquid / Body.CombineLiquids /
+/// local body coroutine call-identity scopes, every real string sound is
+/// reported with its EXACT clip. Block hit sounds are excluded by the innermost
 /// DamageBlockOrigin scope (WorldGeneration.DamageBlock opens it around the
 /// native roll), and replays are excluded by the RemoteApply scope — the
 /// patch is a thin adapter, the classification is the pure
@@ -56,6 +58,12 @@ internal static class SoundPlayPatch
 				CallContext.Origin.CharacterLockpickPain => CharacterSoundPolicy.Origin.LockpickPain,
 				CallContext.Origin.CharacterItemUse => CharacterSoundPolicy.Origin.ItemUse,
 				CallContext.Origin.CharacterBurp => CharacterSoundPolicy.Origin.Burp,
+				CallContext.Origin.CharacterMedicalUse => CharacterSoundPolicy.Origin.Medical,
+				CallContext.Origin.CharacterWorldDrink => CharacterSoundPolicy.Origin.WorldDrink,
+				CallContext.Origin.CharacterInventoryGesture => CharacterSoundPolicy.Origin.InventoryGesture,
+				CallContext.Origin.CharacterBodySound => CharacterSoundPolicy.Origin.BodySound,
+				CallContext.Origin.InternalReorder => CharacterSoundPolicy.Origin.InventoryGesture,
+				CallContext.Origin.Craft => CharacterSoundPolicy.Origin.InventoryGesture,
 				_ => CharacterSoundPolicy.Origin.None,
 			};
 			if (CharacterSoundPolicy.Classify(origin, clip) is { } kind)

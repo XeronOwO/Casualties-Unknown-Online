@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: the two overloads, the five call sites, the report seam, the apply sites, the scope readers
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (10 rows): the capture chain, the choke point, the four world-use sites, the 30 CallContext readers
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3: five call sites, the applier rolls, the air-write claim, the sound scope, the custom-tile drops, the evidence matrix
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 7 rows — anchor, seam, custom drops, remote apply, contribution, wire, the gate itself
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 + the ticket census: 8 rows, each carried or recorded local / out of family with its reason
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 10 rows (scope, reach, coroutines, wire, receiver, self-echo, catalog)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: red 2/8/10 recorded with the FROZEN matcher before the change (%TEMP%/cuo-red-anchor-gate.txt); focused green 51/51; family 10 + 109
+      peer log comparison, hotrepl assertions) is decided — evidence: red 7/9/16 with the FROZEN matcher (%TEMP%/cuo-red-itembody-final.txt); focused 82/82; gates 264 = 263 + 1 by design
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket's own "clean fix" froze the design and this cycle's handoff picked the item, so no work-item question was asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0 with identical git status (%TEMP%/cuo-format2.txt); final unfiltered full suite with build 4075 + 248 exit 0 (%TEMP%/cuo-full-anchor-final.txt)
+      process violation — evidence: the handoff picked the item and the user froze the audibility line (3D carried / 2D local); no work-item question was asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0 + identical git status (%TEMP%/cuo-format-itembody.txt); unfiltered full suite with build 4085 + 264, green once this box was last checked
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: patch 102 / BlockBreakSync 567 / gate test 195 lines, inside the architecture gate; no new state; the position conversion and the forwarder anchor are gone
+      dead mechanisms deleted in the same round) — evidence: largest touched file 324 lines (the new gate), policy 142, new patches <= 57; no new state; no dead mechanism left
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

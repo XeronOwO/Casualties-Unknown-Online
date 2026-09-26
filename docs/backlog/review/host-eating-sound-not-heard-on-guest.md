@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Character/item audio sync
 - Source: User acceptance finding (2026-09-21): the host eats and the guest does not hear the eating sound at all.
-- Related: `review/sync-player-pain-vocalizations-and-bark.md` (the one-shot character-sound relay this extends), `review/guest-hears-only-some-block-break-sounds.md` (the same acceptance pass's other audio finding), `review/host-metal-scrap-block-place-sound-not-synced-to-guest.md`, `todo/unhooked-item-and-body-sound-families.md` (the sibling sounds this cycle deliberately leaves alone, with the census), `docs/architecture/remote-inventory-native-parity.md` §3.4 (the operator-side item sounds that family already records)
+- Related: `review/sync-player-pain-vocalizations-and-bark.md` (the one-shot character-sound relay this extends), `review/guest-hears-only-some-block-break-sounds.md` (the same acceptance pass's other audio finding), `review/host-metal-scrap-block-place-sound-not-synced-to-guest.md`, `review/unhooked-item-and-body-sound-families.md` (the sibling sounds this cycle deliberately leaves alone, with the census), `docs/architecture/remote-inventory-native-parity.md` §3.4 (the operator-side item sounds that family already records)
 
 ## Root cause (from source, not from the report's narration)
 
@@ -107,8 +107,12 @@ cut and it was fixed here rather than ticketed; the inventory-gesture sounds (`s
 whose operator-side absence the remote-inventory page records); the world-liquid drink
 (`FluidManager.DrinkLiquid`, FluidManager.cs:314, reached from `Body.HandlePhysics`) plays outside every
 capture scope and is ticketed; and the medical/limb, tool and sickness clips are ticketed as
-`todo/unhooked-item-and-body-sound-families.md` because they need a carrier decision (their positions
-follow the operated limb, not the actor).
+`review/unhooked-item-and-body-sound-families.md` for a carrier decision. One correction from that
+ticket's own work: the reason this cycle wrote for it — that the limb clips "need a subject identity,
+because their positions follow the operated limb, not the actor" — was refuted when the ticket was
+worked. Every one of those native calls passes `follow: null` and a world position, so the position
+travels and no subject identity is needed on the wire; the ticket and its self-check record the
+correction.
 
 Not deployed this cycle (user instruction 2026-09-25: no deployment, the machine is in use for a game
 session) — the deployed artifact stays at the previous build, and the deployment plus the acceptance run

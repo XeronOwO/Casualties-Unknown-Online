@@ -13,7 +13,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// <c>PantSound.Update</c> / <c>PantSound.Bark</c> / <c>PantSound.TryGrowl</c> /
 /// <c>LockpingMinigame.Update</c> / direct placeable-item uses
 /// (<c>Body.UseItem</c> / <c>Body.UseItemInHand</c>) / the local body's
-/// <c>Body.HandleVisuals</c>;
+/// <c>Body.HandleVisuals</c> / the local camera's <c>PlayerCamera.ApplyWoundItem</c>
+/// (the choke point every limb treatment enters) / <c>FluidManager.DrinkLiquid</c> /
+/// <c>Body.CombineLiquids</c> / a local body's own one-shot coroutines (the
+/// Vomiter vomit routines, <c>Body.NapCoroutine</c>, <c>Body.WaterShake</c>),
+/// plus the two inventory scopes that already exist for other reasons
+/// (<c>InternalReorder</c> around SwitchHands / SwapSlots and <c>Craft</c>
+/// around CombineItems);
 /// any block hit sound that fires during an attack is excluded before this
 /// policy sees it, because <c>WorldGeneration.DamageBlock</c> opens its own
 /// innermost <c>DamageBlockOrigin</c> scope.
@@ -50,6 +56,23 @@ public static class CharacterSoundPolicy
 		/// plays <c>"burp"</c> (Body.cs:3137-3142) — the scope exists for that
 		/// one clip, the way <see cref="LockpickPain"/> exists for <c>"gore2"</c>.</summary>
 		Burp = 13,
+
+		/// <summary>Inside <c>PlayerCamera.ApplyWoundItem</c> — the limb-treatment
+		/// clip, played at the treated limb (the operator's own or another
+		/// player's body).</summary>
+		Medical = 14,
+
+		/// <summary>Inside <c>FluidManager.DrinkLiquid</c> — the world-liquid drink.</summary>
+		WorldDrink = 15,
+
+		/// <summary>Inside an inventory-internal gesture: SwitchHands / SwapSlots
+		/// (<c>"switch"</c>), CombineItems (<c>"combine"</c>) and CombineLiquids
+		/// (<c>"waterpour"</c>).</summary>
+		InventoryGesture = 16,
+
+		/// <summary>Inside a local body's own one-shot coroutine — vomit, nap
+		/// stretch, water shake.</summary>
+		BodySound = 17,
 	}
 
 	/// <summary>
@@ -83,11 +106,46 @@ public static class CharacterSoundPolicy
 			Origin.Yawn => CharacterSoundKind.Yawn,
 			Origin.LockpickPain => clip == "gore2" ? CharacterSoundKind.Pain : null,
 			Origin.ItemPlacement => clip is "scrapmetal" or "ropeplace" ? CharacterSoundKind.ItemPlacement : null,
-			Origin.ItemUse => clip is "eatCrunch" or "eatFlesh" or "glass" or "crystalenemylaugh" or "drink" or "pills" ? CharacterSoundKind.Consume : null,
+			Origin.ItemUse => IsIngestClip(clip) ? CharacterSoundKind.Consume
+				: IsMedicalClip(clip) ? CharacterSoundKind.Medical
+				: IsItemUseFeedbackClip(clip) ? CharacterSoundKind.Utility
+				: null,
 			Origin.Burp => clip == "burp" ? CharacterSoundKind.Consume : null,
+			Origin.Medical => IsMedicalClip(clip) ? CharacterSoundKind.Medical : null,
+			Origin.WorldDrink => clip is "drink" or "pills" ? CharacterSoundKind.Drink : null,
+			Origin.InventoryGesture => clip is "switch" or "waterpour" or "combine" ? CharacterSoundKind.Gesture : null,
+			Origin.BodySound => clip is "stretch" or "dogshake" or "vomit1" or "vomit2" ? CharacterSoundKind.BodySound : null,
 			_ => null,
 		};
 	}
+
+	/// <summary>The clips an item-use action plays for INGESTION (the edible use
+	/// actions and the container's own drink) — the family the consume cycle
+	/// carried.</summary>
+	private static bool IsIngestClip(string clip) =>
+		clip is "eatCrunch" or "eatFlesh" or "glass" or "crystalenemylaugh" or "drink" or "pills";
+
+	/// <summary>The item-use action's own device/utility feedback — a world sound
+	/// at the item, whose state already syncs through its own domain. Carried
+	/// because the native call is a 3D one-shot every side should hear, not
+	/// because the state needs it.</summary>
+	private static bool IsItemUseFeedbackClip(string clip) =>
+		clip is "flashlighttoggle" or "error" or "centrifuge" or "combine" or "drop";
+
+	/// <summary>Every medical clip of the family. The limb-treatment half plays
+	/// inside the two <c>ApplyWoundItem</c> branches (the item's own
+	/// <c>useLimbAction</c> delegates and the liquid registry's
+	/// <c>onHealthUse</c> clips reached through the container); four censused
+	/// sites instead play from the item's WORLD <c>useAction</c> (the rag's
+	/// <c>"splint"</c> at Item.cs:515, the rosepod's <c>"goo"</c> at :1443, the
+	/// drainer's <c>"drainuse"</c> at :1658, and <c>Item.DrawBlood</c>'s
+	/// <c>"syringe"</c> at :7123 reached from the two liquid-container use
+	/// actions), which runs under <c>CharacterItemUse</c>. A medical clip is
+	/// therefore reportable from EITHER scope — the independent review of this
+	/// cycle found the four sites silently uncarried while only the limb-action
+	/// scope classified them.</summary>
+	private static bool IsMedicalClip(string clip) =>
+		clip is "syringe" or "splint" or "goo" or "boneweld" or "drainuse" or "tweezeruse" or "spray" or "laser" or "wrenchhit" or "cream";
 
 	private static bool IsExertClip(string clip) =>
 		clip.StartsWith("exert", StringComparison.Ordinal);

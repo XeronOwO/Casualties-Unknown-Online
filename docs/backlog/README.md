@@ -48,11 +48,12 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
-- [Local-only item and body sounds](todo/unhooked-item-and-body-sound-families.md) — **Low-Medium** — medical, tool and gesture clips report nothing.
 - [Online UI panels ask for alphaBlend false](todo/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — their panel alpha may never blend.
+- [Sounds whose native call is suppressed](todo/suppressed-native-call-sounds-stay-unheard.md) — **Low** — the blocked treatment and the suppressed item impact.
 
 ### Review
 
+- [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Remote inventory native parity rework](review/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [Composition root feature modules](review/composition-root-feature-modules.md) — **Medium** — feature modules, one reset contract, binding gate.
 - [Mod API contract governance](review/mod-api-contract-governance.md) — **Medium-High** — visibility rule, stability levels, API baseline.

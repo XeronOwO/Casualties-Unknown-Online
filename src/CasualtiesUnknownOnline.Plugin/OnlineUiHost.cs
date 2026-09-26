@@ -432,12 +432,20 @@ internal sealed class OnlineUiHost
 		}
 
 		var surfaces = _onlineUi.BuildSurfaces(ctx);
+		// The world-space overlays (S6) ride the same frame. They are suppressed in the two states the IMGUI
+		// pass returned before drawing them in: while the start gate owns the screen (its overlay covers the
+		// HUD), and while the command console is open (a modal surface of its own). The models must not
+		// outlive those rules just because they are now pushed from Update.
+		var world = _gateState is { IsWaitingForReady: true } || _onlineUi.IsCommandConsoleOpen
+			? OnlineUiWorldOverlay.None
+			: _onlineUi.BuildWorldOverlay(ctx);
 		_surface.Push(new OnlineUiFrame(
 			label,
 			_launcherFade.Evaluate(_time.NowMs, _launcherHovered),
 			surfaces.Window,
 			surfaces.QuickPanel,
-			surfaces.ContextMenu));
+			surfaces.ContextMenu,
+			world));
 	}
 
 	/// <summary>

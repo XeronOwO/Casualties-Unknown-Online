@@ -80,6 +80,7 @@ around it, and what only a game run can judge.
 | The port census | Unchanged: no member was added to `INativeInputBlocker` or any other port (14 ports / 19 members), so `AdapterCapabilityPortShapeTests` and `OnlineMenuInputGuardContractTests` hold as they were |
 | Wire, protocol, save, gameplay, localisation | None: no message, no save field, no catalogue key |
 | The remaining IMGUI faces | Decided, not silently kept: the console overlay stays IMGUI (recorded in the ticket and decision 230), the quick panel and the context menu are S5, the world-space overlays are S6 |
+| Both follow-ups landed | S5 moved the two panels and retired the scoped blockers, S6 moved the world-space overlays onto CUO's canvas (`ui/online-ui-panels-selfcheck.md`, `ui/online-ui-world-overlay-selfcheck.md`); the console overlay remains the one IMGUI face this pass decided to keep |
 
 ## 4. Self-check table — claim × evidence
 
@@ -173,9 +174,11 @@ correct. Findings, and what happened to each:
 - **The context menu keeps its last rectangle while the console is open** (`Bounds` is only written while
   the panel is drawn), so the census can block a right-click there; the menu is not drawn in that state and
   its click path is gated on the console being closed, so it is not a reachable input path.
-- **The ticket's goal is not reached yet.** The quick panel and the player context menu are still IMGUI
-  panels of the flat theme and the world-space overlays still draw with the IMGUI skin's font: the
-  player-facing art ask stays open until S5 and S6 land, which is why the ticket stays in progress.
+- **The ticket's goal was not reached by this pass.** The quick panel and the player context menu were still
+  IMGUI panels of the flat theme and the world-space overlays still drew with the IMGUI skin's font: the
+  player-facing art ask stayed open until S5 and S6. **Both landed (2026-09-26)** — the two panels are
+  controls of CUO's own surface and the overlays are labels on its canvas — which is why the ticket is in
+  `review/` now.
 - **The S1 chrome reading is still pending**, and nothing in this pass used it — the retirement depends on
   no runtime reading at all.
 

@@ -1,6 +1,6 @@
 # The Online UI's art and controls are placeholders
 
-- Status: In progress
+- Status: Review (all six stages landed 2026-09-26; awaiting the final unified acceptance pass)
 - Priority: High
 - Category: Online UI / presentation and interaction
 - Source: User request (2026-09-26). Three asks in the user's words: much of the Online UI is simplified and does not match this game's style, and the game's own art style should be the reference; the "dropdown" is a button that lists buttons after it is clicked, which reads wrong (is there no dropdown control?); and the colour choice is half-done — the player should be free to pick, with a palette or an RGB input, instead of a few presets. The user's own reading of the cause: the simple UI was a speed choice when the online layer was pushed forward, and it should now be done properly.
@@ -111,7 +111,7 @@ adversarial review → one commit.
    the game's own controls, on the surface S2a/S2b proved. They are the last consumers of
    `SetOnlineUiScopedBlocks` / `OnlineUiBlockRect` / `OnlineScopedRaycastFilter`, so that mechanism retires
    with them (the same round, not a later one).
-7. **S6 — the world-space overlays.** The nameplates, the off-screen arrows, the network HUD and the
+7. **S6 — the world-space overlays (landed 2026-09-26).** The nameplates, the off-screen arrows, the network HUD and the
    location pings onto TMP labels on CUO's canvas, so their typography comes from the game's own font asset
    rather than from the IMGUI skin's built-in font. They take no input, which is why they were the last
    face left: what is left to win there is the look, and no control is involved.
@@ -517,9 +517,108 @@ only because they were IMGUI retired in the same round. Self-check:
 - **The context menu keeps its own pointer fact one frame old**, like the window's: the poll runs at the end
   of the frame that pushed the model, so a menu that appears under the pointer reports the hover on the
   following frame. Its click-away close is judged against that fact.
-- **The ticket's goal is not reached yet.** The world-space overlays (nameplates, off-screen arrows, the
-  network HUD, the location pings) still draw with the IMGUI skin's font: S6 is what closes the art ask,
-  which is why this ticket stays in progress.
+- **The ticket's goal was not reached by this stage.** The world-space overlays (nameplates, off-screen
+  arrows, the network HUD, the location pings) still drew with the IMGUI skin's font: **closed by S6**, which
+  moved them onto the game's own canvas and its font asset — see `## What landed — S6`.
+
+## What landed — S6 (2026-09-26)
+
+The last player-facing IMGUI face is gone: the nameplates, the off-screen arrows, the network readout and
+the location pings are labels of the game's own font on CUO's canvas, and the code that drew them —
+`OnlineUiOverlay`'s four drawing members and the whole of `LocationPingOverlay` — retired with the move.
+Self-check: `docs/evidence/selfchecks/ui/online-ui-world-overlay-selfcheck.md`.
+
+- **The plugin builds markers, the surface places them.** `OnlineUiOverlay.BuildWorldOverlay` returns an
+  `OnlineUiWorldOverlay` — the readout plus one `OnlineUiWorldMarker` per remote player in the world and per
+  live ping — which rides the frame as its sixth member. Every input of that model is a runtime fact the
+  plugin already read (who is in the world, the head anchor through `IPlayerAnchorQuery` with the body
+  position as the fallback, the chosen colour, the distance text, the ping's mark and its fade), while the
+  projection belongs to the surface, because only the adapter may reach the camera. A marker's two forms
+  travel as text (`OnScreenText` / `OffScreenText` / `Glyph`), so the label a player reads is composed where
+  the translations live.
+- **The projection is converted into the canvas once, and the whole rule is asked in canvas units.** A world
+  point goes through `Camera.main.WorldToScreenPoint` and then
+  `RectTransformUtility.ScreenPointToLocalPointInRectangle` against the surface's own layer; the Runtime's
+  rules (`OffScreenArrowGeometry.Place`, `NameplateLayout.AboveHead`, `OffScreenArrowText.Glyph`) are asked
+  with that layer's rect, a 52-unit margin and the marker's own size. Mixing screen pixels with canvas units
+  is the defect the S5 review found in the panel clamp, and here it is held by a mutation row from the first
+  cut rather than after a review.
+- **One arrow rule instead of two copies.** `OffScreenArrowText` (Runtime, pure) holds the four-way glyph
+  switch. The two IMGUI surfaces each carried their own copy of it; both now ask the one rule, and the
+  duplicated switch is gone rather than moved.
+- **The labels take the game's typography.** The view reads `OnlineUiControlFactory.ReadRowTemplate` for the
+  font asset and the size ladder and builds every label from them (`Default` for a nameplate, `Muted` for an
+  edge label or the readout); only the two GLYPH sizes are the view's own constants, because a symbol is not
+  text. This closes the art ask the ticket opened with.
+- **The fit and the marks are stated, not inherited.** Each label is one line with auto-sizing off and
+  overflow rather than a clip or an ellipsis (a name the player cannot read is worse than one that spills
+  past its box), and every mark goes through a check of the game's own font asset
+  (`TMP_FontAsset.HasCharacter`, fallbacks included): a mark the asset cannot draw is replaced by its ASCII
+  stand-in (`^ v < >` for the arrows, `*` otherwise) with one warning per mark. Which glyphs the game's asset
+  carries is a run fact; the fallback is what keeps a marker readable either way.
+- **The one silent branch is observable.** A marker the canvas cannot map is skipped (see the pool below)
+  and reported once, at Warning; a frame with no main camera is the ordinary pre-run state and is reported
+  once, at Debug — the two branches that could otherwise make a marker vanish with nothing in the log.
+- **No input, and the two suppression states survive the move.** The layer is a bare `RectTransform` with no
+  graphic, every label refuses the raycast and the view reports nothing back, so the pointer census and the
+  two world input paths are exactly as S4 and S5 left them. The models are suppressed in the two states the
+  IMGUI pass returned before drawing them in — while the start gate owns the screen, and while the command
+  console is open. The console half was **not** in the first cut: pushing the frame from `Update` instead of
+  drawing in `OnGUI` silently showed nameplates over the open console, and the second mutation row of that
+  pin is what holds it now.
+- **One deliberate change of order, recorded.** IMGUI renders after every canvas, so the old overlays drew
+  OVER the window and the two panels; the migrated labels draw BEHIND CUO's own panels, because the layer
+  puts itself first among the canvas's children. A nameplate over an open window was never intended, and the
+  ordering is pinned rather than left to taste.
+- **Deleted in the same round.** `LocationPingOverlay` (the file), `OnlineUiOverlay`'s `DrawNetworkHud` /
+  `DrawNameplatesAndArrows` / `DrawNameplate` / `DrawOffScreenArrow` / `ToColor` and its nameplate/arrow
+  font-size constants, and `OnlineUiTheme.Status(Color)`, dead with the labels that used it. The theme's
+  IMGUI draw census does not move: the console overlay is still the only themed rectangle.
+- **The pins moved with it, in the same change.** `OnlineUiWorldOverlayPinTests` is new — 13 facts and 26
+  real-source mutation rows, covering the plugin's model build, the surface's wiring, the game's typography,
+  the label boxes and the fit/fallback policy, the Runtime-units placement, the no-input shape and the two
+  world input paths, the draw order, the two suppression states and the ping's own mark and fade;
+  `OnlineUiSurfacePinTests`' frame-push anchor gained the sixth member and the suppression expression; the
+  Runtime half is covered by `OffScreenArrowTextTests` (3 facts + a four-case theory) and
+  `OnlineUiWorldMarkerTests` (7 facts). No port was added (14 ports / 18 members), the wire is untouched
+  (protocol 43), and `OnlineUiLauncherFadeTests` is untouched and green.
+
+### Limits recorded with S6
+
+- **How the markers read is the user's run.** No test in this tree instantiates a `GameObject`: whether the
+  names are legible at the game's UI scale, whether the edge arrows and the top-left readout sit where the
+  player expects, and whether the migration reads as this game at all are game observations. The marks
+  themselves have a fallback now (an ASCII arrow or `*`, with a warning), so a font asset that carries none
+  of the five glyphs degrades instead of drawing nothing — but which of them it carries is still a run fact.
+- **The overlays now need the adapter**, exactly as the window and the panels do: no surface, no canvas, no
+  nameplates — the trade S2a recorded, extended to the last player-facing face.
+- **The unit change is a deliberate difference from the IMGUI overlay.** The old markers clamped in screen
+  pixels and drew at fixed pixel font sizes (a nameplate at 15, an edge label at 13); the migrated ones are
+  canvas units throughout, and their sizes come from the game's own type ladder — the body size for a
+  nameplate and two below it for an edge label or the readout, i.e. 14 and 12 on the reader's fallback path.
+  So the margin, the boxes and the text all scale with the game's UI scale, the text is a size or two
+  different from what the IMGUI overlay drew, and there is no auto-sizing: whether that is the right
+  apparent size at the player's `PlayerCamera.uiScale` is a run observation (S1's reading is still pending).
+- **A point behind the camera is projected mirrored**, exactly as the removed IMGUI overlay projected it,
+  and the geometry then pins it to an edge with a direction the player may not expect. One difference the new
+  path adds: the point must also be mappable into the canvas, and a point the canvas refuses hides that one
+  marker for the frame (reported once, at Warning) instead of pinning it — the old path had no such step.
+  Whether a mirrored point is refused depends on the canvas mode and cannot be settled from this tree.
+- **The overlay draws behind CUO's own panels but over the game's UI**, because it is a child of CUO's
+  canvas (sorting 30000). Mod windows (`ModUiDrawing`) are IMGUI and therefore still draw over everything,
+  including the markers.
+- **The marker pool is per-frame and unbounded.** One marker item is built per marker the model carries and
+  kept for the next frame (a player leaving the roster hides their item rather than destroying it); the count
+  is bounded by the roster plus the live pings, and a session with a very large roster holds that many label
+  pairs. The pool's own reuse protocol (hide, hide-the-glyph, re-show with a new kind) is held only by the
+  pin's textual checks: no test in this tree can build the labels it drives, so a stale glyph or a stale size
+  would have to be caught by a game run.
+- **The start gate and the command console remain IMGUI surfaces.** The console was decided in S4 (a
+  developer surface with a text input); the start gate's own overlay is not part of this ticket's stages and
+  is therefore unchanged, which leaves the Online UI's art ask closed for the surfaces this ticket names and
+  not for those two.
+- **The S1 chrome reading is still pending**, so the readout's two colours are still the CUO theme's
+  (`Muted`, `Positive`) rather than the game's own chrome colours.
 
 ## Non-goals
 

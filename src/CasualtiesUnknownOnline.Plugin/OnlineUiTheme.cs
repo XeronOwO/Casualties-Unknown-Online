@@ -10,11 +10,12 @@ namespace CasualtiesUnknownOnline;
 /// loads and never needs asset bundles.
 ///
 /// <para>
-/// What is left here after S5 is the palette and the styles the surfaces CUO still draws itself need: the
-/// command console overlay and the world-space overlays (the nameplates, the arrows, the network HUD).
-/// The IMGUI panel frame, its close/tab/section styles and the styles of the member card retired with the
-/// quick panel and the player context menu, which are controls of the game's own surface now — so this
-/// file no longer paints a panel of its own at all.
+/// What is left here after S6 is the palette and the two styles the command console overlay needs: it is
+/// the only surface CUO still draws in IMGUI. The IMGUI panel frame, its close/tab/section styles and the
+/// styles of the member card retired with the quick panel and the player context menu, which are controls
+/// of the game's own surface now (S5), and the world-space overlays' label and status styles retired with
+/// the overlays themselves, which are labels on that surface's canvas (S6) — so this file no longer paints
+/// a panel of its own at all.
 /// </para>
 /// </summary>
 internal static class OnlineUiTheme
@@ -47,17 +48,6 @@ internal static class OnlineUiTheme
 	/// instead of a palette of its own (ticket online-ui-art-and-controls-overhaul, S2b).
 	/// </summary>
 	internal static OnlineUiNativeRgba ToRgba(Color color) => new(color.r, color.g, color.b, color.a);
-
-	internal static GUIStyle Status(Color color)
-	{
-		var style = new GUIStyle(GUI.skin.label)
-		{
-			fontSize = 12,
-			richText = true,
-		};
-		style.normal.textColor = color;
-		return style;
-	}
 
 	/// <summary>
 	/// The overlay background for the transient/compact surfaces CUO still draws itself — the command

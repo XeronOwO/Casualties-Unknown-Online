@@ -40,6 +40,9 @@ location circle, quick second click = exclamation/alert.
 3. Rendering: all peers render the same ephemeral marker locally through the
    IMGUI `LocationPingOverlay` (on-screen marker or off-screen edge arrow).
    The marker owner is presentation provenance, not simulation authority.
+   *(Renderer superseded by S6 of the Online UI overhaul, 2026-09-26: the class is deleted and the marker is
+   a label on CUO's own canvas — see `docs/evidence/selfchecks/ui/online-ui-world-overlay-selfcheck.md`. The
+   rule above, that the marker's owner is provenance and not authority, still holds.)*
 4. Visual seam: CUO-owned IMGUI glyphs (`●` / `!`) and player colors/names —
    no KrokMP private sprites, no new assets.
 5. Decisions:

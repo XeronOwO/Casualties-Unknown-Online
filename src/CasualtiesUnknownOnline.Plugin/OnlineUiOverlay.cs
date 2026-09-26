@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
-using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -14,8 +14,10 @@ namespace CasualtiesUnknownOnline;
 /// The Online UI overlay: the composition of CUO's surfaces and the frame-time rules that turn what the
 /// player does on them into calls. It owns the window, the quick panel and the player context menu as
 /// MODELS — built together into one action table every frame and pushed to the game's own controls by
-/// <see cref="OnlineUiHost"/> — and the IMGUI pass that is left (the world-space overlays: nameplates and
-/// off-screen arrows, the network HUD, the location pings, and the command console).
+/// <see cref="OnlineUiHost"/> — and the world-space overlays (the nameplates and off-screen arrows, the
+/// network HUD and the location pings) as one more model of the same frame since S6, so what is left in
+/// the IMGUI pass is the command console and the two gestures that belong to the world rather than to a
+/// control.
 /// The old top-left status/lobby/member dump is gone: the same runtime facts
 /// are now presented through the tabbed <see cref="OnlineUiWindow"/>.
 /// </summary>
@@ -135,17 +137,19 @@ internal sealed class OnlineUiOverlay
 	private const float StatusDelaySeconds = 1.5f;
 	private const float StatusHoldSeconds = 15f;
 
-	// Nameplate/off-screen marker style. The edge margin is deliberately larger
-	// than the arrow box so markers keep an inner padding from the screen edge
-	// (game UI can occupy the very edge of the screen).
-	private const float ScreenEdgeMargin = 52f;
-	private const int NameplateFontSize = 15;
-	private const int OffScreenArrowFontSize = 22;
-	private const int OffScreenNameFontSize = 13;
+	/// <summary>How long a location ping takes to fade out at the end of its life, in milliseconds — the
+	/// IMGUI overlay's own window, kept: the fade is folded into the colour the marker carries.</summary>
+	private const float PingFadeMs = 1_000f;
 
 	private string? _statusMessage;
 	private float _statusSetTime = float.NegativeInfinity;
 	private bool _lastHadSession;
+
+	/// <summary>
+	/// This frame's world markers, rebuilt in place on every frame the overlay is built: the surface applies
+	/// the frame synchronously, so one buffer can carry every frame's markers without a copy (S6).
+	/// </summary>
+	private readonly List<OnlineUiWorldMarker> _worldMarkers = [];
 
 	internal bool IsWindowVisible => _window.State.Visible;
 
@@ -279,11 +283,11 @@ internal sealed class OnlineUiOverlay
 	}
 
 	/// <summary>
-	/// The IMGUI pass: the surfaces CUO still draws itself — the world-space overlays (nameplates and
-	/// off-screen arrows, the network HUD, the location pings) and the command console — plus the two
-	/// gestures that belong to the world rather than to a control: the window's ESC and the in-world
-	/// right-click that opens the player menu. The modal window and the two panels are the game's own
-	/// controls on the native surface and are NOT drawn here (S2b for the window, S5 for the panels).
+	/// The IMGUI pass: what CUO still draws itself — the command console — plus the two gestures that
+	/// belong to the world rather than to a control: the window's ESC and the in-world right-click that
+	/// opens the player menu. Every other surface is a model this class builds and pushes to the game's own
+	/// canvas: the modal window (S2b), the quick panel and the context menu (S5), and the world-space
+	/// overlays (S6).
 	/// </summary>
 	internal void Draw(OnlineUiContext ctx)
 	{
@@ -309,9 +313,6 @@ internal sealed class OnlineUiOverlay
 		if (!_commandOverlay.IsOpen)
 		{
 			UpdateDelayedStatus(ctx);
-			DrawNetworkHud(ctx);
-			DrawNameplatesAndArrows(ctx, ctx.Entities);
-			LocationPingOverlay.Draw(ctx);
 			// The world's own gestures: the right-click that opens the player menu, and the quick panel's
 			// ESC. Both panels are controls of the surface now, so this is input only — nothing is drawn.
 			_contextMenu.HandleInput(ctx, _pointerCensus.OverContextMenu, BlocksWorldMenu);
@@ -351,48 +352,38 @@ internal sealed class OnlineUiOverlay
 		_statusSetTime = Time.realtimeSinceStartup;
 	}
 
-	private void DrawNetworkHud(OnlineUiContext ctx)
+	private OnlineUiNetworkHud? BuildNetworkHud(OnlineUiContext ctx)
 	{
 		if (!ctx.IpDirectActive && ctx.Steam.CurrentLobbyId == 0 && ctx.Session.Role == SessionRole.None)
 		{
-			return;
+			return null;
 		}
 
 		// Minimal top-left readout: no background panel (the game shows the
 		// hand-held item there), only the live RTT plus the latest delayed
 		// session event. Full details are in the Online UI window.
-		//
-		// This uses explicit GUI.Label rects, not GUILayout: the status line is
-		// time-gated, and a GUILayout control that appears/disappears between
-		// IMGUI Layout and Repaint passes throws "Getting control 1's position in
-		// a group with only 1 controls". A fixed non-layout overlay cannot drift
-		// between passes.
-		const float rowHeight = 20f;
-		var rect = new Rect(8f, 8f, 220f, 48f);
 		var rtt = ctx.Session.LastRttMs >= 0f ? $"{ctx.Session.LastRttMs:F0} ms" : ctx.T("common.pending");
-		GUI.Label(new Rect(rect.x, rect.y, rect.width, rowHeight),
-			$"{ctx.T("hud.rtt")}: {rtt}", OnlineUiTheme.MutedLabel());
-
 		var elapsed = Time.realtimeSinceStartup - _statusSetTime;
+		string? status = null;
 		if (_statusMessage is not null && elapsed >= StatusDelaySeconds && elapsed <= StatusDelaySeconds + StatusHoldSeconds)
 		{
-			GUI.Label(new Rect(rect.x, rect.y + rowHeight, rect.width, rowHeight),
-				_statusMessage, OnlineUiTheme.Status(OnlineUiTheme.Positive));
+			status = _statusMessage;
 		}
 		else if (_statusMessage is not null && elapsed > StatusDelaySeconds + StatusHoldSeconds)
 		{
 			_statusMessage = null;
 		}
+
+		return new OnlineUiNetworkHud(
+			$"{ctx.T("hud.rtt")}: {rtt}",
+			OnlineUiTheme.ToRgba(OnlineUiTheme.Muted),
+			status,
+			OnlineUiTheme.ToRgba(OnlineUiTheme.Positive));
 	}
 
-	private static void DrawNameplatesAndArrows(OnlineUiContext ctx, EntitySyncService entities)
+	private void BuildNameplateMarkers(OnlineUiContext ctx)
 	{
-		var camera = Camera.main;
-		if (camera == null)
-		{
-			return;
-		}
-
+		var entities = ctx.Entities;
 		var local = entities.LocalPlayer.Position;
 		var remotePlayers = entities.RemotePlayers;
 		for (var i = 0; i < remotePlayers.Count; i++)
@@ -405,75 +396,71 @@ internal sealed class OnlineUiOverlay
 
 			// Prefer the live render clone's head limb so markers stay on top of
 			// the head while standing/crouching/lying; fall back to the body's
-			// authoritative position before the clone exists.
-			var worldPoint = new Vector3(remote.Position.X, remote.Position.Y, 0f);
+			// authoritative position before the clone exists. The projection is the
+			// surface's business: only the adapter may reach the camera (S6).
+			var x = remote.Position.X;
+			var y = remote.Position.Y;
 			if (ctx.AnchorQuery?.TryGetRemoteHeadPosition(remote.SteamId, out var headX, out var headY) == true)
 			{
-				worldPoint = new Vector3(headX, headY, 0f);
+				x = headX;
+				y = headY;
 			}
-
-			var projected = camera.WorldToScreenPoint(worldPoint);
-			// GUI y grows DOWN; WorldToScreenPoint y grows UP.
-			var gui = new Vector2(projected.x, Screen.height - projected.y);
-			var placement = OffScreenArrowGeometry.Place(gui.x, gui.y, Screen.width, Screen.height, ScreenEdgeMargin);
 
 			var dx = remote.Position.X - local.X;
 			var dy = remote.Position.Y - local.Y;
 			var distance = Mathf.Sqrt((dx * dx) + (dy * dy));
-			var color = ToColor(ctx.PlayerColor(remote.SteamId));
-			var name = ctx.DisplayName(remote.SteamId);
-			if (placement.Direction == OffScreenArrowDirection.None)
-			{
-				DrawNameplate(placement.X, placement.Y, name, color);
-			}
-			else
-			{
-				DrawOffScreenArrow(placement, name, ctx.F("hud.distance", Mathf.RoundToInt(distance)), color);
-			}
+			_worldMarkers.Add(OnlineUiWorldMarker.Nameplate(
+				x,
+				y,
+				ctx.DisplayName(remote.SteamId),
+				ctx.F("hud.distance", Mathf.RoundToInt(distance)),
+				ToRgba(ctx.PlayerColor(remote.SteamId))));
 		}
 	}
 
-	private static void DrawNameplate(float x, float y, string name, Color color)
+	private void BuildPingMarkers(OnlineUiContext ctx)
 	{
-		var style = new GUIStyle(GUI.skin.label)
+		var pings = ctx.LocationPings.ActivePings;
+		var now = ctx.Time.NowMs;
+		for (var i = 0; i < pings.Count; i++)
 		{
-			fontSize = NameplateFontSize,
-			alignment = TextAnchor.MiddleCenter,
-		};
-		style.normal.textColor = color;
-		var rect = NameplateLayout.AboveHead(x, y);
-		GUI.Label(new Rect(rect.X, rect.Y, rect.Width, rect.Height), name, style);
+			var ping = pings[i];
+			var remaining = ping.ExpiresAtMs - now;
+			if (remaining <= 0)
+			{
+				continue;
+			}
+
+			// A ping fades out over its last second, by folding the alpha into the colour the marker carries
+			// (the IMGUI overlay's own rule): the surface has no fading rule of its own to keep in step.
+			var color = ctx.PlayerColor(ping.SenderSteamId);
+			_worldMarkers.Add(OnlineUiWorldMarker.Ping(
+				ping.X,
+				ping.Y,
+				ctx.DisplayName(ping.SenderSteamId),
+				ping.Kind == LocationPingKind.Exclamation ? "!" : "●",
+				new OnlineUiNativeRgba(
+					color.R,
+					color.G,
+					color.B,
+					color.A * Mathf.Clamp01((float)remaining / PingFadeMs))));
+		}
 	}
 
-	private static void DrawOffScreenArrow(OffScreenArrowPlacement placement, string name, string distanceText, Color color)
+	/// <summary>
+	/// This frame's world-space overlays: the network readout, one marker per remote player in the world and
+	/// one per live location ping. It is built here because every input of it is a runtime fact — who is in
+	/// the world, where their head is, the colour they chose, which pings are still alive — while the
+	/// projection and the placement are the surface's, because only the adapter may reach the camera (S6).
+	/// </summary>
+	internal OnlineUiWorldOverlay BuildWorldOverlay(OnlineUiContext ctx)
 	{
-		var arrowStyle = new GUIStyle(GUI.skin.label)
-		{
-			fontSize = OffScreenArrowFontSize,
-			alignment = TextAnchor.MiddleCenter,
-		};
-		arrowStyle.normal.textColor = color;
-
-		const float arrowSize = 32f;
-		var arrow = placement.Direction switch
-		{
-			OffScreenArrowDirection.Up => "\u25B2",   // ▲
-			OffScreenArrowDirection.Down => "\u25BC", // ▼
-			OffScreenArrowDirection.Left => "\u25C0", // ◄
-			OffScreenArrowDirection.Right => "\u25B6", // ►
-			_ => "\u2022",                            // •
-		};
-		GUI.Label(new Rect(placement.X - (arrowSize * 0.5f), placement.Y - (arrowSize * 0.5f), arrowSize, arrowSize), arrow, arrowStyle);
-
-		var nameStyle = new GUIStyle(GUI.skin.label)
-		{
-			fontSize = OffScreenNameFontSize,
-			alignment = TextAnchor.MiddleCenter,
-		};
-		nameStyle.normal.textColor = color;
-		GUI.Label(new Rect(placement.X - 80f, placement.Y + (arrowSize * 0.5f) + 4f, 160f, 20f), name + "  " + distanceText, nameStyle);
+		_worldMarkers.Clear();
+		BuildNameplateMarkers(ctx);
+		BuildPingMarkers(ctx);
+		return new OnlineUiWorldOverlay(BuildNetworkHud(ctx), _worldMarkers);
 	}
 
-	private static Color ToColor(PlayerColorValue value) => new(value.R, value.G, value.B, value.A);
+	private static OnlineUiNativeRgba ToRgba(PlayerColorValue value) => new(value.R, value.G, value.B, value.A);
 
 }

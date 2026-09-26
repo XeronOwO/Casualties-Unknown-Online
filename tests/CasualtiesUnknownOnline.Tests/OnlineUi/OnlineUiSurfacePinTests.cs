@@ -301,7 +301,8 @@ public sealed class OnlineUiSurfacePinTests
 	/// launcher's three, the window's own pointer fact, the two panels' (S5), and the control interactions
 	/// the window family and the panels report — and the click's case is the window's
 	/// opening rule. S4 put the pointer census's launcher fact on the same two hover cases, so the idle
-	/// fade and the world input paths read one polled fact.
+	/// fade and the world input paths read one polled fact. S6 added the frame's sixth member — the world
+	/// overlay, suppressed while the start gate holds the player — to the same push.
 	/// </summary>
 	private static bool DrivesTheSurfaceWithTheRule(string hostSource)
 	{
@@ -309,7 +310,7 @@ public sealed class OnlineUiSurfacePinTests
 
 		return flat.Contains("DrainSurfaceIntents(); PushSurfaceFrame(ctx);", StringComparison.Ordinal)
 			&& flat.Contains(
-				"var surfaces = _onlineUi.BuildSurfaces(ctx); _surface.Push(new OnlineUiFrame( label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered), surfaces.Window, surfaces.QuickPanel, surfaces.ContextMenu));",
+				"var surfaces = _onlineUi.BuildSurfaces(ctx); var world = _gateState is { IsWaitingForReady: true } || _onlineUi.IsCommandConsoleOpen ? OnlineUiWorldOverlay.None : _onlineUi.BuildWorldOverlay(ctx); _surface.Push(new OnlineUiFrame( label, _launcherFade.Evaluate(_time.NowMs, _launcherHovered), surfaces.Window, surfaces.QuickPanel, surfaces.ContextMenu, world));",
 				StringComparison.Ordinal)
 			&& flat.Contains("label = _launcherLabel = OnlineUiLauncherText.Label(caption, open);", StringComparison.Ordinal)
 			&& flat.Contains(

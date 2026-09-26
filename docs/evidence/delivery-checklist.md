@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (12 cited rows): the surface and its canvas rect, the template reader, the shared row machinery, both panel models, the one action table, the single member-card builder, the four pointer polls, the parameterless census, the retirement's consumers, the untouched gesture paths, what only a game run shows
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: 12 rows, each quoted fragment grepped verbatim against the frozen tree
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (9 rows): the theme's dead styles, the fade census, the window/surface pin anchors, the blocking pins, the port and guard contract censuses, the untouched colour/console pins, the untouched wire/session/saves, and the deleted rectangle test
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `docs/evidence/selfchecks/ui/online-ui-panels-selfcheck.md` §1 (12 mechanism rows with quoted evidence), §2 (what landed), §3 (9 audit rows), §4 (the verification ladder with its artifacts), §5 (limits)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (10 rows): theme census, surface anchor, six untouched pin classes, port census, wire, the three IMGUI faces left, the superseded pages
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §1 (12 rows), §2, §3 (10 rows), §4 (the ladder with its artifacts), §5 (limits), §6 (26 findings disposed)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: the red recorded before the change (39 failed / 44 passed / 83 total, `%TEMP%/cuo-s5-red.txt`), the placement rule by 7 pure facts, the panel surface pins by 10 pins + 20 real-source mutation rows and the blocking pins by 9 pins + 16 rows (36 in total), re-run on the frozen tree; the panels' look, the click landing, the canvas rect and the canvas scale need one game run (selfcheck §1 row 12, §5)
+      peer log comparison, hotrepl assertions) is decided — evidence: red 36 failed / 27 passed / 63 (`%TEMP%/cuo-s6-red2.txt`, recipe stated), 26 real-source mutation rows on the frozen tree; the look, the marks and the fit need one game run (selfcheck §5)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket's Decision (2026-09-26, user ruling) froze the uGUI destination and the staged plan, and the handoff named S5 with its retirement scope; no work-choice question asked (AGENTS.md rule 9)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors (cuo-s5-build5.txt); focus 341/341 (cuo-s5-focus5.txt); format exit 0 (cuo-s5-format2.txt); gates 288/288 (cuo-s5-gates4.txt); full WITH build see cuo-s5-full2.txt
+      process violation — evidence: the ticket's Decision (2026-09-26) froze the uGUI destination and the six stages; the handoff named S6 and its scope; no work-choice question asked (AGENTS.md rule 9)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors (cuo-s6-build1.txt); focus 369/369 (cuo-s6-focus6.txt); format exit 0 (cuo-s6-format2.txt); gates 288/288 (cuo-s6-gates3.txt)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest touched 585/498/479/476 lines (< 600); one type per file after the gate caught `OnlineUiPanelPlacement`/`OnlineUiPanelCorner` sharing a file; the scoped-block mechanism, the IMGUI member card and the theme's panel frame deleted in the same round
+      dead mechanisms deleted in the same round) — evidence: largest touched 588/486/466/460 lines (< 600); one type per file (gates green); the IMGUI overlay, its constants, the theme's Status style and LocationPingOverlay.cs deleted in the same round
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

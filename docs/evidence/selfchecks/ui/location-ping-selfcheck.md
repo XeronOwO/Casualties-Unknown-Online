@@ -26,6 +26,11 @@ no new assets.
 - **Presentation**: `LocationPingOverlay` projects the world position into GUI
   space; on-screen pings draw the circle/exclamation plus the pinger's name,
   off-screen pings pin a direction arrow to the screen edge with the same name.
+  **Superseded by S6 of the Online UI overhaul (2026-09-26)**: `LocationPingOverlay` is deleted and a ping
+  is a marker label on CUO's own canvas (`OnlineUiWorldOverlayView`) — the projection, the edge clamp and the
+  fade described here are now the surface's, through the Runtime's own rules. See
+  `online-ui-world-overlay-selfcheck.md`; the control, the wire path and the "one ping per sender" semantics
+  above still hold.
 - **Scope**: no mod-facing API in this slice. The feature is gameplay-adjacent
   UI only and stays inside Plugin/Runtime; `Abstractions` is not touched.
 

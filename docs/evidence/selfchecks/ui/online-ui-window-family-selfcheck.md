@@ -1,6 +1,6 @@
 # The Online UI's window family on the game's own surface — self-check (2026-09-26)
 
-Ticket: `docs/backlog/in-progress/online-ui-art-and-controls-overhaul.md` (High; **stage S2b**, the second
+Ticket: `docs/backlog/review/online-ui-art-and-controls-overhaul.md` (High; **stage S2b**, the second
 half of the stage the ticket calls S2). Cycle scope: the window S2a made reachable stops being an IMGUI
 panel of its own and becomes a display list the game's own controls render — the shell, the tab row and
 all six pages. The launcher's mechanism (the surface, the intent channel, the polled pointer) is inherited

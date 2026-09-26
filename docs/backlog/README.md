@@ -51,10 +51,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### In progress
 
-- [Online UI art and controls are placeholders](in-progress/online-ui-art-and-controls-overhaul.md) — **High** — rebuild on uGUI; S1 probe landed.
-
 ### Review
 
+- [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.

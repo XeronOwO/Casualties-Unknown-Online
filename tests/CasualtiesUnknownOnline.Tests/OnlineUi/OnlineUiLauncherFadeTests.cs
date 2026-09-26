@@ -39,6 +39,57 @@ public sealed class OnlineUiLauncherFadeTests
 		Assert.True(PinsTheBlendedFrame(theme), "the theme does not fold the launcher's alpha into an alpha-blended frame");
 	}
 
+	/// <summary>
+	/// Every surface that draws a themed frame, and the draw it must make. The theme's own blending is
+	/// only half the fact: a surface that hand-rolls an unblended rectangle of its own, or a new surface
+	/// that appears without joining this census, is the same defect one level up. The five rows are the
+	/// surfaces the panel-blending ticket enumerated — the modal window, its launcher, the quick panel,
+	/// the context menu and the console overlay.
+	/// </summary>
+	[Fact]
+	public void EveryThemedSurface_DrawsThroughTheBlendedFrame()
+	{
+		var surfaces = new (string File, string Call)[]
+		{
+			("OnlineUiWindow.cs", "OnlineUiTheme.DrawBackground(new Rect(0f, 0f, _windowRect.width, _windowRect.height));"),
+			("OnlineUiWindow.cs", "OnlineUiTheme.DrawBackground(rect, alpha);"),
+			("OnlineUiQuickPanel.cs", "OnlineUiTheme.DrawBackground(rect);"),
+			("OnlineUiPlayerContextMenu.cs", "OnlineUiTheme.DrawBackground(rect);"),
+			("CommandConsoleOverlay.cs", "OnlineUiTheme.DrawOverlayBackground(rect);"),
+		};
+
+		foreach (var (file, call) in surfaces)
+		{
+			Assert.True(
+				ReadSource(file).Contains(call, StringComparison.Ordinal),
+				$"{file} no longer draws its frame through `{call}` — a themed surface that stops using the blended frame is the defect this census exists for");
+		}
+
+		// The overlay is drawn from FOUR methods (the history panel, the closed-console notifications,
+		// the suggestion list and the tooltip), so the census counts them: losing one of the four would
+		// leave the representative row above intact.
+		Assert.Equal(4, CountOf(ReadSource("CommandConsoleOverlay.cs"), "OnlineUiTheme.DrawOverlayBackground(rect);"));
+
+		// The flag's spelling, not one spelling of it: `false` with any spacing is the defect.
+		Assert.DoesNotMatch(@"StretchToFill,\s*false", ReadThemeSource());
+	}
+
+	/// <summary>The overlay half of the same fact: the console's background is drawn by its own member,
+	/// so a blend flag flipped there alone would leave every other pin green.</summary>
+	[Fact]
+	public void TheThemePinRejectsAnUnblendedOverlay()
+	{
+		var theme = ReadThemeSource();
+		var broken = theme.Replace(
+			"ScaleMode.StretchToFill, true, 0f, OverlayPanel",
+			"ScaleMode.StretchToFill, false, 0f, OverlayPanel");
+
+		Assert.True(
+			theme != broken,
+			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
+		Assert.False(PinsTheBlendedFrame(broken));
+	}
+
 	/// <summary>The body exactly as it stood at HEAD (671e63c1): an opaque frame drawn every pass, no
 	/// pointer fact and no rule. This is the cycle's red, made reproducible.</summary>
 	[Fact]
@@ -57,7 +108,7 @@ public sealed class OnlineUiLauncherFadeTests
 	/// <summary>
 	/// Four mutations of the REAL theme source, each a defect no call-site pin can see because the call
 	/// sites stay byte-identical: an unfolded call site, an unfolded helper, a label that keeps the
-	/// palette's opacity, and a frame draw whose blending flag is hard-coded. The NotEqual guards keep a
+	/// palette's opacity, and a frame draw that stops asking for blending. The NotEqual guards keep a
 	/// mutation from silently becoming a no-op when the theme's text drifts.
 	/// </summary>
 	[Fact]
@@ -65,10 +116,12 @@ public sealed class OnlineUiLauncherFadeTests
 	{
 		var theme = ReadThemeSource();
 		var broken = theme.Replace(
-			"DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha), alphaBlend: true)",
-			"DrawFrame(rect, Panel, Border, alphaBlend: true)");
+			"DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha))",
+			"DrawFrame(rect, Panel, Border)");
 
-		Assert.NotEqual(theme, broken);
+		Assert.True(
+			theme != broken,
+			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
 		Assert.False(PinsTheBlendedFrame(broken));
 	}
 
@@ -80,7 +133,9 @@ public sealed class OnlineUiLauncherFadeTests
 			"new(color.r, color.g, color.b, color.a * alpha)",
 			"color");
 
-		Assert.NotEqual(theme, broken);
+		Assert.True(
+			theme != broken,
+			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
 		Assert.False(PinsTheBlendedFrame(broken));
 	}
 
@@ -92,7 +147,9 @@ public sealed class OnlineUiLauncherFadeTests
 			"style.normal.textColor = WithAlpha(Accent, alpha);",
 			"style.normal.textColor = Accent;");
 
-		Assert.NotEqual(theme, broken);
+		Assert.True(
+			theme != broken,
+			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
 		Assert.False(PinsTheBlendedFrame(broken));
 	}
 
@@ -101,10 +158,12 @@ public sealed class OnlineUiLauncherFadeTests
 	{
 		var theme = ReadThemeSource();
 		var broken = theme.Replace(
-			"ScaleMode.StretchToFill, alphaBlend, 0f, panel",
+			"ScaleMode.StretchToFill, true, 0f, panel",
 			"ScaleMode.StretchToFill, false, 0f, panel");
 
-		Assert.NotEqual(theme, broken);
+		Assert.True(
+			theme != broken,
+			"the mutation's anchor text is no longer in the theme — re-anchor this mutation before trusting it");
 		Assert.False(PinsTheBlendedFrame(broken));
 	}
 
@@ -269,27 +328,35 @@ public sealed class OnlineUiLauncherFadeTests
 		&& body.Contains("_state.Visible = !_state.Visible;", StringComparison.Ordinal);
 
 	/// <summary>
-	/// The theme half: the alpha-taking overload must hand the theme's own colours, scaled, to the
-	/// shared frame draw AND ask for blending; the parameterless overload must keep the modal window's
-	/// current behaviour; and the shared frame draw must pass its blending argument into all five draws
-	/// rather than hard-coding one.
+	/// The theme half: BOTH panel overloads must hand the theme's own colours to the shared frame draw,
+	/// the alpha-taking one scaled, and the frame draw must ASK FOR BLENDING — the palette's alphas
+	/// (Panel 0.96, Border 0.9, OverlayPanel 0.58) are dead on a draw that does not, because the
+	/// explicit-colour <c>DrawTexture</c> overload hands the flag to the native draw verbatim. The
+	/// console overlay is the same fact one member over.
 	/// </summary>
 	private static bool PinsTheBlendedFrame(string themeSource)
 	{
 		var alphaOverload = Flatten(ExtractMember(themeSource, "internal static void DrawBackground(Rect rect, float alpha)"));
 		var sharedOverload = Flatten(ExtractMember(themeSource, "internal static void DrawBackground(Rect rect)"));
 		var frame = Flatten(ExtractMember(themeSource, "private static void DrawFrame("));
+		var overlay = Flatten(ExtractMember(themeSource, "internal static void DrawOverlayBackground("));
 		var withAlpha = Flatten(ExtractMember(themeSource, "private static Color WithAlpha("));
 		var launcher = Flatten(ExtractMember(themeSource, "internal static GUIStyle Launcher("));
 
-		return alphaOverload.Contains("DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha), alphaBlend: true)", StringComparison.Ordinal)
-			&& sharedOverload.Contains("DrawFrame(rect, Panel, Border, alphaBlend: false)", StringComparison.Ordinal)
-			&& CountOf(frame, "ScaleMode.StretchToFill, alphaBlend, 0f, panel") == 1
-			&& CountOf(frame, "ScaleMode.StretchToFill, alphaBlend, 0f, border") == 4
+		return alphaOverload.Contains("DrawFrame(rect, WithAlpha(Panel, alpha), WithAlpha(Border, alpha))", StringComparison.Ordinal)
+			&& sharedOverload.Contains("DrawFrame(rect, Panel, Border)", StringComparison.Ordinal)
+			&& CountOf(frame, "ScaleMode.StretchToFill, true, 0f, panel") == 1
+			&& CountOf(frame, "ScaleMode.StretchToFill, true, 0f, border") == 4
 			&& !frame.Contains("StretchToFill, false,", StringComparison.Ordinal)
+			&& overlay.Contains("ScaleMode.StretchToFill, true, 0f, OverlayPanel", StringComparison.Ordinal)
+			&& !overlay.Contains("StretchToFill, false,", StringComparison.Ordinal)
 			// …and the census is a CEILING too: a sixth draw added later (say the panel again, under
 			// another name) would repaint the launcher opaque while the required draws stay intact
 			&& CountOf(frame, "GUI.DrawTexture(") == 5
+			// …and the whole theme file is capped the same way: its five frame draws plus the console
+			// overlay's own draw are every rectangle it paints, so a new unblended draw path cannot
+			// appear unnoticed
+			&& CountOf(Flatten(themeSource), "GUI.DrawTexture(") == 6
 			// The fold itself and the label half of it: a helper that returns its colour unchanged, or
 			// a style that keeps the palette's full opacity, leaves the control opaque while every call
 			// site above still reads correctly.

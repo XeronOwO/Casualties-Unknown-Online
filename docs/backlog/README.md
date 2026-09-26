@@ -48,7 +48,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
-- [Online UI panels ask for alphaBlend false](todo/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — their panel alpha may never blend.
 
 ### Review
 
@@ -192,6 +191,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Two censuses that drifted](review/catalogue-and-manifest-census-drift.md) — **Low-Medium** — orphan catalogue keys and the selfcheck index, gated.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
+- [Online UI panels asked for alphaBlend false](review/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
 
 ### Future
 

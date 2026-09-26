@@ -105,9 +105,6 @@ internal sealed class OnlineUiWindow
 			case OnlineUiPage.Worlds:
 				OnlineUiWorldsDrawer.Draw(ctx);
 				break;
-			case OnlineUiPage.Console:
-				OnlineUiConsoleDrawer.Draw(ctx);
-				break;
 			case OnlineUiPage.Preferences:
 				OnlineUiPreferencesDrawer.Draw(ctx);
 				break;
@@ -125,7 +122,6 @@ internal sealed class OnlineUiWindow
 		DrawTab(ctx.T("tab.network"), OnlineUiPage.Network);
 		DrawTab(ctx.T("tab.admin"), OnlineUiPage.Admin);
 		DrawTab(ctx.T("tab.worlds"), OnlineUiPage.Worlds);
-		DrawTab(ctx.T("tab.console"), OnlineUiPage.Console);
 		DrawTab(ctx.T("tab.preferences"), OnlineUiPage.Preferences);
 		GUILayout.EndHorizontal();
 	}

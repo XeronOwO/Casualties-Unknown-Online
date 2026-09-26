@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: Body.cs:2574-2591 chain, tempDiffFromNormal's only writer (:3367), Ragdoll's standing guard (:1719), Limb.Update has no alive guard
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: the page shell, the drawer and its command-buffer read, the window state and the key census
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3: four populations classified, FixedUpdate still skipped, the limb pass follows the body rule, every exclusion given a reason
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 8 rows - the rule, the stage set, the two freezes, the exclusions, the limb gate, the physics gate, dead code, the trace
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3: pages, drawer, state and keys changed; the command buffer narrowed to the overlay; the overlay itself untouched
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 8 rows - enum, tab row, switch, drawer, command buffer, window state, key census, the overlay key
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: red 14/23/37 on the HEAD-shaped adapter (%TEMP%/cuo-red2-carried-vitals.txt); focused 37/37; family 273/273; gates 209/209
+      peer log comparison, hotrepl assertions) is decided — evidence: red2 8/13/21 on the HEAD-shaped tree (%TEMP%/cuo-red2-online-ui-console.txt); pin 21/21; family 178/178; gates 208/208
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff instruction and the ticket's own Goal froze the design (vitals half, pinned pose); no work-item question asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full WITH build 4054/4054 + gates 208/208 exit 0 (%TEMP%/cuo-full-carried-vitals.txt); dotnet format exit 0
+      process violation — evidence: the user's 2026-09-21 deletion ruling recorded in the ticket and decision 228; no work-item question asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full WITH build 4075/4075 + gates 209/209 exit 0 (%TEMP%/cuo-full4-online-ui-console.txt); build 0/0; format exit 0, no file changed
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: BodyUpdatePatch 339->411 lines, CarriedBodySimulation 62->127, no new state, IsCarryingInParent deleted with its last caller
+      dead mechanisms deleted in the same round) — evidence: the drawer file and the state field deleted with their last readers; the new pin is 522 lines; no new state was added
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

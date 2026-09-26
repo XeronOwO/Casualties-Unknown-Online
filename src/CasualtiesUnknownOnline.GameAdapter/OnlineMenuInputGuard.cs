@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,15 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// the game's custom <see cref="AdaptiveButton"/> input and adds transparent
 /// UGUI raycast blockers on active screen-space canvases, then restores the
 /// original state when the modal closes.
+///
+/// <para>
+/// Everything here is aimed at the GAME's UI, never at CUO's own (ticket
+/// online-ui-art-and-controls-overhaul, S4): the surfaces that migrated onto the
+/// game's canvas are uGUI now and block their own pixels, so a blocker over CUO's
+/// own canvas would cover the launcher and the window and swallow every click the
+/// player makes on them. Every sweep therefore asks
+/// <see cref="OnlineUiSurfaceMarker"/>, and the surface marks its root.
+/// </para>
 /// </summary>
 internal sealed class OnlineMenuInputGuard(
 	ISessionControl session,
@@ -67,7 +77,11 @@ internal sealed class OnlineMenuInputGuard(
 		DestroyScopedBlockers();
 		if (_scopedBlocks.Count > 0)
 		{
-			CreateScopedBlockers();
+			var canvasCount = CreateScopedBlockers();
+			_log.LogDebug(
+				"Online UI scoped blocks set: {RectCount} rectangle(s) blocked on {CanvasCount} screen-space canvas(es).",
+				_scopedBlocks.Count,
+				canvasCount);
 		}
 	}
 
@@ -82,9 +96,12 @@ internal sealed class OnlineMenuInputGuard(
 
 	private void BeginModal()
 	{
-		CaptureAdaptiveButtons();
-		CreateRaycastBlockers();
-		_log.LogInformation("Online UI modal open — background UI input blocked.");
+		var buttonCount = CaptureAdaptiveButtons();
+		var canvasCount = CreateRaycastBlockers();
+		_log.LogInformation(
+			"Online UI modal open — background UI input blocked: {ButtonCount} game button(s) disabled, {CanvasCount} screen-space canvas(es) covered; CUO's own surface is never blocked by its own guard.",
+			buttonCount,
+			canvasCount);
 	}
 
 	private void EndModal()
@@ -94,18 +111,27 @@ internal sealed class OnlineMenuInputGuard(
 		_log.LogInformation("Online UI modal closed — background UI input restored.");
 	}
 
-	private void CaptureAdaptiveButtons()
+	/// <summary>
+	/// The game's custom menu buttons, CUO's own surface excepted. A control CUO built (or instantiated
+	/// from a game prefab) is CUO's to keep usable: disabling it would make the very surface the player
+	/// is looking at unresponsive.
+	/// </summary>
+	private int CaptureAdaptiveButtons()
 	{
+		var captured = 0;
 		foreach (var button in Object.FindObjectsOfType<AdaptiveButton>())
 		{
-			if (button == null || !button.enabled) // Unity object — ==
+			if (button == null || !button.enabled || OnlineUiSurfaceMarker.IsInside(button)) // Unity object — ==
 			{
 				continue;
 			}
 
 			_buttons.Add(button);
 			button.enabled = false;
+			captured++;
 		}
+
+		return captured;
 	}
 
 	private void RestoreAdaptiveButtons()
@@ -131,16 +157,27 @@ internal sealed class OnlineMenuInputGuard(
 		return !guestBlocked;
 	}
 
-	private void CreateRaycastBlockers()
+	/// <summary>
+	/// Whether CUO's own guard may put a blocker on this canvas: an active screen-space canvas that is
+	/// NOT part of CUO's own surface. The ownership clause is the S4 retirement — CUO's surface is uGUI
+	/// and answers the EventSystem itself, so a blocker laid over its canvas would sit above the
+	/// launcher and the window and take every click meant for them.
+	/// </summary>
+	private static bool IsBlockable(Canvas canvas)
 	{
+		// Unity object — ==
+		return canvas != null
+			&& canvas.gameObject.activeInHierarchy
+			&& canvas.renderMode != RenderMode.WorldSpace
+			&& !OnlineUiSurfaceMarker.IsInside(canvas);
+	}
+
+	private int CreateRaycastBlockers()
+	{
+		var created = 0;
 		foreach (var canvas in Object.FindObjectsOfType<Canvas>())
 		{
-			if (canvas == null || !canvas.gameObject.activeInHierarchy) // Unity object — ==
-			{
-				continue;
-			}
-
-			if (canvas.renderMode == RenderMode.WorldSpace)
+			if (!IsBlockable(canvas))
 			{
 				continue;
 			}
@@ -161,7 +198,10 @@ internal sealed class OnlineMenuInputGuard(
 			image.raycastTarget = true;
 			image.color = new Color(0f, 0f, 0f, 0f);
 			_blockers.Add(blocker);
+			created++;
 		}
+
+		return created;
 	}
 
 	private void DestroyRaycastBlockers()
@@ -177,16 +217,12 @@ internal sealed class OnlineMenuInputGuard(
 		_blockers.Clear();
 	}
 
-	private void CreateScopedBlockers()
+	private int CreateScopedBlockers()
 	{
+		var created = 0;
 		foreach (var canvas in Object.FindObjectsOfType<Canvas>())
 		{
-			if (canvas == null || !canvas.gameObject.activeInHierarchy) // Unity object — ==
-			{
-				continue;
-			}
-
-			if (canvas.renderMode == RenderMode.WorldSpace)
+			if (!IsBlockable(canvas))
 			{
 				continue;
 			}
@@ -209,7 +245,10 @@ internal sealed class OnlineMenuInputGuard(
 			var filter = blocker.AddComponent<OnlineScopedRaycastFilter>();
 			filter.SetBlocks(_scopedBlocks);
 			_scopedBlockers.Add(blocker);
+			created++;
 		}
+
+		return created;
 	}
 
 	private void DestroyScopedBlockers()

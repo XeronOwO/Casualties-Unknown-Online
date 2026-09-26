@@ -299,7 +299,8 @@ public sealed class OnlineUiSurfacePinTests
 	/// rule's answer AND the window's model to the surface. Every intent kind has its own case — the
 	/// launcher's three, the window's own pointer fact, and the control interactions the window family
 	/// reports (ticket online-ui-art-and-controls-overhaul, S2b) — and the click's case is the window's
-	/// opening rule.
+	/// opening rule. S4 put the pointer census's launcher fact on the same two hover cases, so the idle
+	/// fade and the world input paths read one polled fact.
 	/// </summary>
 	private static bool DrivesTheSurfaceWithTheRule(string hostSource)
 	{
@@ -314,10 +315,10 @@ public sealed class OnlineUiSurfacePinTests
 				"case OnlineUiIntentKind.LauncherToggled: _onlineUi.ToggleWindow(_session.Role); break;",
 				StringComparison.Ordinal)
 			&& flat.Contains(
-				"case OnlineUiIntentKind.LauncherHoverEntered: _launcherHovered = true; break;",
+				"case OnlineUiIntentKind.LauncherHoverEntered: _launcherHovered = true; _onlineUi.SetPointerOverLauncher(true); break;",
 				StringComparison.Ordinal)
 			&& flat.Contains(
-				"case OnlineUiIntentKind.LauncherHoverLeft: _launcherHovered = false; break;",
+				"case OnlineUiIntentKind.LauncherHoverLeft: _launcherHovered = false; _onlineUi.SetPointerOverLauncher(false); break;",
 				StringComparison.Ordinal)
 			&& flat.Contains(
 				"case OnlineUiIntentKind.WindowHoverEntered: _onlineUi.SetPointerOverWindow(true); break;",

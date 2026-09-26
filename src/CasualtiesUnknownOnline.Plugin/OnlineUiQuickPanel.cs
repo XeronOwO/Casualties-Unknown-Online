@@ -29,8 +29,6 @@ internal sealed class OnlineUiQuickPanel
 
 	internal Rect Bounds => _rect;
 
-	internal bool Contains(Vector2 point) => _rect.Contains(point);
-
 	internal void Toggle() => _visible = !_visible;
 
 	internal void Close() => _visible = false;

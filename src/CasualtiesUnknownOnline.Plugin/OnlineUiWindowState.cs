@@ -32,6 +32,16 @@ internal sealed class OnlineUiWindowState
 
 	internal bool ProfileStatusIsError;
 
+	/// <summary>
+	/// The text the Preferences page's colour field is showing, or null while it is showing the stored colour
+	/// itself (ticket online-ui-art-and-controls-overhaul, S3). It is presentation state, and it exists
+	/// because the field is a text box: what the player has typed so far — text that is not a colour yet
+	/// included — is what the box holds, so the model carries it back rather than letting the surface keep
+	/// text the plugin knows nothing about. Closing the window clears it, so an abandoned edit does not
+	/// outlive the window it was typed in.
+	/// </summary>
+	internal string? PlayerColorInput;
+
 	internal OnlineUiTransportMode TransportMode = OnlineUiTransportMode.Steam;
 
 	/// <summary>

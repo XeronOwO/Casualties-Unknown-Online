@@ -87,8 +87,8 @@ internal sealed class OnlineUiContext
 
 	internal PlayerColorConfigEditor? ColorConfig;
 
-	/// <summary>Applies a local player palette selection change (persist + identity).</summary>
-	internal Action<int>? ChangePlayerColor;
+	/// <summary>Applies a local player colour choice (persist + identity); null returns to automatic.</summary>
+	internal Action<PlayerColorValue?>? ChangePlayerColor;
 
 	internal Func<bool>? CreateIpHost;
 

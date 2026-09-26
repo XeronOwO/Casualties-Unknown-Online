@@ -88,7 +88,7 @@ World-archive policy. The host owns it, and the runtime reads it at each decisio
 | Key | Default | Allowed | What it does |
 |---|---|---|---|
 | `Language` | `en` | `en`, `zh` | CUO interface language. The localization service normalizes anything starting with `zh` to Chinese and everything else to English. |
-| `PlayerColorIndex` | -1 | -1–7 | Player marker colour. `-1` = an automatic per-SteamId palette; `0`–`7` = one of the shared player palette colours. It is a local preference shared through the handshake and roster messages. |
+| `PlayerColor` | *(empty)* | *(empty)*, `#RRGGBB`, `#RRGGBBAA` | Player marker colour. Empty = an automatic, stable per-SteamId palette colour; otherwise the colour itself, in the game's own hex idiom (`#RRGGBB`, or `#RRGGBBAA` for a translucent marker). It is a local preference shared through the handshake and roster messages, and a saved configuration profile carries it like every other entry. |
 
 ## `[IpDirect]`
 

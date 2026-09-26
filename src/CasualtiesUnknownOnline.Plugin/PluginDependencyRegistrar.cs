@@ -4,7 +4,6 @@ using BepInEx.Configuration;
 using CasualtiesUnknownOnline.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
-using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -155,14 +154,14 @@ internal static class PluginDependencyRegistrar
 				language.Definition)));
 		services.AddSingleton(new LocalizationConfigEditor(config, language));
 
-		// Local player marker color: -1 = automatic SteamId palette, otherwise
-		// a palette index. This is a local preference shared through handshake /
-		// roster messages; config profiles capture it like every other option.
-		var playerColorIndex = config.Bind("UI", "PlayerColorIndex", -1,
+		// Local player marker colour: empty = the automatic per-SteamId palette, otherwise the colour's
+		// own hex text (#RRGGBB, or #RRGGBBAA for a translucent marker) — an arbitrary colour is not an
+		// index. This is a local preference shared through handshake / roster messages; config profiles
+		// capture it like every other option.
+		var playerColor = config.Bind("UI", "PlayerColor", "",
 			new ConfigDescription(
-				"Player marker color choice. -1 = automatic per-SteamId palette; 0-7 = one of the shared player palette colors.",
-				new AcceptableValueRange<int>(-1, PlayerColorResolver.PaletteValues.Count - 1)));
-		services.AddSingleton(new PlayerColorConfigEditor(config, playerColorIndex));
+				"Player marker colour. Empty = an automatic per-SteamId palette colour; #RRGGBB = a chosen colour, or #RRGGBBAA to make the marker translucent."));
+		services.AddSingleton(new PlayerColorConfigEditor(config, playerColor));
 
 		// Host-rule write path for the Online UI Admin page. The runtime reads
 		// through IOptionsMonitor; this editor holds the ConfigEntry references

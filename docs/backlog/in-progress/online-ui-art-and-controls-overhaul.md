@@ -97,7 +97,7 @@ adversarial review → one commit.
 3. **S2b — the window family on the surface (landed 2026-09-26).** The window shell, tabs and page controls on the game's own
    control prefabs, drawing on the surface S2a proved. The IMGUI theme then stays only for the surfaces
    not yet migrated.
-4. **S3 — free colour.** The hex field and swatch grid on the uGUI controls, the config entry and its
+4. **S3 — free colour (landed 2026-09-26).** The hex field and swatch grid on the uGUI controls, the config entry and its
    profile carry, the free-colour path through `PlayerColorValue`/`PlayerColorResolver`, and a live
    swatch. The wire is untouched.
 5. **S4 — retirement pass.** Retire the scoped raycast blocker for the migrated surfaces and decide the
@@ -252,6 +252,69 @@ channel the launcher proved. Self-check:
   prefers shows up as a row wider or narrower than intended; the prefab's own `sizeDelta` is seeded into
   each control's layout so nothing collapses, but whether the authored size reads well here is a run
   observation.
+
+## What landed — S3 (2026-09-26)
+
+The player colour stopped being a choice among eight presets. A colour the player names is not an index,
+so the preference now carries the colour itself and the picker is a hex field plus a palette of blocks;
+the surface S2a/S2b proved carries both. Self-check:
+`docs/evidence/selfchecks/ui/online-ui-free-color-selfcheck.md`.
+
+- **The codec is the Runtime's, and it is pure.** `PlayerColorValue.TryParseHex` / `ToHexString` read and
+  write the game's own hex idiom in exactly two forms (`#RRGGBB`, `#RRGGBBAA`; either case, surrounding
+  space ignored) and refuse everything else — including the three-digit shorthand, so a value that is
+  still being typed never parses. That is what lets the rule be tested without Unity, and what lets the
+  page tell a valid colour from a half-typed one.
+- **The preference is the colour.** `[UI] PlayerColor` replaces `[UI] PlayerColorIndex`: empty = the
+  automatic per-SteamId palette, otherwise the colour's own text. `PlayerColorConfigEditor` reads and
+  writes it as a `PlayerColorValue?`, a selection that changes nothing writes nothing, and an unreadable
+  stored value is logged once at startup and read as automatic. The entry is bound through the same
+  `ConfigFile` the profile store walks, so a configuration profile carries it like every other entry.
+- **The picker is one row of the page's own vocabulary.** The current colour is a block beside its name
+  (the palette's name, the hex text, or the automatic label), then the hex field, then the palette as one
+  clickable block per Runtime palette entry, then Auto. What the player types is applied the moment it
+  parses, so the live block and every marker move with it; text that is not a colour yet leaves what the
+  player had and says so. One new `OnlineUiElementKind.ColorSwatch` carries a block — the same game button
+  row the launcher uses, with the colour laid over the graphic it shows — and a block with no id is the
+  preview, which reports nothing.
+- **The palette has one source of truth.** `PlayerColorResolver`'s table now holds a colour and the name it
+  is offered under; `PaletteValues` / `PaletteNames` are projections of it, and the index lookup
+  (`TryGet`) is gone with the index. The picker reads both from the Runtime, and a test holds every name to
+  its catalogue key (`prefs.color.<name>`) in both languages.
+- **A translucent choice reads the same everywhere.** The free colour is the first thing that can produce
+  an alpha below 1, so the two consumers that rendered the colour as a three-channel tag were aligned in
+  the same change: the member list's identity line and the Home page's coloured name now write the
+  eight-digit tag form the page's own status lines already use.
+- **An edit belongs to the window it was typed in.** The field's text lives in the window state while it is
+  being typed (the model carries it back, so box and model cannot disagree), the "not a colour yet" line is
+  derived from that text rather than kept as a flag, and closing the window drops the edit.
+- **Deleted in the same round.** The palette-index entry and its range validator, `ColorKeys` in the
+  drawer, the colour dropdown and the `Action<int>` colour delegate (now `Action<PlayerColorValue?>`).
+- **The pins moved with it, in the same change.** `OnlineUiColorPickerPinTests` is new (7 pins + 7
+  real-source mutation rows, registered in its matcher); `OnlineUiWindowSurfacePinTests`'
+  `EveryInteractiveControlReportsItsOwnId` now matches the current-id guard on the button listener;
+  `OnlineUiConsolePageRemovalPinTests` and `AdapterCapabilityPortShapeTests` are untouched and green (no
+  port was added — 14 ports / 19 members).
+
+### Limits recorded with S3
+
+- **How a block reads is the user's run.** The block is the game's own button row tinted, so the sprite's
+  own colour multiplies the fill — whether eight of them read as a palette at the player's canvas scale,
+  and whether the tints are recognisable, is a game observation.
+- **The field is the game's integer row reused.** Its content type and character limit are set on the
+  instance, but whether the caret, the typing and the blur-snap-back to the stored value feel right is a
+  game observation.
+- **A completed entry is one commit.** A value that is still being typed is never stored, and an entry
+  that parses is stored and announced at once; whether that reads as "live" (rather than as a missing
+  Apply control) is the user's judgement.
+- **The S1 chrome reading is still pending**, so the picker's tints come from the CUO theme rather than
+  from the game's own chrome colours.
+- **Alpha is carried everywhere but proven nowhere yet.** `#RRGGBBAA` parses, every consumer now passes all
+  four channels on (three tint their own graphics, two write an eight-digit tag), but whether a translucent
+  marker or a translucent name reads well — and whether the game's TMP renders partial alpha inside a
+  `<color=#RRGGBBAA>` tag — is the user's judgement.
+- **The window still needs the adapter** (no canvas, no picker) — the trade S2a recorded, and the reason
+  S4 owns the remaining IMGUI surfaces.
 
 ## Non-goals
 

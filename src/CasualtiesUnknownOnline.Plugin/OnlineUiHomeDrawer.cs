@@ -287,10 +287,12 @@ internal static class OnlineUiHomeDrawer
 		}
 	}
 
+	/// <summary>The display name in the player's own carried colour, four channels of it: a marker its owner
+	/// made translucent reads here exactly as it does in the world.</summary>
 	private static string ColoredName(OnlineUiContext ctx, ulong steamId)
 	{
 		var color = ctx.PlayerColor(steamId);
-		var hex = ColorUtility.ToHtmlStringRGB(new Color(color.R, color.G, color.B, color.A));
+		var hex = ColorUtility.ToHtmlStringRGBA(new Color(color.R, color.G, color.B, color.A));
 		return $"<color=#{hex}>{ctx.DisplayName(steamId)}</color>";
 	}
 }

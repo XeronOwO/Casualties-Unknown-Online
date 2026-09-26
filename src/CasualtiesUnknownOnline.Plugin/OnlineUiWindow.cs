@@ -40,6 +40,10 @@ internal sealed class OnlineUiWindow
 		_actions.Clear();
 		if (!_state.Visible)
 		{
+			// A closed window abandons the colour field's half-typed text with it: the field is rebuilt from
+			// the stored colour when the window comes back, so the edit must not outlive the window that
+			// started it (the model would otherwise show an edit nobody can see or finish).
+			_state.PlayerColorInput = null;
 			return null;
 		}
 

@@ -127,6 +127,14 @@ internal sealed class OnlineUiHost
 		var ipSteam = _router.IpDirectSteam;
 		ipSteam.SetDisplayName(ipConfig.DisplayName);
 		_router.SetLocalPlayerColor(colorConfig.CurrentColor);
+		if (!colorConfig.IsStoredValueReadable)
+		{
+			// The one unreadable-but-present shape there is: a hand-edited value, or one written by a build
+			// whose form changed. It reads as automatic from here on, which the player must be able to see.
+			_log.LogWarning(
+				"Online UI: the stored player colour `{Stored}` is not a colour — expected #RRGGBB or #RRGGBBAA; the marker colour is automatic until a new one is picked.",
+				colorConfig.StoredHex);
+		}
 
 		var uiActions = new OnlineUiActions(
 			_session,
@@ -156,10 +164,12 @@ internal sealed class OnlineUiHost
 			LeaveIp = _ipActions.Leave,
 			IpConfig = ipConfig,
 			ColorConfig = colorConfig,
-			ChangePlayerColor = index =>
+			ChangePlayerColor = color =>
 			{
-				colorConfig.SetColorIndex(index);
-				var color = colorConfig.CurrentColor;
+				// The chosen colour (null = automatic) is stored, then handed to the identity adapters so
+				// the handshake and every later roster announcement carry it — the same three steps a
+				// palette choice used to make.
+				colorConfig.SetColor(color);
 				_router.SetLocalPlayerColor(color);
 				_session.ReportLocalPlayerColor(color);
 			},

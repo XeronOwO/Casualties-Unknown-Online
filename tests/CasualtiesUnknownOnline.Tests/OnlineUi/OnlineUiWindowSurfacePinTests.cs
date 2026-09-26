@@ -32,7 +32,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 	[Fact]
 	public void TheWindowsControlsAreTheGamesOwnRowPrefabs() =>
 		Assert.True(
-			UsesTheGamesRowPrefabs(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiWindowView.cs")),
+			UsesTheGamesRowPrefabs(Adapter("OnlineUiControlFactory.cs"), Adapter("OnlineUiWindowView.cs")),
 			"every control of the window must be the game's own row prefab, and the frame's art must be read from it — a hand-built look is the gap this overhaul exists to close");
 
 	[Fact]
@@ -69,7 +69,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 	public void EveryInteractiveControlReportsItsOwnId() =>
 		Assert.True(
 			ReportsTheCurrentId(Adapter("OnlineUiControlView.cs")),
-			"a control reports the id it holds NOW, not the one it was built with: a row is reused when a page or a roster changes, and a stale id would fire another member's action");
+			"a control reports the id it holds NOW, not the one it was built with: a row is reused when a page or a roster changes, and a stale id would fire another member's action — and a model that gives a control no id (the colour picker's preview block) must report nothing at all");
 
 	[Fact]
 	public void ThePointerFactIsPolledFromTheWindowsRect() =>
@@ -101,7 +101,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 	[Fact]
 	public void AControlTakesTheGamesRowSizeWhenTheModelGivesNone() =>
 		Assert.True(
-			SeedsThePrefabsOwnSize(Adapter("OnlineUiControlView.cs")),
+			SeedsThePrefabsOwnSize(Adapter("OnlineUiControlFactory.cs")),
 			"the prefab's own size must be seeded into the layout: a row whose prefab carries no LayoutElement value would otherwise be zero-sized");
 
 	[Fact]
@@ -118,7 +118,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 
 	public static TheoryData<string, string, string, string, string> Mutations => new()
 	{
-		{ nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs), "adapter/OnlineUiControlView.cs", "\"Special/GameSettingBool\"", "\"Special/GameSettingNonexistent\"", "a hand-built checkbox instead of the game's row" },
+		{ nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs), "adapter/OnlineUiControlFactory.cs", "\"Special/GameSettingBool\"", "\"Special/GameSettingNonexistent\"", "a hand-built checkbox instead of the game's row" },
 		{ nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs), "adapter/OnlineUiWindowView.cs", "ReadGameRowTemplate(root.transform, out var typography", "ReadNoTemplate(out var typography", "a frame whose art and typography are guessed" },
 		{ nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel), "adapter/OnlineUiSurfaceHost.cs", "_window.SetVisible(frame.Window is not null);", "_window.SetVisible(true);", "a window that never closes" },
 		{ nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel), "adapter/OnlineUiSurfaceHost.cs", "_window.PollPointer(_intents);", "// poll removed", "a window whose pointer fact never reaches the plugin" },
@@ -131,7 +131,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(TheWindowStopsTheWorldBehindItFromBeingClicked), "adapter/OnlineUiWindowView.cs", "panel.raycastTarget = true;", "panel.raycastTarget = false;", "a frame that lets clicks fall through to the world" },
 		{ nameof(TheTitleBarDragsTheWindow), "adapter/OnlineUiWindowDragHandler.cs", "_target.anchoredPosition += eventData.delta / scale;", "_target.anchoredPosition += Vector2.zero;", "a title bar that does not drag" },
 		{ nameof(ThePluginDispatchesEveryIntentKind), "plugin/OnlineUiHost.cs", "case OnlineUiIntentKind.ControlEdited:", "case OnlineUiIntentKind.ControlInvoked:", "an intent kind the plugin silently drops" },
-		{ nameof(AControlTakesTheGamesRowSizeWhenTheModelGivesNone), "adapter/OnlineUiControlView.cs", "layout.preferredHeight = authoredHeight;", "layout.preferredHeight = -1f;", "a control whose prefab size is never seeded into the layout" },
+		{ nameof(AControlTakesTheGamesRowSizeWhenTheModelGivesNone), "adapter/OnlineUiControlFactory.cs", "layout.preferredHeight = authoredHeight;", "layout.preferredHeight = -1f;", "a control whose prefab size is never seeded into the layout" },
 		{ nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped), "plugin/OnlineUiWindow.cs", "if (!_actions.TryGetValue(intent.ControlId, out var action))", "if (false)", "an intent applied without checking that its control still exists" },
 		{ nameof(TheCloseControlIsTheShellsAndItsMeaningIsThePlugins), "plugin/OnlineUiWindow.cs", "_actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;", "_actions[\"window.dismiss\"] = _ => _state.Visible = false;", "a close control whose two halves disagree about its id" },
 	};
@@ -229,13 +229,15 @@ public sealed class OnlineUiWindowSurfacePinTests
 			&& flat.Contains("input.SetTextWithoutNotify(element.Value);", StringComparison.Ordinal);
 	}
 
-	/// <summary>Every listener reports the view's CURRENT id and the value the control now holds.</summary>
+	/// <summary>Every listener reports the view's CURRENT id and the value the control now holds, and a
+	/// control whose element carries no id reports nothing: there is no action it could belong to.</summary>
 	private static bool ReportsTheCurrentId(string controlSource)
 	{
 		var flat = Flatten(controlSource);
 
-		return flat.Contains(
-				"_button.onClick.AddListener(() => _report(new OnlineUiIntent(OnlineUiIntentKind.ControlInvoked, _id)));",
+		return flat.Contains("if (_id.Length > 0)", StringComparison.Ordinal)
+			&& flat.Contains(
+				"_report(new OnlineUiIntent(OnlineUiIntentKind.ControlInvoked, _id));",
 				StringComparison.Ordinal)
 			&& flat.Contains(
 				"_report(new OnlineUiIntent(OnlineUiIntentKind.ControlToggled, _id, Flag: value)));",

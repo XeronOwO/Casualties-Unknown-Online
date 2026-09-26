@@ -58,11 +58,14 @@ internal static class OnlineUiMemberListDrawer
 			getColor: ctx.PlayerColor);
 	}
 
-	/// <summary>The card's identity line: the name in the member's own colour, plus the local/host tag.</summary>
+	/// <summary>The card's identity line: the name in the member's own colour, plus the local/host tag. The
+	/// colour is the one the session carries — four channels of it, so a marker its owner made translucent
+	/// reads the same here as it does in the world (the eight-digit tag form the page's own status lines
+	/// already use).</summary>
 	internal static string Identity(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
 		var tags = row.IsLocal ? ctx.T("member.you") : row.IsHost ? ctx.T("member.host") : "";
-		var colorHex = ColorUtility.ToHtmlStringRGB(new Color(row.Color.R, row.Color.G, row.Color.B, row.Color.A));
+		var colorHex = ColorUtility.ToHtmlStringRGBA(new Color(row.Color.R, row.Color.G, row.Color.B, row.Color.A));
 		return $"<color=#{colorHex}>{row.Name}{tags}</color>";
 	}
 

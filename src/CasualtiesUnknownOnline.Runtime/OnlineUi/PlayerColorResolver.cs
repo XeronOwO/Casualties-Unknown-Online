@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 
@@ -8,45 +9,41 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// derives the same color for the same SteamId, so teammates are visually
 /// distinguishable without exchanging preference data. The palette is chosen
 /// for contrast on the dark CUO overlay background.
+///
+/// <para>
+/// The same palette is also the picker's presets (ticket online-ui-art-and-controls-overhaul, S3), which
+/// is why a colour and the name it is offered under live in one entry here: a second list of names in
+/// the UI would be free to drift out of step with the colours it names. Every name is the tail of a
+/// catalogue key (<c>prefs.color.red</c>), which a test holds the Runtime's list and the catalogue to.
+/// </para>
 /// </summary>
 public static class PlayerColorResolver
 {
-	private static readonly PlayerColorValue[] Palette =
+	private static readonly (string Name, PlayerColorValue Color)[] Palette =
 	[
-		new(0.90f, 0.30f, 0.28f), // red
-		new(0.30f, 0.55f, 0.95f), // blue
-		new(0.35f, 0.80f, 0.45f), // green
-		new(0.95f, 0.60f, 0.25f), // orange
-		new(0.72f, 0.45f, 0.90f), // purple
-		new(0.30f, 0.78f, 0.80f), // cyan
-		new(0.95f, 0.45f, 0.72f), // pink
-		new(0.92f, 0.85f, 0.30f), // yellow
+		("red", new(0.90f, 0.30f, 0.28f)),
+		("blue", new(0.30f, 0.55f, 0.95f)),
+		("green", new(0.35f, 0.80f, 0.45f)),
+		("orange", new(0.95f, 0.60f, 0.25f)),
+		("purple", new(0.72f, 0.45f, 0.90f)),
+		("cyan", new(0.30f, 0.78f, 0.80f)),
+		("pink", new(0.95f, 0.45f, 0.72f)),
+		("yellow", new(0.92f, 0.85f, 0.30f)),
 	];
 
-	/// <summary>Returns the stable marker color for a player id.</summary>
-	/// <summary>The selectable palette in display order. Index 0 is the first
-	/// manually selectable color; the auto resolver uses the same palette.</summary>
-	public static IReadOnlyList<PlayerColorValue> PaletteValues => Palette;
+	/// <summary>The selectable palette in display order: the picker's swatches, and the same colours the
+	/// automatic resolver assigns from.</summary>
+	public static IReadOnlyList<PlayerColorValue> PaletteValues { get; } = [.. Palette.Select(static entry => entry.Color)];
 
-	/// <summary>Returns the palette color by its manual selection index, or
-	/// false when the index is outside the selectable range.</summary>
-	public static bool TryGet(int index, out PlayerColorValue color)
-	{
-		if (index >= 0 && index < Palette.Length)
-		{
-			color = Palette[index];
-			return true;
-		}
-
-		color = default;
-		return false;
-	}
+	/// <summary>The palette's names in the same order, one per <see cref="PaletteValues"/> entry: the tail
+	/// of each colour's catalogue key, so the picker can name the colour it is showing.</summary>
+	public static IReadOnlyList<string> PaletteNames { get; } = [.. Palette.Select(static entry => entry.Name)];
 
 	/// <summary>Returns the stable marker color for a player id.</summary>
 	public static PlayerColorValue Resolve(ulong steamId)
 	{
 		var index = PaletteIndex(steamId);
-		return Palette[index];
+		return Palette[index].Color;
 	}
 
 	private static int PaletteIndex(ulong steamId)

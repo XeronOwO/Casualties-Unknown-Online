@@ -19,14 +19,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// <c>GameSettingBool</c> / <c>GameSettingDropdown</c> / <c>GameSettingInt</c> / <c>GameSettingFloat</c>
 /// carry their control on child 1 (the float row shows its value on child 2) — the shape
 /// <c>SettingsMenu</c> itself wires up. A label has no prefab of its own, so it is built from the game's
-/// own font, which the game's row hands over.
+/// own font, which the game's row hands over; a colour block is that same button row with the chosen
+/// colour laid over the graphic the row already shows.
 /// </para>
 ///
 /// <para>
-/// The prefab's own SIZE is carried into the layout explicitly, because the game places its rows by hand
-/// (<c>SettingsMenu</c> sets <c>anchoredPosition</c> from <c>sizeDelta</c>) and a layout group takes
-/// nothing from a RectTransform: without that, a row whose prefab carries no <c>LayoutElement</c> value
-/// would be laid out at zero height. A model width hint overrides the width when it has one.
+/// Which prefab draws which kind, how it is instantiated so a layout group can size it, and what stands in
+/// when the game ships none all belong to <see cref="OnlineUiControlFactory"/>; this class is about the
+/// element that then lives on that object.
 /// </para>
 ///
 /// <para>
@@ -37,17 +37,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// </summary>
 internal sealed class OnlineUiControlView
 {
-	/// <summary>The game's own button row — the prefab its settings screen uses for a language row, and the
-	/// one whose sprite and typography the window's chrome reads.</summary>
-	internal const string ButtonRowPrefabPath = "Special/GameSettingLanguage";
-
-	/// <summary>The width a placeholder takes when neither the model nor a prefab gives one: the fallback a
-	/// missing prefab produces still has to be visible (and, for a button, clickable).</summary>
-	internal const float PlaceholderWidth = 220f;
-
-	/// <summary>The padding a hand-built label adds to the game's own font size for its line height.</summary>
-	internal const float LabelHeightPadding = 8f;
-
 	/// <summary>The game's own typography, handed to every label this surface builds: the font the game's
 	/// row labels use and the size they are set at.</summary>
 	internal readonly record struct Typography(TMP_FontAsset? Font, float Size)
@@ -78,6 +67,10 @@ internal sealed class OnlineUiControlView
 	private readonly Action<OnlineUiIntent> _report;
 	private readonly Typography _typography;
 	private readonly Button? _button;
+
+	/// <summary>The image a colour block tints; only a <see cref="OnlineUiElementKind.ColorSwatch"/> has one.</summary>
+	private readonly Image? _swatch;
+
 	private readonly Toggle? _toggle;
 	private readonly TMP_Dropdown? _dropdown;
 	private readonly TMP_InputField? _input;
@@ -97,6 +90,7 @@ internal sealed class OnlineUiControlView
 	private float _maximum = float.NaN;
 	private int _index = -1;
 	private int _optionCount = -1;
+	private OnlineUiNativeRgba? _color;
 
 	private OnlineUiControlView(
 		GameObject root,
@@ -105,6 +99,7 @@ internal sealed class OnlineUiControlView
 		Typography typography,
 		Action<OnlineUiIntent> report,
 		Button? button,
+		Image? swatch,
 		Toggle? toggle,
 		TMP_Dropdown? dropdown,
 		TMP_InputField? input,
@@ -119,6 +114,7 @@ internal sealed class OnlineUiControlView
 		_typography = typography;
 		_report = report;
 		_button = button;
+		_swatch = swatch;
 		_toggle = toggle;
 		_dropdown = dropdown;
 		_input = input;
@@ -134,16 +130,17 @@ internal sealed class OnlineUiControlView
 
 	internal GameObject Root => _root;
 
-	/// <summary>False when the game's own prefab for this element's kind could not be loaded and the
-	/// placeholder was used — the window logs the miss once per kind instead of the gap passing unnoticed
-	/// (the launcher's fallback reports the same way).</summary>
-	internal bool UsesGamePrefab { get; private init; }
+	/// <summary>True when the game ships a row prefab for this element's kind and it could not be loaded,
+	/// so the placeholder stands in for it — the window logs that once per kind instead of the gap passing
+	/// unnoticed (the launcher's fallback reports the same way). A label has no prefab of its own by design
+	/// and is never a miss.</summary>
+	internal bool MissedGamePrefab { get; private init; }
 
 	/// <summary>
-	/// Builds the view for one element under <paramref name="parent"/>. It always produces a visible, sized
-	/// control: the game's own prefab when it is there, and a placeholder that still shows the element's
-	/// text (and stays clickable for a button) when it is not — the surface's frame callback must never
-	/// throw, and one missing prefab must not cost the whole window.
+	/// Builds the view for one element under <paramref name="parent"/> on the object
+	/// <see cref="OnlineUiControlFactory"/> produces for its kind, and finds the parts this view drives:
+	/// the caption, the control the kind carries, the button a click lands on, and the graphic a colour
+	/// block tints.
 	/// </summary>
 	internal static OnlineUiControlView Create(
 		OnlineUiElementModel element,
@@ -151,73 +148,38 @@ internal sealed class OnlineUiControlView
 		Typography typography,
 		Action<OnlineUiIntent> report)
 	{
-		var prefabPath = element.Kind == OnlineUiElementKind.Label ? null : PrefabPathOf(element.Kind);
-		var prefab = prefabPath is { Length: > 0 } ? Resources.Load<GameObject>(prefabPath) : null;
-		var root = prefab != null
-			? Object.Instantiate(prefab, parent)
-			: CreatePlainObject(element.Kind, parent, typography);
+		var built = OnlineUiControlFactory.Build(element, parent, typography);
+		var root = built.Root;
+		var rect = (RectTransform)root.transform;
+		var caption = OnlineUiControlFactory.CaptionOn(built);
 
-		if (root.transform is not RectTransform rect)
-		{
-			Object.Destroy(root);
-			root = CreatePlainObject(element.Kind, parent, typography);
-			rect = (RectTransform)root.transform;
-		}
-
-		// A ContentSizeFitter on the instantiated prefab would fight the layout group that owns this
-		// element's size; the row prefabs are placed by hand in the game's own screen, so whatever they
-		// carry for that case is not wanted here. The scale is normalised once for the same reason.
-		if (root.TryGetComponent<ContentSizeFitter>(out var fitter))
-		{
-			Object.Destroy(fitter);
-		}
-
-		// The prefab's own, hand-authored size is what a layout group cannot read off the rect, so it is
-		// seeded here (a prefab that carries its own layout values keeps them); a label takes the row's
-		// remaining width and the height of the game's own font line.
-		var authored = prefab != null ? rect.sizeDelta : Vector2.zero;
-		var authoredWidth = authored.x > 0f
-			? authored.x
-			: element.Kind == OnlineUiElementKind.Label ? 0f : PlaceholderWidth;
-		var authoredHeight = authored.y > 0f ? authored.y : typography.Size + LabelHeightPadding;
-		var layout = root.GetComponent<LayoutElement>() ?? root.AddComponent<LayoutElement>();
-		if (layout.preferredHeight <= 0f)
-		{
-			layout.preferredHeight = authoredHeight;
-		}
-
-		if (layout.preferredWidth <= 0f && authoredWidth > 0f)
-		{
-			layout.preferredWidth = authoredWidth;
-		}
-
-		var caption = prefab != null
-			? ChildText(root.transform, 0)
-			: root.GetComponent<TextMeshProUGUI>();
-
-		var control = element.Kind is OnlineUiElementKind.Label or OnlineUiElementKind.Button
+		// A button and a colour block ARE the row; the other kinds are a control the row carries on child 1.
+		var control = element.Kind is OnlineUiElementKind.Label or OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch
 			? null
-			: ChildAt(root.transform, 1);
+			: OnlineUiControlFactory.ChildAt(root.transform, 1);
+		var button = element.Kind is OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch
+			? OnlineUiControlFactory.ButtonOn(root, caption)
+			: null;
 
 		var view = new OnlineUiControlView(
 			root,
 			rect,
-			layout,
+			built.Layout,
 			typography,
 			report,
-			button: element.Kind == OnlineUiElementKind.Button ? ButtonOn(root, caption) : null,
+			button: button,
+			swatch: element.Kind == OnlineUiElementKind.ColorSwatch ? OnlineUiControlFactory.SwatchImageOn(root, button) : null,
 			toggle: control != null ? control.GetComponent<Toggle>() : null,
 			dropdown: control != null ? control.GetComponent<TMP_Dropdown>() : null,
 			input: control != null ? control.GetComponent<TMP_InputField>() : null,
 			slider: control != null ? control.GetComponent<Slider>() : null,
 			caption: caption,
 			rowLabel: element.Kind == OnlineUiElementKind.Label ? null : caption,
-			valueText: element.Kind == OnlineUiElementKind.Slider && prefab != null ? ChildText(root.transform, 2) : null)
+			valueText: element.Kind == OnlineUiElementKind.Slider && built.UsedPrefab ? OnlineUiControlFactory.ChildText(root.transform, 2) : null)
 		{
-			UsesGamePrefab = prefab != null,
+			MissedGamePrefab = built.MissedPrefab,
 		};
 
-		rect.localScale = Vector3.one;
 		view.Wire();
 		view.Apply(element);
 		return view;
@@ -264,6 +226,14 @@ internal sealed class OnlineUiControlView
 			case OnlineUiElementKind.Slider:
 				ApplySlider(element, kindChanged);
 				break;
+			case OnlineUiElementKind.ColorSwatch:
+				if (kindChanged || _color != element.Color)
+				{
+					_color = element.Color;
+					ApplySwatchColor();
+				}
+
+				break;
 		}
 
 		ApplyLayout(element);
@@ -285,8 +255,15 @@ internal sealed class OnlineUiControlView
 		if (_button != null)
 		{
 			// The id is read when the click happens, not captured: a view outlives the element it was
-			// built for (the row is reused when a page or a roster changes).
-			_button.onClick.AddListener(() => _report(new OnlineUiIntent(OnlineUiIntentKind.ControlInvoked, _id)));
+			// built for (the row is reused when a page or a roster changes). An element with NO id is not
+			// a control at all — the colour picker's preview block — so its click reports nothing.
+			_button.onClick.AddListener(() =>
+			{
+				if (_id.Length > 0)
+				{
+					_report(new OnlineUiIntent(OnlineUiIntentKind.ControlInvoked, _id));
+				}
+			});
 		}
 
 		if (_toggle != null)
@@ -445,6 +422,19 @@ internal sealed class OnlineUiControlView
 	}
 
 	/// <summary>
+	/// The colour block's fill. The game's own control keeps its sprite, its 9-slice and its size, so the
+	/// block reads as one of the game's rows; the colour laid over it is the one thing the surface chooses
+	/// for the element, and it is written only when it changed.
+	/// </summary>
+	private void ApplySwatchColor()
+	{
+		if (_swatch != null)
+		{
+			_swatch.color = ToColor(_color);
+		}
+	}
+
+	/// <summary>
 	/// The layout half: a width hint from the model wins, everything else stays what the view was created
 	/// with (the prefab's own width, seeded in <see cref="Create"/>). A label with no hint takes whatever
 	/// the row has left, which is what the IMGUI rows' flexible space did.
@@ -479,76 +469,6 @@ internal sealed class OnlineUiControlView
 		}
 
 		return true;
-	}
-
-	/// <summary>
-	/// The element's own object when no game prefab can be used: a label built from the game's font (which
-	/// is what a <see cref="OnlineUiElementKind.Label"/> always is), and for every other kind a placeholder
-	/// that still shows the element's text — clickable when the element is a button — so a prefab the game
-	/// moved or renamed degrades the look instead of leaving a blank row.
-	/// </summary>
-	private static GameObject CreatePlainObject(OnlineUiElementKind kind, Transform parent, Typography typography)
-	{
-		var name = kind == OnlineUiElementKind.Label ? "CUO Online UI Label" : $"CUO Online UI {kind} (no game prefab)";
-		var root = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-		root.transform.SetParent(parent, worldPositionStays: false);
-		var text = root.GetComponent<TextMeshProUGUI>();
-		text.alignment = TextAlignmentOptions.Left;
-		text.fontSize = typography.Size;
-		if (typography.Font != null)
-		{
-			text.font = typography.Font;
-		}
-
-		return root;
-	}
-
-	private static string PrefabPathOf(OnlineUiElementKind kind) => kind switch
-	{
-		OnlineUiElementKind.Button => ButtonRowPrefabPath,
-		OnlineUiElementKind.Toggle => "Special/GameSettingBool",
-		OnlineUiElementKind.Dropdown => "Special/GameSettingDropdown",
-		OnlineUiElementKind.TextField => "Special/GameSettingInt",
-		OnlineUiElementKind.Slider => "Special/GameSettingFloat",
-		_ => "",
-	};
-
-	private static Button? ButtonOn(GameObject root, TextMeshProUGUI? caption)
-	{
-		var button = root.GetComponent<Button>();
-		if (button == null)
-		{
-			// A prefab the game changed may carry no button of its own; an invisible image keeps the row
-			// clickable (uGUI hit-tests a graphic, not its alpha).
-			var graphic = root.GetComponent<Graphic>();
-			if (graphic == null)
-			{
-				var image = root.AddComponent<Image>();
-				image.color = new Color(0f, 0f, 0f, 0f);
-				graphic = image;
-			}
-
-			button = root.AddComponent<Button>();
-			button.targetGraphic = graphic;
-		}
-
-		// The caption must never swallow the click — unless it IS the row's graphic, which is the case
-		// only for the plain fallback.
-		if (caption != null && caption != button.targetGraphic)
-		{
-			caption.raycastTarget = false;
-		}
-
-		return button;
-	}
-
-	private static Transform? ChildAt(Transform root, int index) =>
-		root.childCount > index ? root.GetChild(index) : null;
-
-	private static TextMeshProUGUI? ChildText(Transform root, int index)
-	{
-		var child = ChildAt(root, index);
-		return child != null ? child.GetComponent<TextMeshProUGUI>() : null;
 	}
 
 	private static Color ToColor(OnlineUiNativeRgba? color) =>

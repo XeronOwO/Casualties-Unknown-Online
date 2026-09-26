@@ -42,7 +42,7 @@
 5. **The capture stays local-action only.** A remote-driven mutation still never reports as the local
    player's action (`CaptureScopeGuard.IsLocalAction()`), which is also what stops a scope being
    opened INSIDE a `RemoteApply` scope — the two `Sound.Play` patches' only echo guard is that outer
-   scope. The consequence is recorded on `todo/suppressed-native-call-sounds-stay-unheard.md`.
+   scope. The consequence is recorded on `review/suppressed-native-call-sounds-stay-unheard.md`.
 6. **The 2D calls stay local (user decision).** The user chose "every 3D world sound is carried; 2D
    screen feedback stays the acting player's own". The vomit prompts, the climb clips and the syringe
    minigame's cues carry no world position at all, so carrying them would have meant inventing one.
@@ -155,7 +155,7 @@ absence of a double-play path, the wire numbering and census pin, and reference 
 - **Three paths have no native clip to carry at all**: the remote-medical treatment (blocked in that
   view), the world-item impact (suppressed on guest copies) and the remote-driven replay (deliberately
   not reported as the local player's action). All are recorded and ticketed as
-  `todo/suppressed-native-call-sounds-stay-unheard.md`.
+  `review/suppressed-native-call-sounds-stay-unheard.md`.
 - **The coroutine wrapper is exercised by contract, not by a running Unity coroutine.** The gate pins
   its shape and its use; that a real coroutine plays its clip exactly once inside the stepped scope,
   and that `StartCoroutine("WaterShake")` (the string form, Body.cs:3334) routes through the Harmony

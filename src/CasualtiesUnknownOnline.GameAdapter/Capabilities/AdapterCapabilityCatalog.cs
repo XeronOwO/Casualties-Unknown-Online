@@ -139,6 +139,7 @@ internal static class AdapterCapabilityCatalog
 				typeof(TalkerPatch), typeof(SoundPlayPatch), typeof(SoundPlayAudioClipPatch), typeof(BurpSoundPatches),
 				typeof(MedicalSoundPatches), typeof(WorldDrinkSoundPatches), typeof(InventoryGestureSoundPatches),
 				typeof(BodySoundPatches), typeof(BandageMinigameSoundPatches),
+				typeof(AmputationMinigameSoundPatch), typeof(ShrapnelMinigameSoundPatch),
 			],
 			[],
 			[],

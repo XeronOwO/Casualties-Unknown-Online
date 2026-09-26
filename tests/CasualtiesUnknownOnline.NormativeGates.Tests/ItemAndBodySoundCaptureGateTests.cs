@@ -73,6 +73,15 @@ public class ItemAndBodySoundCaptureGateTests
 	private const string BandageMinigamePatchFile =
 		"src/CasualtiesUnknownOnline.GameAdapter/Patches/BandageMinigameSoundPatches.cs";
 
+	private const string GoreAmputationPatchFile =
+		"src/CasualtiesUnknownOnline.GameAdapter/Patches/AmputationMinigameSoundPatch.cs";
+
+	private const string GoreShrapnelPatchFile =
+		"src/CasualtiesUnknownOnline.GameAdapter/Patches/ShrapnelMinigameSoundPatch.cs";
+
+	private const string DisplayCaptureFile =
+		"src/CasualtiesUnknownOnline.GameAdapter/Patches/RemoteMedicalDisplayCapture.cs";
+
 	private const string TreatmentTableFile =
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteMedicalTreatmentSoundCatalog.cs";
 
@@ -108,7 +117,7 @@ public class ItemAndBodySoundCaptureGateTests
 	/// </summary>
 	private static readonly (string Selector, string[] Clips)[] Census =
 	[
-		("IsMedicalClip", ["bandage", "boneweld", "cream", "drainuse", "goo", "laser", "spray", "splint", "syringe", "tweezeruse", "wrenchhit"]),
+		("IsMedicalClip", ["bandage", "boneweld", "cream", "drainuse", "goo", "gore", "gore1", "gore2", "gore3", "gore4", "gore5", "laser", "spray", "splint", "syringe", "tweezeruse", "wrenchhit"]),
 		("IsIngestClip", ["crystalenemylaugh", "drink", "eatCrunch", "eatFlesh", "glass", "pills"]),
 		("IsItemUseFeedbackClip", ["centrifuge", "combine", "drop", "error", "flashlighttoggle"]),
 		("Origin.WorldDrink", ["drink", "pills"]),
@@ -116,8 +125,8 @@ public class ItemAndBodySoundCaptureGateTests
 		("Origin.BodySound", ["dogshake", "stretch", "vomit1", "vomit2"]),
 	];
 
-	/// <summary>The census floor — a pin emptied alongside its policy would otherwise pass by checking nothing (the pinned census holds 31 clips).</summary>
-	private const int MinimumCensusedClips = 27;
+	/// <summary>The census floor — a pin emptied alongside its policy would otherwise pass by checking nothing (the pinned census holds 37 clips).</summary>
+	private const int MinimumCensusedClips = 33;
 
 	/// <summary>
 	/// The clips the decision leaves LOCAL, with the reason the ticket records:
@@ -226,6 +235,79 @@ public class ItemAndBodySoundCaptureGateTests
 		Assert.Contains("CallContext.Origin.CharacterMedicalUse", code, StringComparison.Ordinal);
 		Assert.Contains("CallContext.Enter(", code, StringComparison.Ordinal);
 		Assert.Contains("CaptureScopeGuard.IsLocalAction()", code, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void TheGoreClips_AreCapturedInsideTheMinigameStepsThatPlayThem()
+	{
+		// The gore clips have no limb-action producer: the limb's own Dismember
+		// plays them (Limb.cs:91-99), and the two minigames reach it from their
+		// own step — the amputation minigame's completion (AmputationMinigame.cs:73-75)
+		// and the shrapnel minigame's broken grasp, called from its own Update
+		// (ShrapnelMinigame.cs:111/116 → :61-71). Both steps run frames after the
+		// limb action that started the minigame returned. The remote amputation is
+		// where it showed: the OPERATOR's minigame dismembers the displayed body's
+		// limb while the patient's client applies the dismemberment through the
+		// kernel projection, so its game never calls Dismember — the operator heard
+		// the clip, every peer heard nothing.
+		Assert.True(
+			File.Exists(RepositoryPaths.File(GoreAmputationPatchFile)),
+			$"{GoreAmputationPatchFile} is missing — the amputation minigame's completion plays \"gore\"/\"gore{{N}}\" outside every capture scope");
+		Assert.True(
+			File.Exists(RepositoryPaths.File(GoreShrapnelPatchFile)),
+			$"{GoreShrapnelPatchFile} is missing — the shrapnel minigame's broken grasp plays \"gore{{N}}\" outside every capture scope");
+
+		var amputation = RepositoryPaths.ReadText(GoreAmputationPatchFile);
+		var shrapnel = RepositoryPaths.ReadText(GoreShrapnelPatchFile);
+
+		Assert.True(
+			AnchorsOn(amputation, "AmputationMinigame", "Update"),
+			"the gore capture must bind AmputationMinigame.Update — the step whose completion calls Limb.Dismember");
+		Assert.True(
+			AnchorsOn(shrapnel, "ShrapnelMinigame", "Update"),
+			"the gore capture must bind ShrapnelMinigame.Update — the step that can break a grasp and play the body's gore roll");
+
+		foreach (var (file, patch) in new[] { (GoreAmputationPatchFile, amputation), (GoreShrapnelPatchFile, shrapnel) })
+		{
+			var code = WithoutComments(patch);
+			Assert.Contains("CallContext.Enter(CallContext.Origin.CharacterMedicalUse)", code, StringComparison.Ordinal);
+			Assert.Contains("CaptureScopeGuard.IsLocalAction()", code, StringComparison.Ordinal);
+			Assert.Contains("__state?.Dispose();", code, StringComparison.Ordinal);
+
+			// The POSITION half, which no anchor can see and the operator's own play
+			// depends on: the remote path's native call reports the displayed body's
+			// parked transform (RemoteMedicalCoordinator parks it at (0, -10000)), so
+			// the window has to re-point it at the patient's own render clone — the
+			// same re-point PlayTreatmentSound makes for the treatment table.
+			Assert.Contains("RemoteMedicalDisplayCapture.Enter(", code, StringComparison.Ordinal);
+		}
+
+		Assert.True(
+			File.Exists(RepositoryPaths.File(DisplayCaptureFile)),
+			$"{DisplayCaptureFile} is missing — the remote step scopes would report an off-world position");
+
+		var capture = WithoutComments(RepositoryPaths.ReadText(DisplayCaptureFile));
+		Assert.Contains("RemoteMedicalView.TargetSteamId", capture, StringComparison.Ordinal);
+		Assert.Contains("IPlayerAnchorQuery", capture, StringComparison.Ordinal);
+		Assert.Contains("TryGetRemoteHeadPosition(RemoteMedicalView.TargetSteamId", capture, StringComparison.Ordinal);
+		Assert.Contains("body.transform.position = new Vector3(x, y, previous.z);", capture, StringComparison.Ordinal);
+		Assert.Contains("_body.transform.position = _previous;", capture, StringComparison.Ordinal);
+
+		// The shared shrapnel session has an OBSERVER copy of the same minigame; the
+		// operator already reported the removal, so the observer's copy must never
+		// report a second play (the local-action guard alone cannot tell them apart).
+		Assert.Contains(
+			"IsObserverShrapnelMinigame(",
+			WithoutComments(shrapnel),
+			StringComparison.Ordinal);
+
+		// The clips the steps produce are the medical set's own knowledge: without
+		// them both steps stay silent for every peer however the scope is bound.
+		var medical = ClipsOf(RepositoryPaths.ReadText(PolicyFile), "IsMedicalClip");
+		foreach (var clip in new[] { "gore", "gore1", "gore2", "gore3", "gore4", "gore5" })
+		{
+			Assert.Contains(clip, medical);
+		}
 	}
 
 	[Fact]
@@ -373,7 +455,10 @@ public class ItemAndBodySoundCaptureGateTests
 			RepositoryPaths.ReadText(WorldDrinkPatchFile),
 			RepositoryPaths.ReadText(GesturePatchFile),
 			RepositoryPaths.ReadText(BodySoundPatchFile),
-			RepositoryPaths.ReadText(BandageMinigamePatchFile));
+			RepositoryPaths.ReadText(BandageMinigamePatchFile),
+			RepositoryPaths.ReadText(GoreAmputationPatchFile),
+			RepositoryPaths.ReadText(GoreShrapnelPatchFile),
+			RepositoryPaths.ReadText(DisplayCaptureFile));
 
 		Assert.False(
 			AnchorsOn(patches, "SyringeMinigame", "Update"),

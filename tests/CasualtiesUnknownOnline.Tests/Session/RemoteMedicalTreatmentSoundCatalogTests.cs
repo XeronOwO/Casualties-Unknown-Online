@@ -32,6 +32,7 @@ public class RemoteMedicalTreatmentSoundCatalogTests
 	[InlineData("bloodcoagulant", "syringe")]
 	[InlineData("combatpen", "syringe")]
 	[InlineData("streptokinase", "syringe")]
+	[InlineData("medicalsuture", "gore")] // its blocked delegate's first call is Body.DoGoreSound (Item.cs:378): the table names the base clip the limb's own Dismember plays, not one of the body's five rolled variants
 	public void ALimbTreatmentItem_CarriesItsNativeLimbActionClip(string itemId, string clip)
 	{
 		Assert.True(RemoteMedicalTreatmentSoundCatalog.TryGetClip(itemId, out var actual));
@@ -63,8 +64,7 @@ public class RemoteMedicalTreatmentSoundCatalogTests
 	[InlineData("tourniquet")]
 	[InlineData("adhesivebandage")]
 	[InlineData("makeshiftwrench")]
-	[InlineData("medicalsuture")] // its delegate calls Body.DoGoreSound — a limb-presentation clip (todo/treatment-gore-presentation-not-carried.md)
-	[InlineData("machete")] // the amputation's completion plays the limb's gore presentation — same ticket
+	[InlineData("machete")] // the amputation's completion plays the limb's gore presentation, carried by the minigame step's own capture scope (AmputationMinigameSoundPatch)
 	public void AnUncarriedItem_CarriesNoClipRow(string itemId)
 	{
 		Assert.Contains(itemId, RemoteMedicalTreatmentSoundCatalog.Uncarried);

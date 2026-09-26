@@ -151,9 +151,26 @@ public static class CharacterSoundPolicy
 	/// minigame returned — so the local treatment left it on the acting client
 	/// alone, and the remote treatment (which CUO drives through the same native
 	/// minigame) did too.
+	/// </para>
+	/// <para>
+	/// The gore family joins it the same way, from two producers that both run
+	/// per STEP of a native minigame: the amputation minigame's own completion
+	/// plays <c>"gore"</c> and then the body's roll (<c>Limb.Dismember</c>,
+	/// Limb.cs:91-99 → <c>Body.DoGoreSound</c>, Body.cs:2443-2446), and the
+	/// shrapnel minigame's broken grasp plays the same roll
+	/// (ShrapnelMinigame.cs:61-71). Those steps are where a REMOTE amputation is
+	/// heard: the operator's minigame runs on the displayed body while the
+	/// dismemberment is applied on the patient's client by the kernel projection,
+	/// so the patient's game never calls <c>Dismember</c> and the peers heard
+	/// nothing. <c>"gore2"</c> keeps its separate meaning under
+	/// <c>Origin.LockpickPain</c> (the lockpick-failure pain); the two origins
+	/// are distinct scopes, never nested, and the relay drops the source's own
+	/// echo — so a clip classified under both can never be reported twice for one
+	/// play.
 	/// </para></summary>
 	private static bool IsMedicalClip(string clip) =>
-		clip is "bandage" or "syringe" or "splint" or "goo" or "boneweld" or "drainuse" or "tweezeruse" or "spray" or "laser" or "wrenchhit" or "cream";
+		clip is "bandage" or "syringe" or "splint" or "goo" or "boneweld" or "drainuse" or "tweezeruse" or "spray" or "laser" or "wrenchhit" or "cream"
+			or "gore" or "gore1" or "gore2" or "gore3" or "gore4" or "gore5";
 
 	private static bool IsExertClip(string clip) =>
 		clip.StartsWith("exert", StringComparison.Ordinal);

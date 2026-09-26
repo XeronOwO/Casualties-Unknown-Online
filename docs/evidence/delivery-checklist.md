@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (9 rows): the capture chain, the blocked limb action, the 49-id accepted surface, the per-item census, the impact family
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (13 rows): the relay chain, the two minigame steps, the four Dismember callers, the parked display position, the anchor-query read
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 + the ticket census: 16 clip rows, 2 liquid rows, 23 uncarried in recorded groups, the impact both halves, the gore rows ticketed
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 10 rows (bandage step capture, treatment table, play site, policy halves, impact event, replay, wire books, the superseded non-goal)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: ticket census: producers split carried vs named-uncarried; tweezers and observer halves decided per path
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §4: 8 rows (two step scopes, the clip set, the table row, the position window, the observer guard, capability, gate surface)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: red 10/29/39 with the frozen gates (%TEMP%/cuo-red-suppressed-native-calls.txt); focused 153/153; gates 284 passed + 1 by design (%TEMP%/cuo-gates-final-suppressed-native-calls.txt)
+      peer log comparison, hotrepl assertions) is decided — evidence: red 3/26/29 with the frozen gate; focus 29/29 and review-fix 93 + 63 green (cuo-red-gore-presentation.txt, cuo-focus2-gore-presentation.txt)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff picked the item; the user froze both rows (carry the treatment sound; carry the impact sound AND dust); no work-item question was asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0 + identical status/diffstat (%TEMP%/cuo-format-suppressed-native-calls.txt); final UNFILTERED full suite with build 4132 + 287 green once this box was last checked (%TEMP%/cuo-full-final2-suppressed-native-calls.txt)
+      process violation — evidence: the handoff picked the item; the user froze the design (carry the gore); the census ran before the carriers
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0, status/diffstat identical; unfiltered full suite with build 4132 + 288, exit 0 (cuo-full-final-gore-presentation.txt)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: ItemService 597 / WorldService 545 / RemoteMedicalOperationHandler 581 lines (architecture gate green); no new state; the superseded non-goal is recorded, nothing dead left
+      dead mechanisms deleted in the same round) — evidence: RemoteMedicalOperationHandler 581, catalog 158, policy 177 lines (the gate caught the handler at 601; the lookup moved out); no new state
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

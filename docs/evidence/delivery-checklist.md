@@ -36,19 +36,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: every touched rule names its page or gate; the preflight's read-only verb audit is review report §B.3
+      file:line or runtime log) or is explicitly marked unverified — evidence: the touched rules name their source — the table rows, the preflight helpers and the two real install files (review report §1)
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: six paired pages plus the architecture page the review found (§A-9); live docs hold 0 hits of the old wording
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's stage-1 criteria table (8 rows); rows 2/5/8 pin the review's findings
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the app-id family aligned in one pass (preflight, table, lessons, workflow), `game-app-id`'s only consumer is the preflight (review §4), `grep drive-input` no hits
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the claim list × the 7-case test matrix × evidence is review report §2–§3, and every negative case pins exit code 2
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: preflight exit 0 (9 present, 1 pending), gates 288/288, full net48 4475/4475; the session step is staged by design
+      peer log comparison, hotrepl assertions) is decided — evidence: the harness runs the real script (7/7) and the real preflight exits 0 with `steam` present through both sources (review §1; run 2026-09-27)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: user instructions 2026-09-27 and the two answered questions (agent verdict; machine takeover)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, format exit 0, gates 288/288, full net48 4475/4475 with build (2026-09-27)
+      process violation — evidence: user-directed by the handoff (fix the app-id gap, rewrite the `input` row); no work-item choice was asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build clean, format exit 0, focused 7/7, gates 288/288, full net48 4482/4482 (all with build; 2026-09-27)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: docs/AGENTS.md 5111 <= 5120; area files 4799/2670; root pair 58 973 <= 65 536; no src/ change
+      dead mechanisms deleted in the same round) — evidence: no `src/` change; new files 151/118 lines, one top-level type each; no state bool; the removed `drive-input.ps1` path has no copy left
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

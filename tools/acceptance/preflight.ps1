@@ -126,6 +126,82 @@ function Get-HeadSha {
 	}
 }
 
+function Get-InstallAppId {
+	param([string]$GameDir)
+
+	$file = Join-Path $GameDir 'steam_appid.txt'
+	if (-not (Test-Path -LiteralPath $file)) { return $null }
+	$line = @(Get-Content -LiteralPath $file -Encoding UTF8 -TotalCount 5) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
+	if ($null -eq $line) { return $null }
+	return ([string]$line).Trim()
+}
+
+function Get-AppManifestPath {
+	param([string]$GameDir, [string]$AppId)
+
+	# The manifest sits at <library>\steamapps\appmanifest_<id>.acf, beside the install's common folder.
+	$trimmed = $GameDir.TrimEnd('\', '/')
+	$common = Split-Path -Parent $trimmed
+	if ([string]::IsNullOrWhiteSpace($common) -or (Split-Path -Leaf $common) -ne 'common') { return $null }
+	$steamApps = Split-Path -Parent $common
+	if ([string]::IsNullOrWhiteSpace($steamApps)) { return $null }
+	$manifest = Join-Path $steamApps ("appmanifest_$AppId.acf")
+	if (Test-Path -LiteralPath $manifest) { return $manifest }
+	return $null
+}
+
+function Get-ManifestInstallDir {
+	param([string]$Path)
+
+	try {
+		foreach ($line in (Get-Content -LiteralPath $Path -Encoding UTF8)) {
+			if ($line -match '^\s*"installdir"\s*"(.*)"\s*$') { return $Matches[1] }
+		}
+	}
+	catch {
+		return $null
+	}
+	return $null
+}
+
+function Get-AppIdMapping {
+	param([string]$GameDir, [string]$AppId)
+
+	if ([string]::IsNullOrWhiteSpace($AppId)) {
+		return [pscustomobject]@{ State = 'unknown'; Detail = 'game-app-id is not set, so the launch id cannot be cross-checked against the install' }
+	}
+	$appId = $AppId.Trim()
+	if ([string]::IsNullOrWhiteSpace($GameDir) -or -not (Test-Path -LiteralPath $GameDir)) {
+		return [pscustomobject]@{ State = 'unknown'; Detail = "game-dir is unresolved, so app id $appId cannot be cross-checked against the install" }
+	}
+
+	# Every source that exists must confirm the id: one that contradicts it is a wrong fact or a wrong
+	# install, and the launch line must not run on an unproven or contradicted id.
+	$expected = Split-Path -Leaf $GameDir.TrimEnd('\', '/')
+	$installId = Get-InstallAppId -GameDir $GameDir
+	$manifest = Get-AppManifestPath -GameDir $GameDir -AppId $appId
+	$manifestDir = $null
+	if (-not [string]::IsNullOrWhiteSpace($manifest)) { $manifestDir = Get-ManifestInstallDir -Path $manifest }
+
+	$conflicts = @()
+	$confirmations = @()
+	if (-not [string]::IsNullOrWhiteSpace($installId)) {
+		if ($installId -ieq $appId) { $confirmations += "the install's steam_appid.txt" }
+		else { $conflicts += "the install's steam_appid.txt reads $installId" }
+	}
+	if (-not [string]::IsNullOrWhiteSpace($manifestDir)) {
+		if ($manifestDir -ieq $expected) { $confirmations += "the app manifest (installdir $manifestDir)" }
+		else { $conflicts += "$(Split-Path -Leaf $manifest) names installdir '$manifestDir', not this install ('$expected')" }
+	}
+	if ($conflicts.Count -gt 0) {
+		return [pscustomobject]@{ State = 'missing'; Detail = "game-app-id $appId is not this install: " + ($conflicts -join '; ') + "; fix the fact or the install before launching" }
+	}
+	if ($confirmations.Count -gt 0) {
+		return [pscustomobject]@{ State = 'present'; Detail = "app id $appId matches " + ($confirmations -join ' and ') }
+	}
+	return [pscustomobject]@{ State = 'unknown'; Detail = "app id $appId cannot be cross-checked against the install: no steam_appid.txt under game-dir and no appmanifest_$appId.acf with an installdir beside it; a manifest is only read when the install sits under a steamapps\common folder; do not launch on an unproven id" }
+}
+
 function Test-Capture {
 	try {
 		Add-Type -AssemblyName System.Drawing -ErrorAction Stop
@@ -212,7 +288,8 @@ function Invoke-Preflight {
 		[void]$results.Add((New-Result 'deploy' 'missing' 'game-dir is unresolved, so the deployed artifact cannot be checked'))
 	}
 
-	# steam (a not-yet-started client is not a missing dependency: the run starts it)
+	# steam (a not-yet-started client is not a missing dependency: the run starts it; a set app id is
+	# not a proven one -- it is cross-checked against the install before the launch line is used)
 	$steamExe = Get-Fact $facts 'steam-exe'
 	$steamAppId = Get-Fact $facts 'game-app-id'
 	$steamProcess = @(Get-Process -Name steam -ErrorAction SilentlyContinue)
@@ -221,7 +298,10 @@ function Invoke-Preflight {
 	}
 	else {
 		$running = if ($steamProcess.Count -gt 0) { 'Steam is running' } else { 'Steam is not running yet; the run starts it' }
-		[void]$results.Add((New-Result 'steam' 'present' "steam.exe resolves; $running; the host client launches as app $steamAppId; the account state is settled at launch"))
+		$mapping = Get-AppIdMapping -GameDir $gameDir -AppId $steamAppId
+		$detail = "steam.exe resolves; $running; $($mapping.Detail)"
+		if ($mapping.State -eq 'present') { $detail += '; the account state is settled at launch' }
+		[void]$results.Add((New-Result 'steam' $mapping.State $detail))
 	}
 
 	# sandboxie (the program may be derived from the service when the local fact is unset)
@@ -274,13 +354,13 @@ function Invoke-Preflight {
 		[void]$results.Add((New-Result 'capture' 'missing' 'no interactive desktop or drawing stack; visual rows cannot be captured'))
 	}
 
-	# input (staged)
-	$inputHelper = Join-Path $repoRoot 'tools\acceptance\drive-input.ps1'
+	# input (staged: the committed in-process driver; OS-level keyboard or mouse is never used)
+	$inputHelper = Join-Path $repoRoot 'tools\acceptance\drive-in-process.ps1'
 	if (Test-Path -LiteralPath $inputHelper) {
-		[void]$results.Add((New-Result 'input' 'present' 'the input-driving helper is present'))
+		[void]$results.Add((New-Result 'input' 'present' 'the in-process driver helper is present'))
 	}
 	else {
-		[void]$results.Add((New-Result 'input' 'pending' 'staged: scripted input driving is not built yet; scenarios run through the native UI or a probe'))
+		[void]$results.Add((New-Result 'input' 'pending' 'staged: the committed in-process driver is not built yet; the run drives through the evaluator with its own client, and a scenario that needs a driven setup without one stays blocked'))
 	}
 
 	# logs (both clients write here; the guest's root lives under the sandbox)

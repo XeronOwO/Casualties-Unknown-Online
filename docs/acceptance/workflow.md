@@ -176,7 +176,7 @@ Which steps of this page are executable today, and which are still being built:
 | 2 — dependency preflight | **executable**: `tools/acceptance/preflight.ps1` |
 | 1, 3, 6, 7, 8 — plan, verdicts, record, transition | **executable** as a procedure; the run is driven by the agent, not yet by a script |
 | 4 — build, deploy, identity, shadow rule | **executable**: existing `tools/*.ps1` plus the local shadow rule |
-| 5 — session, probes, capture | **staged**: launching both clients, scripted input, frame capture and the probe helper are the harness work tracked by the acceptance-workflow ticket; until it lands, a run uses whatever the machine already offers and records honestly which mechanism produced each piece of evidence |
+| 5 — session, probes, capture | **staged**: launching both clients, in-process driving through the evaluator, frame capture and the probe helper are the harness work tracked by the acceptance-workflow ticket; until it lands, a run uses whatever the machine already offers and records honestly which mechanism produced each piece of evidence |
 
 ## Limits
 

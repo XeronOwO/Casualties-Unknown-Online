@@ -165,12 +165,18 @@ Residuals are batched: one message per run, plain language, each item saying wha
 which artifact shows it. The user's answer is recorded back into the records — a rejected residual
 returns that ticket to `todo/` with the same rejection marking as a failed row.
 
-## 10. Lessons
+## 10. Lessons and the closing harvest
 
 Before the run closes, fold what it taught ([AGENTS.md](AGENTS.md) rule 9): reusable lessons into
 [lessons.md](lessons.md), machine values and local gotchas into `AGENTS.local.md`, and anything the run
 proved wrong or missing about this page into this page. A batch that ends without a lessons pass is not
 finished — the next batch pays for whatever this one noticed and did not write down.
+
+An acceptance conversation runs the same pass on its own before it ends, unasked: the agent summarizes
+what the run taught — what worked, what it stepped on, and the scripts or snippets it wrote. A helper
+general enough to reuse moves into `tools/acceptance/` (or the local artifact area named in the closing
+report when it is machine-specific) so the next run starts from it instead of rediscovering it; a script
+that stays only in a transcript is lost. The closing report names what was harvested and where it landed.
 
 ## Capability status
 

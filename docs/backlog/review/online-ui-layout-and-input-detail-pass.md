@@ -1,6 +1,6 @@
 # The Online UI's layout and input detail pass
 
-- Status: Review (code complete 2026-09-27: S1–S7 landed, gates green, deployed as `0.1.0+fdd72c84`; no code left to develop — the pixels and the clicks are the run's to judge)
+- Status: Review (code complete 2026-09-27: S1–S7 landed, gates green; the user's second pass the same day found the tab strip still kept the window's leftover height — 333 units instead of TabHeight — and the window title read the reversed 伤亡未知, both now fixed and pinned; no code left to develop — the pixels and the clicks are the run's to judge)
 - Priority: High
 - Category: Online UI / layout, presentation and input
 - Source: User acceptance pass (2026-09-27), on the overhaul ticket's own delivery. The findings in the
@@ -219,6 +219,31 @@ found four things, all fixed in the same round, plus findings it judged sound:
   exist).
 - **The drag clamp is not pinned.** It is a small recovery guard (a strip of the window always stays on the
   canvas); no test holds its constant, and the felt behaviour is a run observation.
+
+## Second pass (2026-09-27): the tab strip's height and the title
+
+The user ran the deployed window the same day and found two things this pass had not settled:
+
+- **The tab strip kept the WINDOW's height, not TabHeight's.** Every band declares its own height
+  (`DeclareBandHeight`), but the height a layout group *reports* is composed, not declared: the tab row's
+  own `HorizontalLayoutGroup` reported its children's forced-flexible sum, so the shell's vertical group saw
+  a flexible band and fed it the window's leftover height — the strip rendered 333 units (ten times
+  `TabHeight`) on both clients, with the tab buttons stretched to it. `DeclareBandHeight` now zeroes the
+  band's flexible height too, so only the page's own band (set beside it) takes the leftover room;
+  `OnlineUiLayoutDetailPinTests.TheTabStripKeepsItsOwnHeight` pins it with its mutation.
+- **The window title read the game's Chinese name reversed** (`伤亡未知`); the official name is `未知伤亡`.
+  The catalogue's `window.title` carries it now and `LocalizationServiceTests` pins the string.
+- **The compact height was one size too tight for the game's Chinese font.** At `TabHeight = 30` the tab
+  captions rendered 27.9 units tall (the live probe's own reading), leaving about a unit of room at each
+  edge; the user's second look called it out ("the Chinese text touches the bottom"). `TabHeight` and
+  `ControlHeight` are 36 now — the same single compact height for the strip and every page control, with
+  room for the font's own line box.
+
+Verified on the deployed build: a probe of the live rects reads `Tabs = 984x36`, every tab `112x36` (the
+compact height the second look raised from 30), and the English `Preferences` `169.2x36` by its own longer
+caption; both clients' frames were captured and read, and a create/join smoke passed. Evidence: the local
+run artifacts (`ui-before-*`, `ui-experiment-*`, `ui2-fixed-*`, `ui3-*`) in the directory `AGENTS.local.md`
+names, captured per client window.
 
 ## Non-goals
 

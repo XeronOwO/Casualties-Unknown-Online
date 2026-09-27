@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling;
 /// OS-level input) is gated in the normative suite.
 /// </summary>
 [Trait("Category", "Integration")]
+[Collection(ToolProcessCollection.Name)]
 public class DriverToolTests
 {
 	[Fact]
@@ -382,6 +383,16 @@ public class DriverToolTests
 
 		Assert.Equal(1, run.ExitCode);
 		Assert.True(run.Output.Contains("eval-error", StringComparison.Ordinal), "a client that answers an error was not asked cleanly");
+	}
+
+	[Fact]
+	public void TheConnectTimeoutFollowsTheActionBudget()
+	{
+		var script = File.ReadAllText(DriverToolHarness.FindScript());
+
+		Assert.True(
+			script.Contains("$connectTimeoutMs = [Math]::Min(10000, [Math]::Max(500, $TimeoutMs + 500))", StringComparison.Ordinal),
+			"a fixed five-second connect cap reports a loaded machine's slow first connection as a timeout (observed in two full-suite runs: exit 3)");
 	}
 
 	[Fact]

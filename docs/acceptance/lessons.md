@@ -245,3 +245,30 @@ dependency the table did not name, a step that cost more than it returned.
   `.acceptance/tools/capture-window.ps1`): it reads an occluded window without activating it or
   injecting input. Window-level capture is the default for every run (workflow §5), and a client is
   never brought to the front.
+
+## 2026-09-27 — A layout pin is not a layout
+
+- Symptom: the layout pass's pins were green and the shell declared `TabHeight = 30`, but the live window's
+  tab strip rendered 333 units tall — ten times the declared height — with the tab buttons stretched to it,
+  and only a probe of the live rects found it (the user's own second pass reported the buttons as "very
+  large").
+- Cause: a layout group's reported height is composed, not declared. The tab row's own
+  `HorizontalLayoutGroup` reported its children's forced-flexible sum, so the shell's vertical group saw a
+  flexible band and fed it the window's leftover height; a source pin held the declaration while the
+  engine's composition still leaked.
+- Change: bands zero their flexible height (only the page's band is flexible), pinned by
+  `OnlineUiLayoutDetailPinTests.TheTabStripKeepsItsOwnHeight` with its mutation; and a run that judges a UI
+  row reads the RENDERED rects, not only the source pins — the live probe is what decides.
+
+## 2026-09-27 — A five-second connect cap turned a loaded machine into a "timeout"
+
+- Symptom: the driver's black-box tests passed 20/20 in isolation but failed three of four full-suite runs
+  with exit 3 (timeout), a different case each run.
+- Cause: two layers. The driver capped its connection budget at five seconds regardless of `-TimeoutMs`,
+  and the class spawns `powershell.exe` per case while the other 4,500 tests run — under that load the
+  process start plus the connect stretched past the cap, so a slow endpoint was reported as an unreachable
+  one.
+- Change: the connect budget follows the action budget up to the eval ceiling
+  (`tools/acceptance/drive-in-process.ps1`, pinned by `DriverToolTests.TheConnectTimeoutFollowsTheActionBudget`),
+  and the driver tests run in a non-parallel collection (`ToolProcessCollection`). The other two PowerShell
+  harnesses carry no internal budget and stay parallel: a slow machine only makes them slow.

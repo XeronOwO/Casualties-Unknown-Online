@@ -31,8 +31,11 @@ public static class OnlineUiWindowLayout
 	/// <summary>The title bar's height, the band the player drags.</summary>
 	public const float TitleHeight = 28f;
 
-	/// <summary>The tab strip's height: one row of tabs, all of them this tall.</summary>
-	public const float TabHeight = 30f;
+	/// <summary>The tab strip's height: one row of tabs, all of them this tall. 36 rather than the first cut's
+	/// 30 because the game's font renders a Chinese caption 27.9 units tall at size 20: at 30 the glyphs sat
+	/// within about a unit of the frame's edges ("the Chinese text touches the bottom" — user report,
+	/// 2026-09-27) while the English captions had room.</summary>
+	public const float TabHeight = 36f;
 
 	/// <summary>The gap above and below the tab strip. Below it is what the acceptance pass asked for: the
 	/// body of a page must not sit against the tabs.</summary>
@@ -40,8 +43,9 @@ public static class OnlineUiWindowLayout
 
 	/// <summary>The height of one control of a page — a button, a dropdown, a field, a toggle, a slider, a
 	/// colour block. They share it so a page reads as one column of controls instead of the game's own row
-	/// prefabs' very different authored heights.</summary>
-	public const float ControlHeight = 30f;
+	/// prefabs' very different authored heights, and it tracks <see cref="TabHeight"/> for the same reason
+	/// that height grew: a Chinese caption renders 27.9 units tall at size 20 (user report, 2026-09-27).</summary>
+	public const float ControlHeight = 36f;
 
 	/// <summary>
 	/// The page's vertical rhythm, in the same canvas units. A page is a list of rows, and a uGUI layout group

@@ -38,9 +38,11 @@ The lobby id for join-lobby (digits only).
 The page for goto-page: home, players, network, admin, worlds or preferences.
 
 .PARAMETER TimeoutMs
-The budget for the whole action, in milliseconds, checked between steps. Each eval also carries an eval
-timeout derived from it, and one in-flight eval can overrun the budget by that timeout (at most 10
-seconds) plus the receive grace, because the evaluator cannot be interrupted mid-step.
+The budget for the whole action, in milliseconds, checked between steps. The first connection gets up to
+the same 10-second ceiling this budget derives the eval timeout from — a loaded machine's slow connect is
+not an unreachable endpoint. Each eval also carries an eval timeout derived from it, and one in-flight eval
+can overrun the budget by that timeout (at most 10 seconds) plus the receive grace, because the evaluator
+cannot be interrupted mid-step.
 
 .PARAMETER RetryDelayMs
 How long to wait between retries while a control is not offered yet.
@@ -596,7 +598,9 @@ if (-not (Test-Path -LiteralPath $templatePath)) {
 $template = Get-Content -LiteralPath $templatePath -Raw -Encoding UTF8
 
 $evalTimeoutMs = [Math]::Min(10000, [Math]::Max(1000, $TimeoutMs))
-$connectTimeoutMs = [Math]::Min(5000, [Math]::Max(500, $TimeoutMs + 500))
+# The connection budget follows the action's own budget up to the eval ceiling: a fixed five-second cap
+# reported a loaded machine's (or a loaded test run's) slow first connection as a timeout — exit 3.
+$connectTimeoutMs = [Math]::Min(10000, [Math]::Max(500, $TimeoutMs + 500))
 
 $result = $null
 $exitCode = 0

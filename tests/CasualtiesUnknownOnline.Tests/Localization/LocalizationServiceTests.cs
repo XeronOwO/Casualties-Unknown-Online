@@ -89,4 +89,14 @@ public sealed class LocalizationServiceTests
 		Assert.True(LocalizationCatalog.English.ContainsKey("member.open_backpack"));
 		Assert.True(LocalizationCatalog.Chinese.ContainsKey("member.open_backpack"));
 	}
+
+	[Fact]
+	public void TheWindowTitleUsesTheGamesOfficialChineseName()
+	{
+		// The official Chinese name is 未知伤亡 (user correction, 2026-09-27), not the reversed 伤亡未知 the
+		// catalogue shipped with; the window title is where the player reads it.
+		var title = LocalizationCatalog.Chinese["window.title"];
+
+		Assert.Equal("未知伤亡：联机", title);
+	}
 }

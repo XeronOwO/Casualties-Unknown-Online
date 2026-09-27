@@ -171,6 +171,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
 - [Online UI panels asked for alphaBlend false](review/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
 - [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
+- [The window title must use the game's official Chinese name](review/official-game-name-in-window-title.md) — **Medium** — `未知伤亡`, not the reversed form.
 
 ### Future
 

@@ -36,19 +36,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: batch `20260927-b` record row 4 names it; the 28 samples enumerated against the matcher's 13 modifiers, `new` the only gap
+      file:line or runtime log) or is explicitly marked unverified — evidence: HotRepl evaluator wrapper (Mono.CSharp, one eval per frame, main thread) and the Online UI call chain read at source
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 13 modifiers in `TopLevelTypeRegex` checked one by one against the samples; only `new` lacked a positive, closed by `public new class Foo`
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's fix section is grounded by mutation-red.log, the focused logs and full-suite-unfiltered.log (35 = 29 shape + 6 depth/name)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: input-row family aligned one by one: preflight.ps1, dependencies.md (row + Pending), workflow.md capability row, tools/AGENTS.md, acceptance index
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's What landed pairs driver / template / preflight row / tests with evidence; live smoke artifacts under acceptance-artifacts-dir
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: mutation-red.log fails only `public new class Foo`; focused-after-restore.log 29/29; full-suite-unfiltered.log green on the frozen tree
+      peer log comparison, hotrepl assertions) is decided — evidence: fake HotRepl server contract tests + C#7/no-OS-input gates + a host-side live smoke; the ticket records the ladder
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: handoff step 1 directs this fix and the batch scope's Rejection names "one sample plus a gate re-run"; no work-item choice was asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build.log 0 warnings/0 errors; pre/post-format patches byte-identical; full-suite-unfiltered.log 4482/4482 main + 289/289 gates
+      process violation — evidence: handoff next step (reusable script in tools/acceptance/ driving create/join/start via the Online UI) directs it; no work-item choice asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format.log exit 0; build.log 0 warnings 0 errors; gates-no-checklist.log 291/291, then the full gates run 292/292
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: one InlineData + records; no class/state/dead-code surface; src/ untouched; 6-file diff audited; gate suite green
+      dead mechanisms deleted in the same round) — evidence: no src/ touched; new classes are tests (largest 402 raw lines of 600); the script is 647 raw lines and the snippet 263 — neither is a class
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

@@ -16,6 +16,8 @@ use placeholders such as `<game-dir>`.
 - [lessons.md](lessons.md) — what the runs keep teaching; every run folds its lessons back here.
 - [`tools/acceptance/preflight.ps1`](../../tools/acceptance/preflight.ps1) — the executable half of the
   dependency table.
+- [`tools/acceptance/drive-in-process.ps1`](../../tools/acceptance/drive-in-process.ps1) — the
+  in-process scenario driver of a running client (`-ListActions` names its vocabulary).
 
 ## Binding rules
 

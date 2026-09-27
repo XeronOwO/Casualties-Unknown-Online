@@ -186,3 +186,29 @@ dependency the table did not name, a step that cost more than it returned.
   repeats it for a reader who opens the file").
 - Change: a rejected ticket carries `- Status: Todo — Rejected (…)`, and the four pages that
   prescribed the bare form are corrected.
+
+## 2026-09-27 — In-process driving is one eval per frame
+
+- Symptom: a driver cannot "open the window and then click a page control" inside one snippet: the
+  Online UI's registered controls are rebuilt every frame, and a snippet that waits inside itself would
+  stop the update it is waiting for.
+- Cause: HotRepl drains at most one eval per `Tick()` on the Unity main thread, and the Online UI
+  rebuilds its action table in `OnlineUiHost.Update`; the frame that would offer the control runs only
+  after the snippet returns.
+- Change: `tools/acceptance/drive-in-process.ps1` performs one eval per step and waits across round
+  trips with bounded retries, so a control the current frame does not carry is waited out, never raced;
+  the in-process half stays synchronous and returns an `offered` / `applied` verdict per call.
+
+## 2026-09-27 — The evaluator's lambdas must be capture-free, and inner parameter names must not shadow outer locals
+
+- Symptom: the driver's first live eval answered `eval-error` with the opaque message
+  `(12,26): <InteractiveExpressionClass 2>.<Host2>m__0()`; a cut with capture-free helpers then answered
+  `ok` with no value at all.
+- Cause: two Mono.CSharp REPL limits, both silent at compile time. A lambda nested in another lambda
+  cannot emit a closure for captured locals (it fails at run time as an internal exception), and an
+  outer local whose name matches an inner lambda's parameter name makes the whole submission return void
+  instead of its value.
+- Change: every helper in `tools/acceptance/driver/InProcessDriver.cs` is capture-free (state travels as
+  a parameter, flags as a `const`), and its inner lambda parameters avoid the outer locals' names. A
+  future snippet that needs a closure should declare it at the snippet's top level instead of inside
+  another lambda.

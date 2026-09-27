@@ -1,9 +1,10 @@
 # Host severe sleepiness posture not synced to guest
 
-- Status: Review
+- Status: Done
 - Priority: High
 - Category: Body pose sync / remote presentation (systemic)
 - Source: User report (2026-09-05) — when the host is severely sleepy, the host's body cannot stand straight (posture is visibly slouched/bent), but the guest's view shows the host standing straight.
+- Acceptance record: docs/evidence/acceptance/host-severe-sleepiness-posture-desync-20260927.md (batch `20260927-d`: rows 2–3 `pass`; row 1 is a residual)
 
 ## Landed (2026-09-05)
 

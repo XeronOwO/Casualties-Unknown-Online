@@ -1,9 +1,10 @@
 # Carry/piggyback vertical placement asymmetry (rider appears above on one side, below on the other)
 
-- Status: Review
+- Status: Done
 - Priority: Medium
 - Category: Player interaction / carry-piggyback presentation
 - Source: User report (2026-09-04) — when the host rides on a guest's back, the host's own view shows the host body higher than the guest, while the guest's view shows the host body lower than the guest. Suspected addition/subtraction/offset asymmetry. Record only; no code action taken yet.
+- Acceptance record: docs/evidence/acceptance/carry-piggyback-vertical-placement-asymmetry-20260927.md (batch `20260927-d`: rows 1–4 `pass`; frame-look half is a residual)
 
 ## Landed
 

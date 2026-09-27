@@ -2,6 +2,7 @@
 
 - Status: Review
 - Priority: Medium
+- Acceptance (20260927-d): rows 1/2/4/5 `pass`; row 3's third-party half waits for a three-client run — record `docs/evidence/acceptance/carrier-sit-while-carrying-20260927.md`
 - Category: Player interaction / carry-piggyback body pose
 - Source: User report (2026-09-05) — while the guest carries the host on their back, the guest (carrier) is still able to sit on the ground, which is physically unreasonable.
 

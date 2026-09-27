@@ -293,3 +293,39 @@ dependency the table did not name, a step that cost more than it returned.
   velocity above rest); the smoke had just driven the carrier.
 - Change: a forced-state scenario sets the state and reads it back in the same step, and the run keeps the
   body still between the write and the read — driving it only after the reading.
+
+## 2026-09-28 — A body that spawns inside the terrain freezes movement and pose alike
+
+- Symptom: both bodies read `crouching=true` forever and `move-drive` produced zero displacement; a
+  `velocity=3` write and a 12000-unit impulse left the position unchanged, and the run nearly blamed the
+  movement path. The earlier probe with `col.size` had answered "no overlap" and hid the blocker.
+- Cause: both bodies spawned overlapping the `Ground` collider. The game's own check (`Body.cs:3089`:
+  `OverlapBox` at the body with `origColSize` over the `Ground` layer) then sets `crouching = true`
+  every frame and the body is physically caught. The crouch shrinks the collider, so a check run with
+  the shrunk size can never see the overlap the game's own dimensions see.
+- Change: check the overlap with the game's own `origColSize` before blaming a movement path, and free a
+  caught body (lift it a few units and let it settle) before any movement scenario. The check, the
+  escape and the batch's readings are in `docs/evidence/acceptance/20260927-d-scope.md` and the batch
+  run log.
+
+## 2026-09-28 — `move-drive` walk is frame-window-dependent; slide is the displacement source
+
+- Symptom: 29 back-to-back `walk` calls moved the carrier 0 units, while the earlier smoke recorded 15
+  units after 25 calls; `slide` (a real velocity write) accumulated 4-5 units per window.
+- Cause: the game's `PlayerCamera.HandleInput` rewrites `body.moveDir` from the keyboard every frame
+  (`PlayerCamera.cs:901-920`), so a walk write reaches the physics step only when the eval lands in the
+  narrow window after that rewrite. The previous session's "15 units" was the game's own scene
+  placement, not the calls.
+- Change: movement windows use `slide` and confirm travel from the positions before and after; a
+  walk-only window that shows no travel is `unproven`, not a pass.
+
+## 2026-09-28 — World frames do not resolve poses at the game's own zoom; the native panels do
+
+- Symptom: the batch's world captures render each character a few pixels wide (22.5-unit orthographic
+  half-height), so rider attachment, slouch and mouth rows were unreadable in them, while the native
+  `WoundView` medical panel captured and read cleanly (heart rate and an advancing ECG).
+- Cause: the camera never zooms in for the local player, and an evaluator write to
+  `Camera.main.orthographicSize` is reverted by the game within a second.
+- Change: judge a visual row from the largest readable surface the scenario has (the native panel), crop
+  and enlarge through the window geometry when that helps, and record a row the frames cannot resolve as
+  a residual or `unproven` — never as a pass.

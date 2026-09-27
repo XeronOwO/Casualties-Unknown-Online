@@ -1,6 +1,6 @@
 # A dead or unconscious carried body keeps its vitals — self-check (2026-09-26)
 
-Ticket: `docs/backlog/review/carried-unconscious-body-simulation.md`. Cycle scope: the pinned-ragdoll
+Ticket: `docs/backlog/done/carried-unconscious-body-simulation.md`. Cycle scope: the pinned-ragdoll
 half of the carried-body rule — a dead or unconscious carried body's own client keeps the VITALS
 stages of the game's per-frame pass while the carry relation keeps owning its pose, its physics, its
 ground contact and its sounds. This extends decision 216

@@ -128,8 +128,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
 - [Dead-player context-menu name suffix](review/dead-player-right-click-name-suffix.md) — **Medium** — the localized dead suffix.
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
-- [Host sleepiness posture desync](review/host-severe-sleepiness-posture-desync.md) — **High** — the leg-speed multiplier rides the snapshot.
-- [Host fall-injury mouth desync](review/host-fall-injury-mouth-expression-desync.md) — **Medium** — head/mouth state rides the snapshot.
 - [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
 - [World determinism fingerprint](review/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
@@ -142,7 +140,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Idle-sit suppression while carried](review/carried-player-idle-sit-suppression.md) — **Medium** — the native sit pose is suppressed.
 - [Carried rider's own body stops simulating](review/carried-rider-own-body-stops-simulating.md) — **Critical** — the rider's own client keeps simulating.
 - [Carrier sit while carrying](review/carrier-sit-while-carrying.md) — **Medium** — the carrier half of the family.
-- [Carry vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — **Medium** — riders publish the torso anchor.
 - [Guest container ghost drops on host](review/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.
 - [Trap destruction drop quantity desync](review/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
@@ -165,7 +162,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
 - [CUO launcher button covers the view](review/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
-- [A dead or unconscious carried body stops simulating](review/carried-unconscious-body-simulation.md) — **Medium** — vitals advance behind the pinned pose.
 - [Remove the Online UI console page](review/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
@@ -253,6 +249,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Sync completeness audit](done/sync-event-and-periodic-fallback-coverage-audit.md) — **High** — the 64-row evidence matrix.
 - [WorldStateMessageService split](done/world-state-message-service-split.md) — **Low** — guest block bookkeeping moved out.
 - [In-process session driver](done/session-driver-in-process.md) — **High** — create/join/start driven through the Online UI's own controls.
+- [Host sleepiness posture desync](done/host-severe-sleepiness-posture-desync.md) — **High** — the leg-speed multiplier rides the snapshot.
+- [Host fall-injury mouth desync](done/host-fall-injury-mouth-expression-desync.md) — **Medium** — head/mouth state rides the snapshot.
+- [Carry vertical placement asymmetry](done/carry-piggyback-vertical-placement-asymmetry.md) — **Medium** — riders publish the torso anchor.
+- [A dead or unconscious carried body stops simulating](done/carried-unconscious-body-simulation.md) — **Medium** — vitals advance behind the pinned pose.
 
 ### Watchlist
 

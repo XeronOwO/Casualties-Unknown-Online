@@ -21,10 +21,9 @@ matrices, glossary), `contributing/` (build, gates, review, this standard).
   (`AgentInstructionBudgetGateTests`): it routes and constrains, it never carries knowledge.
 - Each human directory carries `README.md` as its index; an index names its own directory and lists that
   section's pages.
-- Everything a reader needs belongs in the two blocks, in both languages: the architecture and protocol
-  explanations, the mod API contract, the feature tables, the operations knowledge. A document that only
-  records what a past cycle did stays out of the blocks, and its conclusions are absorbed into the pages
-  that need them.
+- Everything a reader needs belongs in the two blocks, in both languages. A document that only records
+  what a past cycle did stays out of the blocks; its conclusions are absorbed into the pages that need
+  them.
 
 ## 2. What a page looks like
 
@@ -62,14 +61,7 @@ detail lives in `how-to/` or `internals/`, linked, never duplicated.
 - Behaviour only a real two-client session can confirm awaits the agent-run acceptance in
   [`acceptance/workflow.md`](acceptance/workflow.md); green tests are not that evidence.
 
-## 6. What machines check
-
-Gates check path parity between the two blocks, link targets that exist, the page shape above, the
-instruction-file byte ceilings and the pair alignment record. A gate proves presence and shape; whether a
-page teaches, or a rendering reads naturally, stays a review duty — wording is checked against
-`standard/terminology.txt`.
-
-## 7. Decay control
+## 6. Decay control
 
 - Editing one side obliges the other in the same change; `standard/alignment.txt` records each confirmed
   pair, and a gate reports drift.

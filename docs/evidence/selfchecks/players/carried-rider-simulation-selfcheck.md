@@ -61,4 +61,4 @@ could not re-run the build or the suite; every number in this file is this cycle
   runtime trace, not this record.
 - A dead or unconscious carried body was deliberately out of scope in this cycle and kept the frozen
   presentation; the follow-up cycle gave it the vitals half
-  (`review/carried-unconscious-body-simulation.md`).
+  (`done/carried-unconscious-body-simulation.md`).

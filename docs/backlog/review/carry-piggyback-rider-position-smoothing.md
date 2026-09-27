@@ -2,6 +2,7 @@
 
 - Status: Review (no code left to develop: the remaining action is the run itself, as this ticket's own acceptance-readiness section says)
 - Priority: Critical
+- Acceptance (20260927-d): rows 1/2/5/6/7 `pass` (row 1's feel half is a residual), row 4 is a residual; row 3 waits for a three-client run — record `docs/evidence/acceptance/carry-piggyback-rider-position-smoothing-20260927.md`
 - Category: Player interaction / movement sync / carry-piggyback presentation
 - Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user re-reported that the teleport still exists, so this cycle replaced the pin-only approach on the participant carrier side with a true transform-parent carry mount.
 

@@ -1,9 +1,10 @@
 # Host fall injury mouth-expression desync
 
-- Status: Review (code-complete)
+- Status: Done
 - Priority: Medium
 - Category: Player presentation / sync root cause
 - Source: User report (2026-09-05) — host falls and is injured; on the guest's view the host's mouth opens, but on the host's own view it does not.
+- Acceptance record: docs/evidence/acceptance/host-fall-injury-mouth-expression-desync-20260927.md (batch `20260927-d`: row 2 `pass`; row 1 is a residual)
 
 ## Observed symptom
 

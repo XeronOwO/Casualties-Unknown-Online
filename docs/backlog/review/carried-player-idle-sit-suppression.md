@@ -2,6 +2,7 @@
 
 - Status: Review
 - Priority: Medium
+- Acceptance (20260927-d): rows 1/3/4 `pass`; row 2 is a residual; row 5 is `unproven` (needs a stationary non-carried remote clone ending a sit) — record `docs/evidence/acceptance/carried-player-idle-sit-suppression-20260927.md`
 - Category: Player interaction / carry-piggyback body pose
 - Source: User report (2026-09-04) — a carried character can sit down after a long period without input.
 

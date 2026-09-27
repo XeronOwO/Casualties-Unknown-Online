@@ -21,7 +21,7 @@ preflight itself failed. `hotrepl`, `deploy` and `input` are reported but never 
 | `hotrepl` | the in-process evaluator in a running client | probes, forced setups, live state reads and assertions | the plugin directory exists under the game's `BepInEx/plugins/`, and the endpoint (`hotrepl-host-url`, `hotrepl-guest-url`) accepts a connection once the client runs | log-based evidence only; rows that need an assertion inside the process are `blocked` |
 | `dotnet` | the .NET SDK | building the commit under acceptance, and the gate suite | `dotnet --version` succeeds | no deployable artifact: every row is `blocked` |
 | `capture` | screen capture from the interactive desktop | `visual` rows — frames the agent reads | the .NET drawing stack is available and the session is interactive (not a locked or disconnected desktop) | every `visual` row is `blocked`; `machine` rows still run |
-| `input` | in-process probe driving — the evaluator invoked from inside the client, never OS-level keyboard or mouse (the user's boundary) | reproducing a scenario without a person at the keyboard: entering the world, creating or joining a lobby, starting a run, opening a panel — all through the game's own entry points | the in-process driver helper exists under `tools/acceptance/` (staged — see the ticket referenced from `workflow.md`); it drives the evaluator channel the `hotrepl` row reports | a driven setup is not reproducible: rows whose scenario needs one are `blocked`, and replacing them with OS input is neither available nor permitted — never do it |
+| `input` | in-process probe driving — the evaluator invoked from inside the client, never OS-level keyboard or mouse (the user's boundary) | reproducing a scenario without a person at the keyboard: entering the world, creating or joining a lobby, starting a run, opening a panel — all through the game's own entry points | `tools/acceptance/drive-in-process.ps1` and its in-process template `tools/acceptance/driver/InProcessDriver.cs` resolve (the check is existence; the helper's own `-ListActions` contract names its closed vocabulary), and it drives the evaluator channel the `hotrepl` row reports | a driven setup is not reproducible: rows whose scenario needs one are `blocked`, and replacing them with OS input is neither available nor permitted — never do it |
 | `logs` | the three log channels (BepInEx loader log, BepInEx runtime log, CUO's own log) | `machine` rows' evidence | the BepInEx log root resolves under the game install, and under the sandbox guest root when that fact is set; the per-run files appear once a client starts | `machine` rows that depend on a log line are `blocked` |
 | `artifacts` | a writable local directory for frames, recordings and probe dumps | keeping heavy evidence out of git | `acceptance-artifacts-dir` resolves; the run creates it when it is missing, and writability is proven by the first artifact written — the preflight stays read-only | run without capture artifacts: `visual` and `feel` rows are `blocked` |
 
@@ -63,9 +63,9 @@ old code, and a stale shadow is removed file by file, never recursively.
   running, but the account is logged out; the evaluator's port is free because no client is up yet).
   `unknown` is not `present`: the run's first attempt is what settles it, and a failure there is
   reported with the same question path.
-- **Pending** — the capability is declared and its helper is still being built (the in-process driver until
-  the harness lands). It is reported, never counted as missing, and the workflow says which evidence
-  stands in for it meanwhile.
+- **Pending** — the capability is declared and its helper is still being built. It is reported, never
+  counted as missing, and the workflow says which evidence stands in for it meanwhile; no capability
+  reads `pending` today.
 - **Stale** — the dependency is present but the artifact under acceptance is not the one deployed.
   This is not a missing dependency; it is workflow §4 (build, deploy, verify identity) before any row
   is judged.

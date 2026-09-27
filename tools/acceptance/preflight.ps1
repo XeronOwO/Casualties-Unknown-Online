@@ -354,13 +354,14 @@ function Invoke-Preflight {
 		[void]$results.Add((New-Result 'capture' 'missing' 'no interactive desktop or drawing stack; visual rows cannot be captured'))
 	}
 
-	# input (staged: the committed in-process driver; OS-level keyboard or mouse is never used)
+	# input (the committed in-process driver: the evaluator channel, never OS-level keyboard or mouse)
 	$inputHelper = Join-Path $repoRoot 'tools\acceptance\drive-in-process.ps1'
-	if (Test-Path -LiteralPath $inputHelper) {
-		[void]$results.Add((New-Result 'input' 'present' 'the in-process driver helper is present'))
+	$inputTemplate = Join-Path $repoRoot 'tools\acceptance\driver\InProcessDriver.cs'
+	if ((Test-Path -LiteralPath $inputHelper) -and (Test-Path -LiteralPath $inputTemplate)) {
+		[void]$results.Add((New-Result 'input' 'present' 'the in-process driver helper and its template resolve; it drives the Online UI through the evaluator channel the hotrepl row reports'))
 	}
 	else {
-		[void]$results.Add((New-Result 'input' 'pending' 'staged: the committed in-process driver is not built yet; the run drives through the evaluator with its own client, and a scenario that needs a driven setup without one stays blocked'))
+		[void]$results.Add((New-Result 'input' 'missing' 'the in-process driver helper or its template does not resolve; a scenario that needs a driven setup stays blocked, and OS-level input is never a substitute'))
 	}
 
 	# logs (both clients write here; the guest's root lives under the sandbox)

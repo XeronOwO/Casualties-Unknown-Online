@@ -96,8 +96,12 @@ collected while its scenario is up.
 - Both join through the game's own Online UI (host creates the lobby, guest joins with the lobby id).
   The native UI is the only lobby surface CUO has; the run reuses it.
 - Probes and actuation use the in-process evaluator at `hotrepl-host-url` / `hotrepl-guest-url`:
-  reading live state, forcing a setup, or asserting that a message was handled. The socket dies with
-  the game process, so a restart means reconnecting before the next probe.
+  reading live state, forcing a setup, or asserting that a message was handled. The committed driver
+  helper `tools/acceptance/drive-in-process.ps1` carries the scenario vocabulary — `state`,
+  `open-window`, `goto-page`, `click`, `set-text`, `create-lobby`, `join-lobby`, `start-run`, `quit`
+  (`-ListActions` prints it) — and reproduces a setup through the Online UI's own registered controls,
+  never through OS-level keyboard or mouse. Ad-hoc probes stay evals of the same channel. The socket
+  dies with the game process, so a restart means reconnecting before the next probe.
 - Capture is per row, not per run: one frame (or recording) per `visual` / `feel` row, written to
   `acceptance-artifacts-dir` under an artifact id, plus the log excerpts a `machine` row needs.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
@@ -177,7 +181,7 @@ Which steps of this page are executable today, and which are still being built:
 | 2 — dependency preflight | **executable**: `tools/acceptance/preflight.ps1` |
 | 1, 3, 6, 7, 8 — plan, verdicts, record, transition | **executable** as a procedure; the run is driven by the agent, not yet by a script |
 | 4 — build, deploy, identity, shadow rule | **executable**: existing `tools/*.ps1` plus the local shadow rule |
-| 5 — session, probes, capture | **staged**: launching both clients, in-process driving through the evaluator, frame capture and the probe helper are the harness work tracked by the acceptance-workflow ticket; until it lands, a run uses whatever the machine already offers and records honestly which mechanism produced each piece of evidence |
+| 5 — session, probes, capture | **partly executable**: a running client is driven through the committed in-process helper (`tools/acceptance/drive-in-process.ps1`, whose `-ListActions` names the scenario vocabulary), which acts through the Online UI's own registered controls; launching both clients, frame capture and the log channels keep their steps, and each run records which mechanism produced each piece of evidence |
 
 ## Limits
 

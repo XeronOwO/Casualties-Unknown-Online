@@ -1,6 +1,6 @@
 # Carry rider acceptance readiness — self-check (2026-09-27)
 
-Ticket: `docs/backlog/todo/carry-piggyback-rider-position-smoothing.md` (Critical).
+Ticket: `docs/backlog/review/carry-piggyback-rider-position-smoothing.md` (Critical).
 
 Cycle scope: make the ticket's one remaining action — the physical-machine dual-client run — answer its
 code-visible questions in a DEFAULT session, and turn the reported symptom into a reading a log can carry.

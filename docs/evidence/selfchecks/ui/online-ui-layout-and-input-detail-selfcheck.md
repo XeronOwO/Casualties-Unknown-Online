@@ -1,6 +1,6 @@
 # Self-check — the Online UI's layout and input detail pass
 
-Ticket: `docs/backlog/todo/online-ui-layout-and-input-detail-pass.md` (user acceptance pass, 2026-09-27).
+Ticket: `docs/backlog/review/online-ui-layout-and-input-detail-pass.md` (user acceptance pass, 2026-09-27).
 Scope: the Online UI window's shell geometry, the geometry inside the game's own rows, how wide a control is,
 an open dropdown's popup layer and the pointer surfaces — plus the frame's border, the launcher's idle floor
 and the colour field's live correspondence. No wire, save, session or gameplay change.

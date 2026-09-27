@@ -71,6 +71,9 @@ nunit-*.xml
 AGENTS.local.md
 CLAUDE.local.md
 
+# Local agent reference area — on-demand topic notes, machine-specific, never committed
+.agent-local/
+
 # Acceptance-run artifacts (frames, recordings, probe dumps) — local evidence, never committed
 .acceptance/
 

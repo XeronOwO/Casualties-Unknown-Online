@@ -51,7 +51,7 @@ public static class GameAdapterComposition
 			new MapsterMapper.Mapper(Mapster.TypeAdapterConfig.GlobalSettings));
 		services.AddSingleton<GameAdapter>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapter>());
-		// The capability ports (review/adapter-capability-ports.md): a consumer
+		// The capability ports (done/adapter-capability-ports.md): a consumer
 		// resolves the port whose capability it uses instead of the whole adapter,
 		// and every port IS the one adapter singleton the implementation is.
 		// The list is pinned against the aggregate's composition by

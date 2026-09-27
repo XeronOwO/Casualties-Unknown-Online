@@ -4,7 +4,7 @@
 - Priority: Low-Medium
 - Category: Online UI / command console
 - Source: User finding and ruling (2026-09-21): asked whether the window's console page is worth keeping next to the in-game command line, the user ruled: delete the tab.
-- Related: `review/in-game-command-console-interactive.md`, `done/in-game-command-console.md`, `review/command-tree-resource-location-selector.md`, `docs/evidence/selfchecks/ui/online-ui-console-page-removal-selfcheck.md`
+- Related: `review/in-game-command-console-interactive.md`, `done/in-game-command-console.md`, `done/command-tree-resource-location-selector.md`, `docs/evidence/selfchecks/ui/online-ui-console-page-removal-selfcheck.md`
 
 ## Evidence
 
@@ -79,7 +79,7 @@ No wire protocol, save shape, host rule or command/chat behaviour changed.
   Other unreferenced families are untouched: the same census finds 81 declared-and-unreferenced keys
   elsewhere in the catalogue (59 `medical.*`, 8 `prefs.*`, 3 `member.*`, 3 `hud.*`, 3 `common.*`, and
   one each of `chat.`, `home.`, `ip.`, `lobby.`, `players.`), recorded as
-  `review/catalogue-and-manifest-census-drift.md` so that policy is decided once instead of per cycle.
+  `done/catalogue-and-manifest-census-drift.md` so that policy is decided once instead of per cycle.
   Nothing renders the overlay's controls line from the catalogue today, which this cycle records
   instead of changing the overlay.
 

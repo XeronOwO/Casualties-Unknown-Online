@@ -3,7 +3,7 @@
 - Status: Review
 - Priority: Medium
 - Category: Mod / Tooling / UI / Pinyin
-- Depends on: [Native-binding mods declare it instead of hiding](mod-native-binding-declaration.md)
+- Depends on: [Native-binding mods declare it instead of hiding](../done/mod-native-binding-declaration.md)
   for the crafting half's tier (landed), and on the Stage-1 seam below for the console half (landed).
 
 ## Why this exists

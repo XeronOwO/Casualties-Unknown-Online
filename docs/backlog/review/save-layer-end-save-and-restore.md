@@ -7,7 +7,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 2 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
-- Related: `docs/architecture/save-archive-format.md`, `review/save-format-and-world-repository.md` (S1), `review/save-mid-run-consistent-cut.md` (S3), `review/save-multiplayer-restore-and-backups.md` (S4)
+- Related: `docs/architecture/save-archive-format.md`, `done/save-format-and-world-repository.md` (S1), `review/save-mid-run-consistent-cut.md` (S3), `review/save-multiplayer-restore-and-backups.md` (S4)
 
 ## Scope
 

@@ -7,7 +7,7 @@
   built-in namespace `cu`, mods declare their own namespace, scope includes (but
   is not limited to) items and entities, canonical form `cu:fentanyl`.
 - Bundle: implemented together with
-  [Command completion for the ID system](command-id-name-completion.md); that
+  [Command completion for the ID system](../done/command-id-name-completion.md); that
   ticket consumes this vocabulary and is the only user-visible consumer in this
   cycle. Pinyin search stays separate (`review/pinyin-search-mod.md`).
 

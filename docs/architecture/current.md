@@ -130,7 +130,7 @@ reads the Runtime through declared ports (`IKernelSessionFacts`, `IKernelFrameSe
 `IKernelPendingCommands`, `IKernelItemDataNormalizer`), each answered by the
 service that owns the capability, so a Runtime detail does not leak back into the layer. Two types
 stay in the Runtime, each with its blocker recorded in
-`review/legacy-wire-dto-slice.md`: `KernelBatchItemProjection` (a materialization projection whose
+`done/legacy-wire-dto-slice.md`: `KernelBatchItemProjection` (a materialization projection whose
 contract and every output path carry the legacy item DTOs) and
 `KernelEnvelopeHandler` (transport dispatch: frame decode, traffic accounting, the packet-handler
 base). The declared direction is enforced by `ProjectDirectionGateTests`; the moved types' assembly
@@ -156,14 +156,14 @@ port is left unregistered. The patch lifecycle itself (probe/install/uninstall) 
 `ICuoService` on the same instance and is not a consumer port, and the members no call site reached
 (`CaptureWorldParams`, `ApplyWorldParams`, `CloseRemoteBackpack`, `CloseRemoteMedical`) were removed
 rather than ported — the call-site census and each removal's reason are in
-`review/adapter-capability-ports.md`. The adapter still reads Runtime-owned decision values through the
+`done/adapter-capability-ports.md`. The adapter still reads Runtime-owned decision values through the
 recorded `InternalsVisibleTo` grant (`Runtime/AssemblyInfo.cs`): the patch-contract facts, the
 capability-report types and the mod status/building tables are Runtime-owned values whose port would
 have to make them public or copy them, so the grant stays with its census and reasons
 (decision 212).
 
 The static seam those patch classes read is frozen the same way (decision 214,
-`review/patch-bridge-domain-ports.md`): `IPatchBridge` is the aggregate the patch classes read through
+`done/patch-bridge-domain-ports.md`): `IPatchBridge` is the aggregate the patch classes read through
 `PatchBridge` — 87 of the 118 files in `GameAdapter/Patches/` today; the rest patch without reporting or
 reach their own seam — and a domain's patch surface now lives in its own port instead of on the
 aggregate. The fluid domain's eight members moved into `IFluidPatchPort` — the aggregate neither

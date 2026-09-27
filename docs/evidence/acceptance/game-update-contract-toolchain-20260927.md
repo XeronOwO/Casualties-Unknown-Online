@@ -1,0 +1,22 @@
+# Acceptance record — Game-assembly contract snapshot, diff and update-adaptation report
+
+- Ticket: `game-update-contract-toolchain` — verdict: moved to `done/`
+- Batch: `20260927-b` — offline batch; scope and exclusions: `docs/evidence/acceptance/20260927-b-scope.md`
+- Commit: the cycle's commit (this record is committed with it); the run was performed on the working tree over `a23a43b1`
+- Deployed artifact: `CasualtiesUnknownOnline.dll` `0.1.0+a23a43b198557aac85fee0febce3ba1ab3d31082` — deployed and hash-verified in this run (`tools/verify-deploy.ps1`: "Deployment matches this tree's build output"); no runtime row is exercised
+- Run: 2026-09-27 — preflight 17:14; build and the two suites 17:15 → 17:18; format; deploy + hash verification; no client was started, so host/guest do not apply
+- Dependencies: `dotnet` (build, gate suite, main suite), `format`, and the repo's `tools/deploy.ps1` + `tools/verify-deploy.ps1`; preflight exited `0` (9 present, `input` pending — the staged driver is not needed for these rows)
+- Artifacts: none — every row is a text verdict; the run's logs and TRX results are under the directory named by `acceptance-artifacts-dir`
+
+| # | Row | Class | Verdict | Evidence |
+|---|---|---|---|---|
+| 1 | Two builds produce a report, and a deliberately renamed member in a test fixture is classified (not merely listed) — the classification is the deliverable, not the diff. | machine | pass | `ContractToolFixtureTests` 12/12 passed, including `ContractToolFixtureTests.RenamedMethod_IsClassifiedWithItsRenameCandidate`, `ContractToolFixtureTests.RenamedTargetParameter_IsClassifiedAsAByNameBreak`, `ContractToolFixtureTests.FieldTypeAndVisibilityMoves_AreClassifiedAsFieldShapeChanged` and `ContractToolFixtureTests.UnconstrainedTargetGainingAnOverload_IsClassifiedAsAmbiguous`; the report-producing process path is `ContractToolCliTests.Diff_WithFailOnBroken_ExitsOneAndWritesBothArtifacts`, passed; the verdict rules are also pinned by `ContractDiffClassificationTests.RenamedMethod_IsClassifiedAsRemovedOrRenamedWithARenameCandidate`, passed |
+| 2 | The snapshot is reproducible: the same input produces byte-identical output. | machine | pass | `GameAssemblySnapshotTests.Snapshot_OfTheRealGameAssembly_IsByteReproducible` passed over the real game assembly, and `SnapshotJsonTests.Write_IsByteIdenticalAcrossRuns` passed; the fixture-level pair `ContractToolFixtureTests.SnapshotBytes_AreReproducible` passed |
+| 3 | The tool is read-only and never becomes a runtime dependency of the plugin; it may not reference the Game Adapter. | machine | pass | `tools/CasualtiesUnknownOnline.ContractTool/CasualtiesUnknownOnline.ContractTool.csproj` declares no `ProjectReference` at all and documents metadata-only reading (Mono.Cecil, no load, no execution, no dependency resolution); no `src/` project references the tool — the only `ProjectReference` to it is in `tests/CasualtiesUnknownOnline.Tests.csproj`; the tool's only write sites are its own artifacts (`SnapshotWriter`, `DiffWriter`, `Program`) |
+| 4 | The update-day runbook is written down: snapshot the previous build → snapshot the new build → diff → patch-contract tests → offline replay → compatibility report. | machine | pass | `docs/development/game-update-runbook.md` carries those six steps in that order (§1 snapshot the previous build, §2 snapshot the new build, §3 diff and the compatibility report, §4 patch-contract tests, §5 offline replay, §6 the compatibility verdict) and is linked from `docs/en/contributing/build-and-test.md`, `docs/zh/contributing/build-and-test.md` and `docs/evidence/verification.md` |
+
+## Residuals for the user
+None.
+
+## Limits
+No client was started: the tool reads assemblies as metadata and the contract suites run against the shipped game assemblies, so no game launch is involved. Row 3 is decided by file inspection of the project graph and the tool's write sites, not by a test. Two path facts about the ticket text are stale against the current tree and do not affect any row: the runbook's claimed link from `references/README.md` under an "After a game update" heading resolves today through `docs/en/contributing/build-and-test.md` and `docs/evidence/verification.md`, and the `artifacts/contract/` directory the ticket names is produced by a run and is legitimately absent from a clean tree. The semantic half of a game update ("the members are still there, but do they still mean the same thing") stays out of scope as the ticket states.

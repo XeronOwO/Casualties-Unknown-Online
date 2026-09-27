@@ -9,7 +9,7 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
-/// The patch-bridge port gate (<c>review/patch-bridge-domain-ports.md</c>): the
+/// The patch-bridge port gate (<c>done/patch-bridge-domain-ports.md</c>): the
 /// aggregate is frozen, and a domain's patch surface lives in its own port.
 ///
 /// <para>

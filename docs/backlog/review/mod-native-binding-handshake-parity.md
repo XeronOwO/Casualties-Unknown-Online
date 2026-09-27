@@ -3,7 +3,7 @@
 - Status: Review
 - Priority: Medium
 - Category: Protocol / Mod API
-- Depends on: [Native-binding mods declare it instead of hiding](mod-native-binding-declaration.md)
+- Depends on: [Native-binding mods declare it instead of hiding](../done/mod-native-binding-declaration.md)
   — the manifest field this carries onto the wire.
 
 ## Why this exists
@@ -74,7 +74,7 @@ clean.
 ## Limits
 
 - No detection of undeclared bindings — that limit belongs to
-  [the declaration ticket](mod-native-binding-declaration.md) and is stated there.
+  [the declaration ticket](../done/mod-native-binding-declaration.md) and is stated there.
 - A host that allows a mismatch carries the risk knowingly; its log line is the record.
 - An equal declaration does not prove equal behaviour: the same name may cover different patches.
 - The Online UI row and the config entry are not covered by automated tests (the Plugin layer has no

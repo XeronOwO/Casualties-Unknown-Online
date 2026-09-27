@@ -14,7 +14,7 @@ for. This ticket's live-game half (a scripted in-game probe and a dual-client au
 carried by `done/agent-acceptance-workflow-foundation.md` stages 2–3 (its Stage 1 landed 2026-09-27),
 together with the
 dependency handling (`docs/acceptance/`); its structural half already moved to
-`review/game-update-contract-toolchain.md`. This file stays as the record of the boundary that the
+`done/game-update-contract-toolchain.md`. This file stays as the record of the boundary that the
 acceptance workflow now replaces; it is not a second work item.
 
 ## Deferral note
@@ -33,7 +33,7 @@ the priority would not make the live-game half runnable. What the review actuall
 into two halves, and the automatable one moved out:
 
 - the **structural half** — a machine-comparable snapshot of the game assemblies, a classified diff
-  between two builds, offline replay and a boot probe — is now `review/game-update-contract-toolchain.md`;
+  between two builds, offline replay and a boot probe — is now `done/game-update-contract-toolchain.md`;
 - the **live-game half** — a scripted in-game probe (entity identity, transform, health recorded for
   a scenario) and a dual-client automation harness — stays HERE, and its deferral reason is
   unchanged.

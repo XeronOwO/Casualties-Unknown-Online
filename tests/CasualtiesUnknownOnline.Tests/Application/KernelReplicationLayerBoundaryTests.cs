@@ -79,7 +79,7 @@ public class KernelReplicationLayerBoundaryTests
 		// (WorldItem, WorldItemTable, CharacterItemMsg, NetVector2) and write the
 		// rebuildable world-item table, so it cannot move without redesigning its
 		// output contract into kernel facts plus a Runtime materializer. Recorded in
-		// review/legacy-wire-dto-slice.md with the contract evidence.
+		// done/legacy-wire-dto-slice.md with the contract evidence.
 		Assert.Equal(RuntimeAssembly, typeof(KernelBatchItemProjection).Assembly.GetName().Name);
 
 		// KernelEnvelopeHandler is the transport side of the seam (frame decode,

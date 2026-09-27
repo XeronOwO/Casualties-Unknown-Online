@@ -384,7 +384,7 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
   remaining work (periodic snapshot resend, attack recovery) stays open in
   `review/enemy-snapshot-binding-recovery.md` and `review/enemy-hit-determination-local.md`.
 - The source-excluding `BroadcastEntitySpawned` relay was dead API (no caller).
-  **RESOLVED 2026-09-09** by `review/runtime-entity-dead-api-cleanup.md`: deleted
+  **RESOLVED 2026-09-09** by `done/runtime-entity-dead-api-cleanup.md`: deleted
   (`rg` → zero hits); the live source-included relay is unchanged.
 - The adapter shell (the Unity create + `FindExisting` scan, the death-hook
   wiring, the geyser queue flush, the `WorldParamsService` apply call site, the

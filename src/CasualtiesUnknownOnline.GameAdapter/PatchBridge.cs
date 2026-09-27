@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// The bound bridge also serves the per-domain patch ports the frozen aggregate
 /// does not carry (<see cref="Fluid"/>): each accessor casts the one bound
 /// object, so a patch states which domain it depends on and cannot reach the
-/// rest through that reference (<c>review/patch-bridge-domain-ports.md</c>).
+/// rest through that reference (<c>done/patch-bridge-domain-ports.md</c>).
 /// </para>
 /// </summary>
 internal static class PatchBridge

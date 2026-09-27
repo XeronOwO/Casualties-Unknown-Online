@@ -125,7 +125,7 @@ shared build and the session they came from.
 ```text
 # Acceptance record — <ticket title>
 
-- Ticket: <slug> — verdict: moved to done/ | back to todo/ (Status: Rejected) | stays in review/
+- Ticket: <slug> — verdict: moved to done/ | back to todo/ (status field: `- Status: Todo — Rejected (…)`) | stays in review/
 - Batch: <run id, e.g. 20260927-a> — tickets <slug>, <slug>, …
 - Commit: <sha> · Deployed artifact: CasualtiesUnknownOnline.dll, ProductVersion +<sha>
 - Run: <start> → <end> · Host: physical machine · Guest: sandbox
@@ -148,7 +148,8 @@ shared build and the session they came from.
 - Every ticket in the batch whose rows all `pass`, or whose remainder are `residual`, moves to
   `docs/backlog/done/`; the index rows move in the same change and each ticket links its record.
 - A ticket with a `fail` or `unproven` row moves back to `docs/backlog/todo/` with
-  `- Status: Rejected` and the failing row named; the fix is ordinary development work.
+  `- Status: Todo — Rejected (…)` (the field repeats the folder's label) and the failing row named;
+  the fix is ordinary development work.
 - A ticket with a `blocked` row stays in `review/`, the blocker and the question asked are recorded
   in the ticket, and the acceptance record says so.
 - `BacklogIntegrityGateTests` refuses a ticket that is not listed exactly once in its own section, so
@@ -158,7 +159,7 @@ shared build and the session they came from.
 
 Residuals are batched: one message per run, plain language, each item saying what to look at and
 which artifact shows it. The user's answer is recorded back into the records — a rejected residual
-returns that ticket to `todo/` with `- Status: Rejected`, exactly like a failed row.
+returns that ticket to `todo/` with the same rejection marking as a failed row.
 
 ## 10. Lessons
 

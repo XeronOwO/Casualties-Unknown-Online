@@ -1,0 +1,21 @@
+# Acceptance record — Patch bridge: per-domain ports with the aggregate frozen
+
+- Ticket: `patch-bridge-domain-ports` — verdict: moved to `done/`
+- Batch: `20260927-b` — offline batch; scope and exclusions: `docs/evidence/acceptance/20260927-b-scope.md`
+- Commit: the cycle's commit (this record is committed with it); the run was performed on the working tree over `a23a43b1`
+- Deployed artifact: `CasualtiesUnknownOnline.dll` `0.1.0+a23a43b198557aac85fee0febce3ba1ab3d31082` — deployed and hash-verified in this run (`tools/verify-deploy.ps1`: "Deployment matches this tree's build output"); no runtime row is exercised
+- Run: 2026-09-27 — preflight 17:14; build and the two suites 17:15 → 17:18; format; deploy + hash verification; no client was started, so host/guest do not apply
+- Dependencies: `dotnet` (build, gate suite, main suite), `format`, and the repo's `tools/deploy.ps1` + `tools/verify-deploy.ps1`; preflight exited `0` (9 present, `input` pending — the staged driver is not needed for these rows)
+- Artifacts: none — every row is a text verdict; the run's logs and TRX results are under the directory named by `acceptance-artifacts-dir`
+
+| # | Row | Class | Verdict | Evidence |
+|---|---|---|---|---|
+| 1 | A shape gate fails on a new member added to `IPatchBridge` or `GameAdapterBridge`. | machine | pass | `PatchBridgePortShapeGateTests` in the gate suite: 19 cases, all `Passed` in `trx-outcomes.txt` — `Aggregate_DeclaresExactlyTheFrozenCensus`, `Bridge_DeclaresExactlyThePinnedImplementationMembers`, `Bridge_PublicSurface_IsExactlyTheSeamsItServes`, `ThePort_IsNotReachableThroughTheAggregate`, `Bridge_ImplementsExactlyTheAggregateAndThePorts`, `Aggregate_ComposesExactlyThePinnedSeams`, `NoMemberName_IsSharedByTwoSeams`, 6 parameterised `Seam_DeclaresExactlyItsPinnedMembers` cases and 5 matcher samples; the gate pins the aggregate's declared census as a `>= 90` floor plus equality between the parsed declarations and the pinned 96-name list — it does not pin the ticket's historical `104 → 96` figure; the ticket's own 2026-09-22 mutation control (not re-run by this batch) turned the census and public-surface cases red (18/19 and 16/19), and restoring the tree returned 19/19 |
+| 2 | The migrated domain's patch contracts and tests are green; unmigrated domains are untouched, and the change states which domains remain. | machine | pass | `PatchBridgePortContractTests` (reflective, adapter loaded): `Aggregate_NoLongerDeclaresAnyFluidMember`, `FluidPort_DeclaresExactlyTheFluidMembers`, `Bridge_ImplementsTheFluidPortAndDeclaresEveryMember`, `Seam_ExposesTheAggregateAndThePort` all `Passed` in the main suite; the ticket's `## Domains still on the aggregate` section names item, character presentation and state, world generation, run and lifecycle, interaction, enemy/creature and mod-content resolution |
+| 3 | The port surface is narrower than the aggregate for that domain — a port that carries the whole interface under a new name does not count as a split. | machine | pass | `src/CasualtiesUnknownOnline.GameAdapter/IFluidPatchPort.cs` declares the fluid domain only (`OnFluidFixedUpdate`, `OnFluidDrinkReported`, `TryRenderCustomLiquids`, `TryGetCustomLiquidColor`, `TryGetCustomWaterInfo`, `TryGetCustomLiquidName`, `TryDrinkCustomLiquid`, `ApplyLiquidTileBodyTouch`) while the aggregate holds neither those members nor an inheritance of the port — `PatchBridgePortShapeGateTests.ThePort_IsNotReachableThroughTheAggregate` and `PatchBridgePortContractTests.Aggregate_NoLongerDeclaresAnyFluidMember`, both `Passed` |
+
+## Residuals for the user
+None.
+
+## Limits
+No client was started: no rendering, no frame, no live log and no probe, so nothing here observes a running host or guest. Rows 1 and 2 are decided by the gate suite and the reflective contract tests named above; row 3 by those tests plus direct inspection of `IFluidPatchPort.cs`, `IPatchBridge.cs`, `PatchBridge.cs` and `GameAdapterBridge.cs`. The ticket's own figures are historical: it quotes the 2026-09-22 run (`dotnet build` 0 warnings/0 errors and 119 gates of which 19 were this gate's), not this batch's numbers. Batch scope and exclusions are recorded in `docs/evidence/acceptance/20260927-b-scope.md`. Every path cited above exists in the tree.

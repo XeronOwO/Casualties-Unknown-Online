@@ -49,6 +49,13 @@ capability is missing and `1` on its own error.
   leave this capability out), record the dependency on the ticket as an external blocker, mark every
   row that depends on it `blocked`, and carry on with the rows that do not. A missing capability is
   never replaced by a weaker check.
+- **The install's BepInEx trees are not all the run's.** An install can carry CUO's tree and whatever the
+  machine's owner keeps for their own play, and which one is ACTIVE is decided by the folder the game
+  loads. Before any build, deploy or launch, the run asks `tools/acceptance/session-environment.ps1`:
+  `-Mode status` reports the machine (each tree classified by its own marker DLL, never by a folder name),
+  and `-Mode ensure-cuo` makes CUO's tree active. It refuses while any game process is running — a running
+  game means its owner is playing — and in that case it kills nothing and moves nothing. The marker names,
+  the process name and the parking name are machine facts (`AGENTS.local.md`).
 - **A game or Steam instance is already running** → do not kill it. Report it and ask. Only processes
   this run started may be stopped by this run.
 

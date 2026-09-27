@@ -172,6 +172,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Online UI panels asked for alphaBlend false](review/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
 - [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
 - [The window title must use the game's official Chinese name](review/official-game-name-in-window-title.md) — **Medium** — `未知伤亡`, not the reversed form.
+- [A gate that keeps a run off a machine its owner is playing on](review/session-environment-gate.md) — **High** — refuses while a game process runs.
 
 ### Future
 

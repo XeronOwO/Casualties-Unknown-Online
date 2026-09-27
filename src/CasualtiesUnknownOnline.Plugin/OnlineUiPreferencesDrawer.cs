@@ -61,16 +61,12 @@ internal static class OnlineUiPreferencesDrawer
 		page.Section(ctx.T("prefs.title"));
 		page.Muted(ctx.T("prefs.local_note"));
 
-		page.Space();
 		BuildLogLevel(ctx, page);
 
-		page.Space();
 		BuildLanguage(ctx, page);
 
-		page.Space();
 		BuildColor(ctx, page);
 
-		page.Space();
 		BuildProfiles(ctx, page);
 	}
 
@@ -150,12 +146,18 @@ internal static class OnlineUiPreferencesDrawer
 		// there is none — a closed window takes its half-typed text with it. What the player types is applied
 		// the moment it IS a colour, which is what keeps the swatch and every marker live while the field is
 		// in use; until then the line below says what is missing.
+		// The field and the colour correspond LIVE, in both directions (the user's ask, 2026-09-27): a pick
+		// anywhere — a palette block, Auto, a colour the player typed — moves what the field shows in the
+		// same frame, because the field is the canonical text of the colour the player carries now. The only
+		// text it keeps for itself is one that is not a colour yet, which is what makes the line below able
+		// to say so.
+		var hexText = ctx.State.PlayerColorInput ?? current.ToHexString();
 		page.Row(
 			page.LabelElement(ctx.T("prefs.player_color_hex"), color: OnlineUiTheme.Muted),
 			page.TextFieldElement(
 				ColorHexControlId,
 				"",
-				ctx.State.PlayerColorInput ?? color.StoredHex,
+				hexText,
 				maxLength: PlayerColorValue.HexAlphaLength,
 				edited: text => ApplyHex(ctx, text),
 				width: ChoiceWidth));
@@ -203,11 +205,12 @@ internal static class OnlineUiPreferencesDrawer
 		}
 	}
 
-	/// <summary>Applies a colour choice — null returns the marker to the automatic palette — and leaves the
-	/// colour's canonical text in the field, so a swatch pick and a typed value read the same way.</summary>
+	/// <summary>Applies a colour choice — null returns the marker to the automatic palette — and drops the
+	/// half-typed text: the field shows the colour itself from here (its canonical hex), so there is nothing
+	/// for CUO to keep in step with it.</summary>
 	private static void Choose(OnlineUiContext ctx, PlayerColorValue? color)
 	{
-		ctx.State.PlayerColorInput = color?.ToHexString() ?? "";
+		ctx.State.PlayerColorInput = null;
 		ctx.ChangePlayerColor?.Invoke(color);
 	}
 

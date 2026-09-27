@@ -76,6 +76,7 @@ internal sealed class OnlineUiPanelView
 	private readonly OnlineUiControlView.Typography _typography;
 	private readonly List<OnlineUiWindowRowView> _rows = [];
 	private readonly HashSet<OnlineUiElementKind> _reportedMissingPrefabs = [];
+	private readonly HashSet<OnlineUiElementKind> _reportedPointerFixes = [];
 
 	private OnlineUiControlView? _close;
 	private string _closeId = "\0";
@@ -127,11 +128,14 @@ internal sealed class OnlineUiPanelView
 		rect.localScale = Vector3.one;
 
 		OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography, out var sprite, out var imageType, out var pixelsPerUnit);
+
+		// The panel keeps the game's own border exactly as the window does (S4): the sprite stays UNTINTED on
+		// the panel's own image — the sprite is what carries the game's border — and the dark surface the
+		// panel reads on is a fill inside it that ignores the panel's layout group, because it is chrome and
+		// not a row.
+		OnlineUiControlFactory.MakeFrame(root, sprite, imageType, pixelsPerUnit, PanelTint);
 		var panel = root.GetComponent<Image>();
-		panel.sprite = sprite;
-		panel.type = imageType;
-		panel.pixelsPerUnitMultiplier = pixelsPerUnit;
-		panel.color = PanelTint;
+
 		// The panel is a raycast target on purpose: a click inside it belongs to CUO's surface and must not
 		// fall through to the game's menu or the world behind it.
 		panel.raycastTarget = true;
@@ -303,17 +307,26 @@ internal sealed class OnlineUiPanelView
 		var elements = model.Elements;
 		if (elements.Count == 0)
 		{
-			// An empty row is the panel's breathing room: one line with nothing in it but a height.
+			// An empty row is the panel's room: one line with nothing in it but the room the model asked for —
+			// the same rows the window's pages use, so a panel's blocks breathe like a page's. A model that
+			// names no room keeps the panel's own gap.
 			_structureDirty |= row.EnsureLines(_root.transform, 1);
-			row.SetGap(0, GapHeight);
+			row.SetGap(0, model.Gap > 0f ? model.Gap : GapHeight);
 			_structureDirty |= row.DestroyElementsFrom(0);
 			return;
 		}
 
+		// Views first and the wrap after them: how wide a control is comes from its own content, so the
+		// model's width is only a floor and the lines are decided from what the controls actually take — the
+		// same rule the window applies, because this view IS the window's shell without the window.
+		_structureDirty |= SyncViews(row, elements);
+
 		var widths = new float[elements.Count];
 		for (var index = 0; index < elements.Count; index++)
 		{
-			widths[index] = elements[index].Width;
+			var view = row.Elements[index];
+			view.Apply(elements[index], aloneOnItsLine: elements.Count == 1);
+			widths[index] = view.EffectiveWidth(elements[index]);
 		}
 
 		var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);
@@ -326,16 +339,48 @@ internal sealed class OnlineUiPanelView
 
 		for (var index = 0; index < elements.Count; index++)
 		{
-			var element = elements[index];
-			var view = index < row.Elements.Count && Matches(row.Elements[index], element)
-				? row.Elements[index]
-				: Replace(row.Elements, index, element, row.Lines[lines[index]].transform);
-
+			var view = row.Elements[index];
 			view.SetParent(row.Lines[lines[index]].transform);
-			view.Apply(element);
+			view.LayOutRow(widths[index]);
 		}
 
 		_structureDirty |= row.DestroyElementsFrom(elements.Count);
+	}
+
+	/// <summary>
+	/// Keeps a row's views aligned with the model: a view whose kind and id still match is reused, a slot
+	/// whose element changed identity is rebuilt, and views the model dropped are destroyed. A fresh view is
+	/// created under the panel (it always has a parent); the wrap moves it onto its line right after.
+	/// </summary>
+	private bool SyncViews(OnlineUiWindowRowView row, IReadOnlyList<OnlineUiElementModel> elements)
+	{
+		var changed = false;
+		while (row.Elements.Count > elements.Count)
+		{
+			row.Elements[row.Elements.Count - 1].Destroy();
+			row.Elements.RemoveAt(row.Elements.Count - 1);
+			changed = true;
+		}
+
+		for (var index = 0; index < elements.Count; index++)
+		{
+			if (index >= row.Elements.Count)
+			{
+				row.Elements.Add(Replace(row.Elements, index, elements[index], _root.transform));
+				changed = true;
+				continue;
+			}
+
+			if (Matches(row.Elements[index], elements[index]))
+			{
+				continue;
+			}
+
+			row.Elements[index] = Replace(row.Elements, index, elements[index], _root.transform);
+			changed = true;
+		}
+
+		return changed;
 	}
 
 	/// <summary>Whether a live view can take the element over: same kind, and — for a control the model
@@ -366,13 +411,20 @@ internal sealed class OnlineUiPanelView
 				element.Kind);
 		}
 
+		if (view.FixedPointerSurface && _reportedPointerFixes.Add(element.Kind))
+		{
+			_log.LogWarning(
+				"Online UI panel: the game's own row for {Kind} left its control without a pointer surface — CUO gave it one, because a box the player cannot click is not a control.",
+				element.Kind);
+		}
+
 		views.Insert(index, view);
 		return view;
 	}
 
-	/// <summary>Puts the lines back in model order, with the title bar first. Unity appends a new object to
-	/// the end of its parent, so a row that gained a line would otherwise draw below every row after
-	/// it.</summary>
+	/// <summary>Puts the lines back in model order, with the title bar before them. Unity appends a new object
+	/// to the end of its parent, so a row that gained a line would otherwise draw below every row after it.
+	/// The frame's own fill is chrome and stays behind both, so the header keeps its own tint.</summary>
 	private void Reorder()
 	{
 		foreach (var row in _rows)
@@ -383,7 +435,7 @@ internal sealed class OnlineUiPanelView
 			}
 		}
 
-		_titleBar.SetAsFirstSibling();
+		_titleBar.SetSiblingIndex(Mathf.Min(1, _root.transform.childCount - 1));
 	}
 
 	private void ApplyWidth(float width)

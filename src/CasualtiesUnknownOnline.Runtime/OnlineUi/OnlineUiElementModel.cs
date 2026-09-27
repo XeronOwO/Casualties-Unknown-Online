@@ -35,11 +35,13 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// </list>
 ///
 /// <para>
-/// <see cref="Width"/> is a HINT in the canvas units the window is laid out in, not a pixel size: the
-/// adapter wraps a row whose hinted widths do not fit
-/// (<see cref="OnlineUiRowLayout.LineOf(IReadOnlyList{float}, float, float)"/>), and 0 means "whatever
-/// this control naturally takes" — for a control built on one of the game's own row prefabs, that is the
-/// prefab's own size.
+/// <see cref="Width"/> is a FLOOR in the canvas units the window is laid out in, not a pixel size and not a
+/// ceiling: the adapter asks the control what its own content needs — a caption measured at the game's own
+/// font, a dropdown's widest option — and takes the wider of the two, because the same label does not fit in
+/// the same box in two languages (ticket online-ui-layout-and-input-detail-pass, S2). The wrap is the
+/// Runtime's rule (<see cref="OnlineUiRowLayout.LineOf(IReadOnlyList{float}, float, float)"/>), asked with
+/// the width each control actually takes; 0 means "no floor" — for a control built on one of the game's own
+/// row prefabs that is the prefab's own size, and for a label it is "whatever the row has left".
 /// </para>
 /// </summary>
 public readonly record struct OnlineUiElementModel(

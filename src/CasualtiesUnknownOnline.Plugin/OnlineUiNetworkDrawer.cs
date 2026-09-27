@@ -38,7 +38,6 @@ internal static class OnlineUiNetworkDrawer
 		page.Muted(session.LastRttMs >= 0f ? ctx.F("network.last_rtt", $"{session.LastRttMs:F1} ms") : ctx.T("common.no_ping"));
 		page.Button("network.ping", ctx.T("network.ping"), session.RequestPing, width: 90f);
 
-		page.Space();
 		page.Section(ctx.T("network.peer_rtt"));
 		foreach (var member in session.Members)
 		{

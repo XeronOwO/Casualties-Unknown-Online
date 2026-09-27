@@ -1,11 +1,11 @@
 # The one-top-level-type gate sees every modifier
 
-- Status: Todo — Rejected (batch `20260927-b`; see the acceptance record)
+- Status: Review — the batch `20260927-b` rejection is fixed (the missing `new` positive sample landed). Awaiting the next acceptance batch.
 - Priority: Medium
 - Category: Tooling / normative gates / source shape
 - Source: the stage 1 adversarial review of the remote-inventory native-intent rework (2026-09-21): the gate's declaration does not equal its reach — the modifier list it spells by hand leaves `internal readonly record struct …` (and the same shapes carrying `file`, `private`, `protected`, `unsafe`, `new` or `ref`) invisible.
-- Related: `docs/evidence/selfchecks/items/remote-inventory-native-intent-stage1-selfcheck.md` (where the hole is recorded), `docs/architecture/remote-inventory-native-parity.md`, `docs/evidence/selfchecks/tooling/one-top-level-type-gate-selfcheck.md` (this cycle's evidence)
-- Acceptance record: `docs/evidence/acceptance/source-shape-gate-modifier-blindness-20260927.md`
+- Related: `docs/evidence/selfchecks/items/remote-inventory-native-intent-stage1-selfcheck.md` (where the hole is recorded), `docs/architecture/remote-inventory-native-parity.md`, `docs/evidence/selfchecks/tooling/one-top-level-type-gate-selfcheck.md` (the 2026-09-25 cycle's evidence; its `new`-positive claim is corrected in the fix section below)
+- Acceptance record: batch `20260927-b` rejected row 4 — `docs/evidence/acceptance/source-shape-gate-modifier-blindness-20260927.md`; the next batch writes the deciding record.
 
 ## The defect
 
@@ -33,7 +33,7 @@ policy class), so the fix had to deal with the pre-existing offenders at the sam
 
 1. The matcher accepts every modifier the language allows on a top-level type declaration
    (`public`, `internal`, `private`, `protected`, `file`, `sealed`, `abstract`, `static`, `readonly`,
-   `partial`, in any order) — a fact-based matcher, not a shape-based one.
+   `partial`, `unsafe`, `new`, `ref`, in any order) — a fact-based matcher, not a shape-based one.
 2. The matcher's own samples pin the shapes (a positive sample per modifier and a negative sample for
    a mention inside a doc comment or a nested type), in the style the file already uses.
 3. The pre-existing multi-type files are either split (the rule's spirit) or carry a recorded,
@@ -50,7 +50,7 @@ policy class), so the fix had to deal with the pre-existing offenders at the sam
   two-word keyword they are so the NAME is the name. `TryReadTopLevelTypeName(line, depth, out name)`
   carries the depth fact and reads the matcher once; the failure text names the declarations found and
   states the scope.
-- **34 samples pin it** (28 shape samples plus 6 depth/name samples): a positive per modifier, the
+- **35 samples pin it** (29 shape samples plus 6 depth/name samples): a positive per modifier, the
   attribute run, both record keywords, and negatives for a mention in a doc comment (with and without
   declaration text after it), ordinary code, a nested declaration's depth and the declared
   `delegate` boundary.
@@ -71,6 +71,16 @@ policy class), so the fix had to deal with the pre-existing offenders at the sam
 
 Red, evidence and the independent review's dispositions:
 `docs/evidence/selfchecks/tooling/one-top-level-type-gate-selfcheck.md`.
+
+## Fix after batch `20260927-b` (the `new` sample)
+
+Row 4 was right: the shape theory carried no positive sample for `new`, so dropping `new` from
+`TopLevelTypeRegex` failed nothing. The fix is one sample, `public new class Foo` — the modifier is
+legal on a nested type declaration, the matcher reads the line rather than the brace depth, and with
+the sample in place the mutation fails while the restored matcher passes. The theory now pins 29 shape
+samples (35 with the 6 depth/name samples). The 2026-09-25 selfcheck's "a positive per modifier" line
+was wrong when written; the correction is recorded here and appended to that point-in-time record rather than silently rewriting its claim.
+Status returned to `Review`: the next acceptance batch judges row 4 against the widened sample set.
 
 ## Non-goals
 

@@ -1,8 +1,7 @@
 // recipe: carry-start
 // args: mode=s target=s
 // serves: carry-piggyback-rider-position-smoothing, carry-piggyback-vertical-placement-asymmetry,
-//         carrier-sit-while-carrying, carried-player-idle-sit-suppression, carried-unconscious-body-simulation,
-//         carried-inventory-registration-re-report, guest-container-contents-ghost-drops-on-host
+//         carrier-sit-while-carrying, carried-player-idle-sit-suppression, carried-unconscious-body-simulation
 // returns: ok, mode, target, requester
 //
 // Enters the carry path the Online UI's own carry buttons use

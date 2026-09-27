@@ -5,6 +5,30 @@
 - Category: Player interaction / movement sync / carry-piggyback presentation
 - Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user re-reported that the teleport still exists, so this cycle replaced the pin-only approach on the participant carrier side with a true transform-parent carry mount.
 
+## Crouch-offset continuity: the rider no longer steps 0.4 units (2026-09-27 cycle)
+
+The acceptance criteria's "crouch changes" row carried a placement defect no reading covered. The
+carried rider's height above the carrier was read from the carrier's crouch FLAG while the game eases
+the crouch POSE (`Body.crouchAmount`, `Body.cs:3095-3099` — this repository already eases the clone side
+for the same reason in `BodyUpdatePatch.UpdateCrouchAmount`). One crouch or stand-up therefore moved the
+rider 0.4 world units, about 40% of a body height, inside a single frame on all three views: the instant
+displacement of the rider this ticket's Goal names. `CarriedBodyPlacement.BackOffset` now takes the
+eased amount and interpolates the height between 0.5 and 0.9 — the side, both endpoints and
+`body.crouching` (the clone's own crouch pose still follows the carrier's flag) are unchanged, and the
+one remaining flag read is the pre-clone entity-buffer fallback in `PlayerInteractionApply`, named in
+the source. The same cycle made the pin-drift reading order-independent: `RemotePlayerRenderer.Update`
+takes every reading in a pass of its own before the frame's first state write, because a drift anchor is
+another clone's transform and an interleaved loop could measure a rider against a carrier that same
+frame had already moved. The independent review's own major finding is folded in: a fresh render clone
+is seeded with the owner's reported crouch pose instead of zero, so the frame a carrier clone appears no
+longer lifts the rider 0.4 world units — the same one-frame step, on the hand-over between the pre-clone
+fallback and the clone.
+
+Evidence: `docs/evidence/selfchecks/players/carry-rider-crouch-offset-selfcheck.md` (the offset matrix
+and its continuity case, a mutation that reads the amount as a step again, 108/108 focused carry cases,
+288/288 gates, a 0-warning build). Still the two-client run's: the picture, and the `limbSeparation` /
+`riderDrift` rows of "Acceptance readiness" above.
+
 ## Reopened (2026-09-21 acceptance pass)
 
 A new defect of the same mechanism was found: while the guest carries the host, the host's own

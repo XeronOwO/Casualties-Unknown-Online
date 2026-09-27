@@ -15,6 +15,12 @@ same intent payloads the native surface view emits, so LobbySwitchActions and th
 gate decide. A composite action sequences several evals; HotRepl evaluates at most one snippet per
 frame on the main thread, so the retry loops wait out a page or frame switch instead of racing it.
 
+The recipe action is the gameplay half of a setup the Online UI's own vocabulary cannot reach — a
+carry relation, a forced body state, a movement window. One invocation runs one committed recipe
+(recipes/<name>.cs) as a single eval: the recipe declares the `{{s:key}}` (quoted string) and
+`{{n:key}}` (number) arguments it needs, every declared argument must be supplied exactly once, and
+a sequence of scenarios is the run's own loop of steps — never a wait inside one snippet.
+
 Exit codes: 0 ok, 1 the client refused or the setup was not reached, 2 transport failure, 3 timeout,
 4 driver or protocol failure (a malformed, truncated or unexpected answer), 64 usage.
 
@@ -36,6 +42,15 @@ The lobby id for join-lobby (digits only).
 
 .PARAMETER Page
 The page for goto-page: home, players, network, admin, worlds or preferences.
+
+.PARAMETER Recipe
+The scenario recipe to run for -Action recipe: the file stem under tools/acceptance/recipes/.
+
+.PARAMETER RecipeArg
+A recipe's arguments as one comma-separated list of key=value pairs (`-RecipeArg a=1,b=2`; Windows
+PowerShell refuses the same parameter bound twice). The key is a `{{s:key}}` (string) or `{{n:key}}`
+(number) placeholder in the recipe; every placeholder needs exactly one value and every value must be
+used. Values must stay comma-free — numbers, modes and decimal SteamIds.
 
 .PARAMETER TimeoutMs
 The budget for the whole action, in milliseconds, checked between steps. The first connection gets up to
@@ -61,13 +76,15 @@ powershell -ExecutionPolicy Bypass -File tools/acceptance/drive-in-process.ps1 -
 [CmdletBinding()]
 param(
 	[string]$Url,
-	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'quit')]
+	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'quit', 'recipe')]
 	[string]$Action,
 	[string]$ControlId,
 	[string]$Text,
 	[string]$LobbyId,
 	[ValidateSet('home', 'players', 'network', 'admin', 'worlds', 'preferences')]
 	[string]$Page,
+	[string]$Recipe,
+	[string[]]$RecipeArg,
 	[int]$TimeoutMs = 30000,
 	[int]$RetryDelayMs = 100,
 	[switch]$ListActions,
@@ -87,6 +104,7 @@ $ActionHelp = [ordered]@{
 	'join-lobby' = 'set home.lobby_id and click home.join; wait for the joined lobby'
 	'start-run' = 'call the game''s own PreRunScript.StartRun; wait for the world to start'
 	'quit' = 'ask the client to quit (only a client this run started)'
+	'recipe' = 'run one committed scenario recipe (recipes/<name>.cs) as a single eval'
 }
 
 $PageIds = @{
@@ -121,7 +139,7 @@ function Write-Actions {
 	foreach ($entry in $ActionHelp.GetEnumerator()) {
 		Write-Output ('  {0,-13} {1}' -f $entry.Key, $entry.Value)
 	}
-	Write-Output 'parameters: -Url <ws-url> -ControlId <id> -Text <value> -LobbyId <digits> -Page <page> -TimeoutMs <ms> -RetryDelayMs <ms> -JsonPath <file>'
+	Write-Output 'parameters: -Url <ws-url> -ControlId <id> -Text <value> -LobbyId <digits> -Page <page> -Recipe <name> -RecipeArg <k1=v1,k2=v2> -TimeoutMs <ms> -RetryDelayMs <ms> -JsonPath <file>'
 }
 
 function ConvertTo-CSharpLiteral {
@@ -157,6 +175,71 @@ function Expand-DriverCode {
 	}
 	$pattern = (($replacements.Keys | ForEach-Object { [regex]::Escape($_) }) -join '|')
 	return [regex]::Replace($Template, $pattern, { param($match) $replacements[$match.Value] }.GetNewClosure())
+}
+
+function Expand-RecipeCode {
+	param([string]$RecipeName, [string]$Code, [string[]]$Bindings)
+	# The recipe's own argument contract: every {{s:key}} / {{n:key}} placeholder is substituted once
+	# from the caller's -RecipeArg, a value the recipe never uses is a typo in the wrong file, and any
+	# other brace form is refused here instead of being compiled inside the client.
+	$values = [ordered]@{}
+	foreach ($binding in @($Bindings)) {
+		# One -RecipeArg value is a comma-separated list (`a=1,b=2`): a -File argument keeps the whole
+		# list in one string, while a caller's own array literal arrives as several elements. Both forms
+		# split here, so values must stay comma-free (numbers, modes, decimal SteamIds).
+		foreach ($pair in ($binding -split ',')) {
+			$pair = $pair.Trim()
+			if ([string]::IsNullOrWhiteSpace($pair)) { continue }
+			if ($pair -notmatch '^(?<key>[A-Za-z0-9-]+)=(?<value>.*)$') {
+				throw [System.ArgumentException]::new("not a recipe argument: '$pair' (expected <key>=<value>)")
+			}
+			$key = $Matches['key']
+			if ($values.Contains($key)) {
+				throw [System.ArgumentException]::new("the recipe argument '$key' was supplied twice")
+			}
+			$values[$key] = $Matches['value']
+		}
+	}
+
+	$pattern = [regex]'\{\{(?<kind>[sn]):(?<key>[A-Za-z0-9-]+)\}\}'
+	$matches = $pattern.Matches($Code)
+	$used = @{}
+	$builder = New-Object System.Text.StringBuilder
+	$position = 0
+	foreach ($match in $matches) {
+		$key = $match.Groups['key'].Value
+		$kind = $match.Groups['kind'].Value
+		if (-not $values.Contains($key)) {
+			throw [System.ArgumentException]::new("the recipe '$RecipeName' needs -RecipeArg $key=<value>")
+		}
+		if ($used.ContainsKey($key)) {
+			throw [System.ArgumentException]::new("the recipe '$RecipeName' places '$key' more than once; substitute one value and reuse the expression")
+		}
+		[void]$builder.Append($Code.Substring($position, $match.Index - $position))
+		$value = $values[$key]
+		if ($kind -eq 'n') {
+			if ($value -notmatch '^-?[0-9]+(\.[0-9]+)?$') {
+				throw [System.ArgumentException]::new("the recipe '$RecipeName' needs a number for '$key', not '$value'")
+			}
+			[void]$builder.Append($value)
+		}
+		else {
+			[void]$builder.Append((ConvertTo-CSharpLiteral -Value $value))
+		}
+		$used[$key] = $true
+		$position = $match.Index + $match.Length
+	}
+	[void]$builder.Append($Code.Substring($position))
+	$expanded = $builder.ToString()
+	if ($expanded.Contains('{{')) {
+		throw [System.ArgumentException]::new("the recipe '$RecipeName' carries a placeholder that is not {{s:key}} or {{n:key}}")
+	}
+	foreach ($key in $values.Keys) {
+		if (-not $used.ContainsKey($key)) {
+			throw [System.ArgumentException]::new("the recipe argument '$key' is not used by the recipe '$RecipeName'")
+		}
+	}
+	return $expanded
 }
 
 function Connect-DriverSocket {
@@ -257,6 +340,51 @@ function Receive-DriverFrame {
 	}
 }
 
+function Invoke-DriverCode {
+	param(
+		[System.Net.WebSockets.ClientWebSocket]$Socket,
+		[string]$Code,
+		[string]$Label,
+		[int]$EvalTimeoutMs
+	)
+	$id = [guid]::NewGuid().ToString('N')
+	$frame = @{ type = 'eval'; id = $id; code = $Code; timeoutMs = $EvalTimeoutMs } | ConvertTo-Json -Compress
+	Send-DriverFrame -Socket $Socket -Frame $frame -Timeout $EvalTimeoutMs
+
+	$waitMs = $EvalTimeoutMs + 2000
+	$deadline = [System.Diagnostics.Stopwatch]::StartNew()
+	while ($true) {
+		$remaining = $waitMs - [int]$deadline.ElapsedMilliseconds
+		if ($remaining -le 0) {
+			throw [System.TimeoutException]::new("no eval_result for '$Label' within $waitMs ms")
+		}
+		$message = (Receive-DriverFrame -Socket $Socket -Timeout $remaining) | ConvertFrom-Json
+		if ($message.id -ne $id) {
+			continue
+		}
+		if ($message.type -eq 'eval_result') {
+			if ($message.truncated -eq $true) {
+				throw [System.InvalidOperationException]::new("eval '$Label' answered with a truncated value; the answer is not usable")
+			}
+			if ([string]::IsNullOrEmpty($message.value)) {
+				throw [System.InvalidOperationException]::new("eval '$Label' returned no value")
+			}
+			return ($message.value | ConvertFrom-Json)
+		}
+		if ($message.type -eq 'eval_error') {
+			$errorCode = if ($message.error -and $message.error.code) { [string]$message.error.code } else { '' }
+			$detail = if ($message.error -and $message.error.message) { $message.error.message } else { ($message.error | Out-String).Trim() }
+			if ($errorCode -eq 'evalTimeout') {
+				throw [System.TimeoutException]::new("the client aborted eval '$Label' at its own timeout: $detail")
+			}
+			$exception = New-Object System.Exception("eval '$Label' failed: $detail")
+			$exception.Data['driverKind'] = 'eval-error'
+			throw $exception
+		}
+		throw [System.InvalidOperationException]::new("unexpected frame type '$($message.type)'")
+	}
+}
+
 function Invoke-DriverEval {
 	param(
 		[System.Net.WebSockets.ClientWebSocket]$Socket,
@@ -267,42 +395,7 @@ function Invoke-DriverEval {
 		[int]$EvalTimeoutMs
 	)
 	$code = Expand-DriverCode -Template $Template -CommandName $CommandName -Argument $Argument -TextValue $TextValue
-	$id = [guid]::NewGuid().ToString('N')
-	$frame = @{ type = 'eval'; id = $id; code = $code; timeoutMs = $EvalTimeoutMs } | ConvertTo-Json -Compress
-	Send-DriverFrame -Socket $Socket -Frame $frame -Timeout $EvalTimeoutMs
-
-	$waitMs = $EvalTimeoutMs + 2000
-	$deadline = [System.Diagnostics.Stopwatch]::StartNew()
-	while ($true) {
-		$remaining = $waitMs - [int]$deadline.ElapsedMilliseconds
-		if ($remaining -le 0) {
-			throw [System.TimeoutException]::new("no eval_result for '$CommandName' within $waitMs ms")
-		}
-		$message = (Receive-DriverFrame -Socket $Socket -Timeout $remaining) | ConvertFrom-Json
-		if ($message.id -ne $id) {
-			continue
-		}
-		if ($message.type -eq 'eval_result') {
-			if ($message.truncated -eq $true) {
-				throw [System.InvalidOperationException]::new("eval '$CommandName' answered with a truncated value; the answer is not usable")
-			}
-			if ([string]::IsNullOrEmpty($message.value)) {
-				throw [System.InvalidOperationException]::new("eval '$CommandName' returned no value")
-			}
-			return ($message.value | ConvertFrom-Json)
-		}
-		if ($message.type -eq 'eval_error') {
-			$errorCode = if ($message.error -and $message.error.code) { [string]$message.error.code } else { '' }
-			$detail = if ($message.error -and $message.error.message) { $message.error.message } else { ($message.error | Out-String).Trim() }
-			if ($errorCode -eq 'evalTimeout') {
-				throw [System.TimeoutException]::new("the client aborted eval '$CommandName' at its own timeout: $detail")
-			}
-			$exception = New-Object System.Exception("eval '$CommandName' failed: $detail")
-			$exception.Data['driverKind'] = 'eval-error'
-			throw $exception
-		}
-		throw [System.InvalidOperationException]::new("unexpected frame type '$($message.type)'")
-	}
+	return Invoke-DriverCode -Socket $Socket -Code $code -Label $CommandName -EvalTimeoutMs $EvalTimeoutMs
 }
 
 function Get-DriverState {
@@ -349,9 +442,12 @@ function Wait-ForControl {
 }
 
 function New-DriverSuccess {
-	param([string]$ActionName, $Step)
+	param([string]$ActionName, $Step, [hashtable]$Extra)
 	$result = @{ ok = $true; action = $ActionName }
 	if ($null -ne $Step) { $result.result = $Step }
+	if ($null -ne $Extra) {
+		foreach ($key in $Extra.Keys) { $result[$key] = $Extra[$key] }
+	}
 	return $result
 }
 
@@ -382,7 +478,8 @@ function Invoke-DriverAction {
 		[string]$ActionName,
 		[int]$BudgetMs,
 		[int]$EvalTimeoutMs,
-		[string]$RetryDelayMs
+		[string]$RetryDelayMs,
+		[string]$RecipeCode
 	)
 
 	$clock = [System.Diagnostics.Stopwatch]::StartNew()
@@ -534,6 +631,18 @@ function Invoke-DriverAction {
 			}
 			return New-DriverSuccess -ActionName $ActionName -Step @{ quitting = $true; note = $note }
 		}
+		'recipe' {
+			$step = Invoke-DriverCode -Socket $Socket -Code $RecipeCode -Label "recipe:$Recipe" -EvalTimeoutMs $EvalTimeoutMs
+			if ($null -eq $step -or -not ($step.PSObject.Properties.Name -contains 'ok')) {
+				return New-DriverFailure -ActionName $ActionName -Code 'recipe-contract' -Detail "the recipe '$Recipe' answered without an ok field" -Last $step
+			}
+			if ($step.ok -ne $true) {
+				$code = if ($step.PSObject.Properties.Name -contains 'error') { [string]$step.error } else { 'recipe-failed' }
+				$detail = if ($step.PSObject.Properties.Name -contains 'detail') { [string]$step.detail } else { "the recipe '$Recipe' answered ok=false" }
+				return New-DriverFailure -ActionName $ActionName -Code $code -Detail $detail -Last $step
+			}
+			return New-DriverSuccess -ActionName $ActionName -Step $step -Extra @{ recipe = $Recipe; recipeArgs = @($RecipeArg) }
+		}
 		default {
 			return New-DriverFailure -ActionName $ActionName -Code 'unknown-action' -Detail "unknown action '$ActionName'" -Last $null
 		}
@@ -583,11 +692,34 @@ switch ($Action) {
 	'join-lobby' {
 		if ($LobbyId -notmatch '^[0-9]+$') { $missing = '-LobbyId (digits only)' }
 	}
+	'recipe' {
+		if ([string]::IsNullOrWhiteSpace($Recipe) -or $Recipe -notmatch '^[a-z0-9-]+$') {
+			$missing = '-Recipe (lowercase letters, digits and dashes)'
+		}
+	}
 	default { }
 }
 if ($missing) {
 	Write-Usage -Problem "$Action needs $missing"
 	exit 64
+}
+
+# A recipe is prepared before the socket opens: a missing recipe, a missing argument or an argument
+# the recipe never uses is a usage error, not something the client should be asked about.
+$recipeCode = $null
+if ($Action -eq 'recipe') {
+	$recipePath = Join-Path (Join-Path $PSScriptRoot 'recipes') ($Recipe + '.cs')
+	if (-not (Test-Path -LiteralPath $recipePath)) {
+		Write-Usage -Problem "no recipe '$Recipe' under tools/acceptance/recipes"
+		exit 64
+	}
+	try {
+		$recipeCode = Expand-RecipeCode -RecipeName $Recipe -Code (Get-Content -LiteralPath $recipePath -Raw -Encoding UTF8) -Bindings $RecipeArg
+	}
+	catch {
+		Write-Usage -Problem $_.Exception.Message
+		exit 64
+	}
 }
 
 $templatePath = Join-Path $PSScriptRoot 'driver\InProcessDriver.cs'
@@ -607,7 +739,7 @@ $exitCode = 0
 $socket = $null
 try {
 	$socket = Connect-DriverSocket -Address $Url -Timeout $connectTimeoutMs
-	$result = Invoke-DriverAction -Socket $socket -Template $template -ActionName $Action -BudgetMs $TimeoutMs -EvalTimeoutMs $evalTimeoutMs -RetryDelayMs $RetryDelayMs
+	$result = Invoke-DriverAction -Socket $socket -Template $template -ActionName $Action -BudgetMs $TimeoutMs -EvalTimeoutMs $evalTimeoutMs -RetryDelayMs $RetryDelayMs -RecipeCode $recipeCode
 }
 catch {
 	$thrown = $_.Exception

@@ -7,7 +7,10 @@
   ([`../docs/acceptance/dependencies.md`](../docs/acceptance/dependencies.md)): it changes nothing on the
   machine and its machine values come from the gitignored `docs/acceptance/AGENTS.local.md`.
 - `acceptance/drive-in-process.ps1` drives a running client's Online UI through the in-process evaluator
-  of an acceptance run: real control ids on the UI's own registered actions, never OS-level input.
+  of an acceptance run: real control ids on the UI's own registered actions, never OS-level input. Its
+  `-Action recipe` runs one committed scenario recipe from `acceptance/recipes/` for the gameplay states
+  the UI vocabulary cannot reach — carry relations, forced body states, movement windows — one eval per
+  invocation, with the declared `-RecipeArg` values substituted before anything is sent.
 - `acceptance/session-environment.ps1` is the run's gate on the install's BepInEx trees: it classifies
   each tree by its own marker DLL (never by a folder name), refuses while a game process is running, and
   swaps only when the machine is free. The marker, process and parking names are machine facts.

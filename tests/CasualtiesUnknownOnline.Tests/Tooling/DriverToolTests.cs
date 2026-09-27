@@ -21,7 +21,7 @@ public class DriverToolTests
 		var run = DriverToolHarness.Run("-ListActions");
 
 		Assert.Equal(0, run.ExitCode);
-		foreach (var action in new[] { "ping", "state", "open-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run", "quit" })
+		foreach (var action in new[] { "ping", "state", "open-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run", "quit", "recipe" })
 		{
 			Assert.True(run.Output.Contains(action, StringComparison.Ordinal), $"the vocabulary does not name '{action}':{Environment.NewLine}{run.Output}");
 		}
@@ -383,6 +383,86 @@ public class DriverToolTests
 
 		Assert.Equal(1, run.ExitCode);
 		Assert.True(run.Output.Contains("eval-error", StringComparison.Ordinal), "a client that answers an error was not asked cleanly");
+	}
+
+	[Fact]
+	public void Recipe_RunsOneCommittedRecipeAsOneEval()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame => FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"consciousness\":0,\"brainHealth\":1}");
+
+		var run = DriverToolHarness.Run(
+			"-Url", server.Url, "-Action", "recipe", "-Recipe", "body-force",
+			"-RecipeArg", "consciousness=0,energy=-1,brainHealth=1,badSleepAmount=150,idleTime=-1");
+
+		Assert.Equal(0, run.ExitCode);
+		Assert.Equal("0", DriverToolHarness.Field(run.Output, "consciousness"));
+		Assert.Equal("body-force", DriverToolHarness.Field(run.Output, "recipe"));
+
+		var frame = Assert.Single(server.Frames);
+		Assert.True(frame.Contains("var consciousness = 0;", StringComparison.Ordinal), "a number argument arrives as a C# number literal");
+		Assert.True(frame.Contains("var badSleepAmount = 150;", StringComparison.Ordinal), "every declared argument is substituted");
+		Assert.True(frame.Contains("PlayerCamera.main", StringComparison.Ordinal), "the frame carries the committed recipe, not a hand-rolled snippet");
+		Assert.False(frame.Contains("{{", StringComparison.Ordinal), "every placeholder is substituted before the frame is sent");
+	}
+
+	[Fact]
+	public void Recipe_MissingUnusedOrUnknownArgumentsAreUsageErrors()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = _ => null;
+
+		var missing = DriverToolHarness.Run("-Url", server.Url, "-Action", "recipe", "-Recipe", "body-force", "-RecipeArg", "consciousness=0");
+		Assert.Equal(64, missing.ExitCode);
+		Assert.True(missing.Output.Contains("needs -RecipeArg", StringComparison.Ordinal), missing.Output);
+
+		var unused = DriverToolHarness.Run("-Url", server.Url, "-Action", "recipe", "-Recipe", "body-read", "-RecipeArg", "consciousness=0");
+		Assert.Equal(64, unused.ExitCode);
+		Assert.True(unused.Output.Contains("is not used", StringComparison.Ordinal), unused.Output);
+
+		var unknown = DriverToolHarness.Run("-Url", server.Url, "-Action", "recipe", "-Recipe", "not-a-recipe");
+		Assert.Equal(64, unknown.ExitCode);
+		Assert.True(unknown.Output.Contains("no recipe", StringComparison.Ordinal), unknown.Output);
+
+		Assert.Empty(server.Frames);
+	}
+
+	[Fact]
+	public void Recipe_ReportThatFailsIsADriverFailure()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame => FakeHotReplServer.ReplyFor(frame, "{\"ok\":false,\"error\":\"no-target\",\"detail\":\"no other in-world member and no explicit target\"}");
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "recipe", "-Recipe", "carry-start", "-RecipeArg", "mode=carry,target=auto");
+
+		Assert.Equal(1, run.ExitCode);
+		Assert.True(run.Output.Contains("no-target", StringComparison.Ordinal), run.Output);
+		Assert.Single(server.Frames);
+	}
+
+	[Fact]
+	public void Recipe_ReportWithoutAnOkFieldIsADriverFailure()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame => FakeHotReplServer.ReplyFor(frame, "{\"value\":1}");
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "recipe", "-Recipe", "body-read");
+
+		Assert.Equal(1, run.ExitCode);
+		Assert.True(run.Output.Contains("recipe-contract", StringComparison.Ordinal), run.Output);
+	}
+
+	[Fact]
+	public void Recipe_WithAnEvalErrorFails()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame => FakeHotReplServer.EvalErrorFor(frame, "recipe blew up");
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "recipe", "-Recipe", "body-read");
+
+		Assert.Equal(1, run.ExitCode);
+		Assert.True(run.Output.Contains("eval-error", StringComparison.Ordinal), run.Output);
+		Assert.True(run.Output.Contains("recipe blew up", StringComparison.Ordinal), "the client's message must reach the caller");
 	}
 
 	[Fact]

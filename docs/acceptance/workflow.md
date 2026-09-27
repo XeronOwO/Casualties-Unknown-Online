@@ -107,7 +107,13 @@ collected while its scenario is up.
   helper `tools/acceptance/drive-in-process.ps1` carries the scenario vocabulary — `state`,
   `open-window`, `goto-page`, `click`, `set-text`, `create-lobby`, `join-lobby`, `start-run`, `quit`
   (`-ListActions` prints it) — and reproduces a setup through the Online UI's own registered controls,
-  never through OS-level keyboard or mouse. Ad-hoc probes stay evals of the same channel. The socket
+  never through OS-level keyboard or mouse. Gameplay states that vocabulary cannot reach — a carry
+  relation, a forced body state, a movement window — are the committed scenario recipes under
+  `tools/acceptance/recipes/`, run one eval per invocation with
+  `drive-in-process.ps1 -Action recipe -Recipe <name> -RecipeArg <key=value>`; each recipe declares the
+  arguments it uses and the tickets it serves, and a multi-step scenario is the run's own loop of
+  invocations. Ad-hoc
+  probes stay evals of the same channel. The socket
   dies with the game process, so a restart means reconnecting before the next probe.
 - Capture is per row, not per run: one frame (or recording) per `visual` / `feel` row, captured from the
   client's own window (never the desktop, so the run never needs the clients in front), written to `acceptance-artifacts-dir` under an artifact id, plus the log excerpts a `machine` row needs.
@@ -194,7 +200,7 @@ Which steps of this page are executable today, and which are still being built:
 | 2 — dependency preflight | **executable**: `tools/acceptance/preflight.ps1` |
 | 1, 3, 6, 7, 8 — plan, verdicts, record, transition | **executable** as a procedure; the run is driven by the agent, not yet by a script |
 | 4 — build, deploy, identity, shadow rule | **executable**: existing `tools/*.ps1` plus the local shadow rule |
-| 5 — session, probes, capture | **partly executable**: a running client is driven through the committed in-process helper (`tools/acceptance/drive-in-process.ps1`, whose `-ListActions` names the scenario vocabulary), which acts through the Online UI's own registered controls; launching both clients, frame capture and the log channels keep their steps, and each run records which mechanism produced each piece of evidence |
+| 5 — session, probes, capture | **partly executable**: a running client is driven through the committed in-process helper (`tools/acceptance/drive-in-process.ps1`), which acts through the Online UI's own registered controls and runs the committed scenario recipes (`tools/acceptance/recipes/`) for gameplay states the UI cannot reach, one eval per invocation; launching both clients, frame capture and the log channels keep their steps, and each run records which mechanism produced each piece of evidence |
 
 ## Limits
 

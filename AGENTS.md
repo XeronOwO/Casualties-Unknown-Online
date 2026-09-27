@@ -115,8 +115,9 @@ not the goal.
    path plus the quoted text and never a line number. Fix root causes, not symptoms.
 4. `[CRITICAL]` **Absolute-machine-path red line**: no absolute machine path may ever enter git — no
    drive-letter path, UNC path or Unix-style path rooted at home, user, temp, var or opt. Existing
-   tracked absolute paths are removed, not left as historical debt. Local paths belong only in gitignored
-   `AGENTS.local.md` or in placeholders such as `<game-dir>`, `<sandbox-root>`. Enforced by
+   tracked absolute paths are removed, not left as historical debt. Local paths belong only in
+   gitignored local files — `AGENTS.local.md` or the `.agent-local/` area — or in placeholders such as
+   `<game-dir>`, `<sandbox-root>`. Enforced by
    `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`.
 5. `[RULE]` Self-learning: record reusable, generalizable knowledge in this file, `docs/`, or memory; be
    selective.

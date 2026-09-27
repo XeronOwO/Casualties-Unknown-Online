@@ -1,23 +1,19 @@
 # docs/acceptance/ — agent-run acceptance
 
-Agent-only area. It declares itself with this `AGENTS.md` (there is no `README.md` here), it is never
-translated and it is not part of the human navigation in `docs/en/` or `docs/zh/`. Acceptance is a duty
-of the agent, not a step handed to the user: a ticket in `review/` is code-complete and waiting for the
-agent's acceptance run, and that run is what moves it. Machine facts — game directory, sandbox roots,
-endpoints, artifact directory — live in [AGENTS.local.md](AGENTS.local.md): gitignored, auto-loaded only
-while working here, so they cost nothing in the root instruction budget. Read it before running anything,
-and never copy a machine value into a committed page: committed pages use placeholders such as
-`<game-dir>`.
+Agent-only area: it declares itself with this `AGENTS.md` (there is no `README.md` here), it is never
+translated and it is not part of the human navigation. Acceptance is a duty of the agent, not a step
+handed to the user: a ticket in `review/` is code-complete and waiting for the agent's acceptance run,
+and that run is what moves it. Machine facts live in [AGENTS.local.md](AGENTS.local.md) (gitignored,
+loaded only while working here): read it first, and never copy a machine value into a committed page —
+use placeholders such as `<game-dir>`.
 
 ## Index
 
-- [workflow.md](workflow.md) — the end-to-end run: preflight, batch plan, build and deploy, the
-  two-client session, per-row verdicts, the records, the ticket transitions, and the capability status
-  table that says which steps are executable today and which are still staged.
+- [workflow.md](workflow.md) — the end-to-end run and the capability status table of what is executable
+  today.
 - [dependencies.md](dependencies.md) — every dependency, its detection, the capability it unlocks and the
   degradation ladder when it is missing.
-- [lessons.md](lessons.md) — what the runs keep teaching; every run folds its reusable lessons back here,
-  so each batch is cheaper than the last.
+- [lessons.md](lessons.md) — what the runs keep teaching; every run folds its lessons back here.
 - [`tools/acceptance/preflight.ps1`](../../tools/acceptance/preflight.ps1) — the executable half of the
   dependency table.
 
@@ -30,8 +26,7 @@ and never copy a machine value into a committed page: committed pages use placeh
    check for a missing capability, and never call a row judged when it was not.
 2. `[CRITICAL]` **Acceptance is batched, not per ticket.** One run covers every ticket waiting in
    `review/` that the available dependencies can serve: build and deploy once, launch the clients once,
-   work through every ticket's scenarios in that session, and write one record per ticket naming its
-   batch.
+   work through every ticket's scenarios, and write one record per ticket naming its batch.
 3. `[CRITICAL]` **A row passes only on evidence from this run against the deployed artifact.** The
    evidence pointer — a log excerpt, a probe result, a captured frame — is part of the verdict. A test
    that passed earlier is not acceptance evidence; `unproven` is not `pass`.
@@ -50,13 +45,11 @@ and never copy a machine value into a committed page: committed pages use placeh
    `- Status: Rejected`, name the failing row and its evidence, and fix it through the normal development
    cycle. Tickets whose rows all pass, or whose only remaining rows are residuals for the user, move to
    `done/`; the index rows move in the same change.
-9. `[RULE]` **Every run leaves this area better.** Before it closes, fold what it taught: a reusable
-   lesson into [lessons.md](lessons.md), a machine value or local gotcha into `AGENTS.local.md`, a rule
-   the run showed to be wrong or missing into this file — and into `docs/AGENTS.md` or `AGENTS.md` when it
-   binds the whole repository. A lesson left in the transcript is lost.
+9. `[RULE]` **Every run leaves this area better.** Fold what it taught: a reusable lesson into
+   [lessons.md](lessons.md), a machine value or local gotcha into `AGENTS.local.md`, a rule the run showed
+   to be wrong or missing into this file — and into `docs/AGENTS.md` or `AGENTS.md` when it binds the
+   whole repository.
 
 ## Related
 
-- Status meaning and ticket transition: [`../backlog/README.md`](../backlog/README.md)
-- The development cycle that precedes acceptance: [`../../AGENTS.md`](../../AGENTS.md)
-- Delivery gate: [`../evidence/delivery-checklist.md`](../evidence/delivery-checklist.md)
+- [`../backlog/README.md`](../backlog/README.md) — status meaning and ticket transition · [`../../AGENTS.md`](../../AGENTS.md) — the development cycle before acceptance · [`../evidence/delivery-checklist.md`](../evidence/delivery-checklist.md) — the delivery gate

@@ -1,8 +1,7 @@
 // recipe: carry-read
 // args: none
 // serves: carry-piggyback-rider-position-smoothing, carry-piggyback-vertical-placement-asymmetry,
-//         carrier-sit-while-carrying, carried-player-idle-sit-suppression, carried-unconscious-body-simulation,
-//         carried-inventory-registration-re-report, guest-container-contents-ghost-drops-on-host
+//         carrier-sit-while-carrying, carried-player-idle-sit-suppression, carried-unconscious-body-simulation
 // returns: ok, local, role, inWorld, localCarries, localCarriedBy, localDriverCarrier, localBody,
 //          clones (one entry per remote Body clone: the carry-pin readings, the two log-line tokens and
 //          the pose inputs)

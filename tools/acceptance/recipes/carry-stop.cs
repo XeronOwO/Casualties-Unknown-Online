@@ -1,8 +1,7 @@
 // recipe: carry-stop
 // args: target=s
 // serves: carry-piggyback-rider-position-smoothing, carry-piggyback-vertical-placement-asymmetry,
-//         carrier-sit-while-carrying, carried-player-idle-sit-suppression, carried-unconscious-body-simulation,
-//         carried-inventory-registration-re-report, guest-container-contents-ghost-drops-on-host
+//         carrier-sit-while-carrying, carried-player-idle-sit-suppression, carried-unconscious-body-simulation
 // returns: ok, carried, requester
 //
 // Releases the carry relation through the Online UI's own release entry

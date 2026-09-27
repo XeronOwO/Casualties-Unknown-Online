@@ -102,8 +102,8 @@ collected while its scenario is up.
   (`-ListActions` prints it) — and reproduces a setup through the Online UI's own registered controls,
   never through OS-level keyboard or mouse. Ad-hoc probes stay evals of the same channel. The socket
   dies with the game process, so a restart means reconnecting before the next probe.
-- Capture is per row, not per run: one frame (or recording) per `visual` / `feel` row, written to
-  `acceptance-artifacts-dir` under an artifact id, plus the log excerpts a `machine` row needs.
+- Capture is per row, not per run: one frame (or recording) per `visual` / `feel` row, captured from the
+  client's own window (never the desktop, so the run never needs the clients in front), written to `acceptance-artifacts-dir` under an artifact id, plus the log excerpts a `machine` row needs.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
 
 ## 6. Verdicts

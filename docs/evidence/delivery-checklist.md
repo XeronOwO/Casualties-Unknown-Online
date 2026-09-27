@@ -36,19 +36,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: HotRepl evaluator wrapper (Mono.CSharp, one eval per frame, main thread) and the Online UI call chain read at source
+      file:line or runtime log) or is explicitly marked unverified — evidence: batch 20260927-c artifacts in `.acceptance/session-c/`; the driver rows judged from this run's probe JSON, per-window frames and both clients' log excerpts
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: input-row family aligned one by one: preflight.ps1, dependencies.md (row + Pending), workflow.md capability row, tools/AGENTS.md, acceptance index
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's What landed pairs driver / template / preflight row / tests with evidence; live smoke artifacts under acceptance-artifacts-dir
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the batch re-derived the 45 session-class candidates from the triage reports and left every unserved one in `review/` with the setup gap named (`20260927-c-scope.md`); no `src/` touched
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the accepted ticket's record carries row, class, verdict and evidence pointer for rows 1-8 (`session-driver-in-process-20260927.md`)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: fake HotRepl server contract tests + C#7/no-OS-input gates + a host-side live smoke; the ticket records the ladder
+      peer log comparison, hotrepl assertions) is decided — evidence: this run's ladder — preflight (10 present) → deploy identity `0.1.0+97173282…` → two-client session → per-window frames + both clients' logs
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: handoff next step (reusable script in tools/acceptance/ driving create/join/start via the Online UI) directs it; no work-item choice asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format.log exit 0; build.log 0 warnings 0 errors; gates-no-checklist.log 291/291, then the full gates run 292/292
+      process violation — evidence: the handoff's next step (run the first two-client session batch) directed it; no work-item choice asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings 0 errors (`build.log`); gate suite run this cycle (`gates.log`); `format` skipped — this cycle changed no C#, per this checklist's documentation-only note
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: no src/ touched; new classes are tests (largest 402 raw lines of 600); the script is 647 raw lines and the snippet 263 — neither is a class
+      dead mechanisms deleted in the same round) — evidence: no `src/`, `tests/` or `tools/` file touched; the changes are acceptance records, a ticket move, the index and acceptance pages; the one new code file is a gitignored local capture helper
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

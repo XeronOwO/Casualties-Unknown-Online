@@ -171,7 +171,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
 - [Online UI panels asked for alphaBlend false](review/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
 - [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
-- [In-process session driver](review/session-driver-in-process.md) — **High** — create/join/start driven through the Online UI's own controls.
 
 ### Future
 
@@ -251,6 +250,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [State-stream bandwidth reduction](done/state-stream-bandwidth-reduction.md) — **Medium** — the guest's own entry is not echoed.
 - [Sync completeness audit](done/sync-event-and-periodic-fallback-coverage-audit.md) — **High** — the 64-row evidence matrix.
 - [WorldStateMessageService split](done/world-state-message-service-split.md) — **Low** — guest block bookkeeping moved out.
+- [In-process session driver](done/session-driver-in-process.md) — **High** — create/join/start driven through the Online UI's own controls.
 
 ### Watchlist
 

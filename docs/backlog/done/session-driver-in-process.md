@@ -1,10 +1,11 @@
 # In-process session driver for the Online UI
 
-- Status: Review
+- Status: Done
 - Priority: High
 - Category: Acceptance tooling / session automation
 - Source: Handoff after batch `20260927-b` (2026-09-27): 106 of the 113 `review/` tickets need a real two-client session, and the run has no committed way to reproduce a setup without a person at the keyboard. The boundary is already settled — the agent may drive a client from inside its own process through the HotRepl evaluator and must never take over OS-level keyboard or mouse.
 - Related: `done/agent-acceptance-workflow-foundation.md` (Stages 2–3), `docs/acceptance/workflow.md`, `docs/acceptance/dependencies.md`, `docs/acceptance/lessons.md` ("In-process control is the driver this machine allows"), `tools/acceptance/preflight.ps1`
+- Acceptance record: `docs/evidence/acceptance/session-driver-in-process-20260927.md` (batch `20260927-c`: rows 1–8 `pass`; `join-lobby` and `start-run` judged live)
 
 ## Problem
 

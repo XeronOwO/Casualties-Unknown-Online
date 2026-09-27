@@ -212,3 +212,36 @@ dependency the table did not name, a step that cost more than it returned.
   a parameter, flags as a `const`), and its inner lambda parameters avoid the outer locals' names. A
   future snippet that needs a closure should declare it at the snippet's top level instead of inside
   another lambda.
+
+## 2026-09-27 — A driver vocabulary is not a scenario library
+
+- Symptom: the first two-client batch judged every row of the driver's session surface
+  (`create-lobby`, `join-lobby`, `start-run`) but could not open one session-basic ticket: each of
+  those needs a world state the closed vocabulary does not reach (a carry relation with a limp rider,
+  a forced severe-sleepiness state, a native right-click menu, a key press, an eating sound).
+- Cause: "in-process control is available" was read as "the scenarios are reachable". The helper proves
+  the channel and the Online UI's own controls; it carries no setup path for the game's gameplay states,
+  and no per-scenario recipe was recorded anywhere the run could reuse.
+- Change: plan a session ticket into a batch only when its setup path exists as a committed or recorded
+  recipe; otherwise record it as a setup gap and leave it in `review/` (batch page
+  `docs/evidence/acceptance/20260927-c-scope.md`).
+
+## 2026-09-27 — The sandboxed second Steam is already running; process counts are not readiness
+
+- Symptom: the guest bring-up waited 120 s for a new `steam.exe` and timed out, while the guest was
+  fine — the sandbox already ran a Steam instance (a different account, auto-login) and the launch had
+  been forwarded to it.
+- Cause: Steam is single-instance per sandbox namespace; re-launching it creates no process, so a
+  "new process" readiness check can never pass.
+- Change: judge the guest side ready by its own evaluator endpoint (`hotrepl-guest-url`), never by
+  process counts; the launch recipe is in the local acceptance facts.
+
+## 2026-09-27 — A client window is captured without moving it in front
+
+- Symptom: the desktop capture showed the user's browser and chat windows; both clients were occluded,
+  so the run had no readable frame of the Online UI or the world.
+- Cause: a screen-rectangle copy cannot see an occluded window.
+- Change: capture each client's own window (`PrintWindow` with `PW_RENDERFULLCONTENT`, helper
+  `.acceptance/tools/capture-window.ps1`): it reads an occluded window without activating it or
+  injecting input. Window-level capture is the default for every run (workflow §5), and a client is
+  never brought to the front.

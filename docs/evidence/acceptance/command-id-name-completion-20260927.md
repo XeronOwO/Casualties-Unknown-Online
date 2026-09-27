@@ -1,0 +1,23 @@
+# Acceptance record — Command completion for the ID system: id/name search
+
+- Ticket: `command-id-name-completion` — verdict: moved to `done/`
+- Batch: `20260927-b` — offline batch; scope and exclusions: `docs/evidence/acceptance/20260927-b-scope.md`
+- Commit: the cycle's commit (this record is committed with it); the run was performed on the working tree over `a23a43b1`
+- Deployed artifact: `CasualtiesUnknownOnline.dll` `0.1.0+a23a43b198557aac85fee0febce3ba1ab3d31082` — deployed and hash-verified in this run (`tools/verify-deploy.ps1`: "Deployment matches this tree's build output"); no runtime row is exercised
+- Run: 2026-09-27 — preflight 17:14; build and the two suites 17:15 → 17:18; format; deploy + hash verification; no client was started, so host/guest do not apply
+- Dependencies: `dotnet` (build, gate suite, main suite), `format`, and the repo's `tools/deploy.ps1` + `tools/verify-deploy.ps1`; preflight exited `0` (9 present, `input` pending — the staged driver is not needed for these rows)
+- Artifacts: none — every row is a text verdict; the run's logs and TRX results are under the directory named by `acceptance-artifacts-dir`
+
+| # | Row | Class | Verdict | Evidence |
+|---|---|---|---|---|
+| 1 | `/cresource cu:` → suggestion `cu:player` present with a non-empty description | machine | pass | `ModConsoleCommandTests.ModConsoleCommand_ResourceLocationCompletion_ReturnsCatalog` passed and drives the console text `completion.Suggest("/cresource cu:")`, asserting `cu:player`; the non-empty description is asserted by `CommandConsoleCompletionTests.ArgumentSuggestions_ResourceLocationKind_ReturnsCatalog`, also passed; the entry comes from the built-in resource-location source registering the player id |
+| 2 | Catalog with a vanilla item `cu:fentanyl` / `芬太尼` → Suggest("fen"), Suggest("cu:fen"), Suggest("芬太"), Suggest("FEN") all return exactly `cu:fentanyl` | machine | pass | `ResourceLocationCatalogTests.Suggest_MatchesBarePathCanonicalPrefixAndDisplayName` passed, asserting exactly `["cu:fentanyl"]` for all four prefixes with display name `芬太尼`; the ordering rule behind it is `ResourceLocationCatalogTests.Suggest_ExactCanonicalMatchRanksBeforePrefixAndNameMatches`, passed |
+| 3 | Catalog with a mod item `mymod:sword` / `Wooden Sword` → Suggest("my"), Suggest("sword"), Suggest("mymod:sw") return `mymod:sword` | machine | pass | the fixture is built by `ModContentResourceLocationSourceTests.Entries_UseCanonicalIdAndTypedDisplayName`, passed: a mod registration of `sword` under namespace `mymod` with the payload display name `Wooden Sword` yields the entry id `mymod:sword`; the same three matching shapes (bare path prefix, canonical prefix, display-name prefix) are asserted for a mod entry by `ResourceLocationCatalogTests.Suggest_MatchesBarePathCanonicalPrefixAndDisplayName`, passed, and the cross-service path is `ModConsoleCommandTests.ModConsoleCommand_ResourceLocationCompletion_InsertsCanonicalModId`, passed |
+| 4 | Input alias never leaks → no suggestion text equals the raw display name or the bare path when a canonical id exists | machine | pass | `ResourceLocationCatalogTests.Suggest_ReturnsCanonicalIdNeverTheInputAlias` passed: each alias prefix yields exactly one suggestion whose id is the canonical id, equal to neither the prefix nor the display name |
+| 5 | Selector vocabulary → `@a[type=` suggests `@a[type=player` and `@a[type=cu:player`; resolver accepts `cu:player` | machine | pass | `CommandSelectorSuggestionsTests.TypeValueSuggestions_AreFullSelectorPrefixes` passed and asserts both suggestion texts; `CommandSelectorResolverTests.BracketedTypeFilter_AcceptsPlayerAndRejectsOtherTypes` passed and resolves `@a[type=cu:player]` to the players; the end-to-end acceptance of the id is `ModConsoleCommandTests.ModConsoleCommand_ResourceLocation_ExecutesLocally`, passed, executing `/cresource cu:player` |
+
+## Residuals for the user
+None.
+
+## Limits
+No client, no rendering and no deployed artifact were exercised; the console rows are decided by the in-process console and suggestion seams over the production composition root, not by a running game. Row 3's query literals are exercised against the sibling mod entry `mymod:wooden.sword` with the same `Wooden Sword` display name in the catalog-level test, while the exact `mymod:sword` fixture is asserted at the source level by `ModContentResourceLocationSourceTests.Entries_UseCanonicalIdAndTypedDisplayName`; the two together are what decide the row. The ticket's Verification list also names a `CommandConsoleServiceTests` class, which does not exist in the tree (no file under `tests/`, no outcome row in the index) — no row of this record depends on it. Pinyin matching is out of scope as the ticket states.

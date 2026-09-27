@@ -41,7 +41,7 @@ public class Plugin : BaseUnityPlugin
 	private SteamService _steam = null!;
 	private LobbySwitchActions _lobby = null!;
 	private OnlineUiHost _onlineUi = null!;
-	// The capability ports (review/adapter-capability-ports.md): the shell resolves
+	// The capability ports (done/adapter-capability-ports.md): the shell resolves
 	// the port whose capability it calls and never the concrete adapter.
 	private IGameIntegrationLifecycle? _lifecycle;
 	private ICarryPresentationPump? _carryPump;

@@ -6,7 +6,7 @@
 - Source: Stage of `review/systemic-save-backup-management.md` (the umbrella re-scoped 2026-09-20); user
   decision 2026-09-20 on the surface and the restore semantics
 - Related: `docs/decisions/active.md` 198, `docs/architecture/save-archive-format.md` §2/§6/§7,
-  `review/save-format-and-world-repository.md` (S1), `review/save-interval-autosave-and-backup-recovery.md`
+  `done/save-format-and-world-repository.md` (S1), `review/save-interval-autosave-and-backup-recovery.md`
   (S4.4), `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldLibraryService.cs`,
   `src/CasualtiesUnknownOnline.Plugin/OnlineUiWorldsDrawer.cs`
 

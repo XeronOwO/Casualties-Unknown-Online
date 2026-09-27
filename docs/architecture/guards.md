@@ -133,7 +133,7 @@ adapter cycle's landing (2026-09-21) and RE-RUN for the two ports added on 2026-
 back on the aggregate (with its implementation) and deleting one port registration each turn it red;
 restoring them turns it green. The aggregate itself is not registered in the composition root:
 nothing resolves the whole adapter, and the compile-time proof that one object implements the
-composition is the class declaration (`docs/backlog/review/adapter-capability-ports.md`; the
+composition is the class declaration (`docs/backlog/done/adapter-capability-ports.md`; the
 composition moved from the plugin into the adapter project with
 `docs/backlog/review/plugin-host-shell.md`, decision 213).
 
@@ -175,4 +175,4 @@ declaring a member back on the aggregate (implemented on the class) plus re-decl
 members on the aggregate turned `Aggregate_DeclaresExactlyTheFrozenCensus`,
 `ThePort_IsNotReachableThroughTheAggregate` and `Bridge_PublicSurface_IsExactlyTheSeamsItServes` red
 (16/19); restoring the tree turned it green (19/19)
-(`docs/backlog/review/patch-bridge-domain-ports.md`, decision 214).
+(`docs/backlog/done/patch-bridge-domain-ports.md`, decision 214).

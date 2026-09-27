@@ -131,3 +131,58 @@ dependency the table did not name, a step that cost more than it returned.
   would have consumed the same string.
 - Change: `AGENTS.local.md` carries the bare value with its note on a line of its own, and
   `dependencies.md`'s local-facts contract says that a value is taken literally.
+
+## 2026-09-27 — Moving tickets must move their references
+
+- Symptom: the 30-ticket move went red on three gate checks at once — 45 prose references
+  (`review/<slug>.md` across 22 documents), five sibling relative links, and one test anchor in a new
+  record that a substring check had passed.
+- Cause: the folder is the status, but references are hand-written prose; the move script updated the
+  index and the tickets only. The cross-reference gate exists for exactly this rot, and a substring
+  match is not the anchor gate's member check.
+- Change: a batch that moves tickets fixes the prose references, the sibling links and the anchors in
+  the same change — including the ones inside the moved tickets, whose exempt record folders the gates
+  do not scan — and validates anchors against the gate's own member set.
+
+## 2026-09-27 — An offline batch is still a run
+
+- Symptom: the offline batch needed the whole `workflow.md` §4 chain minus the clients — preflight,
+  build, both suites, format, and the deploy + hash verification; a ticket whose acceptance names a
+  deploy row was only decidable because that deploy was part of this run.
+- Cause: "offline" describes the rows, not the run, and an earlier suite run is never this run's
+  evidence.
+- Change: batch `20260927-b` ran the chain itself and its records cite only its outputs; a candidate
+  whose row needs a measurement or a comparison the run does not produce is dropped and stays in
+  `review/`, with the reason in the batch scope page.
+
+## 2026-09-27 — A row that names a past event is judged by its durable outcomes
+
+- Symptom: a ticket's acceptance carried "an independent adversarial review in a fresh context
+  covering ...", an event no later run can re-create.
+- Cause: some rows are process records, not behaviours; reading them as "re-run the event" makes the
+  ticket permanently un-acceptable, and reading them as "trust the ticket" is no evidence at all.
+- Change: such a row is judged by the durable outcomes the event produced (its findings pinned by
+  regression cases that pass in this run), the record's Limits says the event itself was not re-run,
+  and no record claims the event happened in the batch.
+
+## 2026-09-27 — A header bullet can span lines; an insertion must not split it
+
+- Symptom: the `- Acceptance record:` bullet landed inside a multi-line `- Related:`/`- Source:`
+  bullet in 11 of the 30 moved tickets; five had their original bullet truncated and its continuation
+  lines re-parented onto the new bullet, and no gate could see it (`backlog/done/` is exempt).
+- Cause: the move script anchored on the first line matching `^- Related:` and inserted at
+  `anchor + 1` without checking whether the bullet continues on the following lines.
+- Change: insert after the last continuation line of the header block (or before the blank line that
+  ends it) and verify the insertion point on every ticket the script touches — rebuilding the ticket
+  from its `review/` revision plus the two intended lines is the cheap way to make that exact.
+
+## 2026-09-27 — A rejected ticket's status field still repeats its folder
+
+- Symptom: `- Status: Rejected` in `todo/` turned `EveryTicketStatusFieldAgreesWithItsFolder` red —
+  the field must start with the folder's label (`Todo`), so the first rejection this workflow
+  executed could not be committed in the shape the pages prescribed.
+- Cause: the acceptance pages wrote the verdict as if it were the field; `BacklogIntegrityGateTests`
+  derives the expected prefix from the folder's canonical map ("the folder is the status; the field
+  repeats it for a reader who opens the file").
+- Change: a rejected ticket carries `- Status: Todo — Rejected (…)`, and the four pages that
+  prescribed the bare form are corrected.

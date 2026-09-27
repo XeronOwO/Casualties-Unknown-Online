@@ -9,7 +9,7 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
 /// <summary>
-/// Shape gate for the adapter seam (review/adapter-capability-ports.md).
+/// Shape gate for the adapter seam (done/adapter-capability-ports.md).
 /// <see cref="IGameAdapter"/> is the COMPOSITION of the capability ports and
 /// declares no member of its own, so a consumer resolves the port whose
 /// capability it uses and a version adapter implements per capability. Each entry

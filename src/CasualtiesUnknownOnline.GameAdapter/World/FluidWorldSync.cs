@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// relay chain (FluidInteractionSync). The patches are thin adapters calling
 /// the fluid patch port's OnFluidFixedUpdate / OnFluidDrinkReported (and the
 /// custom-liquid resolution) — the port, not the frozen patch-bridge aggregate
-/// (<c>review/patch-bridge-domain-ports.md</c>).
+/// (<c>done/patch-bridge-domain-ports.md</c>).
 /// </summary>
 internal sealed class FluidWorldSync(
 	IWorldControl world, ISessionControl session, IEntitySyncControl entities,

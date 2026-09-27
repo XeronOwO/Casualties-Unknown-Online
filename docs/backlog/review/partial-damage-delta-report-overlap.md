@@ -162,5 +162,5 @@ world position they stored existed only to build the wire message).
 
 - The W2 recovery itself and its entry lifetime (landed; the lifetime now also drops a cell on
   any block write, which is what the per-sender accounting needs).
-- Optional members / relay re-sends (`review/sync-event-and-periodic-fallback-coverage-audit.md`).
+- Optional members / relay re-sends (`done/sync-event-and-periodic-fallback-coverage-audit.md`).
 - Cadence tuning (`review/sync-cadence-review.md`, landed).

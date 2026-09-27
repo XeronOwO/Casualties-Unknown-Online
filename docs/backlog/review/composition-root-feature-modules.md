@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Architecture / maintainability / DI
 - Source: Loomi architecture review (2026-09-04); updated 2026-09-20 against the tree (the cycle-detection half has landed); implemented 2026-09-22
-- Related: `review/di-cycle-guard.md`, `review/application-layer-first-slice.md`, `../evidence/selfchecks/architecture/composition-root-modules-selfcheck.md`
+- Related: `review/di-cycle-guard.md`, `done/application-layer-first-slice.md`, `../evidence/selfchecks/architecture/composition-root-modules-selfcheck.md`
 
 ## Problem (updated 2026-09-20)
 

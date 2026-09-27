@@ -33,7 +33,7 @@ Planned features:
 
 2. **Command completion pinyin search**
    - Build on the command completion work in
-     [Command completion for the ID system](command-id-name-completion.md).
+     [Command completion for the ID system](../done/command-id-name-completion.md).
    - Support matching by **id / name / pinyin**.
    - The matching chain is: pinyin input (`fent`/`ftn`) → Chinese display
      name (`芬太尼`) → canonical id (`cu:fentanyl`).

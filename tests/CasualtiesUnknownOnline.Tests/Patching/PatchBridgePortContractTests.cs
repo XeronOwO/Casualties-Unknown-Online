@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 
 /// <summary>
 /// The compiled half of the patch-bridge port split
-/// (<c>review/patch-bridge-domain-ports.md</c>). The source gate
+/// (<c>done/patch-bridge-domain-ports.md</c>). The source gate
 /// (<c>PatchBridgePortShapeGateTests</c>, fast suite) reads text; this reads the
 /// adapter the game actually loads, so a build whose aggregate still answers the
 /// fluid members, or a port nothing implements, fails here rather than in a

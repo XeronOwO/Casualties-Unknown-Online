@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// re-application. A patch that needs the fluid domain reads
 /// <c>PatchBridge.Fluid</c> and thereby states that dependency, instead of
 /// reaching the whole <see cref="IPatchBridge"/> aggregate
-/// (<c>review/patch-bridge-domain-ports.md</c>, stage 1).
+/// (<c>done/patch-bridge-domain-ports.md</c>, stage 1).
 /// <para>
 /// The aggregate does NOT compose this port and does not declare these members:
 /// a call written against <see cref="IPatchBridge"/> cannot reach the fluid

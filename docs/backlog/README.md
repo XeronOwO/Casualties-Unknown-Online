@@ -32,7 +32,7 @@ todo/  →  in-progress/  →  review/  →  done/
   are not acceptance. While the run's session step is still being built, a ticket whose rows
   need it stays in `review/` with the capability named: waiting is the honest state.
 - A passing acceptance record moves its ticket to `done/`; a failed or unproven row moves
-  it back to `todo/` with `- Status: Rejected`; a missing dependency keeps it in `review/`
+  it back to `todo/` with the rejection marked in its status field (`- Status: Todo — Rejected (…)`); a missing dependency keeps it in `review/`
   with the blocker named. Tickets that landed before the run existed still say "the final
   unified acceptance pass" in their own text; that pass is now this run, and it decides them.
 
@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [The one-top-level-type gate sees every modifier](todo/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
 
 ### In progress
 
@@ -65,9 +66,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Remote inventory native parity rework](review/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [Composition root feature modules](review/composition-root-feature-modules.md) — **Medium** — feature modules, one reset contract, binding gate.
-- [Mod API contract governance](review/mod-api-contract-governance.md) — **Medium-High** — visibility rule, stability levels, API baseline.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
-- [Game-update contract toolchain](review/game-update-contract-toolchain.md) — **High** — game-assembly snapshot, classified diff, report.
 - [Systemic save and backup management](review/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
 - [World and backup management surface](review/world-and-backup-management-surface.md) — **Medium** — the world/backup picker and the player-chosen restore.
 - [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.
@@ -96,17 +95,12 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [S3.6 — Solo menu-exit trigger](review/save-solo-menu-exit-trigger.md) — **Medium** — the leave action is intercepted and replayed.
 - [Trap/entity action divergence](review/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
-- [Restored entity row containment](review/restored-entity-row-containment.md) — **Low-Medium** — a throwing row costs only itself.
 - [Block-damage table capacity alignment](review/block-damage-table-capacity-alignment.md) — **Medium** — CUO's second registry is deleted.
-- [WorldStateMessageService split](review/world-state-message-service-split.md) — **Low** — guest block bookkeeping moved out.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
-- [Dead runtime-entity relay API](review/runtime-entity-dead-api-cleanup.md) — **Low** — the relay chain is deleted.
 - [Guest block mutations: periodic re-report](review/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
 - [Guest partial block damage re-report](review/guest-partial-block-damage-re-report.md) — **Medium** — the absolute re-report and the per-cell merge.
 - [Runtime-created entity spawn backfill](review/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
-- [Sync completeness audit](review/sync-event-and-periodic-fallback-coverage-audit.md) — **High** — the 64-row evidence matrix.
 - [Namespaced ID system](review/id-system-namespaced-ids.md) — **Medium** — the `ContentId` vocabulary.
-- [Command completion by id/name](review/command-id-name-completion.md) — **Medium** — canonical id, bare path or display name.
 - [Global unified projection framework](review/global-projection-framework.md) — **High** — the rebuildable-domain contract.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical panel acceptance issues](review/remote-medical-panel-acceptance-issues.md) — **High** — opiate ramp, breathing and ECG.
@@ -119,7 +113,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
-- [Normative requirements as gates](review/normative-style-unit-test-gates.md) — **High** — the Roslyn gate and rule inventory.
 - [Player pain vocalizations and bark](review/sync-player-pain-vocalizations-and-bark.md) — **Medium** — they ride the character-sound event.
 - [Metal-scrap placement sound on guest](review/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium** — sounds ride the sound event.
 - [Tab opens the backpack then closes](review/tab-backpack-open-close-immediately.md) — **Medium** — remote Close wrote the radial state.
@@ -135,31 +128,19 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
-- [S1 — Save format and world repository](review/save-format-and-world-repository.md) — **High** — no gameplay wiring.
 - [Dead-player context-menu name suffix](review/dead-player-right-click-name-suffix.md) — **Medium** — the localized dead suffix.
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
 - [Host sleepiness posture desync](review/host-severe-sleepiness-posture-desync.md) — **High** — the leg-speed multiplier rides the snapshot.
 - [Host fall-injury mouth desync](review/host-fall-injury-mouth-expression-desync.md) — **Medium** — head/mouth state rides the snapshot.
 - [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
-- [Command registration attribute refactor](review/command-registration-attribute-refactor.md) — **Medium** — the console registry and mod API.
-- [Command tree and completion](review/command-tree-resource-location-selector.md) — **Medium** — tree, catalog and bracket filters.
-- [Mod data sync model](review/mod-data-sync-model.md) — **Medium** — the mod-data scope seam.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
 - [World determinism fingerprint](review/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
 - [Block-break first-writer-wins](review/block-break-first-writer-wins.md) — **High** — the dual-side confirmation.
 - [Middle-click location marker](review/middle-click-location-marker.md) — **Medium** — the one-shot location ping.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — **Medium** — the typed KrokMP content seams.
-- [Protocol frame validation](review/protocol-frame-validation.md) — **High** — the unified frame validator.
-- [Network traffic baseline](review/network-traffic-baseline.md) — **Medium** — frame stats and byte baselines.
-- [State-stream bandwidth reduction](review/state-stream-bandwidth-reduction.md) — **Medium** — the guest's own entry is not echoed.
 - [Snapshot size reduction](review/snapshot-size-reduction.md) — **Low** — a string table for definition ids.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
-- [Full-qualified name cleanup](review/full-qualified-name-cleanup.md) — **Low** — a using-directive sweep.
-- [Composite command semantics](review/composite-command-sequential-semantics.md) — **Medium** — declaration order on one copy.
-- [Projection failure auto-recovery](review/projection-failure-auto-recovery.md) — **High** — the dirty/rebuild loop.
-- [ModService ↔ GameAdapter DI cycle](review/mod-service-gameadapter-di-cycle.md) — fixed by injecting ModStatusStore.
 - [DI cycle guard / diagnostics](review/di-cycle-guard.md) — ValidateOnBuild and the re-entrancy guard.
-- [Legacy View-items remote detail](review/remove-legacy-view-items-remote-inventory-detail.md) — **Low** — the inline path is removed.
 - [Idle-sit suppression while carried](review/carried-player-idle-sit-suppression.md) — **Medium** — the native sit pose is suppressed.
 - [Carried rider's own body stops simulating](review/carried-rider-own-body-stops-simulating.md) — **Critical** — the rider's own client keeps simulating.
 - [Carrier sit while carrying](review/carrier-sit-while-carrying.md) — **Medium** — the carrier half of the family.
@@ -171,21 +152,13 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [Run clock is not sent to a mid-run joiner](review/save-run-clock-not-sent.md) — **Low-Medium** — the clocks travel as their own message.
 - [Layer time is not carried](review/save-layer-time-not-carried.md) — **Low-Medium** — the continued layer resumes its timer.
-- [Checkpoint chunks vs the run epoch](review/checkpoint-run-epoch-validation.md) — **Low-Medium** — the join instruction carries the run identity.
 - [Restore account arm release](review/restore-account-arm-release.md) — **Low** — every release path accounts for its own live-world half.
-- [Restore live-object row loops](review/restore-live-object-loops-containment.md) — **Low** — the last three restore loops are contained.
 - [Dropped mod command requests](review/mod-command-request-timeout.md) — **Low** — the request deadline and the bounded pending map.
 - [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
-- [Native-binding mods declare it](review/mod-native-binding-declaration.md) — **Medium** — the tier model and the manifest declaration.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity.
-- [Application layer: first slice](review/application-layer-first-slice.md) — **Medium** — command gateway and the kernel replication move.
-- [Adapter capability ports](review/adapter-capability-ports.md) — **Medium** — ten ports; the aggregate declares nothing.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
-- [Patch bridge domain ports](review/patch-bridge-domain-ports.md) — **Medium** — per-domain ports; the aggregate is frozen.
 - [Bilingual human documentation](review/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
-- [Legacy wire DTOs](review/legacy-wire-dto-slice.md) — **Medium** — the kernel <-> wire vocabulary moves into the layer; materialization stays.
-- [Feature-matrix tooling has no path gate](review/feature-matrix-tool-path-gate.md) — **Low-Medium** — the tool literals and both column lists are gated.
 
 - [Manual world acceleration must not end when a player moves](review/world-acceleration-survives-movement.md) — **High** — only announced speeds own the clock.
 - [An earthquake's clock write ends an acceleration](review/world-acceleration-quake-direct-write.md) — **Medium** — the host adopts it, vanilla-style.
@@ -193,12 +166,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Host eating sound on the guest](review/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume family rides the one-shot event.
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
-- [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
 - [CUO launcher button covers the view](review/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
 - [A dead or unconscious carried body stops simulating](review/carried-unconscious-body-simulation.md) — **Medium** — vitals advance behind the pinned pose.
 - [Remove the Online UI console page](review/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 
-- [Two censuses that drifted](review/catalogue-and-manifest-census-drift.md) — **Low-Medium** — orphan catalogue keys and the selfcheck index, gated.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
 - [Online UI panels asked for alphaBlend false](review/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
 
@@ -251,6 +222,35 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Architecture split pass](done/architecture-split-pass.md) — the architecture split.
 - [Typed kernel migration](done/typed-kernel-migration.md) — the typed deterministic kernel.
 - [Native content sync coverage](done/native-game-content-sync-coverage.md) — native game-content coverage.
+- [Adapter capability ports](done/adapter-capability-ports.md) — **Medium** — ten ports; the aggregate declares nothing.
+- [Application layer: first slice](done/application-layer-first-slice.md) — **Medium** — command gateway and the kernel replication move.
+- [Two censuses that drifted](done/catalogue-and-manifest-census-drift.md) — **Low-Medium** — orphan catalogue keys and the selfcheck index, gated.
+- [Checkpoint chunks vs the run epoch](done/checkpoint-run-epoch-validation.md) — **Low-Medium** — the join instruction carries the run identity.
+- [Command completion by id/name](done/command-id-name-completion.md) — **Medium** — canonical id, bare path or display name.
+- [Command registration attribute refactor](done/command-registration-attribute-refactor.md) — **Medium** — the console registry and mod API.
+- [Command tree and completion](done/command-tree-resource-location-selector.md) — **Medium** — tree, catalog and bracket filters.
+- [Composite command semantics](done/composite-command-sequential-semantics.md) — **Medium** — declaration order on one copy.
+- [Feature-matrix tooling has no path gate](done/feature-matrix-tool-path-gate.md) — **Low-Medium** — the tool literals and both column lists are gated.
+- [Full-qualified name cleanup](done/full-qualified-name-cleanup.md) — **Low** — a using-directive sweep.
+- [Game-update contract toolchain](done/game-update-contract-toolchain.md) — **High** — game-assembly snapshot, classified diff, report.
+- [Legacy wire DTOs](done/legacy-wire-dto-slice.md) — **Medium** — the kernel <-> wire vocabulary moves into the layer; materialization stays.
+- [Mod API contract governance](done/mod-api-contract-governance.md) — **Medium-High** — visibility rule, stability levels, API baseline.
+- [Mod data sync model](done/mod-data-sync-model.md) — **Medium** — the mod-data scope seam.
+- [Native-binding mods declare it](done/mod-native-binding-declaration.md) — **Medium** — the tier model and the manifest declaration.
+- [ModService ↔ GameAdapter DI cycle](done/mod-service-gameadapter-di-cycle.md) — fixed by injecting ModStatusStore.
+- [Network traffic baseline](done/network-traffic-baseline.md) — **Medium** — frame stats and byte baselines.
+- [Normative requirements as gates](done/normative-style-unit-test-gates.md) — **High** — the Roslyn gate and rule inventory.
+- [Patch bridge domain ports](done/patch-bridge-domain-ports.md) — **Medium** — per-domain ports; the aggregate is frozen.
+- [Projection failure auto-recovery](done/projection-failure-auto-recovery.md) — **High** — the dirty/rebuild loop.
+- [Protocol frame validation](done/protocol-frame-validation.md) — **High** — the unified frame validator.
+- [Legacy View-items remote detail](done/remove-legacy-view-items-remote-inventory-detail.md) — **Low** — the inline path is removed.
+- [Restore live-object row loops](done/restore-live-object-loops-containment.md) — **Low** — the last three restore loops are contained.
+- [Restored entity row containment](done/restored-entity-row-containment.md) — **Low-Medium** — a throwing row costs only itself.
+- [Dead runtime-entity relay API](done/runtime-entity-dead-api-cleanup.md) — **Low** — the relay chain is deleted.
+- [S1 — Save format and world repository](done/save-format-and-world-repository.md) — **High** — no gameplay wiring.
+- [State-stream bandwidth reduction](done/state-stream-bandwidth-reduction.md) — **Medium** — the guest's own entry is not echoed.
+- [Sync completeness audit](done/sync-event-and-periodic-fallback-coverage-audit.md) — **High** — the 64-row evidence matrix.
+- [WorldStateMessageService split](done/world-state-message-service-split.md) — **Low** — guest block bookkeeping moved out.
 
 ### Watchlist
 

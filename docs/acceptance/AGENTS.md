@@ -42,7 +42,7 @@ use placeholders such as `<game-dir>`.
    placeholders only; frames, recordings and probe dumps stay in the local artifact directory named by
    `AGENTS.local.md` and are cited by artifact id.
 8. `[RULE]` **A failed row is a finding, not a stopper.** Move the ticket back to `todo/` with
-   `- Status: Rejected`, name the failing row and its evidence, and fix it through the normal development
+   `- Status: Todo — Rejected (…)` (the field repeats the folder's label), name the failing row and its evidence, and fix it through the normal development
    cycle. Tickets whose rows all pass, or whose only remaining rows are residuals for the user, move to
    `done/`; the index rows move in the same change.
 9. `[RULE]` **Every run leaves this area better.** Fold what it taught: a reusable lesson into

@@ -19,7 +19,7 @@ the same wide class.
 Two signs that a file's shape, not its length, is the problem: its constructor takes dozens of
 services and assembles domain objects itself (the composition root is not separated from the domain
 assembly), and its interface keeps growing with every feature (see
-`review/adapter-capability-ports.md` and `review/patch-bridge-domain-ports.md`).
+`done/adapter-capability-ports.md` and `done/patch-bridge-domain-ports.md`).
 
 ## At the limit (no headroom)
 

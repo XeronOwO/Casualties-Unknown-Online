@@ -1,6 +1,6 @@
 # The Online UI's layout and input detail pass
 
-- Status: Todo (S1–S5 landed 2026-09-27; the user's run is the judge of the pixels and of the clicks)
+- Status: Review (code complete 2026-09-27: S1–S7 landed, gates green, deployed as `0.1.0+fdd72c84`; no code left to develop — the pixels and the clicks are the run's to judge)
 - Priority: High
 - Category: Online UI / layout, presentation and input
 - Source: User acceptance pass (2026-09-27), on the overhaul ticket's own delivery. The findings in the

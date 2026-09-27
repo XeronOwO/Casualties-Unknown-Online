@@ -4,7 +4,7 @@
 - Priority: Critical
 - Category: Carry/piggyback presentation / own-client body simulation
 - Source: User acceptance finding (2026-09-21): the guest carries the host on their back; on the host's own screen the host's own medical panel shows an almost flat ECG although the heart rate is real (only occasional tiny waveforms), and the panel's limbs twitch with a frequency that keeps growing; releasing the carry restores normal behaviour.
-- Related: `todo/carry-piggyback-rider-position-smoothing.md` (the same mechanism), `review/carried-player-idle-sit-suppression.md`, `review/carrier-sit-while-carrying.md`, `review/carry-piggyback-vertical-placement-asymmetry.md`, `review/remote-medical-panel-acceptance-issues.md`
+- Related: `review/carry-piggyback-rider-position-smoothing.md` (the same mechanism), `review/carried-player-idle-sit-suppression.md`, `review/carrier-sit-while-carrying.md`, `review/carry-piggyback-vertical-placement-asymmetry.md`, `review/remote-medical-panel-acceptance-issues.md`
 
 ## Evidence
 
@@ -93,7 +93,7 @@ not its simulation. Recorded as decision 216.
 | `review/carried-player-idle-sit-suppression.md` | KEPT, mechanism changed for the local rider | The rider's own sit is now impossible natively (`movingAllowed` false removes the `Body.cs:3162` condition) and the idle timer is held at zero as belt-and-braces; the clone halves still need `ShouldZeroIdleTimer`/`ShouldExitSit`/`ShouldReplaySit` because a clone's idle timer and a stale `Sitting` snapshot are not driven by a simulation. |
 | `review/carrier-sit-while-carrying.md` | KEPT unchanged | The carrier is a fully simulating local body, so its idle timer still has to be held at zero by the patch to keep the native sit pose off the carry relationship. |
 | `review/carry-piggyback-vertical-placement-asymmetry.md` | KEPT, scope narrowed | The rule itself only takes `isCarried` (`ShouldPublishBodyRoot(bool isCarried) => isCarried`); what narrows its reach is its only caller, `RunCoordinator.PublishBodyState`, whose torso anchor is `!body.standing && !ShouldPublishBodyRoot(...) && body.limbs.Length > 1`, so it can only matter for a carried body that is not standing. |
-| `todo/carry-piggyback-rider-position-smoothing.md` | STAYS OPEN | Its own reopened note tracks this ticket's defect; the teleport/mismatch acceptance it carries was not re-tested in this cycle and still needs a real two-client run. |
+| `review/carry-piggyback-rider-position-smoothing.md` | STAYS OPEN | Its own reopened note tracks this ticket's defect; the teleport/mismatch acceptance it carries was not re-tested in this cycle and still needs a real two-client run. |
 
 ### Adversarial review round (same cycle)
 

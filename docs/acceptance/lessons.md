@@ -67,3 +67,56 @@ dependency the table did not name, a step that cost more than it returned.
   run owns — not a question for the user.
 - Change: a missing artifact directory is created by the run before it asks anything; the preflight
   keeps reporting it, because "not created yet" and "not writable" look the same from outside.
+
+## 2026-09-27 — A machine fact can be green and still be the wrong game
+
+- Symptom: `steam://rungameid/<game-app-id>` launched an unrelated game (Forts) on the acceptance
+  machine, while the `steam` preflight row read `present` and even echoed the app id.
+- Cause: the local facts file carried the wrong `game-app-id`. The preflight proves only that the key
+  is set; it never proves that the id maps to the `game-dir` install, and the launch step consumes the
+  fact directly, so the wrong value reached a real launch. The correct id is in the install's own
+  `steam_appid.txt` and in the app manifest's name.
+- Change: the fact is corrected, and a run must cross-check the id against the install before
+  launching. The preflight should compare the two instead of reporting the key alone.
+
+## 2026-09-27 — An interrupted test run leaves a testhost that reddens the next one
+
+- Symptom: a later full-suite run failed to build its test project (MSB3026/MSB3027, "file is being
+  used by another process", `testhost.net48`), while the gate project passed 288/288 in the same run.
+- Cause: an earlier `dotnet test` invocation that never completed left `testhost.net48` holding
+  `xunit.abstractions.dll` in the test project's `bin` directory.
+- Change: check for `testhost*` processes started by this run and stop them before re-running the
+  suite. A full-suite red that is a file lock is an environment finding, not a product finding.
+
+## 2026-09-27 — In-process control is the driver this machine allows
+
+- Symptom: the session batch looked blocked on the staged `input` capability; asking the user settled
+  it: the agent may drive the game from inside its process, but must never take over the physical
+  mouse and keyboard.
+- Cause: the `input` row describes scripted keyboard/mouse driving — neither built nor permitted here.
+  What the run actually needs is the in-process evaluator (`hotrepl-*`), which is present.
+- Change: session setups are driven through the evaluator (create/join were both proven this way);
+  when the harness lands, the `input` row's capability and degradation text must be rewritten around
+  in-process control instead of OS input.
+
+## 2026-09-27 — A title-screen click is not "start the game"
+
+- Symptom: the probe created the lobby (`Session role: Host`) and the guest joined
+  (`role=Guest`), but invoking the title screen's SleepingBag `AdaptiveButton.Clicked()` shut the
+  host client down cleanly instead of starting a run.
+- Cause: each title-screen object carries its own action, and nothing in the object's name says which
+  one starts a run; calling a handler outside a real pointer event exercised whatever that object
+  does. "It ran" is not "it did what the scenario needed".
+- Change: session actions go through the Online UI's own entry points; before any in-process click of
+  a scene object is used as a setup step, its handler's target must be identified from evidence.
+
+## 2026-09-27 — A delegated triage needs a machine-checkable contract
+
+- Symptom: three read-only triage subagents classified the 142 `review/` tickets; two reports listed
+  slugs outside their own input slice and their headline counts disagreed with their own lists (one
+  headlined "24 offline" while listing 44 slugs).
+- Cause: the prompts fixed the rubric but not a verifiable contract, so a report could be internally
+  inconsistent and still look finished.
+- Change: a triage delegation must echo its exact input list, emit exactly one class line per slug,
+  derive every count from those lines, and the orchestrator re-derives the counts from the file
+  before any batch is built on it.

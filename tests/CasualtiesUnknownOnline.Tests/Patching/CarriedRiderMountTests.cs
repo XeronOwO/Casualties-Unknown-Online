@@ -13,7 +13,8 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// re-parents a local carrier's rider clone under a neutral-scale mount, so the
 /// mount scale math and the attach/detach surface must be correct and stable.
 /// The same pass also reads whether a clone's exact limb poses travelled with
-/// the root it just wrote, so that read-only surface is pinned here too.
+/// the root it just wrote, and whether the clone was rendered where the pin put
+/// it, so both read-only surfaces are pinned here too.
 /// </summary>
 [Trait("Category", "Integration")]
 public class CarriedRiderMountTests
@@ -97,6 +98,30 @@ public class CarriedRiderMountTests
 		var window = driver.GetField("LimbSeparationWindowMax", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("RemoteBodyDriver.LimbSeparationWindowMax not found.");
 		Assert.Equal("Single", window.FieldType.Name);
+	}
+
+	[Fact]
+	public void CarryPinReadingSurface_IsOnTheDriver()
+	{
+		// The pin the drift reading compares against lives on the clone's own
+		// driver, beside the limb reference shape: the reading has to describe
+		// the clone it was taken on and go away with it, so it may not sit in a
+		// side table keyed by SteamId.
+		var driver = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Character.RemoteBodyDriver",
+			throwOnError: true)!;
+		AssertDriverField(driver, "PinnedCarrierSteamId", "UInt64");
+		AssertDriverField(driver, "PinnedToLocalCarrier", "Boolean");
+		AssertDriverField(driver, "PinnedOffsetX", "Single");
+		AssertDriverField(driver, "PinnedOffsetY", "Single");
+		AssertDriverField(driver, "PinDriftWindowMax", "Single");
+	}
+
+	private static void AssertDriverField(Type driver, string name, string expectedTypeName)
+	{
+		var field = driver.GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException($"RemoteBodyDriver.{name} not found.");
+		Assert.Equal(expectedTypeName, field.FieldType.Name);
 	}
 
 	private static object NewVector3(float x, float y, float z) =>

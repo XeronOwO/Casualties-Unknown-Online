@@ -238,6 +238,7 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | players/carried-unconscious-body-simulation-selfcheck.md | Players | current | a dead or unconscious carried body keeps the vitals half of the native per-frame pass; the carry relation keeps pose, physics, ground contact and sounds (decision 227) |
 | players/carrier-sit-suppression-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/carry-rider-limb-anchor-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| players/carry-rider-acceptance-readiness-selfcheck.md | Players | current | the deciding readings are default-visible for a carry participant and the pin-drift reading is new (decision 233) |
 | players/interaction-gate-authority-selfcheck.md | Players | current | each client judges its own side; twelve host-side judging sites retired |
 | players/medical-operation-concurrency-selfcheck.md | Players | current | medical operations settle per unit (ticket `review/concurrent-medical-operations.md`) |
 | players/remote-medical-operation-session-realtime-injection-selfcheck.md | Players | current | candidate current evidence; verify before citing |

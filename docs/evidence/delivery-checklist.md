@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1: 12 rows, each quoted fragment grepped verbatim against the frozen tree
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (4 rows) + §2: the pin reference, the drift arithmetic, the ordering and the window quoted from the changed sources; the deployed artifact `0.1.0+c8e97c1d…` and commit `0e7693f4` read from `%TEMP%/cuo-s6-verify.txt` and `git log`
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: selfcheck §3 (10 rows): theme census, surface anchor, six untouched pin classes, port census, wire, the three IMGUI faces left, the superseded pages
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §1 (12 rows), §2, §3 (10 rows), §4 (the ladder with its artifacts), §5 (limits), §6 (26 findings disposed)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both carry views store the reference after their own ride pose wrote the root, the release drops the reference but never the window's reading, an unavailable anchor keeps the reference, and the carried local rider's own client is named as out of this reading's reach (selfcheck §2/§5)
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §1 (the readings and what each one answers), §2 (what landed), §3 (the verification table, 13 rows), §4 (the run recipe), §5 (limits)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: red 36 failed / 27 passed / 63 (`%TEMP%/cuo-s6-red2.txt`, recipe stated), 26 real-source mutation rows on the frozen tree; the look, the marks and the fit need one game run (selfcheck §5)
+      peer log comparison, hotrepl assertions) is decided — evidence: the acceptance run's eye-free evidence is the two printed readings plus the anomaly warnings at the default level; mechanical proof is 9 real-source mutations run by this cycle, all red (`%TEMP%/cuo-carry-mut/`, `%TEMP%/cuo-carry-mut2/`, sources md5-identical after restore), and the review's own 5 surviving mutations are red too; the picture stays the user's run (selfcheck §4/§5)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the ticket's Decision (2026-09-26) froze the uGUI destination and the six stages; the handoff named S6 and its scope; no work-choice question asked (AGENTS.md rule 9)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors (cuo-s6-build1.txt); focus 369/369 (cuo-s6-focus6.txt); format exit 0 (cuo-s6-format2.txt); gates 288/288 (cuo-s6-gates3.txt)
+      process violation — evidence: the handoff instruction continues this Critical ticket; decision 222 forbids building a placement change on its unverified mechanism, so the cycle ships readings; no work-choice question asked (AGENTS.md rule 9)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors (`%TEMP%/cuo-carry-build3.txt`); focus 57/57 (`cuo-carry-focus3.txt`); format exit 0 (`cuo-carry-format2.txt`); gates 287/287 with the checklist gate excluded (`cuo-carry-gates4.txt`), then the full run green
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest touched 588/486/466/460 lines (< 600); one type per file (gates green); the IMGUI overlay, its constants, the theme's Status style and LocationPingOverlay.cs deleted in the same round
+      dead mechanisms deleted in the same round) — evidence: largest touched type 587/162/164/122/33 lines (all under the 600 aggregate ceiling; `RemotePlayerRenderer` crossed it once and was trimmed back by moving the reading's reach into the Runtime rule); one top-level type per file (new `CarryAnomalies` split out, gate green); no `_`-bool added; nothing superseded left behind
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

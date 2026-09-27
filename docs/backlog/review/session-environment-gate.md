@@ -44,3 +44,8 @@ and a run that "cleaned up" a running game would kill the owner's session with f
 - The gate is a step of the run, not a wrapper around `deploy.ps1`: deploy itself still refuses only on a
   running game. Folding the classification into `preflight.ps1` as a `session` row is the natural next
   increment if it should surface in every run automatically.
+- **`deploy.ps1` and `verify-deploy.ps1` do not ask the gate.** With the owner's tree active they look for
+  `<game-dir>\BepInEx\plugins\CasualtiesUnknownOnline`, so `verify-deploy.ps1` fails with "Run
+  tools/deploy.ps1 first" while the run's own deployment sits intact in the parked tree (observed
+  2026-09-27: that copy still carried `0.1.0+7dc9553d`). The step order covers it today; teaching those two
+  scripts to consult the gate is the natural follow-up.

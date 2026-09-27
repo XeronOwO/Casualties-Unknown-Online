@@ -131,18 +131,12 @@ internal sealed class RemotePlayerRenderer(
 		_remoteClones.Clear();
 	}
 
-	/// <summary>Pump: lazy per-member clone ensure, then the frame's READ-ONLY carry pass (role marks + drift readings, before any clone is written), then the state writes, the local-carrier follow and the 1 Hz diagnostics.</summary>
+	/// <summary>Pump: lazy per-member clone ensure + state application + local-carrier follow + 1 Hz diagnostics.</summary>
 	internal void Update(Body? localBody)
 	{
-		// READ pass, taken before the frame's first STATE WRITE (SessionStatePump.Apply): ensure each member's
-		// clone (a roster join can arrive before the member's world exists — the
-		// menu scene has no "Experiment" template — and members can join
-		// mid-session, so retrying every frame absorbs all ordering races), mark its
-		// carry role, and take its drift reading. A drift anchor is ANOTHER clone's
-		// transform (the carrier's), so every reading must be taken before the
-		// frame's first state write: inside one per-clone loop a rider would be
-		// measured against a carrier this same frame had already moved, which reads
-		// as drift for a pair that never separated.
+		// Lazy per-member ensure: a roster join can arrive before the member's
+		// world exists (the menu scene has no "Experiment" template), and members
+		// can join mid-session — retrying every frame absorbs all ordering races.
 		var remotePlayers = _entities.RemotePlayers;
 		for (var i = 0; i < remotePlayers.Count; i++)
 		{
@@ -152,16 +146,32 @@ internal sealed class RemotePlayerRenderer(
 				continue; // in a menu/loading — no clone
 			}
 
-			var clone = EnsureClone(remote);
-			if (clone == null) // Unity object — ==
+			// == null on Unity objects — a scene reload destroys the clone and
+			// reference-comparison would miss it; retry creation next frame.
+			if (!_remoteClones.TryGetValue(remote.SteamId, out var clone) || clone == null)
 			{
-				continue; // template unavailable — retry next frame
+				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _log);
+				if (clone == null)
+				{
+					continue; // template unavailable — retry next frame
+				}
+
+				_remoteClones[remote.SteamId] = clone;
+				_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
+				// Render its carried items + limb presentation from the latest
+				// snapshot (a fresh report follows within 1 s at the latest).
+				if (_characterData.CloneData.TryGetValue(remote.SteamId, out var data))
+				{
+					_characterData.ApplyCloneInventory(clone, data, remote.SteamId);
+					_limbRenderer.ApplyCloneLimbs(clone, data);
+					RemoteCharacterDisplayProjection.ApplyRenderClone(clone, RemoteCharacterPresentation.State.From(data));
+				}
 			}
 
 			// Mark the clone's carry role BEFORE applying stream state, so
 			// SessionStatePump can suppress the native sit replay in the same
 			// frame — this is not limited to the local carrier's view, because a
-			// third-party rider clone also rides and the attach pass below
+			// third-party rider clone also rides and the second-pass attach below
 			// forces its visible position anyway; a carrier participates in the
 			// same whole-family sit suppression. Then take the drift reading: the
 			// frame that rendered is still in these transforms, since the state
@@ -172,24 +182,11 @@ internal sealed class RemotePlayerRenderer(
 			clone.TryGetComponent<RemoteBodyDriver>(out var cloneDriver);
 			_carriedRider.MarkCarryRole(remote.SteamId, cloneDriver);
 			_carriedRider.MeasurePinDrift(localBody, remote.SteamId, clone, cloneDriver, _remoteClones);
+
+			SessionStatePump.Apply(remote, clone);
 		}
 
-		// WRITE pass: the state stream, now that every reading has been taken.
-		for (var i = 0; i < remotePlayers.Count; i++)
-		{
-			var remote = remotePlayers[i];
-			if (!_session.IsRemoteInWorld(remote.SteamId))
-			{
-				continue; // in a menu/loading — its clone is not rendered
-			}
-
-			if (_remoteClones.TryGetValue(remote.SteamId, out var clone) && clone != null) // Unity object — ==
-			{
-				SessionStatePump.Apply(remote, clone);
-			}
-		}
-
-		// Third pass: after every clone has been placed by SessionStatePump,
+		// Second pass: after every clone has been placed by SessionStatePump,
 		// pin every carried rider clone to its carrier's VISUAL position. This
 		// covers the local-carrier view and every third-party view alike, so
 		// independent per-clone interpolation can never make the pair appear
@@ -198,40 +195,6 @@ internal sealed class RemotePlayerRenderer(
 		_carriedRider.AttachAll(localBody, _remoteClones);
 
 		LogClonePosition();
-	}
-
-	/// <summary>
-	/// The per-member render clone, created on first sight and rebuilt after a
-	/// scene reload destroyed it. Retrying every frame is what absorbs the
-	/// roster-join/world-creation ordering races.
-	/// </summary>
-	private Body? EnsureClone(PlayerEntity remote)
-	{
-		// == null on Unity objects — a scene reload destroys the clone and
-		// reference-comparison would miss it; retry creation next frame.
-		if (_remoteClones.TryGetValue(remote.SteamId, out var clone) && clone != null) // Unity object — ==
-		{
-			return clone;
-		}
-
-		clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _log);
-		if (clone == null) // Unity object — ==
-		{
-			return null; // template unavailable — retry next frame
-		}
-
-		_remoteClones[remote.SteamId] = clone;
-		_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
-		// Render its carried items + limb presentation from the latest
-		// snapshot (a fresh report follows within 1 s at the latest).
-		if (_characterData.CloneData.TryGetValue(remote.SteamId, out var data))
-		{
-			_characterData.ApplyCloneInventory(clone, data, remote.SteamId);
-			_limbRenderer.ApplyCloneLimbs(clone, data);
-			RemoteCharacterDisplayProjection.ApplyRenderClone(clone, RemoteCharacterPresentation.State.From(data));
-		}
-
-		return clone;
 	}
 
 	/// <summary>

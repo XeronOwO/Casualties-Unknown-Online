@@ -15,34 +15,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// </summary>
 internal static class CarriedBodyPlacement
 {
-	/// <summary>The rider's lateral distance from the carrier's root.</summary>
-	private const float BackOffsetSide = 0.35f;
-
-	/// <summary>The rider's height above the carrier's root while the carrier is fully upright.</summary>
-	private const float BackOffsetStandingHeight = 0.9f;
-
-	/// <summary>The rider's height above the carrier's root while the carrier is fully crouched.</summary>
-	private const float BackOffsetCrouchingHeight = 0.5f;
-
 	/// <summary>
 	/// The back-offset position for a body riding on a carrier. The carrier's
-	/// facing determines which side the rider sits on; the height follows the
-	/// carrier's crouch POSE, not its crouch flag. The flag flips inside one frame
-	/// while <c>Body.crouchAmount</c> eases (Body.cs:3095-3099, eased on the clone
-	/// side in <c>BodyUpdatePatch.UpdateCrouchAmount</c>), so an offset read from the
-	/// flag moved the rider the full 0.4 world units in a single frame every time
-	/// the carrier crouched or stood up: an instant displacement of the rider that
-	/// the carrier's own eased pose never showed.
+	/// facing determines which side the rider sits on; a crouching carrier lowers
+	/// the rider.
 	/// </summary>
-	public static Vector3 BackOffset(Vector3 carrierPosition, bool carrierIsRight, float carrierCrouchAmount)
+	public static Vector3 BackOffset(Vector3 carrierPosition, bool carrierIsRight, bool carrierCrouching)
 	{
 		var side = carrierIsRight ? -1f : 1f;
-		// The clamp states the contract (Mathf.Lerp clamps its own t); the NaN
-		// guard is what keeps a body whose pose is not set yet from writing a NaN
-		// height into the rider's transform.
-		var crouch = float.IsNaN(carrierCrouchAmount) ? 0f : Mathf.Clamp01(carrierCrouchAmount);
-		var up = Mathf.Lerp(BackOffsetCrouchingHeight, BackOffsetStandingHeight, 1f - crouch);
-		return carrierPosition + new Vector3(BackOffsetSide * side, up, 0f);
+		var up = carrierCrouching ? 0.5f : 0.9f;
+		return carrierPosition + new Vector3(0.35f * side, up, 0f);
 	}
 
 	/// <summary>
@@ -79,11 +61,10 @@ internal static class CarriedBodyPlacement
 		Vector3 carrierPosition,
 		bool carrierIsRight,
 		bool carrierCrouching,
-		float carrierCrouchAmount,
 		Vector2 carrierVelocity,
 		Vector2? carrierLookTarget)
 	{
-		ApplyCarrierFollow(body, carrierPosition, carrierIsRight, carrierCrouching, carrierCrouchAmount, carrierVelocity, carrierLookTarget);
+		ApplyCarrierFollow(body, carrierPosition, carrierIsRight, carrierCrouching, carrierVelocity, carrierLookTarget);
 		body.standing = false;
 		body.moveDir = Vector2.zero;
 		// The root was just written, so this is the frame's one chance to read
@@ -107,11 +88,10 @@ internal static class CarriedBodyPlacement
 		Vector3 carrierPosition,
 		bool carrierIsRight,
 		bool carrierCrouching,
-		float carrierCrouchAmount,
 		Vector2 carrierVelocity,
 		Vector2? carrierLookTarget)
 	{
-		ApplyCarrierFollow(body, carrierPosition, carrierIsRight, carrierCrouching, carrierCrouchAmount, carrierVelocity, carrierLookTarget);
+		ApplyCarrierFollow(body, carrierPosition, carrierIsRight, carrierCrouching, carrierVelocity, carrierLookTarget);
 		// The movement input gate is also asserted in BodyUpdatePatch before the
 		// native Body.Update runs (the placement's own frame position relative
 		// to it is not guaranteed); zeroing it here keeps the value honest for
@@ -176,11 +156,10 @@ internal static class CarriedBodyPlacement
 		Vector3 carrierPosition,
 		bool carrierIsRight,
 		bool carrierCrouching,
-		float carrierCrouchAmount,
 		Vector2 carrierVelocity,
 		Vector2? carrierLookTarget)
 	{
-		body.transform.position = BackOffset(carrierPosition, carrierIsRight, carrierCrouchAmount);
+		body.transform.position = BackOffset(carrierPosition, carrierIsRight, carrierCrouching);
 		body.rb.velocity = carrierVelocity;
 		body.isRight = carrierIsRight;
 		body.crouching = carrierCrouching;

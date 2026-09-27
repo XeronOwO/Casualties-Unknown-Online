@@ -118,7 +118,6 @@ internal sealed class CarriedRiderPresenter(
 					localBody.transform.position,
 					localBody.isRight,
 					localBody.crouching,
-					localBody.crouchAmount,
 					localBody.rb.velocity,
 					localBody.targetLookPos);
 				CarryPresentationProbe.Store(riderClone, carrierSteamId, localCarrier: true, localBody.transform.position);
@@ -141,7 +140,6 @@ internal sealed class CarriedRiderPresenter(
 					carrierClone.transform.position,
 					carrierClone.isRight,
 					carrierClone.crouching,
-					carrierClone.crouchAmount,
 					carrierClone.rb.velocity,
 					carrierClone.targetLookPos);
 				CarryPresentationProbe.Store(riderClone, carrierSteamId, localCarrier: false, carrierClone.transform.position);

@@ -53,27 +53,6 @@ public class CarryPresentationProbePinTests
 	}
 
 	[Fact]
-	public void EveryDriftReading_IsTakenBeforeTheFirstStateWrite()
-	{
-		// The drift anchor is the CARRIER clone's transform, so a loop that reads and
-		// writes in one pass measures a rider against a carrier the same frame had
-		// already moved — drift for a pair that never separated. Every reading
-		// therefore sits in a pass of its own, ahead of the frame's first state
-		// write (clone creation happens inside the read pass and writes only the
-		// new clone's spawn position).
-		var update = Section(
-			ReadAdapter(RendererFile),
-			"internal void Update(Body? localBody)",
-			"internal void RefreshLocalCarrierAttach");
-		var lastRead = update.LastIndexOf("_carriedRider.MeasurePinDrift(", StringComparison.Ordinal);
-		var firstWrite = update.IndexOf("SessionStatePump.Apply(", StringComparison.Ordinal);
-		Assert.True(lastRead >= 0, "RemotePlayerRenderer.Update must take the drift reading every frame");
-		Assert.True(
-			firstWrite > lastRead,
-			"every drift reading must precede the frame's first SessionStatePump.Apply: the anchor it compares against is another clone's transform");
-	}
-
-	[Fact]
 	public void BothCarryViews_StoreTheReferenceAfterTheRidePosePlacedTheClone()
 	{
 		var attach = Section(

@@ -192,6 +192,7 @@ public class SourceShapeGateTests
 	[InlineData("protected abstract class Foo", true)]
 	[InlineData("public unsafe struct Foo", true)]
 	[InlineData("internal ref struct Foo", true)]
+	[InlineData("public new class Foo", true)]
 	[InlineData("[Serializable] public sealed class Foo", true)]
 	[InlineData("[Obsolete(\"x\")] internal readonly record struct Foo(", true)]
 	[InlineData("public enum Foo", true)]

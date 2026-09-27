@@ -36,19 +36,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: the 30 records name every row's evidence; scope/exclusions in docs/evidence/acceptance/20260927-b-scope.md
+      file:line or runtime log) or is explicitly marked unverified — evidence: batch `20260927-b` record row 4 names it; the 28 samples enumerated against the matcher's 13 modifiers, `new` the only gap
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the offline set was re-derived over all 142 review tickets at once (4 slices, one line per ticket); 30 accepted, 6 dropped by name
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: every offline candidate re-read in full; each row grounded in this run's evidence; the 6 drops carry their reasons in the scope page
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all 13 modifiers in `TopLevelTypeRegex` checked one by one against the samples; only `new` lacked a positive, closed by `public new class Foo`
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's fix section is grounded by mutation-red.log, the focused logs and full-suite-unfiltered.log (35 = 29 shape + 6 depth/name)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: one run decides every row — build, both suites (per-test TRX), format, deploy verification; session rows stay blocked in review/
+      peer log comparison, hotrepl assertions) is decided — evidence: mutation-red.log fails only `public new class Foo`; focused-after-restore.log 29/29; full-suite-unfiltered.log green on the frozen tree
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: handoff step 2 (re-derive the offline batch and accept it) directed this cycle; no work-item choice was asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: final run build 0 warnings/0 errors; gates 288/288; main 4482/4482; format exit 0 with a before/after tree comparison (format-evidence.txt; 2026-09-27)
+      process violation — evidence: handoff step 1 directs this fix and the batch scope's Rejection names "one sample plus a gate re-run"; no work-item choice was asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build.log 0 warnings/0 errors; pre/post-format patches byte-identical; full-suite-unfiltered.log 4482/4482 main + 289/289 gates
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: comment-only ticket-path edits in 5 src + 4 tests files and the evidence JSON; records, moves, index, scope, checklist and lessons otherwise; gates 288/288 and main 4482/4482 on the final tree
+      dead mechanisms deleted in the same round) — evidence: one InlineData + records; no class/state/dead-code surface; src/ untouched; 6-file diff audited; gate suite green
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

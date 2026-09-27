@@ -1,6 +1,6 @@
 # One-top-level-type gate: every modifier, and the seven files it exposed - self-check (2026-09-25)
 
-Ticket: `docs/backlog/todo/source-shape-gate-modifier-blindness.md` (Medium; found by the stage-1
+Ticket: `docs/backlog/review/source-shape-gate-modifier-blindness.md` (Medium; found by the stage-1
 adversarial review of the remote-inventory native-intent rework). Cycle scope: make
 `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits` see every legal
 top-level type declaration instead of the modifier spellings it happened to enumerate, pin the
@@ -55,7 +55,7 @@ seven files above are the entire depth-0 offender set, before and after the wide
 
 | # | Claim | Evidence |
 |---|---|---|
-| 1 | The matcher accepts every modifier the language allows, in any order, plus a leading attribute run | `TheMatcher_SeesEveryDeclarationShapeAndIgnoresMentions`: 28 samples - a positive per modifier (`readonly`, `file`, `private`, `protected`, `unsafe`, `new`, `ref`, `static` as a BARE modifier, `sealed`, `abstract`, `partial`), the attribute run, and `record struct`/`record class`; the negatives include a doc comment with and without declaration text after it, and the declared `delegate` boundary |
+| 1 | The matcher accepts every modifier the language allows, in any order, plus a leading attribute run | `TheMatcher_SeesEveryDeclarationShapeAndIgnoresMentions`: 28 samples - a positive per modifier (`readonly`, `file`, `private`, `protected`, `unsafe`, `new`, `ref`, `static` as a BARE modifier, `sealed`, `abstract`, `partial`), the attribute run, and `record struct`/`record class`; the negatives include a doc comment with and without declaration text after it, and the declared `delegate` boundary. (Correction, batch `20260927-b`: the "a positive per modifier" claim was one short — no `new` positive existed; the fix cycle added `public new class Foo`, 29 shape samples.) |
 | 2 | A nested declaration is not a top-level type, and a mention in a comment or in ordinary code is not a declaration | the same theory's negatives plus `OnlyADepthZeroDeclarationCounts_AndTheNameFollowsTheKeyword` (depth 1 and 3 cases; `//` and `///` samples; `var`, method, field and `using` lines) |
 | 3 | The name of a two-word record keyword is read correctly | `OnlyADepthZeroDeclarationCounts...` reads `Point` and `Node`, not `struct`/`class` |
 | 4 | The blindness was real: the OLD gate passed all seven offenders | the pre-change gates run is green (`%TEMP%/cuo-gates-docs-move.txt`, 175/175) while the widened gate on the same tree fails, naming exactly those seven with their type names (`%TEMP%/cuo-red-top-level-gate.txt`) |

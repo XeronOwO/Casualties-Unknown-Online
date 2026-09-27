@@ -62,9 +62,11 @@ internal sealed class OnlineUiPageBuilder
 	internal string F(string key, params object?[] args) => Context.F(key, args);
 
 	/// <summary>
-	/// The width one tab asks for, so six of them fit one row of the window's shell. The value is a hint
-	/// in the window's canvas units like every other width here; without it each tab would take the game
-	/// row prefab's own (much wider) size and the tab row would overflow.
+	/// The width one tab asks for at least, so six of them fit one row of the window's shell. The value is a
+	/// FLOOR in the window's canvas units like every other width here (ticket
+	/// online-ui-layout-and-input-detail-pass, S2): the surface measures the caption and takes the wider of
+	/// the two, which is what keeps a tab whose label is longer than a Chinese one — <c>Preferences</c>, in an
+	/// English UI — from running past its own button.
 	/// </summary>
 	internal const float TabWidth = 112f;
 
@@ -79,8 +81,11 @@ internal sealed class OnlineUiPageBuilder
 	/// <summary>One row holding <paramref name="elements"/>, in order.</summary>
 	internal void Row(params OnlineUiElementModel[] elements) => _rows.Add(OnlineUiRowModel.Of(elements));
 
-	/// <summary>A vertical gap, so a page keeps the breathing room its IMGUI rows had.</summary>
-	internal void Space() => _rows.Add(new OnlineUiRowModel([]));
+	/// <summary>
+	/// A vertical gap with no meaning of its own: the room between two blocks that carry no heading. A HEADING
+	/// does not need this — <see cref="Section"/> brings the room it owns.
+	/// </summary>
+	internal void Space() => _rows.Add(OnlineUiRowModel.Space(OnlineUiWindowLayout.BlockGap));
 
 	/// <summary>A full-width line of body text.</summary>
 	internal void Label(string text) =>
@@ -90,9 +95,31 @@ internal sealed class OnlineUiPageBuilder
 	internal void Muted(string text) =>
 		Row(OnlineUiElementModel.Label(text, OnlineUiTextStyle.Muted, OnlineUiTheme.ToRgba(OnlineUiTheme.Muted)));
 
-	/// <summary>A section heading: what the rows below it belong to.</summary>
-	internal void Section(string text) =>
-		Row(OnlineUiElementModel.Label(text, OnlineUiTextStyle.Section, OnlineUiTheme.ToRgba(OnlineUiTheme.Accent)));
+	/// <summary>
+	/// A section heading: what the rows below it belong to. The heading OWNS the room around itself — a
+	/// block's room above it (unless it opens the page) and a smaller room below it, both from the layout's own
+	/// rhythm — so no drawer has to remember a gap before a heading. That memory was the defect the acceptance
+	/// pass found: some headings sat flush against the row above them because the gap lived in the caller.
+	///
+	/// <para>
+	/// <paramref name="trailing"/> are the controls that belong on the heading's own line (the Worlds page's
+	/// Refresh): a heading built as a plain row would lose the room the heading owns, which is how one of them
+	/// kept the defect after the rest were fixed.
+	/// </para>
+	/// </summary>
+	internal void Section(string text, params OnlineUiElementModel[] trailing)
+	{
+		if (_rows.Count > 0)
+		{
+			_rows.Add(OnlineUiRowModel.Space(OnlineUiWindowLayout.SectionGap));
+		}
+
+		var elements = new OnlineUiElementModel[trailing.Length + 1];
+		elements[0] = OnlineUiElementModel.Label(text, OnlineUiTextStyle.Section, OnlineUiTheme.ToRgba(OnlineUiTheme.Accent));
+		trailing.CopyTo(elements, 1);
+		_rows.Add(OnlineUiRowModel.Of(elements));
+		_rows.Add(OnlineUiRowModel.Space(OnlineUiWindowLayout.SectionBodyGap));
+	}
 
 	/// <summary>A line of status text in one of the theme's status colours.</summary>
 	internal void Status(string text, Color color) =>

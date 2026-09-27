@@ -23,7 +23,6 @@ internal static class OnlineUiPlayersDrawer
 			return;
 		}
 
-		page.Space();
 		page.Section(ctx.T("players.section"));
 		page.Muted(session.LocalInWorld ? ctx.T("players.local_in_world") : ctx.T("players.local_menu"));
 

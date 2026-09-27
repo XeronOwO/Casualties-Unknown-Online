@@ -63,7 +63,6 @@ internal static class OnlineUiAdminDrawer
 			BuildRule(ctx, page, "admin.rule_permadeath", rules.Permadeath);
 		}
 
-		page.Space();
 		page.Section(ctx.T("admin.ban_list"));
 		var bans = ctx.HostBan.BannedSteamIds;
 		if (bans.Count == 0)

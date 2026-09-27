@@ -57,6 +57,12 @@ public sealed class OnlineUiColorPickerPinTests
 			"the block beside the current colour is the live swatch: it must be built from the colour the markers are drawn from, so a pick moves it at once");
 
 	[Fact]
+	public void TheFieldMirrorsTheColourThePlayerCarries() =>
+		Assert.True(
+			MirrorsTheCarriedColour(Plugin("OnlineUiPreferencesDrawer.cs")),
+			"the hex field and the colour correspond LIVE (the user's report: a palette pick left the box without its hex): the field shows the canonical text of the colour the player carries now, and drops its own text the moment a choice is applied — only text that is not a colour yet keeps the box to itself");
+
+	[Fact]
 	public void AColourBlockIsTheGamesOwnRowTinted() =>
 		Assert.True(
 			TheBlockIsTheGamesRow(Adapter("OnlineUiControlFactory.cs"), Adapter("OnlineUiControlView.cs")),
@@ -87,6 +93,7 @@ public sealed class OnlineUiColorPickerPinTests
 		{ nameof(ThePaletteIsTheRuntimesOwn), "plugin/OnlineUiPreferencesDrawer.cs", "var palette = PlayerColorResolver.PaletteValues;", "var palette = PickColorsSomewhereElse();", "a grid built from a list of its own" },
 		{ nameof(AutoIsTheAbsentColour), "plugin/OnlineUiPreferencesDrawer.cs", "() => Choose(ctx, null)", "() => Choose(ctx, palette[0])", "an Auto control that picks a colour instead" },
 		{ nameof(TheLiveSwatchShowsTheColourThePlayerCarries), "plugin/OnlineUiPreferencesDrawer.cs", "var current = ctx.PlayerColor(ctx.Session.LocalSteamId);", "var current = palette[0];", "a preview that shows something other than the carried colour" },
+		{ nameof(TheFieldMirrorsTheColourThePlayerCarries), "plugin/OnlineUiPreferencesDrawer.cs", "var hexText = ctx.State.PlayerColorInput ?? current.ToHexString();", "var hexText = color.StoredHex;", "a field that does not follow the colour the player picks" },
 		{ nameof(AColourBlockIsTheGamesOwnRowTinted), "adapter/OnlineUiControlFactory.cs", "OnlineUiElementKind.ColorSwatch => ButtonRowPrefabPath,", "OnlineUiElementKind.ColorSwatch => \"Special/GameSettingNonexistent\",", "a block with no game prefab behind it" },
 		{ nameof(AnElementWithNoIdReportsNothing), "adapter/OnlineUiControlView.cs", "if (_id.Length > 0)", "if (true)", "a preview block whose click is reported as a control" },
 		{ nameof(TheColourEditDoesNotOutliveTheWindow), "plugin/OnlineUiWindow.cs", "_state.PlayerColorInput = null;", "// the half-typed text is kept", "an edit that survives the window it was typed in" },
@@ -119,6 +126,7 @@ public sealed class OnlineUiColorPickerPinTests
 		nameof(ThePaletteIsTheRuntimesOwn) => BuildsTheGridFromTheRuntime,
 		nameof(AutoIsTheAbsentColour) => AutoClearsTheColour,
 		nameof(TheLiveSwatchShowsTheColourThePlayerCarries) => PreviewsTheCarriedColour,
+		nameof(TheFieldMirrorsTheColourThePlayerCarries) => MirrorsTheCarriedColour,
 		nameof(AColourBlockIsTheGamesOwnRowTinted) => broken => TheBlockIsTheGamesRow(broken, Adapter("OnlineUiControlView.cs")),
 		nameof(AnElementWithNoIdReportsNothing) => SilentWithoutAnId,
 		nameof(TheColourEditDoesNotOutliveTheWindow) => broken => TheEditDiesWithTheWindow(broken, Plugin("OnlineUiWindowState.cs")),
@@ -178,6 +186,17 @@ public sealed class OnlineUiColorPickerPinTests
 
 		return flat.Contains("var current = ctx.PlayerColor(ctx.Session.LocalSteamId);", StringComparison.Ordinal)
 			&& flat.Contains("page.ColorSwatchElement(\"\", current, width: PreviewWidth),", StringComparison.Ordinal);
+	}
+
+	/// <summary>The field shows the colour the player carries now — the canonical hex, live — and a choice
+	/// made anywhere drops the field's own half-typed text instead of leaving the two out of step.</summary>
+	private static bool MirrorsTheCarriedColour(string drawerSource)
+	{
+		var flat = Flatten(drawerSource);
+
+		return flat.Contains("var hexText = ctx.State.PlayerColorInput ?? current.ToHexString();", StringComparison.Ordinal)
+			&& flat.Contains("hexText, maxLength: PlayerColorValue.HexAlphaLength,", StringComparison.Ordinal)
+			&& flat.Contains("ctx.State.PlayerColorInput = null;", StringComparison.Ordinal);
 	}
 
 	/// <summary>A block is the game's own button row, and the fill lands on the graphic the row shows.</summary>

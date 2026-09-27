@@ -48,6 +48,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Carry rider position smoothing](todo/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
+- [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — the acceptance pass' geometry and click findings.
 
 ### In progress
 

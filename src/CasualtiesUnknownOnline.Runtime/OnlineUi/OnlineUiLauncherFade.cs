@@ -15,13 +15,18 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 public sealed class OnlineUiLauncherFade
 {
 	/// <summary>How long the launcher stays fully opaque after the last hover or its first draw.</summary>
-	public const long IdleDelayMs = 4_000;
+	public const long IdleDelayMs = 2_500;
 
 	/// <summary>The linear ramp from full opacity down to <see cref="IdleAlpha"/>.</summary>
 	public const long FadeMs = 600;
 
-	/// <summary>The translucent floor: dark enough to read as UI, thin enough to see the world behind it.</summary>
-	public const float IdleAlpha = 0.35f;
+	/// <summary>
+	/// The translucent floor: dark enough to read as UI, thin enough to see what it covers. The user's
+	/// acceptance pass (2026-09-27) found the first floor (0.35) still covered the game's own medical panel
+	/// readout in the top-right corner, so the launcher now settles to a ghost: it keeps its rectangle, its
+	/// hover and its click, and gives the information underneath back.
+	/// </summary>
+	public const float IdleAlpha = 0.12f;
 
 	private long _lastActiveMs;
 

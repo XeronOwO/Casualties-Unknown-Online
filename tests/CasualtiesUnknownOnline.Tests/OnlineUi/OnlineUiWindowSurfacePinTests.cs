@@ -95,14 +95,17 @@ public sealed class OnlineUiWindowSurfacePinTests
 			DispatchesEveryIntentKind(Plugin("OnlineUiHost.cs")),
 			"every intent kind the surface can report must reach the action table — an unhandled kind is a control that silently does nothing");
 
-	/// <summary>A control with no width hint must still take a size: the game's row prefab is placed by
-	/// hand in its own screen (sizeDelta), and a layout group reads nothing off a rect, so the view seeds
-	/// that size into the LayoutElement or the row lays out at zero height.</summary>
+	/// <summary>
+	/// A control's size is the LAYOUT's and the ENGINE's, never the game's authored rect: the page declares one
+	/// control height, the model declares a width floor, and the engine measures the rest from the control's own
+	/// content. The game's rows are authored for its own full-width screen — taking their size is what made the
+	/// first cut's buttons as tall as the game's own rows and its English captions run past their buttons.
+	/// </summary>
 	[Fact]
-	public void AControlTakesTheGamesRowSizeWhenTheModelGivesNone() =>
+	public void AControlIsSizedByTheLayoutAndTheEngine() =>
 		Assert.True(
-			SeedsThePrefabsOwnSize(Adapter("OnlineUiControlFactory.cs")),
-			"the prefab's own size must be seeded into the layout: a row whose prefab carries no LayoutElement value would otherwise be zero-sized");
+			SizesComeFromTheLayoutAndTheEngine(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiControlFactory.cs")),
+			"a control must take the layout's height and the engine's measured width; the game's own authored sizeDelta belongs to the game's own screen");
 
 	[Fact]
 	public void AnIntentForAControlTheWindowNoLongerOffersIsDropped() =>
@@ -131,7 +134,8 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(TheWindowStopsTheWorldBehindItFromBeingClicked), "adapter/OnlineUiWindowView.cs", "panel.raycastTarget = true;", "panel.raycastTarget = false;", "a frame that lets clicks fall through to the world" },
 		{ nameof(TheTitleBarDragsTheWindow), "adapter/OnlineUiWindowDragHandler.cs", "_target.anchoredPosition += eventData.delta / scale;", "_target.anchoredPosition += Vector2.zero;", "a title bar that does not drag" },
 		{ nameof(ThePluginDispatchesEveryIntentKind), "plugin/OnlineUiHost.cs", "case OnlineUiIntentKind.ControlEdited:", "case OnlineUiIntentKind.ControlInvoked:", "an intent kind the plugin silently drops" },
-		{ nameof(AControlTakesTheGamesRowSizeWhenTheModelGivesNone), "adapter/OnlineUiControlFactory.cs", "layout.preferredHeight = authoredHeight;", "layout.preferredHeight = -1f;", "a control whose prefab size is never seeded into the layout" },
+		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlView.cs", "aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", "OnlineUiControlSizing.FillsTheRow(element)", "a control that takes the whole line even when it shares one" },
+		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlFactory.cs", "group.childForceExpandWidth = false;", "group.childForceExpandWidth = true;", "a content group that stretches its caption instead of measuring it" },
 		{ nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped), "plugin/OnlineUiOverlay.cs", "if (!_actions.TryGetValue(intent.ControlId, out var action))", "if (false)", "an intent applied without checking that its control still exists" },
 		{ nameof(TheCloseControlIsTheShellsAndItsMeaningIsThePlugins), "plugin/OnlineUiWindow.cs", "actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;", "actions[\"window.dismiss\"] = _ => _state.Visible = false;", "a close control whose two halves disagree about its id" },
 	};
@@ -173,7 +177,9 @@ public sealed class OnlineUiWindowSurfacePinTests
 		nameof(ThePointerFactIsPolledFromTheWindowsRect) => PollsTheWindowsRect,
 		nameof(TheWindowStopsTheWorldBehindItFromBeingClicked) => TheFrameSwallowsThePointer,
 		nameof(TheTitleBarDragsTheWindow) => broken => TheTitleBarDrags(Adapter("OnlineUiWindowView.cs"), broken),
-		nameof(AControlTakesTheGamesRowSizeWhenTheModelGivesNone) => SeedsThePrefabsOwnSize,
+		nameof(AControlIsSizedByTheLayoutAndTheEngine) => broken => SizesComeFromTheLayoutAndTheEngine(
+			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
+			Is(broken, "internal static class OnlineUiControlFactory") ? broken : Adapter("OnlineUiControlFactory.cs")),
 		nameof(ThePluginDispatchesEveryIntentKind) => DispatchesEveryIntentKind,
 		nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped) => broken => DropsIntentsForGoneControls(broken, Plugin("OnlineUiHost.cs")),
 		nameof(TheCloseControlIsTheShellsAndItsMeaningIsThePlugins) => broken => ClosesThroughTheSharedId(broken, Adapter("OnlineUiWindowView.cs")),
@@ -225,7 +231,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 
 		return flat.Contains("if (kindChanged || _text != element.Text)", StringComparison.Ordinal)
 			&& flat.Contains("if (kindChanged || _selected != element.Selected)", StringComparison.Ordinal)
-			&& flat.Contains("if (element.Width > 0f && !_layout.preferredWidth.Equals(element.Width))", StringComparison.Ordinal);
+			&& flat.Contains("if (!_layout.minWidth.Equals(floor))", StringComparison.Ordinal);
 	}
 
 	private static bool LeavesAFocusedFieldAlone(string controlSource)
@@ -306,16 +312,25 @@ public sealed class OnlineUiWindowSurfacePinTests
 		return flat.Contains("ApplyControlIntent(intent);", StringComparison.Ordinal);
 	}
 
-	/// <summary>The view seeds the prefab's own size into the layout it will be governed by.</summary>
-	private static bool SeedsThePrefabsOwnSize(string controlSource)
+	/// <summary>Whether a source is the file a mutation row says it is — the routing a pin with more than one
+	/// file needs, since only one side of it is the broken one.</summary>
+	private static bool Is(string source, string declaration) => source.Contains(declaration, StringComparison.Ordinal);
+
+	/// <summary>A control's height is the page's own, its width comes from the engine, and the game's authored
+	/// rect is never adopted as either.</summary>
+	private static bool SizesComeFromTheLayoutAndTheEngine(string controlSource, string factorySource)
 	{
 		var flat = Flatten(controlSource);
+		var factory = Flatten(factorySource);
 
-		return flat.Contains("var authored = prefab != null ? rect.sizeDelta : Vector2.zero;", StringComparison.Ordinal)
-			&& flat.Contains("if (layout.preferredHeight <= 0f)", StringComparison.Ordinal)
-			&& flat.Contains("layout.preferredHeight = authoredHeight;", StringComparison.Ordinal)
-			&& flat.Contains("if (layout.preferredWidth <= 0f && authoredWidth > 0f)", StringComparison.Ordinal)
-			&& flat.Contains("layout.preferredWidth = authoredWidth;", StringComparison.Ordinal);
+		return flat.Contains("_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", StringComparison.Ordinal)
+			&& flat.Contains("var preferred = element.Kind == OnlineUiElementKind.Label ? 0f : -1f;", StringComparison.Ordinal)
+			&& flat.Contains("OnlineUiControlSizing.EffectiveWidth(element, _rect, _layout)", StringComparison.Ordinal)
+			&& flat.Contains("aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", StringComparison.Ordinal)
+			&& factory.Contains("AddContentGroup(root, ReadRowPadding(root, rect, prefab));", StringComparison.Ordinal)
+			&& factory.Contains("group.childForceExpandWidth = false;", StringComparison.Ordinal)
+			&& !factory.Contains("authoredWidth", StringComparison.Ordinal)
+			&& !flat.Contains("_rect.sizeDelta.y", StringComparison.Ordinal);
 	}
 
 	private static bool DropsIntentsForGoneControls(string overlaySource, string hostSource)

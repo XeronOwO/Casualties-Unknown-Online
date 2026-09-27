@@ -26,12 +26,12 @@ internal static class OnlineUiControlFactory
 	/// one whose sprite and typography the window's chrome reads.</summary>
 	internal const string ButtonRowPrefabPath = "Special/GameSettingLanguage";
 
-	/// <summary>The width a placeholder takes when neither the model nor a prefab gives one: the fallback a
-	/// missing prefab produces still has to be visible (and, for a button, clickable).</summary>
-	internal const float PlaceholderWidth = 220f;
-
 	/// <summary>The padding a hand-built label adds to the game's own font size for its line height.</summary>
 	internal const float LabelHeightPadding = 8f;
+
+	/// <summary>The thickness of the game's own border on a frame: the room the frame's fill leaves clear
+	/// around itself, so the sprite's edge — the game's border — stays visible.</summary>
+	internal const float FrameBorder = 2f;
 
 	/// <summary>
 	/// The object one element is drawn on, ready for a layout group: the game's own row prefab for the
@@ -79,30 +79,67 @@ internal static class OnlineUiControlFactory
 			Object.Destroy(fitter);
 		}
 
-		var authored = prefab != null ? rect.sizeDelta : Vector2.zero;
-		var authoredWidth = authored.x > 0f
-			? authored.x
-			: element.Kind == OnlineUiElementKind.Label ? 0f : PlaceholderWidth;
-		var authoredHeight = authored.y > 0f ? authored.y : typography.Size + LabelHeightPadding;
-		var layout = root.GetComponent<LayoutElement>() ?? root.AddComponent<LayoutElement>();
-		if (layout.preferredHeight <= 0f)
-		{
-			layout.preferredHeight = authoredHeight;
-		}
-
-		if (layout.preferredWidth <= 0f && authoredWidth > 0f)
-		{
-			layout.preferredWidth = authoredWidth;
-		}
-
-		// The scale is normalised once for the same reason the fitter goes: the row is laid out by CUO's
-		// own groups now, not by the game's hand placement.
+		// The prefab's authored size is deliberately NOT taken as this control's size: the game's rows are
+		// authored for its own full-width settings screen, which is why the first cut's buttons were as tall as
+		// the game's own rows and its text ran past them. A page declares one control height and the ENGINE
+		// measures the width from the control's own content (below); the prefab's geometry is read only for the
+		// room its own row keeps around its text, so a measured caption lands where the game would put it.
+		//
+		// The scale is normalised once for the same reason the fitter goes: the row is laid out by CUO's own
+		// groups now, not by the game's hand placement.
 		rect.localScale = Vector3.one;
+		var layout = root.GetComponent<LayoutElement>() ?? root.AddComponent<LayoutElement>();
+
+		// A row that IS the control — a button or a colour block — gets a layout group over its own caption, so
+		// the ENGINE sizes it: uGUI asks the group, the group asks TMP for the caption it holds, and no width is
+		// computed here. A row whose control sits on child 1 is given the same treatment by
+		// OnlineUiRowGeometry, which owns the inside of that shape.
+		if (prefab != null && element.Kind is OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch)
+		{
+			AddContentGroup(root, ReadRowPadding(root, rect, prefab));
+		}
+
 		return new Built(
 			root,
 			layout,
 			UsedPrefab: prefab != null,
 			MissedPrefab: prefab == null && prefabPath is { Length: > 0 });
+	}
+
+	/// <summary>
+	/// The room the game's own row keeps between its edge and its text, read from the prefab's own geometry (a
+	/// row is one caption child beside its control): a measured caption then lands where the game would put it.
+	/// A caption that stretches over the whole row reports no such room, and the fallback is the room CUO's own
+	/// rows keep.
+	/// </summary>
+	private static float ReadRowPadding(GameObject root, RectTransform rect, GameObject prefab)
+	{
+		if (ChildAt(root.transform, 0) is not RectTransform caption)
+		{
+			return OnlineUiRowGeometry.RowPadding;
+		}
+
+		var room = (rect.rect.width - caption.rect.width) * 0.5f;
+		return room > 0f ? room : OnlineUiRowGeometry.RowPadding;
+	}
+
+	/// <summary>
+	/// Gives a control its own horizontal layout group, so uGUI's layout protocol can ask the control what its
+	/// content needs: the group reports its children's own preferred sizes plus the row's room, and the engine
+	/// sizes the control from that. This is the whole of CUO's answer to "how wide is it" — a declaration of
+	/// the room, never a width.
+	/// </summary>
+	internal static HorizontalLayoutGroup AddContentGroup(GameObject root, float horizontalPadding)
+	{
+		var group = root.GetComponent<HorizontalLayoutGroup>() ?? root.AddComponent<HorizontalLayoutGroup>();
+		group.padding = new RectOffset((int)horizontalPadding, (int)horizontalPadding, 0, 0);
+		group.spacing = 0f;
+		group.childAlignment = TextAnchor.MiddleCenter;
+		group.childControlWidth = true;
+		group.childControlHeight = true;
+		group.childForceExpandWidth = false;
+		group.childForceExpandHeight = false;
+		return group;
 	}
 
 	/// <summary>The row's caption: the game's own row carries it on child 0, while the placeholder IS a
@@ -152,6 +189,52 @@ internal static class OnlineUiControlFactory
 		Object.Destroy(probe);
 	}
 
+	/// <summary>
+	/// Gives a frame the game's own edge (ticket online-ui-layout-and-input-detail-pass, S4). The game's own
+	/// windows show a light border, and the sprite CUO reads its art from is what carries it — the first cut
+	/// tinted the whole frame dark, which painted that border away and is why the acceptance pass saw a
+	/// borderless slab. The frame's own image therefore keeps the sprite UNTINTED, and the dark surface the
+	/// window reads on becomes a child laid inside it, so the sprite's edge stays as the border.
+	/// </summary>
+	internal static Image MakeFrame(
+		GameObject frame,
+		Sprite? sprite,
+		Image.Type imageType,
+		float pixelsPerUnit,
+		Color fill)
+	{
+		var border = frame.GetComponent<Image>();
+		if (border != null)
+		{
+			border.sprite = sprite;
+			border.type = imageType;
+			border.pixelsPerUnitMultiplier = pixelsPerUnit;
+			border.color = Color.white;
+		}
+
+		var go = new GameObject("Frame Fill", typeof(RectTransform), typeof(Image));
+		go.transform.SetParent(frame.transform, worldPositionStays: false);
+		var rect = (RectTransform)go.transform;
+		rect.anchorMin = Vector2.zero;
+		rect.anchorMax = Vector2.one;
+		rect.pivot = new Vector2(0.5f, 0.5f);
+		rect.offsetMin = new Vector2(FrameBorder, FrameBorder);
+		rect.offsetMax = new Vector2(-FrameBorder, -FrameBorder);
+		// A panel's frame carries the layout group that owns its rows, and a fill is chrome rather than a
+		// row: it is asked to stay out of that layout.
+		var layout = go.AddComponent<LayoutElement>();
+		layout.ignoreLayout = true;
+		var image = go.GetComponent<Image>();
+		image.sprite = sprite;
+		image.type = imageType;
+		image.pixelsPerUnitMultiplier = pixelsPerUnit;
+		image.color = fill;
+		// The frame itself carries the raycast (the window's pointer census and its click-through guard ask
+		// its rect); a fill on top of it must not answer a second time.
+		image.raycastTarget = false;
+		return image;
+	}
+
 	/// <summary>The child at <paramref name="index"/>, or null when the row carries fewer.</summary>
 	internal static Transform? ChildAt(Transform root, int index) =>
 		root.childCount > index ? root.GetChild(index) : null;
@@ -180,6 +263,14 @@ internal static class OnlineUiControlFactory
 		if (typography.Font != null)
 		{
 			text.font = typography.Font;
+		}
+
+		if (kind == OnlineUiElementKind.Label && root.transform is RectTransform rect)
+		{
+			// A label is one line until the layout gives it the row's width, and TMP measures the wrapped
+			// height against the width it already has: without this the first frame measures a zero-width
+			// rect and the row jumps to its real height a frame later.
+			rect.sizeDelta = new Vector2(OnlineUiWindowLayout.ContentWidth, typography.Size + LabelHeightPadding);
 		}
 
 		return root;

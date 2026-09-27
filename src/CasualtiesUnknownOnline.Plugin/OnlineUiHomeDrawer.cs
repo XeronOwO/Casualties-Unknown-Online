@@ -41,7 +41,6 @@ internal static class OnlineUiHomeDrawer
 			page.Muted(ctx.F("home.steam_id", steam.LocalSteamId));
 		}
 
-		page.Space();
 		page.Section(ctx.T("home.session"));
 		var sessionText = ctx.IpDirectActive ? ctx.T("home.ip_direct") : ctx.T("home.steam_network");
 		page.Label($"{ctx.F("home.role", ctx.RoleName(session.Role))}  {ctx.T(session.SessionActive ? "home.handshake_active" : "home.handshake_idle")} — {sessionText}");
@@ -153,7 +152,6 @@ internal static class OnlineUiHomeDrawer
 				ctx.CreateLobby?.Invoke();
 			});
 
-		page.Space();
 		page.Section(ctx.T("home.join_a_game"));
 		page.Muted(ctx.T("home.join_hint"));
 		page.Row(
@@ -234,7 +232,6 @@ internal static class OnlineUiHomeDrawer
 				ctx.CreateIpHost?.Invoke();
 			});
 
-		page.Space();
 		page.Section(ctx.T("ip.join_section"));
 		page.Row(
 			page.LabelElement(ctx.T("ip.address"), color: OnlineUiTheme.Muted),

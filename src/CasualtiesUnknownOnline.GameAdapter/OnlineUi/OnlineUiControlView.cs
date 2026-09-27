@@ -9,30 +9,25 @@ using Object = UnityEngine.Object;
 namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 
 /// <summary>
-/// One element of the Online UI window on the game's own control (ticket
-/// online-ui-art-and-controls-overhaul, S2b): the game's row prefab for the element's kind, kept alive
+/// One element of the Online UI window on the game's own control (tickets online-ui-art-and-controls-overhaul
+/// S2b, online-ui-layout-and-input-detail-pass S2): the game's row prefab for the element's kind, kept alive
 /// across frames and re-applied only when what it shows changed.
 ///
 /// <para>
 /// The rows come from the game's own settings screen, so the sprite, the 9-slice, the font and the control
 /// itself are the game's: <c>Special/GameSettingLanguage</c> is a button with its caption on child 0, and
 /// <c>GameSettingBool</c> / <c>GameSettingDropdown</c> / <c>GameSettingInt</c> / <c>GameSettingFloat</c>
-/// carry their control on child 1 (the float row shows its value on child 2) — the shape
-/// <c>SettingsMenu</c> itself wires up. A label has no prefab of its own, so it is built from the game's
-/// own font, which the game's row hands over; a colour block is that same button row with the chosen
-/// colour laid over the graphic the row already shows.
+/// carry their control on child 1 (the float row shows its value on child 2) — the shape <c>SettingsMenu</c>
+/// itself wires up. A label has no prefab of its own and is built from the game's own font; a colour block is
+/// that same button row with the chosen colour laid over the graphic it already shows. Which prefab draws
+/// which kind, and what stands in when the game ships none, belong to <see cref="OnlineUiControlFactory"/> —
+/// how wide the control has to be is <see cref="OnlineUiControlSizing"/>'s, and where the parts INSIDE one of
+/// the game's rows sit is <see cref="OnlineUiRowGeometry"/>'s.
 /// </para>
 ///
 /// <para>
-/// Which prefab draws which kind, how it is instantiated so a layout group can size it, and what stands in
-/// when the game ships none all belong to <see cref="OnlineUiControlFactory"/>; this class is about the
-/// element that then lives on that object.
-/// </para>
-///
-/// <para>
-/// A view reports what the player did as intents and holds no meaning of its own: the id it reports is
-/// the element's id, read at the moment of the interaction, because a view may be reused for a different
-/// element once the page or the roster changes.
+/// A view reports what the player did as intents and holds no meaning of its own: the id it reports is the
+/// element's id, read when the interaction happens, because a view may be reused for another element.
 /// </para>
 /// </summary>
 internal sealed class OnlineUiControlView
@@ -55,11 +50,17 @@ internal sealed class OnlineUiControlView
 			style is OnlineUiTextStyle.Title or OnlineUiTextStyle.Section ? FontStyles.Bold : FontStyles.Normal;
 	}
 
-	/// <summary>The caption colour of a button that is the current choice (a tab, the transport switch),
-	/// and of one that is not: the same accent/muted pair the IMGUI tabs used.</summary>
+	/// <summary>The caption colour of the current choice (a tab, the transport switch) and of the others.</summary>
 	private static readonly Color SelectedCaption = new(0.85f, 0.72f, 0.38f, 1f);
 
 	private static readonly Color UnselectedCaption = new(0.92f, 0.93f, 0.94f, 1f);
+
+	/// <summary>The game's own sprite colour for a button that is not the current choice: untinted.</summary>
+	private static readonly Color UnselectedFill = Color.white;
+
+	/// <summary>A warm wash over the game's own sprite for the current choice, so the open page and the
+	/// transport the session uses are visible at a glance and not only in the caption.</summary>
+	private static readonly Color SelectedFill = new(1f, 0.86f, 0.6f, 1f);
 
 	private readonly GameObject _root;
 	private readonly RectTransform _rect;
@@ -78,6 +79,17 @@ internal sealed class OnlineUiControlView
 	private readonly TextMeshProUGUI? _caption;
 	private readonly TextMeshProUGUI? _rowLabel;
 	private readonly TextMeshProUGUI? _valueText;
+
+	/// <summary>The game's own row label (child 0), when the prefab carries one: the geometry inside the row is
+	/// CUO's, and this is the half of it that takes what the control does not.</summary>
+	private readonly RectTransform? _labelRect;
+
+	/// <summary>The control the row carries on child 1, sized by CUO inside the row it belongs to.</summary>
+	private readonly RectTransform? _controlRect;
+
+	/// <summary>The graphic a selected button tints: the tab row's current page and the Home page's transport
+	/// switch read as chosen, not only as a differently coloured caption.</summary>
+	private readonly Image? _selectionGraphic;
 
 	private OnlineUiElementKind _kind;
 	private string _id = "";
@@ -106,7 +118,10 @@ internal sealed class OnlineUiControlView
 		Slider? slider,
 		TextMeshProUGUI? caption,
 		TextMeshProUGUI? rowLabel,
-		TextMeshProUGUI? valueText)
+		TextMeshProUGUI? valueText,
+		RectTransform? labelRect,
+		RectTransform? controlRect,
+		Image? selectionGraphic)
 	{
 		_root = root;
 		_rect = rect;
@@ -122,6 +137,9 @@ internal sealed class OnlineUiControlView
 		_caption = caption;
 		_rowLabel = rowLabel;
 		_valueText = valueText;
+		_labelRect = labelRect;
+		_controlRect = controlRect;
+		_selectionGraphic = selectionGraphic;
 	}
 
 	internal OnlineUiElementKind Kind => _kind;
@@ -130,18 +148,16 @@ internal sealed class OnlineUiControlView
 
 	internal GameObject Root => _root;
 
-	/// <summary>True when the game ships a row prefab for this element's kind and it could not be loaded,
-	/// so the placeholder stands in for it — the window logs that once per kind instead of the gap passing
-	/// unnoticed (the launcher's fallback reports the same way). A label has no prefab of its own by design
-	/// and is never a miss.</summary>
+	/// <summary>True when the game ships a row prefab for this kind and it could not be loaded, so the
+	/// placeholder stands in — the window logs that once per kind. A label has no prefab by design.</summary>
 	internal bool MissedGamePrefab { get; private init; }
 
-	/// <summary>
-	/// Builds the view for one element under <paramref name="parent"/> on the object
-	/// <see cref="OnlineUiControlFactory"/> produces for its kind, and finds the parts this view drives:
-	/// the caption, the control the kind carries, the button a click lands on, and the graphic a colour
-	/// block tints.
-	/// </summary>
+	/// <summary>True when the game's row left this control without a graphic that accepts the raycast and CUO
+	/// had to give it one: the window reports it once per kind, because a box nobody can click is a defect.</summary>
+	internal bool FixedPointerSurface { get; private init; }
+
+	/// <summary>Builds the view for one element under <paramref name="parent"/> on the object
+	/// <see cref="OnlineUiControlFactory"/> produces for its kind, and finds the parts this view drives.</summary>
 	internal static OnlineUiControlView Create(
 		OnlineUiElementModel element,
 		Transform parent,
@@ -154,12 +170,34 @@ internal sealed class OnlineUiControlView
 		var caption = OnlineUiControlFactory.CaptionOn(built);
 
 		// A button and a colour block ARE the row; the other kinds are a control the row carries on child 1.
-		var control = element.Kind is OnlineUiElementKind.Label or OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch
-			? null
-			: OnlineUiControlFactory.ChildAt(root.transform, 1);
+		var carriesNoControl = element.Kind is OnlineUiElementKind.Label or OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch;
+		var control = carriesNoControl ? null : OnlineUiControlFactory.ChildAt(root.transform, 1);
+		var controlRect = control as RectTransform;
 		var button = element.Kind is OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch
 			? OnlineUiControlFactory.ButtonOn(root, caption)
 			: null;
+		var toggle = control != null ? control.GetComponent<Toggle>() : null;
+		var dropdown = control != null ? control.GetComponent<TMP_Dropdown>() : null;
+		var input = control != null ? control.GetComponent<TMP_InputField>() : null;
+		var slider = control != null ? control.GetComponent<Slider>() : null;
+
+		// The game places a row's children by hand for its own screen, so an instantiated row keeps those
+		// rects: the control's insides are stretched onto the box CUO sizes here (which is what puts a
+		// dropdown's value inside its frame and a field's caret inside its box), and a label that is not a
+		// control stops swallowing clicks meant for the control beside it.
+		OnlineUiRowGeometry.PrepareInternals(dropdown, input, toggle);
+		if (button is null)
+		{
+			OnlineUiRowGeometry.MakeLabelTransparentToPointer(caption);
+		}
+
+		// A field or a dropdown is clicked on its own box; when the game's prefab leaves that box without a
+		// graphic that accepts the raycast, the player has a control that shows text and answers nothing.
+		var pointerFixed = false;
+		if (control != null && element.Kind is OnlineUiElementKind.Dropdown or OnlineUiElementKind.TextField)
+		{
+			pointerFixed = OnlineUiRowGeometry.EnsurePointerSurface(control.gameObject);
+		}
 
 		var view = new OnlineUiControlView(
 			root,
@@ -169,15 +207,19 @@ internal sealed class OnlineUiControlView
 			report,
 			button: button,
 			swatch: element.Kind == OnlineUiElementKind.ColorSwatch ? OnlineUiControlFactory.SwatchImageOn(root, button) : null,
-			toggle: control != null ? control.GetComponent<Toggle>() : null,
-			dropdown: control != null ? control.GetComponent<TMP_Dropdown>() : null,
-			input: control != null ? control.GetComponent<TMP_InputField>() : null,
-			slider: control != null ? control.GetComponent<Slider>() : null,
+			toggle: toggle,
+			dropdown: dropdown,
+			input: input,
+			slider: slider,
 			caption: caption,
 			rowLabel: element.Kind == OnlineUiElementKind.Label ? null : caption,
-			valueText: element.Kind == OnlineUiElementKind.Slider && built.UsedPrefab ? OnlineUiControlFactory.ChildText(root.transform, 2) : null)
+			valueText: element.Kind == OnlineUiElementKind.Slider && built.UsedPrefab ? OnlineUiControlFactory.ChildText(root.transform, 2) : null,
+			labelRect: !carriesNoControl && built.UsedPrefab ? caption?.rectTransform : null,
+			controlRect: controlRect,
+			selectionGraphic: button?.targetGraphic as Image)
 		{
 			MissedGamePrefab = built.MissedPrefab,
+			FixedPointerSurface = pointerFixed,
 		};
 
 		view.Wire();
@@ -185,9 +227,13 @@ internal sealed class OnlineUiControlView
 		return view;
 	}
 
-	/// <summary>Applies one frame's element: only what differs from the last application is written, so a
-	/// steady window does not dirty the canvas every frame.</summary>
-	internal void Apply(OnlineUiElementModel element)
+	/// <summary>
+	/// Applies one frame's element, writing only what differs from the last application.
+	/// <paramref name="aloneOnItsLine"/> is the model's own shape: an element that is the only one on its line
+	/// takes that line (a dropdown or a field IS one of the game's rows — a label with a control beside it),
+	/// while one that shares its line with another element keeps its own size.
+	/// </summary>
+	internal void Apply(OnlineUiElementModel element, bool aloneOnItsLine = false)
 	{
 		var kindChanged = _kind != element.Kind;
 		_kind = element.Kind;
@@ -236,7 +282,7 @@ internal sealed class OnlineUiControlView
 				break;
 		}
 
-		ApplyLayout(element);
+		ApplyLayout(element, aloneOnItsLine);
 	}
 
 	internal void SetParent(Transform parent)
@@ -330,6 +376,14 @@ internal sealed class OnlineUiControlView
 		}
 
 		_caption.color = element.Selected ? SelectedCaption : UnselectedCaption;
+
+		// A coloured caption alone is a thin signal for "this is the page you are on": the game's own sprite
+		// takes a wash on the current choice too (the tab row and the transport switch both mark one). A
+		// colour block's graphic IS its colour, so it is left alone.
+		if (_selectionGraphic != null && _selectionGraphic != _swatch)
+		{
+			_selectionGraphic.color = element.Selected ? SelectedFill : UnselectedFill;
+		}
 	}
 
 	private void ApplyDropdown(OnlineUiElementModel element, bool kindChanged)
@@ -421,11 +475,8 @@ internal sealed class OnlineUiControlView
 		}
 	}
 
-	/// <summary>
-	/// The colour block's fill. The game's own control keeps its sprite, its 9-slice and its size, so the
-	/// block reads as one of the game's rows; the colour laid over it is the one thing the surface chooses
-	/// for the element, and it is written only when it changed.
-	/// </summary>
+	/// <summary>The colour block's fill, written only when it changed: the game's own control keeps its
+	/// sprite, its 9-slice and its size, so the block reads as one of the game's rows.</summary>
 	private void ApplySwatchColor()
 	{
 		if (_swatch != null)
@@ -435,23 +486,94 @@ internal sealed class OnlineUiControlView
 	}
 
 	/// <summary>
-	/// The layout half: a width hint from the model wins, everything else stays what the view was created
-	/// with (the prefab's own width, seeded in <see cref="Create"/>). A label with no hint takes whatever
-	/// the row has left, which is what the IMGUI rows' flexible space did.
+	/// The layout half, holding no size of its own: the shared HEIGHT is the layout's (a label leaves its own
+	/// to TMP) and the WIDTH is a floor read back from the engine (<see cref="OnlineUiControlSizing"/>) — which
+	/// is what keeps a translated caption or a longer value from being cut inside a number CUO wrote down.
 	/// </summary>
-	private void ApplyLayout(OnlineUiElementModel element)
+	private void ApplyLayout(OnlineUiElementModel element, bool aloneOnItsLine)
 	{
-		if (element.Width > 0f && !_layout.preferredWidth.Equals(element.Width))
+		// The model's width is a floor and nothing else; the engine's own answer is the width.
+		var floor = element.Kind == OnlineUiElementKind.Label ? 0f : element.Width;
+		if (!_layout.minWidth.Equals(floor))
 		{
-			_layout.preferredWidth = element.Width;
+			_layout.minWidth = floor;
 		}
 
-		var flexible = element.Kind == OnlineUiElementKind.Label && element.Width <= 0f ? 1f : 0f;
+		// A label takes what the row has left; every other control leaves its preferred width to the engine —
+		// its own layout group over its own content — so no width is written here.
+		var preferred = element.Kind == OnlineUiElementKind.Label ? 0f : -1f;
+		if (!_layout.preferredWidth.Equals(preferred))
+		{
+			_layout.preferredWidth = preferred;
+		}
+
+		// A label always takes what its line has left; one of the game's own rows takes the line only when it is
+		// ALONE on it. Sharing a line, a field or a dropdown keeps its own size instead of splitting the
+		// surplus with the label beside it — which is what the controls' own floors are for.
+		var flexible = element.Kind == OnlineUiElementKind.Label
+			|| (aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;
 		if (!_layout.flexibleWidth.Equals(flexible))
 		{
 			_layout.flexibleWidth = flexible;
 		}
+
+		if (element.Kind == OnlineUiElementKind.Label)
+		{
+			// A label's height is its own wrapped text, and TMP is the layout element that knows it: the
+			// LayoutElement keeps only a one-line floor. The fixed one-line height this used to be is what
+			// made a hint that wrapped paint over the row below it.
+			_layout.preferredHeight = -1f;
+			_layout.minHeight = _typography.Size + OnlineUiControlFactory.LabelHeightPadding;
+			return;
+		}
+
+		if (!_layout.preferredHeight.Equals(OnlineUiWindowLayout.ControlHeight))
+		{
+			_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;
+			_layout.minHeight = OnlineUiWindowLayout.ControlHeight;
+		}
 	}
+
+	/// <summary>
+	/// The row's own parts, laid out inside it: a dropdown, a field, a slider and a toggle ARE one of the
+	/// game's own rows, so their inside is CUO's geometry rather than the game's own placement.
+	/// <paramref name="controlFloor"/> is the model's floor; above it the engine answers.
+	/// </summary>
+	internal void LayOutRow(float controlFloor)
+	{
+		if (_controlRect is null)
+		{
+			return;
+		}
+
+		OnlineUiRowGeometry.LayOutControlRow(
+			_root,
+			_labelRect,
+			_controlRect,
+			controlFloor,
+			OnlineUiWindowLayout.ControlHeight,
+			_valueText != null ? _valueText.rectTransform : null);
+	}
+
+	/// <summary>
+	/// Hands this control's dropdown template to the window's popup layer: a <c>TMP_Dropdown</c> builds its
+	/// list out of that template, so a template inside CUO's page is a list clipped by the page's mask and
+	/// drawn under the rows after it — the report of options behind the window that take no click.
+	/// </summary>
+	internal void AdoptPopup(OnlineUiDropdownPopup popup)
+	{
+		if (_dropdown != null)
+		{
+			popup.Adopt(_dropdown);
+		}
+	}
+
+	/// <summary>
+	/// The width this control takes in the row it is laid out in, from the surface's own measurement of its
+	/// content: the model's width is a floor, and the game's font decides the rest.
+	/// </summary>
+	internal float EffectiveWidth(OnlineUiElementModel element) =>
+		OnlineUiControlSizing.EffectiveWidth(element, _rect, _layout);
 
 	private static bool SameOptions(TMP_Dropdown dropdown, IReadOnlyList<string> options)
 	{

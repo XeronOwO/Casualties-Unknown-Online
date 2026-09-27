@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §2 pairs every moved member with its frame point; the pre-change grep census (src/tests/docs) named every referrer and all were re-pointed
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §2 lists all ten touched mechanisms with the test or pin that holds each; the greps taken before the split named every referrer of the moved members and all were re-pointed
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the whole carry-presentation family moved in one extraction (mount, both pin views, the role marks, the drift reading), nothing left half-moved; selfcheck §2
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `docs/evidence/selfchecks/players/carried-rider-presenter-split-selfcheck.md` §3 (9 rows)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the geometry family was aligned in one pass (window, both panels, the shared sizing policy and row geometry, the popup layer, the colour field), so a window fix is a panel fix; selfcheck §2
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `docs/evidence/selfchecks/ui/online-ui-layout-and-input-detail-selfcheck.md` §1 (the user's ten findings + three self-found) and §2 (ten mechanism rows)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: the two source pins + `CarriedRiderMountTests` + the focused carry tests are the mechanical proof of the moved orderings; the rendered picture stays the user's dual-client run
+      peer log comparison, hotrepl assertions) is decided — evidence: `OnlineUiWindowLayoutTests` (the shell rule, red observed on the first cut's value) plus 8 new pins with 14 real-source mutation rows and the re-anchored window pin; the pixels and the clicks are the user's run (selfcheck §3/§4)
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff names the split as this family's next prerequisite and the watchlist mandates it before the next change; no work-item choice was asked (AGENTS.md rule 9)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, focus 45/45, format exit 0, gates 287/287, full 4439+287 green (`%TEMP%/cuo-split-*.txt`)
+      process violation — evidence: the design questions were asked and answered in this session (the frame only and not the text, one compact control height, the palette and hex kept), and the user then invited self-found work; no work-item choice was asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, format exit 0, focus OnlineUi 405/405, gates 287/287, full net48 4475/4475 (all with build; run 2026-09-27)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: `RemotePlayerRenderer` 587 to 338 and the new owner 309 (both under the 600 aggregate ceiling, one top-level type per file); no state bool added; the moved members left no dead copy behind
+      dead mechanisms deleted in the same round) — evidence: the shape gate is green (OnlineUiControlView 597 lines by moving the width policy into OnlineUiControlSizing, new types 40–336 lines, one top-level type per file); no state bool added; the deleted CUO-computed sizes have no copy left
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

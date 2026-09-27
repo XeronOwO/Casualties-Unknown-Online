@@ -66,9 +66,12 @@ internal static class OnlineUiWorldsDrawer
 		BuildBackups(ctx, page, library);
 	}
 
+	/// <summary>The page's heading and the Reload control that belongs on its line: built through
+	/// <see cref="OnlineUiPageBuilder.Section(string, OnlineUiElementModel[])"/>, so the heading keeps the room
+	/// every other heading on every page owns (the acceptance pass found one heading without it).</summary>
 	private static void BuildHeader(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library) =>
-		page.Row(
-			page.LabelElement(ctx.T("worlds.section"), OnlineUiTextStyle.Section, OnlineUiTheme.Accent),
+		page.Section(
+			ctx.T("worlds.section"),
 			page.ButtonElement("worlds.refresh", ctx.T("worlds.refresh"), () => Reload(ctx, library), width: 110f));
 
 	/// <summary>The one line that says what the last action did — or why it did nothing.</summary>

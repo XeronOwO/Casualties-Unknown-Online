@@ -79,6 +79,12 @@ public sealed class OnlineUiLayoutDetailPinTests
 			TheHeadingOwnsItsSpacing(Plugin("OnlineUiPageBuilder.cs"), Adapter("OnlineUiWindowView.cs")),
 			"a heading OPENS a block, so the room above and below it belongs to the builder's Section and to the layout's own scale — the acceptance pass found headings flush against the row above them because the gap lived in each drawer's memory, and a spacer row is how a uGUI layout group is given room for one child");
 
+	[Fact]
+	public void TheTabStripKeepsItsOwnHeight() =>
+		Assert.True(
+			BandsKeepTheirOwnHeight(Adapter("OnlineUiWindowView.cs")),
+			"a band's declared height is the height it gets: the tab strip's inner layout group reported its children's flexible sum, so the shell fed the strip the window's leftover height and the row grew to 333 units — ten times TabHeight (user report, 2026-09-27)");
+
 	public static TheoryData<string, string, string, string, string> Mutations => new()
 	{
 		{ nameof(ThePageStartsBelowTheTabStrip), "adapter/OnlineUiWindowView.cs", "shell.spacing = OnlineUiWindowLayout.TabGap;", "shell.spacing = 0f;", "bands stacked with no gap between them" },
@@ -97,6 +103,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiRowGeometry.cs", "graphic.raycastTarget = true;", "graphic.raycastTarget = false;", "a pointer surface that still refuses the raycast" },
 		{ nameof(ASectionHeadingCarriesItsOwnRoom), "plugin/OnlineUiPageBuilder.cs", "_rows.Add(OnlineUiRowModel.Space(OnlineUiWindowLayout.SectionGap));", "// no room above a heading", "a heading with no room above it, which is the acceptance pass' own finding" },
 		{ nameof(ASectionHeadingCarriesItsOwnRoom), "adapter/OnlineUiWindowView.cs", "row.SetGap(0, model.Gap > 0f ? model.Gap : GapHeight);", "row.SetGap(0, GapHeight);", "a page that ignores the room its rows asked for" },
+		{ nameof(TheTabStripKeepsItsOwnHeight), "adapter/OnlineUiWindowView.cs", "element.flexibleHeight = 0f;", "element.flexibleHeight = 1f;", "a band that absorbs the window's leftover height — the tab strip grew to 333 units" },
 	};
 
 	/// <summary>
@@ -146,6 +153,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 		nameof(ASectionHeadingCarriesItsOwnRoom) => broken => TheHeadingOwnsItsSpacing(
 			Is(broken, "internal sealed class OnlineUiPageBuilder") ? broken : Plugin("OnlineUiPageBuilder.cs"),
 			Is(broken, "internal sealed class OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs")),
+		nameof(TheTabStripKeepsItsOwnHeight) => BandsKeepTheirOwnHeight,
 		_ => throw new InvalidOperationException($"no matcher is registered for the pin `{pin}`"),
 	};
 
@@ -281,6 +289,16 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& flat.Contains("_rows.Add(OnlineUiRowModel.Space(OnlineUiWindowLayout.SectionBodyGap));", StringComparison.Ordinal)
 			&& flat.Contains("internal void Space() => _rows.Add(OnlineUiRowModel.Space(OnlineUiWindowLayout.BlockGap));", StringComparison.Ordinal)
 			&& Flatten(windowSource).Contains("row.SetGap(0, model.Gap > 0f ? model.Gap : GapHeight);", StringComparison.Ordinal);
+	}
+
+	/// <summary>A band's declared height is the height it gets: the flexible value is zeroed (only the page's
+	/// own band is set flexible), so no band can absorb the window's leftover height.</summary>
+	private static bool BandsKeepTheirOwnHeight(string windowSource)
+	{
+		var flat = Flatten(windowSource);
+
+		return flat.Contains("element.flexibleHeight = 0f;", StringComparison.Ordinal)
+			&& flat.Contains("scrollLayout.flexibleHeight = 1f;", StringComparison.Ordinal);
 	}
 
 	private static string Read(string file)

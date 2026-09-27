@@ -50,7 +50,7 @@ use placeholders such as `<game-dir>`.
 9. `[RULE]` **Every run leaves this area better.** Fold what it taught: a reusable lesson into
    [lessons.md](lessons.md), a machine value or local gotcha into `AGENTS.local.md`, a rule the run showed
    to be wrong or missing into this file — and into `docs/AGENTS.md` or `AGENTS.md` when it binds the
-   whole repository.
+   whole repository. The closing of an acceptance conversation runs this harvest on its own — experience, pitfalls and reusable scripts — without being asked.
 
 ## Related
 

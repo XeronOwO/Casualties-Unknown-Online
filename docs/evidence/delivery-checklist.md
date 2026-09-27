@@ -35,20 +35,13 @@ records that someone decided the step was done, not what proved it. Keep it to o
 (a command, a file, or a measured result); the full detail belongs in the cycle's ticket or
 evidence file.
 
-- [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: batch 20260927-c artifacts in `.acceptance/session-c/`; the driver rows judged from this run's probe JSON, per-window frames and both clients' log excerpts
-- [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the batch re-derived the 45 session-class candidates from the triage reports and left every unserved one in `review/` with the setup gap named (`20260927-c-scope.md`); no `src/` touched
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the accepted ticket's record carries row, class, verdict and evidence pointer for rows 1-8 (`session-driver-in-process-20260927.md`)
-- [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: this run's ladder — preflight (10 present) → deploy identity `0.1.0+97173282…` → two-client session → per-window frames + both clients' logs
-- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
-      design the user already froze counts as approved (a backlog decision, a recorded
-      decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff's next step (run the first two-client session batch) directed it; no work-item choice asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings 0 errors (`build.log`); gate suite run this cycle (`gates.log`); `format` skipped — this cycle changed no C#, per this checklist's documentation-only note
-- [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: no `src/`, `tests/` or `tools/` file touched; the changes are acceptance records, a ticket move, the index and acceptance pages; the one new code file is a gitignored local capture helper
+- [x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified — evidence: live probes read the shell/band/tab/caption rects on both clients (`ui-probe2..7`, `ui3/ui4-caption-*`); 333-vs-36 and 27.9-vs-36 are the mechanism facts
+- [x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: `DeclareBandHeight` (every band), the tab row's own layout group, the shared heights and the catalogue string were aligned one by one; the page band stays the only flexible one
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `online-ui-layout-and-input-detail-pass` "Second pass (2026-09-27)" holds mechanism → change → evidence for the three findings, and the name ticket carries its own
+- [x] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided — evidence: live rect probes + per-window captures (read) + a create/join smoke against the deployed build (`ui2-*`, `ui4-*` in `.acceptance/session-c/`)
+- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation — evidence: the user's 2026-09-27 reports directed all three fixes (tab buttons too large; height too low; official name 未知伤亡); no work-item choice asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: format exit 0 (`ui-format.log`); build 0 warnings / 0 errors (`ui-build.log`); focused suites 44/44 + 20/20; the final gate project and full suite runs are this cycle's last step
+- [x] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round) — evidence: `OnlineUiWindowView` 596 lines, pin test 389, `OnlineUiControlView` untouched at 598 — none over 600; the new band rule deleted the leak rather than adding a second height source
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

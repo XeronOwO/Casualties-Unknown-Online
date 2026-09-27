@@ -586,5 +586,11 @@ internal sealed class OnlineUiWindowView
 		var element = band.GetComponent<LayoutElement>();
 		element.minHeight = height;
 		element.preferredHeight = height;
+
+		// Only the PAGE takes the window's leftover height (its own flexible band is set up below). Without
+		// this zero the tab strip's inner layout group reported its children's flexible sum, so the shell fed
+		// the strip the leftover height and it grew to 333 units — ten times TabHeight (user report,
+		// 2026-09-27).
+		element.flexibleHeight = 0f;
 	}
 }

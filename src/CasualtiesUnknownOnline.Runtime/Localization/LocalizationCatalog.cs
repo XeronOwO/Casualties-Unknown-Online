@@ -216,7 +216,7 @@ internal static class LocalizationCatalog
 	internal static readonly IReadOnlyDictionary<string, string> Chinese = new Dictionary<string, string>
 	{
 		["launcher"] = "CUO 联机",
-		["window.title"] = "伤亡未知：联机",
+		["window.title"] = "未知伤亡：联机",
 		["tab.home"] = "首页",
 		["tab.players"] = "玩家",
 		["tab.network"] = "网络",

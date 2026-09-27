@@ -77,7 +77,9 @@ dependency the table did not name, a step that cost more than it returned.
   fact directly, so the wrong value reached a real launch. The correct id is in the install's own
   `steam_appid.txt` and in the app manifest's name.
 - Change: the fact is corrected, and a run must cross-check the id against the install before
-  launching. The preflight should compare the two instead of reporting the key alone.
+  launching. The preflight now does that: the `steam` row compares `game-app-id` with the install's
+  own `steam_appid.txt` and with the library app manifest's `installdir`, requires every source that
+  exists to confirm it, and blocks a launch when one contradicts or none can confirm.
 
 ## 2026-09-27 — An interrupted test run leaves a testhost that reddens the next one
 
@@ -96,8 +98,8 @@ dependency the table did not name, a step that cost more than it returned.
 - Cause: the `input` row describes scripted keyboard/mouse driving — neither built nor permitted here.
   What the run actually needs is the in-process evaluator (`hotrepl-*`), which is present.
 - Change: session setups are driven through the evaluator (create/join were both proven this way);
-  when the harness lands, the `input` row's capability and degradation text must be rewritten around
-  in-process control instead of OS input.
+  the `input` row's capability and degradation now name in-process control instead of OS input, and its
+  committed driver helper under `tools/acceptance/` stays staged until the harness lands.
 
 ## 2026-09-27 — A title-screen click is not "start the game"
 
@@ -120,3 +122,12 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: a triage delegation must echo its exact input list, emit exactly one class line per slug,
   derive every count from those lines, and the orchestrator re-derives the counts from the file
   before any batch is built on it.
+
+## 2026-09-27 — A fact value carries no prose
+
+- Symptom: the corrected `game-app-id` fact carried its verification note inside the value, so the new
+  cross-check reported the id as contradicting the very install it had just been verified against.
+- Cause: everything after the colon is the value — the note was appended to it, and the launch line
+  would have consumed the same string.
+- Change: `AGENTS.local.md` carries the bare value with its note on a line of its own, and
+  `dependencies.md`'s local-facts contract says that a value is taken literally.

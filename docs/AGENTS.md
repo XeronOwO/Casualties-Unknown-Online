@@ -1,69 +1,58 @@
 # docs/ — document-system rules
 
-Binding rules for every page under `docs/`. Human entry: [README.md](README.md).
+Binding rules for every page under `docs/`. Human entry: [README.md](README.md). The full statements,
+the field-by-field page shape and its examples live in
+[`en/contributing/documentation-standard.md`](en/contributing/documentation-standard.md).
 
 ## 1. Where a page lives
 
-Two human blocks, path for path identical:
+Two human blocks, path for path identical: `zh/` (Chinese) and `en/` (English) — same directories, same
+file names, same page set. Inside a block: `start/` (first run, read in order), `how-to/` (one task per
+page), `internals/` (why it works this way), `reference/` (lookup: API, protocol, configuration,
+matrices, glossary), `contributing/` (build, gates, review, this standard).
 
-- `zh/` — Chinese; `en/` — English. Same directories, same file names, same page set.
-- Inside a block: `start/` (first run, read in order), `how-to/` (one task per page), `internals/`
-  (why it works this way), `reference/` (lookup: API, protocol, configuration, matrices, glossary),
-  `contributing/` (build, gates, review, this standard).
-- `standard/` — document-system registries (terminology, alignment record).
-- `contracts/` — machine baselines and tables that code and gates read.
-- `backlog/`, `evidence/`, `decisions/` — process records: not part of the human navigation, never
-  translated.
-- `architecture/`, `development/`, `acceptance/` — specs and agent-facing pages: English only, outside
-  the human navigation. An agent-only area indexes itself with `AGENTS.md` (never `README.md`) and keeps
-  machine facts in the gitignored `AGENTS.local.md` beside it.
-- Each human directory carries `README.md` as its index (a section of either block, `docs/`,
-  `standard/`, `contracts/`, `architecture/`, `backlog/`); `AGENTS.md` sits at junctions and in
-  agent-only areas, holds guidance rather than knowledge, and stays under its byte ceiling. An index
-  page of either block names its own
-  directory (`docs/en/how-to/`) and lists that section's pages; it carries the same head and tail
-  breadcrumb and thematic breaks as any page, pointing at the entry above it, and needs no
-  `Related reading`.
-
-Everything a reader needs belongs in these two blocks, in both languages: the
-architecture and protocol explanations, the mod API contract, the feature tables, and the operations
-knowledge. A document that only records what a past cycle did — a phase plan, an audit, a delivery
-self-check, a decision register — stays out of the blocks, and its conclusions are absorbed into the
-pages that need them.
+- `standard/` — document-system registries (terminology, alignment record); `contracts/` — machine
+  baselines and tables that code and gates read. `backlog/`, `evidence/`, `decisions/` — process records:
+  never translated, outside the human navigation.
+- `architecture/`, `development/`, `acceptance/` — specs and agent-facing pages: English only. An
+  agent-only area indexes itself with `AGENTS.md` (never `README.md`) and keeps machine facts in the
+  gitignored `AGENTS.local.md` beside it.
+- Every instruction file below the repository root stays under its 5,120-byte ceiling
+  (`AgentInstructionBudgetGateTests`): it routes and constrains, it never carries knowledge.
+- Each human directory carries `README.md` as its index; an index names its own directory and lists that
+  section's pages.
+- Everything a reader needs belongs in the two blocks, in both languages: the architecture and protocol
+  explanations, the mod API contract, the feature tables, the operations knowledge. A document that only
+  records what a past cycle did stays out of the blocks, and its conclusions are absorbed into the pages
+  that need them.
 
 ## 2. What a page looks like
 
-One page answers one question, and its title says what the reader can then do.
-
-Breadcrumb head → thematic break → one-sentence purpose → difficulty and prerequisites → steps → a
-runnable example → why it works this way (link into `internals/`) → pitfalls → how to verify
-success → `Related reading` (3–6 links) → thematic break → breadcrumb tail.
-
-Depth rule: a `start/` page shows the single path that works and stops; detail lives in `how-to/` or
-`internals/`, linked, never duplicated.
+One page answers one question, and its title says what the reader can then do. Breadcrumb head →
+thematic break → one-sentence purpose → difficulty and prerequisites → steps → a runnable example → why
+it works this way (link into `internals/`) → pitfalls → how to verify success → `Related reading` (3–6
+links) → thematic break → breadcrumb tail. A `start/` page shows the single path that works and stops;
+detail lives in `how-to/` or `internals/`, linked, never duplicated.
 
 ## 3. Language
 
-- Both blocks hold the same page set; a page is added, renamed, moved or deleted on both sides in
-  the same change.
-- The Chinese page addresses Chinese readers instead of following the English sentence by sentence:
-  same facts, natural Chinese.
+- Both blocks hold the same page set; a page is added, renamed, moved or deleted on both sides in the
+  same change.
+- The Chinese page addresses Chinese readers instead of following the English sentence by sentence: same
+  facts, natural Chinese.
 - The language switcher lives only in the three entry pages (`docs/README.md` and the two block
   overviews); sub-pages navigate by breadcrumb.
-- Project words are written exactly as `standard/terminology` records them; a new word is recorded
-  there before its first use. Invented words, stiff translations and unexplained jargon are
-  defects, not style.
-- Chinese punctuation joins Chinese text: `，。、；：？！`, Chinese quotes and full-width
-  parentheses; ASCII punctuation stays inside code, paths, identifiers and any English name or
-  phrase (`Casualties Unknown: Online`).
+- Project words are written exactly as `standard/terminology` records them; a new word is recorded there
+  before its first use.
+- Chinese punctuation joins Chinese text: `，。、；：？！`, Chinese quotes and full-width parentheses; ASCII
+  punctuation stays inside code, paths, identifiers and any English name or phrase.
 
 ## 4. Links
 
 - The first use of a project word in a page links to `reference/glossary.md`.
 - Every content page ends with 3–6 `Related reading` links: what the reader needs next.
-- Breadcrumbs name the real path (`Documentation > How-to > Send a network message`) and link to
-  the block's own overview (`docs/en/README.md`) plus the section index; the language switch is not
-  part of a breadcrumb.
+- Breadcrumbs name the real path and link to the block's own overview plus the section index; the
+  language switch is not part of a breadcrumb.
 
 ## 5. Truth
 
@@ -71,19 +60,19 @@ Depth rule: a `start/` page shows the single path that works and stops; detail l
 - A claim about our own code cites the path plus the quoted text, never a line number (it drifts);
   `reversing/` may carry line numbers because that tree is never edited.
 - Behaviour only a real two-client session can confirm awaits the agent-run acceptance in
-  `../acceptance/`; green tests are not that evidence.
+  [`acceptance/workflow.md`](acceptance/workflow.md); green tests are not that evidence.
 
-## 6. What machines check, and what they cannot
+## 6. What machines check
 
 Gates check path parity between the two blocks, link targets that exist, the page shape above, the
-`AGENTS.md` byte ceilings and the pair alignment record. A gate proves presence and shape; whether a page
-teaches, or a rendering reads naturally, stays a review duty — wording is checked against
+instruction-file byte ceilings and the pair alignment record. A gate proves presence and shape; whether a
+page teaches, or a rendering reads naturally, stays a review duty — wording is checked against
 `standard/terminology.txt`.
 
 ## 7. Decay control
 
-- Editing one side obliges the other in the same change; `standard/alignment.txt` records each
-  confirmed pair, and a gate reports drift.
+- Editing one side obliges the other in the same change; `standard/alignment.txt` records each confirmed
+  pair, and a gate reports drift.
 - Keep distilled conclusions (decisions, rule-to-gate maps, checklists, self-checks). Delete process logs
   once absorbed and their inbound links re-pointed — delete, do not archive: git keeps the history and an
   archive invites stale reading.

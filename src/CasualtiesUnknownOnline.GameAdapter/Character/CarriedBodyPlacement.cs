@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// The carry placement/restore rules, shared by the two riders: the carried
 /// player's own client follows the remote carrier
 /// (<see cref="PlayerInteractionApply"/>), and the carrier's own client pins the
-/// remote rider clone to the local body (<see cref="RemotePlayerRenderer"/>).
+/// remote rider clone to the local body (<see cref="CarriedRiderPresenter"/>).
 /// The follow writes only what the carry relation owns — position, velocity,
 /// facing, crouch pose and look target — so the local rider's own simulation
 /// and pose stay the game's own. Also owns the release-side physics restore so a

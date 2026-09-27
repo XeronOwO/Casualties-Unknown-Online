@@ -13,6 +13,8 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 ///
 /// - a drift is only meaningful against the frame that rendered, so it must be
 ///   read BEFORE the state write overwrites the clone;
+/// - the carry-role marks feed the sit suppression the state write applies, so they
+///   must precede that write as well;
 /// - the stored offset must belong to THIS frame's placement, so it is captured
 ///   after the ride pose wrote the root, in both carry views;
 /// - a released relation may drop the reference but never the window's reading;
@@ -22,11 +24,15 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 ///
 /// They are source pins because those properties are orderings and branches inside
 /// the adapter: the pure rule cannot fail on them, and nothing but a session would
-/// otherwise notice them going away.
+/// otherwise notice them going away. The carry half they are taken on lives in
+/// <c>CarriedRiderPresenter</c> (the mount, the pin and the drift reading) while
+/// the renderer keeps the state write that must stay after the reading and the
+/// 1 Hz line, so each pin names the file that owns the ordering it protects.
 /// </summary>
 public class CarryPresentationProbePinTests
 {
 	private const string RendererFile = "RemotePlayerRenderer.cs";
+	private const string PresenterFile = "CarriedRiderPresenter.cs";
 	private const string ProbeFile = "CarryPresentationProbe.cs";
 
 	[Fact]
@@ -36,7 +42,9 @@ public class CarryPresentationProbePinTests
 			ReadAdapter(RendererFile),
 			"internal void Update(Body? localBody)",
 			"internal void RefreshLocalCarrierAttach");
-		var read = update.IndexOf("MeasurePinDrift(localBody, remote.SteamId, clone, cloneDriver);", StringComparison.Ordinal);
+		var read = update.IndexOf(
+			"_carriedRider.MeasurePinDrift(localBody, remote.SteamId, clone, cloneDriver, _remoteClones);",
+			StringComparison.Ordinal);
 		var stateWrite = update.IndexOf("SessionStatePump.Apply(remote, clone);", StringComparison.Ordinal);
 		Assert.True(read >= 0, "RemotePlayerRenderer.Update must take the drift reading every frame");
 		Assert.True(
@@ -48,8 +56,8 @@ public class CarryPresentationProbePinTests
 	public void BothCarryViews_StoreTheReferenceAfterTheRidePosePlacedTheClone()
 	{
 		var attach = Section(
-			ReadAdapter(RendererFile),
-			"private void ApplyRemoteCarrierAttachAll(",
+			ReadAdapter(PresenterFile),
+			"public void AttachAll(",
 			"private static Transform GetOrCreateCarryMount(");
 		Assert.Equal(2, Occurrences(attach, "CarryPresentationProbe.Store("));
 		Assert.Contains("localCarrier: true", attach);
@@ -73,7 +81,7 @@ public class CarryPresentationProbePinTests
 		// reading: the release may drop the reference it was taken against, never
 		// the reading itself, or the moments the symptom is most likely are
 		// exactly the moments the log stays silent about it.
-		Assert.Contains("CarryPresentationProbe.Clear(riderClone);", ReadAdapter(RendererFile));
+		Assert.Contains("CarryPresentationProbe.Clear(riderClone);", ReadAdapter(PresenterFile));
 		var probe = ReadAdapter(ProbeFile);
 		Assert.DoesNotContain("PinDriftWindowMax = 0f", probe);
 		Assert.DoesNotContain("PinCountInWindow = 0", probe);
@@ -86,9 +94,9 @@ public class CarryPresentationProbePinTests
 		// A fix for a non-zero reading has to be a deliberate change, and this pin
 		// is what makes it deliberate.
 		var reader = Section(
-			ReadAdapter(RendererFile),
-			"private void MeasurePinDrift(",
-			"private Vector2 AnchorFor(");
+			ReadAdapter(PresenterFile),
+			"public void MeasurePinDrift(",
+			"private static Transform GetOrCreateCarryMount(");
 		Assert.DoesNotContain("transform.position =", reader);
 		Assert.DoesNotContain("SetParent(", reader);
 	}
@@ -159,6 +167,26 @@ public class CarryPresentationProbePinTests
 		Assert.DoesNotContain("transform.position =", probe);
 	}
 
+	[Fact]
+	public void CarryRoleMark_IsTakenBeforeTheStreamWrite()
+	{
+		// The marks decide the same-frame sit suppression the state write applies,
+		// so they have to sit before it as well: a mark moved after that write
+		// would leave the drift pin above green while the suppression silently
+		// broke — the ordering this split turned from one code block into two calls.
+		var update = Section(
+			ReadAdapter(RendererFile),
+			"internal void Update(Body? localBody)",
+			"internal void RefreshLocalCarrierAttach");
+		var mark = update.IndexOf(
+			"_carriedRider.MarkCarryRole(remote.SteamId, cloneDriver);",
+			StringComparison.Ordinal);
+		var stateWrite = update.IndexOf("SessionStatePump.Apply(remote, clone);", StringComparison.Ordinal);
+		Assert.True(mark >= 0, "RemotePlayerRenderer.Update must mark the clone's carry role every frame");
+		Assert.True(
+			stateWrite > mark,
+			"the carry-role marks must run BEFORE SessionStatePump.Apply: the sit suppression they feed is applied inside that write");
+	}
 	private static string ReadAdapter(string fileName) =>
 		File.ReadAllText(Path.Combine(
 			FindRepositoryRoot(),

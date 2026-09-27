@@ -15,7 +15,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// animations on, fed by the state stream) and the local body's state
 /// publishing (the stream's source side). NO remote-side simulation anywhere —
 /// each player simulates only its own body. Reads the character-data domain's
-/// snapshot cache for the clones' carried-item rendering.
+/// snapshot cache for the clones' carried-item rendering. What the carry
+/// relation does to those clones — the local-carrier mount, the per-frame pin
+/// and its read-only drift reading — belongs to
+/// <see cref="CarriedRiderPresenter"/>.
 /// </summary>
 internal sealed class RemotePlayerRenderer(
 	ISessionControl session,
@@ -31,19 +34,10 @@ internal sealed class RemotePlayerRenderer(
 	private readonly CloneLimbRenderer _limbRenderer = limbRenderer;
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
 	private readonly ILogger<RemotePlayerRenderer> _log = log;
+	private readonly CarriedRiderPresenter _carriedRider = new(session, playerInteraction);
 
 	private readonly Dictionary<ulong, Body> _remoteClones = [];
 	private long _nextCloneLogMs;
-
-	/// <summary>
-	/// Name of the neutral-scale child mount placed under a carrier's Body
-	/// transform. Remote rider clone roots are re-parented under this mount so
-	/// the rider is a true descendant of the carrier and follows the carrier's
-	/// final rendered transform (including any physics interpolation Unity
-	/// applies after LateUpdate). The mount's scale is the inverse of the
-	/// carrier's world scale, so the rider keeps its own normal facing scale.
-	/// </summary>
-	private const string CarryMountName = "CUO_CarryMount";
 
 	/// <summary>
 	/// The 1 Hz clone diagnostic's message template, shared by its Information
@@ -174,27 +168,20 @@ internal sealed class RemotePlayerRenderer(
 				}
 			}
 
-			// Mark any remote clone that is a carried rider or a carrier BEFORE
-			// applying stream state so SessionStatePump can suppress the native
-			// sit replay in the same frame. This is not limited to the local
-			// carrier's view: a third-party rider clone also rides, and the
-			// second-pass attach below forces its visible position anyway. A
-			// carrier participates in the same whole-family sit suppression.
-			var isCarriedRider = _playerInteraction.TryGetCarrier(remote.SteamId, out var carrierId)
-				&& carrierId != 0;
-			var isCarrier = _playerInteraction.TryGetCarried(remote.SteamId, out _);
-			if (clone.TryGetComponent<RemoteBodyDriver>(out var cloneDriver))
-			{
-				cloneDriver.IsCarriedRider = isCarriedRider;
-				cloneDriver.IsCarrier = isCarrier;
-			}
-
-			// The frame that rendered is still in these transforms: the state
-			// write below overwrites the clone, and the attach pass re-pins a
-			// carried rider only after that. Reading the pin's own placement HERE
-			// is therefore the one point where "where was the rider drawn" can be
+			// Mark the clone's carry role BEFORE applying stream state, so
+			// SessionStatePump can suppress the native sit replay in the same
+			// frame — this is not limited to the local carrier's view, because a
+			// third-party rider clone also rides and the second-pass attach below
+			// forces its visible position anyway; a carrier participates in the
+			// same whole-family sit suppression. Then take the drift reading: the
+			// frame that rendered is still in these transforms, since the state
+			// write below overwrites the clone and the attach pass re-pins a
+			// carried rider only after that, so reading the pin's own placement
+			// HERE is the one point where "where was the rider drawn" can be
 			// compared with "where the carry pin asked for it".
-			MeasurePinDrift(localBody, remote.SteamId, clone, cloneDriver);
+			clone.TryGetComponent<RemoteBodyDriver>(out var cloneDriver);
+			_carriedRider.MarkCarryRole(remote.SteamId, cloneDriver);
+			_carriedRider.MeasurePinDrift(localBody, remote.SteamId, clone, cloneDriver, _remoteClones);
 
 			SessionStatePump.Apply(remote, clone);
 		}
@@ -205,7 +192,7 @@ internal sealed class RemotePlayerRenderer(
 		// independent per-clone interpolation can never make the pair appear
 		// detached. The rider's own local body uses the same rule later in
 		// GameAdapter.Update.
-		ApplyRemoteCarrierAttachAll(localBody);
+		_carriedRider.AttachAll(localBody, _remoteClones);
 
 		LogClonePosition();
 	}
@@ -224,240 +211,7 @@ internal sealed class RemotePlayerRenderer(
 			return;
 		}
 
-		ApplyRemoteCarrierAttachAll(localBody);
-	}
-
-	/// <summary>
-	/// Pins every remote clone that is currently a carried rider to its
-	/// carrier's visual position after all clones have been interpolated this
-	/// frame. For a local carrier the anchor is the local body; for any other
-	/// carrier (third-party view) the anchor is that carrier's already-smoothed
-	/// render clone. This keeps the carry pair visually rigid on every side —
-	/// the per-entity interpolator may lag, but the rider always rides the same
-	/// displayed carrier, never an independent smoothed point.
-	/// In addition to writing the world position, a rider clone whose carrier
-	/// is the LOCAL player is re-parented under a neutral-scale mount on the
-	/// carrier Body. A true descendant follows the local carrier's final
-	/// rendered transform no matter what moves the carrier after this pass
-	/// (frame ordering, Rigidbody render interpolation, or a final render-time
-	/// pose). Third-party remote carriers use the world-space pin only, because
-	/// their clones are CUO-driven frozen transforms with no render
-	/// interpolation and should not become children of another remote clone's
-	/// hierarchy.
-	/// </summary>
-	private void ApplyRemoteCarrierAttachAll(Body? localBody)
-	{
-		foreach (var entry in _remoteClones)
-		{
-			var riderSteamId = entry.Key;
-			var riderClone = entry.Value;
-			// == null on Unity clones — a scene reload can destroy one between
-			// the first pass and this diagnostic/second pass.
-			if (riderClone == null)
-			{
-				continue;
-			}
-
-			if (!_playerInteraction.TryGetCarrier(riderSteamId, out var carrierSteamId)
-				|| carrierSteamId == 0)
-			{
-				DetachCarriedRiderRoot(riderClone);
-				CarryPresentationProbe.Clear(riderClone);
-				continue;
-			}
-
-			if (carrierSteamId == _session.LocalSteamId)
-			{
-				if (localBody == null || localBody == riderClone) // Unity objects — ==
-				{
-					DetachCarriedRiderRoot(riderClone);
-					continue;
-				}
-
-				var mount = GetOrCreateCarryMount(localBody.transform);
-				AttachCarriedRiderRoot(riderClone, mount);
-				CarriedBodyPlacement.ApplyRidePose(
-					riderClone,
-					localBody.transform.position,
-					localBody.isRight,
-					localBody.crouching,
-					localBody.rb.velocity,
-					localBody.targetLookPos);
-				CarryPresentationProbe.Store(riderClone, carrierSteamId, localCarrier: true, localBody.transform.position);
-				continue;
-			}
-
-			if (_remoteClones.TryGetValue(carrierSteamId, out var carrierClone)
-				&& carrierClone != null) // Unity object — ==
-			{
-				// Third-party views have two CUO-driven frozen clones; they are
-				// already placed by the same SessionStatePump pass and never go
-				// through Unity Rigidbody render interpolation, so the existing
-				// world-space pin is sufficient here. Mounting under a remote
-				// carrier would make the rider clone a child of another remote's
-				// hierarchy and therefore be destroyed when that carrier clone
-				// leaves — unnecessary collateral for this case.
-				DetachCarriedRiderRoot(riderClone);
-				CarriedBodyPlacement.ApplyRidePose(
-					riderClone,
-					carrierClone.transform.position,
-					carrierClone.isRight,
-					carrierClone.crouching,
-					carrierClone.rb.velocity,
-					carrierClone.targetLookPos);
-				CarryPresentationProbe.Store(riderClone, carrierSteamId, localCarrier: false, carrierClone.transform.position);
-				continue;
-			}
-
-			// No carrier clone yet (still creating or in a menu scene): keep
-			// the ordinary SessionStatePump fallback until the carrier exists.
-			DetachCarriedRiderRoot(riderClone);
-		}
-	}
-
-	/// <summary>
-	/// Finds or creates the neutral-scale carry mount under a carrier Body.
-	/// The mount is an empty direct child; its localScale is the inverse of the
-	/// carrier's world scale so a rider parented beneath it keeps the same
-	/// world-space scale/meaning it had before being attached.
-	/// </summary>
-	private static Transform GetOrCreateCarryMount(Transform carrierTransform)
-	{
-		var mount = carrierTransform.Find(CarryMountName);
-		if (mount == null) // Unity object — ==
-		{
-			var mountObject = new GameObject(CarryMountName);
-			mount = mountObject.transform;
-			mount.SetParent(carrierTransform, false);
-		}
-
-		mount.localScale = CarriedBodyPlacement.CarryMountScale(carrierTransform.lossyScale);
-		return mount;
-	}
-
-	/// <summary>
-	/// Re-parents a remote clone root under a carry mount. The clone root stays
-	/// the parent of the Body, so the existing destroy path
-	/// (<c>Object.Destroy(clone.transform.parent.gameObject)</c>) still removes
-	/// the whole remote player.
-	/// </summary>
-	private static void AttachCarriedRiderRoot(Body riderClone, Transform mount)
-	{
-		var root = riderClone.transform.parent;
-		if (root == null) // Unity object — ==
-		{
-			return;
-		}
-
-		if (root.parent != mount) // Unity object — ==
-		{
-			root.SetParent(mount, worldPositionStays: true);
-		}
-	}
-
-	/// <summary>
-	/// Restores a remote clone root to the scene root when it is no longer a
-	/// carried rider (release, cleared relation, missing carrier clone, or a
-	/// scene reload). Without this, a formerly carried clone would keep
-	/// inheriting the old carrier's transform and could not be driven by the
-	/// ordinary state stream again.
-	/// </summary>
-	private static void DetachCarriedRiderRoot(Body riderClone)
-	{
-		// The clone is not a carried rider on this frame: drop the exact-pose
-		// reference shape with the mount, so a later re-attach cannot be measured
-		// (or reported) against a shape and a root that belong to the old
-		// relation.
-		var driver = riderClone.GetComponent<RemoteBodyDriver>();
-		if (driver != null) // Unity object — ==
-		{
-			driver.LimbAnchor.Clear();
-			driver.LimbSeparationWindowMax = 0f;
-		}
-
-		var root = riderClone.transform.parent;
-		if (root == null) // Unity object — ==
-		{
-			return;
-		}
-
-		var parent = root.parent;
-		if (parent == null || parent.name != CarryMountName) // Unity object — ==
-		{
-			return;
-		}
-
-		root.SetParent(null, worldPositionStays: true);
-		if (parent.childCount == 0)
-		{
-			Object.Destroy(parent.gameObject);
-		}
-	}
-
-	/// <summary>
-	/// Reads how far this clone was RENDERED from the position its carry pin wrote
-	/// for it, relative to its carrier, and keeps the largest value of the current
-	/// 1 Hz window. Called at the top of the per-clone pass, before
-	/// <c>SessionStatePump.Apply</c> overwrites the clone, so the transform still
-	/// holds what the rendered frame showed. What the reading covers — and the
-	/// frame a carrier moved after its own pin still reads as zero — is stated on
-	/// <see cref="CarryPresentationReading.Drift"/>.
-	///
-	/// The reference is dropped and no reading taken when the relation it was
-	/// written for is gone; an anchor merely unavailable this frame keeps it, and
-	/// the frames that follow measure what accumulated while it was missing.
-	/// </summary>
-	private void MeasurePinDrift(Body? localBody, ulong riderSteamId, Body riderClone, RemoteBodyDriver? cloneDriver)
-	{
-		if (cloneDriver == null || cloneDriver.PinnedCarrierSteamId == 0) // Unity object — ==
-		{
-			return;
-		}
-
-		if (!_playerInteraction.TryGetCarrier(riderSteamId, out var carrierSteamId)
-			|| carrierSteamId != cloneDriver.PinnedCarrierSteamId)
-		{
-			CarryPresentationProbe.Clear(cloneDriver);
-			return;
-		}
-
-		if (!TryResolvePinAnchor(cloneDriver, localBody, riderClone, out var anchor))
-		{
-			return;
-		}
-
-		CarryPresentationProbe.RecordDrift(cloneDriver, riderClone.transform.position, anchor);
-	}
-
-	/// <summary>
-	/// The anchor a stored pin was written against, resolved exactly the way the
-	/// pin resolved it: the local body when the local player is the carrier,
-	/// otherwise that carrier's render clone. False when the anchor does not
-	/// exist this frame.
-	/// </summary>
-	private bool TryResolvePinAnchor(RemoteBodyDriver driver, Body? localBody, Body riderClone, out Vector3 anchor)
-	{
-		if (driver.PinnedToLocalCarrier)
-		{
-			if (localBody == null || localBody == riderClone) // Unity objects — ==
-			{
-				anchor = Vector3.zero;
-				return false;
-			}
-
-			anchor = localBody.transform.position;
-			return true;
-		}
-
-		if (_remoteClones.TryGetValue(driver.PinnedCarrierSteamId, out var carrierClone)
-			&& carrierClone != null) // Unity object — ==
-		{
-			anchor = carrierClone.transform.position;
-			return true;
-		}
-
-		anchor = Vector3.zero;
-		return false;
+		_carriedRider.AttachAll(localBody, _remoteClones);
 	}
 
 	private Vector2 AnchorFor(PlayerEntity remote) =>
@@ -496,10 +250,7 @@ internal sealed class RemotePlayerRenderer(
 				&& carriedId == steamId;
 			var isCarrierClone = _playerInteraction.TryGetCarrier(_session.LocalSteamId, out var carrierId)
 				&& carrierId == steamId;
-			var isMountedToLocalCarrier = clone != null
-				&& clone.transform.parent != null
-				&& clone.transform.parent.parent != null
-				&& clone.transform.parent.parent.name == CarryMountName;
+			var isMountedToLocalCarrier = _carriedRider.IsMountedToLocalCarrier(clone);
 			var carryTag = isRiderClone ? ", carried-rider-clone" : isCarrierClone ? ", carrier-clone" : "";
 			if (isMountedToLocalCarrier)
 			{

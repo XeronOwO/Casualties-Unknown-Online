@@ -31,7 +31,7 @@ unverified. The independent review's fix round is folded in (§6).
   nothing (pinned by a test).
 - `RemoteBodyDriver`: the pin reference (carrier, anchor kind, offset), `PinCountInWindow` and
   `PinDriftWindowMax` — on the clone's own component, so nothing outlives the clone it describes.
-- `RemotePlayerRenderer`: the drift is read at the top of the per-clone pass, BEFORE
+- `CarriedRiderPresenter` (the renderer until the 2026-09-27 split): the drift is read at the top of the per-clone pass, BEFORE
   `SessionStatePump.Apply`; both carry views store their reference after their own ride pose; the
   participant line is Information and every other clone stays on the Debug position line; the window's
   three readings are read and reset once per second.

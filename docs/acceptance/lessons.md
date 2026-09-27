@@ -272,3 +272,24 @@ dependency the table did not name, a step that cost more than it returned.
   (`tools/acceptance/drive-in-process.ps1`, pinned by `DriverToolTests.TheConnectTimeoutFollowsTheActionBudget`),
   and the driver tests run in a non-parallel collection (`ToolProcessCollection`). The other two PowerShell
   harnesses carry no internal budget and stay parallel: a slow machine only makes them slow.
+
+## 2026-09-27 — A recipe smoke belongs inside the session it verifies
+
+- Symptom: batch `20260927-c` named per-scenario recipes as the missing capability and left 45 tickets
+  waiting; a separate "recipe cycle" then looked like work that must precede a session.
+- Cause: recipes were planned as a capability, not as steps of the run. The first smoke (a piggyback
+  relation, a 25-call movement window, a forced idle state) used the same two clients the batch needs and
+  answered the whole question in minutes.
+- Change: smoke the recipe set in the session it will run in — `carry-start` → `carry-read` →
+  `move-drive` window → `carry-read` → `carry-stop` — and treat the probe JSON as the layer's proof. The
+  smoke ran on deployed `0.1.0+631a8d82`: the carrier's own view read `mountedToLocalCarrier=true`,
+  `pinnedToCarrier=true`, `riderDriftMax=0`, `limbSeparationMax=0` while the carrier walked 15 units.
+
+## 2026-09-27 — A forced body state only survives on a still body
+
+- Symptom: `body-force idleTime=13` returned `idleTime=13`, and two seconds later the same client read
+  `idleTime=0` with a locomotion clip.
+- Cause: the game's own `Body.Update` zeroes `idleTime` whenever the body is moving (move input or
+  velocity above rest); the smoke had just driven the carrier.
+- Change: a forced-state scenario sets the state and reads it back in the same step, and the run keeps the
+  body still between the write and the read — driving it only after the reading.

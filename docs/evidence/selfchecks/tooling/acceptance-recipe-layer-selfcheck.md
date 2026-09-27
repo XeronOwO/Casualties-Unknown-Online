@@ -30,9 +30,11 @@
 
 ## Limits (what this cycle does not claim)
 
-- The recipes are not yet proven against a running client. That is the next acceptance run's job: run
-  each recipe, read its JSON, the CUO log lines and window-level frames, and judge the tickets its
-  header names.
+- The recipes are proven against a running client: the 2026-09-27 smoke run (session-d) exercised all six
+  on deployed artifact `0.1.0+631a8d82` — a piggyback relation, `carry-read` on both views with
+  `mountedToLocalCarrier`/`pinnedToCarrier` true and both drift readings zero, a 25-call movement window
+  that moved the carrier 15 units, a release, and a forced-state write/read-back. What remains is the
+  per-ticket acceptance run (batch d): its rows, not this layer, are unproven.
 - The recipes cover the carry / forced-body-state family; the remaining session families (hit and
   visibility, sounds, save and reconnect, Online UI) still need their own recipes.
 - `move-drive` is one frame's nudge. Whether the frame order lets the game's own physics walk the body

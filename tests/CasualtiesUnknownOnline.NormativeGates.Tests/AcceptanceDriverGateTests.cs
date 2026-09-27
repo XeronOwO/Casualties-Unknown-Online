@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
@@ -9,12 +10,13 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
-/// Two rules about the acceptance tools, gated rather than trusted: the in-process template must stay
-/// inside the language the evaluator compiles (Mono.CSharp, C# 7.x — a newer construct fails at run
-/// time, in the one place the run cannot recompile around), and nothing under tools/acceptance/ may
-/// reach for OS-level input (the user's boundary: the agent drives from inside the process, never the
-/// mouse and keyboard). Both checks pin their own matcher with positive and negative samples, so a rule
-/// that stopped matching fails here instead of passing by checking nothing.
+/// Three rules about the acceptance tools, gated rather than trusted: the in-process template and every
+/// scenario recipe must stay inside the language the evaluator compiles (Mono.CSharp, C# 7.x — a newer
+/// construct fails at run time, in the one place the run cannot recompile around); every recipe must
+/// declare exactly the arguments it uses, so the run's -RecipeArg is never guessed; and nothing under
+/// tools/acceptance/ may reach for OS-level input (the user's boundary: the agent drives from inside the
+/// process, never the mouse and keyboard). Each check pins its own matcher with positive and negative
+/// samples, so a rule that stopped matching fails here instead of passing by checking nothing.
 /// </summary>
 public class AcceptanceDriverGateTests
 {
@@ -172,6 +174,120 @@ public class AcceptanceDriverGateTests
 		Assert.Contains("PreRunScript", template, StringComparison.Ordinal);
 		Assert.False(template.Contains("SteamService.CreateLobby", StringComparison.Ordinal), "the driver must not create a lobby behind the Online UI's policy");
 		Assert.False(template.Contains("SteamService.JoinLobby", StringComparison.Ordinal), "the driver must not join a lobby behind the Online UI's policy");
+	}
+
+	[Fact]
+	public void TheRecipesStayInTheEvaluatorsLanguageAndDeclareTheirArguments()
+	{
+		var directory = RepositoryPaths.File("tools/acceptance/recipes");
+		var files = Directory.EnumerateFiles(directory, "*.cs", SearchOption.TopDirectoryOnly)
+			.OrderBy(file => file, StringComparer.Ordinal)
+			.ToArray();
+
+		Assert.True(files.Length >= 6, $"tools/acceptance/recipes/ held only {files.Length} recipe(s); the census floor would let a gutted directory pass");
+
+		foreach (var file in files)
+		{
+			var name = Path.GetFileNameWithoutExtension(file);
+			var problems = RecipeProblems(name, File.ReadAllText(file));
+			Assert.True(problems.Length == 0, $"{Path.GetRelativePath(RepositoryPaths.Root, file)}:{Environment.NewLine}{string.Join(Environment.NewLine, problems)}");
+		}
+
+		// The matcher's own teeth: an undeclared placeholder, a declared argument that is never used, a
+		// brace form that is not {{s:key}}/{{n:key}} and a construct newer than the evaluator's language
+		// version each have to fail, or the scan above passes by checking nothing.
+		Assert.NotEmpty(RecipeProblems("sample", "// recipe: sample\n// args: a=s\n((System.Func<string>)(() => {{s:b}}))()"));
+		Assert.NotEmpty(RecipeProblems("sample", "// recipe: sample\n// args: a=s b=n\n((System.Func<string>)(() => {{s:a}}))()"));
+		Assert.NotEmpty(RecipeProblems("sample", "// recipe: sample\n// args: none\n((System.Func<string>)(() => \"{{t:x}}\"))()"));
+		Assert.NotEmpty(RecipeProblems("sample", "// recipe: sample\n// args: none\n((System.Func<int>)(() => 1 switch { 1 => 2, _ => 3 }))()"));
+		Assert.Empty(RecipeProblems("sample", "// recipe: sample\n// args: a=s b=n\n((System.Func<string>)(() => {{s:a}} + {{n:b}}))()"));
+	}
+
+	/// <summary>
+	/// The problems a committed recipe would present to the evaluator, or none. Split out so the gate's
+	/// own matcher is pinned with positive and negative samples instead of trusting the directory scan.
+	/// </summary>
+	private static string[] RecipeProblems(string name, string text)
+	{
+		var problems = new List<string>();
+		if (!text.Contains($"// recipe: {name}", StringComparison.Ordinal))
+		{
+			problems.Add($"the recipe does not declare itself with '// recipe: {name}'");
+		}
+
+		var declared = new HashSet<string>(StringComparer.Ordinal);
+		var argsLine = Regex.Match(text, @"^// args: (?<args>.*)$", RegexOptions.Multiline);
+		if (!argsLine.Success)
+		{
+			problems.Add("the recipe carries no '// args:' line");
+		}
+		else if (argsLine.Groups["args"].Value.Trim() != "none")
+		{
+			foreach (var part in argsLine.Groups["args"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+			{
+				var split = part.Split('=');
+				if (split.Length != 2 || (split[1] != "s" && split[1] != "n"))
+				{
+					problems.Add($"the declared argument '{part}' is not <key>=s or <key>=n");
+				}
+				else if (!declared.Add(split[0]))
+				{
+					problems.Add($"the argument '{split[0]}' is declared twice");
+				}
+			}
+		}
+
+		var used = new Dictionary<string, int>(StringComparer.Ordinal);
+		foreach (Match match in Regex.Matches(text, @"\{\{(?<kind>[sn]):(?<key>[A-Za-z0-9-]+)\}\}"))
+		{
+			var key = match.Groups["key"].Value;
+			used[key] = used.TryGetValue(key, out var count) ? count + 1 : 1;
+			if (!declared.Contains(key))
+			{
+				problems.Add($"the placeholder '{key}' is not declared in '// args:'");
+			}
+		}
+
+		foreach (var key in declared)
+		{
+			if (!used.TryGetValue(key, out var count))
+			{
+				problems.Add($"the declared argument '{key}' has no placeholder");
+			}
+			else if (count != 1)
+			{
+				problems.Add($"the placeholder '{key}' appears {count} times; one value is substituted once");
+			}
+		}
+
+		var substituted = Regex.Replace(text, @"\{\{[sn]:[A-Za-z0-9-]+\}\}", match => match.Value.StartsWith("{{s:", StringComparison.Ordinal) ? "\"x\"" : "0");
+		if (substituted.Contains("{{", StringComparison.Ordinal))
+		{
+			problems.Add("a brace form other than {{s:key}} / {{n:key}} survived");
+		}
+
+		// The recipes are expressions; the evaluator wraps them in a method body, so parsing the same way
+		// is the honest check (a bare expression is not a compilation unit).
+		var source = "public static class __Probe { public static object Run() { var result = " + substituted + ";\nreturn result; } }";
+		var syntax = SyntaxErrors(source);
+		if (syntax.Length != 0)
+		{
+			problems.Add("the recipe is not C# 7.x syntax: " + string.Join("; ", syntax.Select(diagnostic => diagnostic.ToString())));
+		}
+
+		var versionOnly = VersionOnlyErrors(source);
+		if (versionOnly.Length != 0)
+		{
+			problems.Add("the recipe uses a construct the evaluator's language version cannot take: " + string.Join("; ", versionOnly.Select(diagnostic => diagnostic.ToString())));
+		}
+
+		var unexpected = SharedErrors(source).Where(diagnostic => !UnresolvedReferenceIds.Contains(diagnostic.Id, StringComparer.Ordinal)).ToArray();
+		if (unexpected.Length != 0)
+		{
+			problems.Add("the recipe has errors beyond unresolved game/CUO types: " + string.Join("; ", unexpected.Select(diagnostic => diagnostic.ToString())));
+		}
+
+		return [.. problems];
 	}
 
 	private static Diagnostic[] SyntaxErrors(string source) =>

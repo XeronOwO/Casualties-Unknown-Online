@@ -17,7 +17,9 @@ use placeholders such as `<game-dir>`.
 - [`tools/acceptance/preflight.ps1`](../../tools/acceptance/preflight.ps1) — the executable half of the
   dependency table.
 - [`tools/acceptance/drive-in-process.ps1`](../../tools/acceptance/drive-in-process.ps1) — the
-  in-process scenario driver of a running client (`-ListActions` names its vocabulary).
+  in-process scenario driver of a running client (`-ListActions` names its vocabulary) and its gameplay
+  recipes under [`tools/acceptance/recipes/`](../../tools/acceptance/recipes/): one declared-arg eval per
+  invocation.
 - [`tools/acceptance/session-environment.ps1`](../../tools/acceptance/session-environment.ps1) — the run's
   gate on the install's BepInEx trees: marker-DLL classification, a refusal while a game process runs, and
   a swap only when the machine is free.

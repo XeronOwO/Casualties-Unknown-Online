@@ -33,7 +33,7 @@ use placeholders such as `<game-dir>`.
    evidence pointer — a log excerpt, a probe result, a captured frame — is part of the verdict. A test
    that passed earlier is not acceptance evidence; `unproven` is not `pass`.
 4. `[RULE]` **Judge by reading the evidence, frames included.** A visual row is judged from a frame the
-   run captured and the agent inspected, and the frame is named in the record. A judgement that is
+   run captured and the agent inspected, the frame is named in the record, and the capture is per client window (window-level, never the desktop). A judgement that is
    genuinely subjective becomes a residual for the user, never a self-issued pass.
 5. `[RULE]` **The run is reproducible from the record**: the commit, the deployed artifact identity, the
    ticket's rows, one verdict and one evidence pointer per row, the dependencies used, and the residuals.

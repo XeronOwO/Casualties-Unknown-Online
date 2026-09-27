@@ -57,7 +57,9 @@ Landed — read-only instrumentation, no rendered frame changes:
   point in the frame where the question is live (also pinned by a test).
 - The 1 Hz clone diagnostics print `limbSeparation=<largest reading in the window>` for every clone
   that renders exact poses, zero included. It is a Debug line: a session that wants it sets
-  `Logging.MinimumLevel=Debug`, the same prerequisite the rider trace documents.
+  `Logging.MinimumLevel=Debug`, the same prerequisite the rider trace documents. (Superseded on the
+  level by the 2026-09-27 cycle: for a carry participant the readings ride the default-visible line and
+  a reportable one warns — see "Acceptance readiness".)
 - Release and detach clear the reference shape and the window, so a later relation is never reported
   against the old one.
 
@@ -79,12 +81,66 @@ claims that run.
 ## External blocker (2026-09-26)
 
 The reading that decides the note above has still not been taken, and it is the one thing this ticket
-waits for: it needs a dual-client run on the physical machine (a limp carried rider,
-`Logging.MinimumLevel=Debug`, the 1 Hz clone diagnostics read for `limbSeparation`), and the
-instrumented build has not been deployed there — deployment and dual-client runs are the release-cycle
-actions. The ticket therefore stays open in `todo/` with its mechanism question recorded rather than
-guessed at, and with its acceptance criteria unverified. Nothing in the cycle that closed the Online UI
-panel ticket claims any part of that run.
+waits for: it needs a dual-client run on the physical machine (a limp carried rider, the 1 Hz clone
+diagnostics read for `limbSeparation`), and the instrumented build has not been deployed there —
+deployment and dual-client runs are the release-cycle actions. The ticket therefore stays open in
+`todo/` with its mechanism question recorded rather than guessed at, and with its acceptance criteria
+unverified. Nothing in the cycle that closed the Online UI panel ticket claims any part of that run.
+
+Corrected (2026-09-27): the instrumented build IS deployed. The artifact on the physical machine is
+`0.1.0+c8e97c1de01880d1a46274b349182de100976fbc`, whose embedded revision is HEAD, and HEAD carries the
+limb-anchor instrumentation; the release-cycle action that remains is the dual-client RUN, not a deploy.
+The 2026-09-27 cycle also removed the `Logging.MinimumLevel=Debug` prerequisite this paragraph recorded
+and added the pin-drift reading, so the run is now a default-session run — see "Acceptance readiness"
+below.
+
+## Acceptance readiness (2026-09-27 cycle)
+
+The deciding facts are visible in a DEFAULT session and the reported symptom has a reading, so the one
+remaining action is the run itself — after this commit is built and deployed (see the precondition at the
+end of this section).
+
+- **The readings moved out of the Debug firehose.** A carried rider clone's 1 Hz diagnostics line is
+  Information while the clone participates in a carry relation — who counts as a participant is one
+  Runtime fact (`CarryPresentationReading.IsCarryParticipant`, asked with the five facts the diagnostic
+  observed) — and every other clone keeps the routine Debug position line. The line carries whether a pin
+  was in force in the window, `limbSeparation` and the new `riderDrift`, each printed for every clone it
+  applies to with zero included. A reportable reading reaches a WARNING: a Debug-level firehose is not a
+  representative frame to judge a motion artifact in, and nobody should have to edit
+  `Logging.MinimumLevel` to reach the answer this ticket waits for.
+- **`riderDrift` measures the pin's placement, not the picture.** It is the distance between where the
+  clone was RENDERED and the position the carry pin wrote for it, relative to its carrier, read at the top
+  of the per-clone pass BEFORE `SessionStatePump.Apply` overwrites the clone — so it describes the frame
+  that rendered. The comparison is relative on purpose (carrier motion, a facing flip, a crouch change and
+  Rigidbody render interpolation move the pair together and must not read as drift), and that arithmetic
+  is now pinned by a matrix rather than asserted in prose. A reading taken while the pin was in force
+  survives the relation ending: the release drops the reference, never the window's reading.
+- **What a zero does NOT prove.** A carrier moved after its own last pin — Unity's Rigidbody2D render
+  interpolation, or any writer later in the frame — takes the mounted rider with it through the transform
+  hierarchy, so both sides of the comparison stay stale together and the reading is zero by construction.
+  `riderDrift=0` therefore clears "a writer moved the rider after the pin"; it is not evidence that the
+  pair was drawn together. A WARNING is the meaningful direction.
+- **`limbSeparation` keeps its meaning and gains its report**: it still measures a rendered exact limb
+  pose against the body root the ride pose pinned, zero included, and now warns when it is above the
+  tolerance.
+- **The `no pin` warning means the whole window had none.** A third-party view deliberately mounts
+  nothing, and a single frame without a pin (a relation not mirrored yet, an anchor missing for one frame)
+  is not the anomaly: the warning fires only when a live carry relation had no pinned frame at all in the
+  window, and it says exactly that.
+- **What the run must show**: on the carrier's own view the rider clone's line carries
+  `mounted-to-local-carrier` and `pinned-to-carrier`, `riderDrift=0` while the carrier walks, turns and
+  crouches, and no `Carried rider clone …` WARNING appears. With a limp rider the same line carries
+  `limbSeparation=<value>`: zero retires the 2026-09-07 note in place, a non-zero reading is the
+  separation a re-anchor would have to remove.
+- **What it still cannot show**: the picture. The readings bound what the carry presentation DID — where
+  the clone was placed, where the limbs ended up — never what the player saw, so the acceptance criteria
+  above stay unverified until the two-client run on the deployed build settles them.
+- **Precondition**: the build deployed to the physical machine is HEAD, which carries the limb-anchor
+  instrumentation, but this cycle's readings are in THIS commit — they reach the machine through
+  `tools/deploy.ps1 -GameDir "<game-dir>"` and `tools/verify-deploy.ps1`, the release-cycle action that
+  precedes the run. No log-level change is needed.
+
+Cycle record: `docs/evidence/selfchecks/players/carry-rider-acceptance-readiness-selfcheck.md`.
 
 ## Root-cause fix (2026-09-07)
 
@@ -263,6 +319,11 @@ No carry authority, wire protocol, release semantics, or host rules changed.
 
 - Selfcheck: `docs/evidence/selfchecks/players/carried-rider-placement-smoothing-selfcheck.md`
 - Exact-limb-pose follow selfcheck: `docs/evidence/selfchecks/players/carry-rider-limb-anchor-selfcheck.md`
+- Acceptance-readiness selfcheck: `docs/evidence/selfchecks/players/carry-rider-acceptance-readiness-selfcheck.md`
+- Reading decisions (the tolerance, who is a carry participant, what a window reports, the offset/drift arithmetic): `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/CarryPresentationReading.cs`, `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/CarryAnomalies.cs`
+- Pin reference + readings + reports (observes and renders only): `src/CasualtiesUnknownOnline.GameAdapter/Character/CarryPresentationProbe.cs`
+- Reading decision tests: `tests/CasualtiesUnknownOnline.Tests/Session/CarryPresentationReadingTests.cs`
+- Wiring pins + the built-adapter pin surface: `tests/CasualtiesUnknownOnline.Tests/Patching/CarryPresentationProbePinTests.cs`, `tests/CasualtiesUnknownOnline.Tests/Patching/CarriedRiderMountTests.cs` (`CarriedRiderMountTests.CarryPinReadingSurface_IsOnTheDriver`)
 - Exact-pose anchor rule: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/CarriedLimbAnchor.cs`
 - Exact-pose capture + re-anchor: `src/CasualtiesUnknownOnline.GameAdapter/Character/RagdollPoseApplication.cs`
 - Anchor state + diagnostic window: `src/CasualtiesUnknownOnline.GameAdapter/Character/RemoteBodyDriver.cs`

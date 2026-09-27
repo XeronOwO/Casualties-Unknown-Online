@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -45,6 +44,13 @@ internal sealed class RemotePlayerRenderer(
 	/// carrier's world scale, so the rider keeps its own normal facing scale.
 	/// </summary>
 	private const string CarryMountName = "CUO_CarryMount";
+
+	/// <summary>
+	/// The 1 Hz clone diagnostic's message template, shared by its Information
+	/// form (a carry participant) and its routine Debug form, so the two can
+	/// never drift apart.
+	/// </summary>
+	private const string CloneLine = "Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}{CarryTag}";
 
 	internal void BindToSession()
 	{
@@ -183,6 +189,13 @@ internal sealed class RemotePlayerRenderer(
 				cloneDriver.IsCarrier = isCarrier;
 			}
 
+			// The frame that rendered is still in these transforms: the state
+			// write below overwrites the clone, and the attach pass re-pins a
+			// carried rider only after that. Reading the pin's own placement HERE
+			// is therefore the one point where "where was the rider drawn" can be
+			// compared with "where the carry pin asked for it".
+			MeasurePinDrift(localBody, remote.SteamId, clone, cloneDriver);
+
 			SessionStatePump.Apply(remote, clone);
 		}
 
@@ -249,6 +262,7 @@ internal sealed class RemotePlayerRenderer(
 				|| carrierSteamId == 0)
 			{
 				DetachCarriedRiderRoot(riderClone);
+				CarryPresentationProbe.Clear(riderClone);
 				continue;
 			}
 
@@ -269,6 +283,7 @@ internal sealed class RemotePlayerRenderer(
 					localBody.crouching,
 					localBody.rb.velocity,
 					localBody.targetLookPos);
+				CarryPresentationProbe.Store(riderClone, carrierSteamId, localCarrier: true, localBody.transform.position);
 				continue;
 			}
 
@@ -290,6 +305,7 @@ internal sealed class RemotePlayerRenderer(
 					carrierClone.crouching,
 					carrierClone.rb.velocity,
 					carrierClone.targetLookPos);
+				CarryPresentationProbe.Store(riderClone, carrierSteamId, localCarrier: false, carrierClone.transform.position);
 				continue;
 			}
 
@@ -378,6 +394,72 @@ internal sealed class RemotePlayerRenderer(
 		}
 	}
 
+	/// <summary>
+	/// Reads how far this clone was RENDERED from the position its carry pin wrote
+	/// for it, relative to its carrier, and keeps the largest value of the current
+	/// 1 Hz window. Called at the top of the per-clone pass, before
+	/// <c>SessionStatePump.Apply</c> overwrites the clone, so the transform still
+	/// holds what the rendered frame showed. What the reading covers — and the
+	/// frame a carrier moved after its own pin still reads as zero — is stated on
+	/// <see cref="CarryPresentationReading.Drift"/>.
+	///
+	/// The reference is dropped and no reading taken when the relation it was
+	/// written for is gone; an anchor merely unavailable this frame keeps it, and
+	/// the frames that follow measure what accumulated while it was missing.
+	/// </summary>
+	private void MeasurePinDrift(Body? localBody, ulong riderSteamId, Body riderClone, RemoteBodyDriver? cloneDriver)
+	{
+		if (cloneDriver == null || cloneDriver.PinnedCarrierSteamId == 0) // Unity object — ==
+		{
+			return;
+		}
+
+		if (!_playerInteraction.TryGetCarrier(riderSteamId, out var carrierSteamId)
+			|| carrierSteamId != cloneDriver.PinnedCarrierSteamId)
+		{
+			CarryPresentationProbe.Clear(cloneDriver);
+			return;
+		}
+
+		if (!TryResolvePinAnchor(cloneDriver, localBody, riderClone, out var anchor))
+		{
+			return;
+		}
+
+		CarryPresentationProbe.RecordDrift(cloneDriver, riderClone.transform.position, anchor);
+	}
+
+	/// <summary>
+	/// The anchor a stored pin was written against, resolved exactly the way the
+	/// pin resolved it: the local body when the local player is the carrier,
+	/// otherwise that carrier's render clone. False when the anchor does not
+	/// exist this frame.
+	/// </summary>
+	private bool TryResolvePinAnchor(RemoteBodyDriver driver, Body? localBody, Body riderClone, out Vector3 anchor)
+	{
+		if (driver.PinnedToLocalCarrier)
+		{
+			if (localBody == null || localBody == riderClone) // Unity objects — ==
+			{
+				anchor = Vector3.zero;
+				return false;
+			}
+
+			anchor = localBody.transform.position;
+			return true;
+		}
+
+		if (_remoteClones.TryGetValue(driver.PinnedCarrierSteamId, out var carrierClone)
+			&& carrierClone != null) // Unity object — ==
+		{
+			anchor = carrierClone.transform.position;
+			return true;
+		}
+
+		anchor = Vector3.zero;
+		return false;
+	}
+
 	private Vector2 AnchorFor(PlayerEntity remote) =>
 		_session.Role == SessionRole.Host
 			? new Vector2(_session.GetRemoteSpawnPos(remote.SteamId).X, _session.GetRemoteSpawnPos(remote.SteamId).Y)
@@ -424,25 +506,56 @@ internal sealed class RemotePlayerRenderer(
 				carryTag += ", mounted-to-local-carrier";
 			}
 
-			// A clone rendering exact owner limb poses is measured against the
-			// root the ride pose pinned (nothing is written): a non-zero reading
-			// is how far its limbs were left behind. The field is printed for
-			// every such clone, zero included, so "measured zero" and "not
-			// measured" cannot be confused; it is a Debug line, so a session that
-			// wants it raises Logging.MinimumLevel (see CarrySimulationTrace).
+			// The carry readings of this window — whether a pin was in force at
+			// all, the limb separation and the pin drift — printed for every clone
+			// they apply to with zero included, plus the anomaly reports that must
+			// not wait for a raised log level. Read and reset here, so "measured
+			// zero" and "not measured" cannot be confused.
 			var poseDriver = clone != null ? clone.GetComponent<RemoteBodyDriver>() : null;
+			var pinnedInWindow = false;
 			if (poseDriver != null) // Unity object — ==
 			{
-				if (poseDriver.RagdollPoseActive)
-				{
-					carryTag += $", limbSeparation={poseDriver.LimbSeparationWindowMax.ToString("0.###", CultureInfo.InvariantCulture)}";
-				}
-
+				pinnedInWindow = poseDriver.PinCountInWindow > 0;
+				carryTag += CarryPresentationProbe.Describe(poseDriver);
+				CarryPresentationProbe.Report(_log, steamId, poseDriver);
 				poseDriver.LimbSeparationWindowMax = 0f;
+				poseDriver.PinDriftWindowMax = 0f;
+				poseDriver.PinCountInWindow = 0;
 			}
 
-			_log.LogDebug("Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}{CarryTag}",
-				steamId, pos.x, pos.y, reported.x, reported.y, clone != null && clone.gameObject.activeInHierarchy, carryTag);
+			// A clone that participates in a carry relation is the one family
+			// whose presentation is under an open defect, so its 1 Hz line is
+			// INFORMATION: a default session must be able to answer "was the
+			// rider pinned, and did the readings stay zero" without raising
+			// Logging.MinimumLevel, and a Debug firehose is not a representative
+			// frame to judge a motion artifact in. Every other clone stays on the
+			// routine Debug position line. Who counts as a participant is a
+			// Runtime fact, so the decision is testable without a game.
+			var atDefaultLevel = CarryPresentationReading.IsCarryParticipant(
+				isLocalRiderClone: isRiderClone,
+				isLocalCarrierClone: isCarrierClone,
+				isRemoteRider: poseDriver != null && poseDriver.IsCarriedRider,
+				isRemoteCarrier: poseDriver != null && poseDriver.IsCarrier,
+				pinnedInWindow: pinnedInWindow);
+			LogCloneLine(atDefaultLevel, steamId, pos, reported, clone, carryTag);
+		}
+	}
+
+	/// <summary>
+	/// Writes one clone's 1 Hz diagnostic: an Information line for a carry
+	/// participant, the routine Debug line for every other clone. One template
+	/// for both, so the level is the only difference between them.
+	/// </summary>
+	private void LogCloneLine(bool atDefaultLevel, ulong steamId, Vector3 pos, Vector2 reported, Body? clone, string carryTag)
+	{
+		var active = clone != null && clone.gameObject.activeInHierarchy; // Unity object — ==
+		if (atDefaultLevel)
+		{
+			_log.LogInformation(CloneLine, steamId, pos.x, pos.y, reported.x, reported.y, active, carryTag);
+		}
+		else
+		{
+			_log.LogDebug(CloneLine, steamId, pos.x, pos.y, reported.x, reported.y, active, carryTag);
 		}
 	}
 

@@ -67,6 +67,51 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// </summary>
 	public float LimbSeparationWindowMax;
 
+	/// <summary>
+	/// The SteamId of the carrier the stored reference below was written against,
+	/// or 0 when no carry pin has been stored yet. It is a reference, not a live
+	/// state: a relation that ends or a carrier that changes drops it
+	/// (<see cref="CarryPresentationProbe.Clear"/>), and the drift reading is only
+	/// taken while the live relation still names this same carrier AND the anchor
+	/// this pin used still exists.
+	/// </summary>
+	public ulong PinnedCarrierSteamId;
+
+	/// <summary>
+	/// Whether the stored reference anchored on the LOCAL carrier body — the
+	/// carrier's own view — rather than on that carrier's render clone (a
+	/// third-party view). The drift reading must resolve the anchor the same way
+	/// the pin did.
+	/// </summary>
+	public bool PinnedToLocalCarrier;
+
+	/// <summary>World X of the rider-minus-anchor offset the last carry pin wrote.</summary>
+	public float PinnedOffsetX;
+
+	/// <summary>World Y of the rider-minus-anchor offset the last carry pin wrote.</summary>
+	public float PinnedOffsetY;
+
+	/// <summary>
+	/// How many carry pins were written during the current 1 Hz clone-diagnostic
+	/// window. It is the window's answer to "was this clone pinned at all": a
+	/// drift reading is only meaningful in a window that has one, and a live carry
+	/// relation with none is the anomaly, reported instead of a drift. Read and
+	/// reset by <see cref="RemotePlayerRenderer"/>'s diagnostics.
+	/// </summary>
+	public int PinCountInWindow;
+
+	/// <summary>
+	/// Largest distance this clone was RENDERED away from the position its carry
+	/// pin wrote for it (relative to its carrier) inside the current 1 Hz
+	/// clone-diagnostic window. Zero is the expected reading — the frames that
+	/// rendered showed the pair where the pin put them; a non-zero value is the
+	/// rider having been moved after the pin, in world units. It survives the
+	/// relation ending: the reading was taken while the pin was in force, and the
+	/// window the diagnostic reports is the window it happened in. Read and reset
+	/// by <see cref="RemotePlayerRenderer"/>'s diagnostics.
+	/// </summary>
+	public float PinDriftWindowMax;
+
 	/// <summary>Last applied attack-swing flag — the ArmsSwing clip plays only on the flag's rising edge.</summary>
 	public bool PrevAttacking;
 

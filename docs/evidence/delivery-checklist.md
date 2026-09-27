@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1 (4 rows) + §2: the pin reference, the drift arithmetic, the ordering and the window quoted from the changed sources; the deployed artifact `0.1.0+c8e97c1d…` and commit `0e7693f4` read from `%TEMP%/cuo-s6-verify.txt` and `git log`
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §2 pairs every moved member with its frame point; the pre-change grep census (src/tests/docs) named every referrer and all were re-pointed
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: both carry views store the reference after their own ride pose wrote the root, the release drops the reference but never the window's reading, an unavailable anchor keeps the reference, and the carried local rider's own client is named as out of this reading's reach (selfcheck §2/§5)
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: selfcheck §1 (the readings and what each one answers), §2 (what landed), §3 (the verification table, 13 rows), §4 (the run recipe), §5 (limits)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the whole carry-presentation family moved in one extraction (mount, both pin views, the role marks, the drift reading), nothing left half-moved; selfcheck §2
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `docs/evidence/selfchecks/players/carried-rider-presenter-split-selfcheck.md` §3 (9 rows)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: the acceptance run's eye-free evidence is the two printed readings plus the anomaly warnings at the default level; mechanical proof is 9 real-source mutations run by this cycle, all red (`%TEMP%/cuo-carry-mut/`, `%TEMP%/cuo-carry-mut2/`, sources md5-identical after restore), and the review's own 5 surviving mutations are red too; the picture stays the user's run (selfcheck §4/§5)
+      peer log comparison, hotrepl assertions) is decided — evidence: the two source pins + `CarriedRiderMountTests` + the focused carry tests are the mechanical proof of the moved orderings; the rendered picture stays the user's dual-client run
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the handoff instruction continues this Critical ticket; decision 222 forbids building a placement change on its unverified mechanism, so the cycle ships readings; no work-choice question asked (AGENTS.md rule 9)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings / 0 errors (`%TEMP%/cuo-carry-build3.txt`); focus 57/57 (`cuo-carry-focus3.txt`); format exit 0 (`cuo-carry-format2.txt`); gates 287/287 with the checklist gate excluded (`cuo-carry-gates4.txt`), then the full run green
+      process violation — evidence: the handoff names the split as this family's next prerequisite and the watchlist mandates it before the next change; no work-item choice was asked (AGENTS.md rule 9)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, focus 45/45, format exit 0, gates 287/287, full 4439+287 green (`%TEMP%/cuo-split-*.txt`)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: largest touched type 587/162/164/122/33 lines (all under the 600 aggregate ceiling; `RemotePlayerRenderer` crossed it once and was trimmed back by moving the reading's reach into the Runtime rule); one top-level type per file (new `CarryAnomalies` split out, gate green); no `_`-bool added; nothing superseded left behind
+      dead mechanisms deleted in the same round) — evidence: `RemotePlayerRenderer` 587 to 338 and the new owner 309 (both under the 600 aggregate ceiling, one top-level type per file); no state bool added; the moved members left no dead copy behind
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

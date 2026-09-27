@@ -16,7 +16,7 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 
 	/// <summary>
 	/// True while this remote clone is the rider of a carry relation whose
-	/// carrier is the local player. Set by <see cref="RemotePlayerRenderer"/>
+	/// carrier is the local player. Set by <see cref="CarriedRiderPresenter"/>
 	/// before applying state each frame; used by SessionStatePump to suppress
 	/// the native sit replay and by BodyUpdatePatch to force an already-playing
 	/// sit clip back to the ride/standing presentation.
@@ -25,7 +25,7 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 
 	/// <summary>
 	/// True while this remote clone is itself the carrier half of a carry
-	/// relation. Set by <see cref="RemotePlayerRenderer"/> before applying
+	/// relation. Set by <see cref="CarriedRiderPresenter"/> before applying
 	/// state each frame; used by SessionStatePump and BodyUpdatePatch so a
 	/// carrier never displays an idle-sit pose on any peer's view.
 	/// </summary>

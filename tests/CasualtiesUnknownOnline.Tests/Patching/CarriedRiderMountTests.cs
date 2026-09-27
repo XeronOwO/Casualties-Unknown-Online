@@ -11,16 +11,17 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// movement that Unity applies after LateUpdate (Rigidbody render
 /// interpolation, final script ordering) could still separate the pair. The fix
 /// re-parents a local carrier's rider clone under a neutral-scale mount, so the
-/// mount scale math and the attach/detach surface must be correct and stable.
-/// The same pass also reads whether a clone's exact limb poses travelled with
-/// the root it just wrote, and whether the clone was rendered where the pin put
-/// it, so both read-only surfaces are pinned here too.
+/// mount scale math and the attach/detach surface — both on the carry
+/// presentation owner, <c>CarriedRiderPresenter</c> — must be correct and
+/// stable. The same pass also reads whether a clone's exact limb poses travelled
+/// with the root it just wrote, and whether the clone was rendered where the pin
+/// put it, so both read-only surfaces are pinned here too.
 /// </summary>
 [Trait("Category", "Integration")]
 public class CarriedRiderMountTests
 {
-	private static readonly Type Renderer = GameAssemblyHost.Adapter.GetType(
-		"CasualtiesUnknownOnline.GameAdapter.Character.RemotePlayerRenderer",
+	private static readonly Type Presenter = GameAssemblyHost.Adapter.GetType(
+		"CasualtiesUnknownOnline.GameAdapter.Character.CarriedRiderPresenter",
 		throwOnError: true)!;
 
 	private static readonly Type Placement = GameAssemblyHost.Adapter.GetType(
@@ -39,12 +40,12 @@ public class CarriedRiderMountTests
 	[Fact]
 	public void LocalCarrierMountSurface_HasCreateAttachAndDetach()
 	{
-		var getMount = Renderer.GetMethod("GetOrCreateCarryMount", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-			?? throw new InvalidOperationException("RemotePlayerRenderer.GetOrCreateCarryMount not found.");
-		var attach = Renderer.GetMethod("AttachCarriedRiderRoot", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-			?? throw new InvalidOperationException("RemotePlayerRenderer.AttachCarriedRiderRoot not found.");
-		var detach = Renderer.GetMethod("DetachCarriedRiderRoot", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-			?? throw new InvalidOperationException("RemotePlayerRenderer.DetachCarriedRiderRoot not found.");
+		var getMount = Presenter.GetMethod("GetOrCreateCarryMount", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("CarriedRiderPresenter.GetOrCreateCarryMount not found.");
+		var attach = Presenter.GetMethod("AttachCarriedRiderRoot", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("CarriedRiderPresenter.AttachCarriedRiderRoot not found.");
+		var detach = Presenter.GetMethod("DetachCarriedRiderRoot", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("CarriedRiderPresenter.DetachCarriedRiderRoot not found.");
 
 		Assert.True(getMount.IsStatic);
 		Assert.True(attach.IsStatic);

@@ -239,6 +239,7 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | players/carrier-sit-suppression-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/carry-rider-limb-anchor-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/carry-rider-acceptance-readiness-selfcheck.md | Players | current | the deciding readings are default-visible for a carry participant and the pin-drift reading is new (decision 233) |
+| players/carried-rider-presenter-split-selfcheck.md | Players | current | the carry-presentation half (local-carrier mount, per-frame pin, carry-role marks, drift reading) moved out of `RemotePlayerRenderer` (587 to 338 lines) into `CarriedRiderPresenter` (309); the reading pins were re-pointed, a mark-ordering pin was added, and behaviour is preserved by the unchanged per-frame call order |
 | players/interaction-gate-authority-selfcheck.md | Players | current | each client judges its own side; twelve host-side judging sites retired |
 | players/medical-operation-concurrency-selfcheck.md | Players | current | medical operations settle per unit (ticket `review/concurrent-medical-operations.md`) |
 | players/remote-medical-operation-session-realtime-injection-selfcheck.md | Players | current | candidate current evidence; verify before citing |

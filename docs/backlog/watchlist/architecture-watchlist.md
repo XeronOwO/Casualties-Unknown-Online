@@ -76,6 +76,20 @@ assembly), and its interface keeps growing with every feature (see
 
 ## Split since the last revision
 
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs` — the demanded split
+  happened (2026-09-27, before the next change of the carry family could land in it): the file stood at
+  587 lines (13 from the 600 gate) and this list had not carried it yet while it carried smaller files.
+  The carry-presentation half moved into `CarriedRiderPresenter` (309): the local-carrier mount
+  lifecycle (`GetOrCreateCarryMount` / `AttachCarriedRiderRoot` / `DetachCarriedRiderRoot`), the
+  per-frame pin of every carried rider clone to its carrier's visual anchor (`AttachAll`), the
+  carry-role marks the sit suppression reads (`MarkCarryRole`) and the pin-drift reading with its
+  anchor resolution (`MeasurePinDrift` / `TryResolvePinAnchor`). 587 → 338: the renderer keeps the
+  clone lifecycle, the state write (`SessionStatePump.Apply`) and the 1 Hz diagnostics, which is the
+  "who owns the state" line this page asks for. Behaviour is preserved by construction — the per-frame
+  call order is unchanged (role marks and the drift reading before the state write, the attach pass
+  after every clone was placed, the same two re-pin entries) and the two reading pins were re-pointed
+  at the new owner without changing what they assert.
+
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/` — the demanded split happened
   (2026-09-19, with the interaction-gate relocation): the medical family's shared reservation
   bookkeeping (`_reservedItems`, `_reservedTargetLimbs` and the cross-service "operator busy"

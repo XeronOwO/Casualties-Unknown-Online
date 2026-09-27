@@ -282,7 +282,7 @@ The carry/piggyback presentation is now a single shared path with the same refer
 
 - **One shared ride-pose rule** — `CarriedBodyPlacement.ApplyRidePose` writes position, velocity, facing, crouch, standing/move-dir gates and look target to a carried body. The rider's own client and every remote rider clone use this exact method, so per-field drift between participant/third-party views is structurally impossible.
 - **Rider follows the smoothed carrier render clone** — `PlayerInteractionApply.UpdateCarriedBody` prefers the remote carrier's `RemotePlayerRenderer` clone (already interpolated by `SessionStatePump`) over the raw 20 Hz entity buffer, with the entity buffer only as pre-clone fallback.
-- **Every carried rider clone is pinned after interpolation** — `RemotePlayerRenderer.ApplyRemoteCarrierAttachAll` attaches each remote rider clone to its carrier's visual position (local body for a local carrier, the carrier clone for third-party views) after all `SessionStatePump` passes, so interpolation cannot visibly detach the pair.
+- **Every carried rider clone is pinned after interpolation** — `CarriedRiderPresenter.AttachAll` attaches each remote rider clone to its carrier's visual position (local body for a local carrier, the carrier clone for third-party views) after all `SessionStatePump` passes, so interpolation cannot visibly detach the pair.
 - **Body-root stream anchor for carried riders** — `RunCoordinator.PublishBodyState` uses `CarriedBodyPose.ShouldPublishBodyRoot` so a carried body reports its body root instead of the non-standing torso anchor; non-carried ragdolls keep the existing torso convention.
 - **Local carried rider presents as a visual proxy** — a conscious/alive local rider now goes through the same `RenderProxyPose.EffectiveVisualStanding(..., isCarryRenderProxy: true)` path as a remote clone. `HandleVisuals` continues driving the visible limbs instead of freezing in the pre-carry pose; dead/unconscious carries keep the non-standing presentation. The local rider also uses its own live `legSpeedMult` for the slouch/crouch animation input, the same value the 1 Hz snapshot sends to remote clones.
 - **Post-native-`Body.Update` carrier re-pin** — `BodyUpdatePatch.Postfix` calls `IPatchBridge.OnLocalCarrierBodyUpdated()` after the local carrier's native body simulation. The CUO render pump may run before the game moves the local carrier in the same frame; this second pass ensures the carrier's own view never shows the rider one frame behind.
@@ -295,14 +295,19 @@ No carry authority, wire protocol, release semantics, or host rules changed.
 
 ## Current implementation
 
+The carry-relation half of this family — the local-carrier mount, the per-frame pin and the
+drift reading — lives in `CarriedRiderPresenter`; `RemotePlayerRenderer` keeps the clone
+lifecycle, the state write and the 1 Hz diagnostics. The cycle records below name the owner
+each member had when it landed.
+
 - Carry/piggyback remains host-authoritative; each client simulates only its own body.
 - The carried local body is marked with `CarriedBodyDriver`, skips its normal simulation, and is placed each frame by `PlayerInteractionApply.UpdateCarriedBody`.
-- Remote render clones are interpolated by `SessionStatePump` and then pinned by `RemotePlayerRenderer.ApplyRemoteCarrierAttachAll`.
+- Remote render clones are interpolated by `SessionStatePump` and then pinned by `CarriedRiderPresenter.AttachAll`.
 - The shared placement rule lives in `CarriedBodyPlacement.ApplyRidePose`.
 - The render-proxy visual-standing rule lives in `RenderProxyPose.EffectiveVisualStanding`.
 - The post-update re-pin entry is `IPatchBridge.OnLocalCarrierBodyUpdated()` → `RemotePlayerRenderer.RefreshLocalCarrierAttach`.
 - The final before-render re-pin entry is `Plugin.LateUpdate` → `ICarryPresentationPump.PinCarriedPresentation` → `RemotePlayerRenderer.RefreshLocalCarrierAttach`.
-- The local-carrier mount entry is `RemotePlayerRenderer.GetOrCreateCarryMount` + `AttachCarriedRiderRoot` + `DetachCarriedRiderRoot`; only local carriers mount the rider root, third-party remote carriers remain pinned by world-space placement.
+- The local-carrier mount entry is `CarriedRiderPresenter.GetOrCreateCarryMount` + `AttachCarriedRiderRoot` + `DetachCarriedRiderRoot`; only local carriers mount the rider root, third-party remote carriers remain pinned by world-space placement.
 - The stream refresh entry is `RunCoordinator.RefreshLocalBodyState()`.
 
 ## Acceptance criteria
@@ -329,11 +334,11 @@ No carry authority, wire protocol, release semantics, or host rules changed.
 - Anchor state + diagnostic window: `src/CasualtiesUnknownOnline.GameAdapter/Character/RemoteBodyDriver.cs`
 - Shared placement: `src/CasualtiesUnknownOnline.GameAdapter/Character/CarriedBodyPlacement.cs`
 - Rider own-client placement: `src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs`
-- Remote rider-clone attach: `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs`
+- Remote rider-clone attach: `src/CasualtiesUnknownOnline.GameAdapter/Character/CarriedRiderPresenter.cs` (`MarkCarryRole`, `AttachAll`, `MeasurePinDrift`), called from `RemotePlayerRenderer.Update`
 - Visual proxy rule: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/RenderProxyPose.cs`
 - Post-update re-pin: `src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyUpdatePatch.cs` + `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs`
 - Final LateUpdate re-pin: `src/CasualtiesUnknownOnline.Plugin/Plugin.cs` + `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs`
-- Local-carrier mount: `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs` (`GetOrCreateCarryMount`, `AttachCarriedRiderRoot`, `DetachCarriedRiderRoot`)
+- Local-carrier mount: `src/CasualtiesUnknownOnline.GameAdapter/Character/CarriedRiderPresenter.cs` (`GetOrCreateCarryMount`, `AttachCarriedRiderRoot`, `DetachCarriedRiderRoot`)
 - Pure mount scale: `src/CasualtiesUnknownOnline.GameAdapter/Character/CarriedBodyPlacement.cs` (`CarryMountScale`)
 - Mount contract + behavior test: `tests/CasualtiesUnknownOnline.Tests/Patching/CarriedRiderMountTests.cs`
 - Stream refresh: `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs`

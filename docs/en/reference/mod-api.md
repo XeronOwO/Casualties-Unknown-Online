@@ -671,8 +671,8 @@ direction rows and wire round-trips.
 
 Green tests are not a session. The example mod doubles as the two-process verification target: deploy
 it to both machines and join — the logs show `[Mods] discovered …`, the handshake admitting the pair,
-the guest → host command results and the echo round-trip. Two real clients are the user's acceptance
-run.
+the guest → host command results and the echo round-trip. Two real clients are judged by the agent's
+acceptance run ([Agent acceptance workflow](../../acceptance/workflow.md)).
 
 ## Related reading
 

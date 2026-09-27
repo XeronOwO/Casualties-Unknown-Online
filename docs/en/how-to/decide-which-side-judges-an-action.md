@@ -51,8 +51,8 @@ makes every player's own actions wait for someone else's machine.
 | Creating an item mid-operation | the creating client registers the item **before** anything acts on it | the kernel's item identity; a refused creation leaves a tombstone instead of a guessed wait |
 | World-time acceleration | started locally by whoever wants it | arbitration between competing requests, with a broadcast fallback |
 
-These families are implemented and covered by simulation and static evidence; the two-client acceptance
-run is still pending.
+These families are implemented and covered by simulation and static evidence; the two-client run that
+accepts them is the agent's, per the [acceptance workflow](../../acceptance/workflow.md).
 
 ## Traps
 
@@ -71,8 +71,8 @@ run is still pending.
 Read your change and name the machine that decides — and show that no latency value enters the
 decision. In a session, a judgment on the wrong side shows up as the affected player reacting to
 something they cannot see on their own screen: a hit through a wall, an action that completes and then
-un-happens, an item that flickers back. The exact feel of that is a two-client run, which is an
-acceptance step no test can replace.
+un-happens, an item that flickers back. Only a real two-client session shows that, and the agent runs
+it; whether it *feels* wrong is the part that comes back to the user as a residual.
 
 ## Related reading
 

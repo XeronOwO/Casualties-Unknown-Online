@@ -18,7 +18,7 @@ todo/  →  in-progress/  →  review/  →  done/
   `- [Title](path) — **Priority** — one clause`: the clause says what the ticket IS, never
   its history, and every fact (decision, date, count, stage progress, verdict) lives in the
   ticket. The row's SECTION is its status, so no row repeats it; `review/` means the ticket
-  is code-complete and waiting for the unified acceptance pass.
+  is code-complete and waiting for the agent's next acceptance batch (`docs/acceptance/`).
 - A row's priority is the ticket's own `- Priority:` field (first token), and a ticket that
   declares none — the closed records — gets no priority in its row.
   `BacklogIntegrityGateTests` keeps the rows from drifting back into summaries: a row over
@@ -26,10 +26,15 @@ todo/  →  in-progress/  →  review/  →  done/
   the index, or one listed under the wrong section fails the build.
 - Status is the parent folder, not a field in the file (the file repeats it for readability).
 - Code-complete items are moved to `review/` immediately; review is the waiting state
-  for the single unified user acceptance pass after all high-priority backlog items
-  are complete. Do not stop for per-ticket acceptance.
-- Only the final unified-acceptance transition moves tickets from `review/` to `done/`;
-  until then, `done/` holds previously accepted/closed delivery tickets.
+  for the agent's acceptance run (`docs/acceptance/`), which accepts tickets in **batches** —
+  one build, one deploy and one two-client session cover every waiting ticket they can serve,
+  because a per-ticket session is the loop that costs the most. Code review and green tests
+  are not acceptance. While the run's session step is still being built, a ticket whose rows
+  need it stays in `review/` with the capability named: waiting is the honest state.
+- A passing acceptance record moves its ticket to `done/`; a failed or unproven row moves
+  it back to `todo/` with `- Status: Rejected`; a missing dependency keeps it in `review/`
+  with the blocker named. Tickets that landed before the run existed still say "the final
+  unified acceptance pass" in their own text; that pass is now this run, and it decides them.
 
 ## Status folders
 
@@ -37,7 +42,7 @@ todo/  →  in-progress/  →  review/  →  done/
 |---|---|
 | `todo/` | Open work, not started |
 | `in-progress/` | Active development in progress |
-| `review/` | Code/verification done; waiting for the final unified acceptance pass after high-priority backlog items are complete |
+| `review/` | Code/verification done; waiting for the next agent acceptance batch (`docs/acceptance/`) |
 | `done/` | Landed / closed |
 | `future/` | Deferred, low priority, or future architecture work |
 | `resolved/` | Decisions resolved without further code action |
@@ -226,6 +231,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Agent acceptance workflow — foundation](done/agent-acceptance-workflow-foundation.md) — **High** — the acceptance area, preflight and rules.
 - [Test suite parallelization](done/test-suite-parallelization.md) — **Medium** — the parallelism contract and splits.
 - [In-game command console](done/in-game-command-console.md) — **Low** — the modal UI console.
 - [Player-list polish](done/player-list-polish.md) — peer-id disambiguation.

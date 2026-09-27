@@ -7,11 +7,15 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
-/// The instruction-chain budget: every `AGENTS.md` in the tree is auto-loaded guidance, and all of
-/// them share one 65,536-byte workspace budget with the root instruction file. A nested file carries
-/// routing and binding rules — never knowledge — so it stays small and the whole chain stays inside
-/// the budget; when the chain overflows, the loader drops whichever instruction file no longer fits.
-/// The rule is `docs/AGENTS.md` §1, which also says what belongs in a node.
+/// The instruction budget, in the two parts the loader actually charges. The always-present files —
+/// the root `AGENTS.md` and the machine-local `AGENTS.local.md` beside it — share one 65,536-byte
+/// workspace budget, and when they leave no room the loader drops the user-level instruction file
+/// (observed in a session that reported "Workspace instruction budget 65536 bytes: omitted
+/// ~/.dsh/AGENTS.md"). Every other instruction file is injected only while working in its directory,
+/// so it is capped on its own instead: a nested tracked `AGENTS.md` and an area-local
+/// `AGENTS.local.md` alike. That area file is what lets machine facts leave the root file without
+/// costing every session — the cost is local, not gone. `docs/AGENTS.md` §1 says what belongs in a
+/// node.
 /// </summary>
 public class AgentInstructionBudgetGateTests
 {
@@ -28,34 +32,39 @@ public class AgentInstructionBudgetGateTests
 			files.Count >= 1,
 			"the walk found no nested instruction file; the discovery filter stopped seeing the tree");
 		Assert.Contains("docs/AGENTS.md", files);
+		// The area-local pair this repository relies on: a tracked router and the untracked facts file
+		// beside it. If discovery stops seeing either, the measurement goes quietly blind.
+		Assert.Contains("docs/acceptance/AGENTS.md", files);
+		Assert.Contains("docs/acceptance/AGENTS.local.md", LocalInstructionFiles());
 
-		var oversized = Oversized(files.Select(relative => (relative, Size(relative))), NestedInstructionCeilingBytes);
+		var oversized = Oversized(
+			files.Concat(LocalInstructionFiles()).Select(relative => (relative, Size(relative))),
+			NestedInstructionCeilingBytes);
 		Assert.True(
 			oversized.Count == 0,
 			$"{oversized.Count} instruction file(s) carry more than guidance: {string.Join("; ", oversized)}");
 	}
 
 	[Fact]
-	public void TheWholeChain_StaysInsideTheWorkspaceBudget()
+	public void TheAlwaysLoadedFiles_StayInsideTheWorkspaceBudget()
 	{
-		var chain = new List<string> { "AGENTS.md" };
-		chain.AddRange(InstructionFiles());
+		var alwaysLoaded = new List<string> { "AGENTS.md" };
 		if (File.Exists(RepositoryPaths.File("AGENTS.local.md")))
 		{
-			// Untracked, but it competes for the SAME loader budget: excluding it would report
-			// headroom that does not exist.
-			chain.Add("AGENTS.local.md");
+			// Untracked, but it is loaded beside the root file in every session: excluding it would
+			// report headroom that does not exist.
+			alwaysLoaded.Add("AGENTS.local.md");
 		}
 
-		var sizes = chain.Distinct(StringComparer.Ordinal).ToDictionary(relative => relative, Size);
+		var sizes = alwaysLoaded.ToDictionary(relative => relative, Size);
 		var total = sizes.Values.Sum();
 		Assert.True(
 			total <= WorkspaceInstructionBudgetBytes,
-			$"the workspace instruction chain is {total} bytes, over the {WorkspaceInstructionBudgetBytes}-byte budget: {string.Join(", ", sizes.Select(entry => $"{entry.Key} {entry.Value}"))} — the loader drops whichever instruction file no longer fits");
+			$"the always-loaded instruction files are {total} bytes, over the {WorkspaceInstructionBudgetBytes}-byte budget: {string.Join(", ", sizes.Select(entry => $"{entry.Key} {entry.Value}"))} — the loader drops the user-level instruction file when they leave no room");
 	}
 
 	[Fact]
-	public void TheCeilingCheck_FlagsExactlyTheFilesOverTheLimit()
+	public void TheCeilingComparison_FlagsOnlySizesAboveTheLimit()
 	{
 		var files = new[]
 		{
@@ -78,7 +87,12 @@ public class AgentInstructionBudgetGateTests
 	private static int Size(string relative) => (int)new FileInfo(RepositoryPaths.File(relative)).Length;
 
 	/// <summary>Every `AGENTS.md` below the repository root; build output and the vendored tree carry none.</summary>
-	internal static IReadOnlyList<string> InstructionFiles()
+	internal static IReadOnlyList<string> InstructionFiles() => Discover("AGENTS.md", skipRepositoryRoot: true);
+
+	/// <summary>Every `AGENTS.local.md` below the repository root except the root one: untracked machine facts, injected while working in their directory.</summary>
+	internal static IReadOnlyList<string> LocalInstructionFiles() => Discover("AGENTS.local.md", skipRepositoryRoot: true);
+
+	private static IReadOnlyList<string> Discover(string fileName, bool skipRepositoryRoot)
 	{
 		var found = new List<string>();
 		var pending = new Stack<string>();
@@ -94,13 +108,15 @@ public class AgentInstructionBudgetGateTests
 				}
 			}
 
-			foreach (var file in Directory.EnumerateFiles(directory, "AGENTS.md"))
+			foreach (var file in Directory.EnumerateFiles(directory, fileName))
 			{
 				var relative = file.Substring(RepositoryPaths.Root.Length).TrimStart('\\', '/').Replace('\\', '/');
-				if (!string.Equals(relative, "AGENTS.md", StringComparison.Ordinal))
+				if (skipRepositoryRoot && relative.IndexOf('/') < 0)
 				{
-					found.Add(relative);
+					continue;
 				}
+
+				found.Add(relative);
 			}
 		}
 

@@ -3,10 +3,11 @@
 Every development cycle runs through this checklist. The gate
 (`RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`) runs before
 the cycle's final commit as part of `dotnet test` and refuses it while any box
-is unchecked. Deployment and manual multiplayer acceptance are user release
-actions outside this gate; feature development verification uses
-simulation/static evidence. When a release cycle lands, reset the checklist by
-manually unchecking every box so the next cycle starts clean.
+is unchecked. Deployment and multiplayer acceptance are the agent's actions,
+run after the commit per `docs/acceptance/` and outside this gate; feature
+development verification uses simulation/static evidence. When a release cycle
+lands, reset the checklist by manually unchecking every box so the next cycle
+starts clean.
 
 **Operating rule (user mandates 2026-08-10 / 2026-08-16)**: boxes are checked ONE LINE AT A
 TIME with the Edit tool as each step completes. The checkbox edits do NOT get
@@ -35,22 +36,23 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §2 lists all ten touched mechanisms with the test or pin that holds each; the greps taken before the split named every referrer of the moved members and all were re-pointed
+      file:line or runtime log) or is explicitly marked unverified — evidence: every touched rule names its page or gate; the preflight's read-only verb audit is review report §B.3
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the geometry family was aligned in one pass (window, both panels, the shared sizing policy and row geometry, the popup layer, the colour field), so a window fix is a panel fix; selfcheck §2
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `docs/evidence/selfchecks/ui/online-ui-layout-and-input-detail-selfcheck.md` §1 (the user's ten findings + three self-found) and §2 (ten mechanism rows)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: six paired pages plus the architecture page the review found (§A-9); live docs hold 0 hits of the old wording
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the ticket's stage-1 criteria table (8 rows); rows 2/5/8 pin the review's findings
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: `OnlineUiWindowLayoutTests` (the shell rule, red observed on the first cut's value) plus 8 new pins with 14 real-source mutation rows and the re-anchored window pin; the pixels and the clicks are the user's run (selfcheck §3/§4)
+      peer log comparison, hotrepl assertions) is decided — evidence: preflight exit 0 (9 present, 1 pending), gates 288/288, full net48 4475/4475; the session step is staged by design
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the design questions were asked and answered in this session (the frame only and not the text, one compact control height, the palette and hex kept), and the user then invited self-found work; no work-item choice was asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, format exit 0, focus OnlineUi 405/405, gates 287/287, full net48 4475/4475 (all with build; run 2026-09-27)
+      process violation — evidence: user instructions 2026-09-27 and the two answered questions (agent verdict; machine takeover)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, format exit 0, gates 288/288, full net48 4475/4475 with build (2026-09-27)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: the shape gate is green (OnlineUiControlView 597 lines by moving the width policy into OnlineUiControlSizing, new types 40–336 lines, one top-level type per file); no state bool added; the deleted CUO-computed sizes have no copy left
-- [ ] Release-cycle deployment/acceptance: performed by the user outside the
-      development commit gate; simulation/static evidence is the feature
-      development verification standard.
+      dead mechanisms deleted in the same round) — evidence: docs/AGENTS.md 5111 <= 5120; area files 4799/2670; root pair 58 973 <= 65 536; no src/ change
+- [ ] Release-cycle deployment/acceptance: run by the agent after the commit
+      (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
+      development commit gate; simulation/static evidence is the feature development
+      verification standard.
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is
       exactly what the gate exists to catch)

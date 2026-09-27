@@ -75,15 +75,17 @@ It is not reserved for rejected items or user-reported problems.
   verified, not merely until tests and gates pass.
 - **Deployment and artifact verification are part of completion.** After a runtime behaviour change,
   build and deploy the latest artifacts and verify the deployed identity before reporting completion.
-- **Development-period verification is simulation- and static-evidence based.** No manual dual-client
-  acceptance during feature development: deployment to the physical machine and dual-client acceptance
-  are the user's release-cycle actions, performed later.
+- **Development-period verification is simulation/static evidence plus the agent-run acceptance.** The
+  agent judges every acceptance row from the evidence it collects after the commit
+  ([acceptance workflow](../../acceptance/workflow.md)) and moves the ticket; a residual row is the only
+  part a person judges. The run's session step is still being built: that page's capability table says
+  what is executable today, and a row that needs a staged step stays `blocked` rather than being passed.
 - **Acceptance-readiness audit before review.** For every user-facing feature answer explicitly, with
   evidence: does the game already have a native UI for this surface; was the whole family audited
   across roles, directions, participants and third-party views; was the exact reproduction covered by
-  a test or runtime trace against the latest deployed DLLs; were unsupported operations left as future
-  only with explicit user acceptance. A self-imposed "future" is not a completed parity claim. Passing
-  tests and gates is necessary, not sufficient.
+  a test or runtime trace against the latest deployed DLLs; can the acceptance run judge every
+  remaining row, with the residuals named. A self-imposed "future" is not a completed parity claim.
+  Passing tests and gates is necessary, not sufficient.
 - **The adversarial self-check must be independent.** A fresh context, never the reasoning path that
   produced the fix.
 - **Rejection root-cause loop.** When a delivered item is rejected, record why it was missed; moving
@@ -114,8 +116,9 @@ while any required box is unchecked.
 - A documentation-only cycle (no runtime or test behaviour changed) still fills every box and still
   leaves the deployment line and the FORBIDDEN line unchecked, but may write its boxes in one pass,
   and may skip `dotnet format`.
-- The deployment/acceptance line and the FORBIDDEN line stay unchecked; checking FORBIDDEN fails the
-  gate on purpose.
+- The release-cycle deployment/acceptance line and the FORBIDDEN line stay unchecked — the first
+  because that run happens after the commit ([acceptance workflow](../../acceptance/workflow.md));
+  checking FORBIDDEN fails the gate on purpose.
 - When a release cycle lands, reset the checklist by unchecking every box so the next cycle starts
   clean.
 
@@ -140,7 +143,7 @@ while any required box is unchecked.
 - The delivery checklist has every required box checked with an evidence suffix, and the gate that
   reads it is green.
 - Every acceptance-matrix row has a row of evidence, and anything only a real session can show is
-  written down as awaiting the user's acceptance run.
+  written down as awaiting the agent's acceptance run, which judges it from the evidence it collected.
 
 ## Related reading
 

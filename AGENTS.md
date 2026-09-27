@@ -21,7 +21,8 @@ Instructions for AI coding agents and contributors working in this repository.
 [REF] Document system: `docs/AGENTS.md` (binding, auto-loaded under `docs/`) ·
 Contributor pages: `docs/en/contributing/README.md` ·
 Architecture: `docs/architecture/current.md` · Decisions: `docs/decisions/active.md` ·
-Evidence: `docs/evidence/verification.md` · Backlog: `docs/backlog/README.md`.
+Evidence: `docs/evidence/verification.md` · Backlog: `docs/backlog/README.md` · Acceptance:
+`docs/acceptance/AGENTS.md`.
 Binding architecture and sync rules — host-authoritative ownership, judgment ownership, latency never a
 judgment input, accept-first arbitration, dedicated events over snapshots — are explained in
 `docs/en/internals/` (the same paths under `docs/zh/`); the agent-side detail stays in
@@ -173,6 +174,8 @@ independent adversarial self-check → structure review → commit.
 5. `[GATE]` **Implement, then verify against the full matrix**: build → deploy the latest artifacts →
    verify the deployed artifact identity (hash/timestamp) → runtime and log checks where applicable →
    every acceptance row passes. A build that passes without the latest DLLs running is not completion.
+   The rows of a ticket in `review/` are judged by the agent-run acceptance in `docs/acceptance/`,
+   which writes the record that moves the ticket.
 6. `[GATE]` **Run an independent adversarial self-check BEFORE the commit**, in a fresh context (an
    independent subagent, not the reasoning path that produced the change) and against the FROZEN working
    tree; cover reverse directions, third-party views, edge cases and adjacent regressions. Fix its
@@ -203,14 +206,17 @@ Detail: `docs/en/contributing/review-and-delivery.md`.
   rather than declaring the issue done.
 - `[CRITICAL]` **Deployment and artifact verification are part of completion** after any runtime
   behaviour change.
-- `[CRITICAL]` **Development-period verification is simulation/static-evidence based**: no manual
-  dual-client acceptance during development — deployment to the physical machine and dual-client
-  acceptance are the user's release-cycle actions.
+- `[CRITICAL]` **Development-period verification is simulation/static evidence plus the agent-run
+  acceptance** (`docs/acceptance/`): the agent judges every acceptance row from the evidence its run
+  collects and moves the ticket; a row it cannot judge is named as a residual for the user, and a missing
+  dependency is asked about — never replaced by a weaker check. The run's capability grows in stages
+  (`workflow.md`'s status table says what is executable today), and a row that needs a staged capability
+  stays `blocked` — no ticket is closed on it.
 - `[CRITICAL]` **Acceptance-readiness audit before review**, answered with evidence: does the game
   already have a native UI for this surface (reuse it); was the whole family audited across roles,
   directions, participants and third-party views; was the exact reproduction covered by a test or runtime
-  trace against the latest deployed DLLs; were unsupported operations left as future only with explicit
-  user acceptance. Passing tests and gates is necessary, not sufficient.
+  trace against the latest deployed DLLs; can `docs/acceptance/` judge every remaining row, with the
+  residuals named. Passing tests and gates is necessary, not sufficient.
 - `[CRITICAL]` **The adversarial self-check must be independent** — a fresh context, never the reasoning
   path that produced the fix.
 - `[GATE]` Follow `docs/evidence/delivery-checklist.md` (integrity checked by
@@ -220,11 +226,12 @@ Detail: `docs/en/contributing/review-and-delivery.md`.
 ### Definition of Done for user-facing changes
 
 A user-facing change is not complete just because tests and gates pass. Before moving on or reporting
-completion: the exact user reproduction no longer reproduces; all roles, directions, participant views
+completion: the exact reproduction no longer reproduces; all roles, directions, participant views
 and third-party views are verified; the game's existing native UI is reused where one exists; the latest
-build is deployed and its artifact identity is verified; an independent adversarial self-check has
-passed; no known failing scenario is left as "future" without explicit user acceptance; and the root
-cause is addressed rather than patch-stacked. The executable gate is
+build is deployed and its artifact identity is verified; the agent-run acceptance in `docs/acceptance/`
+has judged every acceptance row — residual rows are named for the user, never self-passed; an independent
+adversarial self-check has passed; no known failing scenario is left as "future" without explicit user
+acceptance; and the root cause is addressed rather than patch-stacked. The executable gate is
 `docs/evidence/delivery-checklist.md`.
 
 ## Commit Message Convention

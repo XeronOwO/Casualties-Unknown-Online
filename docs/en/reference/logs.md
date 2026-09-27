@@ -84,7 +84,9 @@ often the aggregate line is written and `SlowFrameThresholdMs` decides what coun
    the previous session's file with the current one.
 
 Green tests and a clean log are development evidence: they prove the logic and the path that ran, never
-that a two-client session looks right on screen. That check is the user's acceptance run.
+that a two-client session looks right on screen. That check belongs to the agent's acceptance run
+([Agent acceptance workflow](../../acceptance/workflow.md)); only what stays subjective comes back to a
+person.
 
 ## Related reading
 

@@ -14,21 +14,22 @@ Two human blocks, path for path identical:
 - `contracts/` — machine baselines and tables that code and gates read.
 - `backlog/`, `evidence/`, `decisions/` — process records: not part of the human navigation, never
   translated.
-- `architecture/`, `development/` — the architecture specifications and the agent-facing pages:
-  English only, and outside the human navigation for the same reason.
+- `architecture/`, `development/`, `acceptance/` — specs and agent-facing pages: English only, outside
+  the human navigation. An agent-only area indexes itself with `AGENTS.md` (never `README.md`) and keeps
+  machine facts in the gitignored `AGENTS.local.md` beside it.
 - Each human directory carries `README.md` as its index (a section of either block, `docs/`,
-  `standard/`, `contracts/`, `architecture/`, `backlog/`); `AGENTS.md` sits only at junctions
-  (`docs/`, `docs/en/`, `docs/zh/`, `src/`, `tests/`, `tools/`), holds guidance rather than
-  knowledge, and stays under its byte ceiling. An index page of either block names its own
+  `standard/`, `contracts/`, `architecture/`, `backlog/`); `AGENTS.md` sits at junctions and in
+  agent-only areas, holds guidance rather than knowledge, and stays under its byte ceiling. An index
+  page of either block names its own
   directory (`docs/en/how-to/`) and lists that section's pages; it carries the same head and tail
   breadcrumb and thematic breaks as any page, pointing at the entry above it, and needs no
   `Related reading`.
 
 Everything a reader needs belongs in these two blocks, in both languages: the
 architecture and protocol explanations, the mod API contract, the feature tables, and the operations
-and contribution knowledge. A document that only records what a past cycle did — a phase plan, an
-audit, a delivery self-check, a decision register — stays out of the blocks, and its conclusions are
-absorbed into the pages that need them.
+knowledge. A document that only records what a past cycle did — a phase plan, an audit, a delivery
+self-check, a decision register — stays out of the blocks, and its conclusions are absorbed into the
+pages that need them.
 
 ## 2. What a page looks like
 
@@ -38,8 +39,8 @@ Breadcrumb head → thematic break → one-sentence purpose → difficulty and p
 runnable example → why it works this way (link into `internals/`) → pitfalls → how to verify
 success → `Related reading` (3–6 links) → thematic break → breadcrumb tail.
 
-Depth rule: a `start/` page shows the single path that works and then stops; the detail lives in
-`how-to/` or `internals/` and is linked, never duplicated.
+Depth rule: a `start/` page shows the single path that works and stops; detail lives in `how-to/` or
+`internals/`, linked, never duplicated.
 
 ## 3. Language
 
@@ -59,8 +60,7 @@ Depth rule: a `start/` page shows the single path that works and then stops; the
 ## 4. Links
 
 - The first use of a project word in a page links to `reference/glossary.md`.
-- Every content page ends with 3–6 `Related reading` links: what the reader most likely needs
-  next.
+- Every content page ends with 3–6 `Related reading` links: what the reader needs next.
 - Breadcrumbs name the real path (`Documentation > How-to > Send a network message`) and link to
   the block's own overview (`docs/en/README.md`) plus the section index; the language switch is not
   part of a breadcrumb.
@@ -70,20 +70,20 @@ Depth rule: a `start/` page shows the single path that works and then stops; the
 - Commands, outputs and code excerpts come from a run, never from memory.
 - A claim about our own code cites the path plus the quoted text, never a line number (it drifts);
   `reversing/` may carry line numbers because that tree is never edited.
-- Behaviour that only a real two-client session can confirm is marked as awaiting the user's
-  acceptance run; green tests are not that evidence.
+- Behaviour only a real two-client session can confirm awaits the agent-run acceptance in
+  `../acceptance/`; green tests are not that evidence.
 
 ## 6. What machines check, and what they cannot
 
 Gates check path parity between the two blocks, link targets that exist, the page shape above, the
-`AGENTS.md` byte ceilings and the pair alignment record. A gate proves presence and shape; it cannot
-tell whether a page teaches, and it cannot tell whether a rendering is natural. Wording stays a
-review duty, checked against `standard/terminology.txt`.
+`AGENTS.md` byte ceilings and the pair alignment record. A gate proves presence and shape; whether a page
+teaches, or a rendering reads naturally, stays a review duty — wording is checked against
+`standard/terminology.txt`.
 
 ## 7. Decay control
 
-- Editing one side of a page obliges the other side in the same change; `standard/alignment.txt`
-  records each confirmed pair, and a gate reports drift.
-- Keep distilled conclusions (decisions, rule-to-gate maps, checklists, self-checks). Delete process
-  logs once their conclusions are absorbed and inbound links re-pointed — delete, do not archive:
-  git keeps the history, and an archive invites stale reading.
+- Editing one side obliges the other in the same change; `standard/alignment.txt` records each
+  confirmed pair, and a gate reports drift.
+- Keep distilled conclusions (decisions, rule-to-gate maps, checklists, self-checks). Delete process logs
+  once absorbed and their inbound links re-pointed — delete, do not archive: git keeps the history and an
+  archive invites stale reading.

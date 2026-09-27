@@ -106,3 +106,7 @@ reusable component | 可复用组件 | 可复用组件 | 公共库，共享模�
 diagnostics | 诊断信息 | 诊断信息 | 日志，诊断输出 | the log lines an author may rely on; their absence is a bug worth reporting
 attack announcement | 攻击公布 | 攻击公布（attack announcement） | 攻击广播，攻击通知 | the host publishes the attack, the client it lands on judges it
 runtime spawn | 运行时生成 | 运行时生成 | 动态生成，临时生成 | an entity created during play rather than by world generation
+acceptance run | 验收运行 | 验收运行（acceptance run） | 实测，人工验收，验收测试 | the agent-run two-client session that judges a review ticket's rows and writes the record that moves the ticket
+acceptance row | 验收行 | 验收行 | 验收项，检查点，用例 | one scenario-and-expected pair of a ticket's acceptance matrix, judged pass, fail, unproven, blocked or residual
+residual | 残余项 | 残余项（residual） | 残留项，遗留项，剩余工作 | an acceptance row only a person can judge; it is never a self-issued pass
+dependency preflight | 依赖体检 | 依赖体检（dependency preflight） | 环境检查，依赖检测 | the read-only check reporting present, missing, unknown or pending per acceptance dependency

@@ -96,7 +96,7 @@ powershell -ExecutionPolicy Bypass -File tools/verify-deploy.ps1 -GameDir "<game
 - 某个工程编译失败时，它的消费者会继续对着上一次成功的 DLL 编译，看起来就像“新类型不存在”。
   先看构建输出，再怀疑消费者。
 - `dotnet format` 会重写文件。复核窗口期工作区是冻结的，别在里面跑它；任何外部工具动过文件后，编辑前都要重新读一遍。
-- 这套测试里没有任何东西是一次游戏会话。测试全绿只能证明逻辑；两台真实客户端的画面对比是用户的验收环节
+- 这套测试里没有任何东西是一次游戏会话。测试全绿只能证明逻辑；两台真实客户端的画面对比是提交之后由智能体执行的[验收运行](../../acceptance/workflow.md)
   （[搭好开发环境](../start/set-up-dev-environment.md)）。
 
 ## 怎么确认成了

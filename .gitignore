@@ -71,6 +71,9 @@ nunit-*.xml
 AGENTS.local.md
 CLAUDE.local.md
 
+# Acceptance-run artifacts (frames, recordings, probe dumps) — local evidence, never committed
+.acceptance/
+
 # Game assemblies (copyrighted, see references/README.md)
 references/*.dll
 

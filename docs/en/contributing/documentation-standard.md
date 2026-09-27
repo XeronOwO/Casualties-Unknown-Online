@@ -80,8 +80,9 @@ A `start/` page shows the single path that works and stops there; the detail bel
 - A claim about our own code cites the path plus the quoted text, never a line number — a line number
   drifts with every edit above it. The decompiled tree `reversing/` may carry line numbers because
   that tree is never edited.
-- Behaviour only a real two-client session can confirm is marked as awaiting the user's acceptance
-  run. Green tests are not that evidence.
+- Behaviour only a real two-client session can confirm is marked as awaiting the agent's acceptance
+  run ([acceptance workflow](../../acceptance/workflow.md)). Green tests are not that evidence, and
+  neither is a pass issued without a run's evidence.
 
 ## Adding a page
 

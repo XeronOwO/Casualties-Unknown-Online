@@ -6,14 +6,14 @@
 # is edited and the other is updated; a gate reports the drift.
 # AGENTS.md files are instruction routing, not pages, and are not registered here.
 #
-docs/en/contributing/build-and-test.md | 26b57f0cad67cbc42a41061d102cd24c6557d117 | docs/zh/contributing/build-and-test.md | 7ddd78a1d095a555dd2835c923032989aa34613e
-docs/en/contributing/documentation-standard.md | 8aced72b71caae282579bad0b7e37e55f239cf26 | docs/zh/contributing/documentation-standard.md | c0e7482c5325df59f8a20fe42d006730b4b0c6df
+docs/en/contributing/build-and-test.md | d2268e2fdd09b8bd1648728882f1de4028ddcd02 | docs/zh/contributing/build-and-test.md | dcc3f1d9082278972ba26189b52514ddabca48ed
+docs/en/contributing/documentation-standard.md | dce107cfc9ca768e7ba4fca2275475da5285801c | docs/zh/contributing/documentation-standard.md | 15ec81bb32cae69b18a25ea10459531d8834ca26
 docs/en/contributing/gates-and-rules.md | b7196fb579f0601970a51a2c3ed97df9d8c8de86 | docs/zh/contributing/gates-and-rules.md | 99ebc6a6ac9f0f5545fcb0466fc6b0128dd21c17
 docs/en/contributing/README.md | ffac48cf4e71a91239198ef64b1a50f5ba275618 | docs/zh/contributing/README.md | 891c0e1ab09c0c96510bf9af4450307060a238a0
 docs/en/contributing/repository-map-and-pitfalls.md | 25228a7c4fefe71c4c21e7449f51806c6aa50a48 | docs/zh/contributing/repository-map-and-pitfalls.md | 2698599f582fbc3183dca7bf2bfb42632a5c21e7
-docs/en/contributing/review-and-delivery.md | db2b300ac14f2b69115e28b4c962ca6b8518f0ac | docs/zh/contributing/review-and-delivery.md | 8e66cdedd745ed7b7718dfb566e5bf9fe097c58d
+docs/en/contributing/review-and-delivery.md | a3a4262cda2115448fd74c058fe213cf035467ec | docs/zh/contributing/review-and-delivery.md | 1b2c3c70a56a552ff056886eccce9779d851e3c5
 docs/en/how-to/add-a-ui-panel.md | fc4c32cc914f3d6a1b2001209892b990f1506499 | docs/zh/how-to/add-a-ui-panel.md | c043713482898880b0460f5d7ec33b42cafe491f
-docs/en/how-to/decide-which-side-judges-an-action.md | 2c00c1d63699bb632abad5ba603e2f48c395be68 | docs/zh/how-to/decide-which-side-judges-an-action.md | 70791370f4944206a21392109b58f92b13e50da1
+docs/en/how-to/decide-which-side-judges-an-action.md | e0ab441854218be7b7686134b7cf5e3c549df16d | docs/zh/how-to/decide-which-side-judges-an-action.md | b04de63ffdc65068d9174a9c1f9ebcc39f3aa1f5
 docs/en/how-to/declare-permissions-and-commands.md | 3fcbb61e34b8da01f3e1de084362ed83869c2de8 | docs/zh/how-to/declare-permissions-and-commands.md | 88cdd1f381dd3f7d992b1a59130d38ef5cbfa914
 docs/en/how-to/read-game-state.md | 4856f6006d71ca1c1195d0de31f0796c72bb734a | docs/zh/how-to/read-game-state.md | 78ab0438e2ed357a2d8d628746d65e0c4ab666ae
 docs/en/how-to/README.md | 74cb8989b9e1bce21aaf51697d28acf525cbc9d4 | docs/zh/how-to/README.md | 9ec03770de1102c7a0780d81b4b83cc9b8e916c8
@@ -35,8 +35,8 @@ docs/en/README.md | b1e639e3617977e06ba8d16d2f4330714592d110 | docs/zh/README.md
 docs/en/reference/configuration.md | d4d4e0708638645e476720bfa78aee5f5093b134 | docs/zh/reference/configuration.md | d6724d45f9e6c5db3b56cf31b04e25f1f02a297d
 docs/en/reference/feature-matrices.md | 3546f411e3a4f4f78f02c971bb14edc9bf486e05 | docs/zh/reference/feature-matrices.md | 6a942efc0bb693925c3321ad957df26a89ef08a6
 docs/en/reference/glossary.md | 262e669835de3abc257fe5ab86107cf482e7a88d | docs/zh/reference/glossary.md | 08b43f0be141113dcdf8ff0096ad838d9344ffe3
-docs/en/reference/logs.md | 8502d5239f94e55bc37118cee6bdb63dfdc622f2 | docs/zh/reference/logs.md | b1776b4a033c12510f1d051b7136a3ab316bb470
-docs/en/reference/mod-api.md | 1b235e9bfc934ec9de6034d0d972e447f34c7745 | docs/zh/reference/mod-api.md | a07d7017a7e380f7cf67732fbe5329866cfb39ec
+docs/en/reference/logs.md | d3da963784a8a6d094377f91cf8f23af91a4eac7 | docs/zh/reference/logs.md | 12fe2563846c7bd752c107b7b1c274fd7a15bbe5
+docs/en/reference/mod-api.md | bb34fb0ea7ba8379688961ed48e1416814846038 | docs/zh/reference/mod-api.md | 1617610449f7d3b9c4f291a900328a654bfb0476
 docs/en/reference/modification-policy.md | b07ff74d4e47b9ae67fe77f0b658d6d5a3cfa3f4 | docs/zh/reference/modification-policy.md | d913d6ac0121e47509dd59ece65f69534a874784
 docs/en/reference/protocol-messages.md | eab39d5aacd739d8683ed3d68bbcd107addb7d39 | docs/zh/reference/protocol-messages.md | 2dc49106ebd6c62d78280eac4d547240f321ad43
 docs/en/reference/README.md | 746bac1e857e688d5e17a0627cc724668371f40d | docs/zh/reference/README.md | 5f6930e1bb4f0285c9640b4f1f074f6056655cec

@@ -6,6 +6,17 @@
 - Source: accumulated from `review/runtime-entity-spawn-backfill.md` and earlier deliveries; `AGENTS.local.md` "验证能力边界"
 - Related: `review/runtime-entity-spawn-backfill.md`, `docs/evidence/test-parallelization.md`
 
+## Promotion recorded 2026-09-27
+
+The user's 2026-09-27 instruction — build the agent's own acceptance workflow so the tickets in
+`review/` are accepted automatically — is the promotion trigger the deferral note below was waiting
+for. This ticket's live-game half (a scripted in-game probe and a dual-client automation harness) is
+carried by `done/agent-acceptance-workflow-foundation.md` stages 2–3 (its Stage 1 landed 2026-09-27),
+together with the
+dependency handling (`docs/acceptance/`); its structural half already moved to
+`review/game-update-contract-toolchain.md`. This file stays as the record of the boundary that the
+acceptance workflow now replaces; it is not a second work item.
+
 ## Deferral note
 
 Deferred by decision: the current verification standard for adapter-shell paths is code

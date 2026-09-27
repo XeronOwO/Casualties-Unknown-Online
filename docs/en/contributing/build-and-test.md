@@ -117,7 +117,8 @@ The full lookup — the shape of a line, what to search for and the triage order
 - `dotnet format` rewrites files. Never run it inside a review window over a frozen tree, and re-read
   a file after any external tool has touched it.
 - Nothing in this suite is a game session. Green tests prove the logic; two real clients on screen are
-  the user's acceptance run ([Set up a development environment](../start/set-up-dev-environment.md)).
+  the [agent's acceptance run](../../acceptance/workflow.md), a separate step after the commit
+  ([Set up a development environment](../start/set-up-dev-environment.md)).
 
 ## How you know it worked
 

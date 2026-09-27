@@ -49,21 +49,12 @@ internal static class RemoteBodyFactory
 		// Visual-input fields the clone copies from the template at Instantiate
 		// time are stale (the simulation that would keep them current is skipped
 		// — Body.Update is replaced by the render-only patch). Zero the pose
-		// state so the clone stands: water/climb flags, and the facing auto-flip
-		// inputs (Body.HandleVisuals flips on moveDir/attackCooldown —
-		// Body.cs:3131). The per-frame neutralizer in BodyUpdatePatch is the
+		// state so the clone stands: crouch amount, water/climb flags, and the
+		// facing auto-flip inputs (Body.HandleVisuals flips on moveDir/attackCooldown
+		// — Body.cs:3131). The per-frame neutralizer in BodyUpdatePatch is the
 		// invariant, but zeroing at creation removes the one-frame window before
 		// the first Body.Update.
-		//
-		// crouchAmount is NOT zeroed: it is a POSE the carried rider's placement
-		// reads (the back offset follows the carrier's eased crouch), so a clone
-		// created for a crouching owner must start at that owner's pose. Seeding
-		// zero placed the rider 0.4 world units too high until the clone's local
-		// easing caught up (BodyUpdatePatch eases at deltaTime * 6f, about 0.37 s)
-		// — the one-frame step the placement rule exists to avoid, and one the
-		// riderDrift reading cannot see. The template's stale value is still
-		// discarded: it is replaced, not kept.
-		body.crouchAmount = remote.Crouching ? 1f : 0f;
+		body.crouchAmount = 0f;
 		body.inWater = false;
 		body.currentClimbable = null;
 		body.attackCooldown = 0f;

@@ -35,19 +35,19 @@ records that someone decided the step was done, not what proved it. Keep it to o
 evidence file.
 
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled
-      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §1-§2 pair every touched mechanism with its frame point; the pre-change census over src/tests found the three placement call sites and the one `BackOffset` caller, and all were re-pointed
+      file:line or runtime log) or is explicitly marked unverified — evidence: selfcheck §2 pairs every moved member with its frame point; the pre-change grep census (src/tests/docs) named every referrer and all were re-pointed
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned
-      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all three views plus the pre-clone fallback and the fresh clone's seed were aligned in one change (`CarriedRiderPresenter`, `PlayerInteractionApply`, `RemoteBodyFactory`), no view left reading the flag
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `docs/evidence/selfchecks/players/carry-rider-crouch-offset-selfcheck.md` §3 (10 rows, endpoints + continuity + NaN + wiring + clone seed + mutation)
+      one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the whole carry-presentation family moved in one extraction (mount, both pin views, the role marks, the drift reading), nothing left half-moved; selfcheck §2
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: `docs/evidence/selfchecks/players/carried-rider-presenter-split-selfcheck.md` §3 (9 rows)
 - [x] Verification design: how the runtime proves it (diagnostic traces,
-      peer log comparison, hotrepl assertions) is decided — evidence: `CarriedRiderBackOffsetTests` (14 cases: value matrix, continuity, NaN fallback, the three call sites, the clone seed) + `EveryDriftReading_IsTakenBeforeTheFirstStateWrite`; two mutation rounds redden 3/13 and 2/14; the picture stays the user's run
+      peer log comparison, hotrepl assertions) is decided — evidence: the two source pins + `CarriedRiderMountTests` + the focused carry tests are the mechanical proof of the moved orderings; the rendered picture stays the user's dual-client run
 - [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose
       design the user already froze counts as approved (a backlog decision, a recorded
       decision entry, a handoff instruction); re-asking a work-item choice is itself a
-      process violation — evidence: the user's instruction to work the Critical carry ticket is the approval; no work-item choice and no design fork were asked, the placement rule had one derivation (AGENTS.md rule 9)
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, focus carry filter 109/109, `dotnet format` leaves only this change's files, gates 288/288, full 4454+288 green WITH build
+      process violation — evidence: the handoff names the split as this family's next prerequisite and the watchlist mandates it before the next change; no work-item choice was asked (AGENTS.md rule 9)
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, focus 45/45, format exit 0, gates 287/287, full 4439+287 green (`%TEMP%/cuo-split-*.txt`)
 - [x] Structure review done (touched classes <= 600 lines, state bools,
-      dead mechanisms deleted in the same round) — evidence: `PlayerInteractionApply` 544, `RemotePlayerRenderer` 375, `CarriedRiderPresenter` 311, `CarriedBodyPlacement` 197, `RemoteBodyFactory` 153 lines, all under the 600 ceiling; no state bool added; `BackOffset` keeps its one caller and no dead copy was left
+      dead mechanisms deleted in the same round) — evidence: `RemotePlayerRenderer` 587 to 338 and the new owner 309 (both under the 600 aggregate ceiling, one top-level type per file); no state bool added; the moved members left no dead copy behind
 - [ ] Release-cycle deployment/acceptance: performed by the user outside the
       development commit gate; simulation/static evidence is the feature
       development verification standard.

@@ -146,6 +146,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				carrierBody.transform.position,
 				carrierBody.isRight,
 				carrierBody.crouching,
+				carrierBody.crouchAmount,
 				carrierBody.rb.velocity,
 				carrierBody.targetLookPos);
 			TraceRider(localBody);
@@ -163,6 +164,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			new Vector3(carrier.Position.X, carrier.Position.Y, 0f),
 			carrier.IsRight,
 			carrier.Crouching,
+			// The entity buffer carries the crouch FLAG only and this fallback runs
+			// before the carrier's render clone exists (a handful of frames), so it
+			// reads the flag as the extreme it stands for. Every clone-backed view
+			// reads the carrier's eased crouch pose instead.
+			carrier.Crouching ? 1f : 0f,
 			new Vector2(carrier.Velocity.X, carrier.Velocity.Y),
 			new Vector2(carrier.LookPos.X, carrier.LookPos.Y));
 		TraceRider(localBody);

@@ -70,7 +70,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Partial-damage report vs the live delta](review/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
 - [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.
 - [Sync cadence review](review/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
-- [Carried-inventory registration](review/carried-inventory-registration-re-report.md) — **Medium** — the absolute re-report window.
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
 - [Session control convergence](review/session-control-convergence.md) — **Medium** — the bounded scene re-report window and the re-ack loop.
 - [Guest command loss is not reconciled](review/guest-command-loss-reconciliation.md) — **Medium** — the bounded per-item re-report queue.
@@ -253,6 +252,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Idle-sit suppression while carried](done/carried-player-idle-sit-suppression.md) — **Medium** — the native sit pose is suppressed.
 - [Carried rider's own body stops simulating](done/carried-rider-own-body-stops-simulating.md) — **Critical** — the rider's own client keeps simulating.
 - [Guest container ghost drops on host](done/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.
+- [Carried-inventory registration](done/carried-inventory-registration-re-report.md) — **Medium** — the absolute re-report window.
 
 ### Watchlist
 

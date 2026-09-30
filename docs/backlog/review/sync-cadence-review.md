@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / cadence tuning
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` cadence findings; user request 2026-09-09 — "如果有觉得同步时长不合理的，也可以提出来")
-- Related: `review/global-adaptive-report-rate-stage-1-global-governor.md`, `review/global-adaptive-report-rate-stage-4-high-frequency-domains.md`, `done/network-traffic-baseline.md`, `review/session-control-convergence.md`, `review/carried-inventory-registration-re-report.md`
+- Related: `review/global-adaptive-report-rate-stage-1-global-governor.md`, `review/global-adaptive-report-rate-stage-4-high-frequency-domains.md`, `done/network-traffic-baseline.md`, `review/session-control-convergence.md`, `done/carried-inventory-registration-re-report.md`
 
 ## Problem (evidence)
 
@@ -32,7 +32,7 @@ landing.
    lazy-P2P swallow window is up to ~30 s after world entry, so a mutation in that
    window could stay invisible for up to a minute.
 5. **Carried-inventory registration: 5 s × 12 then 60 s steady** (landed 2026-09-19
-   with `review/carried-inventory-registration-re-report.md`): a new hardcoded rhythm
+   with `done/carried-inventory-registration-re-report.md`): a new hardcoded rhythm
    that this review has to measure or explicitly accept.
 6. **`WorldSnapshotComplete` / late-join readiness** and **enemy snapshot / attack**
    stay tracked in their own rows/tickets (R3, N1).

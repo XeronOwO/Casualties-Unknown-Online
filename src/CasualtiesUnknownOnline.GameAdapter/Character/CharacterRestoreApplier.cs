@@ -97,22 +97,41 @@ internal sealed class CharacterRestoreApplier(
 	/// </summary>
 	internal void ApplyItems(Body body, CharacterDataMsg data)
 	{
-		foreach (var itemData in data.Items)
+		// The restore puts the snapshot's items back through the game's own slot path
+		// (PickUpItem / Container.LoadItem), and those calls are item OPERATIONS: their
+		// hooks report a pickup. A restore is not an operation — the host already holds
+		// these facts — and batch 20260930-g's host log shows the consequence: the items
+		// that reappeared were reported, and the kernel refused exactly them, "Conflict
+		// (item … is already carried)". The refusal path that follows
+		// (ItemApplication.OnItemRejected → RollbackPickup) pulls a restored item back OUT
+		// of the body, so the report is at best noise and at worst a rollback of the state
+		// just restored. It is NOT claimed to be that batch's only loss: the control
+		// reconnect lost its dog food with no refusal at all, which is the flat-merge half
+		// (TransferTableRestoreMerge).
+		// The write half therefore runs under the same scope the item correction applies
+		// already use (ItemApplication): RemoteApply keeps the item hooks from reporting
+		// what a restore puts back (PickupSync, ContainerItemSync, ItemWorldSync, and the
+		// drop-cancel / slot-rehome branches those coordinators own), so a restore states
+		// nothing — it only reproduces state the peers already hold.
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			if (itemData.SlotIndex < 0)
+			foreach (var itemData in data.Items)
 			{
-				_wearables.RestoreWearable(itemData, body);
+				if (itemData.SlotIndex < 0)
+				{
+					_wearables.RestoreWearable(itemData, body);
+				}
+				else
+				{
+					ItemStateCodec.RestoreItem(itemData, body);
+				}
 			}
-			else
-			{
-				ItemStateCodec.RestoreItem(itemData, body);
-			}
-		}
 
-		var handSlot = data.HandSlot - 1; // wire encoding: handSlot + 1
-		if (handSlot >= 0 && handSlot < body.slots.Length)
-		{
-			body.handSlot = handSlot;
+			var handSlot = data.HandSlot - 1; // wire encoding: handSlot + 1
+			if (handSlot >= 0 && handSlot < body.slots.Length)
+			{
+				body.handSlot = handSlot;
+			}
 		}
 	}
 

@@ -4,7 +4,7 @@
 - Priority: Critical
 - Category: Remote inventory / native interaction parity / architecture rework
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
-- Related: `resolved/remote-backpack-native-interaction-parity.md` and `resolved/remote-backpack-item-projection-acceptance-issues.md` (the rejected deliveries this ticket replaces, absorbed here in stage 0), `review/unified-remote-display-projection-rework.md`, `review/global-projection-framework.md`, `review/tab-backpack-open-close-immediately.md`, `review/guest-container-contents-ghost-drops-on-host.md`
+- Related: `resolved/remote-backpack-native-interaction-parity.md` and `resolved/remote-backpack-item-projection-acceptance-issues.md` (the rejected deliveries this ticket replaces, absorbed here in stage 0), `review/unified-remote-display-projection-rework.md`, `review/global-projection-framework.md`, `review/tab-backpack-open-close-immediately.md`, `done/guest-container-contents-ghost-drops-on-host.md`
 - Design: `docs/architecture/remote-inventory-native-parity.md` (stage 0 record, decision 217)
 
 ## Reported behaviour (2026-09-21)

@@ -136,7 +136,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Snapshot size reduction](review/snapshot-size-reduction.md) — **Low** — a string table for definition ids.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
 - [DI cycle guard / diagnostics](review/di-cycle-guard.md) — ValidateOnBuild and the re-entrancy guard.
-- [Guest container ghost drops on host](review/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.
 - [Trap destruction drop quantity desync](review/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
 - [Trap-layout snapshot recovery](review/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s repair re-derives and re-sends the layout.
@@ -253,6 +252,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carrier sit while carrying](done/carrier-sit-while-carrying.md) — **Medium** — the carrier half of the family.
 - [Idle-sit suppression while carried](done/carried-player-idle-sit-suppression.md) — **Medium** — the native sit pose is suppressed.
 - [Carried rider's own body stops simulating](done/carried-rider-own-body-stops-simulating.md) — **Critical** — the rider's own client keeps simulating.
+- [Guest container ghost drops on host](done/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.
 
 ### Watchlist
 

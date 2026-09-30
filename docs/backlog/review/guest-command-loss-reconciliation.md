@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / items
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I5, plus the empty-host-table caveat the audit attached to row I1)
-- Related: `review/guest-block-mutation-re-report.md` (same swallowed-guest-report family), `review/session-control-convergence.md` (the bounded re-report window this one follows), `review/carried-inventory-registration-re-report.md` (row I8, landed 2026-09-19 — the same family, cadence-based instead of verdict-based)
+- Related: `review/guest-block-mutation-re-report.md` (same swallowed-guest-report family), `review/session-control-convergence.md` (the bounded re-report window this one follows), `done/carried-inventory-registration-re-report.md` (row I8, landed 2026-09-19 — the same family, cadence-based instead of verdict-based)
 
 ## Problem (evidence)
 
@@ -222,7 +222,7 @@ swallow contract.
   their absolute fallbacks (matrix rows I7 and I4, whose own container-contents gap stays
   I4's); the cross-player transfer seam and its arbitration table are unchanged; the
   item-domain audit gap that was row I8 has since landed
-  (`review/carried-inventory-registration-re-report.md`, 2026-09-19), so no audit gap of
+  (`done/carried-inventory-registration-re-report.md`, 2026-09-19), so no audit gap of
   the item domain is open any more.
 - Observation, pre-existing and not touched: `IKernelProtocolControl.ResetForSessionEnd()`
   has no production caller — the kernel's per-session reset is reached through

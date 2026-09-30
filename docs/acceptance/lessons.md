@@ -442,3 +442,17 @@ dependency the table did not name, a step that cost more than it returned.
   name the step that produced the frame; "no `Registered` line yet" is not evidence of a
   broken re-report while the body is still loading.
 
+## 2026-09-30 — The two reconnect rows need opposite setups, so one session cannot judge both
+
+- Symptom: batch `20260930-h` judged the container row's reconnect on a complete precondition —
+  table, kernel and snapshot all nested — and the row passed; the registration row's "table
+  rebuilt exactly once" still had nothing to rebuild, because the table was never emptied.
+- Cause: the two rows pull in opposite directions. Clearing the per-guest transfer table also
+  removes what the container row's restore merges (batch `20260930-g`), so a cleared-table cycle
+  cannot judge that row, and a populated-table cycle cannot exercise a rebuild.
+- Change: judge the container row on the populated-table cycle and give the registration row its
+  own cleared-table run. Read the merge's own line (`Merged N transfer-table items onto the
+  restore … (X appended; Y unplaceable)`) as the evidence that the new path ran, and "no
+  `Conflict` and no `rejected` in BOTH logs" as the restore-report half — a machine reading of the
+  item tree alone would not have named which path produced it.
+

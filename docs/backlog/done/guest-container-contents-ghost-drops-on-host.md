@@ -1,10 +1,11 @@
 # Guest carried container contents periodically appear as world drops on the host view (dog food in trash bag)
 
-- Status: Review
+- Status: Done
 - Priority: Medium
 - Acceptance (20260927-d): row 4 `pass` from the run's suites; rows 1–3 are setup-gap blocked on a container scenario — record `docs/evidence/acceptance/guest-container-contents-ghost-drops-on-host-20260927.md`
 - Acceptance (20260930-f): rows 1–2 `pass` from this batch's container scenario (row 2 with the panel frames read); row 3 `unproven` — the rejoin never re-activated the session — record `docs/evidence/acceptance/guest-container-contents-ghost-drops-on-host-20260930.md`
 - Acceptance (20260930-g): row 3 `unproven` — the reconnect now re-activates the session (three attempts), but the carried container's contents did not survive the re-entry (the guest's body came back empty after the cleared-table cycle and the dog food was still missing in the control); this batch's artifacts are the evidence the reconnect half of *Root cause and fix* rests on — record `docs/evidence/acceptance/guest-container-contents-ghost-drops-on-host-20260930-g.md`
+- Acceptance (20260930-h): row 3 `pass` on the fixed build — after a reconnect that kept the table populated (so the restore's input stayed complete) the guest's container came back WITH its contents, the host's table and kernel were duplicate-free with the contained relation intact, the host's clone view had no orphan proxy, and neither log carried a `Conflict` — record `docs/evidence/acceptance/guest-container-contents-ghost-drops-on-host-20260930-h.md`
 - Category: Item/container sync / remote presentation
 - Source: User report (2026-09-04) — a guest puts dog food into a trash bag, then while moving the host periodically sees a can of dog food drop from the guest's body; the guest's own view does not see it.
 - Selfcheck: `docs/evidence/selfchecks/items/remote-clone-display-content-id-free-selfcheck.md`

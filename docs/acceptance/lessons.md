@@ -402,3 +402,43 @@ dependency the table did not name, a step that cost more than it returned.
   short step at a time, with a single observable checkpoint per step) before group C is attempted again; do not
   chain launch → wait → rejoin → read into one long procedure.
 
+## 2026-09-30 — The reconnect blocker did not reproduce, so it cannot be fixed yet
+
+- Symptom: after batch f's wedge (the guest rejoined the lobby but its session never
+  activated), three reconnect attempts in batch g completed the full handshake and world
+  entry; both ends read the peer in the lobby and the session state `Connected`.
+- Cause: the failure is not deterministic in this environment. The batch-f logs show sends
+  accepted with zero delivery, and nothing in the tree closes a wedged P2P session
+  (`CloseSessionWithUser` has no caller), but one observation cannot name the trigger — the
+  mechanism is a candidate, not a finding.
+- Change: an unreproduced intermittent is recorded as such; the reconnect rows stay
+  `unproven`, and no product change is written against a mechanism nobody has seen twice.
+
+## 2026-09-30 — Clearing the arbitration table also removes the reconnect's restore input
+
+- Symptom: after the declared offline clear and a rejoin, the guest's body came back empty
+  (the bag and dogfood objects gone) although the kernel still listed them as carried; a
+  control reconnect brought the bag and light back but not the dogfood.
+- Cause: the host's saved-character restore merges the per-guest transfer table, so the
+  clear removes the restore's input for the guest's carried items; the kernel rebuild then
+  repopulates the table, and the guest applies the restore through the native pickup path,
+  whose commands the host refuses as conflicts — after which the guest's reconciliation
+  removes the local objects. The control could not separate the two halves because its
+  table had already been flattened by the first cycle.
+- Change: a reconnect scenario that judges carried items must keep the table populated or
+  re-establish the carried set before the row is judged, and the restore/pickup conflict
+  path needs its own focused run; clearing the table alone is not a valid container test.
+
+## 2026-09-30 — On a rejoin the dense registration window can spend itself before the body exists
+
+- Symptom: the host granted the watermark at handshake completion, but no registration
+  frame followed for minutes; the guest log stayed quiet until after the world restore.
+- Cause: the window opens on the watermark grant, which arrives before the guest's world
+  restore; the dense 12 × 5 s budget is spent on empty captures (no body yet), and the
+  steady minute only reports once the body exists. On the first reconnect the body was
+  still empty at capture time, which is why the kernel rebuild path populated the table
+  before any report could.
+- Change: judge a rejoin's registration over the steady window after the body exists, and
+  name the step that produced the frame; "no `Registered` line yet" is not evidence of a
+  broken re-report while the body is still loading.
+

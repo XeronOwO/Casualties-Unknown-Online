@@ -361,3 +361,44 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: record such windows with their magnitudes, judge the row against the smoothing tolerance it
   names, and keep the pixel-level remainder a residual. A participant-view warning remains the
   meaningful defect direction.
+
+## 2026-09-30 — The live evaluator refuses a nested lambda that captures a local
+
+- Symptom: a recipe the offline gate accepted failed in the client with an `eval_error` that named only
+  the outer lambda's position; the same recipe's neighbours ran.
+- Cause: the gate parses recipes with Roslyn, the client compiles them with Mono's REPL compiler, and
+  that compiler refuses a nested lambda capturing a non-const local (a `const` is inlined, which is why
+  the existing helpers use one).
+- Change: pass every value a nested helper needs as a parameter, or inline the logic at the call sites; a
+  recipe that passes the gate can still be rejected by the client.
+
+## 2026-09-30 — A local container window needs the radial state or the game closes it
+
+- Symptom: the guest's container capture showed an empty window while the recipe reported `opened=true`.
+- Cause: `PlayerCamera.OpenContainer` only sets `currentContainer` and activates the menu; the per-frame
+  `HandleRadialMenu` scales the radial down and calls `CloseContainer()` when `radialOpen` is false.
+- Change: set `radialOpen = true` before opening a local container window (the remote-backpack path
+  already does this through its own focus), and read `PlayerCamera.currentContainer` back as the open
+  verdict.
+
+## 2026-09-30 — Clearing the transfer table needs an idle observation window
+
+- Symptom: the host's carried-id table can be restored between a clear and the registration report the
+  clear is meant to test.
+- Cause: the host rebuilds the per-guest table from the kernel after every external (guest) batch
+  (`ItemService.OnExternalBatchCommitted`), so any other client's action can re-create the entries.
+- Change: keep every other client idle through the window, read the host's `Registered … carried items`
+  line as the registration evidence, and say in the record that the kernel rebuild path exists and was
+  not the mechanism observed.
+
+## 2026-09-30 — A relaunched guest rejoined the lobby but did not re-activate its session
+
+- Symptom: the reconnect half of batch f could not start — after quit, relaunch and rejoin of the same
+  lobby, the client's session facts stayed `active=false, members=[]` with scene `PreGen`.
+- Cause (observed, not yet diagnosed): the guest's log repeats `Retrying handshake` for the whole process
+  life while the host's member list never regains it; the join reaches the lobby layer but not the CUO
+  session layer.
+- Change: the reconnect rows stay `unproven` and the rejoin path needs its own verified checkpoints (one
+  short step at a time, with a single observable checkpoint per step) before group C is attempted again; do not
+  chain launch → wait → rejoin → read into one long procedure.
+

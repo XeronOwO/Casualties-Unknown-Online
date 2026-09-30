@@ -3,6 +3,7 @@
 - Status: Review
 - Priority: Medium
 - Acceptance (20260927-d): row 4 `pass` from the run's suites; rows 1–3 are setup-gap blocked on a container scenario — record `docs/evidence/acceptance/guest-container-contents-ghost-drops-on-host-20260927.md`
+- Acceptance (20260930-f): rows 1–2 `pass` from this batch's container scenario (row 2 with the panel frames read); row 3 `unproven` — the rejoin never re-activated the session — record `docs/evidence/acceptance/guest-container-contents-ghost-drops-on-host-20260930.md`
 - Category: Item/container sync / remote presentation
 - Source: User report (2026-09-04) — a guest puts dog food into a trash bag, then while moving the host periodically sees a can of dog food drop from the guest's body; the guest's own view does not see it.
 - Selfcheck: `docs/evidence/selfchecks/items/remote-clone-display-content-id-free-selfcheck.md`

@@ -329,3 +329,35 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: judge a visual row from the largest readable surface the scenario has (the native panel), crop
   and enlarge through the window geometry when that helps, and record a row the frames cannot resolve as
   a residual or `unproven` — never as a pass.
+
+## 2026-09-30 — A third client is a capability: declare it, port it, and start its sandbox Steam cold
+
+- Symptom: the carry family's third-peer rows had no way to be judged; the alternate sandbox existed but
+  its evaluator would have bound the host's port, and the machine restart had left both sandbox Steam
+  instances down.
+- Cause: `sandbox-alt` was not a dependency the preflight checked, and a sandboxed client reads the
+  physical install's HotRepl config unless its own shadow carries one.
+- Change: `sandbox-alt` is now a preflight row — the alternate client's own sandboxed HotRepl config
+  must carry `hotrepl-alt-url`'s port, distinct from the host's and the guest's — and the launch
+  procedure starts the box's Steam first when it is cold. Verified this run: three distinct accounts in
+  one world, members 3, and every client seeing the other two clones.
+
+## 2026-09-30 — Close the Online UI before a world capture
+
+- Symptom: the first third-client capture showed the Online UI's Network page instead of the world; the
+  driver's create-lobby / join-lobby leaves the window open.
+- Cause: window-level capture faithfully renders whatever the window shows, and the Online UI is a
+  full-window panel.
+- Change: close the window (`click window.close`) on every client before a world frame. The UI itself
+  stays evidence for the session state (it showed `Members: 3`) and is captured before closing.
+
+## 2026-09-30 — A third-party clone's drift reading is pre-re-pin; a small non-zero is the smoothing path
+
+- Symptom: the third client's logs carried four reportable `riderDrift` windows (0.018–0.079 world
+  units) during one movement burst, while both participant views read zero in every window.
+- Cause: a third-party view deliberately mounts nothing and re-pins after `SessionStatePump.Apply`, so
+  the reading taken before the re-pin sees the interpolation remainder the row's "same tolerance as
+  normal remote-player smoothing" names; the participant views' mount keeps the reading at zero.
+- Change: record such windows with their magnitudes, judge the row against the smoothing tolerance it
+  names, and keep the pixel-level remainder a residual. A participant-view warning remains the
+  meaningful defect direction.

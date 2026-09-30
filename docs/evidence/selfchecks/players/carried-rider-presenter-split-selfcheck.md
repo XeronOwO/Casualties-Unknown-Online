@@ -2,7 +2,7 @@
 
 Cycle: 2026-09-27 (follow-on inside the carry ticket's acceptance-ready window)
 
-Ticket: `docs/backlog/review/carry-piggyback-rider-position-smoothing.md` — stays in `todo/`: its
+Ticket: `docs/backlog/done/carry-piggyback-rider-position-smoothing.md` — stays in `todo/`: its
 deciding readings still need the user's dual-client run.
 
 Tier: NARROWED (behaviour-preserving responsibility split; no rendered-frame change).

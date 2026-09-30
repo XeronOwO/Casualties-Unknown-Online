@@ -57,7 +57,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Review
 
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the acceptance pass' geometry and click findings.
-- [Carry rider position smoothing](review/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
@@ -137,9 +136,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Snapshot size reduction](review/snapshot-size-reduction.md) — **Low** — a string table for definition ids.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
 - [DI cycle guard / diagnostics](review/di-cycle-guard.md) — ValidateOnBuild and the re-entrancy guard.
-- [Idle-sit suppression while carried](review/carried-player-idle-sit-suppression.md) — **Medium** — the native sit pose is suppressed.
-- [Carried rider's own body stops simulating](review/carried-rider-own-body-stops-simulating.md) — **Critical** — the rider's own client keeps simulating.
-- [Carrier sit while carrying](review/carrier-sit-while-carrying.md) — **Medium** — the carrier half of the family.
 - [Guest container ghost drops on host](review/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.
 - [Trap destruction drop quantity desync](review/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
@@ -253,6 +249,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Host fall-injury mouth desync](done/host-fall-injury-mouth-expression-desync.md) — **Medium** — head/mouth state rides the snapshot.
 - [Carry vertical placement asymmetry](done/carry-piggyback-vertical-placement-asymmetry.md) — **Medium** — riders publish the torso anchor.
 - [A dead or unconscious carried body stops simulating](done/carried-unconscious-body-simulation.md) — **Medium** — vitals advance behind the pinned pose.
+- [Carry rider position smoothing](done/carry-piggyback-rider-position-smoothing.md) — **Critical** — the rider must stay attached on every view.
+- [Carrier sit while carrying](done/carrier-sit-while-carrying.md) — **Medium** — the carrier half of the family.
+- [Idle-sit suppression while carried](done/carried-player-idle-sit-suppression.md) — **Medium** — the native sit pose is suppressed.
+- [Carried rider's own body stops simulating](done/carried-rider-own-body-stops-simulating.md) — **Critical** — the rider's own client keeps simulating.
 
 ### Watchlist
 

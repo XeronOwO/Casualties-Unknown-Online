@@ -1,11 +1,12 @@
 # A carried rider's own body stops simulating (flat ECG, twitching limbs)
 
-- Status: Review
+- Status: Done
 - Priority: Critical
-- Acceptance (20260927-d): rows 1/2/4/5/6/8 `pass`; row 3 is a residual; row 7 waits for a three-client run — record `docs/evidence/acceptance/carried-rider-own-body-stops-simulating-20260927.md`
+- Acceptance (20260930-e): row 7 `pass` (the third peer watching the carry) — record `docs/evidence/acceptance/carried-rider-own-body-stops-simulating-20260930.md`
+- Acceptance record: docs/evidence/acceptance/carried-rider-own-body-stops-simulating-20260927.md (batch `20260927-d`: rows 1/2/4/5/6/8 `pass`, row 3 a residual)
 - Category: Carry/piggyback presentation / own-client body simulation
 - Source: User acceptance finding (2026-09-21): the guest carries the host on their back; on the host's own screen the host's own medical panel shows an almost flat ECG although the heart rate is real (only occasional tiny waveforms), and the panel's limbs twitch with a frequency that keeps growing; releasing the carry restores normal behaviour.
-- Related: `review/carry-piggyback-rider-position-smoothing.md` (the same mechanism), `review/carried-player-idle-sit-suppression.md`, `review/carrier-sit-while-carrying.md`, `done/carry-piggyback-vertical-placement-asymmetry.md`, `review/remote-medical-panel-acceptance-issues.md`
+- Related: `done/carry-piggyback-rider-position-smoothing.md` (the same mechanism), `done/carried-player-idle-sit-suppression.md`, `done/carrier-sit-while-carrying.md`, `done/carry-piggyback-vertical-placement-asymmetry.md`, `review/remote-medical-panel-acceptance-issues.md`
 
 ## Evidence
 
@@ -91,10 +92,10 @@ not its simulation. Recorded as decision 216.
 
 | Family member | Verdict | Reason |
 |---|---|---|
-| `review/carried-player-idle-sit-suppression.md` | KEPT, mechanism changed for the local rider | The rider's own sit is now impossible natively (`movingAllowed` false removes the `Body.cs:3162` condition) and the idle timer is held at zero as belt-and-braces; the clone halves still need `ShouldZeroIdleTimer`/`ShouldExitSit`/`ShouldReplaySit` because a clone's idle timer and a stale `Sitting` snapshot are not driven by a simulation. |
-| `review/carrier-sit-while-carrying.md` | KEPT unchanged | The carrier is a fully simulating local body, so its idle timer still has to be held at zero by the patch to keep the native sit pose off the carry relationship. |
+| `done/carried-player-idle-sit-suppression.md` | KEPT, mechanism changed for the local rider | The rider's own sit is now impossible natively (`movingAllowed` false removes the `Body.cs:3162` condition) and the idle timer is held at zero as belt-and-braces; the clone halves still need `ShouldZeroIdleTimer`/`ShouldExitSit`/`ShouldReplaySit` because a clone's idle timer and a stale `Sitting` snapshot are not driven by a simulation. |
+| `done/carrier-sit-while-carrying.md` | KEPT unchanged | The carrier is a fully simulating local body, so its idle timer still has to be held at zero by the patch to keep the native sit pose off the carry relationship. |
 | `done/carry-piggyback-vertical-placement-asymmetry.md` | KEPT, scope narrowed | The rule itself only takes `isCarried` (`ShouldPublishBodyRoot(bool isCarried) => isCarried`); what narrows its reach is its only caller, `RunCoordinator.PublishBodyState`, whose torso anchor is `!body.standing && !ShouldPublishBodyRoot(...) && body.limbs.Length > 1`, so it can only matter for a carried body that is not standing. |
-| `review/carry-piggyback-rider-position-smoothing.md` | STAYS OPEN | Its own reopened note tracks this ticket's defect; the teleport/mismatch acceptance it carries was not re-tested in this cycle and still needs a real two-client run. |
+| `done/carry-piggyback-rider-position-smoothing.md` | STAYS OPEN | Its own reopened note tracks this ticket's defect; the teleport/mismatch acceptance it carries was not re-tested in this cycle and still needs a real two-client run. |
 
 ### Adversarial review round (same cycle)
 

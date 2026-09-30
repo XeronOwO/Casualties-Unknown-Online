@@ -1,8 +1,9 @@
 # Suppress native idle-sit while a player is being carried/piggybacked
 
-- Status: Review
+- Status: Done
 - Priority: Medium
-- Acceptance (20260927-d): rows 1/3/4 `pass`; row 2 is a residual; row 5 is `unproven` (needs a stationary non-carried remote clone ending a sit) — record `docs/evidence/acceptance/carried-player-idle-sit-suppression-20260927.md`
+- Acceptance (20260930-e): row 5 `pass` (the remote-clone sit-end transition) — record `docs/evidence/acceptance/carried-player-idle-sit-suppression-20260930.md`
+- Acceptance record: docs/evidence/acceptance/carried-player-idle-sit-suppression-20260927.md (batch `20260927-d`: rows 1/3/4 `pass`, row 2 a residual)
 - Category: Player interaction / carry-piggyback body pose
 - Source: User report (2026-09-04) — a carried character can sit down after a long period without input.
 
@@ -29,4 +30,4 @@ Selfcheck: `docs/evidence/selfchecks/players/carried-idle-sit-suppression-selfch
 
 The carried-rider slice has since been extended to the carrier half: a player
 can no longer sit down while carrying someone. The carrier-side implementation
-and evidence are tracked in `review/carrier-sit-while-carrying.md`.
+and evidence are tracked in `done/carrier-sit-while-carrying.md`.

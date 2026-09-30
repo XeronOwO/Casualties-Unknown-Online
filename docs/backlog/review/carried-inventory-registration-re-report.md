@@ -3,6 +3,7 @@
 - Status: Review
 - Priority: Medium
 - Acceptance (20260927-d): rows 4–7 `pass` from the run's suites; rows 1–2 need a swallowed-registration setup, row 3 needs a reconnect run — record `docs/evidence/acceptance/carried-inventory-registration-re-report-20260927.md`
+- Acceptance (20260930-f): rows 1–2 `pass` from this batch's container scenario (the table-clear substitution plus an idle observation window); row 3 `unproven` — the rejoining client's session never re-activated — record `docs/evidence/acceptance/carried-inventory-registration-re-report-20260930.md`
 - Category: Network / sync coverage / items / arbitration
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I8)
 - Related: `resolved/remote-backpack-native-interaction-parity.md`, `resolved/remote-backpack-item-projection-acceptance-issues.md`, `review/guest-command-loss-reconciliation.md` (the sibling swallowed-guest-report landing)

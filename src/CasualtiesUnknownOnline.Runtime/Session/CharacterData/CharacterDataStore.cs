@@ -18,8 +18,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// reports and by a restore's claim, and is cleared on session end / a new run.
 /// The reconnect restore merges the item arbitration's transfer table (the
 /// host's authoritative record of what the guest owns) over the guest's last
-/// report — the host's data wins where they disagree, and items the guest
-/// never reported yet (a pickup moments before the disconnect) still restore.
+/// report — the host's STATE wins where they disagree, while the report keeps
+/// stating PLACEMENT (see <see cref="TransferTableRestoreMerge"/>), and items the
+/// guest never reported yet (a pickup moments before the disconnect) still
+/// restore.
 /// Terminal player facts (alive/conscious, limb latches, body-terminal
 /// latches) come from the kernel players table, not from the snapshot's
 /// terminal fields: the snapshot remains the authority for continuous
@@ -177,13 +179,12 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	}
 
 	/// <summary>
-	/// Merge the host's authoritative ownership record (the transfer table —
-	/// what the arbitration moved into the guest's hands, never overwritten by
-	/// the guest's own reports) over the guest's last snapshot. An entry the
-	/// snapshot already has is replaced by the authoritative state (the
-	/// snapshot's slot is kept — a carried item's slot is its owner's local
-	/// fact); an entry the snapshot lacks (a pickup moments before the
-	/// disconnect) is appended.
+	/// Merge the host's authoritative ownership record (the transfer table — what the
+	/// arbitration moved into the guest's hands, never overwritten by the guest's own
+	/// reports) over the guest's last snapshot, and name both halves of the result: how
+	/// many entries updated a node the snapshot already carried, and how many had to be
+	/// appended because it carried the id nowhere. The rules live in
+	/// <see cref="TransferTableRestoreMerge"/>.
 	/// </summary>
 	private void MergeTransferredItems(ulong steamId, CharacterDataMsg data)
 	{
@@ -193,44 +194,14 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			return;
 		}
 
-		// Snapshot index: by instance id where present, else by definition id.
-		var byId = new Dictionary<ulong, int>();
-		var byDef = new Dictionary<string, int>();
-		for (var i = 0; i < data.Items.Count; i++)
+		var outcome = TransferTableRestoreMerge.Apply(data, transferred);
+		_log.LogInformation("Merged {Matched} transfer-table items onto the restore of {Peer} ({Appended} appended — the snapshot did not carry them; {Unplaced} unplaceable; {Total} items total).",
+			outcome.Matched, steamId, outcome.Appended, outcome.Unplaced, data.Items.Count);
+		if (outcome.Unplaced > 0)
 		{
-			var item = data.Items[i];
-			if (item.InstanceId != 0)
-			{
-				byId[item.InstanceId] = i;
-			}
-			else
-			{
-				byDef[item.ItemId] = i;
-			}
+			_log.LogWarning("The restore of {Peer} cannot place {Unplaced} transfer-table item(s): the snapshot does not carry them anywhere and their entries state no body placement (a container content's slot is its parent's, and the table cannot state the parent — an item moved into a container after the last 1 Hz report). They are dropped by name, not silently.",
+				steamId, outcome.Unplaced);
 		}
-
-		var merged = 0;
-		foreach (var entry in transferred)
-		{
-			var authoritative = entry.Item;
-			var idx = authoritative.InstanceId != 0 && byId.TryGetValue(authoritative.InstanceId, out var byKey)
-				? byKey
-				: byDef.TryGetValue(authoritative.ItemId, out var byDefinition) ? byDefinition : -1;
-			if (idx >= 0)
-			{
-				authoritative.SlotIndex = data.Items[idx].SlotIndex; // the snapshot's slot is the owner's local fact
-				data.Items[idx] = authoritative;
-			}
-			else
-			{
-				data.Items.Add(authoritative);
-			}
-
-			merged++;
-		}
-
-		_log.LogInformation("Merged {Merged} transfer-table items into the restore of {Peer} ({Total} items total).",
-			merged, steamId, data.Items.Count);
 	}
 
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>

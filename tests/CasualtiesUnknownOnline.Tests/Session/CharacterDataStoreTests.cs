@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -408,4 +409,60 @@ public class CharacterDataStoreTests
 			Assert.Equal(1.75f, restored.Skills.ExpIntelligence);
 		}
 	}
+
+	[Fact]
+	public void SendSavedCharacter_KeepsAContainersContentsNested_WhenTheTransferTableStatesThemFlat()
+	{
+		// Batch 20260930-g: the host's transfer table holds one entry per id — the bag's
+		// carries no contents (it travelled as a pickup digest, or was rebuilt from the
+		// kernel) and the dog food has an entry of its own with no slot. The reconnect
+		// restore still has to hand the guest its bag WITH the dog food inside it; the
+		// flat overlay used to lift the content beside the container, where the restore
+		// dropped it (its slot is its parent's) and the container came back empty.
+		const ulong bagId = 101;
+		const ulong dogFoodId = 102;
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			var store = host.Services.GetRequiredService<CharacterDataStore>();
+			store.SaveCharacterData(GuestId, new CharacterDataMsg
+			{
+				OwnerSteamId = GuestId,
+				Items =
+				[
+					new CharacterItemMsg
+					{
+						InstanceId = bagId,
+						ItemId = "trashbag",
+						SlotIndex = 0,
+						Condition = 0.9f,
+						Contents = [new CharacterItemMsg { InstanceId = dogFoodId, ItemId = "dogfood", SlotIndex = 0, Condition = 0.5f }],
+					},
+				],
+			});
+
+			host.Services.GetRequiredService<ItemArbitration>().RegisterCarried(GuestId,
+			[
+				new CharacterItemMsg { InstanceId = bagId, ItemId = "trashbag", Condition = 0.4f },
+				new CharacterItemMsg { InstanceId = dogFoodId, ItemId = "dogfood", SlotIndex = -1, Condition = 0.3f },
+			]);
+
+			MarkHostInWorld(host);
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			var restored = Assert.Single(received);
+			Assert.True(restored.Items.Count == 1, $"the content must stay inside its container, got {restored.Items.Count} top-level item(s)");
+			var bag = restored.Items.Single(item => item.InstanceId == bagId);
+			Assert.True(bag.Condition == 0.4f, $"the transfer table's arbitrated state must win, got {bag.Condition}");
+			Assert.True(bag.SlotIndex == 0, $"the snapshot's slot must survive, got {bag.SlotIndex}");
+			var food = Assert.Single(bag.Contents);
+			Assert.True(food.InstanceId == dogFoodId && food.ItemId == "dogfood", $"the content must keep its identity and definition, got {food.InstanceId}/{food.ItemId}");
+			Assert.True(food.Condition == 0.3f, $"the content's own table entry updates it in place, got {food.Condition}");
+		}
+	}
+
 }

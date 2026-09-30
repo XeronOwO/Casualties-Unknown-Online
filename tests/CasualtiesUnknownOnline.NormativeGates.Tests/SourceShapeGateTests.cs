@@ -531,6 +531,112 @@ public class SourceShapeGateTests
 		Assert.Equal(expected, BoundItemSkipRegex.IsMatch(line));
 
 	/// <summary>
+	/// The character restore re-materializes a snapshot's items through the game's own slot
+	/// path (<c>Body.PickUpItem</c> / <c>Container.LoadItem</c>), and those calls are item
+	/// OPERATIONS: <c>PickupSync</c> and <c>ContainerItemSync</c> report them as pickups. A
+	/// restore is not an operation — the host already holds the facts it re-states — and batch
+	/// <c>20260930-g</c>'s host log shows what the reports bought: the items that reappeared
+	/// were reported, and the kernel refused exactly them, <c>Conflict (item … is already
+	/// carried)</c>, while the refusal path (<c>ItemApplication.OnItemRejected</c> →
+	/// <c>RollbackPickup</c>) is the one that pulls a restored item back OUT of the body. The
+	/// refusal is NOT claimed to be that batch's only loss — the control reconnect lost its dog
+	/// food with no refusal at all, and that half is the flat transfer-table merge — so this gate
+	/// guards the REPORT, which is wrong on its own terms, not the whole loss. The write half
+	/// therefore runs inside the adapter's <c>CallContext.Origin.RemoteApply</c> scope, the same
+	/// scope the item correction applies already use (<c>ItemApplication</c>), which is what
+	/// keeps those hooks from reporting what a restore puts back.
+	/// <para>
+	/// Its reach, stated exactly: the whole file text of the applier, with the method body located
+	/// by signature and the scope's own braced block walked. Unity is not reachable from this
+	/// suite, so only the SCOPE and what it encloses are pinned here; its runtime half is the
+	/// acceptance run's reading that a reconnect logs no <c>Conflict</c> for a restored id, which
+	/// this gate does not claim to replace.
+	/// </para>
+	/// </summary>
+	[Fact]
+	public void CharacterRestore_MaterializesItemsInsideARemoteApplyScope()
+	{
+		var applier = RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterRestoreApplier.cs");
+		Assert.True(File.Exists(applier), $"the character restore applier moved: {Relative(applier)}");
+
+		var failures = CharacterRestoreScopeFailures(File.ReadAllText(applier));
+		Assert.True(failures.Count == 0, "character restore scope gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	/// <summary>The gate's own contract: the scope must exist AND its own block must hold the materialization; a body that reports without it, one whose scope encloses nothing, and one that materializes nothing each fail.</summary>
+	[Theory]
+	[InlineData("internal void ApplyItems(Body body, CharacterDataMsg data) { using (CallContext.Enter(CallContext.Origin.RemoteApply)) { ItemStateCodec.RestoreItem(null, body); } }", 0)]
+	[InlineData("internal void ApplyItems(Body body, CharacterDataMsg data) { _wearables.RestoreWearable(null, body); }", 1)]
+	[InlineData("internal void ApplyItems(Body body, CharacterDataMsg data) { using (CallContext.Enter(CallContext.Origin.RemoteApply)) { } }", 2)]
+	[InlineData("internal void ApplyItems(Body body, CharacterDataMsg data) { using (CallContext.Enter(CallContext.Origin.RemoteApply)) { } ItemStateCodec.RestoreItem(null, body); }", 1)]
+	[InlineData("internal void ApplyItems(Body body, CharacterDataMsg data) {\n// using (CallContext.Enter(CallContext.Origin.RemoteApply))\nItemStateCodec.RestoreItem(null, body);\n}", 1)]
+	[InlineData("internal void SomethingElse() { }", 1)]
+	public void TheCharacterRestoreScopeMatcher_SeesTheScopeAndItsFailureShapes(string source, int expectedFailures) =>
+		Assert.Equal(expectedFailures, CharacterRestoreScopeFailures(source).Count);
+
+	private static List<string> CharacterRestoreScopeFailures(string text)
+	{
+		var failures = new List<string>();
+		var body = MethodBody(text, "internal void ApplyItems(Body body, CharacterDataMsg data)");
+		if (body.Length == 0)
+		{
+			failures.Add("ApplyItems() not found — this rule would pass by checking nothing");
+			return failures;
+		}
+
+		var live = LiveLines(body);
+		var scope = live.IndexOf("using (CallContext.Enter(CallContext.Origin.RemoteApply))", StringComparison.Ordinal);
+		if (scope < 0)
+		{
+			failures.Add("ApplyItems() materializes the snapshot's items outside a RemoteApply scope — the native pickups it drives are reported as operations the host refuses (Conflict: already carried), and the refusal path rolls the restored item back out of the body");
+		}
+		else
+		{
+			var scopeBlock = BracedBlock(live, live.IndexOf('{', scope));
+			if (!scopeBlock.Contains("RestoreItem(", StringComparison.Ordinal)
+				&& !scopeBlock.Contains("RestoreWearable(", StringComparison.Ordinal))
+			{
+				failures.Add("the RemoteApply scope does not enclose the materialization — the scope's own block states no RestoreItem/RestoreWearable, so the restore still reports what it puts back");
+			}
+		}
+
+		if (!live.Contains("RestoreItem(", StringComparison.Ordinal) && !live.Contains("RestoreWearable(", StringComparison.Ordinal))
+		{
+			failures.Add("ApplyItems() materializes no item — this rule would pass by checking nothing");
+		}
+
+		return failures;
+	}
+
+	/// <summary>The braced block that opens at <paramref name="openIndex"/> — the scope's own body, so a rule can say the materialization is INSIDE it rather than merely in the same method.</summary>
+	private static string BracedBlock(string text, int openIndex)
+	{
+		if (openIndex < 0 || openIndex >= text.Length || text[openIndex] != '{')
+		{
+			return string.Empty;
+		}
+
+		var depth = 0;
+		for (var i = openIndex; i < text.Length; i++)
+		{
+			if (text[i] == '{')
+			{
+				depth++;
+			}
+			else if (text[i] == '}')
+			{
+				depth--;
+				if (depth == 0)
+				{
+					return text[openIndex..(i + 1)];
+				}
+			}
+		}
+
+		return string.Empty;
+	}
+
+	/// <summary>
 	/// The entry repair's adapter half (sync-coverage rows R3/W7; the cadence review's finding 4):
 	/// the two owners that re-fan-out their entry tables on the InWorld edge — the keypad codes in
 	/// <c>WorldEventSync</c>, the geyser liquid types in <c>GeyserStateSync</c> — must also re-send

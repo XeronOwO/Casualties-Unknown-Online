@@ -1,3 +1,4 @@
+using System.IO;
 using Xunit;
 using static CasualtiesUnknownOnline.Tests.Tooling.PreflightToolHarness;
 
@@ -114,5 +115,64 @@ public class PreflightToolTests
 		Assert.Contains("Forts", row.Detail);
 		Assert.Equal(2, result.ExitCode);
 		Assert.Contains("steam", BlockingIds(result.Output));
+	}
+
+	[Fact]
+	public void AlternateSandbox_WithoutFacts_IsMissingAndNotBlocking()
+	{
+		using var fixture = Fixture.Create("4576510");
+
+		var result = Run(fixture);
+		var row = ReadRow(result.Output, "sandbox-alt");
+
+		Assert.Equal("missing", row.State);
+		Assert.Contains("third-peer row", row.Detail);
+		Assert.DoesNotContain("sandbox-alt", BlockingIds(result.Output));
+	}
+
+	[Fact]
+	public void AlternateSandbox_WithItsOwnDistinctPort_IsPresent()
+	{
+		using var fixture = Fixture.Create("4576510");
+		fixture.WithHotReplUrls("ws://127.0.0.1:<port-host>", "ws://127.0.0.1:<port-guest>")
+			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "<sandbox-alt>", "ws://127.0.0.1:<port-alt>", <port-alt>);
+
+		var result = Run(fixture);
+		var row = ReadRow(result.Output, "sandbox-alt");
+
+		Assert.Equal("present", row.State);
+		Assert.Contains("<port-alt>", row.Detail);
+		Assert.Contains("distinct", row.Detail);
+		Assert.DoesNotContain("sandbox-alt", BlockingIds(result.Output));
+	}
+
+	[Fact]
+	public void AlternateSandbox_WithACollidingPort_IsMissingAndNotBlocking()
+	{
+		using var fixture = Fixture.Create("4576510");
+		fixture.WithHotReplUrls("ws://127.0.0.1:<port-host>", "ws://127.0.0.1:<port-guest>")
+			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "<sandbox-alt>", "ws://127.0.0.1:<port-guest>", <port-guest>);
+
+		var result = Run(fixture);
+		var row = ReadRow(result.Output, "sandbox-alt");
+
+		Assert.Equal("missing", row.State);
+		Assert.Contains("collides with hotrepl-guest-url", row.Detail);
+		Assert.DoesNotContain("sandbox-alt", BlockingIds(result.Output));
+	}
+
+	[Fact]
+	public void AlternateSandbox_WithoutItsOwnConfig_IsMissingAndNotBlocking()
+	{
+		using var fixture = Fixture.Create("4576510");
+		fixture.WithHotReplUrls("ws://127.0.0.1:<port-host>", "ws://127.0.0.1:<port-guest>")
+			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "<sandbox-alt>", "ws://127.0.0.1:<port-alt>", null);
+
+		var result = Run(fixture);
+		var row = ReadRow(result.Output, "sandbox-alt");
+
+		Assert.Equal("missing", row.State);
+		Assert.Contains("collide with the host", row.Detail);
+		Assert.DoesNotContain("sandbox-alt", BlockingIds(result.Output));
 	}
 }

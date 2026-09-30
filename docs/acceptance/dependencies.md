@@ -8,7 +8,8 @@ happens when it is absent. The machine-specific values behind these checks live 
 per dependency with a state of `present`, `missing`, `unknown` or `pending` (declared, helper not
 built yet — staged work), plus the local facts it could not resolve. Exit code `0` means a full
 two-client run is possible, `2` means at least one required capability is not present, `1` means the
-preflight itself failed. `hotrepl`, `deploy` and `input` are reported but never decide the exit code.
+preflight itself failed. `hotrepl`, `deploy`, `input` and `sandbox-alt` are reported but never decide
+the exit code.
 
 ## The table
 
@@ -17,7 +18,8 @@ preflight itself failed. `hotrepl`, `deploy` and `input` are reported but never 
 | `steam` | Steam client, installed and startable, with the app id proved to be this install | launching a client that can initialise Steamworks — required even for the host | `steam-exe` resolves and `game-app-id` is cross-checked against the install: the install's own `steam_appid.txt` and the library's `appmanifest_<id>.acf` `installdir` (read for an install under a `steamapps\common` folder) must each confirm it, so every source that exists must agree; a running process is reported but not required, because the run starts the client. A source that contradicts is `missing`, an id no source can confirm is `unknown` — the launch line never runs on an unproven or contradicted id | the game cannot initialise Steamworks, or the launch id names a different app: every row is `blocked`; the fact and the install are made to agree before any launch — the app manifest is Steam's own record of what the launch line resolves, the install's own file what the build declares — and the user is asked when they disagree without an obvious wrong side |
 | `game` | the game install with its doorstop and BepInEx | the world itself | `<game-dir>` resolves and holds the game executable, the doorstop DLL and `BepInEx/` | nothing can be observed: every row is `blocked`; ask the user |
 | `deploy` | the ticket's build deployed to the physical install | evidence about the right code | the deployed plugin DLL exists; its `ProductVersion`, its write time and the repository's `HEAD` are reported together, and the workflow compares them (a documentation-only commit moves `HEAD` without changing the artifact) | build and deploy first (workflow §4); if the deploy is refused (game running, sandbox path), that refusal is the blocker |
-| `sandboxie` | Sandboxie's second-client environment | the guest half of every two-client row | `sandboxie-exe` resolves — or is derived from the running `SbieSvc` image path when the fact is unset — the guest sandbox root resolves, `sandbox-alt-root` resolves when it is set, and both `SbieSvc` and `SbieDrv` are present | single-client rows only; every guest-to-host and host-to-guest row is `blocked`; ask the user |
+| `sandboxie` | Sandboxie's second-client environment | the guest half of every two-client row | `sandboxie-exe` resolves — or is derived from the running `SbieSvc` image path when the fact is unset — the guest sandbox root resolves, and both `SbieSvc` and `SbieDrv` are present | single-client rows only; every guest-to-host and host-to-guest row is `blocked`; ask the user |
+| `sandbox-alt` | the alternate sandbox and its own evaluator | the third peer's view, so the third-party rows can be judged with three clients in one world | `sandbox-alt-root` resolves, `sandbox-alt-box` and `hotrepl-alt-url` are set, and the alternate client's own sandboxed HotRepl config carries that URL's port, distinct from the host's and the guest's | every third-peer row is `blocked`; the two-client rows still run |
 | `hotrepl` | the in-process evaluator in a running client | probes, forced setups, live state reads and assertions | the plugin directory exists under the game's `BepInEx/plugins/`, and the endpoint (`hotrepl-host-url`, `hotrepl-guest-url`) accepts a connection once the client runs | log-based evidence only; rows that need an assertion inside the process are `blocked` |
 | `dotnet` | the .NET SDK | building the commit under acceptance, and the gate suite | `dotnet --version` succeeds | no deployable artifact: every row is `blocked` |
 | `capture` | window-level capture of a running client (the desktop is never required to be clear) | `visual` rows — frames the agent reads | the .NET drawing stack is available and the session is interactive (not a locked or disconnected desktop); the capture targets the client's own window, never the desktop | every `visual` row is `blocked`; `machine` rows still run |
@@ -45,9 +47,11 @@ consumes the id directly would break the same way. Put a note on a line of its o
 | `steam-exe` | yes | `steam` |
 | `sandboxie-exe` | yes | `sandboxie` |
 | `sandbox-guest-root` | yes | `sandboxie`, the guest's deploy-freshness check and logs |
-| `sandbox-alt-root` | no | reported when set: the alternate guest sandbox, checked only for existence |
+| `sandbox-alt-root` | no | `sandbox-alt`; the alternate client's sandboxed game tree and its own HotRepl config |
+| `sandbox-alt-box` | when third-party rows are judged | `sandbox-alt`; the alternate client's Sandboxie box, for its launch line |
 | `hotrepl-host-url` | when probes are used | `hotrepl` |
 | `hotrepl-guest-url` | when probes are used | `hotrepl` |
+| `hotrepl-alt-url` | when third-party rows are judged | `sandbox-alt`, `hotrepl`; the alternate client's evaluator endpoint |
 | `acceptance-artifacts-dir` | yes | `artifacts` |
 
 `AGENTS.local.md` is gitignored; it is the only place a machine path may appear. See the shadow rule

@@ -31,13 +31,15 @@
 	if (services == null) { return "{\"ok\":false,\"error\":\"no-services\"}"; }
 	var session = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.SessionService)) as CasualtiesUnknownOnline.Runtime.Session.SessionService;
 	if (session == null) { return "{\"ok\":false,\"error\":\"no-session\"}"; }
-	var instanceIdOf = new System.Func<Item, ulong>((item) => {
-		var components = item.GetComponents<UnityEngine.Component>();
+	var instanceIdOf = new System.Func<Item, ulong>((probe) => {
+		var components = probe.GetComponents<UnityEngine.Component>();
 		for (var i = 0; i < components.Length; i++) {
-			if (components[i] != null && components[i].GetType().Name == "ItemInstanceId") {
-				var field = components[i].GetType().GetField("Id", instanceFlags);
-				return field == null ? 0UL : System.Convert.ToUInt64(field.GetValue(components[i]));
-			}
+			if (components[i] == null || components[i].GetType().Name != "ItemInstanceId") { continue; }
+			var idField = components[i].GetType().GetField("Id", instanceFlags);
+			if (idField != null) { return System.Convert.ToUInt64(idField.GetValue(components[i])); }
+			var idProperty = components[i].GetType().GetProperty("Id", instanceFlags);
+			if (idProperty != null) { return System.Convert.ToUInt64(idProperty.GetValue(components[i], null)); }
+			return 0UL;
 		}
 		return 0UL;
 	});

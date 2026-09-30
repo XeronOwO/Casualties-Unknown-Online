@@ -129,6 +129,29 @@ internal static class PreflightToolHarness
 			return this;
 		}
 
+		internal Fixture WithHotReplUrls(string hostUrl, string guestUrl)
+		{
+			AppendFacts("- hotrepl-host-url: " + hostUrl, "- hotrepl-guest-url: " + guestUrl);
+			return this;
+		}
+
+		internal Fixture WithSandboxAlt(string altRoot, string box, string altUrl, int? configPort)
+		{
+			Directory.CreateDirectory(altRoot);
+			if (configPort is not null)
+			{
+				var configDir = Path.Combine(altRoot, "BepInEx", "config");
+				Directory.CreateDirectory(configDir);
+				File.WriteAllText(Path.Combine(configDir, "hotrepl.bepinex.cfg"), "Port = " + configPort.Value + Environment.NewLine, Utf8NoBom);
+			}
+
+			AppendFacts("- sandbox-alt-root: " + altRoot, "- sandbox-alt-box: " + box, "- hotrepl-alt-url: " + altUrl);
+			return this;
+		}
+
+		private void AppendFacts(params string[] lines) =>
+			File.AppendAllText(FactsPath, string.Join(Environment.NewLine, lines) + Environment.NewLine, Utf8NoBom);
+
 		private static UTF8Encoding Utf8NoBom { get; } = new(encoderShouldEmitUTF8Identifier: false);
 
 		private void WriteFacts(string gameAppId)

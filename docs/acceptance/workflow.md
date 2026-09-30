@@ -13,6 +13,7 @@ auto-loaded only while working here) and never write one into a committed file:
 | `game-dir` | the physical machine's game install |
 | `steam-exe` / `game-app-id` | how the host client is launched |
 | `sandboxie-exe`, `sandbox-guest-root` | the second client's environment |
+| `sandbox-alt-root`, `sandbox-alt-box`, `hotrepl-alt-url` | the third client's environment and its probe endpoint (third-party rows) |
 | `hotrepl-host-url`, `hotrepl-guest-url` | the two in-process probe endpoints |
 | `acceptance-artifacts-dir` | where frames, recordings and probe dumps are written (never committed) |
 
@@ -100,6 +101,10 @@ collected while its scenario is up.
 - The **host** runs on the physical machine, launched through Steam (`game-app-id`) so Steamworks
   initialises.
 - The **guest** runs in the Sandboxie sandbox named by `sandbox-guest-root`, started after the deploy.
+- The **third client**, when the `sandbox-alt` capability is present, runs in the alternate Sandboxie
+  sandbox and joins the same lobby through the same Online UI; it supplies the third-peer view and is
+  driven through `hotrepl-alt-url`. When the capability is absent, every third-peer row is `blocked`,
+  never guessed from the two participant views.
 - Both join through the game's own Online UI (host creates the lobby, guest joins with the lobby id).
   The native UI is the only lobby surface CUO has; the run reuses it.
 - Probes and actuation use the in-process evaluator at `hotrepl-host-url` / `hotrepl-guest-url`:

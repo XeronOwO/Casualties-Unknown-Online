@@ -10,7 +10,8 @@ per dependency: present, missing, unknown or pending. Machine values are resolve
 key that is absent is reported as FACT-MISSING and is a question for the user, not something to guess.
 
 The script changes nothing on the machine. Exit codes: 0 = a full two-client run is possible,
-2 = at least one required dependency is not present, 1 = the preflight itself failed.
+2 = at least one required dependency is not present, 1 = the preflight itself failed. The third
+client (the alternate sandbox) is reported as an advisory row and never decides the exit code.
 
 .PARAMETER FactsPath
 Path to the local facts file. Defaults to docs/acceptance/AGENTS.local.md under the repository root.
@@ -33,7 +34,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Required for a full two-client run; the other ids are reported but never fail the exit code.
+# Required for a full two-client run; the other ids (including the advisory third client) are reported
+# but never fail the exit code.
 $RequiredIds = @('steam', 'game', 'sandboxie', 'dotnet', 'capture', 'logs', 'artifacts')
 
 function New-Result {
@@ -320,13 +322,77 @@ function Invoke-Preflight {
 	if ([string]::IsNullOrWhiteSpace($sandboxRoot) -or -not (Test-Path -LiteralPath $sandboxRoot)) { $sandboxProblems += 'sandbox-guest-root does not resolve' }
 	$sbieServices = @(Get-Service -Name 'SbieSvc', 'SbieDrv' -ErrorAction SilentlyContinue)
 	if ($sbieServices.Count -lt 2) { $sandboxProblems += "SbieSvc and SbieDrv: found $($sbieServices.Count) of the 2 services" }
-	$altRoot = Get-Fact $facts 'sandbox-alt-root'
-	if (-not [string]::IsNullOrWhiteSpace($altRoot) -and -not (Test-Path -LiteralPath $altRoot)) { $sandboxProblems += 'sandbox-alt-root is set but does not resolve' }
 	if ($sandboxProblems.Count -gt 0) {
 		[void]$results.Add((New-Result 'sandboxie' 'missing' ($sandboxProblems -join '; ')))
 	}
 	else {
 		[void]$results.Add((New-Result 'sandboxie' 'present' "program ($sandboxExeSource), guest sandbox root, SbieSvc and SbieDrv resolve"))
+	}
+
+	# sandbox-alt (advisory: the third-peer rows need an alternate client; the two-client rows run
+	# without it). A missing or colliding HotRepl port in the alternate client's own sandboxed config
+	# is the failure this check exists for: the client would fall back to the physical install's
+	# config, whose port the host is already bound to.
+	$altRoot = Get-Fact $facts 'sandbox-alt-root'
+	$altBox = Get-Fact $facts 'sandbox-alt-box'
+	$altUrl = Get-Fact $facts 'hotrepl-alt-url'
+	$altProblems = @()
+	if (-not [string]::IsNullOrWhiteSpace($altRoot)) {
+		if (-not (Test-Path -LiteralPath $altRoot)) { $altProblems += 'sandbox-alt-root does not resolve' }
+	}
+	if (-not [string]::IsNullOrWhiteSpace($altBox)) {
+		if ([string]::IsNullOrWhiteSpace($altRoot)) { $altProblems += 'sandbox-alt-box is set but sandbox-alt-root is not' }
+	}
+	if (-not [string]::IsNullOrWhiteSpace($altUrl)) {
+		if ([string]::IsNullOrWhiteSpace($altRoot)) { $altProblems += 'hotrepl-alt-url is set but sandbox-alt-root is not' }
+	}
+	if ([string]::IsNullOrWhiteSpace($altRoot) -and [string]::IsNullOrWhiteSpace($altBox) -and [string]::IsNullOrWhiteSpace($altUrl)) {
+		[void]$results.Add((New-Result 'sandbox-alt' 'missing' 'no alternate-sandbox facts; every third-peer row is blocked (the two-client rows still run)'))
+	}
+	else {
+		if ([string]::IsNullOrWhiteSpace($altBox)) { $altProblems += 'sandbox-alt-box is not set' }
+		if ([string]::IsNullOrWhiteSpace($altUrl)) { $altProblems += 'hotrepl-alt-url is not set' }
+
+		$altPort = 0
+		if (-not [string]::IsNullOrWhiteSpace($altUrl)) {
+			$altUri = $null
+			if ([System.Uri]::TryCreate($altUrl, [System.UriKind]::Absolute, [ref]$altUri)) { $altPort = $altUri.Port }
+			else { $altProblems += 'hotrepl-alt-url is not an absolute URI' }
+		}
+
+		if ($altProblems.Count -eq 0) {
+			$altConfig = Join-Path $altRoot 'BepInEx\config\hotrepl.bepinex.cfg'
+			$configPort = $null
+			if (Test-Path -LiteralPath $altConfig) {
+				foreach ($line in (Get-Content -LiteralPath $altConfig -Encoding UTF8)) {
+					if ($line -match '^\s*Port\s*=\s*(\d+)\s*$') { $configPort = [int]$Matches[1]; break }
+				}
+			}
+			if ($null -eq $configPort) {
+				$altProblems += "the alternate client has no own HotRepl config carrying a Port ($altConfig); it would read the physical install's config and collide with the host"
+			}
+			elseif ($configPort -ne $altPort) {
+				$altProblems += "the alternate client's HotRepl config carries port $configPort, not the $altPort in hotrepl-alt-url"
+			}
+			else {
+				foreach ($otherKey in @('hotrepl-host-url', 'hotrepl-guest-url')) {
+					$otherUrl = Get-Fact $facts $otherKey
+					$otherUri = $null
+					if (-not [string]::IsNullOrWhiteSpace($otherUrl) -and [System.Uri]::TryCreate($otherUrl, [System.UriKind]::Absolute, [ref]$otherUri) -and $otherUri.Port -eq $altPort) {
+						$altProblems += "the alternate client's port $altPort collides with $otherKey"
+					}
+				}
+			}
+		}
+
+		if ($altProblems.Count -gt 0) {
+			[void]$results.Add((New-Result 'sandbox-alt' 'missing' ($altProblems -join '; ')))
+		}
+		else {
+			$altUp = Test-Endpoint $altUrl $TimeoutMs
+			$altState = if ($altUp) { 'up' } else { 'idle (no client running)' }
+			[void]$results.Add((New-Result 'sandbox-alt' 'present' "alternate sandbox root and box resolve; its own HotRepl config carries port $altPort, distinct from the host and guest; the endpoint is $altState"))
+		}
 	}
 
 	# hotrepl (advisory: probes are optional; log evidence still runs)
@@ -426,7 +492,9 @@ try {
 	}
 
 	if ($blocking.Count -eq 0) {
-		Write-Output 'RESULT: OK - a full two-client run is possible'
+		$thirdAvailable = @($report | Where-Object { $_.id -eq 'sandbox-alt' -and $_.state -eq 'present' }).Count -gt 0
+		$thirdNote = if ($thirdAvailable) { '; the alternate third client is configured' } else { '' }
+		Write-Output "RESULT: OK - a full two-client run is possible$thirdNote"
 		exit 0
 	}
 

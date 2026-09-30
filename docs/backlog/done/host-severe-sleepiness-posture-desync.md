@@ -74,8 +74,8 @@ path and likely a rewrite/unified model rather than another local patch.
 
 - `todo/guest-remote-pose-head-orientation-desync`
 - `todo/host-fall-injury-mouth-expression-desync`
-- `todo/carry-piggyback-rider-position-smoothing`
-- `review/carrier-sit-while-carrying`
+- `done/carry-piggyback-rider-position-smoothing`
+- `done/carrier-sit-while-carrying`
 - `todo/guest-water-current-pose/height variant` (now within guest remote pose head-orientation desync)
 
 ## Non-goals

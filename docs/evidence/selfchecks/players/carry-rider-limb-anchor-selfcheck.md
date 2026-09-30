@@ -1,6 +1,6 @@
 # Carried clone root/limb separation — self-check (2026-09-25)
 
-Ticket: `docs/backlog/review/carry-piggyback-rider-position-smoothing.md` (Critical).
+Ticket: `docs/backlog/done/carry-piggyback-rider-position-smoothing.md` (Critical).
 Cycle scope: settle whether a carried rider clone's exact limb poses are left behind when the ride
 pose re-pins its body root, and ship the instrumentation that answers it in a real session. The
 cycle began as a re-anchor fix and ended as a measurement: the mechanism it was built on is not

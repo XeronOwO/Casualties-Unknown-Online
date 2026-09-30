@@ -3,8 +3,8 @@
 - Status: Done
 - Priority: Medium
 - Category: Carry/piggyback presentation / own-client body simulation
-- Source: Scope boundary recorded while implementing the rider-simulation rule (2026-09-21): `review/carried-rider-own-body-stops-simulating.md` covers a conscious/alive rider, and a dead or unconscious carried body was left with the pinned-ragdoll presentation while this ticket stayed open.
-- Related: `review/carried-rider-own-body-stops-simulating.md` (the rule this ticket extends), `review/carry-piggyback-rider-position-smoothing.md`, `docs/evidence/selfchecks/players/carried-unconscious-body-simulation-selfcheck.md`
+- Source: Scope boundary recorded while implementing the rider-simulation rule (2026-09-21): `done/carried-rider-own-body-stops-simulating.md` covers a conscious/alive rider, and a dead or unconscious carried body was left with the pinned-ragdoll presentation while this ticket stayed open.
+- Related: `done/carried-rider-own-body-stops-simulating.md` (the rule this ticket extends), `done/carry-piggyback-rider-position-smoothing.md`, `docs/evidence/selfchecks/players/carried-unconscious-body-simulation-selfcheck.md`
 - Acceptance record: docs/evidence/acceptance/carried-unconscious-body-simulation-20260927.md (batch `20260927-d`: rows 1–4 `pass`)
 
 ## The defect

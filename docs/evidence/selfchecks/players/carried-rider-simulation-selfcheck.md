@@ -1,6 +1,6 @@
 # Carried rider keeps its own per-frame simulation — self-check (2026-09-21)
 
-Ticket: `docs/backlog/review/carried-rider-own-body-stops-simulating.md` (decision 216). Cycle scope:
+Ticket: `docs/backlog/done/carried-rider-own-body-stops-simulating.md` (decision 216). Cycle scope:
 a carried rider's own client must keep the game's per-frame body simulation; only the transform and
 the movement input belong to the carry relation.
 

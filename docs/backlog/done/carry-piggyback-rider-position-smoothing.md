@@ -1,8 +1,9 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Review (no code left to develop: the remaining action is the run itself, as this ticket's own acceptance-readiness section says)
+- Status: Done
 - Priority: Critical
-- Acceptance (20260927-d): rows 1/2/5/6/7 `pass` (row 1's feel half is a residual), row 4 is a residual; row 3 waits for a three-client run — record `docs/evidence/acceptance/carry-piggyback-rider-position-smoothing-20260927.md`
+- Acceptance (20260930-e): row 3 `pass` (the third-party view; its ≤1 px interpolation remainder is the residual) — record `docs/evidence/acceptance/carry-piggyback-rider-position-smoothing-20260930.md`
+- Acceptance record: docs/evidence/acceptance/carry-piggyback-rider-position-smoothing-20260927.md (batch `20260927-d`: rows 1/2/5/6/7 `pass`, row 4 a residual)
 - Category: Player interaction / movement sync / carry-piggyback presentation
 - Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user re-reported that the teleport still exists, so this cycle replaced the pin-only approach on the participant carrier side with a true transform-parent carry mount.
 
@@ -13,7 +14,7 @@ medical panel shows an almost flat ECG although the heart rate is real, and the 
 twitch with a growing frequency; releasing the carry restores normal behaviour. The cause is the
 carried body's own per-frame simulation being skipped — the render-proxy treatment this ticket's
 "Current implementation" describes; it is tracked as
-`review/carried-rider-own-body-stops-simulating.md`. This ticket is moved back to `todo/` so the
+`done/carried-rider-own-body-stops-simulating.md`. This ticket is moved back to `todo/` so the
 carried-rider presentation is reworked as one family instead of adding another suppression. That
 rework landed in the 2026-09-21 cycle (decision 216): a conscious/alive rider's own client keeps the
 native per-frame simulation and the carry relation owns only its transform, so the rider's body is

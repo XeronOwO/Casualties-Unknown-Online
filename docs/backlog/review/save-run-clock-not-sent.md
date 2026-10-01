@@ -112,6 +112,11 @@ archive's own clock base — two carriers for one fact (decision 193).
   test — the dual-client re-run is its proof. The Runtime half (the send-point read, the wire value, its
   stamp and the failure paths) is machine-checked by the suite above.
 - Row 1's UI value (the end screen's death-stats clock) needs the user's dual-client pass.
+- The send-point read refreshes the LAYER timer with the same capture, so a member entering a new layer
+  is now sent the host's CURRENT world's timer instead of the boundary capture's old-layer value; the
+  receiver's advance-only write makes that the host's own accounting, but the layer-change half was NOT
+  measured live in this cycle — the dual-client run should read both sides' radiation timer across one
+  descent as well as the clock.
 - A message whose stamp names ANOTHER layer of a run the receiver already knows still contributes its
   CLOCK (run-scoped, monotone) while its LAYER TIMER and LIMIT are dropped together (layer-scoped): the
   clock is never held hostage by a layer mismatch, and the next repair send carries the timer again. A

@@ -717,3 +717,90 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: a damaged-live row quotes the account line that names which copy exists
   (`its preserved folder is the only copy`) instead of expecting a pre-restore archive in every case
   (`.acceptance/batch-p/run-c-host-console-after-refusal-recovery.json`).
+
+## 2026-10-01 — A HotRepl eval runs on a worker thread, so it cannot stop the game's own frame
+
+- Symptom: batch `20261001-r` sent `guest-freeze.cs` (a 30 s `Thread.Sleep` inside the eval) to stop
+  the guest draining its Steam receive queue; the eval call hung and the guest kept playing normally.
+- Cause: the evaluator executes on a worker thread. The Unity main thread — the game's `Update`, the
+  transport pump and the watchdogs — never entered the sleep, so nothing the scenario needed changed.
+- Change: an injection that must stop the game's own frame goes through the code that frame runs (a
+  Harmony prefix, or a value the frame reads such as `SteamService.IsInitialized`), never a
+  `Thread.Sleep` inside an eval. Recorded with the batch in `.acceptance/batch-r/run-r-log.md`.
+
+## 2026-10-01 — A suspended peer refuses everything but cannot build a sustained stall episode
+
+- Symptom: `suspend-process.ps1` (`NtSuspendProcess`) on the guest produced
+  `k_EResultLimitExceeded` immediately, but the session read
+  `k_ESteamNetworkingConnectionState_Connecting` for the rest of the window, and
+  `AutoRestartBrokenSession` let one send succeed per restart, so each recovery cleared the episode.
+- Cause: a suspended process stops answering Steam's callbacks for the whole connection, so the link
+  breaks instead of staying up and unable to drain. The shape a stall row needs is a peer that is
+  *connected but not consuming*, not a peer that is gone.
+- Change: a stall scenario keeps the connection alive (stop only the transport pump, or overload the
+  peer's own frame) and records the link state it was in; the auto-restart behaviour is a named limit
+  of the suspend injection, not a product finding.
+
+## 2026-10-01 — Send-queue refusal is a rate condition; a light session never reaches it
+
+- Symptom: with the guest's transport pump stopped, the host's refusals were intermittent (31 → 38
+  lines over the following minute) instead of continuous, while the same failure had arrived
+  thousands of times per second in Run E's dense world.
+- Cause: `k_EResultLimitExceeded` needs the sender's rate to exceed what the link drains for as long
+  as the episode takes to ripen; a fresh session's ≈56–62 kB/s (measured that day) refills the queue
+  more slowly than Steam drains it, while Run E's dense layer pushed ≈1.5 MB/s.
+- Change: load generation is part of the run's setup, with the host→guest rate as the checkpoint —
+  reproduce the dense shape (the game's own animal spawns, or a fresh dense layer) and measure
+  hundreds of kB/s before injecting the non-draining peer.
+
+## 2026-10-01 — `SteamService.IsInitialized` is a clean, reversible pump switch
+
+- Symptom: the run needed a guest that stays in the session while it stops consuming; the two heavier
+  injections (main-thread sleep, process suspension) both failed for their own reasons.
+- Cause: `SteamTransport.Poll` returns early and `SendTo` returns false when the service's
+  `IsInitialized` is false, while the Steam client keeps the P2P session itself — flipping the
+  property's backing field stops both pumps without touching the session.
+- Change: `guest-pump-off.cs` / `pump-on.cs` are the recorded injection pair (batch `20261001-r`), and
+  the guest's own watchdogs still observe the silence — which is how the same injection judged row 6;
+  a sustained-stall run pairs it with the dense load above.
+
+## 2026-10-01 — A peer that stops reading does not back-pressure a healthy Steam link
+
+- Symptom: batch `20261001-s` stopped the guest's transport pump with a dense host→guest flow
+  (≈231 kB/s) and the host pushed >20 MB into that peer over 100 s with **zero**
+  `k_EResultLimitExceeded`; the only effect was the guest's own silence watchdog ending its session
+  after 15 s, after which the host kept sending to a member it still believed was there.
+- Cause: an application that stops calling `ReceiveMessagesOnChannel` does not close the peer's queue
+  on a healthy connection — the send path keeps accepting — so "the peer cannot drain" is not, by
+  itself, the state `k_EResultLimitExceeded` reports. The refusal state needs the transport-level link
+  to stop acking (a peer process blocked at that level), which on this machine only suspension
+  produced — and suspension collapses the session to `Connecting` within seconds.
+- Change: a run that needs a sustained refusal episode has to produce a peer blocked at the transport
+  level while its session stays connected; stopping the application's drain is not a substitute.
+  Recorded in `docs/evidence/acceptance/steam-transport-send-limit-runaway-20261001-s.md`.
+
+## 2026-10-01 — The adaptive stream budgets cap the load a run can generate
+
+- Symptom: the dense world's send rate plateaued at ≈200–250 kB/s however many animals were spawned
+  (589 animals, enemy frames of 46–70 kB), and a guest pinned to one of twenty logical cores still
+  drained that rate and stayed in the world.
+- Cause: `AdaptiveRatePolicy` caps each adapted stream by its profile's `MaxBytesPerSecond`
+  (`EnemyStateBroadcast` 256 kB/s, `WorldItemMoveStream` 512 kB/s, …), so adding rows raises the
+  per-frame bytes and the policy answers by lowering the cadence; the product of the two stays under
+  the budget. A run cannot raise the total by spawning more of one kind unless another stream is also
+  driven toward its budget.
+- Change: before designing a load scenario, read the profile budgets of the streams it will drive and
+  state which stream is expected to carry the rate; "denser world" alone does not imply a higher send
+  rate. Machine readings are in batch `20261001-s`'s record and its `run-s-log.md`.
+
+## 2026-10-01 — An abrupt guest session end leaves the host a stale member that a rejoin does not revive
+
+- Symptom: the guest's silence watchdog ended its session and returned it to the main menu, while the
+  host's logs showed no member-left line and its traffic monitor kept addressing the peer for minutes;
+  a `join-lobby` on the guest then returned the same inactive session.
+- Cause: the guest's local end does not tell the host (the send path to a peer that stopped reading is
+  exactly what does not work), so the host's member table keeps the entry; the rejoin then hits the
+  known rejoin wedge (recorded 2026-09-30) and never re-activates.
+- Change: after an injected session end, close and relaunch the clients for the next scenario instead
+  of trying to revive the pair, and record the stale-member window as a limit of the ended session,
+  not as evidence. Observed in batch `20261001-s`.

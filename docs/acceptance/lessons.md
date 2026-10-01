@@ -488,3 +488,21 @@ dependency the table did not name, a step that cost more than it returned.
   and cite the file name beside the reading; the numbers drift between reads, so the file — not the
   transcript — is the evidence.
 
+
+## 2026-10-01 — A control's width cannot be measured, and a box needs one owner
+
+- Symptom: the window's text fields showed empty frames while their model held the right value, and a
+  dropdown's box was hundreds of thousands of units wide (batch `20261001-k`'s baseline probe: 690,623
+  units, then 849,678 on a reading minutes later — the same control, inside a 984-unit page).
+- Cause: uGUI measures a layout group's child by walking the child's own content, and content that is
+  STRETCHED inside the box reports the width the group just wrote — so asking for a field's preferred
+  size reads the group's own output and the number grows every frame. "The engine measures, CUO declares
+  only a floor" asks the engine to measure the one thing that cannot be measured.
+- Change: DECLARE the width (a caption TMP measured from its text, a prefab's authored size, the layout's
+  minimum under the model's floor) and place a control's insides one rect at a time. When a row's own
+  label and control must still be laid out by a group, that group may only hold children whose width CUO
+  has already written down.
+- Also: judge a visual change on a frame BEFORE trusting the geometry — the first attempt at the control
+  style put the game's own nine-slice sprite inside the control as its border and produced a white box
+  with no text, because that sprite's body is opaque; the frame said so immediately while the rects all
+  read correctly.

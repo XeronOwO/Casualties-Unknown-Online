@@ -1,7 +1,7 @@
 # Host block damage reports: two native `DamageBlock` callers are not hooked
 
-- Status: Review (batch `20261001-y`: rows 1, 3–6 unproven — `crush-find` found no 1-health three-wide band at radius 60/120/200 in either layer visited (only `thinice`/`powdersnow` carry health 1), so no crush rolled; row 2 stays open — the ticket stays open)
-- Acceptance records: `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-x.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-y.md`
+- Status: Review (batch `20261002-b`: rows 1, 3, 5, 6 pass — the crush is staged by placing the game's own `thinice` id, because the shipped world can generate no health-1 block at all (see the record); row 4 unproven — the damage-report half held, the write-echo half could not be attributed; row 2 stays open — no reachable spider-burrow path on this machine)
+- Acceptance records: `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-x.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-y.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-b.md`
 - Priority: Low-Medium
 - Category: World block damage / report coverage
 - Source: found while fixing `done/guest-hears-only-some-block-break-sounds.md` (the presentation half of the same report). The mechanism inventory for that fix censused every native `DamageBlock` call site and found two that never produce a report, because CUO patches only the `Vector2` overload.

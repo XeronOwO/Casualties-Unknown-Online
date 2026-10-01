@@ -2,7 +2,7 @@
 
 **Superseded mechanism (2026-09-11):** the CUO-side `BlockDamageRegistry` this sheet describes was
 DELETED — the partial-damage snapshot now reads the GAME's own list at send time
-(`docs/backlog/review/block-damage-table-capacity-alignment.md`). What this sheet verified about the
+(`docs/backlog/done/block-damage-table-capacity-alignment.md`). What this sheet verified about the
 wire behaviour (NetMsg 89, absolute per-cell apply, crack-sprite refresh) is unchanged; the
 registry rows below are historical.
 

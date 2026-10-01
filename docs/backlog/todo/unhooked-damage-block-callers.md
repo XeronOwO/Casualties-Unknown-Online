@@ -1,11 +1,11 @@
 # Host block damage reports: two native `DamageBlock` callers are not hooked
 
-- Status: Review (batch `20261002-b`: rows 1, 3, 5, 6 pass — the crush is staged by placing the game's own `thinice` id, because the shipped world can generate no health-1 block at all (see the record); row 4 unproven — the damage-report half held, the write-echo half could not be attributed; row 2 stays open — no reachable spider-burrow path on this machine)
-- Acceptance records: `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-x.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-y.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-b.md`
+- Status: Todo — Rejected (batch `20261002-c`: row 4 fails — the receiving side's presentation write IS reported back to the host; rows 1, 3, 5, 6 pass from batch `20261002-b`; row 2 stays open — no reachable spider-burrow path on this machine)
+- Acceptance records: `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-x.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-y.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-b.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-c.md`
 - Priority: Low-Medium
 - Category: World block damage / report coverage
 - Source: found while fixing `done/guest-hears-only-some-block-break-sounds.md` (the presentation half of the same report). The mechanism inventory for that fix censused every native `DamageBlock` call site and found two that never produce a report, because CUO patches only the `Vector2` overload.
-- Related: `docs/evidence/selfchecks/world/unhooked-damage-block-callers-selfcheck.md`, `tests/CasualtiesUnknownOnline.NormativeGates.Tests/DamageBlockHookCoverageGateTests.cs`, `docs/backlog/done/guest-hears-only-some-block-break-sounds.md`, `docs/backlog/review/block-damage-table-capacity-alignment.md`
+- Related: `docs/evidence/selfchecks/world/unhooked-damage-block-callers-selfcheck.md`, `tests/CasualtiesUnknownOnline.NormativeGates.Tests/DamageBlockHookCoverageGateTests.cs`, `docs/backlog/done/guest-hears-only-some-block-break-sounds.md`, `docs/backlog/done/block-damage-table-capacity-alignment.md`
 
 ## Problem
 

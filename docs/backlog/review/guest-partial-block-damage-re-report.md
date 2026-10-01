@@ -24,7 +24,7 @@ absolute fallback are host → guest only:
 - The authoritative table is host-only AND is the GAME's own
   `WorldGeneration.world.blockDamages` list, read at send time — the CUO registry
   that used to hold a copy was deleted, see
-  `review/block-damage-table-capacity-alignment.md`:
+  `done/block-damage-table-capacity-alignment.md`:
   `src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageSnapshotSender.cs:36`
   (`if (_session.Role != SessionRole.Host)`), so a swallowed guest report never
   enters it.

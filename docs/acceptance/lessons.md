@@ -1154,3 +1154,57 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: a burst investigation reads the FULL log's tail (the file can be hundreds of MB, so read the
   tail by bytes and filter, never scan it whole); ticket `sandbox-client-null-reference-bursts` holds
   the evidence and the first anchor.
+
+## 2026-10-02 — A nested scope hid the caller's RemoteApply, and the fix is the chain query
+
+- Symptom: the row-4 echo (batch `20261002-c`) — a receiving side's presentation write reported back to
+  the host — survived a guard written as `CallContext.Current == Origin.RemoteApply`, and the same
+  masking had ALREADY been worked around in two other files (a guard deliberately placed before the
+  scope push in `CraftingPatches`, a capture scope deliberately not opened inside a remote apply in
+  `CaptureScopeGuard`).
+- Cause: `CallContext.Current` answers the INNERMOST origin; the damage patch pushes
+  `DamageBlockOrigin` on top of the caller's `RemoteApply` for the whole roll, so every
+  mutation-attribution guard that asked the innermost origin stopped seeing the remote application —
+  the roll's own `SetBlock(0)` was reported as a local player break.
+- Change: `CallContext.IsWithin(Origin)` (a chain scan; `LocalAction` answers true only with no scope
+  open) is the MUTATION-ATTRIBUTION query, `Current` stays the CLASSIFICATION query, all 15
+  remote-apply guards were converted, and `CallContextScopeCompositionGateTests` bans the four
+  innermost-origin forms under `src/`.
+
+## 2026-10-02 — The member re-entry route needs the member to leave the LOBBY, not only the world
+
+- Symptom: with the host in the world, a guest that had left the world alone and clicked join again
+  stayed at `Starting…` with `inWorld=false`; no `WorldJoin` reached it and the host's start gate waited
+  for one player.
+- Cause: the host answers a FRESH handshake with a direct `WorldJoin`; a member still in the lobby never
+  re-handshakes, so the member's re-entry edge never fires.
+- Change: the working sequence is `leave-world` → `home.leave` (state `active=false`, lobby 0) →
+  `join-lobby` the same id; the member re-enters and the host's entry fan-out delivers the snapshot
+  group. The runbook records the step that must not be skipped.
+
+## 2026-10-02 — `[BlockSync] answered …report at` also names legitimate arbitration, so attribute by cell
+
+- Symptom: while re-running row 4, the host logged three `answered <guest>'s report at (cell) with the
+  authoritative block 8` lines in the same window as a guest crush — easy to misread as the echo the
+  batch was hunting.
+- Cause: the staging substitution writes thin ice through the guest's own `SetBlock`; that local
+  placement is reported (correctly — it is a local write), and the host refuses it because a placement
+  must land on air while its cell still holds the generated block, so the host answers with its own
+  block. The echo's answer names the RELAYED cells of a peer's presentation; this one names the
+  crasher's own staging cells.
+- Change: attribute an `answered` line by cell AND by the peer's own `presenting a relayed break` line;
+  a staging write also does not propagate to the peer, so the two sides' block ids may differ until the
+  break's air write lands.
+
+## 2026-10-02 — A re-entry burst does carry a stack frame in the rolling log
+
+- Symptom: the guest's world RE-ENTRY produced the NRE burst the open ticket describes, and the rolling
+  log carried more than the message: `[ERR] [Unity:Exception] NullReferenceException` followed by
+  `(wrapper dynamic-method) Item.DMD<Item::Update>(Item)`, plus `ArgumentException: The Object you want
+  to instantiate is null.` lines.
+- Cause: the re-entry window is the staging window the ticket named, and this throw shape writes one
+  stack frame line into the rolling log (the earlier "full log only" finding was the alternate's
+  `GroundBlood.Start`).
+- Change: read the burst from the rolling log at the re-entry window (ticket
+  `sandbox-client-null-reference-bursts` now holds this anchor); the full `LogOutput.log` tail stays the
+  fallback for a message-only burst.

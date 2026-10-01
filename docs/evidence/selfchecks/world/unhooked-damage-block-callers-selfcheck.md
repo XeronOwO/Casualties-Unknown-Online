@@ -1,6 +1,6 @@
 # Self-check — the two native `DamageBlock` callers that were never hooked
 
-- Ticket: `docs/backlog/todo/unhooked-damage-block-callers.md` (2026-09-26 cycle, HEAD started at `52320ca0`)
+- Ticket: `docs/backlog/review/unhooked-damage-block-callers.md` (2026-09-26 cycle, HEAD started at `52320ca0`)
 - Change: re-anchor `WorldGenerationDamageBlockPatch` from the converting `Vector2` overload to the BODY
   overload, widen the report seam from a world position to the cell, gate CUO's custom-tile drops on the
   native `ignoreLoot`, and pin the anchor with a gate.
@@ -200,5 +200,5 @@ showed the peer's PRESENTATION write being reported back and answered — the pe
   at depth 0 and Dispose restoration. Red on the frozen pre-fix tree: 3 failed / 12 passed / 15 (gate) and
   3 failed / 1 passed / 4 (composition); green after: 15/15 and 4/4, gate project 315/315, full suite
   4577/4577 with build. Artifacts `d-red-gate.log`, `d-red-composition.log`, `d-full-test-1.log` in the
-  batch artifact directory. The dual-client verdict for row 4 is the batch-`20261002-d` acceptance run,
-  recorded on the ticket.
+  batch artifact directory. The dual-client verdict for row 4 is the batch-`20261002-d` acceptance run
+  (`docs/evidence/acceptance/unhooked-damage-block-callers-20261002-d.md`): pass, twice.

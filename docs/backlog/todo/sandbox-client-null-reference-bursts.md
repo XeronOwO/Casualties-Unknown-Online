@@ -3,8 +3,8 @@
 - Status: Todo
 - Priority: Low
 - Category: Runtime diagnostics / sandbox
-- Source: observed during agent acceptance runs — noted unjudged in `docs/acceptance/lessons.md` (2026-10-01), re-captured with context in batch `20261002-c` (`docs/evidence/acceptance/20261002-c-scope.md`)
-- Related: `docs/acceptance/lessons.md`, `docs/evidence/acceptance/20261002-c-scope.md`
+- Source: observed during agent acceptance runs — noted unjudged in `docs/acceptance/lessons.md` (2026-10-01), re-captured with context in batch `20261002-c` and again with a rolling-log stack frame in batch `20261002-d` (`docs/evidence/acceptance/20261002-c-scope.md`, `docs/evidence/acceptance/20261002-d-scope.md`)
+- Related: `docs/acceptance/lessons.md`, `docs/evidence/acceptance/20261002-c-scope.md`, `docs/evidence/acceptance/20261002-d-scope.md`
 
 ## Problem
 
@@ -25,19 +25,30 @@ the state that leads into it and whether CUO's resets or the sandbox's environme
 - Guest (Steam1), later while out of the world: ~50 `NullReferenceException` lines inside ~5 ms,
   interleaved with `[WRN] [RemotePlayerRenderer] Remote body: no Body component in "Experiment"
   clone.` — artifacts `c-sandbox-instantiate-guest.log`, `c-guest-exception-window.log`.
+- Guest (Steam1), during its world RE-ENTRY in batch `20261002-d`: a burst of `NullReferenceException`
+  that the CUO ROLLING log carries with a stack FRAME —
+  `(wrapper dynamic-method) Item.DMD<Item::Update>(Item)` — plus
+  `System.ArgumentException: The Object you want to instantiate is null.` lines; the host logged
+  neither. Artifacts `d-guest-nre-burst.log`, `d-guest-exception-window.log` (read at the re-entry
+  mark). This is the first guest-side anchor: it names `Item.Update` as the throwing frame, and a world
+  re-entry as the window that produced it.
 - The host's log carries no matching line in the same windows.
 - No user-visible failure was observed in the batch; every acceptance row was judged on its own
   evidence.
 
 ## Limits
 
-- The guest's full `LogOutput.log` is very large and the searched tail did not reach its burst, so only
-  the alternate has a stack; the two bursts may or may not be one family.
-- No reproduction recipe is known yet: the bursts were observed, not staged. The alternate's re-entry
-  is one observed window, not a confirmed trigger.
+- The guest's full `LogOutput.log` is very large and the searched tail did not reach its first burst, so
+  that capture has no stack; batch `20261002-d` changed the picture for the re-entry shape — the rolling
+  log carries one stack frame (`Item.DMD<Item::Update>`) — but only the alternate's full-log capture has
+  a complete native frame set. The two bursts may or may not be one family.
+- No reproduction recipe is known yet: the bursts were observed, not staged. The alternate's re-entry in
+  batch `20261002-c` and the guest's re-entry in batch `20261002-d` are two observed windows, not a
+  confirmed trigger.
 
 ## Next step
 
-- Stage one burst (a world re-entry is the cheapest observed window) and read the full `LogOutput.log`
-  from its tail immediately, so the throwing object and its state are named; then decide whether the
+- Stage one burst (a world re-entry is the cheapest observed window) and read the rolling log at that
+  window first — the batch-`20261002-d` burst carried `Item.DMD<Item::Update>` there — then read the
+  game's own `Item.Update` at the anchor to name the object and its state. With that, decide whether the
   family needs a CUO fix, a guard, or only a log-level note.

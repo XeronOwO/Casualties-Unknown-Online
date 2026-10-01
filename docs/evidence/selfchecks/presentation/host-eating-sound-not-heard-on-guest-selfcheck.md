@@ -1,6 +1,6 @@
 # Self-check — the guest hears the host's eating sound (`host-eating-sound-not-heard-on-guest`)
 
-Ticket: `docs/backlog/review/host-eating-sound-not-heard-on-guest.md` (Medium).
+Ticket: `docs/backlog/done/host-eating-sound-not-heard-on-guest.md` (Medium).
 Cycle: 2026-09-26. Wire change: `CharacterSoundKind.Consume` (+ `ProtocolVersion.Current` bumped 40 → 41 in
 the same change — its doc comment in `ProtocolVersion.cs` is the per-number log).
 

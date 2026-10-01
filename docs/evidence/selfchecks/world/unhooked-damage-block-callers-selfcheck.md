@@ -53,7 +53,7 @@
   drops (`OnCustomTileBroken` is local-only).
 - **The air-write claim**: a footstep crush or a burrow break now stamps `playerBreak = true` (the roll
   opens `DamageBlockOrigin`), which is what makes the peer PRESENT the break through its own native roll
-  instead of writing silent air — the presentation half of `review/guest-hears-only-some-block-break-sounds.md`,
+  instead of writing silent air — the presentation half of `done/guest-hears-only-some-block-break-sounds.md`,
   now covering these two callers as well.
 - **The character-sound capture**: the two callers' block hit/step sounds now run inside
   `DamageBlockOrigin`, so they cannot be classified as a character sound (the walk-path crush is the case

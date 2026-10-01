@@ -1,10 +1,11 @@
 # Guest hears only some of the host's block hit/break sounds
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-l): all six rows judged — five hits, the break, the reverse direction, the third peer and the two-player cell all converged on every client's own damage roll (state read per absolute cell); the audible half is a residual — record `docs/evidence/acceptance/guest-hears-only-some-block-break-sounds-20261001-l.md`
 - Priority: Medium-High
 - Category: World audio / block damage sync
 - Source: User acceptance finding (2026-09-21): while the host mines continuously the guest hears only part of the block hit/break sounds, although every hit plays a sound for the host.
-- Related: `review/host-metal-scrap-block-place-sound-not-synced-to-guest.md` (its non-goal stated that block hit/break sounds "already replay through the native remote DamageBlock apply path" — this report falsifies that claim for the BREAK half, and that non-goal is corrected here), `review/sync-player-pain-vocalizations-and-bark.md`, `review/guest-background-ghost-item-ground-sounds.md`, `review/unhooked-damage-block-callers.md` (the same family's report-coverage gap, closed by re-anchoring the hook on the overload every native roll enters)
+- Related: `done/host-metal-scrap-block-place-sound-not-synced-to-guest.md` (its non-goal stated that block hit/break sounds "already replay through the native remote DamageBlock apply path" — this report falsifies that claim for the BREAK half, and that non-goal is corrected here), `review/sync-player-pain-vocalizations-and-bark.md`, `review/guest-background-ghost-item-ground-sounds.md`, `review/unhooked-damage-block-callers.md` (the same family's report-coverage gap, closed by re-anchoring the hook on the overload every native roll enters)
 
 ## Root cause (from source, not from the report's narration)
 

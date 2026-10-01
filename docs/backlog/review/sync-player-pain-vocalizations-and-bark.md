@@ -1,6 +1,7 @@
 # Sync player pain vocalizations and B-key bark to remote players
 
-- Status: Review (landed; awaiting the final unified acceptance pass)
+- Status: Review — rows 1-3 stay unproven (a lockable entity and a jammed lockpick are the missing setup) — code complete
+- Acceptance (20261001-l): rows 4-6 pass on the run's own suite and the bark/pain/yawn kinds were carried live; rows 1-3 stay unproven — the lockpick-failure setup is not reachable in that run — record `docs/evidence/acceptance/sync-player-pain-vocalizations-and-bark-20261001-l.md`
 - Priority: Medium
 - Category: Character audio / player presentation sync
 - Source: User report (2026-09-04) — the host's pain scream/groan and the sound triggered by pressing B are not heard on the guest client. The reverse direction (guest → host) was not tested by the user and is covered by the same star-relay path during the fix.

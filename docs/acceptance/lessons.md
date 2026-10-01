@@ -506,3 +506,41 @@ dependency the table did not name, a step that cost more than it returned.
   style put the game's own nine-slice sprite inside the control as its border and produced a white box
   with no text, because that sprite's body is opaque; the frame said so immediately while the rects all
   read correctly.
+
+## 2026-10-01 — A forced state must be written where the game derives it
+
+- Symptom: the sound batch's first pain probe wrote `Body.averagePain = 100` and `PantSound.painTime = -1`;
+  no pain clip played on any client, while the same probe rewritten to write the limbs' pain produced two
+  `Pain` replays immediately.
+- Cause: `Body.averagePain` is recomputed every frame as the maximum of the limbs' pain
+  (`Body.cs:2800-2808`), so the write was overwritten before `PantSound.Update` read it. The field is an
+  output, not an input.
+- Change: a forced-state probe writes the INPUT the game derives from (the limbs' pain), and the batch's
+  `pain-force.cs` probe is the recorded shape. The same rule already covered the body-force recipe's own
+  fields, which the game reads rather than derives.
+
+## 2026-10-01 — A relative cell read names a different cell on every client
+
+- Symptom: the third client's read of "the host's cell" (dx/dy relative to its own body) returned air where
+  the host and guest held damage, and it read like a world divergence; re-reading with the offsets
+  recomputed from each body's own cell and the returned `cellX`/`cellY` checked showed all three clients
+  identical.
+- Cause: the `block-read`/`block-hit` recipes compute the cell from the LOCAL body's position; the three
+  bodies drift independently (spawn push, holes, slides), so one dx/dy pair names three different absolute
+  cells.
+- Change: a cross-client cell comparison recomputes dx/dy from each client's own cell and asserts the
+  recipe's returned cell against the intended absolute cell before any value is compared; a whole-row
+  comparison uses one absolute-coordinate probe (`world-row.cs`) instead of per-client offsets.
+
+## 2026-10-01 — The sound family's evidence is a Debug line, so the run sets the level live
+
+- Symptom: the run's first log read carried no `[CharacterSound]` lines; the CUO log level was the default
+  `Information`.
+- Cause: the receiver's evidence — `[CharacterSound] replayed {Kind} {Clip} for owner {Owner}` and the
+  `[ItemImpact] reported` / `replayed` pair of the item-impact carrier — is written at `Debug`.
+- Change: the run sets `Logging.MinimumLevel` to `Debug` on every client through the same editor the
+  Preferences control writes (`LoggingConfigEditor.Set`, the batch's `loglevel-*.cs` snippets), reads the
+  CUO rolling log (`BepInEx/logs/latest.log`, rotated to `yyyy-MM-dd-N.log.gz` on the next start), and
+  restores `Information` before closing. The meal-end burp needs its own arming too: a food's own `Eat`
+  arms it only above hunger 90 and with a 10% roll, so that row is driven through `Body.Burp` — the game's
+  own arming method — and the record names the substitution.

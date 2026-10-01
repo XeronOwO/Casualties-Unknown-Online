@@ -1,6 +1,7 @@
 # Host block damage reports: two native `DamageBlock` callers are not hooked
 
-- Status: Review
+- Status: Review (batch `20261001-x`: rows 1, 3–6 not driven; row 2 named open — no reachable spider-burrow path on this machine — the ticket stays open)
+- Acceptance record: `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-x.md`
 - Priority: Low-Medium
 - Category: World block damage / report coverage
 - Source: found while fixing `done/guest-hears-only-some-block-break-sounds.md` (the presentation half of the same report). The mechanism inventory for that fix censused every native `DamageBlock` call site and found two that never produce a report, because CUO patches only the `Vector2` overload.

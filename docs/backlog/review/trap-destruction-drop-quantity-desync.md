@@ -1,6 +1,7 @@
 # Trap destruction drops desync in item quantity between host and guest
 
-- Status: Review (code-complete)
+- Status: Review (code-complete; batch `20261001-x`: row 1 passes — the support under the jump pad at (407,668) broke with `Committed(0+2)` building drops, and both clients' censuses hold the same two item ids; rows 2–3 unproven — the confirming read sat inside the keyframe band and the fresh flag was never caught — the ticket stays open)
+- Acceptance record: `docs/evidence/acceptance/trap-destruction-drop-quantity-desync-20261001-x.md`
 - Priority: Medium
 - Category: Item sync / entity destruction drops
 - Source: User report (2026-09-05) — host destroys the support block under a jump-pad trap; the two sides see different drop sets for a while, then periodic sync restores the count.

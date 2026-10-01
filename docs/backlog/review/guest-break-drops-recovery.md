@@ -1,6 +1,7 @@
 # Guest break drops are lost when the break report is swallowed
 
-- Status: Review
+- Status: Review (batch `20261001-x`: rows 5–6 pass — the race's loser had every drop refused and destroyed on its own client, and the third peer claimed the winner's item id without a duplicate; rows 1–4 and 7 named open (swallowed report / lost air write / duplicate re-report); row 2b is a static premise — the ticket stays open)
+- Acceptance record: `docs/evidence/acceptance/guest-break-drops-recovery-20261001-x.md`
 - Priority: Medium
 - Category: Network / sync coverage / items (guest-created drops)
 - Source: `review/guest-block-mutation-re-report.md` (W1) implementation — the block state now converges when a break's air write is lost, but the drops it carries did not

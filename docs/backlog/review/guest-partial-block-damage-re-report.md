@@ -5,7 +5,8 @@ closed: the guest keeps each reported cell's ABSOLUTE damage, the fallback re-re
 the outstanding set, and the host merges per cell and answers every reported cell
 authoritatively — a zero answer clears a row this host's own cap/range rules refused.
 
-- Status: Review
+- Status: Review (batch `20261001-x`: rows 1–4, 5 and 6 named open — no message-swallow injection on this machine; row 5's baseline move needs a pending re-report, which is the same missing capability; row 7 (the 128-entry boundary) not driven — the ticket stays open)
+- Acceptance record: `docs/evidence/acceptance/guest-partial-block-damage-re-report-20261001-x.md`
 - Priority: Medium
 - Category: Network / sync coverage / world blocks
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W2); split out of `review/guest-block-mutation-re-report.md` when the W1 half landed

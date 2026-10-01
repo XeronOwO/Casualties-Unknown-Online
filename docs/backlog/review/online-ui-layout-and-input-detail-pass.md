@@ -1,7 +1,14 @@
 # The Online UI's layout and input detail pass
 
-- Status: Todo — Rejected (batch 20261001-j: the control internals are not laid out — a text field's value area is 0×0 and its text sits off-canvas, so a picked or typed value is never painted; rows 3, 5, 6 and the Preferences third of row 11 failed)
-- Acceptance (20261001-j): rows 1, 2, 4 and 7 pass; rows 3, 5, 6 and 11 fail (unlaid-out control internals); rows 8–10 unproven (setup gaps: a second peer, pointer drag, UI scale) — record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001.md`
+- Status: Review — code complete and re-judged (batch 20261001-k: the control internals ARE laid out now;
+  rows 3, 5, 6 and the window third of row 11 pass against the deployed build)
+- Acceptance (20261001-k): rows 1, 2, 3, 4, 5, 6 and 7 pass; row 11 passes for the window half (the quick
+  panel, the context menu and the overlays need a session) → the session half stays unproven; rows 8–10
+  unproven (setup gaps: a second peer, an OS-level drag, a canvas smaller than the frame) — record
+  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001-k.md`
+- Acceptance (20261001-j, the rejection this pass answers): rows 1, 2, 4 and 7 pass; rows 3, 5, 6 and 11
+  fail (unlaid-out control internals); rows 8–10 unproven — record
+  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001.md`
 - Priority: High
 - Category: Online UI / layout, presentation and input
 - Source: User acceptance pass (2026-09-27), on the overhaul ticket's own delivery. The findings in the
@@ -245,6 +252,48 @@ compact height the second look raised from 30), and the English `Preferences` `1
 caption; both clients' frames were captured and read, and a create/join smoke passed. Evidence: the local
 run artifacts (`ui-before-*`, `ui-experiment-*`, `ui2-fixed-*`, `ui3-*`) in the directory `AGENTS.local.md`
 names, captured per client window.
+
+## Third pass (2026-10-01): the width is declared, and a control shows one box
+
+Batch `20261001-j` rejected this ticket: a text field's value area read 0×0 and its own rect read
+hundreds of thousands of units wide, so a picked or typed value was never painted. This pass found the
+mechanism and reworked the two decisions that carried it (commit `968edee8`).
+
+- **The mechanism: the measurement fed itself.** uGUI measures a layout group's child by walking that
+  child's own content, and content that is STRETCHED inside the box reports the width the group just
+  wrote. Asking for a field's preferred size therefore reads the group's own output. The batch `k` probe
+  caught it running away: the same dropdown measured **690,623** units wide inside a 984-unit page and
+  **849,678** a couple of minutes later — doubling every frame or two, while the value it held was correct
+  the whole time. The earlier "the engine sizes, CUO declares only floors" decision is what made that
+  possible: it asked the engine to measure exactly the thing that cannot be measured.
+- **The width is DECLARED now.** A button is as wide as its own caption's text (TMP measures the text
+  rather than the rect, so this is stable) plus the room the game's row keeps around it; a toggle, slider
+  or field answers from the size its prefab was authored with; a dropdown and a field keep the layout's
+  own minimum under the model's floor, because a control the player types into cannot be zero wide.
+  `OnlineUiControlBox` (Runtime, pure) holds the rule and its tests.
+- **A control's insides are placed one rect at a time.** A container fills the box less the row's room, a
+  caption keeps its own text width at the left edge so it never runs under the row's art, and the row's
+  art (a dropdown's arrow) keeps its size at the right edge. Nothing in that pass asks a stretched child
+  how wide it would like to be, and a layout group or fitter left on one of those children is removed.
+- **The row's own label and control are still laid out by the row's group**, because that group is the
+  one place where measuring is safe: its children are the row's label and a control whose width CUO has
+  already written down. The label stays flexible and the control keeps the declared width.
+- **One control shows ONE box** (the user's calls of the same day: "the grey box looks strange, can it go
+  — and unify the style"). The game's own rows bring their own boxes — a dropdown's white frame, and an
+  integer row's grey fill UNDER it spanning the whole row, which is what the user saw as a grey border
+  with a margin nobody chose. Those are hidden now, and the control paints a dark fill with a hairline
+  inside its edge, so a field reads as the same family as a button on every page.
+- **The hairline is four one-pixel lines, not the game's sprite.** The first attempt drew the edge with
+  `uiBlockNano` left untinted — the trick the window's own frame uses — and failed visibly: that sprite's
+  BODY is opaque, so the box came out white with no text (`style1-preferences.png`) and the frame rate
+  fell to 12. The style needs a line, and a rect is what the pass already owns.
+
+Verified on the deployed build (`968edee8`, `verify-deploy.ps1` exit 0): every control 150–200 units wide
+(the runaway is gone), a field's text area `137.1×16` with its value painted, six tabs sized by their own
+captions (`Preferences` 169.2), `controls=4 worstControlWidth=200 zeroInteriors=0`, the six pages
+reachable, and the frame rate unchanged at 160–166. Evidence: `.acceptance/batch-k/` (`baseline-internals.json`
+for the runaway, `final-internals.json`, `final-values.json`, `final-census.txt`, `final-buttons.json`, and
+the page frames), and the record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001-k.md`.
 
 ## Non-goals
 

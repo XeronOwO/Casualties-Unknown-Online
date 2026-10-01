@@ -52,12 +52,11 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — the acceptance pass' geometry and click findings.
-
 ### In progress
 
 ### Review
 
+- [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.

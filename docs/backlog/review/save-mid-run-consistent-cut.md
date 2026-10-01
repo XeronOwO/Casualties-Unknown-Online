@@ -1045,3 +1045,14 @@ in-game rows open.
 Run record: [save-mid-run-consistent-cut-20261001.md](../../evidence/acceptance/save-mid-run-consistent-cut-20261001.md).
 Rows 1 and 7 pass; rows 2–6 unproven (ground/worn restings, fluids/enemies, the in-flight save window and
 the half-applied read were not staged). The ticket stays in `review/` until those setups are driven.
+
+## Acceptance — batch 20261001-q (Run D solo + Run E host + guest)
+
+Run record: [save-mid-run-consistent-cut-20261001-q.md](../../evidence/acceptance/save-mid-run-consistent-cut-20261001-q.md).
+Rows 2, 4, 5 and 6 pass (row 4 with the deferral window closed before the arm; row 2's `worn` resting is
+the named gap). Row 3's cut-side half executed: a live-session cut carried `building-health 19`,
+`trap-consumption 6`, `trap-state 6`, `enemy 673 + removed 5` and 243 fluid chunks in its archive; the
+restore of that cut was never verified (the repository pointer sent the Continue to another world and
+the host then died in the Steam transport runaway), so row 3 stays `unproven` and the ticket stays in
+`review/`. The entity families are session-gated: a solo run produces the same staging with zero
+world-entity/enemy/fluid rows.

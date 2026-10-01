@@ -52,6 +52,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Steam send-limit refusal floods the log and wedges the host](todo/steam-transport-send-limit-runaway.md) — **High** — unbounded retry; 1.3 GB log in one run.
+
 ### In progress
 
 ### Review

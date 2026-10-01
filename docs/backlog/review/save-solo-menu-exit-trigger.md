@@ -103,3 +103,15 @@ against the game assembly by `PatchContractTests` (the new class is picked up by
 verdict is the L0-tested `MenuExitInterception`. The patch body itself cannot be machine-driven here:
 it reads Unity singletons, so the actual in-world → menu leave, the one extra frame it takes, and the
 "cut then leave" order on a real solo run need the user's in-game pass.
+
+## Acceptance — batch 20261001-q (Run D solo + Run E host + guest)
+
+Run record:
+[save-solo-menu-exit-trigger-20261001-q.md](../../evidence/acceptance/save-solo-menu-exit-trigger-20261001-q.md).
+Rows 1, 2, 3, 5, 6 and 7 are judged from this run's evidence: the solo leave takes one `MenuReturn` cut
+at the frame-end seam (revision 325); a leave outside a world cannot be invoked (no `PlayerCamera`) and
+writes nothing; a host's directed leave with a guest present takes the cut (revision 1982, the guest is
+pulled out); the refused cut (save root renamed aside) logs `StageFailed` and still leaves; the stale
+teardown verdict is suite-pinned; and the tutorial entry gets no archive and writes no cut on its leave.
+Row 4 (a guest's leave) was not staged — the host's Steam transport runaway ended Run E — so the ticket
+stays in `review/` on that one row.

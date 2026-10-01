@@ -127,7 +127,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Middle-click location marker](review/middle-click-location-marker.md) — **Medium** — the one-shot location ping.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — **Medium** — the typed KrokMP content seams.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
-- [Trap destruction drop quantity desync](review/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [Trap-layout snapshot recovery](review/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s repair re-derives and re-sends the layout.
 - [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [Dropped mod command requests](review/mod-command-request-timeout.md) — **Low** — the request deadline and the bounded pending map.
@@ -170,6 +169,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Trap destruction drop quantity desync](done/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [Block-break first-writer-wins](done/block-break-first-writer-wins.md) — **High** — the dual-side confirmation.
 - [An earthquake's clock write ends an acceleration](done/world-acceleration-quake-direct-write.md) — **Medium** — the host adopts it, vanilla-style.
 - [World-time acceleration is gated on being asleep](done/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.

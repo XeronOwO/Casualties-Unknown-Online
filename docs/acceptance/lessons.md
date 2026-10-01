@@ -1019,3 +1019,59 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: while a review runs, the only writes are gitignored artifacts. The harvest, the run log and
   every other tracked edit wait for the report; the reviewer re-ran its ladder after this change and
   still passed, but that was luck, not design.
+
+## 2026-10-01 — The fresh-drop presentation is gated by the game at 8 units from the destroyer
+
+- Symptom: three pads destroyed from 9.1, 35 and 5.2 world units away produced drops that read
+  `fresh:false` on every client, then `fresh:true` on every client the moment the destroyer stood inside
+  the radius.
+- Cause: `BuildingEntity` attaches `FreshItemDrop` only when
+  `Vector2.Distance(transform.position, PlayerCamera.main.body.transform.position) < 8f`
+  (`BuildingEntity.cs:74`, applied at `:84/:107/:118`); the component then self-destroys after 10 s
+  (`FreshItemDrop.cs:15,49-52`). A `fresh` row needs BOTH the breaker inside that radius and a read
+  inside that window.
+- Change: the drop family arms the game's own `itemfloating` setting (`item-floating value=1`), places the
+  breaker's body inside the 8-unit gate with `body-place`, breaks, and reads within the window
+  (`item-watch`'s 100 ms poll; the probe `y-fresh-screen.cs` returns the item's camera screen point so the
+  frame can be cropped where the highlight must be).
+
+## 2026-10-01 — Destroyed-entity drops need a body near the entity
+
+- Symptom: a jump pad whose support was broken from 35 cells away vanished and produced NO drops; after a
+  body was moved next to its position, its two drops stood there.
+- Cause: the building-death drop loop runs on the local simulation of the death; with nobody near, the
+  block event landed but the drop spawn did not.
+- Change: a drop row's setup places a body beside the entity BEFORE the support is broken, exactly as the
+  batch `20261001-x` approach recipe did.
+
+## 2026-10-01 — `crush-find` returning zero is a world-state answer, not a probe failure
+
+- Symptom: `crush-find` answered `candidates: 0, cells: []` at radius 60/120/200 on two clients in two
+  layers, with `skippedOutside: 0` — the search box sat fully inside the 1024×1024 world.
+- Cause: the only vanilla block types whose `BlockInfo.health` is exactly 1 are `thinice` (28) and
+  `powdersnow` (29) (`WorldGeneration.cs:580,590`) — biome tiles the visited layers did not expose.
+- Change: the crush family is planned per layer; a zero answer is recorded as `unproven` with the census,
+  and the recipe's `skippedOutside` field is what proves the search was not clipped.
+
+## 2026-10-01 — The absolute re-report can be a silent no-op, and that is not a defect
+
+- Symptom: the guest's 140 outstanding cells rode the 60 s pump
+  (`Partial block-damage report received from … (140 cells)`), and the host log carried ZERO
+  `RefuseCap|RefuseRange|RefuseAir` lines.
+- Cause: the live delta had already delivered those cells, so every merge answered `KeepHost` — nothing
+  was refused because nothing needed to change.
+- Change: a refusal row needs a cell the host's full table cannot take AND never saw live; without the
+  swallow injection that state is not reachable, so the row stays `unproven` and the pump's delivery is
+  recorded as the half that WAS observed.
+
+## 2026-10-01 — `Settings.Get<T>` works inside the client evaluator, and a client that just changed layer answers `no-world`
+
+- `Settings.Get<SettingBool>("itemfloating")` compiles and runs in the client's Mono.CSharp evaluator
+  (the game's public accessor; `Settings.cs:543-567`), so a recipe can arm a game setting through the
+  game's own path rather than only writing its static.
+- Right after `game-console command=skiplayer`, the guest's first census answered
+  `{"ok":false,"error":"no-world"}` and the re-read three seconds later answered `tableCount: 0`: a
+  client that is still re-entering is not a failure — re-read before recording a verdict.
+- Observation, unjudged: both sandbox clients logged repeated
+  `System.ArgumentException: The Object you want to instantiate is null` (`UnityEngine.Object.Instantiate`)
+  around the destruction family; no ticket claims it and this batch did not judge it.

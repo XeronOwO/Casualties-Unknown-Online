@@ -1,6 +1,7 @@
 # Manual world acceleration must not end when a player moves
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-u): all nine rows judged — the movement rule's own call is swallowed on the mover's side and on the other client with the session clock standing (rows 1-3, 9; a teammate-side burst of 30 swallowed resets left the shared clock alone), mining and drinking while accelerated leave it alone (row 4; its item-use instance is confounded by the world's own earthquake and is named), both the host's and the guest's accelerate key return the session to 1× (row 5), the all-unconscious gate applies 25× and waking returns 1× (row 6), pause stops only the pausing screen and the death transition writes nothing to the shared clock while the start gate swallows resets without writing (row 7), and the HUD's own fields read `x5`/`x1` with the matching icon lit on both clients (row 8, whose audible half is a residual) — record `docs/evidence/acceptance/world-acceleration-survives-movement-20261001-u.md`.
 - Priority: High
 - Category: World / session (world-time initiation)
 - Source: User acceptance finding (2026-09-21) and ruling the same day: the host started the acceleration and it stopped as soon as the host moved. In-world actions during an acceleration (mining and the like) are normal, vanilla-supported play and CUO must not gate them; the acceleration ends only when the player ends it (the accelerate key back to 1x), through the sleep gate, or through the death/pause transitions.

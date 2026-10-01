@@ -1,6 +1,6 @@
 # Manual world acceleration survives movement — self-check (2026-09-25)
 
-Ticket: `docs/backlog/review/world-acceleration-survives-movement.md` (High; user report 2026-09-21
+Ticket: `docs/backlog/done/world-acceleration-survives-movement.md` (High; user report 2026-09-21
 and the ruling the same day). Decision 223. Cycle scope: a session-wide manual acceleration ends
 only through the accelerate key back to 1×, the sleep gate or the death/pause transitions — never
 through a member's movement. The cycle replaced the world-time router's "every `SetTimeScale` call

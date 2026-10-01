@@ -1,10 +1,11 @@
 # An earthquake's direct Time.timeScale write ends a session acceleration
 
 - Status: Review
+- Acceptance (20261001-u): rows 1, 2, 4 and 5 pass — the world's own earthquake fired while an acceleration stood, the host adopted its direct `1f` write 11 ms later and every screen returned to 1× with the quake running, the console-class direct write of 20 was adopted as SuperFast while a non-domain value (7) was not, and the cycle's ladder is green; **row 3 stays unproven for its scene-reload instance** — the run-start instance was observed good (no pump activity before the world entry; the start gate swallowed a reset at 18:32:55) but no layer end occurred in this session — record `docs/evidence/acceptance/world-acceleration-quake-direct-write-20261001-u.md`.
 - Priority: Medium
 - Category: World / session (world-time)
 - Source: The family audit of the movement-routing fix (decision 223, 2026-09-25): every `PlayerCamera.SetTimeScale` call is now classified, but the game also writes `Time.timeScale` DIRECTLY, and the host pump adopts such a write as the new shared speed by design (`WorldTimeSync.AdoptDirectTimeScaleWrite`).
-- Related: `review/world-acceleration-survives-movement.md` (the routing fix this is the remaining sibling of), `review/world-time-local-initiation.md`, `resolved/sleep-behavior-policy.md`, `docs/decisions/active.md` #223 and #226
+- Related: `done/world-acceleration-survives-movement.md` (the routing fix this is the remaining sibling of), `review/world-time-local-initiation.md`, `resolved/sleep-behavior-policy.md`, `docs/decisions/active.md` #223 and #226
 
 ## The ruling (2026-09-26): vanilla stands, the write is never suppressed
 

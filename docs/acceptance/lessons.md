@@ -840,3 +840,47 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: the acceptance record passes the row and names the four exceptions and their owners
   (`docs/evidence/acceptance/backlog-index-summary-duplication-20261001.md`); a mechanical check has to
   say where each unmatched token actually lives.
+
+## 2026-10-01 — A HUD widget can be live, readable and still absent from the window capture
+
+- Symptom: the run's frames at 5× and 1× showed the world and the game's other HUD parts, but the region
+  the speed indicator's own RectTransform names was empty; the widget read `x5` with icon 1 lit and `x1`
+  with icon 0 lit on BOTH clients, and `ScreenCapture.CaptureScreenshot` wrote no file from either process.
+- Cause: the widget is active, white and laid out exactly where the transform says, but the window-level
+  `PrintWindow` capture does not composite it; the game's own screenshot API is not a substitute here.
+- Change: judge an indicator row from the widget's live objects (its text and its icon colors) and classify
+  that row `machine`, not `visual`; keep the frames as context and say in the record why the frame cannot
+  carry the row. The speed SOUND stays a residual — no frame carries audio.
+
+## 2026-10-01 — A decimal recipe argument passes the gate and fails in the client
+
+- Symptom: `time-scale-direct -RecipeArg scale=7.5` answered `eval-error (1,1): InteractiveHost` while
+  `scale=20` and `scale=7` ran; the offline gate was green for the same file.
+- Cause: the driver's numeric check accepts a decimal and substitutes it literally, and the gate's own
+  substitution uses `0` — so the decimal form is never exercised offline, and the client's compiler
+  refused the submitted snippet at run time.
+- Change: exercise a numeric recipe with an integer, or have the recipe format the value itself; record
+  the failed form as a limitation rather than re-running until it passes. The driver's numeric contract
+  deserves its own negative sample offline.
+
+## 2026-10-01 — The sleep gate needs bodies held down, not just consciousness 0
+
+- Symptom: `body-force consciousness=0` (leaving `brainHealth` alone) produced a body that read
+  `conscious:false` in the same call and `conscious:true` a few seconds later; the all-unconscious gate
+  never applied its 25× and the run's first sleep block had to be thrown away.
+- Cause: the game's own sleep simulation restores a healthy body's consciousness within seconds; the
+  recipe's own header already names the shape that stays down (`brainHealth=1 consciousness=0`).
+- Change: a sleep-gate scenario sets `brainHealth=1` with `consciousness=0` on EVERY client, waits for the
+  1 Hz character data to reach the host, and reads both ends; restore with `brainHealth=100` afterwards.
+
+## 2026-10-01 — A late joiner is a lobby rejoin, not a re-entry control
+
+- Symptom: after `leave-world` the guest sat in the lobby (role Guest, out of world) and its Online UI
+  Home page offered no control that enters the host's running world — only `home.copy_lobby_id`,
+  `home.leave` and `home.open_players`.
+- Cause: a guest's world entry is driven by the host's fan-out, so the client that wants back in has to
+  come back through the lobby; there is no local "enter world" button to press.
+- Change: the late-joiner setup clicks `home.leave` (which empties the lobby; `leave-world` alone keeps it)
+  and then runs `join-lobby` with the same id. Verified with a 5× acceleration standing: the rejoining
+  guest's log read `Scene state: InWorld (SampleScene)` and `World-time broadcast: Fast.` 30 ms later,
+  then the same broadcast again 3.3 s on (the resend), and both ends read 5×.

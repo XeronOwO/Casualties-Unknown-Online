@@ -1,6 +1,7 @@
 # World-time acceleration is gated on being asleep
 
 - Status: Review
+- Acceptance (20261001-u): rows 1, 2, 3, 5, 6 and 8 pass — the initiator's clock reads the new speed in its own call while the host still stands at the old one (`guest Fast applied locally and reported (host authority Normal).`), the sleep gate applies 25×, a differing answer ramps the initiator back inside 0.37 s, a late joiner enters the running world at the standing 5× (the entry broadcast and its 3.3 s resend in the guest's log), a two-press burst settles on one shared value, and a teammate's swallowed resets leave the host's clock alone; **row 4 stays unproven** — the invalid-request instances (not in world, bad speed, start gate) are not reachable from the recipe vocabulary and need an in-process way to hold the gate or an out-of-world guest while issuing a request — record `docs/evidence/acceptance/world-time-local-initiation-20261001-u.md`.
 - Priority: Medium
 - Category: World / session (world-time initiation)
 - Source: User ruling 2026-09-18 (design alignment session): the shared clock stays shared, but the OPERATION must be immediate and local — a player who presses accelerate accelerates at once, the host arbitrates, and the broadcast brings everyone else in with an acceptable delay. Sleep keeps its "everyone unconscious" gate.
@@ -15,7 +16,7 @@ rule left is the native one") and acceptance row 7 ("a player presses a movement
 manual fast-forward"), which describe the shipped behaviour.
 
 This ticket is moved back to `todo/`; the requirement, the native evidence and the replacement
-acceptance matrix are recorded in `review/world-acceleration-survives-movement.md`. The local-first
+acceptance matrix are recorded in `done/world-acceleration-survives-movement.md`. The local-first
 and accept-first half of this delivery stands.
 
 **Back to `review/` (2026-09-25):** the replacement requirement shipped in `b045b974`
@@ -89,7 +90,7 @@ nothing. **SUPERSEDED (2026-09-25, decision 223):** the half of this paragraph t
 movement rule left is the native one … travels the same local-initiation path as any other speed
 change" is no longer the behaviour and WAS the reported defect — the native movement reset is a
 SILENT automatic reset, not a speed intent, so it never reaches the shared clock at all
-(`review/world-acceleration-survives-movement.md` carries the replacement requirement and the
+(`done/world-acceleration-survives-movement.md` carries the replacement requirement and the
 replacement acceptance matrix). `StateKnown` (the remote body proxy plus the host's character-data
 store) survives for the SLEEP gate alone: an unobserved player still blocks automatic acceleration.
 
@@ -119,7 +120,7 @@ discovered later.
 | 4 | Invalid request (not in world / bad speed / start gate) | Refused, as today — and now answered | `WorldTimePolicyTests.GuestRequests_OnlyManualSpeeds`; the three guards in `WorldTimeSync.OnRequestReceived` are unchanged and every refusal path broadcasts the authoritative speed |
 | 5 | Late joiner / reconnect | Unchanged: the world-entry fan-out and the 5 s resend carry the shared speed | `WorldTimeSync.OnRemoteSceneChanged` and the resend pump are untouched, and an unmatched value settles a pending intent; `WorldTimeFlowTests.RequestAndAnswer_RoundTripThroughTheRealStack` pins the wire path through the real handlers |
 | 6 | Two players press accelerate at once | Idempotent: one shared accelerated state | `WorldTimeLocalInitiationTests.ATwoPressBurst_SettlesOnTheNewestIntent` (the newest intent wins; the older answer's dip is retargeted, never stuck) plus the host's last-writer `_requestedSpeed` |
-| 7 | ~~A player presses a movement key during a manual fast-forward~~ **SUPERSEDED (2026-09-25, decision 223)**: movement no longer changes the world speed on any client — the native reset is a silent automatic reset and never reaches the shared clock. The replacement rows are 1-3 of `review/world-acceleration-survives-movement.md`; this row stays as the record of what this delivery shipped and why it was wrong | — | — |
+| 7 | ~~A player presses a movement key during a manual fast-forward~~ **SUPERSEDED (2026-09-25, decision 223)**: movement no longer changes the world speed on any client — the native reset is a silent automatic reset and never reaches the shared clock. The replacement rows are 1-3 of `done/world-acceleration-survives-movement.md`; this row stays as the record of what this delivery shipped and why it was wrong | — | — |
 | 8 | A teammate walks while the session is accelerated | No change: the veto is gone | `WorldTimePolicyTests.ManualAcceleration_StandsWhileTeammatesAreAwake` — a teammate's motion is not an input at all; `WorldTimePlayerState` has no velocity field and `CapturePlayerStates` reads none. The neighbouring `WorldTimePolicyTests.ManualAcceleration_IsNotCancelledByAJustJoinedPlayer` covers the unobserved-player case, where only the SLEEP gate is blocked |
 
 Cycle measurements (this tree): focused world-time filter 57/57, main suite 3339 green,

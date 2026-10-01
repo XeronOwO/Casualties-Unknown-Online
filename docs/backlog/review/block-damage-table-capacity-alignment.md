@@ -1,7 +1,7 @@
 # Block-damage tables: CUO's registry and the game's own list disagree about capacity and eviction
 
-- Status: Review (batch `20261001-x`: rows 1–3 unproven — the >128-damaged-cell fill and the late joiner were not staged before the session closed — the ticket stays open)
-- Acceptance record: `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-x.md`
+- Status: Review (batch `20261001-y`: row 2 passes — the evicted cells left every side; row 1 is proven for the host and both connected guests (identical 128-row sets after two over-cap fills) but its late joiner was not driven; row 3 (the crush half) not driven — the ticket stays open)
+- Acceptance records: `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-x.md`, `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-y.md`
 - Priority: Medium
 - Category: Sync / world state
 - Source: found while fixing S3.2's blocker B1 (the restore replay wrote CUO's registry rows into the

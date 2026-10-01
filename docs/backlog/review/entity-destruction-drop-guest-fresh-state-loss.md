@@ -1,7 +1,7 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Review (kernel spawn-presentation cycle landed; batch `20261001-x`: rows 1–4 unproven — the world frames cannot resolve a drop's highlight at the game's zoom and the fresh flag was never caught live; row 5 not read here — the ticket stays open)
-- Acceptance record: `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-x.md`
+- Status: Review (batch `20261001-y`: row 5 passes (gates green); rows 1–4 stay unproven — the guest's copies provably carry `FreshItemDrop` inside its 10 s window (probe `fresh: 3`) and the fresh/control frame pair was captured, but the highlight still cannot be identified with certainty at the shipped world zoom — the ticket stays open)
+- Acceptance records: `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-x.md`, `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-y.md`
 - Priority: Medium
 - Category: Item sync / entity destruction presentation
 - Source: User report (2026-09-04); rejected by user (2026-09-05) with a jump-pad trap destruction reproduction.
@@ -18,7 +18,7 @@ rejected:
   because only one item is visible on the guest side it cannot be confirmed
   whether no-gravity/fresh-drop is present.
 - The guest also has a separate quantity/desync issue for the same destruction
-  (see `review/trap-destruction-drop-quantity-desync.md`), which may affect
+  (see `done/trap-destruction-drop-quantity-desync.md`), which may affect
   observable presentation.
 
 This ticket is re-opened as TODO. The fresh-drop presentation must match the

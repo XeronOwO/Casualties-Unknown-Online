@@ -5,12 +5,12 @@ partial-damage registry was DELETED (`review/block-damage-table-capacity-alignme
 authoritative partial-damage table is now the GAME's own `WorldGeneration.world.blockDamages` list,
 read at snapshot time. References to `BlockDamageRegistry.cs` below are historical.
 
-- Status: Review (batch `20261001-x`: rows 1–5, 8, 10 named open — no message-swallow injection on this machine; rows 6, 7 and 9 unproven — rows 6/9: the recorded rejoin wedge reproduced (a lobby rejoin did not re-activate the session, and a clean relaunch stayed inactive) and the world came back together only through the host's own leave→continue, after which the seven mined cells read air on all three clients; row 7 (layer regeneration) was not driven — the ticket stays open)
-- Acceptance record: `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-x.md`
+- Status: Review (batch `20261001-y`: row 7 passes — after 128 damaged rows on all three clients, `game-console command=skiplayer` left every table at 0 rows, so the new baseline carried no stale damage; rows 1–6, 8–10 stay open — the ticket stays open)
+- Acceptance records: `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-x.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-y.md`
 - Priority: High
 - Category: Network / sync coverage / world blocks
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` rows W1/W2); user-reported suspicion (2026-09-07) — "我印象中世界中的方块没做定时兜底同步"
-- Related: `done/block-break-first-writer-wins.md`, `review/trap-destruction-drop-quantity-desync.md`, `review/sync-cadence-review.md`
+- Related: `done/block-break-first-writer-wins.md`, `done/trap-destruction-drop-quantity-desync.md`, `review/sync-cadence-review.md`
 
 ## Problem (evidence)
 

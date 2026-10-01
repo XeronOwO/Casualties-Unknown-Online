@@ -251,6 +251,103 @@
 		return finish(fields);
 	}
 
+	if (command == "continue-run") {
+		System.Type preRunType = null;
+		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < loaded.Length && preRunType == null; i++) {
+			preRunType = loaded[i].GetType("PreRunScript", false);
+		}
+		if (preRunType == null) {
+			return fail(escape, "no-prerun-type", "the game's PreRunScript type is not loaded in this process");
+		}
+		object preRun = null;
+		var instanceProperty = preRunType.GetProperty("instance", staticFlags);
+		if (instanceProperty != null) { preRun = instanceProperty.GetValue(null, null); }
+		if (preRun == null) {
+			var instanceField = preRunType.GetField("instance", staticFlags);
+			if (instanceField != null) { preRun = instanceField.GetValue(null); }
+		}
+		if (preRun == null) {
+			return fail(escape, "no-prerun-instance", "the game's start screen is not loaded in this client yet");
+		}
+
+		// The pre-click facts the acceptance row needs: whether the Continue entry is offered and
+		// what the game's own label reads. Reading them is the same reflection walk as the click.
+		var loadButton = findField(preRun, "loadButton");
+		var buttonOffered = loadButton != null;
+		var buttonInteractable = false;
+		if (loadButton != null) {
+			var interactable = findProperty(loadButton, "interactable");
+			buttonInteractable = interactable != null && System.Convert.ToBoolean(interactable);
+		}
+		var saveTimeText = findField(preRun, "saveTimeText");
+		var buttonLabel = saveTimeText == null ? "" : System.Convert.ToString(findProperty(saveTimeText, "text"));
+
+		var loadRun = findMethodWith(preRun, "LoadRun", 0);
+		if (loadRun == null) { return fail(escape, "no-load-run", "PreRunScript.LoadRun was not found"); }
+		try { loadRun.Invoke(preRun, null); }
+		catch (System.Exception exception) { return fail(escape, "continue-failed", unwrap(exception)); }
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "buttonOffered", buttonOffered ? "true" : "false");
+		putRaw(fields, escape, "buttonInteractable", buttonInteractable ? "true" : "false");
+		putText(fields, escape, "buttonLabel", buttonLabel ?? "");
+		putRaw(fields, escape, "called", "true");
+		putRaw(fields, escape, "inWorld", presence != null && presence.IsInWorldOrGenerating ? "true" : "false");
+		putRaw(fields, escape, "gateWaiting", gate != null && gate.IsWaitingForReady ? "true" : "false");
+		return finish(fields);
+	}
+
+	if (command == "leave-world") {
+		System.Type cameraType = null;
+		var loadedAssemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < loadedAssemblies.Length && cameraType == null; i++) {
+			cameraType = loadedAssemblies[i].GetType("PlayerCamera", false);
+		}
+		if (cameraType == null) {
+			return fail(escape, "no-playercamera-type", "the game's PlayerCamera type is not loaded in this process");
+		}
+		object camera = null;
+		var mainField = cameraType.GetField("main", staticFlags);
+		if (mainField != null) { camera = mainField.GetValue(null); }
+		if (camera == null) {
+			var mainProperty = cameraType.GetProperty("main", staticFlags);
+			if (mainProperty != null) { camera = mainProperty.GetValue(null, null); }
+		}
+		if (camera == null) {
+			return fail(escape, "no-playercamera", "PlayerCamera.main is not set in this client");
+		}
+		var toMainMenu = findMethodWith(camera, "ToMainMenu", 0);
+		if (toMainMenu == null) { return fail(escape, "no-to-main-menu", "PlayerCamera.ToMainMenu was not found"); }
+		try { toMainMenu.Invoke(camera, null); }
+		catch (System.Exception exception) { return fail(escape, "leave-failed", unwrap(exception)); }
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "called", "true");
+		putRaw(fields, escape, "inWorld", presence != null && presence.IsInWorldOrGenerating ? "true" : "false");
+		return finish(fields);
+	}
+
+	if (command == "console") {
+		if (services == null) {
+			return fail(escape, "no-services", "the CUO container is not available in this process");
+		}
+		var console = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService)) as CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService;
+		if (console == null) {
+			return fail(escape, "no-console", "the command console service is not available in this process");
+		}
+		bool applied;
+		try { applied = console.TryExecute(text); }
+		catch (System.Exception exception) { return fail(escape, "console-failed", unwrap(exception)); }
+		var lines = console.Lines;
+		var lastLine = lines.Count == 0 ? "" : lines[lines.Count - 1].Text;
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "applied", applied ? "true" : "false");
+		putText(fields, escape, "lastLine", lastLine ?? "");
+		return finish(fields);
+	}
+
 	if (command == "quit") {
 		putRaw(fields, escape, "ok", "true");
 		putText(fields, escape, "command", command);

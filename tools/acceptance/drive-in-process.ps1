@@ -76,7 +76,7 @@ powershell -ExecutionPolicy Bypass -File tools/acceptance/drive-in-process.ps1 -
 [CmdletBinding()]
 param(
 	[string]$Url,
-	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'quit', 'recipe')]
+	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'quit', 'recipe')]
 	[string]$Action,
 	[string]$ControlId,
 	[string]$Text,
@@ -103,6 +103,9 @@ $ActionHelp = [ordered]@{
 	'create-lobby' = 'open the window and click home.create_lobby; wait for the lobby id'
 	'join-lobby' = 'set home.lobby_id and click home.join; wait for the joined lobby'
 	'start-run' = 'call the game''s own PreRunScript.StartRun; wait for the world to start'
+	'continue-run' = 'call the game''s own PreRunScript.LoadRun (the Continue entry); wait for the world to start'
+	'leave-world' = 'call the game''s own PlayerCamera.ToMainMenu; wait for the world to be left'
+	'console' = 'run one CUO console command line (for example /save) through CommandConsoleService.TryExecute; applied says the console ran the line, and a command that refuses internally still answers true with its own text in lastLine'
 	'quit' = 'ask the client to quit (only a client this run started)'
 	'recipe' = 'run one committed scenario recipe (recipes/<name>.cs) as a single eval'
 }
@@ -619,6 +622,47 @@ function Invoke-DriverAction {
 			}
 			return New-DriverFailure -ActionName $ActionName -Code 'run-not-started' -Detail 'StartRun was called but the world never started generating' -Last $last
 		}
+		'continue-run' {
+			$state = Get-DriverState -Socket $Socket -Template $Template -EvalTimeoutMs $EvalTimeoutMs
+			if (-not $state.ok) { return New-DriverFailure -ActionName $ActionName -Code $state.error -Detail $state.detail -Last $state }
+			if ($state.inWorld) { return New-DriverSuccess -ActionName $ActionName -Step $state }
+			$continued = Invoke-DriverEval -Socket $Socket -Template $Template -CommandName 'continue-run' -Argument '' -TextValue '' -EvalTimeoutMs $EvalTimeoutMs
+			if (-not $continued.ok) { return New-DriverFailure -ActionName $ActionName -Code $continued.error -Detail $continued.detail -Last $continued }
+			$extra = @{ buttonOffered = $continued.buttonOffered; buttonInteractable = $continued.buttonInteractable; buttonLabel = $continued.buttonLabel }
+			$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+			$last = $continued
+			while ($stopwatch.ElapsedMilliseconds -lt (Get-RemainingBudget -Clock $clock -BudgetMs $BudgetMs)) {
+				$state = Get-DriverState -Socket $Socket -Template $Template -EvalTimeoutMs $EvalTimeoutMs
+				$last = $state
+				if ($state.inWorld -or $state.gateWaiting) { return New-DriverSuccess -ActionName $ActionName -Step $state -Extra $extra }
+				Start-Sleep -Milliseconds $RetryDelayMs
+			}
+			return New-DriverFailure -ActionName $ActionName -Code 'continue-not-entered' -Detail 'LoadRun was called but the world never started generating' -Last $last
+		}
+		'leave-world' {
+			$state = Get-DriverState -Socket $Socket -Template $Template -EvalTimeoutMs $EvalTimeoutMs
+			if (-not $state.ok) { return New-DriverFailure -ActionName $ActionName -Code $state.error -Detail $state.detail -Last $state }
+			if (-not $state.inWorld) { return New-DriverSuccess -ActionName $ActionName -Step $state }
+			$left = Invoke-DriverEval -Socket $Socket -Template $Template -CommandName 'leave-world' -Argument '' -TextValue '' -EvalTimeoutMs $EvalTimeoutMs
+			if (-not $left.ok) { return New-DriverFailure -ActionName $ActionName -Code $left.error -Detail $left.detail -Last $left }
+			$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+			$last = $left
+			while ($stopwatch.ElapsedMilliseconds -lt (Get-RemainingBudget -Clock $clock -BudgetMs $BudgetMs)) {
+				$state = Get-DriverState -Socket $Socket -Template $Template -EvalTimeoutMs $EvalTimeoutMs
+				$last = $state
+				if (-not $state.inWorld) { return New-DriverSuccess -ActionName $ActionName -Step $state }
+				Start-Sleep -Milliseconds $RetryDelayMs
+			}
+			return New-DriverFailure -ActionName $ActionName -Code 'still-in-world' -Detail 'ToMainMenu was called but the client stayed in the world' -Last $last
+		}
+		'console' {
+			$step = Invoke-DriverEval -Socket $Socket -Template $Template -CommandName 'console' -Argument '' -TextValue $Text -EvalTimeoutMs $EvalTimeoutMs
+			if (-not $step.ok) { return New-DriverFailure -ActionName $ActionName -Code $step.error -Detail $step.detail -Last $step }
+			if (-not $step.applied) {
+				return New-DriverFailure -ActionName $ActionName -Code 'console-refused' -Detail "the console refused '$Text'" -Last $step
+			}
+			return New-DriverSuccess -ActionName $ActionName -Step $step
+		}
 		'quit' {
 			$note = 'the client was asked to quit'
 			try {
@@ -688,6 +732,9 @@ switch ($Action) {
 	'set-text' {
 		if ([string]::IsNullOrWhiteSpace($ControlId)) { $missing = '-ControlId' }
 		elseif (-not $PSBoundParameters.ContainsKey('Text')) { $missing = '-Text' }
+	}
+	'console' {
+		if ([string]::IsNullOrWhiteSpace($Text)) { $missing = '-Text (the command line, for example /save)' }
 	}
 	'join-lobby' {
 		if ($LobbyId -notmatch '^[0-9]+$') { $missing = '-LobbyId (digits only)' }

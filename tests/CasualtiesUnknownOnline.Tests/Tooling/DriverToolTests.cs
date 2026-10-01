@@ -21,7 +21,7 @@ public class DriverToolTests
 		var run = DriverToolHarness.Run("-ListActions");
 
 		Assert.Equal(0, run.ExitCode);
-		foreach (var action in new[] { "ping", "state", "open-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run", "quit", "recipe" })
+		foreach (var action in new[] { "ping", "state", "open-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run", "continue-run", "leave-world", "console", "quit", "recipe" })
 		{
 			Assert.True(run.Output.Contains(action, StringComparison.Ordinal), $"the vocabulary does not name '{action}':{Environment.NewLine}{run.Output}");
 		}
@@ -244,6 +244,178 @@ public class DriverToolTests
 		var frames = server.Frames;
 		Assert.Equal(3, frames.Count);
 		Assert.True(FakeHotReplServer.AsksFor(frames[1], "start-run"), "the native start entry is its own verb, never a hand-written Steam call");
+	}
+
+	[Fact]
+	public void ContinueRun_CallsTheNativeContinueEntryAndReportsTheButtonFirst()
+	{
+		using var server = new FakeHotReplServer();
+		var states = 0;
+		server.Handler = frame =>
+		{
+			if (FakeHotReplServer.AsksFor(frame, "state"))
+			{
+				states++;
+				return FakeHotReplServer.ReplyFor(frame, states == 1
+					? "{\"ok\":true,\"inWorld\":false,\"gateWaiting\":false,\"role\":\"Host\",\"lobby\":\"4242\"}"
+					: "{\"ok\":true,\"inWorld\":true,\"gateWaiting\":false,\"role\":\"Host\",\"lobby\":\"4242\"}");
+			}
+
+			if (FakeHotReplServer.AsksFor(frame, "continue-run"))
+			{
+				return FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"buttonOffered\":true,\"buttonInteractable\":true,\"buttonLabel\":\"Continue\",\"called\":true,\"inWorld\":false}");
+			}
+
+			return FakeHotReplServer.ReplyFor(frame, "{\"ok\":false,\"error\":\"unexpected\",\"detail\":\"unexpected frame\"}");
+		};
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "continue-run");
+
+		Assert.Equal(0, run.ExitCode);
+		Assert.Equal("true", DriverToolHarness.Field(run.Output, "inWorld"));
+		Assert.True(DriverToolHarness.Field(run.Output, "buttonInteractable") == "true", "the pre-click reading the acceptance row needs must survive into the answer");
+
+		var frames = server.Frames;
+		Assert.Equal(3, frames.Count);
+		Assert.True(FakeHotReplServer.AsksFor(frames[1], "continue-run"), "the game's own Continue entry is its own verb");
+	}
+
+	[Fact]
+	public void LeaveWorld_CallsTheGamesOwnLeaveAndWaitsForTheWorldToBeGone()
+	{
+		using var server = new FakeHotReplServer();
+		var states = 0;
+		server.Handler = frame =>
+		{
+			if (FakeHotReplServer.AsksFor(frame, "state"))
+			{
+				states++;
+				return FakeHotReplServer.ReplyFor(frame, states == 1
+					? "{\"ok\":true,\"inWorld\":true}"
+					: "{\"ok\":true,\"inWorld\":false,\"gateWaiting\":false}");
+			}
+
+			if (FakeHotReplServer.AsksFor(frame, "leave-world"))
+			{
+				return FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"called\":true,\"inWorld\":true}");
+			}
+
+			return FakeHotReplServer.ReplyFor(frame, "{\"ok\":false,\"error\":\"unexpected\",\"detail\":\"unexpected frame\"}");
+		};
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "leave-world");
+
+		Assert.Equal(0, run.ExitCode);
+		Assert.Equal("false", DriverToolHarness.Field(run.Output, "inWorld"));
+
+		var frames = server.Frames;
+		Assert.Equal(3, frames.Count);
+		Assert.True(FakeHotReplServer.AsksFor(frames[1], "leave-world"), "the game's own leave funnel is its own verb");
+	}
+
+	[Fact]
+	public void Console_RunsOneCommandLineAndReportsTheLastLine()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame =>
+		{
+			if (FakeHotReplServer.AsksFor(frame, "console"))
+			{
+				return FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"applied\":true,\"lastLine\":\"[Command] /save armed a cut for the pump's last step.\"}");
+			}
+
+			return FakeHotReplServer.ReplyFor(frame, "{\"ok\":false,\"error\":\"unexpected\",\"detail\":\"unexpected frame\"}");
+		};
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "console", "-Text", "/save");
+
+		Assert.Equal(0, run.ExitCode);
+		Assert.Equal("true", DriverToolHarness.Field(run.Output, "applied"));
+		Assert.True(run.Output.Contains("armed a cut", StringComparison.Ordinal), "the console's own answer must reach the caller");
+
+		var frames = server.Frames;
+		Assert.Single(frames);
+		Assert.True(FakeHotReplServer.AsksFor(frames[0], "console") && FakeHotReplServer.Texted(frames[0], "/save"), "the command line is the eval's text payload");
+	}
+
+	[Fact]
+	public void Console_WithoutTheCommandLineIsAUsageErrorBeforeTheSocketOpens()
+	{
+		var run = DriverToolHarness.Run("-Url", "ws://127.0.0.1:1", "-Action", "console");
+
+		Assert.Equal(64, run.ExitCode);
+		Assert.True(run.Output.Contains("-Text", StringComparison.Ordinal), run.Output);
+	}
+
+	[Fact]
+	public void ContinueRun_WhenTheWorldNeverStartsFailsWithContinueNotEntered()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame =>
+		{
+			if (FakeHotReplServer.AsksFor(frame, "state"))
+			{
+				return FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"inWorld\":false,\"gateWaiting\":false}");
+			}
+
+			if (FakeHotReplServer.AsksFor(frame, "continue-run"))
+			{
+				return FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"buttonOffered\":true,\"buttonInteractable\":false,\"called\":true,\"inWorld\":false}");
+			}
+
+			return FakeHotReplServer.ReplyFor(frame, "{\"ok\":false,\"error\":\"unexpected\",\"detail\":\"unexpected frame\"}");
+		};
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "continue-run", "-TimeoutMs", "600", "-RetryDelayMs", "50");
+
+		Assert.Equal(1, run.ExitCode);
+		Assert.True(run.Output.Contains("continue-not-entered", StringComparison.Ordinal), run.Output);
+		Assert.True(DriverToolHarness.HasField(run.Output, "last"), "the failure must carry the last state the wait saw");
+	}
+
+	[Fact]
+	public void LeaveWorld_WhenTheClientStaysInTheWorldFailsWithStillInWorld()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame =>
+		{
+			if (FakeHotReplServer.AsksFor(frame, "state"))
+			{
+				return FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"inWorld\":true}");
+			}
+
+			if (FakeHotReplServer.AsksFor(frame, "leave-world"))
+			{
+				return FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"called\":true,\"inWorld\":true}");
+			}
+
+			return FakeHotReplServer.ReplyFor(frame, "{\"ok\":false,\"error\":\"unexpected\",\"detail\":\"unexpected frame\"}");
+		};
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "leave-world", "-TimeoutMs", "600", "-RetryDelayMs", "50");
+
+		Assert.Equal(1, run.ExitCode);
+		Assert.True(run.Output.Contains("still-in-world", StringComparison.Ordinal), run.Output);
+	}
+
+	[Fact]
+	public void Console_WhenTheLineIsRefusedFailsWithConsoleRefused()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame =>
+		{
+			if (FakeHotReplServer.AsksFor(frame, "console"))
+			{
+				return FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"applied\":false,\"lastLine\":\"Unknown command 'nope'. Type /help for available commands.\"}");
+			}
+
+			return FakeHotReplServer.ReplyFor(frame, "{\"ok\":false,\"error\":\"unexpected\",\"detail\":\"unexpected frame\"}");
+		};
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "console", "-Text", "/nope");
+
+		Assert.Equal(1, run.ExitCode);
+		Assert.True(run.Output.Contains("console-refused", StringComparison.Ordinal), run.Output);
 	}
 
 	[Fact]

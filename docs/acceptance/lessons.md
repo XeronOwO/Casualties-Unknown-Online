@@ -611,3 +611,52 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: a resume row is judged by the pairing "cut value → the world-finished-generating write line →
   a live read that starts at the cut value"; a bare `written` line taken before the generation is not
   evidence for this row.
+
+## 2026-10-01 — A compressed facts file can blind the preflight
+
+- Symptom: `preflight.ps1` reported `no 'acceptance environment' section resolved` and `FACT-MISSING`
+  for every key while the facts file plainly carried the section; once that was fixed it reported
+  `game-app-id` as contradicting the install, because a parenthetical note had been folded onto its
+  value.
+- Cause: the previous cycle's compression of `docs/acceptance/AGENTS.local.md` dropped the ASCII half of
+  the section marker (`## 验收环境 / acceptance environment` → `## 验收环境`) and re-glued the
+  `game-app-id` note onto its value. Both are interfaces the tooling reads literally, and the lesson
+  that recorded them (2026-09-27) was already in this file when the file was rewritten.
+- Change: the marker and the bare value are restored, the note stands on a non-key line, and the run
+  re-ran the preflight after editing the file instead of assuming it. A gate over the facts file's shape
+  is not built yet — until then, re-run the preflight after every edit to that file.
+
+## 2026-10-01 — The repair group re-sends the last published value, not a fresh one
+
+- Symptom: a guest joining a run in progress read its run clock 30.0 s behind the host's (85.6 s on a
+  later rejoin), and the gap did not move across a 58 s observation, while members that entered with the
+  restore matched the host within 0.5 s.
+- Cause: `RunFacts` carries the host's last PUBLISHED base (published at the host's own world entry and
+  at generation boundaries); the 60 s repair group re-sends that same absolute value, and the receiver's
+  monotone write guard keeps a lower value. The joiner's own counter starts at its own world entry, so
+  it is short by the interval between the host's last publish and that entry.
+- Change: a row about a "current" value that arrives as an absolute base is judged by a live comparison
+  of both ends at the same moment, never by the arrival of a base; the failing row carries the fix
+  direction (the publish point, not the value).
+
+## 2026-10-01 — A race fixed for one ordering failed in the ordinary one
+
+- Symptom: the starting-supplies row that must not grant for a player the world HAS a character for
+  failed live: the guest's client announced the grant 38–338 ms BEFORE its stored character arrived,
+  five times in one session, while the same run shows the opposite order taking the correct branch.
+- Cause: the landed protection checks the restore queue at the grant moment — it covers "the restore is
+  already queued", not "the restore has not arrived yet", and the latter is the ordinary in-session
+  order (the guest's entry pump runs before the host's character delivery lands).
+- Change: a race fix whose branches depend on message arrival order is judged by a run that produces
+  each order; this row stays red and the ticket returns to `todo/` with the failing ordering named.
+
+## 2026-10-01 — A row that says "no file on disk" has to look at the disk
+
+- Symptom: the legacy-store row's precondition ("no `character-data.bin` on disk") was false — a
+  pre-retirement file (last written 2026-09-06) still sat in the install's config directory, untouched
+  by the current code.
+- Cause: the code that wrote it was deleted, but nothing removed the file it had left on this machine,
+  and no earlier run had checked the precondition's own disk state.
+- Change: the run compared the file's mtime against the retirement date, renamed it aside as the
+  declared setup, re-ran the reconnect cycle and confirmed nothing recreated it. A "file must be absent"
+  row starts with a disk listing; a stale file it finds is setup the run owns.

@@ -61,7 +61,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/review/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
-- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `review/save-multiplayer-restore-and-backups.md` (S4), `review/restore-account-arm-release.md` (the restore-account residuals this ticket records)
+- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `review/save-multiplayer-restore-and-backups.md` (S4), `done/restore-account-arm-release.md` (the restore-account residuals this ticket records)
 
 ## Approved decisions (2026-09-10)
 
@@ -743,7 +743,8 @@ pins.
 
 
 **Recorded, NOT fixed — the residuals this pass leaves** (each with the scenario, so a later cycle can pick
-one up without re-deriving it). **Moved to `review/restore-account-arm-release.md` on 2026-09-17** so they
+one up without re-deriving it). **Moved to `restore-account-arm-release` on 2026-09-17** (accepted into
+`done/restore-account-arm-release.md` in batch `20261001-o`) so they
 stay in the work queue while this ticket waits in `review/`; the text below is the record as written, and
 the re-verification that closed #4 as already-covered is in the new ticket:
 
@@ -1025,7 +1026,7 @@ in-game rows open.
       blocker/major either fixed or recorded as a residual — evidence: the S3.5 increment pass, the
       ITEM-arm pass, the restore-ATTEMPT-identity pass and the shared-action-verdict pass are all
       recorded above with their findings and fixes, and the residuals that could not be fixed in this
-      stage are moved to `review/restore-account-arm-release.md` so they stay in the work queue — where
+      stage are moved to `restore-account-arm-release` (now `done/restore-account-arm-release.md`) so they stay in the work queue — where
       the independent re-verification of 2026-09-17 found the recorded "the item release has no test"
       residual already covered by
       `RestoredWorldItemContractTests.ACancelledReconcile_ReportsTheLossInsteadOfWaitingForever`, leaving

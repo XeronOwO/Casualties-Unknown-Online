@@ -456,3 +456,35 @@ dependency the table did not name, a step that cost more than it returned.
   `Conflict` and no `rejected` in BOTH logs" as the restore-report half — a machine reading of the
   item tree alone would not have named which path produced it.
 
+## 2026-10-01 — Sizing a control is not laying out its internals
+
+- Symptom: batch `20261001-j`'s window run showed every Preferences text box as an empty frame and
+  every dropdown's caption missing, while the model carried everything — the hex text followed each
+  pick (`#E54D47` → `#4D8CF2` → `#B873E5` → `#40FF80`) and a typed name was accepted.
+- Cause: CUO sizes the control's own RectTransform, but the game prefab's internals keep their
+  authored rects: a text field's `Text Area` reads 0×0 and the field's own rect reads hundreds of
+  thousands of units wide, and a dropdown's caption sits hundreds of thousands of units off-canvas.
+  The value is in the model and off the screen at the same time, so a behaviour row passes while the
+  player sees nothing.
+- Change: judge a UI row on the live rects of the control's INTERNALS (the `Text Area`, the caption,
+  the caret), not only the outer box. `online-ui-layout-and-input-detail-pass` carries the rejection,
+  and `j-probe-texts.txt` / `j-probe-inputfields.txt` in batch `20261001-j` name the shape.
+
+## 2026-10-01 — A local window family is a one-client batch
+
+- Symptom: the batch's scope page planned a guest half (the medical-panel corner, the world
+  overlays), and the run finished the whole window family on the host alone.
+- Cause: the Online UI window is a surface of its own process, and a second client is needed only for
+  third-party views and world states; nothing in this family's rows depended on the guest.
+- Change: plan a window/panel batch as a one-client run, and give peer-dependent rows their own batch
+  with the setup they need — they stay `unproven` meanwhile, never guessed.
+
+## 2026-10-01 — Probe output must land in the batch directory
+
+- Symptom: this batch's records first cited probe numbers that existed only in the terminal, so a
+  later reader could not re-open them.
+- Cause: an ad-hoc eval prints its JSON to the caller, and nothing writes it to the artifact area.
+- Change: write every probe a record cites into the batch directory as its own file (`j-probe-*.txt`)
+  and cite the file name beside the reading; the numbers drift between reads, so the file — not the
+  transcript — is the evidence.
+

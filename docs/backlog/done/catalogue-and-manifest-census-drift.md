@@ -4,7 +4,7 @@
 - Priority: Low-Medium
 - Category: Localisation catalogue / evidence index hygiene
 - Source: The independent adversarial review of the Online UI console-page removal (2026-09-26) measured both while checking that cycle's "no unused localisation key remains" claim and its evidence links.
-- Related: `docs/backlog/review/remove-the-online-ui-console-page.md`, `docs/evidence/selfchecks/MANIFEST.md`, `docs/evidence/selfchecks/tooling/catalogue-and-manifest-census-selfcheck.md`, `src/CasualtiesUnknownOnline.Runtime/Localization/LocalizationCatalog.cs`
+- Related: `docs/backlog/done/remove-the-online-ui-console-page.md`, `docs/evidence/selfchecks/MANIFEST.md`, `docs/evidence/selfchecks/tooling/catalogue-and-manifest-census-selfcheck.md`, `src/CasualtiesUnknownOnline.Runtime/Localization/LocalizationCatalog.cs`
 - Acceptance record: `docs/evidence/acceptance/catalogue-and-manifest-census-drift-20260927.md`
 
 ## The gaps

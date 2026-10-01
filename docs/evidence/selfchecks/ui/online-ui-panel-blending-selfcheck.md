@@ -1,6 +1,6 @@
 # The Online UI's panel blending — self-check (2026-09-26)
 
-Ticket: `docs/backlog/review/online-ui-panels-request-alpha-blend-false.md` (Low-Medium; opened by the
+Ticket: `docs/backlog/done/online-ui-panels-request-alpha-blend-false.md` (Low-Medium; opened by the
 launcher idle-fade cycle's independent review: the theme's shared panel draws asked for
 `alphaBlend: false` while their own comments claimed a translucent "operator console" look). Cycle
 scope: every frame the theme draws asks for alpha blending, so the palette's alphas are live and the

@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// <summary>
 /// The Online UI launcher's idle fade. The reported case: the top-right CUO launcher drew an opaque
 /// panel over the play area on every frame, with no idle state and no way to see through it
-/// (<c>docs/backlog/review/cuo-launcher-button-obscures-the-view.md</c>).
+/// (<c>docs/backlog/done/cuo-launcher-button-obscures-the-view.md</c>).
 ///
 /// The rule is pure (Runtime, no Unity dependency) and its matrix is tested here. How the rule reaches
 /// the pixels is pinned in <c>OnlineUiSurfacePinTests</c> since S2a, when the launcher moved onto the

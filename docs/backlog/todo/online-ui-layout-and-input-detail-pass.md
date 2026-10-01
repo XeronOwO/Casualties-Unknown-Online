@@ -1,6 +1,7 @@
 # The Online UI's layout and input detail pass
 
-- Status: Review (code complete 2026-09-27: S1–S7 landed, gates green; the user's second pass the same day found the tab strip still kept the window's leftover height — 333 units instead of TabHeight — and the window title read the reversed 伤亡未知, both now fixed and pinned; no code left to develop — the pixels and the clicks are the run's to judge)
+- Status: Todo — Rejected (batch 20261001-j: the control internals are not laid out — a text field's value area is 0×0 and its text sits off-canvas, so a picked or typed value is never painted; rows 3, 5, 6 and the Preferences third of row 11 failed)
+- Acceptance (20261001-j): rows 1, 2, 4 and 7 pass; rows 3, 5, 6 and 11 fail (unlaid-out control internals); rows 8–10 unproven (setup gaps: a second peer, pointer drag, UI scale) — record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001.md`
 - Priority: High
 - Category: Online UI / layout, presentation and input
 - Source: User acceptance pass (2026-09-27), on the overhaul ticket's own delivery. The findings in the
@@ -14,8 +15,8 @@
   player has just picked, which it should, live; and the game's own windows have a white border, which the
   Online UI's window does not.
 - Related: `review/online-ui-art-and-controls-overhaul.md` (the migration this pass reviews),
-  `review/cuo-launcher-button-obscures-the-view.md` (the idle fade this pass found still too opaque),
-  `review/online-ui-panels-request-alpha-blend-false.md`, `review/remove-the-online-ui-console-page.md`
+  `done/cuo-launcher-button-obscures-the-view.md` (the idle fade this pass found still too opaque),
+  `done/online-ui-panels-request-alpha-blend-false.md`, `done/remove-the-online-ui-console-page.md`
 
 ## The gap
 

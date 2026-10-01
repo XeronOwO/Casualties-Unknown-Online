@@ -1,13 +1,41 @@
 # A Steam send-limit refusal floods the log and wedges the host main thread
 
-- Status: Review (code landed 2026-10-01; rows 1–3 hold on the deterministic unit drive, rows 4–6 await the batch `20261001-r` two-client run)
+- Status: Review (code landed 2026-10-01; batch `20261001-r` judged rows 1–4, 6 and 7 — row 5, the live
+  30 s escalation, stays `unproven` on a named trigger gap, so the ticket stays open)
 - Priority: High
 - Category: Networking / Steam transport
 - Source: observed live by acceptance batch `20261001-q` (Run E, agent-run, 2026-10-01); not
   user-reported
+- Acceptance record: `docs/evidence/acceptance/steam-transport-send-limit-runaway-20261001-r.md`
 - Related: `docs/evidence/acceptance/save-run-clock-not-sent-20261001-q.md`,
   `docs/evidence/acceptance/save-mid-run-consistent-cut-20261001-q.md`,
   `docs/architecture/` (transport), decision records for the session/transport split
+
+## What landed
+
+- The send path decides through `PeerSendRefusalPolicy` behind `ISteamSendChannel`: congestion gates the
+  peer (250 ms doubling to a 2 s cap), refusals aggregate to one line per 5 s plus one detailed line per
+  episode, a success reports its recovery once, and a peer that keeps refusing raises
+  `ISendStallSource.PeerSendStalled` once per episode. Non-congestion kinds stay un-gated (a send is how a
+  broken session is re-driven) but still aggregate.
+- The session answers the edge in `PeerSendStallWatchdog`: the host drops that member with a named reason
+  and keeps playing, a guest ends its own session when its own sends stall towards the host;
+  `GuestHostSilenceWatchdog` ends a guest's session after 15 s without a host frame. Both publish a
+  rendered line the Online UI shows on its delayed status line.
+- Red first: with the pre-fix behaviour restored the regression drive made 10 000 channel calls and 10 000
+  log lines for 10 000 attempts; with the policy it makes at most 20 of each.
+- The live half: refusals are real (`k_EResultLimitExceeded … QueueFull`), bounded (≈200 kB of log over
+  six minutes of intermittent refusal), the host never stopped answering, and the rate governor reached
+  `pressure Critical` and stretched every adapted stream.
+
+## What remains
+
+- Row 5's live escalation needs a ≥30 s **continuous** refusal episode. This batch could not produce one
+  (see the record's Limits): the Run E condition is a dense world pushing ≈1.5 MB/s at a peer that cannot
+  keep up, and a fresh light session sends ≈60 kB/s; a suspended peer refuses but cycles its session, and
+  every auto restart lets one send succeed, which clears the episode.
+- Next attempt: regenerate the dense layer in-run (the Run E cut itself carries 0 enemy rows) or generate
+  load through the game's own spawn commands, then repeat the pump-stop injection.
 
 ## What happened
 

@@ -946,3 +946,76 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: a "the pump returns before the rule" row cites the arm and release lines as its window and
   reads a post-release adoption as the ordinary rule, not as the write reaching the rule inside the
   window.
+
+## 2026-10-01 — Two "parallel" tool calls are not a same-instant race
+
+- Symptom: the first two-sender race attempt issued the two block actions from two parallel shell
+  calls; the host's relay had already reached the guest before the guest's call ran (`blockBefore`
+  read 0), so the guest produced no report at all and no race existed.
+- Cause: the two calls' dispatch difference (hundreds of ms across two shells) is larger than the
+  relay's travel time, so the second sender always acts on an already-changed world.
+- Change: the batch's helper opens BOTH evaluator sockets first and sends both evals in ONE
+  event-loop tick; every race round after that landed two writes in one window.
+  `.acceptance/batch-x/x-race.mjs` is the shape (a local artifact; general enough to move into
+  `tools/acceptance/` when a batch stages races again).
+
+## 2026-10-01 — A substituted numeric literal is a double, and the REPL only says `InteractiveHost`
+
+- Symptom: a teleport template that substituted coordinates into `new Vector3(x, y, z)` answered
+  `eval_error: (1,1): InteractiveHost`, a message that names nothing; the same template with integer
+  arguments worked.
+- Cause: a literal like `-106.5` is a `double` in C#, Unity's `Vector3` takes `float`, and the
+  submission fails to compile — the evaluator reports the failure at the expression's first column.
+- Change: a numeric template casts explicitly (`(float)(__TX__)`); when an eval answers
+  `(1,1): InteractiveHost`, suspect the substituted literals' TYPES before the logic. The same run
+  also showed that two evals in flight on ONE client collide (one `client timeout`, one
+  `InteractiveHost`): a single-client action is one eval on one connection.
+
+## 2026-10-01 — A same-eval read after a break is too early for the drops
+
+- Symptom: a probe that broke a pad's support and listed the area's items in the same eval found no
+  new item; the host's own log shows the drops appearing tens of milliseconds later (`OnBlockDamaged`
+  → `OnItemInstantiated` → `FlushPendingBlockBreak` inside 37 ms).
+- Change: the probe polls (40 × 100 ms) for a new item id and returns the first snapshot that has one,
+  so the fresh-drop component is read in that snapshot.
+
+## 2026-10-01 — The fresh-drop flag was never caught, and the component's own setting is a limit
+
+- Symptom: three catches (a 4 s poll on the breaker right after the break, and a peer-side watch on the
+  observer) all read `fresh:false`, while the same drops carried an initial spin (`av=-0.156`).
+- Cause: `FreshItemDrop` self-destroys ("the glowing floating pickup effect (self-destroys when the
+  setting is off)"), so the flag is observable only inside a short window and can be absent by design.
+- Change: the visual rows stay `unproven` and name the limit; a future run that judges them arms the
+  effect's own setting first and captures a frame sequence, instead of reading the component.
+
+## 2026-10-01 — A leave→continue recovery keeps the block differences and changes the item set
+
+- Symptom: after the host left the world and continued, the seven cells the batch had mined still read
+  air on all three clients, while the drops created before the recovery were gone and one new item
+  stood in the same area (identical on all three clients).
+- Change: a row about what the world holds is judged against reads taken on the SAME side of a
+  recovery; the batch's trap-drop row 1 is judged from its pre-recovery sample only, and the
+  post-recovery item set is recorded as an observation.
+
+## 2026-10-01 — The rejoin wedge reproduced twice more: a lobby rejoin does not re-activate the session
+
+- Symptom: both guests died to traps; their lobby rejoin left `active:false, inWorld:false`
+  ("Waiting for the host to load…"), and a clean relaunch that rejoined the same lobby stayed inactive
+  as well. The world only came together when the HOST left and continued — its world-entry fan-out
+  pulled both back in.
+- Cause: still unnamed (the 2026-09-30 entry recorded the same shape as an unreproduced intermittent);
+  this run adds two observations, both on a rejoin into a RUNNING world.
+- Change: the reconnect row stays `unproven` with the observations named, and a batch that needs a late
+  joiner plans the host's re-entry as the delivery path — or verifies that the rejoin actually
+  re-activated the session before any row is built on it.
+
+## 2026-10-01 — A harvest written while the review runs breaks the freeze the review depends on
+
+- Symptom: this batch's lessons harvest and its run log were written while the independent review was
+  still running; the reviewer's own `git status` saw `docs/acceptance/lessons.md` appear mid-review and
+  it had to judge which tree it was reviewing (its F-11).
+- Cause: "freeze the working tree" was read as "do not touch the files under review", while the
+  reviewer's contract is the WHOLE tree at the moment it started.
+- Change: while a review runs, the only writes are gitignored artifacts. The harvest, the run log and
+  every other tracked edit wait for the report; the reviewer re-ran its ladder after this change and
+  still passed, but that was luck, not design.

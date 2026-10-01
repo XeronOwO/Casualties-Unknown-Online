@@ -1,6 +1,7 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Review (kernel spawn-presentation cycle landed; waiting for unified acceptance)
+- Status: Review (kernel spawn-presentation cycle landed; batch `20261001-x`: rows 1–4 unproven — the world frames cannot resolve a drop's highlight at the game's zoom and the fresh flag was never caught live; row 5 not read here — the ticket stays open)
+- Acceptance record: `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-x.md`
 - Priority: Medium
 - Category: Item sync / entity destruction presentation
 - Source: User report (2026-09-04); rejected by user (2026-09-05) with a jump-pad trap destruction reproduction.

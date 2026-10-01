@@ -122,7 +122,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
 - [World determinism fingerprint](review/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
-- [Block-break first-writer-wins](review/block-break-first-writer-wins.md) — **High** — the dual-side confirmation.
 - [Middle-click location marker](review/middle-click-location-marker.md) — **Medium** — the one-shot location ping.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — **Medium** — the typed KrokMP content seams.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
@@ -169,6 +168,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Block-break first-writer-wins](done/block-break-first-writer-wins.md) — **High** — the dual-side confirmation.
 - [An earthquake's clock write ends an acceleration](done/world-acceleration-quake-direct-write.md) — **Medium** — the host adopts it, vanilla-style.
 - [World-time acceleration is gated on being asleep](done/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
 - [Manual world acceleration must not end when a player moves](done/world-acceleration-survives-movement.md) — **High** — only announced speeds own the clock.

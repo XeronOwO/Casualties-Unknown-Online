@@ -1,6 +1,7 @@
 # DI cycle guard / cycle-path diagnostics
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-t): the six guard cases pass, the production composition builds (warm builds 1.3-13.9 ms, well under the 50 ms bound) and the full suite is green — record `docs/evidence/acceptance/di-cycle-guard-20261001.md`.
 - Type: Framework hardening
 - Category: Composition root / DI observability
 - Source: 2026-09-04 ModService ↔ GameAdapter startup hang. The cycle surfaced only after deploying the current source; the game hung with no useful startup error because the recursion happened while resolving the production composition root.

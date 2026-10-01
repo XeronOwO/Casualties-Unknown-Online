@@ -100,7 +100,7 @@ with a regex that does not accept the `readonly` modifier
 `internal readonly record struct …` — and `internal sealed record …` used elsewhere in the repository
 — are invisible to it. This stage does not depend on the hole (the two record types it introduced live
 in their own files), but the gate's declaration does not equal its reach, which `tests/AGENTS.md`
-forbids. It is recorded in `docs/backlog/review/source-shape-gate-modifier-blindness.md` for the next
+forbids. It is recorded in `docs/backlog/done/source-shape-gate-modifier-blindness.md` for the next
 cycle rather than widened here, because re-baselining that census would change a pin this change does
 not own.
 

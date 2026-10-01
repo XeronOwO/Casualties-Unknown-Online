@@ -1,7 +1,7 @@
 # Self-check — composition-root feature modules and the session-reset contract
 
 Cycle: 2026-09-22, from `414d7e17`. Ticket:
-[composition-root-feature-modules](../../../backlog/review/composition-root-feature-modules.md).
+[composition-root-feature-modules](../../../backlog/done/composition-root-feature-modules.md).
 Review report (machine-local, not committed): `%TEMP%\cuo-review-composition-modules.md`.
 
 ## Mechanism x change x evidence

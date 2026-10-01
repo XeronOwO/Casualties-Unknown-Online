@@ -1,6 +1,7 @@
 # Evidence matrix rows carry their whole evidence trail; the gate should point at the JSON instead
 
-- Status: Review (landed 2026-09-17; awaiting the final unified acceptance pass)
+- Status: Done
+- Acceptance (20261001-t): the anchor gate is green (12/12), the split preserved the 64 ids/order/verdicts/gap tickets and the measured table re-derives except the before-bytes (recorded) — record `docs/evidence/acceptance/evidence-matrix-fat-rows-split-20261001.md`.
 - Priority: Low-Medium
 - Category: Evidence / gates / workflow efficiency
 - Source: workflow-iteration review 2026-09-17 — the rejection cycle could not read the E3 row
@@ -58,7 +59,7 @@ length is now decision prose rather than evidence text.
   on this legitimate history, and dropped.
 - Historical counts elsewhere still read 793 / 807 / 815 (`docs/backlog/README.md` row summaries,
   `docs/evidence/selfchecks/**`, older `review/` tickets). Those are dated records or index
-  summaries; `review/backlog-index-summary-duplication.md` owns that family.
+  summaries; `done/backlog-index-summary-duplication.md` owns that family.
 - `SyncCoverageGateTests.cs` is 642 lines, over the delivery checklist's 600-line advisory for a
   touched class. The repository's line cap (`SourceShapeGateTests`) enumerates `src` only, this
   project's own `TestClassSizeGateTests` caps xUnit cases (12 here, limit 40), and eight test

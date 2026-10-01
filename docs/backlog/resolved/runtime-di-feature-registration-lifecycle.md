@@ -8,7 +8,7 @@
 
 Moved, with one of its four requirements already landed. Re-checked against the tree on 2026-09-20:
 
-- **"the service graph is buildable and acyclic" — landed** in `review/di-cycle-guard.md`
+- **"the service graph is buildable and acyclic" — landed** in `done/di-cycle-guard.md`
   (`ServiceProviderOptions.ValidateOnBuild` on `CuoBootstrap.BuildServiceProvider`, a `DiCycleGuard`
   that records factory-mediated re-entrant resolution and throws with the full chain, and
   `DiCycleGuardTests`). The replacement ticket drops this requirement rather than re-doing it.

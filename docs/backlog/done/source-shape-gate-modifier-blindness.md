@@ -1,11 +1,12 @@
 # The one-top-level-type gate sees every modifier
 
-- Status: Review — the batch `20260927-b` rejection is fixed (the missing `new` positive sample landed). Awaiting the next acceptance batch.
+- Status: Done
+- Acceptance (20261001-t): the `new` sample is in the theory and the gate suite is green (300/300); the batch `20260927-b` rejection is closed — record `docs/evidence/acceptance/source-shape-gate-modifier-blindness-20261001.md`.
 - Priority: Medium
 - Category: Tooling / normative gates / source shape
 - Source: the stage 1 adversarial review of the remote-inventory native-intent rework (2026-09-21): the gate's declaration does not equal its reach — the modifier list it spells by hand leaves `internal readonly record struct …` (and the same shapes carrying `file`, `private`, `protected`, `unsafe`, `new` or `ref`) invisible.
 - Related: `docs/evidence/selfchecks/items/remote-inventory-native-intent-stage1-selfcheck.md` (where the hole is recorded), `docs/architecture/remote-inventory-native-parity.md`, `docs/evidence/selfchecks/tooling/one-top-level-type-gate-selfcheck.md` (the 2026-09-25 cycle's evidence; its `new`-positive claim is corrected in the fix section below)
-- Acceptance record: batch `20260927-b` rejected row 4 — `docs/evidence/acceptance/source-shape-gate-modifier-blindness-20260927.md`; the next batch writes the deciding record.
+- Acceptance record: batch `20261001-t` closed the rejection — `docs/evidence/acceptance/source-shape-gate-modifier-blindness-20261001.md`.
 
 ## The defect
 

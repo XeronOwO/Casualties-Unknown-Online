@@ -30,4 +30,4 @@ architecture/event-replay/entity-event/delivery gates pass.
 
 Non-goal: no bandwidth optimization yet. The measured baseline is the input for
 `docs/backlog/done/state-stream-bandwidth-reduction.md` and
-`docs/backlog/review/snapshot-size-reduction.md`.
+`docs/backlog/done/snapshot-size-reduction.md`.

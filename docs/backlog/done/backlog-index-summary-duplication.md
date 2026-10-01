@@ -1,6 +1,7 @@
 # The backlog index duplicates every ticket's summary; make it a table of pointers
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-t): the pointer-row shape, the gate and the measured table re-derive; the fact check read 95 old fact tokens, 91 in the pointed ticket and 4 in the family's umbrella/sibling — record `docs/evidence/acceptance/backlog-index-summary-duplication-20261001.md`.
 - Priority: Low-Medium
 - Category: Backlog hygiene / workflow efficiency
 - Source: workflow-iteration review 2026-09-17 — a status change had to be written in two places

@@ -1,6 +1,6 @@
 # One-top-level-type gate: every modifier, and the seven files it exposed - self-check (2026-09-25)
 
-Ticket: `docs/backlog/review/source-shape-gate-modifier-blindness.md` (Medium; found by the stage-1
+Ticket: `docs/backlog/done/source-shape-gate-modifier-blindness.md` (Medium; found by the stage-1
 adversarial review of the remote-inventory native-intent rework). Cycle scope: make
 `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits` see every legal
 top-level type declaration instead of the modifier spellings it happened to enumerate, pin the

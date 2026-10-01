@@ -58,9 +58,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [S4.3 — Starting supplies for a new player](review/save-new-player-starting-supplies.md) — **High** — the body-identity policy and the entry-group hold.
-- [Run clock is not sent to a mid-run joiner](review/save-run-clock-not-sent.md) — **Low-Medium** — the clocks ride their own message, read at the send point.
-
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
@@ -69,7 +66,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote inventory native parity rework](review/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [Composition root feature modules](review/composition-root-feature-modules.md) — **Medium** — feature modules, one reset contract, binding gate.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
-- [Systemic save and backup management](review/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
 - [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.
 - [Partial-damage report vs the live delta](review/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
 - [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.
@@ -91,7 +87,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Unrepresentable runtime creations are rejected](review/runtime-entity-creation-rejection.md) — **High** — the creator's copy is destroyed.
 - [S4.2 — The restore account surface](review/save-restore-account-surface.md) — **High** — one console line per save event.
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
-- [S3.6 — Solo menu-exit trigger](review/save-solo-menu-exit-trigger.md) — **Medium** — the leave action is intercepted and replayed.
 - [Trap/entity action divergence](review/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
 - [Block-damage table capacity alignment](review/block-damage-table-capacity-alignment.md) — **Medium** — CUO's second registry is deleted.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
@@ -185,6 +180,10 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Systemic save and backup management](done/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
+- [S3.6 — Solo menu-exit trigger](done/save-solo-menu-exit-trigger.md) — **Medium** — the leave action is intercepted and replayed.
+- [Run clock is not sent to a mid-run joiner](done/save-run-clock-not-sent.md) — **Low-Medium** — the clocks ride their own message, read at the send point.
+- [S4.3 — Starting supplies for a new player](done/save-new-player-starting-supplies.md) — **High** — the body-identity policy and the entry-group hold.
 - [Agent acceptance workflow — foundation](done/agent-acceptance-workflow-foundation.md) — **High** — the acceptance area, preflight and rules.
 - [Test suite parallelization](done/test-suite-parallelization.md) — **Medium** — the parallelism contract and splits.
 - [In-game command console](done/in-game-command-console.md) — **Low** — the modal UI console.

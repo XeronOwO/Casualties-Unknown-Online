@@ -1,9 +1,6 @@
 # S4.3 — A player the world has no character for is supplied as a NEW player
 
-- Status: Review — fixed 2026-10-01 (row 3: a guest holds every verdict until the world-entry group
-  completes, bounded by a timeout, so a restore still in flight wins); re-verification attempted in
-  batch `20261001-q` did not stage the row-3 precondition (the restored world had no character for the
-  guest, so no restore was queued), see the record
+- Status: Done
 - Acceptance (20261001-o): row 3 FAILED — the first guest's own log shows the grant announced before its
   stored character arrived, five times, while the opposite ordering takes the correct branch; rows 1, 2
   and 4 passed live, the remaining rows passed on this batch's suite — record
@@ -317,13 +314,15 @@ What else needs the USER's dual-client pass:
 - a run configured with `startingsupplies = none`: the supplies line says the run decided it, and
   nobody gets anything.
 
-## Acceptance — batch 20261001-q (Run E host + guest)
+## Acceptance — batch 20261001-q (Run E2 host + guest)
 
 Run record:
 [save-new-player-starting-supplies-20261001-q.md](../../evidence/acceptance/save-new-player-starting-supplies-20261001-q.md).
-The row-3 precondition was not staged: the host's Continue opened the repository's solo world, where
-the guest has no character, so no character restore was queued. What the run did observe: the guest held
-its verdict twice (`Starting supplies held for this body…`, 14:25:49.891 and 14:27:59.783) and both
-verdicts granted nothing (`…already yours — CUO granted nothing on top.`, 48 ms and 3.7 s later), with
-no second account. Row 4's fresh-run branch was seen live; the remaining rows rest on batch
-`20261001-o` and this batch's suite. The ticket stays in `review/` on row 3.
+Row 3's exact ordering was produced: the guest re-entered the restored world it has a character in and
+its own log shows the hold covering the entry frame — `Starting supplies held for this body …` at
+14:40:25.979, `Received character restore (1 items)` 40 ms later, then `Character restore pending for
+this body — the world has a character for this player, so no starting supplies are granted (decision
+180)`. No grant, no supply notification, no second account. Row 4's fresh-run branch was seen live
+(`…the world's own first-layer supplies (light) are already yours — CUO granted nothing on top.`). The
+earlier attempt (Run E) never staged the precondition because its Continue opened the repository's solo
+world; selecting the session world on the Worlds page first produced the target ordering.

@@ -5,7 +5,7 @@
   `../evidence/acceptance/world-and-backup-management-surface-20261001-p.md`
 - Priority: Medium
 - Category: Persistence / UI
-- Source: Stage of `review/systemic-save-backup-management.md` (the umbrella re-scoped 2026-09-20); user
+- Source: Stage of `done/systemic-save-backup-management.md` (the umbrella re-scoped 2026-09-20); user
   decision 2026-09-20 on the surface and the restore semantics
 - Related: `docs/decisions/active.md` 198, `docs/architecture/save-archive-format.md` §2/§6/§7,
   `done/save-format-and-world-repository.md` (S1), `done/save-interval-autosave-and-backup-recovery.md`

@@ -1,6 +1,6 @@
 # S3.6 — Solo menu-exit trigger for the mid-run cut
 
-- Status: Review (landed 2026-09-14; awaiting the final unified acceptance pass)
+- Status: Done
 - Priority: Medium
 - Category: Persistence / save system
 - Source: `docs/backlog/review/save-mid-run-consistent-cut.md` → scope 9 ("solo menu-exit trigger")
@@ -113,5 +113,5 @@ at the frame-end seam (revision 325); a leave outside a world cannot be invoked 
 writes nothing; a host's directed leave with a guest present takes the cut (revision 1982, the guest is
 pulled out); the refused cut (save root renamed aside) logs `StageFailed` and still leaves; the stale
 teardown verdict is suite-pinned; and the tutorial entry gets no archive and writes no cut on its leave.
-Row 4 (a guest's leave) was not staged — the host's Steam transport runaway ended Run E — so the ticket
-stays in `review/` on that one row.
+Row 4 (a guest's leave) is judged in the second session: the guest left to the menu and the host wrote
+no cut at all (its world's backups stayed 0).

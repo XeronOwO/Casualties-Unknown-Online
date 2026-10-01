@@ -1,7 +1,6 @@
 # Systemic save and backup management
 
-- Status: Review — re-scoped 2026-09-20: every scope below is landed or closed, and the stage ticket carries the delivery (decision 198).
-  The umbrella holds no implementation work of its own.
+- Status: Done — re-scoped 2026-09-20: every scope below is landed or closed, and the stage tickets carried the delivery (decision 198). Closed at the 20261001-q acceptance batch, whose records judged the stage tickets.
 - Priority: Medium
 - Category: Persistence / tooling
 - Source: Promoted from `future/` by user request (2026-09-07, user-promoted) alongside the new save-system requirement

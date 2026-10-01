@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: User request (2026-09-07) — "添加存档系统，包括层级末尾存档、游戏中途存档。考虑到游戏本体的存档格式不支持中途存档，需要你设计全新的存档格式，建议以常见存储格式为基准（例如 Json），辅以文件压缩。考虑到拓展性，推荐使用目录级压缩格式，而不是单文件压缩。开发时，需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
-- Related: `docs/architecture/save-archive-format.md` (normative format contract), stage tickets in the "Stages" table below, `review/systemic-save-backup-management.md` (backup/restore layer on this format), `review/world-determinism-world-fingerprint.md`, `done/application-layer-first-slice.md` (stage 3 — the relocation absorbed it)
+- Related: `docs/architecture/save-archive-format.md` (normative format contract), stage tickets in the "Stages" table below, `done/systemic-save-backup-management.md` (backup/restore layer on this format), `review/world-determinism-world-fingerprint.md`, `done/application-layer-first-slice.md` (stage 3 — the relocation absorbed it)
 
 ## Functional intent
 
@@ -121,7 +121,7 @@ implementation work.
 | S1 | `done/save-format-and-world-repository.md` | Format + world repository + backup I/O, no gameplay wiring | landed (review) |
 | S2 | `review/save-layer-end-save-and-restore.md` | Layer-end capture/restore via the native continue entry | landed (review) |
 | S3 | `review/save-mid-run-consistent-cut.md` | Mid-run consistent cut, all domains, world diff, transient policy; S3.1-S3.6 landed, the four recorded gaps fixed, and S3.5 (the exactly-once claim + documentation + re-anchoring) closed 2026-09-17 | landed (review) |
-| S3.6 | `review/save-solo-menu-exit-trigger.md` | The solo menu-exit trigger for the mid-run cut (split out of S3's scope list) | landed (review) |
+| S3.6 | `done/save-solo-menu-exit-trigger.md` | The solo menu-exit trigger for the mid-run cut (split out of S3's scope list) | landed (review) |
 | S4 | `review/save-multiplayer-restore-and-backups.md` | Guest restore claim, validation/recovery, scheduled autosave + retention (also owns scope 7's decode-level refusal recovery, landed with S4.4) | landed (review) (S4.1-S4.4 landed 2026-09-14) |
 
 ## Mid-run semantics: the hard part

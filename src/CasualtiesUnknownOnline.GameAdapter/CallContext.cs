@@ -15,10 +15,16 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// Harmony patches (static classes, no DI) are writers of InternalReorder
 /// scopes — HarmonyTraverse is the same precedent. The scope STACK replaces the
 /// boolean reentry guards (IsApplyingRemote, IsApplyingRemoteBlockPlace,
-/// Swapping, Switching): nested scopes compose (a remote application may run an
-/// internal reorder), Dispose restores the previous origin, and using compiles
-/// to try/finally so exception paths release too. An unbalanced Enter (a scope
-/// that outlives its mutation) is a programming error — fail loudly.
+/// Swapping, Switching): nested scopes compose — <see cref="Current"/> answers
+/// the INNERMOST origin (the scope CLASSIFICATION: which sub-scope is running),
+/// while <see cref="IsWithin"/> answers whether an origin is anywhere in the
+/// chain (MUTATION ATTRIBUTION: a remote application that runs an internal
+/// reorder, a craft or the game's own damage roll has to stay "within
+/// <see cref="Origin.RemoteApply"/> for every guard that keeps a replay from
+/// being reported as the local player's action) — Dispose restores the previous
+/// origin, and using compiles to try/finally so exception paths release too. An
+/// unbalanced Enter (a scope that outlives its mutation) is a programming
+/// error — fail loudly.
 /// </summary>
 internal static class CallContext
 {
@@ -140,8 +146,39 @@ internal static class CallContext
 	private static readonly Origin[] Stack = new Origin[MaxDepth];
 	private static int _depth;
 
-	/// <summary>The innermost active origin — LocalAction when no scope is open (plain game-code calls, the default).</summary>
+	/// <summary>The innermost active origin — the scope CLASSIFICATION query; LocalAction when no scope is open (plain game-code calls, the default). Use <see cref="IsWithin"/> for mutation attribution.</summary>
 	internal static Origin Current => _depth > 0 ? Stack[_depth - 1] : Origin.LocalAction;
+
+	/// <summary>
+	/// True when <paramref name="origin"/> is anywhere in the active scope chain —
+	/// the MUTATION-ATTRIBUTION query. A guard that keeps a replayed mutation from
+	/// being reported as the local player's action must ask this one: a nested
+	/// sub-scope (the game's damage roll pushes <see cref="Origin.DamageBlockOrigin"/>,
+	/// an inventory load <see cref="Origin.InternalReorder"/>, a craft
+	/// <see cref="Origin.Craft"/>) sits ON TOP of the caller's
+	/// <see cref="Origin.RemoteApply"/> and <see cref="Current"/> no longer names
+	/// it — the leak that reported a receiving side's presentation write back to
+	/// the host (ticket <c>unhooked-damage-block-callers</c>, row 4).
+	/// <see cref="Origin.LocalAction"/> is the implicit bottom of the stack: it
+	/// answers true only while no scope is open.
+	/// </summary>
+	internal static bool IsWithin(Origin origin)
+	{
+		if (origin == Origin.LocalAction)
+		{
+			return _depth == 0;
+		}
+
+		for (var i = 0; i < _depth; i++)
+		{
+			if (Stack[i] == origin)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	/// <summary>Opens a scope; Dispose restores the previous origin. using-scoped — try/finally guarantees release on exception paths.</summary>
 	internal static IDisposable Enter(Origin origin)

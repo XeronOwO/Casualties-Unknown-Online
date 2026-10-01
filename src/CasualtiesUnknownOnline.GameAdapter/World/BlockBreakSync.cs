@@ -72,7 +72,7 @@ internal sealed class BlockBreakSync(
 	private float _lastBrokenCleanup;
 
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
-	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
 
 	private bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
 

@@ -43,7 +43,7 @@ internal static class SoundPlayPatch
 			return false; // deferred until the start gate releases
 		}
 
-		if (CallContext.Current != CallContext.Origin.RemoteApply)
+		if (!CallContext.IsWithin(CallContext.Origin.RemoteApply))
 		{
 			var origin = CallContext.Current switch
 			{

@@ -35,7 +35,7 @@ internal sealed class ContainerItemSync(
 	private readonly ILogger<ContainerItemSync> _log = log;
 
 	/// <summary>True while a remote message is being applied — local reports must stay silent (call identity lives in CallContext).</summary>
-	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
 
 	internal void OnLoadedIntoContainer(Item item, bool wasWorldItem)
 	{

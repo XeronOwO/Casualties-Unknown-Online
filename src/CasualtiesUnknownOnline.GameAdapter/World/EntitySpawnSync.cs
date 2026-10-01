@@ -187,7 +187,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			return;
 		}
 
-		if (CallContext.Current == CallContext.Origin.RemoteApply || !_session.SessionActive || HarmonyTraverse.IsGenerating())
+		if (CallContext.IsWithin(CallContext.Origin.RemoteApply) || !_session.SessionActive || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}

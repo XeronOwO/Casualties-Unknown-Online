@@ -46,7 +46,7 @@ internal sealed class ItemWorldSync(
 	private readonly ILogger<ItemWorldSync> _log = log;
 
 	/// <summary>True while a remote message is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not a bool).</summary>
-	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
 
 	/// <summary>
 	/// True while the world is being torn down (scene unload at game quit /

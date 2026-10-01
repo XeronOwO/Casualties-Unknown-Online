@@ -27,7 +27,7 @@ internal static class SoundPlayAudioClipPatch
 {
 	private static void Prefix(AudioClip clip, Vector2 pos, bool twoDimensional, Transform follow, float volume)
 	{
-		if (CallContext.Current == CallContext.Origin.RemoteApply || SoundCaptureContext.SkipAudioClipCapture)
+		if (CallContext.IsWithin(CallContext.Origin.RemoteApply) || SoundCaptureContext.SkipAudioClipCapture)
 		{
 			return;
 		}

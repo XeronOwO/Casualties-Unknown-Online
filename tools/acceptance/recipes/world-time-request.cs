@@ -39,4 +39,4 @@
 		+ ",\"gateWaiting\":" + (gate != null && gate.IsWaitingForReady ? "true" : "false")
 		+ ",\"timeScale\":" + UnityEngine.Time.timeScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"curTimeScale\":\"" + (camera == null ? "none" : System.Convert.ToString(camera.curTimeScale)) + "\"}";
-}))
+}))()

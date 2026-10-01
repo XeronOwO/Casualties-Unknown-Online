@@ -1,7 +1,8 @@
 # Layer time accounting is not carried by the archive
 
-- Status: Review — landed 2026-09-19 with the RESUME ruling; the timer rows await the user's
-  dual-client pass
+- Status: Todo — Rejected (acceptance 20261001-m Run A, row 1: the layer timer did not resume in the live
+  game — the cut carries it and the applier logs it written, the live value restarts from zero; record
+  `../evidence/acceptance/save-layer-time-not-carried-20261001.md`)
 - Priority: Low-Medium
 - Category: Persistence / save system (game state no CUO domain owns)
 - Source: the S3.4a independent adversarial pass; pre-existing and native-parity-consistent. Landed in

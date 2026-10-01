@@ -37,3 +37,10 @@ fingerprint comparison would have surfaced faster — closed 2026-09-09 by
 
 If an automatic detector is wanted later, it is a new feature (periodic
 fingerprint exchange + divergence alert), not part of this acceptance item.
+
+## Acceptance — batch 20261001-m (Run A)
+
+Run record: [world-determinism-world-fingerprint-20261001.md](../../evidence/acceptance/world-determinism-world-fingerprint-20261001.md).
+Procedure steps 1, 2 and 4 pass (the entry fingerprint pair is identical); step 3 unproven — no
+post-mutation fingerprint pair, because the one-shot log was not re-armed, so the bounded block reads are
+the recorded substitute. The ticket stays in `review/`.

@@ -35,13 +35,13 @@ records that someone decided the step was done, not what proved it. Keep it to o
 (a command, a file, or a measured result); the full detail belongs in the cycle's ticket or
 evidence file.
 
-- [x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified — evidence: docs-only acceptance cycle; the batch scope names each row's evidence kind and the delivered tree carries no src/tests/tools change
-- [x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: no mechanism changed; the seven judged tickets are each decided against their own family's tests/gates (source-shape, sync-coverage, backlog, lifecycle, DI, session-environment)
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: seven records under `docs/evidence/acceptance/*-20261001.md` carry the row tables with one verdict and one evidence pointer per row
-- [x] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided — evidence: `docs/evidence/acceptance/20261001-t-scope.md` declares the offline channel before the run; the run logs and probe outputs are in the batch directory
-- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation — evidence: the handoff instruction froze family-grouped acceptance; the batch plan is recorded in the scope doc before the run and no work-item choice was re-asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: full suite with build 4,573 + 300, 0 failed (`full-suite-20261001-t.log`); format exit 0 (`format-20261001-t.log`); the focused normative-gate run follows this fill
-- [x] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round) — evidence: docs-only cycle (no class touched); the new pages are pointer-shaped and the moved tickets keep their bodies unchanged apart from the status and record lines
+- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified — evidence: each new recipe cites its native site (PlayerCamera.cs:885-895/:921-924, WorldGeneration.cs:865-871, PauseHandler.cs:153-160); no product code changed
+- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+- [ ] Self-check table: mechanism x change x evidence, every cell filled
+- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+- [ ] Build + dotnet format + dotnet test normative gates pass
+- [ ] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round)
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

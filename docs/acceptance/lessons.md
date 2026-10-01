@@ -1089,3 +1089,29 @@ dependency the table did not name, a step that cost more than it returned.
   lone CR, a pure-CRLF check (CR == LF) and `git hash-object --path=<path> <file>` equal to the committed
   blob — and restores the backups afterwards, hash-compared per file; `git status` is not the evidence
   for it.
+
+## 2026-10-02 — The shipped game cannot produce a health-1 block, so the crush family needs a declared staged tile
+
+- Symptom: `crush-find` returned `candidates: 0` in every layer batch `20261001-y` visited; the follow-up
+  whole-layer census (`probe-health1.cs`) then answered `health1: 0` for depths 0, 1, 2, 3 and 4 (plus a
+  regenerated depth 1).
+- Cause: the only vanilla blocks whose `BlockInfo.health` is exactly 1 are `thinice` (28) and `powdersnow`
+  (29) (`WorldGeneration.cs:576-594`), and `amountOfLayers = 5` is hard-coded (`WorldGeneration.cs:128-129`),
+  so the snow biome that defines them sits behind unreachable depths — `skiplayer` from depth 4 wraps to
+  depth 1. A tree-wide search finds no writer of ids 26-29 at all.
+- Change: a crush run declares the substitution — write the game's own `thinice` id into the three
+  foot-level cells with the game's own `WorldGeneration.SetBlock` (the write path CUO relays, so every peer
+  applies the placement too) and let `Body.HandleGroundedState`'s native roll run untouched. Pair a census
+  probe with a validation half (`probe-blockcensus.cs`: `nonAir` plus the block table's own health rows), so
+  a zero answer is told apart from a blind probe.
+
+## 2026-10-02 — Peer-side receipt evidence lives at Debug, and the traffic top list hides small messages
+
+- Symptom: after a staged crush the actor's `ItemTrace` lines showed the roll, but the peers' logs showed
+  nothing at Information; the periodic `[NetworkTraffic]` lines list only the top ten message types by bytes,
+  and an 18-byte `BlockDamaged` never makes that list in a busy window.
+- Cause: the receiving side's presentation (`WorldEventSync` → `RemoteBlockWrite`) logs at Debug on purpose
+  ("presented here" vs "found the cell already air"), while the local damage-report hook is silent by design.
+- Change: take peer-side receipt evidence with the CUO log level raised to Debug through the same
+  `LoggingConfigEditor` the Preferences control uses (`loglevel-debug.cs`), then restore it to Information
+  (`loglevel-information.cs`); read the peers' `[BlockBreak] presenting a relayed break at (x,y)` lines.

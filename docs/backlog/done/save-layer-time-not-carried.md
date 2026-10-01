@@ -1,8 +1,12 @@
 # Layer time accounting is not carried by the archive
 
-- Status: Todo — Rejected (acceptance 20261001-m Run A, row 1: the layer timer did not resume in the live
-  game — the cut carries it and the applier logs it written, the live value restarts from zero; record
-  `../evidence/acceptance/save-layer-time-not-carried-20261001.md`)
+- Status: Done
+- Acceptance (20261001-n): all three rows judged on the fixed seam (commit `9f79f25a`) — the timer
+  resumed at `364.8` of the cut's value (host live read `364.77`; the guest converged to `364.8` through
+  the in-world message path), an archive whose optional `layerTimeSpent` property was dropped decoded as
+  `layer time absent` and the continued layer restarted from zero without inventing a value, and a layer
+  advance kept the game's own accounting (`0.65 → 36.57`, limit `3600`) — record
+  `../evidence/acceptance/save-layer-time-not-carried-20261001-n.md`
 - Priority: Low-Medium
 - Category: Persistence / save system (game state no CUO domain owns)
 - Source: the S3.4a independent adversarial pass; pre-existing and native-parity-consistent. Landed in
@@ -49,21 +53,26 @@ it drops every other in-layer fact. The property is ABSENT rather than null when
 the gap instead of inventing a zero. The LIMIT is deliberately not carried: `WorldGeneration.Start`
 derives `maxTimePerLayer` from the restored run settings.
 
-The write rides the same seam as the restored clock base — `INativeWorldFacts.ApplyCutRunFields(
-savedRunTime, layerTimeSpent)` → the pending run-field handover → the world-entry flush — and the
-member-side handover of the same pair travels on `RunFacts` (see
-`review/save-run-clock-not-sent.md`).
+The write does NOT ride the restored clock base's seam: the native save slot runs before the generation
+coroutine, and the game zeroes `layerTimeSpent` on the first line of `FinishWorldGeneration`
+(`WorldGeneration.cs:3609`), so a timer written there is erased (acceptance 20261001-m Run A). The cut
+arms a pending value through `INativeWorldFacts.ApplyCutRunFields(savedRunTime, layerTimeSpent)`, and
+`TryWritePendingLayerTimer` lands it at the first seam after the generation — the world-entry edge, or
+the apply of a message that reaches a member already in the world; the member-side handover travels on
+`RunFacts` (see `review/save-run-clock-not-sent.md`).
 
 | # | Acceptance row (resume) | What pins it |
 |---|---|---|
-| 1 | Continue into the same layer with 6 of 10 minutes already spent; the timer starts at 6 | `WorldRunFieldTests.MidRunCut_WritesTheRunBaselineAndTheNativeRunFields` (the row carries it) + `Continue_CarriesTheLayerTimerBackToTheNativeApplier` (the handover and the world-entry flush write it); the in-game timer itself is the user's pass |
+| 1 | Continue into the same layer with 6 of 10 minutes already spent; the timer starts at 6 | `WorldRunFieldTests.MidRunCut_WritesTheRunBaselineAndTheNativeRunFields` (the row carries it) + `Continue_CarriesTheLayerTimerBackToTheNativeApplier` (the handover and the world-entry flush write it); the in-game timer itself was judged by the agent-run acceptance (batch 20261001-n) |
 | 2 | Continue a cut whose archive carries no layer-time row; the timer restarts and the log says why | `WorldRunFieldTests.Continue_FromAnArchiveWithoutTheLayerTime_KeepsTheLiveTimer`, `MidRunCut_WithNoLayerTimerRead_WritesNoLayerTimeProperty`, `WorldSnapshotCodecTests.Decode_NativeRunFieldsRow_WithoutALayerTimer_KeepsTheAbsence` |
 | 3 | Layer advance after a restore; the next layer keeps the game's own accounting | `WorldSnapshotCodecTests.Decode_NativeRunFieldsRow_CarriesTheLayerTimerWhenTheRowHasOne` + `WorldRunFieldTests.LayerEndCut_CarriesTheRunFieldsAndStampsTheBaseline` (a layer-end cut carries no timer) |
 
 ## Verification (machine-checked)
 
-- Focused suites green: `WorldRunFieldTests` (10 cases), `WorldSnapshotCodecTests`,
-  `RunClockFactsTests`, `NetPacketTests`, `WorldEntrySnapshotTests`.
+- Focused suites green: `WorldRunFieldTests` (12 cases — the seam fix added
+  `Continue_DoesNotWriteTheLayerTimerBeforeTheWorldFinishedGenerating` and
+  `Continue_NeverMovesTheLayerTimerBackwards`), `WorldSnapshotCodecTests`, `RunClockFactsTests`,
+  `NetPacketTests`, `WorldEntrySnapshotTests`.
 - Normative gates 69/69 with this cycle's delivery checklist filled (matrix row R9 + six anchors; the two
   `ProtocolVersion` anchors moved 32 → 33). While the checklist is reset the gates read 68/69, that one
   red being `DeliveryChecklist_NoIncompleteRequiredBoxes`.
@@ -72,7 +81,9 @@ member-side handover of the same pair travels on `RunFacts` (see
 
 ## Limits
 
-- Rows 1 and 3 read the in-game radiation line and timer, so they need the user's dual-client pass.
+- Rows 1 and 3 read the live timer; they were judged by the agent-run acceptance batch `20261001-n`
+  (record above), not by a person.
 - The engine write (`WorldGeneration.world.layerTimeSpent = ...`) is adapter code with a live scene
-  dependency, so it is read-only reviewed rather than executed by a test; the seam ordering (value
-  written before anything derives from it) is asserted through the fake's recorded writes.
+  dependency, so it is not executed by a unit test; the seam ordering is asserted through the fake's
+  recorded writes, and the real write was observed in batch `20261001-n` (`the layer timer 364.8s
+  (written) — the world finished generating`).

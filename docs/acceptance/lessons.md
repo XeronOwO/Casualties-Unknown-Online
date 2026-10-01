@@ -577,3 +577,37 @@ dependency the table did not name, a step that cost more than it returned.
   `WorldGeneration.world.layerTimeSpent` read `0.4` a few seconds later, then accumulated from zero.
 - Change: a native-field row reads the live field after the write before it is judged; a handover log line
   is evidence that the write ran, not that the game kept it.
+
+## 2026-10-01 — A new run does not move lastOpenedWorldId
+
+- Symptom: the run started a fresh run, cut it, and hit Continue expecting that run; the continue
+  restored the repository's previous `lastOpenedWorldId` instead (a batch-m world), so the forced
+  360-second precondition sat in a world the continue never read.
+- Cause: only the restore/continue paths write `WorldRepository.SetLastOpenedWorld`; starting and
+  leaving a run records its cut but leaves the pointer alone.
+- Change: a continue-scenario run either accepts the world the pointer names (the clean cycle then cuts
+  and continues THAT world in-session) or moves the pointer first; the first continue's evidence is kept
+  as a bonus observation rather than counted as the row.
+
+## 2026-10-01 — An injected archive edit surfaces in the manifest check
+
+- Symptom: dropping the optional `layerTimeSpent` property from the live snapshot to stage the "archive
+  without the row" shape produced `ChecksumMismatch in run.json: the file is 22289 bytes but the
+  manifest says 22326` in the restore report.
+- Cause: the archive manifest records the row files' size and hash, so a hand edit is visible by
+  construction.
+- Change: the edit is declared as the setup in the record, its restore-side account (one content loss)
+  is quoted, and the row is judged on the decoder/handover lines and the live restart it produces —
+  never presented as an unmodified archive.
+
+## 2026-10-01 — A resumed layer timer is judged on its post-generation write
+
+- Symptom: after the fix the applier logged `the layer timer 364.8s (written) — the world finished
+  generating` twelve seconds after the restore, and the live timer then read `364.77`; the pre-fix shape
+  wrote before the generation and the live value read `0.4` instead.
+- Cause: `FinishWorldGeneration` zeroes `layerTimeSpent` on its first line, so the surviving seams are
+  the ones that run after the generation — the world-entry edge and an in-world message apply — while
+  the native save slot's write is erased.
+- Change: a resume row is judged by the pairing "cut value → the world-finished-generating write line →
+  a live read that starts at the cut value"; a bare `written` line taken before the generation is not
+  evidence for this row.

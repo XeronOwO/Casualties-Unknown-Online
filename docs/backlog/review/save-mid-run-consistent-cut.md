@@ -53,7 +53,7 @@
   (`ItemLocationChain.IsWorldRooted`); `world-entities.json` obeys the same rule, so a produced
   layer-end archive holds no in-layer fact at all. Scope 7 and scope 9 are NOT part of this
   increment; scope 9 moved to its own stage ticket (S3.6, since landed as
-  `review/save-solo-menu-exit-trigger.md`). **A third pass (2026-09-12) closed recorded
+  `done/save-solo-menu-exit-trigger.md`). **A third pass (2026-09-12) closed recorded
   gap 1**: the restore account now carries the restore ATTEMPT's identity
   (`ItemKernelAuthority.RestoreSequence`, stamped by every arm and echoed by every contribution), so a
   half of an earlier attempt can no longer be counted toward a newer restore's account — see *the
@@ -324,7 +324,7 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    pinned at the Runtime seam and by static review of the adapter; see the S3.5 increment self-check.
 9. **Solo menu-exit trigger** (found by the S3.3 adversarial pass) — **MOVED OUT of this ticket**: it
    is its own stage, S3.6, because it is a trigger-edge gap on the solo surface rather than part of the
-   consistent cut's scope. **Landed 2026-09-14** as `review/save-solo-menu-exit-trigger.md`, with the
+   consistent cut's scope. **Landed 2026-09-14** as `done/save-solo-menu-exit-trigger.md`, with the
    mechanism finding that the fix is NOT the in-world → menu transition edge this scope first named
    (the leave's own scene load destroys the world before any next-frame cut could read it) but the
    leave ACTION itself, intercepted at `PlayerCamera.ToMainMenu` and replayed by the frame-end seam
@@ -895,7 +895,7 @@ lands is exactly the runtime the earlier increments shipped.
 | 6 restore-report completeness | landed | S3.3, the ITEM arm follow-up, and scope 8's own refused count |
 | 7 refusal recovery | landed | S4.4 (`done/save-interval-autosave-and-backup-recovery.md`) |
 | 8 host-side world-entity projection | landed | the S3.5 increment |
-| 9 solo menu-exit trigger | landed | S3.6 (`review/save-solo-menu-exit-trigger.md`) |
+| 9 solo menu-exit trigger | landed | S3.6 (`done/save-solo-menu-exit-trigger.md`) |
 
 **The exactly-once claim at the level it is proven.** Scope 5's five parts — same-id dedup, no
 re-materialization of generation-time content, one parent per container child, terminal facts never
@@ -975,7 +975,7 @@ in-game rows open.
 
 - [x] **Scope closure**: scopes 1-6 and 8 are landed and documented here; scope 7 is owned by S4
       (`review/save-multiplayer-restore-and-backups.md`) and landed with S4.4; scope 9 is owned by S3.6
-      and landed (`review/save-solo-menu-exit-trigger.md`). No scope is silently dropped — evidence:
+      and landed (`done/save-solo-menu-exit-trigger.md`). No scope is silently dropped — evidence:
       the scope-closure table in *S3.5 closure* above, re-read against the tree on this commit.
 - [x] **The exactly-once claim is stated at the level it is proven**: the machine evidence above is
       claimed, the in-game half is named as the user's pass and is not claimed as observed
@@ -1046,13 +1046,15 @@ Run record: [save-mid-run-consistent-cut-20261001.md](../../evidence/acceptance/
 Rows 1 and 7 pass; rows 2–6 unproven (ground/worn restings, fluids/enemies, the in-flight save window and
 the half-applied read were not staged). The ticket stays in `review/` until those setups are driven.
 
-## Acceptance — batch 20261001-q (Run D solo + Run E host + guest)
+## Acceptance — batch 20261001-q (Run D solo + Run E/E2 host + guest)
 
 Run record: [save-mid-run-consistent-cut-20261001-q.md](../../evidence/acceptance/save-mid-run-consistent-cut-20261001-q.md).
 Rows 2, 4, 5 and 6 pass (row 4 with the deferral window closed before the arm; row 2's `worn` resting is
-the named gap). Row 3's cut-side half executed: a live-session cut carried `building-health 19`,
-`trap-consumption 6`, `trap-state 6`, `enemy 673 + removed 5` and 243 fluid chunks in its archive; the
-restore of that cut was never verified (the repository pointer sent the Continue to another world and
-the host then died in the Steam transport runaway), so row 3 stays `unproven` and the ticket stays in
-`review/`. The entity families are session-gated: a solo run produces the same staging with zero
+the named gap). Row 3's four families and their restore were both verified in the second session: the cut
+carried 80 enemy rows (79 live + 1 tombstone), 235 fluid chunks, 24 world-entity rows (20 building-health,
+2 trap-consumption, 2 trap-state), 330 item rows and 1786 world-block rows; the Continue restored **that**
+world (`revision 913`) and the account reads 1779 block-state rows, 7 partial-damage, 21 applied / 1
+refused world-entity rows with the shortfall named, and 332/332 items. The row keeps `unproven` on the
+one gap the batch plan declares unreachable — opened lockables have no drive path — so the ticket stays
+in `review/`. The entity families are session-gated: a solo run produces the same staging with zero
 world-entity/enemy/fluid rows.

@@ -1,8 +1,6 @@
 # The archived run clock base never reaches a player who joins mid-run
 
-- Status: Review — fixed 2026-10-01 (row 1: the host's run total is read at the SEND point and the
-  receiver maps it onto its own world epoch); re-verification attempted in batch `20261001-q` was
-  **inconclusive** — the host's Steam transport runaway cut the same-moment comparison, see the record
+- Status: Done
 - Acceptance (20261001-o): row 1 FAILED the live comparison the batch plan names, row 2 passed and the
   suite row 3 passed — record `../evidence/acceptance/save-run-clock-not-sent-20261001-o.md`. The
   diagnosis was the publish POINT, not the value: a mid-world joiner took the host's last published base
@@ -125,13 +123,15 @@ archive's own clock base — two carriers for one fact (decision 193).
   them would leave a joining member's radiation timer at zero until its own baseline arrives; the
   monotone write guard is the real protection, and it is not stamp-dependent.
 
-## Acceptance — batch 20261001-q (Run E host + guest)
+## Acceptance — batch 20261001-q (Run E2 host + guest)
 
 Run record:
 [save-run-clock-not-sent-20261001-q.md](../../evidence/acceptance/save-run-clock-not-sent-20261001-q.md).
-Row 1 could not be judged: the run's own start matched (host `543.755` vs guest `543.609`, Δ0.146 s),
-the mid-run re-entry showed the guest on its stale base (`490.30`) while the host read `558.95`, and the
-guest then applied `the run clock base 558.3s (written)` — after which the host stopped answering evals
-(Steam transport runaway) and no same-moment host reading exists. Row 2's **entry** half was observed
-(the member received the host's current layer timer `503.9` while the host read `503.86`); its
-**layer-change** half was not exercised. Row 3 passed on this batch's suite.
+The mid-run join was driven for real (the guest left the lobby and rejoined the host's in-progress run,
+host total ≈ 76 s at its entry): before the entry group's `RunFacts` the joiner sat on its own counter
+(host `76.11` vs guest `10.64`), the entry-group send mapped the host's live total onto the receiver's
+epoch (`the live world took the run clock base 66.0s (written)`), and the settled pairs read within
+**+3.4 s** (three samples over 55 s, constant). The layer-change half then paired **Δ0.067 s** (host
+`215.1655` vs guest `215.2321`) with the layer timers `5.194`/`5.103` — the member holds the host's
+current layer's timer, not the replaced layer's `137.0 s`. Row 3 stays suite-pinned. Residual: the
+end-screen death-stats text is for a person to read.

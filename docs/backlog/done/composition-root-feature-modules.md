@@ -1,15 +1,16 @@
 # Composition root: feature modules and a unified session-reset lifecycle
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-t): the reset/unbind gate is green (11/11), the pre-split and post-split registration multisets are identical (171 calls, same lifetimes) and `CuoBootstrap` left the watchlist — record `docs/evidence/acceptance/composition-root-feature-modules-20261001.md`.
 - Priority: Medium
 - Category: Architecture / maintainability / DI
 - Source: Loomi architecture review (2026-09-04); updated 2026-09-20 against the tree (the cycle-detection half has landed); implemented 2026-09-22
-- Related: `review/di-cycle-guard.md`, `done/application-layer-first-slice.md`, `../evidence/selfchecks/architecture/composition-root-modules-selfcheck.md`
+- Related: `done/di-cycle-guard.md`, `done/application-layer-first-slice.md`, `../evidence/selfchecks/architecture/composition-root-modules-selfcheck.md`
 
 ## Problem (updated 2026-09-20)
 
 The original ticket asked for four verifications. One of them has LANDED and must not be re-done:
-"the service graph is buildable and acyclic" — `review/di-cycle-guard.md` records
+"the service graph is buildable and acyclic" — `done/di-cycle-guard.md` records
 `ServiceProviderOptions.ValidateOnBuild = true` on `CuoBootstrap.BuildServiceProvider`, a
 `DiCycleGuard` that records factory-mediated re-entrant resolution and throws with the full chain,
 and `DiCycleGuardTests` covering the contract. What remains is real:

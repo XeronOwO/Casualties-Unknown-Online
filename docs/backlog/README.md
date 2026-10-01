@@ -63,7 +63,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Remote inventory native parity rework](review/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
-- [Composition root feature modules](review/composition-root-feature-modules.md) — **Medium** — feature modules, one reset contract, binding gate.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.
 - [Partial-damage report vs the live delta](review/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
@@ -82,7 +81,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [S4 — Multiplayer restore and backups](review/save-multiplayer-restore-and-backups.md) — **High** — stage 4 (S4.1–S4.4).
-- [Evidence matrix fat rows](review/evidence-matrix-fat-rows-split.md) — **Low-Medium** — a count plus the evidence file.
 - [Unrepresentable runtime creations are rejected](review/runtime-entity-creation-rejection.md) — **High** — the creator's copy is destroyed.
 - [S4.2 — The restore account surface](review/save-restore-account-surface.md) — **High** — one console line per save event.
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
@@ -127,11 +125,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Block-break first-writer-wins](review/block-break-first-writer-wins.md) — **High** — the dual-side confirmation.
 - [Middle-click location marker](review/middle-click-location-marker.md) — **Medium** — the one-shot location ping.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — **Medium** — the typed KrokMP content seams.
-- [Snapshot size reduction](review/snapshot-size-reduction.md) — **Low** — a string table for definition ids.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
-- [DI cycle guard / diagnostics](review/di-cycle-guard.md) — ValidateOnBuild and the re-entrancy guard.
 - [Trap destruction drop quantity desync](review/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
-- [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
 - [Trap-layout snapshot recovery](review/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s repair re-derives and re-sends the layout.
 - [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [Dropped mod command requests](review/mod-command-request-timeout.md) — **Low** — the request deadline and the bounded pending map.
@@ -147,8 +142,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
 
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
-- [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
-- [A gate that keeps a run off a machine its owner is playing on](review/session-environment-gate.md) — **High** — refuses while a game process runs.
 
 ### Future
 
@@ -179,6 +172,13 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [The backlog index duplicates its tickets](done/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
+- [Composition root feature modules](done/composition-root-feature-modules.md) — **Medium** — feature modules, one reset contract, binding gate.
+- [Evidence matrix fat rows](done/evidence-matrix-fat-rows-split.md) — **Low-Medium** — a count plus the evidence file.
+- [Snapshot size reduction](done/snapshot-size-reduction.md) — **Low** — a string table for definition ids.
+- [DI cycle guard / diagnostics](done/di-cycle-guard.md) — ValidateOnBuild and the re-entrancy guard.
+- [The one-top-level-type gate sees every modifier](done/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
+- [A gate that keeps a run off a machine its owner is playing on](done/session-environment-gate.md) — **High** — refuses while a game process runs.
 - [Systemic save and backup management](done/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
 - [S3.6 — Solo menu-exit trigger](done/save-solo-menu-exit-trigger.md) — **Medium** — the leave action is intercepted and replayed.
 - [Run clock is not sent to a mid-run joiner](done/save-run-clock-not-sent.md) — **Low-Medium** — the clocks ride their own message, read at the send point.

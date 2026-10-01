@@ -804,3 +804,39 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: after an injected session end, close and relaunch the clients for the next scenario instead
   of trying to revive the pair, and record the stale-member window as a limit of the ended session,
   not as evidence. Observed in batch `20261001-s`.
+
+## 2026-10-01 — An offline row that names a measurement is re-derived, not waived
+
+- Symptom: batch `20260927-b` classified seven tickets `offline` and left them in `review/` because
+  their deciding evidence was not a suite result — a comparison against a pre-change revision, a
+  lifetime assertion, a `< 50 ms` bound, a byte measurement.
+- Cause: "offline" means the repository can produce the evidence, not that a named test already
+  produces it; a claim about a measurement or a pre-change state needs the run to reconstruct that
+  state (`git show <revision>:<path>`) or take the measurement itself.
+- Change: batch `20261001-t` re-derived all seven — the index/matrix measured tables and the
+  registration multisets from `git show`, the checkpoint sizes and the composition build time from a
+  run-local probe whose output lands in the batch directory (the probe file is deleted before the
+  final ladder). The method is recorded in `docs/evidence/acceptance/20261001-t-scope.md`.
+
+## 2026-10-01 — A measured table is re-derived at its own revision; a figure that does not match is named
+
+- Symptom: the matrix ticket's measured table re-derived six of seven figures exactly (data-row text,
+  E3 row, longest row, line count, JSON count, after-bytes), but the recorded before-bytes (250,032)
+  does not match the blob at the revision the table names (`9bc8dea7`: 250,647 bytes LF / 251,076
+  CRLF).
+- Cause: a recorded figure can be a stale or differently-measured reading (bytes vs characters, LF
+  vs CRLF, a mid-edit working copy), and no check in the tree holds historical numbers.
+- Change: the acceptance record names the discrepancy and passes the row on the re-derived figures
+  (`docs/evidence/acceptance/evidence-matrix-fat-rows-split-20261001.md`); a re-derivation names its
+  revision and its measurement form, and a mismatch is recorded, never smoothed.
+
+## 2026-10-01 — A fact check names the owner it found, not just pass/fail
+
+- Symptom: the backlog-index fact check found 91 of 95 fact tokens in the exact ticket the old row
+  pointed at; the other four (the `S3`/`S3.3` stage tags and decision 181) live in the family's
+  umbrella or in the sibling the row itself cites.
+- Cause: an index row cites a ticket family, and stage or decision vocabulary is owned by the umbrella,
+  so a literal "in its ticket" reading reports a loss where the information is one hop away.
+- Change: the acceptance record passes the row and names the four exceptions and their owners
+  (`docs/evidence/acceptance/backlog-index-summary-duplication-20261001.md`); a mechanical check has to
+  say where each unmatched token actually lives.

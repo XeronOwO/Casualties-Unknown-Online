@@ -1,6 +1,7 @@
 # Snapshot size reduction
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-t): the string table, the direct-string fallback and the version bumps hold; the run's probe reproduced 25,732 -> 23,939 bytes for the 600-item checkpoint — record `docs/evidence/acceptance/snapshot-size-reduction-20261001.md`.
 - Priority: Low
 - Category: Networking observability / optimization
 - Source: original backlog — Open work

@@ -33,5 +33,5 @@ Selfcheck: `docs/evidence/selfchecks/protocol/state-stream-bandwidth-reduction-s
 
 ## Remaining related
 
-- `docs/backlog/review/snapshot-size-reduction.md` is still open and remains
+- `docs/backlog/done/snapshot-size-reduction.md` is still open and remains
   measurement-first.

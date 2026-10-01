@@ -1,8 +1,7 @@
 # A gate that keeps a run off a machine its owner is playing on
 
-- Status: Review (code complete 2026-09-27: the tool, its nine black-box tests and the refusal path on the
-  real machine are in; the real install's swap path still needs a moment when the machine is free — a
-  residual, not a claim)
+- Status: Done
+- Acceptance (20261001-t): the nine black-box tests pass, the real install reads `active=cuo` and `ensure-cuo` is a no-op (row 3), and row 2's real-install swap stays the declared residual — record `docs/evidence/acceptance/session-environment-gate-20261001.md`.
 - Priority: High
 - Category: Acceptance tooling / machine safety
 - Source: User request (2026-09-27): the run must detect whether they are playing before it touches the

@@ -544,3 +544,36 @@ dependency the table did not name, a step that cost more than it returned.
   restores `Information` before closing. The meal-end burp needs its own arming too: a food's own `Eat`
   arms it only above hunger 90 and with a 10% roll, so that row is driven through `Body.Burp` — the game's
   own arming method — and the record names the substitution.
+
+## 2026-10-01 — An entity census must match the type, not the name
+
+- Symptom: a name-substring census (`Trap`, `Enemy`, `Spider`) reported zero traps on a layer that held
+  18 of them; `ConsoleScript.FindObjectsWithName` (the game's own `locate`) searches names, and the live
+  objects are named `beartrap(Clone)`.
+- Change: a census counts by component type (`FindObjectsOfType<BearTrap>(true)`) and the driven target is
+  found through that component, never through a guessed name.
+
+## 2026-10-01 — A relative cell read right after a Continue can name a different cell
+
+- Symptom: the same `dx=5,dy=0` read returned cell `(517,948)` after the first restore and `(517,512)`
+  right after the second, while `dx=5,dy=-4` stayed `(517,944)`; the body was still falling from the
+  entry point on the first read.
+- Change: a post-Continue cell comparison waits for the body to settle, or asserts the recipe's returned
+  `cellX`/`cellY` against the intended absolute cell before comparing values (the rule the three-client
+  note already records).
+
+## 2026-10-01 — The one-shot fingerprint is not re-armed by a Continue
+
+- Symptom: the batch's fingerprint procedure asks for a post-mutation re-capture, but each client's log
+  held exactly one `[WorldFingerprint]` line — the world-entry pair — across four Continue cycles.
+- Cause: the fingerprint is logged once per world entry and re-armed on session end, which a Continue
+  inside the same session is not.
+- Change: a re-capture needs a fresh session entry (or a periodic fingerprint feature, explicitly out of
+  scope); the run records the bounded block reads as the substitute and leaves the step unproven.
+
+## 2026-10-01 — "written" in the log is not proof the live field kept the value
+
+- Symptom: the layer-timer handover logged `[RunFacts] … the layer timer 373.9s (written)` and the live
+  `WorldGeneration.world.layerTimeSpent` read `0.4` a few seconds later, then accumulated from zero.
+- Change: a native-field row reads the live field after the write before it is judged; a handover log line
+  is evidence that the write ran, not that the game kept it.

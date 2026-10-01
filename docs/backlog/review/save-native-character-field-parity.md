@@ -140,3 +140,9 @@ write). What is NOT machine-verified and needs a dual-client session:
 - The umbrella's scope 6 restore-report history: native world facts' own refusals still reach the log
   only (tracked in `review/save-mid-run-consistent-cut.md` scope 6) — the character half of that report
   is what this stage closed.
+
+## Acceptance — batch 20261001-m (Run A)
+
+Run record: [save-native-character-field-parity-20261001.md](../../evidence/acceptance/save-native-character-field-parity-20261001.md).
+Rows 1 and 5 pass; rows 2–4 unproven (the death panel was not reached, the pause-tooltip surface gap, and
+no fields-missing snapshot was staged). The ticket stays in `review/`.

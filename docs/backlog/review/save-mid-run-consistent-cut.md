@@ -1038,3 +1038,9 @@ in-game rows open.
       `todo/` to `review/` together with its acceptance table, its umbrella
       (`review/save-system-mid-run-and-layer-end.md`) and both README index lines, and the in-game half
       is stated as the user's pass rather than as observed.
+
+## Acceptance — batch 20261001-m (Run A)
+
+Run record: [save-mid-run-consistent-cut-20261001.md](../../evidence/acceptance/save-mid-run-consistent-cut-20261001.md).
+Rows 1 and 7 pass; rows 2–6 unproven (ground/worn restings, fluids/enemies, the in-flight save window and
+the half-applied read were not staged). The ticket stays in `review/` until those setups are driven.

@@ -306,3 +306,9 @@ ticket's own text).
 - The Continue entry shows the native label/icon untouched when a CUO world is the only reason the
   button is reachable (the native code fills them from `save.sv`). Cosmetic, and it belongs to the
   same S4 management/UI surface as the picker.
+
+## Acceptance — batch 20261001-m (Run A)
+
+Run record: [save-layer-end-save-and-restore-20261001.md](../../evidence/acceptance/save-layer-end-save-and-restore-20261001.md).
+Rows 1, 2, 4, 5 and 6 pass; row 3 unproven (killed-enemy half: no live enemy on the layers the run entered).
+The ticket stays in `review/` until a later run reaches an enemy and closes row 3.

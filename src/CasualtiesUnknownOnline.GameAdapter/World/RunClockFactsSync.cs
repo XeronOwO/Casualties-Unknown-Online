@@ -18,6 +18,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// take it (the native save slot, before <c>WorldGeneration.Start</c> derives the layer's
 /// time limit from it).
 ///
+/// The layer TIMER takes one seam longer than the clock: the game zeroes it while the
+/// generation finishes (<c>WorldGeneration.FinishWorldGeneration</c> sets
+/// <c>layerTimeSpent = 0</c> on its first line, and that runs after the native save slot),
+/// so it lands at the first moment a live, non-generating world can take it — the
+/// world-entry edge for a value that arrived before the world was ready, or the apply of
+/// the message itself for a member already in the world (the 60 s repair). A timer
+/// written at the save slot is erased and the continued layer restarts its radiation
+/// countdown (batch 20261001-m Run A, row 1).
+///
 /// The write never moves either value backwards — see
 /// <see cref="INativeWorldFacts.ApplyRunFacts"/> — so a late duplicate (the 60 s repair
 /// group re-sends the same absolute value) is harmless by construction rather than by
@@ -82,6 +91,12 @@ internal sealed class RunClockFactsSync(
 		{
 			return;
 		}
+
+		// The layer timer lands at THIS seam, not at the save slot: the caller reaches it
+		// only while the game reports a live, non-generating world, and that edge is the
+		// first write that survives the generation coroutine's own
+		// `layerTimeSpent = 0` (WorldGeneration.cs:3609). See INativeWorldFacts.
+		_nativeFacts.TryWritePendingLayerTimer();
 
 		_applied = _nativeFacts.CaptureRunClockFacts();
 		_world.PublishRunFacts(_applied.Value);

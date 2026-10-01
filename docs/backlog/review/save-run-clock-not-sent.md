@@ -54,7 +54,9 @@ archive's own clock base — two carriers for one fact (decision 193).
 
 ## Verification (machine-checked)
 
-- Focused suites: `RunClockFactsTests` (7), `WorldRunFieldTests` (10), `WorldSnapshotCodecTests`,
+- Focused suites: `RunClockFactsTests` (7), `WorldRunFieldTests` (12 — the layer-timer seam added
+  `Continue_DoesNotWriteTheLayerTimerBeforeTheWorldFinishedGenerating` and
+  `Continue_NeverMovesTheLayerTimerBackwards`), `WorldSnapshotCodecTests`,
   `NetPacketTests`, `WorldEntrySnapshotTests` — green.
 - Normative gates 69/69 with this cycle's delivery checklist filled, after the matrix row R9 (`RunFacts`
   in the wire vocabulary index) and the six R9 evidence anchors; the two pre-existing `ProtocolVersion`

@@ -18,7 +18,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// the layer's time limit and trap budget from exactly those values
 /// (<c>WorldGeneration.cs:252-262</c>), so this is the last moment they can be
 /// written — and the world object exists here, which it does not at the Continue
-/// click.
+/// click. The layer TIMER is the exception: it must NOT be written here, because
+/// the world's own generation finishes later with
+/// <c>layerTimeSpent = 0</c> (<c>WorldGeneration.cs:3609</c>) and would erase it;
+/// it lands at the world-entry seam instead
+/// (<c>INativeWorldFacts.TryWritePendingLayerTimer</c>).
 /// </summary>
 [HarmonyPatch(typeof(SaveSystem), "TryLoadGame")]
 internal static class SaveSystemTryLoadGamePatch

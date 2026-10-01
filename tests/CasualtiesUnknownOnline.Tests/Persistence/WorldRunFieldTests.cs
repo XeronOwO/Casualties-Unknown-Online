@@ -96,16 +96,89 @@ public sealed class WorldRunFieldTests
 
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
-		// The layer time travels with the clock, and it is written by the same world-entry
-		// flush the clock uses — the layer the player continues into resumes its countdown.
-		// The handover itself arms a pending write (the world does not exist at the click), so
-		// this drives the seam the adapter drives: TryWritePendingRunFields.
+		// The handover arms a pending write (the world does not exist at the click). The
+		// clock lands at the save-slot seam; the layer timer must NOT — the game zeroes it
+		// while the generation finishes (WorldGeneration.cs:3609) — so it lands one seam
+		// later, at the world-entry edge the adapter drives.
 		Assert.Contains("apply-cut-run-fields", restoreNative.Calls);
 		Assert.Equal(120f, restoreNative.RunFields.SavedRunTime);
 		Assert.True(restoreNative.HasPendingClockFacts, "the layer timer a restore handed over must be waiting for the live world");
-		Assert.True(restoreNative.TryWritePendingRunFields(), "the world-entry flush must take the handed-over values");
+		Assert.True(restoreNative.TryWritePendingRunFields(), "the save-slot flush must take the handed-over clock");
+		Assert.Null(restoreNative.RunFields.LayerTimeSpent);
+
+		Assert.True(restoreNative.TryWritePendingLayerTimer(), "the world-entry seam takes the handed-over layer timer");
 		Assert.Equal(410.5f, restoreNative.RunFields.LayerTimeSpent);
 		Assert.Contains(restoreNative.ClockWrites, write => write.StartsWith("layer-time 410.5", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Continue_DoesNotWriteTheLayerTimerBeforeTheWorldFinishedGenerating()
+	{
+		// The SaveSystem.TryLoadGame slot runs inside WorldGeneration.Start, BEFORE
+		// the generation coroutine — and FinishWorldGeneration's first line zeroes
+		// layerTimeSpent (WorldGeneration.cs:3609). A timer written at that seam is
+		// erased by the game's own generation clear, so the continued layer restarts
+		// its radiation countdown (batch 20261001-m Run A, row 1). The early seam
+		// must leave the timer waiting for the world-entry edge, which runs after
+		// the generation finished.
+		var cutNative = new FakeNativeWorldFacts();
+		cutNative.SeedRunFields(1f, 1f, 120f, Recipe(0, madeBefore: true, intValue: 0));
+		cutNative.SeedLayerTime(410.5f);
+
+		using var fixture = WorldSaveFixture.Create("run-fields-layer-early-seam", nativeWorldFacts: cutNative);
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 1), out _, out _));
+		Assert.True(Cut(fixture).Captured);
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+
+		// The continued world mid-generation: the game's own Update is counting its timer
+		// up (WorldGeneration.cs:860) and FinishWorldGeneration will zero it.
+		var restoreNative = new FakeNativeWorldFacts();
+		restoreNative.SeedLayerTime(5f);
+		using var restarted = WorldSaveFixture.Create("run-fields-layer-early-seam-restart", repository: fixture.Repository, nativeWorldFacts: restoreNative);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// The native save slot: the clock and the limit may land, the layer timer must
+		// not — it waits for the world-entry seam that follows the generation.
+		Assert.True(restoreNative.TryWritePendingRunFields());
+		Assert.Equal(5f, restoreNative.LayerTimeSpent);
+		Assert.True(restoreNative.HasPendingClockFacts, "the layer timer stays waiting for the seam after the generation");
+
+		// The generation's own clear (WorldGeneration.cs:3609) runs after the save slot.
+		restoreNative.SeedLayerTime(0f);
+
+		// The world-entry seam is the first write that survives: the countdown resumes
+		// where the cut left it.
+		Assert.True(restoreNative.TryWritePendingLayerTimer());
+		Assert.Equal(410.5f, restoreNative.LayerTimeSpent);
+		Assert.Contains(restoreNative.ClockWrites, write => write.StartsWith("layer-time 410.5", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Continue_NeverMovesTheLayerTimerBackwards()
+	{
+		// A repeated or late value must not rewind a layer that has already spent longer:
+		// the timer only ever moves forward, so a stale handover is consumed without a write.
+		var cutNative = new FakeNativeWorldFacts();
+		cutNative.SeedRunFields(1f, 1f, 120f, Recipe(0, madeBefore: true, intValue: 0));
+		cutNative.SeedLayerTime(410.5f);
+
+		using var fixture = WorldSaveFixture.Create("run-fields-layer-no-rewind", nativeWorldFacts: cutNative);
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 1), out _, out _));
+		Assert.True(Cut(fixture).Captured);
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+
+		var restoreNative = new FakeNativeWorldFacts();
+		restoreNative.SeedLayerTime(500f); // the live layer has already spent longer than the cut
+		using var restarted = WorldSaveFixture.Create("run-fields-layer-no-rewind-restart", repository: fixture.Repository, nativeWorldFacts: restoreNative);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.True(restoreNative.TryWritePendingLayerTimer());
+		Assert.Equal(500f, restoreNative.LayerTimeSpent);
+		Assert.DoesNotContain(restoreNative.ClockWrites, write => write.StartsWith("layer-time ", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -130,6 +203,10 @@ public sealed class WorldRunFieldTests
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
 		Assert.Contains("apply-cut-run-fields", restoreNative.Calls);
+		Assert.Null(restoreNative.RunFields.LayerTimeSpent);
+
+		// The world-entry seam runs with nothing to take: the absence stays an absence.
+		Assert.True(restoreNative.TryWritePendingLayerTimer());
 		Assert.Null(restoreNative.RunFields.LayerTimeSpent);
 		Assert.DoesNotContain(restoreNative.ClockWrites, write => write.StartsWith("layer-time ", StringComparison.Ordinal));
 	}

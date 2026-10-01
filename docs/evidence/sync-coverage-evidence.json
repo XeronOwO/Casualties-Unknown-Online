@@ -6056,7 +6056,7 @@
       "cluster": "world-entry",
       "row": "R9",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/NativeWorldFacts.cs",
-      "quote": "SaveSystem.savedRunTime = facts.RunClockBase;"
+      "quote": "SaveSystem.savedRunTime = runClock;"
     },
     {
       "cluster": "inline",

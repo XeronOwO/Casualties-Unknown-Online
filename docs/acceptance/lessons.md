@@ -1115,3 +1115,42 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: take peer-side receipt evidence with the CUO log level raised to Debug through the same
   `LoggingConfigEditor` the Preferences control uses (`loglevel-debug.cs`), then restore it to Information
   (`loglevel-information.cs`); read the peers' `[BlockBreak] presenting a relayed break at (x,y)` lines.
+
+## 2026-10-02 — A late-joiner plan on the leave→continue path must move the pointer world first
+
+- Symptom: batch `20261002-c` drove the capacity family's late-joiner half by the deferred steps of
+  `20261002-b-scope.md` (fill, a member leaves, the host leaves and continues): the continue restored a
+  DIFFERENT world than the session had played — the host's table read 0 rows afterwards — while the
+  member re-entry route in the same session delivered the identical 128-row set.
+- Cause: `continue` restores the world named by `lastOpenedWorldId`, and a new run does not move that
+  pointer (the 2026-10-01 entry already recorded this); the session's own leave HAD written a
+  `MenuReturn (MidRun)` cut carrying `128 world-block row(s)`, but of the session's world, not of the
+  pointer's.
+- Change: a late-joiner plan that uses the continue seam must move the pointer to the session's world
+  first (the Worlds page's `worlds.select.<worldId>`), or use the member re-entry route: the host stays
+  in the world, the member leaves the world and the lobby and rejoins — the host answers the fresh
+  handshake with a direct `WorldJoin`, the member's entry edge fires the world-entry fan-out (with
+  `Send BlockDamageSnapshot`), and the rejoining member converges on the same set.
+
+## 2026-10-02 — A peer's presentation write IS reported back, and one crush with one peer in world shows it
+
+- Symptom: `unhooked-damage-block-callers` row 4 expected a remote apply to stay silent, but in two
+  single-variable runs the host answered the ONLY peer's write reports for the relayed cells
+  (`[BlockSync] answered <peer>'s report at (511,976) with the authoritative block 0.`) within ~30 ms
+  of the peer's own `presenting a relayed break`, and the peer cleared its pending entry on the answer.
+- Cause: not yet identified — the presentation write reaches the host through a path the remote-apply
+  guard the ticket recorded does not cover end to end (the offline guest's log and the peer's own foot
+  cells rule out a step of its own as the writer).
+- Change: the reproduction is the committed probe pair plus one peer in world: place the game's own
+  thin-ice id under the host and read the host's `answered …report at` lines; the ticket is back in
+  `todo/` with row 4 named.
+
+## 2026-10-02 — The sandbox exception bursts carry a stack only in the full player log
+
+- Symptom: the sandbox clients' `[Unity:Exception]` bursts show one line (a message) in the CUO rolling
+  log — not enough to name the throwing call site — while the host has none.
+- Cause: the rolling log's Unity listener writes the message only; the full `LogOutput.log` carries the
+  stack (`NullReferenceException … GroundBlood.Start ()` was captured there for the alternate).
+- Change: a burst investigation reads the FULL log's tail (the file can be hundreds of MB, so read the
+  tail by bytes and filter, never scan it whole); ticket `sandbox-client-null-reference-bursts` holds
+  the evidence and the first anchor.

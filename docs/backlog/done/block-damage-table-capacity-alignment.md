@@ -1,7 +1,7 @@
 # Block-damage tables: CUO's registry and the game's own list disagree about capacity and eviction
 
-- Status: Review (batch `20261002-b`: row 3 passes — the footstep crush is staged and its break reached every side; row 2 passes from batch `20261001-y`; row 1's late joiner is still not driven — the capacity family was deferred, see `docs/evidence/acceptance/20261002-b-scope.md`)
-- Acceptance records: `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-x.md`, `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-y.md`, `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-b.md`
+- Status: Done (batch `20261002-c`: row 1's late-joiner half passes — the host, the guest and a late joiner held one identical 128-row set; rows 2 and 3 stood from batches `20261001-y` and `20261002-b`)
+- Acceptance records: `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-x.md`, `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-y.md`, `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-b.md`, `docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-c.md`
 - Priority: Medium
 - Category: Sync / world state
 - Source: found while fixing S3.2's blocker B1 (the restore replay wrote CUO's registry rows into the

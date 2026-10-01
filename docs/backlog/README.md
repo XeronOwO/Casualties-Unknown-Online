@@ -52,6 +52,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Two native DamageBlock callers stay unhooked](todo/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
+- [Sandboxed clients: NullReferenceException bursts](todo/sandbox-client-null-reference-bursts.md) — **Low** — sandbox-only; not yet reproduced.
+
 ### In progress
 
 ### Review
@@ -85,7 +88,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4.2 — The restore account surface](review/save-restore-account-surface.md) — **High** — one console line per save event.
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [Trap/entity action divergence](review/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
-- [Block-damage table capacity alignment](review/block-damage-table-capacity-alignment.md) — **Medium** — CUO's second registry is deleted.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Guest block mutations: periodic re-report](review/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
 - [Guest partial block damage re-report](review/guest-partial-block-damage-re-report.md) — **Medium** — the absolute re-report and the per-cell merge.
@@ -136,8 +138,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 
-- [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
-
 ### Future
 
 - [PVP](future/pvp.md) — **Low** — deferred until PvE is stable.
@@ -167,6 +167,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Block-damage table capacity alignment](done/block-damage-table-capacity-alignment.md) — **Medium** — CUO's second registry is deleted.
 - [Recipe `// args:` gate and CRLF working trees](done/recipe-args-crlf-gate.md) — **Medium** — a CRLF checkout feeds `\r` into the last argument.
 - [Trap destruction drop quantity desync](done/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [Block-break first-writer-wins](done/block-break-first-writer-wins.md) — **High** — the dual-side confirmation.

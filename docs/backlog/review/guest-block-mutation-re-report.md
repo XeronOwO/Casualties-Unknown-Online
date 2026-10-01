@@ -1,7 +1,7 @@
 # Guest world-block mutations have no periodic re-report
 
 **State note (2026-09-11):** this is the W1 landing record. Since it was written, CUO's own
-partial-damage registry was DELETED (`review/block-damage-table-capacity-alignment.md`): the
+partial-damage registry was DELETED (`done/block-damage-table-capacity-alignment.md`): the
 authoritative partial-damage table is now the GAME's own `WorldGeneration.world.blockDamages` list,
 read at snapshot time. References to `BlockDamageRegistry.cs` below are historical.
 

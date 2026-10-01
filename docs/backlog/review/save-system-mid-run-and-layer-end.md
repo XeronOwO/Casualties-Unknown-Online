@@ -88,7 +88,7 @@ World state the kernel does not own today (a mid-run save must capture it or exp
 
 - Host block difference table (`WorldStateMessageService._damagedBlocks`, `:35`; cap `:38`); the partial
   block damage has no CUO table any more — the `BlockDamageRegistry` beside the game's own list was
-  deleted (`review/block-damage-table-capacity-alignment.md`), so that fact rides the native half.
+  deleted (`done/block-damage-table-capacity-alignment.md`), so that fact rides the native half.
 - Keypad codes (host-generated lazily, random), geyser liquid types (per-side public-stream roll, host
   authority), radiation line, world time, earthquake timers.
 - Native `WorldGeneration.blockDamages` list (cap 128, `WorldGeneration.cs:732-737`).

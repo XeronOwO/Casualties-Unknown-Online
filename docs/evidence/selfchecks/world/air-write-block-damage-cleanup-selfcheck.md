@@ -1,7 +1,7 @@
 # Air-write block-damage cleanup — Self-Check (2026-08-31)
 
 **Superseded detail (2026-09-11):** the CUO-side `BlockDamageRegistry` named below was DELETED
-(`docs/backlog/review/block-damage-table-capacity-alignment.md`). The game-side cleanup this sheet
+(`docs/backlog/done/block-damage-table-capacity-alignment.md`). The game-side cleanup this sheet
 verified is unchanged, and the game's own list is now the only partial-damage table involved.
 
 Owner cycle: backlog "Guest-mined block leaves ghost fragments on host".

@@ -1,6 +1,6 @@
 # Self-check — the two native `DamageBlock` callers that were never hooked
 
-- Ticket: `docs/backlog/review/unhooked-damage-block-callers.md` (2026-09-26 cycle, HEAD started at `52320ca0`)
+- Ticket: `docs/backlog/todo/unhooked-damage-block-callers.md` (2026-09-26 cycle, HEAD started at `52320ca0`)
 - Change: re-anchor `WorldGenerationDamageBlockPatch` from the converting `Vector2` overload to the BODY
   overload, widen the report seam from a world position to the cell, gate CUO's custom-tile drops on the
   native `ignoreLoot`, and pin the anchor with a gate.

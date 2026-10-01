@@ -15,7 +15,7 @@ the same change — its doc comment in `ProtocolVersion.cs` is the per-number lo
 | 5 | Consequence: the side that computes a break hears it, every other side sees the block vanish silently — the reported symptom | rows 1-4; the user report is the source |
 | 6 | The earthquake's own air write is SILENT where it runs, so it must stay silent everywhere | `WorldGeneration.cs:895` (`this.SetBlock(…, 0)` inside `WorldGeneration.Update`) |
 | 7 | The four air-write producers and the correction: local report, host relay, host relay of a guest write, guest fallback re-report, host correction | `BlockReportChannel.SendBlockPlacedReport` / `BroadcastBlockPlaced` / `SendBlockPlacedCorrection`, `GuestReportRecovery.ResendBlocks` |
-| 8 | Two native `DamageBlock` callers enter the INNER overload directly and are not hooked (footstep crush, spider burrow) — a report-COVERAGE gap of the same family | `Body.cs:2709`, `SpiderHandler.cs:218`; ticketed as `docs/backlog/review/unhooked-damage-block-callers.md` (not fixed this cycle — see §2; since closed by that ticket's re-anchor) |
+| 8 | Two native `DamageBlock` callers enter the INNER overload directly and are not hooked (footstep crush, spider burrow) — a report-COVERAGE gap of the same family | `Body.cs:2709`, `SpiderHandler.cs:218`; ticketed as `docs/backlog/todo/unhooked-damage-block-callers.md` (not fixed this cycle — see §2; since closed by that ticket's re-anchor) |
 
 ## 2. Whole-family audit
 

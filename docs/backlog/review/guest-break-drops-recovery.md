@@ -78,7 +78,7 @@ existing field's meaning changes — and the mixed-version behavior is benign in
 both directions: a v22 guest simply never re-reports its drops (the fix does not
 apply to it) and a v22 peer receiving the accepted relay for a break it already
 has hits the same per-item-id idempotency guards. This is the same call
-`review/block-damage-table-capacity-alignment.md` recorded for a change that
+`done/block-damage-table-capacity-alignment.md` recorded for a change that
 reused an existing message.
 
 **Independent adversarial review — TWO rounds, fresh contexts, all findings fixed in this same cycle.**

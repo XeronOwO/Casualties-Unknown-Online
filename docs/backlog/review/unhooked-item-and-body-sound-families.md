@@ -5,7 +5,7 @@
 - Priority: Low-Medium
 - Category: Character/item audio sync / report coverage
 - Source: the whole-family audit of `done/host-eating-sound-not-heard-on-guest.md` (2026-09-26): fixing the reported meal meant giving two native paths their own capture scopes, and the same census showed every other local-only one-shot clip of that family still reports nothing.
-- Related: `done/host-eating-sound-not-heard-on-guest.md` (the ingest half, landed), `review/sync-player-pain-vocalizations-and-bark.md` (the dedicated one-shot event family), `docs/architecture/remote-inventory-native-parity.md` (§3.4 and the stage-3 leave), `review/unhooked-damage-block-callers.md` (the same "the census found more callers than the fix covered" shape), `review/suppressed-native-call-sounds-stay-unheard.md` (the rows this cycle records as out of family), `docs/evidence/selfchecks/presentation/unhooked-item-and-body-sound-families-selfcheck.md`
+- Related: `done/host-eating-sound-not-heard-on-guest.md` (the ingest half, landed), `review/sync-player-pain-vocalizations-and-bark.md` (the dedicated one-shot event family), `docs/architecture/remote-inventory-native-parity.md` (§3.4 and the stage-3 leave), `todo/unhooked-damage-block-callers.md` (the same "the census found more callers than the fix covered" shape), `review/suppressed-native-call-sounds-stay-unheard.md` (the rows this cycle records as out of family), `docs/evidence/selfchecks/presentation/unhooked-item-and-body-sound-families-selfcheck.md`
 
 ## The gap
 

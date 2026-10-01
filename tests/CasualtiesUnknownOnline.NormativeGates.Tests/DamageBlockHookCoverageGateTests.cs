@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// The block-damage hook-coverage gate (ticket
-/// <c>backlog/review/unhooked-damage-block-callers</c>): CUO must hook the
+/// <c>backlog/todo/unhooked-damage-block-callers</c>): CUO must hook the
 /// <c>WorldGeneration.DamageBlock</c> overload that EVERY native damage roll
 /// enters, and the report that hook produces must carry the CELL.
 ///

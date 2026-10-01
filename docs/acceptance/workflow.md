@@ -110,8 +110,9 @@ collected while its scenario is up.
 - Probes and actuation use the in-process evaluator at `hotrepl-host-url` / `hotrepl-guest-url`:
   reading live state, forcing a setup, or asserting that a message was handled. The committed driver
   helper `tools/acceptance/drive-in-process.ps1` carries the scenario vocabulary — `state`,
-  `open-window`, `goto-page`, `click`, `set-text`, `create-lobby`, `join-lobby`, `start-run`, `quit`
-  (`-ListActions` prints it) — and reproduces a setup through the Online UI's own registered controls,
+  `open-window`, `goto-page`, `click`, `set-text`, `create-lobby`, `join-lobby`, `start-run`,
+  `continue-run`, `leave-world`, `console`, `quit` (`-ListActions` prints it) — and reproduces a setup
+  through the Online UI's own registered controls, the game's own run entries and the CUO console,
   never through OS-level keyboard or mouse. Gameplay states that vocabulary cannot reach — a carry
   relation, a forced body state, a movement window — are the committed scenario recipes under
   `tools/acceptance/recipes/`, run one eval per invocation with

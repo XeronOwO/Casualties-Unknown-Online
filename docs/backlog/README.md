@@ -56,7 +56,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Recipe `// args:` gate and CRLF working trees](review/recipe-args-crlf-gate.md) — **Medium** — a CRLF checkout feeds `\r` into the last argument.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
@@ -168,6 +167,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Recipe `// args:` gate and CRLF working trees](done/recipe-args-crlf-gate.md) — **Medium** — a CRLF checkout feeds `\r` into the last argument.
 - [Trap destruction drop quantity desync](done/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.
 - [Block-break first-writer-wins](done/block-break-first-writer-wins.md) — **High** — the dual-side confirmation.
 - [An earthquake's clock write ends an acceleration](done/world-acceleration-quake-direct-write.md) — **Medium** — the host adopts it, vanilla-style.

@@ -1075,3 +1075,17 @@ dependency the table did not name, a step that cost more than it returned.
 - Observation, unjudged: both sandbox clients logged repeated
   `System.ArgumentException: The Object you want to instantiate is null` (`UnityEngine.Object.Instantiate`)
   around the destruction family; no ticket claims it and this batch did not judge it.
+
+## 2026-10-02 — An end-of-line simulation is proven by bytes, not by `git status`
+
+- Symptom: after converting the 36 recipe working copies to the CRLF the attributes declare,
+  `git status --porcelain` reported every one of them worktree-modified while `git diff` and
+  `git diff-files` were empty and `git status --porcelain=v2` showed identical HEAD and index blob ids.
+- Cause: with `core.autocrlf=true` on this machine the status comparison reports a text file modified
+  when the index stat cache is stale against the new size while the working copy's clean form equals the
+  blob; the attribute (`eol=crlf`) still decides what a checkout writes, so the converted bytes are the
+  faithful image of a fresh checkout.
+- Change: a run that simulates a checkout records the conversion as bytes — a byte-exact backup with no
+  lone CR, a pure-CRLF check (CR == LF) and `git hash-object --path=<path> <file>` equal to the committed
+  blob — and restores the backups afterwards, hash-compared per file; `git status` is not the evidence
+  for it.

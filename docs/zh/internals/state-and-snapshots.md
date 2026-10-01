@@ -45,6 +45,12 @@ create/destroy aggregates or change ownership.
 
 所以任何仲裁、任何判定都不许消费只读模型。晚了一秒的快照绝不能决定一件物品归谁、一具身体能不能接受处置、一次命中算不算数；判定的一方读的是自己这边的实时状态，这条规则写在[谁来决定玩家身上发生的事](judgment-ownership.md)里。只读模型是给界面、诊断与重建路径用的 —— 不是给结论用的。
 
+## 重连时的恢复
+
+客机重连时，`CharacterDataStore.SendSavedCharacter` 把主机那份逐 id 的转移表（transfer table）—— 它对这名客机拥有什么的权威记录 —— 合并到客机最后一次 1 Hz 角色快照上。两份记录说的不是一回事，把它们各自该管的部分分开，就是这个机制的全部：快照是递归抓取，容器的内容物嵌在父物品里面，所以**放置**归快照 —— 槽位与嵌套都在它这里；转移表是仲裁对归属的记录，所以**状态**归转移表 —— 合并把条目的 `Condition`、`Favourited`、`Liquids`、`Components` 写到快照给出的那个节点上。规则本身写在 `TransferTableRestoreMerge` 里：“Placement in general is the SNAPSHOT's … The entry contributes its STATE.”匹配必须递归，原因也在这里：容器里的内容物是同样形状的快照节点，而被它换掉的平铺合并会把这个 id 追加到容器旁边 —— 恢复随后把它丢掉，因为内容物的槽位属于父物品 —— 容器自己则空着回来。快照哪里都找不到的条目，只有它自己报得出身体槽位或肢体时才按条目放置；容器内容物的条目报不出父物品，于是合并把它计为无法放置，由调用方点名，而不是猜一个位置 —— 这是“客机最后一次上报之后才把物品放进容器”的明确损失。
+
+规矩的另一半是：恢复什么都不上报。它走游戏自己的槽位路径（`Body.PickUpItem` / `Container.LoadItem`）写入，而这些调用是物品操作 —— 它们的钩子会报告一次拾取。恢复不是操作 —— 主机已经持有这些事实 —— 于是这份报告成了一条内核必拒的声明（`item … is already carried`），而拒绝路径（`ItemApplication.OnItemRejected` → `RollbackPickup`）会把刚恢复的物品从身体里再拽出来。所以 `CharacterRestoreApplier.ApplyItems` 整段跑在 `CallContext.Origin.RemoteApply` 里 —— 物品纠正类应用在用的同一个作用域（`ItemApplication`）—— 钩子保持安静：恢复只复现同伴已经持有的事实。
+
 ## 投影坏掉的时候
 
 投影住在内核外面，内核也不允许它们反过来影响自己。契约在 `src/CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth/IProjectionDomain.cs`：每个投影都是“从权威源派生的可重建只读模型”，实现“绝不能改权威”，失败之后这个域必须仍可重建。

@@ -39,6 +39,7 @@ respawn | 重生 | 重生（respawn） | 复活 | the game placing a dead player
 permadeath | 永久死亡 | 永久死亡（permadeath） | 一命模式 | death is terminal
 item | 物品 | 物品 | 道具 | anything the kernel tracks as an item
 container | 容器 | 容器 | 箱子 | an item that holds other items
+transfer table | 转移表 | 转移表（transfer table） | 转移清单，物品表 | the host's authoritative per-id record of what a guest owns; the arbitration record merged over the reconnect restore's snapshot
 capability | 能力 | 能力（capability） | 功能 | per-type composed behaviour such as battery or liquid
 protocol version | 协议版本 | 协议版本 | 游戏版本 | checked when a guest joins
 handshake | 握手 | 握手（handshake） | 连接协商 | the join-time version and identity exchange

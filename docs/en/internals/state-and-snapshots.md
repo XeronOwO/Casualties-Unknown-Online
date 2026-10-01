@@ -71,6 +71,32 @@ own live state, which is the rule in
 [Who decides what happens to a player](judgment-ownership.md). Read models are for the interface, the
 diagnostics and the rebuild path — not for a verdict.
 
+## The reconnect restore
+
+When a guest reconnects, `CharacterDataStore.SendSavedCharacter` merges the host's per-id transfer table —
+its authoritative record of what that guest owns — over the guest's last 1 Hz character snapshot. The two
+records state different things, and keeping them apart is the mechanism. The snapshot is the recursive
+capture, a container's contents riding inside the parent, so PLACEMENT is the snapshot's: the slot and the
+nesting. The table is the arbitration's record of ownership, so STATE is the table's — the merge writes
+the entry's `Condition`, `Favourited`, `Liquids` and `Components` onto the node the snapshot carries.
+`TransferTableRestoreMerge` is where the rule lives: "Placement in general is the SNAPSHOT's … The entry
+contributes its STATE." The match is recursive for that reason: a contained id is a snapshot node of the
+same shape, and the flat merge this replaced appended it beside its container — where the restore dropped
+it, because a content's slot is its parent's — while the container itself came back empty. An entry the
+snapshot carries nowhere is placed from the entry's own slot only when that slot is a body slot or a
+limb; a container content's entry states no parent, so the merge counts it as unplaced and the caller
+names it instead of guessing — the declared loss for an item moved into a container after the guest's
+last report.
+
+The other half of the rule is that a restore states nothing back. It writes through the game's own slot
+path (`Body.PickUpItem` / `Container.LoadItem`), and those calls are item operations: their hooks report
+a pickup. A restore is not an operation — the host already holds those facts — so the report is a claim
+the kernel refuses (`item … is already carried`), and the refusal path (`ItemApplication.OnItemRejected`
+→ `RollbackPickup`) can pull the restored item back out of the body.
+`CharacterRestoreApplier.ApplyItems` therefore runs inside `CallContext.Origin.RemoteApply` — the same
+scope the item-correction applies already use (`ItemApplication`) — and the hooks stay quiet: the restore
+only reproduces state the peers already hold.
+
 ## When a projection fails
 
 Projections live outside the kernel, and the kernel refuses to let them influence it. The contract is

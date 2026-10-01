@@ -1,8 +1,9 @@
 # S4.3 — A player the world has no character for is supplied as a NEW player
 
 - Status: Review — fixed 2026-10-01 (row 3: a guest holds every verdict until the world-entry group
-  completes, bounded by a timeout, so a restore still in flight wins; awaiting re-verification in the
-  next acceptance batch)
+  completes, bounded by a timeout, so a restore still in flight wins); re-verification attempted in
+  batch `20261001-q` did not stage the row-3 precondition (the restored world had no character for the
+  guest, so no restore was queued), see the record
 - Acceptance (20261001-o): row 3 FAILED — the first guest's own log shows the grant announced before its
   stored character arrived, five times, while the opposite ordering takes the correct branch; rows 1, 2
   and 4 passed live, the remaining rows passed on this batch's suite — record
@@ -315,3 +316,14 @@ What else needs the USER's dual-client pass:
   intact (the regression the S4.2 handoff warned about);
 - a run configured with `startingsupplies = none`: the supplies line says the run decided it, and
   nobody gets anything.
+
+## Acceptance — batch 20261001-q (Run E host + guest)
+
+Run record:
+[save-new-player-starting-supplies-20261001-q.md](../../evidence/acceptance/save-new-player-starting-supplies-20261001-q.md).
+The row-3 precondition was not staged: the host's Continue opened the repository's solo world, where
+the guest has no character, so no character restore was queued. What the run did observe: the guest held
+its verdict twice (`Starting supplies held for this body…`, 14:25:49.891 and 14:27:59.783) and both
+verdicts granted nothing (`…already yours — CUO granted nothing on top.`, 48 ms and 3.7 s later), with
+no second account. Row 4's fresh-run branch was seen live; the remaining rows rest on batch
+`20261001-o` and this batch's suite. The ticket stays in `review/` on row 3.

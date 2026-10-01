@@ -1,7 +1,8 @@
 # The archived run clock base never reaches a player who joins mid-run
 
 - Status: Review — fixed 2026-10-01 (row 1: the host's run total is read at the SEND point and the
-  receiver maps it onto its own world epoch; awaiting re-verification in the next acceptance batch)
+  receiver maps it onto its own world epoch); re-verification attempted in batch `20261001-q` was
+  **inconclusive** — the host's Steam transport runaway cut the same-moment comparison, see the record
 - Acceptance (20261001-o): row 1 FAILED the live comparison the batch plan names, row 2 passed and the
   suite row 3 passed — record `../evidence/acceptance/save-run-clock-not-sent-20261001-o.md`. The
   diagnosis was the publish POINT, not the value: a mid-world joiner took the host's last published base
@@ -123,3 +124,14 @@ archive's own clock base — two carriers for one fact (decision 193).
   stamp that cannot be compared yet (no kernel run baseline on this side) applies all three — dropping
   them would leave a joining member's radiation timer at zero until its own baseline arrives; the
   monotone write guard is the real protection, and it is not stamp-dependent.
+
+## Acceptance — batch 20261001-q (Run E host + guest)
+
+Run record:
+[save-run-clock-not-sent-20261001-q.md](../../evidence/acceptance/save-run-clock-not-sent-20261001-q.md).
+Row 1 could not be judged: the run's own start matched (host `543.755` vs guest `543.609`, Δ0.146 s),
+the mid-run re-entry showed the guest on its stale base (`490.30`) while the host read `558.95`, and the
+guest then applied `the run clock base 558.3s (written)` — after which the host stopped answering evals
+(Steam transport runaway) and no same-moment host reading exists. Row 2's **entry** half was observed
+(the member received the host's current layer timer `503.9` while the host read `503.86`); its
+**layer-change** half was not exercised. Row 3 passed on this batch's suite.

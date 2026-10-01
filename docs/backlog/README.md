@@ -52,8 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Layer time is not carried](todo/save-layer-time-not-carried.md) — **Low-Medium** — the continued layer resumes its timer.
-
 ### In progress
 
 ### Review
@@ -254,6 +252,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Host eating sound on the guest](done/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume family rides the one-shot event.
 - [Metal-scrap placement sound on guest](done/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium** — sounds ride the sound event.
 - [Guest hears only some block-break sounds](done/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the break was silent on the other side.
+- [Layer time is not carried](done/save-layer-time-not-carried.md) — **Low-Medium** — the continued layer resumes its timer once the generation finishes.
 
 ### Watchlist
 

@@ -35,13 +35,13 @@ records that someone decided the step was done, not what proved it. Keep it to o
 (a command, a file, or a measured result); the full detail belongs in the cycle's ticket or
 evidence file.
 
-- [x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified — evidence: both recipes cite their production path (`WorldTimeSync.OnRequestReceived` guards; `IWorldControl.StartStartGate`); no product behaviour changed
-- [x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: all three refusals (not in world / start gate / invalid speed) exercised and ANSWERED in batch v
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the batch v record carries one verdict and one evidence pointer per instance; the scope page declares the classes first
-- [x] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided — evidence: `20261001-v-scope.md` declares the probe/log channel and each instance's class before the session
-- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation — evidence: the handoff fixed the two-gap order; this run is the first gap; no work-item choice re-asked
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0/0, focus 4/4, gate project 300/300, full suite 4,573 + 300 (`v-gates-final.log`, `v-full-suite-final.log`), format exit 0 in `v-format-final.log`
-- [x] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round) — evidence: no class behaviour touched (`WorldTimePolicy.cs` changed one ticket-path comment); the cycle's code is two recipes (44 and 24 lines)
+- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+- [ ] Self-check table: mechanism x change x evidence, every cell filled
+- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+- [ ] Build + dotnet format + dotnet test normative gates pass
+- [ ] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round)
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

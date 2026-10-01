@@ -323,11 +323,14 @@ commit:  rename <worldId>/live → <worldId>/.previous/ → rename .staging → 
   is discarded, `.previous/` is restored, both with a warning.
 - The world folder has **one writer**, and the folder — not the process — is what that rule protects
   (`WorldLease`). Every write refreshes `world.lease`; a write that finds a lease another process
-  refreshed inside a 30-minute window is REFUSED with the holder named (`SaveWriteResult.Failure.LeaseHeld`),
-  because two instances would stage into one `.staging/` and each rename `live/` aside — the loser's
-  snapshot deleted by a commit it never saw. A lease nobody refreshed for that window is taken over
-  with a warning: a host that has been dead that long cannot be writing. The window is three times the
-  default autosave interval, so a running host refreshes its lease long before it could look stale.
+  refreshed inside a 30-minute window AND whose owner is a live process on this machine is REFUSED with
+  the holder named (`SaveWriteResult.Failure.LeaseHeld`), because two instances would stage into one
+  `.staging/` and each rename `live/` aside — the loser's snapshot deleted by a commit it never saw. A
+  lease nobody refreshed for that window, or one whose owning process is gone, is taken over with a
+  warning: a heartbeat is not evidence of life, and a host that crashed a minute ago must not lock the
+  world for the rest of the window. The window is three times the DEFAULT autosave interval (ten minutes),
+  so a host running the defaults refreshes its lease long before it could look stale; a longer configured
+  interval can outlast it, which is why liveness — not the heartbeat alone — decides a takeover.
 - A save directory that cannot be used is an ANSWER, not an exception: a read-only folder, a drive
   that went away and a file where the root should be all leave the session playable with the failure
   logged (`WorldCreateResult.Failed` / `SaveWriteResult.Failure.StageFailed`), because these paths run
@@ -576,9 +579,10 @@ verified in-game — an adapter-level reflection host can read the real game lis
   in `backups/` rather than only in the `damaged-<stamp>/` folder).
 - An interval cut is its own KIND, not a mid-run cut with a different reason: `WorldCutKind.Auto`
   names the archive (`auto-<stamp>.cuoz`) and rides the same seam, transient policy and report as
-  every other trigger. The interval (default 10 minutes) restarts on every COMMITTED cut of any
-  trigger — a refused or deferred cut has not written the world — so a hand save, a layer boundary or
-  a menu return does not buy an extra archive a minute later.
+  every other trigger. The interval (default 10 minutes) restarts whenever a cut REACHES the writer —
+  a committed cut of any trigger, or an attempt the writer refused — so a hand save, a layer boundary
+  or a menu return does not buy an extra archive a minute later, and a world that cannot be written is
+  retried once per interval rather than once per frame.
 - The interval autosave is armed by the frame-end pump (`IWorldSaveControl.TryArmIntervalAutosave`)
   and only while a world is LOADED: a host that returned to the main menu still owns a world folder,
   and cutting it there would churn — and prune — the archive set of a world nobody is playing. A cut

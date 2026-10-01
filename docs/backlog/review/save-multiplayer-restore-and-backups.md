@@ -17,7 +17,7 @@ begins. This file stays the roadmap and holds no implementation work of its own.
 | S4.1 | `review/save-guest-restore-claim-and-legacy-store-retirement.md` | Scope 1's claim rules (transport-scoped, collision-safe) + scope 6 (retire the legacy `.bin` reconnect store) | landed (review) |
 | S4.2 | `review/save-restore-account-surface.md` | Scope 2 + 3: the player-visible restore account (repair/recovery reporting of §6, the S4.1 claim refusals), and one account log line per save/restore with the per-domain record counts | landed (review) |
 | S4.3 | `todo/save-new-player-starting-supplies.md` | A player the world has no character for joins as a NEW player: the run's configured starting supplies, granted once per body | landed (review) |
-| S4.4 | `review/save-interval-autosave-and-backup-recovery.md` | Interval autosave, retention, the config surface, the failure-degradation matrix, and the decode-level refusal's backup-promotion recovery (acceptance row 6) | landed (review) |
+| S4.4 | `done/save-interval-autosave-and-backup-recovery.md` | Interval autosave, retention, the config surface, the failure-degradation matrix, and the decode-level refusal's backup-promotion recovery (acceptance row 6) | landed (review) |
 
 ## Design decisions frozen with the user
 

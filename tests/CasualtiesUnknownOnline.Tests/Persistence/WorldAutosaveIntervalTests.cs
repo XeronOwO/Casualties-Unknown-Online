@@ -6,8 +6,9 @@ namespace CasualtiesUnknownOnline.Tests.Persistence;
 
 /// <summary>
 /// The interval autosave's clock (S4 scope 4, §7): the window opens when a world is
-/// entered, restarts on every COMMITTED cut of any trigger, and never runs without a
-/// world. The pure policy behind it, without a service or a disk.
+/// entered, restarts whenever a cut REACHES the writer (a committed cut of any trigger,
+/// or an attempt the writer refused), and never runs without a world. The pure policy
+/// behind it, without a service or a disk.
 /// </summary>
 public class WorldAutosaveIntervalTests
 {

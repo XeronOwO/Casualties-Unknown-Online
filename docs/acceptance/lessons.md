@@ -660,3 +660,60 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: the run compared the file's mtime against the retirement date, renamed it aside as the
   declared setup, re-ran the reconnect cycle and confirmed nothing recreated it. A "file must be absent"
   row starts with a disk listing; a stale file it finds is setup the run owns.
+## 2026-10-01 — A deny-delete ACL does not stop the game's prune; the read-only attribute does
+
+- Symptom: an archive protected with `icacls <file> /deny "<user>:(D)"` was still deleted by the
+  client's retention pass (`Pruned 1 old backup(s)`), while the same deny blocks a PowerShell deletion
+  of the same file; setting the file's read-only attribute instead made the pass report
+  `1 could not be pruned` and the archive stayed.
+- Cause: the two deleters are not the same security context — the injection has to be the one the
+  PRODUCT's delete respects. The read-only attribute is enforced by the delete call itself, whatever
+  the token.
+- Change: a pruning-failure injection sets `IsReadOnly` on the oldest archive
+  (`.acceptance/batch-p/run-c-log.txt`, lines for 12:29:23 and 12:29:24); the run reads the failure
+  back from the product's own account line before judging, and clears the attribute to prove recovery.
+
+## 2026-10-01 — A checksum mismatch is salvaged; the decode refusal needs the run baseline
+
+- Symptom: appending a byte to `live/items.json` produced `restored with damage: 2 item(s) reported`
+  (the §6 per-entry salvage) instead of the refusal-and-promotion the row was after.
+- Cause: salvage handles a payload that still parses; the snapshot decoder only refuses when the run
+  baseline cannot be read (`WorldSnapshotDecoder.Finish` — `the snapshot has no readable run
+  baseline (run.json)`).
+- Change: a decode-level-refusal row corrupts `live/run.json`, not a payload file
+  (`.acceptance/batch-p/run-c-log.txt` at 12:32:10); the record names the file it damaged and quotes
+  the refusal line.
+
+## 2026-10-01 — BepInEx 5.4's ConfigFile has no file watcher: a text edit of the .cfg is not a hot-reload
+
+- Symptom: editing `CasualtiesUnknownOnline.cfg` on disk (interval 10 → 1) left the live
+  `IOptionsMonitor<SaveOptions>` reading the old value (`IntervalSeconds 600`); setting the same value
+  through the plugin's own `ConfigEntry` took effect at the next decision (the next cut used it).
+- Cause: `BepInExOptionsMonitor` updates on `ConfigFile.SettingChanged`, and BepInEx 5.4's assembly
+  carries no `FileSystemWatcher` — an external file edit is only read at a reload or restart.
+- Change: a "config edit hot-reloads" row names the edit PATH — the run drives edits through the
+  config system's own entry (what an in-game config editor does) and records the on-disk path as a
+  limit (`.acceptance/batch-p/p-saveoptions-after-disk-edit.json`).
+
+## 2026-10-01 — The Worlds page's backup section lives below the world list; scroll the window's own ScrollRect
+
+- Symptom: clicking `Backups` registered the archive controls and a restore id, but the captured frame
+  showed only the world rows — with thirteen worlds the archive section sits below the viewport.
+- Cause: the window's page band is a real `ScrollRect` (`Scroll`, under the CUO Online UI Window) and
+  a window capture shows only its viewport; the page had scrolled to the top.
+- Change: an in-process eval sets the ScrollRect's `verticalNormalizedPosition` (1 = top, 0 = bottom)
+  before a capture — no OS input (`.acceptance/batch-p/scroll-*.cs`,
+  `p-worlds-backups-scrolled.png` / `p-worlds-marker-857c.png`).
+
+## 2026-10-01 — When the pre-restore archive cannot be written, the promotion keeps the replaced folder as the only copy
+
+- Symptom: the decode-refusal recovery logged `the pre-restore archive of … could not be written.
+  InvalidDataException: archive entry 'run.json' is 10 bytes but the manifest says 22323`, then
+  `the refused live snapshot is preserved at damaged-20261001-043214`; the backup was promoted and the
+  world loaded.
+- Cause: the promotion archives the snapshot it replaces best-effort; a corrupt live snapshot cannot
+  round-trip into an archive, so the preserved folder becomes that state's only copy — the fallback
+  the promotion documents.
+- Change: a damaged-live row quotes the account line that names which copy exists
+  (`its preserved folder is the only copy`) instead of expecting a pre-restore archive in every case
+  (`.acceptance/batch-p/run-c-host-console-after-refusal-recovery.json`).

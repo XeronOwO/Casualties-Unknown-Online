@@ -22,7 +22,7 @@ internal sealed class WorldAutosaveInterval
 	internal bool Armed => _lastWriteUtc is not null;
 
 	/// <summary>
-	/// True = the interval has elapsed since the last committed cut of this world.
+	/// True = the interval has elapsed since the last cut that REACHED the writer (committed or refused).
 	/// A disabled policy is never due, whatever the window says.
 	/// </summary>
 	internal bool IsDue(DateTime nowUtc, bool enabled, TimeSpan interval) =>
@@ -34,7 +34,7 @@ internal sealed class WorldAutosaveInterval
 	/// <summary>A world was entered at <paramref name="utc"/>: this is the instant the first interval counts from.</summary>
 	internal void Restart(DateTime utc) => _lastWriteUtc = utc;
 
-	/// <summary>The world was written at <paramref name="utc"/>: the next interval starts here.</summary>
+	/// <summary>A cut reached the writer at <paramref name="utc"/> (committed or refused): the next interval starts here.</summary>
 	internal void NoteCutTaken(DateTime utc) => _lastWriteUtc = utc;
 
 	/// <summary>No world is owned (a tutorial entry, a new run that could not be created): the interval stands down.</summary>

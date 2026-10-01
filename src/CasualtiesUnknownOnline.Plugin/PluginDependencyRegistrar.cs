@@ -124,7 +124,7 @@ internal static class PluginDependencyRegistrar
 				"Host-only: write an interval autosave while a world is being played. Off leaves the player's /save, the layer-end cut and the menu-return cut in place."));
 		var autosaveIntervalMinutes = config.Bind("Save", "AutosaveIntervalMinutes", SaveOptions.DefaultAutosaveIntervalMinutes,
 			new ConfigDescription(
-				"Host-only: minutes between two interval autosaves (the auto-*.cuoz archives). The interval restarts on every committed cut, whatever triggered it.",
+				"Host-only: minutes between two interval autosaves (the auto-*.cuoz archives). The interval restarts whenever a cut reaches the writer: a committed cut of any trigger, or an attempt the writer refused.",
 				new AcceptableValueRange<int>(SaveOptions.MinAutosaveIntervalMinutes, SaveOptions.MaxAutosaveIntervalMinutes)));
 		var backupRetentionCount = config.Bind("Save", "BackupRetentionCount", SaveOptions.DefaultBackupRetentionCount,
 			new ConfigDescription(

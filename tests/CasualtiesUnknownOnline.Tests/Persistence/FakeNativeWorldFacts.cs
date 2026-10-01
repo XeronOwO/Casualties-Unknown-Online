@@ -152,7 +152,6 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 		if (layerTimeSpent is { } spent)
 		{
 			_pendingLayerTimeSpent = spent;
-			_clockFactsPending = true;
 		}
 
 		_runFieldsPending = true;
@@ -197,8 +196,6 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	/// </summary>
 	private bool _sawRunClock;
 
-	private bool _clockFactsPending;
-
 	public RunClockFacts CaptureRunClockFacts()
 	{
 		Calls.Add("capture-run-clock");
@@ -218,14 +215,20 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 		_pendingClock = facts.RunClockBase;
 		_pendingLayerTimeSpent = facts.LayerTimeSpent;
 		_pendingMaxTimePerLayer = facts.MaxTimePerLayer;
-		_clockFactsPending = true;
+
+		// Mirrors the production apply: with a live world the clock and the limit land at
+		// once, and so does the layer timer when the world is ready — a message that
+		// reaches a member already in the world has no later world-entry edge to wait
+		// for. The fake has no generation state, so "the world exists" is its whole
+		// condition; production keeps the timer pending while a generation runs.
+		FlushClockFacts();
+		TryWritePendingLayerTimer();
 	}
 
 	public void SettleRunClockFacts()
 	{
 		Calls.Add("settle-run-clock");
 		_sawRunClock = false;
-		_clockFactsPending = false;
 		_pendingClock = null;
 		_pendingLayerTimeSpent = null;
 		_pendingMaxTimePerLayer = null;
@@ -236,18 +239,18 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	private float? _pendingMaxTimePerLayer;
 	private float _maxTimePerLayer;
 
-	/// <summary>True = a received run clock or layer timer is waiting for the live world (mirrors the production flag).</summary>
-	internal bool HasPendingClockFacts => _clockFactsPending;
+	/// <summary>True = a received run clock, layer limit or layer timer is still waiting for the live world (mirrors the production flag).</summary>
+	internal bool HasPendingClockFacts =>
+		_pendingClock is not null || _pendingLayerTimeSpent is not null || _pendingMaxTimePerLayer is not null;
 
 	private void FlushClockFacts()
 	{
-		if (!_clockFactsPending)
+		if (_pendingClock is null && _pendingMaxTimePerLayer is null)
 		{
 			return;
 		}
 
 		var clock = _pendingClock ?? 0f;
-		var layerTime = _pendingLayerTimeSpent ?? -1f;
 		var limit = _pendingMaxTimePerLayer ?? -1f;
 		if (clock > 0f && (!_sawRunClock || clock > _savedRunTime))
 		{
@@ -256,22 +259,17 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 			ClockWrites.Add($"clock {clock:F1}");
 		}
 
-		if (layerTime > (_layerTimeSpent ?? 0f))
-		{
-			_layerTimeSpent = layerTime;
-			ClockWrites.Add($"layer-time {layerTime:F1}");
-		}
-
 		if (limit > 0f && _maxTimePerLayer <= 0f)
 		{
 			_maxTimePerLayer = limit;
 			ClockWrites.Add($"limit {limit:F1}");
 		}
 
+		// The layer timer is deliberately NOT consumed here: the production save slot
+		// runs before the generation finished, and the game zeroes the live timer while
+		// it finishes, so the value waits for TryWritePendingLayerTimer.
 		_pendingClock = null;
-		_pendingLayerTimeSpent = null;
 		_pendingMaxTimePerLayer = null;
-		_clockFactsPending = false;
 	}
 
 	public bool TryWritePendingRunFields()
@@ -279,6 +277,28 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 		Calls.Add("write-pending-run-fields");
 		_runFieldsPending = false;
 		FlushClockFacts();
+		return true;
+	}
+
+	/// <summary>
+	/// The world-entry write (mirrors the production rule): the layer timer lands only
+	/// here, and only when it advances the live value — a stale or non-applicable value
+	/// is consumed without writing.
+	/// </summary>
+	public bool TryWritePendingLayerTimer()
+	{
+		Calls.Add("write-pending-layer-timer");
+		if (_pendingLayerTimeSpent is { } layerTime)
+		{
+			if (layerTime > (_layerTimeSpent ?? 0f))
+			{
+				_layerTimeSpent = layerTime;
+				ClockWrites.Add($"layer-time {layerTime:F1}");
+			}
+
+			_pendingLayerTimeSpent = null;
+		}
+
 		return true;
 	}
 
@@ -339,7 +359,7 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 
 	public void CancelPendingRestore()
 	{
-		if (!_pending && !_runFieldsPending)
+		if (!_pending && !_runFieldsPending && !HasPendingClockFacts)
 		{
 			// Mirrors the production handover: a cancel with nothing pending is a
 			// no-op that records nothing (every run start calls it).
@@ -349,5 +369,8 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 		Calls.Add("cancel-pending");
 		_pending = false;
 		_runFieldsPending = false;
+		_pendingClock = null;
+		_pendingLayerTimeSpent = null;
+		_pendingMaxTimePerLayer = null;
 	}
 }

@@ -95,10 +95,12 @@ public interface INativeWorldFacts
 
 	/// <summary>
 	/// Host only: a RESTORED cut's run clock base (and, when the archive carries one, the
-	/// layer's already-spent time) is waiting for the world. The adapter writes them when a
-	/// live world can take it (the world does not exist at the Continue click, and
+	/// layer's already-spent time) is waiting for the world. The adapter writes the clock when
+	/// a live world can take it (the world does not exist at the Continue click, and
 	/// <c>WorldGeneration.Start</c> derives the layer's time limit from the clock before any
-	/// later seam). <paramref name="layerTimeSpent"/> null = a layer-end cut, or an archive
+	/// later seam); the layer timer waits one seam longer, because the game zeroes it while the
+	/// generation finishes (see <see cref="TryWritePendingLayerTimer"/>).
+	/// <paramref name="layerTimeSpent"/> null = a layer-end cut, or an archive
 	/// written before the value was carried. The rarity multipliers are NOT handed over
 	/// here — they ride the restored run baseline, which the generation-parameter path
 	/// applies. The recipe unlock table is not handed over here either: it needs the world's
@@ -146,10 +148,14 @@ public interface INativeWorldFacts
 
 	/// <summary>
 	/// Both roles: the run clock base and layer timer a peer read off its live world (the
-	/// world-entry message). Written into the live world when one exists, otherwise held
-	/// for <see cref="TryWritePendingRunFields"/>. The write never moves either value
-	/// backwards: the clock is written at most once per world, and the layer timer only
-	/// when it advances. An unreadable capture (<see cref="RunClockFacts.Failure"/>)
+	/// world-entry message). The clock is written into the live world when one exists,
+	/// otherwise held for <see cref="TryWritePendingRunFields"/>; the layer timer is
+	/// offered to <see cref="TryWritePendingLayerTimer"/> at once, and — because the game
+	/// zeroes the value while the generation finishes — it stays pending for the
+	/// world-entry edge when the world is not ready yet, while a member that is ALREADY
+	/// in the world (the 60 s repair) takes it immediately. The write never moves either
+	/// value backwards: the clock is written at most once per world, and the layer timer
+	/// only when it advances. An unreadable capture (<see cref="RunClockFacts.Failure"/>)
 	/// writes nothing and is named, so the receiver keeps its own clock.
 	/// </summary>
 	void ApplyRunFacts(RunClockFacts facts);
@@ -163,18 +169,40 @@ public interface INativeWorldFacts
 	void SettleRunClockFacts();
 
 	/// <summary>
-	/// Write every restored or received run value that is still waiting, into the live
-	/// world. Called from the slot the native <c>SaveSystem.TryLoadGame</c> used to run in,
-	/// before <c>WorldGeneration.Start</c> derives the layer's time limit from them, and
-	/// again at the world-entry edge (where a member that joined a run in progress takes
-	/// the clock the host sent). The world object normally exists at that slot
+	/// Write every restored or received run value the native save slot can take, into
+	/// the live world: the run clock base and the layer limit. Called from the slot the
+	/// native <c>SaveSystem.TryLoadGame</c> used to run in, before
+	/// <c>WorldGeneration.Start</c> derives the layer's state, and again at the
+	/// world-entry edge (where a member that joined a run in progress takes the clock the
+	/// host sent). The world object normally exists at that slot
 	/// (<c>WorldGeneration.Awake</c> assigns it before <c>Start</c>), so a <c>false</c>
 	/// return means the caller met a composition that has no live world at all and the
-	/// values stay pending for the next seam — never written, never silently dropped. The
-	/// recipe unlock table is NOT waiting here: it needs the world's complete recipe table
-	/// and is read through <see cref="ReadPendingRestore"/> at the world-entry seam instead.
+	/// values stay pending for the next seam — never written, never silently dropped.
+	///
+	/// The LAYER TIMER is deliberately NOT written here: this slot runs before the
+	/// generation coroutine, and <c>WorldGeneration.FinishWorldGeneration</c> zeroes
+	/// <c>layerTimeSpent</c> on its first line, so a timer written now is erased and the
+	/// continued layer restarts its radiation countdown. It waits for
+	/// <see cref="TryWritePendingLayerTimer"/> at the world-entry seam.
+	/// The recipe unlock table is not waiting here either: it needs the world's complete
+	/// recipe table and is read through <see cref="ReadPendingRestore"/> at the
+	/// world-entry seam instead.
 	/// </summary>
 	bool TryWritePendingRunFields();
+
+	/// <summary>
+	/// Both roles: write the layer timer a cut or a peer handed over, into the live
+	/// world. The implementation refuses while there is no live world OR the world is
+	/// still generating — <c>WorldGeneration.FinishWorldGeneration</c> zeroes
+	/// <c>layerTimeSpent</c> at its start and <c>generatingWorld</c> only falls at its
+	/// end, so an earlier write is erased — and the value then stays pending with a
+	/// <c>false</c> return. The guard lives here so no caller can erase the timer by
+	/// calling too early; the callers are the world-entry edge (the first seam after the
+	/// generation) and the application of a message that reached a member already in the
+	/// world. The timer only ever moves forward: a value that does not advance the live
+	/// timer is consumed without writing.
+	/// </summary>
+	bool TryWritePendingLayerTimer();
 
 	/// <summary>Host only: apply the restored keypad codes absolutely (replace, never merge).</summary>
 	void ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes);

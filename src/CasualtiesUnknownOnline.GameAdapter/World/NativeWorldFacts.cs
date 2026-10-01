@@ -17,10 +17,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// apply half CANNOT write at the Continue click (the world does not exist yet),
 /// so it holds the restored values until a seam consumes them:
 /// <see cref="RestoredWorldFactReplay"/> takes the layer facts once the generation
-/// completed; the run fields go through
+/// completed; the run clock and the layer limit go through
 /// <see cref="TryWritePendingRunFields"/>, which the native save slot calls before
 /// <c>WorldGeneration.Start</c> derives the layer's time limit and trap budget
-/// from them.
+/// from them; the layer TIMER goes through
+/// <see cref="TryWritePendingLayerTimer"/>, which the world-entry edge and the apply of an
+/// in-world repair both call, because the game zeroes the timer while the generation
+/// finishes.
 ///
 /// A pending restore that is never consumed is NOT left behind: the run that owns
 /// it calls <see cref="CancelPendingRestore"/> (a new run through the save layer's
@@ -191,6 +194,13 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 		_pendingMaxTimePerLayer = facts.MaxTimePerLayer;
 		if (WritePendingClockFacts())
 		{
+			// The live world exists and took the clock and the limit. The layer timer is
+			// offered here too: a member that is ALREADY in the world receives the 60 s
+			// repair as a message, with no later world-entry edge to carry it, so waiting
+			// for that edge would leave the timer pending until the player leaves the
+			// layer. A world still generating refuses the write and keeps it pending
+			// (the generation would zero it) — see TryWritePendingLayerTimer.
+			TryWritePendingLayerTimer();
 			return;
 		}
 
@@ -303,6 +313,48 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 	}
 
 	/// <inheritdoc />
+	public bool TryWritePendingLayerTimer()
+	{
+		if (_pendingLayerTimeSpent is not { } spent)
+		{
+			return true;
+		}
+
+		var world = WorldGeneration.world;
+		if (world == null || HarmonyTraverse.IsGenerating()) // Unity object — ==
+		{
+			// No world, or one whose generation is still running: FinishWorldGeneration
+			// zeroes layerTimeSpent on its first line, so a write now would be erased.
+			// The value stays pending for the seam that follows the generation.
+			return false;
+		}
+
+		if (spent > world.layerTimeSpent)
+		{
+			// The world-entry seam is the first write that survives: the generation
+			// coroutine zeroes the timer while it finishes, so a value a cut handed over
+			// can only land once the game reports a live, non-generating world.
+			world.layerTimeSpent = spent;
+			log.LogInformation(
+				"[RunFacts] the layer timer {Spent:F1}s (written) — the world finished generating; the radiation countdown resumes where the cut left it.",
+				spent);
+		}
+		else if (spent >= 0f)
+		{
+			log.LogInformation(
+				"[RunFacts] the layer timer {Spent:F1}s (kept — the layer has already spent at least as long).",
+				spent);
+		}
+		else
+		{
+			log.LogDebug("[RunFacts] the layer timer was not applicable to this layer (a stamp mismatch); nothing was written.");
+		}
+
+		_pendingLayerTimeSpent = null;
+		return true;
+	}
+
+	/// <inheritdoc />
 	public NativeWorldFactRestore ReadPendingRestore()
 	{
 		if (!HasPendingRestore)
@@ -334,16 +386,17 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 	/// <inheritdoc />
 	public void CancelPendingRestore()
 	{
-		if (!HasPendingRestore && !HasPendingRunFields)
+		if (!HasPendingRestore && !HasPendingRunFields && !HasPendingClockFacts)
 		{
 			return;
 		}
 
 		log.LogInformation(
-			"[SaveFacts] cancelled the pending restored native values — world facts ({Keypads} keypad code(s), {Geysers} geyser type(s), {Damages} game block-damage row(s), {Recipes} recipe unlock row(s)) and run fields ({RunFields}): the run that owned them never reached the world-entry seam.",
+			"[SaveFacts] cancelled the pending restored native values — world facts ({Keypads} keypad code(s), {Geysers} geyser type(s), {Damages} game block-damage row(s), {Recipes} recipe unlock row(s)), run fields ({RunFields}) and any held run clocks: the run that owned them never reached the world-entry seam.",
 			_pendingKeypads?.Count ?? 0, _pendingGeysers?.Count ?? 0, _pendingBlockDamages?.Count ?? 0, _pendingRecipes?.Count ?? 0, DescribePendingRunFields());
 		ClearPending();
 		ClearPendingRunFields();
+		ClearPendingClockFacts();
 	}
 
 	/// <summary>True = a restored run value (rarity multipliers, run clock) is still waiting for the live world.</summary>
@@ -409,8 +462,8 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 		_pendingClock is not null || _pendingLayerTimeSpent is not null || _pendingMaxTimePerLayer is not null;
 
 	/// <summary>
-	/// Writes the waiting run-clock values into the live world, if there is one. True =
-	/// nothing is waiting any more.
+	/// Writes the waiting run clock and layer limit into the live world, if there is one.
+	/// True = nothing of the two is waiting any more.
 	///
 	/// The CLOCK is written at most once per world: the value a generation boundary read
 	/// is the base that boundary's new scene derives from, so the first write is the
@@ -418,14 +471,13 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 	/// absolute value) must not overwrite a clock that has been running since — that is
 	/// the one write here that could move the run clock BACKWARDS.
 	///
-	/// The LAYER TIMER is written as "this layer had already spent at least this long":
-	/// a smaller value could only come from a message that left the host before this
-	/// side's layer began, and moving the timer backwards would push the radiation line's
-	/// activation away.
+	/// The LAYER TIMER is not written here: the generation coroutine zeroes it after this
+	/// seam, so it waits for <see cref="TryWritePendingLayerTimer"/>, which lands at the
+	/// first ready-world seam (the world-entry edge, or the apply of an in-world repair).
 	/// </summary>
 	private bool WritePendingClockFacts()
 	{
-		if (!HasPendingClockFacts)
+		if (_pendingClock is null && _pendingMaxTimePerLayer is null)
 		{
 			return true;
 		}
@@ -436,35 +488,32 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 			return false;
 		}
 
-		var clock = _pendingClock;
-		var layerTime = _pendingLayerTimeSpent;
-		ApplyLiveClockFacts(new RunClockFacts(
-			clock ?? 0f,
-			layerTime ?? -1f,
-			_pendingMaxTimePerLayer ?? -1f,
-			Failure: null));
+		ApplyLiveClockAndLimit(_pendingClock, _pendingMaxTimePerLayer);
 		_pendingClock = null;
-		_pendingLayerTimeSpent = null;
 		_pendingMaxTimePerLayer = null;
 		return true;
 	}
 
 	/// <summary>
-	/// The one place the live world takes a run clock or a layer timer. Both are matched
-	/// against what this process already holds, so no reachable path can move either
-	/// backwards: <see cref="_sawRunClock"/> is what lets a NEW world take a clock that is
-	/// lower than the previous world's final value, because a new layer's clock base is
-	/// captured at the boundary and legitimately sits below the total the last frame of the
-	/// previous layer held. That arm is re-armed on the HOST only, at the generation
-	/// boundary (<see cref="SettleRunClockFacts"/>); a guest never re-arms it, and does not
-	/// need to — it only ever receives the host's increasing total.
+	/// The one place the live world takes the run clock base and the layer limit. The
+	/// clock is matched against what this process already holds, so no reachable path can
+	/// move it backwards: <see cref="_sawRunClock"/> is what lets a NEW world take a clock
+	/// that is lower than the previous world's final value, because a new layer's clock
+	/// base is captured at the boundary and legitimately sits below the total the last
+	/// frame of the previous layer held. That arm is re-armed on the HOST only, at the
+	/// generation boundary (<see cref="SettleRunClockFacts"/>); a guest never re-arms it,
+	/// and does not need to — it only ever receives the host's increasing total.
 	///
 	/// The layer LIMIT is filled in only when the game has none: <c>WorldGeneration.Start</c>
 	/// derives it from the run settings, so a value already there IS that derivation and
 	/// outranks a copied one — this write exists for the window before the game's own
 	/// derivation has run.
+	///
+	/// The layer TIMER is not here: <c>WorldGeneration.FinishWorldGeneration</c> zeroes it
+	/// while the generation finishes, after this seam, so it lands through
+	/// <see cref="TryWritePendingLayerTimer"/> at the world-entry edge instead.
 	/// </summary>
-	private void ApplyLiveClockFacts(RunClockFacts facts)
+	private void ApplyLiveClockAndLimit(float? clock, float? limit)
 	{
 		var world = WorldGeneration.world;
 		if (world == null) // Unity object — ==
@@ -473,40 +522,28 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 		}
 
 		var clockWritten = false;
-		if (facts.RunClockBase > 0f && (!_sawRunClock || facts.RunClockBase > SaveSystem.savedRunTime))
+		if (clock is { } runClock && runClock > 0f && (!_sawRunClock || runClock > SaveSystem.savedRunTime))
 		{
 			// The native save slot's own assignment (SaveSystem.cs:439): the stored value
 			// IS the new clock base, because the game wrote base + elapsed. It is written
 			// before WorldGeneration.Start derives the layer's time limit from it.
-			SaveSystem.savedRunTime = facts.RunClockBase;
+			SaveSystem.savedRunTime = runClock;
 			_sawRunClock = true;
 			clockWritten = true;
 		}
 
-		var layerTimeWritten = false;
-		if (facts.LayerTimeSpent > world.layerTimeSpent)
-		{
-			world.layerTimeSpent = facts.LayerTimeSpent;
-			layerTimeWritten = true;
-		}
-
-		// The LIMIT is filled in only when the game has none: WorldGeneration.Start
-		// derives it from the run settings, so a value already there IS that
-		// derivation and outranks a copied one — this write exists for the window
-		// before the game's own derivation has run.
 		var limitWritten = false;
-		if (facts.MaxTimePerLayer > 0f && world.maxTimePerLayer <= 0f)
+		if (limit is { } maxTime && maxTime > 0f && world.maxTimePerLayer <= 0f)
 		{
-			world.maxTimePerLayer = facts.MaxTimePerLayer;
+			world.maxTimePerLayer = maxTime;
 			limitWritten = true;
 		}
 
-		if (clockWritten || layerTimeWritten || limitWritten)
+		if (clockWritten || limitWritten)
 		{
 			log.LogInformation(
-				"[RunFacts] the live world took the run clock base {Clock:F1}s ({ClockState}), the layer timer {Spent:F1}s ({TimerState}) and the layer limit {Limit:F1}s ({LimitState}).",
+				"[RunFacts] the live world took the run clock base {Clock:F1}s ({ClockState}) and the layer limit {Limit:F1}s ({LimitState}).",
 				SaveSystem.savedRunTime, clockWritten ? "written" : "kept — this world has already taken one and the value does not advance it",
-				world.layerTimeSpent, layerTimeWritten ? "written" : "kept — the layer has already spent at least as long",
 				world.maxTimePerLayer, limitWritten ? "written" : "kept — the game's own derivation already set it");
 		}
 	}

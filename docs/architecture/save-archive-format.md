@@ -143,8 +143,11 @@ condition compares against `maxTimePerLayer`, `WorldGeneration.cs:860-861`). It 
 MID-RUN cut only: a `layer-end` cut names a layer that is regenerated, so its timer belongs to the
 new layer and the encoder leaves the property out. A recorded value makes a continued run RESUME
 the radiation line's countdown instead of restarting it, which is what the native continue does (its
-own save carries no such value and the game zeroes the timer when a layer finishes generating (`WorldGeneration.cs:3609`); the write lands at the
-same seam as the clock base, through the same world-entry flush. The LIMIT is deliberately not
+own save carries no such value). The write cannot share the clock base's own seam: the game zeroes
+the timer on the first line of `FinishWorldGeneration` (`WorldGeneration.cs:3609`), which runs AFTER
+the native save slot, so a value written there is erased. It lands one seam later, at the world-entry
+edge, as soon as the game reports a live, non-generating world (`TryWritePendingLayerTimer`).
+The LIMIT is deliberately not
 carried — the game recomputes `maxTimePerLayer` from the restored run settings, so shipping it would
 be a second carrier for a value the restored baseline already determines. The property is absent, not
 null, when nothing was recorded: the decoder tells "the cut recorded no layer timer" from "it
@@ -401,7 +404,9 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   block diff, the game's own partial-damage list, the decided keypad/geyser values, the radiation
   line, the restored per-entity facts, the run clock base, the layer timer and the recipe unlock table)
   are written at
-  the world-entry seam afterwards, and a mid-run cut's restored item set is reconciled a frame after
+  the world-entry seam afterwards — the layer timer only there, because the game zeroes it on the
+  first line of `FinishWorldGeneration` (`WorldGeneration.cs:3609`), after the native save slot —
+  and a mid-run cut's restored item set is reconciled a frame after
   the generation-finished edge. Every half travels back to the caller that started the restore
   through `WorldRestoreAudit`: the Runtime table's per-row apply counts AND each live-world write's
   refused counts, so a restore can never be reported as a success while the game's own bounded
@@ -505,11 +510,15 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   (`WorldSaveService.TryBeginRun`), a `layer-end` restore, and the session ending
   (`WorldEntityKernelProjection`'s own subscription) — an arm that outlived its layer would make the
   next generation skip its layer-boundary reset and write a previous layer's facts into a new world.
-- **Native run fields** keep their own seams, because two of them need different worlds than
-  the other two. The two rarity multipliers (world-generation inputs) and the run clock base
+- **Native run fields** keep their own seams, because they need different worlds. The two rarity
+  multipliers (world-generation inputs) and the run clock base
   must be in place BEFORE `WorldGeneration.Start` derives the layer's time limit and trap budget,
   so the adapter writes them at the slot where the native `SaveSystem.TryLoadGame` used to run
-  (`WorldGeneration.cs:252-262`, S3.4). The recipe unlock table (`Recipes.recipes[].hasMadeBefore` /
+  (`WorldGeneration.cs:252-262`, S3.4). The LAYER TIMER cannot use that slot — the game zeroes it
+  while the generation finishes (`WorldGeneration.cs:3609`, §3.4) — so it lands at the first seam
+  that follows the generation: the world-entry edge, or, for a member already in the world, the
+  apply of the repair message itself (`TryWritePendingLayerTimer`). The recipe unlock table
+  (`Recipes.recipes[].hasMadeBefore` /
   `.INT`) lands at the world-entry seam with the other native layer facts instead: the game REBUILDS
   the table in `WorldGeneration.Awake` and CUO's mod-content provider appends the custom recipes on a
   later Update frame, so a write at the save slot would see a table still missing every custom

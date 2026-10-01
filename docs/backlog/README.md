@@ -136,7 +136,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 - [Bilingual human documentation](review/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
 
-- [An earthquake's clock write ends an acceleration](review/world-acceleration-quake-direct-write.md) — **Medium** — the host adopts it, vanilla-style.
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
@@ -170,6 +169,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [An earthquake's clock write ends an acceleration](done/world-acceleration-quake-direct-write.md) — **Medium** — the host adopts it, vanilla-style.
 - [World-time acceleration is gated on being asleep](done/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
 - [Manual world acceleration must not end when a player moves](done/world-acceleration-survives-movement.md) — **High** — only announced speeds own the clock.
 - [The backlog index duplicates its tickets](done/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.

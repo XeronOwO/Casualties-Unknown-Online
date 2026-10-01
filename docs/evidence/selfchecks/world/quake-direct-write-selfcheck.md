@@ -1,6 +1,6 @@
 # The earthquake's direct clock write — self-check (2026-09-26)
 
-Ticket: `docs/backlog/review/world-acceleration-quake-direct-write.md` (Medium; the remaining sibling of
+Ticket: `docs/backlog/done/world-acceleration-quake-direct-write.md` (Medium; the remaining sibling of
 the movement-routing fix, decision 223). Cycle scope: the game's own DIRECT `Time.timeScale` write is
 recorded as owning the shared clock — the owner ruled "follow vanilla", so an earthquake's reset ends a
 standing session acceleration and CUO never suppresses it — and the screen that owns the clock now also

@@ -39,7 +39,7 @@ Audited siblings that stay as they are, with the reason: the sleep fast-forward 
 sleep gate), the forced pause/death transitions (the ruling names them as legitimate ends), the
 direct `Time.timeScale` writes (`ConsoleScript.cs:815` is a deliberate admin action;
 `WorldGeneration.cs:866-871` is the earthquake reset, which the host pump adopts BY DESIGN — recorded
-as `review/world-acceleration-quake-direct-write.md`, whose own cycle then recorded the owner's ruling
+as `done/world-acceleration-quake-direct-write.md`, whose own cycle then recorded the owner's ruling
 that vanilla stands there (decision 226) and made the adoption re-state the game's own speed state),
 and `WorldGeneration.cs:1036` /
 `PreRunScript.cs:64` (scene reload and run start, where the start gate owns the clock).

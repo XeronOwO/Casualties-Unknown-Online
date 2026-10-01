@@ -35,13 +35,13 @@ records that someone decided the step was done, not what proved it. Keep it to o
 (a command, a file, or a measured result); the full detail belongs in the cycle's ticket or
 evidence file.
 
-- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
-- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
-- [ ] Self-check table: mechanism x change x evidence, every cell filled
-- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
-- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
-- [ ] Build + dotnet format + dotnet test normative gates pass
-- [ ] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round)
+- [x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified — evidence: the cycle's recipe cites the game's own call (`WorldGeneration.cs:1033-1039`) and the pump's adoption log line; the guard member (`WorldTimeSync.Update`) and the four-writer census are named in the record
+- [x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the direct-write family re-audited (`WorldGeneration.cs:870` quake, `ConsoleScript.cs:815` console, `PreRunScript.cs:64` run start, `WorldGeneration.cs:1036` reload plus its caller census); no code touched
+- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: the batch w record carries one verdict with its evidence pointer per instance; the scope page declares the classes first
+- [x] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided — evidence: `20261001-w-scope.md` declares the probe/log channel, the reachability half and each instance's class before the session
+- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation — evidence: the handoff fixed the one-gap order (the scene-reload instance first); no work-item choice re-asked
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: focus 4/4 (`w-focus-gate.log`), gate project 299/299 (`w-gates-final.log`), full suite with build 4,573 + 299 (`w-full-suite-final.log`), format exit 0 (`w-format-final.log`)
+- [x] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round) — evidence: no src/tests C# changed (`git status --short -- src tests` empty); the cycle's only code is the 31-line recipe `tools/acceptance/recipes/scene-reload.cs`; no state boolean added
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

@@ -920,3 +920,29 @@ dependency the table did not name, a step that cost more than it returned.
   `Environment.TickCount`), which keeps advancing at timeScale 0, and the host's pump keeps running.
 - Change: time a gate-guard instance against the arm's own wall clock and cite the arm line plus the
   `forced after 30 s` line as the hold's bounds; do not assume the freeze stops the fallback.
+
+## 2026-10-01 — A direct-write row needs its site reachability, not just its name
+
+- Symptom: the open scene-reload instance was planned as "a layer end", but the layer-end path
+  (`WorldGeneration.ContinueRun` → `RegenerateWorld`) never touches the `WorldGeneration.cs:1036`
+  write, and `ReloadScene` itself has no caller in the decompiled assembly and no reference in the
+  shipped `CasualtiesUnknown_Data\*` files — a row built on the layer end would have measured a path
+  that does not contain the write.
+- Cause: the site was named from the code that contains it ("scene reload") without a caller census,
+  so reachability was assumed from the name.
+- Change: before designing a scenario for a write site, run the caller census and the shipped-data
+  string scan; an unreachable site is exercised through a declared forced recipe of the game's own code
+  (`tools/acceptance/recipes/scene-reload.cs`) and the record carries the reachability half beside the
+  live half.
+
+## 2026-10-01 — The gate window ends at its release line, and the pump's first act after it is an adoption
+
+- Symptom: the reload window logged no `host direct timeScale write … adopted` line, but 6 ms after
+  `Start gate released — everyone is in the world.` the pump logged `host direct timeScale write 1
+  adopted as Normal.` — the world's standing 1× (the same value the gate's release branch writes)
+  reaching the ordinary value-blind rule.
+- Cause: `WorldTimeSync.Update` returns while the start gate waits, and the gate's own release writes
+  1×; the pump resumes on the next frame and adopts the world clock, as decision 226 requires.
+- Change: a "the pump returns before the rule" row cites the arm and release lines as its window and
+  reads a post-release adoption as the ordinary rule, not as the write reaching the rule inside the
+  window.

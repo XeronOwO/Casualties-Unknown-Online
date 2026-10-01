@@ -52,6 +52,7 @@ internal sealed class OnlineUiHost
 	private readonly ITimeSource _time;
 	private readonly IModUiControl _modUiControl;
 	private readonly ILocalizationService _localization;
+	private readonly ISessionNotices _notices;
 	private readonly HostRulesConfigEditor _rulesEditor;
 	private readonly LoggingConfigEditor _loggingEditor;
 	private readonly LocalizationConfigEditor _languageEditor;
@@ -103,6 +104,7 @@ internal sealed class OnlineUiHost
 		_time = services.GetRequiredService<ITimeSource>();
 		_modUiControl = services.GetRequiredService<IModUiControl>();
 		_localization = services.GetRequiredService<ILocalizationService>();
+		_notices = services.GetRequiredService<ISessionNotices>();
 		_rulesEditor = services.GetRequiredService<HostRulesConfigEditor>();
 		_loggingEditor = services.GetRequiredService<LoggingConfigEditor>();
 		_languageEditor = services.GetRequiredService<LocalizationConfigEditor>();
@@ -174,6 +176,7 @@ internal sealed class OnlineUiHost
 				_session.ReportLocalPlayerColor(color);
 			},
 			Profiles = _profiles,
+			DrainSessionNotices = DrainSessionNotices,
 			TakeItem = uiActions.TakeItemFromRemote,
 			OpenRemoteBackpack = (id, name) => OpenNativeSurface(uiActions.OpenRemoteBackpackFromUi(id, name)),
 			OpenRemoteMedical = (id, name) => OpenNativeSurface(uiActions.OpenRemoteMedicalFromUi(id, name)),
@@ -265,6 +268,20 @@ internal sealed class OnlineUiHost
 		// below), then this frame's state — the window's model is built with the actions that answer it.
 		DrainSurfaceIntents();
 		PushSurfaceFrame(ctx);
+	}
+
+	/// <summary>
+	/// Drains the runtime's pending session-liveness notice into the delayed status line:
+	/// a member the host dropped because Steam kept refusing every send to it, or a guest
+	/// ending its own session because the host stopped sending. The runtime resolves the
+	/// line through its own catalogue; this class only shows it.
+	/// </summary>
+	private void DrainSessionNotices()
+	{
+		while (_notices.TryTake(out var notice))
+		{
+			_onlineUi.Notify(notice.Text);
+		}
 	}
 
 	/// <summary>

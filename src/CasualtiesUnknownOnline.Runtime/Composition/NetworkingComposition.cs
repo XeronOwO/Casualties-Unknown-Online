@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Steam;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -27,10 +28,18 @@ internal static class NetworkingComposition
 		// SteamTransport takes the concrete SteamService, NOT the router: the
 		// router itself composes SteamTransport, so injecting ISteamService here
 		// would create a constructor cycle.
+		// The send path's Steam calls sit behind one seam so the refusal policy
+		// (backoff, aggregated logging, stall escalation) is driven and tested
+		// without a live client; the same singleton answers the stall edge the
+		// session's drop watchdog subscribes to.
+		services.AddSingleton<ISteamSendChannel, SteamSendChannel>();
 		services.AddSingleton(p => new SteamTransport(
 			p.GetRequiredService<SteamService>(),
+			p.GetRequiredService<ISteamSendChannel>(),
+			p.GetRequiredService<ITimeSource>(),
 			p.GetRequiredService<ILogger<SteamTransport>>()));
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamTransport>());
+		services.AddSingleton<ISendStallSource>(p => p.GetRequiredService<SteamTransport>());
 		// Non-Steam transport path: TCP IP-direct host/guest. The router exposes
 		// the ACTIVE pair (Steam or IP-direct) through the same INetworkTransport /
 		// ISteamService contracts; the plugin switches it when an IP session starts.

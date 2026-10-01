@@ -56,6 +56,10 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Set by the plugin each frame; true while the router is on the IP-direct path.</summary>
 	internal bool IpDirectActive;
 
+	/// <summary>Set by the host: drains one pending session-liveness notice into the status line
+	/// (a member dropped for a refusing link, a host gone silent); null when the composition has none.</summary>
+	internal Action? DrainSessionNotices;
+
 	/// <summary>Invoked when the user clicks Take on one of a remote player's inventory lines.</summary>
 	internal Func<ulong, ulong, bool>? TakeItem;
 
@@ -313,6 +317,10 @@ internal sealed class OnlineUiOverlay
 		if (!_commandOverlay.IsOpen)
 		{
 			UpdateDelayedStatus(ctx);
+			// After the session edges, so a specific reason (the host went silent, a
+			// member was dropped for a refusing link) wins over the generic
+			// "session ended" edge published in the same frame.
+			DrainSessionNotices?.Invoke();
 			// The world's own gestures: the right-click that opens the player menu, and the quick panel's
 			// ESC. Both panels are controls of the surface now, so this is input only — nothing is drawn.
 			_contextMenu.HandleInput(ctx, _pointerCensus.OverContextMenu, BlocksWorldMenu);

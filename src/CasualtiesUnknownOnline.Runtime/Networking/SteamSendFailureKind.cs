@@ -25,4 +25,9 @@ public enum SteamSendFailureKind
 
 	/// <summary>The P2P link timed out.</summary>
 	Timeout,
+
+	/// <summary>Steam refused to queue the message because the peer's send queue is full
+	/// (<c>k_EResultLimitExceeded</c>) — transient congestion, not a dead link: the peer
+	/// cannot drain what we send, so more sends right now are pointless.</summary>
+	QueueFull,
 }

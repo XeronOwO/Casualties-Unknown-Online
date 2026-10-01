@@ -41,5 +41,18 @@ internal static class SessionComposition
 		// options monitor and falls back to English for missing keys.
 		services.AddSingleton<LocalizationService>();
 		services.AddSingleton<ILocalizationService>(p => p.GetRequiredService<LocalizationService>());
+
+		// Session-liveness watchdogs and their notice slot. The host drops a member
+		// whose Steam send queue has refused everything past the stall bound and keeps
+		// playing; a guest that hears nothing from the host for the silence bound — or
+		// whose own sends to the host keep being refused — ends its own session instead
+		// of sitting in a frozen world. Both publish a rendered line into the slot the
+		// Online UI drains into its status line. Registered after the session, whose
+		// control surface they read.
+		services.AddSingleton<ISessionNotices, SessionNotices>();
+		services.AddSingleton<PeerSendStallWatchdog>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PeerSendStallWatchdog>());
+		services.AddSingleton<GuestHostSilenceWatchdog>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GuestHostSilenceWatchdog>());
 	}
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
+using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -31,6 +32,12 @@ public class CuoServiceOrderTests
 		"SteamTransport",
 		"IpDirectTransport",
 		"SessionService",
+		// Session-liveness watchdogs (send-stall drop/end, host silence): registered
+		// with the session, they read the traffic observer's receive stamps and the
+		// transport's stall edge, so they sit right after the session and before
+		// the observers they query (the transport itself already polled this frame).
+		"PeerSendStallWatchdog",
+		"GuestHostSilenceWatchdog",
 		"NetworkTrafficMonitor",
 		"PacketDispatcher",
 		"EntitySyncService",
@@ -79,6 +86,15 @@ public class CuoServiceOrderTests
 			ExpectedResourceSourceOrder.SequenceEqual(order, StringComparer.Ordinal),
 			"the IResourceLocationSource order moved: " + string.Join(", ", order));
 		Assert.NotEmpty(services.GetServices<IPacketHandler>());
+	}
+
+	[Fact]
+	public void TheStallEdge_ComesFromTheTransport_NotASecondInstance()
+	{
+		using var services = BuildComposition();
+		Assert.Same(
+			services.GetRequiredService<SteamTransport>(),
+			services.GetRequiredService<ISendStallSource>());
 	}
 
 	private static ServiceProvider BuildComposition()

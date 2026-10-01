@@ -24,6 +24,7 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 {
 	private readonly NetworkTrafficTracker _tracker = new(NetworkTrafficTracker.DefaultWindowMs);
 	private readonly PeerHealthTracker _health = new();
+	private readonly Dictionary<ulong, long> _lastReceiveMs = [];
 	private readonly ITimeSource _time = time;
 	private readonly ILogger<NetworkTrafficMonitor> _log = log;
 	private NetworkTrafficWindow? _lastCompletedWindow;
@@ -34,8 +35,19 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 	internal void RecordSend(ulong steamId, NetMsg msg, int byteCount, bool success, WirePayloadType? payloadType = null) =>
 		_tracker.RecordSend(steamId, msg, byteCount, success, payloadType);
 
-	internal void RecordReceive(ulong steamId, NetMsg msg, int byteCount) =>
+	internal void RecordReceive(ulong steamId, NetMsg msg, int byteCount)
+	{
 		_tracker.RecordReceive(steamId, msg, byteCount);
+		_lastReceiveMs[steamId] = _time.NowMs;
+	}
+
+	/// <summary>When a frame from this peer was last seen — recorded before direction
+	/// validation, so a misdirected or malformed frame still proves the link is alive.
+	/// A zero-length frame is the one shape that never reaches this map: the receiver
+	/// drops it before reporting. The guest's host-silence watchdog reads this; false
+	/// means nothing arrived in this session.</summary>
+	internal bool TryGetLastReceiveMs(ulong steamId, out long receivedAtMs) =>
+		_lastReceiveMs.TryGetValue(steamId, out receivedAtMs);
 
 	internal void RecordReceivePayload(ulong steamId, WirePayloadType payloadType, int byteCount) =>
 		_tracker.RecordReceivePayload(steamId, payloadType, byteCount);
@@ -61,6 +73,7 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 	{
 		_tracker.Reset(_time.NowMs);
 		_health.Reset();
+		_lastReceiveMs.Clear();
 		_lastCompletedWindow = null;
 		ResetCompleted?.Invoke();
 	}

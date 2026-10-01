@@ -42,7 +42,7 @@ internal sealed partial class WorldEventSync(
 	private readonly ILogger<WorldEventSync> _log = log;
 
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
-	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
 
 	/// <summary>The generated world snapshot the difference table diffs against (host/solo only).</summary>
 	private ushort[,]? _baseline;

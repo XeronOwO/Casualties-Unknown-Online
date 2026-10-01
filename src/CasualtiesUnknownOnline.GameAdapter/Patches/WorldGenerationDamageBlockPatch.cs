@@ -38,7 +38,11 @@ internal static class WorldGenerationDamageBlockPatch
 {
 	private static bool Prefix(WorldGeneration __instance, Vector2Int pos, out DamageBlockState? __state)
 	{
-		var isLocalAction = CallContext.Current != CallContext.Origin.RemoteApply;
+		// The chain query, not Current: the caller may already be inside a classification sub-scope
+		// (Craft, InternalReorder, CharacterMedicalUse) when a roll is applied, and a nested scope must
+		// not turn a remote-applied roll into a local one. The row-4 write echo itself was raised by
+		// WorldEventSync.OnBlockSet's guard, which the same chain query now protects.
+		var isLocalAction = !CallContext.IsWithin(CallContext.Origin.RemoteApply);
 		__state = new DamageBlockState(
 			__instance,
 			pos,

@@ -66,11 +66,14 @@ internal static class CraftingPatches
 		/// authoritative re-report (the applier's immediate inventory report). Committing
 		/// the craft report here would put an operation the local player never made into
 		/// the operation trace and onto the wire as a second report channel for one
-		/// intent. The check has to sit HERE, before the begin call: the begin pushes a
-		/// Craft scope on top of the caller's origin, so inside the sync class
-		/// <c>CallContext.Current</c> is already Craft and a guard there never fires.
+		/// intent. The check asks the scope CHAIN (<c>CallContext.IsWithin</c>), not the
+		/// innermost origin: the begin call pushes a Craft scope on top of the caller's
+		/// origin, and a query that reads only the innermost origin stops seeing the
+		/// RemoteApply exactly there (batch `20261002-c` row 4 is the same masking in the
+		/// SetBlock hook). The check itself sits before the begin call, so the craft is
+		/// never opened for a replay at all.
 		/// </summary>
-		private static bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+		private static bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
 
 		private static void Prefix(Body __instance, Item it1, Item it2, out object? __state) =>
 			__state = IsRemoteApply ? null : PatchBridge.Impl?.OnCombineBegin(__instance, it1, it2);

@@ -58,7 +58,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 	/// </summary>
 	internal void OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra)
 	{
-		if (CallContext.Current == CallContext.Origin.RemoteApply || !_session.SessionActive)
+		if (CallContext.IsWithin(CallContext.Origin.RemoteApply) || !_session.SessionActive)
 		{
 			return;
 		}

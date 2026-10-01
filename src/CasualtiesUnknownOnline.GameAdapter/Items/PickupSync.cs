@@ -43,7 +43,7 @@ internal sealed class PickupSync(
 	private readonly ItemSlotSync _slotSync = slotSync;
 
 	/// <summary>True while a remote message is being applied — local reports must stay silent (call identity lives in CallContext).</summary>
-	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
 
 	/// <summary>The pickup-start position of the last PickUpItem call — still on the ground HERE, the picked-up hook runs after the re-parent. Id-less generation-time items have no PickupOrigins key — this covers them.</summary>
 	private (Item Item, Vector2 Pos)? _lastPickupStart;

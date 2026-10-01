@@ -35,6 +35,10 @@
 4. **The patch skips the bridge for a remote apply** (`__state.IsLocalAction`). The peers already have
    that damage; the deep guard stays in `BlockBreakSync` (`IsRemoteApply`), and the air-write claim is
    additionally protected by `WorldEventSync.OnBlockSet`'s own early return under `RemoteApply`.
+   Every REMOTE-APPLY query in this family is the scope-CHAIN form
+   (`CallContext.IsWithin(CallContext.Origin.RemoteApply)`), not the innermost origin: batch
+   `20261002-c` showed that a nested sub-scope (this patch's own `DamageBlockOrigin`) masks
+   `CallContext.Current` — see §9.
 5. **Both halves land in one cycle.** The ticket deferred the spider half until "the role semantics of a
    guest's spider clone" were verified: row 8 answers it — the frozen copy cannot run the burrow path,
    so the only new spider reports are the host's own (which is exactly acceptance row 2), and no new
@@ -79,7 +83,7 @@
 | `WorldGenerationDamageBlockPatch` anchor | `[typeof(Vector2), typeof(float), typeof(bool), typeof(bool)]` → `[typeof(Vector2Int), typeof(float), typeof(bool), typeof(bool), typeof(bool)]`; the Prefix uses the cell parameter (no `WorldToBlockPos`) | `DamageBlockHookCoverageGateTests.ThePatch_AnchorsTheOverloadEveryNativeCallerEnters`; red before, green after |
 | The report seam | `OnBlockDamaged` takes `Vector2Int cell` at all three declarations; `BlockBreakSync` drops its conversion | `DamageBlockHookCoverageGateTests.TheReport_CarriesTheCellRatherThanAWorldPosition`; `FullyQualifiedNameGateTests`/build |
 | Custom-tile drops | `OnCustomTileBroken` additionally requires `!ignoreLoot` | **static only**: the native gate read plus the §3 audit; the Unity-side provider has no executing test (limit §8), so this row is a claim about the code, not a green case |
-| Remote apply | The Postfix returns before the bridge when `!IsLocalAction` | patch source; `BlockBreakSync.IsRemoteApply` remains the deep guard; `WorldEventSync.OnBlockSet` early-returns under `RemoteApply` |
+| Remote apply | The Postfix returns before the bridge when `!IsLocalAction`; every remote-apply attribution guard asks the scope CHAIN (`CallContext.IsWithin`) | patch source; `BlockBreakSync.IsRemoteApply` remains the deep guard; `WorldEventSync.OnBlockSet` early-returns when the chain holds `RemoteApply`; `CallContextScopeCompositionGateTests` + `CallContextCompositionTests` (§9) |
 | `applied` (the sender's contribution) | unchanged: the row delta after minus before, `0` on a break | the evidence matrix's second quote for this file is untouched |
 | The wire | unchanged, no new member, no version bump | `BlockDamagedMsg` carries `X`/`Y`; `ProtocolNumberGateTests` green |
 | The gate itself | Roslyn reader of the `[HarmonyPatch]` declaring type and argument-type list + the cell pin, with positive/negative samples and a floor | `TheAnchorCensus_ReadsTheAttributeArgumentsAndIgnoresMentions`, `TheChokePointPredicate_AcceptsOnlyTheBodyOverload`, `TheAnchor_NamesTheWorldGenerationTargetAndTheBodyOverload` |
@@ -167,3 +171,34 @@ claim anywhere that a heard result had been proven.
   it — `DamageBlock` on air would invent a transient row and play a hit sound for a block that is gone. A
   wall the roll only DAMAGES is the other case: nothing was written air, so the report IS applied and the
   crack state follows before the next snapshot.
+
+## 9. Second cycle — the write echo and the chain query (batch `20261002-c`)
+
+Batch `20261002-c` falsified the remote-apply claim as §2's decision 4 and §4's row stated it: a remote
+apply did not stay silent end to end. The single-variable run (a host crush with one peer in the world)
+showed the peer's PRESENTATION write being reported back and answered — the peer logged
+`[BlockBreak] presenting a relayed break at (511,976)…` followed by
+`[BlockSync] host answered (511,976) — dropped the pending report`, and the host logged
+`[BlockSync] answered …'s report at (511,976) with the authoritative block 0`
+(`docs/evidence/acceptance/unhooked-damage-block-callers-20261002-c.md`).
+
+- **Mechanism.** `CallContext.Current` answers the INNERMOST origin, and this patch's Prefix pushes
+  `DamageBlockOrigin` on top of the caller's `RemoteApply` for the whole roll. Every guard that asked
+  `Current == RemoteApply` therefore stopped seeing the remote application inside the roll — including
+  `WorldEventSync.OnBlockSet`, the early return that keeps an applied write from being reported (guest)
+  or re-broadcast (host). The roll's own `SetBlock(0)` reached it as a local player break.
+- **Fix.** `CallContext.IsWithin(Origin)` answers whether an origin is ANYWHERE in the active chain
+  (`Current` keeps the innermost answer for the CLASSIFICATION guards), and every remote-apply
+  attribution guard now uses it: `WorldEventSync`, `BlockBreakSync`, `EntitySpawnSync`, `EntityEventSync`,
+  `DynamiteExplosionSync`, `WorldBuildingEntitySync`, `ContainerItemSync`, `ItemWorldSync`, `PickupSync`,
+  `HeaterCookSync`, `CraftingPatches`, `SoundPlayPatch`, `SoundPlayAudioClipPatch`,
+  `WorldGenerationSetBlockPatch` and this patch's own `isLocalAction` (where the conversion closes the
+  sibling shape: a roll that starts while another sub-scope is already on top).
+- **Evidence.** Gate `CallContextScopeCompositionGateTests` bans the four innermost-origin comparison
+  forms under `src/`, requires the declaration and holds a census floor; reflective
+  `CallContextCompositionTests` pins `Current` innermost, `IsWithin` through a nested scope, `LocalAction`
+  at depth 0 and Dispose restoration. Red on the frozen pre-fix tree: 3 failed / 12 passed / 15 (gate) and
+  3 failed / 1 passed / 4 (composition); green after: 15/15 and 4/4, gate project 315/315, full suite
+  4577/4577 with build. Artifacts `d-red-gate.log`, `d-red-composition.log`, `d-full-test-1.log` in the
+  batch artifact directory. The dual-client verdict for row 4 is the batch-`20261002-d` acceptance run,
+  recorded on the ticket.

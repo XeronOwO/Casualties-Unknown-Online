@@ -40,7 +40,7 @@ internal sealed class HeaterCookSync(
 	/// </summary>
 	internal ulong OnCookCandidate(Item item)
 	{
-		if (CallContext.Current == CallContext.Origin.RemoteApply || HarmonyTraverse.IsGenerating())
+		if (CallContext.IsWithin(CallContext.Origin.RemoteApply) || HarmonyTraverse.IsGenerating())
 		{
 			return 0;
 		}

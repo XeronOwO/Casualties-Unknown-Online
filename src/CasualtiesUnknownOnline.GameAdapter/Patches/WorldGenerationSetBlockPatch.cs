@@ -33,7 +33,7 @@ internal static class WorldGenerationSetBlockPatch
 		// frame happens to be running (which, during a quake, is every frame —
 		// "the guest's broken blocks are a subset of the host's").
 		if (block == 0 && WorldGenerationUpdatePatch.InUpdate && PatchBridge.Impl is { } bridge
-			&& CallContext.Current != CallContext.Origin.RemoteApply)
+			&& !CallContext.IsWithin(CallContext.Origin.RemoteApply))
 		{
 			return bridge.ShouldApplyQuakeBreak(pos);
 		}

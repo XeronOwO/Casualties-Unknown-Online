@@ -56,7 +56,7 @@ internal sealed class DynamiteExplosionSync(
 	/// </summary>
 	internal void OnLocalExploded(ulong itemId, Vector2 position)
 	{
-		if (CallContext.Current == CallContext.Origin.RemoteApply
+		if (CallContext.IsWithin(CallContext.Origin.RemoteApply)
 			|| !_session.SessionActive
 			|| HarmonyTraverse.IsGenerating())
 		{

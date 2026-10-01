@@ -9,8 +9,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// both stay silent, so a remote-driven mutation can never be reported as the
 /// local player's action — the rule every write-report patch follows. The
 /// local-action check is what keeps a scope from being opened INSIDE a
-/// RemoteApply scope: entering one there would hide the outer origin from the
-/// two <c>Sound.Play</c> patches, whose only echo guard is that outer scope.
+/// RemoteApply scope: a capture there would be meaningless (the facts travel
+/// with the intent being applied) and it keeps the scope stack clean. The two
+/// <c>Sound.Play</c> patches read the CHAIN (<c>CallContext.IsWithin(RemoteApply)</c>)
+/// for their echo guard, so they stay silent under any nested sub-scope a remote
+/// application opens.
 /// </summary>
 internal static class CaptureScopeGuard
 {

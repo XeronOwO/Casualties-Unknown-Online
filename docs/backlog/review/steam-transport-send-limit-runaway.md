@@ -1,12 +1,15 @@
 # A Steam send-limit refusal floods the log and wedges the host main thread
 
-- Status: Review (code landed 2026-10-01; batch `20261001-r` judged rows 1–4, 6 and 7 — row 5, the live
-  30 s escalation, stays `unproven` on a named trigger gap, so the ticket stays open)
+- Status: Review (code landed 2026-10-01; batch `20261001-r` judged rows 1–4, 6 and 7, and batch
+  `20261001-s` re-observed row 6 while trying the dense-load path — row 5, the live 30 s escalation,
+  stays `unproven`: a peer that stops draining does not back-pressure a healthy link and the guest's
+  own watchdog ends that session first, so the ticket stays open)
 - Priority: High
 - Category: Networking / Steam transport
 - Source: observed live by acceptance batch `20261001-q` (Run E, agent-run, 2026-10-01); not
   user-reported
-- Acceptance record: `docs/evidence/acceptance/steam-transport-send-limit-runaway-20261001-r.md`
+- Acceptance record: `docs/evidence/acceptance/steam-transport-send-limit-runaway-20261001-r.md`,
+  `docs/evidence/acceptance/steam-transport-send-limit-runaway-20261001-s.md`
 - Related: `docs/evidence/acceptance/save-run-clock-not-sent-20261001-q.md`,
   `docs/evidence/acceptance/save-mid-run-consistent-cut-20261001-q.md`,
   `docs/architecture/` (transport), decision records for the session/transport split
@@ -30,12 +33,20 @@
 
 ## What remains
 
-- Row 5's live escalation needs a ≥30 s **continuous** refusal episode. This batch could not produce one
-  (see the record's Limits): the Run E condition is a dense world pushing ≈1.5 MB/s at a peer that cannot
-  keep up, and a fresh light session sends ≈60 kB/s; a suspended peer refuses but cycles its session, and
-  every auto restart lets one send succeed, which clears the episode.
-- Next attempt: regenerate the dense layer in-run (the Run E cut itself carries 0 enemy rows) or generate
-  load through the game's own spawn commands, then repeat the pump-stop injection.
+- Row 5's live escalation needs a ≥30 s **continuous** refusal episode. Batch `20261001-s` tried again
+  with the run's own next step — a dense in-run animal population (589 animals, ≈200–250 kB/s) — plus
+  three reversible injections: an organic dense load, the guest's transport pump stopped, and the
+  guest's process pinned to one of twenty cores. None produced a single `k_EResultLimitExceeded`: with
+  the pump off the host pushed >20 MB into that peer without a refusal (the guest's own silence
+  watchdog ended that session after 15 s), and the CPU-starved guest still drained ≈200 kB/s while
+  staying in the world. The record's Limits names the mechanism: a peer that stops reading does not
+  back-pressure a healthy Steam link, and the streams that carry the load are budgeted
+  (`EnemyStateBroadcast` 256 kB/s), so the host's send rate stays inside the guest's drain capacity.
+- Next attempt: a peer whose *transport* stops acking while the session stays connected — that is the
+  shape the escalation is written for. On this machine the only producer seen is process suspension,
+  which collapses the link to `Connecting` and lets the automatic restart clear the episode
+  (batch `20261001-r`); a Debug-build refusal injection would judge the session half but not this
+  trigger.
 
 ## What happened
 

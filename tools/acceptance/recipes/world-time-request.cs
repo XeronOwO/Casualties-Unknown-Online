@@ -3,13 +3,15 @@
 // serves: world-time-local-initiation
 // returns: ok, requested, sent, role, sessionActive, inWorld, gateWaiting, timeScale, curTimeScale
 //
-// Sends one WorldTimeRequest through the production channel a guest's own report uses
-// (WorldTimeSync.BeginLocalFirst -> IWorldTimeControl.SendRequest -> NetMsg.WorldTimeRequest), so the
-// host's three refusal guards can be exercised where the native keys can never reach: from the lobby (no
-// world, no local camera), while the start gate owns the clock, and with a speed no guest may request
-// (the sleep-owned UnconsciousFast/DyingFast). It needs no PlayerCamera, and it reports the state at the
-// send point; the host's refusal line and the requester's `World-time broadcast` answer are the run's
-// evidence.
+// Sends one WorldTimeRequest through the production send a guest's own report uses — the
+// IWorldTimeControl.SendRequest call WorldTimeSync.BeginLocalFirst makes for the report half
+// (WorldTimeChannel.SendRequest -> NetMsg.WorldTimeRequest). The local-first half itself is the native
+// SetTimeScale call, unreachable from the evaluator and covered by the time-scale recipe; this recipe
+// exists for the three refusal instances the native keys cannot reach: from the lobby (no world, no local
+// camera), under a held gate, and with a speed no guest may request (the sleep-owned
+// UnconsciousFast/DyingFast). It needs no PlayerCamera and reports the state at the send point; the
+// evaluator runs it on a worker thread and the send is a plain message send. The host's refusal line and
+// the requester's `World-time broadcast` answer are the run's evidence.
 ((System.Func<string>)(() => {
 	var name = {{s:speed}};
 	var services = CasualtiesUnknownOnline.Runtime.CuoBootstrap.Services;

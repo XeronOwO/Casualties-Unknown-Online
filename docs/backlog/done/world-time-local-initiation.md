@@ -1,7 +1,7 @@
 # World-time acceleration is gated on being asleep
 
-- Status: Review
-- Acceptance (20261001-u): rows 1, 2, 3, 5, 6 and 8 pass — the initiator's clock reads the new speed in its own call while the host still stands at the old one (`guest Fast applied locally and reported (host authority Normal).`), the sleep gate applies 25×, a differing answer ramps the initiator back inside 0.37 s, a late joiner enters the running world at the standing 5× (the entry broadcast and its 3.3 s resend in the guest's log), a two-press burst settles on one shared value, and a teammate's swallowed resets leave the host's clock alone; **row 4 stays unproven** — the invalid-request instances (not in world, bad speed, start gate) are not reachable from the recipe vocabulary and need an in-process way to hold the gate or an out-of-world guest while issuing a request — record `docs/evidence/acceptance/world-time-local-initiation-20261001-u.md`.
+- Status: Done
+- Acceptance (20261001-u, 20261001-v): rows 1, 2, 3, 5, 6 and 8 pass in batch u — the initiator's clock reads the new speed in its own call while the host still stands at the old one, the sleep gate applies 25×, a differing answer ramps the initiator back inside 0.37 s, a late joiner enters the running world at the standing 5×, a two-press burst settles on one shared value, and a teammate's swallowed resets leave the host's clock alone; row 4's three invalid-request instances (not in world / bad speed / start gate) each pass in batch v, refused as before and ANSWERED with the authoritative speed — records `docs/evidence/acceptance/world-time-local-initiation-20261001-u.md` and `docs/evidence/acceptance/world-time-local-initiation-20261001-v.md`.
 - Priority: Medium
 - Category: World / session (world-time initiation)
 - Source: User ruling 2026-09-18 (design alignment session): the shared clock stays shared, but the OPERATION must be immediate and local — a player who presses accelerate accelerates at once, the host arbitrates, and the broadcast brings everyone else in with an acceptable delay. Sleep keeps its "everyone unconscious" gate.
@@ -148,8 +148,9 @@ normative gates 56 with the delivery-checklist case (55 without), `dotnet build`
   the second covers a host that has gone away. No test can reach an unanswered request (the
   adapter is not constructible in the test host), so this invariant is static evidence plus
   the log line every answer writes.
-- Physical deployment and dual-client acceptance remain the user's release-cycle action;
-  development-period verification is simulation/static by rule.
+- Physical deployment and the dual-client acceptance are agent-run: batch `20261001-u` judged rows 1-3
+  and 5-8, batch `20261001-v` judged row 4, both against the deployed artifact; what stays outside the
+  simulation harness is named in the bullets above.
 
 ## Non-goals
 

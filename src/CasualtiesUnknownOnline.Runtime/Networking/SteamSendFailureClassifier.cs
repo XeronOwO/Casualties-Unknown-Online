@@ -26,14 +26,23 @@ public static class SteamSendFailureClassifier
 			return SteamSendFailureKind.Rendezvous;
 		}
 
-		return result switch
+		return ClassifyResult(result);
+	}
+
+	/// <summary>
+	/// The result-only classification the refusal gate runs on: it never reads
+	/// the session (that is a native call), so a peer's BadCert/rendezvous
+	/// override can only appear on a diagnostic line. Never used to log.
+	/// </summary>
+	public static SteamSendFailureKind ClassifyResult(EResult result) =>
+		result switch
 		{
 			EResult.k_EResultConnectFailed => SteamSendFailureKind.ConnectFailed,
 			EResult.k_EResultNoConnection => SteamSendFailureKind.NoConnection,
 			EResult.k_EResultTimeout => SteamSendFailureKind.Timeout,
+			EResult.k_EResultLimitExceeded => SteamSendFailureKind.QueueFull,
 			_ => SteamSendFailureKind.Other,
 		};
-	}
 
 	public static string Remediation(SteamSendFailureKind kind) => kind switch
 	{
@@ -47,6 +56,8 @@ public static class SteamSendFailureClassifier
 			"no Steam P2P session with this peer; verify both clients are online and in the same lobby",
 		SteamSendFailureKind.Timeout =>
 			"the P2P link timed out; retries self-heal when connectivity returns",
+		SteamSendFailureKind.QueueFull =>
+			"the peer's Steam send queue is full — it cannot drain what we send; the transport backs off and re-probes, and a peer that stays full past the stall bound is dropped by the session",
 		_ => "generic send failure; see the session state and end reason below",
 	};
 }

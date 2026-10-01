@@ -52,12 +52,11 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Steam send-limit refusal floods the log and wedges the host](todo/steam-transport-send-limit-runaway.md) — **High** — unbounded retry; 1.3 GB log in one run.
-
 ### In progress
 
 ### Review
 
+- [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; acceptance pending.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.

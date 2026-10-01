@@ -884,3 +884,39 @@ dependency the table did not name, a step that cost more than it returned.
   and then runs `join-lobby` with the same id. Verified with a 5× acceleration standing: the rejoining
   guest's log read `Scene state: InWorld (SampleScene)` and `World-time broadcast: Fast.` 30 ms later,
   then the same broadcast again 3.3 s on (the resend), and both ends read 5×.
+
+## 2026-10-01 — A WorldJoin starts every handshaken member, so a parked lobby client cannot hold the gate
+
+- Symptom: batch `20261001-v`'s first plan parked the third client in the lobby so the host's start gate
+  would wait for it; at the host's world entry both guests' scene-state reports already read InWorld
+  (their own generations had started from the host's `WorldJoin`), arming found `No confirmed members
+  waiting` and released the gate in the same second.
+- Cause: the host's click sends `WorldJoin` to every handshaken member and each guest starts its own run;
+  the world-entry edge re-invites members that missed the click, so a lobby member is not a member "not in
+  world" for long enough to hold the gate.
+- Change: hold the gate with `leave-world` on a member plus the production arm
+  (`tools/acceptance/recipes/gate-arm.cs` -> `IWorldControl.StartStartGate`); the gate then waits for that
+  member and its own 30 s fallback releases it. Recorded in
+  `docs/evidence/acceptance/world-time-local-initiation-20261001-v.md`.
+
+## 2026-10-01 — A recipe whose expression ends at the cast returns the delegate
+
+- Symptom: the new request recipe's eval answered an empty value and the driver failed with
+  `Invalid JSON primitive: .`; the raw HotRepl frame showed the result object was the delegate itself —
+  the snippet had ended at the cast, without the trailing invocation.
+- Cause: the offline gate parses a recipe for syntax and its argument contract only, and a missing `()`
+  still parses — it simply returns the lambda. The driver's parse then reports a protocol-level failure
+  that names nothing about the real cause.
+- Change: every recipe ends with `}))()` and a new recipe is smoked through the live evaluator (one
+  invocation) before the run; when a driver answers `driver-error` on an empty value, read the raw frame
+  before suspecting the channel.
+
+## 2026-10-01 — The start gate's 30 s fallback is wall-clock and runs while the world is frozen
+
+- Symptom: a request sent 26 s after the gate was re-armed was still answered by the gate guard; the arm
+  line and the `Start gate forced after 30 s` line bracket exactly 30.0 s while the gate held the host's
+  world frozen (`StartGateCoordinator` writes `Time.timeScale = 0` for the hold).
+- Cause: `WorldStartGate.PumpTimeout` compares `ITimeSource.NowMs` (`SystemTimeSource` =
+  `Environment.TickCount`), which keeps advancing at timeScale 0, and the host's pump keeps running.
+- Change: time a gate-guard instance against the arm's own wall clock and cite the arm line plus the
+  `forced after 30 s` line as the hold's bounds; do not assume the freeze stops the fallback.

@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// player ⇒ 3.5×).
 /// A manual Fast/SuperFast request is HONORED while the group is awake: the
 /// initiator applies it locally at once and the host accepts first (user ruling
-/// 2026-09-18, `review/world-time-local-initiation.md`) — only an invalid request
+/// 2026-09-18, `done/world-time-local-initiation.md`) — only an invalid request
 /// is refused, and a refusal never reaches this method.
 /// </summary>
 public static class WorldTimePolicy

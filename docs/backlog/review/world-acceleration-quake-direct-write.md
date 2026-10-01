@@ -5,7 +5,7 @@
 - Priority: Medium
 - Category: World / session (world-time)
 - Source: The family audit of the movement-routing fix (decision 223, 2026-09-25): every `PlayerCamera.SetTimeScale` call is now classified, but the game also writes `Time.timeScale` DIRECTLY, and the host pump adopts such a write as the new shared speed by design (`WorldTimeSync.AdoptDirectTimeScaleWrite`).
-- Related: `done/world-acceleration-survives-movement.md` (the routing fix this is the remaining sibling of), `review/world-time-local-initiation.md`, `resolved/sleep-behavior-policy.md`, `docs/decisions/active.md` #223 and #226
+- Related: `done/world-acceleration-survives-movement.md` (the routing fix this is the remaining sibling of), `done/world-time-local-initiation.md`, `resolved/sleep-behavior-policy.md`, `docs/decisions/active.md` #223 and #226
 
 ## The ruling (2026-09-26): vanilla stands, the write is never suppressed
 

@@ -1,10 +1,11 @@
 # The Online UI's art and controls are placeholders
 
-- Status: Review (all six stages landed 2026-09-26; awaiting the final unified acceptance pass)
+- Status: Review (all six stages landed 2026-09-26; batch 20261001-j judged rows 1 and 3 and left row 2 unproven — the pointer and OS-key close paths have no executable setup yet)
+- Acceptance (20261001-j): row 1 residual, row 2 unproven, row 3 pass; the Preferences control internals are unlaid-out and are recorded on the sibling ticket's record — record `docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261001.md`
 - Priority: High
 - Category: Online UI / presentation and interaction
 - Source: User request (2026-09-26). Three asks in the user's words: much of the Online UI is simplified and does not match this game's style, and the game's own art style should be the reference; the "dropdown" is a button that lists buttons after it is clicked, which reads wrong (is there no dropdown control?); and the colour choice is half-done — the player should be free to pick, with a palette or an RGB input, instead of a few presets. The user's own reading of the cause: the simple UI was a speed choice when the online layer was pushed forward, and it should now be done properly.
-- Related: `review/online-ui-panels-request-alpha-blend-false.md` (the theme's blended frames), `review/cuo-launcher-button-obscures-the-view.md` (the launcher's idle fade), `docs/evidence/selfchecks/ui/online-ui-window-selfcheck.md`, `docs/evidence/selfchecks/ui/online-ui-polish-selfcheck.md`
+- Related: `done/online-ui-panels-request-alpha-blend-false.md` (the theme's blended frames), `done/cuo-launcher-button-obscures-the-view.md` (the launcher's idle fade), `docs/evidence/selfchecks/ui/online-ui-window-selfcheck.md`, `docs/evidence/selfchecks/ui/online-ui-polish-selfcheck.md`
 
 ## The gap
 

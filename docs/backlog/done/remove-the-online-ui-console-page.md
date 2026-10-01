@@ -1,6 +1,7 @@
 # Remove the duplicated command console page from the Online UI window
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-j): all five rows pass (no Console tab, the console's own open/suggest/submit path, the tree scan, and this batch's build+tests) — record `docs/evidence/acceptance/remove-the-online-ui-console-page-20261001.md`
 - Priority: Low-Medium
 - Category: Online UI / command console
 - Source: User finding and ruling (2026-09-21): asked whether the window's console page is worth keeping next to the in-game command line, the user ruled: delete the tab.

@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// window's console page is deleted: the in-game <c>/</c> overlay is the same command and chat
 /// surface with more capability (completion, history, suggestions, the notification lines), so the
 /// page was a second place to keep in sync and nothing else. The ticket is
-/// <c>docs/backlog/review/remove-the-online-ui-console-page.md</c>.
+/// <c>docs/backlog/done/remove-the-online-ui-console-page.md</c>.
 ///
 /// It reads the page shell, the page enum, the window state and the localisation catalogue as text
 /// (the both-language half also reads the compiled catalogue) and lives in its own class on purpose:

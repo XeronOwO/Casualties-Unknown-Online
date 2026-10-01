@@ -1,11 +1,12 @@
 # The window title must use the game's official Chinese name
 
-- Status: Review (code complete 2026-09-27: the catalogue carries `未知伤亡` and the test pins it; awaiting the run)
+- Status: Done
+- Acceptance (20261001-j): both rows pass (the Chinese title reads `未知伤亡：联机`; the English one is unchanged) — record `docs/evidence/acceptance/official-game-name-in-window-title-20261001.md`
 - Priority: Medium
 - Category: Localization / Online UI
 - Source: User correction (2026-09-27): the game's official Chinese name is 未知伤亡, not the reversed
   伤亡未知 the Online UI's window title read.
-- Related: `review/online-ui-layout-and-input-detail-pass.md` (the window the string is read on),
+- Related: `todo/online-ui-layout-and-input-detail-pass.md` (the window the string is read on),
   `docs/standard/terminology.txt`
 
 ## Problem

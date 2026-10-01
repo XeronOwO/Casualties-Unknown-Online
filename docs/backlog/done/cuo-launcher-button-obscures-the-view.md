@@ -1,10 +1,11 @@
 # The CUO Online launcher button covers the play area
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-j): rows 1, 3, 4 and 5 pass; row 2 is a residual (hover needs a real pointer) — record `docs/evidence/acceptance/cuo-launcher-button-obscures-the-view-20261001.md`
 - Priority: Medium
 - Category: Online UI / presentation
 - Source: User acceptance finding (2026-09-21): the `CUO 联机` button in the top-right corner blocks the game view; the user asks for a design fix, for example becoming semi-transparent after a period without use.
-- Related: `review/remove-the-online-ui-console-page.md` (the other Online UI window change from the same acceptance pass), `done/player-list-polish.md`, `review/online-ui-layout-and-input-detail-pass.md` (the 2026-09-27 acceptance pass found the 0.35 floor still covered the medical panel's readout in the same corner, and dropped it to 0.12 there)
+- Related: `done/remove-the-online-ui-console-page.md` (the other Online UI window change from the same acceptance pass), `done/player-list-polish.md`, `todo/online-ui-layout-and-input-detail-pass.md` (the 2026-09-27 acceptance pass found the 0.35 floor still covered the medical panel's readout in the same corner, and dropped it to 0.12 there)
 
 ## Evidence
 
@@ -50,7 +51,7 @@
   explicit-colour `DrawTexture` overload takes its colour verbatim, so the tint dimmed only the label
   and left the panel at alpha 0.96 — the reported defect intact. The launcher's frame now also draws
   with `alphaBlend: true` (the shared panels followed in
-  `review/online-ui-panels-request-alpha-blend-false.md`, so every themed frame blends now).
+  `done/online-ui-panels-request-alpha-blend-false.md`, so every themed frame blends now).
 - **No per-pass allocation.** The label comes from a cached pair in `OnlineUiWindowState` instead of
   a per-pass concatenation, so the draw path builds no string, and the launcher style is re-derived
   only when the alpha changes — a `GUIStyleState` access allocates, and the launcher holds one alpha
@@ -61,7 +62,7 @@
   protocol, save, session or gameplay code.
 - **Sibling resolved in its own cycle:** the theme's shared panels asked for `alphaBlend: false`, which
   could make their claimed translucency unattainable; that question was carried by
-  `review/online-ui-panels-request-alpha-blend-false.md`, whose cycle made every themed frame blended
+  `done/online-ui-panels-request-alpha-blend-false.md`, whose cycle made every themed frame blended
   (the launcher's own frame already was).
 
 Red, ladder, the adversarial review's dispositions and the limits (no rendered pixels here — the

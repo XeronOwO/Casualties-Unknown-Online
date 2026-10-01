@@ -1,10 +1,11 @@
 # The Online UI's panels asked for alphaBlend: false
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-j): both rows pass — the console overlay is the one themed surface left and it blends and reads, and the census pin suite is green — record `docs/evidence/acceptance/online-ui-panels-request-alpha-blend-false-20261001.md`
 - Priority: Low-Medium
 - Category: Online UI / presentation
 - Source: The launcher idle-fade cycle's independent review (2026-09-26): repairing that fade established that the theme's shared panel draws pass `alphaBlend: false`, and that the explicit-colour `GUI.DrawTexture` overload hands its colour — and that flag — to the native draw verbatim.
-- Related: `review/cuo-launcher-button-obscures-the-view.md` (whose frame took the blended path first), `docs/evidence/selfchecks/ui/cuo-launcher-idle-fade-selfcheck.md`, `docs/evidence/selfchecks/ui/online-ui-panel-blending-selfcheck.md`
+- Related: `done/cuo-launcher-button-obscures-the-view.md` (whose frame took the blended path first), `docs/evidence/selfchecks/ui/cuo-launcher-idle-fade-selfcheck.md`, `docs/evidence/selfchecks/ui/online-ui-panel-blending-selfcheck.md`
 
 ## The question
 

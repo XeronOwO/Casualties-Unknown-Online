@@ -1,6 +1,6 @@
 # The Online UI window's console page is removed — self-check (2026-09-26)
 
-Ticket: `docs/backlog/review/remove-the-online-ui-console-page.md`. Cycle scope: delete the window's
+Ticket: `docs/backlog/done/remove-the-online-ui-console-page.md`. Cycle scope: delete the window's
 duplicated console page end to end — the tab, the page enum member, the drawer, the window state it
 used and the catalogue keys that only it read — while the in-game `/` overlay stays the only command
 and chat surface (user ruling 2026-09-21, decision 228).

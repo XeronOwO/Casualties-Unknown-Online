@@ -52,11 +52,12 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — the acceptance pass' geometry and click findings.
+
 ### In progress
 
 ### Review
 
-- [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the acceptance pass' geometry and click findings.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
@@ -155,13 +156,9 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Host eating sound on the guest](review/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume family rides the one-shot event.
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
-- [CUO launcher button covers the view](review/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
-- [Remove the Online UI console page](review/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — the hook covers the crush and the burrow.
-- [Online UI panels asked for alphaBlend false](review/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
 - [The one-top-level-type gate sees every modifier](review/source-shape-gate-modifier-blindness.md) — **Medium** — seven files split; samples pin the matcher.
-- [The window title must use the game's official Chinese name](review/official-game-name-in-window-title.md) — **Medium** — `未知伤亡`, not the reversed form.
 - [A gate that keeps a run off a machine its owner is playing on](review/session-environment-gate.md) — **High** — refuses while a game process runs.
 
 ### Future
@@ -253,6 +250,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carried rider's own body stops simulating](done/carried-rider-own-body-stops-simulating.md) — **Critical** — the rider's own client keeps simulating.
 - [Guest container ghost drops on host](done/guest-container-contents-ghost-drops-on-host.md) — **Medium** — clone proxies lose instance ids.
 - [Carried-inventory registration](done/carried-inventory-registration-re-report.md) — **Medium** — the absolute re-report window.
+- [CUO launcher button covers the view](done/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
+- [Remove the Online UI console page](done/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
+- [Online UI panels asked for alphaBlend false](done/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
+- [The window title must use the game's official Chinese name](done/official-game-name-in-window-title.md) — **Medium** — `未知伤亡`, not the reversed form.
 
 ### Watchlist
 

@@ -1,6 +1,9 @@
 # The restore account's entity and native arms are released without a contribution
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-o): all ten rows are the batch's own suite step — the four named classes ran
+  66/66 (`arm-release-suite.txt`) and each row's case was re-read as passed; record
+  `../evidence/acceptance/restore-account-arm-release-20261001-o.md`
 - Priority: Low
 - Category: Persistence / save system (the restore account)
 - Source: recorded by the restore-ATTEMPT-identity cycle of

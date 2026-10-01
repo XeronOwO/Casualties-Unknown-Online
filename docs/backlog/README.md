@@ -52,6 +52,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [S4.3 — Starting supplies for a new player](todo/save-new-player-starting-supplies.md) — **High** — the policy keys on body identity.
+- [Run clock is not sent to a mid-run joiner](todo/save-run-clock-not-sent.md) — **Low-Medium** — the clocks travel as their own message.
+
 ### In progress
 
 ### Review
@@ -86,7 +89,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4.4 — Interval autosave and recovery](review/save-interval-autosave-and-backup-recovery.md) — **High** — retention and backup promotion.
 - [Evidence matrix fat rows](review/evidence-matrix-fat-rows-split.md) — **Low-Medium** — a count plus the evidence file.
 - [Unrepresentable runtime creations are rejected](review/runtime-entity-creation-rejection.md) — **High** — the creator's copy is destroyed.
-- [S4.3 — Starting supplies for a new player](review/save-new-player-starting-supplies.md) — **High** — the policy keys on body identity.
 - [S4.2 — The restore account surface](review/save-restore-account-surface.md) — **High** — one console line per save event.
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [S3.6 — Solo menu-exit trigger](review/save-solo-menu-exit-trigger.md) — **Medium** — the leave action is intercepted and replayed.
@@ -138,8 +140,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The backlog index duplicates its tickets](review/backlog-index-summary-duplication.md) — **Low-Medium** — the index is a pointer table.
 - [Trap-layout snapshot recovery](review/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s repair re-derives and re-sends the layout.
 - [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
-- [Run clock is not sent to a mid-run joiner](review/save-run-clock-not-sent.md) — **Low-Medium** — the clocks travel as their own message.
-- [Restore account arm release](review/restore-account-arm-release.md) — **Low** — every release path accounts for its own live-world half.
 - [Dropped mod command requests](review/mod-command-request-timeout.md) — **Low** — the request deadline and the bounded pending map.
 - [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
@@ -253,6 +253,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Metal-scrap placement sound on guest](done/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium** — sounds ride the sound event.
 - [Guest hears only some block-break sounds](done/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the break was silent on the other side.
 - [Layer time is not carried](done/save-layer-time-not-carried.md) — **Low-Medium** — the continued layer resumes its timer once the generation finishes.
+- [Restore account arm release](done/restore-account-arm-release.md) — **Low** — every release path accounts for its own live-world half.
 
 ### Watchlist
 

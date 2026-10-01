@@ -1,6 +1,11 @@
 # S4.3 — A player the world has no character for is supplied as a NEW player
 
-- Status: Review (landed 2026-09-14; awaiting the final unified acceptance pass)
+- Status: Todo — Rejected (row 3: a body the world has a character for announced a starting-supply
+  grant before the stored character arrived, and the granted item was then superseded by the restore)
+- Acceptance (20261001-o): row 3 FAILS — the first guest's own log shows the grant announced before its
+  stored character arrived, five times, while the opposite ordering takes the correct branch; rows 1, 2
+  and 4 pass live, the remaining rows pass on this batch's suite — record
+  `../evidence/acceptance/save-new-player-starting-supplies-20261001-o.md`
 - Priority: High
 - Category: Persistence / save system
 - Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scope 1 (second half),

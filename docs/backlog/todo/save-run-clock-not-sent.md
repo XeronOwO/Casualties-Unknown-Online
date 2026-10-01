@@ -1,7 +1,12 @@
 # The archived run clock base never reaches a player who joins mid-run
 
-- Status: Review — landed 2026-09-19 with `RunFacts` (protocol 33); the end-screen rows await the
-  user's dual-client pass
+- Status: Todo — Rejected (row 1: a joining guest's live run clock is short by the interval since the
+  host last published its base — 30.0 s and 85.6 s in this run — and the 60 s repair re-sends the same
+  absolute value, so it never converges)
+- Acceptance (20261001-o): row 1 FAILS the live comparison the batch plan names, row 2 passes and the
+  suite row 3 passes — record `../evidence/acceptance/save-run-clock-not-sent-20261001-o.md`. The fix
+  needs the publish POINT, not the value: a mid-world joiner takes the host's last published base while
+  its own counter starts at its own entry, and the repair group re-sends that same absolute value.
 - Priority: Low-Medium
 - Category: Persistence / save system (wire)
 - Source: the S3.4a independent adversarial pass, kept as a recorded gap until the S3.4c hardening

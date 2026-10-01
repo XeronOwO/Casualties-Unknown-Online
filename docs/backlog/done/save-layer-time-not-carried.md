@@ -59,7 +59,7 @@ coroutine, and the game zeroes `layerTimeSpent` on the first line of `FinishWorl
 arms a pending value through `INativeWorldFacts.ApplyCutRunFields(savedRunTime, layerTimeSpent)`, and
 `TryWritePendingLayerTimer` lands it at the first seam after the generation — the world-entry edge, or
 the apply of a message that reaches a member already in the world; the member-side handover travels on
-`RunFacts` (see `review/save-run-clock-not-sent.md`).
+`RunFacts` (see `todo/save-run-clock-not-sent.md`).
 
 | # | Acceptance row (resume) | What pins it |
 |---|---|---|

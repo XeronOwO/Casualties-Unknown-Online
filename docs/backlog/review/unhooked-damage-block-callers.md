@@ -1,7 +1,7 @@
 # Host block damage reports: two native `DamageBlock` callers are not hooked
 
-- Status: Todo — Rejected (batch `20261002-c`: row 4 fails — the receiving side's presentation write IS reported back to the host; rows 1, 3, 5, 6 pass from batch `20261002-b`; row 2 stays open — no reachable spider-burrow path on this machine)
-- Acceptance records: `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-x.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-y.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-b.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-c.md`
+- Status: Review — row 4 verified in batch `20261002-d` (the chain-query fix, commit `b3aadc01`); rows 1, 3, 5 and 6 re-verified in the same batch; row 2 stays blocked — no reachable spider-burrow path on this machine, so the ticket is not closed
+- Acceptance records: `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-x.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-y.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-b.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-c.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-d.md`
 - Priority: Low-Medium
 - Category: World block damage / report coverage
 - Source: found while fixing `done/guest-hears-only-some-block-break-sounds.md` (the presentation half of the same report). The mechanism inventory for that fix censused every native `DamageBlock` call site and found two that never produce a report, because CUO patches only the `Vector2` overload.
@@ -58,16 +58,29 @@ The hook is anchored on the CHOKE POINT instead of on the forwarder, and the rep
   `DamageBlockOrigin`, so the air write goes out stamped as a player break and the peer PRESENTS it
   through the game's own damage roll instead of writing silent air.
 
+## What landed (2026-10-02 cycle — the write echo)
+
+Batch `20261002-c` falsified this ticket's "no echo" expectation: the receiving side's presentation
+write WAS reported back and the host answered it. The cause was the call-identity query, not this
+family's wiring: `CallContext.Current` answers the INNERMOST origin, and the damage patch pushes
+`DamageBlockOrigin` on top of the caller's `RemoteApply` for the whole roll, so
+`WorldEventSync.OnBlockSet`'s early return stopped seeing the remote application and the roll's own
+`SetBlock(0)` was reported as a local player break. `CallContext.IsWithin(Origin)` now answers the scope
+CHAIN, and every remote-apply attribution guard uses it (this patch, `BlockBreakSync`, `WorldEventSync`
+and twelve siblings); `Current` keeps the innermost answer for the classification guards. Pinned by
+`CallContextScopeCompositionGateTests` and `CallContextCompositionTests`; the mechanism and its
+red/green record are in the selfcheck's §9. Batch `20261002-d` re-ran the row on the fixed artifact.
+
 ## Acceptance criteria
 
 | # | Scenario | Expected | Verified by |
 |---|---|---|---|
-| 1 | Host walks over a `health <= 1` block (footstep crush) | the guest hears the same break and receives the damage, not only the air write | the roll now reports (gate + selfcheck §3); the audible half is the user's dual-client pass |
-| 2 | Host's spider burrows through a wall | a wall the burrow only DAMAGES converges on the guest through the report (crack state follows before the snapshot); a wall it BREAKS is presented on the guest through the air write's claim, and the damage report that follows is discarded there because the cell is already air (`BlockBreakSync`'s `blockIsAir` guard — by design, damaging air would invent a transient row and play a sound for a block that is gone) | the report path (gate + selfcheck §3); the two outcomes and the discard point are stated in selfcheck §8; the audible half is the user's dual-client pass |
-| 3 | Guest's own footstep crush, host listens | same, reverse direction | the same hook sees a guest's local roll and reports it (`BlockBreakSync` sends, the host arbitrates) |
-| 4 | A remote apply (the CUO applier's own `DamageBlock` roll) | no report, no echo | the chain-query guards (`CallContext.IsWithin(RemoteApply)`) in the patch, `BlockBreakSync` and `WorldEventSync.OnBlockSet` — batch `20261002-c` falsified the innermost-origin forms; pinned by `CallContextScopeCompositionGateTests` and `CallContextCompositionTests` |
-| 5 | Third peer | same cadence | the existing broadcast channel (`SendBlockDamaged` → host relay), unchanged |
-| 6 | Report volume | the footstep path reports once per crushed cell, the burrow path stays on its own bite cooldown — no per-frame stream | the native call sites are discrete (`Body.cs:2704-2711`, `SpiderHandler.cs:215-218`); the report follows the roll one-for-one |
+| 1 | Host walks over a `health <= 1` block (footstep crush) | the guest hears the same break and receives the damage, not only the air write | **pass** — batch `20261002-d`: both peers presented all three crushed cells and the host answered no report (`d-b2-*`); the audible half is the user's residual |
+| 2 | Host's spider burrows through a wall | a wall the burrow only DAMAGES converges on the guest through the report (crack state follows before the snapshot); a wall it BREAKS is presented on the guest through the air write's claim, and the damage report that follows is discarded there because the cell is already air (`BlockBreakSync`'s `blockIsAir` guard — by design, damaging air would invent a transient row and play a sound for a block that is gone) | **blocked** — no reachable spider-burrow path on this machine; the report path is pinned by the gate and selfcheck §3, the two outcomes and the discard point are stated in selfcheck §8 |
+| 3 | Guest's own footstep crush, host listens | same, reverse direction | **pass** — batch `20261002-d`: the host applied the guest's break and the third client presented it (`d-b3-host.log`, `d-b3-alt.log`) |
+| 4 | A remote apply (the CUO applier's own `DamageBlock` roll) | no report, no echo | **pass** — batch `20261002-d` (two single-variable repetitions: presentation intact on the only peer, no host answer); the chain-query guards are pinned by `CallContextScopeCompositionGateTests` and `CallContextCompositionTests` |
+| 5 | Third peer | same cadence | **pass** — batch `20261002-d`: the third client presented the host's crush cells alongside the guest (`d-b2-alt.log`) |
+| 6 | Report volume | the footstep path reports once per crushed cell, the burrow path stays on its own bite cooldown — no per-frame stream | **pass** — batch `20261002-d`: exactly one presentation line per peer per crushed cell; the native call sites stay discrete (`Body.cs:2704-2711`, `SpiderHandler.cs:215-218`) |
 
 ## Evidence
 

@@ -52,12 +52,11 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Recipe `// args:` gate and CRLF working trees](todo/recipe-args-crlf-gate.md) — **Medium** — a CRLF checkout feeds `\r` into the last argument.
-
 ### In progress
 
 ### Review
 
+- [Recipe `// args:` gate and CRLF working trees](review/recipe-args-crlf-gate.md) — **Medium** — a CRLF checkout feeds `\r` into the last argument.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.

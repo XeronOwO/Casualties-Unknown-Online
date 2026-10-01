@@ -131,7 +131,9 @@ internal static class WorldBackupPromotion
 		var replaced = aside is null
 			? "there was no live snapshot to replace"
 			: keepEvidence
-				? $"the refused live snapshot is preserved at {Path.GetFileName(aside)}"
+				? trigger == WorldPromotionTrigger.RefusedSnapshot
+					? $"the refused live snapshot is preserved at {Path.GetFileName(aside)}"
+					: $"the replaced snapshot is preserved at {Path.GetFileName(aside)} (its pre-restore archive could not be written, so the folder is that state's only copy)"
 				: "the replaced snapshot is archived as the pre-restore backup and its folder was removed";
 		account.Add($"{replaced}; backup {backup.FileName} was promoted to the live snapshot");
 		log.LogWarning("World {Directory}: {Account}", worldDirectory, account[account.Count - 1]);

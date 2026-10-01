@@ -68,7 +68,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Composition root feature modules](review/composition-root-feature-modules.md) — **Medium** — feature modules, one reset contract, binding gate.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [Systemic save and backup management](review/systemic-save-backup-management.md) — **Medium** — the backup/restore layer's roadmap.
-- [World and backup management surface](review/world-and-backup-management-surface.md) — **Medium** — the world/backup picker and the player-chosen restore.
 - [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.
 - [Partial-damage report vs the live delta](review/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
 - [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.
@@ -86,7 +85,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [S4 — Multiplayer restore and backups](review/save-multiplayer-restore-and-backups.md) — **High** — stage 4 (S4.1–S4.4).
-- [S4.4 — Interval autosave and recovery](review/save-interval-autosave-and-backup-recovery.md) — **High** — retention and backup promotion.
 - [Evidence matrix fat rows](review/evidence-matrix-fat-rows-split.md) — **Low-Medium** — a count plus the evidence file.
 - [Unrepresentable runtime creations are rejected](review/runtime-entity-creation-rejection.md) — **High** — the creator's copy is destroyed.
 - [S4.2 — The restore account surface](review/save-restore-account-surface.md) — **High** — one console line per save event.
@@ -254,6 +252,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest hears only some block-break sounds](done/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the break was silent on the other side.
 - [Layer time is not carried](done/save-layer-time-not-carried.md) — **Low-Medium** — the continued layer resumes its timer once the generation finishes.
 - [Restore account arm release](done/restore-account-arm-release.md) — **Low** — every release path accounts for its own live-world half.
+- [World and backup management surface](done/world-and-backup-management-surface.md) — **Medium** — the world/backup picker and the player-chosen restore.
+- [S4.4 — Interval autosave and recovery](done/save-interval-autosave-and-backup-recovery.md) — **High** — retention and backup promotion.
 
 ### Watchlist
 

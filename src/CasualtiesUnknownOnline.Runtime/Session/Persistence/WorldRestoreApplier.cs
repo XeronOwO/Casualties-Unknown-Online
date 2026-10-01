@@ -247,7 +247,7 @@ internal sealed class WorldRestoreApplier(
 		{
 			var refusal = $"the kernel rejected the checkpoint: {restored.Error}";
 			log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
-			return Refuse(worldId, refusal, salvage);
+			return RefuseHolding(worldId, refusal, salvage);
 		}
 
 		// The ATTEMPT's identity: the kernel restore just bumped it, and every arm this

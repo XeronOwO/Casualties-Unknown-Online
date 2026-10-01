@@ -21,9 +21,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 ///
 /// The interval autosave lives here because it is a trigger like any other: it arms
 /// the same request, waits the same deadline, is written by the same seam and is
-/// reported through the same event. What it does NOT do is reset on a refusal or a
-/// deferral — only a committed cut restarts the interval (see
-/// <see cref="WorldAutosaveInterval"/>).
+/// reported through the same event. A cut that REACHES the writer restarts the
+/// interval whether it commits or is refused — the attempt is what opens a fresh
+/// window, so a world that cannot be written is retried once per interval rather
+/// than once per frame (see <see cref="WorldAutosaveInterval"/>).
 /// </summary>
 internal sealed class WorldCutTrigger(
 	ISessionControl session,

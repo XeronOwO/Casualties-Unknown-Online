@@ -1,6 +1,8 @@
 # S4.4 — Interval autosave, backup retention, failure degradation, refusal recovery
 
-- Status: Review (landed 2026-09-14; awaiting the final unified acceptance pass)
+- Status: Done
+- Acceptance (20261001-p): fourteen rows pass — the interval kind and its restart on a committed cut (and on a failed attempt), retention after every committed cut, the config surface through the config system's own edit path, every failure-matrix case (disk full by the suite's injection), the decode-level refusal's recovery and the pre-restore copy; record
+  `../evidence/acceptance/save-interval-autosave-and-backup-recovery-20261001-p.md`
 - Priority: High
 - Category: Persistence / save system
 - Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scope 4 + 5, plus S3's
@@ -20,10 +22,12 @@ report and the same one-log-line account. Three decisions are worth naming:
 
 - It is its own KIND (`WorldCutKind.Auto`, reason `auto-interval`), not a mid-run cut with a different
   reason: the archive is named `auto-<stamp>.cuoz` and the manifest says what it holds.
-- The interval (default 10 minutes, frozen with the user) restarts on every **committed** cut of any
-  trigger. A refused or deferred cut has not written the world, so counting it would push the next
-  autosave out by a full interval for a world that was never saved; a committed hand save, layer
-  boundary or menu return means the world was just written, so the next interval starts there.
+- The interval (default 10 minutes, frozen with the user) restarts whenever a cut REACHES the writer —
+  a committed cut of any trigger, or an attempt the writer refused. Counting the ATTEMPT is what keeps
+  a world that cannot be written (a read-only folder, a vanished drive) on a once-per-interval retry
+  instead of a once-per-frame cut storm, while a refusal that never reached the writer (a guest, no
+  world) opens no window; a hand save, layer boundary or menu return means the world was just written,
+  so the next interval starts there.
 - It only arms while a world is LOADED (`inWorld` from the adapter). A host that returned to the main
   menu still owns a world folder, and cutting it there would churn — and prune — the archive set of a
   world nobody is playing. A cut the player asked for always wins the seam: the interval never
@@ -40,8 +44,10 @@ world stays loadable.
 `AutosaveIntervalMinutes`, `BackupRetentionCount`) is bound in the plugin's `[Save]` section to a
 `BepInExOptionsMonitor<SaveOptions>`, with a `MutableOptionsMonitor` default in `CuoBootstrap` so a
 composition without a config file still resolves. The values are read at each DECISION (arm, cut,
-prune), so a config edit hot-reloads without a restart; `SaveOptions` clamps both bounds as well,
-because a hand-edited config file bypasses BepInEx's own range validation.
+prune), so a config edit made through the config system hot-reloads without a restart; an edit of the
+`.cfg` file on disk is read at the next reload (BepInEx 5.4's `ConfigFile` has no file watcher), and
+`SaveOptions` clamps both bounds as well, because a hand-edited config file bypasses BepInEx's own
+range validation.
 
 **Failure degradation (scope 5).** Each case has a defined, logged, non-crashing behaviour:
 
@@ -51,7 +57,7 @@ because a hand-edited config file bypasses BepInEx's own range validation.
 | Read-only save directory | Same path: `UnauthorizedAccessException` is caught at the transaction and at the directory creation, the run keeps playing, and the world simply cannot be saved. |
 | Save root that cannot exist (drive gone, a file where the root belongs) | `WorldCatalog.TryEnsureDirectory` turns it into `WorldCreateResult.Failed` / an empty world list / `SaveWriteResult.Failed` instead of an exception thrown into the run's start path or the picker. |
 | Pruning failure | Reported, world untouched, cut committed, the undeletable archive stays on disk. |
-| Concurrent host instances | `WorldLease` (`world.lease`): one writer per FOLDER. A write that finds a lease another process refreshed inside 30 minutes is refused by name; a stale lease is taken over with a warning; the restore takes the lease before it applies anything (decision 181). |
+| Concurrent host instances | `WorldLease` (`world.lease`): one writer per FOLDER. A write that finds a lease another process refreshed inside 30 minutes AND whose owner is a live process on this machine is refused by name; a lease stale beyond the window, or one whose owning process is gone, is taken over with a warning; the restore takes the lease before it applies anything (decision 181). |
 
 **The decode-level refusal's recovery (S3 scope 7, acceptance row 6).** A refusal that happens AFTER
 the reader's own fallback (the manifest read fine, but the payload contradicts it or the run baseline
@@ -64,10 +70,16 @@ the first time), and the backup becomes `live/` — so the evidence of the refus
 next cut's transaction. Order is §5's: nothing is moved until the replacement is unpacked and verified
 in a fresh `.staging/`; a promotion that cannot finish puts the preserved folder back and refuses;
 when no backup decodes the continue is refused with the reason it already had and the folder is left
-exactly as found.
+exactly as found, with the primitive's own two named exceptions: a put-back the filesystem refuses as
+well leaves the replaced snapshot in `.previous/` or `damaged-<stamp>/` with `live/` absent (the next
+load's folder recovery and the pre-restore archive both hold that state), and a candidate whose
+promotion SUCCEEDED before its re-open failed leaves the promoted snapshot live while the refusal
+still reports the original reason.
 
-**Structure (the ticket's Known constraint).** `WorldSaveService` was at the architecture line limit,
-so the cut-TRIGGER family moved out before the interval trigger joined it: `WorldCutTrigger` owns the
+**Structure (the ticket's Known constraint).** `WorldSaveService` was at the architecture line limit
+when this stage landed (the pre-split figure is history, not reproducible from the frozen tree: at
+HEAD `WorldSaveService` is 495 lines and `WorldCutTrigger` 322, both under the 600-line gate), so the
+cut-TRIGGER family moved out before the interval trigger joined it: `WorldCutTrigger` owns the
 armed request, the bounded wait, the interval, the write and the retention pass, while the service
 keeps WHETHER and WHERE (the session's role, the world identity, the Continue entry). The same pass
 split two more classes that the new work pushed over the limit, in each case along a responsibility
@@ -104,7 +116,7 @@ interval elapsed, autosave off, a player trigger already armed, guest, no world,
 committed cut, no restart on a refused cut, restart at a Continue click), `WorldSaveRetentionTests`
 (keep N, newest kept, hot-reloaded retention, an undeletable archive), `SaveOptionsTests` (defaults and
 both clamps), `WorldLeaseTests` (fresh/stale/unreadable leases, our own lease, release, the refused
-continue), `WorldSaveDegradationTests` (disk full, read-only, unusable root), `WorldSaveRecoveryTests`
+continue, and the archive that carries an out-of-range multiplier being refused by the JSON layer), `WorldSaveDegradationTests` (disk full, read-only, unusable root), `WorldSaveRecoveryTests`
 (the end-to-end recovery: preserved evidence, promoted live snapshot, the pre-restore archive, the
 refusal when nothing decodes, an unpackable archive, another world's backup).
 
@@ -137,8 +149,12 @@ all three are fixed with tests that pin the corrected behaviour:
    (the latter against a real child process).
 3. **A refused continue kept the writer lease (fixed).** The lease is taken before the payload is
    applied, so every refusal after that point held the world until the window passed — for a restore
-   that never happened. `WorldRestoreApplier.RefuseHolding` releases it on all four post-lease refusal
-   paths. Pinned by `ARefusedContinue_GivesTheLeaseBack`.
+   that never happened. `WorldRestoreApplier.RefuseHolding` releases it on every post-lease refusal
+   path — the four the original pass counted, plus the kernel's own rejection, which the batch-p
+   independent re-audit found still using the non-releasing `Refuse` (that guard is unreachable from an
+   archive this build reads: the JSON layer refuses an out-of-range multiplier first, pinned by
+   `AnArchiveCarryingAnOutOfRangeMultiplier_IsRefusedByTheJsonLayer_AndTheLeaseIsReleased`). Pinned by
+   `ARefusedContinue_GivesTheLeaseBack`.
 
 Checked and found sound (no change needed): retention never touches the newest archive and runs only
 after a committed write; the recovery skips the archive the load already opened; a failed promotion
@@ -170,4 +186,7 @@ would be worse than a stale one.
   re-reading of the diff by the same agent, NOT the independent second context AGENTS.md requires for
   an architecture/cross-module change. The three findings show the pass was real work, but an
   independent reviewer with a fresh context should re-audit the interval/lease/recovery trio before
-  the final acceptance pass.
+  the final acceptance pass — done in batch `20261001-p`: the reviewer's findings (the fifth
+  post-lease refusal above, the interval prose that still described the pre-fix rule, the lease's
+  missing liveness clause) were folded in, and the batch's record is
+  `../evidence/acceptance/save-interval-autosave-and-backup-recovery-20261001-p.md`.

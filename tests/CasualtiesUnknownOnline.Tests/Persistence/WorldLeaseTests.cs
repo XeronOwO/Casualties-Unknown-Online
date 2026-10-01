@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -213,6 +215,45 @@ public class WorldLeaseTests
 		using var service = WorldSaveFixture.Create("lease-refused-continue", repository: fixture, utcNow: () => fixture.Now);
 
 		Assert.False(service.Service.TryContinue(out _));
+		Assert.Null(WorldLease.Read(fixture.WorldDirectory, NullLogger.Instance));
+	}
+
+	[Fact]
+	public void AnArchiveCarryingAnOutOfRangeMultiplier_IsRefusedByTheJsonLayer_AndTheLeaseIsReleased()
+	{
+		// The kernel finiteness guard is the WIRE path backstop: the archive JSON layer
+		// refuses an out-of-range literal first, so the row is untranslatable and the decode
+		// refuses before a non-finite multiplier can reach the kernel. This pins that boundary
+		// (a loosened number handling changes the summary and this test says so) and the lease
+		// the refusal owes back.
+		var fixture = SaveTestRepository.Create("lease-out-of-range-multiplier");
+		var files = WorldSnapshotCodecTests.Encoder()
+			.Encode(WorldSnapshotCodecTests.MidRunPayload(WorldSnapshotCodecTests.StartedAuthority()));
+		var run = files.Single(file => file.Path == SaveArchiveFormat.RunFileName);
+		var text = Encoding.UTF8.GetString(run.Content);
+		var patched = text.Replace("\"lootRarityMultiplier\": 1", "\"lootRarityMultiplier\": 1e400");
+		Assert.NotEqual(text, patched);
+		var payload = files
+			.Select(file => file.Path == SaveArchiveFormat.RunFileName
+				? new SavePayloadFile(file.Path, Encoding.UTF8.GetBytes(patched))
+				: file)
+			.ToArray();
+
+		var request = new SaveWorldRequest
+		{
+			WorldId = fixture.WorldId,
+			Kind = WorldCutKind.MidRun,
+			Payload = payload,
+			Meta = SaveTestData.Meta(runEpoch: "1"),
+			SavedAtUtc = fixture.Now,
+		};
+		Assert.True(fixture.Repository.WriteSnapshot(fixture.WorldId, request).Success);
+
+		using var service = WorldSaveFixture.Create("lease-out-of-range-multiplier", repository: fixture, utcNow: () => fixture.Now);
+
+		Assert.False(service.Service.TryContinue(out var outcome));
+		Assert.Contains("no readable run baseline", outcome.Summary, StringComparison.Ordinal);
+		Assert.DoesNotContain("non-finite rarity multiplier", outcome.Summary, StringComparison.Ordinal);
 		Assert.Null(WorldLease.Read(fixture.WorldDirectory, NullLogger.Instance));
 	}
 

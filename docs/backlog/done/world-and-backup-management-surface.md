@@ -1,12 +1,14 @@
 # World and backup management surface
 
-- Status: Review — landed 2026-09-20 (decision 198). Awaiting the final unified acceptance pass.
+- Status: Done
+- Acceptance (20261001-p): fifteen rows pass — the page's world and backup lists with the Continue marker, selection, the refusals, the two-click player restore with its pre-restore archive and retention, the recovery's evidence discipline, and the rendered frames read window by window; record
+  `../evidence/acceptance/world-and-backup-management-surface-20261001-p.md`
 - Priority: Medium
 - Category: Persistence / UI
 - Source: Stage of `review/systemic-save-backup-management.md` (the umbrella re-scoped 2026-09-20); user
   decision 2026-09-20 on the surface and the restore semantics
 - Related: `docs/decisions/active.md` 198, `docs/architecture/save-archive-format.md` §2/§6/§7,
-  `done/save-format-and-world-repository.md` (S1), `review/save-interval-autosave-and-backup-recovery.md`
+  `done/save-format-and-world-repository.md` (S1), `done/save-interval-autosave-and-backup-recovery.md`
   (S4.4), `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldLibraryService.cs`,
   `src/CasualtiesUnknownOnline.Plugin/OnlineUiWorldsDrawer.cs`
 

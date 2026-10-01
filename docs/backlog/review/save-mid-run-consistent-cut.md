@@ -275,7 +275,7 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    `damaged-<stamp>/`, archives the pre-restore copy into `backups/` under the format's own
    `pre-restore-backup` reason, and promotes the backup into `live/` — because a restore read out of
    an archive that never becomes live is deleted by the next cut's transaction, evidence and all.
-   See `docs/backlog/review/save-interval-autosave-and-backup-recovery.md` and decision 182.
+   See `docs/backlog/done/save-interval-autosave-and-backup-recovery.md` and decision 182.
 8. **Host-side world-entity projection on a mid-run restore** (found while landing S3.2) — a
    restored layer's per-layer game objects are regenerated from the run baseline, and
    `WorldEntityKernelProjection` only raises its flat fact lists when the local role is GUEST. On
@@ -893,7 +893,7 @@ lands is exactly the runtime the earlier increments shipped.
 | 4 determinism inputs | decided, no producer | S3.3 — `RandomStreams` stays empty by decision; keypad/geyser are captured as decided values |
 | 5 exactly-once restore | landed | the claim below |
 | 6 restore-report completeness | landed | S3.3, the ITEM arm follow-up, and scope 8's own refused count |
-| 7 refusal recovery | landed | S4.4 (`review/save-interval-autosave-and-backup-recovery.md`) |
+| 7 refusal recovery | landed | S4.4 (`done/save-interval-autosave-and-backup-recovery.md`) |
 | 8 host-side world-entity projection | landed | the S3.5 increment |
 | 9 solo menu-exit trigger | landed | S3.6 (`review/save-solo-menu-exit-trigger.md`) |
 

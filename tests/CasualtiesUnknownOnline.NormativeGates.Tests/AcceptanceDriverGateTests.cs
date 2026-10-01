@@ -202,6 +202,12 @@ public class AcceptanceDriverGateTests
 		Assert.NotEmpty(RecipeProblems("sample", "// recipe: sample\n// args: none\n((System.Func<string>)(() => \"{{t:x}}\"))()"));
 		Assert.NotEmpty(RecipeProblems("sample", "// recipe: sample\n// args: none\n((System.Func<int>)(() => 1 switch { 1 => 2, _ => 3 }))()"));
 		Assert.Empty(RecipeProblems("sample", "// recipe: sample\n// args: a=s b=n\n((System.Func<string>)(() => {{s:a}} + {{n:b}}))()"));
+		// A CRLF checkout reads the declaration the same as LF: the ending is not an argument, an
+		// invalid kind must still be reported, and a `none` declaration must still be accepted.
+		Assert.Empty(RecipeProblems("sample", "// recipe: sample\r\n// args: a=s b=n\r\n((System.Func<string>)(() => {{s:a}} + {{n:b}}))()\r\n"));
+		Assert.Empty(RecipeProblems("sample", "// recipe: sample\r\n// args: a=s b=n\r\n((System.Func<string>)(() => {{s:a}} + {{n:b}}))()"));
+		Assert.NotEmpty(RecipeProblems("sample", "// recipe: sample\r\n// args: a=x\r\n((System.Func<string>)(() => {{s:a}}))()\r\n"));
+		Assert.Empty(RecipeProblems("sample", "// recipe: sample\r\n// args: none\r\n((System.Func<string>)(() => \"x\"))()\r\n"));
 	}
 
 	/// <summary>
@@ -217,7 +223,10 @@ public class AcceptanceDriverGateTests
 		}
 
 		var declared = new HashSet<string>(StringComparer.Ordinal);
-		var argsLine = Regex.Match(text, @"^// args: (?<args>.*)$", RegexOptions.Multiline);
+		// The capture stops at the line terminator: `.gitattributes` declares CRLF checkouts, and on
+		// one of those `$` matches before the `\n`, so `.*` would keep the `\r` inside the last
+		// argument; a line ending is not part of the declaration.
+		var argsLine = Regex.Match(text, @"^// args: (?<args>[^\r\n]*)", RegexOptions.Multiline);
 		if (!argsLine.Success)
 		{
 			problems.Add("the recipe carries no '// args:' line");

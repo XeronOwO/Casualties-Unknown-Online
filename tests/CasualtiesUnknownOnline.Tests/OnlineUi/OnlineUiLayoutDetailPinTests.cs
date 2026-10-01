@@ -90,13 +90,15 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(ThePageStartsBelowTheTabStrip), "adapter/OnlineUiWindowView.cs", "shell.spacing = OnlineUiWindowLayout.TabGap;", "shell.spacing = 0f;", "bands stacked with no gap between them" },
 		{ nameof(ThePageStartsBelowTheTabStrip), "adapter/OnlineUiWindowView.cs", "DeclareBandHeight(tabRow, TabHeight);", "// the tab strip declares no height of its own", "a tab strip the engine cannot size" },
 		{ nameof(EveryControlOfAPageIsTheSameCompactHeight), "adapter/OnlineUiControlView.cs", "_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", "_layout.preferredHeight = _rect.sizeDelta.y;", "a control that takes the game's own authored height" },
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "Mathf.Max(layout.minWidth, LayoutUtility.GetPreferredSize(rect, 0));", "element.Width;", "a control sized by the model's hint alone, which is what cut the English labels" },
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "widths[index] = view.EffectiveWidth(elements[index]);", "widths[index] = elements[index].Width;", "a wrap asked with the model's hints instead of the measured widths" },
+		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlView.cs", "OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidth + (2f * _typography.Size))", "element.Width;", "a button sized by the model's hint alone, which is what cut the English captions and ran `Preferences` into its border" },
+		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "internal static float PrefabWidth(RectTransform rect)", "internal static float PrefabWidth(string unused)", "a prefab width nobody can read" },
+		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "widths[index] = view.EffectiveWidth(elements[index]);", "widths[index] = elements[index].Width;", "a wrap asked with the model's hints instead of the declared widths" },
 		{ nameof(ALabelIsAsTallAsItsWrappedText), "adapter/OnlineUiControlView.cs", "_layout.preferredHeight = -1f;", "_layout.preferredHeight = _typography.Size + OnlineUiControlFactory.LabelHeightPadding;", "a label pinned to one line while its text wraps" },
 		{ nameof(TheFrameKeepsTheGamesOwnBorder), "adapter/OnlineUiControlFactory.cs", "border.color = Color.white;", "border.color = fill;", "a frame that tints the game's border away" },
 		{ nameof(TheFrameKeepsTheGamesOwnBorder), "adapter/OnlineUiWindowView.cs", "OnlineUiControlFactory.MakeFrame(root, sprite, imageType, pixelsPerUnit, PanelTint);", "// the frame is tinted by hand", "a frame that never lays the fill inside the border" },
 		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiControlView.cs", "OnlineUiRowGeometry.LayOutControlRow(", "// the prefab places its own children,", "a row whose inside stays where the game's own screen put it" },
-		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiRowGeometry.cs", "OnlineUiControlFactory.AddContentGroup(control.gameObject, ControlInnerPadding);", "// the control's content is never measured", "a control whose content the engine cannot measure" },
+		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiRowGeometry.cs", "var width = Mathf.Max(controlFloor, DeclaredWidthOf(control));", "var width = controlFloor;", "a control left at the model's floor with the game's own authored width ignored" },
+		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiRowGeometry.cs", "LayOutInterior(control, width);", "// the control's insides are never placed", "a control whose own text area, caret and caption are left where the game's own screen put them" },
 		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiWindowView.cs", "var popup = OnlineUiDropdownPopup.Create(rect, OnlineUiSurfaceHost.SortingOrder);", "var popup = null!;", "a window with no popup layer for its dropdowns" },
 		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiDropdownPopup.cs", "template.SetParent(_layer, worldPositionStays: false);", "// the template stays inside the page", "a list instantiated inside the page's mask again" },
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiControlView.cs", "pointerFixed = OnlineUiRowGeometry.EnsurePointerSurface(control.gameObject);", "pointerFixed = false;", "a field left without a pointer surface" },
@@ -190,16 +192,20 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& flat.Contains("_layout.minHeight = OnlineUiWindowLayout.ControlHeight;", StringComparison.Ordinal);
 	}
 
-	/// <summary>The width a control takes is the wider of the model's floor and what its own content needs,
-	/// and the window's wrap is asked with exactly that.</summary>
+	/// <summary>The width a control takes is DECLARED — the model's hint under the caption's own measured text —
+	/// and the window's wrap is asked with exactly that, so nothing measures content that stretches inside the
+	/// box it was just given.</summary>
 	private static bool WidthsFollowTheContent(string controlSource, string sizingSource, string windowSource)
 	{
 		var flat = Flatten(controlSource);
 		var sizing = Flatten(sizingSource);
 
-		return flat.Contains("OnlineUiControlSizing.EffectiveWidth(element, _rect, _layout)", StringComparison.Ordinal)
-			&& flat.Contains("var preferred = element.Kind == OnlineUiElementKind.Label ? 0f : -1f;", StringComparison.Ordinal)
-			&& sizing.Contains("Mathf.Max(layout.minWidth, LayoutUtility.GetPreferredSize(rect, 0));", StringComparison.Ordinal)
+		return flat.Contains("OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidth + (2f * _typography.Size))", StringComparison.Ordinal)
+			&& flat.Contains("OnlineUiControlSizing.WithMinimum(element.Width)", StringComparison.Ordinal)
+			&& flat.Contains("internal float EffectiveWidth(OnlineUiElementModel element) => element.Kind switch", StringComparison.Ordinal)
+			&& !flat.Contains("LayoutUtility.GetPreferredSize(_rect", StringComparison.Ordinal)
+			&& sizing.Contains("internal static float PrefabWidth(RectTransform rect)", StringComparison.Ordinal)
+			&& sizing.Contains("internal static float CaptionWidth(TMP_Text caption)", StringComparison.Ordinal)
 			&& Flatten(windowSource).Contains("widths[index] = view.EffectiveWidth(elements[index]);", StringComparison.Ordinal);
 	}
 
@@ -230,8 +236,9 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& flat.Contains("rect.offsetMax = new Vector2(-FrameBorder, -FrameBorder);", StringComparison.Ordinal);
 	}
 
-	/// <summary>The row's own label and control are placed by CUO's group and the control's insides are
-	/// stretched onto the box CUO sizes.</summary>
+	/// <summary>The row's own label and control are placed by CUO's group at the width CUO declares, and the
+	/// control's insides are laid out one rect at a time — never measured from content that stretches inside the
+	/// box.</summary>
 	private static bool TheRowInsideIsLaidOutByCuo(string controlSource, string geometrySource)
 	{
 		var geometry = Flatten(geometrySource);
@@ -240,10 +247,12 @@ public sealed class OnlineUiLayoutDetailPinTests
 		return geometry.Contains("var group = row.GetComponent<HorizontalLayoutGroup>();", StringComparison.Ordinal)
 			&& geometry.Contains("group = row.AddComponent<HorizontalLayoutGroup>();", StringComparison.Ordinal)
 			&& geometry.Contains("LayOut(label, flexibleWidth: 1f, width: -1f, height: height);", StringComparison.Ordinal)
-			&& geometry.Contains("LayOut(control, flexibleWidth: 0f, width: -1f, height: height);", StringComparison.Ordinal)
-			&& geometry.Contains("OnlineUiControlFactory.AddContentGroup(control.gameObject, ControlInnerPadding);", StringComparison.Ordinal)
+			&& geometry.Contains("var width = Mathf.Max(controlFloor, DeclaredWidthOf(control));", StringComparison.Ordinal)
+			&& geometry.Contains("LayOut(control, flexibleWidth: 0f, width: width, height: height);", StringComparison.Ordinal)
+			&& geometry.Contains("LayOutInterior(control, width);", StringComparison.Ordinal)
+			&& geometry.Contains("private static void StretchInside(RectTransform child, float left, float right)", StringComparison.Ordinal)
+			&& geometry.Contains("private static bool IsContainer(RectTransform child) =>", StringComparison.Ordinal)
 			&& geometry.Contains("caption.enableWordWrapping = false;", StringComparison.Ordinal)
-			&& geometry.Contains("rect.anchoredPosition = Vector2.zero;", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.LayOutControlRow(", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.PrepareInternals(dropdown, input, toggle);", StringComparison.Ordinal);
 	}

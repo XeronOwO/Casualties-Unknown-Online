@@ -79,11 +79,12 @@ internal static class OnlineUiControlFactory
 			Object.Destroy(fitter);
 		}
 
-		// The prefab's authored size is deliberately NOT taken as this control's size: the game's rows are
-		// authored for its own full-width settings screen, which is why the first cut's buttons were as tall as
-		// the game's own rows and its text ran past them. A page declares one control height and the ENGINE
-		// measures the width from the control's own content (below); the prefab's geometry is read only for the
-		// room its own row keeps around its text, so a measured caption lands where the game would put it.
+		// The prefab's authored HEIGHT is deliberately not taken: the game's rows are authored for its own
+		// full-width settings screen, which is why the first cut's buttons were as tall as the game's own rows
+		// and its text ran past them. A page declares one control height, and the width comes from the model's
+		// floor and the prefab's own authored width (OnlineUiControlSizing) — never from a layout group asked to
+		// measure content that is stretched inside the box, which is the runaway the acceptance pass of ticket
+		// online-ui-layout-and-input-detail-pass removed.
 		//
 		// The scale is normalised once for the same reason the fitter goes: the row is laid out by CUO's own
 		// groups now, not by the game's hand placement.
@@ -91,12 +92,14 @@ internal static class OnlineUiControlFactory
 		var layout = root.GetComponent<LayoutElement>() ?? root.AddComponent<LayoutElement>();
 
 		// A row that IS the control — a button or a colour block — gets a layout group over its own caption, so
-		// the ENGINE sizes it: uGUI asks the group, the group asks TMP for the caption it holds, and no width is
-		// computed here. A row whose control sits on child 1 is given the same treatment by
-		// OnlineUiRowGeometry, which owns the inside of that shape.
+		// the caption follows whatever the row's own drawing wants it to be, with the room the game's own row
+		// keeps around its text (which is what stops a caption from touching the sprite's border — the user's
+		// report of 2026-10-01 on the English `Preferences` tab). It is NOT how this control's width is decided:
+		// that is the model's floor and the game's authored caption size (OnlineUiControlSizing), because a
+		// group asked to measure content that is stretched inside the box is asking the box how wide it is.
 		if (prefab != null && element.Kind is OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch)
 		{
-			AddContentGroup(root, ReadRowPadding(root, rect, prefab));
+			AddContentGroup(root, InnerPaddingOf(root, rect, prefab));
 		}
 
 		return new Built(
@@ -107,27 +110,36 @@ internal static class OnlineUiControlFactory
 	}
 
 	/// <summary>
-	/// The room the game's own row keeps between its edge and its text, read from the prefab's own geometry (a
-	/// row is one caption child beside its control): a measured caption then lands where the game would put it.
-	/// A caption that stretches over the whole row reports no such room, and the fallback is the room CUO's own
-	/// rows keep.
+	/// The room the game's own row keeps between its edge and its caption, read from the prefab's own geometry
+	/// (the row's caption child sits inside it): the caption of a button CUO builds then lands where the game's
+	/// own screen would put it instead of touching the sprite's border. The fallback is the caption's own font
+	/// size — the same room <see cref="OnlineUiControlSizing.AuthoredWidth"/> adds to a measured caption, so the
+	/// box a tab is given and the room it leaves its text agree.
 	/// </summary>
-	private static float ReadRowPadding(GameObject root, RectTransform rect, GameObject prefab)
+	private static float InnerPaddingOf(GameObject root, RectTransform rect, GameObject prefab)
 	{
 		if (ChildAt(root.transform, 0) is not RectTransform caption)
 		{
-			return OnlineUiRowGeometry.RowPadding;
+			return OnlineUiWindowLayout.ControlInnerPadding;
 		}
 
 		var room = (rect.rect.width - caption.rect.width) * 0.5f;
-		return room > 0f ? room : OnlineUiRowGeometry.RowPadding;
+		if (room > 0f)
+		{
+			return room;
+		}
+
+		return caption.GetComponent<TMP_Text>() is { } text && text.fontSize > 0f
+			? text.fontSize
+			: OnlineUiWindowLayout.ControlInnerPadding;
 	}
 
 	/// <summary>
-	/// Gives a control its own horizontal layout group, so uGUI's layout protocol can ask the control what its
-	/// content needs: the group reports its children's own preferred sizes plus the row's room, and the engine
-	/// sizes the control from that. This is the whole of CUO's answer to "how wide is it" — a declaration of
-	/// the room, never a width.
+	/// Gives a control that IS one of the game's own rows — a button, a colour block — a horizontal group over
+	/// its own caption, so the caption follows the row's drawing rather than the prefab's hand placement, with
+	/// the room the game's own row leaves at its edges. The group does not decide the control's width: that is
+	/// the model's floor and the game's authored size (<see cref="OnlineUiControlSizing"/>), because a group
+	/// asked to measure a stretched child is asking the box how wide the box is.
 	/// </summary>
 	internal static HorizontalLayoutGroup AddContentGroup(GameObject root, float horizontalPadding)
 	{

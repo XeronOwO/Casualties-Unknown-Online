@@ -414,7 +414,9 @@ internal sealed class OnlineUiWindowView
 			view.SetParent(row.Lines[lines[index]].transform);
 
 			// A row that carries its own label and control (a dropdown, a field, a slider, a toggle) is laid
-			// out by CUO inside: the game's own placement belongs to the game's own screen.
+			// out by CUO inside: the game's own placement belongs to the game's own screen. The width it takes
+			// on its line is the one just computed — the width CUO declared, never a measurement of the
+			// control's own stretched content.
 			view.LayOutRow(widths[index]);
 
 			// An open dropdown's list is an overlay, and the window owns the layer it has to live on.

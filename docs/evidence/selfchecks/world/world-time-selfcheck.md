@@ -2,7 +2,7 @@
 
 Delivery fact sheet for the multiplayer world-time domain (backlog:
 `review/world-time-local-initiation.md` and
-`review/world-acceleration-survives-movement.md`; the original sheet landed
+`done/world-acceleration-survives-movement.md`; the original sheet landed
 2026-08-16 with the host-authoritative model of ProtocolVersion 13). The wire
 version is whatever `ProtocolVersion.Current` declares — its own doc comment is
 the wire-change log, and the 2026-09-25 cycle bumped it for the routing rule

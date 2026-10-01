@@ -3,8 +3,8 @@
 - Status: Review
 - Priority: Low-Medium
 - Category: World block damage / report coverage
-- Source: found while fixing `review/guest-hears-only-some-block-break-sounds.md` (the presentation half of the same report). The mechanism inventory for that fix censused every native `DamageBlock` call site and found two that never produce a report, because CUO patches only the `Vector2` overload.
-- Related: `docs/evidence/selfchecks/world/unhooked-damage-block-callers-selfcheck.md`, `tests/CasualtiesUnknownOnline.NormativeGates.Tests/DamageBlockHookCoverageGateTests.cs`, `docs/backlog/review/guest-hears-only-some-block-break-sounds.md`, `docs/backlog/review/block-damage-table-capacity-alignment.md`
+- Source: found while fixing `done/guest-hears-only-some-block-break-sounds.md` (the presentation half of the same report). The mechanism inventory for that fix censused every native `DamageBlock` call site and found two that never produce a report, because CUO patches only the `Vector2` overload.
+- Related: `docs/evidence/selfchecks/world/unhooked-damage-block-callers-selfcheck.md`, `tests/CasualtiesUnknownOnline.NormativeGates.Tests/DamageBlockHookCoverageGateTests.cs`, `docs/backlog/done/guest-hears-only-some-block-break-sounds.md`, `docs/backlog/review/block-damage-table-capacity-alignment.md`
 
 ## Problem
 

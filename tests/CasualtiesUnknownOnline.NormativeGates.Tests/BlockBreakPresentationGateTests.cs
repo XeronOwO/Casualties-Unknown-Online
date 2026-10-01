@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// The block-break presentation gate (ticket
-/// <c>backlog/review/guest-hears-only-some-block-break-sounds</c>): a block break
+/// <c>backlog/done/guest-hears-only-some-block-break-sounds</c>): a block break
 /// one side computed must be PRESENTED on every other side, and the presentation
 /// must be the game's own damage roll rather than a re-implementation of its
 /// clips.

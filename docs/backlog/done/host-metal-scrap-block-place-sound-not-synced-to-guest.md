@@ -1,6 +1,7 @@
 # Host metal-scrap block placement sound not heard on guest
 
-- Status: Review
+- Status: Done
+- Acceptance (20261001-l): all eight rows judged — both directions and the third listener replayed `scrapmetal`/`ropeplace` once per placement, the moving-body gate produced none, and the source never replayed its own sound; the audible half is a residual — record `docs/evidence/acceptance/host-metal-scrap-block-place-sound-not-synced-to-guest-20261001-l.md`
 - Priority: Medium
 - Category: Block placement / character audio sync
 - Source: User report (2026-09-06) — when the host, while holding metal scrap, places a block into the world, the guest client does not hear the placement sound.

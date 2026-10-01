@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// The consume-sound capture gate (ticket
-/// <c>backlog/review/host-eating-sound-not-heard-on-guest</c>): a local body's
+/// <c>backlog/done/host-eating-sound-not-heard-on-guest</c>): a local body's
 /// eating/meal one-shot sounds must be PRESENTED on every other side, and the
 /// presentation must be the same one-shot capture chain the other character
 /// sounds already ride — not a second sound path.

@@ -110,7 +110,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
 - [Player pain vocalizations and bark](review/sync-player-pain-vocalizations-and-bark.md) — **Medium** — they ride the character-sound event.
-- [Metal-scrap placement sound on guest](review/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium** — sounds ride the sound event.
 - [Tab opens the backpack then closes](review/tab-backpack-open-close-immediately.md) — **Medium** — remote Close wrote the radial state.
 - [Entity drop loses fresh state on the guest](review/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — full drop state is preserved.
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — **High** — the overlay with live suggestions.
@@ -151,8 +150,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Manual world acceleration must not end when a player moves](review/world-acceleration-survives-movement.md) — **High** — only announced speeds own the clock.
 - [An earthquake's clock write ends an acceleration](review/world-acceleration-quake-direct-write.md) — **Medium** — the host adopts it, vanilla-style.
-- [Guest hears only some block-break sounds](review/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the break was silent on the other side.
-- [Host eating sound on the guest](review/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume family rides the one-shot event.
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [World-time acceleration is gated on being asleep](review/world-time-local-initiation.md) — **Medium** — local-first initiation; the reset is superseded.
 
@@ -253,6 +250,9 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remove the Online UI console page](done/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 - [Online UI panels asked for alphaBlend false](done/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
 - [The window title must use the game's official Chinese name](done/official-game-name-in-window-title.md) — **Medium** — `未知伤亡`, not the reversed form.
+- [Host eating sound on the guest](done/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume family rides the one-shot event.
+- [Metal-scrap placement sound on guest](done/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium** — sounds ride the sound event.
+- [Guest hears only some block-break sounds](done/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the break was silent on the other side.
 
 ### Watchlist
 

@@ -1,6 +1,6 @@
 # Self-check — the guest hears the host's block hit/break sounds (`guest-hears-only-some-block-break-sounds`)
 
-Ticket: `docs/backlog/review/guest-hears-only-some-block-break-sounds.md` (Medium-High).
+Ticket: `docs/backlog/done/guest-hears-only-some-block-break-sounds.md` (Medium-High).
 Cycle: 2026-09-25. Wire change: `BlockPlacedMsg.PlayerBreak` (+ `ProtocolVersion.Current`, bumped in
 the same change — its doc comment in `ProtocolVersion.cs` is the per-number log).
 

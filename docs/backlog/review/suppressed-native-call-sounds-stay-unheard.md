@@ -1,6 +1,7 @@
 # Sounds whose native call is suppressed never reach the peers
 
-- Status: Review
+- Status: Review — rows 4 and 5-8 judged; rows 1-4b stay unproven (the remote-medical and minigame setups are missing)
+- Acceptance (20261001-l): rows 4 and 5-8 judged (the world-item impact replayed 219:219 on each guest from the authority's 219 reports, the plush squeak 12:12, the suite rows); rows 1-4b stay unproven and the dust puff visual was not captured — record `docs/evidence/acceptance/suppressed-native-call-sounds-stay-unheard-20261001-l.md`
 - Priority: Low
 - Category: Audio sync / report coverage
 - Source: the 2026-09-26 census of `review/unhooked-item-and-body-sound-families.md` — closing that family's routing left two rows whose clip is not merely unreported: the native call that would play it is suppressed or blocked on every side.

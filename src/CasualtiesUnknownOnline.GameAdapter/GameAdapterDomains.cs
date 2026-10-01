@@ -19,6 +19,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.Runtime.Time;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -164,7 +165,8 @@ internal sealed class GameAdapterDomains
 		GameAdapterStatusContentProvider statusContent,
 		GameAdapterMoodleContentProvider moodleContent,
 		ModStatusStore modStatusStore,
-		ModStatusProjectionReadModel modStatusProjectionReadModel)
+		ModStatusProjectionReadModel modStatusProjectionReadModel,
+		ITimeSource time)
 	{
 		Session = session;
 		Items = items;
@@ -236,6 +238,7 @@ internal sealed class GameAdapterDomains
 			localRestore,
 			startingSupplies,
 			new GameStartingSupplyTarget(),
+			time,
 			loggerFactory.CreateLogger<StartingSupplyCoordinator>());
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());

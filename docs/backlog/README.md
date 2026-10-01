@@ -52,12 +52,12 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [S4.3 — Starting supplies for a new player](todo/save-new-player-starting-supplies.md) — **High** — the policy keys on body identity.
-- [Run clock is not sent to a mid-run joiner](todo/save-run-clock-not-sent.md) — **Low-Medium** — the clocks travel as their own message.
-
 ### In progress
 
 ### Review
+
+- [S4.3 — Starting supplies for a new player](review/save-new-player-starting-supplies.md) — **High** — the body-identity policy and the entry-group hold.
+- [Run clock is not sent to a mid-run joiner](review/save-run-clock-not-sent.md) — **Low-Medium** — the clocks ride their own message, read at the send point.
 
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.

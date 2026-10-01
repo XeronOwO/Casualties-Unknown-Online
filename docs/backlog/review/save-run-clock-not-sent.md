@@ -1,12 +1,14 @@
 # The archived run clock base never reaches a player who joins mid-run
 
-- Status: Todo — Rejected (row 1: a joining guest's live run clock is short by the interval since the
-  host last published its base — 30.0 s and 85.6 s in this run — and the 60 s repair re-sends the same
-  absolute value, so it never converges)
-- Acceptance (20261001-o): row 1 FAILS the live comparison the batch plan names, row 2 passes and the
-  suite row 3 passes — record `../evidence/acceptance/save-run-clock-not-sent-20261001-o.md`. The fix
-  needs the publish POINT, not the value: a mid-world joiner takes the host's last published base while
-  its own counter starts at its own entry, and the repair group re-sends that same absolute value.
+- Status: Review — fixed 2026-10-01 (row 1: the host's run total is read at the SEND point and the
+  receiver maps it onto its own world epoch; awaiting re-verification in the next acceptance batch)
+- Acceptance (20261001-o): row 1 FAILED the live comparison the batch plan names, row 2 passed and the
+  suite row 3 passed — record `../evidence/acceptance/save-run-clock-not-sent-20261001-o.md`. The
+  diagnosis was the publish POINT, not the value: a mid-world joiner took the host's last published base
+  while its own counter starts at its own entry, and the repair group re-sent that same absolute value.
+  The fix landed in this cycle: the value is re-read at every send and mapped onto the receiving world's
+  epoch, so a joiner reads the host's total as of its own entry and a repair re-send is
+  idempotent up to the two sends' transport jitter; row 1 awaits the re-run.
 - Priority: Low-Medium
 - Category: Persistence / save system (wire)
 - Source: the S3.4a independent adversarial pass, kept as a recorded gap until the S3.4c hardening
@@ -53,12 +55,41 @@ archive's own clock base — two carriers for one fact (decision 193).
 
 | # | Acceptance row | What pins it |
 |---|---|---|
-| 1 | Host is 40 minutes into a run when a guest joins; the guest's end screen shows the run total | `RunClockFactsTests.MemberEntersWorld_ReceivesTheRunClocks` (value + stamp) and `InSessionRepair_AlsoCarriesTheRunClocks` (the swallowed-send recovery half), `NetPacketTests.RunFacts_RoundTripsTheClocksAndTheGenerationStamp`; the UI read itself is the user's dual-client pass |
+| 1 | Host is 40 minutes into a run when a guest joins; the guest's end screen shows the run total | `RunClockSendPointFreshnessTests.WorldEntry_ReReadsTheLiveClock_SoAMidRunJoinerGetsTheCurrentTotal`, `.InSessionRepair_ReReadsTheLiveClock_TheSameWay`, `.AReadThatFails_SendsNothingRatherThanAStaleTotal`, `RunClockFactsTests.MemberEntersWorld_ReceivesTheRunClocks` (value + stamp) and `.InSessionRepair_AlsoCarriesTheRunClocks`, `NetPacketTests.RunFacts_RoundTripsTheClocksAndTheGenerationStamp`; the UI read itself is the user's dual-client pass |
 | 2 | The clock keeps counting from the run's total across a layer change | `RunClockFactsSync.SettleAtGenerationBoundary` re-arms the per-world write marker and takes the boundary's new base; `RunClockFactsTests` pins the stamp the value must match |
 | 3 | A sender that carries no clock leaves today's behaviour and names the absence | `RunClockFactsTests.NoCapturedClocks_SendsNothing` / `NoCommittedRun_SendsNothing`; the adapter logs the absence and writes nothing |
 
+## The row-1 fix (send-point read + receiver mapping)
+
+- **The value is read at the SEND point.** `WorldStateMessageService.SendRunFacts` re-reads the live
+  world through the existing `INativeWorldFacts.CaptureRunClockFacts` port on every send — the entry
+  group and the 60 s repair group alike — instead of sending the value captured at the last generation
+  boundary/world entry. A read that fails sends NOTHING (the receiver maps the total onto its own world
+  epoch, so a stale total would be mapped as if it described the current moment); a Runtime-only
+  composition with no native port keeps sending its published value, as before.
+- **The receiver maps the total onto its own world epoch.** The write in `NativeWorldFacts` takes
+  `sentTotal - world.realTimeElapsed`, because the game's display derives
+  `SaveSystem.savedRunTime + realTimeElapsed` and the receiving world started its counter at its own
+  entry. A member that enters mid-run therefore writes the host's total as of its own entry; a repair
+  re-send of a LATER total maps back onto the same base up to the two sends' transport jitter
+  (sub-second), so the monotone guard keeps what is there and a re-send can never jump the clock by the
+  interval it used to — instead of either being stuck (the old equal value) or making a forward jump (a
+  fresh absolute value written verbatim would overcount by the member's own elapsed).
+- `ProtocolVersion.Current` is bumped in the same change with its per-number log entry; decision 193,
+  the sync-coverage matrix's R9 row and both protocol-message reference rows follow.
+
 ## Verification (machine-checked)
 
+- Row 1's fix: the three `RunClockSendPointFreshnessTests` cases were RED against HEAD's send path (the
+  entry and repair groups carried the last published 100 s while the live world held 130 s, and a failed
+  live read still sent the stale value) and green after it, with the existing clock suite unchanged.
+  This cycle's focused run, the source for its own count:
+  `dotnet test CasualtiesUnknownOnline.slnx --filter "FullyQualifiedName~StartingSupply|FullyQualifiedName~RunClock|FullyQualifiedName~WorldRunFieldTests|FullyQualifiedName~WorldEntrySnapshot|FullyQualifiedName~ReconnectWorldSnapshot|FullyQualifiedName~TrapLayoutEntryFreshnessTests|FullyQualifiedName~CommandConsoleSaveTests"`
+  → 112 passed, 0 failed (the clock classes in it are `RunClockFactsTests` 7 + `RunClockSendPointFreshnessTests` 3;
+  the rest are the sibling supplies fix and the entry/console neighbours it shares a seam with).
+- Full solution run the same cycle, WITH build: `dotnet test CasualtiesUnknownOnline.slnx` → 4554 passed,
+  0 failed (the NormativeGates project is 300 of that total), up from the previous cycle's 4548 by exactly
+  the six cases this cycle adds.
 - Focused suites: `RunClockFactsTests` (7), `WorldRunFieldTests` (12 — the layer-timer seam added
   `Continue_DoesNotWriteTheLayerTimerBeforeTheWorldFinishedGenerating` and
   `Continue_NeverMovesTheLayerTimerBackwards`), `WorldSnapshotCodecTests`,
@@ -76,8 +107,10 @@ archive's own clock base — two carriers for one fact (decision 193).
 
 ## Limits
 
-- The engine half has no executable evidence in this repo: the capture reads a live
-  `WorldGeneration.world`, so the adapter's write path is reviewed, not executed by a test.
+- The engine half has no executable evidence in this repo: the capture and the receiver's epoch mapping
+  both read the live `WorldGeneration.world`, so that half of the adapter is reviewed, not executed by a
+  test — the dual-client re-run is its proof. The Runtime half (the send-point read, the wire value, its
+  stamp and the failure paths) is machine-checked by the suite above.
 - Row 1's UI value (the end screen's death-stats clock) needs the user's dual-client pass.
 - A message whose stamp names ANOTHER layer of a run the receiver already knows still contributes its
   CLOCK (run-scoped, monotone) while its LAYER TIMER and LIMIT are dropped together (layer-scoped): the

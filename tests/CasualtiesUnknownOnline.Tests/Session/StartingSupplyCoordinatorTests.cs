@@ -21,6 +21,7 @@ using CasualtiesUnknownOnline.Tests.Fakes;
 using CasualtiesUnknownOnline.Tests.Patching;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -169,6 +170,83 @@ public class StartingSupplyCoordinatorTests
 
 		fixture.Restore.Queue(new CharacterDataMsg(), ownRun: false);
 		fixture.PublishBaseline(Supplies(2), totalTraveled: 4200, biomeDepth: 3);
+		coordinator.Update();
+
+		Assert.Empty(fixture.Reports);
+		Assert.Empty(fixture.Placed);
+	}
+
+	[Fact]
+	public void Update_AGuestHoldsTheVerdictUntilTheEntryGroupCompletes()
+	{
+		// Batch 20261001-o row 3, as the pump sees it: the host sends a character restore
+		// BEFORE the world-entry group's completion marker, so a verdict taken on the entry
+		// frame can announce supplies for a player the world has a character for — the
+		// restore then wipes the body and the announced items are gone. The guest waits for
+		// the marker; the host's own body never waits (no marker is sent to it).
+		using var fixture = new Fixture();
+		fixture.RestoreWorld(Supplies(1), totalTraveled: 4200, biomeDepth: 3);
+		var coordinator = fixture.Coordinator(SessionRole.Guest);
+		coordinator.Bind();
+
+		coordinator.Update();
+
+		Assert.Empty(fixture.Reports);
+		Assert.Empty(fixture.Placed);
+
+		fixture.World.FireWorldSnapshotCompleteReceived();
+		coordinator.Update();
+
+		var report = Assert.Single(fixture.Reports);
+		Assert.Equal(StartingSupplyGrantReport.Disposition.Granted, report.Outcome);
+		Assert.Equal(["emergencylight"], report.Items);
+	}
+
+	[Fact]
+	public void Update_AGuestHoldsUntilTheBoundItselfExpires()
+	{
+		// The wait is BOUNDED, and the bound is the coordinator's own constant: one
+		// millisecond short of it the verdict is still held, past it the body is judged on
+		// what the restore queue holds. (The guest's own readiness window re-reports every
+		// 5 s and the host answers it with the marker, so a swallowed marker is recovered
+		// well inside this window; a host that never answers must not withhold a genuine
+		// new player's supplies forever.)
+		using var fixture = new Fixture();
+		fixture.RestoreWorld(Supplies(1), totalTraveled: 4200, biomeDepth: 3);
+		var coordinator = fixture.Coordinator(SessionRole.Guest);
+		coordinator.Bind();
+
+		coordinator.Update();
+		Assert.Empty(fixture.Reports);
+
+		fixture.Clock.Advance(EntryGroupWaitMs - 1);
+		coordinator.Update();
+		Assert.Empty(fixture.Reports);
+
+		fixture.Clock.Advance(1);
+		coordinator.Update();
+
+		var report = Assert.Single(fixture.Reports);
+		Assert.Equal(StartingSupplyGrantReport.Disposition.Granted, report.Outcome);
+		Assert.Equal(["emergencylight"], report.Items);
+	}
+
+	[Fact]
+	public void Update_AGuestRestoreThatLandsWhileHeld_CancelsTheGrant()
+	{
+		// The restore wins whenever it is known, held or not: the queue is read at the grant
+		// moment, so a snapshot that lands inside the wait takes the CharacterRestored branch
+		// instead of a grant.
+		using var fixture = new Fixture();
+		fixture.RestoreWorld(Supplies(1), totalTraveled: 4200, biomeDepth: 3);
+		var coordinator = fixture.Coordinator(SessionRole.Guest);
+		coordinator.Bind();
+
+		coordinator.Update();
+		Assert.Empty(fixture.Reports);
+
+		fixture.Restore.Queue(new CharacterDataMsg(), ownRun: false);
+		fixture.World.FireWorldSnapshotCompleteReceived();
 		coordinator.Update();
 
 		Assert.Empty(fixture.Reports);
@@ -339,7 +417,7 @@ public class StartingSupplyCoordinatorTests
 		{
 			_steam = new FakeSteamService(HostId);
 			_transport = new FakeTransport(HostId, new FakeNetwork());
-			var clock = new FakeClock();
+			Clock = new FakeClock();
 			_services = CuoBootstrap.BuildServiceProvider(
 				new ManualLogSource("test"),
 				Path.Combine(Path.GetTempPath(), "cuo-supplies-tests", Guid.NewGuid().ToString("N"), "logs"),
@@ -349,7 +427,7 @@ public class StartingSupplyCoordinatorTests
 				{
 					services.Replace(ServiceDescriptor.Singleton<INetworkTransport>(_transport));
 					services.Replace(ServiceDescriptor.Singleton<ISteamService>(_steam));
-					services.Replace(ServiceDescriptor.Singleton<ITimeSource>(clock));
+					services.Replace(ServiceDescriptor.Singleton<ITimeSource>(Clock));
 					// Transport IDENTITY is its own seam and the save layer reads it (the world
 					// folder's display name and the key space a character is written in). The
 					// router's real identity asks Steam for the persona name, and Steamworks is
@@ -384,6 +462,9 @@ public class StartingSupplyCoordinatorTests
 			_client.LocalBody = Body;
 			Behaviour = _client;
 		}
+
+		/// <summary>The virtual clock this fixture's real composition runs on — the coordinator's entry-group wait is measured on it.</summary>
+		internal FakeClock Clock { get; }
 
 		internal IWorldControl World { get; }
 
@@ -474,16 +555,40 @@ public class StartingSupplyCoordinatorTests
 
 		internal void RefuseCreation(string itemId) => _client.RefusedCreation = itemId;
 
-		internal CoordinatorHandle Coordinator() => new(
-			CoordinatorType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single().Invoke(
-			[
-				_services.GetRequiredService<ISessionControl>(),
-				World,
-				Restore,
-				Publisher,
-				Behaviour,
-				ReflectionLogger(),
-			]));
+		internal CoordinatorHandle Coordinator(SessionRole? role = null) =>
+			new(CoordinatorConstructor().Invoke([.. ConstructorArguments(role)]));
+
+		/// <summary>
+		/// The adapter's own constructor, with every argument resolved by TYPE: the suite
+		/// must keep working when the coordinator gains a dependency, and a parameter this
+		/// map does not know is named instead of silently bound by position.
+		/// </summary>
+		private IEnumerable<object> ConstructorArguments(SessionRole? role) =>
+			CoordinatorConstructor().GetParameters().Select(parameter => Resolve(parameter.ParameterType, role));
+
+		private static ConstructorInfo CoordinatorConstructor() =>
+			CoordinatorType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single();
+
+		private object Resolve(Type dependency, SessionRole? role) => dependency switch
+		{
+			_ when dependency == typeof(ISessionControl) => role is { } assignedRole
+				? new FakeSessionControl
+				{
+					Role = assignedRole,
+					SessionActive = true,
+					LocalSteamId = HostId,
+					HostSteamId = HostId,
+				}
+				: _services.GetRequiredService<ISessionControl>(),
+			_ when dependency == typeof(IWorldControl) => World,
+			_ when dependency == typeof(LocalCharacterRestoreQueue) => Restore,
+			_ when dependency == typeof(IStartingSupplyPublisher) => Publisher,
+			_ when dependency == typeof(IStartingSupplyBehaviour) => Behaviour,
+			_ when dependency == typeof(ITimeSource) => Clock,
+			_ when dependency.IsGenericType && dependency.GetGenericTypeDefinition() == typeof(ILogger<>) => ReflectionLogger(),
+			_ => throw new InvalidOperationException(
+				$"StartingSupplyCoordinator gained a dependency this fixture does not know: {dependency.FullName}."),
+		};
 
 		public void Dispose() => _services.Dispose();
 	}
@@ -560,6 +665,12 @@ public class StartingSupplyCoordinatorTests
 		"CasualtiesUnknownOnline.GameAdapter.Character.StartingSupplyCoordinator",
 		throwOnError: true)!;
 
+	/// <summary>The coordinator's own entry-group bound, read from the adapter type so the suite pins the VALUE and not merely that some bound exists.</summary>
+	private static long EntryGroupWaitMs =>
+		(long)(CoordinatorType.GetField("EntryGroupWaitMs", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("StartingSupplyCoordinator.EntryGroupWaitMs not found."))
+			.GetRawConstantValue();
+
 	/// <summary>
 	/// The reflection handle to the coordinator. <c>Update</c> and <c>Clear</c> are
 	/// parameterless instance methods, so nothing on this side of the fence needs the
@@ -569,10 +680,19 @@ public class StartingSupplyCoordinatorTests
 	{
 		private readonly MethodInfo _update = Method("Update");
 		private readonly MethodInfo _clear = Method("Clear");
+		private readonly MethodInfo? _bind = CoordinatorType.GetMethod(
+			"BindToSession", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
 		internal void Update() => _update.Invoke(instance, null);
 
 		internal void Clear() => _clear.Invoke(instance, null);
+
+		/// <summary>
+		/// Subscribe the coordinator the way the adapter's session binding does. Tolerated as
+		/// absent on purpose: the red side of the entry-group fix has no session-scoped
+		/// subscription yet, and the same test has to drive both sides of it.
+		/// </summary>
+		internal void Bind() => _bind?.Invoke(instance, null);
 
 		private static MethodInfo Method(string name) =>
 			CoordinatorType.GetMethod(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)

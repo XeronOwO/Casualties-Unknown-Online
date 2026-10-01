@@ -23,6 +23,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.Runtime.Time;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -104,13 +105,14 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		ModStatusStore modStatusStore,
 		ModStatusProjectionReadModel modStatusProjectionReadModel,
 		WorldRestoreAudit restoreAudit,
-		IStartingSupplyPublisher startingSupplies)
+		IStartingSupplyPublisher startingSupplies,
+		ITimeSource time)
 	{
 		_patches = new PatchInstallLifecycle(log);
 		_onlineUiSurface = new OnlineUiSurfaceHost(log);
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
-			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
+			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel, time);
 		// Composition seam: the adapter owns the DEFERRED creation reports (a drop's
 		// velocity, a destructive trap's building-death drops, a block break's drops)
 		// and the item domain settles them before it reports an operation, so the host

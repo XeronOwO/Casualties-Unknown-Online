@@ -1,11 +1,13 @@
 # S4.3 — A player the world has no character for is supplied as a NEW player
 
-- Status: Todo — Rejected (row 3: a body the world has a character for announced a starting-supply
-  grant before the stored character arrived, and the granted item was then superseded by the restore)
-- Acceptance (20261001-o): row 3 FAILS — the first guest's own log shows the grant announced before its
+- Status: Review — fixed 2026-10-01 (row 3: a guest holds every verdict until the world-entry group
+  completes, bounded by a timeout, so a restore still in flight wins; awaiting re-verification in the
+  next acceptance batch)
+- Acceptance (20261001-o): row 3 FAILED — the first guest's own log shows the grant announced before its
   stored character arrived, five times, while the opposite ordering takes the correct branch; rows 1, 2
-  and 4 pass live, the remaining rows pass on this batch's suite — record
-  `../evidence/acceptance/save-new-player-starting-supplies-20261001-o.md`
+  and 4 passed live, the remaining rows passed on this batch's suite — record
+  `../evidence/acceptance/save-new-player-starting-supplies-20261001-o.md`. The fix landed in this cycle
+  (see below); row 3 awaits the re-run.
 - Priority: High
 - Category: Persistence / save system
 - Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scope 1 (second half),
@@ -128,7 +130,7 @@ read off the generation baseline.
 |---|---|---|---|
 | 1 | A player who was not in the package joins a RESTORED world past its starting layer | Fresh character + the run's starting supplies, and one account line saying what they got | `StartingSupplyCoordinatorTests.Update_AnOmittedPlayerInARestoredWorld_IsSupplied` (a REAL continue through the production save service + a real archive on disk, then the coordinator's pump), `StartingSupplyPolicyTests.Decide_AnOmittedPlayerInARestoredWorldPastTheFirstLayer_IsGranted`, `CommandConsoleSaveTests.StartingSupplies_OfAGrantedNewPlayer_IsOneNotificationNamingTheItems` |
 | 2 | A player joining a running world (its first layer already behind it) | The run's supplies, once | `StartingSupplyCoordinatorTests.Update_AMidRunJoinInAFreshRun_IsSupplied`, `StartingSupplyPolicyTests.Decide_AMidRunJoin_SuppliesThePlayer` |
-| 3 | A player the world HAS a character for (a restore is queued) | Nothing is granted, and no second account is printed — including when the restore lands between the body's entry and the grant | `StartingSupplyCoordinatorTests.Update_AQueuedCharacterRestore_CancelsTheGrant`, `.Update_ARestoreThatLandsBetweenTheEntryAndTheGrant_CancelsIt` (red→green against an entry-sampled decision), `StartingSupplyPolicyTests.Decide_AQueuedRestore_WinsOverEverything` |
+| 3 | A player the world HAS a character for (a restore is queued) | Nothing is granted, and no second account is printed — including when the restore is still in flight at the entry frame | `StartingSupplyCoordinatorTests.Update_AGuestHoldsTheVerdictUntilTheEntryGroupCompletes`, `.Update_AGuestRestoreThatLandsWhileHeld_CancelsTheGrant` (the batch-20261001-o row-3 red), `.Update_AQueuedCharacterRestore_CancelsTheGrant`, `.Update_ARestoreThatLandsBetweenTheEntryAndTheGrant_CancelsIt` (red→green against an entry-sampled decision), `StartingSupplyPolicyTests.Decide_AQueuedRestore_WinsOverEverything` |
 | 4 | A FRESH run's first layer | CUO grants nothing (the game's own grant is the one that ran) and says so | `StartingSupplyCoordinatorTests.Update_AFreshRun_ReportsAlreadyOwnedInsteadOfGranting`, `StartingSupplyPolicyTests.Decide_AFreshRun_TheGameAlreadySuppliedEveryone`, `.NativeGrantCovers_TheRunsFirstLayer_IsTrue`, `CommandConsoleSaveTests.StartingSupplies_OfAPlayerTheGameAlreadySupplied_SaysSoInsteadOfGranting` |
 | 5 | A RESTORED world frozen on its starting layer | The game's own grant covers it exactly as it covers a fresh run: nothing is handed out a second time | `StartingSupplyCoordinatorTests.Update_ARestoredStartingLayer_DoesNotGrantASecondSet`, `StartingSupplyPolicyTests.NativeGrantCovers_ARestoredStartingLayer_IsStillTrue`, `.Decide_ARestoredStartingLayer_IsAlreadyOwned` |
 | 6 | The pump runs many frames over one body / a layer descent | Supplied once per body, never once per frame | `StartingSupplyCoordinatorTests.Update_TheSameBodyIsJudgedOnce_HoweverManyFramesRun`, `StartingSupplyGrantTrackerTests.WasSupplied_TracksEachBodyOnItsOwn`, `.WasSupplied_TwoSeparateInstances_AreTwoBodies` |
@@ -140,6 +142,33 @@ read off the generation baseline.
 | 12 | The account reaches the console in the production composition | The adapter's publish is rendered by the console, from the ONE audit instance the plugin registers | `WorldSaveCompositionTests.ProductionRoot_WiresTheStartingSuppliesAccountToTheConsole`, `.ProductionRoot_ResolvesTheStartingSupplyAuditForTheAdapter` |
 | 13 | A run started from the debug console (`debugStartDepth != 0`) | Not the run's first layer: the game grants nothing, so CUO supplies | `StartingSupplyPolicyTests.NativeGrantCovers_ARunStartedAtADebugDepth_IsFalse` |
 | 14 | The tutorial | Never supplied (the game skips its own grant for that override, and the run carries no settings) | `StartingSupplyPolicyTests.NativeGrantCovers_TheTutorial_IsFalse`, `.Decide_ARunWithoutRunSettings_ReportsDisabledUnset` |
+
+## The row-3 fix (the guest waits for the entry group)
+
+Row 3's race was an ORDERING, not a missing input: the host sends the character restore BEFORE the
+world-entry group's completion marker, so at the entry frame the guest's queue is still empty and a
+verdict taken there grants items the restore's first pass then wipes. The queue check cannot see a
+snapshot that has not arrived.
+
+- **The guest holds every verdict until the entry group completes.** `StartingSupplyCoordinator`
+  subscribes two inputs (bound once with the adapter's other domains through
+  `GameAdapterSessionBinding.Bind`, released at adapter teardown): the host's `WorldSnapshotComplete`
+  marker (sent AFTER the restore) and the local scene report, which re-arms the state for each entry —
+  that scene report, not the binding, is the per-entry re-arm. A guest holds Granted / AlreadyOwned /
+  Disabled until the marker arrives; the queue check stays FIRST and immediate, so a restore that is
+  already queued wins without waiting, and the body stays UNJUDGED while held, leaving the
+  once-per-body rule untouched.
+- **The hold is bounded.** `EntryGroupWaitMs` = 8 s: the guest's own readiness window re-reports every
+  5 s and the host answers it with the marker, so a swallowed marker is recovered inside the window,
+  while a host that never answers cannot withhold a genuine new player's supplies forever. The timeout
+  release is logged as a warning, and the bound's VALUE is pinned (a case one millisecond short of the
+  constant still holds the verdict, the next millisecond judges it).
+- **Only guests wait.** No completion marker is sent to a host or solo side, so those sides judge exactly
+  as before.
+- **Pinned by** `StartingSupplyCoordinatorTests.Update_AGuestHoldsTheVerdictUntilTheEntryGroupCompletes`,
+  `.Update_AGuestHoldsUntilTheBoundItselfExpires`,
+  `.Update_AGuestRestoreThatLandsWhileHeld_CancelsTheGrant` — all RED against HEAD (the grant was
+  announced on the entry frame; the bound case has no constant to read there) and green after the fix.
 
 ## The independent adversarial review, and what happened to each finding
 
@@ -234,6 +263,14 @@ plus coverage notes and the pre-existing matrix hygiene recorded below.
 
 ## Verification limits
 
+The row-3 hold's focused run (the source for its own count):
+`dotnet test CasualtiesUnknownOnline.slnx --filter "FullyQualifiedName~StartingSupply|FullyQualifiedName~RunClock|FullyQualifiedName~WorldRunFieldTests|FullyQualifiedName~WorldEntrySnapshot|FullyQualifiedName~ReconnectWorldSnapshot|FullyQualifiedName~TrapLayoutEntryFreshnessTests|FullyQualifiedName~CommandConsoleSaveTests"`
+→ 112 passed, 0 failed (this count covers the sibling run-clock fix and the shared entry/console
+neighbours too; the supplies classes in it are `StartingSupplyCoordinatorTests` 17 and the policy +
+tracker suites 36, and the three batch-20261001-o row-3 cases are among the 17). Full solution run the
+same cycle, WITH build: `dotnet test CasualtiesUnknownOnline.slnx` → 4554 passed, 0 failed
+(the NormativeGates project is 300 of that total).
+
 Machine-verified: the whole decision (every `Reason`, the setting table, the native-coverage clauses
 including `debugStartDepth`, the entry-point/verdict precedence), the once-per-body rule including
 reference-vs-equality identity and the session-end reset, the coordinator's pump against a REAL
@@ -254,8 +291,21 @@ The BLOCKER's own last mile is in the same category, and it is the FIRST thing t
 look at: that the game's own grant really does run on a CONTINUED world still frozen on its starting
 layer. The call chain is read off the decompiled sources and four independent statements inside this
 repository agree with it, but the only proof is a run: continue a layer-0 archive whose character the
-local player cannot claim and check that no second set of items appears at the body's feet. What else
-needs the USER's dual-client pass:
+local player cannot claim and check that no second set of items appears at the body's feet.
+
+The entry-group hold closes the ORDERING race; it does not add a second delivery path for the restore
+itself, and it names BOTH residual orders rather than hiding them:
+
+- **The restore AND the completion marker are swallowed** — the hold runs out and the body is judged on
+  an empty queue, so a grant lands at the timeout (the bounded-wait residual).
+- **The restore alone is swallowed while the marker arrives** — the marker satisfies the hold, the very
+  next pump judges an empty queue and grants immediately, with no hold and no timeout, because the
+  repeat-report answer re-sends the entry repair group and the marker but never the character restore
+  (`SceneStateHandler`). A restore lost this way has no in-entry recovery path. This order predates the
+  fix (the grant happened on the entry frame regardless) and is recorded here as a limit of the
+  restore's own delivery, not of this hold.
+
+What else needs the USER's dual-client pass:
 
 - a host + guest where the guest was NOT in the package: the guest must enter the restored world
   with the run's supplies in the same slots a fresh run gives them, and the console must show one

@@ -13,9 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// its save slot: <c>SaveSystem.savedRunTime + WorldGeneration.world.realTimeElapsed</c>
 /// (<c>SaveSystem.cs:165</c>), which is what <c>WorldGeneration.TotalRunTime()</c>
 /// adds the current layer's elapsed time to (<c>WorldGeneration.cs:177-179</c>).
-/// Without it a member that joined a run already in progress reads only the time
-/// since it joined (its own static is 0 on a fresh launch), while the host reads
-/// the run's total — the end screen's death-stats clock is the game's only
+/// It is read off the host's live world AT THE SEND POINT and the receiver maps it
+/// onto its own world's epoch (the elapsed that world has already run is
+/// subtracted), so a member that joined a run already in progress reads the run's
+/// total as of its own entry instead of the time since it joined (its own static
+/// is 0 on a fresh launch) — the end screen's death-stats clock is the game's only
 /// reader.
 ///
 /// <see cref="LayerTimeSpent"/> / <see cref="MaxTimePerLayer"/> are the layer's
@@ -32,8 +34,10 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// previous layer can never be written onto a freshly generated one.
 ///
 /// Every member stays absolute: the receiver applies the clock only when it
-/// ADVANCES, so a late duplicate can never rewind a clock that has been running,
-/// and a layer time is applied as "the layer started no later than this".
+/// ADVANCES, so a late duplicate can never rewind a clock that has been running —
+/// and because the total is mapped onto the receiver's own epoch first, a repair
+/// re-send of a LATER total maps back onto the same base (up to the two sends'
+/// transport jitter) instead of jumping it forward. A layer time is applied as "the layer started no later than this".
 /// </summary>
 [ProtoContract]
 public sealed class RunFactsMsg

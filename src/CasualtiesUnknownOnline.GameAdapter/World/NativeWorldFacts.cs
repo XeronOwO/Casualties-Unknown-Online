@@ -465,11 +465,15 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 	/// Writes the waiting run clock and layer limit into the live world, if there is one.
 	/// True = nothing of the two is waiting any more.
 	///
-	/// The CLOCK is written at most once per world: the value a generation boundary read
-	/// is the base that boundary's new scene derives from, so the first write is the
-	/// correct one, and a duplicate of it (the 60 s repair group re-sends the same
-	/// absolute value) must not overwrite a clock that has been running since — that is
-	/// the one write here that could move the run clock BACKWARDS.
+	/// The CLOCK on the wire is the host's run TOTAL at the send point, while this world's
+	/// displayed run time derives <c>SaveSystem.savedRunTime + world.realTimeElapsed</c> — so
+	/// the base this world takes is that total mapped onto THIS world's own epoch, with the
+	/// time this world has already run subtracted. A member that entered mid-run then reads
+	/// the host's own total at its entry instead of a base captured a layer earlier (batch
+	/// 20261001-o row 1 measured 30.0 s and 85.6 s of shortfall), and a repair re-send of a
+	/// LATER total maps back onto the same base up to the two sends' transport jitter
+	/// (sub-second), so the monotone guard keeps what is already there and a re-send can
+	/// never jump the clock by the interval it used to.
 	///
 	/// The LAYER TIMER is not written here: the generation coroutine zeroes it after this
 	/// seam, so it waits for <see cref="TryWritePendingLayerTimer"/>, which lands at the
@@ -488,7 +492,13 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 			return false;
 		}
 
-		ApplyLiveClockAndLimit(_pendingClock, _pendingMaxTimePerLayer);
+		// `realTimeElapsed` is the counter the game's display adds to the base, so
+		// subtracting it here is what makes this member's clock agree with the host's at the
+		// same instant (a restore's own base is NOT mapped: it travels through
+		// `_pendingRunTime` and the native save slot, where the archive value IS the base).
+		ApplyLiveClockAndLimit(
+			_pendingClock is { } sentTotal ? sentTotal - world.realTimeElapsed : null,
+			_pendingMaxTimePerLayer);
 		_pendingClock = null;
 		_pendingMaxTimePerLayer = null;
 		return true;

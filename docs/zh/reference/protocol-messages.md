@@ -164,7 +164,7 @@ Host: start normal Batch/Stream
 | 79 | `TrapLayoutSnapshot` | 主机 → 客机 | 陷阱实体的权威位置 |
 | 106 | `RadiationLineState` | 主机 → 客机 | 辐射线的 active／timeGone 状态 |
 | 134 / 135 | `RuntimeEntitySnapshot` / `RuntimeEntityRejected` | 主机 → 客机／主机 → 上报方 | 运行时创建实体的绝对表／让挂起的重报停下来的拒绝 |
-| 140 | `RunFacts` | 主机 → 客机 | 绝对的局计时基数与本层辐射计时，盖上局基线那代的戳 |
+| 140 | `RunFacts` | 主机 → 客机 | 发送时点读到的局计时与本层辐射计时，盖上局基线那代的戳（接收端把读数换算成本世界的基数） |
 
 **流体、世界时间与教学**
 

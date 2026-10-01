@@ -243,6 +243,15 @@ public static class ProtocolVersion
 	/// the host had the full native presentation. A peer without the message
 	/// would keep the reported silence and the missing dust, so one session would
 	/// mix two presentations of the same landing.
-	public const int Current = 43;
+	/// 44: `RunFacts`' run clock is read off the host's live world at the SEND point and
+	/// mapped onto the receiving world's own epoch (`total - realTimeElapsed`) instead of
+	/// the value captured at the last generation boundary or world entry being written
+	/// verbatim. A member that entered between two boundaries read a total short by the
+	/// whole interval since the host last published (30.0 s and 85.6 s in the live run),
+	/// and the 60 s repair re-sent that same value so it never converged; writing a fresher
+	/// absolute total verbatim would instead overcount by the member's own elapsed, so the
+	/// receiver maps the total onto its own world epoch and the repair re-send becomes
+	/// idempotent.
+	public const int Current = 44;
 
 }

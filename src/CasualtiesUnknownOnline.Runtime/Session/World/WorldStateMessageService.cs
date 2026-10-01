@@ -21,13 +21,15 @@ internal sealed class WorldStateMessageService(
 	PacketSender sender,
 	ILogger<WorldService> log,
 	EntityEventChannel eventChannel,
-	KernelWorldGenerationSource generations) : ISessionReset
+	KernelWorldGenerationSource generations,
+	INativeWorldFacts? nativeWorldFacts = null) : ISessionReset
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<WorldService> _log = log;
 	private readonly EntityEventChannel _eventChannel = eventChannel;
 	private readonly KernelWorldGenerationSource _generations = generations;
+	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
 
 	/// <summary>
 	/// Host-side block-difference table: block-space position → current block id,
@@ -82,12 +84,35 @@ internal sealed class WorldStateMessageService(
 	/// Nothing is sent when no run baseline or no captured value exists: the receiver keeps
 	/// its own values and names the absence, which is the pre-message behaviour rather than
 	/// a guessed clock.
+	///
+	/// The clock is re-READ at this send point, not taken from the last published capture:
+	/// a member enters its own world and starts counting there, so the value it needs is
+	/// the host's total AT ITS ENTRY, while the last capture may be a whole layer old
+	/// (batch 20261001-o row 1 measured 30.0 s and 85.6 s of shortfall, and the repair
+	/// group re-sending that same value never converged). The live read is the adapter's
+	/// (<see cref="INativeWorldFacts"/>, the only layer that can read the game's clock); a
+	/// read that FAILS sends nothing at all, because the receiver maps the value onto its
+	/// own world epoch — a stale absolute value would be mapped as if it were current.
 	/// </summary>
 	public void SendRunFacts(ulong targetSteamId)
 	{
 		if (_session.Role != SessionRole.Host || targetSteamId == 0)
 		{
 			return;
+		}
+
+		if (_nativeWorldFacts is { } live)
+		{
+			var fresh = live.CaptureRunClockFacts();
+			if (fresh.Failure is not null)
+			{
+				_log.LogDebug(
+					"[RunFacts] the live run clock could not be read for {Peer} ({Failure}) — nothing sent; the next send reads it again.",
+					targetSteamId, fresh.Failure);
+				return;
+			}
+
+			RunFacts = fresh;
 		}
 
 		var facts = RunFacts;

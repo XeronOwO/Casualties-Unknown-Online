@@ -18,6 +18,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// take it (the native save slot, before <c>WorldGeneration.Start</c> derives the layer's
 /// time limit from it).
 ///
+/// What a MEMBER is sent is re-read at the SEND point: the fan-out's entry and 60 s repair
+/// groups ask <see cref="INativeWorldFacts.CaptureRunClockFacts"/> through the message
+/// service, so a member that enters mid-run gets the host's total at its own entry instead
+/// of the last boundary capture (batch 20261001-o row 1). The receiving side maps that
+/// total onto its own world's epoch (<c>total - world.realTimeElapsed</c>) when it writes it
+/// — see <see cref="INativeWorldFacts.ApplyRunFacts"/> — so the boundary capture below is
+/// this SIDE's own base, never what the next member is told.
+///
 /// The layer TIMER takes one seam longer than the clock: the game zeroes it while the
 /// generation finishes (<c>WorldGeneration.FinishWorldGeneration</c> sets
 /// <c>layerTimeSpent = 0</c> on its first line, and that runs after the native save slot),
@@ -29,8 +37,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 ///
 /// The write never moves either value backwards — see
 /// <see cref="INativeWorldFacts.ApplyRunFacts"/> — so a late duplicate (the 60 s repair
-/// group re-sends the same absolute value) is harmless by construction rather than by
-/// timing.
+/// group re-sending an absolute total, which maps back onto the same world base) is
+/// harmless up to the two sends' transport jitter rather than a jump of the interval.
 /// </summary>
 internal sealed class RunClockFactsSync(
 	IWorldControl world,
@@ -41,30 +49,24 @@ internal sealed class RunClockFactsSync(
 	private readonly INativeWorldFacts _nativeFacts = nativeFacts;
 	private readonly ILogger<RunClockFactsSync> _log = log;
 
-	/// <summary>The last facts this side applied, re-published at the world-entry edge so a member that entered the world afterwards is still sent them.</summary>
-	private RunClockFacts? _applied;
-
 	internal void BindToSession() => _world.RunFactsReceived += OnRunFactsReceived;
 
-	internal void Unbind()
-	{
-		_world.RunFactsReceived -= OnRunFactsReceived;
-		_applied = null;
-	}
+	internal void Unbind() => _world.RunFactsReceived -= OnRunFactsReceived;
 
 	/// <summary>
 	/// A generation boundary is starting a new world: the per-world write marker is
-	/// re-armed, the value captured from the world that is ending becomes this side's own
-	/// base, and it is published so members get it with the entry and repair groups. On the
-	/// host this is also what writes the clock, so neither side depends on the other for
-	/// its own clock.
+	/// re-armed and the value captured from the world that is ending becomes this side's own
+	/// base (on the host this is also what writes the clock, so neither side depends on the
+	/// other for its own clock). It is published as this side's settled value; a member's
+	/// entry/repair group re-reads the live world at its own send point instead of carrying
+	/// this capture.
 	/// </summary>
 	internal void SettleAtGenerationBoundary()
 	{
 		_nativeFacts.SettleRunClockFacts();
-		_applied = _nativeFacts.CaptureRunClockFacts();
-		_world.PublishRunFacts(_applied.Value);
-		if (_applied.Value.Failure is { } failure)
+		var captured = _nativeFacts.CaptureRunClockFacts();
+		_world.PublishRunFacts(captured);
+		if (captured.Failure is { } failure)
 		{
 			_log.LogWarning("[RunFacts] the generation boundary could not read the run clock ({Failure}); members keep their own clock and layer timer.", failure);
 		}
@@ -98,16 +100,12 @@ internal sealed class RunClockFactsSync(
 		// `layerTimeSpent = 0` (WorldGeneration.cs:3609). See INativeWorldFacts.
 		_nativeFacts.TryWritePendingLayerTimer();
 
-		_applied = _nativeFacts.CaptureRunClockFacts();
-		_world.PublishRunFacts(_applied.Value);
+		_world.PublishRunFacts(_nativeFacts.CaptureRunClockFacts());
 	}
 
-	private void Apply(RunFactsMsg facts, float layerTimeSpent, float maxTimePerLayer)
-	{
-		// The published value stays the host's, not the local write's: a member that enters
-		// the world later must be sent the authority's clock, and this side's own world may
-		// hold a lower one (it has just been generated).
+	private void Apply(RunFactsMsg facts, float layerTimeSpent, float maxTimePerLayer) =>
+		// The value handed to the world is the peer's TOTAL: the native write maps it onto
+		// this world's epoch (see INativeWorldFacts.ApplyRunFacts), and what a member is
+		// sent is re-read at that send point rather than kept here.
 		_nativeFacts.ApplyRunFacts(new RunClockFacts(facts.RunClockBase, layerTimeSpent, maxTimePerLayer, Failure: null));
-		_applied = new RunClockFacts(facts.RunClockBase, facts.LayerTimeSpent, facts.MaxTimePerLayer, Failure: null);
-	}
 }

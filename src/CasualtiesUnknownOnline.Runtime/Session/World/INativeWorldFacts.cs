@@ -131,32 +131,40 @@ public interface INativeWorldFacts
 
 	/// <summary>
 	/// Host only: ONE read of the two clocks the kernel run baseline does not hold — the
-	/// run clock base (<c>SaveSystem.savedRunTime + world.realTimeElapsed</c>, the value the
-	/// game's own save carries) and the layer's radiation-timer accounting
+	/// run clock's CURRENT TOTAL (<c>SaveSystem.savedRunTime + world.realTimeElapsed</c>,
+	/// the value the game's own save carries) and the layer's radiation-timer accounting
 	/// (<c>layerTimeSpent</c> / <c>maxTimePerLayer</c>). Read where a member is brought up
-	/// to date (the world-entry group and the 60 s repair) and at the generation boundary,
-	/// which is the last instant the old world's totals are the current ones and the base
-	/// the new scene must derive from.
+	/// to date — the sender re-reads it AT EACH SEND (the world-entry group and the 60 s
+	/// repair), so the total a joining member receives is the one valid at its own entry —
+	/// and at the generation boundary, which is the last instant the old world's totals are
+	/// the current ones and the base the new scene must derive from.
 	///
 	/// The value is not a generation INPUT: nothing about the layer's shape is generated
 	/// from a clock, so it does not ride the run baseline. The generation stamp is added by
 	/// the Runtime when the message is sent — the kernel run baseline is its authority on
 	/// both sides. An unreadable read is <see cref="RunClockFacts.Unreadable"/>, never a
-	/// zero pair.
+	/// zero pair, and a send whose read fails sends nothing: the receiver maps the total
+	/// onto its own world epoch (see <see cref="ApplyRunFacts"/>), so a stale total would be
+	/// mapped as if it described the current moment.
 	/// </summary>
 	RunClockFacts CaptureRunClockFacts();
 
 	/// <summary>
-	/// Both roles: the run clock base and layer timer a peer read off its live world (the
-	/// world-entry message). The clock is written into the live world when one exists,
-	/// otherwise held for <see cref="TryWritePendingRunFields"/>; the layer timer is
-	/// offered to <see cref="TryWritePendingLayerTimer"/> at once, and — because the game
-	/// zeroes the value while the generation finishes — it stays pending for the
-	/// world-entry edge when the world is not ready yet, while a member that is ALREADY
-	/// in the world (the 60 s repair) takes it immediately. The write never moves either
-	/// value backwards: the clock is written at most once per world, and the layer timer
-	/// only when it advances. An unreadable capture (<see cref="RunClockFacts.Failure"/>)
-	/// writes nothing and is named, so the receiver keeps its own clock.
+	/// Both roles: the run clock TOTAL and layer timer a peer read off its live world at a
+	/// send point (the world-entry message and the 60 s repair). The clock is mapped onto
+	/// THIS world's own epoch before it is written — the elapsed this world has already run
+	/// is subtracted, because the game's own display derives
+	/// <c>savedRunTime + realTimeElapsed</c> and this world started its counter at its own
+	/// entry — and is written into the live world when one exists, otherwise held for
+	/// <see cref="TryWritePendingRunFields"/>; the layer timer is offered to
+	/// <see cref="TryWritePendingLayerTimer"/> at once, and — because the game zeroes the
+	/// value while the generation finishes — it stays pending for the world-entry edge when
+	/// the world is not ready yet, while a member that is ALREADY in the world (the 60 s
+	/// repair) takes it immediately. The write never moves either value backwards: the
+	/// mapped clock is written at most once per world (a later total maps back onto the same
+	/// base and is kept), and the layer timer only when it advances. An unreadable capture
+	/// (<see cref="RunClockFacts.Failure"/>) writes nothing and is named, so the receiver
+	/// keeps its own clock.
 	/// </summary>
 	void ApplyRunFacts(RunClockFacts facts);
 

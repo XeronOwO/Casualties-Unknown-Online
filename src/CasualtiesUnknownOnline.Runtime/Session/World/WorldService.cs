@@ -82,7 +82,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		// the world-fact lifecycle (which the save layer resolves) is built over the
 		// SAME instance, so both see one set of tables.
 		_generations = new KernelWorldGenerationSource(kernelAuthority);
-		_messages = new WorldStateMessageService(session, sender, log, eventChannel, _generations);
+		_messages = new WorldStateMessageService(session, sender, log, eventChannel, _generations, nativeWorldFacts);
 		_log = log;
 		_blockReports = new BlockReportChannel(session, sender, nativeWorldFacts, new KernelWorldGenerationSource(kernelAuthority), log);
 		_facts = new WorldFactLifecycle(_messages, log);

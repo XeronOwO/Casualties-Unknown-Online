@@ -198,13 +198,14 @@ public interface IWorldControl
 	event Action? WorldSnapshotCompleteReceived;
 
 	/// <summary>
-	/// Host: the run/layer clocks read off the live world (the adapter is the only layer
-	/// that can read the game's clock and layer timer). Sent with the world-entry and
-	/// repair groups, stamped by the sender with the kernel run baseline's generation.
+	/// Host: the run/layer clocks last read off the live world (the adapter is the only
+	/// layer that can read the game's clock and layer timer). <see cref="SendRunFacts"/>
+	/// re-reads the live world at its own send point, so this is the last value read or
+	/// published, not necessarily the one the next member receives.
 	/// </summary>
 	RunClockFacts? RunFacts { get; set; }
 
-	/// <summary>Host only: send this host's run/layer clocks to one member (world entry + the 60 s repair group). Nothing is sent when no world has been captured.</summary>
+	/// <summary>Host only: send this host's run/layer clocks to one member (world entry + the 60 s repair group), re-reading the live world at this send point so a joining member gets the total valid at its own entry. Nothing is sent when the live world cannot be read.</summary>
 	void SendRunFacts(ulong targetSteamId);
 
 	/// <summary>Guest: the host's run/layer clocks arrived — the message is validated against this side's generation here, then raised for the adapter to apply. <paramref name="layerTimerApplies"/> is false when the message's stamp names another layer of a run this side knows (the clock still applies — it is run-scoped and monotone — the layer timer does not); a stamp that cannot be compared (no run baseline yet) applies both.</summary>

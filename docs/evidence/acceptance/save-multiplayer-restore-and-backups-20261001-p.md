@@ -1,7 +1,7 @@
 # Acceptance record — S4 multiplayer restore and backups (rows 4–6 of the umbrella)
 
 - Ticket: `save-multiplayer-restore-and-backups` — verdict: stays in `review/` (rows 4–6 pass here;
-  row 3's fix is open in `todo/save-new-player-starting-supplies.md`, and rows 1–2 and 7 were judged in
+  row 3's fix is open in `review/save-new-player-starting-supplies.md`, and rows 1–2 and 7 were judged in
   batch `20261001-o`)
 - Batch: `20261001-p` — tickets `save-interval-autosave-and-backup-recovery`,
   `world-and-backup-management-surface`, `save-multiplayer-restore-and-backups` (its rows 4–6)
@@ -30,5 +30,5 @@ None for rows 4–6.
 - The disk-full half of row 5 rests on the suite's injected failure; the live refusals proved the same
   refusal step (`StageFailed`) and the same "previous snapshot stays live" outcome.
 - The umbrella cannot move yet: row 3 (the starting-supplies race) is open in
-  `todo/save-new-player-starting-supplies.md` with its failing order named, and rows 1–2 and 7 carry
+  `review/save-new-player-starting-supplies.md` with its failing order named, and rows 1–2 and 7 carry
   batch `20261001-o` verdicts.

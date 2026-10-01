@@ -206,7 +206,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 79 | `TrapLayoutSnapshot` | host → guest | the trap entities' authoritative positions |
 | 106 | `RadiationLineState` | host → guest | the radiation line's active/time-gone state |
 | 134 / 135 | `RuntimeEntitySnapshot` / `RuntimeEntityRejected` | host → guest / host → reporter | the absolute runtime-created entity table / the refusal that stops a pending re-report |
-| 140 | `RunFacts` | host → guest | the absolute run clock base and the layer's radiation-timer accounting, stamped with the run-baseline generation |
+| 140 | `RunFacts` | host → guest | the run clock as read at the send point and the layer's radiation-timer accounting, stamped with the run-baseline generation (the receiver maps the reading onto its own world's base) |
 
 **Fluid, world time and the tutorial**
 

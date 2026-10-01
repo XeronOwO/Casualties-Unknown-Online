@@ -486,27 +486,14 @@ internal sealed class OnlineUiControlView
 	}
 
 	/// <summary>
-	/// The layout half, holding no size of its own: the shared HEIGHT is the layout's (a label leaves its own
-	/// to TMP) and the WIDTH is a floor read back from the engine (<see cref="OnlineUiControlSizing"/>) — which
-	/// is what keeps a translated caption or a longer value from being cut inside a number CUO wrote down.
+	/// The layout half of one element, holding no size of its own: the width is declared beside this — from the
+	/// model's floor and the game's own authored size (<see cref="OnlineUiControlSizing"/> and
+	/// <see cref="OnlineUiRowGeometry"/>), never measured from content that stretches inside the box — and this
+	/// keeps the two things a control's own group must know: a label is flexible (it takes what its line has
+	/// left) and every control of a page is the compact height.
 	/// </summary>
 	private void ApplyLayout(OnlineUiElementModel element, bool aloneOnItsLine)
 	{
-		// The model's width is a floor and nothing else; the engine's own answer is the width.
-		var floor = element.Kind == OnlineUiElementKind.Label ? 0f : element.Width;
-		if (!_layout.minWidth.Equals(floor))
-		{
-			_layout.minWidth = floor;
-		}
-
-		// A label takes what the row has left; every other control leaves its preferred width to the engine —
-		// its own layout group over its own content — so no width is written here.
-		var preferred = element.Kind == OnlineUiElementKind.Label ? 0f : -1f;
-		if (!_layout.preferredWidth.Equals(preferred))
-		{
-			_layout.preferredWidth = preferred;
-		}
-
 		// A label always takes what its line has left; one of the game's own rows takes the line only when it is
 		// ALONE on it. Sharing a line, a field or a dropdown keeps its own size instead of splitting the
 		// surplus with the label beside it — which is what the controls' own floors are for.
@@ -537,9 +524,10 @@ internal sealed class OnlineUiControlView
 	/// <summary>
 	/// The row's own parts, laid out inside it: a dropdown, a field, a slider and a toggle ARE one of the
 	/// game's own rows, so their inside is CUO's geometry rather than the game's own placement.
-	/// <paramref name="controlFloor"/> is the model's floor; above it the engine answers.
+	/// <paramref name="controlWidth"/> is the width this control takes on its line — already decided
+	/// (<see cref="OnlineUiControlSizing"/>), never measured from the control's own stretched content.
 	/// </summary>
-	internal void LayOutRow(float controlFloor)
+	internal void LayOutRow(float controlWidth)
 	{
 		if (_controlRect is null)
 		{
@@ -550,7 +538,7 @@ internal sealed class OnlineUiControlView
 			_root,
 			_labelRect,
 			_controlRect,
-			controlFloor,
+			controlWidth,
 			OnlineUiWindowLayout.ControlHeight,
 			_valueText != null ? _valueText.rectTransform : null);
 	}
@@ -569,11 +557,25 @@ internal sealed class OnlineUiControlView
 	}
 
 	/// <summary>
-	/// The width this control takes in the row it is laid out in, from the surface's own measurement of its
-	/// content: the model's width is a floor, and the game's font decides the rest.
+	/// The width this control takes on its line. It is a DECLARATION, never a measurement of the control's own
+	/// content: the model's hint is a floor, a caption's own text (which TMP measures from the text rather than
+	/// from the rect) raises it for the kinds whose width the game's row does not author, and the game's own
+	/// prefab answers for the rest. Content that stretches inside the box reports the box, which is the feedback
+	/// the acceptance pass of batch `20261001-k` caught growing without bound.
 	/// </summary>
-	internal float EffectiveWidth(OnlineUiElementModel element) =>
-		OnlineUiControlSizing.EffectiveWidth(element, _rect, _layout);
+	internal float EffectiveWidth(OnlineUiElementModel element) => element.Kind switch
+	{
+		OnlineUiElementKind.Label => 0f,
+		OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch =>
+			OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidth + (2f * _typography.Size)),
+		OnlineUiElementKind.TextField or OnlineUiElementKind.Dropdown =>
+			OnlineUiControlBox.EffectiveWidth(OnlineUiControlSizing.WithMinimum(element.Width), 0f),
+		_ => OnlineUiControlBox.EffectiveWidth(element.Width, OnlineUiControlSizing.PrefabWidth(_rect)),
+	};
+
+	/// <summary>The width the control's own caption needs — 0 for a kind whose caption is not its content (a
+	/// colour block's caption is empty, and a field's row label is not the value it holds).</summary>
+	private float CaptionWidth => _caption != null ? OnlineUiControlSizing.CaptionWidth(_caption) : 0f;
 
 	private static bool SameOptions(TMP_Dropdown dropdown, IReadOnlyList<string> options)
 	{

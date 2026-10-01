@@ -136,6 +136,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(ThePluginDispatchesEveryIntentKind), "plugin/OnlineUiHost.cs", "case OnlineUiIntentKind.ControlEdited:", "case OnlineUiIntentKind.ControlInvoked:", "an intent kind the plugin silently drops" },
 		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlView.cs", "aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", "OnlineUiControlSizing.FillsTheRow(element)", "a control that takes the whole line even when it shares one" },
 		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlFactory.cs", "group.childForceExpandWidth = false;", "group.childForceExpandWidth = true;", "a content group that stretches its caption instead of measuring it" },
+		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlView.cs", "OnlineUiControlSizing.WithMinimum(element.Width)", "element.Width", "a field with no floor under it, which a model that declares no width would size at zero" },
 		{ nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped), "plugin/OnlineUiOverlay.cs", "if (!_actions.TryGetValue(intent.ControlId, out var action))", "if (false)", "an intent applied without checking that its control still exists" },
 		{ nameof(TheCloseControlIsTheShellsAndItsMeaningIsThePlugins), "plugin/OnlineUiWindow.cs", "actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;", "actions[\"window.dismiss\"] = _ => _state.Visible = false;", "a close control whose two halves disagree about its id" },
 	};
@@ -225,13 +226,16 @@ public sealed class OnlineUiWindowSurfacePinTests
 			&& flat.Contains("var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);", StringComparison.Ordinal);
 	}
 
+	/// <summary>Every write of a control's own state is behind a comparison: a steady frame must not dirty the
+	/// layout. The width is the exception the rework introduced — it is written by the row's geometry every
+	/// frame, and the comparison is on the LayoutElement there.</summary>
 	private static bool WritesOnlyChanges(string controlSource)
 	{
 		var flat = Flatten(controlSource);
 
 		return flat.Contains("if (kindChanged || _text != element.Text)", StringComparison.Ordinal)
 			&& flat.Contains("if (kindChanged || _selected != element.Selected)", StringComparison.Ordinal)
-			&& flat.Contains("if (!_layout.minWidth.Equals(floor))", StringComparison.Ordinal);
+			&& flat.Contains("if (!_layout.flexibleWidth.Equals(flexible))", StringComparison.Ordinal);
 	}
 
 	private static bool LeavesAFocusedFieldAlone(string controlSource)
@@ -316,20 +320,21 @@ public sealed class OnlineUiWindowSurfacePinTests
 	/// file needs, since only one side of it is the broken one.</summary>
 	private static bool Is(string source, string declaration) => source.Contains(declaration, StringComparison.Ordinal);
 
-	/// <summary>A control's height is the page's own, its width comes from the engine, and the game's authored
-	/// rect is never adopted as either.</summary>
+	/// <summary>A control's height is the layout's own and its width is DECLARED — the model's hint under the
+	/// caption's own measured text — and never measured from the control's own content, which reports the box a
+	/// layout group just wrote (the feedback the acceptance pass of batch 20261001-k caught).</summary>
 	private static bool SizesComeFromTheLayoutAndTheEngine(string controlSource, string factorySource)
 	{
 		var flat = Flatten(controlSource);
 		var factory = Flatten(factorySource);
 
 		return flat.Contains("_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", StringComparison.Ordinal)
-			&& flat.Contains("var preferred = element.Kind == OnlineUiElementKind.Label ? 0f : -1f;", StringComparison.Ordinal)
-			&& flat.Contains("OnlineUiControlSizing.EffectiveWidth(element, _rect, _layout)", StringComparison.Ordinal)
+			&& flat.Contains("OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidth + (2f * _typography.Size))", StringComparison.Ordinal)
+			&& flat.Contains("OnlineUiControlSizing.WithMinimum(element.Width)", StringComparison.Ordinal)
 			&& flat.Contains("aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", StringComparison.Ordinal)
-			&& factory.Contains("AddContentGroup(root, ReadRowPadding(root, rect, prefab));", StringComparison.Ordinal)
+			&& factory.Contains("AddContentGroup(root, InnerPaddingOf(root, rect, prefab));", StringComparison.Ordinal)
 			&& factory.Contains("group.childForceExpandWidth = false;", StringComparison.Ordinal)
-			&& !factory.Contains("authoredWidth", StringComparison.Ordinal)
+			&& !flat.Contains("LayoutUtility.GetPreferredSize(_rect", StringComparison.Ordinal)
 			&& !flat.Contains("_rect.sizeDelta.y", StringComparison.Ordinal);
 	}
 

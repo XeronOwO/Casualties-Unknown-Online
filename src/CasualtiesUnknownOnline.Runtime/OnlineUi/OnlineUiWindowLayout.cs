@@ -47,6 +47,48 @@ public static class OnlineUiWindowLayout
 	/// that height grew: a Chinese caption renders 27.9 units tall at size 20 (user report, 2026-09-27).</summary>
 	public const float ControlHeight = 36f;
 
+	/// <summary>The room the game's own row keeps between its edge and its control, inside one of its rows:
+	/// the row's label and the control beside it share it, and the control's own insides (a dropdown's
+	/// caption, a field's text, its caret) keep it from the box the row sizes.</summary>
+	public const float ControlInnerPadding = 10f;
+
+	/// <summary>The room between a row's label and its control, inside one of the game's own rows. It lives
+	/// here with the rest of a row's geometry because the row's two halves are placed from these numbers and
+	/// nowhere else.</summary>
+	public const float ControlGap = 8f;
+
+	/// <summary>The width a text field falls back to when the model declares no width of its own: a field is
+	/// the one control whose content is the player's rather than the game's — there is no caption to measure
+	/// — so a floor nobody declared is this, not zero.</summary>
+	public const float MinimumControlWidth = 120f;
+
+	/// <summary>The width a slider's formatted value keeps at the end of its row.</summary>
+	public const float SliderValueWidth = 56f;
+
+	/// <summary>
+	/// The colour a control that holds a value — a dropdown, a text field — is filled with, as the four channels
+	/// the Runtime can carry (it references no engine type; the adapter turns them into the engine's own colour).
+	/// The edge drawn inside it is the game's own nine-slice sprite left UNTINTED, exactly as the window's frame
+	/// keeps its border.
+	///
+	/// <para>
+	/// The user settled this on 2026-10-01: the game's own rows bring a box of their own (a dropdown's white
+	/// frame, an integer row's grey fill under it), and two of them on one control in a window this size read as
+	/// "a box inside a box" with a margin nobody chose. One control now shows ONE box, and every page shows the
+	/// same one.
+	/// </para>
+	/// </summary>
+	public const float ControlFillR = 0.035f;
+
+	/// <inheritdoc cref="ControlFillR"/>
+	public const float ControlFillG = 0.045f;
+
+	/// <inheritdoc cref="ControlFillR"/>
+	public const float ControlFillB = 0.06f;
+
+	/// <inheritdoc cref="ControlFillR"/>
+	public const float ControlFillA = 0.97f;
+
 	/// <summary>
 	/// The page's vertical rhythm, in the same canvas units. A page is a list of rows, and a uGUI layout group
 	/// spaces its children evenly with no margin on any single one — so the room a block needs is a row of its

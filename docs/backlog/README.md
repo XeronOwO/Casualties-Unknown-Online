@@ -52,6 +52,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Recipe `// args:` gate and CRLF working trees](todo/recipe-args-crlf-gate.md) — **Medium** — a CRLF checkout feeds `\r` into the last argument.
+
 ### In progress
 
 ### Review

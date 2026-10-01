@@ -1,10 +1,12 @@
 # Recipe `// args:` gate and CRLF working trees
 
-- Status: Review
+- Status: Done
+- Acceptance (20261002-a): five rows pass on the delivered revision — the focus gate is green on LF and on byte-verified CRLF working copies, the reverted matcher fails the samples, the gate project is 300/300 and the full suite with build is green.
 - Priority: Medium
 - Category: Tooling / normative gates
 - Source: found on 2026-10-01 while adding the capability batch `20261001-y` recipes: a recipe file
   written with CRLF line endings fails `AcceptanceDriverGateTests`.
+- Acceptance record: `docs/evidence/acceptance/recipe-args-crlf-gate-20261002.md`.
 
 ## Problem
 

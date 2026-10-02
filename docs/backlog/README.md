@@ -56,7 +56,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [World determinism fingerprint](todo/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
 - [Runtime-created entity spawn backfill](todo/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
 - [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
-- [Re-entering member generates before the restored baseline](todo/reenter-baseline-adoption.md) — **Medium-High** — sent after generation.
 - [Enemy snapshot binding has no recovery path](todo/enemy-snapshot-binding-recovery.md) — **Medium** — rows 3/4/8 pass; row 2 unproven.
 - [World/layer generation identity](todo/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
 - [Remaining generation-relative families](todo/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.
@@ -137,6 +136,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
+- [Re-entering member generates before the restored baseline](review/reenter-baseline-adoption.md) — **Medium-High** — baseline carried by the invite.
 
 ### Future
 

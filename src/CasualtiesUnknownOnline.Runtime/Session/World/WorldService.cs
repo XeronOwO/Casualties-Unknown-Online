@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -28,7 +29,6 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	private readonly GuestReportFallbacks _reportFallbacks;
 	private readonly WorldRunProjection _runProjection;
 	private readonly ItemKernelAuthority _kernelAuthority;
-	private readonly KernelWorldGenerationSource _generations;
 	private readonly ILogger<WorldService> _log;
 	private readonly IWorldItemLayerReset _itemLayerReset;
 	private readonly LayerScopedTableReset _layerTables;
@@ -69,6 +69,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		ChatChannel chatChannel,
 		LocationPingChannel locationPingChannel,
 		INativeWorldFacts? nativeWorldFacts,
+		IKernelProtocolControl kernelProtocol,
 		ItemKernelAuthority kernelAuthority,
 		IWorldItemLayerReset itemLayerReset,
 		FluidKernelProjection fluidKernel,
@@ -81,8 +82,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		// The message surface is this facade's own collaborator, not a DI singleton:
 		// the world-fact lifecycle (which the save layer resolves) is built over the
 		// SAME instance, so both see one set of tables.
-		_generations = new KernelWorldGenerationSource(kernelAuthority);
-		_messages = new WorldStateMessageService(session, sender, log, eventChannel, _generations, nativeWorldFacts);
+		_messages = new WorldStateMessageService(session, sender, log, eventChannel, new KernelWorldGenerationSource(kernelAuthority), kernelProtocol, nativeWorldFacts);
 		_log = log;
 		_blockReports = new BlockReportChannel(session, sender, nativeWorldFacts, new KernelWorldGenerationSource(kernelAuthority), log);
 		_facts = new WorldFactLifecycle(_messages, log);
@@ -373,7 +373,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public event Action<bool>? WorldJoinReceived { add => _messages.WorldJoinReceived += value; remove => _messages.WorldJoinReceived -= value; }
 
-	public void FireWorldJoinReceived(bool isTutorial) => _messages.FireWorldJoinReceived(isTutorial);
+	public void FireWorldJoinReceived(bool isTutorial, bool baselineFollows) => _messages.FireWorldJoinReceived(isTutorial, baselineFollows);
 
 	public event Action? WorldSnapshotCompleteReceived { add => _messages.WorldSnapshotCompleteReceived += value; remove => _messages.WorldSnapshotCompleteReceived -= value; }
 
@@ -405,7 +405,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	public void FireRunFactsReceived(RunFactsMsg facts)
 	{
 		var reported = new WorldGenerationMsg { RunEpoch = facts.RunEpoch, LayerIndex = facts.LayerIndex };
-		var relation = WorldReportGeneration.Relate(_generations.Current, reported);
+		var relation = WorldReportGeneration.Relate(_messages.Generations.Current, reported);
 		var layerTimerApplies = relation is WorldGenerationRelation.Current or WorldGenerationRelation.Unknown;
 
 		// Debug, not Warn: a legitimate layer transition produces a window in which the host
@@ -415,7 +415,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		{
 			_log.LogDebug(
 				"Dropped the run clock message's layer timer ({Reported}; this side is {Mine}) — its clock is still applied if it advances, the layer timer is not.",
-				WorldReportGeneration.Describe(reported), WorldReportGeneration.Describe(_generations.Current));
+				WorldReportGeneration.Describe(reported), WorldReportGeneration.Describe(_messages.Generations.Current));
 		}
 
 		_messages.FireRunFactsReceived(facts, layerTimerApplies);

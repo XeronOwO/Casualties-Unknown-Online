@@ -58,7 +58,14 @@ PayloadType
 The run [epoch](glossary.md) is what keeps a previous run's traffic from polluting a new one: commands,
 batches and state streams are dropped when their epoch does not match, and a checkpoint chunk set is
 validated against the run identity the host announced with its world-join instruction
-(`WorldJoinMsg.RunEpoch`) — refused before a chunk is buffered.
+(`WorldJoinMsg.RunEpoch`) — refused before a chunk is buffered. An instruction that announces a run
+also owns the sets that follow it: a `WorldJoin` sent while the host holds a run promises the
+run-baseline checkpoint set right behind it (`WorldJoinMsg.RunBaselineFollows`), the host sends that
+set immediately after the instruction (the instruction must come first — a set from a run the member
+was never told about is refused), and the member drops the params it still holds and keeps its
+generation from consuming randomness until the promised set restores. The handshake path keeps its
+own order — its entry group, checkpoint included, precedes the join — and promises nothing, because
+the baseline is already in hand.
 
 ## The path of one action
 
@@ -164,7 +171,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 17 | `HandshakeAck` | host → guest | acknowledges every handshake, repeats included |
 | 58 | `HandshakeAckAck` | guest → host | end-to-end confirmation; the host marks the member handshaken only on this |
 | 18 | `SceneState` | host → guest | scene/loading state |
-| 20 | `WorldJoin` | host → guest | start loading the world; carries the run identity checkpoint sets are validated against |
+| 20 | `WorldJoin` | host → guest | start loading the world; carries the run identity checkpoint sets are validated against, and — when the host holds a run — promises the run-baseline checkpoint set sent right after it |
 | 21 | `WorldReady` | host → guest | everyone finished loading — start playing |
 | 32 | `PlayerJoin` | host → guest | self-activation plus roster announcement |
 | 33 | `PlayerLeave` | host → guest | a synced member left |

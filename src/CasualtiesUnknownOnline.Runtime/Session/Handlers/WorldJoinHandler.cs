@@ -21,6 +21,9 @@ public sealed class WorldJoinHandler : PacketHandlerBase<WorldJoinMsg, IWorldKer
 		// validated against this identity, so a set from another run is refused
 		// instead of restored onto a member the live streams no longer match.
 		ctx.KernelProtocol.AdoptHostRunEpoch(msg.RunEpoch);
-		ctx.World.FireWorldJoinReceived(msg.IsTutorial);
+		// The promise rides the entry raise: the world surface drops the params this
+		// side still holds (a previous run's) and lets the generation wait for the
+		// checkpoint set the instruction says follows.
+		ctx.World.FireWorldJoinReceived(msg.IsTutorial, msg.RunBaselineFollows);
 	}
 }

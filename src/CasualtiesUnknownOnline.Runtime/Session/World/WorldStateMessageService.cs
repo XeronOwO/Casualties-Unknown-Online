@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ internal sealed class WorldStateMessageService(
 	ILogger<WorldService> log,
 	EntityEventChannel eventChannel,
 	KernelWorldGenerationSource generations,
+	IKernelProtocolControl kernelProtocol,
 	INativeWorldFacts? nativeWorldFacts = null) : ISessionReset
 {
 	private readonly ISessionControl _session = session;
@@ -29,7 +31,11 @@ internal sealed class WorldStateMessageService(
 	private readonly ILogger<WorldService> _log = log;
 	private readonly EntityEventChannel _eventChannel = eventChannel;
 	private readonly KernelWorldGenerationSource _generations = generations;
+	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
+
+	/// <summary>The run-baseline identity source this surface stamps its joins and reports with (the facade reads it for report relations).</summary>
+	internal KernelWorldGenerationSource Generations => _generations;
 
 	/// <summary>
 	/// Host-side block-difference table: block-space position → current block id,
@@ -56,7 +62,21 @@ internal sealed class WorldStateMessageService(
 
 	public event Action<bool>? WorldJoinReceived;
 
-	public void FireWorldJoinReceived(bool isTutorial) => WorldJoinReceived?.Invoke(isTutorial);
+	/// <summary>
+	/// Guest: the enter-the-world instruction arrived. When it promises the run
+	/// baseline behind it, the params this side still holds are a PREVIOUS run's —
+	/// drop them, and the existing params wait at the generation boundary holds
+	/// until the promised checkpoint set restores the host's baseline.
+	/// </summary>
+	public void FireWorldJoinReceived(bool isTutorial, bool baselineFollows)
+	{
+		if (baselineFollows && _session.Role == SessionRole.Guest)
+		{
+			WorldParams = null;
+		}
+
+		WorldJoinReceived?.Invoke(isTutorial);
+	}
 
 	public event Action? WorldSnapshotCompleteReceived;
 
@@ -344,27 +364,54 @@ internal sealed class WorldStateMessageService(
 		_log.LogInformation("Sent block-state snapshot ({Count} blocks) to {Peer}.", _damagedBlocks.Count, targetSteamId);
 	}
 
+	/// <summary>
+	/// Host: invite every handshaken member that is not in the world, and — when
+	/// this host holds a run — send the run-baseline checkpoint set right after the
+	/// instruction. Order is the contract's host half: the instruction is what the
+	/// receiver adopts as the identity its checkpoint sets are validated against,
+	/// so a set that arrived BEFORE it would be refused whenever the run epoch
+	/// changed (the handshake path can send its entry group first only because a
+	/// peer that was announced nothing adopts the first set). The receiver half is
+	/// the hold: the instruction tells it to keep its generation from consuming
+	/// randomness until the announced set restores, because its own params may be a
+	/// previous run's.
+	/// </summary>
 	public void SendWorldJoin(bool isTutorial, ulong runEpoch)
 	{
-		if (!_session.SessionActive)
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			return;
 		}
 
+		// The baseline promise is the kernel's own answer: a run exists to deliver
+		// (a fresh start commits it at the click, a restore re-identifies it), so the
+		// invite carries it. Nothing is promised before a run exists — there is no
+		// baseline to send.
+		var baselineFollows = _generations.Current is not null;
+
 		// The run identity rides the instruction: it is the edge at which a NEW run
 		// legitimately begins, and the member validates every checkpoint set it is
-		// about to receive against it (the entry group follows this instruction).
-		var msg = new WorldJoinMsg { IsTutorial = isTutorial, RunEpoch = runEpoch };
+		// about to receive against it (the baseline set follows this instruction).
+		var msg = new WorldJoinMsg { IsTutorial = isTutorial, RunEpoch = runEpoch, RunBaselineFollows = baselineFollows };
+		var invited = 0;
 		foreach (var member in _session.Members)
 		{
-			if (member.Handshaken && !member.InWorld)
+			if (!member.Handshaken || member.InWorld)
 			{
-				_sender.Send(member.SteamId, NetMsg.WorldJoin, msg);
+				continue;
 			}
+
+			_sender.Send(member.SteamId, NetMsg.WorldJoin, msg);
+			if (baselineFollows)
+			{
+				_kernelProtocol.SendCheckpoint(member.SteamId);
+			}
+
+			invited++;
 		}
 
-		_log.LogInformation("World join sent to {Members} members (tutorial: {Tutorial}, run {Epoch}).",
-			_session.Members.Count(m => m.Handshaken && !m.InWorld), isTutorial, runEpoch);
+		_log.LogInformation("World join sent to {Members} member(s) (tutorial: {Tutorial}, run {Epoch}, baseline follows: {Baseline}).",
+			invited, isTutorial, runEpoch, baselineFollows);
 	}
 
 	public void SendWorldJoinTo(ulong steamId, ulong runEpoch)
@@ -380,9 +427,15 @@ internal sealed class WorldStateMessageService(
 			return;
 		}
 
+		var baselineFollows = _generations.Current is not null;
 		var tutorial = WorldParams?.IsTutorial ?? false;
-		_sender.Send(steamId, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = tutorial, RunEpoch = runEpoch });
-		_log.LogInformation("[Respawn] sent targeted world join to {Peer} (tutorial: {Tutorial}, run {Epoch}).", steamId, tutorial, runEpoch);
+		_sender.Send(steamId, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = tutorial, RunEpoch = runEpoch, RunBaselineFollows = baselineFollows });
+		if (baselineFollows)
+		{
+			_kernelProtocol.SendCheckpoint(steamId);
+		}
+
+		_log.LogInformation("[Respawn] sent targeted world join to {Peer} (tutorial: {Tutorial}, run {Epoch}, baseline follows: {Baseline}).", steamId, tutorial, runEpoch, baselineFollows);
 	}
 
 	public void PublishWorldParams(WorldStartParams parameters)

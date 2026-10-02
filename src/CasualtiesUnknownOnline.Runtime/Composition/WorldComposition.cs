@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
@@ -65,6 +66,7 @@ internal static class WorldComposition
 			p.GetRequiredService<ChatChannel>(),
 			p.GetRequiredService<LocationPingChannel>(),
 			p.GetService<INativeWorldFacts>(),
+			p.GetRequiredService<IKernelProtocolControl>(),
 			p.GetRequiredService<ItemKernelAuthority>(),
 			p.GetRequiredService<IWorldItemLayerReset>(),
 			p.GetRequiredService<FluidKernelProjection>(),

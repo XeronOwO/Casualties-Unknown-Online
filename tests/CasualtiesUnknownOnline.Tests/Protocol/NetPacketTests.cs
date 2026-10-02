@@ -292,13 +292,18 @@ public class NetPacketTests
 		// The identity a member validates its checkpoint sets against: a value that
 		// decoded back as 0 would leave the member with nothing to refuse a straggler
 		// set against, and one that decoded as another run would refuse the live set.
+		// The promise bit is what makes the receiver hold its generation until the
+		// announced baseline set restores; decoded back as false it would regenerate
+		// from its own stale baseline instead.
 		var decoded = NetPacket.DecodePayload<WorldJoinMsg>(NetPacket.Encode(NetMsg.WorldJoin, new WorldJoinMsg
 		{
 			IsTutorial = false,
 			RunEpoch = 4UL,
+			RunBaselineFollows = true,
 		}));
 
 		Assert.Equal(4UL, decoded.RunEpoch);
+		Assert.True(decoded.RunBaselineFollows);
 	}
 
 	[Fact]

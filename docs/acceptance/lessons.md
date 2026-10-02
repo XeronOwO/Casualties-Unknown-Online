@@ -1283,3 +1283,31 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: probes that create entities cast first (`... as UnityEngine.GameObject`) before `GetComponent`;
   when an eval error names nothing, bisect the snippet and send its expressions one at a time instead of
   guessing. `.acceptance/20261002-f/spawn-animal.cs` carries the fix.
+
+## 2026-10-02 — A log read can be taken before the writer flushed, and a stale build can fake a mutation red
+
+- Symptom (two shapes, one batch): (a) `read-log-since.ps1` returned `NO MATCHING LINES` for a window
+  that demonstrably held the host's 86 `host bound …` lines seconds later; (b) after reverting a
+  deliberately mutated predicate, the focused tests kept failing even though the source on disk was
+  correct.
+- Cause: (a) the read ran ~2 s after the send, before the game had appended the lines — the script reads
+  from the mark's byte offset, so a still-unflushed tail is simply absent; (b) the incremental build had
+  not recompiled the Runtime assembly, and the IL still carried `return paired;` (`03 2A`) while the
+  source showed the restored expression.
+- Change: (a) re-read the window after a bounded wait and never treat a single empty read as "the line is
+  absent" — an absence row needs the re-read plus the full cycle (`workflow.md` §6); (b) after reverting a
+  mutation, rebuild the owning project with `--no-incremental` and confirm the artifact changed (hash or
+  IL) before trusting the tests. The batch-g repair run's evidence was re-read this way, and the stale
+  build was a red herring, not a product failure.
+
+## 2026-10-02 — An absence row can be lost by a count that reads the newly-paired number
+
+- Symptom: the accepted repair fix would still have printed `snapshot applied: 0 generated bound, …` on a
+  healthy 60 s cycle, one field away from the rejected `0 generated bound, … mapping=False` line an
+  acceptance reader judges.
+- Cause: the log reported the copies PAIRED THIS CYCLE; a steady-state repair pairs nothing while holding
+  the whole baseline.
+- Change: report the asserted held count (host facts minus the still-unbound candidates) and pin it with a
+  predicate test; when a row's expectation is a reading humans judge, the reading must describe the state
+  it claims, not the work the pass happened to do. Review of the fix (fresh context, FULL tier) found
+  this before the commit.

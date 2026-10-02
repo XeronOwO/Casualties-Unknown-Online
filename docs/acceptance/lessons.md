@@ -1341,3 +1341,22 @@ dependency the table did not name, a step that cost more than it returned.
   its own items beside them. Applying a world-state stream must be gated on the RECEIVER's world baseline
   being ready, not only on the row's arrival.
 - Change: recorded as the ticket's related finding (cover with the same gate or split).
+
+## 2026-10-02 — An adopt-first landing that never adopts must be removed, and its probe must be read completely
+
+- Symptom: the batch-`20261002-j` re-entry fix shipped a deferred-landing queue whose whole point was
+  to adopt a late local object instead of materializing a duplicate; the acceptance probe (the
+  re-entering client pinned to 5 fps) deferred the same seven rows at entry and at the re-entry and
+  every `[ItemSpawn] deferred rows:` summary read `adopted 0 late`. The seven local objects existed,
+  but sat 1.8–3.6 units from the authority row — outside the 1.5-unit adopt tolerance `FindExistingAt`
+  and the sweep's guard share — so neither the retry nor the guard could match them, and the queue
+  only delayed materialization by 2 s while the keyframe's late-local sweep did the converging.
+- Cause: a position-based adopt predicate has a tolerance, and the tolerance — not the waiting —
+  decides whether adoption can happen at all. A staging window that shows the wait firing but never
+  the adoption is evidence the predicate cannot match, not evidence of a timing problem.
+- Change: the queue, its pump, its sweep guard and its unit tests were deleted (`cfbf76d1`), the
+  ticket's Fix/Limits/Next-step rewritten to the sweep-only argument, and the acceptance re-run judged
+  every row against that build (`docs/evidence/acceptance/sandbox-client-null-reference-bursts-20261002-j.md`).
+  Reading lesson: a `-Tail N`-capped extract can silently drop the head of a window — a fresh-context
+  review recounted one window from the truncated file and reported a wrong per-client count; name the
+  complete extract (or its cap) whenever an artifact is cited as a window's evidence.

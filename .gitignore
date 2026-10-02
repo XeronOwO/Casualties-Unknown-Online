@@ -67,9 +67,9 @@ nunit-*.xml
 .idea/
 .vscode/
 
-# DeepSeek Harness — local personal notes (never committed)
-AGENTS.local.md
-CLAUDE.local.md
+# DeepSeek Harness — local personal notes (never committed; gated by RepositoryGateTests.LocalContent_IsNeverCarriedByGit)
+AGENTS.local*.md
+CLAUDE.local*.md
 
 # Local agent reference area — on-demand topic notes, machine-specific, never committed
 .agent-local/

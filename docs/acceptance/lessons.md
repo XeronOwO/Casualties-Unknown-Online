@@ -1401,7 +1401,7 @@ dependency the table did not name, a step that cost more than it returned.
   run's world got its first snapshot. The host regenerated the old world's layer 1 while the members
   regenerated the session's layer 0; the layer baselines (`F8A3757E…` vs `30BFAA…`) and the enemy populations
   (74 vs 85) are the two worlds, not modifier or death effects. Filed and now fixed in
-  `docs/backlog/review/layer-mod-baseline-divergence-on-continue.md`.
+  `docs/backlog/done/layer-mod-baseline-divergence-on-continue.md`.
 - Change: the divergence is recorded, not swallowed; `enemy-snapshot-binding-recovery` rows 3/4/8 failed in
   that state (`docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`) and are re-run in
   batch `20261002-l`. Lesson for staging: a restore that changes the world is not a neutral environment for
@@ -1409,6 +1409,11 @@ dependency the table did not name, a step that cost more than it returned.
   behind it. The attribution method that worked: read the local CUO repository itself — `index.json`'s
   `lastOpenedWorldId`, each world's `world.json` / `live/manifest.json` kind+layer, and `live/run.json`'s
   `randomState` base64 — and match it against the baselines the run's own logs applied and reset to.
+- Verified 2026-10-02 (batch `20261002-l`): with the pointer fixed, the Continue restored the run's own
+  world's mid-run layer-0 cut, all three clients generated from the same decision entry state and applied
+  the same modifier with zero divergence, and the enemy rows 3/4/8 bound the full 76-set over four repair
+  cycles (`docs/evidence/acceptance/layer-mod-baseline-divergence-on-continue-20261002-l.md`,
+  `docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-l.md`).
 
 ## 2026-10-02 — Log lines that do not mean what they read like (batch `20261002-k`)
 

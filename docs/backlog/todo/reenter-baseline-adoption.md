@@ -5,8 +5,8 @@
 - Category: Network / sync (world entry / restore ordering)
 - Source: agent attribution during the `layer-mod-baseline-divergence-on-continue` fix cycle (2026-10-02),
   from batch `20261002-k`'s F re-entry logs; not a user report
-- Related: `review/layer-mod-baseline-divergence-on-continue.md` (the fixed root cause of that batch's
-  divergence), `review/enemy-snapshot-binding-recovery.md` (rows 3/4/8 judge the re-entry in the same
+- Related: `done/layer-mod-baseline-divergence-on-continue.md` (the fixed root cause of that batch's
+  divergence), `todo/enemy-snapshot-binding-recovery.md` (rows 3/4/8 judge the re-entry in the same
   window), `src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs`
 
 ## Problem (evidence)

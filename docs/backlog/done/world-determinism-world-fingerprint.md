@@ -1,6 +1,7 @@
 # World determinism / WorldFingerprint comparison
 
-- Status: Todo — Rejected (batch `20261002-k`: row 3 unproven — the entry pair is identical on all three clients, but the one-shot `[WorldFingerprint]` log is re-armed on session end only, so no post-mutation re-capture could be taken; the adjacent layer-modifier divergence is filed separately; record `docs/evidence/acceptance/world-determinism-world-fingerprint-20261002-k.md`)
+- Status: Done (batch `20261002-p` judged row 3 pass with the on-demand re-capture device, 2026-10-02)
+- Acceptance record: `docs/evidence/acceptance/world-determinism-world-fingerprint-20261002-p.md`
 - Priority: High
 - Category: Final acceptance
 
@@ -27,6 +28,10 @@ Audit rows: `docs/evidence/sync-coverage-matrix.md` R7 (verdict
 fingerprint comparison would have surfaced faster — closed 2026-09-09 by
 `done/guest-block-mutation-re-report.md`).
 
+The audit's file citations predate the extraction: the hash now lives in
+`src/CasualtiesUnknownOnline.GameAdapter/Run/WorldFingerprintLog.cs` and
+`RunCoordinator` only decides when to log it.
+
 ## Final-acceptance procedure
 
 1. Host + guest enter the same layer; capture both `[WorldFingerprint]` lines.
@@ -43,4 +48,14 @@ fingerprint exchange + divergence alert), not part of this acceptance item.
 Run record: [world-determinism-world-fingerprint-20261001.md](../../evidence/acceptance/world-determinism-world-fingerprint-20261001.md).
 Procedure steps 1, 2 and 4 pass (the entry fingerprint pair is identical); step 3 unproven — no
 post-mutation fingerprint pair, because the one-shot log was not re-armed, so the bounded block reads are
-the recorded substitute. The ticket stays in `review/`.
+the recorded substitute.
+
+## Acceptance — batch 20261002-p
+
+Run record: [world-determinism-world-fingerprint-20261002-p.md](../../evidence/acceptance/world-determinism-world-fingerprint-20261002-p.md).
+The re-capture device is the committed `world-fingerprint` acceptance recipe: it calls the product's own
+`WorldFingerprintLog.Log` through the plugin's logger factory, so the second pair is the product's own
+line on demand instead of a re-implementation. The entry pair is identical on all three clients; after a
+staged mutation pass (marker cells converged on all three) the re-captured pair is identical on all three
+as well, differing from the entry pair only in the 128-row band the mutation changed and in the total.
+Step 3 passes and the ticket closes.

@@ -47,7 +47,7 @@ segment start (`D6848B6D0B46332A4A24DBC1E3CB786B` against the host's
 19:03:12 while applying the host's modifier authoritatively. The real segments matched the host's through
 `692FA317…`, so the adoption itself held; a second pass with the host present for the whole generation
 reproduced `19/19/19` segments and zero divergence. Recorded as
-`review/guest-generation-segments-over-host-absence.md`.
+`done/guest-generation-segments-over-host-absence.md`.
 
 ## Limits
 

@@ -6,7 +6,7 @@
 - Source: agent attribution during the `layer-mod-baseline-divergence-on-continue` fix cycle (2026-10-02),
   from batch `20261002-k`'s F re-entry logs; not a user report
 - Related: `done/layer-mod-baseline-divergence-on-continue.md` (the fixed root cause of that batch's
-  divergence), `todo/enemy-snapshot-binding-recovery.md` (rows 3/4/8 judge the re-entry in the same
+  divergence), `done/enemy-snapshot-binding-recovery.md` (rows 3/4/8 judge the re-entry in the same
   window), `src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs`
 - Acceptance: pending — the three-client staging runs against the fix commit's deployed artifact and is
   recorded under `docs/evidence/acceptance/`; this ticket moves to `done/` in that change.

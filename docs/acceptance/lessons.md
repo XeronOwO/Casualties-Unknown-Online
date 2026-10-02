@@ -1687,5 +1687,32 @@ dependency the table did not name, a step that cost more than it returned.
 - Same family as the batch-d note "nested lambdas must not capture outer locals": the evaluator compiles
   the outer lambda and chokes on the inner closure.
 
+## 2026-10-03 — A recipe with two declared arguments is refused before the client (batch `20261003-c`)
+
+- Symptom: the batch's first window attempt produced no answer file at all, the host stayed on layer 0, and
+  the poll never saw an empty table — the run nearly blamed the descent.
+- Cause: `game-console` declares two arguments (`command=s args=s`); the driver's `Expand-RecipeCode`
+  refuses a call that supplies only one and exits before the socket opens, and the caller had piped the
+  driver's stderr to `Out-Null`, so the usage error was invisible.
+- Change: pass every declared argument (a game command that takes none uses the literal `args=none`), and
+  treat a missing probe answer file as the failure signal — re-run the step with stderr visible before
+  concluding anything about the product.
+
+## 2026-10-03 — The host's own world regeneration is the real empty-enemy-table window (batch `20261003-c`)
+
+- The host's runtime enemy table is replaced every frame from the live scene, so a `skiplayer` descent
+  empties it for the whole generation: measured 78 → 0 at ≈2 s → 7 at ≈11 s → 78 at ≈13 s after the
+  command. A send landing in that window is the product's own empty-table state, not a probe invention.
+- The staged shape: arm the member's inbound blackout (the host's InMenu pull and the layer's kernel
+  removals are dropped, and `member.InWorld` stays true on the host), run the descent, poll the host's
+  `enemy-table-read` to 0, then drive the member's own readiness-window repeat (`scene-repeat` →
+  `ResendSceneState` → the host's `SceneStateHandler` repeat branch → its entry-repair claim) and read the
+  host's log: the same `Sending the in-session repair group …` line with **no** `[Enemy] snapshot sent`
+  line, next to the non-empty control where the same call does log it.
+- The member's own set across the window is a within-blackout reading: it stays only because the blackout
+  drops everything; once lifted, the host's kernel removals for the old layer reach it (the product's own
+  transition lifecycle, not an empty snapshot). Without the blackout the member follows the descent
+  instead of staying behind.
+
 
 

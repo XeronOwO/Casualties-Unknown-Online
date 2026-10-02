@@ -26,7 +26,7 @@
 - Rows 3, 4 and 8 were judged after the run's **layer-end Continue** re-entry. **Attributed 2026-10-02**: the
   Continue had restored a stale world — the host's 74-enemy table and the members' 85 copies belonged to two
   different worlds — so the all-or-nothing pairing could never bind and the binding code was not at fault. The
-  fix is `docs/backlog/review/layer-mod-baseline-divergence-on-continue.md`; rows 3/4/8 are re-run in batch
+  fix is `docs/backlog/done/layer-mod-baseline-divergence-on-continue.md`; rows 3/4/8 are re-run in batch
   `20261002-l`.
 - Row 2's empty-table no-op had no isolated window.
 - One session; one sample per state; the repair cycle was read at least twice per state.

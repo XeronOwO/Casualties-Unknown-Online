@@ -24,7 +24,7 @@ that had happened since). This session's own leave had written a `MenuReturn (Mi
 it played, `128 world-block row(s)` (`c-host-saveseam-log.txt`) — the pointer, not the cut, is what the
 continue missed. **Update 2026-10-02**: that is the missing first-cut write of the Continue pointer, fixed
 in `WorldSaveService.OnCutReported` — a run's own world now becomes the Continue target on its first
-committed cut (`docs/backlog/review/layer-mod-baseline-divergence-on-continue.md`), so the `leave → continue`
+committed cut (`docs/backlog/done/layer-mod-baseline-divergence-on-continue.md`), so the `leave → continue`
 route opens the run's own world. That observation is recorded, not judged: it is a staging route, and the row was then
 driven on the member re-entry route instead — host stays in the world, the member re-handshakes, the
 host's direct `WorldJoin` brings it back, and the world-entry fan-out sends the snapshot read at send

@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / protocol / world generation (attribution of world reports)
 - Source: `review/guest-break-drops-recovery.md` — the limitation its 2026-09-18 review round forced: a break report naming a cell the host still holds is REFUSED, because without a generation identity a stale previous-layer report cannot be told apart from a legitimate one
-- Related: `done/block-break-first-writer-wins.md`, `todo/guest-block-mutation-re-report.md` (W1), `review/guest-partial-block-damage-re-report.md` (W2), `review/enemy-snapshot-binding-recovery.md` (that domain solved its own version of "which generation does this fact belong to?" with a per-entity binding anchor), `todo/generation-identity-remaining-families.md` (the two families this cycle audited but did not stamp)
+- Related: `done/block-break-first-writer-wins.md`, `todo/guest-block-mutation-re-report.md` (W1), `review/guest-partial-block-damage-re-report.md` (W2), `todo/enemy-snapshot-binding-recovery.md` (that domain solved its own version of "which generation does this fact belong to?" with a per-entity binding anchor), `todo/generation-identity-remaining-families.md` (the two families this cycle audited but did not stamp)
 
 ## Problem (evidence)
 

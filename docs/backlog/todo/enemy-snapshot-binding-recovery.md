@@ -1,6 +1,6 @@
 # Enemy snapshot binding has no recovery path
 
-- Status: Review (the rows-3/4/8 environment was fixed 2026-10-02 — the Continue had restored a stale world, see `docs/backlog/review/layer-mod-baseline-divergence-on-continue.md`; rows 3/4/8 are re-judged in batch `20261002-l`. Batch `20261002-k`: rows 3, 4 and 8 failed in that stale-world environment, row 2 unproven, rows 1, 5 and 6 pass; record `docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`)
+- Status: Todo — Rejected (batch `20261002-l`: rows 3, 4 and 8 now PASS — the re-entering members bound the full 76-enemy set over four repair cycles with `mapping=True` and the three censuses/health sets agree (`docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-l.md`); row 2 stays unproven — no empty-host-table window is stageable here, and it is the only open row; rows 1, 5 and 6 stand from `20261002-k`; row 7 is `review/enemy-hit-determination-local.md`)
 - Priority: Medium
 - Category: Network / sync coverage / enemies (host-authoritative binding)
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the attack half stays open in `review/enemy-hit-determination-local.md`

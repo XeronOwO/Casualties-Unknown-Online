@@ -2,9 +2,9 @@
 
 - Status: Resolved
 - Category: Network / sync coverage / enemies (host-ordered attack delivery)
-- Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the binding half landed as `review/enemy-snapshot-binding-recovery.md`
+- Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the binding half landed as `todo/enemy-snapshot-binding-recovery.md`
 - Superseded by: `review/enemy-hit-determination-local.md` (user ruling 2026-09-18)
-- Related: `review/enemy-snapshot-binding-recovery.md`, `review/runtime-entity-spawn-backfill.md`
+- Related: `todo/enemy-snapshot-binding-recovery.md`, `review/runtime-entity-spawn-backfill.md`
 
 ## Why this record is closed without code
 
@@ -19,7 +19,7 @@ compensate the lost order" family — including the design directions below — 
 What survives from this ticket is carried into `review/enemy-hit-determination-local.md`:
 the host keeps the enemy's action and its timing; the victim's report remains the shared
 truth; the binding recovery that the victim's judgment depends on already landed
-(`review/enemy-snapshot-binding-recovery.md`).
+(`todo/enemy-snapshot-binding-recovery.md`).
 
 ## Original problem (evidence, as recorded)
 
@@ -36,7 +36,7 @@ nothing re-issues it.
   `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatReplay.cs`
   `OnEnemyAttackReceived` logs "attack {Kind} arrived for unknown enemy {Enemy} — the snapshot
   binding may not have arrived yet; command dropped." (the binding half of this dependency is
-  `review/enemy-snapshot-binding-recovery.md`: while the binding is missing, EVERY ordered attack is
+  `todo/enemy-snapshot-binding-recovery.md`: while the binding is missing, EVERY ordered attack is
   dropped, which is what makes the loss permanent rather than occasional).
 - The message is documented as final: `EnemyAttackMsg` — "Reliable — the command is one-shot" —
   and the host consumes the enemy's attack immediately after ordering it:

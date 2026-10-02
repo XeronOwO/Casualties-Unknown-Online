@@ -1,7 +1,11 @@
 # A Continue after a run opens a stale world (the layer-mod baseline then diverges)
 
-- Status: Review (root cause attributed and fixed 2026-10-02 — the Continue target now moves on a run's
-  first committed cut; awaiting the batch `20261002-l` re-run)
+- Status: Done
+- Acceptance (20261002-l): the run's first committed cut moved the pointer to the run's own world, the
+  Continue restored that world's mid-run layer-0 cut, and all three clients generated from the same
+  decision entry state (`77B6B8…`) and applied the same modifier (index 5) with zero
+  `[LayerMod] baseline divergence` — record
+  `docs/evidence/acceptance/layer-mod-baseline-divergence-on-continue-20261002-l.md`
 - Priority: High
 - Category: Persistence / save continue target (observed as a world-generation / layer-modifier divergence)
 - Source: agent acceptance batch `20261002-k` (2026-10-02) — observed while staging the late-join/reconnect

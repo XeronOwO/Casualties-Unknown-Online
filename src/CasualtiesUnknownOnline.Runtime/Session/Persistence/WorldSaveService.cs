@@ -69,6 +69,15 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 	private bool _disposed;
 
 	/// <summary>
+	/// True = the world <see cref="_worldId"/> names already carries a snapshot, so its
+	/// first cut has happened. A new run starts false (the folder exists, nothing is
+	/// continuable) and a restore starts true; the Continue target moves on the first
+	/// committed cut of a world, never before it and never again after it (see
+	/// <see cref="OnCutReported"/>).
+	/// </summary>
+	private bool _worldHasSnapshot;
+
+	/// <summary>
 	/// The Continue attempt's player-facing account: what the click resolved, whether an
 	/// applied attempt is still outstanding, and the one place a report is raised. Its own
 	/// type because it is about what the PLAYER is told rather than about what a snapshot
@@ -142,7 +151,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 			nativeReaderAvailable: nativeWorldFacts is not null,
 			loggerFactory.CreateLogger<WorldCutTrigger>(),
 			clock);
-		_trigger.Reported += report => CutReported?.Invoke(report);
+		_trigger.Reported += OnCutReported;
 		_log = log;
 		_restoreAccount = new WorldRestoreAccountRelay(report => RestoreReported?.Invoke(report), audit);
 
@@ -319,6 +328,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 			_worldId = string.Empty;
 			_displayName = string.Empty;
 			_pendingCharacters = [];
+			_worldHasSnapshot = false;
 			_log.LogInformation("This entry is the tutorial — it gets no world archive, and the previous run's identity is released.");
 			return false;
 		}
@@ -335,22 +345,25 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 		{
 			_log.LogError("Could not create the world folder for this run: {Detail}", created.Failure);
 			_worldId = string.Empty;
+			_worldHasSnapshot = false;
 			return false;
 		}
 
 		_worldId = created.WorldId;
 		_displayName = displayName;
 		_pendingCharacters = [];
+		_worldHasSnapshot = false;
 
 		// The interval autosave counts from HERE, not from the process start: the first
 		// autosave of a run lands one interval after the run began, never on its first
 		// frame (WorldAutosaveInterval).
 		_trigger.RestartInterval();
 
-		// The picker pointer moves on the FIRST CUT, not here: an aborted start (the
-		// tutorial gate refuses after the click) must not hide the previous world
-		// behind a folder that holds no snapshot — which would also make Continue
-		// reachable for a world that cannot be opened.
+		// The picker pointer moves on the FIRST commit, not here: an aborted start (the
+		// tutorial gate refuses after the click) must not hide the previous world behind
+		// a folder that holds no snapshot — which would also make Continue reachable for
+		// a world that cannot be opened. That first commit is
+		// <see cref="OnCutReported"/>'s moment.
 		_log.LogInformation("This run writes into world {WorldId} ({DisplayName}) under {Root}.", _worldId, displayName, _repository.Root);
 		return true;
 	}
@@ -440,6 +453,36 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 	/// <summary>Which world a cut of this instant writes into (the identity a restore may have adopted a moment ago).</summary>
 	private WorldCutTarget Target => new(_worldId, _displayName);
 
+	/// <summary>
+	/// Every finished cut attempt. The FIRST committed cut of the world this service is
+	/// writing is what makes that world continuable, so it — not whatever world the
+	/// picker last selected — becomes the Continue target: the player leaves the run and
+	/// the native Continue opens the run they just left. The move belongs HERE and not at
+	/// <see cref="TryBeginRun"/> because an aborted start must not hide the previous world
+	/// behind a folder that holds no snapshot; it happens once per world, so a world
+	/// chosen in the picker after that first cut still stands. A pointer that could not be
+	/// written is retried by the next committed cut (the latch stays open until a write
+	/// succeeds), and the report is forwarded unchanged — the cut itself always stands.
+	/// </summary>
+	private void OnCutReported(WorldCutReport report)
+	{
+		if (report.Captured && !_worldHasSnapshot && _worldId.Length > 0 && report.WorldId == _worldId)
+		{
+			if (_repository is not null && !_repository.SetLastOpenedWorld(_worldId))
+			{
+				_log.LogWarning(
+					"The first cut of world {WorldId} was written, but it could not be recorded as the Continue target; the next committed cut retries.",
+					_worldId);
+			}
+			else
+			{
+				_worldHasSnapshot = true;
+			}
+		}
+
+		CutReported?.Invoke(report);
+	}
+
 	private void OnBatchCommitted(CommittedBatch batch)
 	{
 		if (_repository is null || _worldId.Length == 0 || _session.Role == SessionRole.Guest)
@@ -469,6 +512,11 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 			_worldId = restore.WorldId;
 			_displayName = restore.DisplayName;
 			_pendingCharacters = restore.Characters;
+
+			// The world comes back with the snapshot it was restored FROM, so it already
+			// carries one: the first-cut move never applies to it, and the restore itself
+			// has already pointed the Continue target at it.
+			_worldHasSnapshot = true;
 
 			// A restored world starts its own write history: the first interval autosave
 			// lands one interval after the click, not one interval after the last cut of

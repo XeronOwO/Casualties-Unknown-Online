@@ -49,6 +49,41 @@ public class WorldSaveContinueTests
 	}
 
 	[Fact]
+	public void TheContinueAfterAPlayedRun_OpensTheRunThePlayerJustLeft()
+	{
+		using var fixture = WorldSaveFixture.Create("continue-after-play");
+
+		// An earlier world with a REAL snapshot is the picker's selection when the run
+		// below starts — the shape the stale pointer had in the batch that found this.
+		var olderWorld = WorldSaveCaptureTests.PlayAnEarlierWorld(fixture);
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(olderWorld));
+		Assert.Equal(olderWorld, fixture.Service.ContinueWorldId);
+
+		// The run the player then plays: its first committed cut is what makes the
+		// world it writes continuable.
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		var runWorld = fixture.WorldId;
+		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
+		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, WorldSaveCaptureTests.Run(layerIndex: 1), out _, out _));
+		Assert.Equal(runWorld, fixture.Repository.Repository.LastOpenedWorldId);
+
+		// The Continue the player clicks opens the run they just left — not the earlier
+		// world the picker selected before the run started.
+		using var restarted = fixture.Restart("continue-after-play-restart");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+		Assert.True(outcome.Started);
+		Assert.Equal(runWorld, outcome.WorldId);
+
+		// A cut of the RESTORED world does not move the target either: it already carried
+		// a snapshot when it was restored, so a picker choice made after the continue
+		// still stands (the first-cut rule belongs to a world's first snapshot, not to
+		// every run this service adopts).
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(olderWorld));
+		Assert.True(restarted.Kernel.TryAdvanceLayer(HostId, WorldSaveCaptureTests.Run(layerIndex: 2), out _, out _));
+		Assert.Equal(olderWorld, fixture.Repository.Repository.LastOpenedWorldId);
+	}
+
+	[Fact]
 	public void TryContinue_RestoresTheKernelCheckpoint()
 	{
 		using var fixture = WorldSaveFixture.Create("continue-kernel");

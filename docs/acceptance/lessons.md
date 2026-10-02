@@ -588,6 +588,9 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: a continue-scenario run either accepts the world the pointer names (the clean cycle then cuts
   and continues THAT world in-session) or moves the pointer first; the first continue's evidence is kept
   as a bonus observation rather than counted as the row.
+- Update 2026-10-02: a run's own world now becomes the Continue target on its FIRST committed cut
+  (`WorldSaveService.OnCutReported`), so the workaround above is retired for the normal case — the pointer
+  moves once per world, and a picker selection made after that first cut still stands.
 
 ## 2026-10-01 — An injected archive edit surfaces in the manifest check
 
@@ -1393,12 +1396,19 @@ dependency the table did not name, a step that cost more than it returned.
   failed on every repair cycle (`generation spawn pairing failed (74 host vs 85 guest generated enemies)` +
   `snapshot applied: -11 generated bound, 0 runtime spawns, mapping=False`). The member-side replay line reads
   `[LayerMod] guest replay index=-1 depth=0`.
-- Cause: under investigation — filed as `docs/backlog/todo/layer-mod-baseline-divergence-on-continue.md`
-  (is the member supposed to replay the host's modifier segment; does the cut carry it?).
+- Cause (attributed 2026-10-02): the Continue opened a STALE WORLD — the repository's `lastOpenedWorldId`
+  still named `w-20261001-6986` while the run played `w-20261002-62b8`, and nothing moved the pointer when a
+  run's world got its first snapshot. The host regenerated the old world's layer 1 while the members
+  regenerated the session's layer 0; the layer baselines (`F8A3757E…` vs `30BFAA…`) and the enemy populations
+  (74 vs 85) are the two worlds, not modifier or death effects. Filed and now fixed in
+  `docs/backlog/review/layer-mod-baseline-divergence-on-continue.md`.
 - Change: the divergence is recorded, not swallowed; `enemy-snapshot-binding-recovery` rows 3/4/8 failed in
-  that state (`docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`) and the fix cycle must
-  attribute the failure between the two tickets. Lesson for staging: a restore that changes the world is not a
-  neutral environment for a late-join row.
+  that state (`docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`) and are re-run in
+  batch `20261002-l`. Lesson for staging: a restore that changes the world is not a neutral environment for
+  a late-join row, and a pointer that only a restore or a page selection writes leaves every played run
+  behind it. The attribution method that worked: read the local CUO repository itself — `index.json`'s
+  `lastOpenedWorldId`, each world's `world.json` / `live/manifest.json` kind+layer, and `live/run.json`'s
+  `randomState` base64 — and match it against the baselines the run's own logs applied and reset to.
 
 ## 2026-10-02 — Log lines that do not mean what they read like (batch `20261002-k`)
 

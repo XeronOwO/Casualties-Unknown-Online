@@ -23,10 +23,10 @@
 
 ## Limits
 
-- Rows 3, 4 and 8 were judged after the run's **layer-end Continue** re-entry: the host restored layer 1 while
-  both guests regenerated it, and the two sides' layer-modifier baselines diverged. The enemy-binding failure is
-  real and observed in that state; its root cause may be the restore/regeneration divergence rather than the
-  snapshot binding itself — the fix cycle must attribute it. The divergence is filed separately
-  (`docs/backlog/todo/layer-mod-baseline-divergence-on-continue.md`).
+- Rows 3, 4 and 8 were judged after the run's **layer-end Continue** re-entry. **Attributed 2026-10-02**: the
+  Continue had restored a stale world — the host's 74-enemy table and the members' 85 copies belonged to two
+  different worlds — so the all-or-nothing pairing could never bind and the binding code was not at fault. The
+  fix is `docs/backlog/review/layer-mod-baseline-divergence-on-continue.md`; rows 3/4/8 are re-run in batch
+  `20261002-l`.
 - Row 2's empty-table no-op had no isolated window.
 - One session; one sample per state; the repair cycle was read at least twice per state.

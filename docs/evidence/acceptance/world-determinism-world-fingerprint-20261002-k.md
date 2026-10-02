@@ -22,7 +22,10 @@ the Continue restored the run's **layer-end cut** (`Projected kernel run baselin
 `k-F-world-host.log`), and both guests then repeated
 `[LayerMod] baseline divergence — local segment start 5200E7D148E10BB7426A68F7E2407117 vs host's E76DFACE27BBFC1FC9FFB1C2648822EB (world effects may diverge)`
 every 10 s (`k-F-baseline-guest.log`, `k-F-baseline-alt.log`) while the host's enemy set stayed at 74 against
-the guests' 85 (`k-census-F-*.json`). Filed as `docs/backlog/todo/layer-mod-baseline-divergence-on-continue.md`.
+the guests' 85 (`k-census-F-*.json`). Filed as `docs/backlog/review/layer-mod-baseline-divergence-on-continue.md`.
+**Attributed 2026-10-02**: the Continue had restored a stale world (the repository pointer still named a
+2026-10-01 world), not the run's own; the missing first-cut pointer write is fixed there, and rows 3/4/8 of
+`enemy-snapshot-binding-recovery` are re-run in batch `20261002-l`.
 
 ## Limits
 

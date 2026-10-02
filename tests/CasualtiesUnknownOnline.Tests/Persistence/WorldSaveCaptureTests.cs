@@ -28,28 +28,65 @@ public class WorldSaveCaptureTests
 	private const ulong RunId = 42UL;
 
 	[Fact]
-	public void TryBeginRun_CreatesAWorldAndPointsTheIndexAtIt()
+	public void TheRunsFirstCut_MakesItsWorldTheContinueTarget_EvenWhenAnotherWorldIsChosen()
 	{
 		using var fixture = WorldSaveFixture.Create("save-capture");
+		var repository = fixture.Repository.Repository;
+
+		// A world the player played earlier — a REAL snapshot through the service's own cut
+		// path — and the picker's current selection, so it IS the Continue target here.
+		var olderWorld = PlayAnEarlierWorld(fixture);
+		Assert.True(repository.SetLastOpenedWorld(olderWorld));
+		Assert.Equal(olderWorld, repository.LastOpenedWorldId);
+		Assert.Equal(olderWorld, fixture.Service.ContinueWorldId);
+
+		// A new run: the folder is created, but it holds no snapshot yet, so the target
+		// must NOT move — an aborted start cannot hide the previous world behind a
+		// folder the Continue entry cannot open.
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		var worldId = fixture.WorldId;
+		Assert.True(SaveArchiveFormat.IsWorldId(worldId));
+		Assert.True(Directory.Exists(repository.PathOfWorld(worldId)));
+		Assert.Equal(olderWorld, repository.LastOpenedWorldId);
+		Assert.Equal(olderWorld, fixture.Service.ContinueWorldId);
+
+		// The FIRST committed cut is the moment the world being played becomes the
+		// target: after the player leaves, Continue must open the run they just left,
+		// not whatever world the picker last selected.
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
+		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 1), out _, out _));
+		Assert.Equal(worldId, repository.LastOpenedWorldId);
+		Assert.Equal(worldId, fixture.Service.ContinueWorldId);
+
+		// It moves on the FIRST cut only: a picker choice made after it still stands,
+		// and the run's next cut may not steal the selection back. The RAW pointer is the
+		// assertion that bites: ContinueWorldId alone answers the same world either way,
+		// because both worlds carry a snapshot.
+		Assert.True(repository.SetLastOpenedWorld(olderWorld));
+		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 2), out _, out _));
+		Assert.Equal(olderWorld, repository.LastOpenedWorldId);
+	}
+
+	[Fact]
+	public void ARefusedCut_DoesNotMoveTheContinueTarget()
+	{
+		using var fixture = WorldSaveFixture.Create("save-refused-cut");
+		var repository = fixture.Repository.Repository;
+
+		// The picker's current selection is an earlier world with a REAL snapshot.
+		var olderWorld = PlayAnEarlierWorld(fixture);
+		Assert.True(repository.SetLastOpenedWorld(olderWorld));
 
 		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
 
-		// The run's world is a NEW folder (the repository's own seed world predates
-		// it), but nothing is continuable yet: the folder holds no snapshot, and the
-		// picker pointer does not move until a cut exists — an aborted start must not
-		// hide the previous world behind an empty folder, nor offer a Continue entry
-		// that cannot open anything.
-		var worldId = fixture.WorldId;
-		Assert.True(SaveArchiveFormat.IsWorldId(worldId));
-		Assert.True(Directory.Exists(fixture.Repository.Repository.PathOfWorld(worldId)));
-		Assert.False(fixture.Service.HasRestorableWorld);
-		Assert.Null(fixture.Service.ContinueWorldId);
+		// The kernel holds no run baseline, so the writer refuses: an attempt that wrote
+		// no snapshot must leave the Continue target exactly where it was.
+		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out var refusal), refusal);
+		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 0));
+		Assert.Equal(WorldCutResult.Refused, report.Result);
 
-		// The first committed cut makes it continuable.
-		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
-		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 1), out _, out _));
-		Assert.True(fixture.Service.HasRestorableWorld);
-		Assert.Equal(worldId, fixture.Service.ContinueWorldId);
+		Assert.Equal(olderWorld, repository.LastOpenedWorldId);
+		Assert.Equal(olderWorld, fixture.Service.ContinueWorldId);
 	}
 
 	[Fact]
@@ -232,6 +269,21 @@ public class WorldSaveCaptureTests
 	}
 
 	// ---- fixture ----
+
+	/// <summary>
+	/// Play one earlier run into its own world through the service's own cut path, so the
+	/// picker's selection names a world a Continue could genuinely open: a folder whose
+	/// manifest exists but whose payload the decoder refuses is not a continuable world.
+	/// </summary>
+	internal static string PlayAnEarlierWorld(WorldSaveFixture fixture)
+	{
+		using var earlier = fixture.Restart("save-capture-earlier");
+		Assert.True(earlier.Service.TryBeginRun(isTutorial: false));
+		var olderWorld = earlier.WorldId;
+		Assert.True(earlier.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
+		Assert.True(earlier.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 1), out _, out _));
+		return olderWorld;
+	}
 
 	/// <summary>Take a cut the way the pump does: arm it, then take it at the frame-end seam.</summary>
 	internal static WorldCutReport MenuReturnCut(WorldSaveFixture fixture, CharacterDataMsg? character, int frame = 0)

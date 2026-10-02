@@ -1,10 +1,10 @@
 # World/layer generation identity is missing from the wire
 
-- Status: Review
+- Status: Todo — Rejected (batch `20261002-k`: rows 1, 2, 4, 5, 6, 7 and 8 unproven — swallow/stale-crossing/frame-decode capability missing and no session end or new run was staged; row 3 passes (same-generation writes by three senders all converge; the conflicting-claim branch stays unit-pinned); record `docs/evidence/acceptance/world-layer-generation-identity-20261002-k.md`)
 - Priority: Medium
 - Category: Network / protocol / world generation (attribution of world reports)
 - Source: `review/guest-break-drops-recovery.md` — the limitation its 2026-09-18 review round forced: a break report naming a cell the host still holds is REFUSED, because without a generation identity a stale previous-layer report cannot be told apart from a legitimate one
-- Related: `done/block-break-first-writer-wins.md`, `review/guest-block-mutation-re-report.md` (W1), `review/guest-partial-block-damage-re-report.md` (W2), `review/enemy-snapshot-binding-recovery.md` (that domain solved its own version of "which generation does this fact belong to?" with a per-entity binding anchor), `review/generation-identity-remaining-families.md` (the two families this cycle audited but did not stamp)
+- Related: `done/block-break-first-writer-wins.md`, `todo/guest-block-mutation-re-report.md` (W1), `review/guest-partial-block-damage-re-report.md` (W2), `todo/enemy-snapshot-binding-recovery.md` (that domain solved its own version of "which generation does this fact belong to?" with a per-entity binding anchor), `todo/generation-identity-remaining-families.md` (the two families this cycle audited but did not stamp)
 
 ## Problem (evidence)
 
@@ -97,7 +97,7 @@ commit.
 The stamp was extended to every direct world report whose key is a block cell and whose receiver
 would write into that key with no live-world existence check. The other generation-relative families
 were audited one by one; each verdict below names the reason, and the two that are not provably safe
-are carried by `review/generation-identity-remaining-families.md` rather than declared safe here:
+are carried by `todo/generation-identity-remaining-families.md` rather than declared safe here:
 
 | Family | Direction | Verdict |
 |---|---|---|
@@ -147,4 +147,4 @@ gates 56/56, `dotnet build` 0 warnings / 0 errors, `dotnet format` exit 0.
 - Changing the first-writer-wins rule itself.
 - The item-domain drop bookkeeping (W1's `PendingBreakDropTable` and its 60 s window).
 - The two remaining generation-relative families (trap layout, runtime-entity creation) — audited
-  above and carried by `review/generation-identity-remaining-families.md`.
+  above and carried by `todo/generation-identity-remaining-families.md`.

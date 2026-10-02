@@ -1360,3 +1360,65 @@ dependency the table did not name, a step that cost more than it returned.
   Reading lesson: a `-Tail N`-capped extract can silently drop the head of a window — a fresh-context
   review recounted one window from the truncated file and reported a wrong per-client count; name the
   complete extract (or its cap) whenever an artifact is cited as a window's evidence.
+
+## 2026-10-02 — `continue-run` restores the last cut, and that cut can move the session to another layer
+
+- Symptom: the batch `20261002-k` staging of "leave the world and re-enter it" (guest-block rows 6/9,
+  runtime-entity rows 3/4, item-creation row 5) instead moved the whole session to layer 1: the host logged
+  `Projected kernel run baseline (run 1, layer 1)`, `Character … of the layer-end cut carries a position …
+  from the layer being replaced; it is not restored`, and `Captured world baseline … the runtime-entity table
+  is reset` — the run's last cut was a **layer-end** cut, so the Continue restored the next layer, not the
+  world the run had been in.
+- Cause: `continue-run` is the game's Continue entry; it loads whatever cut the run holds, and a layer-end cut
+  replaces the layer by design. A world re-entry is therefore not an in-place reconnect.
+- Change: read the Continue's first `Projected kernel run baseline (run N, layer L)` line before assuming the
+  same world; if the rows need an in-place reconnect, stage it without leaving the world (transport-level
+  reconnect) or accept the rows as `unproven` with the substitution named. The batch's records do the latter.
+
+## 2026-10-02 — The one-shot `[WorldFingerprint]` log is re-armed on session end only
+
+- Symptom: after the mutation pass the run tried to re-capture the fingerprint pair by leaving the world and
+  Continuing; no client logged a second `[WorldFingerprint]` line (`k-F-fingerprint-only-*.log` empty).
+- Cause: `RunCoordinator` re-arms `_worldFingerprintLogged` on session end, not on a world entry/leave; the
+  one-shot keeps its first world's line for the whole session.
+- Change: a post-mutation fingerprint pair needs a session restart (quit, relaunch, re-join) or a diagnostic
+  that re-arms; record the row `unproven` when only a world re-entry is available (row 3 of
+  `world-determinism-world-fingerprint` stayed unproven in batch `20261002-k` for exactly this).
+
+## 2026-10-02 — A Continue restore can leave the members' layer-modifier baseline diverged (new finding)
+
+- Symptom: after the layer-end Continue above, **both** members repeated every 10 s
+  `[LayerMod] baseline divergence — local segment start … vs host's … (world effects may diverge)`, the host's
+  enemy generation set stayed at 74 while the members held 85, and `EnemySnapshot`'s all-or-nothing pairing
+  failed on every repair cycle (`generation spawn pairing failed (74 host vs 85 guest generated enemies)` +
+  `snapshot applied: -11 generated bound, 0 runtime spawns, mapping=False`). The member-side replay line reads
+  `[LayerMod] guest replay index=-1 depth=0`.
+- Cause: under investigation — filed as `docs/backlog/todo/layer-mod-baseline-divergence-on-continue.md`
+  (is the member supposed to replay the host's modifier segment; does the cut carry it?).
+- Change: the divergence is recorded, not swallowed; `enemy-snapshot-binding-recovery` rows 3/4/8 failed in
+  that state (`docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`) and the fix cycle must
+  attribute the failure between the two tickets. Lesson for staging: a restore that changes the world is not a
+  neutral environment for a late-join row.
+
+## 2026-10-02 — Log lines that do not mean what they read like (batch `20261002-k`)
+
+- `[EntitySpawn] created {id} at {pos} (creation …)` is logged **unconditionally** after the find-or-create
+  block (`EntitySpawnSync.OnRemoteEntitySpawned`), so a repeated 60 s snapshot logs "created" while rebinding
+  the existing copy. Do not read repeated lines as duplication; the census/probe count is the evidence.
+- `[Enemy] host bound {Kind} {Id}` is written at the first bind, which can run in the same frame as the
+  creation — before the entity's `Start` recorded it in `_runtimeAnimals` — so a genuine runtime spawn can be
+  labelled `generation animal` once; the snapshot's `N runtime spawns` count on the next cycle is the
+  functional truth (this run: 2 runtime spawns after two creations).
+- `container-read` rejects the call without `guest=` even in `mode=local` (declared-argument check).
+
+## 2026-10-02 — Cross-client cell reads need the body cell re-derived per read
+
+- Symptom: a fixed `dx/dy` read landed on different cells on different clients once the bodies drifted; a
+  freshly computed offset could still miss while the body was falling between the two evals of one helper call.
+- Cause: bodies move/fall independently (mining the floor moved all three), and each recipe computes the cell
+  from the LOCAL body position.
+- Change: helper `.acceptance/20261002-k/read-abs-cell.ps1` reads the body cell, recomputes the offset and
+  retries (bounded) until the returned `cellX/cellY` equal the requested cell; use it for every cross-client
+  cell comparison. Related: a small explosion at a created entity's position also caught a nearby runtime
+  geyser (1.5-unit radius) — name the collateral when a probe is cited.
+

@@ -9,8 +9,8 @@ authoritatively — a zero answer clears a row this host's own cap/range rules r
 - Acceptance records: `docs/evidence/acceptance/guest-partial-block-damage-re-report-20261001-x.md`, `docs/evidence/acceptance/guest-partial-block-damage-re-report-20261001-y.md`
 - Priority: Medium
 - Category: Network / sync coverage / world blocks
-- Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W2); split out of `review/guest-block-mutation-re-report.md` when the W1 half landed
-- Related: `review/guest-block-mutation-re-report.md` (W1 — the terminal block state, landed), `review/sync-cadence-review.md`
+- Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W2); split out of `todo/guest-block-mutation-re-report.md` when the W1 half landed
+- Related: `todo/guest-block-mutation-re-report.md` (W1 — the terminal block state, landed), `review/sync-cadence-review.md`
 
 ## Problem (evidence)
 

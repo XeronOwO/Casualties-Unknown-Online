@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W6, after the independent adversarial review reclassified it from OK)
-- Related: `review/runtime-entity-spawn-backfill.md`, `review/sync-cadence-review.md`, `review/trap-layout-entry-snapshot-staleness.md`
+- Related: `todo/runtime-entity-spawn-backfill.md`, `review/sync-cadence-review.md`, `review/trap-layout-entry-snapshot-staleness.md`
 
 ## Problem (evidence)
 
@@ -56,7 +56,7 @@ entity the world has since removed).
 
 - Changing the deterministic generation or the physics-query divergence that makes the
   snapshot necessary.
-- Runtime-created non-trap entities (`review/runtime-entity-spawn-backfill.md`).
+- Runtime-created non-trap entities (`todo/runtime-entity-spawn-backfill.md`).
 
 ## Landing record (2026-09-18)
 

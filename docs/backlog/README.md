@@ -52,6 +52,15 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Layer-modifier baseline divergence on Continue](todo/layer-mod-baseline-divergence-on-continue.md) — **High** — the member's segment misses the host's.
+- [Guest block mutations: periodic re-report](todo/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
+- [World determinism fingerprint](todo/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
+- [Runtime-created entity spawn backfill](todo/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
+- [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
+- [Enemy snapshot binding has no recovery path](todo/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn anchor and the 60 s repair group.
+- [World/layer generation identity](todo/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
+- [Remaining generation-relative families](todo/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.
+
 ### In progress
 
 ### Review
@@ -71,12 +80,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
 - [Session control convergence](review/session-control-convergence.md) — **Medium** — the bounded scene re-report window and the re-ack loop.
 - [Guest command loss is not reconciled](review/guest-command-loss-reconciliation.md) — **Medium** — the bounded per-item re-report queue.
-- [World/layer generation identity](review/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
-- [Remaining generation-relative families](review/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.
-- [An item can be operated on before its creation is registered](review/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
 - [Remote interaction gates are judged by the host](review/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
-- [Enemy snapshot binding has no recovery path](review/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn anchor and the 60 s repair group.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
@@ -86,9 +91,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [Trap/entity action divergence](review/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
-- [Guest block mutations: periodic re-report](review/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
 - [Guest partial block damage re-report](review/guest-partial-block-damage-re-report.md) — **Medium** — the absolute re-report and the per-cell merge.
-- [Runtime-created entity spawn backfill](review/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
 - [Namespaced ID system](review/id-system-namespaced-ids.md) — **Medium** — the `ContentId` vocabulary.
 - [Global unified projection framework](review/global-projection-framework.md) — **High** — the rebuildable-domain contract.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
@@ -120,7 +123,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
 - [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
-- [World determinism fingerprint](review/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
 - [Middle-click location marker](review/middle-click-location-marker.md) — **Medium** — the one-shot location ping.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — **Medium** — the typed KrokMP content seams.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.

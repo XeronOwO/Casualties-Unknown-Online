@@ -4,7 +4,7 @@
 - Acceptance record: `docs/evidence/acceptance/guest-break-drops-recovery-20261001-x.md`
 - Priority: Medium
 - Category: Network / sync coverage / items (guest-created drops)
-- Source: `review/guest-block-mutation-re-report.md` (W1) implementation — the block state now converges when a break's air write is lost, but the drops it carries did not
+- Source: `todo/guest-block-mutation-re-report.md` (W1) implementation — the block state now converges when a break's air write is lost, but the drops it carries did not
 - Related: `review/guest-command-loss-reconciliation.md` (the item keyframe's in-flight reconciliation gap), `done/carried-inventory-registration-re-report.md`
 
 ## Problem (evidence)
@@ -131,7 +131,7 @@ corrected.
   report of a previous layer's break is indistinguishable from a legitimate one,
   and accepting it breaks a block in the new layer. **Closed since** by the wire
   member carrying the world/layer identity: see
-  `review/world-layer-generation-identity.md` (the same-generation report is now
+  `todo/world-layer-generation-identity.md` (the same-generation report is now
   accepted as `Verdict.LostAirWrite`, and a stale one is refused before the
   verdict).
 - The empty-drop recording guard lives in `BlockBreakSync.FlushPendingBlockBreak`
@@ -163,7 +163,7 @@ cycle, as the workflow requires.
 | # | Covered by |
 |---|---|
 | 1 | `SwallowedBreakReport_TheFallbackReReportIsWhatRegistersTheDrop` (only the drops report is lost — nothing inline can register them, so the fallback's re-report is provably the carrier; the host's table then holds the drop exactly once) |
-| 2 | `LostAirWrite_WithoutAGenerationStamp_IsRefused_AndTheRefusalReachesTheBreaker (the unverified shape; a same-generation report is now accepted — see review/world-layer-generation-identity.md)` (a report naming a cell the host still holds is refused — the conservative answer, since the wire carries no generation identity to attribute it; the refusal reaches the breaker and stops the re-report) |
+| 2 | `LostAirWrite_WithoutAGenerationStamp_IsRefused_AndTheRefusalReachesTheBreaker (the unverified shape; a same-generation report is now accepted — see todo/world-layer-generation-identity.md)` (a report naming a cell the host still holds is refused — the conservative answer, since the wire carries no generation identity to attribute it; the refusal reaches the breaker and stops the re-report) |
 | 2b | `DropsFreeBreak_TheHostNeverAnswersIt_WhichIsWhyTheAdapterDoesNotRecordIt` (pins the host-side premise: a payload-free report is never relayed, so a recorded entry for it could never be answered) |
 | 3 | `LostDropsReport_IsReReported_AndAnsweredByTheRelayEcho` (only the drops report is lost; the next window carries it and the relay echo clears the entry) |
 | 4 | `DuplicateReReport_RegistersAndMaterializesExactlyOncePerDrop` (the idempotent repeat: one table entry, one relay per accepted report, no second materialization) |

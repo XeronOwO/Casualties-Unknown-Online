@@ -1,6 +1,6 @@
 # An item can be operated on before its creation is registered
 
-- Status: Review
+- Status: Todo — Rejected (batch `20261002-k`: rows 2, 4, 5, 6 and 7 unproven — no refused-creation or forged unknown-item drive, both members' native `PickUpItem` guards refused the two-sender pickup, the Continue restored a layer-end cut, and crafting/trade were not staged; rows 1 and 3 pass (the creation is judged before the operation, zero protocol violations); record `docs/evidence/acceptance/item-creation-registration-first-20261002-k.md`)
 - Priority: Medium-High
 - Category: Network / sync coverage / items (creation-before-operation invariant)
 - Source: User ruling 2026-09-18 (design alignment session): the 500 ms pickup hold is a design smell, not a latency fix — creation registration must always come first, and multiple messages/events may be composed into one atomic operation. The host must never execute, wait on, or guess about an operation on an item whose creation it has not yet judged.

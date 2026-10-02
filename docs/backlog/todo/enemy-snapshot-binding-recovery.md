@@ -1,10 +1,10 @@
 # Enemy snapshot binding has no recovery path
 
-- Status: Review
+- Status: Todo — Rejected (batch `20261002-k`: rows 3, 4 and 8 fail — after the layer-end Continue the host's 74-enemy set never bound against the members' 85 copies (`generation spawn pairing failed` + `mapping=False` on every repair cycle, `[LayerMod] baseline divergence` on both members); row 2 unproven; rows 1, 5 and 6 pass; record `docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`, root-cause lead `docs/backlog/todo/layer-mod-baseline-divergence-on-continue.md`)
 - Priority: Medium
 - Category: Network / sync coverage / enemies (host-authoritative binding)
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the attack half stays open in `review/enemy-hit-determination-local.md`
-- Related: `review/runtime-entity-markerless-bind-absorption.md` (the runtime-spawn creation key), `review/runtime-entity-spawn-backfill.md`, `review/trap-layout-snapshot-recovery.md` (the same repair-set family, W6)
+- Related: `review/runtime-entity-markerless-bind-absorption.md` (the runtime-spawn creation key), `todo/runtime-entity-spawn-backfill.md`, `review/trap-layout-snapshot-recovery.md` (the same repair-set family, W6)
 
 ## Problem (evidence)
 

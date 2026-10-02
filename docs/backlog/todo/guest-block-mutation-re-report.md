@@ -5,7 +5,7 @@ partial-damage registry was DELETED (`done/block-damage-table-capacity-alignment
 authoritative partial-damage table is now the GAME's own `WorldGeneration.world.blockDamages` list,
 read at snapshot time. References to `BlockDamageRegistry.cs` below are historical.
 
-- Status: Review (batch `20261001-y`: row 7 passes — after 128 damaged rows on all three clients, `game-console command=skiplayer` left every table at 0 rows, so the new baseline carried no stale damage; rows 1–6, 8–10 stay open — the ticket stays open)
+- Status: Todo — Rejected (batch `20261002-k`: rows 1–4, 6, 8–10 unproven — the machine cannot drop a report or a relay, and the run's Continue restored a layer-end cut instead of an in-place reconnect, so rows 6 and 9 were not staged; row 5 passes (a guest mine and a guest place both converge on all three clients); row 7 passed batch `20261001-y`; record `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-k.md`)
 - Acceptance records: `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-x.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-y.md`
 - Priority: High
 - Category: Network / sync coverage / world blocks

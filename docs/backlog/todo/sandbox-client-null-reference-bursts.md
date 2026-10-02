@@ -120,6 +120,28 @@ is what judges it:
   the apply-side guards above are what keep the out-of-world case harmless; `SendItemImpact` is a
   transient cosmetic replay with no item materialization and is not this family.
 
+## Fix (batch `20261002-j`)
+
+The residual was measured against the deployed artifact before the code changed: a re-entry's
+authoritative table arrives ROW BY ROW (the world-entry repair's `ItemSpawn` commands land in
+`ItemApplication.OnRemoteItemSpawned` → `RemoteItemSceneOps.SpawnWorldItem`) while this side's own
+generation is still registering its last objects in `Item.Start` — `FindExistingAt` reads
+`Item.allItems` and adopts only objects that carry no `ItemInstanceId` yet, so a row whose object had
+not landed was materialized immediately and the late local object stayed beside it as an id-less
+duplicate (the guest's window left 6; `total=291 withId=283 noId=8`).
+
+- `RemoteItemSceneOps.SpawnWorldItem` — the single landing seam every apply path shares — now DEFERS
+  such a row while this side's generation may still be landing its last objects (`IsGenerating`
+  falling edge plus a 2 s grace, `DeferredWorldItemLanding`). The per-frame pump re-adopts the row as
+  soon as its local object appears and materializes the authority's copy only when the grace expires,
+  so an authority row can never be lost to a slow local load.
+- `ItemReconcile` (the periodic keyframe) also drops id-less standalone world items the authority's
+  table does not own — the rule `GeneratedItemReconcile.Apply` already runs at apply time, here on the
+  keyframe's cadence — so an arrival later than the grace still converges. Tutorial props are excluded
+  (deliberately id-less until picked up).
+- `PendingWorldItemRows` (Runtime, pure, unit-tested) owns the queue: keyed by instance id, a repeated
+  snapshot refreshes the payload but keeps the original deadline.
+
 ## Acceptance (batch `20261002-i`, agent-run)
 
 The batch-`20261002-i` record re-ran the batch-`20261002-h` window recipe against the deployed
@@ -158,15 +180,21 @@ the host's entry beside them instead of adopting them.
   projection) are lost on a guest that is mid-generation when `ApplyTrapDropPresentation` is refused;
   the item fact itself converges through the committed batch/keyframe (bounded, accepted — the same
   family as the matrix's other presentation-loss notes).
+- Batch `20261002-j` adds the landing seam's grace: an object that lands later than the 2 s window
+  after the `IsGenerating` falling edge is not adopted but dropped by the keyframe's late-local rule
+  (observed under a pinned 5 fps: 6 rows deferred, 6 late id-less locals dropped, settled at the
+  carried count). A client hitched past the grace therefore converges through the sweep rather than by
+  adopting.
+- The scene half of the new pair (deferred landing, the late-local sweep) has no automated coverage
+  beyond `PendingWorldItemRowsTests`; the batch-`20261002-j` staging runs are its runtime evidence.
 
 ## Next step
 
-- Next cycle (the batch-`20261002-i` row-5 residual): make the re-entry ADOPT the receiver's own
-  generation-time objects instead of materializing the host's entry beside them. The measured shape is
-  257 (guest) / 252 (alternate) binds against 9 / 14 misses; a missed object is one whose local copy
-  spawns after the entry snapshot was applied (corpse-loot `Start` timing) or whose host copy has
-  drifted past the positional tolerance. Reproduce with the batch-`20261002-i` record and runbook —
-  the menu rows are green and must stay green.
+- Batch `20261002-j` implemented the adopt-first landing (deferred rows plus the keyframe's
+  late-local sweep). What remains is the acceptance re-run — `.acceptance/20261002-j/runbook-20261002-j.md`
+  (two windows; a probe on each re-entering client plus `dupcheck` on both sides) against the deployed
+  artifact. Green means the re-entering client's `noId` count is the carried items only, `dupIds=0`,
+  and both censuses sit at the host's.
 - Keep the diagnostic-first reading rule: a staged window is read for `[BrokenItemUpdate] … (reason) …`
   before the shape is re-derived from the bare `Item.DMD<Item::Update>` frame.
 - A burst whose stack names `Utils.Create` / `RuntimeEntityFactory` belongs to

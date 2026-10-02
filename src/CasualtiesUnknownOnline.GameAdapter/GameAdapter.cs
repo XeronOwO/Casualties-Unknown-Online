@@ -195,6 +195,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		if (localBody != null && _lastLocalBody == null) // Unity objects — ==
 		{
 			_domains.ItemWorldSync.ResetDestroySuppression();
+			_domains.ItemApplication.ClearDeferredLanding(); // a world entry: the previous world's deferred rows must not land in this one
 		}
 
 		_lastLocalBody = localBody;
@@ -203,6 +204,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 			_domains.Gate.Update(_domains.Run.LocalBody);
 		}
 		_domains.GenItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
+		_domains.ItemApplication.Update(); // retry the rows whose generation-time object has not landed yet (adopt-first, materialize after the grace) — BEFORE the snapshot apply below, so this frame's falling edge is tracked before its rows are landed
 		_domains.GenItemApplication.Update(_domains.Run.IsEnteringWorld); // guest: apply the host's generation snapshot once the local generation finished (held while the entry loads its world)
 		_domains.StartingSupplies.Update(); // a player this world has no character for: the run's starting supplies, once per body (S4.3)
 		using (_latency.Measure("Respawn"))

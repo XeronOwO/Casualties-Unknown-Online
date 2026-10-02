@@ -1,7 +1,7 @@
 # Acceptance record — Guest world-block mutations have no periodic re-report
 
 - Ticket: `guest-block-mutation-re-report` — verdict: stays in `docs/backlog/todo/` with
-  `- Status: Todo — Rejected (batch 20261002-o: rows 6, 9 and 10 unproven; rows 1–4 and 8 pass)`
+  `- Status: Todo — Rejected (batch 20261002-o: row 9 unproven; rows 1–4, 6, 8 and 10 pass)`
 - Batch: `20261002-o` — tickets `guest-block-mutation-re-report` (single-ticket batch)
 - Commit under acceptance: `a699630206795b32facf1310066a71d2cd8415ef` (the session's deployed build;
   this batch adds acceptance recipes and records only, no product source) · Deployed artifact after the
@@ -28,6 +28,11 @@
 | S3 `block-report-pending-count` (all three) | pass — resting `block=0, damage=0, drops=0` before and after the cap probe (`o-pending-*.json`, `o-pending-after-cap-*.json`) |
 | S4 `block-report-cap-probe` (guest) | pass — `cap=65536, filled=65536, atCap=65536, refused=true, latch=true, updateExisting=true, cleared=0, latchAfterReset=false`; the guest log carries the once-per-episode `[BlockSync] pending block-report table is full (65536 cells) …` warning and `[BlockSync] cleared 65536 pending block report(s) …` (`o-cap-probe-guest.json`) |
 
+The rows 6 and 10 verdicts come from a second session the same evening (the three clients relaunched
+against the same deployment, a fresh lobby and run): the blackout status was re-read `armed=false`
+before its windows and `mode=off` restored `subscribersAfter=1` after each, and the member's pending
+counters started and ended at `0/0/0`.
+
 ## Verdicts
 
 | # | Row | Class | Verdict | Evidence |
@@ -36,10 +41,26 @@
 | 2 | Guest places a block; report swallowed | machine | pass | guest wrote `(510,968)` `0 → 2` inside the window, guest pending `block` held `2`; on re-read host, guest and the third client all read `2` — the swallowed placement converged; a later host quake removed the cell (`o-row2-*.json`, `o-row2-cell-*.json`) |
 | 3 | Guest air write (earthquake); report swallowed | machine | pass | host fired a real quake (`[Earthquake] host quake started (23.7s…) — broadcasting`), the guest's own quake state read `earthquakeIntensity=0.301` while the window was armed, guest pending `block` rose to `8`; after the window four sampled cells read identically on host, guest and third client (`o-row3-*.json`, `o-quake-consensus.txt`, `o-host-log-fragments.txt`) |
 | 4 | Host writes the same cell after the guest's swallowed write | machine | pass | host wrote `(510,966)=3` first (guest applied the relay); the guest's `=2` write inside the window diverged it to `2` while the host stayed `3`; when the fallback re-reported, the host's value stood and the guest converged to `3` — host `3/3/3`, guest `3`, third client `3`, pending drained to `0`, no oscillation in repeated reads (`o-row4b-*.json`, `o-row4c-*.json`) |
-| 6 | Guest reconnect | machine | unproven | not staged in this run — the in-place re-entry shape (member leaves, host invites the same world back) was not executed; see Limits |
+| 6 | Guest reconnect | machine | pass | marked cells `(511,1004)` (guest break) and `(512,1004)` (host break) were air on all three before the re-entry; the guest then ran `leave-world` → `home.leave` → `join-lobby` the same id, the host log carries `Handshake … ignored: not a lobby member` → `Peer … reconnected — presence reused` → `Handshake confirmed end-to-end`, and after the re-entry the same two cells read `0` on host, guest and the third client — the mined cells were not resurrected (see the transient note below the table) (`o2-row6-*.json`, `o2-row6-post-reentry-compare.txt`) |
 | 8 | Table cap and its overflow log | machine | pass | the isolated `GuestBlockReportBookkeeping` instance reached the product's own cap: `filled=65536, atCap=65536, refused=true, latch=true, updateExisting=true, cleared=0, latchAfterReset=false`, and the client's real log carries the full-table warning and the reset account line (`o-cap-probe-guest.json`, `o-cap-log-guest.txt`); the evidence is the isolated instance, not the live table |
-| 9 | Solo → lobby → join, exactly once | machine | unproven | not staged in this run — no solo segment was created; see Limits |
-| 10 | Partial damage then break, both swallowed | machine | unproven | the guest rolled `40` (block stayed `9`, damage row `40`) and then `999` (block `9 → 0`) inside the window, and the break's report did converge afterwards (host log names `(509,965)`), but the guest's pending counter never showed a partial-damage entry (`o-row10-damage.json`, `o-row10-break.json`, `o-row10-pending.json`) — the single-partial-hit path into the damage re-report is not proven by these reads |
+| 9 | Solo → lobby → join, exactly once | machine | unproven | not staged in this batch — no solo segment was created; see Limits |
+| 10 | Partial damage then break, both swallowed | machine | pass | read immediately after the crack (with the host still armed), the guest reported `damage=1` pending while the host and the third client still held the undamaged cell — the crack's report was genuinely swallowed; the guest broke the cell inside a second window, the guest's pending then showed `block=1`, and after the fallback both markers drained to `0` with all three clients reading `(509,1004)=0` (`o2-pending-after-crack.json`, `o2-row10-*.json`, `o2-row10-pending-final.json`) |
+
+Between the two windows of row 10, the swallowed partial report healed on its own: with the host armed
+the first read of `(509,1004)` showed host `block=8, damage=-1` against the guest's `damage=40`, and a
+later read showed the host holding `block=8, damage=40` — the fallback re-reported the crack and the host
+adopted it before the break. This is the reading the first session took too late: it read the damage
+counter only after the follow-up break had already cleared the row (the cell had become air, which is
+why the same probe had reported `damage=0` there), and the row was recorded `unproven` on that misread.
+The second session's read immediately after the crack is the one that names the path.
+
+Row 6's re-entry has one transient worth naming: read immediately after `join-lobby` returned, the two
+marked cells showed `host=0 / guest=2 / alt=0` — the guest's regenerated world still held its own
+generated block while the host's table already held the mined state. The host's `World join sent to 1
+member(s) (… baseline follows: True)` fan-out then delivered the snapshot, the guest's pending counters
+were `0/0/0`, and the full 11 × 6 grid comparison (`o2-row6-post-reentry-compare.txt`) reads identical on
+all three clients — including both marked cells. A re-entry row must therefore take its verdict read
+after the snapshot applied, not on the join call's own answer.
 
 ## Residuals for the user
 
@@ -48,11 +69,11 @@ user to judge.
 
 ## Limits
 
-- **Row 10's partial-damage reporting needs its own instrument.** A single `DamageBlock` roll (`40`)
-  left `damage=40` on the guest's cell but produced no entry in the counters the run's pending probe
-  reads (`block/damage/drops` all `0` after the window). The damage table's own accounting may attach
-  at a different point than this probe exposes; the run could not tell "no pending entry exists" from
-  "the entry lives elsewhere", so the row stays unproven rather than failed.
+- **Row 10's first reading was a timing error, not an instrument gap.** The pending-damage counter the
+  run already had does expose the swallowed crack (`damage=1`), but only while the crack still exists:
+  the first session's read came after the follow-up break had cleared the cell's damage row, so the
+  counter read `0` and the row was recorded `unproven`. The second session read it immediately after the
+  crack and named the path. The lesson is about read order, and the counter needs no new probe.
 - **The guest-side answer line is Debug; the re-report line is not.** The guest log did carry
   `[BlockSync] re-reported 2 unacknowledged block mutation(s) to the host.` and a later `re-reported 4 …`
   at the default `Information` level (see `o-cap-log-guest.txt`), but `[BlockSync] host answered (x,y) —
@@ -73,13 +94,17 @@ user to judge.
   (`block-read-at`, `block-set-at`, `block-break-at`) were used from the working tree during the run
   and are committed here; the run's behavior is therefore reproducible from this commit even though the
   deployed assembly bytes are unchanged. The acceptance driver gate passes with all recipes (4/4).
-- **Rows 6 and 9 were not staged.** This run focused the session on the swallow/report family and the
-  capability spikes. The in-place re-entry shape and the solo→lobby→join exactly-once shape remain
-  candidates to stage in a following session, as the runbook itself records.
+- **Row 9 is the one row this batch did not stage.** Its shape needs a solo segment (host alone in a
+  freshly started run) before any lobby exists, and the run's exactly-once denominator — the invite
+  fan-out lines and each peer's apply — has to be read from the start of that run, not halfway through
+  a live one; this batch staged its scenarios in a world that was already shared. A following session
+  should stage row 9 first, in a fresh world, per the runbook's candidate shape.
 
-## Batch closing state (for the next session)
+## Batch closing state
 
-- The three clients were left running for the next session's continuation; they were launched by this
-  run and may be quit with the driver's `quit` action.
-- The tree carries uncommitted acceptance work: the three new recipes, the batch scope page, this
-  record, and the ticket/index transition. The full gate set had not been run at the time of writing.
+- The batch ran in two sessions of the same evening (rows 1–4 and 8, then rows 6 and 10); all three
+  clients were quit by the run and the machine was left with zero game processes both times.
+- Everything this batch produced is committed and pushed: the three recipes, the scope page, this
+  record, the ticket's status and attempt section, and the lessons. The full gate set ran green before
+  the commit (build 0 warnings, 4 610 + 315 tests, `format` clean), and the deployment was re-verified
+  against the pushed tree.

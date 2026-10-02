@@ -5,7 +5,7 @@ partial-damage registry was DELETED (`done/block-damage-table-capacity-alignment
 authoritative partial-damage table is now the GAME's own `WorldGeneration.world.blockDamages` list,
 read at snapshot time. References to `BlockDamageRegistry.cs` below are historical.
 
-- Status: Todo — Rejected (batch `20261002-o`: the inbound-blackout recipe staged the swallowed report for the first time — rows 1, 2, 3, 4 and 8 pass, including three-end convergence after the fallback re-report; rows 6, 9 and 10 remain unproven (row 10's single-partial-hit path into the damage re-report is not exposed by the run's counter probe, rows 6 and 9 were not staged); earlier batch `20261002-k` left rows 1–4, 6, 8–10 unproven and the machine unable to drop a report; row 5 passes, row 7 passed batch `20261001-y`; records `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-k.md`)
+- Status: Todo — Rejected (batch `20261002-o`: row 9 is the only unproven row left — rows 1–4, 6, 8 and 10 pass. The inbound-blackout recipe staged the swallowed report for the first time: the guest's mine, place, earthquake air write and partial-damage crack were each lost on the wire while the session stayed alive, and every marker converged on all three clients after the fallback re-reported; row 6 passed through the member's `leave-world` → `home.leave` → `join-lobby` re-entry with the marked cells intact afterwards; row 8 passed through the product's own bookkeeping type on an isolated instance; row 10's first reading was a read-order error (the counter was read after the break had cleared the damage row) and the second session read it correctly. Earlier batch `20261002-k` left rows 1–4, 6, 8–10 unproven and the machine unable to drop a report; row 5 passes, row 7 passed batch `20261001-y`; records `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-k.md`)
 - Acceptance records: `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-x.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-y.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md`
 - Priority: High
 - Category: Network / sync coverage / world blocks
@@ -198,9 +198,27 @@ its `[BlockSync] re-reported N unacknowledged block mutation(s)`), and row 8 pas
 product's own bookkeeping type on an isolated instance (`filled=atCap=65536`, `refused=true`,
 `latch=true`, the once-per-episode warning in the real log) because a live fill would arm the pump.
 
-Remaining: row 6's in-place re-entry and row 9's solo→lobby→join exactly-once were not staged (the
-runbook keeps both shapes as "define on site"); row 10 stayed unproven because a single partial-damage
-roll left `damage=40` on the cell but produced no entry in the counters the run's probe reads, so the
-single-hit path into the partial-damage re-report needs its own instrument before the row can be
-judged. The runbook and the three new recipes (`block-read-at`, `block-set-at`, `block-break-at`) stay
-with the batch record for the next session.
+The batch ran in two sessions the same evening. The first staged rows 1–4 and 8 (see above). The second
+staged rows 6 and 10:
+
+- **Row 6 — in-place re-entry: pass.** One cell was marked by the host (`512,1004`) and one by the guest
+  (`511,1004`), both air on all three clients before the re-entry. The guest then ran `leave-world` →
+  `home.leave` (lobby 0) → `join-lobby` the same id; the host log shows `Handshake … ignored: not a
+  lobby member` → `Peer … reconnected — presence reused` → `Handshake confirmed end-to-end`, and its
+  `World join sent to 1 member(s) (… baseline follows: True)` fan-out delivered the snapshot. Both
+  marked cells read `0` on host, guest and the third client afterwards, and a full 11 × 6 grid
+  comparison is identical on all three — nothing was resurrected. Read immediately after `join-lobby`
+  returned, the guest still showed its own generated block on both cells (`host=0 / guest=2 / alt=0`):
+  a re-entry verdict must be read after the snapshot applies, not on the join call's own answer.
+- **Row 10 — partial damage then break, both swallowed: pass.** Read immediately after the crack (host
+  still armed), the guest's own counters reported `damage=1` while the host and the third client still
+  held the undamaged cell; between the two windows the host adopted the re-reported crack
+  (`block=8, damage=40`). The break then went out inside a second window, the guest's counters showed
+  `block=1`, and after the fallback all three clients read the cell as air with every counter back to
+  `0/0/0`. The first session's `unproven` came from reading the counter only after the follow-up break
+  had cleared the damage row — a read-order error, corrected here.
+
+Remaining: row 9 (solo → lobby → join, exactly once) is not staged. Its shape needs a solo segment in a
+freshly started run before any lobby exists, and the exactly-once denominator has to be read from that
+run's start — a following session should stage it first, per the runbook. The runbook and the batch's
+three recipes (`block-read-at`, `block-set-at`, `block-break-at`) stay with the batch record.

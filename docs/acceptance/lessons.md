@@ -1511,4 +1511,28 @@ dependency the table did not name, a step that cost more than it returned.
   onto air near the surface is not durable evidence — the same quake removed it later, so take the
   three-end read at the convergence point and say so in the record.
 
+## 2026-10-02 — The partial-damage counter must be read while the crack still exists (corrects the earlier entry)
+
+- The entry above recorded row 10 as an instrument gap; that was a **read-order error**. Read immediately
+  after the crack, `block-report-pending-count` does report it (`damage=1`) while the host and the third
+  client still hold the undamaged cell — the crack's report was genuinely swallowed. The first session
+  read the counter only after the follow-up break, and a block write clears the cell's damage row
+  (`ForgetBlockDamageAccounting`), so the counter read `0` for a path that was working.
+- Order for a partial-then-break row: arm, roll the partial, **read the counters before the break**, then
+  break inside a second window and read again (`block=1`). Between the two windows the host adopts the
+  re-reported crack (its own cell then reads `damage=40`) — that is the heal, not a second report.
+- Generalisation: a pending counter measures an OUTSTANDING entry, so it is only visible while the thing
+  it stands for still exists. Name the read point relative to the mutation that destroys it.
+
+## 2026-10-02 — An in-place member re-entry needs `leave-world` → `home.leave` → `join-lobby`, and the verdict read comes after the snapshot
+
+- The working sequence (row 6, batch `20261002-o`): the member leaves the world, leaves the LOBBY
+  (`home.leave`, state `active=false`, lobby 0), then joins the same lobby id again. The host log then
+  carries `Handshake … ignored: not a lobby member` → `Peer … reconnected — presence reused` →
+  `Handshake confirmed end-to-end`, and `World join sent to N member(s) (… baseline follows: True)`.
+- Reading the marked cells immediately after `join-lobby` returned showed `host=0 / guest=2 / alt=0` —
+  the guest's regenerated world still held its own generated block while the host's table held the mined
+  state. The snapshot fan-out then applied and the same cells read `0` on all three. A re-entry verdict
+  read on the join call's own answer reports a divergence that is only the snapshot in flight.
+
 

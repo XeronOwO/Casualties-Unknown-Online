@@ -53,7 +53,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [World determinism fingerprint](todo/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
-- [A member's generation spanning the host's absence](todo/guest-generation-segments-over-host-absence.md) — **High** — host-wait yields count as segments.
 - [Runtime-created entity spawn backfill](todo/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
 - [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
 - [Enemy snapshot binding has no recovery path](todo/enemy-snapshot-binding-recovery.md) — **Medium** — rows 3/4/8 pass; row 2 unproven.
@@ -64,6 +63,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [A member's generation spanning the host's absence](review/guest-generation-segments-over-host-absence.md) — **High** — host-wait yields are not segments.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.

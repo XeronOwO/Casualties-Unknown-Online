@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Session.World;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
@@ -78,11 +80,14 @@ internal static class WorldGenRandomIsolation
 	private static string StateHex() => BitConverter.ToString(RandomStateSerializer.Serialize(Random.state)).Replace("-", "");
 
 	/// <summary>
-	/// Drive a generation sub-coroutine with the generation stream isolated
-	/// from the public stream. Nested coroutines suspend through Drive (no
-	/// save/restore — their consumption is the outer segment's continuation);
-	/// plain yields (null, WaitForSeconds, WaitUntil) suspend through Unity
-	/// and the stream is restored before the sub-coroutine resumes.
+	/// Drive a generation sub-coroutine with the generation stream isolated from the public
+	/// stream. Nested generation coroutines are driven recursively (their consumption is the
+	/// outer segment's continuation). A wait instruction (UnityEngine.CustomYieldInstruction —
+	/// WaitUntil/WaitWhile) is an enumerator too, but it is a WAIT: it is handed to the engine
+	/// whole, never driven frame by frame, and it is not a generation segment — its frames must
+	/// not move the recorded segment start the layer-modifier replay rewinds to. Plain yields
+	/// (null, WaitForSeconds) seal the stream: the state is restored before the sub-coroutine
+	/// resumes.
 	/// </summary>
 	private static IEnumerator Drive(IEnumerator sub, IPatchBridge adapter, bool resetFirst)
 	{
@@ -101,16 +106,29 @@ internal static class WorldGenRandomIsolation
 		while (sub.MoveNext())
 		{
 			var current = sub.Current;
-			if (current is IEnumerator nested)
+			var nested = current as IEnumerator;
+			var kind = GenerationYield.Classify(nested is not null, current is CustomYieldInstruction);
+			if (kind == GenerationYield.Kind.Nested)
 			{
-				yield return Drive(nested, adapter, resetFirst: false);
+				yield return Drive(nested!, adapter, resetFirst: false);
+				continue;
 			}
-			else
+
+			if (kind == GenerationYield.Kind.Wait)
 			{
-				Save();
+				// The engine polls the wait and resumes us once it is satisfied — one boundary for the
+				// whole wait. The stream is still sealed across it (frame consumers advance the public
+				// stream meanwhile), but the wait is NOT a segment: the recorded start stays the last
+				// state the generation itself produced.
+				var state = Random.state;
 				yield return current;
-				Restore();
+				Random.state = state;
+				continue;
 			}
+
+			Save();
+			yield return current;
+			Restore();
 		}
 	}
 

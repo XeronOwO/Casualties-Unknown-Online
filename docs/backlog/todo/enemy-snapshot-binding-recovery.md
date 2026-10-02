@@ -193,6 +193,6 @@ before the cycle that `20261002-l` showed healing this binding) still disagreed 
 (28 shadecrawler / 21 wallbiter / 9 trader), guest 57 (29 / 19 / 9), alt 58 (28 / 21 / 9), every health
 value matching where present (`m-census-compare.txt`, `m-health-compare.txt`). The same guest's
 generation had also run through the host's absence and reported a layer-mod divergence
-(`todo/guest-generation-segments-over-host-absence.md`), so this run does not separate a fresh binding
+(`review/guest-generation-segments-over-host-absence.md`), so this run does not separate a fresh binding
 defect from the residue of that window: the row stays open, and a repeat with the host present for the
 whole member generation plus a post-repair read is the next evidence to take.

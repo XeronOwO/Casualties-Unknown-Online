@@ -4,7 +4,7 @@
 - Priority: Low-Medium
 - Category: Network / sync coverage / world blocks
 - Source: Sync cadence review 2026-09-19 (`review/sync-cadence-review.md`, finding 4 — the same 60 s first-resend family, opposite direction)
-- Related: `review/guest-block-mutation-re-report.md` (W1 — the guest→host report half), `review/guest-command-loss-reconciliation.md` (the item-command family's 5 s × 12 window), `review/session-control-convergence.md` (the guest's own entry window), `review/sync-cadence-review.md` (the host→guest half of the same finding)
+- Related: `todo/guest-block-mutation-re-report.md` (W1 — the guest→host report half), `review/guest-command-loss-reconciliation.md` (the item-command family's 5 s × 12 window), `review/session-control-convergence.md` (the guest's own entry window), `review/sync-cadence-review.md` (the host→guest half of the same finding)
 
 ## Problem (evidence)
 
@@ -139,7 +139,7 @@ this tree — focused 35/35, gates 69/69, full suite 3448 + 69, each WITH build 
 that no reviewed file changed while it ran. It confirmed both refutations (MAJOR-1 by code-path
 derivation, NIT-2 by citing the gate's own count check and its negative sample) and both fixes.
 Three further items it raised were fixed in the same commit: a stale "60 s re-report" line in
-`review/generation-identity-remaining-families.md` (the E3 cadence this change replaced), the
+`todo/generation-identity-remaining-families.md` (the E3 cadence this change replaced), the
 checklist's own line count (the class is 165 lines, not the 164 written before the review edits),
 and this ticket's forward references. It also recorded a pre-existing debt it did NOT attribute to
 this change: a few hand-written `file:line` citations in the evidence matrix have drifted from the

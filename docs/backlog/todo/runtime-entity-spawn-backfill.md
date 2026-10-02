@@ -1,10 +1,10 @@
 # Runtime-created BuildingEntity spawns have no backfill or re-report
 
-- Status: Review
+- Status: Todo — Rejected (batch `20261002-k`: rows 1–4, 11 and 12 unproven — no report/relay-drop injection, no same-world late join (the Continue restored a layer-end cut), and no lacking-prefab or mod-template setup; rows 5–10 pass (creation payload carried, destruction final, layer reset, duplicate delivery, same-cell siblings, animal acknowledgement); record `docs/evidence/acceptance/runtime-entity-spawn-backfill-20261002-k.md`)
 - Priority: Medium-High
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row E3)
-- Related: `review/enemy-snapshot-binding-recovery.md` (the enemy/animal half), `review/sync-cadence-review.md`, `review/guest-block-mutation-re-report.md` (the W1 sibling; this landing generalized its fallback cadence)
+- Related: `todo/enemy-snapshot-binding-recovery.md` (the enemy/animal half), `review/sync-cadence-review.md`, `todo/guest-block-mutation-re-report.md` (the W1 sibling; this landing generalized its fallback cadence)
 
 ## Problem (evidence)
 
@@ -63,7 +63,7 @@ world has since destroyed.
 
 ## Non-goals
 
-- Enemy / animal runtime spawns (owned by `review/enemy-snapshot-binding-recovery.md`).
+- Enemy / animal runtime spawns (owned by `todo/enemy-snapshot-binding-recovery.md`).
 - Item-domain spawns (already covered by the item kernel + keyframe).
 - Replacing `EntitySpawned` for the live path; the ticket is about recovery.
 
@@ -382,7 +382,7 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
   identity half): `EnemySpawnEntryMsg.CreationKey` rides the snapshot and the
   backfill copy is stamped, so the bind is by identity and distance-free. N1's
   remaining work (periodic snapshot resend, attack recovery) stays open in
-  `review/enemy-snapshot-binding-recovery.md` and `review/enemy-hit-determination-local.md`.
+  `todo/enemy-snapshot-binding-recovery.md` and `review/enemy-hit-determination-local.md`.
 - The source-excluding `BroadcastEntitySpawned` relay was dead API (no caller).
   **RESOLVED 2026-09-09** by `done/runtime-entity-dead-api-cleanup.md`: deleted
   (`rg` → zero hits); the live source-included relay is unchanged.

@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / items
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I5, plus the empty-host-table caveat the audit attached to row I1)
-- Related: `review/guest-block-mutation-re-report.md` (same swallowed-guest-report family), `review/session-control-convergence.md` (the bounded re-report window this one follows), `done/carried-inventory-registration-re-report.md` (row I8, landed 2026-09-19 — the same family, cadence-based instead of verdict-based)
+- Related: `todo/guest-block-mutation-re-report.md` (same swallowed-guest-report family), `review/session-control-convergence.md` (the bounded re-report window this one follows), `done/carried-inventory-registration-re-report.md` (row I8, landed 2026-09-19 — the same family, cadence-based instead of verdict-based)
 
 ## Problem (evidence)
 

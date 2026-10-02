@@ -3,8 +3,8 @@
 - Status: Future (deferred by user decision 2026-09-09)
 - Priority: Low
 - Category: Verification tooling
-- Source: accumulated from `review/runtime-entity-spawn-backfill.md` and earlier deliveries; `AGENTS.local.md` "验证能力边界"
-- Related: `review/runtime-entity-spawn-backfill.md`, `docs/evidence/test-parallelization.md`
+- Source: accumulated from `todo/runtime-entity-spawn-backfill.md` and earlier deliveries; `AGENTS.local.md` "验证能力边界"
+- Related: `todo/runtime-entity-spawn-backfill.md`, `docs/evidence/test-parallelization.md`
 
 ## Promotion recorded 2026-09-27
 

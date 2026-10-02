@@ -1,6 +1,6 @@
 # World determinism / WorldFingerprint comparison
 
-- Status: Review
+- Status: Todo — Rejected (batch `20261002-k`: row 3 unproven — the entry pair is identical on all three clients, but the one-shot `[WorldFingerprint]` log is re-armed on session end only, so no post-mutation re-capture could be taken; the adjacent layer-modifier divergence is filed separately; record `docs/evidence/acceptance/world-determinism-world-fingerprint-20261002-k.md`)
 - Priority: High
 - Category: Final acceptance
 
@@ -25,7 +25,7 @@ The runtime side is a **diagnostic, not a repair path**:
 Audit rows: `docs/evidence/sync-coverage-matrix.md` R7 (verdict
 `Transient-by-design`: diagnostic only) and W1 (the guest→host block gap that a
 fingerprint comparison would have surfaced faster — closed 2026-09-09 by
-`review/guest-block-mutation-re-report.md`).
+`todo/guest-block-mutation-re-report.md`).
 
 ## Final-acceptance procedure
 

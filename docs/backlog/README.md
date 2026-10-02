@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Runtime-created entity spawn backfill](todo/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
 - [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
 - [Enemy snapshot binding has no recovery path](todo/enemy-snapshot-binding-recovery.md) — **Medium** — rows 3/4/8 pass; row 2 unproven.
 - [World/layer generation identity](todo/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
@@ -83,7 +82,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [S4 — Multiplayer restore and backups](review/save-multiplayer-restore-and-backups.md) — **High** — stage 4 (S4.1–S4.4).
-- [Unrepresentable runtime creations are rejected](review/runtime-entity-creation-rejection.md) — **High** — the creator's copy is destroyed.
 - [S4.2 — The restore account surface](review/save-restore-account-surface.md) — **High** — one console line per save event.
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [Trap/entity action divergence](review/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
@@ -164,6 +162,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Runtime-created entity spawn backfill](done/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table and the one template path.
+- [Unrepresentable runtime creations are rejected](done/runtime-entity-creation-rejection.md) — **High** — the creator's copy is destroyed.
 - [World determinism fingerprint](done/world-determinism-world-fingerprint.md) — **High** — the entry and post-mutation pairs agree.
 - [A member's generation spanning the host's absence](done/guest-generation-segments-over-host-absence.md) — **High** — host-wait yields are not segments.
 - [Guest block mutations: periodic re-report](done/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.

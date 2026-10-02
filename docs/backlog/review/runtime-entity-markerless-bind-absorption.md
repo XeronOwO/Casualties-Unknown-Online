@@ -3,8 +3,8 @@
 - Status: Review
 - Priority: Low-Medium
 - Category: Network / sync coverage / world entities
-- Source: round-4 independent re-review of `todo/runtime-entity-spawn-backfill.md` (2026-09-09)
-- Related: `todo/runtime-entity-spawn-backfill.md`, `todo/enemy-snapshot-binding-recovery.md` (N1)
+- Source: round-4 independent re-review of `done/runtime-entity-spawn-backfill.md` (2026-09-09)
+- Related: `done/runtime-entity-spawn-backfill.md`, `todo/enemy-snapshot-binding-recovery.md` (N1)
 
 ## Problem (evidence)
 

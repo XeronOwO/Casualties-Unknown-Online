@@ -1,10 +1,11 @@
 # Runtime entity creation the host cannot represent must be REJECTED (and the creator's copy destroyed)
 
-- Status: Review
+- Status: Done (batch `20261003-a` — every acceptance row passes)
+- Acceptance record: `docs/evidence/acceptance/runtime-entity-creation-rejection-20261003-a.md`
 - Priority: High
 - Category: Network / sync coverage / world entities
 - Source: user review 2026-09-09 — the round-3/round-4 handling of an unmaterializable creation was rejected as a spec violation; spec corrected in `AGENTS.md` (accept-first precondition) + decision 161
-- Related: `todo/runtime-entity-spawn-backfill.md` (its finding-3 fix is SUPERSEDED by this ticket), `AGENTS.md` "Accept-first sync arbitration — only for state the host can represent", `docs/decisions/active.md` #161
+- Related: `done/runtime-entity-spawn-backfill.md` (its finding-3 fix is SUPERSEDED by this ticket), `AGENTS.md` "Accept-first sync arbitration — only for state the host can represent", `docs/decisions/active.md` #161
 
 ## Problem (evidence)
 
@@ -91,7 +92,7 @@ recording it** — neither accept nor reject:
   subject no longer exists) and `UnmaterializableReport_OnAGuest_IsNotRelayed` stays.
 - **Evidence.** Matrix row E3 (description, evidence, loss semantics), the wire vocabulary
   index, the closed-gap row and six new `sync-coverage-evidence.json` anchors;
-  `todo/runtime-entity-spawn-backfill.md` finding 3, round-4 finding 2, acceptance row 11
+  `done/runtime-entity-spawn-backfill.md` finding 3, round-4 finding 2, acceptance row 11
   and the deleted late-join limitation.
 - **What the tests cannot prove.** Every `RuntimeEntityRejectionTests` case asserts the
   channel's half: replacing the body of `EntitySpawnSync.OnRuntimeEntityRejected` with an
@@ -144,7 +145,7 @@ implementation; the whole 6-case matrix then runs green (affected families 91/91
 
 ## Docs updated (2026-09-17)
 
-- `todo/runtime-entity-spawn-backfill.md`: finding 3 and round-4 finding 2 marked
+- `done/runtime-entity-spawn-backfill.md`: finding 3 and round-4 finding 2 marked
   superseded (reject, not relay), the "late joiner never receives it" limitation replaced by
   its resolution, acceptance row 11 re-pointed.
 - `docs/evidence/sync-coverage-matrix.md`: row E3's description/evidence/loss-semantics

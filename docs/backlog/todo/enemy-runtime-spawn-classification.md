@@ -1,6 +1,6 @@
 # The host classifies world-generated enemies as runtime spawns
 
-- Status: Review
+- Status: Todo — Rejected (batch `20261002-f` row 1: the in-session repair re-pairs already-bound copies against host anchors and fails once an animal moved — `generation spawn pairing failed` + `mapping=False` on 4/4 repair cycles)
 - Priority: Medium
 - Category: Entity sync / enemy runtime-spawn classification
 - Source: agent acceptance batch `20261002-e` (2026-10-02) — both sandboxed clients logged 176 contained
@@ -84,6 +84,25 @@ here they disagreed about all 80 enemies.
 - **Wire unchanged.** The classification is host-side; the fact predicate
   (`RuntimeSpawned && PrefabId.Length > 0`) and every field it reads are untouched, and no protocol version
   is involved.
+
+## Rejection — batch `20261002-f` (2026-10-02)
+
+The batch's three-client session (record:
+`docs/evidence/acceptance/enemy-runtime-spawn-classification-20261002-f.md`) confirmed the fix's
+classification half and failed row 1's `zero generation spawn pairing failed` clause:
+
+- The entry edge passes: the host bound all 85 generation animals as `host bound generation animal`
+  (72 `shadecrawler` + 13 `trader`) with zero runtime spawns, and both guests logged
+  `85 generated bound, 0 runtime spawns, mapping=True` with no pairing failure.
+- Every in-session repair snapshot (every 60 s) then fails on BOTH guests:
+  `generation spawn pairing failed (85 host vs 85 guest generated enemies)` +
+  `snapshot applied: 0 generated bound, 1 runtime spawns, mapping=False` — 4/4 cycles in the run.
+- Cause: `OnEnemySnapshotReceived` re-pairs the generated baseline through
+  `EnemySpawnArbitration.TryPair` — the host's bind-time anchors against the guest's CURRENT positions,
+  index-by-index and all-or-nothing inside `PairTolerance` 0.5 — so once the drive has moved a bound
+  copy the whole set fails and `_mappingEstablished` is cleared. Already-bound copies already carry
+  host ids; the repair must not re-pair them.
+- Rows 2-5 passed in the same run (evidence pointers in the record).
 
 ## Acceptance matrix
 

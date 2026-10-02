@@ -53,6 +53,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Sandboxed clients: NullReferenceException bursts](todo/sandbox-client-null-reference-bursts.md) — **Low** — sandbox-only; a re-entry burst has a stack.
+- [Host classifies generation enemies as runtime spawns](todo/enemy-runtime-spawn-classification.md) — **Medium** — one rule recorded at the entity's Start.
 
 ### In progress
 
@@ -79,7 +80,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote interaction gates are judged by the host](review/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [Enemy snapshot binding has no recovery path](review/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn anchor and the 60 s repair group.
-- [Host classifies generation enemies as runtime spawns](review/enemy-runtime-spawn-classification.md) — **Medium** — one rule recorded at the entity's Start.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.

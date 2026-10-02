@@ -1311,3 +1311,33 @@ dependency the table did not name, a step that cost more than it returned.
   predicate test; when a row's expectation is a reading humans judge, the reading must describe the state
   it claims, not the work the pass happened to do. Review of the fix (fresh context, FULL tier) found
   this before the commit.
+
+## 2026-10-02 — A member that leaves the world keeps its session, and the world-item keyframe follows it into the menu
+
+- Symptom: staging `sandbox-client-null-reference-bursts` reproduced the burst on both sandboxed clients:
+  251 `[BrokenItemUpdate] … (world-null) in 'PreGen' …` in one 80 ms window (window 1; window 2's span is
+  49 ms), then a live `Item.DMD<Item::Update>` NRE storm (831,352 frame lines; the guest's rolling log
+  0.86 MB → 144.30 MB) that ran until the client re-entered the world. Each client materialized 505
+  `[ItemSpawn] materializing` lines in three rounds (entry, menu, re-entry) while the diagnostic reported
+  only 251 objects — it dedupes per object. The host logged neither.
+- Cause: the host's periodic world-item keyframe is a session BROADCAST gated only on `SessionActive`; a
+  member sitting in the menu (session alive, world gone) applies it, finds no id hit and no
+  generation-time bind target, and materializes the whole table into `PreGen`, where `Item.Update`
+  dereferences the absent `WorldGeneration.world` every frame. Every sibling absolute table already rides
+  the per-member `member.InWorld` filter; the item keyframe and the item move stream were the two
+  broadcasts left.
+- Change: finding and fix direction on the ticket; the run is
+  `docs/evidence/acceptance/sandbox-client-null-reference-bursts-20261002-h.md`. Staging lesson: read the
+  DEDUPED diagnostic FIRST — one line per object names the object, its id, the reason and the scene, which
+  the bare stack never does.
+
+## 2026-10-02 — Rows applied before the receiver's world is ready duplicate world items
+
+- Symptom: the re-entered guest ended the session with 505 items against the host's 254 (252 carrying a
+  CUO `ItemInstanceId` + 253 id-less generation items; zero duplicate ids on either side; the census probe
+  read 504 at its own moment).
+- Cause: the same keyframe landed while the re-entering member's own generation had not produced its items
+  yet, so `FindExistingAt` found no bind target and copies were materialized; the generation then added
+  its own items beside them. Applying a world-state stream must be gated on the RECEIVER's world baseline
+  being ready, not only on the row's arrival.
+- Change: recorded as the ticket's related finding (cover with the same gate or split).

@@ -28,6 +28,18 @@ namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 internal sealed class EnemyRuntimeSpawnArbitration
 {
 	/// <summary>
+	/// The ONE runtime-spawn rule, applied by BOTH roles at the animal's own
+	/// <c>BuildingEntity.Start</c>: created during play means the session is up
+	/// and world generation has finished; anything else is generation output.
+	/// The host used to answer a different question — "did it appear after my
+	/// first capture?" — whose scope is not the generation boundary at all:
+	/// batch `20261002-e` captured its baseline before generation had produced
+	/// an enemy, classified all 80 generation enemies as runtime spawns, and the
+	/// guest's pairing then read 0 host vs 80 guest generated (`mapping=False`).
+	/// </summary>
+	internal static bool IsRuntimeSpawn(bool sessionActive, bool generating) => sessionActive && !generating;
+
+	/// <summary>
 	/// Pair unbound host runtime states with unbound local runtime copies by
 	/// their positions (x, y ascending), all-or-nothing: an unequal count or
 	/// any pair farther than <see cref="EnemySpawnArbitration.PairTolerance"/>

@@ -138,10 +138,9 @@ implementation; the whole 6-case matrix then runs green (affected families 91/91
   direction and is not part of this ticket's frozen scope.
 - Residual found by the adversarial pass and recorded, not fixed: a rejected ANIMAL creation
   is destroyed without passing through `EnemySyncCoordinator.OnEnemyRemoved`, so the guest
-  enemy domain's `_runtimeAnimalCopies` set keeps the destroyed reference until its next
-  `Reset`. Its only consumer filters LIVE `FindObjectsOfType` instances, so behaviour is
-  unaffected — a bounded reference leak, not a desync, and not worth a cross-domain call in
-  this cycle.
+  enemy domain's `_runtimeAnimals` set keeps the destroyed reference until `Unbind` clears it.
+  Its only consumer filters LIVE `FindObjectsOfType` instances, so behaviour is unaffected — a
+  bounded reference leak, not a desync, and not worth a cross-domain call in this cycle.
 
 ## Docs updated (2026-09-17)
 

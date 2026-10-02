@@ -1208,3 +1208,55 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: read the burst from the rolling log at the re-entry window (ticket
   `sandbox-client-null-reference-bursts` now holds this anchor); the full `LogOutput.log` tail stays the
   fallback for a message-only burst.
+
+## 2026-10-02 — A probe's screen point is not a crop coordinate unless the frame is taken with it
+
+- Symptom: batch `20261002-e` censused the drop items with their camera screen points and captured each
+  window immediately afterwards, and every crop at the projected point was empty — the marked frame
+  (`e-c-guest-marked-zoom.png`) shows neither the local body nor any drop under its mark — while a
+  rehearsal crop of batch-y's own frames at its recorded point `(662,254)` is pure BLACK in both its
+  fresh and its control frame.
+- Cause: `Camera.main.WorldToScreenPoint` answers for the instant it runs, and this game's camera carries
+  a per-client lead (the census's own body point sits ~35 px left and ~60 px below the window centre and
+  moves between reads); a mapping recorded in an older batch for a different window state is not
+  transferable, and a capture taken hundreds of milliseconds away from the census reads a different
+  camera pose.
+- Change: a crop-based visual row calibrates on an in-frame landmark first (a clone sprite or the name tag
+  above it) and only then crops the probe point; when the landmark cannot be found the row is recorded
+  `unproven`, never guessed. The batch scope page names the failure and keeps the rehearsal artifacts.
+
+## 2026-10-02 — A body placed onto a jump pad consumes the pad
+
+- Symptom: the pad chosen for the second destruction site disappeared while the three bodies were being
+  moved to it (`pad-find`'s pad count fell 122 → 121 and the next read named a different pad), so the
+  break had no target.
+- Cause: a jump pad is consumed when a body lands on it; `body-place` teleports to a world position, and
+  a position inside the pad's own cell lands the body on the pad.
+- Change: choose the site from SCANNED standing spots (solid block with three air cells above, 3-7 cells
+  from the pad) and re-read the destroying body's distance to the pad right before the break; the site
+  finder is `site-find.cs` in the batch directory.
+
+## 2026-10-02 — The drop family's evidence is the breaker's capture plus each peer's materialization line
+
+- Symptom: the family's rows needed a machine half that names the same drop on every client without
+  relying on pixels.
+- Cause and shape: the destroying client's own log carries
+  `[ItemBuildingDeathDrop] local <type> (id …) at (…) captured for pending block-break report` followed by
+  `[ItemTrace] … origin=FlushPendingBlockBreak result=Committed(0+N) events=[Break, Drop, BuildingDrop]`,
+  and each peer then logs `[ItemSpawn] materializing <type> (id …) at (…), vel (…)` ~90 ms later with the
+  breaker's own velocity; `fresh-census.cs` reads the peer's live copy inside the 10 s window and reports
+  the same id, world position and velocity.
+- Change: a run judges the machine half from that pair plus the census, in BOTH directions (host-triggered
+  and guest-triggered), and names the artifacts; the log markers are
+  `ItemBuildingDeathDrop`, `FlushPendingBlockBreak`, `ItemSpawn` and `ItemPhysics`.
+
+## 2026-10-02 — The fresh presentation's own clock sets the capture window
+
+- Symptom: planning the capture needed to know how long the presentation stays readable.
+- Cause (source, `reversing/Assembly-CSharp/Assembly-CSharp/FreshItemDrop.cs`): `Start` parents a copy of
+  the ITEM'S OWN sprite at scale 1.125 with `Special/ItemOutline` one sorting order behind the item,
+  `Update` sets the outline's alpha to `clamp01(timeLeft*0.4)` — full alpha for the first 7.5 s, faded to
+  0 by 10 s — and `FixedUpdate` raises `gravityScale` from 0 only once `timeLeft < 2`.
+- Change: capture inside the first ~7 s (target under 5 s); the float reads as `vy ≈ 0` with an unchanged
+  position through the window, and the control frame taken after it MUST show the fall (the alt's census
+  read `vy=-5.299` at 11.4 s in this batch).

@@ -1,9 +1,9 @@
 # Sandboxed clients log NullReferenceException bursts and an instantiate-null ArgumentException
 
-- Status: Todo — Rejected (batch `20261002-i`: the menu NRE storm and both 251-copy rounds are gone
-  against the deployed artifact, but row 5 fails — a re-entry still leaves 9 (guest) / 14 (alternate)
-  unbound generation-time locals beside the host's bound set; record
-  `docs/evidence/acceptance/sandbox-client-null-reference-bursts-20261002-i.md`)
+- Status: Done — accepted by batch `20261002-j` (all seven rows pass against `0.1.0+cfbf76d1`: the
+  re-entry converges to the host's census with `noId` = the carried items only, `noIdWithComponent=0`
+  and `dupIds=0`; record
+  `docs/evidence/acceptance/sandbox-client-null-reference-bursts-20261002-j.md`)
 - Priority: Low
 - Category: Runtime diagnostics / sandbox
 - Source: observed during agent acceptance runs — noted unjudged in `docs/acceptance/lessons.md` (2026-10-01), re-captured with context in batch `20261002-c` and again with a rolling-log stack frame in batch `20261002-d` (`docs/evidence/acceptance/20261002-c-scope.md`, `docs/evidence/acceptance/20261002-d-scope.md`)

@@ -138,6 +138,9 @@ Every row ends in exactly one of: `pass`, `fail`, `unproven`, `blocked`, `residu
 - `residual` is a row only a person can judge; it goes to the user's list, never to a self-issued
   pass.
 
+- A row whose expectation is an absence (zero `<warning>`) is read from the run mark through at least one
+  full periodic cycle of the mechanism that can emit it; an entry-edge-only read is not evidence.
+
 ## 7. The record
 
 One record per ticket — `docs/evidence/acceptance/<ticket-slug>-<yyyymmdd>.md` — committed, English,

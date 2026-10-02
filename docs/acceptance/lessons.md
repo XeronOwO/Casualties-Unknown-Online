@@ -1260,3 +1260,26 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: capture inside the first ~7 s (target under 5 s); the float reads as `vy ≈ 0` with an unchanged
   position through the window, and the control frame taken after it MUST show the fall (the alt's census
   read `vy=-5.299` at 11.4 s in this batch).
+
+## 2026-10-02 — A row that asks for zero warnings passed the entry edge and failed the first repair cycle
+
+- Symptom: `enemy-runtime-spawn-classification` row 1, read from the entry-phase log window, showed zero
+  `generation spawn pairing failed`; the in-session repair 60 s later logged it on both guests together
+  with `mapping=False`, so an entry-only read would have recorded a pass.
+- Cause: the row asks for the absence of a warning, and that warning has a periodic trigger, not only an
+  entry trigger — the same apply path runs again each cycle and fails once the drive has moved a bound
+  copy (host-anchor vs guest-current, all-or-nothing).
+- Change: `workflow.md` §6 now requires an absence row to be read from the run mark through at least one
+  full periodic cycle of the mechanism that can emit the warning; this page records the case.
+
+## 2026-10-02 — A pre-staged probe had never been compiled and the eval error hid why
+
+- Symptom: the first run of the pre-staged `spawn-animal.cs` probe failed with `eval_error: (1,1):
+  Interactive Host` — no code, no line, no name — and every variant of the bad expression returned the
+  same message.
+- Cause: the probe walked from `UnityEngine.Object.Instantiate(...)` (returns `UnityEngine.Object`)
+  straight into `GetComponent<BuildingEntity>()`, which `Object` does not have; the HotRepl error
+  surface dropped the compiler detail.
+- Change: probes that create entities cast first (`... as UnityEngine.GameObject`) before `GetComponent`;
+  when an eval error names nothing, bisect the snippet and send its expressions one at a time instead of
+  guessing. `.acceptance/20261002-f/spawn-animal.cs` carries the fix.

@@ -18,11 +18,11 @@ public interface IKernelProtocolControl
 
 	void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason);
 
-	void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves);
-
 	void SendItemStateStreamTo(ulong targetSteamId, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = true, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null);
 
 	void BroadcastItemStateStream(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null);
+
+	void BroadcastItemStateStreamTo(IEnumerable<ulong> targets, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null);
 
 	void SendStateStreamTo(ulong targetSteamId, WireStateStream stream, WirePayloadType payloadType, bool reliable = false);
 

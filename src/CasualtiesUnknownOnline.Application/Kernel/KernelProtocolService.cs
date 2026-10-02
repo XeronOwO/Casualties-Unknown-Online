@@ -181,8 +181,6 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_sender.TrySend(_session.HostSteamId, frame);
 	}
 
-	public void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves) => _stateStreams.SendStateStream(itemMoves);
-
 	public void SendStateStreamTo(ulong targetSteamId, WireStateStream stream, WirePayloadType payloadType, bool reliable = false) =>
 		_stateStreams.SendStateStreamTo(targetSteamId, stream, payloadType, reliable);
 
@@ -197,6 +195,9 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public void BroadcastItemStateStream(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null) =>
 		_stateStreams.BroadcastItemStateStream(items, payloadType, reliable, layerModifierIndex, layerModifierRandomState);
+
+	public void BroadcastItemStateStreamTo(IEnumerable<ulong> targets, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null) =>
+		_stateStreams.BroadcastItemStateStreamTo(targets, items, payloadType, reliable, layerModifierIndex, layerModifierRandomState);
 
 	public void HandleFrame(ulong sender, ProtocolFrame frame)
 	{

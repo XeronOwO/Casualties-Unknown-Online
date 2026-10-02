@@ -28,6 +28,17 @@ public interface ISessionControl
 	/// <summary>Remote member's in-world state (the Game Adapter's clone presence).</summary>
 	bool IsRemoteInWorld(ulong steamId);
 
+	/// <summary>
+	/// The handshaken remote members currently in the world — the target set of
+	/// every host-side world-state broadcast (the item keyframe, the item position
+	/// stream). A member that left the world has no world scene: sending it world
+	/// rows materialized the whole item table into the menu scene, where every
+	/// Item.Update threw NullReferenceException (batch 20261002-h). Read from the
+	/// presence table this session owns; the local id is filtered so the rule holds
+	/// on both roles.
+	/// </summary>
+	IEnumerable<ulong> InWorldRemoteSteamIds();
+
 	/// <summary>The spawn position a member reported when entering the world — the host's clone anchor.</summary>
 	NetVector2 GetRemoteSpawnPos(ulong steamId);
 

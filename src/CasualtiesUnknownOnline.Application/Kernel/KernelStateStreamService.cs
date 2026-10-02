@@ -31,28 +31,6 @@ internal sealed class KernelStateStreamService(
 		_nextWorldItemsSnapshotSeq = 0;
 	}
 
-	public void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves)
-	{
-		if (!_session.IsHost || !_session.SessionActive || itemMoves.Count == 0)
-		{
-			return;
-		}
-
-		var frame = new ProtocolFrame
-		{
-			Kind = EnvelopeKind.StateStream,
-			StateStream = new StateStreamEnvelope
-			{
-				Header = _createHeader(WirePayloadType.StateStream),
-				Stream = new WireStateStream
-				{
-					ItemMoves = [.. itemMoves],
-				},
-			},
-		};
-		SendToGuests(frame, reliable: false);
-	}
-
 	public void SendStateStreamTo(ulong targetSteamId, WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
 	{
 		if (!_session.SessionActive || targetSteamId == 0)
@@ -77,7 +55,7 @@ internal sealed class KernelStateStreamService(
 
 	public void BroadcastStateStreamTo(IEnumerable<ulong> targets, WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
 	{
-		if (!_session.SessionActive)
+		if (!_session.IsHost || !_session.SessionActive)
 		{
 			return;
 		}
@@ -106,6 +84,17 @@ internal sealed class KernelStateStreamService(
 
 		var frame = CreateItemStateStreamFrame(items, payloadType, layerModifierIndex, layerModifierRandomState);
 		SendToGuests(frame, reliable);
+	}
+
+	public void BroadcastItemStateStreamTo(IEnumerable<ulong> targets, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null)
+	{
+		if (!_session.IsHost || !_session.SessionActive || items.Count == 0)
+		{
+			return;
+		}
+
+		var frame = CreateItemStateStreamFrame(items, payloadType, layerModifierIndex, layerModifierRandomState);
+		_sender.SendToAll(targets, frame, reliable);
 	}
 
 	private ProtocolFrame CreateStateStreamFrame(WireStateStream stream, WirePayloadType payloadType) =>

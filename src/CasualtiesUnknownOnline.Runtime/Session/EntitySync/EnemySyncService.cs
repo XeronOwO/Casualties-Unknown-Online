@@ -268,10 +268,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 
 	// ---- Broadcast / snapshot ----
 
-	private IEnumerable<ulong> InWorldGuestSteamIds() =>
-		_session.Members
-			.Where(m => m.Handshaken && m.InWorld && m.SteamId != _session.LocalSteamId)
-			.Select(m => m.SteamId);
+	private IEnumerable<ulong> InWorldGuestSteamIds() => _session.InWorldRemoteSteamIds();
 
 	private void BroadcastEnemyState()
 	{

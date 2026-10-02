@@ -30,6 +30,23 @@ assembly), and its interface keeps growing with every feature (see
   `OnHostTerminal` / `CancelActiveUse` plus the static `_active` session) against the per-kind
   start/guard half (`TryStartRemote*`).
 
+- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` (599 after the out-of-world item
+  stream targeting landed on 2026-10-02) — the item-domain facade: the world table and its
+  arbitration, the Phase C kernel-batch projection wiring, the `IItemControl` delegation surface and
+  the traffic-observation seam. It was already at 597 when that fix landed (a net +2: the move stream
+  now targets in-world members and the generation publish carries its deliberately-broadcast note);
+  the NEXT change in the item domain must split it first. The real seam is the kernel-batch half
+  (`OnExternalBatchCommitted` / `OnBatchApplied` / `OnCheckpointRestored` /
+  `RebuildItemProjectionFromKernel` plus the `ItemSnapshotStreamReceiver` wiring) — a collaborator that
+  owns the projection/restore wiring while the facade keeps the table and the public surface.
+
+- `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs` (608 — the only recorded entry in
+  `docs/architecture-debt.json`; it was already AT the 600 cap before the out-of-world item stream fix
+  added the one-line `IsEnteringWorld` fact on 2026-10-02, so the earlier ~582 reading on this page was
+  stale). The run-lifecycle phase machine plus the body-state publish path. A split is due BEFORE the
+  next change: the phase machine (join/start/generate/ready/gate transitions) against the entry and
+  publish seams it drives (`UpdateSceneState`, the gate anchors, the body-state publish).
+
 ## Near the limit (watch)
 
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/OtherMedicalOperationSessionService.cs`
@@ -50,10 +67,6 @@ assembly), and its interface keeps growing with every feature (see
   contract, so any further per-frame step should go into a domain, not into `Update`. (The Online UI's
   native-facts port added one field and one explicit member; the per-frame reading lives in its own
   `OnlineUi/` collaborator.)
-- `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs` (~582) — the run-lifecycle phase
-  machine plus the body-state publish path. It grew by one line in the S2 in-game gap fix (the
-  WorldJoin follow cancels a queued local character restore); a split is due before anything else
-  lands in the phase machine or the publish path.
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs` (~572) — the character
   domain's session-scoped coordinator (the 1 Hz report, the local clone fact table, and the wiring of
   an arriving restore into the queue). The S2 in-game gap fix moved its local restore queue to the

@@ -9,7 +9,7 @@
   classification damage behind that warning (recorded in the scope page's post-hoc reading,
   `docs/evidence/acceptance/20261002-e-scope.md`)
 - Related: `review/runtime-entity-spawn-backfill.md`, `review/enemy-snapshot-binding-recovery.md`,
-  `todo/sandbox-client-null-reference-bursts.md`, `20261002-g` acceptance record
+  `review/sandbox-client-null-reference-bursts.md`, `20261002-g` acceptance record
 
 ## Problem
 

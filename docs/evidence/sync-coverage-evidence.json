@@ -788,13 +788,13 @@
       "cluster": "items",
       "row": "I2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs",
-      "quote": "_kernelProtocol.SendStateStream([.. items]);"
+      "quote": "_kernelProtocol.BroadcastStateStreamTo(targets, stream, WirePayloadType.StateStream, reliable: false);"
     },
     {
       "cluster": "items",
       "row": "I2",
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelStateStreamService.cs",
-      "quote": "SendToGuests(frame, reliable: false);"
+      "quote": "public void BroadcastStateStreamTo(IEnumerable<ulong> targets, WireStateStream stream, WirePayloadType payloadType, bool reliable = false)"
     },
     {
       "cluster": "items",

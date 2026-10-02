@@ -38,11 +38,21 @@ internal sealed class ItemReconcile(
 	/// attaches them before Item.Start runs, so the local-report hooks observe
 	/// the same things with or without the scope), and it makes "every remote
 	/// mutation carries its call identity" an invariant rather than a habit.
+	/// A snapshot is applied only while this side has a LIVE world: in the menu
+	/// (or mid-generation) the rows would materialize the table into a scene that
+	/// cannot host it — the next keyframe re-delivers once the world is live
+	/// (batch 20261002-h).
 	/// </summary>
 	// The layer modifier rides the snapshot — LayerModifierSync applies it
 	// (its own subscription); this domain only consumes the item entries.
 	private void OnRemoteItemSnapshot(IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 	{
+		if (!HarmonyTraverse.HasLiveWorld)
+		{
+			_log.LogDebug("[Reconcile] {Count} snapshot row(s) ignored: no live world on this side.", items.Count);
+			return;
+		}
+
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var killed = 0;

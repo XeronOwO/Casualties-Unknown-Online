@@ -95,10 +95,12 @@ public class ItemSnapshotSimulationTests
 	}
 
 	[Fact]
-	public void PeriodicSnapshot_ReachesEveryHandshakenMember()
+	public void PeriodicSnapshot_ReachesEveryInWorldMember()
 	{
 		using var w = ItemSimWorld.Create();
 		w.Spawn(w.G1, 100, Item("ore"));
+		w.SetInWorld(w.G1, true);
+		w.SetInWorld(w.G2, true);
 
 		var g1Snapshots = new List<IReadOnlyList<WorldItem>>();
 		var g2Snapshots = new List<IReadOnlyList<WorldItem>>();
@@ -110,6 +112,44 @@ public class ItemSnapshotSimulationTests
 
 		Assert.Single(g1Snapshots);
 		Assert.Single(g2Snapshots);
+	}
+
+	[Fact]
+	public void PeriodicSnapshot_SkipsMemberReportedInMenu()
+	{
+		using var w = ItemSimWorld.Create();
+		w.Spawn(w.G1, 100, Item("ore"));
+		w.SetInWorld(w.G1, true);
+		w.SetInWorld(w.G2, false);
+
+		var inWorldSnapshots = new List<IReadOnlyList<WorldItem>>();
+		var menuSnapshots = new List<IReadOnlyList<WorldItem>>();
+		w.G1.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => inWorldSnapshots.Add(items);
+		w.G2.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => menuSnapshots.Add(items);
+
+		w.Host.Services.GetRequiredService<IItemControl>().SendPeriodicItemSnapshot();
+		w.Driver.Tick(50);
+
+		Assert.Single(inWorldSnapshots);
+		Assert.Empty(menuSnapshots);
+	}
+
+	[Fact]
+	public void PeriodicSnapshot_AllMembersOutOfWorld_SendsNothing()
+	{
+		using var w = ItemSimWorld.Create();
+		w.Spawn(w.G1, 100, Item("ore"));
+		w.SetInWorld(w.G1, false);
+		w.SetInWorld(w.G2, false);
+
+		var snapshots = new List<IReadOnlyList<WorldItem>>();
+		w.G1.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => snapshots.Add(items);
+		w.G2.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => snapshots.Add(items);
+
+		w.Host.Services.GetRequiredService<IItemControl>().SendPeriodicItemSnapshot();
+		w.Driver.Tick(50);
+
+		Assert.Empty(snapshots);
 	}
 
 	[Fact]
@@ -148,6 +188,7 @@ public class ItemSnapshotSimulationTests
 
 		var received = new List<IReadOnlyList<WorldItem>>();
 		w.G2.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => received.Add(items);
+		w.SetInWorld(w.G2, true);
 
 		w.Host.Services.GetRequiredService<IItemControl>().SendPeriodicItemSnapshot();
 		w.Driver.Tick(50);
@@ -185,6 +226,30 @@ public class ItemSnapshotSimulationTests
 		Assert.True(received.Count == 1, $"the generation snapshot must arrive, got {received.Count}");
 		Assert.True(received[0].Count == 2, $"both entries ride the broadcast, got {received[0].Count}");
 		Assert.True(modifiers.Count == 1 && modifiers[0] == 1, "Foggy (0) rides as 1");
+	}
+
+	[Fact]
+	public void GenerationSnapshot_ReachesMemberNotYetInWorld()
+	{
+		// The generation publish must reach a member whose own generation is still
+		// running: the host's InWorld record is false until that member reports
+		// InWorld, and GeneratedItemApplication holds the snapshot until the local
+		// generation finishes. Deliberately NOT an InWorld-targeted send — only
+		// the steady-state keyframe and move streams are (batch 20261002-i).
+		using var w = ItemSimWorld.Create();
+		w.SetInWorld(w.G1, false);
+		w.SetInWorld(w.G2, false);
+
+		var received = new List<IReadOnlyList<WorldItem>>();
+		w.G2.Services.GetRequiredService<IItemControl>().WorldItemsSnapshotReceived += (entries, _, _) => received.Add(entries);
+
+		w.Host.Services.GetRequiredService<IItemControl>().PublishGeneratedItems(
+		[
+			new WorldItem(1, Item("ore"), new NetVector2(0, 0), new NetVector2(0, 0), 0, 0f, false),
+		]);
+		w.Driver.Tick(50);
+
+		Assert.Single(received);
 	}
 
 	[Fact]

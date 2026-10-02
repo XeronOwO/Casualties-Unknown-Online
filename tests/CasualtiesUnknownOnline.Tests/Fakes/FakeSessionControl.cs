@@ -51,6 +51,9 @@ internal sealed class FakeSessionControl : ISessionControl
 
 	public bool IsRemoteInWorld(ulong steamId) => TryGetMember(steamId, out var member) && member.InWorld;
 
+	public IEnumerable<ulong> InWorldRemoteSteamIds() =>
+		_members.Where(m => m.Handshaken && m.InWorld && m.SteamId != LocalSteamId).Select(m => m.SteamId);
+
 	public NetVector2 GetRemoteSpawnPos(ulong steamId) => TryGetMember(steamId, out var member) ? member.ReportedSpawnPos : default;
 
 	public void ReportSceneState(SceneStateType state, string sceneName, NetVector2? localPosition = null)

@@ -98,7 +98,7 @@ unreliable by design; the next stream tick or a checkpoint self-heals. A stream
 may only update existing convergent fields — it may not create/destroy aggregates
 or change ownership.
 
-- Item moves / item snapshots: `KernelProtocolService.SendStateStream*`
+- Item moves / item snapshots: `KernelProtocolService.BroadcastStateStream*` / `BroadcastItemStateStream*`
 - Player/enemy streams: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs`
 - Stream wire shape: `src/CasualtiesUnknownOnline.Protocol/Wire/WireStateStream.cs`
 

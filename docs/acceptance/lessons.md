@@ -1449,7 +1449,7 @@ dependency the table did not name, a step that cost more than it returned.
   layer-modifier replay then decides from.
 - Change: wait for `[GenStream] done` on EVERY client (the host's and each member's) before the next
   host-side world transition (leave, Continue, layer switch). Recorded as
-  `todo/guest-generation-segments-over-host-absence.md`.
+  `review/guest-generation-segments-over-host-absence.md`.
 
 ## 2026-10-02 — Cross-client world identity: compare the reset hex and the segment fingerprints
 

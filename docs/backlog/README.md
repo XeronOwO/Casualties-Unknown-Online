@@ -52,6 +52,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Sandboxed clients: NullReferenceException bursts](todo/sandbox-client-null-reference-bursts.md) — **Low** — out-of-world item streams; re-entry bind.
+
 ### In progress
 
 ### Review
@@ -135,7 +137,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
-- [Sandboxed clients: NullReferenceException bursts](review/sandbox-client-null-reference-bursts.md) — **Low** — item streams for out-of-world members.
 
 ### Future
 

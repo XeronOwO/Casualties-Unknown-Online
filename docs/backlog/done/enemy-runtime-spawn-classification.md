@@ -1,6 +1,7 @@
 # The host classifies world-generated enemies as runtime spawns
 
-- Status: Todo — rejection fixed, awaiting the batch re-run that judges row 1
+- Status: Done — accepted by batch `20261002-g` (all five rows pass; record
+  `docs/evidence/acceptance/enemy-runtime-spawn-classification-20261002-g.md`)
 - Priority: Medium
 - Category: Entity sync / enemy runtime-spawn classification
 - Source: agent acceptance batch `20261002-e` (2026-10-02) — both sandboxed clients logged 176 contained
@@ -8,7 +9,7 @@
   classification damage behind that warning (recorded in the scope page's post-hoc reading,
   `docs/evidence/acceptance/20261002-e-scope.md`)
 - Related: `review/runtime-entity-spawn-backfill.md`, `review/enemy-snapshot-binding-recovery.md`,
-  `todo/sandbox-client-null-reference-bursts.md`
+  `todo/sandbox-client-null-reference-bursts.md`, `20261002-g` acceptance record
 
 ## Problem
 

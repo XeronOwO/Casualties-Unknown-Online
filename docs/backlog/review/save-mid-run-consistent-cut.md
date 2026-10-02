@@ -602,7 +602,7 @@ no enemy of the previous layer appearing on the new one, and no stale fluid blob
 - `EnemySyncCoordinator._idByEntity` / `_mappingEstablished` survive a layer boundary (they are cleared
   only by `Unbind`), so a new layer's entities are allocated on top of a stale map and the stale bindings
   linger until the scene swap. The runtime-spawn classification no longer rides that map: since
-  `todo/enemy-runtime-spawn-classification.md` (2026-10-02) it is recorded once at the entity's `Start`
+  `done/enemy-runtime-spawn-classification.md` (2026-10-02) it is recorded once at the entity's `Start`
   (`OnAnimalInstantiated`), so a new layer's generation enemies are generation output, not backfill facts.
   Adapter-side identity, a different owner from this reset, and not made worse here — it is recorded for
   its own ticket rather than patched in this cycle.

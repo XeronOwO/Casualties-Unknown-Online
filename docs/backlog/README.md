@@ -53,7 +53,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Sandboxed clients: NullReferenceException bursts](todo/sandbox-client-null-reference-bursts.md) — **Low** — sandbox-only; a re-entry burst has a stack.
-- [Host classifies generation enemies as runtime spawns](todo/enemy-runtime-spawn-classification.md) — **Medium** — one rule recorded at the entity's Start.
 
 ### In progress
 
@@ -168,6 +167,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Host classifies generation enemies as runtime spawns](done/enemy-runtime-spawn-classification.md) — **Medium** — one rule recorded at the entity's Start.
 - [Block-damage table capacity alignment](done/block-damage-table-capacity-alignment.md) — **Medium** — CUO's second registry is deleted.
 - [Recipe `// args:` gate and CRLF working trees](done/recipe-args-crlf-gate.md) — **Medium** — a CRLF checkout feeds `\r` into the last argument.
 - [Trap destruction drop quantity desync](done/trap-destruction-drop-quantity-desync.md) — **Medium** — drops ride the block-damage message.

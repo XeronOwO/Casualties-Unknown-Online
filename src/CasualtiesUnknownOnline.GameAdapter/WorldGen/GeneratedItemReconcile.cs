@@ -40,7 +40,6 @@ internal sealed class GeneratedItemReconcile(
 		{
 			var bound = 0;
 			var materialized = 0;
-			var deferred = 0;
 			var refused = new List<string>();
 
 			// Per ENTRY, contained by the Runtime's row rule: an entry whose engine call throws
@@ -58,11 +57,9 @@ internal sealed class GeneratedItemReconcile(
 					// Every count is taken from the VERIFIED result, never from the call's
 					// intent: the bind predicate above deliberately skips objects that
 					// already carry an id, so it cannot see the write that just attached
-					// one, and the landing seam may DEFER a row whose generation-time
-					// object has not landed yet instead of writing anything. Reporting the
-					// intent would name a successful bind as a loss on every restore, a
-					// deferred row as materialized, and a genuine refusal could not be told
-					// apart from either (§6).
+					// one. Reporting the intent would name a successful bind as a loss on
+					// every restore, and a genuine refusal could not be told apart from it
+					// (§6).
 					if (ItemApplication.FindWorldItem(entry.ItemId) != null) // Unity object — ==
 					{
 						if (localCopy)
@@ -73,14 +70,6 @@ internal sealed class GeneratedItemReconcile(
 						{
 							materialized++; // a divergent local copy — the authority's version is materialized instead
 						}
-					}
-					else if (_itemApplication.IsDeferredLandingPending(entry.ItemId))
-					{
-						// The row is ALIVE: the landing pump retries it every frame and
-						// materializes it when the grace expires. It is not a refusal, and
-						// the restore audit must not report it as one (batch 20261002-j's
-						// review, major-4).
-						deferred++;
 					}
 					else
 					{
@@ -129,9 +118,9 @@ internal sealed class GeneratedItemReconcile(
 			}
 
 			_log.LogInformation(
-				"[ItemReconcile] {Entries} authoritative entry/entries: {Bound} bound, {Materialized} materialized, {Deferred} deferred, {Destroyed} unclaimed local(s) destroyed, {Refused} not taken.",
-				entries.Count, bound, materialized, deferred, destroyed, refused.Count);
-			return new GeneratedItemReconcileOutcome(entries.Count, bound, materialized, deferred, destroyed, refused);
+				"[ItemReconcile] {Entries} authoritative entry/entries: {Bound} bound, {Materialized} materialized, {Destroyed} unclaimed local(s) destroyed, {Refused} not taken.",
+				entries.Count, bound, materialized, destroyed, refused.Count);
+			return new GeneratedItemReconcileOutcome(entries.Count, bound, materialized, destroyed, refused);
 		}
 	}
 

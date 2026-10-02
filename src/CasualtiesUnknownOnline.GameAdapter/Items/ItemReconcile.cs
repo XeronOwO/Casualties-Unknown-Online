@@ -62,7 +62,7 @@ internal sealed class ItemReconcile(
 		{
 			var killed = 0;
 			var spawned = 0;
-			var deferredNow = 0;
+			var notTaken = 0;
 			var stray = 0;
 			var snapshot = items.ToDictionary(w => w.ItemId);
 
@@ -102,18 +102,18 @@ internal sealed class ItemReconcile(
 				}
 			}
 
-			// Late locals: this side's own generation can still land objects AFTER the table was
-			// applied (batch 20261002-j's 5 fps stress run left 67 id-less world items beside
-			// their materialized rows — the deferred-landing grace could not reach them). An
-			// id-less standalone world item on a live, finished world is either one of those
-			// late locals (its row was already materialized, or will be re-delivered) or a local
-			// object the authority's table does not know — the same rule
-			// GeneratedItemReconcile.Apply runs at apply time, here on the keyframe's cadence so
-			// convergence cannot strand late arrivals. Tutorial props stay: they are deliberately
-			// id-less until picked up (ItemWorldSync.OnItemInstantiated). A row still waiting in the
-			// deferred landing is skipped — its object IS the adopt target (review, major-1: the
-			// sweep used to run first and ate the six objects the deferred rows were waiting for,
-			// which is why `adopted` stayed zero in every staging run).
+			// Late locals: this side's own generation can land objects AFTER the table was
+			// applied (batch 20261002-j's 5 fps stress run left 7 id-less world items beside
+			// their materialized rows). An id-less standalone world item on a live, finished
+			// world is either one of those late locals (its row was already materialized, or
+			// will be re-delivered) or a local object the authority's table does not know —
+			// the same rule GeneratedItemReconcile.Apply runs at apply time, here on the
+			// keyframe's cadence so convergence cannot strand late arrivals. Tutorial props
+			// stay: they are deliberately id-less until picked up
+			// (ItemWorldSync.OnItemInstantiated). The batch-20261002-j staging runs showed the
+			// adopt-first landing cannot reach the seven objects observed (they sat farther from
+			// the authority row than the adopt tolerance), so the sweep is what converges the
+			// observed case.
 			if (_straySweepFrame != Time.frameCount)
 			{
 				_straySweepFrame = Time.frameCount;
@@ -129,13 +129,8 @@ internal sealed class ItemReconcile(
 						continue;
 					}
 
-					if (_app.IsWaitingForDeferred(item))
-					{
-						continue;
-					}
-
 					_app.KillRemoteItem(item);
-					_log.LogInformation("[Reconcile] dropped late id-less {Type} at ({X:F1},{Y:F1}) — no authority row and no deferred landing holds it.",
+					_log.LogInformation("[Reconcile] dropped late id-less {Type} at ({X:F1},{Y:F1}) — the authority's table holds no row for it.",
 						item.id, item.transform.position.x, item.transform.position.y);
 					stray++;
 				}
@@ -198,30 +193,30 @@ internal sealed class ItemReconcile(
 			// missing ones are materialized here (the snapshot-race window).
 			foreach (var w in items.Where(w => w.ParentItemId == 0))
 			{
-				Land(w, ref spawned, ref deferredNow);
+				Land(w, ref spawned, ref notTaken);
 			}
 
 			foreach (var w in items.Where(w => w.ParentItemId != 0))
 			{
-				Land(w, ref spawned, ref deferredNow);
+				Land(w, ref spawned, ref notTaken);
 			}
 
-			if (killed > 0 || spawned > 0 || stray > 0 || deferredNow > 0)
+			if (killed > 0 || spawned > 0 || stray > 0 || notTaken > 0)
 			{
-				_log.LogInformation("[Reconcile] {Count} items: killed {Killed}, spawned {Spawned}, deferred {Deferred}, dropped {Stray} late id-less world item(s).",
-					items.Count, killed, spawned, deferredNow, stray);
+				_log.LogInformation("[Reconcile] {Count} items: killed {Killed}, spawned {Spawned}, not taken {NotTaken}, dropped {Stray} late id-less world item(s).",
+					items.Count, killed, spawned, notTaken, stray);
 			}
 		}
 	}
 
 	/// <summary>
 	/// Hand one missing row to the landing seam and count what actually happened: an id present
-	/// afterwards is landed (adopted or materialized); one still missing was DEFERRED by the landing
-	/// grace — or refused with no world — and must not be reported as a spawn (batch 20261002-j's
-	/// review, major-4: the count used to be taken from the call, not from the result, so a deferred
-	/// row read as materialized in the acceptance evidence).
+	/// afterwards is landed (adopted or materialized); one still missing was refused — no live
+	/// world on this side, or a prefab the local scene cannot serve — and must not be reported as
+	/// a spawn (batch 20261002-j's review, major-4: the count used to be taken from the call, not
+	/// from the result).
 	/// </summary>
-	private void Land(WorldItem w, ref int spawned, ref int deferred)
+	private void Land(WorldItem w, ref int spawned, ref int notTaken)
 	{
 		if (ItemApplication.FindWorldItem(w.ItemId) != null) // Unity object — ==
 		{
@@ -231,7 +226,7 @@ internal sealed class ItemReconcile(
 		_app.SpawnWorldItem(w);
 		if (ItemApplication.FindWorldItem(w.ItemId) == null) // Unity object — ==
 		{
-			deferred++;
+			notTaken++;
 			return;
 		}
 

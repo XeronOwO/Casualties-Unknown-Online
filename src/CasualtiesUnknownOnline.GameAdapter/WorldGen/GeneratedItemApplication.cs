@@ -78,7 +78,7 @@ internal sealed class GeneratedItemApplication(
 		var pending = _pending;
 		_pending = null;
 		var outcome = _reconcile.Apply(pending);
-		_log.LogInformation("[GenItems] applied {Count} entries: {Bound} bound, {Materialized} materialized, {Deferred} deferred — destroyed {Destroyed} host-unknown locals.",
-			outcome.Entries, outcome.Bound, outcome.Materialized, outcome.Deferred, outcome.Destroyed);
+		_log.LogInformation("[GenItems] applied {Count} entries: {Bound} bound, {Materialized} materialized — destroyed {Destroyed} host-unknown locals.",
+			outcome.Entries, outcome.Bound, outcome.Materialized, outcome.Destroyed);
 	}
 }

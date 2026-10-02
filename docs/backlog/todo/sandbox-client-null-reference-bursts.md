@@ -130,17 +130,26 @@ generation is still registering its last objects in `Item.Start` — `FindExisti
 not landed was materialized immediately and the late local object stayed beside it as an id-less
 duplicate (the guest's window left 6; `total=291 withId=283 noId=8`).
 
-- `RemoteItemSceneOps.SpawnWorldItem` — the single landing seam every apply path shares — now DEFERS
-  such a row while this side's generation may still be landing its last objects (`IsGenerating`
-  falling edge plus a 2 s grace, `DeferredWorldItemLanding`). The per-frame pump re-adopts the row as
-  soon as its local object appears and materializes the authority's copy only when the grace expires,
-  so an authority row can never be lost to a slow local load.
-- `ItemReconcile` (the periodic keyframe) also drops id-less standalone world items the authority's
-  table does not own — the rule `GeneratedItemReconcile.Apply` already runs at apply time, here on the
-  keyframe's cadence — so an arrival later than the grace still converges. Tutorial props are excluded
-  (deliberately id-less until picked up).
-- `PendingWorldItemRows` (Runtime, pure, unit-tested) owns the queue: keyed by instance id, a repeated
-  snapshot refreshes the payload but keeps the original deadline.
+- `RemoteItemSceneOps.SpawnWorldItem` keeps the adopt-first seam: a row binds the id-less object at
+  its reported spot when there is one and is materialized otherwise — the ordinary landing.
+- `ItemReconcile` (the periodic keyframe) drops id-less standalone world items the authority's table
+  does not own — the rule `GeneratedItemReconcile.Apply` already runs at apply time, here on the
+  keyframe's cadence — so a late local arrival converges instead of stranding beside its materialized
+  row. Tutorial props are excluded (deliberately id-less until picked up).
+- An earlier revision of this batch ALSO deferred such a row for a 2 s grace and retried adopting it
+  (`DeferredWorldItemLanding` + `PendingWorldItemRows`, plus a sweep that skipped rows still
+  waiting). The staging runs removed that revision: the guest's initial entry and the same client's
+  5 fps re-entry each deferred the SAME seven rows (`k-entry-sweep-guest.log`, `k-probe-window.log`)
+  and every `[ItemSpawn] deferred rows:` summary read `adopted 0 late` (the alternate's entry
+  deferred the same seven; `k-entry-sweep-alt.log`). Those seven local objects sat 1.8–3.6 units
+  from the authority row — outside the 1.5-unit adopt tolerance `FindExistingAt` shares — so for
+  these seven rows neither the adopt retry nor the sweep's deferral guard could see them. The
+  authority's copy then materialized and the sweep dropped the local object, converging to the
+  host's census; the acceptance re-run below is what proves the sweep-only landing reaches the same
+  end state without the 2 s hold. The queue, its pump, its sweep guard and its unit tests were
+  deleted with the revision. The queue also waited for a container row's parent before landing the
+  child; without it a child row lands immediately, which `BindToContainer`'s positional fallback and
+  the keyframe's content alignment cover.
 
 ## Acceptance (batch `20261002-i`, agent-run)
 
@@ -180,21 +189,21 @@ the host's entry beside them instead of adopting them.
   projection) are lost on a guest that is mid-generation when `ApplyTrapDropPresentation` is refused;
   the item fact itself converges through the committed batch/keyframe (bounded, accepted — the same
   family as the matrix's other presentation-loss notes).
-- Batch `20261002-j` adds the landing seam's grace: an object that lands later than the 2 s window
-  after the `IsGenerating` falling edge is not adopted but dropped by the keyframe's late-local rule
-  (observed under a pinned 5 fps: 6 rows deferred, 6 late id-less locals dropped, settled at the
-  carried count). A client hitched past the grace therefore converges through the sweep rather than by
-  adopting.
-- The scene half of the new pair (deferred landing, the late-local sweep) has no automated coverage
-  beyond `PendingWorldItemRowsTests`; the batch-`20261002-j` staging runs are its runtime evidence.
+- Batch `20261002-j`'s landing is the keyframe's late-local sweep: a late-landing local object the
+  authority's table has no row for is dropped and the authoritative row is materialized, so a client
+  whose local objects land late converges through the sweep (observed under a pinned 5 fps: seven
+  rows deferred by the revision that was then removed, seven late id-less locals dropped, settled at
+  the carried count).
+- The late-local sweep has no automated coverage (the GameAdapter's Unity dependency keeps the scene
+  half out of the suite); the batch-`20261002-j` staging runs are its runtime evidence.
 
 ## Next step
 
-- Batch `20261002-j` implemented the adopt-first landing (deferred rows plus the keyframe's
-  late-local sweep). What remains is the acceptance re-run — `.acceptance/20261002-j/runbook-20261002-j.md`
-  (two windows; a probe on each re-entering client plus `dupcheck` on both sides) against the deployed
-  artifact. Green means the re-entering client's `noId` count is the carried items only, `dupIds=0`,
-  and both censuses sit at the host's.
+- Batch `20261002-j`'s landing is in the tree (adopt-first `SpawnWorldItem` plus the keyframe's
+  late-local sweep; the deferred-queue revision was removed). What remains is the acceptance re-run —
+  `.acceptance/20261002-j/runbook-20261002-j.md` (two windows; a probe on each re-entering client
+  plus `dupcheck` on both sides) against the deployed artifact. Green means the re-entering client's
+  `noId` count is the carried items only, `dupIds=0`, and both censuses sit at the host's.
 - Keep the diagnostic-first reading rule: a staged window is read for `[BrokenItemUpdate] … (reason) …`
   before the shape is re-derived from the bare `Item.DMD<Item::Update>` frame.
 - A burst whose stack names `Utils.Create` / `RuntimeEntityFactory` belongs to

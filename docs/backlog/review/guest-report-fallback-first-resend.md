@@ -4,7 +4,7 @@
 - Priority: Low-Medium
 - Category: Network / sync coverage / world blocks
 - Source: Sync cadence review 2026-09-19 (`review/sync-cadence-review.md`, finding 4 — the same 60 s first-resend family, opposite direction)
-- Related: `todo/guest-block-mutation-re-report.md` (W1 — the guest→host report half), `review/guest-command-loss-reconciliation.md` (the item-command family's 5 s × 12 window), `review/session-control-convergence.md` (the guest's own entry window), `review/sync-cadence-review.md` (the host→guest half of the same finding)
+- Related: `done/guest-block-mutation-re-report.md` (W1 — the guest→host report half), `review/guest-command-loss-reconciliation.md` (the item-command family's 5 s × 12 window), `review/session-control-convergence.md` (the guest's own entry window), `review/sync-cadence-review.md` (the host→guest half of the same finding)
 
 ## Problem (evidence)
 

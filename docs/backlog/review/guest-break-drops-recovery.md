@@ -4,7 +4,7 @@
 - Acceptance record: `docs/evidence/acceptance/guest-break-drops-recovery-20261001-x.md`
 - Priority: Medium
 - Category: Network / sync coverage / items (guest-created drops)
-- Source: `todo/guest-block-mutation-re-report.md` (W1) implementation — the block state now converges when a break's air write is lost, but the drops it carries did not
+- Source: `done/guest-block-mutation-re-report.md` (W1) implementation — the block state now converges when a break's air write is lost, but the drops it carries did not
 - Related: `review/guest-command-loss-reconciliation.md` (the item keyframe's in-flight reconciliation gap), `done/carried-inventory-registration-re-report.md`
 
 ## Problem (evidence)

@@ -5,7 +5,7 @@ partial-damage registry was DELETED (`done/block-damage-table-capacity-alignment
 authoritative partial-damage table is now the GAME's own `WorldGeneration.world.blockDamages` list,
 read at snapshot time. References to `BlockDamageRegistry.cs` below are historical.
 
-- Status: Todo — Rejected (batch `20261002-o`: row 9 is the only unproven row left — rows 1–4, 6, 8 and 10 pass. The inbound-blackout recipe staged the swallowed report for the first time: the guest's mine, place, earthquake air write and partial-damage crack were each lost on the wire while the session stayed alive, and every marker converged on all three clients after the fallback re-reported; row 6 passed through the member's `leave-world` → `home.leave` → `join-lobby` re-entry with the marked cells intact afterwards; row 8 passed through the product's own bookkeeping type on an isolated instance; row 10's first reading was a read-order error (the counter was read after the break had cleared the damage row) and the second session read it correctly. Earlier batch `20261002-k` left rows 1–4, 6, 8–10 unproven and the machine unable to drop a report; row 5 passes, row 7 passed batch `20261001-y`; records `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-k.md`)
+- Status: Done (batch `20261002-o` — every row of the acceptance matrix passes: rows 1–4, 6, 8, 9 and 10 in this batch, row 5 in batch `20261002-k`, row 7 in batch `20261001-y`)
 - Acceptance records: `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-x.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-y.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md`
 - Priority: High
 - Category: Network / sync coverage / world blocks
@@ -218,7 +218,15 @@ staged rows 6 and 10:
   `0/0/0`. The first session's `unproven` came from reading the counter only after the follow-up break
   had cleared the damage row — a read-order error, corrected here.
 
-Remaining: row 9 (solo → lobby → join, exactly once) is not staged. Its shape needs a solo segment in a
-freshly started run before any lobby exists, and the exactly-once denominator has to be read from that
-run's start — a following session should stage it first, per the runbook. The runbook and the batch's
-three recipes (`block-read-at`, `block-set-at`, `block-break-at`) stay with the batch record.
+Remaining: nothing — row 9's third session completed the matrix. The host played solo first (a run
+started with no lobby) and broke `(514,512)`, then created the lobby from inside the world; the guest
+joined and the host's own `Continue` restored the same world from its live snapshot. The member's entry
+is the one that carried the baseline: the host log has `Sending world-entry snapshot group to
+76561199526807662.` exactly once, both members adopted the host's generation baseline
+(`Generation stream reset to captured baseline (16 bytes: 5BC63874ED935DFC798E76021AB1F8E4)`), and the
+solo-marked cell reads `0` on host, guest and the third client. The exactly-once denominator is the send
+side (the entry-group send count); a per-member apply counter is named in the record as the instrument a
+stricter review would want.
+
+The runbook and the batch's three recipes (`block-read-at`, `block-set-at`, `block-break-at`) stay with
+the batch record.

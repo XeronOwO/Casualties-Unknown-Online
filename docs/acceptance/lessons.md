@@ -1535,4 +1535,20 @@ dependency the table did not name, a step that cost more than it returned.
   state. The snapshot fan-out then applied and the same cells read `0` on all three. A re-entry verdict
   read on the join call's own answer reports a divergence that is only the snapshot in flight.
 
+## 2026-10-02 — The solo→lobby handover is counted on the MEMBER's entry, not the host's (batch `20261002-o` row 9)
+
+- Staging works: `start-run` on a host with no lobby enters the world solo (`role=None`, `active=False`),
+  `create-lobby` works from inside that world, and a member can then join the lobby — it waits at
+  `Starting…` until its own world entry fires.
+- The host's own world re-entry is NOT the handover: after `leave-world` + `continue-run` the host logged
+  `World join sent to 0 member(s)` while a member sat in the lobby (the gate still read `0 player(s)`).
+  The handover that reaches a member is its own entry edge, and the host names it per member:
+  `Sending world-entry snapshot group to <steamid>.` — in this batch that line appears exactly once, and
+  both members' logs show the same `Generation stream reset to captured baseline (16 bytes: <hex>)`.
+- So the exactly-once denominator for this row is the per-member entry-group send count. A stricter
+  review wants a per-member APPLY counter as well; the batch record names that gap instead of hiding it.
+- A `Continue` restore takes the world from the live snapshot (`mid-run-*.cuoz`, `revision N`,
+  `0 world-block row(s)` in this batch), which is why a solo-marked cell looks "handed over" even when
+  the baseline itself would explain it: read the send side, not only the cells.
+
 

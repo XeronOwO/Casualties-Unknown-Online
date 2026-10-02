@@ -1,7 +1,8 @@
 # Acceptance record — Guest world-block mutations have no periodic re-report
 
-- Ticket: `guest-block-mutation-re-report` — verdict: stays in `docs/backlog/todo/` with
-  `- Status: Todo — Rejected (batch 20261002-o: row 9 unproven; rows 1–4, 6, 8 and 10 pass)`
+- Ticket: `guest-block-mutation-re-report` — verdict: **moved to `docs/backlog/done/`** — every row of
+  the acceptance matrix is judged and passes (rows 1–4, 6, 8, 9, 10 here; row 5 in batch `20261002-k`,
+  row 7 in batch `20261001-y`)
 - Batch: `20261002-o` — tickets `guest-block-mutation-re-report` (single-ticket batch)
 - Commit under acceptance: `a699630206795b32facf1310066a71d2cd8415ef` (the session's deployed build;
   this batch adds acceptance recipes and records only, no product source) · Deployed artifact verified
@@ -43,7 +44,7 @@ counters started and ended at `0/0/0`.
 | 4 | Host writes the same cell after the guest's swallowed write | machine | pass | host wrote `(510,966)=3` first (guest applied the relay); the guest's `=2` write inside the window diverged it to `2` while the host stayed `3`; when the fallback re-reported, the host's value stood and the guest converged to `3` — host `3/3/3`, guest `3`, third client `3`, pending drained to `0`, no oscillation in repeated reads (`o-row4b-*.json`, `o-row4c-*.json`) |
 | 6 | Guest reconnect | machine | pass | marked cells `(511,1004)` (guest break) and `(512,1004)` (host break) were air on all three before the re-entry; the guest then ran `leave-world` → `home.leave` → `join-lobby` the same id, the host log carries `Handshake … ignored: not a lobby member` → `Peer … reconnected — presence reused` → `Handshake confirmed end-to-end`, and after the re-entry the same two cells read `0` on host, guest and the third client — the mined cells were not resurrected (see the transient note below the table) (`o2-row6-*.json`, `o2-row6-post-reentry-compare.txt`) |
 | 8 | Table cap and its overflow log | machine | pass | the isolated `GuestBlockReportBookkeeping` instance reached the product's own cap: `filled=65536, atCap=65536, refused=true, latch=true, updateExisting=true, cleared=0, latchAfterReset=false`, and the client's real log carries the full-table warning and the reset account line (`o-cap-probe-guest.json`, `o-cap-log-guest.txt`); the evidence is the isolated instance, not the live table |
-| 9 | Solo → lobby → join, exactly once | machine | unproven | not staged in this batch — no solo segment was created; see Limits |
+| 9 | Solo → lobby → join, exactly once | machine | pass | the host started a run with no lobby (solo) and broke `(514,512)` (`1 → 0`); it then created the lobby from inside the world and the guest joined. The host's `Continue` restored the same world from its live snapshot (`Continue restored world w-20261002-db06: mid-run cut … revision 590 … 0 world-block row(s)`), so the world entry the row needs came from the member's own entry: the host log carries `Sending world-entry snapshot group to 76561199526807662.` **exactly once** (one such line in the whole log) and `PlayerJoin sent: local … member 76561199526807662`, and both members' logs carry the same `Generation stream reset to captured baseline (16 bytes: 5BC63874ED935DFC798E76021AB1F8E4)` and `Applied host world params`. The solo-marked cell then reads `0` on host, guest and the third client, i.e. the accumulated difference is in the baseline the joiners adopted (`o3-solo-*.json`, `o3-guest-entry-timeline.txt`, `o3-alt-state.json`) |
 | 10 | Partial damage then break, both swallowed | machine | pass | read immediately after the crack (with the host still armed), the guest reported `damage=1` pending while the host and the third client still held the undamaged cell — the crack's report was genuinely swallowed; the guest broke the cell inside a second window, the guest's pending then showed `block=1`, and after the fallback both markers drained to `0` with all three clients reading `(509,1004)=0` (`o2-pending-after-crack.json`, `o2-row10-*.json`, `o2-row10-pending-final.json`) |
 
 Between the two windows of row 10, the swallowed partial report healed on its own: with the host armed
@@ -94,17 +95,29 @@ user to judge.
   (`block-read-at`, `block-set-at`, `block-break-at`) were used from the working tree during the run
   and are committed here; the run's behavior is therefore reproducible from this commit even though the
   deployed assembly bytes are unchanged. The acceptance driver gate passes with all recipes (4/4).
-- **Row 9 is the one row this batch did not stage.** Its shape needs a solo segment (host alone in a
-  freshly started run) before any lobby exists, and the run's exactly-once denominator — the invite
-  fan-out lines and each peer's apply — has to be read from the start of that run, not halfway through
-  a live one; this batch staged its scenarios in a world that was already shared. A following session
-  should stage row 9 first, in a fresh world, per the runbook's candidate shape.
+- **Row 9's exactly-once denominator is the entry send, not the world's cell values.** The row was
+  staged in a third session: the host played solo first (a run started with no lobby), marked a cell,
+  created the lobby from inside the world, and the members joined afterwards. Because the host's
+  `Continue` restored the world from its live snapshot, the marked cell's absence is also consistent
+  with the restored baseline, so the cell read is supporting evidence at best. What the verdict rests on
+  is the send side: `Sending world-entry snapshot group to <member>.` appears **once** in the host's log
+  for the member that joined, and the member's log shows it adopted the host's generation baseline and
+  params. An acceptance run that wants to count applies must add a per-member apply counter; that gap is
+  named here rather than hidden.
+- **A member that joins while the host is already in the world waits for a world entry.** The host's
+  first world-entry of this session read `World join sent to 0 member(s)` even though a member was in
+  the lobby; the snapshot reached the member when its own entry edge fired (`World join received —
+  starting a run to follow`). This is the same shape batch `20261002-k` recorded, and it is why the
+  row's staging needs the members' entries, not only the host's.
 
 ## Batch closing state
 
-- The batch ran in two sessions of the same evening (rows 1–4 and 8, then rows 6 and 10); all three
-  clients were quit by the run and the machine was left with zero game processes both times.
+- The batch ran in three sessions of the same evening (rows 1–4 and 8; rows 6 and 10; row 9); every
+  session was launched and quit by the run, and the machine was left with zero game processes each time.
+- Every row of the ticket's acceptance matrix now has a pass: rows 1–4, 6, 8, 9 and 10 here, row 5 in
+  batch `20261002-k`, row 7 in batch `20261001-y`. The ticket moves to `docs/backlog/done/` with this
+  record's batch named in its status line, and the backlog index row moves in the same change.
 - Everything this batch produced is committed and pushed: the three recipes, the scope page, this
-  record, the ticket's status and attempt section, and the lessons. The full gate set ran green before
-  the commit (build 0 warnings, 4 610 + 315 tests, `format` clean), and the deployment was re-verified
-  against the pushed tree.
+  record, the ticket's transition and attempt section, and the lessons. The full gate set ran green
+  before each commit (build 0 warnings, 4 610 + 315 tests, `format` clean), and the deployment was
+  re-verified against the pushed tree.

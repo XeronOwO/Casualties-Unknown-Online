@@ -1,9 +1,9 @@
 # Sandboxed clients log NullReferenceException bursts and an instantiate-null ArgumentException
 
-- Status: Review (batch `20261002-i` acceptance pending: the batch-`20261002-h` finding's fix landed —
-  the world-item keyframe, the item move stream and the generation publish address only the members
-  reported InWorld, and the apply side refuses without a live world; the re-run of the batch-`20261002-h`
-  windows is what accepts it)
+- Status: Todo — Rejected (batch `20261002-i`: the menu NRE storm and both 251-copy rounds are gone
+  against the deployed artifact, but row 5 fails — a re-entry still leaves 9 (guest) / 14 (alternate)
+  unbound generation-time locals beside the host's bound set; record
+  `docs/evidence/acceptance/sandbox-client-null-reference-bursts-20261002-i.md`)
 - Priority: Low
 - Category: Runtime diagnostics / sandbox
 - Source: observed during agent acceptance runs — noted unjudged in `docs/acceptance/lessons.md` (2026-10-01), re-captured with context in batch `20261002-c` and again with a rolling-log stack frame in batch `20261002-d` (`docs/evidence/acceptance/20261002-c-scope.md`, `docs/evidence/acceptance/20261002-d-scope.md`)
@@ -85,8 +85,9 @@ Related finding, same root shape (recorded, not fixed): after re-entry the guest
 (`h-w3-guest-dupcheck.json`; the census probe read 504 at its own moment) against the host's 254
 (`h-w3-host-dupcheck.json`; the census probe read 253) — 252 with a CUO id + 253 without, zero duplicate
 ids — the keyframe materializes copies before the re-entering member's own generation has produced the
-bind targets. Covered by this fix's two halves (host targeting + the live-world apply gate); the
-batch-`20261002-i` re-run reads the post-re-entry count against the host's.
+bind targets. The batch-`20261002-i` fix removed both 251-copy rounds (host targeting + the live-world
+apply gate), collapsing the armada to 9 / 14 unbound locals out of the host's 266 entries; the
+remaining bind miss is this ticket's open work item.
 
 ## Fix (batch `20261002-i`)
 
@@ -119,6 +120,25 @@ is what judges it:
   the apply-side guards above are what keep the out-of-world case harmless; `SendItemImpact` is a
   transient cosmetic replay with no item materialization and is not this family.
 
+## Acceptance (batch `20261002-i`, agent-run)
+
+The batch-`20261002-i` record re-ran the batch-`20261002-h` window recipe against the deployed
+artifact (`0.1.0+b6702483`) and judged seven machine rows:
+
+- Rows 1–4, 6, 7 pass: the menu dwell (window 1 ~97 s / ~10 keyframe cycles, window 2 ~40 s / ~4)
+  holds zero item copies, zero `[BrokenItemUpdate]` and zero `Item.DMD<Item::Update>` lines on the
+  out-of-world client; the host's keyframe goes from 2 to 1 in-world member(s) on the first cycle
+  after the leave report lands; the in-world peer keeps its ~8–10 s cadence; and the generation
+  publish still binds at entry (host published 266 ground items, both guests applied 266, all three
+  sides at 269 items).
+- Row 5 fails: the re-entry binds 257 (guest) / 252 (alternate) of the host's 266 entries by position
+  and leaves 9 / 14 unbound local objects — each missed host entry is materialized beside the local
+  object, so the client ends 9 / 14 objects above the host's table with zero duplicate ids.
+
+The remaining work is that bind: the entry snapshot's positional adopt misses the generation-time
+objects the receiver produces late (or whose host copy has drifted past the tolerance) and materializes
+the host's entry beside them instead of adopting them.
+
 ## Limits (updated by batch `20261002-h`)
 
 - One session, two windows; the keyframe cadence is adaptive, so a storm's start aligns to the next
@@ -141,12 +161,12 @@ is what judges it:
 
 ## Next step
 
-- Acceptance (batch `20261002-i`, agent-run): deploy the fix, re-run the batch-`20261002-h` window
-  recipe (guest and alt re-entry) against the new artifact, then judge: the menu member receives no item
-  rows (zero `[ItemSpawn] materializing`, zero `[BrokenItemUpdate]`, no `Item.DMD<Item::Update>` stream),
-  the in-world peer keeps receiving keyframes, and the post-re-entry item count no longer duplicates.
-  The recipe is the batch-`20261002-h` runbook; read `[BrokenItemUpdate]` FIRST and re-read an absence
-  once.
+- Next cycle (the batch-`20261002-i` row-5 residual): make the re-entry ADOPT the receiver's own
+  generation-time objects instead of materializing the host's entry beside them. The measured shape is
+  257 (guest) / 252 (alternate) binds against 9 / 14 misses; a missed object is one whose local copy
+  spawns after the entry snapshot was applied (corpse-loot `Start` timing) or whose host copy has
+  drifted past the positional tolerance. Reproduce with the batch-`20261002-i` record and runbook —
+  the menu rows are green and must stay green.
 - Keep the diagnostic-first reading rule: a staged window is read for `[BrokenItemUpdate] … (reason) …`
   before the shape is re-derived from the bare `Item.DMD<Item::Update>` frame.
 - A burst whose stack names `Utils.Create` / `RuntimeEntityFactory` belongs to

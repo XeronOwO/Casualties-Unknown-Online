@@ -4,11 +4,11 @@
   `- Status: Todo — Rejected (batch 20261002-o: row 9 unproven; rows 1–4, 6, 8 and 10 pass)`
 - Batch: `20261002-o` — tickets `guest-block-mutation-re-report` (single-ticket batch)
 - Commit under acceptance: `a699630206795b32facf1310066a71d2cd8415ef` (the session's deployed build;
-  this batch adds acceptance recipes and records only, no product source) · Deployed artifact after the
-  batch's own redeploy: ProductVersion `0.1.0+1334927bfdb45c7aee120f74e144eca21b6ed805`
+  this batch adds acceptance recipes and records only, no product source) · Deployed artifact verified
+  after the batch: ProductVersion `0.1.0+f6aa2162dde02c11301b41db2c420beb30aa3b70`
   (`verify-deploy.ps1` exit 0). The commit that carries this record is one commit later than that stamp
-  (a record cannot name its own commit); the deployed assemblies are unchanged across all three, and the
-  driver reads the recipes from disk at run time.
+  (a record cannot name its own commit); the deployed assemblies are unchanged across every one of them,
+  and the driver reads the recipes from disk at run time.
 - Run: 2026-10-02 22:00 → 22:40 (+08:00) · Host: physical machine · Guests: two Sandboxie sandboxes
 - Dependencies: `steam`, `game`, `deploy`, `sandboxie`, `sandbox-alt`, `hotrepl`, `capture`, `input`,
   `logs`, `artifacts` (preflight 11/11 present)

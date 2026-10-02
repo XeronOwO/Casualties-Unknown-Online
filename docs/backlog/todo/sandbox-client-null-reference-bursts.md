@@ -41,7 +41,7 @@ the state that leads into it and whether CUO's resets or the sandbox's environme
   instantiate is null.` lines at world entry. Those 176 are NOT this family: their stacks name CUO's own
   contained materialization failure (`(wrapper dynamic-method) Utils.DMD<Utils::Create>` under
   `RuntimeEntityFactory.TryCreate`, `[Enemy] cannot create trader …`), and they now have their own
-  ticket, `review/enemy-runtime-spawn-classification.md`. The two shapes must be read apart.
+  ticket, `todo/enemy-runtime-spawn-classification.md`. The two shapes must be read apart.
 - No user-visible failure was observed in the batch; every acceptance row was judged on its own
   evidence.
 
@@ -67,7 +67,7 @@ the state that leads into it and whether CUO's resets or the sandbox's environme
   (`reversing/Assembly-CSharp/Assembly-CSharp/Item.cs`, lines 145-180) reads `WorldGeneration.world` on
   its first line, then `this.rb` and `this.affect`; its `ArgumentException` shape can only come from
   `Resources.Load("ItemBreakParticle")` in the break branch. A burst whose stack names `Utils.Create` /
-  `RuntimeEntityFactory` instead belongs to `review/enemy-runtime-spawn-classification.md`.
+  `RuntimeEntityFactory` instead belongs to `todo/enemy-runtime-spawn-classification.md`.
 - Then stage one burst (a world re-entry is the cheapest observed window) and decide, with the object and
   its state named, whether the family needs a CUO fix, a guard, or only a log-level note. Batch
   `20261002-e` is the control that shows not every entry produces one.

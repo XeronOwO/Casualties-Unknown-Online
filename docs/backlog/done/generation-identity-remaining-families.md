@@ -1,16 +1,17 @@
 # The remaining generation-relative report families
 
-- Status: Todo — Rejected (batch `20261002-k`: rows 1, 2, 4, 5, 6, 7 and 9 unproven — the stale crossings and the frame decode are not stageable and the trap family was not isolated after the layer move; rows 3 and 8 pass (same-generation materialization once per peer; entry order baseline → checkpoint → trap layout); record `docs/evidence/acceptance/generation-identity-remaining-families-20261002-k.md`)
+- Status: Done (batch `20261003-b` — rows 1, 2, 4, 5, 6, 7 and 9 pass on the deployed artifact; rows 3 and 8 stand from batch `20261002-k`)
+- Acceptance records: `docs/evidence/acceptance/generation-identity-remaining-families-20261002-k.md`, `docs/evidence/acceptance/generation-identity-remaining-families-20261003-b.md`
 - Priority: Medium
 - Category: Network / protocol / world generation (attribution of world reports)
-- Source: `todo/world-layer-generation-identity.md` — the family audit of the cycle that stamped the block-report family; these two families were audited and could NOT be recorded safe, so they are carried here instead of being declared covered
-- Related: `todo/world-layer-generation-identity.md`, `review/trap-layout-snapshot-recovery.md`, `done/runtime-entity-spawn-backfill.md`, `done/runtime-entity-creation-rejection.md`
+- Source: `done/world-layer-generation-identity.md` — the family audit of the cycle that stamped the block-report family; these two families were audited and could NOT be recorded safe, so they are carried here instead of being declared covered
+- Related: `done/world-layer-generation-identity.md`, `review/trap-layout-snapshot-recovery.md`, `done/runtime-entity-spawn-backfill.md`, `done/runtime-entity-creation-rejection.md`
 
 ## Problem (evidence)
 
 The block-report family (block state, block damage, partial damage) now carries the kernel run
 baseline's `(RunEpoch, LayerIndex)` on the wire and refuses a stale previous-layer report
-(`todo/world-layer-generation-identity.md`). Two other families were audited in that cycle and are
+(`done/world-layer-generation-identity.md`). Two other families were audited in that cycle and are
 generation-relative in the same way — their keys are resolved against generated terrain — but they
 were not stamped:
 
@@ -144,7 +145,7 @@ gates 56/56, `dotnet build` 0 warnings / 0 errors, `dotnet format` exit 0.
 - The adapter's own half is not executable in the test host (Unity types): the trap prefab
   materialization and the destroy-surplus pass, the runtime entity factory, and the
   rejection-driven local destruction rest on code review plus the unified dual-client acceptance
-  pass — the same boundary `todo/world-layer-generation-identity.md` recorded.
+  pass — the same boundary `done/world-layer-generation-identity.md` recorded.
 - The stale refusals' log lines are asserted by review, not captured: the runtime test host does not
   capture `ILogger` output for these channels, so what the tests pin is the refusal and its
   consequences.
@@ -165,7 +166,7 @@ gates 56/56, `dotnet build` 0 warnings / 0 errors, `dotnet format` exit 0.
 
 - Re-stamping the families the previous cycle already covered or recorded safe.
 - A shared frame-level generation header: the transport carries no world concept, and the previous
-  cycle recorded why the per-message carrier was chosen (`todo/world-layer-generation-identity.md`).
+  cycle recorded why the per-message carrier was chosen (`done/world-layer-generation-identity.md`).
 - Re-validating the expired pending entry on the reporter's side: its own generation boundary drops
   the pending table, which is what bounds the exposure; this cycle only adds the wire identity and
   the receiving seam's refusal.

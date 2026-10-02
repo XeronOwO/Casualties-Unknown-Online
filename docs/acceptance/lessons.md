@@ -1644,5 +1644,48 @@ dependency the table did not name, a step that cost more than it returned.
 - `ISessionControl` (Role/HostSteamId) resolves from `CuoBootstrap.Services`, which is enough to build
   both probes without a forged wire frame.
 
+## 2026-10-03 — The member's host-silence watchdog bounds every inbound blackout (batch `20261003-b`)
+
+- An armed member (its inbound dispatch parked by `net-receive-blackout`) ends its OWN session after 15 s
+  without a frame from the host: `[GuestHostSilenceWatchdog] No frame from the host <id> for 15000 ms —
+  ending the session locally`, and its world unloads (`role=Guest, inWorld=false`). Keep an armed window
+  well under 15 s.
+- The parked state survives that session end: a member that ended its session while armed still reads
+  `armed=true, subscribers=0` and cannot complete a new handshake (it keeps re-sending `Handshake`, the
+  host answers `HandshakeAck`, the member's `recv` stays 0) until `net-receive-blackout mode=off`.
+- Lifting the blackout converges the member within ~1 s — the kernel stream hands it the new checkpoint
+  immediately (`Projected kernel run baseline (run 1, layer N)`), so a genuinely stale member cannot be
+  held for a scenario. Stage the stale-report shapes by handing the frame to the product's own receive
+  seam (`generation-forge`), or inside the sub-15 s window; never by keeping the blackout armed.
+
+## 2026-10-03 — A re-entering member's entry group arrives after `inWorld` flips (batch `20261003-b`)
+
+- After `join-lobby`, the member's `state.inWorld` can read true while the entry group's big table frames
+  (`TrapLayoutSnapshot` 18 819 B, `RuntimeEntitySnapshot`, `EntitySpawned`) are still arriving. A wire
+  probe read 2 s after the edge captured 0 trap frames; the same probe read ~12 s later captured the
+  `TrapLayoutSnapshot` with its stamp. Read after the burst, not on the `inWorld` edge.
+- The member's own log is the cross-check: `[TrapLayout] materialized … from '<prefab>'` lines prove the
+  table arrived even when a probe's read window was too early.
+
+## 2026-10-03 — A live descent chain leaves a layer-modifier divergence on the members (batch `20261003-b`)
+
+- After three live `skiplayer` descents with both members in world, both members logged
+  `[LayerMod] baseline divergence — local segment start … vs host's … (world effects may diverge)` and
+  their world fingerprints differed from the host's. An in-place world re-entry healed the guest
+  (host/guest fingerprint lines identical afterwards); the alt stayed diverged until the session ended and
+  the new run started, after which all three object censuses were identical (`total 1899, 34 groups`).
+- This is the condition batch `20261002-k` recorded, not the generation-stamp family: verdicts about the
+  stamped reports are read from the gate's own comparison and the actors' own tables, never from a
+  cross-peer census taken while the divergence is live.
+
+## 2026-10-03 — The evaluator cannot compile a nested delegate that closes over the outer lambda (batch `20261003-b`)
+
+- A recipe whose nested handler `delegate(…)` captures the outer lambda's locals fails at eval time with
+  only `eval 'recipe:…' failed: (13,24): <InteractiveExpressionClass 65>.<Host65>m__0()`. The fix: park
+  the state in `AppDomain.CurrentDomain.SetData` and have the nested delegate fetch it back itself, so the
+  delegate captures nothing (a `const` literal is fine).
+- Same family as the batch-d note "nested lambdas must not capture outer locals": the evaluator compiles
+  the outer lambda and chokes on the inner closure.
+
 
 

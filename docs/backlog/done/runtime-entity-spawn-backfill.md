@@ -5,7 +5,7 @@
 - Priority: Medium-High
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row E3)
-- Related: `todo/enemy-snapshot-binding-recovery.md` (the enemy/animal half), `review/sync-cadence-review.md`, `done/guest-block-mutation-re-report.md` (the W1 sibling; this landing generalized its fallback cadence)
+- Related: `done/enemy-snapshot-binding-recovery.md` (the enemy/animal half), `review/sync-cadence-review.md`, `done/guest-block-mutation-re-report.md` (the W1 sibling; this landing generalized its fallback cadence)
 
 ## Problem (evidence)
 
@@ -64,7 +64,7 @@ world has since destroyed.
 
 ## Non-goals
 
-- Enemy / animal runtime spawns (owned by `todo/enemy-snapshot-binding-recovery.md`).
+- Enemy / animal runtime spawns (owned by `done/enemy-snapshot-binding-recovery.md`).
 - Item-domain spawns (already covered by the item kernel + keyframe).
 - Replacing `EntitySpawned` for the live path; the ticket is about recovery.
 
@@ -383,7 +383,7 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
   identity half): `EnemySpawnEntryMsg.CreationKey` rides the snapshot and the
   backfill copy is stamped, so the bind is by identity and distance-free. N1's
   remaining work (periodic snapshot resend, attack recovery) stays open in
-  `todo/enemy-snapshot-binding-recovery.md` and `review/enemy-hit-determination-local.md`.
+  `done/enemy-snapshot-binding-recovery.md` and `review/enemy-hit-determination-local.md`.
 - The source-excluding `BroadcastEntitySpawned` relay was dead API (no caller).
   **RESOLVED 2026-09-09** by `done/runtime-entity-dead-api-cleanup.md`: deleted
   (`rg` → zero hits); the live source-included relay is unchanged.

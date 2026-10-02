@@ -24,7 +24,7 @@ healing this binding: host 58 animals (28 shadecrawler / 21 wallbiter / 9 trader
 alt 58 (28 / 21 / 9); `m-health-compare.txt` verdict `DIFFERENT` (guest 29 / 19). The run's own log names
 the producer — `[Enemy] generation spawn pairing failed (58 host vs 57 guest generated enemies) —
 generated copies stay local (generation divergence)` and `snapshot applied: 1 generated bound, 0 runtime
-spawns, mapping=False` — so this belongs to `todo/enemy-snapshot-binding-recovery.md` and is recorded
+spawns, mapping=False` — so this belongs to `done/enemy-snapshot-binding-recovery.md` and is recorded
 there. The ticket's own rows do not depend on it: the members' generation streams equal the host's byte
 for byte (row 3) and the layer-mod entry states agree (row 5).
 

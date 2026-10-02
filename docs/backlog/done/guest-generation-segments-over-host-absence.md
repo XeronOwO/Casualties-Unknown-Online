@@ -102,4 +102,4 @@ the host's and the extra 22 are waited frames. Artifacts: `20261002-p/p-host-seg
 - Observed once, on one staging (the host leaves while the members load). Whether a member's generation
   can span a host *reconnect* the same way is not staged.
 - The census/health difference the same session showed is the enemy-binding family
-  (`todo/enemy-snapshot-binding-recovery.md`); this ticket does not claim it as its own effect.
+  (`done/enemy-snapshot-binding-recovery.md`); this ticket does not claim it as its own effect.

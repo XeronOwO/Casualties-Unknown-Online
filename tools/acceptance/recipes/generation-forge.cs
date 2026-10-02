@@ -1,5 +1,5 @@
 // recipe: generation-forge
-// args: mode=s stamp=s sender=s x=n y=n dmg=n block=n epoch=n layer=n id=s creator=s sequence=s
+// args: mode=s stamp=s sender=s x=n y=n dmg=n block=n epoch=n layer=n id=s creator=s sequence=s drops=n
 // serves: world-layer-generation-identity rows 5 and 8, generation-identity-remaining-families rows 1, 4 and 7
 // returns: ok, mode, stamp, sender, generation, runEpoch, layerIndex, entries, error, detail
 //
@@ -37,6 +37,7 @@
 	var id = {{s:id}};
 	var creator = System.Convert.ToUInt64({{s:creator}}, inv);
 	var sequence = System.Convert.ToUInt32({{s:sequence}}, inv);
+	var drops = (int)({{n:drops}});
 	var sender = session.LocalSteamId;
 	if (senderArg == "host") { sender = session.HostSteamId; }
 	else if (senderArg == "peer") {
@@ -92,8 +93,20 @@
 		return reached + ",\"entries\":1}";
 	}
 	if (mode == "block-damaged") {
-		world.FireBlockDamagedReceived(sender, x, y, dmg, false, null, null, 0f, generation);
-		return reached + ",\"entries\":1}";
+		System.Collections.Generic.List<CasualtiesUnknownOnline.Runtime.Protocol.Messages.BlockDropEntryMsg> dropList = null;
+		if (drops > 0) {
+			dropList = new System.Collections.Generic.List<CasualtiesUnknownOnline.Runtime.Protocol.Messages.BlockDropEntryMsg>();
+			for (var i = 0; i < drops; i++) {
+				var drop = new CasualtiesUnknownOnline.Runtime.Protocol.Messages.BlockDropEntryMsg();
+				drop.ItemId = 9100000000UL + (ulong)i;
+				drop.Item = new CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterItemMsg();
+				drop.Position = new CasualtiesUnknownOnline.Runtime.Protocol.Messages.NetVector2Msg(x + 0.5f, y + 0.5f);
+				drop.Velocity = new CasualtiesUnknownOnline.Runtime.Protocol.Messages.NetVector2Msg(0f, 0f);
+				dropList.Add(drop);
+			}
+		}
+		world.FireBlockDamagedReceived(sender, x, y, dmg, false, dropList, null, 0f, generation);
+		return reached + ",\"entries\":1,\"drops\":" + drops.ToString(inv) + "}";
 	}
 	if (mode == "block-damage-report") {
 		var rows = new System.Collections.Generic.List<CasualtiesUnknownOnline.Runtime.Protocol.Messages.BlockDamageEntryMsg>();

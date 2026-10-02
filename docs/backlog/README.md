@@ -54,8 +54,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
 - [Enemy snapshot binding has no recovery path](todo/enemy-snapshot-binding-recovery.md) — **Medium** — rows 3/4/8 pass; row 2 unproven.
-- [World/layer generation identity](todo/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
-- [Remaining generation-relative families](todo/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.
 
 ### In progress
 
@@ -162,6 +160,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [World/layer generation identity](done/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
+- [Remaining generation-relative families](done/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.
 - [Runtime-created entity spawn backfill](done/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table and the one template path.
 - [Unrepresentable runtime creations are rejected](done/runtime-entity-creation-rejection.md) — **High** — the creator's copy is destroyed.
 - [World determinism fingerprint](done/world-determinism-world-fingerprint.md) — **High** — the entry and post-mutation pairs agree.

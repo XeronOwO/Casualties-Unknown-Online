@@ -211,9 +211,14 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			// is not there and wait for a start gate that never arms. Order
 			// matters: params first, then the join (the guest's run-start gate
 			// passes once the params are in hand; the host owns the timing).
+			// The checkpoint above PRECEDES this instruction — the reconnecting
+			// peer has no announcement yet, so that first set defines the run
+			// identity — which is why the instruction promises no baseline set
+			// behind it (RunBaselineFollows stays false): the baseline is
+			// already in hand, and the member must not hold its generation.
 			if (session.LocalSceneState == SceneStateType.InWorld || ctx.World.HostRunPending)
 			{
-				_sender.Send(sender, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = worldParams.IsTutorial, RunEpoch = _kernelProtocol.CurrentRunEpoch });
+				_sender.Send(sender, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = worldParams.IsTutorial, RunEpoch = _kernelProtocol.CurrentRunEpoch, RunBaselineFollows = false });
 			}
 		}
 	}

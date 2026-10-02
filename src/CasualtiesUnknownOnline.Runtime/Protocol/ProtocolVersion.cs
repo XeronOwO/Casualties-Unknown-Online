@@ -252,6 +252,17 @@ public static class ProtocolVersion
 	/// absolute total verbatim would instead overcount by the member's own elapsed, so the
 	/// receiver maps the total onto its own world epoch and the repair re-send becomes
 	/// idempotent.
-	public const int Current = 44;
+	/// 45: `WorldJoinMsg.RunBaselineFollows` — the enter-the-world instruction now
+	/// says whether the run-baseline checkpoint set follows it, and the host sends
+	/// that set immediately after the instruction to each member it invites (the
+	/// instruction therefore precedes the set: a member that already served a run
+	/// refuses a set its last instruction did not announce). A member that stayed
+	/// in the session while the host restored another world or layer still held its
+	/// previous run's params, and its generation boundary only waits when it holds
+	/// none — it regenerated its own world before the host's checkpoint arrived,
+	/// and no snapshot repair could reconcile the two. It now holds the generation
+	/// until the announced set restores. A peer without the flag would regenerate
+	/// from its own baseline again (no hold), so one session would mix two worlds.
+	public const int Current = 45;
 
 }

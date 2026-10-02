@@ -260,7 +260,7 @@ internal sealed class WorldParamsService(
 			if (!_guestParamsWaitLogged)
 			{
 				_guestParamsWaitLogged = true;
-				_log.LogInformation("World generation holding — host world params not arrived yet (fast guest transition).");
+				_log.LogInformation("World generation holding — the host's params for this entry are not in hand yet (a fast guest transition, or the announced entry baseline has not been restored yet).");
 			}
 
 			return false;

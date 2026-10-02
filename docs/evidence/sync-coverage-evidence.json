@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1025,
+  "count": 1029,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5372,7 +5372,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 44;"
+      "quote": "public const int Current = 45;"
     },
     {
       "cluster": "world-blocks",
@@ -5564,7 +5564,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 44;"
+      "quote": "public const int Current = 45;"
     },
     {
       "cluster": "inline",
@@ -6153,6 +6153,30 @@
       "row": "I9",
       "file": "docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md",
       "quote": "**The world-item impact is carried, sound AND dust**"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/WorldJoinMsg.cs",
+      "quote": "public bool RunBaselineFollows { get; set; }"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
+      "quote": "if (baselineFollows && _session.Role == SessionRole.Guest)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/WorldJoinHandler.cs",
+      "quote": "ctx.World.FireWorldJoinReceived(msg.IsTutorial, msg.RunBaselineFollows);"
     }
   ]
 }

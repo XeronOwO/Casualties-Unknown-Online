@@ -13,7 +13,7 @@
   repository
 - Related: `docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`,
   `docs/evidence/acceptance/world-determinism-world-fingerprint-20261002-k.md`,
-  `todo/reenter-baseline-adoption.md` (the follow-up: a member that never left the session still generates
+  `review/reenter-baseline-adoption.md` (the follow-up: a member that never left the session still generates
   before the host's restored baseline arrives), `review/save-system-mid-run-and-layer-end.md`
 
 ## Symptom (evidence)
@@ -105,4 +105,4 @@ agree. The `enemy-snapshot-binding-recovery` rows 3/4/8 are re-judged in the sam
 - The members still regenerated before the host's restored checkpoint arrived (it reached them at
   16:59:45.9, after their 16:59:29–44 generation). With the pointer fixed the two baselines coincide, so
   this run's shape is fixed; the general guarantee is the follow-up ticket
-  `todo/reenter-baseline-adoption.md`.
+  `review/reenter-baseline-adoption.md`.

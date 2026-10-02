@@ -43,7 +43,8 @@ public interface IWorldControl
 	/// <summary>Host only: relay damage this host APPLIED to the other members (source excluded). The damage is the increment in the game's accumulated units, and no contribution rides along — a third party accumulates what it is handed, and only the host keeps the per-sender ledger.</summary>
 	void BroadcastBlockDamaged(ulong excludeSteamId, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
 
-	void FireWorldJoinReceived(bool isTutorial);
+	/// <summary>Guest side of the enter-the-world instruction. <paramref name="baselineFollows"/> is the instruction's promise that the run-baseline checkpoint set follows it: the receiver drops the params it still holds (a previous run's) and its generation waits for that set to restore the host's baseline.</summary>
+	void FireWorldJoinReceived(bool isTutorial, bool baselineFollows);
 
 	event Action<bool>? WorldJoinReceived;
 

@@ -52,12 +52,11 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Layer-modifier baseline divergence on Continue](todo/layer-mod-baseline-divergence-on-continue.md) — **High** — the member's segment misses the host's.
 - [Guest block mutations: periodic re-report](todo/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
 - [World determinism fingerprint](todo/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
 - [Runtime-created entity spawn backfill](todo/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
 - [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
-- [Enemy snapshot binding has no recovery path](todo/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn anchor and the 60 s repair group.
+- [Re-entering member generates before the restored baseline](todo/reenter-baseline-adoption.md) — **Medium-High** — sent after generation.
 - [World/layer generation identity](todo/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
 - [Remaining generation-relative families](todo/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.
 
@@ -65,6 +64,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [A Continue after a run opens a stale world](review/layer-mod-baseline-divergence-on-continue.md) — **High** — the pointer never moved on the first cut.
+- [Enemy snapshot binding has no recovery path](review/enemy-snapshot-binding-recovery.md) — **Medium** — rows 3/4/8 re-run after the stale-world fix.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.

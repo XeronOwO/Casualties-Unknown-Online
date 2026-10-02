@@ -1,6 +1,6 @@
 # Enemy snapshot binding has no recovery path
 
-- Status: Todo — Rejected (batch `20261002-k`: rows 3, 4 and 8 fail — after the layer-end Continue the host's 74-enemy set never bound against the members' 85 copies (`generation spawn pairing failed` + `mapping=False` on every repair cycle, `[LayerMod] baseline divergence` on both members); row 2 unproven; rows 1, 5 and 6 pass; record `docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`, root-cause lead `docs/backlog/todo/layer-mod-baseline-divergence-on-continue.md`)
+- Status: Review (the rows-3/4/8 environment was fixed 2026-10-02 — the Continue had restored a stale world, see `docs/backlog/review/layer-mod-baseline-divergence-on-continue.md`; rows 3/4/8 are re-judged in batch `20261002-l`. Batch `20261002-k`: rows 3, 4 and 8 failed in that stale-world environment, row 2 unproven, rows 1, 5 and 6 pass; record `docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`)
 - Priority: Medium
 - Category: Network / sync coverage / enemies (host-authoritative binding)
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the attack half stays open in `review/enemy-hit-determination-local.md`
@@ -78,6 +78,15 @@ was fixed, not the cadence.
   now owns identity/binding/lifecycle only: 584 aggregate (381 + 203). Every line count in this
   ticket is the gate's own `File.ReadAllLines` convention, because that is what the 600 limit counts.
   The watchlist records both this split and what is left to extract next (the host capture half).
+
+## Why the batch `20261002-k` rows failed (attributed 2026-10-02)
+
+Rows 3, 4 and 8 were judged after the host's Continue had restored a **stale world**
+(`w-20261001-6986`) instead of the run's own (`w-20261002-62b8`): the host's 74-enemy table and the
+members' 85-copy generated set belonged to two different worlds, so the all-or-nothing pairing could
+never bind. The binding code was not at fault — the Continue pointer had never moved to the run's world
+(`layer-mod-baseline-divergence-on-continue.md`, fixed 2026-10-02). The rows are re-run in batch
+`20261002-l` against the fixed build.
 
 ## Verification
 

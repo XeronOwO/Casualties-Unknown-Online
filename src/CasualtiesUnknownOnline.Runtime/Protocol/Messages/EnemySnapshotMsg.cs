@@ -8,10 +8,11 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// with their presentation state. Sent to a member on its world entry (late
 /// joiner / reconnect) AND on the host's 60 s in-session repair cycle (a member
 /// that stays in the world otherwise had no second chance — audit row N1). It is
-/// absolute and idempotent: the guest pairs its locally generated copies on each
-/// entry's <see cref="EnemyStateMsg.SpawnPosition"/> anchor, never on the live
-/// position (which has moved on by the time a repair lands), and RuntimeSpawns
-/// carries the runtime-spawn facts a member must materialize.
+/// absolute and idempotent: the guest pairs its still-unbound generated copies
+/// on the <see cref="EnemyStateMsg.SpawnPosition"/> anchor, never on the live
+/// position (which has moved on by the time a repair lands), while a copy that
+/// already carries a host id is left alone, and RuntimeSpawns carries the
+/// runtime-spawn facts a member must materialize.
 /// </summary>
 [ProtoContract]
 public sealed class EnemySnapshotMsg

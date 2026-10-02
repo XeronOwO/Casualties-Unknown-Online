@@ -179,6 +179,83 @@ public class EnemySnapshotRecoveryTests
 	}
 
 	[Fact]
+	public void RepairPairing_AlreadyBoundCopies_DropOutOfTheCandidateSet()
+	{
+		// Batch 20261002-f row 1: the entry edge bound all 85 generated copies,
+		// then the 20 Hz drive carried them off their bind-time anchors. The next
+		// 60 s repair re-paired that same set — host anchors against the guests'
+		// CURRENT positions, index-by-index and all-or-nothing inside the 0.5
+		// tolerance — so one moved animal failed the whole set on every cycle and
+		// `_mappingEstablished` was cleared with it. This test pins the two
+		// premises the fix rests on (the predicates themselves are pinned in
+		// EnemySpawnArbitrationTests; the coordinator that applies them is a Unity
+		// type, so its wiring is judged by the batch's runtime evidence — the test
+		// assembly references GameAdapter with ExcludeAssets="compile").
+		var anchors = new[]
+		{
+			new NetVector2(0f, 0f),
+			new NetVector2(10f, 0f),
+			new NetVector2(20f, 0f),
+		};
+		var boundCurrent = new[]
+		{
+			new NetVector2(3f, 4f),
+			new NetVector2(10f, 12f),
+			new NetVector2(25f, 30f),
+		};
+
+		// Premise 1: re-pairing the already-driven copies cannot succeed — this is
+		// the `generation spawn pairing failed (85 host vs 85 guest …)` shape from
+		// the batch's 4/4 repair cycles, reproduced without the adapter.
+		Assert.False(
+			EnemySpawnArbitration.TryPair(anchors, boundCurrent, out _),
+			"the whole-set attempt on copies the drive has moved is exactly what the batch logged as `generation spawn pairing failed`");
+
+		// Premise 2: with every copy bound the candidate set is empty, and an
+		// empty pass must preserve the established baseline. (The pre-fix
+		// coordinator assigned `_mappingEstablished = generatedPaired` outright, so
+		// exactly this input — nothing paired, nothing to pair — produced
+		// mapping=False and switched off the runtime bind.)
+		Assert.True(
+			EnemySpawnArbitration.ShouldRepairGenerationBaseline(
+				previouslyEstablished: true,
+				paired: false,
+				unboundGuestCopies: 0),
+			"a repair with nothing left to pair preserves the established baseline; it must not re-pair bound copies");
+
+		// Premise 3: the reading the applied-snapshot log reports in this state is
+		// the ASSERTED bound count (all 3 host facts held here), not the 0 copies
+		// this pass newly paired — the ambiguity the first review found.
+		Assert.Equal(3, EnemySpawnArbitration.AssertedBoundCopies(hostGeneratedFacts: 3, unboundGuestCopies: 0));
+	}
+
+	[Fact]
+	public void RepairPairing_UnboundCopies_StillPairOnTheSpawnAnchor()
+	{
+		// The repair's real job: a member that has not bound its set yet (entry
+		// snapshot missed, late joiner, a set the next cycle establishes) pairs on
+		// the host's bind-time anchors. The unfixed host facts and the unbound
+		// copies are the same batch here — an individual copy cannot be added to an
+		// already-bound set through this path, because the host side of the pair is
+		// its whole generated table (honest limit, recorded on the ticket).
+		var anchors = new[]
+		{
+			new NetVector2(10f, 20f),
+			new NetVector2(40f, 55f),
+		};
+		var unboundAtSpawn = new[]
+		{
+			new NetVector2(10f, 20f),
+			new NetVector2(40f, 55f),
+		};
+
+		Assert.True(
+			EnemySpawnArbitration.TryPair(anchors, unboundAtSpawn, out var pairs),
+			"the frozen copies still sit at their spawn positions, so the repair pairs them");
+		Assert.True(pairs.Count == 2, "both unbound copies pair");
+	}
+
+	[Fact]
 	public void PairingPremise_TheLivePositionStopsMatching_WhileTheSpawnAnchorStillPairs()
 	{
 		// The mechanism this ticket fixes, pinned without the adapter: the guest's

@@ -29,8 +29,8 @@ Two facts made the obvious repair (just re-send the snapshot) not work:
   (`FreezeOnGenerationComplete`: "The pairing key is the spawn position, so the copies must still
   be at their spawn spots when the host's snapshot arrives"). So the key was only valid in the
   instant after generation; a repair landing later failed the tolerance for the whole set — and
-  because `OnEnemySnapshotReceived` assigns `_mappingEstablished = generatedPaired`, a failed
-  pairing also switched OFF the runtime-spawn positional bind
+  because `OnEnemySnapshotReceived` then assigned `_mappingEstablished` straight from the pair result, a
+  failed pairing also switched OFF the runtime-spawn positional bind
   (`TryBindRuntimeSpawns`: "the generation baseline is not safely paired yet — never guess among
   generated enemies"). The same time-varying key is why a late joiner into a world whose animals
   had wandered could not pair at all.

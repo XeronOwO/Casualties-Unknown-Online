@@ -16,9 +16,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// bind-time spawn anchor (<see cref="EnemyStateCapture"/> owns that state and
 /// the native read) and publishes their presentation state. Guest: binds
 /// its locally generated copies to the host's ids on the world-entry snapshot
-/// AND on the 60 s in-session repair (spawn-anchor pairing — the anchor, never
-/// the live position, so a snapshot that lands after the host's animals have
-/// wandered still binds) and drives the frozen copies from the 20 Hz batch. No
+/// AND on the 60 s in-session repair — spawn-anchor pairing against the UNBOUND
+/// copies only, so a late snapshot whose host animals have already wandered
+/// still pairs a member that has not bound its set yet, while the copies whose
+/// ids are already decided are never re-paired (a re-pair compares the host's
+/// bind-time anchor against the copy's current, already-driven position, so it
+/// can only fail) — and drives
+/// the frozen copies from the 20 Hz batch. No
 /// enemy simulation on the guest — same pattern as the player render clones
 /// (RemoteBodyDriver). Both roles separate the generation baseline from a
 /// runtime spawn through the ONE rule <see cref="OnAnimalInstantiated"/> applies
@@ -271,25 +275,38 @@ internal sealed partial class EnemySyncCoordinator
 
 		// The runtime copies are bound/materialized; what remains is the
 		// deterministic generation baseline — pair it on the host's bind-time
-		// SPAWN anchor, never on the live position. The copies below have been
-		// frozen at their spawn spots since generation, so a snapshot that lands
-		// later (the 60 s in-session repair, or a late joiner into a world whose
-		// animals have wandered) fails the tolerance for the whole set on the live
-		// position — and a failed pairing also clears _mappingEstablished, which
-		// switches off the runtime-spawn bind that would otherwise heal.
+		// SPAWN anchor, never on the live position, and pair only the copies that
+		// are still UNBOUND: a copy that already carries a host id has its
+		// identity, and re-pairing the bound ones compares the host's anchor
+		// against their CURRENT position (the 20 Hz drive moved them), failing the
+		// whole all-or-nothing set on every 60 s repair — batch `20261002-f`
+		// row 1: 4/4 cycles logged `generation spawn pairing failed` and
+		// `mapping=False` on both guests and switched off the runtime-spawn bind.
+		// The copies below have been frozen at their spawn spots since
+		// generation, so the repair key is the side that does NOT move. (The
+		// anchor is the host's FIRST-BIND position, which is its spawn position
+		// only while generation has just finished: an animal the host first bound
+		// after it moved is a pre-existing limit of this pairing, unchanged here —
+		// `EnemyStateCapture` can only report the missing-anchor case loudly,
+		// there is no reference to compare a late anchor against.)
 		var comparer = Comparer<NetVector2>.Create(EnemySpawnArbitration.Compare);
 		var generatedHost = hostStates
 			.Where(s => !runtimeIds.Contains(s.EntityId))
 			.OrderBy(s => s.SpawnPosition, comparer)
 			.ToList();
 		var generatedGuest = FindAnimals()
-			.Where(e => !_runtimeAnimals.Contains(e)
-				&& !(_idByEntity.TryGetValue(e, out var boundId) && runtimeIds.Contains(boundId)))
+			.Where(e => EnemySpawnArbitration.IsRepairCandidate(
+				hasHostId: _idByEntity.ContainsKey(e),
+				isRuntimeAnimal: _runtimeAnimals.Contains(e)))
 			.OrderBy(e => new NetVector2(e.transform.position.x, e.transform.position.y), comparer)
 			.ToList();
 
-		var generatedPaired = generatedHost.Count == 0 && generatedGuest.Count == 0;
-		if (!generatedPaired)
+		// An empty candidate set is NOT a divergence: it means nothing is left to
+		// pair, so the pass preserves the baseline instead of re-pairing (and
+		// failing on) copies whose identity is already decided.
+		var unboundGuestCopies = generatedGuest.Count;
+		var generatedPaired = false;
+		if (generatedHost.Count != 0 && unboundGuestCopies != 0)
 		{
 			var hostPositions = generatedHost.Select(e => e.Position).ToList();
 			var guestPositions = generatedGuest.Select(e => new NetVector2(e.transform.position.x, e.transform.position.y)).ToList();
@@ -304,16 +321,23 @@ internal sealed partial class EnemySyncCoordinator
 			}
 		}
 
-		if (!generatedPaired)
+		if (!generatedPaired && unboundGuestCopies != 0)
 		{
 			_log.LogWarning("[Enemy] generation spawn pairing failed ({Host} host vs {Guest} guest generated enemies) — generated copies stay local (generation divergence); runtime spawns are still bound.",
-				generatedHost.Count, generatedGuest.Count);
+				generatedHost.Count, unboundGuestCopies);
 		}
 
-		_mappingEstablished = generatedPaired;
+		_mappingEstablished = EnemySpawnArbitration.ShouldRepairGenerationBaseline(
+			_mappingEstablished, generatedPaired, unboundGuestCopies);
 		ApplyAllStates();
+		// The generated reading is the copies this pass can ASSERT as bound (host
+		// facts minus the candidates that still have no id), not the copies paired
+		// this cycle: a steady-state repair pairs nothing yet holds the whole
+		// baseline, so `0 generated bound` there would read as an unbound set.
 		_log.LogInformation("[Enemy] snapshot applied: {Generated} generated bound, {Runtime} runtime spawns, mapping={Mapping}.",
-			generatedPaired ? generatedHost.Count : 0, runtimeSpawns.Count, _mappingEstablished);
+			EnemySpawnArbitration.AssertedBoundCopies(generatedHost.Count, unboundGuestCopies),
+			runtimeSpawns.Count,
+			_mappingEstablished);
 	}
 
 	/// <summary>

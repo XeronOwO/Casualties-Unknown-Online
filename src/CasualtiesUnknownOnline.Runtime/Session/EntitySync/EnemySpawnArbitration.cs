@@ -75,4 +75,46 @@ internal sealed class EnemySpawnArbitration
 		var dy = a.Y - b.Y;
 		return (float)Math.Sqrt(dx * dx + dy * dy);
 	}
+
+	/// <summary>
+	/// Is the generation baseline established after a repair pass?
+	/// <paramref name="paired"/> is what <see cref="TryPair"/> returned this
+	/// cycle, or the false sentinel when the pass never attempted a pair (no
+	/// candidates); <paramref name="unboundGuestCopies"/> counts the local copies
+	/// that still have no host id. A pair success establishes it. Zero copies left
+	/// to pair means the mapping object did not change — the baseline this member
+	/// established earlier stays established, so a repair with nothing to do
+	/// PRESERVES the flag instead of clearing it; clearing it used to switch off
+	/// the runtime-spawn bind as collateral (batch `20261002-f` row 1, where
+	/// already-bound copies were re-paired and every cycle reported mapping=False).
+	/// Anything else — copies that still need pairing and did not pair — is a
+	/// generation divergence: not established.
+	/// </summary>
+	internal static bool ShouldRepairGenerationBaseline(bool previouslyEstablished, bool paired, int unboundGuestCopies) =>
+		paired || (previouslyEstablished && unboundGuestCopies == 0);
+
+	/// <summary>
+	/// Is this local animal a candidate for the generation-baseline repair?
+	/// A copy that already carries a host id is NOT: its identity is decided, and
+	/// re-pairing it compares the host's bind-time anchor against wherever the
+	/// 20 Hz drive has moved it — the all-or-nothing set then fails on every 60 s
+	/// repair (batch `20261002-f` row 1, 4/4 cycles). A runtime-created animal is
+	/// bound through the runtime-spawn channel, never through the generation
+	/// baseline. So the candidates are exactly the generated copies with no id yet.
+	/// </summary>
+	internal static bool IsRepairCandidate(bool hasHostId, bool isRuntimeAnimal) =>
+		!hasHostId && !isRuntimeAnimal;
+
+	/// <summary>
+	/// The generated copies this member's repair pass can assert as bound: the
+	/// host's generated facts minus the local candidates that still have no id.
+	/// Reported on every applied snapshot so a steady-state repair (nothing left
+	/// to pair) still reads as `N generated bound` — the number that verifies the
+	/// baseline, not the number newly paired this cycle. WITHOUT it a healthy
+	/// repeat prints `0 generated bound`, indistinguishable from the rejected
+	/// `0 generated bound, … mapping=False` line except by the mapping field
+	/// (review finding, batch `20261002-f` re-run).
+	/// </summary>
+	internal static int AssertedBoundCopies(int hostGeneratedFacts, int unboundGuestCopies) =>
+		hostGeneratedFacts - unboundGuestCopies;
 }

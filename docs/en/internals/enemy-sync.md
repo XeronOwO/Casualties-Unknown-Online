@@ -51,7 +51,9 @@ The absolute snapshot is not only a join-time message: the host also re-sends it
 repair cadence, so a member that never left the world still re-binds after an entry send that the lazy
 session swallowed. A repeat is harmless, because the guest pairs its frozen copy on the host's
 bind-time spawn anchor rather than on the live position — by the time the repeat arrives, the live
-position has moved on.
+position has moved on. The repeat also pairs only the copies that have no host id yet: a copy that is
+already bound has its identity, and re-pairing it would compare the host's anchor against the driven
+position and fail the whole set.
 
 ## An attack is announced, not decided
 

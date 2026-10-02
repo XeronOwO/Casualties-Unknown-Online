@@ -1,6 +1,6 @@
 # The host classifies world-generated enemies as runtime spawns
 
-- Status: Todo — Rejected (batch `20261002-f` row 1: the in-session repair re-pairs already-bound copies against host anchors and fails once an animal moved — `generation spawn pairing failed` + `mapping=False` on 4/4 repair cycles)
+- Status: Todo — rejection fixed, awaiting the batch re-run that judges row 1
 - Priority: Medium
 - Category: Entity sync / enemy runtime-spawn classification
 - Source: agent acceptance batch `20261002-e` (2026-10-02) — both sandboxed clients logged 176 contained
@@ -114,6 +114,48 @@ classification half and failed row 1's `zero generation spawn pairing failed` cl
 | 4 | A genuine runtime creation (an animal instantiated outside generation) | Recorded as a runtime spawn, shipped, and bound/materialized exactly once on each peer |
 | 5 | Regression half | Build, full suite, format and the normative gates pass on the deployed commit |
 
+## Repair fix (2026-10-02, after the batch `20261002-f` rejection)
+
+The rejection's single cause: the entry edge bound the whole generated set, the 20 Hz drive then moved
+the bound copies off their bind-time anchors, and every 60 s repair re-paired that same set — host
+anchors against the guests' CURRENT positions, index-by-index and all-or-nothing inside `PairTolerance`
+0.5 — so one moved animal failed the whole set and cleared `_mappingEstablished` with it.
+
+- **Only unbound copies are pairing candidates.** `EnemySpawnArbitration.IsRepairCandidate(hasHostId,
+  isRuntimeAnimal)` is the one predicate (`!hasHostId && !isRuntimeAnimal`), and `OnEnemySnapshotReceived`
+  filters the guest side through it. A copy that already carries a host id has its identity; a copy with
+  no id yet is exactly what a repair can still establish.
+- **An empty pass preserves the established baseline.**
+  `EnemySpawnArbitration.ShouldRepairGenerationBaseline(previouslyEstablished, paired, unboundGuestCopies)`
+  replaces `_mappingEstablished = generatedPaired`: a pair success establishes the baseline, and a repair
+  with nothing left to pair keeps it — clearing it there also switched off the runtime-spawn bind as
+  collateral. Copies that still need pairing and did not pair remain the generation-divergence verdict
+  (warn + degrade), unchanged.
+- **The applied-snapshot log reports what is HELD, not what was newly paired.**
+  `EnemySpawnArbitration.AssertedBoundCopies(hostGeneratedFacts, unboundGuestCopies)` keeps a healthy
+  repeat reading `85 generated bound, …` instead of `0 generated bound, …`, which was previously
+  indistinguishable from the rejected line except by the `mapping` field.
+- **Wire untouched, classification untouched.** `RuntimeSpawned`, `SpawnPosition`, the fact predicate
+  and `EnemyRuntimeSpawnArbitration.IsRuntimeSpawn` are all unchanged; the repair is host-side state.
+
+## Repair-fix verification
+
+- Predicate tests: `EnemySpawnArbitrationTests` pins the candidate truth table, the baseline latch, and
+  the asserted-count reading; `EnemySnapshotRecoveryTests` pins the two premises of the fix (the
+  whole-set attempt against driven copies fails) plus the count it reports.
+- **Mutation red (observed, not asserted):** reverting the latch to `=> paired;` fails 2 focused tests
+  (`ShouldRepairGenerationBaseline_LatchesOnlyWhenNothingIsLeftToPair(previouslyEstablished: True,
+  paired: False, unboundGuestCopies: 0)` and
+  `RepairPairing_AlreadyBoundCopies_DropOutOfTheCandidateSet`); the restored predicate passes 20/20.
+- **Honest coverage limit:** the test project references GameAdapter with `ExcludeAssets="compile"`
+  (the adapter is loaded reflectively), so mutating the coordinator's call site (the filter and the
+  `ShouldRepairGenerationBaseline` call) leaves the unit suite green. The WIRING is judged by the batch's
+  runtime evidence, exactly like the rest of the enemy domain; the unit tests pin the Runtime predicates
+  the wiring consumes.
+- Full suite on the frozen tree: 315 normative-gate tests and 4588 main tests, 0 failures; build 0
+  warnings / 0 errors. The batch that judges all five acceptance rows is the next step; see
+  `docs/evidence/acceptance/`.
+
 ## Limits
 
 - The pre-fix evidence is batch `20261002-e`'s rolling logs, recorded in the scope page's post-hoc reading
@@ -129,3 +171,14 @@ classification half and failed row 1's `zero generation spawn pairing failed` cl
 - A generation entity whose `Start` ran during generation now stays in the generated baseline even when the
   host captures it late; a peer that lacks that entity is reported by the existing pairing warning instead
   of receiving a materialized duplicate.
+- **Silence is the price of the repair fix (observability limit).** Once every local copy carries a host
+  id, the repair has no candidates and logs no warning, so a set that later shrank on the host alone is
+  no longer reported by this path. No reachable sustained path was found in a normal session (removal is
+  a kernel fact applied on both sides, so the strongest candidate is the window between a local copy's
+  death and the arrival of that removal — far shorter than the 60 s cycle); the evidence that the set is
+  held is the `{N} generated bound … mapping=True` reading on every applied snapshot.
+- **A late anchor is still a late anchor (pre-existing limit, unchanged here).** The host records
+  `SpawnPosition` at the entity's first bind, which is its spawn position only while generation has just
+  finished; a member whose copies are still unbound pairs against that anchor, so an animal the host
+  first captured after it moved can still fail the whole set. `EnemyStateCapture` can only report the
+  missing-anchor case loudly — there is no reference to compare a late anchor against.

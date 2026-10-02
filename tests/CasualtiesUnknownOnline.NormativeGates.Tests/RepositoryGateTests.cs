@@ -229,6 +229,68 @@ public class RepositoryGateTests
 		Assert.True(failures.Count == 0, $"Delivery gate failed ({failures.Count} issue(s), {checkedCount} boxes checked)" + Environment.NewLine + string.Join(Environment.NewLine, failures));
 	}
 
+	[Fact]
+	public void LocalContent_IsNeverCarriedByGit()
+	{
+		var files = EnumerateScannedFiles().ToList();
+		Assert.True(files.Count > 2000, $"git ls-files returned only {files.Count} paths - the scan surface is not the repository");
+
+		var failures = files.Where(IsLocalContent).ToList();
+		Assert.True(failures.Count == 0,
+			"Local instruction files or private local artifacts are carried by git (tracked or about to be committed):"
+			+ Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	[Theory]
+	[InlineData("AGENTS.local.md", true)]
+	[InlineData("docs/acceptance/AGENTS.local.md", true)]
+	[InlineData("docs/acceptance/AGENTS.local-archive.md", true)]
+	[InlineData("CLAUDE.local.md", true)]
+	[InlineData(".agent-local/runtime-debug.md", true)]
+	[InlineData(".acceptance/20261002-p/k-C-payload-host.log", true)]
+	[InlineData("docs/handoff/plan.md", true)]
+	[InlineData(".jspace/task/notes.txt", true)]
+	[InlineData("AGENTS.md", false)]
+	[InlineData("docs/acceptance/AGENTS.md", false)]
+	[InlineData("tools/acceptance/preflight.ps1", false)]
+	[InlineData("src/CasualtiesUnknownOnline.Runtime/Session/World/GenerationYield.cs", false)]
+	[InlineData("tests/CasualtiesUnknownOnline.NormativeGates.Tests/RepositoryGateTests.cs", false)]
+	public void LocalContentMatcher_FlagsTheNeverCommittedFamilyAndIgnoresOrdinaryPaths(string path, bool expected) =>
+		Assert.Equal(expected, IsLocalContent(path));
+
+	/// <summary>
+	/// The local/private content family the red line guards: the machine-local instruction files
+	/// (`AGENTS.local*` / `CLAUDE.local*`), the local notes and acceptance-artifact areas
+	/// (`.agent-local/`, `.acceptance/`) and the chat-only handoff/workspace directories
+	/// (`docs/handoff/`, `.jspace/`) — every one of them is declared never-committed in `.gitignore`.
+	/// </summary>
+	private static bool IsLocalContent(string relativePath)
+	{
+		var normalized = relativePath.Replace('\\', '/').TrimStart('/');
+		var segments = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+		if (segments.Length == 0)
+		{
+			return false;
+		}
+
+		var fileName = segments[^1];
+		if (fileName.StartsWith("AGENTS.local", StringComparison.OrdinalIgnoreCase)
+			|| fileName.StartsWith("CLAUDE.local", StringComparison.OrdinalIgnoreCase))
+		{
+			return true;
+		}
+
+		if (normalized.StartsWith("docs/handoff/", StringComparison.OrdinalIgnoreCase))
+		{
+			return true;
+		}
+
+		return segments[..^1].Any(segment =>
+			segment.Equals(".agent-local", StringComparison.OrdinalIgnoreCase)
+			|| segment.Equals(".acceptance", StringComparison.OrdinalIgnoreCase)
+			|| segment.Equals(".jspace", StringComparison.OrdinalIgnoreCase));
+	}
+
 	/// <summary>
 	/// The files this rule cares about: everything git would carry — tracked files AND untracked files that
 	/// are not gitignored. Listing tracked files only made the gate blind to a file that is about to be

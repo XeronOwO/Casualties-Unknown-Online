@@ -32,10 +32,21 @@
 		var list = new System.Collections.Generic.List<object[]>();
 		var gate = new object();
 		var dropped = new int[1];
+		var stateNow = new object[] { list, gate, null, wanted, dropped };
+		System.AppDomain.CurrentDomain.SetData(key, stateNow);
+		// The handler reads the parked state back out of the AppDomain instead of capturing these
+		// locals: the evaluator's Mono.CSharp cannot compile a nested delegate that closes over the
+		// outer lambda's locals (the recipe would fail at eval time, not at the gate).
 		var handler = new System.Action<ulong, byte[]>(delegate(ulong sender, byte[] frame) {
 			if (frame == null || frame.Length < 1) { return; }
+			var armed = System.AppDomain.CurrentDomain.GetData("cuo.acceptance.wire-generation-probe") as object[];
+			if (armed == null) { return; }
+			var wantedNow = armed[3] as System.Collections.Generic.List<byte>;
+			var listNow = armed[0] as System.Collections.Generic.List<object[]>;
+			var droppedNow = armed[4] as int[];
+			if (wantedNow == null || listNow == null || droppedNow == null) { return; }
 			var wantedHere = false;
-			for (var i = 0; i < wanted.Count; i++) { if (wanted[i] == frame[0]) { wantedHere = true; break; } }
+			for (var i = 0; i < wantedNow.Count; i++) { if (wantedNow[i] == frame[0]) { wantedHere = true; break; } }
 			if (!wantedHere) { return; }
 			var copy = new byte[frame.Length];
 			System.Array.Copy(frame, copy, frame.Length);
@@ -44,13 +55,13 @@
 			entry[1] = frame[0];
 			entry[2] = copy;
 			entry[3] = System.DateTime.UtcNow.Ticks;
-			lock (gate) {
-				if (list.Count >= 256) { list.RemoveAt(0); dropped[0] = dropped[0] + 1; }
-				list.Add(entry);
+			lock (armed[1]) {
+				if (listNow.Count >= 256) { listNow.RemoveAt(0); droppedNow[0] = droppedNow[0] + 1; }
+				listNow.Add(entry);
 			}
 		});
+		stateNow[2] = handler;
 		receiver.MessageArrived += handler;
-		System.AppDomain.CurrentDomain.SetData(key, new object[] { list, gate, handler, wanted, dropped });
 		return "{\"ok\":true,\"mode\":\"arm\",\"kind\":\"" + kind + "\",\"armed\":true,\"captured\":0}";
 	}
 	if (mode == "read") {

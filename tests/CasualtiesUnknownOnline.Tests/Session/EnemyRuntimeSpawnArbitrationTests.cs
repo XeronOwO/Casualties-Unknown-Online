@@ -15,6 +15,14 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// </summary>
 public class EnemyRuntimeSpawnArbitrationTests
 {
+	[Theory]
+	[InlineData(true, false, true)] // created during play — a runtime spawn
+	[InlineData(true, true, false)] // Start ran during generation — generation output
+	[InlineData(false, false, false)] // the world as it already stood before the session
+	[InlineData(false, true, false)]
+	public void IsRuntimeSpawn_OnlyDuringPlayInASession(bool sessionActive, bool generating, bool expected) =>
+		Assert.Equal(expected, EnemyRuntimeSpawnArbitration.IsRuntimeSpawn(sessionActive, generating));
+
 	[Fact]
 	public void TryPairByPosition_IdenticalSets_PairsByPositionOrder_RegardlessOfInputOrder()
 	{

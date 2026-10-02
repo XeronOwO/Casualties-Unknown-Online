@@ -14,8 +14,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// Runtime enemy-spawn binding half of <see cref="EnemySyncCoordinator"/> (the
 /// partial split at the 600-line gate): materializes or binds the runtime-created
 /// animal copies from the late-joiner snapshot facts, and pairs the unbound
-/// 20 Hz host ids with the EntitySpawned-created local copies. All state still
-/// lives in the main partial declaration.
+/// 20 Hz host ids with the EntitySpawned-created local copies. The identity
+/// tables live in the main partial declaration; the host's capture-side anchor
+/// state lives in <see cref="EnemyStateCapture"/>.
 /// </summary>
 internal sealed partial class EnemySyncCoordinator
 {
@@ -37,7 +38,7 @@ internal sealed partial class EnemySyncCoordinator
 		var candidateFacts = new List<(int CandidateIndex, string PrefabId, NetVector2 Position, RuntimeEntityKey? CreationKey)>();
 		foreach (var entity in animals)
 		{
-			if (_runtimeAnimalCopies.Contains(entity) && !_idByEntity.ContainsKey(entity))
+			if (_runtimeAnimals.Contains(entity) && !_idByEntity.ContainsKey(entity))
 			{
 				candidateFacts.Add((
 					candidates.Count,
@@ -60,7 +61,7 @@ internal sealed partial class EnemySyncCoordinator
 		foreach (var (spawnIndex, candidateIndex) in pairs)
 		{
 			var spawn = spawns[spawnIndex];
-			Bind(candidates[candidateIndex], spawn.Id.ToNetworkEntityId(), runtimeSpawn: false);
+			Bind(candidates[candidateIndex], spawn.Id.ToNetworkEntityId());
 			ApplySpawnTint(candidates[candidateIndex], spawn);
 			Freeze(candidates[candidateIndex]);
 		}
@@ -107,7 +108,7 @@ internal sealed partial class EnemySyncCoordinator
 			RuntimeEntityCreation.Stamp(created, RuntimeEntityKey.FromKeyMsg(creationKey));
 		}
 
-		Bind(created, id, runtimeSpawn: false);
+		Bind(created, id);
 		ApplySpawnTint(created, spawn); // a crystalenemy backfill must carry the trigger-side color — see ApplySpawnTint
 		Freeze(created);
 		_log.LogInformation("[Enemy] materialized runtime spawn {Id} (prefab {Prefab}) at ({X:F1},{Y:F1}).",
@@ -183,7 +184,7 @@ internal sealed partial class EnemySyncCoordinator
 			return;
 		}
 
-		var candidates = FindAnimals().Where(e => _runtimeAnimalCopies.Contains(e) && !_idByEntity.ContainsKey(e)).ToList();
+		var candidates = FindAnimals().Where(e => _runtimeAnimals.Contains(e) && !_idByEntity.ContainsKey(e)).ToList();
 		var statePositions = unboundStates.Select(s => s.Position).ToList();
 		var candidatePositions = candidates.Select(e => new NetVector2(e.transform.position.x, e.transform.position.y)).ToList();
 		if (!EnemyRuntimeSpawnArbitration.TryPairByPosition(statePositions, candidatePositions, out var pairs))
@@ -194,7 +195,7 @@ internal sealed partial class EnemySyncCoordinator
 		for (var i = 0; i < pairs.Count; i++)
 		{
 			var state = unboundStates[pairs[i].StateIndex];
-			Bind(candidates[pairs[i].CandidateIndex], state.EntityId, runtimeSpawn: false);
+			Bind(candidates[pairs[i].CandidateIndex], state.EntityId);
 			Freeze(candidates[pairs[i].CandidateIndex]);
 		}
 

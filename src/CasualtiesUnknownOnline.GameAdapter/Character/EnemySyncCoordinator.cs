@@ -1,12 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
-using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
@@ -15,15 +13,20 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// The Unity side of the host-authoritative enemy stream. Host: captures the
 /// simulated animal entities (BuildingEntity.animal), assigns ids in the
 /// deterministic <see cref="EnemySpawnArbitration"/> order, records each one's
-/// bind-time spawn anchor and publishes their presentation state. Guest: binds
+/// bind-time spawn anchor (<see cref="EnemyStateCapture"/> owns that state and
+/// the native read) and publishes their presentation state. Guest: binds
 /// its locally generated copies to the host's ids on the world-entry snapshot
 /// AND on the 60 s in-session repair (spawn-anchor pairing — the anchor, never
 /// the live position, so a snapshot that lands after the host's animals have
 /// wandered still binds) and drives the frozen copies from the 20 Hz batch. No
 /// enemy simulation on the guest — same pattern as the player render clones
-/// (RemoteBodyDriver). Also the enemy-bite side: reports the local victim's
-/// post-bite state (EnemyBite event) and applies the received bites to the
-/// victim's clone.
+/// (RemoteBodyDriver). Both roles separate the generation baseline from a
+/// runtime spawn through the ONE rule <see cref="OnAnimalInstantiated"/> applies
+/// at the entity's own Start; a "created after my first capture" proxy cannot
+/// hold, because the host's baseline is established whenever its first frame
+/// runs, not when generation ends. Also the enemy-bite side: reports the local
+/// victim's post-bite state (EnemyBite event) and applies the received bites to
+/// the victim's clone.
 /// </summary>
 internal sealed partial class EnemySyncCoordinator
 {
@@ -43,15 +46,15 @@ internal sealed partial class EnemySyncCoordinator
 		_session = session;
 		_enemies = enemies;
 		_log = log;
+		_capture = new EnemyStateCapture(log);
 		_combat = new EnemyCombatReplay(session, enemies, mapper, characterData, FindEntityById, log);
 		_presentation = new EnemyPresentationApplier(log);
 	}
 
 	private readonly Dictionary<BuildingEntity, NetworkEntityId> _idByEntity = [];
 	private readonly Dictionary<NetworkEntityId, BuildingEntity> _entityById = [];
-	private readonly Dictionary<BuildingEntity, NetVector2> _spawnPositionByEntity = []; // host: the bind-time anchor each snapshot entry carries (the pairing key); written by Bind together with _idByEntity, cleared with it, never unbound on its own
-	private readonly HashSet<NetworkEntityId> _runtimeEnemyIds = []; // host: ids allocated after the initial deterministic mapping (runtime spawns)
-	private readonly HashSet<BuildingEntity> _runtimeAnimalCopies = []; // guest: animals created at runtime (never the generated baseline — the pairing must not steal a generated copy)
+	private readonly EnemyStateCapture _capture; // the host's native-to-DTO capture half: the per-frame state read plus the bind-time spawn anchors (extracted 2026-10-02 with the class on the architecture watchlist)
+	private readonly HashSet<BuildingEntity> _runtimeAnimals = []; // BOTH roles: animals whose Start ran with the session active and generation finished — the ONE runtime-spawn rule, so the host's facts and the guest's pairing candidates cannot disagree (20261002-e: the old "after the first capture" proxy shipped all 80 generation enemies, 0 host vs 80 guest, mapping=false)
 	private bool _mappingEstablished;
 	private bool _guestFrozen; // guest: animals frozen at generation finish (before they move, so the pairing uses the spawn positions)
 
@@ -75,10 +78,9 @@ internal sealed partial class EnemySyncCoordinator
 		_enemies.EnemyLungeReceived -= _combat.OnEnemyLungeReceived;
 		_idByEntity.Clear();
 		_entityById.Clear();
-		_spawnPositionByEntity.Clear();
+		_capture.Clear();
 		_presentation.Clear();
-		_runtimeEnemyIds.Clear();
-		_runtimeAnimalCopies.Clear();
+		_runtimeAnimals.Clear();
 		_mappingEstablished = false;
 		_guestFrozen = false;
 	}
@@ -116,8 +118,7 @@ internal sealed partial class EnemySyncCoordinator
 
 		_idByEntity.Remove(entity);
 		_entityById.Remove(id);
-		_runtimeEnemyIds.Remove(id);
-		_runtimeAnimalCopies.Remove(entity);
+		_runtimeAnimals.Remove(entity);
 		_presentation.Forget(id);
 		if (entity != null) // Unity object — ==
 		{
@@ -131,20 +132,29 @@ internal sealed partial class EnemySyncCoordinator
 
 	/// <summary>
 	/// Patch-bridge entry: an animal BuildingEntity started OUTSIDE world
-	/// generation on the guest — a runtime spawn (local trigger or the peer's
-	/// relay). Freeze it immediately at its spawn position so the runtime
-	/// position pairing sees it before its AI/physics can move it; the host's
-	/// 20 Hz state then drives the frozen copy.
+	/// generation with the session up — a runtime spawn. BOTH roles classify it
+	/// HERE, through this one guard, so the host's backfill facts and the guest's
+	/// pairing candidates can never disagree about which animals generation
+	/// produced. The old host rule ("appeared after the first capture") did
+	/// disagree whenever the baseline was captured before the generation output
+	/// existed: batch 20261002-e shipped all 80 generation enemies as runtime
+	/// spawns, and the guest's pairing then read 0 host vs 80 guest generated
+	/// copies, leaving every generated enemy unbound. The guest additionally
+	/// freezes its copy at the spawn position, so the runtime pairing sees it
+	/// before its AI/physics can move it and the host's 20 Hz state can drive it.
 	/// </summary>
 	internal void OnAnimalInstantiated(BuildingEntity entity)
 	{
-		if (!_session.SessionActive || _session.Role != SessionRole.Guest || HarmonyTraverse.IsGenerating())
+		if (!EnemyRuntimeSpawnArbitration.IsRuntimeSpawn(_session.SessionActive, HarmonyTraverse.IsGenerating()))
 		{
 			return;
 		}
 
-		_runtimeAnimalCopies.Add(entity);
-		Freeze(entity);
+		_runtimeAnimals.Add(entity);
+		if (_session.Role == SessionRole.Guest)
+		{
+			Freeze(entity);
+		}
 	}
 
 	// ---- Host capture ----
@@ -152,19 +162,24 @@ internal sealed partial class EnemySyncCoordinator
 	private void CaptureHostEnemies()
 	{
 		var animals = FindAnimals();
+		_runtimeAnimals.RemoveWhere(e => e == null); // Unity object — == (a destroyed runtime animal must not hold a set entry for the rest of the session)
 		EnsureMapping(animals);
 
 		var states = new List<EnemyEntity>(animals.Count);
 		foreach (var entity in animals)
 		{
 			var id = _idByEntity[entity];
-			states.Add(Capture(entity, id, _runtimeEnemyIds.Contains(id)));
+			// The runtime flag is the ONE classification recorded at the entity's
+			// own Start (OnAnimalInstantiated) — never "appeared after my first
+			// capture", which is what turned every generation enemy into a
+			// backfill fact in batch 20261002-e.
+			states.Add(_capture.Capture(entity, id, runtimeSpawn: _runtimeAnimals.Contains(entity)));
 		}
 
 		_enemies.PublishEnemyStates(states);
 	}
 
-	/// <summary>Assign ids on the first capture in the deterministic (x, y) order; later captures keep the mapping and give fresh ids only to newly spawned enemies (marked runtime — the late-joiner snapshot materializes them).</summary>
+	/// <summary>Assign ids on the first capture in the deterministic (x, y) order; later captures keep the mapping and give fresh ids to any animal that appeared since. The runtime-spawn decision is NOT made here — <see cref="OnAnimalInstantiated"/> records it, both roles through the same guard — this method only allocates identity.</summary>
 	private void EnsureMapping(List<BuildingEntity> animals)
 	{
 		if (_mappingEstablished)
@@ -174,8 +189,9 @@ internal sealed partial class EnemySyncCoordinator
 				if (!_idByEntity.ContainsKey(entity))
 				{
 					var id = _enemies.AllocateEnemyId();
-					Bind(entity, id, runtimeSpawn: true);
-					_log.LogInformation("[Enemy] host bound runtime spawn {Id} (prefab {Prefab}).", id, entity.id);
+					Bind(entity, id);
+					_log.LogInformation("[Enemy] host bound {Kind} {Id} (prefab {Prefab}).",
+						_runtimeAnimals.Contains(entity) ? "runtime spawn" : "generation animal", id, entity.id);
 				}
 			}
 
@@ -188,85 +204,23 @@ internal sealed partial class EnemySyncCoordinator
 			.ToList();
 		foreach (var entity in sorted)
 		{
-			Bind(entity, _enemies.AllocateEnemyId(), runtimeSpawn: false);
+			Bind(entity, _enemies.AllocateEnemyId());
 		}
 
 		_mappingEstablished = true;
+		_log.LogInformation("[Enemy] host enemy baseline established over {Count} animals.", sorted.Count);
 	}
 
-	private void Bind(BuildingEntity entity, NetworkEntityId id, bool runtimeSpawn)
+	/// <summary>Bind one entity to its id. The two identity tables serve both roles (host capture and guest binding); on the host the bind also records the spawn anchor the snapshot pairs on, which is why it lives in <see cref="EnemyStateCapture"/>.</summary>
+	private void Bind(BuildingEntity entity, NetworkEntityId id)
 	{
 		_idByEntity[entity] = id;
 		_entityById[id] = entity;
-		if (runtimeSpawn)
-		{
-			_runtimeEnemyIds.Add(id);
-		}
 
 		if (_session.Role == SessionRole.Host)
 		{
-			// The binding anchor, recorded ONCE at the first bind: EnsureMapping
-			// runs on the host's first capture after generation and a runtime spawn
-			// is bound when it appears, so this is the enemy's generation /
-			// creation position. That is the key the guest's frozen copies pair on
-			// — pairing on the live position only holds in the instant after
-			// generation, which is why a repair snapshot could never bind (N1).
-			_spawnPositionByEntity[entity] = new NetVector2(entity.transform.position.x, entity.transform.position.y);
+			_capture.RecordAnchor(entity, new NetVector2(entity.transform.position.x, entity.transform.position.y));
 		}
-	}
-
-	private EnemyEntity Capture(BuildingEntity entity, NetworkEntityId id, bool runtimeSpawn)
-	{
-		var rb = entity.GetComponent<Rigidbody2D>();
-		var spider = entity.GetComponentInChildren<SpiderHandler>();
-		var crystal = entity.GetComponentInChildren<CrystalEnemy>();
-		var hasTint = false;
-		NetColorRgba tint = default;
-		var lightIntensity = 0f;
-		if (crystal != null && CrystalEnemyTintAccess.TryRead(crystal, out var color, out lightIntensity)) // Unity object — ==
-		{
-			// The mimic's trigger-side SetColor (CrystalMimic.cs:32/46) painted
-			// this copy; carry the EXACT post-jitter color (never a re-roll — the
-			// SetColor jitter is per-side random) so the backfill can match it.
-			hasTint = true;
-			tint = new NetColorRgba(color.r, color.g, color.b, color.a);
-		}
-
-		if (!_spawnPositionByEntity.TryGetValue(entity, out var spawnPosition))
-		{
-			// Bind writes both tables together and runs before the first capture,
-			// so a miss means the binding was bypassed. The anchor is load-bearing
-			// (a zero or moving one silently breaks the repair pairing), so this
-			// degrades to the live position LOUDLY instead of indexing blind.
-			spawnPosition = new NetVector2(entity.transform.position.x, entity.transform.position.y);
-			_log.LogWarning("[Enemy] {Enemy} captured without a bind-time spawn anchor — falling back to its live position; a repair snapshot may fail to pair it.", id);
-		}
-
-		return new EnemyEntity(id)
-		{
-			Position = new NetVector2(entity.transform.position.x, entity.transform.position.y),
-			// The anchor travels beside the live position: the guest pairs on it,
-			// the presentation keeps using Position.
-			SpawnPosition = spawnPosition,
-			Velocity = rb != null ? new NetVector2(rb.velocity.x, rb.velocity.y) : NetVector2.Zero,
-			Rotation = entity.transform.eulerAngles.z,
-			Health = entity.health,
-			Stunned = EnemyStunPresentation.IsStunned(entity),
-			PrefabId = entity.id,
-			RuntimeSpawned = runtimeSpawn,
-			// The host's own copy carries the creation identity when this animal
-			// rode the entity-creation channel. Publishing it is what lets the
-			// late-joiner backfill copy carry the SAME identity as the live copy
-			// — a surviving live re-report then binds by key, never by the 1 m
-			// positional fallback (which absorbed unrelated copies).
-			CreationKey = RuntimeEntityCreation.TryRead(entity, out var creationKey) ? creationKey : null,
-			HasTint = hasTint,
-			TintColor = tint,
-			TintLightIntensity = lightIntensity,
-			SpiderLegTargets = SpiderLegPresentation.Capture(spider),
-			CrystalWindupAmount = CrystalWindupPresentation.CaptureAmount(crystal),
-			CrystalLineEnd = CrystalWindupPresentation.CaptureLineEnd(crystal),
-		};
 	}
 
 	private static List<BuildingEntity> FindAnimals() =>
@@ -329,7 +283,7 @@ internal sealed partial class EnemySyncCoordinator
 			.OrderBy(s => s.SpawnPosition, comparer)
 			.ToList();
 		var generatedGuest = FindAnimals()
-			.Where(e => !_runtimeAnimalCopies.Contains(e)
+			.Where(e => !_runtimeAnimals.Contains(e)
 				&& !(_idByEntity.TryGetValue(e, out var boundId) && runtimeIds.Contains(boundId)))
 			.OrderBy(e => new NetVector2(e.transform.position.x, e.transform.position.y), comparer)
 			.ToList();
@@ -344,7 +298,7 @@ internal sealed partial class EnemySyncCoordinator
 			{
 				for (var i = 0; i < generatedHost.Count; i++)
 				{
-					Bind(generatedGuest[i], generatedHost[i].EntityId, runtimeSpawn: false);
+					Bind(generatedGuest[i], generatedHost[i].EntityId);
 					Freeze(generatedGuest[i]);
 				}
 			}

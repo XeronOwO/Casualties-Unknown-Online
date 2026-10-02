@@ -88,6 +88,16 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 	/// <summary>Remote member scene state — the Game Adapter's render loop uses it to clone only in-world members.</summary>
 	public bool IsRemoteInWorld(ulong steamId) => _presence.TryGetMember(steamId, out var member) && member.InWorld;
 
+	/// <summary>
+	/// The handshaken remote members currently in the world — the target set of
+	/// the host-side world-state broadcasts. The local id never appears in the
+	/// presence table on the host, but the filter keeps the rule true on both roles.
+	/// </summary>
+	IEnumerable<ulong> ISessionControl.InWorldRemoteSteamIds() =>
+		_presence.Members
+			.Where(m => m.Handshaken && m.InWorld && m.SteamId != LocalSteamId)
+			.Select(m => m.SteamId);
+
 	/// <summary>The spawn position a member reported when entering the world — the host's clone anchor.</summary>
 	public NetVector2 GetRemoteSpawnPos(ulong steamId) =>
 		_presence.TryGetMember(steamId, out var member) ? member.ReportedSpawnPos : default;

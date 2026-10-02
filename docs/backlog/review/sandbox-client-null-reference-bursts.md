@@ -1,8 +1,9 @@
 # Sandboxed clients log NullReferenceException bursts and an instantiate-null ArgumentException
 
-- Status: Todo (batch `20261002-h`: the family reproduced on both sandboxed clients and the root cause is
-  named — CUO's out-of-world member keeps receiving the world-item keyframe and materializes the whole
-  table into the menu scene; the fix has NOT landed, see the finding section below)
+- Status: Review (batch `20261002-i` acceptance pending: the batch-`20261002-h` finding's fix landed —
+  the world-item keyframe, the item move stream and the generation publish address only the members
+  reported InWorld, and the apply side refuses without a live world; the re-run of the batch-`20261002-h`
+  windows is what accepts it)
 - Priority: Low
 - Category: Runtime diagnostics / sandbox
 - Source: observed during agent acceptance runs — noted unjudged in `docs/acceptance/lessons.md` (2026-10-01), re-captured with context in batch `20261002-c` and again with a rolling-log stack frame in batch `20261002-d` (`docs/evidence/acceptance/20261002-c-scope.md`, `docs/evidence/acceptance/20261002-d-scope.md`)
@@ -75,16 +76,48 @@ Root cause (evidence: `h-materializing-rounds.txt` + `h-w2-alt-materializing.log
    branch's `Resources.Load("ItemBreakParticle")`); neither window held one, so that half did not
    reproduce.
 
-Fix direction (next cycle, not implemented here): target the periodic item keyframe per member, members
-reported `InWorld` only (mirror the `SendInSessionRepair` filter) and sweep the item move stream
-(`ItemService.SendItemMove`, also a broadcast); additionally gate the apply side on a live world
-(`HarmonyTraverse.HasLiveWorld`) as defense in depth.
+Fix direction (implemented in batch `20261002-i`, see the Fix section below): target the periodic item
+keyframe per member, members reported `InWorld` only (mirror the `SendInSessionRepair` filter) and sweep
+the item move stream (`ItemService.SendItemMove`, also a broadcast); additionally gate the apply side on
+a live world (`HarmonyTraverse.HasLiveWorld`) as defense in depth.
 
 Related finding, same root shape (recorded, not fixed): after re-entry the guest held 505 items
 (`h-w3-guest-dupcheck.json`; the census probe read 504 at its own moment) against the host's 254
 (`h-w3-host-dupcheck.json`; the census probe read 253) — 252 with a CUO id + 253 without, zero duplicate
 ids — the keyframe materializes copies before the re-entering member's own generation has produced the
-bind targets. Cover it with the same "receiver baseline ready" gate or split it into its own ticket.
+bind targets. Covered by this fix's two halves (host targeting + the live-world apply gate); the
+batch-`20261002-i` re-run reads the post-re-entry count against the host's.
+
+## Fix (batch `20261002-i`)
+
+The finding's direction is implemented; the batch-`20261002-i` re-run of the batch-`20261002-h` windows
+is what judges it:
+
+- Host targeting: `ISessionControl.InWorldRemoteSteamIds()` — the presence table's handshaken members
+  reported InWorld — is the target set of the two STEADY-STATE world-item streams:
+  `ItemSnapshotService.SendPeriodicItemSnapshot` (the periodic keyframe) and
+  `ItemService.SendItemMove` (the position stream); `EnemySyncService` now delegates its identical
+  private filter to the shared method. The kernel gained the targeted
+  `IKernelProtocolControl.BroadcastItemStateStreamTo`; the untargeted `SendStateStream` entry point is
+  deleted. `ItemService.PublishGeneratedItems` deliberately stays a handshaken-peer broadcast: it has
+  to reach a member whose own generation is still running (the receiver holds it until that generation
+  finishes, and the host's InWorld record for that member is still false there); its menu case is
+  covered by the receiving gates below. Both streams' adaptive-rate input is the same in-world set
+  (no in-world member -> the stream is not sent at all).
+- Apply side (defense in depth): `ItemReconcile` applies a snapshot only while
+  `HarmonyTraverse.HasLiveWorld`; `RemoteItemSceneOps.SpawnWorldItem` — the single materialization seam
+  — refuses without a world scene and refuses on the guest while its own generation is still running
+  (the keyframe re-delivers once live); `GeneratedItemApplication` holds the generation snapshot while
+  the local generation runs AND while a run entry is still loading its world scene (the adversarial
+  review's major-1 window: the host can publish before this side's world object exists), drops it only
+  in the menu with no entry in flight, and clears it on session unbind.
+- The re-entry duplicate round (the related finding) is covered by the same two halves: the host no
+  longer sends the keyframe to a member whose host-side record is InWorld=false (the 11:41:00.837
+  round), and the receiver refuses rows while its world is not live.
+- Considered and deliberately left alone: the kernel committed-batch family (item spawn/drop/pickup/
+  destroy) still broadcasts to every handshaken member — it carries command events, not table rows, and
+  the apply-side guards above are what keep the out-of-world case harmless; `SendItemImpact` is a
+  transient cosmetic replay with no item materialization and is not this family.
 
 ## Limits (updated by batch `20261002-h`)
 
@@ -96,14 +129,24 @@ bind targets. Cover it with the same "receiver baseline ready" gate or split it 
   batch `20261002-h` found the line by the hundred with an unfiltered read.
 - The guest's post-re-entry 505-item state is read once; the duplicate finding's mechanics are a
   next-cycle measurement.
+- The three receiver guards (`ItemReconcile`, `SpawnWorldItem`, `GeneratedItemApplication`) have no
+  automated coverage: the GameAdapter's Unity dependency keeps them out of the test suite, so the
+  batch-`20261002-i` re-run is their only runtime evidence. A refusal logs at Debug — the production
+  default `Information` hides it, and the runbook enables Debug on all three clients.
+- New side effect of the guest-generation refusal: a trap/building-death drop's transient presentation
+  facts (`FreshItemDrop`, initial velocity/rotation/angular velocity — deliberately outside the kernel
+  projection) are lost on a guest that is mid-generation when `ApplyTrapDropPresentation` is refused;
+  the item fact itself converges through the committed batch/keyframe (bounded, accepted — the same
+  family as the matrix's other presentation-loss notes).
 
 ## Next step
 
-- Implement the fix through the normal cycle: a red test pinning "no world-item rows are sent to a member
-  that reports InMenu" (host targeting) and, if in scope, "no materialization without a live world"
-  (guest gate); then the fix, gates, deploy and a re-run of the re-entry window against the new artifact.
-  The recipe is the batch-`20261002-h` runbook and record; read `[BrokenItemUpdate]` FIRST and re-read an
-  absence once.
+- Acceptance (batch `20261002-i`, agent-run): deploy the fix, re-run the batch-`20261002-h` window
+  recipe (guest and alt re-entry) against the new artifact, then judge: the menu member receives no item
+  rows (zero `[ItemSpawn] materializing`, zero `[BrokenItemUpdate]`, no `Item.DMD<Item::Update>` stream),
+  the in-world peer keeps receiving keyframes, and the post-re-entry item count no longer duplicates.
+  The recipe is the batch-`20261002-h` runbook; read `[BrokenItemUpdate]` FIRST and re-read an absence
+  once.
 - Keep the diagnostic-first reading rule: a staged window is read for `[BrokenItemUpdate] … (reason) …`
   before the shape is re-derived from the bare `Item.DMD<Item::Update>` frame.
 - A burst whose stack names `Utils.Create` / `RuntimeEntityFactory` belongs to

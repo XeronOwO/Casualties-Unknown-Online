@@ -85,6 +85,8 @@ public sealed class ItemSnapshotService(
 	/// Host only: periodically re-send the full table over the unreliable
 	/// channel — drops are harmless (the next tick overwrites; the receiver
 	/// reconciles), and settled items get their drifted positions re-aligned.
+	/// Delivered to the in-world members only: the table is a world fact, and a
+	/// member in the menu has no world scene to apply it to (batch 20261002-h).
 	/// </summary>
 	public void SendPeriodicItemSnapshot()
 	{
@@ -93,11 +95,20 @@ public sealed class ItemSnapshotService(
 			return;
 		}
 
-		_kernelProtocol.BroadcastItemStateStream(
+		var targets = _session.InWorldRemoteSteamIds().ToList();
+		if (targets.Count == 0)
+		{
+			_log.LogDebug("[ItemKeyframe] skipped: no in-world member to deliver {Count} item(s) to.", _worldItems().Count);
+			return;
+		}
+
+		_kernelProtocol.BroadcastItemStateStreamTo(
+			targets,
 			[.. _worldItems().Select(WireItemStateMapper.ToWire)],
 			WirePayloadType.ItemSnapshotStream,
 			reliable: false,
 			layerModifierIndex: LayerModifierIndex + 1,
 			layerModifierRandomState: LayerModifierRandomState);
+		_log.LogDebug("[ItemKeyframe] sent {Count} item(s) to {Targets} in-world member(s).", _worldItems().Count, targets.Count);
 	}
 }

@@ -30,6 +30,7 @@ public class ItemServiceTrafficTests
 	public void HostSendMove_RecordsOnePerEntry()
 	{
 		using var world = ItemSimWorld.Create();
+		world.SetInWorld(world.G1, true);
 		world.Spawn(world.G1, 42, Item("shell"));
 		world.Driver.Tick(33);
 

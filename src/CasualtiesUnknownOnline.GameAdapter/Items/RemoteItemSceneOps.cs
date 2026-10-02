@@ -306,6 +306,24 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 	/// </summary>
 	internal void SpawnWorldItem(WorldItem w)
 	{
+		// A remote world item is a world fact: materializing one without a world
+		// scene is exactly the menu-scene burst of batch 20261002-h (each copy's
+		// Item.Update dereferences WorldGeneration.world every frame). The host
+		// also keeps its copy while its own generation runs — there it is the only
+		// side that will ever create the item — while the guest refuses that race
+		// (the periodic keyframe re-delivers once the world is live).
+		if (!HarmonyTraverse.HasWorld)
+		{
+			_log.LogDebug("[ItemSpawn] ignored {Type} (id {ItemId}): no world scene on this side.", w.Item.ItemId, w.ItemId);
+			return;
+		}
+
+		if (_session.Role == SessionRole.Guest && HarmonyTraverse.IsGenerating())
+		{
+			_log.LogDebug("[ItemSpawn] ignored {Type} (id {ItemId}): this side's world is still generating.", w.Item.ItemId, w.ItemId);
+			return;
+		}
+
 		// Idempotency: if a scene object with this instance id already exists,
 		// never materialize a second copy. The most common case is the
 		// originator's own local item: the guest reports an ItemSpawn command,

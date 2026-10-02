@@ -8,17 +8,20 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Items;
 
 /// <summary>
-/// The host's physics-move stream (ItemMove, unreliable): the host broadcasts
-/// the world items' authoritative positions to every handshaken member — the
-/// guests' kinematic copies follow. Empty list sends nothing.
+/// The host's physics-move stream (ItemMove, unreliable): the host sends the
+/// world items' authoritative positions to every IN-WORLD member — the guests'
+/// kinematic copies follow. A member in the menu is not a target (its world
+/// scene is gone), and an empty list sends nothing.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ItemMoveSyncTests
 {
 	[Fact]
-	public void HostMove_BroadcastReachesEveryGuest()
+	public void HostMove_ReachesEveryInWorldGuest()
 	{
 		using var w = ItemSimWorld.Create();
+		w.SetInWorld(w.G1, true);
+		w.SetInWorld(w.G2, true);
 		var g1Moves = new List<IReadOnlyList<WireItemMoveEntry>>();
 		var g2Moves = new List<IReadOnlyList<WireItemMoveEntry>>();
 		w.G1.Services.GetRequiredService<IItemControl>().ItemMoveReceived += moves => g1Moves.Add(moves);
@@ -42,9 +45,31 @@ public class ItemMoveSyncTests
 	}
 
 	[Fact]
+	public void HostMove_SkipsGuestReportedInMenu()
+	{
+		using var w = ItemSimWorld.Create();
+		w.SetInWorld(w.G1, true);
+		w.SetInWorld(w.G2, false);
+		var inWorldMoves = new List<IReadOnlyList<WireItemMoveEntry>>();
+		var menuMoves = new List<IReadOnlyList<WireItemMoveEntry>>();
+		w.G1.Services.GetRequiredService<IItemControl>().ItemMoveReceived += moves => inWorldMoves.Add(moves);
+		w.G2.Services.GetRequiredService<IItemControl>().ItemMoveReceived += moves => menuMoves.Add(moves);
+
+		w.Host.Services.GetRequiredService<IItemControl>().SendItemMove(
+		[
+			new WireItemMoveEntry { ItemId = 100, X = 10f, Y = 20f },
+		]);
+		w.Driver.Tick(50);
+
+		Assert.Single(inWorldMoves);
+		Assert.Empty(menuMoves);
+	}
+
+	[Fact]
 	public void HostMove_EmptySendsNothing()
 	{
 		using var w = ItemSimWorld.Create();
+		w.SetInWorld(w.G1, true); // must have a target, or the empty-list branch is masked by the no-target guard
 		var moves = new List<IReadOnlyList<WireItemMoveEntry>>();
 		w.G1.Services.GetRequiredService<IItemControl>().ItemMoveReceived += m => moves.Add(m);
 

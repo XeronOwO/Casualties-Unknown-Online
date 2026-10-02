@@ -76,6 +76,15 @@ internal static class HarmonyTraverse
 		PlayerCamera.main != null && WorldGeneration.world != null && !IsGenerating(); // Unity objects — ==
 
 	/// <summary>
+	/// A world scene exists — the "a remote world item has somewhere to live"
+	/// expression. Deliberately weaker than <see cref="HasLiveWorld"/>: the host
+	/// must keep materializing guest-reported items while its own generation runs
+	/// (for that copy the host is the only side that will ever create it), while
+	/// the guest refuses the generation race separately.
+	/// </summary>
+	public static bool HasWorld => WorldGeneration.world != null; // Unity object — ==
+
+	/// <summary>
 	/// World-instance field access. The four world-defining fields were verified
 	/// in the decompiled source (WorldGeneration.cs): totalTraveled (4162),
 	/// biomeDepth (4165), biomeOverride (4237, OverrideSceneType enum). LoadedRun

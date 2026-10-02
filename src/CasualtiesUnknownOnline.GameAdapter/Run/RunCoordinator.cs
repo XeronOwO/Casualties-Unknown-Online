@@ -96,6 +96,14 @@ internal sealed class RunCoordinator(
 	/// <summary>The world is up and not generating — the precondition the frame-end cut seam checks before it asks for a cut.</summary>
 	internal bool IsInWorld => _inWorld;
 
+	/// <summary>
+	/// Guest: a run-entry instruction has been accepted and this side's world is not up yet
+	/// (join pending / scene load / generation). A one-shot generation snapshot can arrive in this
+	/// window before the world object exists, so it must be HELD, not dropped (adversarial review
+	/// major-1); <see cref="GeneratedItemApplication"/> consumes this fact with its hold condition.
+	/// </summary>
+	internal bool IsEnteringWorld => _phase is RunPhase.JoinPending or RunPhase.Starting or RunPhase.Generating;
+
 	/// <summary>Guest: the world is generated and the gate holds (read by StartGateCoordinator).</summary>
 	internal bool GuestWaitingForReady => _phase == RunPhase.WaitingReady;
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -22,7 +21,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// 1 Hz round — <see cref="SettledStreamThrottle"/>) is pure; this class is
 /// the scene-read shell. The send rates now come from the shared adaptive
 /// rate service so network pressure can lower the 10 Hz movement stream and
-/// lengthen the 5 s keyframe fallback.
+/// lengthen the 5 s keyframe fallback. Both streams target the in-world
+/// members only: the table and the moves are world facts, and a member in the
+/// menu has no world scene to apply them to (batch 20261002-h).
 /// </summary>
 internal sealed class ItemPositionAuthority(
 	IItemControl items,
@@ -45,7 +46,7 @@ internal sealed class ItemPositionAuthority(
 		{
 			_nextItemMoveMs = now + _adaptiveRates.GetSendIntervalMs(
 				AdaptiveStreamId.WorldItemMoveStream,
-				GuestSteamIds());
+				_session.InWorldRemoteSteamIds());
 			SendMovingItemMoves();
 		}
 
@@ -53,7 +54,7 @@ internal sealed class ItemPositionAuthority(
 		{
 			_nextItemSnapshotMs = now + _adaptiveRates.GetSendIntervalMs(
 				AdaptiveStreamId.WorldItemSnapshotStream,
-				GuestSteamIds());
+				_session.InWorldRemoteSteamIds());
 			RefreshWorldItemStates();
 			_items.SendPeriodicItemSnapshot();
 		}
@@ -65,11 +66,6 @@ internal sealed class ItemPositionAuthority(
 		_nextItemSnapshotMs = 0;
 		_throttle.Reset();
 	}
-
-	private IEnumerable<ulong> GuestSteamIds() =>
-		_session.Members
-			.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId)
-			.Select(m => m.SteamId);
 
 	/// <summary>
 	/// Broadcast every world item's authoritative position (10 Hz, unreliable —

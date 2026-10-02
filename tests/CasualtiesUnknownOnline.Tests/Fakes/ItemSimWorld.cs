@@ -70,6 +70,22 @@ internal sealed class ItemSimWorld : IDisposable
 		_ => throw new ArgumentException($"unknown node alias '{alias}' (host/g1/g2)"),
 	};
 
+	/// <summary>
+	/// Set a guest's scene state on the HOST's presence table — the fact every
+	/// host-side world-item stream target rule reads. The harness never runs the
+	/// game's scene transition, so tests declare the state they exercise.
+	/// </summary>
+	internal void SetInWorld(TestNode node, bool inWorld)
+	{
+		foreach (var member in Host.Session.Members)
+		{
+			if (member.SteamId == node.SteamId)
+			{
+				member.InWorld = inWorld;
+			}
+		}
+	}
+
 	public void Dispose()
 	{
 		Host.Dispose();

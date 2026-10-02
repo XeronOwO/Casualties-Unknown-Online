@@ -237,7 +237,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public void SendItemMove(IReadOnlyList<WireItemMoveEntry> items)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0)
+		var targets = _session.InWorldRemoteSteamIds().ToList();
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0 || targets.Count == 0)
 		{
 			return;
 		}
@@ -247,7 +248,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			RecordItemTraffic(ItemTrafficKind.Move, ItemTrafficLabel(entry.ItemId));
 		}
 
-		_kernelProtocol.SendStateStream([.. items]);
+		var stream = new WireStateStream { ItemMoves = [.. items] };
+		_kernelProtocol.BroadcastStateStreamTo(targets, stream, WirePayloadType.StateStream, reliable: false);
 	}
 
 	public void FireItemMoveReceived(IReadOnlyList<WireItemMoveEntry> items) => ItemMoveReceived?.Invoke(items);
@@ -378,7 +380,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_snapshotStreamReceiver.Reset();
 	}
 
-
 	public void Dispose()
 	{
 		_kernelProtocol.ItemMovesReceived -= OnItemMovesReceived;
@@ -429,6 +430,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			}
 		}
 
+		// Deliberately a handshaken broadcast: a still-generating member must receive it (held receiver-side); the menu case is gated there.
 		_kernelProtocol.BroadcastItemStateStream(
 			[.. entries.Select(WireItemStateMapper.ToWire)],
 			WirePayloadType.WorldItemsSnapshotStream,

@@ -1,6 +1,7 @@
 # Runtime-created BuildingEntity spawns have no backfill or re-report
 
-- Status: Todo — Rejected (batch `20261002-k`: rows 1–4, 11 and 12 unproven — no report/relay-drop injection, no same-world late join (the Continue restored a layer-end cut), and no lacking-prefab or mod-template setup; rows 5–10 pass (creation payload carried, destruction final, layer reset, duplicate delivery, same-cell siblings, animal acknowledgement); record `docs/evidence/acceptance/runtime-entity-spawn-backfill-20261002-k.md`)
+- Status: Done (batch `20261003-a` — every acceptance row passes: rows 1–4, 11 and 12 in batch `20261003-a`; rows 5–10 in batch `20261002-k`)
+- Acceptance records: `docs/evidence/acceptance/runtime-entity-spawn-backfill-20261002-k.md`, `docs/evidence/acceptance/runtime-entity-spawn-backfill-20261003-a.md`
 - Priority: Medium-High
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row E3)
@@ -210,7 +211,7 @@ an explicit code-review justification:
 3. **MAJOR — a host-side create failure returned before the relay.** (The
    round-3/round-4 answer below — relay without recording — was itself corrected
    2026-09-17 into a REJECTION by
-   `review/runtime-entity-creation-rejection.md`: decision 161 forbids relaying a
+   `done/runtime-entity-creation-rejection.md`: decision 161 forbids relaying a
    creation the host cannot own.) `OnRemoteEntitySpawned` logged and returned when
    the host lacked the prefab/template, so a third-party guest that DID have it
    never received the creation (accept-first violation). **Fix (round 3/4):**
@@ -265,7 +266,7 @@ found two MAJOR regressions plus four MINORs. All are fixed and re-verified:
    `ReportEntitySpawnUnmaterialized` relays WITHOUT recording; **superseded
    2026-09-17** — the relay half was itself the unowned accept decision 161
    forbids, and such a creation is now REJECTED and answered to its reporter
-   (`review/runtime-entity-creation-rejection.md`). **Coverage:**
+   (`done/runtime-entity-creation-rejection.md`). **Coverage:**
    `UnmaterializableReport_OnAGuest_IsNotRelayed` + `RuntimeEntityRejectionTests`.
 3. **MAJOR — wire extension without the protocol-version bump.** New ProtoMembers
    on `EntitySpawnedMsg` and `RuntimeEntitySnapshotMsg` are a behavioral wire
@@ -360,7 +361,7 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
 - A destroyed entity whose death signal is itself lost can be re-materialized
   until the host's own copy dies: the destruction paths are the E1
   damage/open/support-loss relays, whose own re-report gap is a separate ticket.
-- **RESOLVED 2026-09-17** by `review/runtime-entity-creation-rejection.md`: a
+- **RESOLVED 2026-09-17** by `done/runtime-entity-creation-rejection.md`: a
   creation the host cannot materialize is REJECTED — neither recorded nor
   relayed, answered to its reporter, whose pending entry and local copy both end
   there. The old late-join gap (a member joining after such a creation did not

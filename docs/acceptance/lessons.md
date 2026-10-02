@@ -1589,4 +1589,60 @@ dependency the table did not name, a step that cost more than it returned.
 - Change: after a mutation pass, compare the re-captured fingerprint against the entry pair and require
   the affected band and the total to differ; leave at least one cell in a new state.
 
+## 2026-10-03 — The content provider's own bind seam is the per-client template switch (batch `20261003-a`)
+
+- The runtime-template state a shared-content mod leaves after discovery can be staged per client through
+  the provider's own public `TryBind` with the same `ModBuildingDefinition` payload: bind it on the members
+  that must carry it, leave the host without it for the "host cannot materialize" shape, and bind the host
+  LAST — the provider has no unbind and its `_definitions`/`_templates` live for the process.
+- `TryBind` only stores the definition; the template is built in the provider's own `Update`, and only
+  while `WorldGeneration.world` is non-null. Read `mode=status` (the provider's own dictionaries) one
+  command later; immediately after `bind` it still reports `hasTemplate=false`.
+- Base prefab ids are the game's own resource names, not display names: `keypad` is NOT a resource id
+  (`Utils.Create`/`Instantiate` threw "The Object you want to instantiate is null"); in this build the
+  keypad prefab id is `dropcapsule`. Read the native spawn vocabulary instead of naming a prefab.
+
+## 2026-10-03 — The entity fallback's window is shared, and one window can serve three rows (batch `20261003-a`)
+
+- The guest's steady fallback re-sends EVERY pending entity report in one window (60 s outside the entry
+  phase, 5 s inside it): three lost-rejection creations staged inside their own short armed windows and
+  then read once after the shared window produce the `re-reported N unacknowledged creation(s) to the host`
+  line and each key's outcome in a single pass — no per-row wait.
+- Read each key's outcome from the guest's own lines: a live copy gets `removing the local copy`, a copy
+  that already died gets the Debug `has no local copy left — nothing to remove`, and a moved copy is still
+  found by its CREATION cell (the rejection line names the creation cell, never the moved position).
+- The window is armed by the FIRST outstanding entry; a pending entry created while the window is open
+  rides the same re-send, so interleaving new scenarios into an open window costs nothing.
+
+## 2026-10-03 — `leave-world` alone leaves the client in the lobby; a real re-entry needs the lobby leave too (batch `20261003-a`)
+
+- After `leave-world` (`PlayerCamera.ToMainMenu`) a member stays a lobby member (`role=Guest`,
+  `lobby=<id>`, `inWorld=false`) and `join-lobby <same id>` is a no-op; the world-entry edge only fires
+  after `home.leave` drops the lobby membership and `join-lobby` re-joins it.
+- The verdict read comes AFTER the entry applied: host `Sending world-entry snapshot group to <steamid>`,
+  member `World join received — starting a run to follow`, member
+  `applied host runtime-entity snapshot (N entries, …)` — never on the `join-lobby` return.
+- `home.leave` needs the window open and the Home page selected (`open-window` then `goto-page home`);
+  `click` on the wrong page fails with exit 1.
+
+## 2026-10-03 — The host's in-session repair group carries the runtime-entity snapshot (batch `20261003-a`)
+
+- A host-created runtime entity whose relay was swallowed by an armed member converges WITHOUT a reconnect
+  when the next `Sending the in-session repair group to <steamid>` fires; the member logs
+  `applied host runtime-entity snapshot (N entries, …)`. The cadence observed was ~60 s with idle ticks
+  skipped, so read the member's applied line rather than timing the cycle.
+- A blackout window on that member can straddle the tick: keep armed windows short and single-stepped
+  (status → arm → the one write → disarm → re-read) so the next repair tick lands outside the window.
+
+## 2026-10-03 — The rejection forks are reachable through the product's public seams (batch `20261003-a`)
+
+- `WorldService.FireRuntimeEntityRejectedReceived(hostSteamId, msg)` reproduces "a non-reporter receives
+  the rejection": the client logs the Debug ignore line and its tables/census stay unchanged.
+- `WorldService.SendEntitySpawned` with a hand-built `EntitySpawnedMsg` whose creation token names another
+  member reproduces "a hand-built foreign-token report": the host rejects it, and the guest still acts
+  because its OWN pending table holds the key (the creator half alone would have ignored it).
+- `ISessionControl` (Role/HostSteamId) resolves from `CuoBootstrap.Services`, which is enough to build
+  both probes without a forged wire frame.
+
+
 

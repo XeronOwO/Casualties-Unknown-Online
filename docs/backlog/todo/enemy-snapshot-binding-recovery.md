@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / enemies (host-authoritative binding)
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the attack half stays open in `review/enemy-hit-determination-local.md`
-- Related: `review/runtime-entity-markerless-bind-absorption.md` (the runtime-spawn creation key), `todo/runtime-entity-spawn-backfill.md`, `review/trap-layout-snapshot-recovery.md` (the same repair-set family, W6)
+- Related: `review/runtime-entity-markerless-bind-absorption.md` (the runtime-spawn creation key), `done/runtime-entity-spawn-backfill.md`, `review/trap-layout-snapshot-recovery.md` (the same repair-set family, W6)
 
 ## Problem (evidence)
 

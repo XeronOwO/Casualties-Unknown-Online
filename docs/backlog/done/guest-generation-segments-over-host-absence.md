@@ -1,13 +1,13 @@
 # A member's layer generation that spans the host's absence counts host-wait yields as segments
 
-- Status: Review (code landed 2026-10-02; batch `20261002-p` holds the pre-fix red and runs this
-  ticket's acceptance — the host-absence staging)
+- Status: Done (batch `20261002-p` judged rows 1–5 pass on the deployed fix, 2026-10-02)
+- Acceptance record: `docs/evidence/acceptance/guest-generation-segments-over-host-absence-20261002-p.md`
 - Priority: High
 - Category: Network / sync (world generation, layer-modifier identity)
 - Source: agent attribution during batch `20261002-m`'s acceptance run of `reenter-baseline-adoption`
   (2026-10-02); not a user report
 - Related: `done/layer-mod-baseline-divergence-on-continue.md` (the same warning line, a different
-  cause), `todo/world-determinism-world-fingerprint.md` (the comparison that would catch the effect),
+  cause), `done/world-determinism-world-fingerprint.md` (the comparison that would catch the effect),
   `src/CasualtiesUnknownOnline.GameAdapter/WorldGen/WorldGenRandomIsolation.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/World/GenerationYield.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/WorldGen/LayerModifierSync.cs`

@@ -96,6 +96,6 @@ enemy census/health difference read inside the 60 s repair window) and the first
   are judged by the acceptance run (the adapter's `RunCoordinator` is Unity-side).
 - The acceptance run's first pass also exposed a separate generation-accounting gap (a member's
   generation that spans the host's absence counts host-wait yields as segments); it is recorded as
-  `review/guest-generation-segments-over-host-absence.md` and is not part of this fix.
+  `done/guest-generation-segments-over-host-absence.md` and is not part of this fix.
 - The pre-fix evidence is the batch's own logs (member window `k-F-baseline-guest.log`, host window
   `k-F-world-host.log`), attributed on 2026-10-02.

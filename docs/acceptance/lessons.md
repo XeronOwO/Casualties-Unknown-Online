@@ -1449,7 +1449,7 @@ dependency the table did not name, a step that cost more than it returned.
   layer-modifier replay then decides from.
 - Change: wait for `[GenStream] done` on EVERY client (the host's and each member's) before the next
   host-side world transition (leave, Continue, layer switch). Recorded as
-  `review/guest-generation-segments-over-host-absence.md`.
+  `done/guest-generation-segments-over-host-absence.md`.
 
 ## 2026-10-02 — Cross-client world identity: compare the reset hex and the segment fingerprints
 
@@ -1550,5 +1550,43 @@ dependency the table did not name, a step that cost more than it returned.
 - A `Continue` restore takes the world from the live snapshot (`mid-run-*.cuoz`, `revision N`,
   `0 world-block row(s)` in this batch), which is why a solo-marked cell looks "handed over" even when
   the baseline itself would explain it: read the send side, not only the cells.
+
+## 2026-10-02 — A wait instruction is an enumerator, and a wrapper that drives enumerators counts its frames (batch `20261002-p`)
+
+- Symptom: a member whose layer generation spanned the host's absence logged `[GenStream] done — 41
+  segments` against the host's 19 for the same generation; its layer-modifier replay entry was
+  `D70305E2…` instead of the generation's own last segment start `4AFD152F…`, and the roll landed on the
+  other side of the 0.4 threshold. Batch `20261002-m` had the same shape (51/43 against 19).
+- Cause: `UnityEngine.CustomYieldInstruction` (WaitUntil/WaitWhile) implements `IEnumerator`, so the
+  generation wrapper's `Drive` treated `FinishWorldGeneration`'s wait as a nested coroutine and drove it
+  frame by frame — every waited frame ran `Save()` and became a "segment", and the first waited frame's
+  save captured the state after the pre-wait work (`DistributeMiniBarrels`). The host never entered that
+  recursion: its `Darken()` is skipped inside `RunCoordinator.IsInGateWindow`, so its wait resolved
+  immediately and it logged no post-generation segment.
+- Change: the yield classification is a pure rule (`GenerationYield`, Runtime) with the wait checked
+  BEFORE the enumerator fact; a wait is handed to the engine whole, is not counted, and does not move the
+  recorded start. Judging rule: read a segment census as a PAIR of the same generation and compare the
+  decision entry states — a census alone does not say which side is polluted.
+
+## 2026-10-02 — A machine fact is parsed raw, so an inline annotation becomes part of the value (batch `20261002-p`)
+
+- Symptom: the preflight reported the `steam` dependency missing with `game-app-id 4576510(…) is not this
+  install: the install's steam_appid.txt reads 4576510` — the two sources plainly agreed.
+- Cause: the local fact line carried an inline annotation in the value (`- game-app-id: 4576510(与安装的
+  steam_appid.txt / appmanifest 一致;410900 是 Forts,错)`); `Read-Facts` takes everything after
+  `- key: ` as the value, so the manifest lookup built `appmanifest_4576510(…).acf`, found nothing, and
+  the id cross-check "failed".
+- Change: the value is bare and the annotation sits on its own line under it; when a fact fails its own
+  cross-check while every source agrees, suspect the parse before believing a dependency is missing.
+
+## 2026-10-02 — A mutation pass that nets to zero proves nothing (batch `20261002-p`, the fingerprint row)
+
+- Symptom: the first "post-mutation" fingerprint re-capture equaled the entry pair on all three clients,
+  so the comparison had exercised no change at all.
+- Cause: the pass wrote a marker cell to gravel and then broke it back to air, and the block table the
+  fingerprint hashes returned to its original state; convergence reads prove the peers agree, not that the
+  world moved.
+- Change: after a mutation pass, compare the re-captured fingerprint against the entry pair and require
+  the affected band and the total to differ; leave at least one cell in a new state.
 
 

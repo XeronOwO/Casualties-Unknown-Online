@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Network / sync coverage / audit
 - Source: User request (2026-09-07) — "扫描所有涉及同步的游戏特性，是否都做了事件级同步与定时兜底同步？例如我印象中世界中的方块没做定时兜底同步，做一下整个项目的系统性排查"
-- Related: `review/world-determinism-world-fingerprint.md`, `review/global-adaptive-report-rate-flow-control.md`, `done/network-traffic-baseline.md`
+- Related: `done/world-determinism-world-fingerprint.md`, `review/global-adaptive-report-rate-flow-control.md`, `done/network-traffic-baseline.md`
 - Acceptance record: `docs/evidence/acceptance/sync-event-and-periodic-fallback-coverage-audit-20260927.md`
 
 ## Goal
@@ -44,7 +44,7 @@ One row per feature, with these columns:
 3. **Explicit transient-by-design rows** (verify the intent is recorded, not accidental): world blood (`WorldBloodSpawnMsg.cs:13` — "no periodic snapshot is used", 120 s lifetime), one-shot sounds/pings/muzzle-flash/landing visuals, location ping.
 4. **Guest→host event-only surfaces**: guest item commands (`KernelEnvelope` spawn/pickup/drop/destroy/use/container), block reports, container transfers, craft batches, medical/shrapnel reports (some ride cumulative adaptive streams with a terminal reconciliation — verify each). For every one: what heals a lost command, and does the next host→guest absolute snapshot converge or silently overwrite the guest's local result?
 5. **Directional asymmetry pattern**: most fallbacks are host→guest absolute overwrites. The audit must state the recovery story in both directions per domain and whether a host→guest fallback can silently revert an unhealed guest-side change.
-6. **Cross-checks**: `review/world-determinism-world-fingerprint.md` (world fingerprint as an independent divergence detector), `review/global-adaptive-report-rate-*` (cadence adaptation must not delete fallbacks), `done/network-traffic-baseline.md` (cost of the fallbacks).
+6. **Cross-checks**: `done/world-determinism-world-fingerprint.md` (world fingerprint as an independent divergence detector), `review/global-adaptive-report-rate-*` (cadence adaptation must not delete fallbacks), `done/network-traffic-baseline.md` (cost of the fallbacks).
 
 ## Deliverables
 

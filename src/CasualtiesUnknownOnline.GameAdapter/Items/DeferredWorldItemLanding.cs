@@ -45,8 +45,16 @@ internal sealed class DeferredWorldItemLanding(
 	/// <summary>Defer one row. Idempotent per item id — a repeated snapshot refreshes the payload but keeps the original deadline. Returns true when the row is new (the caller reports the first sighting).</summary>
 	internal bool Defer(WorldItem w) => _rows.AddOrRefresh(w, Time.realtimeSinceStartup);
 
-	/// <summary>Drop every deferred row: the session ended or the world was replaced, so the rows describe a table the next scene must not materialize (the same rule GeneratedItemApplication.Unbind states for its held snapshot).</summary>
-	internal void Clear() => _rows.Clear();
+	/// <summary>Drop every deferred row: the session ended or the world was replaced, so the rows describe a table the next scene must not materialize (the same rule GeneratedItemApplication.Unbind states for its held snapshot). The drop is reported when it costs rows — a deferred row that never landed is otherwise invisible (batch 20261002-j's second review, minor-1).</summary>
+	internal void Clear()
+	{
+		if (_rows.Count > 0)
+		{
+			_log.LogInformation("[ItemSpawn] {Count} deferred row(s) dropped: the session ended or the world was replaced before they landed.", _rows.Count);
+		}
+
+		_rows.Clear();
+	}
 
 	/// <summary>
 	/// True when a row is still waiting for THIS local object — same definition, inside the adopt
@@ -109,7 +117,7 @@ internal sealed class DeferredWorldItemLanding(
 
 		if (!HarmonyTraverse.HasWorld)
 		{
-			_log.LogDebug("[ItemSpawn] {Count} deferred row(s) dropped: no world scene on this side.", _rows.Count);
+			_log.LogInformation("[ItemSpawn] {Count} deferred row(s) dropped: no world scene on this side.", _rows.Count);
 			_rows.Clear();
 			return;
 		}

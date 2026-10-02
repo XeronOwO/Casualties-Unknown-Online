@@ -85,7 +85,7 @@ internal sealed class RestoredWorldItemSet(
 			complete,
 			refused,
 			complete
-				? $"the live world took the restored item set ({applied} entr{(applied == 1 ? "y" : "ies")} bound or materialized)"
+				? $"the live world took the restored item set ({applied} entr{(applied == 1 ? "y" : "ies")} bound, materialized or deferred to the landing pump)"
 				: $"the live world did not take {string.Join(", ", refused)}");
 	}
 

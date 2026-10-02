@@ -40,12 +40,14 @@ internal sealed class GeneratedItemReconcile(
 		{
 			var bound = 0;
 			var materialized = 0;
+			var deferred = 0;
 			var refused = new List<string>();
 
 			// Per ENTRY, contained by the Runtime's row rule: an entry whose engine call throws
-			// costs ITSELF and the entries behind it still land. The two counts are taken only
-			// once the entry's write path completed, so a throwing entry is counted nowhere —
-			// it is named in the containment's error line and counted in the refusal below.
+			// costs ITSELF and the entries behind it still land. The landing counts are taken
+			// only once the entry's write path completed, so a throwing entry is counted
+			// nowhere — it is named in the containment's error line and counted in the
+			// refusal below.
 			var thrown = ContainedRowLoop.RunContained(
 				entries,
 				entry =>
@@ -53,21 +55,34 @@ internal sealed class GeneratedItemReconcile(
 					var localCopy = ItemApplication.FindExistingAt(entry.Pos, entry.Item.ItemId) != null; // Unity object — ==
 					_itemApplication.SpawnWorldItem(entry);
 
-					if (localCopy)
+					// Every count is taken from the VERIFIED result, never from the call's
+					// intent: the bind predicate above deliberately skips objects that
+					// already carry an id, so it cannot see the write that just attached
+					// one, and the landing seam may DEFER a row whose generation-time
+					// object has not landed yet instead of writing anything. Reporting the
+					// intent would name a successful bind as a loss on every restore, a
+					// deferred row as materialized, and a genuine refusal could not be told
+					// apart from either (§6).
+					if (ItemApplication.FindWorldItem(entry.ItemId) != null) // Unity object — ==
 					{
-						bound++; // the local copy adopts the authority's id (SpawnWorldItem binds, never duplicates)
+						if (localCopy)
+						{
+							bound++; // the local copy adopts the authority's id (SpawnWorldItem binds, never duplicates)
+						}
+						else
+						{
+							materialized++; // a divergent local copy — the authority's version is materialized instead
+						}
+					}
+					else if (_itemApplication.IsDeferredLandingPending(entry.ItemId))
+					{
+						// The row is ALIVE: the landing pump retries it every frame and
+						// materializes it when the grace expires. It is not a refusal, and
+						// the restore audit must not report it as one (batch 20261002-j's
+						// review, major-4).
+						deferred++;
 					}
 					else
-					{
-						materialized++; // a divergent local copy — the authority's version is materialized instead
-					}
-
-					// A write is only reported after it was verified BY ID: the bind
-					// predicate above deliberately skips objects that already carry an id, so
-					// it cannot see the write that just attached one. Reporting the intent
-					// instead of the verified result would name a successful bind as a loss on
-					// every restore, and a genuine refusal could not be told apart from it (§6).
-					if (ItemApplication.FindWorldItem(entry.ItemId) == null) // Unity object — ==
 					{
 						refused.Add(Describe(entry));
 					}
@@ -114,9 +129,9 @@ internal sealed class GeneratedItemReconcile(
 			}
 
 			_log.LogInformation(
-				"[ItemReconcile] {Entries} authoritative entry/entries: {Bound} bound, {Materialized} materialized, {Destroyed} unclaimed local(s) destroyed, {Refused} not taken.",
-				entries.Count, bound, materialized, destroyed, refused.Count);
-			return new GeneratedItemReconcileOutcome(entries.Count, bound, materialized, destroyed, refused);
+				"[ItemReconcile] {Entries} authoritative entry/entries: {Bound} bound, {Materialized} materialized, {Deferred} deferred, {Destroyed} unclaimed local(s) destroyed, {Refused} not taken.",
+				entries.Count, bound, materialized, deferred, destroyed, refused.Count);
+			return new GeneratedItemReconcileOutcome(entries.Count, bound, materialized, deferred, destroyed, refused);
 		}
 	}
 

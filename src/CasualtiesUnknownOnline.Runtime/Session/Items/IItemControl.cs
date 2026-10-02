@@ -175,8 +175,9 @@ public interface IItemControl : IRestoredWorldItemSource
 
 	/// <summary>
 	/// Host/solo: the generation finished reconciling its objects against the
-	/// restored set. <paramref name="applied"/> counts the entries that landed
-	/// (bound to the regenerated object or materialized);
+	/// restored set. <paramref name="applied"/> counts the entries the live
+	/// world took — bound to the regenerated object, materialized, or deferred
+	/// to the landing pipeline while its local object may still be registering;
 	/// <paramref name="refused"/> names the entries the live world did not take
 	/// (empty = complete). The account rides the restore report (§6: no silent loss).
 	/// </summary>

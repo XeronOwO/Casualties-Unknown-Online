@@ -176,8 +176,8 @@ internal sealed class GeneratedItemAuthority(
 		var outcome = _reconcile.Apply(restored);
 		_items.CompleteRestoredWorldItems(outcome.Applied, outcome.Refused);
 		_log.LogInformation(
-			"[GenItems] restored cut: {Applied} of {Entries} restored item(s) landed ({Bound} bound, {Materialized} materialized), {Destroyed} regenerated leftover(s) destroyed.",
-			outcome.Applied, outcome.Entries, outcome.Bound, outcome.Materialized, outcome.Destroyed);
+			"[GenItems] restored cut: {Applied} of {Entries} restored item(s) taken ({Bound} bound, {Materialized} materialized, {Deferred} deferred), {Destroyed} regenerated leftover(s) destroyed.",
+			outcome.Applied, outcome.Entries, outcome.Bound, outcome.Materialized, outcome.Deferred, outcome.Destroyed);
 	}
 
 	/// <summary>Allocate the host's id (the host's counter — ids can never collide with a guest's) and capture the full state.</summary>

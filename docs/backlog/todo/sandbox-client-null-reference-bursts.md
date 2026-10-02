@@ -1,6 +1,8 @@
 # Sandboxed clients log NullReferenceException bursts and an instantiate-null ArgumentException
 
-- Status: Todo
+- Status: Todo (batch `20261002-e`: the burst did not reproduce on any client — zero NREs and zero
+  `Item.DMD<Item::Update>` frames in a whole three-client session; the guide below now names the
+  instrument that has to be read first)
 - Priority: Low
 - Category: Runtime diagnostics / sandbox
 - Source: observed during agent acceptance runs — noted unjudged in `docs/acceptance/lessons.md` (2026-10-01), re-captured with context in batch `20261002-c` and again with a rolling-log stack frame in batch `20261002-d` (`docs/evidence/acceptance/20261002-c-scope.md`, `docs/evidence/acceptance/20261002-d-scope.md`)
@@ -33,6 +35,13 @@ the state that leads into it and whether CUO's resets or the sandbox's environme
   mark). This is the first guest-side anchor: it names `Item.Update` as the throwing frame, and a world
   re-entry as the window that produced it.
 - The host's log carries no matching line in the same windows.
+- Batch `20261002-e` (2026-10-02, `docs/evidence/acceptance/20261002-e-scope.md`): a whole three-client
+  session logged ZERO `NullReferenceException` lines and zero `Item.DMD<Item::Update>` frames on every
+  client, while each sandboxed client logged 176 `System.ArgumentException: The Object you want to
+  instantiate is null.` lines at world entry. Those 176 are NOT this family: their stacks name CUO's own
+  contained materialization failure (`(wrapper dynamic-method) Utils.DMD<Utils::Create>` under
+  `RuntimeEntityFactory.TryCreate`, `[Enemy] cannot create trader …`), and they now have their own
+  ticket, `todo/trader-runtime-spawn-backfill-classification.md`. The two shapes must be read apart.
 - No user-visible failure was observed in the batch; every acceptance row was judged on its own
   evidence.
 
@@ -48,7 +57,17 @@ the state that leads into it and whether CUO's resets or the sandbox's environme
 
 ## Next step
 
-- Stage one burst (a world re-entry is the cheapest observed window) and read the rolling log at that
-  window first — the batch-`20261002-d` burst carried `Item.DMD<Item::Update>` there — then read the
-  game's own `Item.Update` at the anchor to name the object and its state. With that, decide whether the
-  family needs a CUO fix, a guard, or only a log-level note.
+- Read the DEDUPED diagnostic first: `ItemUpdateDiagnosticPatch`
+  (`src/CasualtiesUnknownOnline.GameAdapter/Patches/ItemUpdateDiagnosticPatch.cs`, a patch on
+  `Item.Update`) reports the reason (`rb` null / no `WorldGeneration.world`) and dedupes per object, so a
+  repeat burst stays silent — the batch-`20261002-c`/`-d` windows carry no `[BrokenItemUpdate]` line for
+  that reason. A staged burst is read for `[BrokenItemUpdate] … (reason) …` FIRST, on a fresh client,
+  before the shape is re-derived from the bare stack.
+- The source names every nullable dereference the bare frame can be: `Item.Update`
+  (`reversing/Assembly-CSharp/Assembly-CSharp/Item.cs`, lines 145-180) reads `WorldGeneration.world` on
+  its first line, then `this.rb` and `this.affect`; its `ArgumentException` shape can only come from
+  `Resources.Load("ItemBreakParticle")` in the break branch. A burst whose stack names `Utils.Create` /
+  `RuntimeEntityFactory` instead belongs to `todo/trader-runtime-spawn-backfill-classification.md`.
+- Then stage one burst (a world re-entry is the cheapest observed window) and decide, with the object and
+  its state named, whether the family needs a CUO fix, a guard, or only a log-level note. Batch
+  `20261002-e` is the control that shows not every entry produces one.

@@ -53,6 +53,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Sandboxed clients: NullReferenceException bursts](todo/sandbox-client-null-reference-bursts.md) — **Low** — sandbox-only; a re-entry burst has a stack.
+- [Trader runtime-spawn classification](todo/trader-runtime-spawn-backfill-classification.md) — **Low-Medium** — a kind word is shipped as a prefab id.
 
 ### In progress
 

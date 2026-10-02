@@ -5,8 +5,8 @@ partial-damage registry was DELETED (`done/block-damage-table-capacity-alignment
 authoritative partial-damage table is now the GAME's own `WorldGeneration.world.blockDamages` list,
 read at snapshot time. References to `BlockDamageRegistry.cs` below are historical.
 
-- Status: Todo — Rejected (batch `20261002-k`: rows 1–4, 6, 8–10 unproven — the machine cannot drop a report or a relay, and the run's Continue restored a layer-end cut instead of an in-place reconnect, so rows 6 and 9 were not staged; row 5 passes (a guest mine and a guest place both converge on all three clients); row 7 passed batch `20261001-y`; record `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-k.md`)
-- Acceptance records: `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-x.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-y.md`
+- Status: Todo — Rejected (batch `20261002-o`: the inbound-blackout recipe staged the swallowed report for the first time — rows 1, 2, 3, 4 and 8 pass, including three-end convergence after the fallback re-report; rows 6, 9 and 10 remain unproven (row 10's single-partial-hit path into the damage re-report is not exposed by the run's counter probe, rows 6 and 9 were not staged); earlier batch `20261002-k` left rows 1–4, 6, 8–10 unproven and the machine unable to drop a report; row 5 passes, row 7 passed batch `20261001-y`; records `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-k.md`)
+- Acceptance records: `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-x.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261001-y.md`, `docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md`
 - Priority: High
 - Category: Network / sync coverage / world blocks
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` rows W1/W2); user-reported suspicion (2026-09-07) — "我印象中世界中的方块没做定时兜底同步"
@@ -185,3 +185,22 @@ recorded in `review/guest-break-drops-recovery.md`.
 | 8 | `PendingBlockReportTableTests.Report_AtCap_RefusesNewCellsButStillUpdatesExisting` + the once-per-episode warning in `RecordPendingBlockReport`; `DefaultCap_MatchesTheHostDeviationTableBound` pins both tables to one bound |
 | 9 | the world-entry fan-out (existing `WorldEntrySnapshotTests`); the guest table starts empty per world and the apply-boundary reset is tested |
 | 10 | the break's air write is the re-reported entry and the host's applied air write clears the crack via `OnBlockAirWrite` (adapter-side, dual-client acceptance) |
+
+## Acceptance attempt 2026-10-02 — batch `20261002-o`
+
+Record: [`docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md`](../../evidence/acceptance/guest-block-mutation-re-report-20261002-o.md).
+
+The three-client run armed the inbound blackout on the host for a few seconds per scenario, so the
+guest's report of each marker write was genuinely swallowed while the sessions stayed alive — the
+capability batch `20261002-k` lacked. Rows 1, 2, 3 and 4 pass with three-end cell convergence after the
+fallback re-reported (the host log carries the swallowed break's `[BlockBreak]` line and the guest log
+its `[BlockSync] re-reported N unacknowledged block mutation(s)`), and row 8 passes through the
+product's own bookkeeping type on an isolated instance (`filled=atCap=65536`, `refused=true`,
+`latch=true`, the once-per-episode warning in the real log) because a live fill would arm the pump.
+
+Remaining: row 6's in-place re-entry and row 9's solo→lobby→join exactly-once were not staged (the
+runbook keeps both shapes as "define on site"); row 10 stayed unproven because a single partial-damage
+roll left `damage=40` on the cell but produced no entry in the counters the run's probe reads, so the
+single-hit path into the partial-damage re-report needs its own instrument before the row can be
+judged. The runbook and the three new recipes (`block-read-at`, `block-set-at`, `block-break-at`) stay
+with the batch record for the next session.

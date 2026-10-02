@@ -1461,4 +1461,54 @@ dependency the table did not name, a step that cost more than it returned.
 - A census/health read taken within 60 s of a re-entry can differ by design (the enemy repair cycle);
   take the post-repair read before judging an agreement row.
 
+## 2026-10-02 — The inbound blackout is the executable swallow, and it has an order (batch `20261002-o`)
+
+- The capability the earlier batches lacked now exists and is proven on the machine: the blackout on the
+  HOST makes the guest's block report genuinely lost (`net-receive-blackout mode=on` →
+  `subscribersAfter=0, parked=true`), the session survives the window, the guest keeps sending and
+  re-reporting, and every staged row converged on all three clients after `mode=off`. Rows 1–4 of the
+  ticket passed on that shape, where batch `20261002-k` had to record all of them unproven.
+- Order matters inside the window: read `mode=status` (`armed=false`) and the member's pending counts
+  before arming, do only the marker writes while armed, then `mode=off` immediately and re-read. A
+  blackout left armed silently costs every domain's inbound traffic — every row in this batch used a
+  window of a few seconds.
+- The reverse direction is NOT staged by this recipe: arming the guest drops the HOST's writes into it.
+  A row about the guest losing the host's traffic needs the guest armed and the host writing.
+
+## 2026-10-02 — The block-report counters read as a pair: pending before the window and after the heal
+
+- `block-report-pending-count` is the honest baseline, but only as a pair: the pre-window read proves the
+  member starts clean, and the post-window read must show the entry the swallowed write created (`block`
+  rising by one per staged write). A COUNT that is only read once proves nothing about whether the report
+  was lost or answered.
+- The heal is read behaviourally: the counter returns to zero, every client reads the same cell, and the
+  host's own line names the cell (`[BlockBreak] …remote damage broke the block at (x,y) without an
+  air-write report…`). The guest's `[BlockSync] re-reported N unacknowledged block mutation(s)` line is
+  at Information and does show; `[BlockSync] host answered (x,y) — dropped the pending report` is Debug
+  and does NOT, so do not read its absence as a missing answer.
+
+## 2026-10-02 — A single partial-damage roll does not appear in the run's pending counters (row 10)
+
+- Symptom: the guest rolled 40 into a 150-health block inside the blackout window; the cell's `damage`
+  row read 40 while the block stayed, the follow-up 999 broke it (and the break's report converged
+  afterwards), yet `block-report-pending-count` reported `damage=0` throughout.
+- Cause: not established in this batch. The damage re-report family shares the same guest bookkeeping
+  shape, so the difference is most likely where the single-hit path attaches versus what the run's
+  counter probe exposes — read `GuestReportRecovery`/`GuestBlockDamageReportBookkeeping` and its call
+  sites at the `DamageBlock` hook before staging the row again.
+- Change: row 10 stays `unproven`, and the next run must bring its own instrument (a per-cell read of the
+  contribution the probe cannot see) rather than reading a zero as "nothing was recorded".
+
+## 2026-10-02 — `quake-force` is a write, so its reading call starts a second quake
+
+- Reading the quake clock is not free: `quake-force` sets `earthquakeDelay = -1`, so a "read" invocation
+  fires the native countdown again (the batch's host went from `earthquakeTime −0.5` back to a fresh
+  `8.7 s` quake). Read the quake state once, after the window, and treat a second start as the probe's
+  own side effect.
+- A quake's own breaks are `[Earthquake] host quake started (Ns, next in Ns) — broadcasting` on the host
+  plus per-side `SetBlock(0)` breaks; a guest that sees `earthquakeIntensity > 0` while the window is
+  armed is quaking on its own timer, which is exactly the air-write source row 3 needs. A block placed
+  onto air near the surface is not durable evidence — the same quake removed it later, so take the
+  three-end read at the convergence point and say so in the record.
+
 

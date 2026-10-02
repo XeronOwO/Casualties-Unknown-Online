@@ -111,4 +111,33 @@ public class EnemySpawnArbitrationTests
 		Assert.Single(pairs);
 		Assert.True(pairs[0].Distance < EnemySpawnArbitration.PairTolerance);
 	}
+
+	[Theory]
+	[InlineData(false, true, 0, true)] // the repair paired the remaining copies
+	[InlineData(true, false, 0, true)] // nothing left to pair — the established baseline is preserved
+	[InlineData(true, false, 1, false)] // a copy still needs pairing and did not pair — generation divergence
+	[InlineData(false, false, 0, false)] // nothing paired and nothing was ever established
+	[InlineData(false, false, 3, false)]
+	public void ShouldRepairGenerationBaseline_LatchesOnlyWhenNothingIsLeftToPair(
+		bool previouslyEstablished, bool paired, int unboundGuestCopies, bool expected) =>
+		Assert.Equal(
+			expected,
+			EnemySpawnArbitration.ShouldRepairGenerationBaseline(previouslyEstablished, paired, unboundGuestCopies));
+
+	[Theory]
+	[InlineData(false, false, true)] // a generated copy with no host id — the repair's candidate
+	[InlineData(true, false, false)] // already bound to a host id — its identity is decided (batch 20261002-f row 1)
+	[InlineData(false, true, false)] // a runtime-created animal — bound through the runtime-spawn channel
+	[InlineData(true, true, false)] // bound AND runtime — either reason excludes it
+	public void IsRepairCandidate_OnlyTheUnboundGeneratedCopies(
+		bool hasHostId, bool isRuntimeAnimal, bool expected) =>
+		Assert.Equal(expected, EnemySpawnArbitration.IsRepairCandidate(hasHostId, isRuntimeAnimal));
+
+	[Theory]
+	[InlineData(85, 0, 85)] // steady state: every host fact is held, nothing was newly paired
+	[InlineData(85, 85, 0)] // nothing bound yet (the pass is about to pair them)
+	[InlineData(85, 3, 82)] // a partial set — the asserted count is what is actually held
+	public void AssertedBoundCopies_IsTheHeldCount_NotTheNewlyPairedCount(
+		int hostGeneratedFacts, int unboundGuestCopies, int expected) =>
+		Assert.Equal(expected, EnemySpawnArbitration.AssertedBoundCopies(hostGeneratedFacts, unboundGuestCopies));
 }

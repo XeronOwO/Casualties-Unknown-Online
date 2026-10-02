@@ -61,7 +61,6 @@ internal sealed class ItemApplication
 		_items.ItemCookedReceived -= _cookReplay.OnRemoteItemCooked;
 		_items.ItemRejected -= OnItemRejected;
 		_items.ItemCorrectionReceived -= OnItemCorrection;
-		_scene.ClearDeferredLanding(); // the landing queue's table belongs to the session that ended — it must not land in the next one
 	}
 
 	/// <summary>A world item now exists on a remote side — materialize it locally (full state: condition + components + contents).</summary>
@@ -249,18 +248,6 @@ internal sealed class ItemApplication
 	internal void KillRemoteItem(Item item) => _scene.KillRemoteItem(item);
 
 	internal void SpawnWorldItem(WorldItem w) => _scene.SpawnWorldItem(w);
-
-	/// <summary>The scene-side pump, driven once per frame: the deferred-row retry (rows whose generation-time object had not landed yet when they were applied) plus the generation falling-edge tracking it needs.</summary>
-	internal void Update() => _scene.Update();
-
-	/// <summary>Drop the deferred rows — a session end or a world replacement: the rows belong to the table that is gone.</summary>
-	internal void ClearDeferredLanding() => _scene.ClearDeferredLanding();
-
-	/// <summary>True when a deferred row is still waiting for this local object (the keyframe's late-local sweep asks before dropping it).</summary>
-	internal bool IsWaitingForDeferred(Item item) => _scene.IsWaitingForDeferred(item);
-
-	/// <summary>True when a row for this instance id is deferred rather than refused (the landing counts use it).</summary>
-	internal bool IsDeferredLandingPending(ulong itemId) => _scene.IsDeferredLandingPending(itemId);
 
 	/// <summary>
 	/// Entity-event replay side: materialize or enrich a destructive-trap /

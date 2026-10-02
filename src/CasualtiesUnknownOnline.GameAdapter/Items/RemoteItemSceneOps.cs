@@ -27,20 +27,8 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 	private readonly Logger _log = log;
 	private readonly Dictionary<Item, int> _materializedFrame = [];
 
-	/// <summary>How close a generation-time object must sit to an authority row's reported position to count as that row's copy. Shared with the deferred landing's "is a row waiting for this object" query, so the sweep and the adopt pass can never disagree about which object a row wants.</summary>
+	/// <summary>How close a generation-time object must sit to an authority row's reported position to count as that row's copy.</summary>
 	internal const float AdoptTolerance = 1.5f;
-
-	/// <summary><see cref="AdoptTolerance"/> squared — the deferred landing compares squared distances.</summary>
-	internal const float AdoptToleranceSquared = AdoptTolerance * AdoptTolerance;
-
-	/// <summary>The deferred-landing strategy for rows whose generation-time object had not landed yet; created lazily because its delegates point back at this instance's scene primitives.</summary>
-	private DeferredWorldItemLanding? _landing;
-
-	private DeferredWorldItemLanding Landing => _landing ??= new DeferredWorldItemLanding(
-		TryBindExistingAt,
-		itemId => FindWorldItem(itemId) != null, // Unity object — ==
-		MaterializeWorldItem,
-		_log);
 
 	/// <summary>Remove an item object as a REMOTE application: zero its instance id(s)
 	/// immediately, then Destroy. UnityEngine.Object.Destroy is deferred to
@@ -367,24 +355,6 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 			return;
 		}
 
-		// The receiver's own generation can still be registering its last objects when the
-		// row arrives (batch 20261002-j: a re-entry's world-entry repair bound 276 of 282
-		// rows and materialized 6 whose generation-time object had not landed yet — each of
-		// those 6 then appeared as an id-less duplicate beside the materialized copy).
-		// Defer the row while the generation is still landing so the object that is about
-		// to arrive is ADOPTED instead; Update() materializes it once the grace expires so
-		// an authority row can never be lost to a slow local load.
-		if (Landing.IsGenerationStillLanding())
-		{
-			if (Landing.Defer(w))
-			{
-				_log.LogInformation("[ItemSpawn] deferred {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — the local generation may still be landing its object; it materializes in a couple of seconds if none appears.",
-					w.Item.ItemId, w.ItemId, w.Pos.X, w.Pos.Y);
-			}
-
-			return;
-		}
-
 		MaterializeWorldItem(w);
 	}
 
@@ -511,40 +481,4 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 		return true;
 	}
 
-	/// <summary>
-	/// The adopt half of <see cref="SpawnWorldItem"/>, callable on its own: bind the row to the
-	/// generation-time object already at its spot and DO NOT materialize when none is present yet.
-	/// A receiver whose own generation is still registering its last objects (corpse loot's Start)
-	/// uses this to wait out that window — adopting there instead of materializing is what keeps
-	/// one authority row from becoming two physical objects (batch 20261002-i: 257 bound / 9
-	/// materialized at a re-entry, the 9 left as id-less locals beside their materialized copies).
-	/// False means "nothing to adopt yet"; the caller decides when to stop waiting.
-	/// </summary>
-	internal bool TryBindExistingAt(WorldItem w)
-	{
-		if (!HarmonyTraverse.HasWorld)
-		{
-			return false;
-		}
-
-		if (_session.Role == SessionRole.Guest && HarmonyTraverse.IsGenerating())
-		{
-			return false;
-		}
-
-		var existing = FindExistingAt(w.Pos, w.Item.ItemId);
-		return existing != null && BindExistingItem(existing, w); // Unity object — ==
-	}
-
-	/// <summary>Pump, once per frame: delegate to the deferred-landing strategy — it tracks the generation falling edge and retries the rows whose generation-time object had not landed yet.</summary>
-	internal void Update() => Landing.Update();
-
-	/// <summary>Drop the deferred rows: the session ended or the world was replaced — they describe a table the next scene must not materialize (batch 20261002-j's review, major-3).</summary>
-	internal void ClearDeferredLanding() => Landing.Clear();
-
-	/// <summary>True when a deferred row is still waiting for this local object — the keyframe's late-local sweep asks before it drops an id-less world item, so the sweep cannot eat a row's own adopt target (batch 20261002-j's review, major-1).</summary>
-	internal bool IsWaitingForDeferred(Item item) => Landing.IsWaitingFor(item);
-
-	/// <summary>True when a row for this instance id is still waiting — DEFERRED rather than refused; the apply paths keep their landing counts honest with it (batch 20261002-j's review, major-4).</summary>
-	internal bool IsDeferredLandingPending(ulong itemId) => Landing.IsWaitingFor(itemId);
 }

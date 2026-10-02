@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Guest block mutations: periodic re-report](todo/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
 - [World determinism fingerprint](todo/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
 - [A member's generation spanning the host's absence](todo/guest-generation-segments-over-host-absence.md) — **High** — host-wait yields count as segments.
 - [Runtime-created entity spawn backfill](todo/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
@@ -167,6 +166,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Guest block mutations: periodic re-report](done/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
 - [Re-entering member generates before the restored baseline](done/reenter-baseline-adoption.md) — **Medium-High** — the invite carries the baseline.
 - [A Continue after a run opens a stale world](done/layer-mod-baseline-divergence-on-continue.md) — **High** — the Continue target moves on a run's first cut.
 - [Sandboxed clients: NullReferenceException bursts](done/sandbox-client-null-reference-bursts.md) — **Low** — out-of-world item streams; re-entry converges.

@@ -182,3 +182,17 @@ independent adversarial review reproduced both figures (and the checklist-filter
   key this change moved.
 - **An empty host table stays a no-op**, so a member is never "repaired" into an empty set (there is
   nothing to bind, and its own generated enemies stay) — the entry and repair paths agree.
+
+## Batch `20261002-m` (2026-10-02) — one observation, row 2 still open
+
+The acceptance run of `reenter-baseline-adoption` re-exposed the pairing failure on a guest after a layer
+switch and a Continue: `[Enemy] generation spawn pairing failed (58 host vs 57 guest generated enemies) —
+generated copies stay local (generation divergence)` and `snapshot applied: 1 generated bound, 0 runtime
+spawns, mapping=False`. The census/health reads taken ≈35 s later (i.e. inside the 60 s repair window,
+before the cycle that `20261002-l` showed healing this binding) still disagreed — host 58 animals
+(28 shadecrawler / 21 wallbiter / 9 trader), guest 57 (29 / 19 / 9), alt 58 (28 / 21 / 9), every health
+value matching where present (`m-census-compare.txt`, `m-health-compare.txt`). The same guest's
+generation had also run through the host's absence and reported a layer-mod divergence
+(`todo/guest-generation-segments-over-host-absence.md`), so this run does not separate a fresh binding
+defect from the residue of that window: the row stays open, and a repeat with the host present for the
+whole member generation plus a post-repair read is the next evidence to take.

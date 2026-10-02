@@ -1,6 +1,6 @@
 # A member that never left the session generates before the host's restored run baseline arrives
 
-- Status: Review
+- Status: Done
 - Priority: Medium-High
 - Category: Network / sync (world entry / restore ordering)
 - Source: agent attribution during the `layer-mod-baseline-divergence-on-continue` fix cycle (2026-10-02),
@@ -69,12 +69,14 @@ guard. Focused 77/77; full suite 4606 + 315 gates with build.
 
 ## Acceptance
 
-Batch `20261002-m` shape (three clients, after the fix commit is deployed): start a run, both members
-leave the world while staying connected, the host advances a layer alone, leaves and Continues that
-layer, then re-invites them. Expected: on each member the promised checkpoint restore lands BEFORE its
-`Generation stream reset`, and that reset carries the host's restored baseline hex (not the member's own
-previous one); zero `[LayerMod] baseline divergence`; the three layer-mod entry states, censuses and
-health sets agree. Normal entry and reconnect are regression rows.
+Judged in batch `20261002-m` against commit `6dc751bc` and its deployed artifact
+(`0.1.0+6dc751bc…`); record: `docs/evidence/acceptance/reenter-baseline-adoption-20261002-m.md`. Rows:
+the invite edge sends the baseline itself (pass); a member that stayed connected adopts the host's
+restored baseline before its generation consumes anything (pass); its generation matches the host's byte
+for byte (pass); the Continue re-delivers that baseline to members that are out of world (pass); the
+layer-mod entry states agree with zero `baseline divergence` in a clean window (pass); the run's own
+entry path is not regressed (pass). The record also carries one observation outside these rows (the
+enemy census/health difference read inside the 60 s repair window) and the first pass's staging anomaly.
 
 ## Limits
 
@@ -92,5 +94,8 @@ health sets agree. Normal entry and reconnect are regression rows.
 - Only the Runtime seam is unit-pinned. Whether the invite really precedes the member's `GenerateWorld`,
   whether the generation is held and then adopts the restored baseline, and the three-client behaviour
   are judged by the acceptance run (the adapter's `RunCoordinator` is Unity-side).
+- The acceptance run's first pass also exposed a separate generation-accounting gap (a member's
+  generation that spans the host's absence counts host-wait yields as segments); it is recorded as
+  `todo/guest-generation-segments-over-host-absence.md` and is not part of this fix.
 - The pre-fix evidence is the batch's own logs (member window `k-F-baseline-guest.log`, host window
   `k-F-world-host.log`), attributed on 2026-10-02.

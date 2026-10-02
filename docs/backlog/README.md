@@ -54,6 +54,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Guest block mutations: periodic re-report](todo/guest-block-mutation-re-report.md) — **High** — the pending table and 60 s pump.
 - [World determinism fingerprint](todo/world-determinism-world-fingerprint.md) — **High** — the determinism comparison.
+- [A member's generation spanning the host's absence](todo/guest-generation-segments-over-host-absence.md) — **High** — host-wait yields count as segments.
 - [Runtime-created entity spawn backfill](todo/runtime-entity-spawn-backfill.md) — **Medium-High** — the accepted-creation table.
 - [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
 - [Enemy snapshot binding has no recovery path](todo/enemy-snapshot-binding-recovery.md) — **Medium** — rows 3/4/8 pass; row 2 unproven.
@@ -136,7 +137,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
-- [Re-entering member generates before the restored baseline](review/reenter-baseline-adoption.md) — **Medium-High** — baseline carried by the invite.
 
 ### Future
 
@@ -167,6 +167,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Re-entering member generates before the restored baseline](done/reenter-baseline-adoption.md) — **Medium-High** — the invite carries the baseline.
 - [A Continue after a run opens a stale world](done/layer-mod-baseline-divergence-on-continue.md) — **High** — the Continue target moves on a run's first cut.
 - [Sandboxed clients: NullReferenceException bursts](done/sandbox-client-null-reference-bursts.md) — **Low** — out-of-world item streams; re-entry converges.
 - [Host classifies generation enemies as runtime spawns](done/enemy-runtime-spawn-classification.md) — **Medium** — one rule recorded at the entity's Start.

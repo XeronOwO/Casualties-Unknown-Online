@@ -1437,3 +1437,28 @@ dependency the table did not name, a step that cost more than it returned.
   cell comparison. Related: a small explosion at a created entity's position also caught a nearby runtime
   geyser (1.5-unit radius) — name the collateral when a probe is cited.
 
+## 2026-10-02 — Never leave the host out of the world while a member is still generating
+
+- Symptom: the host's `leave-world` landed while both members' layer generation was still running; their
+  `[GenStream]` tails then counted host-wait yields as segments (guest 51, alt 43, against the host's 19),
+  the last empty segment overwrote the recorded segment start, and both warned `[LayerMod] baseline
+  divergence` (local `D6848B6D…` against the host's `692FA317…`) while the host's snapshot corrected the
+  modifier afterwards.
+- Cause: the generation wrapper records a segment per coroutine yield, and a member waiting for the host
+  yields without consuming randomness — the last such yield becomes the recorded start, which the
+  layer-modifier replay then decides from.
+- Change: wait for `[GenStream] done` on EVERY client (the host's and each member's) before the next
+  host-side world transition (leave, Continue, layer switch). Recorded as
+  `todo/guest-generation-segments-over-host-absence.md`.
+
+## 2026-10-02 — Cross-client world identity: compare the reset hex and the segment fingerprints
+
+- The host's `Generation stream reset to captured baseline (16 bytes: <hex>)` and each member's reset hex
+  are the adoptable identity: equal hexes mean the member generated from the host's baseline.
+- `[GenStream] segment N: <hex>` lines (Debug) prove stream identity segment by segment — stronger
+  evidence than the absence of a warning, and the way to separate a baseline problem from a
+  tail/accounting problem.
+- A census/health read taken within 60 s of a re-entry can differ by design (the enemy repair cycle);
+  take the post-repair read before judging an agreement row.
+
+

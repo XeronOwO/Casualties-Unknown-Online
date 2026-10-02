@@ -1,7 +1,12 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Review (batch `20261001-y`: row 5 passes (gates green); rows 1–4 stay unproven — the guest's copies provably carry `FreshItemDrop` inside its 10 s window (probe `fresh: 3`) and the fresh/control frame pair was captured, but the highlight still cannot be identified with certainty at the shipped world zoom — the ticket stays open)
-- Acceptance records: `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-x.md`, `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-y.md`
+- Status: Review (batch `20261002-e`: row 5 passes; rows 1–4 stay unproven — both directions now provably
+  carry `FreshItemDrop` on host, guest and alt inside its window (census `fresh:3` / `fresh:1`, ids and
+  world positions identical across clients, each peer materializing from the breaker's own velocity), but
+  the run's frames still cannot be tied to the drop sprites at the shipped zoom: the census-projected
+  points land tens of pixels off the frame content, so no crop can be said to show the drop — the ticket
+  stays open)
+- Acceptance records: `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-x.md`, `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-y.md`, `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261002-e.md` (batch scope: `docs/evidence/acceptance/20261002-e-scope.md`)
 - Priority: Medium
 - Category: Item sync / entity destruction presentation
 - Source: User report (2026-09-04); rejected by user (2026-09-05) with a jump-pad trap destruction reproduction.

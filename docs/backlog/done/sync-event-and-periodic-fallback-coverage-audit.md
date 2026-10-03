@@ -86,13 +86,13 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   rows. Every matrix reference is a full path (no bare `:N` continuation refs), and the gate
   verifies each inline quote against its source line.
 - **Verdicts**: 47 `OK`, 8 `Event-only gap`, 0 `Fallback-only gap`, 9 `Transient-by-design`
-  (row W1 closed 2026-09-09 by `review/guest-block-mutation-re-report.md`; row E3 closed
-  2026-09-09 by `review/runtime-entity-spawn-backfill.md` after the four MAJOR + one MINOR
+  (row W1 closed 2026-09-09 by `done/guest-block-mutation-re-report.md`; row E3 closed
+  2026-09-09 by `done/runtime-entity-spawn-backfill.md` after the four MAJOR + one MINOR
   round-3 findings were fixed and re-verified).
 - **The user's seed finding is confirmed**: world blocks host → guest converge (60 s absolute
   table + world-entry backfill) but guest → host has no diff table and no periodic re-report,
   so a swallowed guest mutation is invisible to the host table and the absolute snapshot
-  cannot heal it (row W1 — closed 2026-09-09 by `review/guest-block-mutation-re-report.md`).
+  cannot heal it (row W1 — closed 2026-09-09 by `done/guest-block-mutation-re-report.md`).
   Partial block damage shares the asymmetry (row W2 — closed 2026-09-18 by
   `review/guest-partial-block-damage-re-report.md`).
 - **Gap tickets** (one ticket per gap, with W2 split from W1 and R3+R4 merged): `review/guest-partial-block-damage-re-report.md`,

@@ -4,7 +4,7 @@
 - Category: Network / sync coverage / enemies (host-ordered attack delivery)
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the binding half landed as `done/enemy-snapshot-binding-recovery.md`
 - Superseded by: `review/enemy-hit-determination-local.md` (user ruling 2026-09-18)
-- Related: `done/enemy-snapshot-binding-recovery.md`, `review/runtime-entity-spawn-backfill.md`
+- Related: `done/enemy-snapshot-binding-recovery.md`, `done/runtime-entity-spawn-backfill.md`
 
 ## Why this record is closed without code
 

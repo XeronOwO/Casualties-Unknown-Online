@@ -25,7 +25,7 @@ overflow-logging latch, `ResetPendingBlockReports`).
 
 1. Extract the guest report bookkeeping into its own collaborator (the send itself stays where the
    wire surface is, passed in as a callback or kept in the message service while the table and the
-   latch move out) — the W1 recovery rules (`review/guest-block-mutation-re-report.md`) must keep
+   latch move out) — the W1 recovery rules (`done/guest-block-mutation-re-report.md`) must keep
    their exact semantics: record before send, newest write per cell wins, drop on the host's relay
    echo or correction, keep the table across a reconnect-while-in-world, clear it on a new
    world/layer baseline.

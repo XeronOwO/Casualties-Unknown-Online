@@ -1761,5 +1761,23 @@ dependency the table did not name, a step that cost more than it returned.
   a different item after it (pre-give index 5 was `browncap`, post-give it was `spraybottle`): read the
   bought type from the buy result, not from the earlier list.
 
+## 2026-10-03 — A moved ticket's references need a manual sweep; the reference gate exempts the records
+
+- Symptom: after batch `20261003-d` moved `item-creation-registration-first` to `done/`, a closed
+  ticket's `Related:` line still named it under the old `review/` folder, and the gates were
+  green. A whole-`docs/` scan of ticket references, run after the sweep, still finds 55 unresolvable
+  references — every one of them inside `backlog/done/`, `backlog/resolved/` or `evidence/selfchecks/`.
+- Cause: `BacklogReferenceGateTests` deliberately skips the point-in-time record folders
+  (the exemption list lives in `BacklogIntegrityGateTests`), because a record states what was true when it was
+  written ("Owner cycle: backlog `todo/<slug>.md`") and a later move must not force history to be
+  rewritten. The move itself is therefore the only thing that updates a reference, and the exempt
+  folders are exactly where nothing will remind you.
+- Change: a ticket move sweeps the moved slug across the whole `docs/` tree by hand. Update the
+  pointer-shaped references (`Related:`, `Source:`, "closed by", `Superseded by`) to the ticket's
+  current folder; leave the point-in-time positions (an "Owner cycle" line naming the folder the
+  ticket sat in, a dated "moved" note) as written. This cycle fixed the 12 pointer references it found; the
+  remaining 55 are the records the exemption exists to protect. The sweep is one regex over
+  `docs/**/*.md` with a target-existence check, cheap to re-run after every move.
+
 
 

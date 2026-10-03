@@ -3,8 +3,8 @@
 - Status: Done
 - Priority: Low
 - Category: Runtime / dead code / world entities
-- Source: round-4 independent re-review of `review/runtime-entity-spawn-backfill.md` (2026-09-09)
-- Related: `review/runtime-entity-spawn-backfill.md`
+- Source: round-4 independent re-review of `done/runtime-entity-spawn-backfill.md` (2026-09-09)
+- Related: `done/runtime-entity-spawn-backfill.md`
 - Acceptance record: `docs/evidence/acceptance/runtime-entity-dead-api-cleanup-20260927.md`
 
 ## Problem (evidence)
@@ -54,7 +54,7 @@ rides the relay back to the reporter.
   records the accepted creation and `_session.Broadcast(NetMsg.EntitySpawned, msg)`
   reaches every member including the source. The unmaterializable-report branch
   (`ReportEntitySpawnUnmaterialized`) no longer broadcasts at all: since
-  `review/runtime-entity-creation-rejection.md` (decision 161) it REJECTS the
+  `done/runtime-entity-creation-rejection.md` (decision 161) it REJECTS the
   creation — neither recorded nor relayed — and answers only its reporter with
   `NetMsg.RuntimeEntityRejected`, which the reporter's pending report and local
   copy both end on.

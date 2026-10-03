@@ -8,8 +8,8 @@
   materialization failures at world entry while the host logged none; the batch's rolling logs show the
   classification damage behind that warning (recorded in the scope page's post-hoc reading,
   `docs/evidence/acceptance/20261002-e-scope.md`)
-- Related: `review/runtime-entity-spawn-backfill.md`, `done/enemy-snapshot-binding-recovery.md`,
-  `review/sandbox-client-null-reference-bursts.md`, `20261002-g` acceptance record
+- Related: `done/runtime-entity-spawn-backfill.md`, `done/enemy-snapshot-binding-recovery.md`,
+  `done/sandbox-client-null-reference-bursts.md`, `20261002-g` acceptance record
 
 ## Problem
 

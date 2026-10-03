@@ -1779,5 +1779,40 @@ dependency the table did not name, a step that cost more than it returned.
   remaining 55 are the records the exemption exists to protect. The sweep is one regex over
   `docs/**/*.md` with a target-existence check, cheap to re-run after every move.
 
+## 2026-10-03 — Batch `20261003-e` (recipe unlock, trade, fallback cadence; two clients)
+
+- **A blueprint's unlock is readable only from the recipe table.** `craft-drive mode=list` lists recipes
+  whose materials are at hand, so the freshly unlocked index need not appear in it: dump
+  `Recipes.recipes[i].INT`/`visible` before and after the use and diff. `item-use type=blueprint` rides
+  `Body.UseItem`, and the item's own destruction is a separate `ItemCommand` the guest reconciles in its
+  5 s × 12 window (`re-reported ItemDestroy … (1/12)`).
+- **The unlock fallback's live steps**: a swallowed guest report healed on the steady step 60.9 s later;
+  the host's `unlock set: N reported, M this host had not learned` line is the merge's difference, and the
+  host's set send (60–63 s cycle) confirmed the guest. A relay dropped to a member heals on that same set
+  (26.7 s after the host's own unlock). The entry group delivers the set to a late joiner with no
+  per-recipe alert, and the same set re-delivered applies idempotently.
+- **The block-break report leaves ~150–250 ms after the recipe call returns.** A 0.1 s blackout missed it
+  and the host adopted the live report; the working shape keeps the host's inbound blacked out ~2 s after
+  the break, reads `block-report-pending-count` inside the window (`block=1, drops=1` proves the swallow)
+  and then lifts. Measured: entry phase 5.04 s, steady 60.06 s, unblocked control 57 ms.
+- **A late joiner's trader stock reads 0 until the first fallback snapshot** (5.0 s base, stretched to
+  ~8.6–10.0 s under the run's ordinary load) — the empty read right after entry is the pre-fallback state,
+  not a defect; record its time next to the filled one.
+- **`trade-drive mode=give` is capped by the trader's lifetime credit** (total 60 in this world): past the
+  cap it returns `credited=false`. Use a purchase for a later value change. Log shapes: host-local
+  `[Trade] host broadcast action=…`, guest `report action=…`, host `executed action=… accepted=…`, and
+  every receiver `[Trade] state received trader=(…)`.
+- **The recruit gate is already open in a fresh world** (nearest trader reputation 100, hostility 0, build
+  health 1250). What the recruit row still needs is a dead target visible from inside the trader's 8-unit
+  range plus the Online UI `member.recruit.<steamId>` control drive — the missing fixture for the next
+  cycle.
+- **`session-environment.ps1` needs an explicit `-GameDir`** (its example carries it; the local line in
+  `AGENTS.local.md` had omitted it — fixed there).
+- **The Steam1 box's Steam can be cold after a reboot**: start it inside the box, wait for the box's
+  `connection_log.txt` `Logged On` line, then launch the game directly; never start the physical
+  `steam.exe` again.
+- **Ending clean**: both clients' driver `quit` left zero game processes; `.acceptance/20261003-e/` holds
+  every probe dump and log excerpt the four records cite.
+
 
 

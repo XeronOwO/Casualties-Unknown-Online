@@ -1,6 +1,7 @@
 # Sync cadence review: fallback stretch limits and first-resend latency
 
-- Status: Review
+- Status: Review (batch `20261003-e`: rows 1, 5 and 6 pass with limits — every fallback kept running while the trader stream stretched to ~8.6–10.0 s, the entry repair answered the member's repeat in 304 ms, and the run's traffic windows show no anomaly; rows 2–4 (max-pressure measurements) are handed to batch `20261003-l` — the ticket stays open)
+- Acceptance record: `docs/evidence/acceptance/sync-cadence-review-20261003-e.md` (batch scope: `docs/evidence/acceptance/20261003-e-scope.md`)
 - Priority: Medium
 - Category: Network / sync coverage / cadence tuning
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` cadence findings; user request 2026-09-09 — "如果有觉得同步时长不合理的，也可以提出来")

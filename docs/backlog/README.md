@@ -78,7 +78,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4 — Multiplayer restore and backups](review/save-multiplayer-restore-and-backups.md) — **High** — stage 4 (S4.1–S4.4).
 - [S4.2 — The restore account surface](review/save-restore-account-surface.md) — **High** — one console line per save event.
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
-- [Trap/entity action divergence](review/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Namespaced ID system](review/id-system-namespaced-ids.md) — **Medium** — the `ContentId` vocabulary.
 - [Global unified projection framework](review/global-projection-framework.md) — **High** — the rebuildable-domain contract.
@@ -259,6 +258,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4.4 — Interval autosave and recovery](done/save-interval-autosave-and-backup-recovery.md) — **High** — retention and backup promotion.
 - [Guest partial block damage re-report](done/guest-partial-block-damage-re-report.md) — **Medium** — the absolute re-report and the per-cell merge.
 - [Partial-damage report vs the live delta](done/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
+- [Trap/entity action divergence](done/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
 
 ### Watchlist
 

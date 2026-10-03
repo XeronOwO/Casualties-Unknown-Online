@@ -1,6 +1,7 @@
 # Trap/entity action divergence hardening
 
-- Status: Review (closed by the shared-action verdict follow-up cycle, 2026-09-13)
+- Status: Done
+- Acceptance (20261003-f): both acceptance bullets pass — the Runtime-seam containment half re-ran green (`RestoredWorldFactReplayTests` 24/24) and the classification half re-ran green (`TrapActionClassificationTests` 4/4) against the deployed tree; the ticket's own shy-crystal pairing residual is carried (no committed instrument exposes a per-crystal position, and the live drive attempt produced no trip). Record: `docs/evidence/acceptance/trap-action-divergence-hardening-20261003-f.md`.
 - Priority: Low-Medium
 - Category: Sync / restore accounting
 - Source: the S3 gap-3 cycle (`TrapActionOutcome` + `TrapActionVerdict`); the reviewer restated these

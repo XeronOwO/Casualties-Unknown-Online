@@ -1714,5 +1714,52 @@ dependency the table did not name, a step that cost more than it returned.
   transition lifecycle, not an empty snapshot). Without the blackout the member follows the descent
   instead of staying behind.
 
+## 2026-10-03 — The refusal tombstone is cleared by the SESSION end, not by leaving the world (batch `20261003-d`)
+
+- `leave-world` + `continue-run` stays inside the same session: `generation-read` reported `runEpoch:1`
+  before and after, the host's `RefusedItemCreations` still held the old id, and a later operation on it
+  was still answered with the precise reason. That is the design (ids are session-partitioned), not a bug.
+- The real session end is leaving the LOBBY (host `click home.leave` → `lobby:0, role:None`), then a new
+  lobby and run (`runEpoch:2`): the tombstone table read `count:0`, and the same id's operation became the
+  plain unjudged `Protocol violation` instead of the precise reason. Stale members must leave their old
+  lobby (`home.leave`) before `join-lobby` accepts the new one.
+- A member joining the ALREADY-RUNNING session enters late through the entry group: the late-join item
+  table read `world 259 / carried 1` on the host and `local 1` on both members, both at `runEpoch:2`.
+
+## 2026-10-03 — Two claimers for one item without a timing race: the inbound blackout (batch `20261003-d`)
+
+- The driver's inter-command gap exceeds the relay latency, so a simultaneous two-sender pickup cannot be
+  staged by sending two commands quickly. The shape that works: drop one world item, let BOTH members read
+  its id, arm the second member's `net-receive-blackout`, let the first member pick it up (the host
+  commits and relays; the blacked-out member drops the relay), then let the second member pick its stale
+  copy and report.
+- The host answered `Conflict (item … is already carried)` for the second claim — no `Protocol violation`,
+  no unknown-item window; the second member's reconciliation re-reported once and then accepted the
+  refusal. The blackout is the product's own lazy-P2P swallow, not a probe invention.
+
+## 2026-10-03 — The refused creation's drop ids survive behind a blackout (batch `20261003-d`)
+
+- A first-writer-wins break refuses the loser's drops; with the loser's inbound blacked out it never
+  receives the `ItemReject`, so its local drops (and their readable `ItemInstanceId`s) survive. Place a
+  known block with `block-set-at` (block 11 always yields one wood drop), have the host break it first,
+  then the blacked-out member break its stale copy: the host logs the refused report and records the
+  tombstones.
+- `item-world-read` then gives the refused drop id; `item-tombstone-read` on the host shows
+  `remembered:true, reason:"BlockAlreadyBroken"`; the later operation (through the product's own
+  `IItemControl.SendItemPickedUp`) is answered with the precise reason on the wire and the guest destroys
+  its local copy.
+
+## 2026-10-03 — Crafting and trade need a fixture, and the host's stock overwrite moves the buy index (batch `20261003-d`)
+
+- Crafting: recipe 0 is `2 × foliage → rope` (foliage matched by quality, `minimumCondition 0`). Two
+  `item-provide mode=create type=foliage` calls make it craftable; `craft-drive mode=make index=0`
+  produces the `rope` locally, and the host's own log (`[Crafting] Craft of …: 2 entries, 1 products
+  applied.`) plus a `container-read mode=host` read prove the registration half.
+- Trade: the nearest trader starts at `valueGiven 0`, so a purchase needs credit first —
+  `trade-drive mode=give type=neuralbooster` (value 50) credited 0→50 and the host executed the GiveItem.
+  The give's host broadcast overwrites the guest's local stock, so the index read BEFORE the give can name
+  a different item after it (pre-give index 5 was `browncap`, post-give it was `spraybottle`): read the
+  bought type from the buy result, not from the earlier list.
+
 
 

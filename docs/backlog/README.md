@@ -52,8 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [An item can be operated on before its creation is registered](todo/item-creation-registration-first.md) — **Medium-High** — creation first, no hold window.
-
 ### In progress
 
 ### Review
@@ -159,6 +157,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [An item can be operated on before its creation is registered](done/item-creation-registration-first.md) — **Medium-High** — creation first; tombstone.
 - [Enemy snapshot binding has no recovery path](done/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn-anchor key and the repair carrier.
 - [World/layer generation identity](done/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.
 - [Remaining generation-relative families](done/generation-identity-remaining-families.md) — **Medium** — trap layout and entity creation.

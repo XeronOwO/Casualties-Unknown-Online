@@ -7,11 +7,12 @@ difference is applied — so a repeat, a stale frame or a duplicate report is a
 no-op, two senders add up instead of taking a per-cell maximum, and a delayed
 delta cannot be counted twice.
 
-- Status: Review
+- Status: Done
+- Acceptance (20261003-f): rows 1–7 pass — a delta followed by its absolute re-report and the reverse each counted once, two senders summed on the host (never the maximum), a duplicate resolved to no increment, a cell that had broken ignored the report as air, the game's 128-entry cap evicted its oldest entry for the reported fresh cell, and the third peer read the same total at every staging. Record: `docs/evidence/acceptance/partial-damage-delta-report-overlap-20261003-f.md`.
 - Priority: Low-Medium
 - Category: Network / sync coverage / world blocks
 - Source: Independent adversarial review of the W2 landing (2026-09-18) — the landing's recorded limitation described only the under-count half
-- Related: `review/guest-partial-block-damage-re-report.md` (W2 — the re-report, landed), `review/sync-cadence-review.md`
+- Related: `done/guest-partial-block-damage-re-report.md` (W2 — the re-report, landed), `review/sync-cadence-review.md`
 
 ## Problem (evidence)
 

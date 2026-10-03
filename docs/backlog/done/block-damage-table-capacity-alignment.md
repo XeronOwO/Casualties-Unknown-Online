@@ -86,7 +86,7 @@ A guest's live apply still rides the game's own `DamageBlock` (`BlockBreakSync`)
 list is full for cells the host does not know about (its own unhooked damage) can still refuse
 snapshot rows — that refusal is logged by cell, never silent. Closing it means covering the unhooked
 writers, which is the guest-report gap tracked in
-`review/guest-partial-block-damage-re-report.md` (landed 2026-09-18).
+`done/guest-partial-block-damage-re-report.md` (landed 2026-09-18).
 
 Two further properties of that apply path are worth naming, because the single-table fix does NOT
 change them and no document should claim otherwise:

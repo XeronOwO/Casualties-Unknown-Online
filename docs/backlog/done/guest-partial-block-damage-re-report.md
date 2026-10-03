@@ -5,7 +5,8 @@ closed: the guest keeps each reported cell's ABSOLUTE damage, the fallback re-re
 the outstanding set, and the host merges per cell and answers every reported cell
 authoritatively — a zero answer clears a row this host's own cap/range rules refused.
 
-- Status: Review (batch `20261001-y`: row 7 unproven — the 60 s pump delivered the whole 140-cell outstanding set, but no cell was refused because the host already held them from the live deltas and the log carries zero refusal lines; rows 1–6 stay open — the ticket stays open)
+- Status: Done
+- Acceptance (20261003-f): rows 1–7 pass — the swallowed re-report healed on the steady 60 s step, two senders summed to 2 (never the maximum), a duplicate changed nothing, a break-before-report was ignored as air, the layer baseline re-applied no stale damage, a world re-entry with an outstanding cell agreed cell for cell, and the game's 128-entry list evicted its oldest row for the reported fresh cell. Record: `docs/evidence/acceptance/guest-partial-block-damage-re-report-20261003-f.md`.
 - Acceptance records: `docs/evidence/acceptance/guest-partial-block-damage-re-report-20261001-x.md`, `docs/evidence/acceptance/guest-partial-block-damage-re-report-20261001-y.md`
 - Priority: Medium
 - Category: Network / sync coverage / world blocks
@@ -158,8 +159,8 @@ only remaining logic is the role-guarded answer hand-off in
   side ever held — `KeepHost` cannot see it, because the duplicate arrives as a delta rather
   than as a second absolute value. Both need per-sender accounting (a (sender, cell) ledger
   whose cell total is re-derived, or sequenced deltas) and are tracked in
-  `review/partial-damage-delta-report-overlap.md` (landed, per-sender accounting); the recovery itself stays bounded and
-  self-healing, which is why W2 closes as `OK` with this recorded. **Closed 2026-09-19** by `review/partial-damage-delta-report-overlap.md`: partial damage is accounted per sender, both directions above are covered by tests, and the second limitation (two local hits inside one round trip) is healed by the same ledger.
+  `done/partial-damage-delta-report-overlap.md` (landed, per-sender accounting); the recovery itself stays bounded and
+  self-healing, which is why W2 closes as `OK` with this recorded. **Closed 2026-09-19** by `done/partial-damage-delta-report-overlap.md`: partial damage is accounted per sender, both directions above are covered by tests, and the second limitation (two local hits inside one round trip) is healed by the same ledger.
 - Two local hits at the SAME cell inside one round trip share the W1 shape: the first answer
   clears the cell's entry, so a swallowed second report falls back to the host's 60 s
   snapshot.

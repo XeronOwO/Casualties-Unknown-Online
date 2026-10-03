@@ -65,7 +65,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote inventory native parity rework](review/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.
-- [Partial-damage report vs the live delta](review/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
 - [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.
 - [Sync cadence review](review/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
@@ -81,7 +80,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [Trap/entity action divergence](review/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
-- [Guest partial block damage re-report](review/guest-partial-block-damage-re-report.md) — **Medium** — the absolute re-report and the per-cell merge.
 - [Namespaced ID system](review/id-system-namespaced-ids.md) — **Medium** — the `ContentId` vocabulary.
 - [Global unified projection framework](review/global-projection-framework.md) — **High** — the rebuildable-domain contract.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
@@ -259,6 +257,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Restore account arm release](done/restore-account-arm-release.md) — **Low** — every release path accounts for its own live-world half.
 - [World and backup management surface](done/world-and-backup-management-surface.md) — **Medium** — the world/backup picker and the player-chosen restore.
 - [S4.4 — Interval autosave and recovery](done/save-interval-autosave-and-backup-recovery.md) — **High** — retention and backup promotion.
+- [Guest partial block damage re-report](done/guest-partial-block-damage-re-report.md) — **Medium** — the absolute re-report and the per-cell merge.
+- [Partial-damage report vs the live delta](done/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
 
 ### Watchlist
 

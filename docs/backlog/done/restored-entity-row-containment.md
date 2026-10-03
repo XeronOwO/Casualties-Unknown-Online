@@ -7,7 +7,7 @@
 - Source: the hardening cycle's containment question (decision 175) — the half-scoped containment
   bounds the blast radius to the half, and this is the level below it
 - Related: `docs/decisions/active.md` 173, 175, 183,
-  `docs/backlog/review/trap-action-divergence-hardening.md`,
+  `docs/backlog/done/trap-action-divergence-hardening.md`,
   `docs/backlog/done/restore-live-object-loops-containment.md`,
   `src/CasualtiesUnknownOnline.Runtime/Session/World/ContainedRowLoop.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs`,

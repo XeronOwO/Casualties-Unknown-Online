@@ -1,6 +1,7 @@
 # Recipe unlock has no fallback or backfill
 
-- Status: Review
+- Status: Review (batch `20261003-e`: rows 1–5 and 7 pass — the swallowed guest report healed on the steady 60 s step, the host relay via the repair set, the late joiner through the entry group, the dropped CraftReport via the 1 Hz snapshot; row 6 — the host-side refusal branch — and the declared gaps 1's open-panel half, 4 and 6 stay `unproven` — the ticket stays open)
+- Acceptance record: `docs/evidence/acceptance/recipe-unlock-fallback-20261003-e.md` (batch scope: `docs/evidence/acceptance/20261003-e-scope.md`)
 - Priority: Medium
 - Category: Network / sync coverage / crafting
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I6)

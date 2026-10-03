@@ -1,6 +1,7 @@
 # Guest pending-report fallback: flat 60 s first resend
 
-- Status: Review
+- Status: Review (batch `20261003-e`: rows 1, 3, 4 and 6 pass — the entry-phase re-report measured 5.04 s, the acknowledged control 57 ms with no duplicate, the steady re-report 60.06 s; row 2 (runtime entity) and row 5 (clock wrap) stay `unproven` — the ticket stays open)
+- Acceptance record: `docs/evidence/acceptance/guest-report-fallback-first-resend-20261003-e.md` (batch scope: `docs/evidence/acceptance/20261003-e-scope.md`)
 - Priority: Low-Medium
 - Category: Network / sync coverage / world blocks
 - Source: Sync cadence review 2026-09-19 (`review/sync-cadence-review.md`, finding 4 — the same 60 s first-resend family, opposite direction)

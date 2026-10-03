@@ -150,7 +150,7 @@ backwards `Environment.TickCount` instead of stalling, and the
 written with, 46/9/0/9 and 750 entries, were the state at landing and moved on with the W6
 and W2 cycles; 835 entries now), inline anchors re-anchored and
 extended, W2 split into
-`review/guest-partial-block-damage-re-report.md` (landed 2026-09-18), the break-drop loss
+`done/guest-partial-block-damage-re-report.md` (landed 2026-09-18), the break-drop loss
 recorded in `review/guest-break-drops-recovery.md`.
 
 **Verification.**

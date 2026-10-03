@@ -1,7 +1,7 @@
 # Runtime entity creation — markerless bind absorption + dead relay cleanup (2026-09-09)
 
 Cycle: close the two round-4 residuals of the E3 runtime-entity landing
-(`review/runtime-entity-spawn-backfill.md`). ProtocolVersion 17 → 18 (two additive
+(`done/runtime-entity-spawn-backfill.md`). ProtocolVersion 17 → 18 (two additive
 ProtoMembers). Red→green recorded; independent adversarial review and deployed-hash
 verification are part of this cycle's completion gate.
 

@@ -15,7 +15,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// container entering the domain on first use is registered so the peers bind
 /// their local generation-time copy, and every report lands through the
 /// verified commit (a move that did not actually happen is Rejected — no
-/// phantom drop on the peer).
+/// phantom drop on the peer). A REPLAY of a peer's fact stays silent
+/// (<see cref="CallContext.IsReplayedRemoteFact"/>); a peer's intent this client
+/// executes on its own items does not — that mutation is this client's own fact,
+/// so a remote-driven container move carries the same event a local drag does.
 /// </summary>
 internal sealed class ContainerItemSync(
 	IItemControl items,
@@ -34,12 +37,9 @@ internal sealed class ContainerItemSync(
 	private readonly ISessionControl _session = session;
 	private readonly ILogger<ContainerItemSync> _log = log;
 
-	/// <summary>True while a remote message is being applied — local reports must stay silent (call identity lives in CallContext).</summary>
-	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
-
 	internal void OnLoadedIntoContainer(Item item, bool wasWorldItem)
 	{
-		if (IsRemoteApply)
+		if (CallContext.IsReplayedRemoteFact)
 		{
 			return;
 		}
@@ -192,7 +192,7 @@ internal sealed class ContainerItemSync(
 
 	internal void OnUnloadedFromContainer(Item item)
 	{
-		if (IsRemoteApply)
+		if (CallContext.IsReplayedRemoteFact)
 		{
 			return;
 		}
@@ -231,7 +231,7 @@ internal sealed class ContainerItemSync(
 
 	internal void OnUnloadedAll(Container container)
 	{
-		if (IsRemoteApply)
+		if (CallContext.IsReplayedRemoteFact)
 		{
 			return;
 		}

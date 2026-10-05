@@ -42,9 +42,6 @@ internal sealed class PickupSync(
 	private readonly ItemReportCommitter _reports = reports;
 	private readonly ItemSlotSync _slotSync = slotSync;
 
-	/// <summary>True while a remote message is being applied — local reports must stay silent (call identity lives in CallContext).</summary>
-	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
-
 	/// <summary>The pickup-start position of the last PickUpItem call — still on the ground HERE, the picked-up hook runs after the re-parent. Id-less generation-time items have no PickupOrigins key — this covers them.</summary>
 	private (Item Item, Vector2 Pos)? _lastPickupStart;
 
@@ -70,7 +67,11 @@ internal sealed class PickupSync(
 			return;
 		}
 
-		if (IsRemoteApply)
+		// A REPLAY of a peer's fact (a restore putting items back through the game's
+		// own slot path) stays silent. A peer's INTENT this client executes on its own
+		// items does not: the owner performed a real pickup, and the host needs the
+		// report to keep its transfer table current — see CallContext.
+		if (CallContext.IsReplayedRemoteFact)
 		{
 			return;
 		}

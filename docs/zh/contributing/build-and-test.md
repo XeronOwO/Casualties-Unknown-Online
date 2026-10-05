@@ -96,15 +96,17 @@ powershell -ExecutionPolicy Bypass -File tools/verify-deploy.ps1 -GameDir "<game
 - 某个工程编译失败时，它的消费者会继续对着上一次成功的 DLL 编译，看起来就像“新类型不存在”。
   先看构建输出，再怀疑消费者。
 - `dotnet format` 会重写文件。复核窗口期工作区是冻结的，别在里面跑它；任何外部工具动过文件后，编辑前都要重新读一遍。
-- **`dotnet test` 可能什么都没跑却报成功。** 在 .NET SDK 10.0.401 这套工具链上，`net48` 工程的测试适配器会加载失败：
-  运行打印“未能从文件 `xunit.runner.visualstudio.testadapter.dll` 加载扩展”和“没有可用测试”，然后**退出码是 `0`**，
-  实际只跑了门禁工程。**看摘要，别看退出码**：门禁工程是几百个用例，整套测试是几千个。
-  绕过办法是把包里的适配器直接指给运行器 —
-  `dotnet test <测试工程> --test-adapter-path "<nuget 包目录>/xunit.runner.visualstudio/4.0.0/build/net472"`。
-  以下已经排除过，别再重复找一遍：SDK 的 `Extensions` 目录缺 `Microsoft.Bcl.AsyncInterfaces`（补上程序集版本 9.0.0.8 毫无变化）；
-  测试平台与适配器文件本身（与同一台机器上能正常发现用例的最小 `net48` xunit 工程逐字节相同）；产品、游戏与框架程序集；
-  输出目录里的子目录；非程序集文件；测试工程的 `app.config`；多出来的 `.exe`；目录名；以及 SDK 版本。
-  根因仍未定位——能确认的是这个绕过办法。
+- **`dotnet test` 可能什么都没跑却报成功。** `net48` 的测试宿主用 `LoadFrom` 加载适配器和它旁边的程序集，而
+  .NET Framework 拒绝加载任何带「来自 Internet」标记的文件 —— 这个标记是 Windows 给下载来的文件加上的
+  `Zone.Identifier` 备用数据流（文件属性里的「解除锁定」删的就是它），任何文件复制都会把它一并带上；运行时会因此把该文件
+  当成远程文件，加载直接失败（`0x80131515`，「尝试从一个网络位置加载程序集」）。这一次运行只会打印「未能从文件
+  `xunit.runner.visualstudio.testadapter.dll` 加载扩展」和「没有可用测试」，然后**退出码是 `0`**，实际只跑了门禁工程。
+  测试工程里的 `ClearDownloadMarkFromOutput` 目标会在每次构建后清掉整个输出目录上的这个数据流，清不掉就让构建失败；
+  所以只有手工拼出来的、或从别处继承下来的输出目录才会中招 —— 遇到时先
+  `Get-ChildItem <输出目录> -Recurse -File | Unblock-File`，再重新构建。**看摘要，别看退出码**：门禁工程是几百个用例，
+  整套测试是几千个。
+- 这个标记最常见的来源是 `references/` 里那些不进 git 的游戏程序集：只要它是下载来的或从别的机器拷过来的，就会带着标记
+  流进每一个复制它的输出目录，所以那里也要清（`Get-ChildItem references -File | Unblock-File`）。
 - 这套测试里没有任何东西是一次游戏会话。测试全绿只能证明逻辑；两台真实客户端的画面对比是提交之后由智能体执行的[验收运行](../../acceptance/workflow.md)
   （[搭好开发环境](../start/set-up-dev-environment.md)）。
 

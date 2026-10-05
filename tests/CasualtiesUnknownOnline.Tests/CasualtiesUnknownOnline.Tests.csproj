@@ -24,6 +24,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- The game's copies of the assemblies this suite reflects live in
+         references/; Newtonsoft.Json is the one exception, because the mapping
+         tests load it and the game's delay-signed build fails strong-name
+         verification (0x80131045) in the .NET Framework test host. -->
+    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -63,11 +68,6 @@
     </Reference>
     <Reference Include="netstandard">
       <HintPath>..\..\references\netstandard.dll</HintPath>
-      <Private>True</Private>
-      <Aliases>GameRef</Aliases>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\references\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
       <Aliases>GameRef</Aliases>
     </Reference>
@@ -171,6 +171,24 @@
   <PropertyGroup>
     <ContractToolOutputDir>$(MSBuildThisFileDirectory)..\..\tools\CasualtiesUnknownOnline.ContractTool\bin\$(Configuration)\net48\</ContractToolOutputDir>
   </PropertyGroup>
+
+  <!-- .NET Framework refuses to load an assembly that carries the Mark-of-the-Web:
+       Windows marks every file that arrived from the internet with a
+       Zone.Identifier alternate data stream, every file copy preserves it, and the
+       runtime then treats the file as remote and fails the load with 0x80131515
+       ("attempting to load an assembly from a network location"). The vstest
+       resolver reports nothing but "could not load the extension from
+       xunit.runner.visualstudio.testadapter.dll", and the run exits 0 having
+       discovered none of this project's tests. Assemblies arrive here from a
+       download or a machine transfer (the gitignored references/ copies, an
+       inherited bin/), so clear the stream and fail the build if one survives —
+       a loud build beats a silent zero-test run. -->
+  <!-- DependsOnTargets, not just AfterTargets: both targets hang off Build, and
+       MSBuild orders those by declaration — the contract tool's runtime copy has
+       to land before the sweep, or its files stay marked. -->
+  <Target Name="ClearDownloadMarkFromOutput" AfterTargets="Build" DependsOnTargets="CopyContractToolRuntime" Condition="'$(OS)' == 'Windows_NT'">
+    <Exec Command="powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$o='$(OutDir).'; Get-ChildItem -LiteralPath $o -Recurse -File | Unblock-File; $m=@(Get-ChildItem -LiteralPath $o -Recurse -File | Where-Object { Get-Item -LiteralPath $_.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue }); if ($m.Count) { Write-Error ('download mark survived on: ' + ($m.Name -join ', ')); exit 1 }&quot;" />
+  </Target>
 
   <Target Name="CopyContractToolRuntime" AfterTargets="Build">
     <ItemGroup>

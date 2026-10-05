@@ -6,7 +6,7 @@
 # is edited and the other is updated; a gate reports the drift.
 # AGENTS.md files are instruction routing, not pages, and are not registered here.
 #
-docs/en/contributing/build-and-test.md | d2268e2fdd09b8bd1648728882f1de4028ddcd02 | docs/zh/contributing/build-and-test.md | dcc3f1d9082278972ba26189b52514ddabca48ed
+docs/en/contributing/build-and-test.md | 1ea90931a80ea4f1169deb489e5c5be854f75604 | docs/zh/contributing/build-and-test.md | ac2f7c5b32bdbd74b94fdaeeefd0223a81341171
 docs/en/contributing/documentation-standard.md | dce107cfc9ca768e7ba4fca2275475da5285801c | docs/zh/contributing/documentation-standard.md | 15ec81bb32cae69b18a25ea10459531d8834ca26
 docs/en/contributing/gates-and-rules.md | b7196fb579f0601970a51a2c3ed97df9d8c8de86 | docs/zh/contributing/gates-and-rules.md | 99ebc6a6ac9f0f5545fcb0466fc6b0128dd21c17
 docs/en/contributing/README.md | ffac48cf4e71a91239198ef64b1a50f5ba275618 | docs/zh/contributing/README.md | 891c0e1ab09c0c96510bf9af4450307060a238a0

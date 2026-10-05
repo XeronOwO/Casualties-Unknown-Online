@@ -91,7 +91,7 @@ cast list, which is the native "release over empty space" case.
 
 ## Findings filed
 
-- `docs/backlog/review/container-move-snapshot-only-sync.md` — every remote container move this run drove made
+- `container-move-snapshot-only-sync` — every remote container move this run drove made
   the OPERATOR's clone fact monitor warn (`nested container contents changed without an event sync`,
   `left the inventory without an event sync`), while the owner's client logged none. The monitor, the move
   and the replay are all this repository's code, so the carrier question is ours to answer.

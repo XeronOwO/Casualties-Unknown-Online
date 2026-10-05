@@ -6,6 +6,8 @@
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
 - Related: `resolved/remote-backpack-native-interaction-parity.md` and `resolved/remote-backpack-item-projection-acceptance-issues.md` (the rejected deliveries this ticket replaces, absorbed here in stage 0), `review/unified-remote-display-projection-rework.md`, `review/global-projection-framework.md`, `review/tab-backpack-open-close-immediately.md`, `done/guest-container-contents-ghost-drops-on-host.md`
 - Design: `docs/architecture/remote-inventory-native-parity.md` (stage 0 record, decision 217)
+- Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-d.md`
+  (rows 3, 7, 9, 13, 14; rows 4 and 8 stay `unproven`)
 
 ## Reported behaviour (2026-09-21)
 
@@ -299,6 +301,28 @@ reported behaviour must be re-run on the deployed build until they no longer rep
 consolidates that run — its steps, its expected outcomes, its three judgement items and the
 build-identity check — in
 `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md`.
+
+## Acceptance readings (batch `20261005-d`, 2026-10-05)
+
+Rows 7, 9 and 13 gained their verdicts here (all `pass`), and rows 3 and 14 were re-read beside the
+carrier fix that batch also judged:
+
+1. **Row 7's use and wear halves pass**, driving the radial CENTRE action the previous batch named as its
+   gap: the committed recipe stages the drag (`mode=hover`) and casts the centre target
+   (`mode=release cast=-2`), so the game's own `TryPerformRadialAction` runs and the `Body.UseItem` /
+   `Body.WearWearable` calls it makes are captured. Read: `UseItem captured` → the owner's
+   `[ItemUsed] bread … — host fact broadcast.` + `replayed native UseItem`; `WearItem captured` → the
+   owner's `[SlotMoved] autopump … → slot -3 (Wear) — host fact broadcast.` + `replayed native WearItem`.
+   The `combine` and `battery load/unload` halves were not driven, and `favourite` reads a key-down this
+   driver may not produce.
+2. **Row 9 passes on the container-guard shape**: `move refused by the native container guard: item
+   lantern did not enter container … (weight, tag restriction or distance)` — a named refusal, not a
+   silent no-op. Observed beside it and recorded as an observation, not judged: the radial no-op shape
+   logs nothing at all, because `RemoteDragIntentDispatcher.Emit` logs only `IsUnclassified`.
+3. **Row 13 passes**: the owner's soup written to `condition = 0.75` renders as `0.75` on the viewer's own
+   proxy one snapshot cycle later.
+4. Rows 4 and 8 stay `unproven`: the take-out needs the container window's own drag-out, and the medical
+   row needs a treatable limb fixture plus the wound-view staging; neither was built this session.
 
 ## Non-goals
 

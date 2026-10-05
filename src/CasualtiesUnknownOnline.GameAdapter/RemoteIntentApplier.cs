@@ -13,12 +13,15 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// call on the owner's REAL items, so the game's own inventory semantics — slot
 /// rules, container capacity and tag guards, the held/worn rules, item
 /// animations and sounds — stay the single implementation of the operation.
-/// Every discrete step runs inside a RemoteApply scope and ends in the immediate
-/// authoritative re-report, so every peer's clone converges without waiting for
-/// the 1 Hz character snapshot; a CONTINUOUS step (the while-dragging drain tick,
-/// which arrives every frame) does not re-report per frame — that state is
-/// un-evented continuous item state and rides the same periodic snapshot the
-/// game's own decay and battery drain use.
+/// Every discrete step runs inside a RemoteApply scope, nested in the
+/// RemoteIntentApply scope that marks it as this client's OWN execution rather
+/// than a replayed fact: the game's own call drives the ordinary item-fact
+/// carriers (drop, pickup, container content, destroy) from the exact native
+/// site, and the immediate authoritative re-report then makes every clone
+/// converge without waiting for the 1 Hz character snapshot. A CONTINUOUS step
+/// (the while-dragging drain tick, which arrives every frame) does not re-report
+/// per frame — that state is un-evented continuous item state and rides the same
+/// periodic snapshot the game's own decay and battery drain use.
 ///
 /// A guard refusal is the native refusal: it is logged with the intent, the item
 /// and the native reason, and the authoritative report then shows the item where
@@ -55,7 +58,15 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 			return;
 		}
 
+		// Two scopes, and both are load-bearing. RemoteApply keeps every presentation and echo
+		// guard answering as it does for any remote application (sounds, world replays, the
+		// "this is not my action" family). RemoteIntentApply states the other half: this client
+		// is executing a peer's INTENT on its own real items, so the item-fact carriers must
+		// report the result exactly as a local gesture's report would. With only RemoteApply the
+		// owner's replay was indistinguishable from a replayed fact, every carrier stayed silent,
+		// and the change reached the peers on the character snapshot alone.
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
+		using (CallContext.Enter(CallContext.Origin.RemoteIntentApply))
 		{
 			switch (msg.Kind)
 			{

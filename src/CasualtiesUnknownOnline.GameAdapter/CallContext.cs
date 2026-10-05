@@ -5,7 +5,8 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// <summary>
 /// Process-wide call identity: every game-object mutation CUO syncs runs inside
 /// a scope that declares WHO is mutating — a local player action, a remote
-/// message being applied, or an inventory-internal reorder. Guards read
+/// message being applied, a peer's intent this client executes on its own
+/// objects, or an inventory-internal reorder. Guards read
 /// <see cref="Current"/> instead of inferring identity from parameter values —
 /// "you cannot tell who you are from the parameters" was the root of the
 /// quake-break subset bug (the numbering gate swallowed remote breaks) and the
@@ -36,6 +37,17 @@ internal static class CallContext
 
 		/// <summary>A remote message is being applied.</summary>
 		RemoteApply,
+
+		/// <summary>This client is executing a PEER's inventory INTENT on its OWN objects
+		/// (<c>RemoteIntentApplier</c>): the peer asked through the host, the game's own call
+		/// then runs on this client's real items, so the mutation is this client's own fact and
+		/// its carriers must report it exactly as a local gesture's would. It ALWAYS opens inside
+		/// <see cref="RemoteApply"/> — the presentation and echo guards must keep seeing the
+		/// remote application — and it is the half that tells the two situations apart:
+		/// <see cref="IsReplayedRemoteFact"/> answers a replayed fact, this origin an execution
+		/// of someone else's request. Without it the owner's replay was indistinguishable from a
+		/// replay and every item-fact carrier stayed silent.</summary>
+		RemoteIntentApply,
 
 		/// <summary>An inventory-internal reorder (no world-meaningful move).</summary>
 		InternalReorder,
@@ -179,6 +191,24 @@ internal static class CallContext
 
 		return false;
 	}
+
+	/// <summary>
+	/// True when the current mutation REPLAYS a peer's fact: a message this client is applying
+	/// and whose facts the sender already holds, so the local-report hooks must stay silent —
+	/// the character restore re-materializes items through the game's own slot path
+	/// (<c>CharacterRestoreApplier</c>), and reporting those made the host refuse the restored
+	/// items as <c>Conflict (item … is already carried)</c>.
+	/// <para>
+	/// It is NOT true while this client executes a peer's intent on its own objects
+	/// (<see cref="Origin.RemoteIntentApply"/>): that mutation is this client's own fact and the
+	/// item-fact carriers report it exactly as a local gesture's would. The bare
+	/// <see cref="IsWithin"/> of <see cref="Origin.RemoteApply"/> answers true for BOTH
+	/// situations, and that ambiguity is what kept every remote-driven container move, drop and
+	/// pickup off the event carriers and on the periodic character snapshot — read by the
+	/// divergence monitor as a missed event, because it was one.
+	/// </para>
+	/// </summary>
+	internal static bool IsReplayedRemoteFact => IsWithin(Origin.RemoteApply) && !IsWithin(Origin.RemoteIntentApply);
 
 	/// <summary>Opens a scope; Dispose restores the previous origin. using-scoped — try/finally guarantees release on exception paths.</summary>
 	internal static IDisposable Enter(Origin origin)

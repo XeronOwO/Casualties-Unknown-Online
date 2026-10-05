@@ -45,8 +45,8 @@ internal sealed class ItemWorldSync(
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger<ItemWorldSync> _log = log;
 
-	/// <summary>True while a remote message is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not a bool).</summary>
-	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
+	/// <summary>True while a REPLAY of a peer's fact is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not a bool). A peer's inventory INTENT this client executes on its own objects answers it false, because that mutation is this client's own fact and must be reported like a local gesture's.</summary>
+	private bool IsReplayedFact => CallContext.IsReplayedRemoteFact;
 
 	/// <summary>
 	/// True while the world is being torn down (scene unload at game quit /
@@ -180,7 +180,7 @@ internal sealed class ItemWorldSync(
 	/// </summary>
 	internal void OnItemInstantiated(Item item)
 	{
-		if (IsRemoteApply || HarmonyTraverse.IsGenerating() || !IsStandaloneWorldItem(item))
+		if (IsReplayedFact || HarmonyTraverse.IsGenerating() || !IsStandaloneWorldItem(item))
 		{
 			return;
 		}
@@ -296,7 +296,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemDestroyed(Item item)
 	{
-		if (IsRemoteApply || HarmonyTraverse.IsGenerating() || _suppressDestroys)
+		if (IsReplayedFact || HarmonyTraverse.IsGenerating() || _suppressDestroys)
 		{
 			return;
 		}
@@ -349,7 +349,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemDropped(Item item)
 	{
-		if (IsRemoteApply || HarmonyTraverse.IsGenerating())
+		if (IsReplayedFact || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
@@ -397,7 +397,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemThrown(Item item)
 	{
-		if (IsRemoteApply || HarmonyTraverse.IsGenerating())
+		if (IsReplayedFact || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}

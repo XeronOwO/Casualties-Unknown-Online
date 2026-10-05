@@ -52,13 +52,13 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Container moves reach the viewer as a snapshot](todo/container-move-snapshot-only-sync.md) — **Medium** — the clone fact monitor warns on every move.
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
 
 ### In progress
 
 ### Review
 
+- [Container moves reach the viewer as a snapshot](review/container-move-snapshot-only-sync.md) — **Medium** — a peer's intent is not a replay.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.

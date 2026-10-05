@@ -1894,5 +1894,5 @@ committed recipe `tools/acceptance/recipes/remote-gesture.cs` (`mode=list|open|c
 - **A passing row can still carry the run's most valuable finding.** Every container move this batch drove
   made the operator's `CloneFactTable` monitor warn (`nested container contents changed without an event
   sync`) while the owner logged nothing. The rows passed; the warning became
-  `docs/backlog/todo/container-move-snapshot-only-sync.md`. Read the run's own diagnostics before closing
+  `docs/backlog/review/container-move-snapshot-only-sync.md`. Read the run's own diagnostics before closing
   a batch, not only the row's expected line.

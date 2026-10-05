@@ -28,6 +28,7 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | tooling/config-options-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | tooling/acceptance-recipe-layer-selfcheck.md | Other | current | the recipe layer: driver `-Action recipe`, declared-arg recipes under `tools/acceptance/recipes/`, gates; the live run is still pending |
 | items/container-content-sync-selfcheck.md | Items | current | candidate current evidence; verify before citing |
+| items/container-move-event-carrier-selfcheck.md | Items | current | a peer's intent executed by the owner is the owner's own fact: `CallContext.Origin.RemoteIntentApply` + `IsReplayedRemoteFact`; the three-client run is still pending |
 | players/cross-player-component-medicine-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/cross-player-component-tool-use-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/cross-player-drinkable-medicine-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |

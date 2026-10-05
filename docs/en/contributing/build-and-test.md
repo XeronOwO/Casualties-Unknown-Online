@@ -116,20 +116,20 @@ The full lookup — the shape of a line, what to search for and the triage order
   exactly like a new type being invisible. Check the build output before suspecting the consumer.
 - `dotnet format` rewrites files. Never run it inside a review window over a frozen tree, and re-read
   a file after any external tool has touched it.
-- **`dotnet test` can report success while running nothing.** With the .NET SDK 10.0.401 toolchain the
-  `net48` project's test adapter can fail to load: the run prints that it could not load the extension
-  from `xunit.runner.visualstudio.testadapter.dll` and that the test assembly holds no available tests,
-  then exits `0` having run only the gate project. **Read the summary, not the exit code**: the gate
-  project is a few hundred cases, the full suite is thousands. Point the runner straight at the adapter
-  from the package to get past it —
-  `dotnet test <test-project> --test-adapter-path "<nuget-packages>/xunit.runner.visualstudio/4.0.0/build/net472"`.
-  Already ruled out, so nobody repeats the search: a `Microsoft.Bcl.AsyncInterfaces` missing from the
-  SDK's `Extensions` folder (adding assembly version 9.0.0.8 changes nothing); the test-platform and
-  adapter files themselves (byte-identical to those of a minimal `net48` xunit project that discovers
-  its tests on the same machine); the product, game and framework assemblies; the output
-  subdirectories; the non-assembly files; the test project's `app.config`; a stray `.exe`; the
-  directory name; and the SDK version. The root cause is still open — the workaround is what is
-  verified.
+- **`dotnet test` can report success while running nothing.** The `net48` test host loads the adapter and
+  the assemblies beside it with `LoadFrom`, and .NET Framework refuses any file that carries the
+  Mark-of-the-Web — a `Zone.Identifier` alternate data stream that Windows attaches to a downloaded file,
+  that every file copy preserves, and that makes the runtime treat the file as remote and fail the load
+  with `0x80131515` ("attempting to load an assembly from a network location"). All the run then says is
+  that it could not load the extension from `xunit.runner.visualstudio.testadapter.dll` and that the test
+  assembly holds no available tests, and it exits `0` having run the gate project alone.
+  `ClearDownloadMarkFromOutput` in the test project clears that stream from its whole output after every
+  build and fails the build if one survives, so the trap only reaches you through a hand-made or inherited
+  output; for that, `Get-ChildItem <output-dir> -Recurse -File | Unblock-File`, then rebuild. **Read the
+  summary, not the exit code**: the gate project is a few hundred cases, the full suite is thousands.
+  The usual source of the mark is the gitignored game assemblies in `references/` — a copy that arrived by
+  download or machine transfer carries it into every output that copies it, so clear it there too
+  (`Get-ChildItem references -File | Unblock-File`).
 - Nothing in this suite is a game session. Green tests prove the logic; two real clients on screen are
   the [agent's acceptance run](../../acceptance/workflow.md), a separate step after the commit
   ([Set up a development environment](../start/set-up-dev-environment.md)).

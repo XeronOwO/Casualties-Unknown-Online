@@ -18,6 +18,12 @@
 
     <!-- Misc / wire / mapping -->
     <PackageVersion Include="Mapster" Version="6.0.0" />
+    <!-- The test output must carry this signed package copy instead of the game's
+         own: the game ships a delay-signed Newtonsoft.Json, and the .NET Framework
+         test host refuses it with 0x80131045 while Mapster scans the mapped
+         members' attributes. Identical identity (13.0.0.0, 30ad4fe6b2a6aeed), so
+         binding is unchanged — only the signature becomes verifiable. -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- tools/CasualtiesUnknownOnline.ContractTool: assembly metadata read
          (snapshot) and write (test fixtures) without loading or executing the
          target assembly. Never referenced by the plugin. -->

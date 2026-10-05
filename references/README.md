@@ -34,6 +34,15 @@ Copy-Item "$bepinex\0Harmony.dll"               .   # HarmonyX fork 2.9.0 (runti
 Copy-Item "$bepinex\plugins\KrokMP\steam_api64.dll" .  # Steam native lib (deployed via deploy.ps1)
 ```
 
+> **Clear the download mark on what you place here.** A DLL that arrived through a
+> browser, an archive or another machine carries a `Zone.Identifier` alternate data
+> stream (the file properties' "Unblock" removes it). .NET Framework refuses to load
+> such a file — `0x80131515`, "attempting to load an assembly from a network
+> location" — and every copy preserves the stream, so it rides into the build output
+> and stops the `net48` test host from loading its adapter, which then runs nothing
+> while still exiting `0` ([build and test](../docs/en/contributing/build-and-test.md)).
+> Clear it once, here: `Get-ChildItem . -File | Unblock-File`.
+
 > **Why reference 0Harmony directly instead of the `Lib.Harmony` NuGet package**:
 > the game's BepInEx/core ships 0Harmony.dll 2.9.0 (the BepInEx fork of
 > HarmonyX), while nuget.org's `Lib.Harmony` stops at 2.4.2. Referencing the
@@ -56,6 +65,13 @@ Copy-Item "$bepinex\plugins\KrokMP\steam_api64.dll" .  # Steam native lib (deplo
 | `netstandard.dll` | `<game>\CasualtiesUnknown_Data\Managed\` |
 | `0Harmony.dll` | `<game>\BepInEx\core\`(HarmonyX fork 2.9.0 — not on NuGet as 0Harmony) |
 | `steam_api64.dll` | `<game>\BepInEx\plugins\KrokMP\`(native,not a compile reference — deploy.ps1 ships it) |
+
+`Newtonsoft.Json.dll` is deliberately absent from both lists above: the shape the
+game ships is delay-signed, so a .NET Framework host that verifies it refuses to
+load it (`0x80131045`, "strong name signature could not be verified"), and the
+`net48` test project takes the signed `Newtonsoft.Json` NuGet package instead. The
+assembly identity is the same one (`13.0.0.0`, `30ad4fe6b2a6aeed`), so nothing
+binds differently.
 
 Keep the versions in sync with the game build you are developing against
 (see `AGENTS.local.md` for this machine's game path).

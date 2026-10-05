@@ -7,7 +7,7 @@
   proved the mechanism from the code and could NOT prove reachability — recorded rather than fixed on a
   guess, per the 2026-10-06 ruling that a defect the repository's own history introduced is fixed or
   ticketed.
-- Related: `review/container-move-snapshot-only-sync.md` (the change that made the consequence reachable
+- Related: `todo/container-move-snapshot-only-sync.md` (the change that made the consequence reachable
   from more paths), `review/remote-inventory-native-parity-rework.md` (the gesture family)
 - Evidence: `docs/evidence/selfchecks/items/container-move-kernel-fact-selfcheck.md` §4
 

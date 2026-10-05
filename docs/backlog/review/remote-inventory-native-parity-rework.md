@@ -1,6 +1,8 @@
 # Remote inventory operations: run the native path end to end
 
-- Status: Review
+- Status: Review (batch `20261005-e`: row 4 and the battery-unload half pass — the take-out now works in
+  both owner directions through the container's own contents window; row 8, the battery-load half, the
+  combine half and the favourite sub-kind stay open)
 - Priority: Critical
 - Category: Remote inventory / native interaction parity / architecture rework
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
@@ -323,6 +325,34 @@ carrier fix that batch also judged:
    proxy one snapshot cycle later.
 4. Rows 4 and 8 stay `unproven`: the take-out needs the container window's own drag-out, and the medical
    row needs a treatable limb fixture plus the wound-view staging; neither was built this session.
+
+## Acceptance readings (batch `20261005-e`, 2026-10-05)
+
+The same three-client session that re-read the container-move fix judged three more of these rows:
+
+1. **Row 4 passes, in both owner directions.** The take-out's missing capability was the container's own
+   contents window: the contained child's proxy only exists in the operator's scene once
+   `PlayerCamera.OpenContainer(proxy)` has run, which `container-panel mode=remote` stages
+   (`contentsCount: 1`). Releasing that child **into the world** is what the row's
+   `TakeOutOfContainer` classification needs — the owner logs
+   `[ItemTrace] … origin=OnItemUnloadedFromContainer result=Committed(1) events=[Unload]` +
+   `replayed native TakeOutOfContainer` — and the child then reads in the world on the third peer's own
+   view. The same gesture replayed on the guest's bag by the host (guest as owner) behaves identically.
+   Note for the remaining readings: releasing the contained child onto an empty **ring slot** is
+   classified `PickUpToSlot` instead (the owner's replay still unloads the child through
+   `Body.PickUpItem`, so it leaves the container — but the intent the row names is the world release).
+2. **Row 7's battery half passes for `UnloadBattery`.** Guest `UnloadBattery captured` → owner
+   `[PickUpResult] mediumbattery → slot (slot 1)` + `the native unload ejected item aed's battery onto
+   the owner's body.` + `replayed native UnloadBattery`, and both viewers see the ejected battery arrive
+   as its own carried fact with no divergence line. The fixture is narrower than it looks: world
+   items carry an installed battery (`battery.hasBattery`), `Utils.Create`d copies carry the component
+   without one and the native guard refuses them, so the world item has to be brought to the owner's
+   body before the game's own pickup admits it.
+3. `LoadBattery` from the remote view was not driven (it needs a battery item in the ring and a receiver
+   with a battery slot), and the `combine` half and the `favourite` sub-kind keep the limits batch
+   `20261005-d` recorded; row 8 still needs its medical fixture.
+4. Row 14's monitor half was re-read for one item only (the dog food insert, silent on both viewers);
+   the four-item series stands from batch `20261005-d`.
 
 ## Non-goals
 

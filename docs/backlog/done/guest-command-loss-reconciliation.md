@@ -1,6 +1,7 @@
 # Guest command loss: local pickup/drop result is not reconciled
 
-- Status: Review — row 2 fixed (the queue survives a same-run checkpoint restore); the machine re-run of the matrix is the next step
+- Status: Done (batch `20261005-b`: every row of the acceptance matrix passes on the fixed artifact)
+- Acceptance records: `docs/evidence/acceptance/guest-command-loss-reconciliation-20261005-a.md` (the run that rejected row 2), `docs/evidence/acceptance/guest-command-loss-reconciliation-20261005-b.md` (the re-run that accepts all nine)
 - Priority: Medium
 - Category: Network / sync coverage / items
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I5, plus the empty-host-table caveat the audit attached to row I1)
@@ -168,6 +169,44 @@ transport still reports the send as successful). Record:
 - Fix row 2 first: keep the queue across a checkpoint restore, or scope the clear to operations the checkpoint
   actually covers, then re-run the row.
 
+## Real-machine acceptance — batch 20261005-b (2026-10-05): accepted
+
+Three clients on one world (physical host + two sandboxes), deployed artifact `0.1.0+53d577e0`, the swallow
+injected in the production lazy-P2P shape. Record:
+`docs/evidence/acceptance/guest-command-loss-reconciliation-20261005-b.md`. The batch ran two client
+sessions of the one artifact (the row-4 attempt's layer change left the members out of the world with a
+`[LayerMod] baseline divergence` storm, so the run restarted all three clients cold and re-judged the
+remaining rows).
+
+- **Row 2 passes, and the fix is what shows.** The guest's drop report was swallowed 4.0 s before the host's
+  own periodic checkpoint; the guest log then reads
+  `kept 1 unacknowledged item report(s) across the world baseline restored at revision 672 (run 1)` at the
+  restore edge, the report survives its own re-report cadence, and it converges two repeats later
+  (`converged after 2 re-report(s) — the host committed operation 3801889743155758268`). The host's first
+  sight of the operation is the re-report, its transfer entry for the item goes away and the item is back in
+  its world table (`tableCount` 1 → 0, `worldCount` 252 → 253), while the guest's inventory is empty. The
+  pre-fix behaviour on the same shape was the batch-a failure.
+- Rows 1, 3, 5, 8 and 9 pass again on this artifact, re-run in the batch's second session rather than cited
+  from batch a: a swallowed pickup, a swallowed world-item destroy, a drop whose committed-batch receipt
+  died (the host materializes once and answers both repeats with `present — re-placing`), a fully swallowed
+  creation+pickup pair replaying in send order with the player keeping the carry, and a lost drop followed
+  by a refusal that pops only the newer pickup while the older drop re-reports and lands.
+- Row 6 passes on the SESSION edge this time: the queue is dropped at the session end
+  (`dropped 1 unacknowledged item report(s): the session ended.`), the rejoin re-baselines from the host's
+  checkpoint (revision 674, 254 items) and the world-entry item snapshot, no re-report follows, and both
+  sides agree afterwards on the state the host never learned to change (its transfer entry still names the
+  guest) — the declared session-boundary loss, not a divergence.
+- Row 7 passes on a session that is intact: the third client's clone read lists no item under any remote
+  owner (no duplicate of the healed drop), and all three clients hold the dropped item once, at the same
+  world position.
+- Row 4 passes too, which batch a left `unproven`. The row needs the host's world-item table empty, and the
+  only edge that empties it is a layer change; that edge reloads the member's scene, so the member's own
+  inbound is parked as well to keep its body — and its carried item — alive through the transition. The
+  destroy then lands with the host's world table at `worldCount` 0 and an empty transfer table, the re-report
+  is the only frame the host sees, and the transfer entry for the guest's last carried item goes away. The
+  freeze must stay under the 15 s `GuestHostSilenceWatchdog`: the first landing ran 17.1 s over it and the
+  session ended under the report, which is recorded as the limit.
+
 ## Row 2 fix (2026-10-06)
 
 **The defect.** `OnCheckpointRestored` treated every restored baseline as a world replacement and emptied the whole
@@ -316,9 +355,12 @@ protocol version this section does not mention and the case count it does were b
   item-domain audit gap that was row I8 has since landed
   (`done/carried-inventory-registration-re-report.md`, 2026-09-19), so no audit gap of
   the item domain is open any more.
-- Dual-client acceptance (agent-run batch, `docs/acceptance/`): a guest's pickup/drop action
-  must converge after a swallow without a reconnect, and the row-2 shape — a drop swallowed
-  as the host's periodic checkpoint lands — must converge too.
+- Dual-client acceptance (agent-run batch, `docs/acceptance/`): **accepted 2026-10-05 in batch
+  `20261005-b`** — a guest's pickup/drop/destroy action converges after a swallow without a reconnect, and
+  the row-2 shape (a drop swallowed as the host's periodic checkpoint lands) converges too. Record:
+  `docs/evidence/acceptance/guest-command-loss-reconciliation-20261005-b.md`; the surviving limits are the
+  layer-change exposure declared above, the session-boundary loss, and row 4's freeze-under-the-watchdog
+  staging.
 
 ## Non-goals
 

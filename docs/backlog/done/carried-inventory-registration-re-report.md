@@ -8,7 +8,7 @@
 - Acceptance (20261001-i): row 3 `pass` — with the host's per-guest table cleared offline and the kernel facts left untouched, the rejoin rebuilt it exactly once per id through the registration path (one `Registered 2/2 … (0 already registered, 0 refused by the kernel)` line, no duplicate entry, no `Conflict` on either end), and the guest's container came back WITH its contents from the snapshot — record `docs/evidence/acceptance/carried-inventory-registration-re-report-20261001-i.md`
 - Category: Network / sync coverage / items / arbitration
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I8)
-- Related: `resolved/remote-backpack-native-interaction-parity.md`, `resolved/remote-backpack-item-projection-acceptance-issues.md`, `review/guest-command-loss-reconciliation.md` (the sibling swallowed-guest-report landing)
+- Related: `resolved/remote-backpack-native-interaction-parity.md`, `resolved/remote-backpack-item-projection-acceptance-issues.md`, `done/guest-command-loss-reconciliation.md` (the sibling swallowed-guest-report landing)
 
 ## Problem (evidence)
 
@@ -188,7 +188,7 @@ production while this section declared the gap closed. It also found a MAJOR (th
 named a cadence unit test plus prose for a scenario no test drove, and row 4's test actually
 simulated a cross-player heal) and minors: the unstated `TryUpdateState` removal, two dangling
 `todo/…` citations in `KernelProtocolCommandHandler.cs`, stale "row I8 is the remaining gap" claims in
-`review/guest-command-loss-reconciliation.md`, the second registration edge missing from the matrix
+`done/guest-command-loss-reconciliation.md`, the second registration edge missing from the matrix
 row's trigger cell, the dense window being spendable by a long load, and the "one frame per minute"
 cost claim. Everything else held: every number reproduced, no wire change (protocol 31), the host
 half's two rules, and the red-first record — the reviewer rebuilt a pristine HEAD tree with

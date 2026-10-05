@@ -1951,3 +1951,40 @@ inventory without an event sync`. The ticket's row is a ZERO-warning row, so it 
   relocation-blind second implementation (`ItemContainerSyncWriter`/`SyncContainerContents`) is deleted.
   When row A1 is re-read, look for where the child SITS in the kernel and in the batch — the `applied` line
   alone proves only half the chain.
+
+## 2026-10-05 — Batch `20261005-e`: a zero-warning row needs a control gesture, and the re-report that outruns its own event
+
+- Symptom: the container-move fix passed every container kind (insert, take-out, slot release, battery
+  unload, both owner directions — zero divergence on the operator and the third peer), yet row A1 failed
+  again on the DROP kind: `left the inventory without an event sync` on both viewers, in both
+  directions.
+- What localised it: the same drop driven through the owner's OWN gesture. The host dropped its own
+  lantern with a local release and **neither viewer warned** (`marks-cm-localdrop.txt`), and the owner
+  logged no `inventory changed — immediate re-report` either. When a row's expectation is an ABSENCE,
+  drive the same scenario through the path you are NOT testing as a control: it is what turns "the drop
+  carrier is missing" into "the remote-intent path's re-report is early".
+- The actual ordering: `RemoteIntentApplier` ends every applied non-continuous intent with
+  `CharacterDataSync.ReportInventoryChanged` (its comment: "the immediate re-report makes every clone …
+  converge now"), so the owner's character snapshot omitting the item goes out at once, while the drop's
+  own report waits for the pending-drop flush — 30 ms later in this run. Read the owner's own log for
+  both lines before blaming a carrier: the event exists, it is just behind the snapshot that announces
+  its absence. A world-driven burst that dropped three of the host's items inside 2 ms confirmed it from
+  the other side: the one whose report was already flushed was silent, the two still pending warned.
+- `CloneFactTable.WarnOnDivergence` says outright that "a change whose event is still in flight trips the
+  warning too" — so the monitor alone cannot tell a late event from a missing one. The owner-side trace
+  is the discriminator, and it belongs in the record either way.
+- A whole intention kind can be unreachable in process: `MoveContainerChildren` needs the game's own
+  `Input.GetKey(KeyBinds.GetBind("expanddesc"))`, which the live probe reads as `LeftShift`, `false`
+  (`probe-expand-key.cs`), and the driver may not synthesise OS-level key state. Probe the guard, name
+  the bind, and record the row `blocked` — three batches have now skipped this kind silently.
+- Fixture staging has a sharp edge: a world-generated item carries an INSTALLED battery
+  (`item.battery.hasBattery == true`) while a `Utils.Create`d copy carries only the component, so the
+  native R2 guard refused the first two attempts with a named line. Bringing the nearest world item to
+  the body (a scene setup, the same class as `body-place`) and taking it through the game's own pickup
+  is what made the row drivable — worth reaching for before writing a row off.
+- `item-world-read` takes BLOCK cells, not world coordinates (`BlockToWorldPos`). A read aimed at the
+  body's own coordinates silently returned one unrelated item 500 units away. Derive the cell from a
+  position you know in the same world (the body's own, read through `probe`/`body-read`).
+- The third client can still be mid-handshake long after the host started the run: this batch's `Steam2`
+  member confirmed its handshake 2.5 minutes late, materialized the world on its own, and needed no
+  re-drive. Check both member endpoints before the fixtures; do not repeat `start-run`.

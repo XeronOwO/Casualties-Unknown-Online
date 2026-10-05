@@ -1,7 +1,9 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Review (code complete; row A1 awaits a three-client batch — the rejected reading's second half
-  is fixed, see "Fixed by the kernel-side report" below)
+- Status: Todo — Rejected (batch `20261005-e`: the container kinds, take-out, slot release and battery
+  unload all pass on the deployed fix, but row A1 still fails on the drop kind — the operator and the
+  third peer warn `left the inventory without an event sync` in both owner directions — and container
+  expansion is blocked on a driver capability; see "Rejected by batch `20261005-e`" below)
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -9,7 +11,8 @@
   repository's own history introduced is fixed or ticketed.
 - Related: `review/remote-inventory-native-parity-rework` (the path that produced the warnings),
   `done/carried-inventory-registration-re-report.md`, `docs/architecture/remote-inventory-native-parity.md`
-- Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-d.md` (rejected)
+- Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-e.md`
+  (rejected); the earlier `…-20261005-d.md` reading stands as history
 
 ## Symptom (evidence)
 
@@ -198,6 +201,42 @@ least one full periodic cycle, on a three-client batch against the deployed arti
 the rejected batch drove (insert, take-out, slot release, drop, container expansion, battery load/unload)
 — with the guest-owner container move included, since the wire path and the host-local path are now the
 same command and both are claimed silent.
+
+## Rejected by batch `20261005-e` (2026-10-05)
+
+The fix's own claim holds for every container kind it touched. On the deployed `0.1.0+cdd93044…` the
+three-client run read the operator's and the third peer's clone-fact monitor at zero through insert,
+take-out, slot release and battery unload, host-owner and guest-owner direction alike: the owner's
+committed report carries the moved child (`[ContainerLoad] dogfood (id …) moved inside body container
+trashbag — root content event up to trashbag`), and the next snapshots show no divergence. Batch
+`20261005-d`'s pair of warnings — one per container move, one millisecond after `applied` — did not
+reproduce once in this run.
+
+**Row A1 still fails, on the drop kind, and the failure is an ordering race inside the owner's own
+client.** A remote-driven `DropItem` ends the apply in `RemoteIntentApplier` with
+`domains.CharacterDataSync.ReportInventoryChanged(body)` ("The owner's own scene changed: the immediate
+re-report makes every clone … converge now"), which sends a character snapshot that no longer carries
+the item; the drop's own item report is committed later by the pending-drop flush (~30 ms in this run).
+The peers apply the snapshot first, see an item vanish while its event is still in flight, and warn —
+the wording `left the inventory without an event sync`, on the operator and on the third peer, in both
+owner directions (`scrapmetal` at 22:50:37, `waterbottle` at 22:53:21).
+
+Two controls in the same run attribute it to that re-report rather than to the drop carrier: a **local**
+drop of the owner's own item produces no immediate re-report and no warning at all, and a world-driven
+burst that dropped three of the host's items inside 2 ms warned only about the two whose reports were
+still pending — the one already flushed at 22:56:12.448 was silent. So the carriers this ticket fixed are
+not the remaining gap; the re-report `RemoteIntentApplier` sends for a `DropItem` intent is, because it
+reaches the peers ahead of the drop report it announces. (The peers do materialize the dropped item from
+that report: `[ItemDrop] scrapmetal … not present — requesting materialization at (1.1,483.2)`, and the
+third peer's own world read returns the id at the drop cell.)
+
+The one kind this run could not put in front of the monitor is container expansion
+(`MoveContainerChildren`): the native branch that produces it needs
+`Input.GetKey(KeyBinds.GetBind("expanddesc"))`, which reads `LeftShift` and `false` on the live client,
+and this run's driver is in-process only — by its own contract it never synthesises OS-level key state.
+That row is `blocked` on that capability, named rather than guessed.
+
+Evidence: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-e.md`.
 
 ## Non-goals
 

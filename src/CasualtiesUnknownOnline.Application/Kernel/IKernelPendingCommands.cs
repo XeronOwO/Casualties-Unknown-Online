@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// </summary>
 public interface IKernelPendingCommands
 {
-	/// <summary>Remember a command that may need a re-report.</summary>
-	void Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType);
+	/// <summary>Remember a command that may need a re-report, with the run epoch its frame was stamped for.</summary>
+	void Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType, ulong runEpoch);
 
 	/// <summary>The host committed this operation — the command is answered.</summary>
 	void ClearCommitted(ulong operationId);

@@ -1,8 +1,10 @@
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -57,6 +59,17 @@ public class GuestCommandReconciliationTests
 
 	private static ulong HostRevision(ItemSimWorld w) =>
 		w.Host.Services.GetRequiredService<ItemKernelAuthority>().CurrentGlobalRevision;
+
+	/// <summary>The run one node currently serves.</summary>
+	private static ulong RunEpochOf(TestNode node) =>
+		node.Services.GetRequiredService<ItemKernelAuthority>().CreateCheckpoint().RunEpoch.Value;
+
+	/// <summary>The host's in-session repair group — the periodic wave that carries a real checkpoint envelope to one member.</summary>
+	private static void SendHostCheckpoint(ItemSimWorld w, TestNode to)
+	{
+		w.Host.Services.GetRequiredService<WorldEntryFanout>().SendInSessionRepair(to.SteamId);
+		w.Driver.Tick(100);
+	}
 
 	/// <summary>A live count of the kernel frames the HOST receives from one sender.</summary>
 	private sealed class HostKernelFrames(TestNode host, ulong from)
@@ -126,6 +139,103 @@ public class GuestCommandReconciliationTests
 
 		Assert.True(w.HostTable(42), "the re-report must put the item back in the host's world table");
 		Assert.Equal(0, Window(w.G1).PendingCount);
+	}
+
+	[Fact]
+	public void HostCheckpointRestore_KeepsTheOutstandingReportAndItStillConverges()
+	{
+		// Row 2 of the ticket's machine acceptance (batch 20261005-a): the host's own
+		// periodic checkpoint landed 3.4 s after a swallowed drop and the window
+		// emptied itself ("the world baseline was restored at revision 950"), so the
+		// report was never re-sent and the two sides disagreed for the rest of the
+		// session. A restored baseline rebuilds this side's mirror of the HOST's
+		// state; it says nothing about reports travelling the other way.
+		var recorder = new RecordingLoggerFactory();
+		using var w = ItemSimWorld.Create(s => s.AddSingleton<ILoggerFactory>(recorder));
+		SpawnWorldItem(w, 42);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(100);
+		Assert.True(w.TransferredOf(w.G1, 42), "setup: the guest holds the item");
+		Assert.Equal(RunEpochOf(w.Host), RunEpochOf(w.G1)); // the report and the restored baseline describe one run
+
+		SwallowKernelChannel(w, w.G1, w.Host);
+		w.Drop(w.G1, 42, Item());
+		w.Driver.Tick(500);
+		Assert.Equal(1, Window(w.G1).PendingCount);
+		Assert.True(w.TransferredOf(w.G1, 42), "the swallowed drop must leave the host holding the guest's carry");
+
+		SendHostCheckpoint(w, w.G1); // the host's periodic repair: a real checkpoint envelope the guest restores
+
+		Assert.True(
+			recorder.Messages(LogLevel.Information, nameof(GuestCommandReconciliation)).Any(line => line.Contains("across the world baseline restored at revision")),
+			"setup: the checkpoint must really have been restored on this side — the window's own keep line is the evidence");
+		Assert.Equal(1, Window(w.G1).PendingCount); // the baseline does not supersede a report travelling the other way
+
+		HealKernelChannel(w, w.G1, w.Host);
+		w.Driver.TickUntil(() => !w.TransferredOf(w.G1, 42), maxMs: 30_000);
+
+		Assert.True(w.HostTable(42), "the re-report must put the item back in the host's world table");
+		Assert.Equal(0, Window(w.G1).PendingCount);
+	}
+
+	[Fact]
+	public void HostCheckpointRestore_KeepsTheWindowsCadenceAndRemainingBudget()
+	{
+		// The keep must not restart the window: a report that already spent part of its
+		// budget stays on the same clock, so a checkpoint landing mid-life does not hand
+		// it a fresh 12 repeats.
+		using var w = ItemSimWorld.Create();
+		SpawnWorldItem(w, 42);
+
+		SwallowKernelChannel(w, w.G1, w.Host);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(5_200); // one cadence elapsed: the report left this client once and died in flight
+
+		Assert.Equal([1], Window(w.G1).PendingReportsFor(42));
+
+		SendHostCheckpoint(w, w.G1);
+
+		Assert.Equal([1], Window(w.G1).PendingReportsFor(42)); // the spent repeat is not refunded
+		Assert.Equal([WireCommandKind.ItemPickup], Window(w.G1).PendingKindsFor(42));
+	}
+
+	[Fact]
+	public void CheckpointRestoreOfAnotherRun_DropsTheStaleReports()
+	{
+		// The other half of the restore rule: a baseline that identifies ANOTHER run
+		// makes the queued reports unjudgeable — the host's own gate drops a command
+		// whose epoch is not the run it serves — so they leave the window instead of
+		// spending their budget on frames that can never converge.
+		var recorder = new RecordingLoggerFactory();
+		using var w = ItemSimWorld.Create(s => s.AddSingleton<ILoggerFactory>(recorder));
+		SpawnWorldItem(w, 42);
+
+		SwallowKernelChannel(w, w.G1, w.Host);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(500);
+		Assert.Equal(1, Window(w.G1).PendingCount);
+		Assert.True(w.HostTable(42), "setup: the swallowed pickup left the item in the host's world table");
+
+		var guest = w.G1.Services.GetRequiredService<ItemKernelAuthority>();
+		var current = guest.CreateCheckpoint();
+		Assert.True(
+			guest.Restore(new GameCheckpoint(new RunEpoch(current.RunEpoch.Value + 1), current.GlobalRevision, current.Items, current.RandomStreams, current.Run, current.WorldEntities, current.Players, current.Enemies, current.Fluids)).Success,
+			"setup: the next run's baseline must restore");
+
+		Assert.Equal(0, Window(w.G1).PendingCount);
+		var drops = recorder.Messages(LogLevel.Warning, nameof(GuestCommandReconciliation));
+		Assert.True(
+			drops.Any(line => line.Contains("stamped for another run")),
+			"dropping a report because its run is gone must be named as the loss it is (its own surfacing path)");
+
+		HealKernelChannel(w, w.G1, w.Host);
+		for (var i = 0; i < 300; i++)
+		{
+			w.Driver.Tick(33); // 10 s — two windows had the stale report still been queued
+		}
+
+		Assert.Equal(0, Window(w.G1).PendingCount);
+		Assert.True(w.HostTable(42), "the stale report never reached the host — the item is still in its world table");
 	}
 
 	[Fact]

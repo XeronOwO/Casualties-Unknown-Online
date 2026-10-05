@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1029,
+  "count": 1031,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -998,13 +998,25 @@
       "cluster": "items",
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
-      "quote": "internal void Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType)"
+      "quote": "internal void Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType, ulong runEpoch)"
     },
     {
       "cluster": "items",
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
-      "quote": "queue.Add(new PendingCommand(itemId, operationId, command.Kind, frame, _time.NowMs));"
+      "quote": "queue.Add(new PendingCommand(itemId, operationId, command.Kind, frame, runEpoch, _time.NowMs));"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
+      "quote": "entry.Value.RemoveAll(pending => pending.RunEpoch != runEpoch);"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.GameState/Domains/World/WorldDomainModule.cs",
+      "quote": "a run can start once per kernel epoch"
     },
     {
       "cluster": "items",
@@ -1052,7 +1064,7 @@
       "cluster": "items",
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
-      "quote": "_pendingCommands.Track(command, header.OperationId, frame, payloadType);"
+      "quote": "_pendingCommands.Track(command, header.OperationId, frame, payloadType, header.RunEpoch);"
     },
     {
       "cluster": "items",

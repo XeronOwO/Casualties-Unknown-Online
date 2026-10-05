@@ -76,15 +76,41 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// never answers is named in a warning and stops being re-sent, which is the
 /// accepted-loss discipline the session-control windows use. The budget is spent
 /// only by reports that actually left this client
-/// (<see cref="PacketSender.TrySend"/> reports the transport's verdict), and the
-/// queue is dropped wholesale when the world baseline is replaced (a restored
-/// checkpoint or a new session), because the baseline supersedes every in-flight
-/// local operation. A session that ends and re-forms re-enters through the
-/// host's checkpoint and its world-entry item snapshot, so a report swallowed
-/// across that boundary converges through the re-baseline instead of through
-/// this queue: it is deliberately NOT re-sent after a rejoin, and a diverging
-/// local result the rejoin's item snapshot does not carry is the same declared
-/// loss any uncommitted local action has at a session boundary.
+/// (<see cref="PacketSender.TrySend"/> reports the transport's verdict).
+/// </para>
+///
+/// <para>
+/// The queue belongs to the RUN, not to a baseline. The SESSION edge drops it;
+/// a host checkpoint does not — that checkpoint rebuilds this side's mirror of the
+/// HOST's state and says nothing about reports travelling the other way, so a
+/// report outstanding when the host's periodic cycle lands is still this side's to
+/// re-send. (Emptying it there was the machine acceptance's row 2, where a 5 s
+/// cadence met a 60 s cycle and the report was lost for good.) What a restore CAN
+/// settle is the RUN: a report stamped for another run can never be judged — the
+/// host's gate drops a command whose epoch is not the run it serves
+/// (<c>KernelProtocolService.HandleCommand</c>) — so it leaves the window, named.
+/// That needs a host world-restore of another run inside a live lobby; a run
+/// cannot otherwise share an epoch (<c>WorldDomainModule.DecideStartRun</c>).
+/// </para>
+///
+/// <para>
+/// Declared limit: a LAYER change keeps the epoch, so a report about a world item
+/// of the replaced layer is still queued and can be replayed into the new layer.
+/// An operation kind is refused at once on an item this host never judged, but a
+/// replayed CREATION is accepted on an unknown id, so a swallowed world-item
+/// creation that outlives a layer change can materialize there. The sibling
+/// windows drop at the world/layer boundary instead; an item cannot, because
+/// carried items cross it and dropping their reports is the divergence this window
+/// removes. The exposure is bounded by the report's own budget, as it was by the
+/// host's 60 s cycle before this window kept the queue.
+/// </para>
+///
+/// <para>
+/// A session that ends and re-forms re-enters through the host's checkpoint and
+/// its world-entry item snapshot, so a report swallowed across that boundary
+/// converges through the re-baseline instead: it is deliberately NOT re-sent after
+/// a rejoin, and a local result the rejoin's snapshot does not carry is the same
+/// declared loss any uncommitted local action has at a session boundary.
 /// </para>
 ///
 /// <para>
@@ -164,6 +190,12 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 			? [.. queue.ConvertAll(pending => pending.Kind)]
 			: [];
 
+	/// <summary>How many re-reports each of one item's outstanding reports has already sent, oldest first (the test surface for a restore keeping the window's cadence and budget).</summary>
+	internal IReadOnlyList<int> PendingReportsFor(ulong itemId) =>
+		_pending.TryGetValue(itemId, out var queue)
+			? [.. queue.ConvertAll(pending => pending.Reports)]
+			: [];
+
 	void ICuoService.Initialize()
 	{
 	}
@@ -185,8 +217,8 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	}
 
 	/// <summary>The Application layer's pending-command port: the replication surface tracks and closes re-reportable commands through it. Each forwarder goes to the internal method that owns the behaviour, which keeps the doc comments on their implementations.</summary>
-	void IKernelPendingCommands.Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType) =>
-		Track(command, operationId, frame, payloadType);
+	void IKernelPendingCommands.Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType, ulong runEpoch) =>
+		Track(command, operationId, frame, payloadType, runEpoch);
 
 	void IKernelPendingCommands.ClearCommitted(ulong operationId) => ClearCommitted(operationId);
 
@@ -201,7 +233,13 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	/// a report the host has already judged. A send the transport refuses is queued
 	/// too, because the window's first repeat is what heals it.
 	/// </summary>
-	internal void Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType)
+	/// <param name="runEpoch">
+	/// The run the frame was stamped for (its envelope header, which the sender read
+	/// from the kernel authority as it built the frame). The window needs it because a
+	/// restored baseline settles the run identity: a report of another run cannot be
+	/// judged and leaves the queue.
+	/// </param>
+	internal void Track(WireCommand command, ulong operationId, ProtocolFrame frame, WirePayloadType payloadType, ulong runEpoch)
 	{
 		if (!IsReReported(payloadType) || command.Identity.InstanceId == 0)
 		{
@@ -222,7 +260,7 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 				itemId, dropped.Kind, dropped.OperationId, MaxPendingPerItem);
 		}
 
-		queue.Add(new PendingCommand(itemId, operationId, command.Kind, frame, _time.NowMs));
+		queue.Add(new PendingCommand(itemId, operationId, command.Kind, frame, runEpoch, _time.NowMs));
 		_log.LogDebug("[ItemCommand] {Kind} on item {ItemId} (operation {Operation}) awaits the host's verdict — re-reported every {Interval} ms for at most {Max} report(s); {Queued} report(s) now outstanding for this item.",
 			command.Kind, itemId, operationId, IntervalMs, MaxReports, queue.Count);
 	}
@@ -301,7 +339,7 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 			refused.Kind, itemId, refused.OperationId, refused.Reports, queue.Count);
 	}
 
-	/// <summary>Drop every unacknowledged report: the world baseline was replaced, so no in-flight local operation is still meaningful.</summary>
+	/// <summary>Drop every unacknowledged report: the session this side reported into is gone (or this node stopped being a guest), so no in-flight local operation is still meaningful.</summary>
 	private void ResetPending(string reason)
 	{
 		var count = PendingCount;
@@ -393,8 +431,55 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 
 	public void ResetSessionState() => ResetPending("the session ended");
 
-	private void OnCheckpointRestored(GameCheckpoint checkpoint) =>
-		ResetPending($"the world baseline was restored at revision {checkpoint.GlobalRevision}");
+	/// <summary>
+	/// A host checkpoint replaced this side's mirror of the HOST's state. That mirror
+	/// says nothing about the reports travelling the other way, so they stay queued —
+	/// with their cadence and their remaining budget — EXCEPT the ones stamped for
+	/// another run: the host's own gate drops a command whose epoch is not the run it
+	/// serves (<c>KernelProtocolService.HandleCommand</c>), so such a report can never
+	/// be judged and would only spend its window. A run this side re-enters (the
+	/// world-join instruction's epoch, then its baseline) is exactly that edge; the
+	/// session edge is <see cref="ResetSessionState"/>'s, not this one's.
+	/// </summary>
+	private void OnCheckpointRestored(GameCheckpoint checkpoint)
+	{
+		if (_pending.Count == 0)
+		{
+			return;
+		}
+
+		var runEpoch = checkpoint.RunEpoch.Value;
+		var kept = 0;
+		var dropped = 0;
+		var drained = new List<ulong>();
+		foreach (var entry in _pending)
+		{
+			var before = entry.Value.Count;
+			entry.Value.RemoveAll(pending => pending.RunEpoch != runEpoch);
+			dropped += before - entry.Value.Count;
+			kept += entry.Value.Count;
+			if (entry.Value.Count == 0)
+			{
+				drained.Add(entry.Key);
+			}
+		}
+
+		foreach (var itemId in drained)
+		{
+			_pending.Remove(itemId);
+		}
+
+		if (dropped > 0)
+		{
+			_log.LogWarning("[ItemCommand] {Dropped} unacknowledged item report(s) were stamped for another run and are dropped: the restored world baseline at revision {Revision} is run {Epoch}; {Kept} report(s) of that run stay queued. The host will never learn the dropped report(s).",
+				dropped, checkpoint.GlobalRevision, runEpoch, kept);
+		}
+		else
+		{
+			_log.LogInformation("[ItemCommand] kept {Kept} unacknowledged item report(s) across the world baseline restored at revision {Revision} (run {Epoch}) — the baseline mirrors the host's state and does not supersede a report travelling the other way.",
+				kept, checkpoint.GlobalRevision, runEpoch);
+		}
+	}
 
 	/// <summary>
 	/// Drops the queue's oldest report, preferring a non-creation one: the item's
@@ -446,8 +531,8 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	/// <summary>The item's creation report — the one report no later report about the item can stand in for.</summary>
 	private static bool IsCreation(WireCommandKind kind) => kind == WireCommandKind.ItemSpawn;
 
-	/// <summary>One unacknowledged report: the exact frame that was sent (so the repeat is the same operation), its cadence state and its spent budget.</summary>
-	private sealed class PendingCommand(ulong itemId, ulong operationId, WireCommandKind kind, ProtocolFrame frame, long windowMs)
+	/// <summary>One unacknowledged report: the exact frame that was sent (so the repeat is the same operation), the run it was stamped for, its cadence state and its spent budget.</summary>
+	private sealed class PendingCommand(ulong itemId, ulong operationId, WireCommandKind kind, ProtocolFrame frame, ulong runEpoch, long windowMs)
 	{
 		internal ulong ItemId { get; } = itemId;
 
@@ -456,6 +541,9 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 		internal WireCommandKind Kind { get; } = kind;
 
 		internal ProtocolFrame Frame { get; } = frame;
+
+		/// <summary>The run epoch the frame carries — a report that outlives its run cannot be judged and is dropped when a baseline settles the identity.</summary>
+		internal ulong RunEpoch { get; } = runEpoch;
 
 		/// <summary>When the current cadence window started (or the last re-report went out).</summary>
 		internal long WindowMs { get; set; } = windowMs;

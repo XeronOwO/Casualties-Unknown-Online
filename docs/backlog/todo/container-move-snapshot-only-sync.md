@@ -1,6 +1,7 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Review
+- Status: Todo — Rejected (batch `20261005-d`, row A1: the operator's and the third peer's clone-fact
+  monitor still warn after a container move, although the owner's event now arrives and is applied)
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -8,6 +9,7 @@
   repository's own history introduced is fixed or ticketed.
 - Related: `review/remote-inventory-native-parity-rework` (the path that produced the warnings),
   `done/carried-inventory-registration-re-report.md`, `docs/architecture/remote-inventory-native-parity.md`
+- Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-d.md` (rejected)
 
 ## Symptom (evidence)
 
@@ -125,6 +127,29 @@ so a peer-side copy that never appeared was exactly what that row could not see.
 - The monitor itself is deliberately unchanged: a snapshot that carries a change no event announced
   still warns (`CloneFactTableDivergenceMonitorTests`), which is what makes the run's zero-warning row
   mean something.
+
+## Rejected by batch `20261005-d` (2026-10-05)
+
+The three-client run judged this ticket's four prose rows. Three passed: the owner's event now reaches
+the peers and is applied (both the operator and the third peer log `[CarriedSync] applied trashbag (id …)
+to …'s snapshot — re-rendering the clone.`); a dropped item is found in the world by a third client in
+BOTH owner directions (`item-world-read` returned the instance id the owner had dropped, host-owned and
+guest-owned); and `PickUpToSlot` stayed silent on the operator's monitor — the one kind whose event
+carries the item itself.
+
+Row A1 failed: one millisecond after the `applied` line the same monitor still logs `nested container
+contents changed without an event sync` for the container and `left the inventory without an event sync`
+for the item that entered it, on the operator and on the third peer, for every container move the run
+drove.
+
+Where the run's reading points (not a fix): `CloneFactTable.WarnOnDivergence` compares the PREVIOUS
+SNAPSHOT with the incoming one, and `ApplyCarriedSync`'s nested branch replaces the ROOT container's
+contents without removing the moved child from the top-level list. A report that moves an item INTO a
+container therefore still leaves two facts for the next snapshot to carry uncovered: the child's
+departure from the top level and the container's new contents. The slot-release path carries the item
+itself and writes its slot, which is why that gesture stayed silent — the contrast is in the record.
+
+Evidence: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-d.md`.
 
 ## Non-goals
 

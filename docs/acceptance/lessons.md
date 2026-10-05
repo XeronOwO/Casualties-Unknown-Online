@@ -1894,5 +1894,40 @@ committed recipe `tools/acceptance/recipes/remote-gesture.cs` (`mode=list|open|c
 - **A passing row can still carry the run's most valuable finding.** Every container move this batch drove
   made the operator's `CloneFactTable` monitor warn (`nested container contents changed without an event
   sync`) while the owner logged nothing. The rows passed; the warning became
-  `docs/backlog/review/container-move-snapshot-only-sync.md`. Read the run's own diagnostics before closing
+  `container-move-snapshot-only-sync`. Read the run's own diagnostics before closing
   a batch, not only the row's expected line.
+
+## 2026-10-05 — Batch `20261005-d`: an event that ARRIVES is not yet a monitor that stays quiet
+
+The carrier fix made the owner's own hook report a remote-driven container move, and this run proved that
+half at runtime: the owner logs `[ItemTrace] … origin=OnItemLoadedIntoContainer result=Committed
+events=[ContainerContent]`, and both the operator and the third peer log `[CarriedSync] applied trashbag
+(id …) to …'s snapshot — re-rendering the clone.` One millisecond later the SAME monitor logs
+`[CharSync] divergence … nested container contents changed without an event sync` and `… left the
+inventory without an event sync`. The ticket's row is a ZERO-warning row, so it failed.
+
+- **Read a zero-warning row as a PAIR of channels.** `[CarriedSync]` (the event applied) and `[CharSync]
+  divergence` (the monitor's verdict) share neither a logger nor a prefix — a `-Match 'CharSync'` filter
+  misses every `[CarriedSync]` line and silently turns "the event arrived" into "no event at all".
+- **The contrast that locates it:** a `PickUpToSlot` (slot release) stays silent, because its event carries
+  the item itself; a `MoveIntoContainer`'s event carries the ROOT container, and
+  `CloneFactTable.WarnOnDivergence` compares the PREVIOUS SNAPSHOT with the incoming one — so the moved
+  child's departure from the top-level list and the container's new contents both stay uncovered.
+- **A remote gesture is judged on the OPERATOR's own client.** The first attempt was refused with
+  `<operator> cannot see <owner> on this client` until the three bodies stood in one spot, so stage line
+  of sight before driving any remote intent (`body-place` takes WORLD coordinates).
+- **`item-world-read` takes BLOCK cells while `body-read`/`body-place` speak WORLD coordinates**: on this
+  machine world (0, 445) is cell (510, 941). A world read at the wrong cell reports "nothing there" for an
+  item standing right next to the bodies.
+- **A classified radial no-op logs nothing**: `RemoteDragIntentDispatcher.Emit` logs only
+  `outcome.IsUnclassified`. A row that asks for "an observable log line, never a silent no-op" needs a
+  refusal shape that reaches a logged branch (the container guard has one).
+- **The radial CENTRE action is drivable in process** and is now committed (`remote-gesture`
+  `mode=probe` / `mode=hover` / `cast=-2`): `TryPerformRadialAction` reads the cast's TAG,
+  `radialMenu.localScale` (> `inventoryUseLeniency` 0.95) and the pointer's distance to `radialCircle`
+  (< its radius 135) — it never consults `InvButton.Overlaps`. `mode=hover` stages the drag and the ring
+  under the pointer so the game's own frames open the ring, and `ringScaleForced` in the answer says
+  whether the run had to write the scale.
+- **The evaluator returns VOID when an inner lambda's local shares an outer local's name**: a probe whose
+  answer was JSON without a `value` field had `var found` outside and `System.Type found` inside its own
+  helper. Rename one of them; the failure names nothing.

@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Xunit;
 

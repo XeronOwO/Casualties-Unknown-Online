@@ -149,4 +149,49 @@ public class ContainerSyncProtocolTests
 		Assert.Equal(GuestId, fact.Owner);
 		Assert.Contains(fact.Item.Contents, c => c.InstanceId == 888);
 	}
+
+	[Fact]
+	public void HostCarriedContainerReport_ProjectsTheMovedChildInsideTheContainer()
+	{
+		var (network, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var guestFacts = new List<(ulong Owner, CharacterItemMsg Item)>();
+
+		// The host owns both items and both are already carried facts of its own scene.
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(authority.TrySpawnCarried(
+			HostId, 1207, "trashbag", new CharacterItemMsg { InstanceId = 1207, ItemId = "trashbag", SlotIndex = -1 }, out _, out _));
+		Assert.True(authority.TrySpawnCarried(
+			HostId, 1198, "dogfood", new CharacterItemMsg { InstanceId = 1198, ItemId = "dogfood", SlotIndex = 1 }, out _, out _));
+
+		// The staging broadcasts its own facts; the report below is the subject.
+		guest.Services.GetRequiredService<IItemControl>().ItemCarriedSyncReceived += (owner, item, _) => guestFacts.Add((owner, item));
+
+		// The host's own container move: the root's FULL fact is the one report
+		// (ContainerItemSync.OnLoadedIntoContainer, host branch).
+		host.Services.GetRequiredService<IItemControl>().SendItemCarriedSync(
+			HostId,
+			new CharacterItemMsg
+			{
+				InstanceId = 1207,
+				ItemId = "trashbag",
+				SlotIndex = -1,
+				Contents = [new CharacterItemMsg { InstanceId = 1198, ItemId = "dogfood" }],
+			});
+
+		// The kernel records where the child went...
+		var child = authority.FindItem(1198)!.Value;
+		Assert.Equal(ItemLocationKind.Contained, child.Location.Kind);
+		Assert.Equal(1207UL, child.Location.ParentItemId);
+
+		// ...so the fact a peer rebuilds from that batch has the child inside the
+		// parent instead of an empty container plus a stray top-level entry.
+		var fact = Assert.Single(guestFacts);
+		Assert.Equal(HostId, fact.Owner);
+		Assert.Equal(1207UL, fact.Item.InstanceId);
+		Assert.Contains(fact.Item.Contents, c => c.InstanceId == 1198);
+	}
 }

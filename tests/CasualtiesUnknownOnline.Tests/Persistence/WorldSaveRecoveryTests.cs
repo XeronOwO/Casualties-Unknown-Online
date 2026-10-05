@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Persistence;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using Xunit;
 

@@ -637,7 +637,7 @@
     {
       "cluster": "fluids",
       "row": "F4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelDomainCommands.cs",
       "quote": "public bool TryUpdateFluidRegion(ulong actor, FluidRegionState state, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -655,7 +655,7 @@
     {
       "cluster": "fluids",
       "row": "F4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelDomainCommands.cs",
       "quote": "public bool TryResetFluids(ulong actor, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -1663,8 +1663,8 @@
     {
       "cluster": "players",
       "row": "P2",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs",
-      "quote": "TryExecute(new UpdatePlayerStatusCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, state), actor, \"update-player-status\", out batch, out rejection);"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelDomainCommands.cs",
+      "quote": "authority.TryExecuteHostCommand(new UpdatePlayerStatusCommand(authority.NextOperationId(), new ActorId(actor), authority.CurrentRunEpoch, AuthorityKind.HostOnly, state), actor, \"update-player-status\", out batch, out rejection);"
     },
     {
       "cluster": "players",
@@ -3961,8 +3961,8 @@
     {
       "cluster": "inline",
       "row": "I3",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs",
-      "quote": "_projectionHealth.Register(new ProjectionDomain(\"items\", RebuildItemProjectionFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelProjectionWiring.cs",
+      "quote": "projectionHealth.Register(new ProjectionDomain(\"items\", RebuildProjection, () => kernelAuthority.CurrentGlobalRevision));"
     },
     {
       "cluster": "inline",
@@ -4225,7 +4225,7 @@
     {
       "cluster": "inline",
       "row": "P6",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelDomainCommands.cs",
       "quote": "public bool TrySetPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>"
     },
     {
@@ -4555,7 +4555,7 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelDomainCommands.cs",
       "quote": "public bool TryStartRun(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -4579,7 +4579,7 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelDomainCommands.cs",
       "quote": "public bool TryAdvanceLayer(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {

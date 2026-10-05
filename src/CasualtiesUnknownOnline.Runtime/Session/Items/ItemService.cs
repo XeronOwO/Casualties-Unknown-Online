@@ -36,10 +36,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly ItemMessageFlowService _messageFlow;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly ItemProjection _projection;
-	private readonly KernelBatchItemProjection _kernelBatchProjection;
 	private readonly IKernelProtocolControl _kernelProtocol;
-	private readonly ItemSnapshotStreamReceiver _snapshotStreamReceiver;
-	private readonly ProjectionHealthCoordinator _projectionHealth;
+	private readonly ItemKernelProjectionWiring _kernelProjectionWiring;
 	private readonly RestoredWorldItemSet _restoredWorldItems;
 
 	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, WorldRestoreAudit? audit = null)
@@ -49,16 +47,10 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_arbitration = arbitration;
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
-		_projectionHealth = projectionHealth;
 		_restoredWorldItems = new RestoredWorldItemSet(kernelAuthority, audit, log);
-		_kernelProtocol.ItemMovesReceived += OnItemMovesReceived;
-		_kernelProtocol.ItemStateStreamReceived += OnItemStateStreamReceived;
 		_kernelProtocol.CommandRejected += OnCommandRejected;
-		_kernelAuthority.ExternalBatchCommitted += OnExternalBatchCommitted;
-		_kernelAuthority.BatchApplied += OnBatchApplied;
-		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
 		_projection = new ItemProjection(kernelAuthority, _worldTable);
-		_kernelBatchProjection = new KernelBatchItemProjection(
+		var kernelBatchProjection = new KernelBatchItemProjection(
 			kernelAuthority,
 			_worldTable,
 			item => ItemSpawned?.Invoke(item),
@@ -69,18 +61,22 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			(owner, item, _) => PublishCarriedSyncLocal(owner, item),
 			item => FireCorrectionLocal(item),
 			(sourceId, cooked) => ItemCookedReceived?.Invoke(sourceId, cooked));
-		_projectionHealth.Register(new ProjectionDomain("items", RebuildItemProjectionFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 		_carriedSync = new ItemCarriedSyncService();
 		_itemActionSync = new(session, this, _kernelProtocol);
 		_snapshots = new(session, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, _kernelProtocol, log);
-		_snapshotStreamReceiver = new ItemSnapshotStreamReceiver(
-			session,
-			_kernelAuthority,
-			log,
-			(items, layerModifierIndex, randomState) => _snapshots.FireItemSnapshotReceived(session.HostSteamId, items, layerModifierIndex, randomState),
-			(items, layerModifierIndex, randomState) => _snapshots.FireWorldItemsSnapshotReceived(session.HostSteamId, items, layerModifierIndex, randomState));
 		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, time, log);
 		_blockDrops = new BlockDropSync(session, this);
+		_kernelProjectionWiring = new ItemKernelProjectionWiring(
+			session,
+			log,
+			kernelAuthority,
+			kernelBatchProjection,
+			_snapshots,
+			projectionHealth,
+			_restoredWorldItems,
+			_arbitration,
+			_kernelProtocol,
+			FireItemMoveReceived);
 
 		_messageFlow = new ItemMessageFlowService(
 			session,
@@ -191,7 +187,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			return;
 		}
 
-		_kernelBatchProjection.ApplyWorldTableOnly(batch!);
+		_kernelProjectionWiring.ApplyWorldTableOnly(batch!);
 	}
 
 	public void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null) =>
@@ -263,14 +259,25 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			return;
 		}
 
-		var current = _kernelAuthority.FindItem(item.InstanceId);
-		if (current is null)
+		if (item.Contents.Count > 0)
 		{
-			_kernelAuthority.TrySpawnCarried(ownerSteamId, item.InstanceId, item.ItemId, item, out _, out _);
+			// The report carries a container's contents, and a child's PLACE is part
+			// of that fact: the peers rebuild the carried fact from this batch's
+			// kernel locations, so a bare state update would reach them as an empty
+			// container with the moved child still top-level (TrySyncContainerFacts).
+			_kernelAuthority.TrySyncContainerFacts(ownerSteamId, item, out _, out _);
 		}
 		else
 		{
-			_kernelAuthority.TryUpdateState(ownerSteamId, item.InstanceId, item, out _, out _);
+			var current = _kernelAuthority.FindItem(item.InstanceId);
+			if (current is null)
+			{
+				_kernelAuthority.TrySpawnCarried(ownerSteamId, item.InstanceId, item.ItemId, item, out _, out _);
+			}
+			else
+			{
+				_kernelAuthority.TryUpdateState(ownerSteamId, item.InstanceId, item, out _, out _);
+			}
 		}
 
 		PublishCarriedSyncLocal(ownerSteamId, item);
@@ -364,7 +371,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			return;
 		}
 
-		_kernelBatchProjection.ApplyWorldTableOnly(batch!);
+		_kernelProjectionWiring.ApplyWorldTableOnly(batch!);
 		_log.LogInformation("[LayerReset] dropped the previous layer's world-rooted items; {Remaining} item record(s) remain (carried items cross the boundary).",
 			_kernelAuthority.QueryItems().Count);
 	}
@@ -377,17 +384,13 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_idCoordinator.ResetSessionState();
 		_snapshots.ResetSessionState();
 		_itemTraffic.Reset();
-		_snapshotStreamReceiver.Reset();
+		_kernelProjectionWiring.ResetStream();
 	}
 
 	public void Dispose()
 	{
-		_kernelProtocol.ItemMovesReceived -= OnItemMovesReceived;
-		_kernelProtocol.ItemStateStreamReceived -= OnItemStateStreamReceived;
 		_kernelProtocol.CommandRejected -= OnCommandRejected;
-		_kernelAuthority.ExternalBatchCommitted -= OnExternalBatchCommitted;
-		_kernelAuthority.BatchApplied -= OnBatchApplied;
-		_kernelAuthority.CheckpointRestored -= OnCheckpointRestored;
+		_kernelProjectionWiring.Dispose();
 		_session.SessionEnded -= ResetSessionState;
 		_idCoordinator.Dispose();
 	}
@@ -503,70 +506,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	/// <summary>Read-only world-table snapshot for kernel comparison diagnostics (never mutates production state).</summary>
 	internal IReadOnlyList<WorldItem> GetWorldItemsForDiagnostics() => [.. _worldTable.Items.Values];
 
-
-	// ===== Phase C guest batch projection =====
-
-	private void OnExternalBatchCommitted(CommittedBatch batch)
-	{
-		if (_session.Role != SessionRole.Host)
-		{
-			return;
-		}
-
-		_projectionHealth.Run("items", batch.GlobalRevision, () =>
-		{
-			_kernelBatchProjection.Apply(batch);
-			_arbitration.RebuildCarriedTableFromKernel();
-		});
-	}
-
-	private void OnBatchApplied(CommittedBatch batch)
-	{
-		if (_session.Role != SessionRole.Guest)
-		{
-			return;
-		}
-
-		_projectionHealth.Run("items", batch.GlobalRevision, () =>
-		{
-			_kernelBatchProjection.Apply(batch);
-			_kernelBatchProjection.FireCookedEventFromBatch(batch);
-		});
-	}
-
-	private void OnCheckpointRestored(GameCheckpoint checkpoint)
-	{
-		if (_session.Role != SessionRole.Guest)
-		{
-			// Host/solo: the archive's world items ARE this world's item set — the layer
-			// that follows is regenerated from the restored baseline, so the generation
-			// reconciles its objects against these ids (RestoredWorldItemSet). A
-			// layer-end cut never gets here: the restore applier cancels the expectation.
-			_projectionHealth.Run("items", checkpoint.GlobalRevision, () => _restoredWorldItems.ArmForRestoredCut(checkpoint, _kernelBatchProjection));
-			return;
-		}
-
-		_projectionHealth.Run("items", checkpoint.GlobalRevision, () => _kernelBatchProjection.Rebuild(checkpoint));
-	}
-
-	private void RebuildItemProjectionFromKernel()
-	{
-		_kernelBatchProjection.RebuildFromKernel();
-		if (_session.Role == SessionRole.Host)
-		{
-			_arbitration.RebuildCarriedTableFromKernel();
-		}
-	}
-
-	private void OnItemMovesReceived(IReadOnlyList<WireItemMoveEntry> moves)
-	{
-		if (_session.Role != SessionRole.Guest)
-		{
-			return;
-		}
-
-		FireItemMoveReceived(moves);
-	}
+	// ===== Kernel rejection surfacing =====
 
 	private void OnCommandRejected(ulong itemId, RejectionReason reason)
 	{
@@ -583,9 +523,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_log.LogWarning("Kernel command for item {ItemId} rejected ({Reason}) — surfacing item reject.", itemId, reason);
 		ItemRejected?.Invoke(itemId, mappedReason);
 	}
-
-	private void OnItemStateStreamReceived(WirePayloadType payloadType, WireStateStream stream) =>
-		_snapshotStreamReceiver.Handle(_session.HostSteamId, payloadType, stream);
 
 	// ===== IItemActionWorldAccess =====
 

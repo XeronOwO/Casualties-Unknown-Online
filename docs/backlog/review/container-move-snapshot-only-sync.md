@@ -1,7 +1,7 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Todo — Rejected (batch `20261005-d`, row A1: the operator's and the third peer's clone-fact
-  monitor still warn after a container move, although the owner's event now arrives and is applied)
+- Status: Review (code complete; row A1 awaits a three-client batch — the rejected reading's second half
+  is fixed, see "Fixed by the kernel-side report" below)
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -150,6 +150,54 @@ departure from the top level and the container's new contents. The slot-release 
 itself and writes its slot, which is why that gesture stayed silent — the contrast is in the record.
 
 Evidence: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-d.md`.
+
+## Fixed by the kernel-side report (2026-10-06)
+
+The rejected batch read the failure site correctly and the fix follows that reading exactly. The peers
+never apply the owner's message: the committed batch is projected, and a container's contents are listed
+from the KERNEL's contained children (`KernelBatchItemProjection.BuildContents`), so a report committed
+as a bare state update reached them as an EMPTY container while the moved child kept its previous kernel
+location — precisely the pair the monitor printed, one millisecond after `applied`.
+
+One container report is now ONE command on both sides: `ItemKernelAuthority.TrySyncContainerFacts` builds
+the `SyncContainerItemsCommand` (the parent's fact plus the flattened child facts, one atomic batch) that
+the guest's `ItemContainerSync` wire kind already mapped to, and `ItemService.SendItemCarriedSync`
+commits a contents-carrying report through it. The host's own container move — a local drag or a peer's
+intent replayed on its items — therefore writes the child's place, not only the parent's data.
+
+The job had two implementations, and the wrong one is gone rather than fixed twice:
+`ItemContainerSyncWriter`/`SyncContainerContents` was dead in production and relocation-blind (it updated
+a child only when the kernel already had it under that parent), so it is deleted and its two tests now pin
+the command path. The two classes the change touched were also split along the seams
+`docs/backlog/watchlist/architecture-watchlist.md` had already named — `ItemKernelProjectionWiring` (157)
+out of `ItemService` (599 → 536) and `KernelDomainCommands` (195) out of `ItemKernelAuthority`
+(577 → 449; the fix's own kernel write had first carried it to 616, which is what the 600-line gate
+refused) — so neither carries the next item-domain change over the gate. All call expressions of the 14
+moved command entry points are unchanged; twelve test files needed one namespace import for the extension
+surface.
+
+One consequence of committing the report as the wire path's command is recorded rather than left implicit:
+the host's own pickup/slot/use carriers now reach `DecideSyncContainer`, whose stale-children branch takes
+a child the report does not name to `Terminal` — a one-way door that rejects the whole container sync from
+then on. That verdict is right for a container that really is empty (the paths that empty one report the
+LEAVING child, whose own drop/pickup command relocates it in the kernel first), and wrong for a child that
+moved without its own relocation fact. One path could not be excluded by reading: `PickupSync.OnPickedUp`'s
+pending-drop early return reports only a slot re-home (`_slotSync.OnItemRehomed`) and would leave a
+contained record behind if that gesture ever sees a contained item — its own ticket records the mechanism.
+The branch is no longer silent: `TrySyncContainerFacts` warns with the dropped ids when the command it
+just committed makes children Terminal, and `ItemContainerSyncTests` pins both the warning and its
+absence.
+
+Proof in the tree: `ContainerSyncProtocolTests.HostCarriedContainerReport_ProjectsTheMovedChildInsideTheContainer`
+was RED before the change (`Expected: Contained, Actual: Carried` for the moved child) and now reads the
+host's own report through the committed batch into the guest's carried fact, which contains the child.
+Behavioural suite 4621/4621, gate project 346/346, `dotnet format` clean, no wire member added.
+
+What row A1 still needs is its own reading: the operator's and the third peer's monitor at ZERO over at
+least one full periodic cycle, on a three-client batch against the deployed artifact, over the gesture set
+the rejected batch drove (insert, take-out, slot release, drop, container expansion, battery load/unload)
+— with the guest-owner container move included, since the wire path and the host-local path are now the
+same command and both are claimed silent.
 
 ## Non-goals
 

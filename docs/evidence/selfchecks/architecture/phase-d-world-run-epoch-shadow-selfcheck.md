@@ -16,7 +16,7 @@ the removal of the legacy `WorldStartParams` wire.
 | Kernel integration | `GameStateKernel`, `GameStateStore`, `KernelReadModel`, `MutableKernelState`, `GameCheckpoint` | `GameStateKernel` now owns `RunState?` as a domain table; checkpoints carry it. |
 | Wire DTOs | `WireRunState.cs`, `WireRunSetting.cs`, `WireEventKind.RunStarted/RunAdvanced`, `WireCommandKind.RunStart/AdvanceLayer`, `WireCheckpoint.Run`, `WireCommand.RunState` | Protocol remains GameState-free. |
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Run state round-trips through wire checkpoints and disk saves. |
-| Runtime authority surface | `ItemKernelAuthority.TryStartRun/TryAdvanceLayer/QueryRun` | The kernel authority commits and queries run facts; `WorldService.PublishWorldParams` now drives it. |
+| Runtime authority surface | `ItemKernelAuthority.TryStartRun/TryAdvanceLayer/QueryRun` | The kernel authority commits and queries run facts; `WorldService.PublishWorldParams` now drives it. The two command entry points moved to the `KernelDomainCommands` extension surface on 2026-10-06 (the call sites are unchanged); `QueryRun` stays on the authority. |
 | Host/guest projection | `WorldService` + `WorldRunStateMapper` | Host commits the run baseline and stores the adapter projection; guest projects `RunStarted`/`RunAdvanced` batches and checkpoints into `WorldStartParams`. |
 | Handshake delivery | `HandshakeHandler` + `IKernelProtocolControl.SendCheckpoint` | A mid-generation joiner receives the kernel checkpoint before `WorldJoin`; the run baseline is restored on the guest. |
 

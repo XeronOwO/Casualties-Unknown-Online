@@ -29,7 +29,7 @@ checkpoint path exists behind a temporary in-memory store.
 | Update/transfer/container commands are deterministic and reject stale revisions | `GameStateItemDataTests`, `GameStateKernelTests`, `ItemDomainInvariantTests`. |
 | Old world table writes are gated by kernel acceptance | `tools/check-item-authority.ps1`; all world-table mutations live in `ItemProjection.cs`. |
 | Carried action reports update the kernel before the transfer cache | `ItemArbitration.AdoptEvidence`, `RecordSlot`, `RecordContainerContent`, `RegisterCarried`, `AdoptTransferredItem`, `UpdateTransferredItem`. |
-| Container contents become authoritative kernel child items | `ItemKernelAuthority.SyncContainerContents`, `ItemContainerSyncTests`. |
+| Container contents become authoritative kernel child items | `ItemKernelAuthority.TrySyncContainerFacts` (`SyncContainerItemsCommand`; the earlier `SyncContainerContents`/`ItemContainerSyncWriter` pair was deleted on 2026-10-06), `ItemContainerSyncTests`. |
 | Native operations produce exactly one observation and no remote-apply echo | `NativeOperationCoordinatorTests`. |
 | Capability registry rejects partial/duplicate capabilities | `ItemCapabilityRegistryTests`. |
 | Item checkpoint round-trips through the same reducer | `ItemCheckpointStoreTests`, `GameStateItemDataTests.CheckpointRoundTrip`. |

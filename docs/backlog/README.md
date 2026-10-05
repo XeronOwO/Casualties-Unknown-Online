@@ -52,12 +52,11 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — rows 1,3,5,8,9 hold; row 2 diverges.
-
 ### In progress
 
 ### Review
 
+- [Guest command loss is not reconciled](review/guest-command-loss-reconciliation.md) — **Medium** — row 2 fixed; the machine re-run is next.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.

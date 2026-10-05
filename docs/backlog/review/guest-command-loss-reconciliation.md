@@ -1,6 +1,6 @@
 # Guest command loss: local pickup/drop result is not reconciled
 
-- Status: Todo — Rejected (row 2: a periodic checkpoint drops the queued report)
+- Status: Review — row 2 fixed (the queue survives a same-run checkpoint restore); the machine re-run of the matrix is the next step
 - Priority: Medium
 - Category: Network / sync coverage / items
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I5, plus the empty-host-table caveat the audit attached to row I1)
@@ -92,9 +92,10 @@ naming the item closes the NEWEST report of that item's queue
 (`KernelProtocolService.HandleCommandRejected`), while the older reports stay
 outstanding so the host converges to the state the refusal left behind; a refusal of a
 creation (the host's tombstone then answers every later report about that item) drains
-the queue one answer at a time. Each report also has its own budget, and the queue is
-dropped wholesale when the world baseline is replaced (a restored checkpoint or a new
-session).
+the queue one answer at a time. Each report also has its own budget. *(The queue is NOT
+dropped at a restored baseline: that was this ticket's row-2 defect, fixed 2026-10-06 —
+see "Row 2 fix" below. Only the session edge drops it, plus the reports stamped for
+another run.)*
 
 **4. The host needed no change at all.** `GameStateKernel.Execute` returns the original
 decision for a known `OperationId`, `ItemKernelAuthority.TryExecute` fires
@@ -110,11 +111,13 @@ id and repeat count instead of trickling for the rest of the session. The warnin
 asserted by a test, not only described.
 
 **6. No wire change.** Nothing in this cycle adds, removes or re-shapes a `NetMsg`, a
-`WireCommandKind`, a `WireEventKind` or an `AdaptiveStreamId`; the protocol version
-stays 31 and the whole mechanism is convergence over messages that already exist.
+`WireCommandKind`, a `WireEventKind` or an `AdaptiveStreamId`: the whole mechanism is
+convergence over messages that already exist, so `ProtocolVersion.Current` was not
+touched by it. *(The 2026-10-06 fix below adds no wire member either; the tree's current
+protocol version is 45, raised by later cycles for their own reasons.)*
 
 **7. Tests.** `tests/CasualtiesUnknownOnline.Tests/Items/GuestCommandReconciliationTests.cs`
-(one new class, 13 cases, `[Trait("Category", "Integration")]`): the three swallowed
+(one new class, 16 cases after the 2026-10-06 fix, `[Trait("Category", "Integration")]`): the three swallowed
 operations converging, the empty-host-table destroy, the swallowed creation surviving a
 refused pickup (MAJOR-1), the fully swallowed creation+pickup chain replaying in order
 and keeping the player's carry, the drop-behind-a-refused-pickup converging through the
@@ -165,7 +168,57 @@ transport still reports the send as successful). Record:
 - Fix row 2 first: keep the queue across a checkpoint restore, or scope the clear to operations the checkpoint
   actually covers, then re-run the row.
 
+## Row 2 fix (2026-10-06)
+
+**The defect.** `OnCheckpointRestored` treated every restored baseline as a world replacement and emptied the whole
+queue. A host checkpoint is the guest's MIRROR of the host's state and carries nothing about the reports travelling
+the other way, so a report outstanding when the host's 60 s cycle landed was dropped unjudged — with a 5 s re-report
+cadence, that is any report alive at that instant (the machine run hit it on its first attempt).
+
+**The change.** `GuestCommandReconciliation.OnCheckpointRestored` now KEEPS the queue, with each report's cadence and
+its remaining budget, and drops only the reports whose run is not the restored baseline's: a report stamped for
+another run can never be judged, because the host's own gate drops a command whose epoch is not the run it serves
+(`src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs`, the epoch comparison in `HandleCommand`).
+Each `PendingCommand` therefore carries the run epoch its frame was stamped for, handed over by the sender through the
+widened port (`IKernelPendingCommands.Track(..., ulong runEpoch)` — `KernelProtocolService.SendCommand` passes the
+header it just stamped, so the stamp cannot drift from the frame). The session edge still drops the queue
+(`ResetSessionState`, and the `Pump` guard for a node that is not an active guest). The drop is a `Warning` because it
+is a permanent divergence for that report (the host will never learn it), matching the file's precedent for the spent
+budget; the keep is an `Information` line naming the count and the revision, so the acceptance run can read the new
+behaviour out of the log.
+
+That run-mismatch is rare and specific: a run cannot otherwise share an epoch (`WorldDomainModule.DecideStartRun`
+refuses a second start per epoch), so a same-session world replacement keeps the epoch and the mismatch needs the host
+to restore a world archive of another run inside a live lobby. A LAYER change therefore keeps the report — the row's
+second declared limit, below.
+
+**Tests (3 new cases, class now 16).** `HostCheckpointRestore_KeepsTheOutstandingReportAndItStillConverges` is row
+2's regression test, and it asserts the restore really happened (the window's own keep line through
+`RecordingLoggerFactory`) before it asserts the keep; `CheckpointRestoreOfAnotherRun_DropsTheStaleReports` covers the
+run-scoped drop and names its warning; `HostCheckpointRestore_KeepsTheWindowsCadenceAndRemainingBudget` pins that the
+keep does not refund a spent repeat. The red was observed on the pre-fix tree (pending count 1 → 0 at the assertion
+the ticket quotes) and the other-run drop was mutation-checked (with the drop disabled, exactly that case fails and
+the other 15 stay green).
+
+**Verification (2026-10-06, this tree).** Focused class 16/16; the class with its touched neighbours
+(`KernelProtocol`, `ItemArbitration`, `PendingItemCreations`, `SessionControlConvergence`) 81/81 together; the
+normative gate project 329/329 (the row-I5 evidence anchors included — the evidence file now declares 1031 entries,
+32 of them for I5); the full suite with build 4617 passed / 0 failed on the net48 side.
+
+**Independent adversarial review (fresh context, frozen tree, before the commit).** One FULL round. It could not
+falsify the row-2 mechanism or the port change, and it found: (M1) the run epoch is not a world/layer identity, so a
+stale CREATION report can be replayed into a new LAYER — declared as the limit below and in the class doc and the
+matrix row; (M2) the claim's wording named "a new run", which cannot share an epoch — corrected here and in the class
+doc; (m1) stale ticket restatements (this section, the case count, the protocol version, a member that does not
+exist); (m2/m3/m4) test hardening — the restore assertion and the budget case are now pinned, and the third minor is
+accepted: the other-run test stages the mismatch on the guest, so the host's gate half is pinned by code rather than
+by that test; (n1) the drop is now a `Warning`; (n3) the delivery checklist was reset and re-checked with this
+cycle's evidence.
+
 ## Verification
+
+*(The 2026-09-19 cycle's readings, on that cycle's tree; the current tree's numbers are in "Row 2 fix" above. The
+protocol version this section does not mention and the case count it does were both restated by the 2026-10-06 fix.)*
 
 - Focused: `dotnet test CasualtiesUnknownOnline.slnx --filter "FullyQualifiedName~GuestCommandReconciliation"`
   — 13/13; the touched neighbours (`KernelProtocol`, `ItemArbitration`, `ItemDestroy`,
@@ -244,19 +297,28 @@ transport still reports the send as successful). Record:
   by any peer).
 - A session that ends while reports are outstanding drops them (declared above): the
   next entry re-baselines instead of re-reporting.
+- **Declared limit (2026-10-06) — a LAYER change keeps the run identity, so a report about
+  a world item of the replaced layer stays queued and can be replayed into the new layer.**
+  An operation kind is refused at once on an item the host never judged, but a replayed
+  CREATION is accepted on an unknown id, so a swallowed world-item creation that outlives a
+  layer change can materialize in the new layer. The sibling guest-report families (block
+  state and damage, break drops, runtime entities) drop at the world/layer boundary
+  (`WorldParamsService.Apply`, `WorldService.ResetWorldLayerTables`); an item cannot, because
+  carried items and their contents cross that boundary and dropping their reports is exactly
+  the divergence row 2 is about. The exposure is bounded by the report's own budget (12 x 5 s
+  after its edge) — the same order as the host's 60 s checkpoint, which bounded it before
+  this queue was kept, so the hazard is pre-existing rather than introduced. Closing it needs
+  a per-item distinction (world-rooted vs carried) at the layer edge, which is a design
+  change beyond row 2. Found by the independent review; recorded, not silently carried.
 - Out of scope here, with their owners: `ItemUpdateState` and `ItemContainerSync` keep
   their absolute fallbacks (matrix rows I7 and I4, whose own container-contents gap stays
   I4's); the cross-player transfer seam and its arbitration table are unchanged; the
   item-domain audit gap that was row I8 has since landed
   (`done/carried-inventory-registration-re-report.md`, 2026-09-19), so no audit gap of
   the item domain is open any more.
-- Observation, pre-existing and not touched: `IKernelProtocolControl.ResetForSessionEnd()`
-  has no production caller — the kernel's per-session reset is reached through
-  `KernelProtocolService`'s own `SessionEnded` subscription.
-- Dual-client acceptance (two real processes) is the user's release-cycle action: a
-  guest's pickup/drop/craft action must converge after a swallow without a reconnect, and
-  a creation report swallowed around a world entry must not leave the guest's item
-  unusable.
+- Dual-client acceptance (agent-run batch, `docs/acceptance/`): a guest's pickup/drop action
+  must converge after a swallow without a reconnect, and the row-2 shape — a drop swallowed
+  as the host's periodic checkpoint lands — must converge too.
 
 ## Non-goals
 

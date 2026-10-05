@@ -177,7 +177,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		// leaving the window open on a report the host has already judged. Tracked even
 		// when the transport refuses the send, because the window's first repeat is what
 		// heals a send that never left.
-		_pendingCommands.Track(command, header.OperationId, frame, payloadType);
+		_pendingCommands.Track(command, header.OperationId, frame, payloadType, header.RunEpoch);
 		_sender.TrySend(_session.HostSteamId, frame);
 	}
 

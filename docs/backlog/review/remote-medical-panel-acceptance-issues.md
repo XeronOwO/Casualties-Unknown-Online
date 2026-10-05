@@ -2,6 +2,9 @@
 
 - Status: Review
 - Priority: High
+- Acceptance (20261005-c): the batch named this ticket, and its session closed on the sibling
+  `remote-inventory-native-parity-rework` rows; the syringe-drag-on-a-remote-limb staging this ticket's
+  rows need was not built, so every row here stays unjudged and the ticket stays in `review/`.
 - Category: Remote medical / WoundView display / real-time injection
 - Parents:
   - `docs/backlog/review/remote-fentanyl-injection-and-medical-panel-desync.md`

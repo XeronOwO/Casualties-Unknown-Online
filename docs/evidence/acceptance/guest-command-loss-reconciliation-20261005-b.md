@@ -44,15 +44,15 @@ None: every row above is a machine row read from probe results and log lines.
 
 - Row 4's shape needs the host's world-item table empty, and the only edge that empties it is a layer
   change (`[LayerReset] dropped the previous layer's world-rooted items`). That edge also reloads the
-  member's scene, so the member has no local body inside the empty window unless its own inbound is
-  parked as well: the first attempt (`r4c-*`) parked only the host and the member answered
-  `no-local-body` at +4.1 s; the second attempt froze both ends and landed the destroy, but the member's
-  freeze ran 17.1 s and tripped `GuestHostSilenceWatchdog` (`No frame from the host … for 15016 ms —
-  ending the session locally.` at 20:06:22.121, followed by `dropped 1 unacknowledged item report(s):
-  the session ended.`), so that attempt's report died at the session edge. The recorded attempt is the
-  third, with the freeze held to 9.7 s. Each attempt costs a layer change, and a second layer advance
-  follows the first on its own (~9 s later) — the `[LayerReset]` line therefore appears twice per
-  attempt.
+  member's scene, and three attempts were needed: the first (`r4-*` / `r4b-*`) parked only the host and
+  the destroy probe found nothing to destroy — the member had no local body at +4.1 s
+  (`container-read mode=local` → `no-local-body`); the second (`r4c-*`) froze both ends, landed the
+  destroy (`carried:true`) and then lost it, because the member's freeze ran 17.1 s and tripped
+  `GuestHostSilenceWatchdog` (`No frame from the host … for 15016 ms — ending the session locally.` at
+  20:06:22.121, followed by `dropped 1 unacknowledged item report(s): the session ended.`); the recorded
+  attempt (`r4d-*`) is the third, with the freeze held to 9.7 s. Each attempt costs a layer change, and a
+  second layer advance follows the first on its own (~9 s later) — the `[LayerReset]` line therefore
+  appears twice per attempt.
 - The "keyframe is skipped for an empty table" half of row 4 is pinned at the mechanism level by
   `SwallowedDestroyOfTheLastCarriedItem_ConvergesWithAnEmptyWorldTable`; the machine row proves the
   empty-table convergence itself (empty world table, empty transfer table, one swallowed destroy frame,

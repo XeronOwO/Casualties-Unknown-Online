@@ -52,6 +52,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Guest command loss is not reconciled](todo/guest-command-loss-reconciliation.md) — **Medium** — rows 1,3,5,8,9 hold; row 2 diverges.
+
 ### In progress
 
 ### Review
@@ -69,7 +71,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Sync cadence review](review/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
 - [Session control convergence](review/session-control-convergence.md) — **Medium** — the bounded scene re-report window and the re-ack loop.
-- [Guest command loss is not reconciled](review/guest-command-loss-reconciliation.md) — **Medium** — the bounded per-item re-report queue.
 - [Remote interaction gates are judged by the host](review/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.

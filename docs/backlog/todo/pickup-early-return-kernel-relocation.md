@@ -50,3 +50,17 @@ contained item cannot reach the early return and pin that with a test.
 
 First step for either answer: a session that drags items out of containers into slots and back, read
 against the new `[ContainerSync] … no longer names …` warning.
+
+## Readings
+
+Batch `20261005-e` (2026-10-05) drove that first step on a three-client session and the warning did not
+fire. The run moved a carried item into a container, took it back out onto a ring slot (the
+`PickUpToSlot` shape whose replay unloads the child through `Body.PickUpItem`), took it out into the
+world, and put it back, in both owner directions, then read the owner's, the operator's and the third
+peer's logs from byte marks taken before the first gesture: no `[ContainerSync] … no longer names …` line
+and no `Terminal` line on any of the three. The same session's traffic lines show the container report
+travelling as the intended wire kind (`Send/Receive ItemContainerSyncCommand`). Reachability therefore
+stays unproven on this gesture set; the next attempt should either widen it (a container emptied by a
+gesture this run could not drive — the expansion kind is blocked for the driver, see
+`todo/container-move-snapshot-only-sync.md`) or answer the question from the native call sites, as the
+section above suggests.

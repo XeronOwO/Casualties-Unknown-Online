@@ -2,6 +2,9 @@
 
 - Status: Review
 - Priority: Critical
+- Acceptance (20261005-c): the batch named this ticket, and its session closed on the sibling
+  `remote-inventory-native-parity-rework` rows; the syringe-drag-on-a-remote-limb staging this ticket's
+  rows need was not built, so every row here stays unjudged and the ticket stays in `review/`.
 - Category: Remote medical / cross-player medicine
 - Source: User report (2026-09-06) — a guest used fentanyl on the host through the remote medical panel. The guest saw the whole syringe drain instantly with no native injection minigame; the host's medical panel did not show the fentanyl happiness change, heart rate displayed 0 while the waveform still animated, and the remote medical panel leaked the viewer's own bottom status icons and left the sleep button enabled.
 - Landed: 2026-09-06 — native syringe minigame routing for cross-player injectable/IV medicines, partial-dose wire, remote WoundView display projection, ECG/Moodle redirection and sleep-button disable all implemented; full gates green; latest DLLs deployed and artifact-verified; awaiting final user dual-client acceptance.

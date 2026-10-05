@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Container moves reach the viewer as a snapshot](todo/container-move-snapshot-only-sync.md) — **Medium** — the clone fact monitor warns on every move.
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
 
 ### In progress

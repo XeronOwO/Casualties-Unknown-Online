@@ -1852,6 +1852,47 @@ dependency the table did not name, a step that cost more than it returned.
   reader must seek BYTES: slicing the split text by the mark silently matched nothing, which bought a round
   of `NO MATCHING LINES` on a run that had in fact produced the line.
 
+## 2026-10-05 — Batch `20261005-c`: driving the game's own release path in process, and what a passing row can still tell you
 
+The run accepted the remote-inventory native-parity rows by driving `PlayerCamera.HandleReleaseDragging`
+— the game's own release entry — with no OS-level input. The mechanism is reusable and is now the
+committed recipe `tools/acceptance/recipes/remote-gesture.cs` (`mode=list|open|close|release`).
 
-
+- **The three inputs are the whole gesture.** The native branch reads `camera.dragItem` (public field),
+  `camera.clickPos` (public field) and the `uiCasts` list it is passed. Stage those three, invoke the
+  private method by reflection, and the game's own branch runs — the Harmony bracket
+  (`PlayerCameraDragUsePatch`) sees it exactly as it sees a mouse release.
+- **The `uiCasts` list is a target pointer, not a raycast result.** `InvButton.Overlaps(casts)` ignores
+  the list entirely for a non-centre button and answers a pure pointer-distance band for a centre-class
+  one (`152 < distance/PlayerCamera.uiScale <= 281`). `new RaycastResult { gameObject = button.gameObject }`
+  is enough to select a ring slot; `FindObjectsOfType(typeof(InvButton))` lists them with `slot` and
+  `GetItem()`, which is the item a drop lands on.
+- **When the run may not move the pointer, move the ring.** The first attempt logged
+  `the release of item … produced no intent — unclassified native gesture`: the guard had refused because
+  the real pointer sat outside the ring. Setting `camera.radialMenu.position` so the pointer falls in the
+  annulus (distance `200 * uiScale`) makes the same guard pass, and the branch that then runs is still the
+  game's own. Record that staging in the row's evidence — it is scene setup, not a weaker check.
+- **`clickPos` decides drop vs place.** The world branches require
+  `Distance(Input.mousePosition, camera.clickPos) > 10`; the container branches require `< 10`. Setting
+  `clickPos` to `mouse + 60` or to `mouse` is therefore the whole difference between "drop it" and "put it
+  in the slot", with no pointer movement at all.
+- **A take-out released over empty space ends in the world, not in a slot.** The native world action runs
+  `Container.UnloadItem(dragItem, null)`; the item then exists as a world item. Prove it with
+  `item-provide mode=pickup type=<type>` and check that the answer names the SAME instance id — that is
+  the difference between "the item is fine" and "the item vanished", which is what the row was about.
+- **Not every rendered proxy is drivable.** `RemoteDragProxyQuery.InstanceId` reads the
+  `RemoteInventoryItemId` marker; a render without it answers `0` and the release patch fails closed.
+  `mode=list` reports the marker's id and owner, so pick a proxy that carries one.
+- **The sandbox windows are indistinguishable by title** (`[#] CasualtiesUnknown [#]` for both boxes) and
+  all three processes report the same physical `Path`. The Online UI's Home page prints the client's own
+  SteamID, so one window capture settles the PID↔endpoint mapping — cheaper and more reliable than
+  guessing from launch order.
+- **The evaluator's Mono REPL refuses an inner lambda that captures a local** (the 2026-10-03 lesson in
+  its general form): the first version of the recipe captured the resolved marker type and died with
+  `(1,1): InteractiveHost`. Pass the type as a lambda PARAMETER — a `const` capture is fine, a local is
+  not.
+- **A passing row can still carry the run's most valuable finding.** Every container move this batch drove
+  made the operator's `CloneFactTable` monitor warn (`nested container contents changed without an event
+  sync`) while the owner logged nothing. The rows passed; the warning became
+  `docs/backlog/todo/container-move-snapshot-only-sync.md`. Read the run's own diagnostics before closing
+  a batch, not only the row's expected line.

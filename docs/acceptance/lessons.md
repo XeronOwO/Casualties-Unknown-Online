@@ -1814,5 +1814,44 @@ dependency the table did not name, a step that cost more than it returned.
 - **Ending clean**: both clients' driver `quit` left zero game processes; `.acceptance/20261003-e/` holds
   every probe dump and log excerpt the four records cite.
 
+## 2026-10-05 — Batch `20261005-b`: holding an item report across the host's checkpoint, and what an empty host table costs
+
+- **A report can be held across the host's own checkpoint on purpose.** The host's in-session repair cycle
+  sends a kernel checkpoint every 60 s (`Sent kernel checkpoint at revision N`; measured
+  19:51:14.757 → 19:52:14.757), and the phase is readable from the last such line. Arm the host's inbound
+  blackout ~8 s before the next one and drop the item inside it: the guest's
+  `[ItemCommand] kept N unacknowledged item report(s) across the world baseline restored at revision N`
+  lands at the restore edge, and holding the blackout through the first re-report (~5 s) makes the second
+  repeat the one that converges. The row that used to fail here failed because a checkpoint emptied the
+  queue; the keep line is the evidence that it now survives.
+- **An empty host world-item table is the layer edge, and that edge also reloads the member's scene.** The
+  only thing that empties it is a layer change
+  (`[LayerReset] dropped the previous layer's world-rooted items; N item record(s) remain (carried items
+  cross the boundary)`). Inside that window the member has no local body — `container-read mode=local`
+  answers `no-local-body` at +4.1 s — unless the member's OWN inbound is parked as well, which keeps its
+  body and its carried item alive through the transition.
+- **Two blackouts for that row, and the freeze stays under the watchdog.** `GuestHostSilenceWatchdog` ends
+  the session at 15 s without a host frame, and the report dies with it
+  (`dropped 1 unacknowledged item report(s): the session ended.`) — a first landing ran 17.1 s and lost the
+  row. The working sequence is one command: arm host, arm guest, skip layer, +2 s, destroy the carried item,
+  disarm guest, disarm host (12 s end to end, member freeze 9.7 s). The gap between separate agent commands
+  is 5–7 s of wall clock on its own, which is what blew the cap; read the host's tables after the disarms,
+  because a `container-read mode=host` is a ~50 KB answer (~4 s) and eats the window.
+- **Schedule layer-changing staging last.** Two consecutive layer changes dropped both members out of the
+  world and started a repeating `[LayerMod] baseline divergence` warning — the guest's rolling log grew
+  0.8 MB → 33.4 MB in about four minutes — and the members do not come back on their own (`SendWorldJoin`
+  has no periodic re-send). Recovery is `home.leave` + `join-lobby`, or a cold restart of all three clients.
+- **`item-pickup mode=id` still obeys the game's proximity guard**: naming a world item by id from anywhere
+  is refused with `PickUpItem left <type> outside slot 0`. Pick the item the member just dropped at its own
+  feet, or use `mode=type` (nearest).
+- **Killing a committed-batch receipt needs ~6 s of parked inbound.** A 1.6 s window produced no repeat at
+  all (the host emits its committed batch late); 6 s produced the intended
+  `re-reported … (1/12)` → `converged`, with the host answering the repeat as
+  `[ItemDrop] … present — re-placing at (…)` after exactly one `not present — requesting materialization`.
+- **Quote `logs\latest.log`, not `LogOutput.log`, when the evidence needs timestamps** — and a byte-mark
+  reader must seek BYTES: slicing the split text by the mark silently matched nothing, which bought a round
+  of `NO MATCHING LINES` on a run that had in fact produced the line.
+
+
 
 

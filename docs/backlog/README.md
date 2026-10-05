@@ -56,7 +56,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Guest command loss is not reconciled](review/guest-command-loss-reconciliation.md) — **Medium** — row 2 fixed; the machine re-run is next.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
@@ -154,6 +153,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Guest command loss is not reconciled](done/guest-command-loss-reconciliation.md) — **Medium** — the unacknowledged item reports re-report until judged.
 - [An item can be operated on before its creation is registered](done/item-creation-registration-first.md) — **Medium-High** — creation first; tombstone.
 - [Enemy snapshot binding has no recovery path](done/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn-anchor key and the repair carrier.
 - [World/layer generation identity](done/world-layer-generation-identity.md) — **Medium** — the run baseline rides the cell-keyed reports.

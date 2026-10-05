@@ -338,6 +338,15 @@ internal sealed class ItemWorldSync(
 		// clearing destroy.)
 	}
 
+	/// <summary>True while a drop report is REGISTERED but not yet sent: the carrier holds it for one frame
+	/// so the game's own <c>DropItem</c> → <c>ThrowItem</c> pair can set the final velocity. While this is
+	/// true nothing may announce the item's departure — an inventory snapshot that reaches the peers first
+	/// makes them read the change as a move without an event ("left the inventory without an event sync",
+	/// batch `20261005-e`), so both of the owner's re-report entry points ask this before they send. The
+	/// drop report itself is the announcement, and the periodic character snapshot converges what it
+	/// misses.</summary>
+	internal bool HasPendingDropReport => _dropState.Current == ItemDropState.Phase.Dropped;
+
 	/// <summary>The world was left (scene switch / session end) — a pending drop cannot resolve anymore; cancel it so the operation trace stays balanced.</summary>
 	internal void ResetPending()
 	{

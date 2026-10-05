@@ -474,6 +474,18 @@ boundary; no dual shape is kept.
       already rides the periodic character snapshot, so the drained level reaches the other clients at
       that cadence while the owner's own screen drains natively. Its happy path logs at Debug for the
       same reason; a refusal keeps its Information/Warning line.
+    - A PENDING DROP REPORT holds the immediate re-report back, at both of the owner's entry points for it: a
+      drop's carrier reports on the NEXT frame (it waits for the game's `DropItem` → `ThrowItem` pair to settle
+      the final velocity, and `DropPendingState.TryFlush` refuses a same-frame flush), so a snapshot sent while
+      that report is pending reaches the peers AHEAD of the event explaining the change and reads to their
+      clone fact table as `left the inventory without an event sync` — batch `20261005-e` measured exactly that
+      on the operator and on the third peer, in both owner directions. The question is asked of the item
+      domain's own state (`ItemWorldSync.HasPendingDropReport`) rather than of the intent kind, so it also
+      covers a kind whose native call left a drop behind on a path that did not land, and it is asked in
+      `RemoteIntentApplier` AND in `GameAdapterBridge.OnInventoryChanged` — the patch layer's one entry point,
+      where an unconditional `Body.DropWearable` postfix would otherwise re-report a wearable drop from inside
+      the applier's own native call. Every other discrete kind's carrier sends inside the apply scope and keeps
+      the re-report.
     - The favourite toggle through the remote view stays refused with one Information line per dragged
       proxy. The window cannot take it: the native branch writes the `favourited` FIELD of the hovered
       item, so there is no call to intercept, and the frame that would write it is skipped instead.

@@ -176,7 +176,23 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		return true;
 	}
 
-	public void OnInventoryChanged() => domains.CharacterDataSync.ReportInventoryChanged(domains.Run.LocalBody);
+	/// <summary>
+	/// A patch observed a local inventory change and asks for the immediate clone re-report. The order
+	/// rule lives here because this is the patch layer's ONE entry point for it: while a drop report is
+	/// registered but not yet sent, the snapshot would reach the peers ahead of the event that explains
+	/// the change (batch `20261005-e` read exactly that as "left the inventory without an event sync").
+	/// The drop carrier announces it on the next frame; the periodic snapshot converges what it misses.
+	/// </summary>
+	public void OnInventoryChanged()
+	{
+		if (domains.ItemWorldSync.HasPendingDropReport)
+		{
+			domains.Log.LogDebug("[CloneRender] inventory change deferred — a drop report is pending (it announces the change on the next frame).");
+			return;
+		}
+
+		domains.CharacterDataSync.ReportInventoryChanged(domains.Run.LocalBody);
+	}
 
 	public bool IsOnlineUiModalOpen => domains.MenuInput.IsOnlineUiModalOpen;
 

@@ -52,9 +52,10 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [A same-frame second drop overwrites the pending report of the first](todo/drop-pending-single-slot-overwrite.md) — **Medium** — one pending slot, two drops.
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
-- [Container moves reach the viewer as a snapshot](todo/container-move-snapshot-only-sync.md) — **Medium** — one report, one command; drops warn.
+- [Container moves reach the viewer as a snapshot](todo/container-move-snapshot-only-sync.md) — **Medium** — one report, one command; the drop order fixed.
 
 ### In progress
 

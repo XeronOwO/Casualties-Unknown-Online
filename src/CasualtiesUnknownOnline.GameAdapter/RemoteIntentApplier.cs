@@ -21,7 +21,13 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// converge without waiting for the 1 Hz character snapshot. A CONTINUOUS step
 /// (the while-dragging drain tick, which arrives every frame) does not re-report
 /// per frame — that state is un-evented continuous item state and rides the same
-/// periodic snapshot the game's own decay and battery drain use.
+/// periodic snapshot the game's own decay and battery drain use. The third case is
+/// a PENDING DROP REPORT: while one is registered but not yet sent — its carrier
+/// waits a frame for the throw velocity — no re-report goes out either, because the
+/// snapshot would arrive ahead of the event that explains it and read to every peer
+/// as a move without a report. That question is asked of the item domain's pending
+/// state rather than of the intent kind, so a kind whose native call left a drop
+/// behind on a path that did not land is covered too.
 ///
 /// A guard refusal is the native refusal: it is logged with the intent, the item
 /// and the native reason, and the authoritative report then shows the item where
@@ -71,10 +77,10 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 			switch (msg.Kind)
 			{
 				case RemoteInventoryIntentKind.DropItem:
-					body.DropItem(item);
+					ApplyDropItem(body, item);
 					break;
 				case RemoteInventoryIntentKind.DropWearable:
-					body.DropWearable(item);
+					ApplyDropWearable(body, item);
 					break;
 				case RemoteInventoryIntentKind.TakeOutOfContainer:
 					ApplyTakeOutOfContainer(item);
@@ -133,11 +139,64 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 			return;
 		}
 
+		if (domains.ItemWorldSync.HasPendingDropReport)
+		{
+			// A drop report is registered but not sent yet: its carrier holds it for the
+			// next frame so the game's own DropItem → ThrowItem pair can settle the final
+			// velocity, which is why a same-frame flush is refused by design. Announcing
+			// the change now would reach the peers BEFORE that report — they apply a
+			// snapshot that lost an item whose event is still in flight and log
+			// "left the inventory without an event sync" (batch 20261005-e, operator and
+			// third peer, both owner directions). The question is asked about the PENDING
+			// STATE rather than about the intent kind, so it also covers a kind whose
+			// native call left a drop behind on a path that did not land (R9's slot
+			// release refused after it dropped the two slot occupants). The periodic
+			// character snapshot still converges whatever the drop report misses.
+			_log.LogInformation("[RemoteIntent] replayed native {Kind} on item {Item} — a drop report is pending and announces it on the next frame, so no immediate re-report.",
+				msg.Kind, msg.ItemInstanceId);
+			return;
+		}
+
 		// The owner's own scene changed: the immediate re-report makes every
 		// clone (including the remote-backpack viewer) converge now.
 		domains.CharacterDataSync.ReportInventoryChanged(body);
 		_log.LogInformation("[RemoteIntent] replayed native {Kind} on item {Item} (container {Container}, slot {Slot}).",
 			msg.Kind, msg.ItemInstanceId, msg.TargetContainerInstanceId, msg.TargetSlotIndex);
+	}
+
+	/// <summary>
+	/// <c>Body.DropItem(item)</c> (W2). The native call is a no-op unless the item is one the body
+	/// currently holds, and only a landed drop reports — the same guard <c>BodyItemPatches.DropItemPatch</c>
+	/// applies before it fires the carrier, read back here so a refusal is named instead of looking like a
+	/// lost intent (every other kind in this applier re-reads the scene for the same reason).
+	/// </summary>
+	private void ApplyDropItem(Body body, Item item)
+	{
+		body.DropItem(item);
+		if (body.HoldingItem(item))
+		{
+			_log.LogWarning("[RemoteIntent] drop refused: item {Item} is not one of the owner's held or slotted items, so the native DropItem was a no-op.", item.id);
+			return;
+		}
+
+		_log.LogInformation("[RemoteIntent] item {Item} left the owner's body into the world.", item.id);
+	}
+
+	/// <summary>
+	/// <c>Body.DropWearable(item)</c> (W3). The native call runs only while the item is worn on one of the
+	/// body's limbs, and the wear patch reports the drop from that same condition — read back here so a
+	/// stale intent (the owner already took the item off) is named rather than logged as a write.
+	/// </summary>
+	private void ApplyDropWearable(Body body, Item item)
+	{
+		body.DropWearable(item);
+		if (body.GetWearable(item.id) != null) // Unity object — ==
+		{
+			_log.LogWarning("[RemoteIntent] wearable drop refused: item {Item} is not worn on the owner's body, so the native DropWearable was a no-op.", item.id);
+			return;
+		}
+
+		_log.LogInformation("[RemoteIntent] wearable {Item} left the owner's body into the world.", item.id);
 	}
 
 	/// <summary><c>Container.UnloadItem(item, null)</c> (W1): the item leaves its container into the world.</summary>

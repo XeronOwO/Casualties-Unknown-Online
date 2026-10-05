@@ -1,6 +1,6 @@
 # Guest command loss: local pickup/drop result is not reconciled
 
-- Status: Review
+- Status: Todo — Rejected (row 2: a periodic checkpoint drops the queued report)
 - Priority: Medium
 - Category: Network / sync coverage / items
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row I5, plus the empty-host-table caveat the audit attached to row I1)
@@ -138,6 +138,32 @@ swallow contract.
 | 7 | Third-party view | All peers agree on the item's location/ownership, and the healed report materializes no duplicate on the third party | `ThirdParty_SeesTheHealedLocationAndNoDuplicate` |
 | 8 | In-flight race (pickup before spawn report) | The creation-before-operation ordering is unchanged, and the pair the review found is now covered: a creation whose report was swallowed stays queued and heals the item (with the refused pickup not repeating), and the fully swallowed pair replays in order and keeps the player's carry | `SwallowedCreation_IsStillQueuedAndReReportedAfterALaterPickupIsRefused`, `BothReportsSwallowed_TheChainReplaysInSendOrderAndKeepsThePlayersCarry` |
 | 9 | A drop lost and followed by a pickup (added by the review) | The refusal pops the pickup only; the older drop keeps its place and its re-report lands, so the host converges to the state the refusal left behind (item back in the world) | `SwallowedDropBehindAPickup_ConvergesThroughTheOlderReport` |
+
+## Real-machine acceptance — batch 20261005-a (2026-10-05): rejected on row 2
+
+Three clients on one world (physical host + two sandboxes), deployed artifact `0.1.0+76ef80c2`, the swallow injected
+in the production lazy-P2P shape (`net-receive-blackout` parks the receiver's inbound dispatch while the sender's
+transport still reports the send as successful). Record:
+`docs/evidence/acceptance/guest-command-loss-reconciliation-20261005-a.md`.
+
+- Rows 1, 3, 5, 8 and 9 pass: a swallowed pickup, a swallowed destroy, a repeated drop whose receipt died, a fully
+  swallowed creation+pickup pair and a lost drop followed by a refusal all converged on the wire without a
+  reconnect; the host's authoritative table and the guest's own inventory agreed afterwards, and row 9 showed the
+  refusal popping only the pickup while the older drop kept its place and landed.
+- **Row 2 fails.** A guest drop whose report is swallowed does not converge when the host's own periodic checkpoint
+  lands inside the re-report interval: `GuestCommandReconciliation.OnCheckpointRestored` empties the queue
+  (`[ItemCommand] dropped 1 unacknowledged item report(s): the world baseline was restored at revision 950`), so
+  the report is never re-sent. The host keeps the item in its transfer table with the guest as carrier while the
+  guest has dropped it, and the divergence was still present seven minutes later in the same session. The
+  checkpoint rebuilds the guest's mirror of the HOST's state and says nothing about reports travelling the other
+  way, so restoring a baseline is not a reason to discard them; with a 5 s re-report cadence against the host's
+  60 s checkpoint cadence, any report outstanding as a checkpoint lands is lost for good.
+- Rows 4, 6 and 7 are `unproven`: row 4 needs the host's world-item table empty (this world carries 274 items and
+  nothing in the run's vocabulary empties it), row 6 staged only the world edge (leaving the world keeps the
+  window, as designed — the session edge was not staged), and row 7's third-party read came after row 2 had already
+  split the session, so its own expectation could not be separated from that split.
+- Fix row 2 first: keep the queue across a checkpoint restore, or scope the clear to operations the checkpoint
+  actually covers, then re-run the row.
 
 ## Verification
 

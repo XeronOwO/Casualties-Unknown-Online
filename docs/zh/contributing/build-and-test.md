@@ -96,13 +96,23 @@ powershell -ExecutionPolicy Bypass -File tools/verify-deploy.ps1 -GameDir "<game
 - 某个工程编译失败时，它的消费者会继续对着上一次成功的 DLL 编译，看起来就像“新类型不存在”。
   先看构建输出，再怀疑消费者。
 - `dotnet format` 会重写文件。复核窗口期工作区是冻结的，别在里面跑它；任何外部工具动过文件后，编辑前都要重新读一遍。
+- **`dotnet test` 可能什么都没跑却报成功。** 在 .NET SDK 10.0.401 这套工具链上，`net48` 工程的测试适配器会加载失败：
+  运行打印“未能从文件 `xunit.runner.visualstudio.testadapter.dll` 加载扩展”和“没有可用测试”，然后**退出码是 `0`**，
+  实际只跑了门禁工程。**看摘要，别看退出码**：门禁工程是几百个用例，整套测试是几千个。
+  绕过办法是把包里的适配器直接指给运行器 —
+  `dotnet test <测试工程> --test-adapter-path "<nuget 包目录>/xunit.runner.visualstudio/4.0.0/build/net472"`。
+  以下已经排除过，别再重复找一遍：SDK 的 `Extensions` 目录缺 `Microsoft.Bcl.AsyncInterfaces`（补上程序集版本 9.0.0.8 毫无变化）；
+  测试平台与适配器文件本身（与同一台机器上能正常发现用例的最小 `net48` xunit 工程逐字节相同）；产品、游戏与框架程序集；
+  输出目录里的子目录；非程序集文件；测试工程的 `app.config`；多出来的 `.exe`；目录名；以及 SDK 版本。
+  根因仍未定位——能确认的是这个绕过办法。
 - 这套测试里没有任何东西是一次游戏会话。测试全绿只能证明逻辑；两台真实客户端的画面对比是提交之后由智能体执行的[验收运行](../../acceptance/workflow.md)
   （[搭好开发环境](../start/set-up-dev-environment.md)）。
 
 ## 怎么确认成了
 
 - `dotnet build` 报 0 警告 0 错误（这里警告就是错误）。
-- `dotnet test` 退出码为 `0`；迭代期单跑门禁工程，几秒内全绿。
+- `dotnet test` 退出码为 `0`，**且摘要里两个程序集都在**：门禁工程的几百个用例，以及测试工程的几千个。
+  只看退出码不算数——见「常见坑」。
 - `verify-deploy.ps1` 退出码为 `0`，并且它打印的 `ProductVersion` 以你这次构建的提交 sha 结尾。
 
 ## 相关阅读

@@ -116,6 +116,20 @@ The full lookup — the shape of a line, what to search for and the triage order
   exactly like a new type being invisible. Check the build output before suspecting the consumer.
 - `dotnet format` rewrites files. Never run it inside a review window over a frozen tree, and re-read
   a file after any external tool has touched it.
+- **`dotnet test` can report success while running nothing.** With the .NET SDK 10.0.401 toolchain the
+  `net48` project's test adapter can fail to load: the run prints that it could not load the extension
+  from `xunit.runner.visualstudio.testadapter.dll` and that the test assembly holds no available tests,
+  then exits `0` having run only the gate project. **Read the summary, not the exit code**: the gate
+  project is a few hundred cases, the full suite is thousands. Point the runner straight at the adapter
+  from the package to get past it —
+  `dotnet test <test-project> --test-adapter-path "<nuget-packages>/xunit.runner.visualstudio/4.0.0/build/net472"`.
+  Already ruled out, so nobody repeats the search: a `Microsoft.Bcl.AsyncInterfaces` missing from the
+  SDK's `Extensions` folder (adding assembly version 9.0.0.8 changes nothing); the test-platform and
+  adapter files themselves (byte-identical to those of a minimal `net48` xunit project that discovers
+  its tests on the same machine); the product, game and framework assemblies; the output
+  subdirectories; the non-assembly files; the test project's `app.config`; a stray `.exe`; the
+  directory name; and the SDK version. The root cause is still open — the workaround is what is
+  verified.
 - Nothing in this suite is a game session. Green tests prove the logic; two real clients on screen are
   the [agent's acceptance run](../../acceptance/workflow.md), a separate step after the commit
   ([Set up a development environment](../start/set-up-dev-environment.md)).
@@ -123,7 +137,8 @@ The full lookup — the shape of a line, what to search for and the triage order
 ## How you know it worked
 
 - `dotnet build` reports 0 warnings and 0 errors (warnings are errors here).
-- `dotnet test` exits `0`; the gate project alone is green in seconds while you iterate.
+- `dotnet test` exits `0` **and its summary names both assemblies**: the gate project's few hundred
+  cases and the test project's thousands. The exit code on its own is not the signal — see Traps.
 - `verify-deploy.ps1` exits `0` and its `ProductVersion` ends in the sha of the commit you built.
 
 ## Related reading

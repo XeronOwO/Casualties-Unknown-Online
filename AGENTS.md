@@ -174,6 +174,11 @@ Detail: `docs/en/contributing/review-and-delivery.md`.
 - `[CRITICAL]` **Fix the family, not just the reported case**: inspect sibling mechanisms and other
   modules for the same defect pattern and align the whole family in the same cycle, or record a backlog
   item when the rest is genuinely out of scope.
+- `[CRITICAL]` **"Not introduced by this change" is never a reason to leave a defect alone**: when work or
+  a run turns one up, check this repository's own history (`git log`, `git blame`) for whether it
+  introduced the behaviour; if it did, fix it in the same cycle, or file a ticket that carries the
+  evidence and the attribution when it genuinely cannot ride that cycle. Recording "pre-existing" and
+  walking on is the failure mode.
 - `[CRITICAL]` **User-found issues are hard release blockers**: fix until the exact reproduction is
   resolved and verified, not merely until tests and gates pass; state an external blocker explicitly
   rather than declaring the issue done.

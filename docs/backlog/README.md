@@ -52,6 +52,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
+
 ### In progress
 
 ### Review

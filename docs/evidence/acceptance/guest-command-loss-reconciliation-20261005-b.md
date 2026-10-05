@@ -65,8 +65,10 @@ None: every row above is a machine row read from probe results and log lines.
 - Consecutive layer changes are not free: after the first attempt the two members were dropped from the
   world and the sandbox logs filled with a repeating `[LayerMod] baseline divergence` warning (the
   guest's rolling log grew from 0.8 MB to 33.4 MB in about four minutes). The batch recovered by
-  restarting all three clients; nothing in this ticket's rows depends on the layer hazard, and the
-  hazard itself is pre-existing behaviour recorded in the local run notes.
+  restarting all three clients; nothing in this ticket's rows depends on the layer hazard, and the hazard
+  itself is now tracked by `docs/backlog/todo/layer-change-member-dropout.md` — its diagnostic, the
+  host-authoritative modifier model and the layer-transition behaviour are this repository's own code, so
+  "pre-existing" was the wrong reading of it.
 - The 60 s checkpoint cadence is the host's own in-session repair cycle, measured here as
   19:51:14.757 → 19:52:14.757 rather than read from a configuration value.
 - One swallow window per row: a report that dies twice (its first send and its first re-report) is

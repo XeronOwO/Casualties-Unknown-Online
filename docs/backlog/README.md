@@ -53,12 +53,13 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
-- [Container moves reach the viewer as a snapshot](todo/container-move-snapshot-only-sync.md) — **Medium** — rejected: the monitor still warns.
+- [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
 
 ### In progress
 
 ### Review
 
+- [Container moves reach the viewer as a snapshot](review/container-move-snapshot-only-sync.md) — **Medium** — one report, one command; row A1 open.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.

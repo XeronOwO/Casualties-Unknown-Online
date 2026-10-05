@@ -156,8 +156,10 @@ is named in the cycle handoff.
   not "the host now refuses new things".
 - **Not every wire path passes the seam**, by design: the two protocol heals and the guest range
   request stay outside it (named above). A member's container-sync report can still make the HOST
-  author a `HostOnly` destroy of a stale contained child on that member's behalf
-  (`ItemContainerSyncWriter`), which is the host's own write and never reaches the seam.
+  author a `HostOnly` destroy of a stale contained child on that member's behalf (the
+  `SyncContainerItemsCommand` the report maps to, decided in `ItemDomainModule.DecideSyncContainer`;
+  the writer that first carried this sentence was deleted on 2026-10-06 and the destroy now logs its
+  dropped ids), which is the host's own write and never reaches the seam.
 - **Three of the nine named types did not move**, each with its blocker recorded and the remaining
   move filed as its own ticket (`todo/legacy-wire-dto-slice.md`): `KernelWireMapper` (its enemy-combat
   branches map the legacy protobuf messages the Game Adapter also references),

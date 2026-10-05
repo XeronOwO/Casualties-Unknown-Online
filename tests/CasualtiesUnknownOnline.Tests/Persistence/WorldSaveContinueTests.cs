@@ -10,6 +10,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Xunit;
@@ -226,7 +227,7 @@ public class WorldSaveContinueTests
 			],
 		};
 		Assert.True(fixture.Kernel.TrySpawn(HostId, new ItemIdentity(100, "bag"), ItemLocation.World(1, 2), parent, out _, out _));
-		fixture.Kernel.SyncContainerContents(HostId, 100, parent, new ActorId(HostId));
+		Assert.True(fixture.Kernel.TrySyncContainerFacts(HostId, parent, out _, out _));
 		SaveMidRun(fixture);
 
 		using var restarted = fixture.Restart("continue-container-tree-restart");

@@ -1931,3 +1931,23 @@ inventory without an event sync`. The ticket's row is a ZERO-warning row, so it 
 - **The evaluator returns VOID when an inner lambda's local shares an outer local's name**: a probe whose
   answer was JSON without a `value` field had `var found` outside and `System.Type found` inside its own
   helper. Rename one of them; the failure names nothing.
+
+## 2026-10-06 — A peer's monitor reads the fact it REBUILDS, not the message the owner sent
+
+- Symptom: batch `20261005-d` re-judged the container-move ticket after the owner-side carrier fix and
+  read the same two warnings one millisecond after the event applied — `nested container contents changed
+  without an event sync` for the bag and `left the inventory without an event sync` for the item that
+  entered it, on the operator and on the third peer.
+- Cause: the receiving client never applies the owner's message. The carried fact a peer sees is rebuilt
+  from the committed batch, and a container's contents are listed from the kernel's contained children
+  (`KernelBatchItemProjection.BuildContents`). The fix had lit the carrier up, but the host's own container
+  report wrote only the parent's DATA, so the batch reached the peers as an empty container with the moved
+  child still in its old kernel location. A row that reads a peer's monitor therefore judges the whole
+  chain — report, kernel write, projection, clone table — and cannot be satisfied by making the sender
+  louder.
+- Change: one container report is one `SyncContainerItemsCommand` on both paths
+  (`ItemKernelAuthority.TrySyncContainerFacts`, called by `ItemService.SendItemCarriedSync` when the report
+  carries contents; the guest's `ItemContainerSync` wire kind already mapped to it), and the dead,
+  relocation-blind second implementation (`ItemContainerSyncWriter`/`SyncContainerContents`) is deleted.
+  When row A1 is re-read, look for where the child SITS in the kernel and in the batch — the `applied` line
+  alone proves only half the chain.

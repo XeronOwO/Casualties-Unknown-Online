@@ -130,79 +130,6 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	/// </summary>
 	public ulong RestoreSequence { get; private set; }
 
-	// ===== World / Run =====
-
-	public bool TryStartRun(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new StartRunCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			run);
-		return TryExecute(command, actor, "start-run", out batch, out rejection);
-	}
-
-	public bool TryAdvanceLayer(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new AdvanceLayerCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			run);
-		return TryExecute(command, actor, "advance-layer", out batch, out rejection);
-	}
-
-	// ===== World entities (traps/buildings) =====
-
-	public bool TryRecordTrapConsumed(ulong actor, EntityPosition position, int kind, byte extra, long triggeredAtMs, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new RecordTrapConsumedCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			position,
-			kind,
-			extra,
-			triggeredAtMs);
-		return TryExecute(command, actor, "record-trap-consumed", out batch, out rejection);
-	}
-
-	public bool TryRecordBuildingEntityHealth(ulong actor, EntityPosition position, float health, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new RecordBuildingEntityHealthCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			position,
-			health);
-		return TryExecute(command, actor, "record-building-health", out batch, out rejection);
-	}
-
-	public bool TryRecordOpenedEntity(ulong actor, EntityPosition position, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new RecordOpenedEntityCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			position);
-		return TryExecute(command, actor, "record-opened-entity", out batch, out rejection);
-	}
-
-	public bool TryResetWorldEntities(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new ResetWorldEntitiesCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly);
-		return TryExecute(command, actor, "reset-world-entities", out batch, out rejection);
-	}
-
 	// ===== World items (layer boundary) =====
 
 	/// <summary>
@@ -220,100 +147,6 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			_runEpoch,
 			AuthorityKind.HostOnly);
 		return TryExecute(command, actor, "reset-world-items", out batch, out rejection);
-	}
-
-	// ===== Players =====
-
-	public bool TryUpdatePlayerStatus(ulong actor, PlayerState state, out CommittedBatch? batch, out Rejection? rejection) =>
-		TryExecute(new UpdatePlayerStatusCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, state), actor, "update-player-status", out batch, out rejection);
-
-	// The player table has NO reset, and that is a design statement rather than an
-	// omission: PlayerState carries the durable CROSS-LAYER facts (alive/conscious,
-	// the carry relation, the limb latches, body state, skills — see PlayerState), so
-	// a layer boundary must keep them. The family that DOES reset at a boundary is
-	// enumerated in WorldService.ResetWorldLayerTables; players are not in it.
-
-	public bool TrySetPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>
-		TryExecute(new SetPlayerCarryCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, carrierSteamId, carriedSteamId), actor, "set-player-carry", out batch, out rejection);
-
-	public bool TryClearPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>
-		TryExecute(new ClearPlayerCarryCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, carrierSteamId, carriedSteamId), actor, "clear-player-carry", out batch, out rejection);
-
-	// ===== Entities =====
-
-	public bool TryUpsertEnemy(ulong actor, EnemyState state, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new UpsertEnemyCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			state);
-		return TryExecute(command, actor, "upsert-enemy", out batch, out rejection);
-	}
-
-	public bool TryRemoveEnemy(ulong actor, EntityId entityId, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new RemoveEnemyCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			entityId);
-		return TryExecute(command, actor, "remove-enemy", out batch, out rejection);
-	}
-
-	/// <summary>
-	/// Host only: the kernel's LAYER-SCOPED enemy table drops its LIVE rows for the layer
-	/// being entered. A live enemy row is a fact about the layout it stands in AND about
-	/// the id the host allocated for it (<c>EnemySyncCoordinator</c> keeps allocating from
-	/// a per-session counter), so a row that survived the boundary would describe an enemy
-	/// of a layer the world no longer is — a fact that leaks to a late joiner's checkpoint
-	/// and whose id can be re-minted for a different enemy.
-	///
-	/// The TOMBSTONES survive: <c>EnemyStateTable.WithoutLiveEnemies</c> states why.
-	///
-	/// Host-local by construction, like the world-item and world-entity resets: a remotely
-	/// triggerable "wipe every enemy" is a destructive trigger no peer may have, so this
-	/// command has no wire form (<see cref="KernelWireMapper"/> does not map it) and the
-	/// guests converge from the committed batch and the checkpoints.
-	///
-	/// <paramref name="actor"/> is the LOCAL peer — the host acting as itself. It is a
-	/// parameter rather than a session lookup because this authority is also driven by
-	/// the save layer, which is not the session.
-	/// </summary>
-	public bool TryResetEnemies(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new ResetEnemiesCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly);
-		return TryExecute(command, actor, "reset-enemies", out batch, out rejection);
-	}
-
-	// ===== Fluids =====
-
-	public bool TryUpdateFluidRegion(ulong actor, FluidRegionState state, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new UpdateFluidRegionCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			state);
-		return TryExecute(command, actor, "update-fluid-region", out batch, out rejection);
-	}
-
-	/// <inheritdoc cref="TryResetEnemies"/>
-	public bool TryResetFluids(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new ResetFluidsCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly);
-		return TryExecute(command, actor, "reset-fluids", out batch, out rejection);
 	}
 
 	// ===== Spawn =====
@@ -485,13 +318,109 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	}
 
 	/// <summary>
-	/// Reconcile a container's authoritative child items against a recursive
-	/// wire/save-shaped container report. Each contained child is its own
-	/// kernel item; the walk and the writes it drives live in
-	/// <see cref="ItemContainerSyncWriter"/>.
+	/// ONE container report — the parent's own fact plus where every child sits
+	/// inside it — committed as ONE atomic batch. This is the same command the
+	/// guest's <c>ItemContainerSync</c> report maps to on the wire, so the owner's
+	/// local scene and a remote report write the kernel the same way.
+	///
+	/// The child LOCATIONS are the load-bearing half. The carried fact a peer
+	/// rebuilds from this batch lists the parent's contents from the kernel's
+	/// contained children, so a batch that only carried the parent's data reaches
+	/// the peers as an EMPTY container while the moved child keeps its previous
+	/// kernel location: the clone fact table then warns "nested container contents
+	/// changed" AND "left the inventory" on the next snapshot, because the event
+	/// announced neither half of the move.
 	/// </summary>
-	public void SyncContainerContents(ulong actor, ulong parentItemId, CharacterItemMsg parent, ActorId owner) =>
-		ItemContainerSyncWriter.Sync(this, actor, parentItemId, parent, owner);
+	public bool TrySyncContainerFacts(ulong actor, CharacterItemMsg parent, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new SyncContainerItemsCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.OwnerPredictedHostValidated,
+			new ItemIdentity(parent.InstanceId, parent.ItemId),
+			ToKernelData(parent),
+			FlattenChildren(parent));
+		var dropped = ChildrenTheReportDrops(parent);
+		var accepted = TryExecute(command, actor, "container-sync", out batch, out rejection);
+		if (accepted && dropped.Count > 0)
+		{
+			// The report is the container's truth, so a child it does not name is no
+			// longer inside — and the decision takes it to Terminal (ReplacedBy),
+			// which no later command may revive ("terminal child … cannot re-enter
+			// container" rejects the WHOLE container sync). That is the right verdict
+			// for a container that really is empty, and the wrong one for a child
+			// that merely moved without its own relocation fact, so the branch is
+			// observable instead of silent: a session that never sees this line has
+			// no stale contained record, and one that does has the ids to chase.
+			_log.LogWarning("[ContainerSync] the report for {ParentId} no longer names {Count} item(s) the kernel records inside it ({Items}) — they go Terminal (ReplacedBy); a child that left the container without its own relocation fact dies here.",
+				parent.InstanceId, dropped.Count, string.Join(", ", dropped));
+		}
+
+		return accepted;
+	}
+
+	/// <summary>
+	/// The report's own stale set, read before the command runs so the ids can be
+	/// logged: every kernel item that is a descendant of this parent and that the
+	/// report does not name anywhere in its subtree. Mirrors the walk
+	/// <c>ItemDomainModule.DecideSyncContainer</c> destroys, which is the point —
+	/// the log names exactly what that branch is about to make Terminal.</summary>
+	private List<ulong> ChildrenTheReportDrops(CharacterItemMsg parent)
+	{
+		var dropped = new List<ulong>();
+		var named = new HashSet<ulong>();
+		CollectReportedIds(parent, named, isRoot: true);
+		foreach (var item in _kernel.QueryItems().Values)
+		{
+			var id = item.Identity.InstanceId;
+			if (id == parent.InstanceId || named.Contains(id))
+			{
+				continue;
+			}
+
+			if (ItemLocationChain.IsDescendantOf(id, parent.InstanceId, _kernel.FindItem))
+			{
+				dropped.Add(id);
+			}
+		}
+
+		return dropped;
+	}
+
+	private static void CollectReportedIds(CharacterItemMsg item, HashSet<ulong> ids, bool isRoot)
+	{
+		if (!isRoot && item.InstanceId != 0)
+		{
+			ids.Add(item.InstanceId);
+		}
+
+		foreach (var child in item.Contents)
+		{
+			CollectReportedIds(child, ids, isRoot: false);
+		}
+	}
+
+	/// <summary>The report's recursive child walk, in report order: every child
+	/// keeps the parent linkage the report gave it, so the domain's decision sees
+	/// the whole subtree in one command. Depth is the report's, not the kernel's —
+	/// an unbound (id 0) child is carried like the wire path carries it and is
+	/// skipped by the decision.</summary>
+	private static IReadOnlyList<ContainerChildFact> FlattenChildren(CharacterItemMsg parent)
+	{
+		var children = new List<ContainerChildFact>();
+		AppendChildren(parent, children);
+		return children;
+	}
+
+	private static void AppendChildren(CharacterItemMsg parent, List<ContainerChildFact> children)
+	{
+		foreach (var child in parent.Contents)
+		{
+			children.Add(new ContainerChildFact(child.InstanceId, child.ItemId, parent.InstanceId, ToKernelData(child)));
+			AppendChildren(child, children);
+		}
+	}
 
 	// ===== Kernel convenience entry points (used by craft/tests) =====
 

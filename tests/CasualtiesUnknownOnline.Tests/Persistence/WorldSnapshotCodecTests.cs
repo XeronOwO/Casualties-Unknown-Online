@@ -79,9 +79,8 @@ public class WorldSnapshotCodecTests
 	{
 		var authority = StartedAuthority();
 		Spawn(authority, 100, "bag", ItemLocation.World(1.5f, -2.25f));
-		authority.SyncContainerContents(
+		Assert.True(authority.TrySyncContainerFacts(
 			Host.Value,
-			100,
 			new CharacterItemMsg
 			{
 				InstanceId = 100,
@@ -89,7 +88,8 @@ public class WorldSnapshotCodecTests
 				Condition = 0.75f,
 				Contents = [new CharacterItemMsg { InstanceId = 101, ItemId = "water", Condition = 0.5f }],
 			},
-			Host);
+			out _,
+			out _));
 		authority.TryUpdatePlayerStatus(Host.Value, new PlayerState(Host.Value, false, false), out _, out _);
 		authority.TryUpdateFluidRegion(Host.Value, new FluidRegionState(1, 2, 7, 1, 50), out _, out _);
 		authority.TryRecordOpenedEntity(Host.Value, new EntityPosition(7, 8), out _, out _);

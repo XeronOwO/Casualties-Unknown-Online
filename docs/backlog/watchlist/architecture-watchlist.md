@@ -30,16 +30,6 @@ assembly), and its interface keeps growing with every feature (see
   `OnHostTerminal` / `CancelActiveUse` plus the static `_active` session) against the per-kind
   start/guard half (`TryStartRemote*`).
 
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` (599 after the out-of-world item
-  stream targeting landed on 2026-10-02) — the item-domain facade: the world table and its
-  arbitration, the Phase C kernel-batch projection wiring, the `IItemControl` delegation surface and
-  the traffic-observation seam. It was already at 597 when that fix landed (a net +2: the move stream
-  now targets in-world members and the generation publish carries its deliberately-broadcast note);
-  the NEXT change in the item domain must split it first. The real seam is the kernel-batch half
-  (`OnExternalBatchCommitted` / `OnBatchApplied` / `OnCheckpointRestored` /
-  `RebuildItemProjectionFromKernel` plus the `ItemSnapshotStreamReceiver` wiring) — a collaborator that
-  owns the projection/restore wiring while the facade keeps the table and the public surface.
-
 - `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs` (608 — the only recorded entry in
   `docs/architecture-debt.json`; it was already AT the 600 cap before the out-of-world item stream fix
   added the one-line `IsEnteringWorld` fact on 2026-10-02, so the earlier ~582 reading on this page was
@@ -88,6 +78,28 @@ assembly), and its interface keeps growing with every feature (see
   large should land here before that.
 
 ## Split since the last revision
+
+- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` — the demanded split happened
+  (2026-10-06, with the container-move kernel-fact fix, before that change could land in it): 599 → 536.
+  The kernel-batch half this page named as the seam moved into `ItemKernelProjectionWiring` (157): the
+  two batch handlers (`OnExternalBatchCommitted` for the host's accepted peer batches, `OnBatchApplied`
+  for the guest's replayed ones), the checkpoint-restore arm and the guest rebuild, the
+  projection-health registration that makes a failed item projection recoverable, and the
+  `ItemSnapshotStreamReceiver` construction plus its stream/move subscriptions and session reset. The
+  facade keeps the world-item table, the arbitration and the public `IItemControl` surface, which is
+  the "who owns the state" line this page asks for.
+
+- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs` — split in the same change,
+  because the fix's own kernel write first carried it from 577 to 616 and the gate refused that: the
+  split takes it to 449. The non-item domain command
+  surface (run start/advance, the world-entity trap/building/opened records, the player status and carry
+  pairs, the enemy upsert/remove/layer reset, the fluid update/reset — 14 entry points whose call
+  expressions are all unchanged, with twelve test files taking one namespace import for the extension
+  surface) moved into `KernelDomainCommands` (195), a C# 14 `extension(ItemKernelAuthority)`
+  block that builds each typed command and commits it through the authority's own execution seam. The
+  authority is now what its contract says it is: the kernel, the run epoch, the operation counter and
+  the item domain's fact surface. The item-domain wrappers stay, because "every persistent item mutation
+  is expressed as a typed kernel command" is that contract.
 
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs` — the demanded split
   happened (2026-09-27, before the next change of the carry family could land in it): the file stood at

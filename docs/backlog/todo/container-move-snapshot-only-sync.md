@@ -1,9 +1,9 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Todo — Rejected (batch `20261005-e`: the container kinds, take-out, slot release and battery
-  unload all pass on the deployed fix, but row A1 still fails on the drop kind — the operator and the
-  third peer warn `left the inventory without an event sync` in both owner directions — and container
-  expansion is blocked on a driver capability; see "Rejected by batch `20261005-e`" below)
+- Status: Todo — the container kinds, take-out, slot release and battery unload pass on the deployed fix,
+  and the drop kind's ordering race inside the owner's own client is fixed (decision 236, gate
+  `RemoteIntentReportOrderGateTests`); what the ticket still owes is the drop row's own reading on a
+  deployed artifact and the container-expansion driver capability, both under "What remains"
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -122,7 +122,23 @@ so a peer-side copy that never appeared was exactly what that row could not see.
 - **The drop row needs a PEER-side world read, in both owner directions.** A dropped item must be found
   in the world by a client that is neither the owner nor the operator (the third peer), for a host owner
   and for a guest owner. Row 5 of `20261005-c` read only the owner's own pickup of its own dropped item,
-  which is exactly the half that stays true while a peer's copy never appears.
+  which is exactly the half that stays true while a peer's copy never appears. **Read by batch
+  `20261005-e` and it passes**: the third peer's own world read returns the dropped id at the drop cell in
+  both owner directions (`cm17-alt-world-after-drop.json`, `scrapmetal` beside the guest-owned
+  `waterbottle`). What is left of this row is the monitor half, which that same batch read as a failure and
+  which the ordering fix below answers.
+- **The drop row's own reading after the ordering fix** (decision 236): the operator's and the third peer's
+  monitor at zero for a remote-driven `DropItem` in both owner directions, plus one full periodic cycle of
+  quiet. Nothing in this fix can be read from the unit side alone — the failing pair was two log lines
+  30 ms apart on the owner's own client.
+- **A remote-driven `DropWearable` reading, which no batch has driven yet.** The patch layer re-reported that
+  kind unconditionally (`Patches/BodyPatches.cs`, found by this cycle's independent review and now guarded at
+  the same entry point), so the row that proves the fix for `DropItem` says nothing about the wearable half:
+  the next batch drives it in both owner directions and reads the two monitors at zero.
+- **The one-slot pending machine** (`todo/drop-pending-single-slot-overwrite.md`) is the defect this rule
+  makes louder: when two drops land in one frame the first report is overwritten, and with the re-report held
+  back the peers then get neither the event nor an immediate snapshot. It is filed with its evidence; a slot
+  release onto an OCCUPIED destination slot is the gesture that reaches it.
 - **`PickUpToSlot`'s drop-then-pickup pair** is the one site whose new reports interact: the replayed
   slot release drops the item from its slot and picks it back up in one call bracket, which is the
   native shape a local drag-to-slot has (`PickupSync` cancels the pending drop and reports the move as
@@ -237,6 +253,45 @@ and this run's driver is in-process only — by its own contract it never synthe
 That row is `blocked` on that capability, named rather than guessed.
 
 Evidence: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-e.md`.
+
+## Fixed by the drop report order (2026-10-05)
+
+The failure the batch read at its site is an ordering race inside the owner's own client, and the fix is that
+order rather than a new carrier. `RemoteIntentApplier` ended every applied discrete intent with
+`domains.CharacterDataSync.ReportInventoryChanged(body)`; for a `DropItem` that snapshot already omitted the
+item while the drop's own report was still parked in `ItemDropState` — the carrier waits one frame on purpose
+so the game's `DropItem` → `ThrowItem` pair can set the final velocity (`DropPendingState.TryFlush` refuses a
+same-frame flush, because a zero-velocity report materialized a ghost). The peers applied the snapshot first
+and warned, exactly as `CloneFactTable.WarnOnDivergence` documents ("A change whose event is still in flight
+trips the warning too").
+
+The rule is now asked of the item domain's PENDING STATE at BOTH places an owner can send an inventory
+snapshot: `ItemWorldSync.HasPendingDropReport` (`_dropState.Current == ItemDropState.Phase.Dropped`) is the
+fact that a drop report is registered and not yet sent, and while it holds, neither `RemoteIntentApplier` nor
+`GameAdapterBridge.OnInventoryChanged` — the patch layer's ONE entry point — re-reports. Asking the state
+rather than the kind also covers a kind whose native call left a drop behind on a path that did not land (R9's
+slot release drops the two slot occupants before its own pickup may refuse), and it was that patch-layer entry
+point which made a kind-shaped rule inert for `DropWearable`: an unconditional `Body.DropWearable` postfix
+(`Patches/BodyPatches.cs`) re-reported that drop from inside the applier's own native call — found by this
+cycle's independent adversarial review, which is also why the two drop branches now read their native call back
+(`body.HoldingItem(item)` / `body.GetWearable(item.id) != null`) and log a refusal like every other kind. The
+drop report IS the announcement, and it is what removes the clone entry on the peers (`ItemDropped` →
+`CloneFactTable.RemoveCarriedItem`), so one operation stays one message. Every other discrete kind keeps the
+re-report, because its carrier (`ContainerItemSync`, `PickupSync`, `ItemSlotSync`, `ItemUseSync`) sends inside
+the apply scope and the snapshot then only speeds convergence; the two kinds whose carrier is deliberately
+suppressed keep it as well and must not be "aligned" away — a remote-driven `CombineItems` (decision 234) and
+`GiveToTrader`.
+
+Both rejected alternatives are recorded rather than left implicit: forcing the flush inside the apply would
+report the drop without its throw velocity (the ghost the pending state exists to prevent), and deferring the
+re-report behind the flush would put two messages on one fact.
+
+Proof in the tree: `RemoteIntentReportOrderGateTests` was RED on the pre-fix tree ("never asks
+`HasPendingDropReport`") and now pins BOTH entry points' guards, their polarity and the query's own state; the
+deferral it leans on is pinned by `DropPendingStateTests` (`TryFlush_SameFrame_Rejected` /
+`TryFlush_NextFrame_AliveStandalone_Consumed`). No wire member is added and no protocol number moves. Full self
+check: `docs/evidence/selfchecks/items/remote-intent-drop-report-order-selfcheck.md`; decision 236 carries the
+rule.
 
 ## Non-goals
 

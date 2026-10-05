@@ -1970,6 +1970,10 @@ inventory without an event sync`. The ticket's row is a ZERO-warning row, so it 
   both lines before blaming a carrier: the event exists, it is just behind the snapshot that announces
   its absence. A world-driven burst that dropped three of the host's items inside 2 ms confirmed it from
   the other side: the one whose report was already flushed was silent, the two still pending warned.
+  **Superseded on the drop path (2026-10-05, decision 236):** the re-report is now held back while a drop
+  report is pending, at BOTH of the owner's entry points for it — the intent applier and the patch bridge's
+  `OnInventoryChanged` — so this paragraph describes what the batch measured before the fix; it is the
+  reason the fix is an ORDER rule rather than a new carrier.
 - `CloneFactTable.WarnOnDivergence` says outright that "a change whose event is still in flight trips the
   warning too" — so the monitor alone cannot tell a late event from a missing one. The owner-side trace
   is the discriminator, and it belongs in the record either way.

@@ -6,11 +6,13 @@
 - Source: batch `20261006-f`'s readings (2026-10-06) — the operator's and the third peer's clone-fact
   monitors warn twice each over a normal remote gesture. Filed rather than fixed in the batch because an
   acceptance run changes no code (`docs/acceptance/AGENTS.md` rule 8, and the sibling tickets' rejection).
+  Batch `20261006-g` (2026-10-06) added the reference reading in its item-shaped form (the section above).
 - Related: `todo/drop-pending-single-slot-overwrite.md` (the batch that read it; its
   monitor row failed on this gap), `todo/remote-inventory-native-parity-rework.md` (the same gesture family),
   `done/container-move-snapshot-only-sync.md` (the container-to-container route, which reports through the
   TARGET's fact), `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-f.md`,
-  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md`
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md`,
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md` (the reference reading)
 
 ## Symptom (read from batch `20261006-f`, three clients, one lobby)
 
@@ -51,6 +53,28 @@ empty.json`).
    WORLD keeps its departure and reports it (`[ItemDropped] bandage (id 13787924117) …`,
    `op=43 … Flush result=Committed(1)`), and a container-to-container move reports the TARGET's fact.
 
+## The reference reading (batch `20261006-g`, 2026-10-06)
+
+The acceptance below asked for the one reading that separates this gap from the intent replay — the OWNER
+moving the same kind of item locally. Batch `20261006-g` took it, on three clients, on the deployed artifact:
+
+1. **The operator's swap of a slot item draws the warnings.** Releasing the owner's `bandage` proxy
+   (id `9492956821`) onto the owner's OCCUPIED slot made the owner report both `(Swap)` moves, and the
+   operator and the third peer each logged two lines of the shape `[CharSync] divergence for …'s bandage
+   (id 9492956821): slot 3 → 0 — a carried move without an event sync (the 1 Hz snapshot carried it).`
+2. **The owner's own local swap draws exactly the same warnings.** The owner dragged its own slot item onto
+   its own occupied slot through the native path — no CUO intent anywhere in the gesture — and both viewers
+   logged the same two lines. **The gap is the native item path's, not the intent replay's.**
+3. **A move into free space draws none**, in both shapes: the batch's row 6a read
+   `[SlotMoved] bandage → slot 2 (Drag) reported.` plus `[PickUpResult] bandage → slot (slot 2)` on the owner
+   and zero `divergence` lines on every client, and a custody transfer (`TransferToBody`) draws exactly one
+   line per viewer with its own message — `left the inventory without an event sync`.
+
+So the discriminator is the move's SHAPE, not who drove it: a move whose destination displaces an occupant,
+and a move that removes an item from the inventory, leave the peers to learn the change from the periodic
+snapshot; a move into free space reports an event that reaches them. The reading is item-shaped (a slot item
+swapped onto a slot item); the container-child shape its acceptance names still has to be driven.
+
 ## What a fix has to decide
 
 - Which carrier owns the container-contents fact on a re-pick: the unload carrier (a cancellation that still
@@ -68,5 +92,14 @@ A three-client run on the deployed artifact, with the operator driving a focused
 onto (a) an OCCUPIED and (b) an EMPTY ring slot of that owner, read on all three clients: the child ends in
 the ring slot and the container reads one child fewer on every client, and every client's window carries
 **zero** `[CharSync] divergence` for the container and the child over each gesture's window. The same run
-drives the reference reading this batch lacked — the OWNER moving the same child into a slot locally — so the
-fix can say whether the gap is the intent replay's alone.
+drives the reference reading this ticket lacked — the OWNER moving the same CHILD into a slot locally — so
+the fix can say whether the gap is the intent replay's alone. Batch `20261006-g` took that reference reading
+in its item-shaped form (a slot item, not a container child) and answered it — the warnings are the native
+path's, section above — so what remains is the same control in the container-child shape.
+
+## Readings taken
+
+- Batch `20261006-f` (2026-10-06): the container-child readings this ticket was filed from — the operator's
+  and the third peer's two warnings per gesture, in both destination states.
+- Batch `20261006-g` (2026-10-06): the reference reading in its item shape, plus the empty-destination and
+  custody-transfer contrasts — `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md`.

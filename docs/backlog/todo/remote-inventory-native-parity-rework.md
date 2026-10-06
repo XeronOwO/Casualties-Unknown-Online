@@ -1,8 +1,16 @@
 # Remote inventory operations: run the native path end to end
 
-- Status: Todo — Rejected (batch `20261006-f`, 2026-10-06, drove matrix row 6's two halves on three clients:
+- Status: Todo — Rejected (batch `20261006-g`, 2026-10-06: matrix row 6's OCCUPIED-destination half — the
+  swap the fix cycle below targets — now **passes** on every client of the deployed artifact, and its
+  EMPTY-destination control still passes with zero divergence on either viewer. Rows 7 (battery-load,
+  combine, favourite halves) and 8 (held remote item from the medical panel) stay `unproven`: this session
+  staged no battery receiver, no combineable pair, no favourite key and no treatable limb, so the ticket
+  stays open on them alone. Record:
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md`; the swap's own monitor
+  reading is filed on `todo/container-content-event-gap-on-repick.md`. Previous rejection, batch
+  `20261006-f`, 2026-10-06, drove matrix row 6's two halves on three clients:
   the EMPTY-destination half passes (the item lands in the owner's slot, no divergence), and the
-  OCCUPIED-destination half — the swap on the owner's body — cannot run at all. The operator's release aborts
+  OCCUPIED-destination half — the swap on the owner's body — could not run at all. The operator's release aborted
   inside the game's own release body with `UnityException … Transform child out of bounds`:
   `Transform.GetChild` ← `Body.GetItem` ← `Body.SlotOf(item)` ← `PlayerCamera.TryPerformInventoryAction` ←
   `TryPerformUIActions` ← `HandleReleaseDragging`. The cause is a seam asymmetry — the predicate patches
@@ -20,7 +28,10 @@
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
 - Related: `resolved/remote-backpack-native-interaction-parity.md` and `resolved/remote-backpack-item-projection-acceptance-issues.md` (the rejected deliveries this ticket replaces, absorbed here in stage 0), `review/unified-remote-display-projection-rework.md`, `review/global-projection-framework.md`, `review/tab-backpack-open-close-immediately.md`, `done/guest-container-contents-ghost-drops-on-host.md`
 - Design: `docs/architecture/remote-inventory-native-parity.md` (stage 0 record, decision 217)
-- Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md` (row 6's
+- Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md` (row 6's
+  occupied-destination half and its empty-destination control both `pass`, matrix row 2's transfer half
+  `pass`; rows 7 and 8 `unproven`),
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md` (row 6's
   empty-destination half `pass`, its occupied-destination half `fail`; rows 7 and 8 `unproven`),
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-d.md`
   (rows 3, 7, 9, 13, 14; rows 4 and 8 stay `unproven`); batch `20261006-a` planned two further halves of
@@ -419,11 +430,14 @@ pins it with a census floor and matcher samples — read RED on the pre-fix tree
 
 What this means for the rows, stated as verdicts rather than expectations:
 
-- **Row 6's swap half is still `fail` until a batch re-reads it.** With the walk intact, the release reaches
+- **Row 6's swap half `pass`es as of batch `20261006-g`** (the reading is in the section below). With the
+  walk intact, the release reaches
   `this.body.SwapSlots(invButton.slot, this.body.SlotOf(dragItem))` with the proxy's own slot, the call is
   captured as `SwapSlots`, and the owner replays the native R8 sequence on its own body
-  (`RemoteIntentApplier.ApplySwapSlots`, unchanged by this cycle). The batch re-drives `20261006-f`'s own
-  recipe and reads the operator's capture line and the owner's replay instead of the exception.
+  (`RemoteIntentApplier.ApplySwapSlots`, unchanged by this cycle). The batch re-drove `20261006-f`'s own
+  recipe and read the operator's capture line and the owner's replay instead of the exception. It also
+  produced the swap's monitor half, which is a finding of its own: the viewers converge, but through the
+  periodic snapshot rather than an event (`todo/container-content-event-gap-on-repick.md`).
 - **The R8 route becomes reachable for `todo/drop-pending-single-slot-overwrite.md`.** Its owner-side replay is
   `Body.SwapSlots`, i.e. two `Body.DropItem` and two `Body.PickUpItem` inside one frame
   (`Body.cs:1413-1428`) — the same-frame pair that ticket's per-item pending machine resolves; its own row is
@@ -440,6 +454,34 @@ What this means for the rows, stated as verdicts rather than expectations:
 
 Evidence: `docs/evidence/selfchecks/items/display-body-query-seam-selfcheck.md` (mechanism inventory, the
 change, the verification table and its limits).
+
+## Acceptance readings (batch `20261006-g`, 2026-10-06)
+
+The batch re-drove `20261006-f`'s own recipe against the fix on the deployed artifact and added the control
+rows this matrix was missing. Operator = physical-machine host, owner = sandbox guest, third peer = the
+alternate sandbox:
+
+1. **Row 6's swap half passes.** Releasing the owner's `bandage` proxy (id `9492956821`) onto the OCCUPIED
+   slot 3 of its clone ends the release with `calls: "none"` and `dragAfter: "none"` (batch `20261006-f` read
+   an exception and a drag that was never cleared); the operator logs
+   `[RemoteIntent] SwapSlots captured for item 9492956821 … (container 0, slot 3 …)` and forwards it; the
+   owner replays it — `[PickUpResult] emergencylight → slot (slot 0)`, `[PickUpResult] bandage → slot
+   (slot 3)`, two `[SlotMoved] … (Swap) reported.` lines and `replayed native SwapSlots on item 9492956821`.
+   The owner's own tree reads the two items exchanged. Re-driven once more with the third peer in the world,
+   with the same five lines.
+2. **The EMPTY-destination control still passes** (row 6a): the same proxy onto an empty slot classifies
+   `PickUpToSlot`, the owner lands it (`[SlotMoved] bandage → slot 2 (Drag) reported.`, `[PickUpResult]
+   bandage → slot (slot 2)`, `replayed native PickUpToSlot`), and no client warns.
+3. **The swap converges on the viewers, but only through the periodic snapshot**: the operator and the third
+   peer each log two `[CharSync] divergence … a carried move without an event sync` lines. The same two lines
+   appear when the OWNER performs the same swap purely locally, so the intent replay is not their cause —
+   filed on `todo/container-content-event-gap-on-repick.md` with the reading.
+4. **Matrix row 2's transfer half (`TransferToBody`, the double-Tab take) was driven for the first time and
+   passes**: with the operator's own ring open and the remote backpack view closed, one call drags the
+   owner's proxy and releases it onto the operator — `TransferToBody captured … (container 0, slot 2, body
+   76561198281246659 …)`, forwarded, and the custody fact moves on both sides (the operator's tree carries
+   the item in slot 2, the owner's no longer carries it at all).
+5. Rows 7 and 8 stay `unproven` because this session staged no fixture for them, as the status line records.
 
 ## Non-goals
 

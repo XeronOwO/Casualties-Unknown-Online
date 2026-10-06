@@ -160,3 +160,10 @@ third peer = the alternate sandbox). What it read, in the order it matters to th
    report-needing departures in one frame (the container-expansion loop with a child whose load is refused
    was named in the ticket's own Related note and remains undriven), and fix the carrier gap before a
    zero-monitor row can pass.
+
+Since that batch the blocking seam asymmetry is fixed (decision 239, `remote-inventory-native-parity-rework`'s
+`## The swap half's fix`): a release onto an occupied slot of the displayed clone reaches the R8 route again and
+the owner replays `Body.SwapSlots` — two `Body.DropItem` and two `Body.PickUpItem` inside one frame
+(`Body.cs:1413-1428`), the same-frame pair this ticket's per-item pending machine has to resolve. Whether that
+shape produces the two report-needing departures the row asks for is this ticket's own next reading, not an
+expectation carried from here.

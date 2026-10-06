@@ -8,12 +8,13 @@
   `TryPerformUIActions` ← `HandleReleaseDragging`. The cause is a seam asymmetry — the predicate patches
   answer `HoldingItem(int)` from the displayed clone while `Body.GetItem`'s own body still indexes the LOCAL
   body's slot transform — so an empty local slot at an index the clone has occupied throws before any CUO
-  seam can absorb the call, the release produces no intent and no refusal line, and the drag is left staged
-  (`dragAfter` still set, the ring closed as a side effect). Record:
+  seam can absorb the call, the release produces no intent and no refusal line, and the drag is never
+  cleared (`dragAfter` still set after the abort; the ring had closed and the batch's probe cleared it). Record:
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md`. Rows 7 (battery-load,
   combine, favourite halves) and 8 (held remote item from the medical panel) stay `unproven`, and the
   container-child route's carried facts carry a monitor gap filed as
-  `todo/container-content-event-gap-on-repick.md`)
+  `todo/container-content-event-gap-on-repick.md`; the swap half's seam asymmetry is fixed in the cycle
+  below, and its re-read is the next batch's row)
 - Priority: Critical
 - Category: Remote inventory / native interaction parity / architecture rework
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
@@ -382,8 +383,9 @@ host, owner = sandbox guest, third peer = the alternate sandbox):
    whose `HoldingItem(i)` the predicate patch answers from the displayed clone while the method body still
    indexes the LOCAL body's slot transform, so an empty local slot at an index the clone has occupied makes
    `Transform.GetChild(0)` throw. The whole release is lost with it: no intent, no refusal line, no swap on
-   the owner's body, and `HandleReleaseDragging` never reaches its own `dragItem = null`, so the drag stays
-   staged until the ring closes. The asymmetry is the thing to fix — the redirect answers a PREDICATE but not
+   the owner's body, and `HandleReleaseDragging` never reaches its own `dragItem = null` — the drag was never
+   cleared (the ring closed after the abort with `camera.dragItem` still set, and the batch's probe cleared
+   it). The asymmetry is the thing to fix — the redirect answers a PREDICATE but not
    the method body that reads the same index — and it also decides whether `SwapSlots` can ever be captured
    on that path.
 2. **Row 6's slot-move half keeps working**: a released proxy onto an EMPTY slot classifies `PickUpToSlot`,
@@ -400,6 +402,44 @@ host, owner = sandbox guest, third peer = the alternate sandbox):
 5. **Rows 7 and 8 stay undriven**: this session staged no battery receiver, no combineable pair, no favourite
    key and no treatable limb fixture, so the battery-load half, the combine half, the favourite sub-kind and
    the medical row carry the same `unproven` verdict as the earlier batches.
+
+## The swap half's fix (landed 2026-10-06)
+
+The failure above is one seam asymmetry, and it is closed: while the release bracket is open the redirect
+answers the branch's queries about the displayed body, and it now answers each of them by SKIPPING the game's
+own body instead of overwriting its result. The four `Body` queries of `RemoteDragPredicatePatches`
+(`HoldingItem(Item)`, `HoldingItem(int)`, `GetItem(int)`, `GetWearable(string)`) are prefixes that assign the
+displayed body's own answer and return `false`, so `Body.GetItem`'s index is never reached with a redirected
+guard behind it; a slot index the displayed body does not have keeps the native answer, which is sound because
+both bodies are instantiated from the same "Experiment" template and carry its serialized slot array
+(`Character/RemoteBodyFactory.cs`, `Body.cs:3977`). The rule is decision 239 and `RemoteDragQuerySeamGateTests`
+pins it with a census floor and matcher samples — read RED on the pre-fix tree
+(`4 of 5 Body query seam(s) do not answer by skipping the native body`) and green after. The file's
+`PlayerCamera.OpenContainer` seam keeps its postfix: it patches an action whose native body must run.
+
+What this means for the rows, stated as verdicts rather than expectations:
+
+- **Row 6's swap half is still `fail` until a batch re-reads it.** With the walk intact, the release reaches
+  `this.body.SwapSlots(invButton.slot, this.body.SlotOf(dragItem))` with the proxy's own slot, the call is
+  captured as `SwapSlots`, and the owner replays the native R8 sequence on its own body
+  (`RemoteIntentApplier.ApplySwapSlots`, unchanged by this cycle). The batch re-drives `20261006-f`'s own
+  recipe and reads the operator's capture line and the owner's replay instead of the exception.
+- **The R8 route becomes reachable for `todo/drop-pending-single-slot-overwrite.md`.** Its owner-side replay is
+  `Body.SwapSlots`, i.e. two `Body.DropItem` and two `Body.PickUpItem` inside one frame
+  (`Body.cs:1413-1428`) — the same-frame pair that ticket's per-item pending machine resolves; its own row is
+  that ticket's to re-scope.
+- **Rows 7 and 8 are untouched**: the battery-load, combine and favourite halves and the medical row keep
+  their `unproven` verdict and still need their fixtures.
+- **Two adjacent shapes this cycle's independent review found are folded into the same change**: the
+  wearable-drop report hook (`BodyItemPatches.DropWearablePatch`) now carries the display-proxy guard its two
+  siblings always had — inside a bracket its own `GetWearable` read is answered by the displayed body, and a
+  display proxy is never a local drop — and `PlayerCamera.UpdateWearables`' temporary body swap is restored by
+  a finalizer as well as by its postfix, so a throw inside that call (it runs inside every release bracket)
+  cannot leave `camera.body` on a clone and silently disarm the redirect this fix is built on. Both are
+  recorded with their limits in the self-check.
+
+Evidence: `docs/evidence/selfchecks/items/display-body-query-seam-selfcheck.md` (mechanism inventory, the
+change, the verification table and its limits).
 
 ## Non-goals
 

@@ -2188,4 +2188,31 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - **The shape has a sibling defect** and it is ticketed, not fixed in the batch: a local item released onto
   a ring button that shows a remote player's container is absorbed by that display proxy, then dumped into
   the world and destroyed — an item loss for the actor
-  (`backlog/todo/local-item-into-remote-display.md`).
+  (`backlog/done/local-item-into-remote-display.md`).
+
+## 2026-10-06 — Batch `20261006-e`: a refusal is read from its own line, not from the item's parent
+
+- **A refused release and a landed one can share `childParentAfter`.** A carried `trashbag` is an instance,
+  so both outcomes leave the child's parent reading `trashbag(Clone)`. Read the refusal from the release
+  probe's own pair (`childInCast`, `castContentsBefore` → `castContentsAfter`) plus the `[RemoteIntent]`
+  line, and confirm the item stayed put with the owner's tree probe — this batch compared the tree before
+  and after E1/E2 by SHA-256 (identical) rather than by eyeballing a field.
+- **The refusal line's target wording is the discriminator between the guard's branches**: `display proxy
+  item <type>` (a ring/panel button carrying another player's item), `a slot of the displayed inventory`
+  (an EMPTY body slot of the focused clone — the native R8/R9 sequence would otherwise act on the LOCAL
+  body with the clone's slot index), and `display proxy container <id>` (the container window's own back
+  panel). A batch that reads a refusal line should be able to say which target it was.
+- **A refused release has already cleared the drag**, so the next gesture in the same session needs none of
+  batch `20261006-d`'s hover/`cast=-1` staging: `mode=close`, one `toggleinventory` press and the next
+  release follow directly (the probe reads `dragAfter: "none"` after a refusal).
+- **`remote-gesture mode=open owner=auto` is only usable with ONE guest.** A three-client session has two,
+  and the driver answers `ambiguous-guest`: pass the focused player's SteamID explicitly, then take the
+  button list immediately before the release (`i=2` → slot 0, `i=4` → slot 1 in this batch's layout, the
+  same as the previous one).
+- **An empty clone body slot is a usable fixture for the second half of this guard**: the focused player's
+  occupied slot 0 and empty slot 1 sit beside the owner's own slot 1, so the native sequence really had
+  something of the owner's body to swap or drop — the row is only meaningful when the owner's own body has
+  an item in the slot index the clone's button names.
+- **`[ItemTraffic] … Drop=0; Destroy=0` is a ready-made witness.** This build writes one traffic line every
+  ten seconds, so a per-row byte window that spans one cycle carries both the actor's own refusal line and a
+  zero-drop statement for the same window, without a second probe.

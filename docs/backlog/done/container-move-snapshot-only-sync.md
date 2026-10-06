@@ -46,7 +46,7 @@ display proxies (so no load report exists to read), and the clone render rebuild
 the world — the drop that batch read as a refusal. Two of the guards it suspected are excluded by measurement
 here: a bag accepts a second item (`canHold: true`, `contentsAfter: 2`), and the proxy target stood 0.178 units
 from the dragged bag. The sibling defect this shape is — a local item absorbed by a display proxy — is filed as
-`backlog/todo/local-item-into-remote-display.md`.
+`backlog/done/local-item-into-remote-display.md`.
 
 ## Read by batch `20261006-c` (2026-10-06)
 

@@ -113,7 +113,7 @@ A local dragged item released onto a ring button that shows a REMOTE player's co
 display proxy: the drag window covers a proxy DRAGGED item, not a proxy TARGET, so the native move runs
 (`m1-host-release-onto-proxy.json`), nothing reports it (both hooks skip display proxies), and the clone
 render rebuild later unloads the foreign child into the world — the owner's item leaves its bag and lands on
-the ground. Filed as `backlog/todo/local-item-into-remote-display.md` with this evidence;
+the ground. Filed as `backlog/done/local-item-into-remote-display.md` with this evidence;
 batch runs do not change code, so it is not fixed here.
 
 ## Limits

@@ -1,6 +1,6 @@
 # Local Item Released Onto A Remote Display Proxy — Self-Check (2026-10-06)
 
-Delivery fact sheet for `todo/local-item-into-remote-display.md`, the defect batch `20261006-d` found while it
+Delivery fact sheet for `done/local-item-into-remote-display.md`, the defect batch `20261006-d` found while it
 attributed batch `20261006-c`'s local control. On the pre-fix tree the owner's release of its OWN carried bag onto
 a ring slot showing the other player's bag loaded the bag's children INTO the display proxy
 (`m1-host-release-onto-proxy.json`: `castItemProxy: true`, `castItemOwner: 76561198863287957`,
@@ -51,14 +51,16 @@ destroyed it 11 ms after the drop report. The player-visible outcome is item los
 | The seam's census pins the new member — a member added to a seam is a red until it is reviewed here | `tests/CasualtiesUnknownOnline.NormativeGates.Tests/PatchBridgePortShapeGateTests.cs` `Seams` entry `IRemoteBackpackPatchBridge` + `ReportLocalReleaseOntoProxy`; the pin and the interface are compared as whole-string censuses, and the pre-fix interface declared no such member |
 | The compiled port carries it (L0 reflection, the layer's own contract shape) | `tests/CasualtiesUnknownOnline.Tests/Patching/RemoteBackpackContractTests.cs` `PatchBridge_ExposesTheReleaseWindowSurface` — name, `void` return, `Item` + `ulong` + `string` parameters |
 | The bridge implementation serves exactly its seams' members | `PatchBridgePortShapeGateTests.BridgeImplementation_ServesExactlyTheSeamMembers` (unchanged, green with the new member) |
-| The runtime reading — PLANNED, not evidence yet: the same gesture as batch `20261006-d` leaves the owner's item in its own bag, the proxy's contents unchanged, no `[ItemDropped]`/`[ItemDestroyed]`, and one refusal line | the three-client acceptance batch `20261006-e`, recorded in `docs/evidence/acceptance/`; the pre-fix red is batch `20261006-d`'s own record — `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-d.md` reads `castItemProxy: true`, `castItemOwner: 76561198863287957`, `childInCast: true` and the child's parent becoming `trashbag(Clone)`, and its Limits section carries that batch's artifact-delta statement against the earlier build (one comment line plus the acceptance-recipe probe, which is not part of the plugin) |
+| The runtime reading: the same gesture as batch `20261006-d` leaves the owner's item in its own bag, the proxy's contents unchanged, no `[ItemDropped]`/`[ItemDestroyed]`, and one refusal line — extended by the empty-slot half and held honest by a local control | READ by the three-client batch `20261006-e` on the deployed `0.1.0+6e07b388…`, record `docs/evidence/acceptance/local-item-into-remote-display-20261006-e.md`: E1 `castContentsAfter: 0`/`childInCast: false` with the owner's tree byte-identical before and after, E2 the same on an empty clone body slot, E3 the native move still running with no refusal line. The pre-fix red is batch `20261006-d`'s own record — `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-d.md` reads `castItemProxy: true`, `castItemOwner: 76561198863287957`, `childInCast: true` and the child's parent becoming `trashbag(Clone)`, and its Limits section carries that batch's artifact-delta statement against the earlier build |
 
 ## 4. Limits
 
 - **No session ran while writing this change.** The Unity facts it rests on — that the ring's buttons resolve to
   the focused clone's proxies at release time, that the container window's panel is the proxy container while it
-  is open, that the early-out leaves the view open — are read from `reversing/` and from batch `20261006-d`'s
-  probe, and batch `20261006-e` is where they are settled. A green unit suite is not that evidence.
+  is open, that the early-out leaves the view open — were read from `reversing/` and from batch `20261006-d`'s
+  probe at the time, and batch `20261006-e` then settled the first two on the deployed artifact (the ring's proxy
+  item and an empty clone body slot were both cast at, and both were refused with the proxy's contents unchanged).
+  A green unit suite is still not that evidence, and the container-window branch was not cast at.
 - **The refusal is per pointer target, not per native branch.** Any overlapping inventory button carrying a
   display-proxy item, the container window's own panel, and any body slot of the displayed clone cancel the
   release, whether or not the native body would have stopped there: a proxy item that is neither a container, a

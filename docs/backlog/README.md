@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Local item lands inside a remote display proxy](todo/local-item-into-remote-display.md) — **Medium** — the release guard covers a proxy drag, not a target.
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
 
@@ -159,6 +158,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Done
 
 - [Container moves reach the viewer as a snapshot](done/container-move-snapshot-only-sync.md) — **Medium** — classifies on the departure; control now read.
+- [Local item lands inside a remote display proxy](done/local-item-into-remote-display.md) — **Medium** — the seam refuses a display-proxy target.
 - [Guest command loss is not reconciled](done/guest-command-loss-reconciliation.md) — **Medium** — the unacknowledged item reports re-report until judged.
 - [An item can be operated on before its creation is registered](done/item-creation-registration-first.md) — **Medium-High** — creation first; tombstone.
 - [Enemy snapshot binding has no recovery path](done/enemy-snapshot-binding-recovery.md) — **Medium** — the spawn-anchor key and the repair carrier.

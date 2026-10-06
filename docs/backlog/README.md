@@ -54,13 +54,14 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
-- [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 6's swap half throws in the release body.
+- [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 6's swap passes; rows 7-8 need fixtures.
 - [A same-frame second drop overwrites the pending report of the first](todo/drop-pending-single-slot-overwrite.md) — **Medium** — its gesture aborts.
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 - [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — the push direction; the take half is landed.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
+- [A late joiner never binds the generated enemies](todo/enemy-generation-pairing-late-join.md) — **High** — the whole set stays local.
 
 ### In progress
 

@@ -2253,3 +2253,40 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   `20261006-c`'s lesson) — this batch staged its fixtures before opening the ring, reopened the ring after a
   failed row, and then saw the follow-up fixture's own `[CarriedSync] merged … starting supplies` line land
   in the next row's window. Take the mark AFTER the last fixture action, not before it.
+
+## 2026-10-06 — Batch `20261006-g`: a gesture whose meaning is read at RELEASE time must be staged and released in one call
+
+- **A sandbox whose service restarted underneath it stops starting programs, and the failure does not look
+  like one.** The machine's sandbox service had crashed (`SbieSvc` stopped, exit code 1067) before the batch;
+  the already-running sandboxed clients kept working — the driver keeps them alive — but every new launch
+  failed. The shapes seen, in order: a modal `Sandboxie 启动` dialog naming `SBIE2331 启动服务失败 … 拒绝访问`
+  (read it by enumerating the dialog's child windows and printing their text; the title alone says nothing),
+  and then, once the service was back, a silent no-start whose only symptom was a Unity box
+  `Fatal error — Failed to load mono` on that sandbox's desktop. Terminating every program in the box
+  (`Start.exe /box:<box> /terminate`) and starting the box's Steam again fixed it completely — no reboot, and
+  the other box, whose clients were already up, was untouched. **A box's stale process table is what refuses,
+  not the game**: a launch that leaves no process, no log line and no dialog is that, not a broken install.
+  Check the box's own file access with a `cmd.exe` copy probe before blaming a shadow — the mono DLL copied
+  out of BOTH boxes byte-identical while the game still refused to load it.
+- **A drag does not survive from one evaluator call to the next.** The game closes the inventory ring by
+  itself between calls, so `mode=hover` followed by a separate release call leaves `buttonCount: 0` and the
+  release falls through to the world path. Every gesture whose classification is decided at RELEASE time —
+  the ring's focused body, `RemoteBackpackView.IsOpen` for `TransferToBody`, the cast button's own item — has
+  to be staged AND released inside ONE invocation. That is the whole difference between the two attempts at
+  the double-Tab take: two calls answered `radialOpen=False, buttonCount=0`, one call answered
+  `TransferToBody captured … (slot 2, body <requester>)`.
+- **A further Tab does not reopen what the second one closed.** With a remote proxy staged as the drag and the
+  ring already shut, more `toggleinventory` presses left `radialOpen=False, buttonCount=0` while `dragItem`
+  stayed set. Clear the drag with the probe, open the ring from a clean state, and drive the gesture in one
+  call instead of adding presses.
+- **A divergence warning is attributed by the SHAPE of the move, not by who drove it.** In one session: the
+  operator's intent-driven swap warned twice per viewer; the OWNER's own purely local swap warned the same
+  two lines; a move into free space warned nobody; a custody transfer warned once per viewer with its own
+  message (`left the inventory without an event sync`). Take the owner-local control in the same session, or
+  the replay gets blamed for the native path's behaviour.
+- **A member joining a run in progress is a different code path from a member present at world entry, and it
+  can fill the third client's log with warnings that belong to no row under test.** The late joiner logged
+  `[Enemy] generation spawn pairing failed (69 host vs 69 guest …)` every 60 s for the whole session while the
+  member present at entry read `mapping=True` in the same cycles. Read a third client's own entry-time lines
+  before treating its warnings as evidence about the feature being accepted, and file what the entry path got
+  wrong instead of folding it into a row's verdict.

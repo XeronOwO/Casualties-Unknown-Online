@@ -15,7 +15,7 @@
   `RemoteBackpackView`'s own words, "remote clones are display proxies, so the native UI must
   never be allowed to mutate the focused clone".
 - Related: `done/container-move-snapshot-only-sync.md` (the batch that found it),
-  `review/remote-inventory-native-parity-rework`, `Patches/PlayerCameraDragUsePatch.cs`,
+  `todo/remote-inventory-native-parity-rework`, `Patches/PlayerCameraDragUsePatch.cs`,
   `Patches/RemoteDragMutationPatches.cs`, `Patches/ContainerItemPatches.cs`,
   `Character/CloneInventoryRenderer.cs`
 - Acceptance record: `docs/evidence/acceptance/local-item-into-remote-display-20261006-e.md`

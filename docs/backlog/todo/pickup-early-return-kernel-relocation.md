@@ -8,7 +8,7 @@
   guess, per the 2026-10-06 ruling that a defect the repository's own history introduced is fixed or
   ticketed.
 - Related: `done/container-move-snapshot-only-sync.md` (the change that made the consequence reachable
-  from more paths), `review/remote-inventory-native-parity-rework.md` (the gesture family)
+  from more paths), `todo/remote-inventory-native-parity-rework.md` (the gesture family)
 - Evidence: `docs/evidence/selfchecks/items/container-move-kernel-fact-selfcheck.md` §4
 
 ## The mechanism

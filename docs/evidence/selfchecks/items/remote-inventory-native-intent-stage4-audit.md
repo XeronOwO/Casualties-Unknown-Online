@@ -1,6 +1,6 @@
 # Remote inventory native parity — stage 4 family audit and acceptance preparation (2026-09-25)
 
-Ticket: `docs/backlog/review/remote-inventory-native-parity-rework.md` (stage 4). Design record:
+Ticket: `docs/backlog/todo/remote-inventory-native-parity-rework.md` (stage 4). Design record:
 `docs/architecture/remote-inventory-native-parity.md`. Decisions: 217 (stage 0), 218 (the window's
 shape, stage 1), 219 (the container family and the while-dragging body), 220 (the item interactions),
 221 (this audit and the limits it closes). Cycle scope: the ticket's acceptance matrix row by row —

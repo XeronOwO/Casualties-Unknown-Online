@@ -64,7 +64,9 @@ repository's to act on — an external observation is not the whole story.
 4. **Audit the family**: every other per-cycle warning in CUO gets the same bound check;
    `review/steam-transport-send-limit-runaway.md` is the known sibling and stays its own ticket.
 5. **Real-machine acceptance** with three clients and a consecutive layer-change staging, its rows written
-   before the run.
+   before the run. Schedule that run LAST in its batch: the storm and the members' exit out of the world are
+   the machine's own cost, and the staging procedure, the recovery shape and the 15-second black-window
+   ceiling are machine facts of the acceptance area's gitignored local files, not of this ticket.
 
 ## Non-goals
 

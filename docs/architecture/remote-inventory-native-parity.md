@@ -605,7 +605,7 @@ boundary; no dual shape is kept.
 ## Related reading
 
 - [Backlog index](../backlog/README.md) — where this work sits in the queue.
-- [Remote inventory native parity rework](../backlog/review/remote-inventory-native-parity-rework.md) — the ticket this design serves.
+- [Remote inventory native parity rework](../backlog/todo/remote-inventory-native-parity-rework.md) — the ticket this design serves.
 - [Current architecture](current.md) — the kernel and authority model the host half rides.
 - [Projection framework](projection-framework.md) — the display half this design leaves in place.
 - [Active decisions](../decisions/active.md) — the protocol numbering policy and this cycle's decision.

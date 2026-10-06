@@ -1,11 +1,19 @@
 # A same-frame second drop overwrites the pending report of the first
 
-- Status: Review (the machine holds one entry PER ITEM since 2026-10-06 — `DropPendingState` is a set keyed by
-  item id, `ItemDropState` maps each entry to its game-side place, and the frame-end flush settles every entry
-  whose frame has passed; batch `20261006-c` verified the unit half and did NOT drive the runtime row — a slot
-  release onto an OCCUPIED destination slot, read on both peers — because the session's scenarios went to
-  `done/container-move-snapshot-only-sync.md`'s row A1g. No row of this ticket failed; the reading is what is
-  missing. Record: `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-c.md`)
+- Status: Todo — Rejected (batch `20261006-f`, 2026-10-06, drove the row's gesture on three clients and both
+  rows failed. The release of a display proxy onto an OCCUPIED slot of the displayed clone aborts inside the
+  game's own release body — `UnityException … Transform child out of bounds`, `Transform.GetChild` ←
+  `Body.GetItem` ← `Body.SlotOf(item)` ← `PlayerCamera.TryPerformInventoryAction`, i.e. the R8 swap branch the
+  viewer classifies that release into — so no intent is captured, no refusal line is written and the drag is
+  left staged; the two-`Body.DropItem` plan this ticket names is never reached. The reachable shape (the
+  owner's own container child released onto an occupied ring slot) does settle both same-frame departures
+  correctly — the destination slot's occupant committed and reported, the child's unload cancelled by its
+  re-pick — but the operator's and the third peer's clone-fact monitors each warn twice over the same
+  gesture, so the zero-monitor criterion is not met either. Records:
+  `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-f.md` (this batch) and
+  `…-20261006-c.md` (the unit half); the monitor gap is filed as
+  `todo/container-content-event-gap-on-repick.md`. The machine's own shape is unchanged and its unit pins
+  stay green)
 - Priority: Medium
 - Category: Item sync / drop report carrier (the drop pending state)
 - Source: the independent adversarial review of the drop report order fix (2026-10-05). It is promoted by
@@ -115,3 +123,40 @@ A three-client run that drives a slot release onto an OCCUPIED destination slot 
 both peers: the item that left the first slot must reach the world table and be found by the third peer, and
 the operator's monitor must stay at zero. The unit side is what `DropPendingStateTests` has to grow: two drops
 entered in one frame, both reported after the frame.
+
+## Acceptance readings (batch `20261006-f`, 2026-10-06)
+
+The batch drove the gesture on three clients (operator = physical-machine host, owner = sandbox guest,
+third peer = the alternate sandbox). What it read, in the order it matters to this ticket:
+
+1. **The named gesture cannot reach the named plan.** Releasing a proxy onto an occupied slot of the
+   displayed clone takes the native R8 swap branch: while the remote view is open the native guards are
+   answered by the displayed clone (`RemoteDragIntentCapture.ShouldAnswerFromDisplayBody`), so
+   `PlayerCamera.cs:1614` sees both slots occupied and evaluates
+   `body.SwapSlots(invButton.slot, body.SlotOf(dragItem))` — `RemoteIntentApplier.ApplySwapSlots`, never
+   `ApplyPickUpToSlot`, whose two-`Body.DropItem` plan is the whole premise here. On this build the
+   evaluation throws first: `Body.SlotOf` walks `Body.GetItem(i)`, whose `HoldingItem(i)` the predicate patch
+   answers from the clone while the method body still indexes the LOCAL body's slot transform, so an empty
+   local slot makes `Transform.GetChild(0)` throw (`UnityException … Transform child out of bounds`) and the
+   release is lost whole — no intent, no refusal, `dragAfter` still set. The occupied-destination route is
+   therefore not this ticket's producer at all; the applier's plan is only reachable when the classification
+   body and the item's owner disagree.
+2. **The reachable two-departure shape behaves the way the landed machine intends.** Releasing the owner's own
+   container child onto an occupied ring slot replays `PickUpToSlot` with the destination slot held on the
+   owner, which registers both departures inside one frame: the occupant's `OnItemDropped` (committed —
+   `FlushPendingDrop result=Committed(1) events=[Drop, Flush]`, `[ItemDropped] emergencylight …`, and the
+   third peer materialized it) and the child's `OnItemUnloadedFromContainer` (cancelled by its own re-pick —
+   `result=Cancelled events=[RePick]`). One entry per item is what made that pair settle correctly.
+3. **The ticket's second half of the expectation is wrong, and the reading says so.** On a successful
+   pick-up the released item does not reach the world table: it lands in the destination slot (the native R9
+   outcome). Only the item that left the destination slot reaches the world. A row written as "both reach the
+   world table" is not the game's behaviour and should be rewritten when this ticket is re-scoped.
+4. **The zero-monitor criterion fails on a carrier gap, not on the pending machine.** Two
+   `[CharSync] divergence` lines per viewer per gesture (operator and third peer, in both the occupied and
+   the empty configurations) — the container's contents change and the child's new carried slot reach the
+   peers only through the periodic snapshot, because the cancelled departure sends no report. Filed as
+   `todo/container-content-event-gap-on-repick.md` with its own acceptance.
+5. **What is left for this ticket.** Re-scope the runtime row onto a shape that really produces two
+   report-needing departures in one frame (the container-expansion loop with a child whose load is refused
+   was named in the ticket's own Related note and remains undriven), and fix the carrier gap before a
+   zero-monitor row can pass.

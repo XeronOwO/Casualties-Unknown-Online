@@ -73,7 +73,7 @@ remote-driven `CombineItems` has its craft report suppressed by `CraftingPatches
 - The drop machine had ONE pending slot when this fact sheet was written, so two drops in one frame overwrote the
   first report (the pin that asserted the overwrite as intended is gone; the machine now holds one entry PER ITEM —
   decision 238). This rule made the consequence louder — the peers then get no event AND no immediate snapshot — so
-  it was filed with its evidence as `review/drop-pending-single-slot-overwrite.md`; `RemoteIntentSlotRelease.Plan`'s
+  it was filed with its evidence as `todo/drop-pending-single-slot-overwrite.md`; `RemoteIntentSlotRelease.Plan`'s
   occupied-destination slot release reaches it.
 - The other `ReportInventoryChanged` call sites (`PlayerInteractionApply`'s cross-player applies, the trader
   recruit coordinator, the push and medical appliers) are NOT re-ordered by this change: none of them is an

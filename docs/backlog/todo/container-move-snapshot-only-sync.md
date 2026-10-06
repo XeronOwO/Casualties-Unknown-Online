@@ -3,9 +3,9 @@
 - Status: Todo — batch `20261006-a` read the drop row after decision 236 in BOTH owner directions and the
   wearable half no batch had ever driven, both with the operator's and the third peer's monitor at ZERO
   over a full quiet cycle (record `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md`);
-  row A1g is all that is left, and its blocker CHANGED on 2026-10-06: a held key IS reachable in process,
-  so the driver capability is now ordinary work instead of an impossibility — see the A1g bullet under
-  "What remains"
+  row A1g is all that is left, and its blocker was REMOVED on 2026-10-06: a held key is reachable in
+  process and is committed as the `window-key` eval declaration plus `recipes/key-hold.cs` (decision 237),
+  so the row waits only on its own three-client reading — see the A1g bullet under "What remains"
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -165,10 +165,18 @@ evidence must be read beside, because their verdicts came from owner-side probes
   frame, and a `WM_KEYUP` with the scan code and the transition bits clears it, while `GetAsyncKeyState`
   stays 0 the whole time (no OS-level key state, no focus or foreground change, so the `input`
   dependency's rule is not touched — `AcceptanceDriverGateTests.TheAcceptanceToolsNeverUseOsLevelInput`
-  still governs OS input and is not what this is). What is left is therefore ordinary work: build the hold
-  into the committed driver (today it exists only as an ad-hoc probe, `.acceptance/…/probe-key-*.cs`) and
-  judge the row in a three-client batch. No viewer in any batch has yet seen this kind, and it must not be
-  guessed from the other five.
+  still governs OS input and is not what this is), and **the capability is committed and smoked as of
+  decision 237**: `drive-in-process.ps1 -Action declare -Declare window-key` loads
+  `driver/eval-declarations/window-key.cs` once per client and `recipes/key-hold.cs` holds, releases and
+  reads a bind the game itself uses (a hold is judged by the `read` step that follows it — the state
+  lands on the client's next input, `docs/acceptance/lessons.md`). What is left is the row's own reading:
+  a three-client batch drives the operator's release of a child-carrying container onto a second
+  container with the key held, and reads the operator's and the third peer's monitor. **The key is held,
+  and the declaration loaded, on the OPERATOR's client** — the kind is produced by that client's own
+  native loop, so a run that stages the fixture or the hold on the owner alone reads "no intent" and must
+  not call that a row failure — **and the operator's proxy tree must carry the dragged container's
+  children**, or that loop has nothing to move. No viewer in any batch has yet seen this kind, and it must
+  not be guessed from the other five.
 - The same batch tried the other route first and it did not land: the game's own radial-centre gesture as
   a way to dress a body in process. `mode=hover` does set `camera.radialOpen = true`, but
   `HandleWhileDragging` re-closes the ring on the game's own next frame when

@@ -424,11 +424,12 @@ function Invoke-Preflight {
 	$inputHelper = Join-Path $repoRoot 'tools\acceptance\drive-in-process.ps1'
 	$inputTemplate = Join-Path $repoRoot 'tools\acceptance\driver\InProcessDriver.cs'
 	$inputRecipes = Join-Path $repoRoot 'tools\acceptance\recipes'
-	if ((Test-Path -LiteralPath $inputHelper) -and (Test-Path -LiteralPath $inputTemplate) -and (Test-Path -LiteralPath $inputRecipes)) {
-		[void]$results.Add((New-Result 'input' 'present' 'the in-process driver helper, its template and the scenario recipes resolve; setups run through the evaluator channel the hotrepl row reports'))
+	$inputDeclarations = Join-Path $repoRoot 'tools\acceptance\driver\eval-declarations'
+	if ((Test-Path -LiteralPath $inputHelper) -and (Test-Path -LiteralPath $inputTemplate) -and (Test-Path -LiteralPath $inputRecipes) -and (Test-Path -LiteralPath $inputDeclarations)) {
+		[void]$results.Add((New-Result 'input' 'present' 'the in-process driver helper, its template, the scenario recipes and the eval declarations they name resolve; setups run through the evaluator channel the hotrepl row reports'))
 	}
 	else {
-		[void]$results.Add((New-Result 'input' 'missing' 'the in-process driver helper, its template or the scenario recipes do not resolve; a scenario that needs a driven setup stays blocked, and OS-level input is never a substitute'))
+		[void]$results.Add((New-Result 'input' 'missing' 'the in-process driver helper, its template, the scenario recipes or the eval declarations they name do not resolve; a scenario that needs a driven setup stays blocked, and OS-level input is never a substitute'))
 	}
 
 	# logs (both clients write here; the guest's root lives under the sandbox)

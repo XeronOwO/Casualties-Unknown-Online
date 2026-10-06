@@ -27,6 +27,7 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | presentation/remote-clone-face-vitals-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | tooling/config-options-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | tooling/acceptance-recipe-layer-selfcheck.md | Other | current | the recipe layer: driver `-Action recipe`, declared-arg recipes under `tools/acceptance/recipes/`, gates; the live run is still pending |
+| tooling/acceptance-key-hold-selfcheck.md | Other | current | the held-key capability: `-Action declare` loading `driver/eval-declarations/`, `recipes/key-hold.cs`, the one-directory OS-input exception; smoked live, the remote gesture still pending |
 | items/container-content-sync-selfcheck.md | Items | current | candidate current evidence; verify before citing |
 | items/container-move-event-carrier-selfcheck.md | Items | current | a peer's intent executed by the owner is the owner's own fact: `CallContext.Origin.RemoteIntentApply` + `IsReplayedRemoteFact`; the three-client run is still pending |
 | items/container-move-kernel-fact-selfcheck.md | Items | current | one container report = the parent's fact + every child's place, committed as the same `SyncContainerItemsCommand` on the wire and host-local paths; row A1 still awaits a three-client batch |

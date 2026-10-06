@@ -2290,3 +2290,34 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   member present at entry read `mapping=True` in the same cycles. Read a third client's own entry-time lines
   before treating its warnings as evidence about the feature being accepted, and file what the entry path got
   wrong instead of folding it into a row's verdict.
+
+## 2026-10-06 — Batch `20261006-h`: the expansion's target must be able to hold the child, and the item domain adopts by position as well
+
+- **`Container.CanHoldItem` is asked BEFORE the refusal route, so a target that cannot hold the child at all
+  makes the whole gesture a no-op.** The fixture for "the expansion's child load is refused" needs a target
+  whose ceilings ADMIT the child: with a `pouch` target (weight ceilings 2.5 total / 1.0 per item against a
+  1.5 `dogfood`) the native loop's `CanHoldItem` gate never opened, `flag` stayed false, the release fell
+  through to the world path and the operator's whole source bag was dropped (`[DragFlow] release fell through
+  to the WORLD path (no UI target hit).`). Read the capacities off the prefabs in one probe before staging
+  (`Resources.Load<GameObject>(id)`, then the `Container` fields and `Item.totalWeight` — a property, not a
+  field), and pick a target with room; the refusal this ticket wants is the one AFTER `CanHoldItem` passes.
+- **`container-fill` addresses a container by TYPE, so two carried containers of one definition make the
+  fill bind the wrong pair.** Nesting a second `trashbag` into the first failed with
+  `LoadItem left trashbag outside the container (canHold=true, distance=0)` — the recipe had resolved the
+  container to one bag and the item to the other, so the load was refused by `LoadItem`'s non-empty-container
+  rule. Give each role its own definition (`trashbag` outer, `plasticbag` target, `duffelbag` source) instead
+  of creating a second container of the type already in use.
+- **The item domain has a positional adopt path too, and a same-frame pair loses its second child to it.**
+  A drop report whose item has no local object calls `RemoteItemSceneOps.FindExistingAt` and BINDS an id-less
+  same-prefab world copy within `AdoptTolerance` (1.5 units) instead of materializing; in this batch the
+  second of two same-position reports bound such a copy and that copy was destroyed ~10–30 ms later
+  (`[ItemBind] bound existing …` then `origin=OnItemDestroyed`), leaving the id `terminal` in the host's
+  kernel and the guest's own destroy command refused as `InvalidTransition`. Read that pair as this shape —
+  it is the item-domain sibling of `review/runtime-entity-markerless-bind-absorption.md`, not a fixture
+  error — and know that a row asking for "both children in the world" cannot pass until it is fixed
+  (`todo/second-drop-report-loses-its-world-object.md`).
+- **A swallowed key reads as a no-op, not as a refusal.** With the Online UI window open the game's own
+  binds never reach `PlayerCamera.HandleInput`, and the `toggleinventory` hold reported `posted: true,
+  heldAtEnd: true` while the ring stayed shut (`radialOpen: false`, `buttonCount: 0`) — no error anywhere.
+  Close the window and read the toggle back (`radialOpen` / `buttonCount`) before staging the drag; the
+  gesture then runs on the first attempt.

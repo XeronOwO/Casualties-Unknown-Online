@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// The item-fact report scope gate (ticket
-/// <c>backlog/review/container-move-snapshot-only-sync.md</c> — batch `20261005-c` read a
+/// <c>backlog/todo/container-move-snapshot-only-sync.md</c> — batch `20261005-c` read a
 /// divergence warning on the OPERATOR's clone fact table for every remote container move it drove).
 ///
 /// <para>

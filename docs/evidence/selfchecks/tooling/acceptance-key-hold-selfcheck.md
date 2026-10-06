@@ -1,7 +1,7 @@
 # Acceptance key hold — self-check
 
 - Cycle: 2026-10-06 (tools/acceptance) — row A1g of
-  `docs/backlog/review/container-move-snapshot-only-sync.md`: the container-expansion kind is gated by
+  `docs/backlog/todo/container-move-snapshot-only-sync.md`: the container-expansion kind is gated by
   `Input.GetKey(KeyBinds.GetBind("expanddesc"))` in the game's own
   `PlayerCamera.TryPerformInventoryAction` (`reversing/…/PlayerCamera.cs`, the container arm), and three
   batches left it unjudged, two of them naming the driver's in-process contract as the reason. Measured

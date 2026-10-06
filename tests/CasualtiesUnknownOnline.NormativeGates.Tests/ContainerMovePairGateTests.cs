@@ -9,7 +9,7 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
-/// The container-move PAIR gate (ticket <c>backlog/review/container-move-snapshot-only-sync.md</c>, row A1g,
+/// The container-move PAIR gate (ticket <c>backlog/todo/container-move-snapshot-only-sync.md</c>, row A1g,
 /// batch `20261006-b` — the row failed in both owner directions and in a local control).
 ///
 /// <para>

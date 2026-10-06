@@ -30,7 +30,7 @@ Measured in that window:
 | Lines in ~90 s | 58,960, of which **58,148** are this line |
 | Bytes in ~90 s | 8.796 MB |
 | Steady rate (a further 10-second sample) | **1.212 MB / 10 s = 7.25 MB / min**, 639–866 lines/s |
-| Still climbing at close | yes — 82,034 of these lines in the file the session ended with |
+| Still climbing at close | yes — the census taken after the clients closed (`ev-alt-storm-census.txt`) reads **82,618** of these lines and **12.442 MB** for that client since the mark |
 | For comparison | the storm this family bounded grew at ~8.2 MB / min before the fix |
 
 The same shape appears whenever a member is out of the world: the condition a clone has no `Body` never

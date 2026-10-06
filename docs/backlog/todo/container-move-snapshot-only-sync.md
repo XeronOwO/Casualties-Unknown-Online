@@ -1,9 +1,11 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Review (batch `20261006-a`: the drop row after decision 236 passes in BOTH owner directions,
-  and the wearable half no batch had driven passes in both directions too — with the operator's and the
-  third peer's monitor at ZERO over a full quiet cycle; row A1g stays `blocked` on the
-  container-expansion driver capability, named and never substituted)
+- Status: Todo — batch `20261006-a` read the drop row after decision 236 in BOTH owner directions and the
+  wearable half no batch had ever driven, both with the operator's and the third peer's monitor at ZERO
+  over a full quiet cycle (record `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md`);
+  row A1g is all that is left, and its blocker CHANGED on 2026-10-06: a held key IS reachable in process,
+  so the driver capability is now ordinary work instead of an impossibility — see the A1g bullet under
+  "What remains"
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -156,18 +158,24 @@ evidence must be read beside, because their verdicts came from owner-side probes
   slot release drops the item from its slot and picks it back up in one call bracket, which is the
   native shape a local drag-to-slot has (`PickupSync` cancels the pending drop and reports the move as
   a slot re-home). The run reads the operator's monitor over that gesture specifically.
-- **Row A1g (container expansion) is the ONE row still open, and it is `blocked`, not failing.** The
-  native branch needs `Input.GetKey(KeyBinds.GetBind("expanddesc"))` held, the `input` dependency's own
-  rule forbids OS-level input ("never do it", enforced by
-  `AcceptanceDriverGateTests.TheAcceptanceToolsNeverUseOsLevelInput`), and no in-process route to a held
-  physical key exists. `20261006-a` tried the one route `20261005-e` had left open — the game's own
-  radial-centre gesture, to dress a body in process — and it did not land: `mode=hover` does set
-  `camera.radialOpen = true`, but `HandleWhileDragging` re-closes the ring on the game's own next frame
-  when `|radialMenu.position.x − Input.mousePosition.x|` exceeds `600 × uiScale`, and the run may not move
-  the OS pointer. That is not a claim that the gesture is undrivable — the committed
+- **Row A1g (container expansion) is the ONE row still open.** The native branch needs
+  `Input.GetKey(KeyBinds.GetBind("expanddesc"))` held. **Its blocker changed on 2026-10-06, after batch
+  `20261006-a` closed**: a held key IS reachable in process — posting the client's own window a
+  `WM_KEYDOWN` with the key's scan code makes `Input.GetKey(KeyCode.LeftShift)` read true on the next
+  frame, and a `WM_KEYUP` with the scan code and the transition bits clears it, while `GetAsyncKeyState`
+  stays 0 the whole time (no OS-level key state, no focus or foreground change, so the `input`
+  dependency's rule is not touched — `AcceptanceDriverGateTests.TheAcceptanceToolsNeverUseOsLevelInput`
+  still governs OS input and is not what this is). What is left is therefore ordinary work: build the hold
+  into the committed driver (today it exists only as an ad-hoc probe, `.acceptance/…/probe-key-*.cs`) and
+  judge the row in a three-client batch. No viewer in any batch has yet seen this kind, and it must not be
+  guessed from the other five.
+- The same batch tried the other route first and it did not land: the game's own radial-centre gesture as
+  a way to dress a body in process. `mode=hover` does set `camera.radialOpen = true`, but
+  `HandleWhileDragging` re-closes the ring on the game's own next frame when
+  `|radialMenu.position.x − Input.mousePosition.x|` exceeds `600 × uiScale`, and the run may not move the
+  OS pointer. That is not a claim that the gesture is undrivable — the committed
   `mode=release cast=-2` forces the ring's scale inside the same call, which is how batch `20261005-d`
   drove its radial row — but it is not this kind's route either way, because this kind needs a KEY held.
-  No viewer in any batch has yet seen it, and it must not be guessed from the other five.
 - **The battery half was not re-staged by `20261006-a`**: `A1f` (battery unload) was read `pass` by
   `20261005-e` and decision 236 does not touch the battery branch, but this run's fixture set carried no
   installed-battery receiver, so no battery row is judged here.

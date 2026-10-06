@@ -2043,3 +2043,28 @@ inventory without an event sync`. The ticket's row is a ZERO-warning row, so it 
   `Utils.Create` + `Body.PickUpItem`; the wearable half needed the same treatment for `Body.WearWearable`
   and got it as `tools/acceptance/recipes/item-wear.cs` — the row's own gesture is still the operator's
   remote release, so the fixture strengthens the run instead of substituting for it.
+
+## 2026-10-06 — A held key IS reachable in process, and the OS key state never moves
+
+Measured on one running client, after batch `20261006-a` had recorded row A1g as permanently blocked on
+that capability. It is not: the blockers named by three batches were "no in-process route", and this is
+that route.
+
+- Posting the game's OWN window a `WM_KEYDOWN` (`wParam` = the virtual key, `lParam` = the key's scan code)
+  makes `UnityEngine.Input.GetKey(KeyCode.LeftShift)` read **true** on the next frame.
+- A `WM_KEYUP` carrying the scan code AND the transition bits (`0xC0000000 | scan << 16 | 1`) makes it read
+  **false** again. Probes: `.acceptance/20261006-a/probe-key-decl.cs`, `probe-key-post.cs`,
+  `probe-key-read.cs`, `probe-key-up2.cs`.
+- **`GetAsyncKeyState` stayed 0 throughout, and the client's window was never brought to the foreground.**
+  That is what keeps this inside the `input` dependency's rule: it is a message to the client's own window
+  from inside its own process, not OS-level keyboard or mouse, and
+  `AcceptanceDriverGateTests.TheAcceptanceToolsNeverUseOsLevelInput` still governs the latter. Nothing
+  enters the OS input queue and no other window is addressed.
+- **A key-down alone is NOT the capability — prove the key-UP too.** The first release attempt
+  (`WM_KEYUP` with a zero `lParam`) left `Input.GetKey` true for minutes afterwards: a half-verified hold
+  leaves the modifier stuck down for the rest of the session. Read the state back after every release.
+- The evaluator accepts a type declaration carrying `[DllImport]` as one input — declare it in one eval,
+  use it in the next; a trailing expression in the same input is a syntax error. So an in-process probe
+  reaches user32 without any OS input.
+- What is left is ordinary work rather than a research question: build the hold/release into the committed
+  driver, prove it with a read-back, and judge the row that needs it.

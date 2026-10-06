@@ -438,10 +438,12 @@ What this means for the rows, stated as verdicts rather than expectations:
   recipe and read the operator's capture line and the owner's replay instead of the exception. It also
   produced the swap's monitor half, which is a finding of its own: the viewers converge, but through the
   periodic snapshot rather than an event (`todo/container-content-event-gap-on-repick.md`).
-- **The R8 route becomes reachable for `todo/drop-pending-single-slot-overwrite.md`.** Its owner-side replay is
-  `Body.SwapSlots`, i.e. two `Body.DropItem` and two `Body.PickUpItem` inside one frame
-  (`Body.cs:1413-1428`) — the same-frame pair that ticket's per-item pending machine resolves; its own row is
-  that ticket's to re-scope.
+- **The R8 route's reachability is settled for `review/drop-pending-single-slot-overwrite.md`.** Its owner-side replay is
+  `Body.SwapSlots`, i.e. two `Body.DropItem` and — when both slots held an item — two `Body.PickUpItem` inside
+  one frame (`Body.cs:1413-1428`) — but the whole call runs inside `SwapSlotsPatch`'s `InternalReorder` scope,
+  so the two `Body.DropItem` calls report nothing, and the swapped items are direct slot occupants so
+  `Body.PickUpItem`'s own `container.UnloadItem` is never reached either: the route registers NO departure at
+  all (that ticket's point 1). It is this route's own row, not that ticket's producer.
 - **Rows 7 and 8 are untouched**: the battery-load, combine and favourite halves and the medical row keep
   their `unproven` verdict and still need their fixtures.
 - **Two adjacent shapes this cycle's independent review found are folded into the same change**: the

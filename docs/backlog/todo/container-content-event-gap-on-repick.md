@@ -7,8 +7,9 @@
   monitors warn twice each over a normal remote gesture. Filed rather than fixed in the batch because an
   acceptance run changes no code (`docs/acceptance/AGENTS.md` rule 8, and the sibling tickets' rejection).
   Batch `20261006-g` (2026-10-06) added the reference reading in its item-shaped form (the section above).
-- Related: `todo/drop-pending-single-slot-overwrite.md` (the batch that read it; its
-  monitor row failed on this gap), `todo/remote-inventory-native-parity-rework.md` (the same gesture family),
+- Related: `review/drop-pending-single-slot-overwrite.md` (the batch that read it; its
+  rejected row failed on this gap, and the row it was re-scoped onto on 2026-10-07 does not have the re-pick
+  shape), `todo/remote-inventory-native-parity-rework.md` (the same gesture family),
   `done/container-move-snapshot-only-sync.md` (the container-to-container route, which reports through the
   TARGET's fact), `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-f.md`,
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md`,

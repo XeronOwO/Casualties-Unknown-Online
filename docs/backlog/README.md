@@ -55,7 +55,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
 - [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 6's swap passes; rows 7-8 need fixtures.
-- [A same-frame second drop overwrites the pending report of the first](todo/drop-pending-single-slot-overwrite.md) — **Medium** — its gesture aborts.
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 - [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — the push direction; the take half is landed.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
@@ -133,6 +132,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
+- [A same-frame second drop overwrites the pending report of the first](review/drop-pending-single-slot-overwrite.md) — **Medium** — a refused child load.
 
 ### Future
 

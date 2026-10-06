@@ -1,7 +1,7 @@
 # Container-Move Pair Classification — Self-Check (2026-10-06)
 
-Delivery fact sheet for two tickets that land together: `todo/container-move-snapshot-only-sync.md` (row A1g,
-rejected by batch `20261006-b`) and `todo/drop-pending-single-slot-overwrite.md` (whose single pending slot the
+Delivery fact sheet for two tickets that land together: `done/container-move-snapshot-only-sync.md` (row A1g,
+rejected by batch `20261006-b`) and `review/drop-pending-single-slot-overwrite.md` (whose single pending slot the
 container-move pair made untenable). On the deployed artifact of batch `20261006-b` the gesture worked — the
 operator captured the intent, the owner's loop ran and its scene showed the child in the target bag — but the
 child's two container calls reached the peers as "the child left the world" plus "the child was picked up" while

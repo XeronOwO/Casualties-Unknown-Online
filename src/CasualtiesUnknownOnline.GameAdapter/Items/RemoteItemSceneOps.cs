@@ -92,9 +92,12 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 	{
 		// O(1) fast path: the ItemInstanceId index is maintained when ids are
 		// stamped/zeroed/destroyed, so the guest's per-frame item-follow pump
-		// no longer scans every item in the scene for every followed id.
+		// no longer scans every item in the scene for every followed id. A proxy
+		// that somehow carries an id is refused here too: the test is the shared
+		// ItemWorldSync.IsDisplayProxy, which also answers for a proxy the clone
+		// renderer has already deactivated (batch `20261006-h`).
 		if (ItemInstanceId.TryFindItem(itemId, out var indexed)
-			&& indexed.GetComponentInParent<RemoteCloneRender>() == null) // Unity object — ==
+			&& !ItemWorldSync.IsDisplayProxy(indexed))
 		{
 			return indexed;
 		}
@@ -108,7 +111,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 			// objects. Even if an id leaks into a proxy, domain application
 			// must never address the proxy (a drop/correction would unparent it
 			// from the clone and produce a ghost world item).
-			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+			if (ItemWorldSync.IsDisplayProxy(item))
 			{
 				continue;
 			}
@@ -122,7 +125,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 
 		foreach (var item in Object.FindObjectsOfType<Item>())
 		{
-			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+			if (ItemWorldSync.IsDisplayProxy(item))
 			{
 				continue;
 			}
@@ -138,39 +141,29 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 	}
 
 	/// <summary>Find a generation-time (id-less) item of the same definition near Pos —
-	/// the materialization bind target. Only items outside any inventory count
-	/// (world-gen determinism put them there on every side).</summary>
+	/// the materialization bind target. Which candidates may be claimed at all is
+	/// <see cref="AdoptTargetRule"/>'s decision (the named tie-break): only a LIVE,
+	/// non-proxy, still-unsynced world object counts, so a clone display proxy the
+	/// renderer has already retired is refused and the row materializes its own object
+	/// instead. An ancestor lookup of the marker is NOT that test — the renderer
+	/// deactivates the proxy before its deferred destroy, and an inactive object is
+	/// invisible to the default <c>includeInactive: false</c> lookups
+	/// (batch `20261006-h`: the retired proxy was adopted, then destroyed with the
+	/// stamped id, which left the id <c>terminal</c> in the kernel with no object in
+	/// the world).</summary>
 	internal static Item? FindExistingAt(NetVector2 pos, string itemId)
 	{
 		var target = new Vector2(pos.X, pos.Y);
 		foreach (var item in Item.allItems)
 		{
-			// A remote clone proxy is never a world-generation bind target.
-			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
-			{
-				continue;
-			}
-
-			if (item.id != itemId || !ItemWorldSync.IsWorldItem(item)) // Unity object — ==
-			{
-				continue;
-			}
-
-			// A per-player tutorial prop is never a bind target — binding a
-			// shared item to it would let one player's pickup remove another
-			// player's private course object (the claw double-give fix must
-			// not become a cross-player course stall).
-			if (item.GetComponent<TutorialClawProp>() != null) // Unity object — ==
-			{
-				continue;
-			}
-
-			if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==; already an item-domain object
-			{
-				continue;
-			}
-
-			if (Vector2.Distance(item.transform.position, target) > AdoptTolerance)
+			if (!AdoptTargetRule.Allows(
+					sameDefinition: item.id == itemId,
+					alreadySynced: item.GetComponent<ItemInstanceId>() != null, // Unity object — ==; already an item-domain object
+					displayProxy: ItemWorldSync.IsDisplayProxy(item),
+					retired: !item.gameObject.activeInHierarchy,
+					worldItem: ItemWorldSync.IsWorldItem(item),
+					tutorialProp: item.GetComponent<TutorialClawProp>() != null, // Unity object — ==
+					withinTolerance: Vector2.Distance(item.transform.position, target) <= AdoptTolerance))
 			{
 				continue;
 			}
@@ -211,6 +204,16 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 				continue;
 			}
 
+			// A clone display proxy is never the generation-time container this
+			// stamp is for: the clone renderer owns that object, and stamping the
+			// originator's container id onto one would put a display object into the
+			// item domain — the same shape as the adopt path's defect (batch
+			// `20261006-h`), one call site over.
+			if (ItemWorldSync.IsDisplayProxy(containerItem))
+			{
+				continue;
+			}
+
 			if (Vector2.Distance(container.transform.position, new Vector2(parentPos.X, parentPos.Y)) > 3f)
 			{
 				continue;
@@ -245,7 +248,8 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 				continue;
 			}
 
-			if (containerItem.GetComponent<ItemInstanceId>() != null) // Unity object — ==; already bound
+			if (containerItem.GetComponent<ItemInstanceId>() != null // Unity object — ==; already bound
+				|| ItemWorldSync.IsDisplayProxy(containerItem))
 			{
 				continue;
 			}

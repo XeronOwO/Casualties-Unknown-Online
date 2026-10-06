@@ -105,6 +105,15 @@ internal sealed class GeneratedItemReconcile(
 						return;
 					}
 
+					// A clone display proxy is presentation, not an unclaimed world item: the clone
+					// renderer detaches a stale one into the world as part of its own retire step
+					// (Container.UnloadItem) and destroys it at the end of that frame, so this sweep must
+					// not reach into the presentation domain (batch `20261006-h`).
+					if (ItemWorldSync.IsDisplayProxy(item))
+					{
+						return;
+					}
+
 					Object.Destroy(item.gameObject);
 					destroyed++;
 				},

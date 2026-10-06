@@ -61,8 +61,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A late joiner never binds the generated enemies](todo/enemy-generation-pairing-late-join.md) — **High** — the whole set stays local.
-- [A same-frame second drop overwrites the pending report of the first](todo/drop-pending-single-slot-overwrite.md) — **Medium** — the world half is filed.
-- [A second drop report at the same position loses its world object](todo/second-drop-report-loses-its-world-object.md) — **Medium** — the adopt path.
+- [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 
 ### In progress
 
@@ -134,6 +133,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
+- [A same-frame second drop overwrites the pending report of the first](review/drop-pending-single-slot-overwrite.md) — **Medium** — world half's cause landed.
+- [A second drop report at the same position loses its world object](review/second-drop-report-loses-its-world-object.md) — **Medium** — no proxy is adopted.
 
 ### Future
 

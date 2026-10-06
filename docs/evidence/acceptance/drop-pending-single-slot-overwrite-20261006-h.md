@@ -3,7 +3,8 @@
 - Ticket: `drop-pending-single-slot-overwrite` — verdict: **back to `todo/`** (status field
   `- Status: Todo — Rejected (…)`): the re-scoped row's machine half passes 2/2 — two departures register in
   ONE frame and BOTH commit — and its world half fails 2/2: only one of the two children ever gets a
-  standing world object
+  standing world object. (That was this batch's verdict; the ticket has since moved to `review/` with the
+  failing half's cause landed — see the attribution pointer in `Limits`.)
 - Batch: `20261006-h` — ticket `drop-pending-single-slot-overwrite` (scope below)
 - Commit: `0e86bfd1` · Deployed artifact: `CasualtiesUnknownOnline.dll`, ProductVersion
   `0.1.0+0e86bfd1d2638880443f6481574f6e568d742a48`
@@ -67,8 +68,8 @@ their state.
   (`LoadItem left trashbag outside the container`). The published fixture uses distinct definitions
   (`trashbag` outer, `plasticbag` target, `duffelbag` source) with the capacities read off the prefabs
   (`p2-container-capacity.json`, `p3-item-weights.json`).
-- **The failing half is filed, not fixed here.** `todo/second-drop-report-loses-its-world-object.md` carries
-  this reading, its reproduction and the acceptance a fix owes; a batch run does not change code.
+- **The failing half is filed, not fixed here.** `review/second-drop-report-loses-its-world-object.md`
+  carries this reading, its reproduction and the acceptance a fix owes; a batch run does not change code.
 
 ## Residuals for the user
 
@@ -85,10 +86,23 @@ None: every row of this ticket is a machine row, and the two that failed name th
   which is the shape the failure needs.
 - **The destroy after the adoption is a reading, not an attribution.** The run shows the adopted copy
   destroyed on both viewers and the kernel's terminal transition; it does not name which code path
-  destroyed it, and the ticket asks for that attribution before any fix.
+  destroyed it, and the ticket asks for that attribution before any fix. **Attributed 2026-10-06** (in
+  `review/second-drop-report-loses-its-world-object.md`, fixed there): the copy was the owner's clone display
+  proxy for the FIRST child, retired by `CloneInventoryRenderer.RestoreRemoteContents` between the two reports
+  — `Container.UnloadItem` detaches it and moves it onto `AdoptTolerance`, the renderer then deactivates it and
+  queues its end-of-frame `Object.Destroy`, and the adopt scan's `GetComponentInParent<RemoteCloneRender>()`
+  (default `includeInactive: false`) could no longer see the marker on the deactivated object. The destroy was
+  then REPORTED because the destroy-report path's own display-proxy guard asked the same inactive-blind lookup
+  (`ItemWorldSync.OnItemDestroyed`); both doors are `ItemWorldSync.IsDisplayProxy` now.
 - **The run did not stage a multi-child expansion whose children land apart.** The native loop unloads every
   child out of one source container, so the two reports carry the same position by construction; a variant
   with different landing positions was not produced.
+- **Every carried container in this batch's fixture sat in a slot** (`trashbag` and `duffelbag`; the
+  `trashbag`'s one nested container, the `plasticbag`, was EMPTY). A container nested inside another whose own
+  contents must be rendered takes a different renderer path (the manual attach, then a `LoadItem` the native
+  stacking rule refuses), so this batch could not read that member of the family at all — the residual it
+  leaves is filed as `todo/nested-container-clone-proxy-leaks-as-world-item.md`, whose own cycle stages the
+  nesting before judging it.
 - **The world table was read on the host only**; the two sandboxes' own copies were read through their own
   logs (`[ItemSpawn]`, `[ItemBind]`, `[ItemTrace]`), not as authoritative tables.
 - **No wire, save or feel check.** The run read no messages and no saves, and judged no hand-feel.

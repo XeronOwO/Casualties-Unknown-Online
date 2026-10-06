@@ -108,6 +108,22 @@ internal sealed class ItemWorldSync(
 	/// <summary>Instance-id allocation (ids are (counter, account id) — see ItemIdAllocator).</summary>
 	internal ulong EnsureItemId(Item item) => _ids.EnsureId(item);
 
+	/// <summary>
+	/// True when the object is a remote clone's DISPLAY proxy — presentation only, never an item-domain
+	/// object. Both markers are read, and the ancestor scan includes INACTIVE objects on purpose:
+	/// <c>CloneInventoryRenderer.RestoreRemoteContents</c> retires a stale proxy by unloading it
+	/// (<c>Container.UnloadItem</c> detaches it, so <see cref="IsWorldItem"/> turns true) and then
+	/// deactivating it before its end-of-frame <c>Object.Destroy</c>; an inactive object is invisible to the
+	/// default <c>includeInactive: false</c> lookups, so a tree-only test stops answering for exactly the
+	/// proxy that is about to become a plausible world item. The proxy's OWN marker
+	/// (<see cref="RemoteInventoryItemId"/>, written onto the proxy itself and unaffected by the detach)
+	/// carries the same answer for a proxy whose contents had no id yet. Missing this is what let batch
+	/// `20261006-h`'s adopt scan claim a retired proxy and stamp an id onto it one frame before its destroy.
+	/// </summary>
+	internal static bool IsDisplayProxy(Item item) =>
+		item.GetComponent<RemoteInventoryItemId>() != null // Unity object — ==
+		|| item.GetComponentInParent<RemoteCloneRender>(includeInactive: true) != null; // Unity object — ==
+
 	/// <summary>True when the item's parent chain ends outside any inventory/body — it is part of the world.</summary>
 	internal static bool IsWorldItem(Item item)
 	{
@@ -305,8 +321,14 @@ internal sealed class ItemWorldSync(
 		// (the renderer prunes/replaces proxy children every snapshot) is not a
 		// player operation and must never report a destroy for the owner's real
 		// instance id — a guest destroying its clone of the host's bag contents
-		// used to delete the host's actual carried items on the host.
-		if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+		// used to delete the host's actual carried items on the host. The test is
+		// <see cref="IsDisplayProxy"/>, NOT an ancestor lookup of the tree marker
+		// alone: the renderer DEACTIVATES a stale proxy before its deferred
+		// destroy, and an inactive object answers no default component lookup —
+		// which is how batch `20261006-h`'s adopted proxy reported its own destroy
+		// (the item domain had stamped an id on it in the meantime) and left the
+		// item `terminal` in the kernel with no object in the world.
+		if (IsDisplayProxy(item))
 		{
 			_log.LogDebug("[ItemDestroy] {Type} (id {ItemId}) is a remote clone display proxy — destroy not reported.",
 				item.id, item.GetComponent<ItemInstanceId>()?.Id ?? 0);

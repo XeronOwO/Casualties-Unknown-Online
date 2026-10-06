@@ -42,10 +42,15 @@
   covered: the window handle resolves and the message lands inside a box. The physical host — also a
   legitimate operator for row A1g — is the unproven half.
 - The REMOTE-driven expansion — the operator's release on the owner's own items, which is what row A1g
-  asks for — is judged by that batch's three-client run and not here. Two staging facts belong to it: the
-  key is held (and the declaration loaded) on the OPERATOR's client, because the kind is produced by that
-  client's own native loop, and the operator's proxy tree must carry the dragged container's children or
-  the loop produces no intent at all. Only that run can say.
+  asks for — was driven by that batch's three-client run, in both owner directions plus a local control:
+  each direction's operator carried a proxy tree with the dragged container's child, the declaration and
+  the hold went to the OPERATOR's client, and the recipe's readings behaved exactly as the table above
+  says (hold read back true, release read back clear, `osKeyAtEnd: 0`, `isForeground: false`) — on a
+  sandbox client (`k2`/`k5`) and on the physical host (`k8`/`k11`), so the host half the smoke had not
+  covered is covered by the run. The ROW failed on the product side — the expansion's child load reports
+  a pickup instead of the target container's contents — which is the ticket's finding and not this
+  capability's; the run's record is
+  `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`.
 - A hold is judged one step later by construction: an input cannot read the state its own message
   produces (measured). Every hold and every release therefore needs the `read` step that follows it, and
   a run that skips it has no verdict.

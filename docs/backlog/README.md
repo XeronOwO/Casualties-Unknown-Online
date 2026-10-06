@@ -52,10 +52,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [A same-frame second drop overwrites the pending report of the first](todo/drop-pending-single-slot-overwrite.md) — **Medium** — one pending slot, two drops.
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
-- [Container moves reach the viewer as a snapshot](todo/container-move-snapshot-only-sync.md) — **Medium** — drops read at zero; expansion load says pickup.
 
 ### In progress
 
@@ -128,6 +126,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
+- [Container moves reach the viewer as a snapshot](review/container-move-snapshot-only-sync.md) — **Medium** — the pair classifies on the departure.
+- [A same-frame second drop overwrites the pending report of the first](review/drop-pending-single-slot-overwrite.md) — **Medium** — one entry per item.
 
 ### Future
 

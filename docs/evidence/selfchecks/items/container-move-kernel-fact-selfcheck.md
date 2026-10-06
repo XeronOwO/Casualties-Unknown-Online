@@ -1,6 +1,6 @@
 # Container Reports Carry The Child's Place — Self-Check (2026-10-06)
 
-Delivery fact sheet for backlog item `todo/container-move-snapshot-only-sync.md`: a container move
+Delivery fact sheet for backlog item `review/container-move-snapshot-only-sync.md`: a container move
 reaches the peers as ONE kernel fact that names the parent AND where each moved child sits inside it, so
 the clone fact table has nothing left for the 1 Hz snapshot to carry. Batch `20261005-d` rejected the
 ticket because the monitor still warned — one millisecond after it logged the event applying — and the

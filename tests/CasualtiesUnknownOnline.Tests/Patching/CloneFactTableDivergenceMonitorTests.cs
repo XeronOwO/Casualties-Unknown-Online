@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// <summary>
 /// The snapshot-divergence monitor's contract, exercised reflectively (the adapter is
 /// compile-excluded from the test project) through the two states a remote-driven container
-/// move can leave behind. Ticket <c>backlog/todo/container-move-snapshot-only-sync.md</c> read
+/// move can leave behind. Ticket <c>backlog/review/container-move-snapshot-only-sync.md</c> read
 /// the Warn on every remote container move of batch `20261005-c`: the move was real and the
 /// event was missing, so the fix belongs on the carrier side and the monitor keeps its rule.
 ///

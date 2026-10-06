@@ -476,7 +476,7 @@ boundary; no dual shape is kept.
       same reason; a refusal keeps its Information/Warning line.
     - A PENDING DROP REPORT holds the immediate re-report back, at both of the owner's entry points for it: a
       drop's carrier reports on the NEXT frame (it waits for the game's `DropItem` → `ThrowItem` pair to settle
-      the final velocity, and `DropPendingState.TryFlush` refuses a same-frame flush), so a snapshot sent while
+      the final velocity, and `DropPendingState.TrySettle` refuses a same-frame settle), so a snapshot sent while
       that report is pending reaches the peers AHEAD of the event explaining the change and reads to their
       clone fact table as `left the inventory without an event sync` — batch `20261005-e` measured exactly that
       on the operator and on the third peer, in both owner directions. The question is asked of the item

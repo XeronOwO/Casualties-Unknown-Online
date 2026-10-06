@@ -1,6 +1,6 @@
 # Remote Intent Drop Report Order — Self-Check (2026-10-05)
 
-Delivery fact sheet for backlog item `todo/container-move-snapshot-only-sync.md`: the drop half of row A1
+Delivery fact sheet for backlog item `review/container-move-snapshot-only-sync.md`: the drop half of row A1
 that batch `20261005-e` rejected. On the deployed `0.1.0+cdd93044…` the container kinds, the take-out, the
 slot release and the battery unload all read the operator's and the third peer's clone-fact monitor at zero;
 the drop kind warned on both viewers, in both owner directions, with
@@ -10,7 +10,7 @@ the drop kind warned on both viewers, in both owner directions, with
 
 | # | Mechanism | Evidence |
 |---|---|---|
-| 1 | The drop is carried by the owner's OWN item report, and that carrier is DEFERRED one frame on purpose. | `src/CasualtiesUnknownOnline.GameAdapter/Items/ItemWorldSync.cs` `OnItemDropped` → `ItemDropState.EnterDrop`; `src/CasualtiesUnknownOnline.Runtime/Session/Items/DropPendingState.cs` `TryFlush` refuses `currentFrame <= pending.Frame` so the game's `DropItem` → `ThrowItem` pair can set the final velocity ("a zero-velocity report materialized a ghost on the host") |
+| 1 | The drop is carried by the owner's OWN item report, and that carrier is DEFERRED one frame on purpose. | `src/CasualtiesUnknownOnline.GameAdapter/Items/ItemWorldSync.cs` `OnItemDropped` → `ItemDropState.EnterDrop`; `src/CasualtiesUnknownOnline.Runtime/Session/Items/DropPendingState.cs` `TrySettle` refuses `currentFrame <= pending.Frame` so the game's `DropItem` → `ThrowItem` pair can set the final velocity ("a zero-velocity report materialized a ghost on the host") |
 | 2 | Until that report is committed the peers' clone fact table still holds the item, and only the report removes it. | `CloneFactTable.RemoveCarriedItem`, subscribed at `GameAdapterSessionBinding` (`domains.Items.ItemDropped += OnCarriedItemDropped`); live logs — third peer `[CarriedSync] removed 1181436987331 …` 2 ms after `[ItemDrop] lantern …` |
 | 3 | `RemoteIntentApplier` ended every applied discrete intent with an immediate character re-report; for a `DropItem` that snapshot already omitted the item and was sent BEFORE the deferred report. | `RemoteIntentApplier.Apply` (`domains.CharacterDataSync.ReportInventoryChanged(body)`); batch `20261005-e` owner log 22:50:37.159 (`[CloneRender] inventory changed — immediate re-report.`) against 22:50:37.188/.189 (`origin=FlushPendingDrop result=Committed(1) events=[Drop, Flush]`) |
 | 4 | The peers read that pair exactly as the monitor documents: a snapshot that lost an item whose event is still in flight warns. | `CloneFactTable.WarnOnDivergence` ("A change whose event is still in flight trips the warning too"); operator 22:50:37.189, third peer 22:50:37.182 |
@@ -31,7 +31,8 @@ remote-driven `CombineItems` has its craft report suppressed by `CraftingPatches
 ## 2. The change
 
 - The rule is asked of the item domain's PENDING STATE, not of the intent kind:
-  `ItemWorldSync.HasPendingDropReport` (`_dropState.Current == ItemDropState.Phase.Dropped`) is the fact that a
+  `ItemWorldSync.HasPendingDropReport` (`_dropState.HasReportOwed` — a report registered, not yet sent, and still
+  owed, because the item is in the world) is the fact that a
   report is registered and NOT yet sent, and while it holds, no inventory snapshot goes out.
 - Both entry points ask it: `RemoteIntentApplier.Apply` before its re-report, and
   `GameAdapterBridge.OnInventoryChanged` — the patch layer's one entry point, which is what covers §1's row 6.
@@ -54,7 +55,7 @@ remote-driven `CombineItems` has its craft report suppressed by `CraftingPatches
 |---|---|
 | Both re-report entry points ask the pending-drop query, with the polarity that holds the state back | `RemoteIntentReportOrderGateTests.EveryReReportEntryPoint_AsksThePendingDropQueryFirst` — RED on the pre-fix tree ("never asks `HasPendingDropReport`" for the applier, and the gate did not exist for the bridge), green after; the matcher is pinned by nine positive/negative samples including the reversed polarity and a condition that merely names the query |
 | The query reads the drop machine's unsent report, in the file that owns it | `RemoteIntentReportOrderGateTests.ThePendingDropQuery_ReadsTheDropMachinesUnsentReport` |
-| The deferral the rule depends on is the machine's own: a same-frame flush is refused, a later one succeeds | `tests/CasualtiesUnknownOnline.Tests/Items/DropPendingStateTests` (`TryFlush_SameFrame_Rejected`, `TryFlush_NextFrame_AliveStandalone_Consumed`) |
+| The deferral the rule depends on is the machine's own: a same-frame settle is refused, a later one succeeds | `tests/CasualtiesUnknownOnline.Tests/Items/DropPendingStateTests` (`TrySettle_SameFrame_Rejected`, `TrySettle_NextFrame_AliveStandalone_Consumed`) |
 | The peer-side half the order depends on — a drop report removes the item from the clone fact table before the next snapshot — is unchanged and still pinned | `CloneFactTableDivergenceMonitorTests` (the monitor still warns when only the snapshot carries a change) |
 
 ## 4. Limits
@@ -69,12 +70,11 @@ remote-driven `CombineItems` has its craft report suppressed by `CraftingPatches
 - The container-expansion kind (`MoveContainerChildren`) is still blocked on a driver capability — the native
   branch needs `Input.GetKey(KeyBinds.GetBind("expanddesc"))`, which the in-process driver cannot hold — so
   row A1g stays unjudged and the ticket stays open beside this fix.
-- The drop machine has ONE pending slot, so two drops in one frame overwrite the first report
-  (`DropPendingStateTests.EnterDrop_OverwritesPriorPending` pins the overwrite as intended, and the same-frame
-  flush the caller attempts first cannot succeed). This rule makes the consequence louder — the peers then get
-  no event AND no immediate snapshot — so it is filed with its evidence as
-  `todo/drop-pending-single-slot-overwrite.md`; `RemoteIntentSlotRelease.Plan`'s occupied-destination slot
-  release reaches it.
+- The drop machine had ONE pending slot when this fact sheet was written, so two drops in one frame overwrote the
+  first report (the pin that asserted the overwrite as intended is gone; the machine now holds one entry PER ITEM —
+  decision 238). This rule made the consequence louder — the peers then get no event AND no immediate snapshot — so
+  it was filed with its evidence as `review/drop-pending-single-slot-overwrite.md`; `RemoteIntentSlotRelease.Plan`'s
+  occupied-destination slot release reaches it.
 - The other `ReportInventoryChanged` call sites (`PlayerInteractionApply`'s cross-player applies, the trader
   recruit coordinator, the push and medical appliers) are NOT re-ordered by this change: none of them is an
   intent replay on the owner's own items, and the batch did not drive them.

@@ -187,6 +187,6 @@ internal sealed class SaveCutSeam(
 	[
 		new(WorldTransientPolicy.BlockBreakPendingKey, _breakPending.Current == BlockBreakPendingState.Phase.Idle ? 0 : 1),
 		new(WorldTransientPolicy.TrapDropHoldKey, _trapDrops.Count),
-		new(WorldTransientPolicy.DropFlushKey, _itemDrops.Current == ItemDropState.Phase.Idle ? 0 : 1),
+		new(WorldTransientPolicy.DropFlushKey, _itemDrops.HasReportOwed ? 1 : 0),
 	];
 }

@@ -1,9 +1,14 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Review (the container-move PAIR landed 2026-10-06 — the unload half registers the departure and the
-  load half classifies through it, so an expansion's child load announces the TARGET container's fact; row A1g
-  awaits the three-client batch that reads both viewers' monitor at zero). History: batch `20261006-b` drove row
-  A1g for the first time, in both owner directions AND as a local control, and it FAILED — the expansion's child
+- Status: Todo — Rejected (batch `20261006-c`: the CARRIER this ticket was rejected on is FIXED and read — row A1g
+  PASSES in both owner directions, the owner's child load announces the TARGET root's contents fact instead of a
+  pickup of the child, and both viewers' monitor stays at zero; the ticket returns here on row A1g′ — the LOCAL control
+  could not be staged (four attempts: the native expansion's unload half ran and its load half never landed, so the
+  world never reached the state that row needs, and the departure settled as a real drop 1.2–1.8 s later) — and on row
+  A1z, whose single warning per viewer belongs entirely to that same window; record
+  `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-c.md`). History: the container-move PAIR landed
+  2026-10-06 (the unload half registers the departure and the load half classifies through it); batch `20261006-b` drove
+  row A1g for the first time, in both owner directions AND as a local control, and it FAILED — the expansion's child
   load reported a pickup of the child instead of the target container's contents, so both viewers warned
   `nested container contents changed without an event sync`, record
   `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`; before it, batch `20261006-a` had
@@ -21,6 +26,29 @@
 - Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`
   (rejected on row A1g); `…-20261006-a.md` (accepted except the then-blocked row); `…-20261005-e.md`
   (rejected) and `…-20261005-d.md` stand as history
+
+## Read by batch `20261006-c` (2026-10-06)
+
+On the deployed `0.1.0+8da00be3…` the three-client run drove the expansion kind — the gesture that rejected
+batch `20261006-b` — in BOTH owner directions, and it PASSES: the owner's client registers the departure
+(`[ContainerUnload] … left its container into the world from the CarriedInventory side`), the load that completes
+the pair consumes it (`result=Cancelled events=[LoadedIntoContainer]`), and the ONE report the move produces is the
+TARGET container's carried-root contents fact (`result=Committed events=[ContainerContent]`,
+`[ContainerLoad] … root content event up to trashbag (id <target>)`) — where the rejected batch read a pickup of the
+child. Both viewers applied exactly that fact and neither materialized a world copy, and `[CharSync] divergence`
+read **ZERO on all three clients** in both directions over the gesture plus a quiet cycle. Record:
+`docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-c.md`.
+
+The LOCAL control (row A1g′) could NOT be staged, and that is the finding this batch hands over. Four attempts with
+batch `20261006-b`'s own fixture, the `expanddesc` key verified held and the target resolved by the game itself
+(`castSlot: 1`): the native expansion's first half ran and its second half never landed (no `[ContainerLoad]`, the
+child in neither bag two seconds later, no exception and no alert line), so the departure settled 1.2–1.8 s later as
+a REAL drop and the game destroyed the item 11 ms after it. The monitor's single warning per viewer belongs to that
+window — and the pipeline's own negative half is right there: it reported what natively happened (a verified world
+drop, no phantom container content). What needs a fresh session is the native refusal itself:
+`Container.LoadItem`'s guards (`Container.cs:116-151` — stacking, self, weight, the 10-unit distance) refuse
+silently, and a position probe on the child and the target before the release is the next step. Until then row A1g′
+stays unproven and this ticket stays open.
 
 ## Fixed by the container-move pair (2026-10-06)
 

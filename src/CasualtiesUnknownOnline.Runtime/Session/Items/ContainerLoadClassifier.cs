@@ -2,7 +2,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
 /// <summary>
 /// Which carrier ONE container load's report takes (ticket
-/// <c>backlog/review/container-move-snapshot-only-sync.md</c>, row A1g).
+/// <c>backlog/todo/container-move-snapshot-only-sync.md</c>, row A1g).
 /// <para>
 /// The Game Adapter's load hook sees the item AFTER the move, and the game's
 /// container-to-container move detaches the item on its way

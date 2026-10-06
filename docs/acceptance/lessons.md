@@ -2115,3 +2115,44 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   probes for the type first, sends the file only when it is absent and probes again for the verdict: the
   second call in the same client answered `sent: false` with `declared: true`. An idempotent setup step is
   what makes a per-client capability safe to re-run after a client restart.
+- **The capability did what it was built for, and the row it unlocked FAILS.** In the three-client batch
+  that followed the smoke, the key recipe held `expanddesc` on both an operator client and the physical
+  host (`heldAtEnd: true`, `osKeyAtEnd: 0`, `isForeground: false`), the operator's release produced
+  `[RemoteIntent] MoveContainerChildren captured …` and the owner's own loop expanded the container
+  (`1 of 1 direct child item(s) entered the container`) — and both viewers still warned
+  `nested container contents changed without an event sync` for the target bag. A driver capability that
+  reaches the gesture is not a passing row: drive it, then read the row's own evidence.
+
+## 2026-10-06 — Batch `20261006-b`: the expansion kind's carrier is the load hook, and a local gesture proves it
+
+- Symptom: row A1g's gesture ran end to end (intent captured, owner's native loop moved the child, the
+  owner's scene showed it in the target bag) and the operator's and the third peer's clone fact table both
+  warned `nested container contents changed without an event sync` for the target container — 20 ms after
+  the owner's own expansion line.
+- Cause: the owner's two hooks reported the child's calls as `events=[Unload]` and, for its load into the
+  TARGET container, `[ContainerLoad] … left the world into a body container — pickup report.` /
+  `events=[Pickup]`. `Patches/ContainerItemPatches.cs` captures `ItemWorldSync.IsWorldItem(item)` in the
+  `Container.LoadItem` prefix, and the expansion's own native pair (`source.UnloadItem(child, null)` then
+  `target.LoadItem(child)`) has just detached the child into the world, so
+  `ContainerItemSync.OnLoadedIntoContainer` takes its world→body pickup branch — the target container's
+  full fact, the one the peers' fact table compares, is never sent. In direction 2 that misreport cost the
+  peers the item itself: they materialized it as a world drop and removed it from the owner's clone.
+- **Change: drive a key-gated gesture together with a LOCAL control of the same gesture.** The same release
+  driven by the OWNER (no operator, no intent) produced the identical hook pair and the identical warning
+  on both peers, which is what moved the finding from "the remote-intent path" to the hook's own
+  classification. Without that control the record would have blamed the intent plumbing.
+- **The contrast line is in the same log.** `container-fill`'s single load (no preceding unload) reports
+  `origin=OnItemLoadedIntoContainer result=Committed events=[ContainerContent]` and warns nowhere — so
+  when a carrier looks missing, look for the call shape that reports correctly beside the one that does
+  not.
+- **Close the Online UI window before driving the game's own keys.** The first `toggleinventory` (Tab)
+  toggle did nothing while the Online UI window was visible on Home (`buttonCount: 0`, `radialOpen:
+  false`); `click window.close` and the same key sequence opened the game's own ring
+  (`buttonCount: 6`). The world-capture rule already says this for frames — it holds for keys too.
+- **An owner-side fixture staged while a viewer already has that owner's remote view open warns on its
+  own.** The guest's three `item-provide mode=create` actions produced
+  `[CarriedSync] … not in …'s snapshot and slot unknown — the 1 Hz snapshot will carry the change.` plus
+  `a new carried item the fact table never saw — a pickup without an event sync` on the host and the third
+  peer, while the host's own creations (staged before any view was open) produced none. Stage an owner's
+  fixtures before opening the viewer's remote ring, or expect those lines in the window and say which
+  action produced them.

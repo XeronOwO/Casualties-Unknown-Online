@@ -1,11 +1,14 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Todo — batch `20261006-a` read the drop row after decision 236 in BOTH owner directions and the
-  wearable half no batch had ever driven, both with the operator's and the third peer's monitor at ZERO
-  over a full quiet cycle (record `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md`);
-  row A1g is all that is left, and its blocker was REMOVED on 2026-10-06: a held key is reachable in
-  process and is committed as the `window-key` eval declaration plus `recipes/key-hold.cs` (decision 237),
-  so the row waits only on its own three-client reading — see the A1g bullet under "What remains"
+- Status: Todo — Rejected (batch `20261006-b`: row A1g was driven for the first time, in both owner
+  directions AND as a local control, and it FAILS — the expansion's child load reports a pickup of the
+  child instead of the target container's contents, so both viewers warn
+  `nested container contents changed without an event sync`; the gesture itself runs and the owner's
+  container really expands, record `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`).
+  Batch `20261006-a` had read the drop row after decision 236 in BOTH owner directions and the wearable
+  half no batch had ever driven, both with the monitors at ZERO over a full quiet cycle; the row's blocker
+  was then removed the same day (a held key is reachable in process and is committed as the `window-key`
+  eval declaration plus `recipes/key-hold.cs`, decision 237)
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -13,8 +16,9 @@
   repository's own history introduced is fixed or ticketed.
 - Related: `review/remote-inventory-native-parity-rework` (the path that produced the warnings),
   `done/carried-inventory-registration-re-report.md`, `docs/architecture/remote-inventory-native-parity.md`
-- Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md`
-  (accepted except the blocked row); `…-20261005-e.md` (rejected) and `…-20261005-d.md` stand as history
+- Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`
+  (rejected on row A1g); `…-20261006-a.md` (accepted except the then-blocked row); `…-20261005-e.md`
+  (rejected) and `…-20261005-d.md` stand as history
 
 ## Symptom (evidence)
 
@@ -158,25 +162,35 @@ evidence must be read beside, because their verdicts came from owner-side probes
   slot release drops the item from its slot and picks it back up in one call bracket, which is the
   native shape a local drag-to-slot has (`PickupSync` cancels the pending drop and reports the move as
   a slot re-home). The run reads the operator's monitor over that gesture specifically.
-- **Row A1g (container expansion) is the ONE row still open.** The native branch needs
-  `Input.GetKey(KeyBinds.GetBind("expanddesc"))` held. **Its blocker changed on 2026-10-06, after batch
-  `20261006-a` closed**: a held key IS reachable in process — posting the client's own window a
-  `WM_KEYDOWN` with the key's scan code makes `Input.GetKey(KeyCode.LeftShift)` read true on the next
-  frame, and a `WM_KEYUP` with the scan code and the transition bits clears it, while `GetAsyncKeyState`
-  stays 0 the whole time (no OS-level key state, no focus or foreground change, so the `input`
-  dependency's rule is not touched — `AcceptanceDriverGateTests.TheAcceptanceToolsNeverUseOsLevelInput`
-  still governs OS input and is not what this is), and **the capability is committed and smoked as of
-  decision 237**: `drive-in-process.ps1 -Action declare -Declare window-key` loads
-  `driver/eval-declarations/window-key.cs` once per client and `recipes/key-hold.cs` holds, releases and
-  reads a bind the game itself uses (a hold is judged by the `read` step that follows it — the state
-  lands on the client's next input, `docs/acceptance/lessons.md`). What is left is the row's own reading:
-  a three-client batch drives the operator's release of a child-carrying container onto a second
-  container with the key held, and reads the operator's and the third peer's monitor. **The key is held,
-  and the declaration loaded, on the OPERATOR's client** — the kind is produced by that client's own
-  native loop, so a run that stages the fixture or the hold on the owner alone reads "no intent" and must
-  not call that a row failure — **and the operator's proxy tree must carry the dragged container's
-  children**, or that loop has nothing to move. No viewer in any batch has yet seen this kind, and it must
-  not be guessed from the other five.
+- **Row A1g (container expansion) was driven by batch `20261006-b` and FAILS.** The native branch needs
+  `Input.GetKey(KeyBinds.GetBind("expanddesc"))` held, and its blocker was removed on 2026-10-06: a held
+  key IS reachable in process (a message queued on the client's own window moves the client's own input
+  state while `GetAsyncKeyState` stays 0 and no window is activated) and the capability is committed as
+  decision 237 — `drive-in-process.ps1 -Action declare -Declare window-key` loads
+  `driver/eval-declarations/window-key.cs` once per client, and `recipes/key-hold.cs` holds, releases and
+  reads a bind the game itself uses (a hold is judged by the `read` step that follows it; the state lands
+  on the client's next input). The key is held, and the declaration loaded, on the OPERATOR's client,
+  because the kind is produced by that client's own native loop. What the run then read, in both owner
+  directions and in a local control: the operator captures
+  `[RemoteIntent] MoveContainerChildren captured for item … of … (container …)` and the owner's loop really
+  runs (`container expansion of item trashbag into container …: 1 of 1 direct child item(s) entered the
+  container`, and the owner's tree shows the child in the target bag afterwards) — but the owner's own
+  hooks report the child's two container calls as `origin=OnItemUnloadedFromContainer … events=[Unload]`
+  and `[ContainerLoad] … left the world into a body container — pickup report.` /
+  `origin=OnItemLoadedIntoContainer … events=[Pickup]`, so the target container's contents are never
+  announced and both viewers warn `nested container contents changed without an event sync` for the target
+  bag (direction 1: operator guest 1, alt 1; direction 2: operator host 2, alt 2, where the peers also
+  materialize the child as a WORLD item and drop it out of the owner's clone). The local control — the
+  owner's own release with no intent and no operator — produces the same pair and the same warning, so the
+  defect is the container-load hook's classification and not the remote-intent path:
+  `Patches/ContainerItemPatches.cs` captures `ItemWorldSync.IsWorldItem(item)` in the `Container.LoadItem`
+  prefix, and the expansion's own native pair (`source.UnloadItem(child, null)` then
+  `target.LoadItem(child)`) has just detached the child, so `ContainerItemSync.OnLoadedIntoContainer`
+  takes its world→body pickup branch. The contrast sits in the same log: `container-fill`'s single load
+  (no preceding unload) reports `events=[ContainerContent]` and warns nowhere. The fix direction is for
+  the expansion's child load to announce the TARGET container's fact — the same
+  `SyncContainerItemsCommand` the other container kinds commit. Record:
+  `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`.
 - The same batch tried the other route first and it did not land: the game's own radial-centre gesture as
   a way to dress a body in process. `mode=hover` does set `camera.radialOpen = true`, but
   `HandleWhileDragging` re-closes the ring on the game's own next frame when
@@ -190,6 +204,40 @@ evidence must be read beside, because their verdicts came from owner-side probes
 - The monitor itself is deliberately unchanged: a snapshot that carries a change no event announced
   still warns (`CloneFactTableDivergenceMonitorTests`), which is what makes the run's zero-warning row
   mean something.
+
+## Rejected by batch `20261006-b` (2026-10-06)
+
+The three-client run that carried the held-key capability drove the expansion kind for the first time — the
+operator's release of a child-carrying container onto a second container, in both owner directions, plus
+the same gesture driven locally on the owner as a control. The gesture works: the intent is captured
+(`[RemoteIntent] MoveContainerChildren captured for item … of … (container …)`), the owner's loop runs
+(`container expansion of item trashbag into container …: 1 of 1 direct child item(s) entered the
+container`) and its scene shows the child in the target bag afterwards. The row fails on the carrier.
+
+The owner's two hooks report that child's calls as `origin=OnItemUnloadedFromContainer … events=[Unload]`
+and `[ContainerLoad] … left the world into a body container — pickup report.` /
+`origin=OnItemLoadedIntoContainer … events=[Pickup]`, so the gesture reaches the peers as "the child left,
+the child was picked up" while the TARGET container's contents changed with no event: the operator's and
+the third peer's clone fact table prints `nested container contents changed without an event sync` for the
+target bag — once each in direction 1, twice each in direction 2, where the peers also materialize the
+child as a WORLD item (`[ItemDrop] … not present — requesting materialization`) and drop it out of the
+owner's clone.
+
+The local control attributes it: the owner's OWN release (no operator, no intent) produces the same hook
+pair and the same warning on both peers, so this is not the remote-intent path. The cause is in the code:
+`Patches/ContainerItemPatches.cs` captures `ItemWorldSync.IsWorldItem(item)` in the `Container.LoadItem`
+prefix, and the expansion's own native pair (`source.UnloadItem(child, null)` then
+`target.LoadItem(child)`) has just detached the child into the world, so
+`ContainerItemSync.OnLoadedIntoContainer` takes its world→body pickup branch. The same log's
+`container-fill` load (no preceding unload) reports `events=[ContainerContent]` and warns nowhere. The fix
+is for the expansion's child load to announce the TARGET container's fact — the same
+`SyncContainerItemsCommand` the other container kinds commit.
+
+Evidence: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`. Two observations sit
+beside the row rather than in it: a fixture created while the owner's remote view was already open warns
+`a new carried item the fact table never saw — a pickup without an event sync` after
+`[CarriedSync] … not in …'s snapshot and slot unknown` (the host's own creations, staged before any view
+was open, did not), and a visible Online UI window swallows the game's own toggle key until it is closed.
 
 ## Rejected by batch `20261005-d` (2026-10-05)
 

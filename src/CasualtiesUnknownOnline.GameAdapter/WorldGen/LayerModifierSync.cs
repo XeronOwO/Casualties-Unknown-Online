@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
@@ -53,6 +54,22 @@ internal sealed class LayerModifierSync(IItemControl items, ILogger<LayerModifie
 
 	private bool _lastGenerating;
 
+	/// <summary>
+	/// The two divergence diagnostics' repetition windows. Both are emitted per arriving
+	/// snapshot, and a standing divergence sends the same values on every one of them: on a
+	/// 10 Hz stream that is thousands of identical lines for one unchanged fact (batch
+	/// `20261005-b` filled the member's log for minutes this way). The window keeps the
+	/// diagnostic — first lines, then one summary when the pair finally changes — and the
+	/// detector itself is untouched.
+	/// </summary>
+	private readonly LogRepetitionGuard _baselineLog = new(suppressAfter: 3);
+	private readonly LogRepetitionGuard _indexLog = new(suppressAfter: 3);
+
+	/// <summary>The (local, host) baseline pair the last snapshot reported, as key text — a change flushes the window.</summary>
+	private string? _baselineKey;
+
+	private string? _indexKey;
+
 	internal void BindToSession()
 	{
 		_items.WorldItemsSnapshotReceived += OnWorldItemsSnapshot;
@@ -63,6 +80,16 @@ internal sealed class LayerModifierSync(IItemControl items, ILogger<LayerModifie
 	{
 		_items.WorldItemsSnapshotReceived -= OnWorldItemsSnapshot;
 		_items.ItemSnapshotReceived -= OnItemSnapshot;
+
+		// The session is over: say what the standing divergence cost before the windows go, exactly
+		// as the item pump's own unbind does — a bound that swallowed silently would hide the very
+		// divergence the detector exists to raise.
+		FlushRepeat(_baselineLog, _baselineKey, "[LayerMod] baseline divergence — {Count} identical line(s) suppressed when the session ended.");
+		FlushRepeat(_indexLog, _indexKey, "[LayerMod] index disagreement — {Count} identical line(s) suppressed when the session ended.");
+		_baselineKey = null;
+		_indexKey = null;
+		_baselineLog.Clear();
+		_indexLog.Clear();
 	}
 
 	/// <summary>The guest's local replay of the decision (index + stream state
@@ -96,6 +123,15 @@ internal sealed class LayerModifierSync(IItemControl items, ILogger<LayerModifie
 			_localState = null;
 			_pendingIndex = -1;
 			_pendingState = null;
+
+			// A new layer is a new pair: whatever the windows swallowed belongs to the
+			// layer that is being left, and the log says so before the counters go.
+			FlushRepeat(_baselineLog, _baselineKey, "[LayerMod] baseline divergence — {Count} identical line(s) suppressed for the layer just left.");
+			FlushRepeat(_indexLog, _indexKey, "[LayerMod] index disagreement — {Count} identical line(s) suppressed for the layer just left.");
+			_baselineKey = null;
+			_indexKey = null;
+			_baselineLog.Clear();
+			_indexLog.Clear();
 		}
 		_lastGenerating = generating;
 
@@ -150,7 +186,20 @@ internal sealed class LayerModifierSync(IItemControl items, ILogger<LayerModifie
 
 		if (decision.IndexDisagrees)
 		{
-			_log.LogWarning("[LayerMod] snapshot index {Snapshot} disagrees with the local replay {Local} — applying the host's (authoritative).", index, _localIndex);
+			// Keyed on (snapshot, local): the pair IS the divergence. Repeats inside the
+			// window report, a pair that changes reports again, and the flush says how many
+			// identical lines the standing disagreement cost.
+			var key = "index|" + index + "|" + _localIndex;
+			if (key != _indexKey)
+			{
+				FlushRepeat(_indexLog, _indexKey, "[LayerMod] index disagreement — {Count} identical line(s) suppressed while it stood still.");
+				_indexKey = key;
+			}
+
+			if (_indexLog.TryLog(key, key, out _))
+			{
+				_log.LogWarning("[LayerMod] snapshot index {Snapshot} disagrees with the local replay {Local} — applying the host's (authoritative).", index, _localIndex);
+			}
 		}
 
 		if (decision.BaselineDiverged)
@@ -160,9 +209,24 @@ internal sealed class LayerModifierSync(IItemControl items, ILogger<LayerModifie
 			// entry state (both are the fingerprint-identical segment start).
 			// A mismatch means the segment baselines diverged before the
 			// decision: the local replay drew from the wrong position and the
-			// world effects will diverge silently.
-			_log.LogWarning("[LayerMod] baseline divergence — local segment start {Local} vs host's {Host} (world effects may diverge).",
-				BitConverter.ToString(_localEntryState).Replace("-", ""), BitConverter.ToString(randomState).Replace("-", ""));
+			// world effects will diverge silently. It repeats on every snapshot
+			// while the pair stands (see the guard's own note).
+			var local = FormatState(_localEntryState);
+			var host = FormatState(randomState);
+			var key = local + "|" + host;
+			if (key != _baselineKey)
+			{
+				FlushRepeat(_baselineLog, _baselineKey, "[LayerMod] baseline divergence — {Count} identical line(s) suppressed while the pair stood still.");
+				_baselineKey = key;
+			}
+
+			if (_baselineLog.TryLog(key, key, out _))
+			{
+				_log.LogWarning(
+					"[LayerMod] baseline divergence — local segment start {Local} vs host's {Host} (world effects may diverge).",
+					local,
+					host);
+			}
 		}
 
 		switch (decision.Next)
@@ -178,6 +242,22 @@ internal sealed class LayerModifierSync(IItemControl items, ILogger<LayerModifie
 
 		// Drop = idempotent — the snapshot of the layer's own roll (already
 		// applied via the local replay) or a periodic repeat.
+	}
+
+	/// <summary>The state a divergence line prints: hex, or <c>-</c> when the snapshot carried none.</summary>
+	private static string FormatState(byte[]? state) =>
+		state is null ? "-" : BitConverter.ToString(state).Replace("-", "");
+
+	/// <summary>
+	/// The divergence behind <paramref name="key"/> stopped repeating — say how many identical
+	/// lines its window swallowed before the log forgets it. Silent when nothing was suppressed.
+	/// </summary>
+	private void FlushRepeat(LogRepetitionGuard guard, string? key, string message)
+	{
+		if (key is not null && guard.TryFlush(key, out var suppressed))
+		{
+			_log.LogWarning(message, suppressed);
+		}
 	}
 
 	/// <summary>Snapshot path (no local replay — world entry outside a

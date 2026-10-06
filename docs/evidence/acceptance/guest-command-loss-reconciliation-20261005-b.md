@@ -66,7 +66,7 @@ None: every row above is a machine row read from probe results and log lines.
   world and the sandbox logs filled with a repeating `[LayerMod] baseline divergence` warning (the
   guest's rolling log grew from 0.8 MB to 33.4 MB in about four minutes). The batch recovered by
   restarting all three clients; nothing in this ticket's rows depends on the layer hazard, and the hazard
-  itself is now tracked by `docs/backlog/todo/layer-change-member-dropout.md` — its diagnostic, the
+  itself is now tracked by `docs/backlog/review/layer-change-member-dropout.md` — its diagnostic, the
   host-authoritative modifier model and the layer-transition behaviour are this repository's own code, so
   "pre-existing" was the wrong reading of it.
 - The 60 s checkpoint cadence is the host's own in-session repair cycle, measured here as

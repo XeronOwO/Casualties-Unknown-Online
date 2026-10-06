@@ -1,3 +1,5 @@
+using System;
+
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
 /// <summary>
@@ -28,6 +30,18 @@ internal static class ItemMotionState
 
 	/// <summary>A settled copy diverged more than this is worth a diagnostic line (a real divergence, not residual jitter).</summary>
 	internal const float SettleLogDistance = 0.5f;
+
+	/// <summary>
+	/// The distance resolution the divergence line's repetition window keys on: gaps within
+	/// <see cref="DivergenceKeyResolution"/> of each other count as the SAME divergence, so a
+	/// standing gap costs one window of lines instead of one line per frame. The first line is
+	/// reported at full <c>F2</c> precision, so nothing is lost by bucketing the key.
+	/// </summary>
+	internal const float DivergenceKeyResolution = 0.05f;
+
+	/// <summary>The bucket a reported distance keys on (see <see cref="DivergenceKeyResolution"/>).</summary>
+	internal static int DivergenceKeyDistance(float distance) =>
+		(int)Math.Round(distance / DivergenceKeyResolution, MidpointRounding.AwayFromZero);
 
 	/// <summary>The settled criterion: velocity below the noise floor AND no spin — used by
 	/// the host's throttle (decides the 1 Hz re-align round) and the guest's follow (decides

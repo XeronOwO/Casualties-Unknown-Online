@@ -3,6 +3,16 @@
 // serves: remote-inventory-native-parity-rework, remote-fentanyl-injection-and-medical-panel-desync
 // returns: ok, mode, item, itemId, itemOwner, itemType, itemHeld, itemParentContainer, castIndex, castKind, castTag, castSlot, moved, dragAfter, ringDistance, ringScaleBefore, ringScaleForced, calls, error, detail
 //          probe: leniency, uiScale, radialCircleTag, radialCircleRadius, radialMenuScale, pointerDistanceOverScale, centerButtonCount, centerButtonTag, centerButtonSlot, radialOpen, dragItem, buttonCount
+//          release pair: viewOpen, focusSet, focusedSteamId, castIsBody, castOverlaps, castItem, castItemId, castItemProxy, castItemOwner, castItemParent, castIsContainer, castContentsBefore, castContentsAfter, castPosX, castPosY, dragIsContainer, dragPosX, dragPosY, childCount, children, childInCast, childParentAfter
+//
+// The release's own target probe. The native branch reads the CAST BUTTON's own item
+// (PlayerCamera.cs:1540) and Container.LoadItem then decides on two inputs — CanHoldItem and
+// a ten-unit distance (Container.cs:116-151) — refusing silently. Batch 20261006-c drove a
+// local control four times without recording either, and the refusal it read could not be
+// attributed afterwards. Every release now reports the item it aimed at (identity, display
+// proxy, owner, parent, position), whether the ring focus was reading a remote clone, and,
+// for the dragged container's own children, both guard inputs plus where the child ended.
+// The scene is read before the invoke and the outcome after it, in the same call.
 //
 // Drives the game's OWN release path for one inventory gesture, in process, with no
 // OS-level input: the recipe stages PlayerCamera.dragItem, PlayerCamera.clickPos and
@@ -289,6 +299,57 @@
 			ringDistance = UnityEngine.Vector2.Distance(ring.position, mouse) / uiScale;
 		}
 	}
+	// The release's own target probe (see the header): the item this release aims at, read
+	// through the same gate the native branch uses — the cast's InvButton, its Overlaps band
+	// (InvButton.cs:31, a ring/pointer distance the run stages rather than moves), and the
+	// GetItem routing the ring focus redirects (InvButtonBodyPatch) — plus Container.LoadItem's
+	// two inputs on the dragged container's own children (Container.cs:116-151). A release whose
+	// target is a display proxy, or whose child cannot land, is visible here instead of only in
+	// the aftermath. `focusSet` says whether the ring reads a remote clone rather than this
+	// client's own body: `InvButton.body` is private and patch-redirected, so the focus is the
+	// fact that answers it.
+	InvButton castButton = null;
+	for (var i = 0; i < casts.Count; i++) {
+		if (casts[i].gameObject == null) { continue; }
+		var candidate = casts[i].gameObject.GetComponent<InvButton>();
+		if (candidate != null) { castButton = candidate; break; }
+	}
+	var castOverlaps = castButton != null && castButton.Overlaps(casts);
+	var castButtonItem = castButton == null ? null : castButton.GetItem();
+	var castMarker = castButtonItem == null ? null : markerOf(markerType, castButtonItem);
+	var castContainer = castButtonItem == null ? null : castButtonItem.GetComponent<Container>();
+	var focusSet = false;
+	var focusedId = 0UL;
+	if (viewType != null) {
+		var focusProperty = viewType.GetProperty("FocusedBody", staticFlags);
+		if (focusProperty != null) { focusSet = focusProperty.GetValue(null) != null; }
+		var focusedProperty = viewType.GetProperty("FocusedSteamId", staticFlags);
+		if (focusedProperty != null) { focusedId = System.Convert.ToUInt64(focusedProperty.GetValue(null)); }
+	}
+	var dragContainer = target.GetComponent<Container>();
+	var dragChildren = new System.Collections.Generic.List<Item>();
+	if (dragContainer != null) {
+		for (var i = 0; i < dragContainer.transform.childCount; i++) {
+			var childItem = dragContainer.transform.GetChild(i).GetComponent<Item>();
+			if (childItem != null) { dragChildren.Add(childItem); }
+		}
+	}
+	var probeChild = dragChildren.Count > 0 ? dragChildren[0] : null;
+	var castContentsBefore = castContainer == null ? -1 : castContainer.transform.childCount;
+	var pairCulture = System.Globalization.CultureInfo.InvariantCulture;
+	var childJson = new System.Collections.Generic.List<string>();
+	for (var i = 0; i < dragChildren.Count; i++) {
+		var childItem = dragChildren[i];
+		var childMarker = markerOf(markerType, childItem);
+		childJson.Add("{\"type\":\"" + childItem.id + "\""
+			+ ",\"id\":" + (childMarker == null ? "0" : fieldOf(childMarker, "Id").ToString(pairCulture))
+			+ ",\"proxy\":" + (isProxy(proxyType, childItem) ? "true" : "false")
+			+ ",\"x\":" + childItem.transform.position.x.ToString("0.###", pairCulture)
+			+ ",\"y\":" + childItem.transform.position.y.ToString("0.###", pairCulture)
+			+ ",\"toCast\":" + (castButtonItem == null ? "-1" : UnityEngine.Vector2.Distance(childItem.transform.position, castButtonItem.transform.position).ToString("0.###", pairCulture))
+			+ ",\"canHold\":" + (castContainer == null ? "false" : (castContainer.CanHoldItem(childItem) ? "true" : "false"))
+			+ "}");
+	}
 	camera.dragItem = target;
 	camera.clickPos = moved == 1
 		? new UnityEngine.Vector2(mouse.x + 60f, mouse.y)
@@ -313,5 +374,27 @@
 		+ ",\"ringDistance\":" + ringDistance.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"ringScaleBefore\":" + ringScaleBefore.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"ringScaleForced\":" + (ringScaleForced ? "true" : "false")
+		+ ",\"viewOpen\":" + (viewOpen ? "true" : "false")
+		+ ",\"focusedSteamId\":" + focusedId.ToString(pairCulture)
+		+ ",\"focusSet\":" + (focusSet ? "true" : "false")
+		+ ",\"castIsBody\":" + (castButton != null && castButton.isBody ? "true" : "false")
+		+ ",\"castOverlaps\":" + (castOverlaps ? "true" : "false")
+		+ ",\"castItem\":\"" + (castButtonItem == null ? "none" : castButtonItem.id) + "\""
+		+ ",\"castItemId\":" + (castMarker == null ? "0" : fieldOf(castMarker, "Id").ToString(pairCulture))
+		+ ",\"castItemProxy\":" + (castButtonItem != null && isProxy(proxyType, castButtonItem) ? "true" : "false")
+		+ ",\"castItemOwner\":" + (castMarker == null ? "0" : fieldOf(castMarker, "OwnerSteamId").ToString(pairCulture))
+		+ ",\"castItemParent\":\"" + (castButtonItem == null || castButtonItem.transform.parent == null ? "none" : castButtonItem.transform.parent.name) + "\""
+		+ ",\"castIsContainer\":" + (castContainer != null ? "true" : "false")
+		+ ",\"castContentsBefore\":" + castContentsBefore.ToString(pairCulture)
+		+ ",\"castContentsAfter\":" + (castContainer == null ? "-1" : castContainer.transform.childCount.ToString(pairCulture))
+		+ ",\"castPosX\":" + (castButtonItem == null ? "-1" : castButtonItem.transform.position.x.ToString("0.###", pairCulture))
+		+ ",\"castPosY\":" + (castButtonItem == null ? "-1" : castButtonItem.transform.position.y.ToString("0.###", pairCulture))
+		+ ",\"dragIsContainer\":" + (dragContainer != null ? "true" : "false")
+		+ ",\"dragPosX\":" + target.transform.position.x.ToString("0.###", pairCulture)
+		+ ",\"dragPosY\":" + target.transform.position.y.ToString("0.###", pairCulture)
+		+ ",\"childCount\":" + dragChildren.Count.ToString(pairCulture)
+		+ ",\"children\":[" + string.Join(",", childJson) + "]"
+		+ ",\"childInCast\":" + (probeChild != null && castContainer != null && probeChild.transform.parent == castContainer.transform ? "true" : "false")
+		+ ",\"childParentAfter\":\"" + (probeChild == null || probeChild.transform.parent == null ? "none" : probeChild.transform.parent.name) + "\""
 		+ ",\"calls\":\"" + failure + "\"}";
 }))()

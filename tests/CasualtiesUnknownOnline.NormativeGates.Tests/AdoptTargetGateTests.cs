@@ -9,7 +9,7 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
-/// The adopt-target gate (ticket <c>backlog/review/second-drop-report-loses-its-world-object.md</c>, batch
+/// The adopt-target gate (ticket <c>backlog/done/second-drop-report-loses-its-world-object.md</c>, batch
 /// `20261006-h`, rows 3 and 4 — both failed 2/2 on the operator and on the third peer).
 ///
 /// <para>

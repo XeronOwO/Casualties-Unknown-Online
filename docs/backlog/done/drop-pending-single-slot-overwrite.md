@@ -1,16 +1,17 @@
 # A same-frame second drop overwrites the pending report of the first
 
-- Status: Review — the rejection's cause landed 2026-10-06: batch `20261006-h` left the re-scoped row's
-  MACHINE half **passing** 2/2 (two departures register out of ONE frame and BOTH commit) and its WORLD half
-  **failing** 2/2, because the receiving side adopted an id-less same-prefab copy at the reported position
-  for the second report and that copy was destroyed ~10–30 ms later, leaving the id `terminal` in the host's
-  kernel and the guest's own destroy command refused as `InvalidTransition`. That adopt path is fixed and
-  attributed in `review/second-drop-report-loses-its-world-object.md` (`AdoptTargetRule` refuses a retired or
-  proxy candidate, so the row materializes its own object); rows 3 and 4 await the next three-client batch,
-  and the machine half this ticket owns is unchanged. Record: `docs/evidence/acceptance/
-  drop-pending-single-slot-overwrite-20261006-h.md`. Earlier: the rejection of the previous row shape,
-  `…-20261006-f.md`, whose premise this ticket's `## The row's producer` withdrew; the unit half,
-  `…-20261006-c.md`. The drop-pending machine itself is unchanged and its unit pins stay green.
+- Status: Done (batch `20261007-b`: the re-scoped row's MACHINE half stands 2/2 and its WORLD half now passes
+  2/2 — the operator's release of the owner's source bag onto the NESTED target's panel button captures ONE
+  `MoveContainerChildren`, the owner reports `0 of 2 direct child item(s) entered the container; 2 did not`,
+  its two departures register out of ONE frame and BOTH commit, BOTH children reach the host's world table
+  (`worldCount` 259 → 261 → 263, `terminalCount` 0) and are materialized by the third peer with no `[ItemBind]`
+  for any of the four children and no `InvalidTransition` anywhere in the session, and the operator's and the
+  third peer's clone-fact monitor stays at zero across the gesture and a quiet cycle. History: batch
+  `20261006-h` read the machine half passing and the world half failing 2/2, and that failure was attributed
+  and fixed in `done/second-drop-report-loses-its-world-object.md`; before it, `…-20261006-f.md` rejected the
+  previous row shape and `…-20261006-c.md` read the unit half. The drop-pending machine itself is unchanged and
+  its unit pins stay green. Record
+  `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261007-b.md`.)
 - Priority: Medium
 - Category: Item sync / drop report carrier (the drop pending state)
 - Source: the independent adversarial review of the drop report order fix (2026-10-05). It is promoted by
@@ -20,11 +21,12 @@
 - Related: `done/container-move-snapshot-only-sync.md` (decision 236 stops the immediate re-report from
   covering a lost drop report, and its container-move pair is the second producer that made this ticket's
   single slot untenable: the pair's unload half registers a departure per expanded child, so a refused child
-  load would have been overwritten by the next child), `review/second-drop-report-loses-its-world-object.md`
+  load would have been overwritten by the next child), `done/second-drop-report-loses-its-world-object.md`
   (the failure batch `20261006-h` read on this row's world half — attributed to the materialization adopt
   path and fixed there), `todo/container-content-event-gap-on-repick.md` (the
   carrier gap a RE-PICK-cancelled departure leaves — the re-scoped row has no re-pick, see point 6 below),
   `docs/evidence/selfchecks/items/remote-intent-drop-report-order-selfcheck.md`
+- Acceptance record: `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261007-b.md`
 
 ## What landed (2026-10-06)
 
@@ -302,7 +304,7 @@ on freshly created light items. Full reading and evidence pointers:
    same-prefab world copy at the reported position, which is destroyed ~10–30 ms later: the id ends
    `terminal` in the host's kernel and the guest's own destroy command is refused as `InvalidTransition`.
    One gesture, two sent and committed reports, one standing object. Filed as
-   `review/second-drop-report-loses-its-world-object.md`, attributed and fixed there on 2026-10-06: the copy
+   `done/second-drop-report-loses-its-world-object.md`, attributed and fixed there on 2026-10-06: the copy
    was a clone display proxy the renderer had retired in that same frame (`Container.UnloadItem` detaches it
    and moves it onto `AdoptTolerance`, then the renderer deactivates it and queues its deferred destroy —
    and the scan's `includeInactive: false` ancestor lookup could no longer see it).
@@ -315,3 +317,25 @@ on freshly created light items. Full reading and evidence pointers:
    dropped the whole source bag. And `container-fill` cannot address a container by type when two carried
    containers share a definition, so the published fixture uses distinct ones (`trashbag` outer,
    `plasticbag` target, `duffelbag` source) with their capacities read off the prefabs.
+
+## Acceptance readings (batch `20261007-b`, 2026-10-07)
+
+The batch re-drove `## The row's producer`'s route (b) fixture on the deployed artifact, twice, on the same
+three roles batch `20261006-h` used — operator = physical-machine host, owner = sandbox guest, third peer =
+the alternate sandbox. Full reading and evidence pointers:
+`docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261007-b.md`.
+
+1. **The machine half stands 2/2 again, on the same shape.** Each gesture captured ONE
+   `MoveContainerChildren` intent, the owner's applier reported `0 of 2 direct child item(s) entered the
+   container; 2 did not`, its two departures registered out of ONE frame (`op=17`/`op=18` at
+   00:30:04.274/.275; `op=23`/`op=24` at 00:30:50.671) and BOTH committed on the next frame (.310 and .688).
+2. **The world half now passes 2/2, which is what this ticket was re-scoped for.** The host's kernel holds all
+   four children in `world` (`worldCount` 259 → 261 → 263, `terminalCount` 0 at every read) and the third peer
+   materializes each of them with its own `[ItemSpawn]`; no `[ItemBind]` names any of the four ids on any
+   client, and the whole session carries no `OnItemDestroyed`, no `Kernel command rejected` and no
+   `InvalidTransition`.
+3. **The monitor criterion holds.** Both gesture windows and a ~35-second quiet window read no `[CharSync]
+   divergence` on the operator or the third peer; the four lines per viewer the session does carry are the
+   fixture staging's create shape (00:29:34/.36 and 00:30:36/.37), all of them before the mark that opens
+   their gesture's window. Point 6's carrier gap therefore does not bite this row: the refused children's own
+   drop reports are the events that explain the source container's change.

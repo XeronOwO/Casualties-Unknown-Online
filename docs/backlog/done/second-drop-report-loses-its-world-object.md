@@ -1,20 +1,23 @@
 # A second drop report at the same position loses its world object
 
-- Status: Review — the adopt tie-break is now a named rule and the path that lost the second child is closed
-  (2026-10-06): a retired or display-proxy candidate is refused and the row materializes its own object,
-  pinned by `AdoptTargetGateTests` (source shape: the rule call, the two new facts, the predicate's two
-  markers with inactive coverage, the four classifiers, and the six domain paths that must never address a
-  proxy — `OnItemDestroyed`, `FindWorldItem`, `BindToContainer`) and `AdoptTargetRuleTests` (the truth table,
-  read clause by clause against this batch's shape, mutation-checked). The root cause is attributed below from
-  this batch's own logs and the game's own code. The runtime row below and the producer's own world half
-  await the next three-client batch.
+- Status: Done (batch `20261007-b`: the adopt tie-break is a named rule and the runtime row that failed in
+  batch `20261006-h` now passes 2/2 — re-running that batch's fixture, the operator's one release of the
+  owner's source bag onto the nested target's panel button materializes BOTH same-frame children as their own
+  world objects on the operator and on the third peer, BOTH ids stand in the host's world table (`worldCount`
+  259 → 261 → 263, `terminalCount` 0), and the whole session carries no `[ItemBind]` for any of the four
+  children, no `OnItemDestroyed`, no `Kernel command rejected` and no `InvalidTransition`. The second child's
+  line shape changed exactly as predicted: its own `[ItemSpawn] materializing …` instead of a bind onto the
+  proxy the renderer was retiring. Pins re-run in the same batch: `AdoptTargetRuleTests` 9 passed / 0 failed
+  and `AdoptTargetGateTests` 26 passed / 0 failed, against
+  `0.1.0+2675221cc96cbe1e8bc39a84e5ac1dfbeab21671`. Record
+  `docs/evidence/acceptance/second-drop-report-loses-its-world-object-20261007-b.md`.)
 - Priority: Medium
 - Category: Item sync / world materialization (the drop report's adopt path)
 - Source: acceptance batch `20261006-h` (2026-10-06), rows 3 and 4 of
-  `review/drop-pending-single-slot-overwrite.md` — the run that finally produced two same-frame departures
+  `done/drop-pending-single-slot-overwrite.md` — the run that finally produced two same-frame departures
   read this on both of them. Filed by the repository's own rule: a batch run does not change code, and a
   finding a run turns up is filed with its evidence.
-- Related: `review/drop-pending-single-slot-overwrite.md` (its producer: R5's container expansion refusing
+- Related: `done/drop-pending-single-slot-overwrite.md` (its producer: R5's container expansion refusing
   every admitted child, which is what makes two drop reports share one position in one frame),
   `todo/nested-container-clone-proxy-leaks-as-world-item.md` (the same clone-proxy family one level down: a
   proxy the renderer cannot load at all stays a root object and enters the item domain at its own `Start` —
@@ -24,10 +27,11 @@
   `done/guest-container-contents-ghost-drops-on-host.md` (the display-proxy family this path escaped, and the
   ticket that first named the proxy skips as the live defence),
   `done/container-move-snapshot-only-sync.md` (the drop carrier and the position it reports)
+- Acceptance record: `docs/evidence/acceptance/second-drop-report-loses-its-world-object-20261007-b.md`
 
 ## Problem (evidence)
 
-Batch `20261006-h` drove the gesture `review/drop-pending-single-slot-overwrite.md` asks for — the owner
+Batch `20261006-h` drove the gesture `done/drop-pending-single-slot-overwrite.md` asks for — the owner
 carries a `duffelbag` holding two `dogfood`s, a `plasticbag` target sits inside the owner's carried
 `trashbag`, and the operator releases the source bag's proxy onto the nested target's panel button with the
 game's own `expanddesc` bind held. The owner's own client is correct: both children's departures register in
@@ -184,5 +188,24 @@ receiver, or with an explicit, reported refusal — never with the reported item
   reading stays as this batch recorded it (two departures registered in one frame, both committed). The
   second child's line is expected to change shape: an `[ItemSpawn] materializing …` of its own, and no
   `[ItemBind] …` for the proxy the renderer is retiring in the same frame.
-- **The producer's own row** (`review/drop-pending-single-slot-overwrite.md`) is judged against this fix: its
+- **The producer's own row** (`done/drop-pending-single-slot-overwrite.md`) is judged against this fix: its
   world half was the row that failed here, and its machine half already passes 2/2.
+
+## Acceptance readings (batch `20261007-b`, 2026-10-07)
+
+The batch re-drove the fixture above on the deployed `0.1.0+2675221c…`, twice, on the same three roles.
+Full reading and evidence pointers:
+`docs/evidence/acceptance/second-drop-report-loses-its-world-object-20261007-b.md`.
+
+1. **The runtime row passes 2/2 and the failing line shape is gone.** On all four children of the two
+   gestures the operator and the third peer write their own `[ItemSpawn] materializing dogfood (id …)`, with
+   no `[ItemBind] … bound existing …` for any of them, no destroy and no kernel refusal anywhere in the
+   session; the host's world table holds every one of them with `terminalCount: 0`, and the owner's own
+   reading is unchanged (both of its objects re-placed, two departures registered out of one frame and both
+   committed).
+2. **The rule still adopts, which is what bounds it.** The `[ItemBind]` lines the session carries are the two
+   guests' world-entry shape for six world-generated items at far positions, and the host has none at all —
+   so the tie-break refuses a retired or proxy candidate without turning the scan into "never adopt".
+3. **The pins ran in this batch.** `AdoptTargetRuleTests` 9 passed / 0 failed and `AdoptTargetGateTests` 26
+   passed / 0 failed under the `FullyQualifiedName~AdoptTarget` filter; the mutation that reads the rule's
+   `!retired` clause red stays the fix cycle's process record (see the record's `Limits`).

@@ -59,6 +59,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 - [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — the push direction; the take half is landed.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
+- [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
+- [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 
 ### In progress
 

@@ -142,6 +142,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Handshake identity and refusal reasons](future/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names which dimension failed.
 - [Adapter-shell verification harness](future/adapter-shell-verification-harness.md) — **Low** — keeps the live-game half.
 - [Mod content ceiling](future/mod-content-ceiling.md) — **Medium** — cross-player predicates plus the parked surface gaps.
+- [Give an item to another player](future/give-item-to-another-player.md) — **Low-Medium** — the push direction; the take half is landed.
 
 ### Resolved
 

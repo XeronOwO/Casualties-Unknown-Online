@@ -1,12 +1,15 @@
 # A same-frame second drop overwrites the pending report of the first
 
-- Status: Review — the runtime row was re-scoped on 2026-10-07 onto R5's container expansion with two or
-  more refused child loads (`## The row's producer` below, which also withdraws the shapes the earlier text
-  named). That row is NEW and was never judged, so the ticket sits in `review/` on the folder's own meaning —
-  code-complete, waiting for the acceptance batch — and not on a passing verdict. Rejection record:
-  `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-f.md`; unit half:
-  `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-c.md`. The machine's own shape is
-  unchanged and its unit pins stay green.
+- Status: Todo — Rejected (batch `20261006-h`, 2026-10-06: the re-scoped row's MACHINE half **passes** 2/2 —
+  two departures register out of ONE frame and BOTH commit — and its WORLD half **fails** 2/2: only one of
+  the two children ever gets a standing world object, because the receiving side adopts an id-less
+  same-prefab copy at the reported position for the second report and that copy is destroyed ~10–30 ms
+  later, leaving the id `terminal` in the host's kernel and the guest's own destroy command refused as
+  `InvalidTransition`. The failing half is filed as `todo/second-drop-report-loses-its-world-object.md`.
+  Record: `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-h.md`. Earlier: the rejection
+  of the previous row shape, `…-20261006-f.md`, whose premise this ticket's `## The row's producer` withdrew;
+  the unit half, `…-20261006-c.md`. The drop-pending machine itself is unchanged and its unit pins stay
+  green.)
 - Priority: Medium
 - Category: Item sync / drop report carrier (the drop pending state)
 - Source: the independent adversarial review of the drop report order fix (2026-10-05). It is promoted by
@@ -84,7 +87,7 @@ by one that folds only a repeated departure of the SAME item, beside the regress
 `DropPendingStateTests.ASecondDepartureInTheSameFrame_DoesNotSwallowTheFirst` and
 `DropPendingStateTests.TwoDeparturesInOneFrame_BothSettleAndReportAfterTheFrame`.
 
-## The row's producer, read from the source (2026-10-07)
+## The row's producer, read from the source (2026-10-06)
 
 The reading this ticket owed was whether the R8 route decision 239 re-opened produces the two report-needing
 departures the row asks for. It does not, and neither does the shape batch `20261006-f`'s `Limits` named. What
@@ -276,3 +279,33 @@ third peer = the alternate sandbox). What it read, in the order it matters to th
    pass. The re-scope is `## The row's producer` above; the carrier gap is
    `todo/container-content-event-gap-on-repick.md`'s own work, and point 6 above records why the re-scoped row
    does not depend on it by construction — only by measurement.
+
+## Acceptance readings (batch `20261006-h`, 2026-10-06)
+
+The batch drove `## The row's producer`'s route (b) fixture on three clients — operator = physical-machine
+host, owner = sandbox guest, third peer = the alternate sandbox — twice: once on the first fixture and once
+on freshly created light items. Full reading and evidence pointers:
+`docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-h.md`.
+
+1. **The shape the ticket asked for is reachable and the machine half passes.** The operator's release of
+   the owner's source bag onto the NESTED target's panel button, with the game's own `expanddesc` bind held,
+   captures ONE `MoveContainerChildren` intent; the owner's applier reports `0 of 2 direct child item(s)
+   entered the container; 2 did not`, and both children's departures register out of ONE frame
+   (`op=24`/`op=25 origin=OnItemUnloadedFromContainer` at 22:40:41.221) and BOTH commit
+   (`origin=FlushPendingDrop result=Committed(1) events=[Drop, Flush]` for each at 22:40:41.247). The
+   single-slot machine this ticket replaced could not have settled both.
+2. **The world half fails, and not on the pending machine.** On the operator and on the third peer alike,
+   the first child materializes its own world object and the second is instead bound to an id-less
+   same-prefab world copy at the reported position, which is destroyed ~10–30 ms later: the id ends
+   `terminal` in the host's kernel and the guest's own destroy command is refused as `InvalidTransition`.
+   One gesture, two sent and committed reports, one standing object. Filed as
+   `todo/second-drop-report-loses-its-world-object.md`.
+3. **The monitor criterion holds on the gesture.** Both viewers' windows over either gesture read zero
+   `[CharSync] divergence`; the divergences the logs do carry belong to the fixture staging before the
+   marks (`item-provide mode=create` + `container-fill`), which is the known create shape.
+4. **Two fixture corrections the run measured.** `Container.CanHoldItem` is asked BEFORE the refusal route,
+   so a target that cannot hold the child at all (`pouch`: ceilings 2.5/1.0 against a 1.5 `dogfood`) leaves
+   the native loop with nothing to move and the release falls through to the world path — the first attempt
+   dropped the whole source bag. And `container-fill` cannot address a container by type when two carried
+   containers share a definition, so the published fixture uses distinct ones (`trashbag` outer,
+   `plasticbag` target, `duffelbag` source) with their capacities read off the prefabs.

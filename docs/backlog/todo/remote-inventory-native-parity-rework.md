@@ -438,7 +438,7 @@ What this means for the rows, stated as verdicts rather than expectations:
   recipe and read the operator's capture line and the owner's replay instead of the exception. It also
   produced the swap's monitor half, which is a finding of its own: the viewers converge, but through the
   periodic snapshot rather than an event (`todo/container-content-event-gap-on-repick.md`).
-- **The R8 route's reachability is settled for `review/drop-pending-single-slot-overwrite.md`.** Its owner-side replay is
+- **The R8 route's reachability is settled for `todo/drop-pending-single-slot-overwrite.md`.** Its owner-side replay is
   `Body.SwapSlots`, i.e. two `Body.DropItem` and — when both slots held an item — two `Body.PickUpItem` inside
   one frame (`Body.cs:1413-1428`) — but the whole call runs inside `SwapSlotsPatch`'s `InternalReorder` scope,
   so the two `Body.DropItem` calls report nothing, and the swapped items are direct slot occupants so

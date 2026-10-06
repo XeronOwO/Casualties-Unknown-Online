@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 
 /// <summary>
 /// The materialization adopt scan's tie-break as a pure rule (ticket
-/// <c>backlog/review/second-drop-report-loses-its-world-object.md</c>, batch `20261006-h`, rows 3 and 4):
+/// <c>backlog/done/second-drop-report-loses-its-world-object.md</c>, batch `20261006-h`, rows 3 and 4):
 /// whether a scene object may BE an authority row's copy instead of the row materializing one beside it.
 ///
 /// <para>

@@ -73,7 +73,7 @@ remote-driven `CombineItems` has its craft report suppressed by `CraftingPatches
 - The drop machine had ONE pending slot when this fact sheet was written, so two drops in one frame overwrote the
   first report (the pin that asserted the overwrite as intended is gone; the machine now holds one entry PER ITEM —
   decision 238). This rule made the consequence louder — the peers then get no event AND no immediate snapshot — so
-  it was filed with its evidence as `review/drop-pending-single-slot-overwrite.md` (re-scoped there on 2026-10-07:
+  it was filed with its evidence as `done/drop-pending-single-slot-overwrite.md` (re-scoped there on 2026-10-07:
   the occupied-destination release the next clause names registers no departure, see the ticket's
   `## The row's producer`); `RemoteIntentSlotRelease.Plan`'s
   occupied-destination slot release reaches it.

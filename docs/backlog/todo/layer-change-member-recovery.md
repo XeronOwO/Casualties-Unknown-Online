@@ -7,7 +7,7 @@
 - Priority: Medium
 - Category: World generation / layer transition / member recovery
 - Source: acceptance batch `20261005-b` (2026-10-05), observed while staging
-  `review/drop-pending-single-slot-overwrite.md`'s row 4 and recorded there as a limit. Split out of
+  `done/drop-pending-single-slot-overwrite.md`'s row 4 and recorded there as a limit. Split out of
   `todo/layer-change-member-dropout.md` on 2026-10-06, whose 2026-10-06 cycle bounded that ticket's log-storm
   half but did NOT attribute this half — the cause is unknown, so no fix is claimed here and the first job of
   the cycle that takes this ticket is to ATTRIBUTE it, not to implement a recovery.

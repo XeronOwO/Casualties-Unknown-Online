@@ -68,7 +68,7 @@ their state.
   (`LoadItem left trashbag outside the container`). The published fixture uses distinct definitions
   (`trashbag` outer, `plasticbag` target, `duffelbag` source) with the capacities read off the prefabs
   (`p2-container-capacity.json`, `p3-item-weights.json`).
-- **The failing half is filed, not fixed here.** `review/second-drop-report-loses-its-world-object.md`
+- **The failing half is filed, not fixed here.** `done/second-drop-report-loses-its-world-object.md`
   carries this reading, its reproduction and the acceptance a fix owes; a batch run does not change code.
 
 ## Residuals for the user
@@ -87,7 +87,7 @@ None: every row of this ticket is a machine row, and the two that failed name th
 - **The destroy after the adoption is a reading, not an attribution.** The run shows the adopted copy
   destroyed on both viewers and the kernel's terminal transition; it does not name which code path
   destroyed it, and the ticket asks for that attribution before any fix. **Attributed 2026-10-06** (in
-  `review/second-drop-report-loses-its-world-object.md`, fixed there): the copy was the owner's clone display
+  `done/second-drop-report-loses-its-world-object.md`, fixed there): the copy was the owner's clone display
   proxy for the FIRST child, retired by `CloneInventoryRenderer.RestoreRemoteContents` between the two reports
   — `Container.UnloadItem` detaches it and moves it onto `AdoptTolerance`, the renderer then deactivates it and
   queues its end-of-frame `Object.Destroy`, and the adopt scan's `GetComponentInParent<RemoteCloneRender>()`

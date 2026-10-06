@@ -134,8 +134,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
-- [A same-frame second drop overwrites the pending report of the first](review/drop-pending-single-slot-overwrite.md) — **Medium** — world half's cause landed.
-- [A second drop report at the same position loses its world object](review/second-drop-report-loses-its-world-object.md) — **Medium** — no proxy is adopted.
 
 ### Future
 
@@ -167,6 +165,8 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Done
 
 - [Container moves reach the viewer as a snapshot](done/container-move-snapshot-only-sync.md) — **Medium** — classifies on the departure; control now read.
+- [A same-frame second drop overwrites the pending report of the first](done/drop-pending-single-slot-overwrite.md) — **Medium** — world half passes 2/2.
+- [A second drop report at the same position loses its world object](done/second-drop-report-loses-its-world-object.md) — **Medium** — no proxy is adopted.
 - [Local item lands inside a remote display proxy](done/local-item-into-remote-display.md) — **Medium** — the seam refuses a display-proxy target.
 - [Guest command loss is not reconciled](done/guest-command-loss-reconciliation.md) — **Medium** — the unacknowledged item reports re-report until judged.
 - [An item can be operated on before its creation is registered](done/item-creation-registration-first.md) — **Medium-High** — creation first; tombstone.

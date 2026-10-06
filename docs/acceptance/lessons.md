@@ -2318,7 +2318,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   kernel and the guest's own destroy command refused as `InvalidTransition`. Read that pair as this shape —
   it is the item-domain sibling of `review/runtime-entity-markerless-bind-absorption.md`, not a fixture
   error — and know that a row asking for "both children in the world" cannot pass until it is fixed
-  (`review/second-drop-report-loses-its-world-object.md`).
+  (`done/second-drop-report-loses-its-world-object.md`).
 - **A swallowed key reads as a no-op, not as a refusal.** With the Online UI window open the game's own
   binds never reach `PlayerCamera.HandleInput`, and the `toggleinventory` hold reported `posted: true,
   heldAtEnd: true` while the ring stayed shut (`radialOpen: false`, `buttonCount: 0`) — no error anywhere.
@@ -2373,3 +2373,48 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   lines and megabytes written since it plus a count per pattern — the size a bounded/unbounded row is judged
   by, split by producer. `log.ps1 -Action read` returns matching lines but never counts them, which is how a
   tail read gets mistaken for a measurement.
+
+## 2026-10-07 — Batch `20261007-b`: a fixture's created item ids repeat, so they identify nothing
+
+- Symptom: the re-run of batch `20261006-h`'s fixture produced the SAME instance ids for its staged items
+  (`trashbag` 9492956821, `duffelbag` 18082891413, and the first fixture's two `dogfood`s 22377858709 /
+  26672826005 — the ids batch h's own readings carry), which can read as "the old objects are still here".
+- Cause: the kernel allocates ids in a deterministic sequence, so the same staging order in a fresh world
+  repeats it. An id is not a session fingerprint; only the marks and the log timestamps separate two runs.
+- Change: compare two batches by their marks and timestamps, never by an instance id, and read an id in a
+  record as "an item this fixture created in that session".
+
+## 2026-10-07 — Batch `20261007-b`: an absence row's window must open after the staging
+
+- Symptom: both gesture windows read zero `[CharSync] divergence`, while a whole-session scan found four per
+  viewer — for the `trashbag`, for the `duffelbag` and for the second fixture's two created `dogfood`s.
+- Cause: `item-provide mode=create` + `container-fill` is the declared setup substitution and carries its own
+  create shape — an item the fact table never saw arrives in the 1 Hz snapshot, one line per created item on
+  the first snapshot after it. A window opened before the staging would have blamed the gesture for them.
+- Change: take the mark after the staging and name the staging's own lines with their timestamps, which is what
+  keeps a zero-monitor row honest (record `…-drop-pending-single-slot-overwrite-20261007-b.md`).
+
+## 2026-10-07 — Batch `20261007-b`: the local probe client cannot deliver a submission that carries a quote
+
+- Symptom: an ad-hoc probe file sent through `.acceptance/tools/hotrepl-eval.mjs` answered
+  `{"ok":false,"error":{"kind":"internal","code":"runtimeException","message":"(1,1): InteractiveHost"}}`,
+  while `1+1` and `System.Linq.Enumerable.Count(new int[]{1,2,3})` on the same client answered normally; a
+  submission as small as `"hi"` failed the same way, and so did every lambda that returns a string.
+- Cause: the submissions that fail are exactly the ones carrying a double quote, and they fail at `(1,1)`, so
+  the code string is being mangled on the way in rather than mis-compiled. The committed recipes are full of
+  quoted literals and run through `drive-in-process.ps1 -Action recipe` unchanged, so the driver's channel is
+  not affected. Which layer eats the quote was not attributed.
+- Change: an ad-hoc probe goes through the driver's recipe channel — an existing recipe whose reader already
+  answers the question (`container-read`, `item-world-read`, `item-watch`), or a new committed recipe — and the
+  local probe client is used for quote-free expressions only.
+
+## 2026-10-07 — Batch `20261007-b`: a documentation-only commit above the build commit is named, not hidden
+
+- Symptom: the run's tree was `208bab68` while its artifact reported `0.1.0+2675221c…` — two commits apart,
+  with only `docs/` changes in between.
+- Cause: the `+<sha>` in `ProductVersion` is the commit the DLL was BUILT from, and the deployment rule commits
+  before it builds; a batch that runs later, on a tree whose only new commits are documentation, still runs the
+  same code.
+- Change: the record names BOTH the run's commit and the artifact's `ProductVersion` and says the delta is
+  documentation-only; `tools/verify-deploy.ps1` against this tree's build output before the clients start is
+  what makes that statement checkable.

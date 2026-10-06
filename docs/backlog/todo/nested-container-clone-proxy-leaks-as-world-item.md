@@ -4,14 +4,14 @@
 - Priority: Medium
 - Category: Item sync / remote presentation (the clone renderer's content materialization)
 - Source: read from the source on 2026-10-06 while attributing
-  `review/second-drop-report-loses-its-world-object.md` (that cycle's sweep over the display-proxy guards in
+  `done/second-drop-report-loses-its-world-object.md` (that cycle's sweep over the display-proxy guards in
   the "id-less world item" family). **Not observed at runtime** — what follows is a code path with its native
   preconditions, so the first job of the cycle that takes this ticket is to confirm it with the fixture named
   below before changing anything. The user-visible symptom it would reproduce is the one the closed report
   `done/guest-container-contents-ghost-drops-on-host.md` chased ("a carried container's content periodically
   appears as a world drop on the other side"); that fix removed the periodic rebuild, not this path.
 - Related: `done/guest-container-contents-ghost-drops-on-host.md` (the user report, and the ticket that
-  named the display-proxy skips as the live defence), `review/second-drop-report-loses-its-world-object.md`
+  named the display-proxy skips as the live defence), `done/second-drop-report-loses-its-world-object.md`
   (the same family's adopt-path half, fixed 2026-10-06), `review/runtime-entity-markerless-bind-absorption.md`
 
 ## The reading (source, not yet observed)
@@ -58,7 +58,7 @@ Three consequences follow from the refused call, all of them in this repository'
 ## Reachability
 
 The precondition is a REMOTE player carrying a container that itself holds a container WITH contents. The
-producer ticket's own reading of the native loading path (`review/drop-pending-single-slot-overwrite.md`,
+producer ticket's own reading of the native loading path (`done/drop-pending-single-slot-overwrite.md`,
 point 4a) says a carried container cannot acquire such a child through `LoadItem` at all — route (a) refuses a
 non-empty container child and route (b) refuses to fill a nested one — and it names the two sources of that
 state: a world-generated container that holds a container with contents, and a declared scene fixture. Neither

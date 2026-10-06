@@ -1,6 +1,6 @@
 # Retired Display Proxy vs The Adopt Scan — Self-Check (2026-10-06)
 
-Delivery fact sheet for `docs/backlog/review/second-drop-report-loses-its-world-object.md`, the defect batch
+Delivery fact sheet for `docs/backlog/done/second-drop-report-loses-its-world-object.md`, the defect batch
 `20261006-h` filed on rows 3 and 4 of the producer ticket: on the operator and on the third peer alike, the
 second of two same-frame child departures was bound to an id-less same-prefab world copy
 (`[ItemBind] bound existing dogfood at (3.1, 490.3) to id 39557727893 (no materialization).`) and that copy

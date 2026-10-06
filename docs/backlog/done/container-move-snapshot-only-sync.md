@@ -1,21 +1,19 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Todo — Rejected (batch `20261006-c`: the CARRIER this ticket was rejected on is FIXED and read — row A1g
-  PASSES in both owner directions, the owner's child load announces the TARGET root's contents fact instead of a
-  pickup of the child, and both viewers' monitor stays at zero; the ticket returns here on row A1g′ — the LOCAL control
-  could not be staged (four attempts: the native expansion's unload half ran and its load half never landed, so the
-  world never reached the state that row needs, and the departure settled as a real drop 1.2–1.8 s later) — and on row
-  A1z, whose single warning per viewer belongs entirely to that same window; record
-  `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-c.md`). History: the container-move PAIR landed
-  2026-10-06 (the unload half registers the departure and the load half classifies through it); batch `20261006-b` drove
-  row A1g for the first time, in both owner directions AND as a local control, and it FAILED — the expansion's child
-  load reported a pickup of the child instead of the target container's contents, so both viewers warned
-  `nested container contents changed without an event sync`, record
-  `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`; before it, batch `20261006-a` had
-  read the drop row after decision 236 in BOTH owner directions and the wearable half no batch had ever driven,
-  both with the monitors at ZERO over a full quiet cycle, and row A1g's blocker was removed the same day (a held
-  key is reachable in process and is committed as the `window-key` eval declaration plus `recipes/key-hold.cs`,
-  decision 237)
+- Status: Done (batch `20261006-d`: the two rows `20261006-c` left open are read — row A1g′ passes as the local
+  control (the owner's own release, the expansion key held and read back, the ring focused on the owner's OWN
+  body, the release naming its target as the client's own bag), the owner's client reporting the TARGET root's
+  contents fact once per child and both viewers at zero divergence, which is row A1z as well; row A1g stands from
+  `20261006-c` in both owner directions against an artifact whose only source delta is a comment line, and rows
+  A1d from `20261006-a`. The "unexplained native refusal" `20261006-c` handed over is attributed to that batch's
+  own staging: the button its local control cast at resolved to the GUEST's display proxy — a gesture this batch
+  reproduced by intent, and the load it produces LANDS in the proxy, so the log shape it read was never evidence
+  of a refusal). Record `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-d.md`. History: the
+  carrier was fixed on 2026-10-06 by the container-move pair and read in both owner directions by batch
+  `20261006-c`, which rejected this ticket on row A1g′ (unproven) and A1z (one warning per viewer, entirely
+  inside that window); batch `20261006-b` drove row A1g for the first time and FAILED on the carrier, batch
+  `20261006-a` read the drop row in both owner directions with the monitors at zero, and batch `20261005-c`'s
+  warnings opened the ticket.
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -26,6 +24,29 @@
 - Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`
   (rejected on row A1g); `…-20261006-a.md` (accepted except the then-blocked row); `…-20261005-e.md`
   (rejected) and `…-20261005-d.md` stand as history
+
+## Read by batch `20261006-d` (2026-10-06)
+
+The row this ticket was left open on, read on the deployed `0.1.0+a10abcf1…`, and it passes. The local control
+needs the game's own ring OPEN — its `InvButton`s do not exist in the scene while it is shut (`buttonCount: 0`) —
+so the run opens it with the game's own `toggleinventory` key (no drag staged, so the per-frame guard that
+force-closes the ring while dragging does not apply), holds `expanddesc`, reads it back (`heldAtEnd: true`, the OS
+key state 0) and releases. The release names its own target (`castItemProxy: false`, the client's own bag,
+`castContentsAfter: 2`, `childInCast: true`): the owner's log is the fixed pair once per child — register the
+departure, consume it, report the TARGET root's contents fact — the owner's tree shows both children in the target
+bag, both viewers apply exactly that fact, and neither viewer (nor the owner) logs a divergence or any warning
+across the gesture plus a quiet cycle: row A1z passes in that window too.
+
+The refusal `20261006-c` could not stage is attributed, from that batch's own artifacts, to its staging: the list
+it took with the guest's backpack focused resolves the index it cast at to the GUEST's bag display proxy
+(`itemId: 13787924117, proxy: true, itemOwner: 76561198863287957`), and nothing closes that focus before the four
+attempts, so the release was a local dragged bag aimed at a remote-displayed container — not the local control the
+row needs. This batch drove that shape by intent: the load LANDS in the display proxy, both container hooks skip
+display proxies (so no load report exists to read), and the clone render rebuild later puts the child back into
+the world — the drop that batch read as a refusal. Two of the guards it suspected are excluded by measurement
+here: a bag accepts a second item (`canHold: true`, `contentsAfter: 2`), and the proxy target stood 0.178 units
+from the dragged bag. The sibling defect this shape is — a local item absorbed by a display proxy — is filed as
+`backlog/todo/local-item-into-remote-display.md`.
 
 ## Read by batch `20261006-c` (2026-10-06)
 

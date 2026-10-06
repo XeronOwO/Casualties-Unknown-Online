@@ -124,3 +124,16 @@ None: every row above was judged from this run's own machine evidence, and no ro
   `20261006-b`; the gesture itself is the game's own release path with the game's own `expanddesc` bind held.
 - **The run's own artifact identity** is the deployed `0.1.0+8da00be3…`; the byte-marked windows are read from each
   client's rolling log (`latest.log`), with `LogOutput.log` unused this run.
+
+## Corrected by batch `20261006-d` (2026-10-06)
+
+The row A1g′ finding above — "the native refusal is silent and unexplained, `Container.LoadItem`'s guards
+refuse" — is corrected: the four attempts never cast at the owner's own bag. The list this batch took with
+the host's ring focused on the guest's backpack (`g6-host-list.json`) resolves their `cast=4` to the guest's
+bag display proxy (`itemId: 13787924117, proxy: true, itemOwner: 76561198863287957`), and nothing closes
+that focus before them. Batch `20261006-d` drove that shape by intent: the load LANDS in the display proxy,
+both container hooks skip display proxies (so no load report can exist), and the clone render rebuild puts
+the child back into the world ~1.4 s later — which is the drop this record read as a refusal. A `trashbag`
+also accepts a second item (`canHold: true`, `contentsAfter: 2`), so the weight guard is out as well. The
+local control, driven with the ring on the owner's own body, passes:
+`docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-d.md`.

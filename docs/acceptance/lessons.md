@@ -2156,3 +2156,36 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   peer, while the host's own creations (staged before any view was open) produced none. Stage an owner's
   fixtures before opening the viewer's remote ring, or expect those lines in the window and say which
   action produced them.
+
+## 2026-10-06 — Batch `20261006-d`: a "local control" is only local if the ring is on your own body
+
+- **A release's cast index is scene state, never a constant.** The game's ring `InvButton`s do not exist in
+  the scene while the ring is shut: a list taken with it closed reads `buttonCount: 0`, and a release cast
+  at any index then resolves to nothing and falls through to the WORLD path (which dropped a whole
+  fixture bag in this run). With the ring open and the native container panel also open, the panel's two
+  `ContextMenu` buttons come first and the ring's slot-1 button moved from index 4 to index 6. Re-list
+  immediately before every release, and read the release's own target fields — `remote-gesture`'s release
+  result now reports the resolved item's type, instance id, display-proxy flag, owner, parent, position and,
+  for the dragged container's children, both `Container.LoadItem` guard inputs and where the child ended.
+- **A load into a display proxy and a refused load produce the SAME log shape** — unload registered, no load
+  report, a real drop at the unload position ~1.4 s later, the item destroyed right after. The load into a
+  proxy LANDS (the probe read `childInCast: true`), both container hooks skip display proxies by design, and
+  the clone render rebuild later dumps the foreign child into the world, which the drop report then states
+  correctly. Never read "the native guard refused" from that shape: read the target's identity.
+- **A run must know which body the ring is showing.** `InvButtonBodyPatch` redirects `InvButton.GetItem()`
+  to the focused clone, so a slot-numbered cast names the OTHER player's item while a remote view is open.
+  Batch `20261006-c`'s local control cast at an index captured with the guest's view open, which aimed a
+  local dragged bag at the guest's proxy — the row was never driven, and its log was read as a refusal.
+  Open the remote view for remote gestures, never for a local one.
+- **Open the ring with the game's own `toggleinventory` (Tab) toggle, with no drag staged.** While an item is
+  dragged the game force-closes the ring (`PlayerCamera.cs:1778`: ring-to-pointer distance over
+  `600 * uiScale`, or `consciousness < 20`), and a staged drag left behind by `mode=hover` keeps it shut —
+  consume the staged drag first (a `cast=-1, moved=0` release does it harmlessly, because the world path's
+  own guards need a pointer move over 10 units to drop anything).
+- **Two guards batch `20261006-c` suspected are excluded by measurement, not by argument:** a `trashbag`
+  accepts a second `dogfood` (`canHold: true`, `contentsAfter: 2`), and the display proxy stood 0.178 units
+  from the dragged bag, nowhere near `LoadItem`'s ten-unit distance test.
+- **The shape has a sibling defect** and it is ticketed, not fixed in the batch: a local item released onto
+  a ring button that shows a remote player's container is absorbed by that display proxy, then dumped into
+  the world and destroyed — an item loss for the actor
+  (`backlog/todo/local-item-into-remote-display.md`).

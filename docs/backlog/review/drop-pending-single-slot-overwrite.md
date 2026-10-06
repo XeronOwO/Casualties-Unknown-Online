@@ -4,7 +4,7 @@
   item id, `ItemDropState` maps each entry to its game-side place, and the frame-end flush settles every entry
   whose frame has passed; batch `20261006-c` verified the unit half and did NOT drive the runtime row — a slot
   release onto an OCCUPIED destination slot, read on both peers — because the session's scenarios went to
-  `todo/container-move-snapshot-only-sync.md`'s row A1g. No row of this ticket failed; the reading is what is
+  `done/container-move-snapshot-only-sync.md`'s row A1g. No row of this ticket failed; the reading is what is
   missing. Record: `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-c.md`)
 - Priority: Medium
 - Category: Item sync / drop report carrier (the drop pending state)
@@ -12,7 +12,7 @@
   the repository's own rule — a defect the work turns up is fixed in the same cycle, or filed with its
   evidence and its attribution. The mechanism is pre-existing, not introduced by that fix; what the fix
   changed is how loud its consequence is.
-- Related: `todo/container-move-snapshot-only-sync.md` (decision 236 stops the immediate re-report from
+- Related: `done/container-move-snapshot-only-sync.md` (decision 236 stops the immediate re-report from
   covering a lost drop report, and its container-move pair is the second producer that made this ticket's
   single slot untenable: the pair's unload half registers a departure per expanded child, so a refused child
   load would have been overwritten by the next child), `docs/evidence/selfchecks/items/remote-intent-drop-report-order-selfcheck.md`

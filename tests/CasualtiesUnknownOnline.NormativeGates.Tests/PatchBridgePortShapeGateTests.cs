@@ -168,6 +168,7 @@ public class PatchBridgePortShapeGateTests
 			"EmitRemoteDragIntents",
 			"EmitRemoteWhileDraggingFrame",
 			"LocalSteamId",
+			"ReportLocalReleaseOntoProxy",
 			"ReportProxyNotOperable",
 			"ReportRemoteDragUnresolved",
 			"ReportRemoteGestureNotCarried",

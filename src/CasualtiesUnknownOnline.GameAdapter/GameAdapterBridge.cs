@@ -251,6 +251,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void ReportRemoteDragUnresolved(Item dragItem) => _remoteDragIntents.ReportUnresolved(dragItem);
 
+	public void ReportLocalReleaseOntoProxy(Item dragItem, ulong targetOwnerSteamId, string target) =>
+		_remoteDragIntents.ReportLocalReleaseOntoProxy(dragItem, targetOwnerSteamId, target);
+
 	public void EmitRemoteDragIntents(RemoteDragOutcome outcome) => _remoteDragIntents.Emit(outcome);
 
 	public void EmitRemoteWhileDraggingFrame(RemoteDragOutcome outcome) => _remoteDragIntents.EmitWhileDraggingFrame(outcome);

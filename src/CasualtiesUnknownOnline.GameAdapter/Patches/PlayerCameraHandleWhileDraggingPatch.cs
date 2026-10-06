@@ -76,15 +76,17 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 	/// native store writes the item of the first inventory button that overlaps the
 	/// raycasts (<c>PlayerCamera.cs:1736-1747</c>), so those buttons are exactly the
 	/// candidates; the same button reached twice by the raycast list is one candidate.
+	///
+	/// The walk is deliberately NOT gated on the view being open: the focus can already
+	/// be cleared for a frame while the game still shows the container window it opened
+	/// (<c>PlayerCamera.HandleRadialMenu</c> closes that window only once the ring has
+	/// shrunk), and a store the native body makes on a proxy child in that state has to
+	/// be put back like any other. A local item's flip is left alone below, so local
+	/// play is unaffected by the wider snapshot.
 	/// </summary>
 	private static FavouriteFrameState SnapshotFavourites(List<RaycastResult> uiCasts)
 	{
 		var candidates = new List<FavouriteCandidate>();
-		if (!RemoteBackpackView.IsOpen)
-		{
-			return new FavouriteFrameState(candidates);
-		}
-
 		foreach (var raycastResult in uiCasts)
 		{
 			var button = raycastResult.gameObject.GetComponent<InvButton>();

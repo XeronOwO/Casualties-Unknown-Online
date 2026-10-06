@@ -462,9 +462,22 @@ boundary; no dual shape is kept.
     family audit.
   - W4 (a world container under the pointer) resolves that container on the owner's side by instance
     id. A container the owner's scene cannot resolve is refused with one logged line.
-  - A LOCAL item dragged while the remote backpack view is open now runs the native branch: it is no
-    longer cancelled the way the deleted ordering patch cancelled it, and its slot operand comes from
-    the ring (the owner's body). That corner is recorded here rather than silently changed.
+  - A LOCAL item dragged while the remote backpack view is open runs the native branch, EXCEPT when its
+    release targets a display proxy: the ring's body buttons and the container window render the focused
+    clone, so such a release is cancelled with one line before the native body runs
+    (`Patches/PlayerCameraDragUsePatch.ResolveDisplayProxyTarget`, ticket
+    `todo/local-item-into-remote-display.md`). Stage 1 recorded this corner as "its slot operand comes
+    from the ring (the owner's body)" and left it running; batch `20261006-d` measured what that cost —
+    the native container branch loaded this client's OWN item into the proxy, the clone rebuild unloaded
+    it into the world and the game destroyed it — and this cycle replaced the corner with a refusal on
+    both halves: a slot holding a proxy item, and an EMPTY slot of the displayed body, whose index the
+    native R8/R9 sequence would otherwise run against the local body (swapping, or dropping, items of
+    this client's own body that the player never aimed at).
+  - The favourite store's frame snapshot (`Patches/PlayerCameraHandleWhileDraggingPatch`) is no longer
+    gated on the view being open. The focus can already be cleared while the game still shows the
+    container window it opened, and in that frame state the native body's write on a proxy child was
+    left standing. This cycle's independent review found the gate; a LOCAL item's flip is still left
+    alone, so local play is unaffected by the wider snapshot.
   - The remote-inventory presentation (`RemoteItemPresentation`, `CloneInventoryRenderer`) is
     untouched: this stage changes interaction only.
   - Stage 2 leaves, deliberately and observably:

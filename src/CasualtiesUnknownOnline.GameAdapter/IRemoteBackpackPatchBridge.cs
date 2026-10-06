@@ -18,6 +18,16 @@ internal interface IRemoteBackpackPatchBridge
 	void ReportRemoteDragUnresolved(Item dragItem);
 
 	/// <summary>
+	/// A LOCAL dragged item was released onto another player's displayed inventory: the
+	/// ring and the container window render the focused clone, so the target the native
+	/// release body resolved belongs to that player. The release is cancelled before the
+	/// native body runs — reported, never a silent no-op, and never a native operation
+	/// on another player's inventory. <paramref name="targetOwnerSteamId"/> is resolved
+	/// by the caller and is printed as it was resolved.
+	/// </summary>
+	void ReportLocalReleaseOntoProxy(Item dragItem, ulong targetOwnerSteamId, string target);
+
+	/// <summary>
 	/// One closed release bracket: log the native calls this stage could not
 	/// name or could not carry, log the unclassified gesture when the release
 	/// produced nothing, and send the captured intents.

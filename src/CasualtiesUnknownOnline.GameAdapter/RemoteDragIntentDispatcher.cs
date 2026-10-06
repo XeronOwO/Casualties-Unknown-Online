@@ -29,6 +29,24 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 		domains.Log.LogWarning("[RemoteIntent] refused the release of {Item}: the display proxy carries no authoritative instance id/owner — the drag is cancelled before the native body can mutate it.",
 			dragItem != null ? dragItem.id : "null"); // Unity object — ==
 
+	/// <summary>
+	/// A release of this client's OWN item onto another player's displayed inventory:
+	/// the native container branch would have loaded the item into that player's
+	/// display proxy and left it to the clone rebuild (the reported loss), and a body
+	/// slot of the clone would have driven the native slot sequence against the LOCAL
+	/// body with the clone's own slot index. No intent of the vocabulary can name
+	/// either, so the release is cancelled before the native body runs and one line
+	/// names both ends: the item, what the pointer was on, and the owner that target
+	/// belongs to — resolved by the caller, never inferred here (the caller's rule is
+	/// the target item's own marker, or the displayed player when the marker carries
+	/// none, the same fallback the release window opens its bracket with).
+	/// </summary>
+	internal void ReportLocalReleaseOntoProxy(Item? dragItem, ulong targetOwnerSteamId, string target) =>
+		domains.Log.LogWarning("[RemoteIntent] refused the release of this client's own item {Item} onto {Target} (owner {Owner}): an item of this client cannot be moved into another player's inventory — the drag is cancelled before the native body can act on the displayed inventory, and the item stays where it is.",
+			dragItem != null ? dragItem.id : "null", // Unity object — ==
+			target,
+			targetOwnerSteamId);
+
 	internal void ReportGestureNotCarried(string gesture) =>
 		domains.Log.LogInformation("[RemoteIntent] refused {Gesture} — that intent arrives in a later stage; no proxy was mutated.", gesture);
 

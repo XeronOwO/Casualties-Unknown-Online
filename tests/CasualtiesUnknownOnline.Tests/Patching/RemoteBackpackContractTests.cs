@@ -73,6 +73,15 @@ public class RemoteBackpackContractTests
 		Assert.Equal(typeof(void), unresolved!.ReturnType);
 		Assert.Equal("Item", Assert.Single(unresolved.GetParameters()).ParameterType.Name);
 
+		var ontoProxy = remoteBridge.GetMethod("ReportLocalReleaseOntoProxy");
+		Assert.NotNull(ontoProxy);
+		Assert.Equal(typeof(void), ontoProxy!.ReturnType);
+		var ontoProxyParameters = ontoProxy.GetParameters();
+		Assert.Equal(3, ontoProxyParameters.Length);
+		Assert.Equal("Item", ontoProxyParameters[0].ParameterType.Name);
+		Assert.Equal(typeof(ulong), ontoProxyParameters[1].ParameterType);
+		Assert.Equal(typeof(string), ontoProxyParameters[2].ParameterType);
+
 		var notCarried = remoteBridge.GetMethod("ReportRemoteGestureNotCarried");
 		Assert.NotNull(notCarried);
 		Assert.Equal(typeof(void), notCarried!.ReturnType);

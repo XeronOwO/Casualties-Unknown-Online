@@ -93,7 +93,7 @@ the pair itself opened.
   `SyncContainerItemsCommand` path the other container kinds commit); and the pre-load scene capture answers only
   the loads no departure opened — an item dragged off the ground, or a container's first fill.
 - The departure is the same pending state a body drop uses, and it now holds ONE ENTRY PER ITEM (ticket
-  `todo/drop-pending-single-slot-overwrite.md`, fixed in the same change): an expansion unloads one child per
+  `review/drop-pending-single-slot-overwrite.md`, fixed in the same change): an expansion unloads one child per
   refused load and a slot release onto an occupied slot drops both occupants, and one slot let the second
   departure overwrite the first report — the pair would have made that loss reachable from a second producer.
 - One container move = ONE report. The pair used to send two (the unload's containerless drop plus the load's
@@ -239,10 +239,12 @@ evidence must be read beside, because their verdicts came from owner-side probes
   answers that query from the body the ring shows, so BOTH owners have to wear the same wearable type
   before the operator's release can produce the kind — staged through
   `tools/acceptance/recipes/item-wear.cs`.
-- **The one-slot pending machine** (`todo/drop-pending-single-slot-overwrite.md`) is the defect this rule
+- **The one-slot pending machine** (`review/drop-pending-single-slot-overwrite.md`) is the defect this rule
   makes louder: when two drops land in one frame the first report is overwritten, and with the re-report held
   back the peers then get neither the event nor an immediate snapshot. It is filed with its evidence; a slot
-  release onto an OCCUPIED destination slot is the gesture that reaches it.
+  release onto an OCCUPIED destination slot is the gesture that reaches it. (The gesture named last was
+  withdrawn when the ticket's row was re-scoped on 2026-10-07 — the producer is a container expansion with two
+  refused child loads; see the ticket's `## The row's producer`.)
 - **`PickUpToSlot`'s drop-then-pickup pair** is the one site whose new reports interact: the replayed
   slot release drops the item from its slot and picks it back up in one call bracket, which is the
   native shape a local drag-to-slot has (`PickupSync` cancels the pending drop and reports the move as

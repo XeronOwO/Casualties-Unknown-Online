@@ -102,7 +102,7 @@ anywhere the player meant it to.
   separate question from this defect.
 - Not the native `Container.LoadItem` guards: no CUO-side guard can make a display proxy a legitimate target.
 - Not a cross-player item hand-over: this ticket refuses the gesture observably; the capability would need
-  its own intent member and design, and it is recorded as `future/give-item-to-another-player.md` (the
+  its own intent member and design, and it is recorded as `todo/give-item-to-another-player.md` (the
   receiver-initiated half of the same hand-over is the landed `TransferToBody`).
 - Not the world fallback: the guard does not read it, and the reason is narrower than "proxies have no
   colliders" — the paths that create a clone object disable its collider, while the reuse path keeps an

@@ -1,10 +1,10 @@
 # Give an item to another player (the push direction)
 
-- Status: Future — deferred by decision, not refused: the receiver-initiated half is landed, and the giver-initiated half is the capability this item records.
-- Priority: Low-Medium
+- Status: Todo — **user-promoted (2026-10-06)**: recorded as future work earlier the same day, then promoted when the user ruled it "matches intuition — it should be done". The receiver-initiated half is landed; this is the giver-initiated half.
+- Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
-- Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The user judged it not a must-have but a real raise of the skill ceiling, so it is recorded as deferred work rather than answered with a refusal.
-- Related: `todo/remote-inventory-native-parity-rework.md` (the rework this extends), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3.
+- Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
+- Related: `todo/remote-inventory-native-parity-rework.md` (the rework this extends), `todo/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3.
 
 ## What exists today (both directions of one hand-over, only one carried)
 
@@ -56,8 +56,23 @@
 3. What a full or refusing destination does: the native weight/tag/slot rules refuse it, with the native feedback
    and an observable line — the same "refused, never a silent no-op" rule the rest of the family follows.
 
+## Acceptance (the rows a run must read)
+
+A three-client run (operator = the giver, owner = the receiver, third peer = a watcher):
+
+| # | Scenario | Expected |
+|---|---|---|
+| 1 | The giver drags its own item and releases it on a ring slot of the receiver's displayed backpack | The item leaves the giver's slot, appears in the receiver's slot (or the receiver's own native rules place it), the third peer sees the same, and the giver's log carries the intent plus the receiver's replay |
+| 2 | The same, aimed at an item of the receiver's that is itself a container | The item enters that container when the receiver's own `Container.CanHoldItem` allows it, and stays put (no vanish) |
+| 3 | The same, with the receiver unwatching / not in world, or the giver mid-drag when the view closes | Refused with one observable line, and nothing moves on either side |
+| 4 | The receiver's slot or bag refuses the item (occupied slot, weight/tag rule) | Refused on the RECEIVER's client by its own native rule, with the native feedback and an observable line |
+| 5 | The local control: the same release onto the giver's OWN backpack | The native local move, unchanged |
+| 6 | A host with the remote-backpack access policy set to deny | The gesture is refused by the policy, naming it |
+
 ## Non-goals now
 
 - Not part of the rework's current acceptance matrix: this is a new capability, not a defect, and no row of
   `todo/remote-inventory-native-parity-rework.md` depends on it.
-- No code work, no wire change and no protocol bump until the user promotes this item out of `future/`.
+- Not a change to the receiver-initiated take (`TransferToBody`), which stays as it is.
+- Not the access policy itself: the three-way host rule that must gate this gesture is
+  `todo/remote-backpack-access-policy.md`, and it lands separately (this ticket obeys whatever that rule says).

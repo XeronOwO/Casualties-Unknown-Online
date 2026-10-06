@@ -460,8 +460,9 @@ boundary; no dual shape is kept.
     body.
   - `TransferToBody` and `ApplyToLimb` still run on their landed host-authoritative paths (the
     custody transfer's snapshot edit plus the transfer event, and the cross-player use path). The
-    owner-side native release animation for the custody move is not implemented; it belongs to the
-    family audit.
+    owner-side native release animation for the custody move is not implemented, and it is **ruled
+    not-doing** rather than pending: user decision 2026-10-06, decision 240, closing the family audit's
+    judgement item.
   - W4 (a world container under the pointer) resolves that container on the owner's side by instance
     id. A container the owner's scene cannot resolve is refused with one logged line.
   - A LOCAL item dragged while the remote backpack view is open runs the native branch, EXCEPT when its
@@ -599,7 +600,9 @@ boundary; no dual shape is kept.
       feature this design does not add, and the acceptance run judges whether it is acceptable.
     - **`TransferToBody` and `ApplyToLimb` keep their landed host-authoritative paths, and the owner's
       body runs no release animation for the custody move**, because the native world has no
-      cross-player release call to replay — the transfer is a CUO-side custody move.
+      cross-player release call to replay — the transfer is a CUO-side custody move. The user ruled
+      2026-10-06 that this is accepted as-is (decision 240), so it is a decided property of the family
+      rather than an open presentation gap.
     - **The third peer's view has no automated three-client test.** It is the landed character-data
       path every other remote fact uses, with no per-viewer branch in this family, but this repository
       drives no three-client session through it, so the row stays a real-machine item.

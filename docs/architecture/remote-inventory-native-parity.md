@@ -466,7 +466,7 @@ boundary; no dual shape is kept.
     release targets a display proxy: the ring's body buttons and the container window render the focused
     clone, so such a release is cancelled with one line before the native body runs
     (`Patches/PlayerCameraDragUsePatch.ResolveDisplayProxyTarget`, ticket
-    `todo/local-item-into-remote-display.md`). Stage 1 recorded this corner as "its slot operand comes
+    `done/local-item-into-remote-display.md`). Stage 1 recorded this corner as "its slot operand comes
     from the ring (the owner's body)" and left it running; batch `20261006-d` measured what that cost —
     the native container branch loaded this client's OWN item into the proxy, the clone rebuild unloaded
     it into the world and the game destroyed it — and this cycle replaced the corner with a refusal on

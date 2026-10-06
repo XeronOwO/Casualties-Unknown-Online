@@ -1,18 +1,24 @@
 # Consecutive layer changes drop the members out of the world and storm the log
 
-- Status: Review — **the log-storm half landed 2026-10-06** (see *Landed* below) and no code is left to
-  develop here; the remaining item is the three-client acceptance row. The member-recovery half moved to
-  `todo/layer-change-member-recovery.md`, because the cause of the missing body is NOT attributed and a
-  recovery written now would be a guess.
+- Status: Todo — Rejected (batch `20261007-a`, 2026-10-07: the three-client row ran and BOTH of its
+  expectations fail on the real shape — the members do NOT stay in the world, and a THIRD producer of the
+  same log family grows at the pre-fix rate; the two producers the 2026-10-06 cycle bounded are confirmed
+  bounded on the same shape, so the fix stands and is incomplete. See
+  `## Acceptance readings (batch 20261007-a)` below and
+  `docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md`). The member-recovery half stays
+  split out in `todo/layer-change-member-recovery.md`, whose attribution reading that batch took.
 - Priority: Medium
 - Category: World generation / layer transition / observability
 - Source: agent acceptance batch `20261005-b` (2026-10-05), observed while staging that run's row 4 and
   recorded there as a limit; promoted to development work by the user's 2026-10-06 ruling that "not
   introduced by this change" is never a reason to leave a defect alone.
 - Related: `done/layer-mod-baseline-divergence-on-continue.md` (the same warning from another producer),
-  `todo/layer-change-member-recovery.md` (the split-out recovery half), `done/guest-generation-segments-over-host-absence.md`,
+  `todo/layer-change-member-recovery.md` (the split-out recovery half),
+  `todo/remote-clone-warning-storm-on-member-dropout.md` (the third producer of this family, filed by the
+  2026-10-07 batch), `done/guest-generation-segments-over-host-absence.md`,
   `done/reenter-baseline-adoption.md`,
-  `review/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family)
+  `review/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family),
+  `docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md` (the rejection's own record)
 
 ## Symptom (evidence)
 
@@ -98,9 +104,35 @@ attribution the batch recorded was corrected on the way, and both corrections ar
 - **Item 4's family sweep is bounded by a census, not by a rate model**: the gate pins the sites this cycle
   read, and a new per-frame or per-10-Hz Information line elsewhere is caught when it is named there — the
   census floors make a renamed producer loud instead of silent, which the self-check states as a limit.
-- **The runtime delivery of item 2 is not done by this cycle**: the row (the next three-client batch
-  re-driving the staging with the members staying in the world, and the guest's log growth read as a size) is
-  named in the self-check and belongs to the next batch. No session ran this cycle.
+- **The runtime delivery of item 2 was left to the next batch by this cycle, and that batch ran it**:
+  `## Acceptance readings (batch 20261007-a)` below reads the row — the log growth as a size, and the
+  members' staying in the world — and rejects both halves of the row while confirming this cycle's bound.
+
+## Acceptance readings (batch `20261007-a`, 2026-10-07)
+
+The batch drove the row on three clients — operator = physical-machine host, both members = sandbox guests —
+three times in one session, the attempts differing only in whether a member's inbound dispatch was parked
+through the change. Full reading and evidence pointers:
+`docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md`.
+
+1. **The row's first expectation fails.** With the park ineffective (attempt 1, a 0.1-second window) and with
+   no park at all (attempt 2) BOTH members were out of the world at +5 s (`inWorld: false`; attempt 2's
+   `container-read mode=local` answered `no-local-body` at +4.2 s). With one member's inbound parked for
+   9.4 s (attempt 3) that member held its body and its carried item while the unprotected one was still out
+   at +60 s and answering `no-local-body`.
+2. **The row's second expectation fails, on a producer this cycle did not name.** The third client's log grew
+   8.796 MB in ~90 s — 58,148 of its 58,960 lines are
+   `Remote body: no Body component in "Experiment" clone.` — and a further 10-second sample measured
+   1.212 MB / 10 s = 7.25 MB/min at 639–866 lines/s, still climbing when the session closed (82,034 such
+   lines in the file it ended with), against ~8.2 MB/min before the fix. Filed as
+   `todo/remote-clone-warning-storm-on-member-dropout.md`.
+3. **What this cycle bounded IS bounded on the real shape**, which is why this rejects the row and not the
+   fix: `[ItemPhysics] settle` read 14 and 13 lines (was 4,445 of 7,368), `[Fluid] region` 5 and 7 (was 415),
+   `[LayerMod] baseline divergence` 0–3 lines across the three attempts (the corrected 5-second keyframe
+   cadence), and no client logged `[ERR][Unity:Exception]` in any attempt.
+4. **The exit has a trigger and it is on the message path.** The attempts differ only in the park: held
+   inbound, the member stays; not held, the member leaves. That is the answer `## What is not known yet`
+   item 1 was waiting for, and `todo/layer-change-member-recovery.md`'s record carries the reading.
 
 ## Required work
 
@@ -117,9 +149,9 @@ Status of each item after the 2026-10-06 cycle:
    behind a window or demonstrably low-frequency (the trader state stream, the 5-second world-time resend,
    the 1 Hz character snapshot). A NEW high-frequency line elsewhere is caught only once it is named in
    `LogVolumeGateTests`; `review/steam-transport-send-limit-runaway.md` stays its own ticket.
-5. **Real-machine acceptance** — **the next three-client batch's row**, unchanged in shape: schedule it LAST
-   in its batch, with the staging procedure and the black-window ceiling from the acceptance area's
-   gitignored local files.
+5. **Real-machine acceptance** — **ran as batch `20261007-a` and REJECTED the row**: the fix's half passes
+   and both of the row's expectations fail, see `## Acceptance readings (batch 20261007-a)` above. The re-run
+   owes the third producer's bound, and for the staying-in-the-world half an attempt that holds BOTH members.
 
 ## Non-goals
 

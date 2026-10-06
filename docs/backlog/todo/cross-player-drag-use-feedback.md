@@ -32,11 +32,16 @@
 
 ## What a fix has to decide (user-visible, so the user's call)
 
-1. **The hover cue.** When an eligible item is dragged and the cursor is over a valid player: an outline or
-   tint on that player's limbs (a display-layer effect on the clone), a marker under the target (a ring on
-   the ground, the way the game marks world targets), and/or a small label near the cursor ("release to
-   use / 松开使用"). Recommended: the marker plus the label, because both are readable without touching the
-   clone's own rendering, and the clone's sprites are also used by the backpack projection.
+1. **The cue must NAME the target — that is the requirement, not a decoration (user ruling 2026-10-06).**
+   When an eligible item is dragged and the cursor is over a valid player, the operator must be able to read
+   WHICH player the item is about to be applied to: the label carries that player's display name (the same
+   name the Online UI member list shows, with the `player-{steamId}` fallback the backpack view already uses
+   when a peer reports no name), so a release is never a guess. This is what makes an overlap case safe: two
+   players standing on each other cannot be told apart by a highlight, but a named label says who will
+   receive it before the operator lets go. The supporting cue (an outline/tint on that player's limbs, or a
+   marker under them) may be added around the label, but it can never replace it. Recommended shape: the
+   named label near the cursor plus a marker under the target, because neither touches the clone's own
+   rendering, which the backpack projection also uses.
 2. **When the cue appears.** For any dragged item, or only for the ones `LocalUseItemEligibility` accepts
    (recommended: only those, so the cue itself teaches what can be handed over) — and what an INELIGIBLE item
    dragged onto a player shows (recommended: no positive cue, plus one distinguishable refusal cue if the
@@ -48,19 +53,23 @@
 4. **The refusal must reach the operator.** Whether the host's refusal is echoed to the acting client as a cue
    (sound + label) — recommended yes, with the reason text kept to one localized line, because the operator
    otherwise cannot tell a refusal from a bug.
-5. **Scope of the cue.** Whether the same treatment applies to the other cross-player gestures (the medical
-   drag onto a limb, the give-an-item push of `todo/give-item-to-another-player.md`) or only to this one.
+5. **Scope of the cue.** Whether the same treatment (including the named target) applies to the other
+   cross-player gestures — the medical drag onto a limb, the give-an-item push of
+   `todo/give-item-to-another-player.md` — or only to this one. Recommended: apply the naming rule to every
+   cross-player gesture whose target can be ambiguous, since the ambiguity is a property of the scene rather
+   than of this gesture; decision 184's disclosure rule is where the ruling is recorded.
 
 ## Acceptance (the rows a run must read)
 
 | # | Scenario | Expected |
 |---|---|---|
-| 1 | Drag an eligible item and move the cursor onto a teammate | A cue appears on that teammate (and disappears when the cursor leaves), with no change to the item or the target |
+| 1 | Drag an eligible item and move the cursor onto a teammate | A cue appears naming THAT teammate (and disappears when the cursor leaves), with no change to the item or the target |
 | 2 | Release it there | The use lands and the success cue plays on the operator's screen |
 | 3 | Drag an INELIGIBLE item onto a teammate and release | No positive cue, no item movement, and one cue/line distinguishable from a successful use |
 | 4 | Release on a target the host refuses (unconscious, empty container in the catalog) | The refusal reaches the operator's screen (cue and one line), not only the log |
-| 5 | Drag an eligible item with the cursor on a teammate while two players overlap | The cue marks the same player the release picks (the sibling ticket's rule) |
-| 6 | Solo / no session | Unchanged, no cue |
+| 5 | Drag an eligible item with the cursor on two players standing on each other | The label NAMES the player the release will pick, and the release picks that same player — the named cue and the sibling ticket's resolution rule agree |
+| 6 | Drag an eligible item onto a teammate the session has no display name for | The label still names the target, with the `player-{steamId}` fallback |
+| 7 | Solo / no session | Unchanged, no cue |
 
 ## Non-goals now
 

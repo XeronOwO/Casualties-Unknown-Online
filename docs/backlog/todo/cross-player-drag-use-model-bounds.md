@@ -50,7 +50,11 @@
    inside the target's rectangle, and when it is inside two rectangles the player drawn ON TOP under the
    pointer wins (the highest sprite sorting order, which is what the eye reads as "in front"); the chosen
    one and the number of candidates go into the log line, so an unexpected pick is a readable record rather
-   than a mystery. The alternative — refuse when two players are under the pointer, and say so — is a
+   than a mystery. **The player-visible half of this rule is the named cue** (user ruling 2026-10-06,
+   `todo/cross-player-drag-use-feedback.md`): the label names the player the release will apply to, so the
+   operator can see the pick BEFORE letting go — the resolution rule and the label must always agree, and a
+   cue that only highlights without naming cannot separate two players standing on each other. The
+   alternative — refuse when two players are under the pointer, and say so — is a
    deliberate choice and would have to be taken on purpose; what must NOT survive is the current tie-break
    by list order, which no player can predict.
 4. **What stays as it is.** The eligibility list (`LocalUseItemEligibility`), the wire (`PlayerItemUseRequestMsg`
@@ -63,7 +67,7 @@
 |---|---|---|
 | 1 | Release an eligible item over the HEAD and over the FEET of a standing player | The use lands from both, i.e. the whole model rectangle counts, not a ring around its centre |
 | 2 | Release it one unit to the side of the model, and inside the old 1.5-unit circle | Nothing happens (no accidental use) — the fix must match the model, not simply enlarge the circle |
-| 3 | Release it over two overlapping players | The one visually in front receives the use, and the log names the pick and the candidate count |
+| 3 | Release it over two overlapping players | The one visually in front receives the use, the log names the pick and the candidate count, and the named cue of `todo/cross-player-drag-use-feedback.md` names that same player before the release |
 | 4 | Release it over a crouching owner | The judged area follows the crouch |
 | 5 | Release it over the dragger's own body | Unchanged: the native local behaviour (the self-use path is not this gesture) |
 | 6 | Solo / no session | Unchanged |

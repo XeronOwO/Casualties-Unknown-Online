@@ -9,7 +9,7 @@
   the acceptance run while reading that batch's inventory rows, which are unaffected.
 - Related: `done/enemy-runtime-spawn-classification.md` (the fix that made the generation baseline read
   `mapping=True` for a member present at world entry; this ticket is the case its acceptance never drove),
-  `done/enemy-snapshot-binding-recovery.md` (the repair carrier), `review/layer-change-member-dropout.md`
+  `done/enemy-snapshot-binding-recovery.md` (the repair carrier), `todo/layer-change-member-dropout.md`
   (the other member-lifecycle defect), `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySpawnArbitration.cs`,
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md`

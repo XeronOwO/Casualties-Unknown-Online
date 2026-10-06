@@ -2343,8 +2343,29 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   (`ItemDistanceLog` for the two per-frame correction lines, the snapshot diagnostics in `LayerModifierSync`,
   and the 10 Hz fluid region receive handler); `LogVolumeGateTests` pins the call sites and fails when a
   window call is removed. The batch's own attribution is recorded in
-  `docs/backlog/review/layer-change-member-dropout.md` and corrected there rather than edited away.
+  `docs/backlog/todo/layer-change-member-dropout.md` and corrected there rather than edited away.
 - Read a log-growth figure by MEASURING the lines per class before naming a culprit: the diagnostic that
   explains the observed state and the diagnostic that produces the volume are often two different lines, and
   a ticket that names the wrong one spends its cycle on the wrong bound. A per-frame line at Information is
   the usual culprit — the level policy puts high-frequency triggers at Verbose/Debug for exactly this reason.
+
+## 2026-10-07 — Batch `20261007-a`: a park window is only as long as the command that holds it
+
+- Symptom: the layer-change fixture was driven as "park both members' inbound, send `skiplayer`, unpark" and
+  read as covered; the three driver calls together took **0.4 s**, so the inbound was held for about a tenth
+  of a second, the change went through unprotected and BOTH members left the world — the attempt whose whole
+  purpose was to keep them in it. The same fixture holds the park for 9.4 s and the parked member keeps its
+  body and its carried item.
+- Cause: `drive-in-process.ps1 -Action recipe` opens a connection and evaluates one snippet, which is a
+  fraction of a second on an idle client; a SEQUENCE of calls is not a hold. What a park covers is the
+  wall-clock between arming and clearing it, and the change it has to cover takes seconds — the members were
+  still out at +5 s and back only by +20 s.
+- Change: a park that must cover a change keeps its own budget INSIDE ONE command — arm, act, an explicit
+  `Start-Sleep` bounded under the 15-second `GuestHostSilenceWatchdog` ceiling, clear — and the parked member
+  is read as the control (held: stays in the world; not held: it leaves). A park whose window is not measured
+  is not a park.
+- Also, two things this run cost a step each: `container-read` demands `guest=<owner SteamId>` for EVERY mode
+  including `local` (the recipe declares the placeholder, so the driver refuses the call with a usage message
+  — `-RecipeArg mode=local,guest=<SteamId>`), and a member left out of the world writes its log without bound
+  (`Remote body: no Body component in "Experiment" clone.`, measured at 7.25 MB/min), so a session that ends
+  with a member still out is closed promptly rather than left running.

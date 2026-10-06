@@ -86,11 +86,14 @@ value that can be dropped must never decide who owns something.
 ## The version check is the compatibility boundary
 
 Both sides compare the protocol version during the join [handshake](../reference/glossary.md), and
-either side ends the attempt when the numbers differ. That check is the whole compatibility story:
-`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs` states the policy — "each behavioral
-wire extension bumps this and mixed-version sessions are rejected by the handshake". So a wire change
-ships together with a version bump in the same change, and the code never has to keep an old shape
-alive.
+either side ends the attempt when the numbers differ. That check is the whole compatibility story, and
+`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs` states how the number itself moves:
+before the first official release it is a FROZEN baseline (`UnreleasedBaseline`) that no wire change
+moves, because every client in a session is deployed from this tree — a pre-release wire change ships
+with its commit and its ticket, not with a number; from that release on, each behavioral wire extension
+bumps it in the same change and records its own per-number entry. Either way the code never has to keep
+an old shape alive: a wire change ships as a change to the wire itself, and a mixed-version session is
+refused rather than tolerated.
 
 ## What rides outside the envelopes
 

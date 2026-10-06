@@ -31,8 +31,9 @@
 
 - **A new intent kind** whose operands are the item, the destination body and the destination slot or container —
   the mirror of `TransferToBody`, where the item's owner is the ACTOR and the destination body belongs to the
-  other player. The wire changes, so `ProtocolVersion.Current` is bumped in the same change (the handshake stays
-  the compatibility boundary; no dual shape is kept).
+  other player. The wire changes; pre-release that ships with this commit and this ticket (the number is a frozen
+  baseline until the first official release — decision 241), and the handshake stays the compatibility boundary
+  either way, so no dual shape is kept.
 - **The owner-side half stays native and two-sided** (decisions 217/218): the giver's release mutates nothing on
   a proxy, and the RECEIVING client runs the native pickup on its own body, so its slot rules, its container
   weight/tag rules, its animations and its sounds decide whether the item fits. The host-side mirror edit is what

@@ -649,12 +649,15 @@ metadata travel in ONE assembly. Copy the example: `src/CasualtiesUnknownOnline.
 
 ## Versioning discipline
 
-- The current wire version is whatever `ProtocolVersion.Current` declares
-  (`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs`). That constant's own comment is
-  the wire-change log — this page deliberately names no number, and a gate fails a live governance
-  document that restates the value.
-- Behavioral wire changes bump `ProtocolVersion.Current`; local-only or read-only mod surfaces that add
-  no wire change do not.
+- The wire version is whatever `ProtocolVersion.Current` declares
+  (`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs`). That constant's own comment
+  carries the policy and the retired pre-release wire-change log — this page deliberately names no
+  number, and a gate fails a live governance document that restates the value.
+- How the number moves is decision 241, and it is not "every wire change": before the first official
+  release the constant is a FROZEN baseline (`UnreleasedBaseline`) that no wire change moves, so a
+  pre-release wire change ships with its commit and its ticket; from that release each behavioral wire
+  change bumps it in the same change. A mod that adds wire behaviour follows the same schedule, and a
+  mod surface that adds no wire change never touches it.
 - Mod versions are strict SemVer strings, validated at discovery and compared by precedence for
   state-bearing modes.
 - The 64 KiB cap is a policy constant (`ModChannel.MaxPayloadBytes`); raising it is a protocol-adjacent

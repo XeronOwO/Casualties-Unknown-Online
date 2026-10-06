@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
@@ -39,8 +38,9 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// <c>CharacterSoundKind</c>; the scope pins read the two use-item hooks and the
 /// meal-end patch; the origin census reads every <c>CallContext.Origin.Character*</c>
 /// value referenced under <c>src/</c> and asks whether the two <c>Sound.Play</c>
-/// patches classify it; the protocol pin derives the log entry the constant's own
-/// doc comment must carry for its CURRENT value. A capture scope opened by some
+/// patches classify it. The constant's own declaration is NOT pinned here: since the pre-release freeze
+/// (decision 241) a wire change ships without a number, and the log-entry rule that survives the freeze is
+/// `ProtocolNumberGateTests`' own. A capture scope opened by some
 /// other mechanism (a dynamic patch, a non-Character origin) is out of reach —
 /// the census floor fails loudly if the referenced origins disappear.
 /// </para>
@@ -52,9 +52,6 @@ public class ConsumeSoundCaptureGateTests
 
 	private const string KindFile =
 		"src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/CharacterSoundKind.cs";
-
-	private const string ProtocolFile =
-		"src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs";
 
 	private const string UseHooksFile = "src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyItemPatches.cs";
 
@@ -177,18 +174,6 @@ public class ConsumeSoundCaptureGateTests
 			"every capture scope must state how its sounds are classified, in one of the two Sound.Play patches — a scope with no mapping captures nothing:"
 			+ Environment.NewLine
 			+ string.Join(Environment.NewLine, unclassified));
-	}
-
-	[Fact]
-	public void EveryProtocolBump_CarriesItsPerNumberLogEntry()
-	{
-		var source = RepositoryPaths.ReadText(ProtocolFile);
-		var match = Regex.Match(source, @"public const int Current = (?<value>\d+);");
-
-		Assert.True(match.Success, $"{ProtocolFile} no longer declares `public const int Current = <n>;`");
-
-		var current = match.Groups["value"].Value;
-		Assert.Contains($"/// {current}:", source, StringComparison.Ordinal);
 	}
 
 	[Theory]

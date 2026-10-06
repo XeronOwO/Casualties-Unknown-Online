@@ -16,5 +16,6 @@ kind is mapped with `AuthorityKind.OwnerPredictedHostValidated`
 therefore carries no member-versus-host information, and the kernel never reads it either
 (`docs/architecture/current.md` §7.1) — a member's `RunStart` reaches the run domain, which does not
 check authority. Closing it means declaring the real authority per wire kind in the mapper and
-bumping `ProtocolVersion.Current` (decision 188) for the behaviour change, not a new policy inside
+bumping `ProtocolVersion.Current` (decisions 188/241 — the number is frozen until the first official
+release and bumps per wire change after it) for the behaviour change, not a new policy inside
 the gateway. This is inventory, not a promotion request: the item is still deferred.

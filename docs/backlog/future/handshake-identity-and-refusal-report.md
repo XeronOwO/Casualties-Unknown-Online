@@ -27,8 +27,9 @@ Goal: the handshake distinguishes its dimensions —
 - and the negotiated optional capabilities.
 
 The wire protocol stays strictly equal; the other dimensions decide whether a peer is admitted, and
-a refusal names the dimension that failed. Any wire change bumps `ProtocolVersion.Current` in the
-same change.
+a refusal names the dimension that failed. A wire change ships with its commit; the number itself
+follows decision 241 (frozen until the first official release, one bump per behavioral wire change
+after it).
 
 ## Trigger (why this is future, not now)
 

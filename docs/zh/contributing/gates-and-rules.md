@@ -97,12 +97,13 @@
 
 兼容性从来不是设计输入。边界就是[握手（handshake）](../reference/glossary.md)时的[协议版本](../reference/glossary.md)校验：主机丢弃 `HandshakeMsg.Protocol`
 不一致的对端，客机在 `HandshakeAckMsg.Protocol` 不一致时结束会话。所以任何改动都不必为了避开版本号提升而保留旧线路格式、
-旧存档形状或遗留字段，也不必因此选一个更弱的机制：该改线路就改，并在同一次改动里提升 `ProtocolVersion.Current`
-（编号政策在[活跃决策台账](../../decisions/active.md)）。“没有改 wire”“主机零改动”是可以记录的事实，
+旧存档形状或遗留字段，也不必因此选一个更弱的机制：该改线路就改，号码按它自己的日程走 —— 首个正式发布之前
+`ProtocolVersion.Current` 是冻结的基线，协议变更不会移动它；自那次发布起，每一次有行为变化的线上改动都在同一次改动里抬高它
+（编号政策是[活跃决策台账](../../decisions/active.md)里的决定 241）。“没有改 wire”“主机零改动”是可以记录的事实，
 但**永远不能**成为设计论证里的优点或约束——发布前发布后都一样。
 
-版本号只存在于一处：`ProtocolVersion.Current`，它的文档注释就是改动记录；现役治理文档指向这个常量而不复述数字，
-这正是 `ProtocolNumberGateTests` 在检查的事情。
+版本号只存在于一处：`ProtocolVersion.Current`，它的文档注释写着政策、并保存着发布前那串已退役的线上变更日志；现役治理文档指向这个常量而不复述数字，
+这正是 `ProtocolNumberGateTests` 在检查的事情——冻结本身也在它的检查范围内。
 
 ## 新门禁怎么写
 

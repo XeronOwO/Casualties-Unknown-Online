@@ -73,7 +73,8 @@ not the goal.
   protocol-version check at handshake — the host refuses a peer whose `HandshakeMsg.Protocol` differs and
   the guest ends the session on a mismatched `HandshakeAckMsg.Protocol` — so a change never keeps an old
   wire or save shape alive, retains a legacy field, or picks a weaker mechanism to avoid a version bump:
-  change the wire the mechanism needs and bump `ProtocolVersion.Current` in the same change
+  change the wire the mechanism needs, and let the number follow decision 241 — frozen at the pre-release
+  baseline, bumped per wire change from the first official release on
   (`docs/decisions/active.md` holds the numbering policy). "No wire change" and "host untouched" are
   facts worth recording, never merits or constraints in a design argument.
 - `[RULE]` Self-review happens before hand-off, not after review.

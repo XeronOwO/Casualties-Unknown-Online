@@ -5384,7 +5384,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 45;"
+      "quote": "/// 40: `BlockPlacedMsg.PlayerBreak`"
     },
     {
       "cluster": "world-blocks",
@@ -5576,7 +5576,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs",
-      "quote": "public const int Current = 45;"
+      "quote": "/// 31: the recipe-unlock backfill (`RecipeUnlockSnapshot`)"
     },
     {
       "cluster": "inline",

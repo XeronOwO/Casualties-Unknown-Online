@@ -110,7 +110,11 @@ internal sealed class ItemReconcile(
 			// the same rule GeneratedItemReconcile.Apply runs at apply time, here on the
 			// keyframe's cadence so convergence cannot strand late arrivals. Tutorial props
 			// stay: they are deliberately id-less until picked up
-			// (ItemWorldSync.OnItemInstantiated). The batch-20261002-j staging runs showed the
+			// (ItemWorldSync.OnItemInstantiated). A DISPLAY PROXY is neither shape: the clone
+			// renderer owns its lifetime and its own retire step is what detaches one into the
+			// world (Container.UnloadItem), so killing it here would reach into the presentation
+			// domain — the same confusion that let batch `20261006-h`'s adopt scan claim a
+			// retired proxy. The batch-20261002-j staging runs showed the
 			// adopt-first landing cannot reach the seven objects observed (they sat farther from
 			// the authority row than the adopt tolerance), so the sweep is what converges the
 			// observed case.
@@ -124,7 +128,9 @@ internal sealed class ItemReconcile(
 						continue;
 					}
 
-					if (!ItemWorldSync.IsStandaloneWorldItem(item) || item.GetComponent<TutorialClawProp>() != null) // Unity objects — ==
+					if (!ItemWorldSync.IsStandaloneWorldItem(item)
+						|| item.GetComponent<TutorialClawProp>() != null // Unity object — ==
+						|| ItemWorldSync.IsDisplayProxy(item))
 					{
 						continue;
 					}

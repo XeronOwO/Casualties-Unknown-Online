@@ -2315,7 +2315,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   kernel and the guest's own destroy command refused as `InvalidTransition`. Read that pair as this shape —
   it is the item-domain sibling of `review/runtime-entity-markerless-bind-absorption.md`, not a fixture
   error — and know that a row asking for "both children in the world" cannot pass until it is fixed
-  (`todo/second-drop-report-loses-its-world-object.md`).
+  (`review/second-drop-report-loses-its-world-object.md`).
 - **A swallowed key reads as a no-op, not as a refusal.** With the Online UI window open the game's own
   binds never reach `PlayerCamera.HandleInput`, and the `toggleinventory` hold reported `posted: true,
   heldAtEnd: true` while the ring stayed shut (`radialOpen: false`, `buttonCount: 0`) — no error anywhere.

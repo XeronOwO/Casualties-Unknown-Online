@@ -122,6 +122,15 @@ internal sealed class GeneratedItemAuthority(
 				continue;
 			}
 
+			// A clone display proxy is presentation, not a world item: the clone renderer owns its
+			// lifetime and detaches a stale one (Container.UnloadItem) before its deferred destroy, so
+			// publishing it would hand an id to an object Unity is about to delete — the id then comes
+			// back as a destroy report and lands in the kernel's terminal set (batch `20261006-h`).
+			if (ItemWorldSync.IsDisplayProxy(item))
+			{
+				continue;
+			}
+
 			if (!ItemWorldSync.IsStandaloneWorldItem(item))
 			{
 				continue;

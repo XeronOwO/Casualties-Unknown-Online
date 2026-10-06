@@ -1,15 +1,16 @@
 # A same-frame second drop overwrites the pending report of the first
 
-- Status: Todo — Rejected (batch `20261006-h`, 2026-10-06: the re-scoped row's MACHINE half **passes** 2/2 —
-  two departures register out of ONE frame and BOTH commit — and its WORLD half **fails** 2/2: only one of
-  the two children ever gets a standing world object, because the receiving side adopts an id-less
-  same-prefab copy at the reported position for the second report and that copy is destroyed ~10–30 ms
-  later, leaving the id `terminal` in the host's kernel and the guest's own destroy command refused as
-  `InvalidTransition`. The failing half is filed as `todo/second-drop-report-loses-its-world-object.md`.
-  Record: `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-h.md`. Earlier: the rejection
-  of the previous row shape, `…-20261006-f.md`, whose premise this ticket's `## The row's producer` withdrew;
-  the unit half, `…-20261006-c.md`. The drop-pending machine itself is unchanged and its unit pins stay
-  green.)
+- Status: Review — the rejection's cause landed 2026-10-06: batch `20261006-h` left the re-scoped row's
+  MACHINE half **passing** 2/2 (two departures register out of ONE frame and BOTH commit) and its WORLD half
+  **failing** 2/2, because the receiving side adopted an id-less same-prefab copy at the reported position
+  for the second report and that copy was destroyed ~10–30 ms later, leaving the id `terminal` in the host's
+  kernel and the guest's own destroy command refused as `InvalidTransition`. That adopt path is fixed and
+  attributed in `review/second-drop-report-loses-its-world-object.md` (`AdoptTargetRule` refuses a retired or
+  proxy candidate, so the row materializes its own object); rows 3 and 4 await the next three-client batch,
+  and the machine half this ticket owns is unchanged. Record: `docs/evidence/acceptance/
+  drop-pending-single-slot-overwrite-20261006-h.md`. Earlier: the rejection of the previous row shape,
+  `…-20261006-f.md`, whose premise this ticket's `## The row's producer` withdrew; the unit half,
+  `…-20261006-c.md`. The drop-pending machine itself is unchanged and its unit pins stay green.
 - Priority: Medium
 - Category: Item sync / drop report carrier (the drop pending state)
 - Source: the independent adversarial review of the drop report order fix (2026-10-05). It is promoted by
@@ -19,7 +20,9 @@
 - Related: `done/container-move-snapshot-only-sync.md` (decision 236 stops the immediate re-report from
   covering a lost drop report, and its container-move pair is the second producer that made this ticket's
   single slot untenable: the pair's unload half registers a departure per expanded child, so a refused child
-  load would have been overwritten by the next child), `todo/container-content-event-gap-on-repick.md` (the
+  load would have been overwritten by the next child), `review/second-drop-report-loses-its-world-object.md`
+  (the failure batch `20261006-h` read on this row's world half — attributed to the materialization adopt
+  path and fixed there), `todo/container-content-event-gap-on-repick.md` (the
   carrier gap a RE-PICK-cancelled departure leaves — the re-scoped row has no re-pick, see point 6 below),
   `docs/evidence/selfchecks/items/remote-intent-drop-report-order-selfcheck.md`
 
@@ -299,7 +302,10 @@ on freshly created light items. Full reading and evidence pointers:
    same-prefab world copy at the reported position, which is destroyed ~10–30 ms later: the id ends
    `terminal` in the host's kernel and the guest's own destroy command is refused as `InvalidTransition`.
    One gesture, two sent and committed reports, one standing object. Filed as
-   `todo/second-drop-report-loses-its-world-object.md`.
+   `review/second-drop-report-loses-its-world-object.md`, attributed and fixed there on 2026-10-06: the copy
+   was a clone display proxy the renderer had retired in that same frame (`Container.UnloadItem` detaches it
+   and moves it onto `AdoptTolerance`, then the renderer deactivates it and queues its deferred destroy —
+   and the scan's `includeInactive: false` ancestor lookup could no longer see it).
 3. **The monitor criterion holds on the gesture.** Both viewers' windows over either gesture read zero
    `[CharSync] divergence`; the divergences the logs do carry belong to the fixture staging before the
    marks (`item-provide mode=create` + `container-fill`), which is the known create shape.

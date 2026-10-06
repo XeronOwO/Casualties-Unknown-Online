@@ -387,7 +387,15 @@ internal interface IPatchBridge
 	/// <summary>An item was loaded into a container. WasWorldItem = it was part of the world before the load — a world item loaded into a body-side container (backpack) left the world (pickup semantics).</summary>
 	void OnItemLoadedIntoContainer(Item item, bool wasWorldItem);
 
-	void OnItemUnloadedFromContainer(Item item);
+	/// <summary>
+	/// An item left a container into the world (Container.UnloadItem).
+	/// WasWorldItem = it was part of the WORLD before the unload (a world
+	/// container, or a standalone world item) rather than of the carried
+	/// inventory — the fact the container-to-container move's load half
+	/// classifies with, captured in the unload's PREFIX because the postfix runs
+	/// after the detach (PlayerCamera.cs:1589-1590 runs the pair in one bracket).
+	/// </summary>
+	void OnItemUnloadedFromContainer(Item item, bool wasWorldItem);
 
 	void OnContainerUnloadedAll(Container container);
 

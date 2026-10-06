@@ -330,7 +330,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnItemLoadedIntoContainer(Item item, bool wasWorldItem) =>
 		domains.ContainerSync.OnLoadedIntoContainer(item, wasWorldItem);
 
-	public void OnItemUnloadedFromContainer(Item item) => domains.ContainerSync.OnUnloadedFromContainer(item);
+	public void OnItemUnloadedFromContainer(Item item, bool wasWorldItem) =>
+		domains.ContainerSync.OnUnloadedFromContainer(item, wasWorldItem);
 
 	public void OnContainerUnloadedAll(Container container) => domains.ContainerSync.OnUnloadedAll(container);
 

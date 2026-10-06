@@ -338,21 +338,24 @@ internal sealed class ItemWorldSync(
 		// clearing destroy.)
 	}
 
-	/// <summary>True while a drop report is REGISTERED but not yet sent: the carrier holds it for one frame
-	/// so the game's own <c>DropItem</c> → <c>ThrowItem</c> pair can set the final velocity. While this is
-	/// true nothing may announce the item's departure — an inventory snapshot that reaches the peers first
-	/// makes them read the change as a move without an event ("left the inventory without an event sync",
-	/// batch `20261005-e`), so both of the owner's re-report entry points ask this before they send. The
-	/// drop report itself is the announcement, and the periodic character snapshot converges what it
-	/// misses.</summary>
-	internal bool HasPendingDropReport => _dropState.Current == ItemDropState.Phase.Dropped;
+	/// <summary>True while a departure report is REGISTERED, NOT yet sent, and still OWED (the item is a standalone
+	/// world item right now): a body drop's carrier holds it for one frame so the game's own <c>DropItem</c> →
+	/// <c>ThrowItem</c> pair can set the final velocity, and a container unload's waits for the rest of its bracket
+	/// (a container load re-homes the item and reports that move itself). While this is true nothing may announce the
+	/// departure — an inventory snapshot that reaches the peers first makes them read the change as a move without an
+	/// event ("left the inventory without an event sync", batch `20261005-e`), so both of the owner's re-report entry
+	/// points ask this before they send. The departure report itself is the announcement, and the periodic character
+	/// snapshot converges what it misses.</summary>
+	internal bool HasPendingDropReport => _dropState.HasReportOwed;
 
-	/// <summary>The world was left (scene switch / session end) — a pending drop cannot resolve anymore; cancel it so the operation trace stays balanced.</summary>
+	/// <summary>The world was left (scene switch / session end) — a pending departure cannot resolve anymore; cancel it so the operation trace stays balanced. Its own per-call set: the reset can run from a report's own call stack, the shape the flush's comment argues against for shared buffers.</summary>
 	internal void ResetPending()
 	{
-		if (_dropState.TryReset(out var op))
+		var cancelled = new List<DropPendingState.Pending>();
+		_dropState.ResetAll(cancelled);
+		foreach (var departure in cancelled)
 		{
-			_trace.End(op, 0, "ResetPending", "Cancelled", "WorldLeft");
+			_trace.End(departure.Op, departure.ItemId, "ResetPending", "Cancelled", "WorldLeft");
 		}
 	}
 
@@ -395,13 +398,14 @@ internal sealed class ItemWorldSync(
 			item.rb.angularVelocity = 0f;
 		}
 
-		if (_dropState.Current == ItemDropState.Phase.Dropped && !_dropState.IsPendingFor(item)) // two drops in one frame (rare) — flush the first first
-		{
-			FlushPendingDrop();
-		}
-
+		// The departure waits for the frame-end flush (the throw velocity lands a
+		// moment later and merges into ONE report). No flush of another item is
+		// forced here any more: the machine holds one entry PER ITEM, so a second
+		// drop in the same frame — which a same-frame flush cannot settle — no
+		// longer overwrites the first one's report (ticket
+		// `drop-pending-single-slot-overwrite`).
 		_trace.Begin(op, itemId, "OnItemDropped", "Drop");
-		_dropState.EnterDrop(itemId, item, (Vector2)item.transform.position, op); // the throw velocity lands a moment later (ThrowItem) — merge into one report
+		_dropState.EnterDrop(itemId, item, item.transform.position, op, DropPendingState.Source.CarriedInventory);
 	}
 
 	internal void OnItemThrown(Item item)
@@ -453,28 +457,40 @@ internal sealed class ItemWorldSync(
 			"Throw");
 	}
 
-	/// <summary>Next frame: a drop that was not thrown (a plain drop, velocity ~0)
-	/// reports now — the one-frame wait lets the game's DropItem → ThrowItem
-	/// sequence set the FINAL velocity (a zero-velocity report materialized a
-	/// ghost on the host, "dropped — immediately desynced"). An item that
-	/// meanwhile left the world does not re-report.</summary>
+	/// <summary>Next frame: every departure whose frame has passed reports now — the
+	/// one-frame wait lets the game's DropItem → ThrowItem sequence set the FINAL
+	/// velocity (a zero-velocity report materialized a ghost on the host, "dropped —
+	/// immediately desynced"), and it is what lets a container load re-home a
+	/// container's child first. One entry per item: two departures in one frame are
+	/// two reports. An item that meanwhile left the world as a whole (or that a
+	/// load re-homed) does not re-report.</summary>
 	internal void FlushPendingDrop()
 	{
-		if (!_dropState.TryFlush(out var flushed))
+		if (!_dropState.HasPending)
 		{
-			return; // no pending drop, or still waiting — the throw velocity may still land this frame, or the item is destroyed / still attached to the body (drag-to-hand re-pick). A pending drop that stays pending (destroyed, never freed, world left) shows up as a begin-without-end in the item trace — the baseline asserts on that leak.
+			return; // the common frame: nothing left a home, so nothing is due
 		}
 
-		// TryFlush already verified the item is a standalone world item — the
-		// commit is Committed by construction.
-		var itemId = EnsureItemId(flushed.Item);
-		_reports.CommitReport(itemId, flushed.Op, "FlushPendingDrop", CommitStatus.Committed,
-			() =>
-			{
-				_reports.SendDropReport(itemId, flushed.Item, flushed.Pos);
-				return 1;
-			},
-			"Drop", "Flush");
+		// The due set is taken OUT of the machine before the first report goes out:
+		// a report RE-ENTERS this method (the item domain settles the deferred
+		// creation reports before an operation goes out, and this flush is one of
+		// those owners), and it then finds the machine short of exactly the entries
+		// this call is reporting — never a half-iterated shared buffer.
+		var due = new List<ItemDropState.Departure>();
+		_dropState.Settle(due);
+		foreach (var departure in due)
+		{
+			// Settle already verified the item is a standalone world item — the
+			// commit is Committed by construction.
+			var itemId = EnsureItemId(departure.Item);
+			_reports.CommitReport(itemId, departure.Op, "FlushPendingDrop", CommitStatus.Committed,
+				() =>
+				{
+					_reports.SendDropReport(itemId, departure.Item, departure.Pos);
+					return 1;
+				},
+				"Drop", "Flush");
+		}
 	}
 
 }

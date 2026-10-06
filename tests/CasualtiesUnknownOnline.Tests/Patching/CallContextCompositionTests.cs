@@ -23,7 +23,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// <para>
 /// The second distinction it pins is the item-fact carriers' guard: a REPLAY of a
 /// peer's fact stays silent, a peer's INTENT this client executes on its own
-/// objects reports (ticket <c>backlog/todo/container-move-snapshot-only-sync.md</c>).
+/// objects reports (ticket <c>backlog/review/container-move-snapshot-only-sync.md</c>).
 /// </para>
 /// </summary>
 [Collection(GameAssemblyCollection.Name)]
@@ -123,7 +123,7 @@ public class CallContextCompositionTests
 	}
 
 	/// <summary>
-	/// The replay/execution distinction (ticket <c>backlog/todo/container-move-snapshot-only-sync.md</c>):
+	/// The replay/execution distinction (ticket <c>backlog/review/container-move-snapshot-only-sync.md</c>):
 	/// a replayed fact keeps the item-fact carriers silent, while a peer's intent executed on this
 	/// client's own objects must report. The distinction is read the same way through a nested
 	/// classification scope, and the intent execution stays visible as a remote application, so the

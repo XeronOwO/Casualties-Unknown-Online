@@ -1,14 +1,16 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Todo — Rejected (batch `20261006-b`: row A1g was driven for the first time, in both owner
-  directions AND as a local control, and it FAILS — the expansion's child load reports a pickup of the
-  child instead of the target container's contents, so both viewers warn
-  `nested container contents changed without an event sync`; the gesture itself runs and the owner's
-  container really expands, record `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`).
-  Batch `20261006-a` had read the drop row after decision 236 in BOTH owner directions and the wearable
-  half no batch had ever driven, both with the monitors at ZERO over a full quiet cycle; the row's blocker
-  was then removed the same day (a held key is reachable in process and is committed as the `window-key`
-  eval declaration plus `recipes/key-hold.cs`, decision 237)
+- Status: Review (the container-move PAIR landed 2026-10-06 — the unload half registers the departure and the
+  load half classifies through it, so an expansion's child load announces the TARGET container's fact; row A1g
+  awaits the three-client batch that reads both viewers' monitor at zero). History: batch `20261006-b` drove row
+  A1g for the first time, in both owner directions AND as a local control, and it FAILED — the expansion's child
+  load reported a pickup of the child instead of the target container's contents, so both viewers warned
+  `nested container contents changed without an event sync`, record
+  `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`; before it, batch `20261006-a` had
+  read the drop row after decision 236 in BOTH owner directions and the wearable half no batch had ever driven,
+  both with the monitors at ZERO over a full quiet cycle, and row A1g's blocker was removed the same day (a held
+  key is reachable in process and is committed as the `window-key` eval declaration plus `recipes/key-hold.cs`,
+  decision 237)
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -19,6 +21,40 @@
 - Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`
   (rejected on row A1g); `…-20261006-a.md` (accepted except the then-blocked row); `…-20261005-e.md`
   (rejected) and `…-20261005-d.md` stand as history
+
+## Fixed by the container-move pair (2026-10-06)
+
+`Container.UnloadItem` is the game's "detach this item into the world" primitive AND the first half of a
+container-to-container move: the expansion loop (`PlayerCamera.cs:1589-1590`) runs
+`source.UnloadItem(child, null)` and then `target.LoadItem(child)` in ONE bracket. The load hook classified the
+child by the SCENE at that instant — the `LoadItem` prefix captured `ItemWorldSync.IsWorldItem(item)`, and the
+unload had just left the child parentless — so the pair reached the peers as "the child left the world" plus "the
+child was picked up" while the TARGET container's contents changed with no event. The defect class is a transient
+scene state deciding a classification; the fix gives the classification the fact it was missing — the departure
+the pair itself opened.
+
+- The unload half REGISTERS the departure instead of reporting it:
+  `ContainerItemSync.OnUnloadedFromContainer` enters the item domain's pending state with WHERE the item came
+  from. The pre-unload fact (`ItemWorldSync.IsWorldItem(item)`) is captured in `ContainerItemPatches`' unload
+  PREFIX, because the postfix runs after `SetParent(null)` and the scene can no longer answer it.
+- The load half CONSUMES that departure and classifies through the pure rule
+  `ContainerLoadClassifier.Classify(lands in a world container, departure source, pre-load scene capture)`: a
+  world-container target takes the bound drop report whatever the item came from; a body-side target whose
+  departure came from the carried inventory takes the carried ROOT's contents fact (the
+  `SyncContainerItemsCommand` path the other container kinds commit); and the pre-load scene capture answers only
+  the loads no departure opened — an item dragged off the ground, or a container's first fill.
+- The departure is the same pending state a body drop uses, and it now holds ONE ENTRY PER ITEM (ticket
+  `review/drop-pending-single-slot-overwrite.md`, fixed in the same change): an expansion unloads one child per
+  refused load and a slot release onto an occupied slot drops both occupants, and one slot let the second
+  departure overwrite the first report — the pair would have made that loss reachable from a second producer.
+- One container move = ONE report. The pair used to send two (the unload's containerless drop plus the load's
+  pickup or bound drop), and an item leaving a carried container into a WORLD container is now the load's bound
+  drop report alone.
+- The gate `ContainerMovePairGateTests` pins the pair's wiring (the unload registers with a source and sends
+  nothing itself, the load consumes and classifies, the patch captures the pre-unload fact, the bridge carries
+  it, the machine declares the source); `ContainerLoadClassifierTests` pins the rule's truth table, including
+  batch `20261006-b`'s own reading — a departure outvotes a world scene capture.
+- No wire member is added and no protocol number moves: every carrier the pair now picks already existed.
 
 ## Symptom (evidence)
 
@@ -154,7 +190,7 @@ evidence must be read beside, because their verdicts came from owner-side probes
   answers that query from the body the ring shows, so BOTH owners have to wear the same wearable type
   before the operator's release can produce the kind — staged through
   `tools/acceptance/recipes/item-wear.cs`.
-- **The one-slot pending machine** (`todo/drop-pending-single-slot-overwrite.md`) is the defect this rule
+- **The one-slot pending machine** (`review/drop-pending-single-slot-overwrite.md`) is the defect this rule
   makes louder: when two drops land in one frame the first report is overwritten, and with the re-report held
   back the peers then get neither the event nor an immediate snapshot. It is filed with its evidence; a slot
   release onto an OCCUPIED destination slot is the gesture that reaches it.
@@ -352,13 +388,14 @@ The failure the batch read at its site is an ordering race inside the owner's ow
 order rather than a new carrier. `RemoteIntentApplier` ended every applied discrete intent with
 `domains.CharacterDataSync.ReportInventoryChanged(body)`; for a `DropItem` that snapshot already omitted the
 item while the drop's own report was still parked in `ItemDropState` — the carrier waits one frame on purpose
-so the game's `DropItem` → `ThrowItem` pair can set the final velocity (`DropPendingState.TryFlush` refuses a
-same-frame flush, because a zero-velocity report materialized a ghost). The peers applied the snapshot first
+so the game's `DropItem` → `ThrowItem` pair can set the final velocity (`DropPendingState.TrySettle` refuses a
+same-frame settle, because a zero-velocity report materialized a ghost). The peers applied the snapshot first
 and warned, exactly as `CloneFactTable.WarnOnDivergence` documents ("A change whose event is still in flight
 trips the warning too").
 
 The rule is now asked of the item domain's PENDING STATE at BOTH places an owner can send an inventory
-snapshot: `ItemWorldSync.HasPendingDropReport` (`_dropState.Current == ItemDropState.Phase.Dropped`) is the
+snapshot: `ItemWorldSync.HasPendingDropReport` (`_dropState.HasReportOwed` since decision 238 — a departure
+registered, not yet sent, and still owed because its item is in the world) is the
 fact that a drop report is registered and not yet sent, and while it holds, neither `RemoteIntentApplier` nor
 `GameAdapterBridge.OnInventoryChanged` — the patch layer's ONE entry point — re-reports. Asking the state
 rather than the kind also covers a kind whose native call left a drop behind on a path that did not land (R9's
@@ -380,8 +417,8 @@ re-report behind the flush would put two messages on one fact.
 
 Proof in the tree: `RemoteIntentReportOrderGateTests` was RED on the pre-fix tree ("never asks
 `HasPendingDropReport`") and now pins BOTH entry points' guards, their polarity and the query's own state; the
-deferral it leans on is pinned by `DropPendingStateTests` (`TryFlush_SameFrame_Rejected` /
-`TryFlush_NextFrame_AliveStandalone_Consumed`). No wire member is added and no protocol number moves. Full self
+deferral it leans on is pinned by `DropPendingStateTests` (`TrySettle_SameFrame_Rejected` /
+`TrySettle_NextFrame_AliveStandalone_Consumed`). No wire member is added and no protocol number moves. Full self
 check: `docs/evidence/selfchecks/items/remote-intent-drop-report-order-selfcheck.md`; decision 236 carries the
 rule.
 

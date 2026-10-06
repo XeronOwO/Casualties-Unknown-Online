@@ -8,17 +8,34 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// <summary>
 /// The slot-move report side (the domain owner): an item moved between slots
 /// (Body.SwapSlots / Body.SwitchHands — the internal drop+pick pair that the
-/// reorder scope already keeps silent). The guest's slot layout is its local
-/// fact; the report exists so the host's transfer-table record stays current
-/// for corrections and the reconnect merge. The host's OWN moves are its own
-/// authority — it broadcasts the full carried item instead, so the peers'
-/// clones of the host re-home the item the moment the move lands.
+/// reorder scope already keeps silent) or onto a limb (Body.WearWearable). The
+/// guest's slot layout is its local fact; the report exists so the host's
+/// transfer-table record stays current for corrections and the reconnect
+/// merge. The host's OWN moves are its own authority — it broadcasts the full
+/// carried item instead, so the peers' clones of the host re-home the item the
+/// moment the move lands.
+/// <para>
+/// This report IS the item's move, so it also resolves a pending DEPARTURE of
+/// that item (<see cref="ItemDropState"/>) — a wear straight out of a carried
+/// container is detached by <c>Body.WearWearable</c> and never passes a
+/// container load or a pickup, and a departure left registered for it could
+/// never settle (the item is on a limb, not a standalone world item), which
+/// would hold the owner's immediate snapshots back for the rest of the session.
+/// </para>
 /// </summary>
-internal sealed class ItemSlotSync(IItemControl items, ISessionControl session, ItemIdAllocator ids, ILogger<ItemSlotSync> log)
+internal sealed class ItemSlotSync(
+	IItemControl items,
+	ISessionControl session,
+	ItemDropState dropState,
+	ItemIdAllocator ids,
+	OperationTrace trace,
+	ILogger<ItemSlotSync> log)
 {
 	private readonly IItemControl _items = items;
 	private readonly ISessionControl _session = session;
+	private readonly ItemDropState _dropState = dropState;
 	private readonly ItemIdAllocator _ids = ids;
+	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<ItemSlotSync> _log = log;
 
 	/// <summary>Report the occupant of one slot after a slot move (SwapSlots/SwitchHands). An empty or unbound slot is skipped.</summary>
@@ -53,6 +70,16 @@ internal sealed class ItemSlotSync(IItemControl items, ISessionControl session, 
 
 	private void ReportCarried(Item item, int slot, string origin)
 	{
+		// The item was re-homed inside the inventory/body: a pending DEPARTURE of it
+		// is resolved here rather than reported as a drop — another carrier (this one)
+		// owns the move. Without this edge a wear straight out of a carried container
+		// leaves an entry that can never settle, and every later inventory change on
+		// this client would lose its immediate clone re-report.
+		if (_dropState.TryCancel(item, out var rehomedOp))
+		{
+			_trace.End(rehomedOp, OperationTrace.IdOf(item), origin, "Cancelled", "ReHomed");
+		}
+
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp == null || idComp.Id == 0) // Unity object — ==; no table entry to record
 		{

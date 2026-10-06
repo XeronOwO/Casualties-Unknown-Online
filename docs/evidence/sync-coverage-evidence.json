@@ -968,7 +968,7 @@
       "cluster": "items",
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/DropPendingState.cs",
-      "quote": "if (_pending is not { } pending || currentFrame <= pending.Frame || !alive || !standalone)"
+      "quote": "if (!_pending.TryGetValue(itemId, out var pending) || currentFrame <= pending.Frame || !alive || !standalone)"
     },
     {
       "cluster": "items",

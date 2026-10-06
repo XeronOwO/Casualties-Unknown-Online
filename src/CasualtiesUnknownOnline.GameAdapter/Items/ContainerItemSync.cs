@@ -19,6 +19,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// (<see cref="CallContext.IsReplayedRemoteFact"/>); a peer's intent this client
 /// executes on its own items does not — that mutation is this client's own fact,
 /// so a remote-driven container move carries the same event a local drag does.
+/// <para>
+/// UnloadItem is ALSO the first half of a container-to-container move
+/// (<c>PlayerCamera.cs:1589-1590</c>: <c>source.UnloadItem(child, null)</c> then
+/// <c>target.LoadItem(child)</c>, one bracket), so the two hooks are read as ONE
+/// operation: the unload registers the departure (where the item came from) and
+/// sends nothing itself, and the load consumes it and lets
+/// <see cref="ContainerLoadClassifier"/> pick the carrier — the target's. The
+/// scene cannot classify the pair on its own: the unload has already detached
+/// the child, which reads as "it came from the world" (batch `20261006-b`, row
+/// A1g: the expansion's child was reported as a pickup of itself while the
+/// TARGET container's contents changed with no event).
+/// </para>
 /// </summary>
 internal sealed class ContainerItemSync(
 	IItemControl items,
@@ -53,11 +65,17 @@ internal sealed class ContainerItemSync(
 			return;
 		}
 
-		// The item entered a container — a pending drop of it is cancelled (it
-		// was re-placed, not dropped; the container path reports its own move).
-		if (_dropState.TryCancel(item, out var loadedOp))
+		// The move this load completes. A departure registered in this bracket — a
+		// body drop, or the container unload that opened a container-to-container
+		// pair — is the fact that says where the item came from; it was re-placed,
+		// not dropped, so its own report is cancelled here and this load reports the
+		// move instead. `wasWorldItem` (the pre-load scene capture) answers only the
+		// loads no departure opened.
+		DropPendingState.Source? departure = null;
+		if (_dropState.TryConsumeByContainerLoad(item, out var source, out var departureOp))
 		{
-			_trace.End(loadedOp, OperationTrace.IdOf(item), "OnItemLoadedIntoContainer", "Cancelled", "LoadedIntoContainer");
+			_trace.End(departureOp, OperationTrace.IdOf(item), "OnItemLoadedIntoContainer", "Cancelled", "LoadedIntoContainer");
+			departure = source;
 		}
 
 		var itemId = _ids.EnsureId(item);
@@ -68,88 +86,105 @@ internal sealed class ContainerItemSync(
 
 		var op = _trace.NextOperationId();
 
-		if (!ItemWorldSync.IsWorldItem(item))
+		switch (ContainerLoadClassifier.Classify(ItemWorldSync.IsWorldItem(item), departure, wasWorldItem))
 		{
-			// The item left the world into a BODY-side container (a backpack or
-			// held container — dragging a ground item into the bag in your
-			// inventory goes through LoadItem, NOT PickUpItem, so the world-item
-			// copy would stay on the peer: "still on the ground"). World →
-			// inventory is pickup semantics — report it.
-			if (wasWorldItem)
+			case ContainerLoadClassifier.Kind.Pickup:
+				ReportWorldItemIntoBodyContainer(item, itemId, op);
+				break;
+			case ContainerLoadClassifier.Kind.CarriedContent:
+				ReportCarriedContent(item, itemId, op);
+				break;
+			case ContainerLoadClassifier.Kind.WorldContainerDrop:
+				ReportIntoWorldContainer(item, itemId, op);
+				break;
+		}
+	}
+
+	/// <summary>
+	/// The item left the WORLD into a BODY-side container (a backpack or held
+	/// container — dragging a ground item into the bag in your inventory goes
+	/// through LoadItem, NOT PickUpItem, so the world-item copy would stay on the
+	/// peer: "still on the ground"). World → inventory is pickup semantics — report
+	/// it.
+	/// </summary>
+	private void ReportWorldItemIntoBodyContainer(Item item, ulong itemId, long op)
+	{
+		_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) left the world into a body container — pickup report.", item.id, itemId);
+		_reports.CommitReport(itemId, op, "OnItemLoadedIntoContainer", CommitStatus.Committed,
+			() =>
 			{
-				_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) left the world into a body container — pickup report.", item.id, itemId);
-				_reports.CommitReport(itemId, op, "OnItemLoadedIntoContainer", CommitStatus.Committed,
-					() =>
-					{
-						_items.SendItemPickedUp(itemId, ItemStateCodec.CaptureDigest(item));
-						return 1;
-					},
-					"Pickup");
-			}
-			else
-			{
-				// A move INSIDE the carried inventory (a backpack's contents
-				// shifted between container/slot/hand): the parent container's
-				// FULL fact is one operation = one message. The owner's body is
-				// the local fact source — a guest reports the parent, the host
-				// records and broadcasts it as the carried-fact event; a host
-				// move IS the authority and broadcasts directly. The peers'
-				// clone fact table replaces the parent entry wholesale, so the
-				// new nested contents re-render immediately (the 1 Hz character
-				// snapshot stays only as the reliable-event fallback).
-				var parent = item.transform.parent != null ? item.transform.parent.GetComponent<Item>() : null;
-				if (parent == null) // Unity object — ==
-				{
-					_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoParent");
-					return;
-				}
+				_items.SendItemPickedUp(itemId, ItemStateCodec.CaptureDigest(item));
+				return 1;
+			},
+			"Pickup");
+	}
 
-				// A nested container (trash bag inside a backpack) must not be
-				// reported as a standalone carried root: kernel container sync
-				// spawns a missing parent as Carried, which lifts the nested node
-				// out of its real ancestor in the clone fact tree (visible →
-				// invisible on the next snapshot). Report the top-level carried
-				// root so the whole subtree keeps its contained ancestry.
-				var root = FindCarriedRootItem(parent);
-				if (root == null) // Unity object — ==
-				{
-					_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoRoot");
-					return;
-				}
-
-				var rootId = _ids.EnsureId(root);
-				if (rootId == 0)
-				{
-					_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoId");
-					return;
-				}
-
-				var capture = ItemStateCodec.CaptureItem(root, ItemStateCodec.SlotOf(root));
-				if (_session.Role == SessionRole.Host && _session.SessionActive)
-				{
-					_items.SendItemCarriedSync(_session.LocalSteamId, capture);
-				}
-				else
-				{
-					_items.SendItemContainerContent(rootId, capture);
-				}
-
-				_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Committed", "ContainerContent");
-				_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) moved inside body container {ContainerType} — root content event up to {RootType} (id {RootId}).",
-					item.id, itemId, parent.id, root.id, rootId);
-			}
-
+	/// <summary>
+	/// A move INSIDE the carried inventory (a backpack's contents shifted between
+	/// container/slot/hand): the parent container's FULL fact is one operation = one
+	/// message. The owner's body is the local fact source — a guest reports the
+	/// parent, the host records and broadcasts it as the carried-fact event; a host
+	/// move IS the authority and broadcasts directly. The peers' clone fact table
+	/// replaces the parent entry wholesale, so the new nested contents re-render
+	/// immediately (the 1 Hz character snapshot stays only as the reliable-event
+	/// fallback).
+	/// </summary>
+	private void ReportCarriedContent(Item item, ulong itemId, long op)
+	{
+		var parent = item.transform.parent != null ? item.transform.parent.GetComponent<Item>() : null;
+		if (parent == null) // Unity object — ==
+		{
+			_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoParent");
 			return;
 		}
 
-		// A WORLD container (a trash bag on the ground, generation-time — no
-		// instance id) becomes an item-domain object on first use: it gets an
-		// id here, and the item's drop message carries the container's position
-		// so the peers can bind their local (also generation-time, id-less)
-		// container by position and place the item inside it. A container that
-		// just entered the domain is REGISTERED (spawn report): the peers bind
-		// their local copy instead of materializing, and the table entry keeps
-		// the snapshot reconcile from killing the bound local container.
+		// A nested container (trash bag inside a backpack) must not be
+		// reported as a standalone carried root: kernel container sync
+		// spawns a missing parent as Carried, which lifts the nested node
+		// out of its real ancestor in the clone fact tree (visible →
+		// invisible on the next snapshot). Report the top-level carried
+		// root so the whole subtree keeps its contained ancestry.
+		var root = FindCarriedRootItem(parent);
+		if (root == null) // Unity object — ==
+		{
+			_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoRoot");
+			return;
+		}
+
+		var rootId = _ids.EnsureId(root);
+		if (rootId == 0)
+		{
+			_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoId");
+			return;
+		}
+
+		var capture = ItemStateCodec.CaptureItem(root, ItemStateCodec.SlotOf(root));
+		if (_session.Role == SessionRole.Host && _session.SessionActive)
+		{
+			_items.SendItemCarriedSync(_session.LocalSteamId, capture);
+		}
+		else
+		{
+			_items.SendItemContainerContent(rootId, capture);
+		}
+
+		_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Committed", "ContainerContent");
+		_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) moved inside body container {ContainerType} — root content event up to {RootType} (id {RootId}).",
+			item.id, itemId, parent.id, root.id, rootId);
+	}
+
+	/// <summary>
+	/// Into a WORLD container (a trash bag on the ground, generation-time — no
+	/// instance id). The item becomes an item-domain object on first use: it gets
+	/// an id here, and the item's drop message carries the container's position so
+	/// the peers can bind their local (also generation-time, id-less) container by
+	/// position and place the item inside it. A container that just entered the
+	/// domain is REGISTERED (spawn report): the peers bind their local copy instead
+	/// of materializing, and the table entry keeps the snapshot reconcile from
+	/// killing the bound local container.
+	/// </summary>
+	private void ReportIntoWorldContainer(Item item, ulong itemId, long op)
+	{
 		var containerItem = item.transform.parent != null ? item.transform.parent.GetComponent<Item>() : null;
 		ulong containerId = 0;
 		var parentPos = new NetVector2(0f, 0f);
@@ -190,7 +225,7 @@ internal sealed class ContainerItemSync(
 			"ContainerLoad");
 	}
 
-	internal void OnUnloadedFromContainer(Item item)
+	internal void OnUnloadedFromContainer(Item item, bool wasWorldItem)
 	{
 		if (CallContext.IsReplayedRemoteFact)
 		{
@@ -202,31 +237,42 @@ internal sealed class ContainerItemSync(
 			return;
 		}
 
-		if (_dropState.TryCancel(item, out var unloadedOp)) // the unload report below IS this item's report — a later flush must not send it again
+		if (_dropState.TryCancel(item, out var unloadedOp)) // this departure replaces that one — the item cannot leave twice, and the report below IS this item's
 		{
 			_trace.End(unloadedOp, OperationTrace.IdOf(item), "OnItemUnloadedFromContainer", "Cancelled", "UnloadedReported");
 		}
 
 		var itemId = _ids.EnsureId(item);
-		if (itemId != 0)
+		if (itemId == 0)
 		{
-			// Landed check: an unload that ends with the item STILL inside an
-			// inventory/container (the unload was intercepted — the container
-			// path reports its own moves) never left the world; reporting it
-			// would materialize a phantom drop on the peer.
-			var status = ItemWorldSync.IsWorldItem(item) ? CommitStatus.Committed : CommitStatus.Rejected;
-			var op = _trace.NextOperationId();
-			_reports.CommitReport(itemId, op, "OnItemUnloadedFromContainer", status,
-				() =>
-				{
-					_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
-						new NetVector2(item.transform.position.x, item.transform.position.y),
-						new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-						0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
-					return 1;
-				},
-				"Unload");
+			return;
 		}
+
+		var op = _trace.NextOperationId();
+
+		// Landed check: an unload that ends with the item STILL inside an
+		// inventory/container (the unload was intercepted — the container path
+		// reports its own moves) never left the world; reporting it would
+		// materialize a phantom drop on the peer.
+		if (!ItemWorldSync.IsWorldItem(item))
+		{
+			_trace.End(op, itemId, "OnItemUnloadedFromContainer", "Rejected", "Unload");
+			return;
+		}
+
+		// The item is momentarily in the world, and the rest of its bracket decides
+		// whether it STAYS there: the container-to-container move
+		// (PlayerCamera.cs:1589-1590, source.UnloadItem then target.LoadItem)
+		// re-homes it, and that move's carrier is the TARGET's fact. So the
+		// departure waits for the frame-end flush; a load that follows consumes it
+		// and reports the move instead. `wasWorldItem` is the pre-unload fact the
+		// patch captured — where the item came from, which is what classifies the
+		// move that consumes this departure.
+		var source = wasWorldItem ? DropPendingState.Source.World : DropPendingState.Source.CarriedInventory;
+		_trace.Begin(op, itemId, "OnItemUnloadedFromContainer", "Unload");
+		_dropState.EnterDrop(itemId, item, item.transform.position, op, source);
+		_log.LogInformation("[ContainerUnload] {Type} (id {ItemId}) left its container into the world from the {Source} side — the drop report waits one frame (a container load in this bracket re-homes it and reports the target's fact).",
+			item.id, itemId, source);
 	}
 
 	internal void OnUnloadedAll(Container container)

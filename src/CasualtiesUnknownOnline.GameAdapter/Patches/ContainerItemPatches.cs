@@ -48,17 +48,25 @@ internal static class ContainerItemPatches
 		// dragged item unconditionally — PlayerCamera.cs:1567 — before loading
 		// it elsewhere), and the old Postfix reported the no-op as "unloaded
 		// into the world", which materialized a phantom drop on the peer.
-		// The "was inside" state crosses Prefix → Postfix via Harmony __state.
-		private static void Prefix(Container __instance, Item item, out bool __state) =>
-			__state = item.transform.parent == __instance.transform;
+		// BOTH facts the postfix needs are captured HERE, before the mutation:
+		// whether the item was inside this container (the landed check), and
+		// whether it was part of the WORLD before the detach — the fact that
+		// classifies the container-to-container move the rest of the bracket may
+		// complete (PlayerCamera.cs:1589-1590), because after SetParent(null)
+		// the scene can no longer answer where the item came from.
+		private static void Prefix(Container __instance, Item item, out UnloadState __state) =>
+			__state = new UnloadState(item.transform.parent == __instance.transform, ItemWorldSync.IsWorldItem(item));
 
-		private static void Postfix(Container __instance, Item item, bool __state)
+		private static void Postfix(Container __instance, Item item, UnloadState __state)
 		{
-			if (__state && !RemoteCloneContainerGuard.IsDisplayProxy(__instance) && item.transform.parent != __instance.transform)
+			if (__state.WasInside && !RemoteCloneContainerGuard.IsDisplayProxy(__instance) && item.transform.parent != __instance.transform)
 			{
-				PatchBridge.Impl?.OnItemUnloadedFromContainer(item);
+				PatchBridge.Impl?.OnItemUnloadedFromContainer(item, __state.WasWorldItem);
 			}
 		}
+
+		/// <summary>Per-call state across the patch pair (Harmony __state — never a static field).</summary>
+		private readonly record struct UnloadState(bool WasInside, bool WasWorldItem);
 	}
 
 	[HarmonyPatch(typeof(Container), "UnloadAllItems")]

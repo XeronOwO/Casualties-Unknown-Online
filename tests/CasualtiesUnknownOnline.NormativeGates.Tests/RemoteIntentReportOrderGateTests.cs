@@ -21,7 +21,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// 1 Hz character snapshot. That pair is ordered whenever the carrier sends INSIDE the apply scope — the
 /// container, pickup, slot and use carriers all do. A drop does not: its carrier holds the report for one
 /// frame so the game's own <c>DropItem</c> → <c>ThrowItem</c> pair can set the final velocity
-/// (<c>DropPendingState.TryFlush</c> refuses a same-frame flush on purpose). A snapshot sent while that
+/// (<c>DropPendingState.TrySettle</c> refuses a same-frame settle on purpose). A snapshot sent while that
 /// report is still pending reaches the peers FIRST and announces a change whose event is still in flight —
 /// the monitor's wording is exactly that trace, and it is the defect this gate keeps out.
 /// </para>
@@ -65,8 +65,8 @@ public class RemoteIntentReportOrderGateTests
 	/// <summary>The owner's immediate clone re-report, as the receiver of the call reads it (the two entry points pass different bodies).</summary>
 	private const string ReReportCall = "domains.CharacterDataSync.ReportInventoryChanged(";
 
-	/// <summary>The state the query must read: a drop report registered and not yet sent.</summary>
-	private const string PendingDropState = "ItemDropState.Phase.Dropped";
+	/// <summary>The state the query must read: a departure report registered, not yet sent, and still OWED. It is the pending machine's own per-item set (one entry per item since the container pair landed — a body drop and a container unload both register one), asked through the shell's owed query rather than a bool flag beside it; an entry whose item re-entered a body can never report and must not hold the snapshots back.</summary>
+	private const string PendingDropState = "_dropState.HasReportOwed";
 
 	[Theory]
 	[InlineData(ApplierFile)]

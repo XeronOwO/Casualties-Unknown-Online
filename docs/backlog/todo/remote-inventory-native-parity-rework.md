@@ -1,14 +1,27 @@
 # Remote inventory operations: run the native path end to end
 
-- Status: Review (batch `20261005-e`: row 4 and the battery-unload half pass — the take-out now works in
-  both owner directions through the container's own contents window; row 8, the battery-load half, the
-  combine half and the favourite sub-kind stay open)
+- Status: Todo — Rejected (batch `20261006-f`, 2026-10-06, drove matrix row 6's two halves on three clients:
+  the EMPTY-destination half passes (the item lands in the owner's slot, no divergence), and the
+  OCCUPIED-destination half — the swap on the owner's body — cannot run at all. The operator's release aborts
+  inside the game's own release body with `UnityException … Transform child out of bounds`:
+  `Transform.GetChild` ← `Body.GetItem` ← `Body.SlotOf(item)` ← `PlayerCamera.TryPerformInventoryAction` ←
+  `TryPerformUIActions` ← `HandleReleaseDragging`. The cause is a seam asymmetry — the predicate patches
+  answer `HoldingItem(int)` from the displayed clone while `Body.GetItem`'s own body still indexes the LOCAL
+  body's slot transform — so an empty local slot at an index the clone has occupied throws before any CUO
+  seam can absorb the call, the release produces no intent and no refusal line, and the drag is left staged
+  (`dragAfter` still set, the ring closed as a side effect). Record:
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md`. Rows 7 (battery-load,
+  combine, favourite halves) and 8 (held remote item from the medical panel) stay `unproven`, and the
+  container-child route's carried facts carry a monitor gap filed as
+  `todo/container-content-event-gap-on-repick.md`)
 - Priority: Critical
 - Category: Remote inventory / native interaction parity / architecture rework
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
 - Related: `resolved/remote-backpack-native-interaction-parity.md` and `resolved/remote-backpack-item-projection-acceptance-issues.md` (the rejected deliveries this ticket replaces, absorbed here in stage 0), `review/unified-remote-display-projection-rework.md`, `review/global-projection-framework.md`, `review/tab-backpack-open-close-immediately.md`, `done/guest-container-contents-ghost-drops-on-host.md`
 - Design: `docs/architecture/remote-inventory-native-parity.md` (stage 0 record, decision 217)
-- Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-d.md`
+- Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md` (row 6's
+  empty-destination half `pass`, its occupied-destination half `fail`; rows 7 and 8 `unproven`),
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-d.md`
   (rows 3, 7, 9, 13, 14; rows 4 and 8 stay `unproven`); batch `20261006-a` planned two further halves of
   this ticket and staged NEITHER: row 8's battery-LOAD half (that run's fixture set carried no
   installed-battery receiver) and row 14's multi-item insert series (its own plan said "driven only if the
@@ -357,6 +370,36 @@ The same three-client session that re-read the container-move fix judged three m
    `20261005-d` recorded; row 8 still needs its medical fixture.
 4. Row 14's monitor half was re-read for one item only (the dog food insert, silent on both viewers);
    the four-item series stands from batch `20261005-d`.
+
+## Acceptance readings (batch `20261006-f`, 2026-10-06)
+
+The batch drove matrix row 6's two halves, one release each, on three clients (operator = physical-machine
+host, owner = sandbox guest, third peer = the alternate sandbox):
+
+1. **Row 6's swap half cannot run on this build.** Releasing the displayed clone's own item onto an
+   OCCUPIED slot of that clone reaches the native R8 branch — the run confirms it, because the throw happens
+   inside that branch's own argument list — and aborts there: `Body.SlotOf(item)` walks `Body.GetItem(i)`,
+   whose `HoldingItem(i)` the predicate patch answers from the displayed clone while the method body still
+   indexes the LOCAL body's slot transform, so an empty local slot at an index the clone has occupied makes
+   `Transform.GetChild(0)` throw. The whole release is lost with it: no intent, no refusal line, no swap on
+   the owner's body, and `HandleReleaseDragging` never reaches its own `dragItem = null`, so the drag stays
+   staged until the ring closes. The asymmetry is the thing to fix — the redirect answers a PREDICATE but not
+   the method body that reads the same index — and it also decides whether `SwapSlots` can ever be captured
+   on that path.
+2. **Row 6's slot-move half keeps working**: a released proxy onto an EMPTY slot classifies `PickUpToSlot`,
+   the owner's replay lands it (`[PickUpResult] bandage → slot (slot 2)`, `[SlotMoved] … (Drag) reported.`),
+   its own drop-then-re-pick pair stays internal (`Cancelled events=[RePick]`), and neither viewer warns.
+3. **The same proxy released over the world instead of over a ring button still works** — that release
+   classified as `DropItem` and the owner replayed it to the world (`[ItemDropped] bandage …`,
+   `op=43 … Flush result=Committed(1)`) — so the capture seam and the owner-side replay are intact; the
+   failure is specific to the ring-button path.
+4. **A container child moved into a ring slot lands, but the peers' fact tables warn twice each** about the
+   container's contents change and the child's new carried slot; filed as
+   `todo/container-content-event-gap-on-repick.md`. Row 4's take-out reads unaffected (it reports the drop),
+   and the slot-item control is clean.
+5. **Rows 7 and 8 stay undriven**: this session staged no battery receiver, no combineable pair, no favourite
+   key and no treatable limb fixture, so the battery-load half, the combine half, the favourite sub-kind and
+   the medical row carry the same `unproven` verdict as the earlier batches.
 
 ## Non-goals
 

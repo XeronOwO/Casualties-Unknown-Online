@@ -19,7 +19,7 @@
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
   container move that run drove; raised to work by the user's 2026-10-06 ruling that a defect the
   repository's own history introduced is fixed or ticketed.
-- Related: `review/remote-inventory-native-parity-rework` (the path that produced the warnings),
+- Related: `todo/remote-inventory-native-parity-rework` (the path that produced the warnings),
   `done/carried-inventory-registration-re-report.md`, `docs/architecture/remote-inventory-native-parity.md`
 - Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`
   (rejected on row A1g); `…-20261006-a.md` (accepted except the then-blocked row); `…-20261005-e.md`
@@ -93,7 +93,7 @@ the pair itself opened.
   `SyncContainerItemsCommand` path the other container kinds commit); and the pre-load scene capture answers only
   the loads no departure opened — an item dragged off the ground, or a container's first fill.
 - The departure is the same pending state a body drop uses, and it now holds ONE ENTRY PER ITEM (ticket
-  `review/drop-pending-single-slot-overwrite.md`, fixed in the same change): an expansion unloads one child per
+  `todo/drop-pending-single-slot-overwrite.md`, fixed in the same change): an expansion unloads one child per
   refused load and a slot release onto an occupied slot drops both occupants, and one slot let the second
   departure overwrite the first report — the pair would have made that loss reachable from a second producer.
 - One container move = ONE report. The pair used to send two (the unload's containerless drop plus the load's
@@ -216,7 +216,7 @@ keep their immediate re-report inside the same window, so the polarity is visibl
 peer's own world read returns every dropped id, both owner directions. Record:
 `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md`.
 
-Rows 3, 4 and 14 of `review/remote-inventory-native-parity-rework` are still the ones this change's own
+Rows 3, 4 and 14 of `todo/remote-inventory-native-parity-rework` are still the ones this change's own
 evidence must be read beside, because their verdicts came from owner-side probes.
 - **The drop row needs a PEER-side world read, in both owner directions.** A dropped item must be found
   in the world by a client that is neither the owner nor the operator (the third peer), for a host owner
@@ -239,7 +239,7 @@ evidence must be read beside, because their verdicts came from owner-side probes
   answers that query from the body the ring shows, so BOTH owners have to wear the same wearable type
   before the operator's release can produce the kind — staged through
   `tools/acceptance/recipes/item-wear.cs`.
-- **The one-slot pending machine** (`review/drop-pending-single-slot-overwrite.md`) is the defect this rule
+- **The one-slot pending machine** (`todo/drop-pending-single-slot-overwrite.md`) is the defect this rule
   makes louder: when two drops land in one frame the first report is overwritten, and with the re-report held
   back the peers then get neither the event nor an immediate snapshot. It is filed with its evidence; a slot
   release onto an OCCUPIED destination slot is the gesture that reaches it.

@@ -2,7 +2,7 @@
 
 Companion to the stage 4 audit
 (`docs/evidence/selfchecks/items/remote-inventory-native-intent-stage4-audit.md`) and to the rework
-ticket (`docs/backlog/review/remote-inventory-native-parity-rework.md`). The audit closes the matrix
+ticket (`docs/backlog/todo/remote-inventory-native-parity-rework.md`). The audit closes the matrix
 rows that code facts can close; this page is what a session on the real machine has to answer. It is a
 release-cycle run: no development step depends on it, and nothing here is claimed as verified until it
 has been run.

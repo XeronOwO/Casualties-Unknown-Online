@@ -2216,3 +2216,40 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - **`[ItemTraffic] … Drop=0; Destroy=0` is a ready-made witness.** This build writes one traffic line every
   ten seconds, so a per-row byte window that spans one cycle carries both the actor's own refusal line and a
   zero-drop statement for the same window, without a second probe.
+
+## 2026-10-06 — Batch `20261006-f`: a redirect that answers a predicate does not cover the method body
+
+- **An answered guard is not an answered read.** The release window answers `Body.HoldingItem(int)`,
+  `HoldingItem(Item)`, `GetItem(int)` and `GetWearable` from the displayed clone, but `GetItem`'s own native
+  body still does `this.slots[slot].transform.GetChild(0)` on the LOCAL body — so where the clone's slot is
+  occupied and the operator's is empty, the call throws `UnityException: Transform child out of bounds`
+  instead of returning the clone's item. A redirect seam must be checked against every caller that reads the
+  same index, not only against the guard that admits the caller.
+- **A throw inside the game's own release body is silent to the wire.** The release artifact's `calls` field
+  carried `TargetInvocationException: Exception has been thrown by the target of an invocation.` and nothing
+  else, and the ring's own log said `produced no intent — unclassified native gesture` — which reads like an
+  unclassified gesture and is actually an aborted one. Re-run the same release from an ad-hoc probe that
+  catches the inner exception and prints its stack (`p-f1-diag2.json` did it in one eval) before writing any
+  verdict about a gesture that "did nothing". `dragAfter` still naming the item is the tell: the native body
+  never reached its own `dragItem = null`.
+- **A slot release's classification depends on the DESTINATION slot's state, and the applier's plan does
+  not.** With the remote view open the viewer's native branch reads the clone-answered predicates, so an
+  OCCUPIED destination takes the R8 swap branch (`SwapSlots`) while an EMPTY one takes the R9 slot release
+  (`PickUpToSlot`) — and only the latter reaches `RemoteIntentApplier.ApplyPickUpToSlot`, whose plan is the
+  one computed from the OWNER's own body. A row that needs the applier's two-`Body.DropItem` plan cannot be
+  driven by releasing a slot item onto an occupied slot; the reachable two-departure shape is the owner's
+  container child (its unload registers a departure, the destination slot's occupant another) — that shape
+  settled both entries correctly in this run.
+- **Read a divergence warning against a control row, in the same session.** Two `[CharSync] divergence` lines
+  per viewer followed the container-child release in BOTH destination states; the slot-item release onto an
+  empty slot produced none, which is what attributed the warning to the container-child route rather than to
+  the gesture or the session. Take the span read (`span-<client>-divergence.txt` from the batch's mark) plus
+  one control release, and keep the owner's own window in the comparison — the owner warns in neither case.
+- **`container-read`'s mode vocabulary is `local`, `clone` or `host`** (a wrong word answers `bad-mode` and
+  the run loses a step): `local` reads the client's own inventory, `clone` its rendered items with their
+  owners and an `orphanCount`, `host` the authoritative transfer and world tables — host-role only, and it
+  needs the guest's SteamId explicitly in a three-client session.
+- **An owner-side fixture staged while the viewer's remote ring is open warns on its own** (batch
+  `20261006-c`'s lesson) — this batch staged its fixtures before opening the ring, reopened the ring after a
+  failed row, and then saw the follow-up fixture's own `[CarriedSync] merged … starting supplies` line land
+  in the next row's window. Take the mark AFTER the last fixture action, not before it.

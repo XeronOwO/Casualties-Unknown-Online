@@ -54,6 +54,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Layer changes drop members and storm the log](todo/layer-change-member-dropout.md) — **Medium** — the warning repeats unbounded and no member returns.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
+- [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 6's swap half throws in the release body.
+- [A same-frame second drop overwrites the pending report of the first](todo/drop-pending-single-slot-overwrite.md) — **Medium** — its gesture aborts.
+- [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 
 ### In progress
 
@@ -65,7 +68,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
-- [Remote inventory native parity rework](review/remote-inventory-native-parity-rework.md) — **Critical** — the owner runs the native operation.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.
 - [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.
@@ -126,7 +128,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
-- [A same-frame second drop overwrites the pending report of the first](review/drop-pending-single-slot-overwrite.md) — **Medium** — one entry per item.
 
 ### Future
 

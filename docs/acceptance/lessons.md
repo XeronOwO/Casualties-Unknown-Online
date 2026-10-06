@@ -1992,3 +1992,54 @@ inventory without an event sync`. The ticket's row is a ZERO-warning row, so it 
 - The third client can still be mid-handshake long after the host started the run: this batch's `Steam2`
   member confirmed its handshake 2.5 minutes late, materialized the world on its own, and needed no
   re-drive. Check both member endpoints before the fixtures; do not repeat `start-run`.
+
+## 2026-10-06 — Batch `20261006-a`: read a zero-warning row together with the polarity that produced it
+
+- **The fix's own log line is the evidence, and the contrast sits in the same window.** A remote-driven
+  `DropItem` and `DropWearable` log `replayed native … — a drop report is pending and announces it on the
+  next frame, so no immediate re-report.` and then, ~30 ms later,
+  `origin=FlushPendingDrop result=Committed(1) events=[Drop, Flush]`; inside the SAME mark the container
+  and slot kinds still log `[CloneRender] inventory changed — immediate re-report.`. One `-Match` over one
+  window therefore carries both the absence (zero divergence) and the reason it is the fix rather than the
+  old code — prefer that over a bare warning count.
+- **A wearable drop needs the OWNER dressed, in the type the operator drags.**
+  `PlayerCamera.TryPerformWorldActions` calls `Body.DropWearable` only when
+  `this.body.GetWearable(dragItem.id)` is non-null, and `RemoteDragPredicatePatches` answers that query
+  from the body the ring shows — so if the owner is not really wearing a wearable of that TYPE the
+  release produces no intent at all, and a run whose ring list looks perfectly healthy proves nothing.
+  The operator's own body state is irrelevant to that guard; each direction needs its OWNER dressed
+  (`tools/acceptance/recipes/item-wear.cs`).
+- **A `mode=hover` radial stage does not survive the game's own frame — say what you ATTEMPTED.** The
+  hover does set `camera.radialOpen = true` (`f4-host-hover-helmet.json`: `radialOpen: true`,
+  `pointerDistanceOverScale: 0`), and the ring is gone again by the next probe (`menuScale 0.01`,
+  `centerButtonCount 0`) because `HandleWhileDragging` re-closes it when
+  `|radialMenu.position.x − Input.mousePosition.x| > 600 × uiScale` — the run may not move the OS pointer.
+  Do not turn that into "the radial centre is undrivable": the committed `mode=release cast=-2` forces
+  `radialMenu.localScale` to one and repositions the ring inside the same call, which is how batch
+  `20261005-d` drove its radial row, and a hover-time probe is not that path. Name the attempt, name the
+  committed path that exists, and stage an owner-side fixture through a recipe when the fixture is what
+  you actually need.
+- **A new recipe can fail in the evaluator for a reason the run never establishes.** The same body
+  written with multi-line `if` guards failed with `Unexpected character \0022` while a one-line-guard
+  form compiled and ran; the cause was NOT established (multi-line guards and non-ASCII bytes both exist
+  in recipes that work, e.g. `item-provide.cs`), so record it as an observation about that invocation,
+  keep a working form, and prove any new recipe by invoking it rather than by reading it.
+- **A stale `camera.dragItem` silently disables the remote ring.** After an aborted `mode=hover` one client
+  kept a dragged proxy and every later `mode=open` / `mode=list` answered `buttonCount: 0`,
+  `viewOpen: false` — while the other client listed seven buttons for the same fixture. Clearing
+  `dragItem` and `radialOpen` brought the view and the ring straight back. When one client's ring works and
+  the other's does not, look for a leftover drag before blaming the view.
+- **A recipe's guards must survive the evaluator's REPL.** The same recipe written with multi-line `if`
+  bodies failed with `Unexpected character \0022` while the one-line-guard form compiled and ran. Keep a
+  recipe's guards on one line each, keep its file pure ASCII, and prove any new recipe by invoking it.
+- **The Steam half of a batch can be down, and starting it is the run's own job.** Both sandboxes' Steam
+  clients had stopped since the previous session (the client's own log:
+  `SteamAPI.InitEx failed: Cannot create IPC pipe to Steam client process`; the two box logs' last write
+  was hours before the physical Steam's). Starting Steam inside each box is the run's step — it is not the
+  physical Steam and not the same act — and no relaunch is needed afterwards: the Online UI's create/join
+  call `EnsureSteamReady()` → `steam.Initialize()`, so re-driving `create-lobby` / `join-lobby` retries the
+  init on the clients already running.
+- **A missing fixture is a recipe, not a weaker row.** `item-provide` stages a carried item through
+  `Utils.Create` + `Body.PickUpItem`; the wearable half needed the same treatment for `Body.WearWearable`
+  and got it as `tools/acceptance/recipes/item-wear.cs` — the row's own gesture is still the operator's
+  remote release, so the fixture strengthens the run instead of substituting for it.

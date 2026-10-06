@@ -1841,6 +1841,9 @@ dependency the table did not name, a step that cost more than it returned.
   world and started a repeating `[LayerMod] baseline divergence` warning — the guest's rolling log grew
   0.8 MB → 33.4 MB in about four minutes — and the members do not come back on their own (`SendWorldJoin`
   has no periodic re-send). Recovery is `home.leave` + `join-lobby`, or a cold restart of all three clients.
+  **What filled that log is corrected by the 2026-10-06 entry below** (the warning rides the 5-second
+  snapshot keyframe and is a few dozen lines over the window; `[ItemPhysics] settle`, a per-frame
+  Information line, is the volume); the staging advice itself stands.
 - **`item-pickup mode=id` still obeys the game's proximity guard**: naming a world item by id from anywhere
   is refused with `PickUpItem left <type> outside slot 0`. Pick the item the member just dropped at its own
   feet, or use `mode=type` (nearest).
@@ -2321,3 +2324,27 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   heldAtEnd: true` while the ring stayed shut (`radialOpen: false`, `buttonCount: 0`) — no error anywhere.
   Close the window and read the toggle back (`radialOpen` / `buttonCount`) before staging the drag; the
   gesture then runs on the first attempt.
+
+## 2026-10-06 — Batch `20261005-b`: name the line that grew the log, not the line that explains the state
+
+- Symptom: after a layer change the two members were out of the world and the guest's rolling log grew from
+  0.8 MB to 33.4 MB in about four minutes, so the batch restarted all three clients and lost the session.
+- Cause of the LOG growth, read later from the client log that survived: `[ItemPhysics] settle` —
+  an Information line inside the per-frame ease branch of the item follow pump, one line per item per frame
+  while a copy's gap to the host's state does not close, which is what a diverged world looks like. It is
+  4,445 of that log's 7,368 lines. The `[LayerMod] baseline divergence` warning the batch's record
+  juxtaposes with the growth is real and per-arriving-snapshot, but that snapshot is the 5-SECOND keyframe
+  (`WorldItemSnapshotStream`: `BaseIntervalMs: 5000`, measured at 8.3 s gaps) — a few dozen lines over the
+  same four minutes, so the detector was right about the state and four orders of magnitude short of the
+  volume. An earlier draft of this entry read the cadence off the 10 Hz item MOVEMENT stream, which never
+  reaches that decision, and got 2,400; the number was wrong and is withdrawn everywhere it had reached.
+- Change: a repeatable diagnostic now asks a repetition window (`LogRepetitionGuard`) keyed on the VALUE it
+  reports, so one unchanged fact costs a bounded window of lines and its end still reports what was swallowed
+  (`ItemDistanceLog` for the two per-frame correction lines, the snapshot diagnostics in `LayerModifierSync`,
+  and the 10 Hz fluid region receive handler); `LogVolumeGateTests` pins the call sites and fails when a
+  window call is removed. The batch's own attribution is recorded in
+  `docs/backlog/review/layer-change-member-dropout.md` and corrected there rather than edited away.
+- Read a log-growth figure by MEASURING the lines per class before naming a culprit: the diagnostic that
+  explains the observed state and the diagnostic that produces the volume are often two different lines, and
+  a ticket that names the wrong one spends its cycle on the wrong bound. A per-frame line at Information is
+  the usual culprit — the level policy puts high-frequency triggers at Verbose/Debug for exactly this reason.

@@ -41,6 +41,19 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 
 	private readonly ItemFollowDecision _follow = new();
 
+	/// <summary>The bounded repetition windows the two per-frame correction lines ask
+	/// (<see cref="ItemDistanceLog"/>): a copy whose gap does not close reports its first
+	/// lines and then stays quiet, and the lines it would have cost are counted for one
+	/// summary when the gap finally closes (or the world goes away). Without it a diverged
+	/// world wrote one line per item per frame — batch `20261005-b` grew a 0.8 MB guest log
+	/// to 33.4 MB in about four minutes.</summary>
+	private readonly ItemDistanceLog _distanceLog = new(suppressAfter: 8);
+
+	/// <summary>The distance each item's divergence line last reported at, so the closing report
+	/// (which runs on a frame whose own distance is already near zero) names the band the window
+	/// was actually keyed on.</summary>
+	private readonly Dictionary<ulong, float> _divergenceAt = [];
+
 	/// <summary>The layer isolation is applied while guest + session active — state-driven edge (idempotent).</summary>
 	private bool _isolationApplied;
 
@@ -50,6 +63,9 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 	{
 		_items.ItemMoveReceived -= OnRemoteItemMove;
 		_follow.Clear();
+		FlushOutstandingDivergences();
+		_distanceLog.Clear();
+		_divergenceAt.Clear();
 		RestoreLayerIsolation();
 	}
 
@@ -58,6 +74,10 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 		UpdateLayerIsolation();
 		if (_follow.Count == 0)
 		{
+			// Every followed copy left the world (picked up, destroyed, a layer change):
+			// the ones still diverged when that happened get their summary here, because
+			// their own end-of-divergence report will never come.
+			FlushOutstandingDivergences();
 			return;
 		}
 
@@ -75,6 +95,7 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 			{
 				(removed ??= []).Add(key);
 				_guard.Remove(key);
+				FinishDivergence(key); // picked up or destroyed mid-divergence — its window closes here
 				continue;
 			}
 
@@ -100,8 +121,16 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 					item.transform.eulerAngles = new Vector3(0f, 0f, rot);
 					if (d.LogDivergence)
 					{
-						_log.LogInformation("[ItemPhysics] settle {Id} d={Dist:F2}.", key, d.Dist); // > 0.5 = a real divergence, worth tuning on
+						ReportDivergence(key, d.Dist);
 					}
+					else
+					{
+						FinishDivergence(key);
+					}
+				}
+				else
+				{
+					FinishDivergence(key);
 				}
 			}
 			else
@@ -117,7 +146,7 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 				{
 					item.transform.position = new Vector3(d.TargetX, d.TargetY, 0f);
 					item.transform.eulerAngles = new Vector3(0f, 0f, d.TargetRot);
-					_log.LogInformation("[ItemPhysics] snap {Id} d={Dist:F1}.", key, d.Dist);
+					ReportSnap(key, d.Dist);
 				}
 			}
 		}
@@ -129,6 +158,102 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 				_follow.Remove(key);
 			}
 		}
+	}
+
+	/// <summary>
+	/// The divergence line, asked through its repetition window: true = write it (a first
+	/// line, or a repeat inside the window). A refused line is counted instead, so one
+	/// summary carries the whole run of them.
+	/// </summary>
+	private bool ReportDivergence(ulong itemId, float distance)
+	{
+		if (!_distanceLog.ShouldLog(ItemDistanceLog.Kind.Settle, itemId, distance, out var repeat))
+		{
+			_distanceLog.Repeated(ItemDistanceLog.Kind.Settle, itemId, distance);
+			return false;
+		}
+
+		_divergenceAt[itemId] = distance;
+		_log.LogInformation(
+			"[ItemPhysics] settle {Id} d={Dist:F2} (repeat {Repeat}{Suppressed}).",
+			itemId,
+			distance,
+			repeat,
+			OutstandingSuffix());
+		return true;
+	}
+
+	/// <summary>The hard-snap line, bounded exactly like the divergence line: a copy that keeps
+	/// being pushed past the snap threshold by a diverged world used to write it every frame.</summary>
+	private void ReportSnap(ulong itemId, float distance)
+	{
+		if (!_distanceLog.ShouldLog(ItemDistanceLog.Kind.Snap, itemId, distance, out var repeat))
+		{
+			_distanceLog.Repeated(ItemDistanceLog.Kind.Snap, itemId, distance);
+			return;
+		}
+
+		_log.LogInformation(
+			"[ItemPhysics] snap {Id} d={Dist:F1} (repeat {Repeat}{Suppressed}).",
+			itemId,
+			distance,
+			repeat,
+			OutstandingSuffix());
+	}
+
+	/// <summary>How many subjects the two lines are holding back — the context that says whether the
+	/// storm is one stuck item or the whole world (empty when none).</summary>
+	private string OutstandingSuffix()
+	{
+		var outstanding = _distanceLog.Outstanding;
+		return outstanding == 0 ? "" : $", {outstanding} subject(s) held back";
+	}
+
+	/// <summary>
+	/// The item's gap closed — if the window swallowed lines for it, say how many and how far it had
+	/// drifted when the gap closed. The band is the one the window was keyed on (the last distance the
+	/// divergence reported at), not this frame's near-zero distance, and ending the subject also re-arms
+	/// its window so a divergence that returns here is news again.
+	/// </summary>
+	private void FinishDivergence(ulong itemId)
+	{
+		// net48 has no Remove(key, out value): read the band, then drop the entry.
+		if (!_divergenceAt.TryGetValue(itemId, out var last))
+		{
+			return;
+		}
+
+		_divergenceAt.Remove(itemId);
+		if (!_distanceLog.Finished(ItemDistanceLog.Kind.Settle, itemId, last, out var suppressed))
+		{
+			return;
+		}
+
+		_log.LogInformation(
+			"[ItemPhysics] settle {Id} recovered at d={Dist:F2} — {Suppressed} divergence line(s) suppressed while the gap stood still.",
+			itemId,
+			last,
+			suppressed);
+	}
+
+	/// <summary>The follow table emptied (world teardown, layer change, session end): every
+	/// window still open reports what it swallowed instead of leaving the story half-told.</summary>
+	private void FlushOutstandingDivergences()
+	{
+		_distanceLog.Each(ItemDistanceLog.Kind.Settle, (key, suppressed, last) =>
+			_log.LogInformation(
+				"[ItemPhysics] settle {Id} divergence ended with the follow table — {Suppressed} divergence line(s) suppressed (last d={Dist:F2}).",
+				key.ItemId,
+				suppressed,
+				last));
+		_distanceLog.Each(ItemDistanceLog.Kind.Snap, (key, suppressed, last) =>
+			_log.LogInformation(
+				"[ItemPhysics] snap {Id} corrections ended with the follow table — {Suppressed} line(s) suppressed (last d={Dist:F1}).",
+				key.ItemId,
+				suppressed,
+				last));
+		_distanceLog.Clear();
+		_divergenceAt.Clear();
 	}
 
 	/// <summary>The host's physics moved items — store the authoritative targets;

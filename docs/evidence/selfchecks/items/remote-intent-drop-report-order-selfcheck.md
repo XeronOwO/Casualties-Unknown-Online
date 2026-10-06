@@ -1,6 +1,6 @@
 # Remote Intent Drop Report Order — Self-Check (2026-10-05)
 
-Delivery fact sheet for backlog item `todo/container-move-snapshot-only-sync.md`: the drop half of row A1
+Delivery fact sheet for backlog item `review/container-move-snapshot-only-sync.md`: the drop half of row A1
 that batch `20261005-e` rejected. On the deployed `0.1.0+cdd93044…` the container kinds, the take-out, the
 slot release and the battery unload all read the operator's and the third peer's clone-fact monitor at zero;
 the drop kind warned on both viewers, in both owner directions, with

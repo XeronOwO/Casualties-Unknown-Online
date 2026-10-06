@@ -1,6 +1,6 @@
 # Item-Fact Report Carriers — Self-Check (2026-10-06)
 
-Delivery fact sheet for backlog item `todo/container-move-snapshot-only-sync.md`: an item
+Delivery fact sheet for backlog item `review/container-move-snapshot-only-sync.md`: an item
 mutation a peer asked for is executed by its OWNER, and the owner's item-fact carriers now report
 it exactly as they report the owner's own gesture. Batch `20261005-c` read the
 `[CharSync] divergence` warning on the operator's clone fact table for every remote container move

@@ -1,9 +1,9 @@
 # Container moves reach the viewer as a snapshot, not an event
 
-- Status: Todo — the container kinds, take-out, slot release and battery unload pass on the deployed fix,
-  and the drop kind's ordering race inside the owner's own client is fixed (decision 236, gate
-  `RemoteIntentReportOrderGateTests`); what the ticket still owes is the drop row's own reading on a
-  deployed artifact and the container-expansion driver capability, both under "What remains"
+- Status: Review (batch `20261006-a`: the drop row after decision 236 passes in BOTH owner directions,
+  and the wearable half no batch had driven passes in both directions too — with the operator's and the
+  third peer's monitor at ZERO over a full quiet cycle; row A1g stays `blocked` on the
+  container-expansion driver capability, named and never substituted)
 - Priority: Medium
 - Category: Item sync / call identity (the item-fact report carriers)
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
@@ -11,8 +11,8 @@
   repository's own history introduced is fixed or ticketed.
 - Related: `review/remote-inventory-native-parity-rework` (the path that produced the warnings),
   `done/carried-inventory-registration-re-report.md`, `docs/architecture/remote-inventory-native-parity.md`
-- Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-e.md`
-  (rejected); the earlier `…-20261005-d.md` reading stands as history
+- Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md`
+  (accepted except the blocked row); `…-20261005-e.md` (rejected) and `…-20261005-d.md` stand as history
 
 ## Symptom (evidence)
 
@@ -112,13 +112,21 @@ follow stream only moves copies that already exist (`ItemPositionFollow` on a mi
 5 read the OWNER's own pickup of the dropped item (`r5-host-pickup-soup.json`) with the host as the owner,
 so a peer-side copy that never appeared was exactly what that row could not see.
 
-## What remains
+## Read by batch `20261006-a` (2026-10-06)
 
-- **The acceptance run** (`docs/acceptance/`, a three-client batch): drive the row families this change
-  touches — insert, take-out, slot release, drop, container expansion, battery load/unload — and read
-  the operator's and the third peer's clone fact monitor as a ZERO-warning row over at least one full
-  periodic cycle. Rows 3, 4 and 14 of `review/remote-inventory-native-parity-rework` are the ones this
-  change's own evidence must be read beside, because their verdicts came from owner-side probes.
+The three-client run this ticket was waiting for. On the deployed `0.1.0+ad6f73ee…` the operator's and
+the third peer's clone-fact monitor read **ZERO** across the whole gesture window and across a closing
+quiet cycle: insert, take-out, slot release onto an empty owner slot, the guest-as-owner container
+direction, a remote-driven `DropItem` in BOTH owner directions, and a remote-driven `DropWearable` in
+both directions. The drop that rejected `20261005-e` is now the fix's own log line — `a drop report is
+pending and announces it on the next frame, so no immediate re-report.` followed ~30 ms later by
+`origin=FlushPendingDrop result=Committed(1) events=[Drop, Flush]` — while the container and slot kinds
+keep their immediate re-report inside the same window, so the polarity is visible in one log. The third
+peer's own world read returns every dropped id, both owner directions. Record:
+`docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md`.
+
+Rows 3, 4 and 14 of `review/remote-inventory-native-parity-rework` are still the ones this change's own
+evidence must be read beside, because their verdicts came from owner-side probes.
 - **The drop row needs a PEER-side world read, in both owner directions.** A dropped item must be found
   in the world by a client that is neither the owner nor the operator (the third peer), for a host owner
   and for a guest owner. Row 5 of `20261005-c` read only the owner's own pickup of its own dropped item,
@@ -127,14 +135,19 @@ so a peer-side copy that never appeared was exactly what that row could not see.
   both owner directions (`cm17-alt-world-after-drop.json`, `scrapmetal` beside the guest-owned
   `waterbottle`). What is left of this row is the monitor half, which that same batch read as a failure and
   which the ordering fix below answers.
-- **The drop row's own reading after the ordering fix** (decision 236): the operator's and the third peer's
-  monitor at zero for a remote-driven `DropItem` in both owner directions, plus one full periodic cycle of
-  quiet. Nothing in this fix can be read from the unit side alone — the failing pair was two log lines
-  30 ms apart on the owner's own client.
-- **A remote-driven `DropWearable` reading, which no batch has driven yet.** The patch layer re-reported that
-  kind unconditionally (`Patches/BodyPatches.cs`, found by this cycle's independent review and now guarded at
-  the same entry point), so the row that proves the fix for `DropItem` says nothing about the wearable half:
-  the next batch drives it in both owner directions and reads the two monitors at zero.
+- **The drop row's own reading after the ordering fix** (decision 236) — **read by `20261006-a` and it
+  passes** in both owner directions: the operator's and the third peer's monitor at zero for a
+  remote-driven `DropItem`, plus one full periodic cycle of quiet. Nothing in this fix can be read from
+  the unit side alone — the failing pair was two log lines 30 ms apart on the owner's own client.
+- **A remote-driven `DropWearable` reading, which no batch has driven yet** — **read by `20261006-a` and it
+  passes in both owner directions**. The patch layer re-reported that kind unconditionally
+  (`Patches/BodyPatches.cs`, found by this cycle's independent review and now guarded at the same entry
+  point), so the row that proves the fix for `DropItem` said nothing about the wearable half. The fixture
+  it needs is recorded with the record: `PlayerCamera.TryPerformWorldActions` calls `Body.DropWearable`
+  only when `this.body.GetWearable(dragItem.id)` answers non-null, and `RemoteDragPredicatePatches`
+  answers that query from the body the ring shows, so BOTH owners have to wear the same wearable type
+  before the operator's release can produce the kind — staged through
+  `tools/acceptance/recipes/item-wear.cs`.
 - **The one-slot pending machine** (`todo/drop-pending-single-slot-overwrite.md`) is the defect this rule
   makes louder: when two drops land in one frame the first report is overwritten, and with the re-report held
   back the peers then get neither the event nor an immediate snapshot. It is filed with its evidence; a slot
@@ -143,6 +156,21 @@ so a peer-side copy that never appeared was exactly what that row could not see.
   slot release drops the item from its slot and picks it back up in one call bracket, which is the
   native shape a local drag-to-slot has (`PickupSync` cancels the pending drop and reports the move as
   a slot re-home). The run reads the operator's monitor over that gesture specifically.
+- **Row A1g (container expansion) is the ONE row still open, and it is `blocked`, not failing.** The
+  native branch needs `Input.GetKey(KeyBinds.GetBind("expanddesc"))` held, the `input` dependency's own
+  rule forbids OS-level input ("never do it", enforced by
+  `AcceptanceDriverGateTests.TheAcceptanceToolsNeverUseOsLevelInput`), and no in-process route to a held
+  physical key exists. `20261006-a` tried the one route `20261005-e` had left open — the game's own
+  radial-centre gesture, to dress a body in process — and it did not land: `mode=hover` does set
+  `camera.radialOpen = true`, but `HandleWhileDragging` re-closes the ring on the game's own next frame
+  when `|radialMenu.position.x − Input.mousePosition.x|` exceeds `600 × uiScale`, and the run may not move
+  the OS pointer. That is not a claim that the gesture is undrivable — the committed
+  `mode=release cast=-2` forces the ring's scale inside the same call, which is how batch `20261005-d`
+  drove its radial row — but it is not this kind's route either way, because this kind needs a KEY held.
+  No viewer in any batch has yet seen it, and it must not be guessed from the other five.
+- **The battery half was not re-staged by `20261006-a`**: `A1f` (battery unload) was read `pass` by
+  `20261005-e` and decision 236 does not touch the battery branch, but this run's fixture set carried no
+  installed-battery receiver, so no battery row is judged here.
 - The monitor itself is deliberately unchanged: a snapshot that carries a change no event announced
   still warns (`CloneFactTableDivergenceMonitorTests`), which is what makes the run's zero-warning row
   mean something.

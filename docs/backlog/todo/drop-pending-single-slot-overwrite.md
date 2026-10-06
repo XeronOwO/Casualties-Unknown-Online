@@ -7,7 +7,7 @@
   the repository's own rule — a defect the work turns up is fixed in the same cycle, or filed with its
   evidence and its attribution. The mechanism is pre-existing, not introduced by that fix; what the fix
   changed is how loud its consequence is.
-- Related: `todo/container-move-snapshot-only-sync.md` (decision 236 stops the immediate re-report from
+- Related: `review/container-move-snapshot-only-sync.md` (decision 236 stops the immediate re-report from
   covering a lost drop report), `docs/evidence/selfchecks/items/remote-intent-drop-report-order-selfcheck.md`
 
 ## Symptom (evidence, read from the code)

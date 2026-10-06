@@ -9,7 +9,11 @@
 - Related: `resolved/remote-backpack-native-interaction-parity.md` and `resolved/remote-backpack-item-projection-acceptance-issues.md` (the rejected deliveries this ticket replaces, absorbed here in stage 0), `review/unified-remote-display-projection-rework.md`, `review/global-projection-framework.md`, `review/tab-backpack-open-close-immediately.md`, `done/guest-container-contents-ghost-drops-on-host.md`
 - Design: `docs/architecture/remote-inventory-native-parity.md` (stage 0 record, decision 217)
 - Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-d.md`
-  (rows 3, 7, 9, 13, 14; rows 4 and 8 stay `unproven`)
+  (rows 3, 7, 9, 13, 14; rows 4 and 8 stay `unproven`); batch `20261006-a` planned two further halves of
+  this ticket and staged NEITHER: row 8's battery-LOAD half (that run's fixture set carried no
+  installed-battery receiver) and row 14's multi-item insert series (its own plan said "driven only if the
+  fixtures exist, else named as this run's limit"). No row of this ticket is judged by that batch, and
+  both halves stay `unproven`.
 
 ## Reported behaviour (2026-09-21)
 

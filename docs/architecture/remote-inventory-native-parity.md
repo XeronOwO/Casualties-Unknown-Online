@@ -212,8 +212,10 @@ that path makes:
    standing where the remote player stands — it would drop the whole release silently. The stage 1
    window therefore carries three additions, and they are what keeps the classification the game's
    own instead of a CUO table: (a) while the bracket is open, the predicates the branch reads —
-   `HoldingItem`, `GetItem`, `GetWearable`, `DoPickupCheck` — are answered from the displayed body,
-   so R8's guard, R9's own steps and W2/W3 see the proxy exactly as that body does; (b) the calls the
+   `HoldingItem`, `GetItem`, `GetWearable`, `DoPickupCheck` — are answered from the displayed body by
+   SKIPPING the native body (the first three answer from that body's own slots and limbs; the fourth is the
+   release's own feasibility gate and answers an unconditional yes for the dragged proxy — §3.2.7),
+   so R8's guard, R9's own steps and W2/W3 see the proxy exactly as that body does — and each answer happens BEFORE the game's own body runs, because those bodies keep reading the LOCAL body's state behind the very guard the redirect answered: `Body.GetItem(int)` guards on `HoldingItem(slot)` and then indexes `this.slots[slot].transform.GetChild(0)` (`Body.cs:1346-1353`), which threw `Transform child out of bounds` on a local slot the clone had occupied and lost matrix row 6's swap half whole — no intent, no refusal line, and `HandleReleaseDragging` never reached its own `dragItem = null` (batch `20261006-f`). Every query of that family is answered this way now, pinned by `RemoteDragQuerySeamGateTests`; (b) the calls the
    branch then makes are captured under the pair rules of §3.2.4; and (c) the steps internal to a
    captured call (R9's two drops, the `unload` half of a container move) are absorbed into that
    call's intent rather than executed twice, on the wrong body.

@@ -3,12 +3,25 @@ using HarmonyLib;
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// The predicate seams of the remote display-proxy release window. The native
+/// The query seams of the remote display-proxy release window. The native
 /// release branch reads <c>PlayerCamera.body</c>, which is always the local body,
 /// while the inventory ring and the dragged proxy belong to the displayed one:
 /// these patches answer that branch's own guards from the body the ring is
 /// showing, so the classification stays the game's own instead of becoming a CUO
 /// routing table.
+///
+/// Every one of them answers by SKIPPING the native body, and that is the rule
+/// rather than a style choice: the game's own query bodies read the LOCAL body's
+/// state behind the very guard the redirect answered. <c>Body.GetItem(int)</c> is
+/// the shape that proved it — it guards on <c>HoldingItem(slot)</c> and then
+/// indexes <c>this.slots[slot].transform.GetChild(0)</c> (<c>Body.cs:1346-1353</c>),
+/// so answering only the guard made it throw `Transform child out of bounds` on a
+/// local slot the clone has occupied, and the whole release died with it: no
+/// intent, no refusal line, and <c>HandleReleaseDragging</c> never reached its own
+/// <c>dragItem = null</c> (batch `20261006-f`, matrix row 6's swap half). A prefix
+/// that returns false cannot leave a native body reading state the redirect did
+/// not answer, so the invariant holds for every query this file answers and is
+/// pinned by <c>RemoteDragQuerySeamGateTests</c>.
 ///
 /// They answer ONLY inside an open release bracket on the owner's ring: while
 /// they answer, every caller inside the bracket is the native release branch
@@ -52,24 +65,38 @@ internal static class RemoteDragPredicatePatches
 				// The focus is fed exclusively from the remote render table
 				// (RemoteBackpackCoordinator.Open → the renderer's remote body), so
 				// this cannot be the local body today; the guard keeps a future
-				// caller from making the postfix below call itself forever.
+				// caller from making the prefix below call itself forever.
 				return null;
 			}
 
 			return answering;
 		}
+
+		/// <summary>
+		/// Whether a slot index names a slot of the body the ring shows. Both
+		/// bodies are instantiated from the same "Experiment" template
+		/// (<c>RemoteBodyFactory.CreateRemoteBody</c>) and carry its serialized slot
+		/// array, so the ring's own button index is valid on either; an index the
+		/// displayed body does not have is not a read about the ring at all, and its
+		/// caller keeps the native answer instead.
+		/// </summary>
+		internal static bool NamesASlotOfTheRing(Body answering, int slot) =>
+			slot >= 0 && slot < answering.slots.Length;
 	}
 
 	/// <summary><c>Body.HoldingItem(Item)</c> answered by the body that actually displays the item (R8's guard, R9's first step, W2).</summary>
 	[HarmonyPatch(typeof(Body), "HoldingItem", [typeof(Item)])]
 	internal static class RemoteDragHoldingItemPatch
 	{
-		private static void Postfix(Body __instance, Item item, ref bool __result)
+		private static bool Prefix(Body __instance, Item item, ref bool __result)
 		{
-			if (RemoteDragPredicateView.AnsweringBody(__instance) is { } answering)
+			if (RemoteDragPredicateView.AnsweringBody(__instance) is not { } answering)
 			{
-				__result = answering.HoldingItem(item);
+				return true;
 			}
+
+			__result = answering.HoldingItem(item);
+			return false;
 		}
 	}
 
@@ -77,40 +104,63 @@ internal static class RemoteDragPredicatePatches
 	[HarmonyPatch(typeof(Body), "HoldingItem", [typeof(int)])]
 	internal static class RemoteDragHoldingSlotPatch
 	{
-		private static void Postfix(Body __instance, int slot, ref bool __result)
+		private static bool Prefix(Body __instance, int slot, ref bool __result)
 		{
-			if (RemoteDragPredicateView.AnsweringBody(__instance) is { } answering
-				&& slot >= 0 && slot < answering.slots.Length)
+			if (RemoteDragPredicateView.AnsweringBody(__instance) is not { } answering
+				|| !RemoteDragPredicateView.NamesASlotOfTheRing(answering, slot))
 			{
-				__result = answering.HoldingItem(slot);
+				return true;
 			}
+
+			__result = answering.HoldingItem(slot);
+			return false;
 		}
 	}
 
-	/// <summary><c>Body.GetItem(int)</c> answered by the body the ring shows (the slot release's occupying item, R8's slot argument).</summary>
+	/// <summary>
+	/// <c>Body.GetItem(int)</c> answered by the body the ring shows (the slot
+	/// release's occupying item, R8's slot argument). The answer must SKIP the
+	/// native body: that body guards on <c>HoldingItem(slot)</c> — which this file
+	/// answers from the clone — and then indexes the LOCAL body's slot transform,
+	/// which is the `Transform child out of bounds` of batch `20261006-f`. Called
+	/// from inside the bracket (R8's own `SwapSlots` argument walk in
+	/// <c>RemoteDragMutationPatches</c>), this is the read that makes the whole
+	/// branch answer about the owner's body.
+	/// </summary>
 	[HarmonyPatch(typeof(Body), "GetItem")]
 	internal static class RemoteDragGetItemPatch
 	{
-		private static void Postfix(Body __instance, int slot, ref Item __result)
+		private static bool Prefix(Body __instance, int slot, ref Item __result)
 		{
-			if (RemoteDragPredicateView.AnsweringBody(__instance) is { } answering
-				&& slot >= 0 && slot < answering.slots.Length)
+			if (RemoteDragPredicateView.AnsweringBody(__instance) is not { } answering
+				|| !RemoteDragPredicateView.NamesASlotOfTheRing(answering, slot))
 			{
-				__result = answering.GetItem(slot);
+				return true;
 			}
+
+			__result = answering.GetItem(slot);
+			return false;
 		}
 	}
 
-	/// <summary><c>Body.GetWearable(string)</c> answered by the body the ring shows (W3's worn-item guard).</summary>
+	/// <summary>
+	/// <c>Body.GetWearable(string)</c> answered by the body the ring shows (W3's
+	/// worn-item guard). The native body walks the LOCAL body's limb transforms,
+	/// whose items are the local player's — a query about the displayed body's worn
+	/// item must not be answered from them.
+	/// </summary>
 	[HarmonyPatch(typeof(Body), "GetWearable")]
 	internal static class RemoteDragGetWearablePatch
 	{
-		private static void Postfix(Body __instance, string itemid, ref Item __result)
+		private static bool Prefix(Body __instance, string itemid, ref Item __result)
 		{
-			if (RemoteDragPredicateView.AnsweringBody(__instance) is { } answering)
+			if (RemoteDragPredicateView.AnsweringBody(__instance) is not { } answering)
 			{
-				__result = answering.GetWearable(itemid);
+				return true;
 			}
+
+			__result = answering.GetWearable(itemid);
+			return false;
 		}
 	}
 
@@ -145,7 +195,8 @@ internal static class RemoteDragPredicatePatches
 	/// <summary>
 	/// A remote container's window opened by the native release. The window is the
 	/// game's own; CUO only tracks which authoritative container it shows so the
-	/// projection can re-bind it after a rebuild.
+	/// projection can re-bind it after a rebuild — so this one patches an ACTION
+	/// whose native body must run, not a query, and it keeps its postfix.
 	/// </summary>
 	[HarmonyPatch(typeof(PlayerCamera), "OpenContainer")]
 	internal static class RemoteDragOpenContainerPatch

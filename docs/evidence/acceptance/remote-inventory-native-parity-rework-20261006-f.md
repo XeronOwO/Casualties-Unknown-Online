@@ -30,8 +30,9 @@
   `Body.SlotOf(item)` walks `Body.GetItem(i)`, whose `HoldingItem(i)` is answered by the displayed clone
   while the method body still indexes the LOCAL body's slot transform, so an empty local slot makes
   `Transform.GetChild(0)` throw. The whole release is lost with it (no intent, no refusal line) and
-  `HandleReleaseDragging` never reaches its own `dragItem = null`, so the drag stays staged until the ring
-  closes.
+  `HandleReleaseDragging` never reaches its own `dragItem = null`: the drag was never cleared — the ring
+  closed after the abort with `camera.dragItem` still set, and the batch's probe cleared it before the next
+  row.
 - **The same proxy released over the world instead of over a ring button still works** — the diagnostic
   run's ring-less release classified as `DropItem` and the owner replayed it: `[RemoteIntent] replayed native
   DropItem on item 13787924117`, `[ItemDropped] bandage (id 13787924117) at (4.8,493.0)`,

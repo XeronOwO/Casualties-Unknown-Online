@@ -163,12 +163,17 @@ internal static class BodyItemPatches
 		}
 	}
 
-	/// <summary>Same guard for DropWearable — its GetWearable check can no-op (not worn), which the old Postfix reported as a drop.</summary>
+	/// <summary>Same guard for DropWearable — its GetWearable check can no-op (not worn), which the old Postfix reported as a drop. The display-proxy guard matches its two siblings: inside an open release bracket this prefix's own <c>GetWearable</c> read is answered by the DISPLAYED body (<c>RemoteDragPredicatePatches</c>), so the check can pass for a dragged proxy — and a display proxy is never a local drop. Reporting it would hand an item of another player's inventory to <c>ItemWorldSync.OnItemDropped</c> and stamp it an id (the "extra item" family); the proxy's own drop is the intent the owner replays.</summary>
 	[HarmonyPatch(typeof(Body), "DropWearable")]
 	internal static class DropWearablePatch
 	{
 		private static void Prefix(Body __instance, Item item)
 		{
+			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==; a display proxy is never a local drop
+			{
+				return;
+			}
+
 			if (__instance.GetWearable(item.id) != null) // Unity object — ==
 			{
 				PatchBridge.Impl?.OnItemDropped(item);

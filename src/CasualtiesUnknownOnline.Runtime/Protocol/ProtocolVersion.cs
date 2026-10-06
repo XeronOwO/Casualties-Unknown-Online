@@ -2,9 +2,25 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 
 public static class ProtocolVersion
 {
-	/// <summary>Wire compatibility version for the handshake. No released
-	/// compatibility surface exists yet, so each behavioral wire extension bumps
-	/// this and mixed-version sessions are rejected by the handshake.
+	/// <summary>The value every PRE-RELEASE build declares, and the value the handshake compares.
+	/// It is FROZEN: before the first official release no wire change moves it (decision 241), because every
+	/// client in a session is deployed from this tree — the deploy refuses while a game runs — so an
+	/// increment would identify nothing. The first official release retires this baseline: `Current` takes the
+	/// released number from then on and the per-change increments resume.</summary>
+	public const int UnreleasedBaseline = 1;
+
+	/// <summary>Wire compatibility version for the handshake.
+	/// PRE-RELEASE this equals <see cref="UnreleasedBaseline"/> and NO wire change moves it. The handshake
+	/// check still runs exactly as it always has — a peer whose declared value differs is refused
+	/// (`HandshakeHandler`, `HandshakeAckHandler`) — it simply has one value to compare against today.
+	/// FROM THE FIRST OFFICIAL RELEASE the increment rule is ON: each behavioral wire extension bumps this
+	/// value in the same change and adds its own `/// <n>:` entry below, which is also what the gate over this
+	/// file requires from that moment. A wire change made before that release is recorded by its commit and
+	/// its ticket, never by a number here.
+	/// The per-number entries below (19 … 45) are the RETIRED pre-release sequence. They are kept because they
+	/// are the wire's own rationale log — what changed and what a peer without it would do — and because
+	/// decisions, tickets and records cite them by number. No value below is current.
+	/// --- retired pre-release sequence (19 … 45) ---
 	/// 19: `BlockStateEntryMsg.SupportLossSettled` — the receiver uses it to decide
 	/// whether a snapshot row re-settles building support loss, so a peer without it
 	/// would re-kill buildings the authority still holds.
@@ -263,6 +279,6 @@ public static class ProtocolVersion
 	/// and no snapshot repair could reconcile the two. It now holds the generation
 	/// until the announced set restores. A peer without the flag would regenerate
 	/// from its own baseline again (no hold), so one session would mix two worlds.
-	public const int Current = 45;
+	public const int Current = UnreleasedBaseline;
 
 }

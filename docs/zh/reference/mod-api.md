@@ -398,8 +398,8 @@ BepInEx/plugins/MyMod/MyMod.dll        <- BepInEx loads this (the shell)
 
 ## 版本纪律
 
-- 当前的线上版本就是 `ProtocolVersion.Current` 声明的值（`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs`）。那个常量自己的注释就是线上变更日志 —— 这一页刻意不写任何数字，而且有门禁会让复述该值的现行治理文档变红。
-- 改变线上行为要抬 `ProtocolVersion.Current`；只在本地生效、只读、不引入线上变更的模组接口面不用抬。
+- 线上版本就是 `ProtocolVersion.Current` 声明的值（`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs`）。那个常量自己的注释写着政策，并保存着发布前那串已退役的线上变更日志 —— 这一页刻意不写任何数字，而且有门禁会让复述该值的现行治理文档变红。
+- 这个号怎么走由决定 241 定，并不是「每次线上改动都抬」：首个正式发布之前，这条常量是冻结的基线（`UnreleasedBaseline`），协议变更不会移动它，所以发布前的线上改动随它的提交与票面走；自那次发布起，每一次有行为变化的线上改动都在同一次改动里抬高它。增加线上行为的模组遵循同一节奏，只在本地生效、只读、不引入线上变更的模组接口面则永远不碰它。
 - 模组版本是严格的 SemVer 字符串，在发现阶段校验，带状态的模式按优先级比较。
 - 64 KiB 上限是策略常量（`ModChannel.MaxPayloadBytes`）；调高它是一个与协议相邻的决定，不是线上格式的变更。
 

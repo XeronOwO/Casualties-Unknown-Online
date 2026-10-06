@@ -158,11 +158,15 @@ The compatibility boundary is the protocol-version check at the handshake: the h
 `HandshakeAckMsg.Protocol`. A mixed-version session therefore never exists, which is why a wire change
 is never held back for compatibility's sake.
 
-- A mod that adds wire behaviour bumps `ProtocolVersion.Current` in the same change. The constant's own
-  doc comment is the wire-change log, and no live document restates the number — a record of a past
-  state keeps the number it was written with, and `ProtocolNumberGateTests` fails a live governance
-  document that restates it.
-- A mod that touches only local or read-only surfaces and adds no wire change does not bump it.
+- The NUMBER moves on a schedule of its own (decision 241). Before the first official release
+  `ProtocolVersion.Current` is a FROZEN baseline (`UnreleasedBaseline`) that no wire change moves, so a
+  pre-release wire change ships with its commit and its ticket; from that release each behavioral wire
+  extension bumps it in the same change, with its own per-number entry in the constant's comment. A mod
+  that adds wire behaviour follows the same rule. The constant's own doc comment carries the policy and
+  the retired pre-release log, and no live document restates the number — a record of a past state keeps
+  the number it was written with, and `ProtocolNumberGateTests` fails a live governance document that
+  restates it.
+- A mod that touches only local or read-only surfaces and adds no wire change never touches it.
 - Mod versions are strict SemVer, compared by precedence for state-bearing modes; the handshake matrix
   in [The mod API contract](mod-api.md#handshake-consistency) is the contract.
 

@@ -132,13 +132,15 @@ Compatibility is never a design input. The boundary is the protocol-version chec
 host refuses a peer whose `HandshakeMsg.Protocol` differs and the guest ends the session on a
 mismatched `HandshakeAckMsg.Protocol`. A change therefore never has to keep an old wire or save shape
 alive, retain a legacy field, or pick a weaker mechanism to avoid a version bump: change the wire the
-mechanism needs and bump `ProtocolVersion.Current` in the same change (the numbering policy is in
+mechanism needs, and let the number follow its own schedule — before the first official release
+`ProtocolVersion.Current` is a frozen baseline that no wire change moves, and from that release each
+behavioral wire change bumps it in the same change (the numbering policy is decision 241 in
 [active.md](../../decisions/active.md)). "No wire change" and "host untouched" are facts worth
 recording, never merits or constraints in a design argument — before and after release alike.
 
-The version number lives in exactly one place, `ProtocolVersion.Current`, and its doc comment is the
-wire-change log; live governance documents point at the constant instead of restating it, which is
-what `ProtocolNumberGateTests` checks.
+The version number lives in exactly one place, `ProtocolVersion.Current`; its doc comment carries the
+policy and the retired pre-release wire-change log, and live governance documents point at the constant
+instead of restating it, which is what `ProtocolNumberGateTests` checks — the freeze included.
 
 ## Writing a new gate
 

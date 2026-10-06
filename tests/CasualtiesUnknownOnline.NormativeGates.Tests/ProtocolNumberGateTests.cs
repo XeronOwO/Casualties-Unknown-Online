@@ -16,6 +16,13 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// 31 while the constant was 34, and the decision that defines the numbering
 /// policy claimed 31 too).
 ///
+/// The pre-release freeze (decision 241) is pinned here too: the constant declares
+/// <c>UnreleasedBaseline</c> and <c>Current</c> IS that baseline, so a wire change ships without a number and the
+/// per-number log entry is required only once the increment rule is on — a value that moved must carry its own
+/// entry, a frozen baseline must not have one invented for it. Both directions are sampled, and the live file is
+/// read on every run, so the first official release fails this gate until someone moves the assertions with it
+/// (which is the point: turning the rule on is a deliberate act).
+///
 /// Scan surface and its boundary, stated rather than implied: only the documents
 /// that state CURRENT facts are scanned — <c>AGENTS.md</c>, the live architecture,
 /// development and evidence pages named in <see cref="LiveDocumentPaths"/>, the
@@ -56,6 +63,20 @@ public class ProtocolNumberGateTests
 		"docs/zh/reference/modification-policy.md",
 		"docs/zh/reference/protocol-messages.md"
 	];
+
+	/// <summary>The frozen pre-release baseline's declaration and the sentences the policy has to state. The value itself is asserted rather than read, because it IS the deliberate act this gate guards: the first official release moves it.</summary>
+	private const string DeclaredBaseline = "1";
+
+	private static readonly Regex BaselineRegex = new(@"public const int UnreleasedBaseline = (?<value>\d{1,3});");
+	private static readonly Regex CurrentRegex = new(@"public const int Current = (?<expression>[A-Za-z_][A-Za-z0-9_.]*|\d{1,3});");
+	private static readonly Regex LogEntryRegex = new(@"^\s*///\s*(?<value>\d{1,3}):", RegexOptions.Multiline);
+
+	/// <summary>Sentence the constant's comment must carry for the freeze, and the one that turns the rule on.</summary>
+	private const string FreezeMarker = "NO wire change moves it";
+
+	private const string ReleaseMarker = "FROM THE FIRST OFFICIAL RELEASE the increment rule is ON";
+
+	private const string RetiredMarker = "--- retired pre-release sequence";
 
 	private static readonly Regex VersionLineRegex = new(@"ProtocolVersion\.Current|protocol version", RegexOptions.IgnoreCase);
 	private static readonly Regex AssignmentRegex = new(@"ProtocolVersion\.Current\s*=\s*`?(\d{1,3})");
@@ -106,6 +127,98 @@ public class ProtocolNumberGateTests
 		Assert.Empty(FindRestatedVersions("the value lives in `ProtocolVersion.Current`; its doc comment lists the wire changes."));
 		Assert.Empty(FindRestatedVersions("the protocol version sequence was deliberately reset before the first release."));
 		Assert.Empty(FindRestatedVersions("the generation stamp landed with ProtocolVersion.Current 23 → 24."));
+	}
+
+	[Fact]
+	public void ThePreReleaseBaseline_IsFrozenAndThePolicyIsStated()
+	{
+		var source = RepositoryPaths.ReadText(VersionSource);
+
+		var baseline = BaselineRegex.Match(source);
+		Assert.True(baseline.Success, $"{VersionSource} no longer declares `public const int UnreleasedBaseline = <n>;`");
+		Assert.True(
+			baseline.Groups["value"].Value == DeclaredBaseline,
+			$"the pre-release baseline is {DeclaredBaseline} (decision 241): 0 is what an absent handshake member "
+			+ "decodes to, so a peer that never declared a protocol would read as a match. The FIRST OFFICIAL RELEASE "
+			+ "retires the baseline — set `Current` to the released number, move this assertion with it, and resume the "
+			+ "per-change increments along with this gate's log-entry half.");
+
+		var current = CurrentRegex.Match(source);
+		Assert.True(current.Success, $"{VersionSource} no longer declares `public const int Current = <value>;`");
+		Assert.True(
+			current.Groups["expression"].Value == "UnreleasedBaseline",
+			"before the first official release `Current` IS the baseline: a literal here means the increment rule was "
+			+ "turned on. If that was the first release, move this assertion with it; if it was not, the freeze was "
+			+ "bypassed.");
+
+		Assert.Contains(FreezeMarker, source, StringComparison.Ordinal);
+		Assert.Contains(ReleaseMarker, source, StringComparison.Ordinal);
+		Assert.Contains(RetiredMarker, source, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("public const int UnreleasedBaseline = 1;", "1")]
+	[InlineData("public const int UnreleasedBaseline = 0;", "0")]
+	[InlineData("public const int Current = UnreleasedBaseline;", "UnreleasedBaseline")]
+	[InlineData("public const int Current = 45;", "45")]
+	public void TheTwoDeclarations_AreReadFromTheirOwnShape(string source, string expected)
+	{
+		var baseline = BaselineRegex.Match(source);
+		var current = CurrentRegex.Match(source);
+		Assert.Equal(expected, baseline.Success ? baseline.Groups["value"].Value : current.Groups["expression"].Value);
+	}
+
+	[Theory]
+	[InlineData("public const int UnreleasedBaseline = 1;\npublic const int Current = UnreleasedBaseline;\n", false)]
+	[InlineData("public const int Current = 46;\n", true)]
+	[InlineData("public const int Current = 46;\n\t/// 46: the wire moved, and why that matters.\n", false)]
+	public void ThePerNumberLogEntry_IsRequiredOnlyOnceTheValueMoves(string source, bool expectMissing) =>
+		Assert.Equal(expectMissing, MissingLogEntry(source) is not null);
+
+	[Fact]
+	public void TheLiveFile_SatisfiesTheLogEntryRuleForItsOwnValue()
+	{
+		var failure = MissingLogEntry(RepositoryPaths.ReadText(VersionSource));
+		Assert.True(failure is null, failure ?? "");
+	}
+
+	/// <summary>
+	/// The half the retired consume-sound pin carried, kept across the freeze: a value that MOVED (which is only
+	/// possible once the increment rule is on) must carry its own <c>/// &lt;n&gt;:</c> entry, and the frozen
+	/// baseline must not have one invented for it. Reads the two declarations out of the same source, so it says
+	/// the right thing on both sides of the first release.
+	/// </summary>
+	private static string? MissingLogEntry(string source)
+	{
+		var current = CurrentRegex.Match(source);
+		if (!current.Success)
+		{
+			return $"{VersionSource} no longer declares `public const int Current = <value>;`";
+		}
+
+		var expression = current.Groups["expression"].Value;
+		if (expression == "UnreleasedBaseline" && BaselineRegex.IsMatch(source))
+		{
+			return null; // frozen: no number moved, so no per-number entry is owed
+		}
+
+		return HasLogEntry(source, expression)
+			? null
+			: $"`Current` is {expression} but its own doc comment carries no `/// {expression}:` entry — a value that "
+				+ "moved must record what moved and what a peer without it would do.";
+	}
+
+	private static bool HasLogEntry(string source, string value)
+	{
+		foreach (Match match in LogEntryRegex.Matches(source))
+		{
+			if (match.Groups["value"].Value == value)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static IEnumerable<string> LiveDocuments()

@@ -117,10 +117,13 @@ event and rides a batch.
 ## The version check is the compatibility boundary
 
 Both sides compare the protocol version during the join [handshake](glossary.md), and either side ends
-the attempt when the numbers differ. That check is the whole compatibility story: a wire change ships
-together with a version bump, so the code never keeps an old shape alive. The current value lives in
-`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs` — that constant's own comment is the
-wire-change log, and this page deliberately restates no number.
+the attempt when the numbers differ. That check is the whole compatibility story, and it does not depend
+on the number moving: before the first official release the constant is a FROZEN baseline that no wire
+change moves, so a pre-release wire change ships with its commit and its ticket instead of a number; from
+that release each behavioral wire change bumps it in the same change. Either way the code never keeps an
+old shape alive. The value lives in
+`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs` — that constant's own comment carries
+the policy and the retired pre-release wire-change log, and this page deliberately restates no number.
 
 The protocol's versioning rules:
 

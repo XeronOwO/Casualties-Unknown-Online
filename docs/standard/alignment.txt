@@ -8,7 +8,7 @@
 #
 docs/en/contributing/build-and-test.md | 2013dd195f97299241fd0d7c072f14546c6bcdfe | docs/zh/contributing/build-and-test.md | 7bda7f3d8f733680829359680db9fdfb3d46492d
 docs/en/contributing/documentation-standard.md | dce107cfc9ca768e7ba4fca2275475da5285801c | docs/zh/contributing/documentation-standard.md | 15ec81bb32cae69b18a25ea10459531d8834ca26
-docs/en/contributing/gates-and-rules.md | b7196fb579f0601970a51a2c3ed97df9d8c8de86 | docs/zh/contributing/gates-and-rules.md | 99ebc6a6ac9f0f5545fcb0466fc6b0128dd21c17
+docs/en/contributing/gates-and-rules.md | 16e258dc73c6e1154c38eece608aef1244e8b6a5 | docs/zh/contributing/gates-and-rules.md | a7f68ee442c616033eac012fc3e8699a355d491d
 docs/en/contributing/README.md | ffac48cf4e71a91239198ef64b1a50f5ba275618 | docs/zh/contributing/README.md | 891c0e1ab09c0c96510bf9af4450307060a238a0
 docs/en/contributing/repository-map-and-pitfalls.md | 25228a7c4fefe71c4c21e7449f51806c6aa50a48 | docs/zh/contributing/repository-map-and-pitfalls.md | 2698599f582fbc3183dca7bf2bfb42632a5c21e7
 docs/en/contributing/review-and-delivery.md | a3a4262cda2115448fd74c058fe213cf035467ec | docs/zh/contributing/review-and-delivery.md | 1b2c3c70a56a552ff056886eccce9779d851e3c5
@@ -23,7 +23,7 @@ docs/en/how-to/send-a-network-message.md | 5dcc61632738f86e944443d90c9fd390856c5
 docs/en/internals/adapter-and-updates.md | ba92d18b9d36f40fed24300e7aefb74d20ce40b6 | docs/zh/internals/adapter-and-updates.md | 827d912906cea37a8cfe457785cb3bc506f4dcc5
 docs/en/internals/architecture-overview.md | 2bc7fcef784f7f01fd8cb74ded45f3818c2e21c2 | docs/zh/internals/architecture-overview.md | 4a99b02b9f5ebb3da3c0cb6082c0b1bb2672c73c
 docs/en/internals/enemy-sync.md | 893543d4878d239e6f8cb2492c7de548b4c8233d | docs/zh/internals/enemy-sync.md | 038f79c16f587badbbf0eeff21b1d449d645cf13
-docs/en/internals/envelope-protocol.md | e3c8e22e472244d769398a80c8a5df848dfd32cb | docs/zh/internals/envelope-protocol.md | 945ece485d7fe857b580b9694601a1a646a0b0ea
+docs/en/internals/envelope-protocol.md | e0c3579f356d809ff72678e4b886e450e314bfb0 | docs/zh/internals/envelope-protocol.md | 02e5f7ce5fca62006c7c1df8e16b1df64bf50c4e
 docs/en/internals/game-internals.md | 09074bef37bcf648d8868c3f86146d6519cb06e1 | docs/zh/internals/game-internals.md | 90b8a457fd156fa6a59fbf7e04c7e223d4c0ec6d
 docs/en/internals/judgment-ownership.md | 57b6cafc8379586a1e1fa96d81d3cd56a3d59aff | docs/zh/internals/judgment-ownership.md | a1cf28bca950ba3e806bed3205ce6f93ca25c020
 docs/en/internals/mod-loading-lifecycle.md | 854cd8b636daa21a53f4524c2222cab31dceff63 | docs/zh/internals/mod-loading-lifecycle.md | 44d10389c954c80a847d5522fd76e94266985e65
@@ -36,9 +36,9 @@ docs/en/reference/configuration.md | d4d4e0708638645e476720bfa78aee5f5093b134 | 
 docs/en/reference/feature-matrices.md | 3546f411e3a4f4f78f02c971bb14edc9bf486e05 | docs/zh/reference/feature-matrices.md | 6a942efc0bb693925c3321ad957df26a89ef08a6
 docs/en/reference/glossary.md | 262e669835de3abc257fe5ab86107cf482e7a88d | docs/zh/reference/glossary.md | 08b43f0be141113dcdf8ff0096ad838d9344ffe3
 docs/en/reference/logs.md | d3da963784a8a6d094377f91cf8f23af91a4eac7 | docs/zh/reference/logs.md | 12fe2563846c7bd752c107b7b1c274fd7a15bbe5
-docs/en/reference/mod-api.md | bb34fb0ea7ba8379688961ed48e1416814846038 | docs/zh/reference/mod-api.md | 1617610449f7d3b9c4f291a900328a654bfb0476
-docs/en/reference/modification-policy.md | b07ff74d4e47b9ae67fe77f0b658d6d5a3cfa3f4 | docs/zh/reference/modification-policy.md | d913d6ac0121e47509dd59ece65f69534a874784
-docs/en/reference/protocol-messages.md | fb69aad67415b3498a0ae5291cf40aebcbfe55c1 | docs/zh/reference/protocol-messages.md | 7d2c3d000bf2c22b5909dc877a9193f6b9ab0113
+docs/en/reference/mod-api.md | 284dfa6621425bdb5ebe9aa8fcdae4b0981c7867 | docs/zh/reference/mod-api.md | 87166dbe35d6ba9e528e9fb84c8c99b607c8b540
+docs/en/reference/modification-policy.md | 4a4b7f4910164e5378dcf93d169b78ee75e26067 | docs/zh/reference/modification-policy.md | 91e1e1a6693c6c2f95592c0e2741e0a141ca98e2
+docs/en/reference/protocol-messages.md | 40efba5947ad286894b3ae5f2c9107c4a9ab7b56 | docs/zh/reference/protocol-messages.md | 8190dbb4107ca5e73aeb7351069c2f93dc715a47
 docs/en/reference/README.md | 746bac1e857e688d5e17a0627cc724668371f40d | docs/zh/reference/README.md | 5f6930e1bb4f0285c9640b4f1f074f6056655cec
 docs/en/start/install-and-play.md | a4beae7cabb4ab4a9f37e1e2c0b3ff4ded7cea82 | docs/zh/start/install-and-play.md | 6a5429c073d0fc4b93e494e45737c2bdc569d11c
 docs/en/start/README.md | ca30fc1d1b32f72c146cc78db12850a11130cd4e | docs/zh/start/README.md | 919c5b19dc81461a3e588e12aab37ce9b33e6017

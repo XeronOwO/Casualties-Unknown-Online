@@ -57,7 +57,7 @@ Host: normal batches and streams from M on
 
 ## 版本校验就是兼容边界
 
-双方在加入[握手](../reference/glossary.md)时比对协议版本，数字不一致，任何一侧都会结束这次尝试。整个兼容策略就这么一条：`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs` 写明了政策 —— 每一次有行为变化的线上扩展都抬高这个号，版本不一致的会话由握手拒绝。所以线上改动和版本号抬升在同一次改动里一起落地，代码永远不必把旧形状留着。
+双方在加入[握手](../reference/glossary.md)时比对协议版本，数字不一致，任何一侧都会结束这次尝试。整个兼容策略就这么一条；至于这个号自己怎么走，`src/CasualtiesUnknownOnline.Runtime/Protocol/ProtocolVersion.cs` 写明了：首个正式发布之前它是一条冻结的基线（`UnreleasedBaseline`），协议变更不会移动它 —— 一次会话里的每个客户端都部署自同一棵树，所以发布前的线上改动随它的提交与票面走，不随号码走；自那次发布起，每一次有行为变化的线上扩展都在同一次改动里抬高它，并补上自己的逐号条目。两种情况下的结论一致：代码永远不必把旧形状留着，线上改动以线上改动本身落地，版本不一致的会话是被拒绝的，而不是被容忍的。
 
 ## 什么不走信封
 

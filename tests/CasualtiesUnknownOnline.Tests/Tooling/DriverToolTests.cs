@@ -21,7 +21,7 @@ public class DriverToolTests
 		var run = DriverToolHarness.Run("-ListActions");
 
 		Assert.Equal(0, run.ExitCode);
-		foreach (var action in new[] { "ping", "state", "open-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run", "continue-run", "leave-world", "console", "quit", "recipe" })
+		foreach (var action in new[] { "ping", "state", "open-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run", "continue-run", "leave-world", "console", "quit", "recipe", "declare" })
 		{
 			Assert.True(run.Output.Contains(action, StringComparison.Ordinal), $"the vocabulary does not name '{action}':{Environment.NewLine}{run.Output}");
 		}
@@ -635,6 +635,93 @@ public class DriverToolTests
 		Assert.Equal(1, run.ExitCode);
 		Assert.True(run.Output.Contains("eval-error", StringComparison.Ordinal), run.Output);
 		Assert.True(run.Output.Contains("recipe blew up", StringComparison.Ordinal), "the client's message must reach the caller");
+	}
+
+	[Fact]
+	public void Declare_ProbesLoadsAndVerifiesTheDeclaration()
+	{
+		using var server = new FakeHotReplServer();
+		var loaded = false;
+		server.Handler = frame =>
+		{
+			if (frame.Contains("class AcceptanceWindowKey", StringComparison.Ordinal))
+			{
+				// A declaration is a whole input with nothing to return: the evaluator answers a result
+				// without a value, and the driver has to read that as the declaration's own verdict.
+				loaded = true;
+				return FakeHotReplServer.ReplyWithoutValue(frame);
+			}
+
+			return FakeHotReplServer.ReplyFor(frame, loaded
+				? "{\"ok\":true,\"declared\":true,\"type\":\"AcceptanceWindowKey\",\"assembly\":\"mcs\"}"
+				: "{\"ok\":true,\"declared\":false,\"type\":\"AcceptanceWindowKey\"}");
+		};
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "declare", "-Declare", "window-key");
+
+		Assert.Equal(0, run.ExitCode);
+		Assert.Equal("true", DriverToolHarness.Field(run.Output, "declared"));
+		Assert.Equal("true", DriverToolHarness.Field(run.Output, "sent"));
+		var frames = server.Frames;
+		Assert.Equal(3, frames.Count);
+		Assert.True(frames[0].Contains("var wanted = \\\"AcceptanceWindowKey\\\"", StringComparison.Ordinal), "the first frame is the presence probe, asked about the type the declaration names");
+		Assert.True(frames[1].Contains("class AcceptanceWindowKey", StringComparison.Ordinal), "the second frame is the declaration itself");
+		Assert.True(frames[1].Contains("QueueKeyDown", StringComparison.Ordinal), "the declaration is sent as the committed file, not a hand-rolled snippet");
+		Assert.True(frames[2].Contains("var wanted = \\\"AcceptanceWindowKey\\\"", StringComparison.Ordinal), "the third frame verifies that the type landed");
+	}
+
+	[Fact]
+	public void Declare_OnAClientThatAlreadyHasItSendsNothing()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame => FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"declared\":true,\"type\":\"AcceptanceWindowKey\",\"assembly\":\"mcs\"}");
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "declare", "-Declare", "window-key");
+
+		Assert.Equal(0, run.ExitCode);
+		Assert.Equal("false", DriverToolHarness.Field(run.Output, "sent"));
+		Assert.Single(server.Frames);
+	}
+
+	[Fact]
+	public void Declare_ThatNeverLandsFails()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame => frame.Contains("class AcceptanceWindowKey", StringComparison.Ordinal)
+			? FakeHotReplServer.ReplyWithoutValue(frame)
+			: FakeHotReplServer.ReplyFor(frame, "{\"ok\":true,\"declared\":false,\"type\":\"AcceptanceWindowKey\"}");
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "declare", "-Declare", "window-key");
+
+		Assert.Equal(1, run.ExitCode);
+		Assert.True(run.Output.Contains("declare-failed", StringComparison.Ordinal), run.Output);
+	}
+
+	[Fact]
+	public void Declare_ProbeThatSaysNothingAboutTheTypeFails()
+	{
+		using var server = new FakeHotReplServer();
+		server.Handler = frame => FakeHotReplServer.ReplyFor(frame, "{\"ok\":true}");
+
+		var run = DriverToolHarness.Run("-Url", server.Url, "-Action", "declare", "-Declare", "window-key");
+
+		Assert.Equal(1, run.ExitCode);
+		Assert.True(run.Output.Contains("declare-probe", StringComparison.Ordinal), run.Output);
+		Assert.Single(server.Frames);
+	}
+
+	[Fact]
+	public void Declare_WithoutAKnownNameIsAUsageError()
+	{
+		var missing = DriverToolHarness.Run("-Url", "ws://127.0.0.1:1/", "-Action", "declare");
+
+		Assert.Equal(64, missing.ExitCode);
+		Assert.True(missing.Output.Contains("-Declare", StringComparison.Ordinal), missing.Output);
+
+		var unknown = DriverToolHarness.Run("-Url", "ws://127.0.0.1:1/", "-Action", "declare", "-Declare", "not-a-declaration");
+
+		Assert.Equal(64, unknown.ExitCode);
+		Assert.True(unknown.Output.Contains("eval-declarations", StringComparison.Ordinal), unknown.Output);
 	}
 
 	[Fact]

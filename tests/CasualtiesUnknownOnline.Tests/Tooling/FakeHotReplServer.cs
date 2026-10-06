@@ -96,6 +96,12 @@ internal sealed class FakeHotReplServer : IDisposable
 	internal static string ReplyTruncated(string requestFrame) =>
 		"{\"type\":\"eval_result\",\"id\":\"" + RequestId(requestFrame) + "\",\"value\":null,\"valueType\":\"System.String\",\"truncated\":true,\"durationMs\":1}";
 
+	/// <summary>An <c>eval_result</c> for an input that had nothing to return — the shape a type
+	/// declaration has (<c>value: null</c> and NOT truncated, which is what the driver's own
+	/// no-value path distinguishes).</summary>
+	internal static string ReplyWithoutValue(string requestFrame) =>
+		"{\"type\":\"eval_result\",\"id\":\"" + RequestId(requestFrame) + "\",\"value\":null,\"valueType\":null,\"truncated\":false,\"durationMs\":1}";
+
 	internal static int FreePort()
 	{
 		var probe = new TcpListener(IPAddress.Loopback, 0);

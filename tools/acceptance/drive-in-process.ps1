@@ -21,6 +21,12 @@ carry relation, a forced body state, a movement window. One invocation runs one 
 `{{n:key}}` (number) arguments it needs, every declared argument must be supplied exactly once, and
 a sequence of scenarios is the run's own loop of steps — never a wait inside one snippet.
 
+The declare action loads one committed eval declaration (driver/eval-declarations/<name>.cs) into a
+client. A declaration is a capability the evaluator has to be given before a recipe can use it — the
+evaluator takes a type at most once per client and a repeat is an error — so the action probes for the
+type first, sends the declaration only when it is absent, and probes again for its verdict; a run sends
+each declaration once per client, before the first step that needs it.
+
 Exit codes: 0 ok, 1 the client refused or the setup was not reached, 2 transport failure, 3 timeout,
 4 driver or protocol failure (a malformed, truncated or unexpected answer), 64 usage.
 
@@ -52,6 +58,12 @@ PowerShell refuses the same parameter bound twice). The key is a `{{s:key}}` (st
 (number) placeholder in the recipe; every placeholder needs exactly one value and every value must be
 used. Values must stay comma-free — numbers, modes and decimal SteamIds.
 
+.PARAMETER Declare
+The eval declaration to load for -Action declare: the file stem under
+tools/acceptance/driver/eval-declarations/. The file's own `// declares:` line names the type the
+presence probe asks about. The action is idempotent per client: a declaration already in the client's
+evaluator is reported rather than sent again.
+
 .PARAMETER TimeoutMs
 The budget for the whole action, in milliseconds, checked between steps. The first connection gets up to
 the same 10-second ceiling this budget derives the eval timeout from — a loaded machine's slow connect is
@@ -76,7 +88,7 @@ powershell -ExecutionPolicy Bypass -File tools/acceptance/drive-in-process.ps1 -
 [CmdletBinding()]
 param(
 	[string]$Url,
-	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'quit', 'recipe')]
+	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'quit', 'recipe', 'declare')]
 	[string]$Action,
 	[string]$ControlId,
 	[string]$Text,
@@ -85,6 +97,7 @@ param(
 	[string]$Page,
 	[string]$Recipe,
 	[string[]]$RecipeArg,
+	[string]$Declare,
 	[int]$TimeoutMs = 30000,
 	[int]$RetryDelayMs = 100,
 	[switch]$ListActions,
@@ -108,6 +121,7 @@ $ActionHelp = [ordered]@{
 	'console' = 'run one CUO console command line (for example /save) through CommandConsoleService.TryExecute; applied says the console ran the line, and a command that refuses internally still answers true with its own text in lastLine'
 	'quit' = 'ask the client to quit (only a client this run started)'
 	'recipe' = 'run one committed scenario recipe (recipes/<name>.cs) as a single eval'
+	'declare' = 'load one committed eval declaration (driver/eval-declarations/<name>.cs) into the client; probes first, so a client that already has it is a no-op'
 }
 
 $PageIds = @{
@@ -142,7 +156,7 @@ function Write-Actions {
 	foreach ($entry in $ActionHelp.GetEnumerator()) {
 		Write-Output ('  {0,-13} {1}' -f $entry.Key, $entry.Value)
 	}
-	Write-Output 'parameters: -Url <ws-url> -ControlId <id> -Text <value> -LobbyId <digits> -Page <page> -Recipe <name> -RecipeArg <k1=v1,k2=v2> -TimeoutMs <ms> -RetryDelayMs <ms> -JsonPath <file>'
+	Write-Output 'parameters: -Url <ws-url> -ControlId <id> -Text <value> -LobbyId <digits> -Page <page> -Recipe <name> -RecipeArg <k1=v1,k2=v2> -Declare <name> -TimeoutMs <ms> -RetryDelayMs <ms> -JsonPath <file>'
 }
 
 function ConvertTo-CSharpLiteral {
@@ -348,7 +362,8 @@ function Invoke-DriverCode {
 		[System.Net.WebSockets.ClientWebSocket]$Socket,
 		[string]$Code,
 		[string]$Label,
-		[int]$EvalTimeoutMs
+		[int]$EvalTimeoutMs,
+		[switch]$AllowNoValue
 	)
 	$id = [guid]::NewGuid().ToString('N')
 	$frame = @{ type = 'eval'; id = $id; code = $Code; timeoutMs = $EvalTimeoutMs } | ConvertTo-Json -Compress
@@ -370,6 +385,9 @@ function Invoke-DriverCode {
 				throw [System.InvalidOperationException]::new("eval '$Label' answered with a truncated value; the answer is not usable")
 			}
 			if ([string]::IsNullOrEmpty($message.value)) {
+				# A declaration is a whole input of its own and carries no value; -AllowNoValue is what
+				# tells "this input had nothing to return" apart from "an answer was lost".
+				if ($AllowNoValue) { return $null }
 				throw [System.InvalidOperationException]::new("eval '$Label' returned no value")
 			}
 			return ($message.value | ConvertFrom-Json)
@@ -687,6 +705,22 @@ function Invoke-DriverAction {
 			}
 			return New-DriverSuccess -ActionName $ActionName -Step $step -Extra @{ recipe = $Recipe; recipeArgs = @($RecipeArg) }
 		}
+		'declare' {
+			$probe = Invoke-DriverCode -Socket $Socket -Code $DeclareCheckCode -Label "declare:$Declare (probe)" -EvalTimeoutMs $EvalTimeoutMs
+			if ($null -eq $probe -or -not ($probe.PSObject.Properties.Name -contains 'declared')) {
+				return New-DriverFailure -ActionName $ActionName -Code 'declare-probe' -Detail "the presence probe for '$Declare' answered without a declared field" -Last $probe
+			}
+			$sent = $false
+			if ($probe.declared -ne $true) {
+				[void](Invoke-DriverCode -Socket $Socket -Code $DeclareCode -Label "declare:$Declare (load)" -EvalTimeoutMs $EvalTimeoutMs -AllowNoValue)
+				$sent = $true
+				$probe = Invoke-DriverCode -Socket $Socket -Code $DeclareCheckCode -Label "declare:$Declare (verify)" -EvalTimeoutMs $EvalTimeoutMs
+				if ($null -eq $probe -or $probe.declared -ne $true) {
+					return New-DriverFailure -ActionName $ActionName -Code 'declare-failed' -Detail "the declaration '$Declare' was sent to the client but the type it declares is still not in its evaluator" -Last $probe
+				}
+			}
+			return New-DriverSuccess -ActionName $ActionName -Step $probe -Extra @{ declare = $Declare; sent = $sent }
+		}
 		default {
 			return New-DriverFailure -ActionName $ActionName -Code 'unknown-action' -Detail "unknown action '$ActionName'" -Last $null
 		}
@@ -744,6 +778,11 @@ switch ($Action) {
 			$missing = '-Recipe (lowercase letters, digits and dashes)'
 		}
 	}
+	'declare' {
+		if ([string]::IsNullOrWhiteSpace($Declare) -or $Declare -notmatch '^[a-z0-9-]+$') {
+			$missing = '-Declare (lowercase letters, digits and dashes)'
+		}
+	}
 	default { }
 }
 if ($missing) {
@@ -767,6 +806,40 @@ if ($Action -eq 'recipe') {
 		Write-Usage -Problem $_.Exception.Message
 		exit 64
 	}
+}
+
+# A declaration is prepared before the socket opens as well: its own `// declares:` line names the type
+# the presence probe asks about, and the probe is the one committed expression this script substitutes a
+# name into. A declaration without that line, or a probe without exactly one placeholder, is a usage
+# error rather than a question for the client.
+$declareCode = $null
+$declareCheckCode = $null
+if ($Action -eq 'declare') {
+	$declarationDirectory = Join-Path (Join-Path $PSScriptRoot 'driver') 'eval-declarations'
+	$declarationPath = Join-Path $declarationDirectory ($Declare + '.cs')
+	if (-not (Test-Path -LiteralPath $declarationPath)) {
+		Write-Usage -Problem "no eval declaration '$Declare' under tools/acceptance/driver/eval-declarations"
+		exit 64
+	}
+	$declareCode = Get-Content -LiteralPath $declarationPath -Raw -Encoding UTF8
+	$nameMatch = [regex]::Match($declareCode, '(?m)^// declares: (?<name>[A-Za-z_][A-Za-z0-9_.]*)[ \t]*\r?$')
+	if (-not $nameMatch.Success) {
+		Write-Usage -Problem "the eval declaration '$Declare' carries no '// declares: <type>' line; the presence probe would have nothing to ask about"
+		exit 64
+	}
+	$checkPath = Join-Path $declarationDirectory 'check-declared.cs'
+	if (-not (Test-Path -LiteralPath $checkPath)) {
+		Write-Usage -Problem 'the eval declaration probe does not resolve: tools/acceptance/driver/eval-declarations/check-declared.cs'
+		exit 64
+	}
+	$declareCheckCode = Get-Content -LiteralPath $checkPath -Raw -Encoding UTF8
+	$declarationPlaceholder = '{{s:type}}'
+	$placeholderCount = ([regex]::Matches($declareCheckCode, [regex]::Escape($declarationPlaceholder))).Count
+	if ($placeholderCount -ne 1) {
+		Write-Usage -Problem "the eval declaration probe must carry $declarationPlaceholder exactly once; found $placeholderCount"
+		exit 64
+	}
+	$declareCheckCode = $declareCheckCode.Replace($declarationPlaceholder, (ConvertTo-CSharpLiteral -Value $nameMatch.Groups['name'].Value))
 }
 
 $templatePath = Join-Path $PSScriptRoot 'driver\InProcessDriver.cs'

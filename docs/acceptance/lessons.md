@@ -2068,3 +2068,50 @@ that route.
   reaches user32 without any OS input.
 - What is left is ordinary work rather than a research question: build the hold/release into the committed
   driver, prove it with a read-back, and judge the row that needs it.
+
+## 2026-10-06 — Batch `20261006-b`: the held key lands on the NEXT input, so the read step is the verdict
+
+The capability above is committed (`drive-in-process.ps1 -Action declare -Declare window-key` loads
+`recipes/key-hold.cs`'s declaration once per client; the recipe's own `bind`/`action` steps hold, release
+and read a bind the game itself uses). It was smoked on the primary Sandboxie box's client (evaluator
+`18591`) — the harder of the two hosts, because `Process.GetCurrentProcess().MainWindowHandle` resolving
+and the message landing had to hold inside a box; the physical host is the half no smoke has covered.
+What the smoke taught, in the order it taught it (artifact directory `20261006-b` in
+`acceptance-artifacts-dir`: `g*` the declaration and the first hold steps, `m*` the key-held gesture with
+its before/after tree, `c*` the same gesture as a control without the key, `k*` the ring toggle):
+
+- **An input cannot read the state its own message produces.** The first cut posted the message, slept a
+  bounded 200 ms inside the eval and read `Input.GetKey`: it read `false` after a key-DOWN and `true`
+  after a key-UP — both stale. The very next input read the new state (`g5-read-held.json`), and the tree
+  moved, so nothing was wrong with the message: the client's frame that handles it runs only after the
+  evaluator returns. A hold is therefore judged by the `read` step that FOLLOWS it, and the recipe reports
+  `heldAtStart`/`heldAtEnd` as readings plus `posted` as what it queued — never as a verdict. Do not
+  "fix" this with a longer sleep inside the eval.
+- **The exception the ban needed is two names wide, not four.** `MapVirtualKey` (scan-code lookup) and
+  `GetForegroundWindow` (a read) are queries no ban list ever covered, because neither can drive anything;
+  only `PostMessage` and `GetAsyncKeyState` are on it, and those two are excused in one directory. The
+  gate refuses an exception that excuses a name the ban does not list — which is what pushed the design to
+  the narrow shape, and the recipe now calls the declaration's own vocabulary so no caller names them.
+  A corollary the review caught: the scan code is asked for the key the bind resolved to, not for the
+  generic one — this layout answers 0x2A for `VK_LSHIFT` and 0x36 for `VK_RSHIFT`, so substituting the
+  generic `VK_SHIFT` would have queued the wrong scan code for every right-hand bind.
+- **Polarity is what makes the mechanism mean something.** The same staged release (a bag holding a dogfood,
+  dragged onto a second bag's slot button, in one client) moves the CHILD with `expanddesc` held and does
+  not move it without: before/after `container-read mode=local` shows the dogfood under slot 1's bag with
+  the key and back under slot 0's bag without it. Drive a key-gated branch together with its control
+  gesture, or "the gesture ran" proves nothing about the key.
+- **The game's own ring can be opened in process with the same capability.** `toggleinventory` (Tab) is read
+  as a PRESS EDGE (`Input.GetKeyDown` in `PlayerCamera`), so one queued key-down toggles
+  `PlayerCamera.radialOpen` and the ring's `InvButton`s become active (`remote-gesture mode=list` then
+  answers six buttons instead of zero) — this is what lets a single client drive a LOCAL inventory
+  gesture, and it is cheaper than the remote view. Release the key with a following `up` + `read` step
+  anyway: a Tab still held is a key that reads down for the rest of the session, the next queued down is
+  then no edge at all and the ring will not toggle again.
+- **A leftover `camera.dragItem` also disables the LOCAL ring.** Batch `20261006-a` recorded the same
+  symptom for the remote view; here a `mode=hover` left one behind and the ring stayed closed
+  (`buttonCount: 0`) until it was cleared. Clear the drag and `radialOpen` before staging a ring.
+- **A `[DllImport]` declaration is a whole input of its own, and the driver probes before sending it.** The
+  evaluator takes a type once per client (a repeat is its own "already defined" error), so `declare`
+  probes for the type first, sends the file only when it is absent and probes again for the verdict: the
+  second call in the same client answered `sent: false` with `declared: true`. An idempotent setup step is
+  what makes a per-client capability safe to re-run after a client restart.

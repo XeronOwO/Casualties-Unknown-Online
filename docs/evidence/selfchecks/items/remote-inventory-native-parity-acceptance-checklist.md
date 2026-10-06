@@ -52,8 +52,10 @@ has been run.
 2. **The radial weight readout shows the operator's own weight** while the remote ring is open, because
    the native readout reads the local body. Is that acceptable, or must it show the owner's?
 3. **`TransferToBody` (the double-Tab transfer) and the medical use keep their host-authoritative
-   paths**, so the owner's body runs no release animation for the custody move. Is that noticeable in
-   the hand-over flow?
+   paths**, so the owner's body runs no release animation for the custody move. **ANSWERED (user ruling
+   2026-10-06, decision 240): not doing it — accepted as-is.** The operator's own screen keeps the native
+   ring/cursor/slot feedback, and the owner's screen showing the item simply leave is the accepted result;
+   no presentation is built for it.
 
 ## 5. If something fails
 

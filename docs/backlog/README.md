@@ -57,6 +57,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 6's swap half throws in the release body.
 - [A same-frame second drop overwrites the pending report of the first](todo/drop-pending-single-slot-overwrite.md) — **Medium** — its gesture aborts.
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
+- [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — the push direction; the take half is landed.
+- [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
 
 ### In progress
 
@@ -142,7 +144,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Handshake identity and refusal reasons](future/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names which dimension failed.
 - [Adapter-shell verification harness](future/adapter-shell-verification-harness.md) — **Low** — keeps the live-game half.
 - [Mod content ceiling](future/mod-content-ceiling.md) — **Medium** — cross-player predicates plus the parked surface gaps.
-- [Give an item to another player](future/give-item-to-another-player.md) — **Low-Medium** — the push direction; the take half is landed.
 
 ### Resolved
 

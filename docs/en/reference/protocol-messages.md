@@ -277,7 +277,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 
 | Id | Message | Direction | What it carries |
 |---|---|---|---|
-| 75 | `ModMessage` | report plus relay | the shared mod-message frame: the sending mod's id plus an opaque payload |
+| 75 | `ModMessage` | report plus relay | the shared mod-message frame: the sending mod's id, an optional mod-owned packet id (empty = the anonymous tunnel form) and an opaque payload |
 | 86 / 87 | `ModCommandRequest` / `ModCommandResult` | guest → host / host → requester | host-authoritative mod command execution and its result |
 | 122 | `KernelEnvelope` | both | the four-envelope kernel protocol |
 

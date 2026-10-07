@@ -90,6 +90,9 @@ building runtime | 建筑运行时 | 建筑运行时 | 建筑数据，建筑存�
 feature matrix | 特性矩阵 | 特性矩阵 | 特征表，功能矩阵 | the table of game features and their sync status; the CSV file is the machine copy
 configuration profile | 配置档案 | 配置档案（configuration profile） | 配置模板，配置方案 | a named snapshot of every configuration setting, stored beside the config file
 payload | 载荷 | 载荷 | 数据包，内容体 | the opaque bytes a message or a content definition carries; the framework never reads inside them
+declared packet | 声明数据包 | 声明数据包（declared packet） | 自定义包，消息包 | a mod-owned message id with its own declared sender and delivery policy and its own handler chain, routed by the framework
+packet chain | 处理链 | 处理链（packet chain） | 回调链，处理器链 | the ordered validate/apply/observe handlers one declared packet runs
+anonymous tunnel | 匿名通道 | 匿名通道（anonymous tunnel） | 隧道，原始通道 | the packet-less form of the mod frame: one opaque payload per mod and one receive callback
 hot reload | 热重载 | 热重载 | 热更新，动态加载 | a configuration edit taking effect without restarting the game
 chainloader | 链加载器 | 链加载器 | 加载器，启动器 | BepInEx's own plugin loader, which loads and wakes each plugin
 log sink | 日志接收器 | 日志接收器 | 输出端，日志目的地 | one destination a log entry is written to

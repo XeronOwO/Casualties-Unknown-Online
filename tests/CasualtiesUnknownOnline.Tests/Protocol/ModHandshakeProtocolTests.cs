@@ -80,6 +80,30 @@ public class ModHandshakeProtocolTests
 		Assert.Equal("mod.a", decoded.ModId);
 		Assert.Equal(payload, decoded.Payload);
 	}
+
+	[Fact]
+	public void ModMessageFrame_RoundTripsTheDeclaredPacketId()
+	{
+		var msg = new ModMessageMsg { ModId = "mod.a", PacketId = "machine.use", Payload = [7, 0, 9] };
+
+		var decoded = NetPacket.DecodePayload<ModMessageMsg>(NetPacket.Encode(NetMsg.ModMessage, msg));
+
+		Assert.Equal("machine.use", decoded.PacketId);
+		Assert.Equal([7, 0, 9], decoded.Payload);
+	}
+
+	[Fact]
+	public void ModMessageFrame_WithoutAPacketId_DecodesToTheAnonymousTunnelForm()
+	{
+		// The tunnel form carries no packet id: protobuf leaves the member at its
+		// default, which is the empty string the router reads as "not a packet".
+		var msg = new ModMessageMsg { ModId = "mod.a", Payload = [1] };
+
+		var decoded = NetPacket.DecodePayload<ModMessageMsg>(NetPacket.Encode(NetMsg.ModMessage, msg));
+
+		Assert.Equal(string.Empty, decoded.PacketId);
+	}
+
 	[Fact]
 	public void ModCommandFrames_RoundTripExactly()
 	{

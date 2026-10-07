@@ -19,6 +19,6 @@ public sealed class ModMessageHandler(ILogger<ModMessageHandler> log) : PacketHa
 	protected override void Handle(ulong sender, ModMessageMsg msg, IModHandlerContext ctx)
 	{
 		ctx.Mods.FireModMessageReceived(sender, msg);
-		_log.LogInformation("[Mods] {Sender} → {ModId} ({Length} bytes).", sender, msg.ModId, msg.Payload.Length);
+		_log.LogInformation("[Mods] {Sender} → {ModId} ({Length} bytes).", sender, msg.ModId, msg.Payload?.Length ?? 0);
 	}
 }

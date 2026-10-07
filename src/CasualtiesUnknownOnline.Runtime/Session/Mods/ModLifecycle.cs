@@ -249,10 +249,18 @@ internal sealed class ModLifecycle(
 			return;
 		}
 
-		if (msg.Payload.Length > ModChannel.MaxPayloadBytes)
+		var payload = msg.Payload;
+		if (payload is null || payload.Length > ModChannel.MaxPayloadBytes)
 		{
-			_log.LogWarning("[Mods] {Sender} sent an over-cap {Length}-byte payload for {ModId} — dropped.",
-				sender, msg.Payload.Length, msg.ModId);
+			_log.LogWarning("[Mods] {Sender} sent a null or over-cap {Length}-byte payload for {ModId} — dropped.",
+				sender, payload?.Length ?? 0, msg.ModId);
+			return;
+		}
+
+		if (!IsModMessageSender(sender))
+		{
+			_log.LogWarning("[Mods] message for {ModId} from {Sender} — neither this local peer nor a handshaken member, dropped.",
+				msg.ModId, sender);
 			return;
 		}
 
@@ -269,8 +277,44 @@ internal sealed class ModLifecycle(
 			return;
 		}
 
-		SafeRun(mod, "MessageReceived", () => mod.Context.FireMessageReceived(sender, msg.Payload));
+		var packetId = msg.PacketId ?? string.Empty;
+		if (packetId.Length == 0)
+		{
+			SafeRun(mod, "MessageReceived", () => mod.Context.FireMessageReceived(sender, payload));
+			return;
+		}
+
+		// The packet id is mod-authored text that a peer chose: bound it by the
+		// registration grammar BEFORE it reaches a log line, so an
+		// attacker-sized id is named by its length instead of being echoed.
+		if (!ModPacketPolicy.IsValidId(packetId))
+		{
+			_log.LogWarning("[Mods] message for {ModId} from {Sender} carries an invalid {Length}-character packet id — dropped.",
+				msg.ModId, sender, packetId.Length);
+			return;
+		}
+
+		// A declared packet: the receiving copy's own declaration decides what
+		// runs and whether the host still owes the other members a relay. The
+		// chain isolates its own handlers; the isolation here covers the rest of
+		// the routing, so no mod-authored declaration can wedge the receive path.
+		var route = ModPacketRoute.UnknownPacket;
+		SafeRun(mod, $"packet {packetId}", () => route = mod.Context.RoutePacket(sender, packetId, payload));
+		if (route == ModPacketRoute.Relay)
+		{
+			_channel.RelayPacket(mod.Manifest.Id, sender, packetId, payload);
+		}
 	}
+
+	/// <summary>
+	/// Mod traffic is member traffic: a frame is accepted from the local peer
+	/// (the host's own local fire) or from a handshaken member — the same gate
+	/// the host-command path applies. A peer that completed no handshake reaches
+	/// no mod callback.
+	/// </summary>
+	private bool IsModMessageSender(ulong sender) =>
+		sender == _session.LocalSteamId
+		|| (((ISessionControl)_session).TryGetMember(sender, out var member) && member.Handshaken);
 
 	private bool TryConsumeModMessage(ulong sender)
 	{

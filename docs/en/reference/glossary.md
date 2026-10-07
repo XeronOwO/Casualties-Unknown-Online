@@ -77,6 +77,9 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Content kind** — the kind a definition is registered under, such as `item`, `recipe` or `tile`.
 - **Schema version** — the version a mod stores next to its own opaque payload; the framework carries it and never migrates it.
 - **Tombstone** — a recorded refusal that stops the same creation being retried.
+- **Declared packet** — a mod-owned message id with its own sender and delivery policy and its own handler chain; the framework routes and relays it.
+- **Packet chain** — the ordered validate/apply/observe handlers one declared packet runs.
+- **Anonymous tunnel** — the packet-less form of the mod frame: one opaque payload per mod and one receive callback.
 
 ## Contracts and modification
 

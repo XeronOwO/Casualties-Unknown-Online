@@ -14,6 +14,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// channels), an inactive session is a no-op, and an over-length payload is
 /// refused HERE (the mod learns immediately instead of the receive side
 /// silently dropping it).
+///
+/// The channel also carries the declared-packet form of the same frame (a
+/// packet id beside the mod id — <see cref="ModPacketsAdapter"/>). Those calls
+/// answer whether the frame actually left, and they never fire the sender's
+/// own copy: a packet's local run is the declaration's decision and the
+/// adapter performs it before calling here.
 /// </summary>
 public sealed class ModChannel(ISessionControl session, PacketSender sender, ILogger<ModChannel> log)
 {
@@ -74,14 +80,85 @@ public sealed class ModChannel(ISessionControl session, PacketSender sender, ILo
 
 	public void FireModMessageReceived(ulong sender, ModMessageMsg msg) => ModMessageReceived?.Invoke(sender, msg);
 
+	// ---- The declared-packet form of the same frame ----
+
+	/// <summary>Guest: report a declared packet to the host's copy of the mod. False on the wrong role, outside a session, or over the cap.</summary>
+	public bool SendPacketToHost(string modId, string packetId, byte[] payload)
+	{
+		if (!CanSendPacket(modId, "SendPacketToHost", SessionRole.Guest, packetId, payload))
+		{
+			return false;
+		}
+
+		_sender.Send(_session.HostSteamId, NetMsg.ModMessage, Packet(modId, packetId, payload));
+		return true;
+	}
+
+	/// <summary>Host only: send a declared packet to one member's copy of the mod. No local fire — the caller owns the local run.</summary>
+	public bool SendPacketToPeer(string modId, ulong steamId, string packetId, byte[] payload)
+	{
+		if (!CanSendPacket(modId, "SendPacketToPeer", SessionRole.Host, packetId, payload))
+		{
+			return false;
+		}
+
+		_sender.Send(steamId, NetMsg.ModMessage, Packet(modId, packetId, payload));
+		return true;
+	}
+
+	/// <summary>Host only: send a declared packet to every member's copy of the mod. No local fire — the caller owns the local run.</summary>
+	public bool SendPacketToAll(string modId, string packetId, byte[] payload)
+	{
+		if (!CanSendPacket(modId, "SendPacketToAll", SessionRole.Host, packetId, payload))
+		{
+			return false;
+		}
+
+		_session.Broadcast(NetMsg.ModMessage, Packet(modId, packetId, payload));
+		return true;
+	}
+
+	/// <summary>
+	/// Host only: relay a member's declared packet to every OTHER member — the
+	/// step the declared delivery policy asks for once the host has judged the
+	/// report and run its own chain. The reporter is excluded by construction
+	/// (a copy that already ran the packet must not run it twice).
+	/// </summary>
+	public bool RelayPacket(string modId, ulong excludeSteamId, string packetId, byte[] payload)
+	{
+		if (!CanSendPacket(modId, "RelayPacket", SessionRole.Host, packetId, payload))
+		{
+			return false;
+		}
+
+		_session.BroadcastExcept(excludeSteamId, NetMsg.ModMessage, Packet(modId, packetId, payload));
+		return true;
+	}
+
+	private static ModMessageMsg Packet(string modId, string packetId, byte[] payload) =>
+		new() { ModId = modId, PacketId = packetId, Payload = payload };
+
+	private bool CanSendPacket(string modId, string call, SessionRole requiredRole, string packetId, byte[] payload)
+	{
+		if (_session.Role != requiredRole || !_session.SessionActive || !CheckLength(modId, payload))
+		{
+			_log.LogWarning("Mod {ModId} packet {PacketId}: {Call} is a no-op (role {Role}, session active {Active}).",
+				modId, packetId, call, _session.Role, _session.SessionActive);
+			return false;
+		}
+
+		return true;
+	}
+
 	private bool CheckLength(string modId, byte[] payload)
 	{
-		if (payload.Length <= MaxPayloadBytes)
+		if (payload is not null && payload.Length <= MaxPayloadBytes)
 		{
 			return true;
 		}
 
-		_log.LogWarning("Mod {ModId} payload {Length} bytes exceeds the {Cap} cap — refused.", modId, payload.Length, MaxPayloadBytes);
+		_log.LogWarning("Mod {ModId} payload {Length} bytes exceeds the {Cap} cap (or is null) — refused.",
+			modId, payload?.Length ?? 0, MaxPayloadBytes);
 		return false;
 	}
 }

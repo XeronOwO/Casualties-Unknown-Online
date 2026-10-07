@@ -11,7 +11,7 @@
 - Related: `docs/en/reference/mod-api.md` (the mod-facing surface a player like this could ship as),
   `review/pinyin-search-standalone-mod.md` (the precedent for a CUO-family mod that is not the core plugin),
   `review/global-adaptive-report-rate-flow-control.md` (bandwidth is a governed resource in this project),
-  `todo/mod-defined-wire-packets.md` (a mod-owned packet family, if the player ships as a mod)
+  `review/mod-defined-wire-packets.md` (a mod-owned packet family, if the player ships as a mod)
 
 ## What is asked
 

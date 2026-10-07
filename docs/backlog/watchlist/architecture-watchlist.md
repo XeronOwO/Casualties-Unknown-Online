@@ -47,10 +47,13 @@ assembly), and its interface keeps growing with every feature (see
   sibling sessions, so it can become a collaborator that the service hands the winner.
 
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (+ its
-  `EnemySyncCoordinator.RuntimeSpawns.cs` partial, 584 aggregate after the 2026-09-18 split) — the
+  `EnemySyncCoordinator.RuntimeSpawns.cs` partial — 587 aggregate measured 2026-10-07, after the
+  pairing-key cycle; the same two files read 573 before it, and the entry's older "584" was a
+  measurement that had already rotted) — the
   host capture (id allocation in the deterministic `EnemySpawnArbitration` order, the bind-time
-  spawn anchor, the per-frame state capture) and the guest binding half (the spawn-anchor pairing,
-  the runtime-spawn materialization, the frozen-copy lifecycle). What is left to extract next is
+  spawn anchor, the per-frame state capture) and the guest binding half (the pairing that now takes
+  its key from the host facts in `EnemySpawnArbitration.TryPairGeneratedCopies`, the runtime-spawn
+  materialization, the frozen-copy lifecycle). What is left to extract next is
   the HOST CAPTURE half (`CaptureHostEnemies` / `EnsureMapping` / `Bind` / `Capture` ≈ 110 lines);
   the shared entity↔id table is what currently ties it to the guest binding half.
 - `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (~573) — the pump order is the seam

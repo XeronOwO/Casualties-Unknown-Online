@@ -1,3 +1,4 @@
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Xunit;
@@ -9,107 +10,161 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// generate the same animal entities deterministically but hold separate
 /// instances — the (x, y) sort is the deterministic allocation order, and the
 /// index pairing + tolerance check is what catches a generation divergence
-/// instead of silently mispairing enemies.
+/// instead of silently mispairing enemies. The generated-set entry point takes
+/// the host FACTS rather than a position list, so the key it pairs on is the
+/// bind-time anchor they carry: these cases pin that the live pose can never
+/// become the key, whatever the caller holds (batch `20261006-g` read the cost
+/// of a caller that passed the live pose).
 /// </summary>
 public class EnemySpawnArbitrationTests
 {
-	[Fact]
-	public void Order_SortsByXThenY()
-	{
-		var input = new[]
+	private static EnemyEntity HostFact(uint counter, NetVector2 spawn, NetVector2? live = null) =>
+		new(new NetworkEntityId(1, counter, 0))
 		{
-			new NetVector2(3f, 0f),
-			new NetVector2(1f, 5f),
-			new NetVector2(1f, 2f),
-			new NetVector2(2f, 0f),
+			SpawnPosition = spawn,
+			Position = live ?? spawn,
 		};
 
-		var ordered = EnemySpawnArbitration.Order(input);
-
-		Assert.Equal(4, ordered.Count);
-		Assert.Equal(new NetVector2(1f, 2f), ordered[0]);
-		Assert.Equal(new NetVector2(1f, 5f), ordered[1]);
-		Assert.Equal(new NetVector2(2f, 0f), ordered[2]);
-		Assert.Equal(new NetVector2(3f, 0f), ordered[3]);
-	}
-
 	[Fact]
-	public void Order_IsDeterministic_RegardlessOfInputOrder()
+	public void TryPairGeneratedCopies_OrdersBothSidesByTheAnchor_AndReportsTheCallersCopyIndexes()
 	{
-		var shuffled = new[]
+		var facts = new[]
 		{
-			new NetVector2(2f, 1f),
-			new NetVector2(0f, 0f),
-			new NetVector2(1f, 1f),
+			HostFact(7, new NetVector2(3f, 0f)),
+			HostFact(4, new NetVector2(1f, 5f)),
+			HostFact(9, new NetVector2(1f, 2f)),
 		};
-		var sortedInput = new[]
+		var copies = new[]
 		{
-			new NetVector2(0f, 0f),
-			new NetVector2(1f, 1f),
-			new NetVector2(2f, 1f),
+			new NetVector2(1f, 2f), // the caller's index 0
+			new NetVector2(3f, 0f), // 1
+			new NetVector2(1f, 5f), // 2
 		};
 
-		var fromShuffled = EnemySpawnArbitration.Order(shuffled);
-		var fromSorted = EnemySpawnArbitration.Order(sortedInput);
-
-		Assert.Equal(fromSorted, fromShuffled);
-	}
-
-	[Fact]
-	public void Order_Empty_ReturnsEmpty() =>
-		Assert.Empty(EnemySpawnArbitration.Order([]));
-
-	[Fact]
-	public void TryPair_IdenticalPositions_PairsIndexByIndex()
-	{
-		var host = new[] { new NetVector2(0f, 0f), new NetVector2(1f, 1f), new NetVector2(2f, 2f) };
-		var guest = new[] { new NetVector2(0f, 0f), new NetVector2(1f, 1f), new NetVector2(2f, 2f) };
-
-		var ok = EnemySpawnArbitration.TryPair(host, guest, out var pairs);
+		var ok = EnemySpawnArbitration.TryPairGeneratedCopies(facts, copies, out var pairs, out _);
 
 		Assert.True(ok);
 		Assert.Equal(3, pairs.Count);
-		for (var i = 0; i < pairs.Count; i++)
+
+		// (1, 2) < (1, 5) < (3, 0): the rank order is the anchor order on BOTH
+		// sides, and the copy index is the caller's own list position — the
+		// caller binds by that index, never by rank.
+		Assert.Equal(9u, pairs[0].Host.EntityId.Counter);
+		Assert.Equal(0, pairs[0].CopyIndex);
+		Assert.Equal(4u, pairs[1].Host.EntityId.Counter);
+		Assert.Equal(2, pairs[1].CopyIndex);
+		Assert.Equal(7u, pairs[2].Host.EntityId.Counter);
+		Assert.Equal(1, pairs[2].CopyIndex);
+
+		// The same host set in any input ORDER produces the same pairing: the
+		// arbitration does the ordering, not the caller. (The copy indices are the
+		// caller's own list positions, so that list is deliberately not shuffled
+		// here — a shuffle there would move them, which is what the index report
+		// exists for.)
+		var shuffled = EnemySpawnArbitration.TryPairGeneratedCopies(
+			[facts[2], facts[0], facts[1]],
+			copies,
+			out var reordered,
+			out _);
+
+		Assert.True(shuffled);
+		Assert.Equal(
+			pairs.Select(p => (p.Host.EntityId.Counter, p.CopyIndex)).ToList(),
+			reordered.Select(p => (p.Host.EntityId.Counter, p.CopyIndex)).ToList());
+	}
+
+	[Fact]
+	public void TryPairGeneratedCopies_LateJoin_PairsOnTheAnchorTheLivePoseHasLeft()
+	{
+		// Batch `20261006-g`: the third client entered the world about two
+		// minutes into the run, so the host's animals had long left the positions
+		// they were generated at, while the member's own copies are frozen at
+		// THEIRS — the same positions. The set pairs on the anchor and cannot
+		// pair on the live pose; the distance assertion below is what makes THIS
+		// case fail if the key ever reads Position again.
+		var facts = new[]
 		{
-			Assert.Equal(i, pairs[i].HostIndex);
-			Assert.Equal(i, pairs[i].GuestIndex);
-		}
+			HostFact(1, spawn: new NetVector2(10f, 20f), live: new NetVector2(64f, 88f)),
+			HostFact(2, spawn: new NetVector2(40f, 55f), live: new NetVector2(12f, 70f)),
+		};
+		var frozenCopies = new[]
+		{
+			new NetVector2(40f, 55f),
+			new NetVector2(10f, 20f),
+		};
+
+		Assert.All(facts, fact => Assert.True(
+			EnemySpawnArbitration.Distance(fact.SpawnPosition, fact.Position) > EnemySpawnArbitration.PairTolerance,
+			"this case carries a live pose beyond tolerance of the anchor — a live-keyed pairing cannot pass it"));
+
+		var ok = EnemySpawnArbitration.TryPairGeneratedCopies(facts, frozenCopies, out var pairs, out _);
+
+		Assert.True(ok, "a late joiner pairs on the host's bind-time anchors, not on where its animals have wandered");
+		Assert.Equal(2, pairs.Count);
+		Assert.Equal(1u, pairs[0].Host.EntityId.Counter);
+		Assert.Equal(1, pairs[0].CopyIndex);
+		Assert.Equal(2u, pairs[1].Host.EntityId.Counter);
+		Assert.Equal(0, pairs[1].CopyIndex);
 	}
 
 	[Fact]
-	public void TryPair_CountMismatch_Fails()
+	public void TryPairGeneratedCopies_CountMismatch_ReportsBothCounts()
 	{
-		var host = new[] { new NetVector2(0f, 0f), new NetVector2(1f, 1f) };
-		var guest = new[] { new NetVector2(0f, 0f) };
+		var ok = EnemySpawnArbitration.TryPairGeneratedCopies(
+			[HostFact(1, new NetVector2(0f, 0f))],
+			[new NetVector2(0f, 0f), new NetVector2(1f, 1f)],
+			out var pairs,
+			out var divergence);
 
-		var ok = EnemySpawnArbitration.TryPair(host, guest, out var pairs);
-
-		Assert.False(ok);
+		Assert.False(ok, "the whole set pairs or none of it does");
 		Assert.Empty(pairs);
+		Assert.True(divergence.IsCountMismatch, "a count mismatch has no index to report");
+		Assert.Equal(EnemySpawnArbitration.GeneratedPairingOutcome.CountMismatch, divergence.Outcome);
+		Assert.Equal(1, divergence.HostCount);
+		Assert.Equal(2, divergence.CopyCount);
 	}
 
 	[Fact]
-	public void TryPair_OutOfTolerance_Fails()
+	public void TryPairGeneratedCopies_OutOfTolerance_ReportsTheFirstIndexAndItsDistance()
 	{
-		var host = new[] { new NetVector2(0f, 0f) };
-		var guest = new[] { new NetVector2(1f, 0f) }; // 1.0 world units > the 0.5 tolerance
+		var facts = new[]
+		{
+			HostFact(1, new NetVector2(0f, 0f)),
+			HostFact(2, new NetVector2(10f, 0f)),
+		};
+		var copies = new[]
+		{
+			new NetVector2(0.25f, 0f), // rank 0: inside the tolerance
+			new NetVector2(12f, 0f), // rank 1: 2.0 world units out
+		};
 
-		var ok = EnemySpawnArbitration.TryPair(host, guest, out _);
+		var ok = EnemySpawnArbitration.TryPairGeneratedCopies(facts, copies, out var pairs, out var divergence);
 
-		Assert.False(ok, "a divergent spawn position must not be silently mispaired");
+		Assert.False(ok, "one divergent copy fails the whole set");
+		Assert.Empty(pairs);
+		Assert.False(divergence.IsCountMismatch);
+		Assert.Equal(EnemySpawnArbitration.GeneratedPairingOutcome.KeyMismatch, divergence.Outcome);
+		Assert.Equal(1, divergence.FirstMismatchIndex);
+		Assert.Equal(2f, divergence.FirstMismatchDistance, 3);
+		Assert.Equal(2, divergence.HostCount);
+		Assert.Equal(2, divergence.CopyCount);
 	}
 
 	[Fact]
-	public void TryPair_WithinTolerance_Pairs()
+	public void TryPairGeneratedCopies_WithinTolerance_PairsAndReportsTheKeyDistance()
 	{
-		var host = new[] { new NetVector2(0f, 0f) };
-		var guest = new[] { new NetVector2(0.4f, 0f) }; // < the 0.5 tolerance
-
-		var ok = EnemySpawnArbitration.TryPair(host, guest, out var pairs);
+		var ok = EnemySpawnArbitration.TryPairGeneratedCopies(
+			[HostFact(1, new NetVector2(0f, 0f))],
+			[new NetVector2(0.4f, 0f)], // < the 0.5 tolerance
+			out var pairs,
+			out var divergence);
 
 		Assert.True(ok);
 		Assert.Single(pairs);
+		Assert.Equal(0.4f, pairs[0].Distance, 3);
 		Assert.True(pairs[0].Distance < EnemySpawnArbitration.PairTolerance);
+		Assert.Equal(EnemySpawnArbitration.GeneratedPairingOutcome.Paired, divergence.Outcome);
+		Assert.False(divergence.IsCountMismatch, "a successful pair is not a count mismatch — the outcome field, not the index sentinel, says so");
 	}
 
 	[Theory]

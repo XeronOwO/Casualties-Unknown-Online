@@ -126,6 +126,59 @@ public class LogRepetitionGuardTests
 	}
 
 	[Fact]
+	public void TheWindow_NamesTheSubjectsItIsStillHolding()
+	{
+		var guard = new LogRepetitionGuard(suppressAfter: 1);
+		guard.TryLog("member-1", "1", out _);
+		Assert.False(guard.TryLog("member-1", "1", out _), "the first subject's window is spent");
+		guard.TryLog("member-2", "1", out _);
+
+		Assert.Equal(["member-1", "member-2"], guard.Subjects);
+	}
+
+	[Fact]
+	public void TheSubjectList_IsACopyTheWindDownCanFlushThrough()
+	{
+		var guard = new LogRepetitionGuard(suppressAfter: 1);
+		guard.TryLog("member-1", "1", out _);
+		Assert.False(guard.TryLog("member-1", "1", out _));
+		Assert.False(guard.TryLog("member-1", "1", out _));
+		guard.TryLog("member-2", "1", out _);
+
+		// The wind-down reads the list while TryFlush drops the entries it reports — the copy is what makes
+		// that legal, and only the subject that cost lines comes back.
+		var reported = new List<(string Key, int Suppressed)>();
+		foreach (var subject in guard.Subjects)
+		{
+			if (guard.TryFlush(subject, out var suppressed))
+			{
+				reported.Add(((string)subject, suppressed));
+			}
+		}
+
+		Assert.Equal(1, reported.Count);
+		Assert.Equal("member-1", reported[0].Key);
+		Assert.Equal(2, reported[0].Suppressed);
+		Assert.True(0 == guard.TrackedKeys, $"the wind-down forgot every subject (got {guard.TrackedKeys})");
+	}
+
+	[Fact]
+	public void TheSubjectList_IsBoundedByTheCapacityAndEmptiedByClear()
+	{
+		var guard = new LogRepetitionGuard(suppressAfter: 1, capacity: 2);
+		guard.TryLog("a", "1", out _);
+		guard.TryLog("b", "1", out _);
+		guard.TryLog("c", "1", out _);
+
+		var subjects = guard.Subjects;
+		Assert.Equal(["b", "c"], subjects);
+
+		guard.Clear();
+		Assert.True(0 == guard.Subjects.Count, $"a cleared window holds nothing (got {guard.Subjects.Count})");
+		Assert.Equal(["b", "c"], subjects);
+	}
+
+	[Fact]
 	public void AStormOfOneThousandIdenticalFrames_CostsTheWindowOnly()
 	{
 		var guard = new LogRepetitionGuard(suppressAfter: 8);

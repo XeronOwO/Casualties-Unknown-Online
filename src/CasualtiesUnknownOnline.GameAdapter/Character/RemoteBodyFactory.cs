@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -13,15 +14,45 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// simulates another player's body. The clone spawns exactly at the peer's
 /// position (reported spawn point / PlayerJoin anchor) — no offset: a constant
 /// offset would keep the two presentations permanently divergent.
+///
+/// <para>
+/// Both ways an attempt can produce nothing are reported through a repetition
+/// window the caller passes in (<see cref="LogRepetitionGuard"/>, one subject =
+/// one member and one failure): the caller retries once per member PER FRAME,
+/// and a failure that does not resolve — a member out of the world keeps its
+/// clone unbuildable — used to write one line per frame per member, which batch
+/// `20261007-a` measured at 7.25 MB/min (58,148 identical lines in ~90 s). The
+/// first lines still carry the whole diagnostic; its end reports the count.
+/// </para>
 /// </summary>
 internal static class RemoteBodyFactory
 {
-	public static Body? CreateRemoteBody(PlayerEntity remote, Vector2 anchor, ILogger log)
+	/// <summary>Why an attempt failed when the scene holds no "Experiment" object to clone — the window's subject text and the line's own wording.</summary>
+	internal const string NoTemplateWhy = "\"Experiment\" player object not found in scene";
+
+	/// <summary>Why an attempt failed when the template cloned but carries no Body component.</summary>
+	internal const string NoBodyComponentWhy = "no Body component in \"Experiment\" clone";
+
+	/// <summary>
+	/// One clone attempt's line, written only when its window still reports this subject. The window's
+	/// index is printed so a reader can tell a first line from the third identical one, and the caller
+	/// reports what the window swallowed once the run ends.
+	/// </summary>
+	private const string FailureLine = "Remote body: {Why} for {SteamId} (repeat {Repeat}).";
+
+	public static Body? CreateRemoteBody(PlayerEntity remote, Vector2 anchor, LogRepetitionGuard failures, ILogger log)
 	{
 		var template = GameObject.Find("Experiment");
 		if (template == null) // Unity object — == (is null misses destroyed)
 		{
-			log.LogWarning("Remote body: \"Experiment\" player object not found in scene.");
+			// Asked per frame per member: the line is written INSIDE the ask, so one
+			// unchanged failure costs the window and nothing after it. The caller
+			// reports what the window swallowed when the member's run ends.
+			if (failures.TryLog(new RemoteCloneFailureKey(NoTemplateWhy, remote.SteamId), null, out var noTemplateRepeat))
+			{
+				log.LogWarning(FailureLine, NoTemplateWhy, remote.SteamId, noTemplateRepeat);
+			}
+
 			return null;
 		}
 
@@ -33,7 +64,11 @@ internal static class RemoteBodyFactory
 		if (body == null) // Unity object — == (is null misses destroyed)
 		{
 			Object.Destroy(clone);
-			log.LogWarning("Remote body: no Body component in \"Experiment\" clone.");
+			if (failures.TryLog(new RemoteCloneFailureKey(NoBodyComponentWhy, remote.SteamId), null, out var noBodyRepeat))
+			{
+				log.LogWarning(FailureLine, NoBodyComponentWhy, remote.SteamId, noBodyRepeat);
+			}
+
 			return null;
 		}
 

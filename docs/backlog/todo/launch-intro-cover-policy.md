@@ -6,9 +6,10 @@
 - Source: the user's 2026-10-07 backlog request. Reported behaviour: launching the game through Steam's
   "join a friend" action skips the cover (the content-warning/intro screen), and after returning to the main
   menu in the same process the cover is still skipped. The user wants a clean rule instead: either the cover
-  is skipped on the first launch into the main menu, or — their preferred variant — the skip becomes a
-  multiplayer preference that permanently skips the cover when enabled, with a friend join still showing the
-  cover while the preference is on.
+  is skipped on the first launch into the main menu, or — their preferred variant — the skip becomes a local
+  multiplayer preference that permanently skips the cover when it is on, while a launch through the
+  friend-join action still shows the cover. "Joining a friend" here is one of this player's own launch paths,
+  never an instruction about what another player's screen shows (the user restated this on 2026-10-07).
 - Related: `src/CasualtiesUnknownOnline.GameAdapter/Patches/PreRunScriptIntroSkipPatch.cs` (the patch that
   sets the native `didIntro` field), `src/CasualtiesUnknownOnline.Runtime/GameAdapter/IJoinFlowPresentation.cs`
   (the intent the shell declares), `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (the
@@ -26,25 +27,37 @@
 
 ## What is asked
 
-One rule, stated once, with no surprise for a joining friend. Two candidate shapes were given, and the user
-prefers the second:
+The decision is **local and one-sided**: it is this player's own preference and it decides what this player
+sees on this machine. Nothing about it is carried to, shown to, or enforced on anyone else — "joining a
+friend" is one of this player's own launch paths (the game started through Steam's invite/join action), not a
+second party the rule acts upon. The user stated this explicitly on 2026-10-07, because an earlier draft of
+this ticket read "friend join" as "the friend who joins" and invented a confirmation that does not exist.
 
-1. Skip the cover on the first launch into the main menu (i.e. the cover is not shown to this installation's
-   player at all), and keep the join-path skip as it is today.
-2. Make it a multiplayer preference: while it is on, the cover is skipped permanently; a friend joining the
-   session still sees the cover. One confirmation is owed in the cycle before implementing: whether "still
-   sees the cover" means the joining player always does, or only when that player has not enabled the
-   preference themselves.
+Two candidate shapes were given, and the user prefers the second:
+
+1. Skip the cover on the first launch into the main menu (the cover is not shown to this installation's player
+   at all), and leave the launch-path handling as it is today.
+2. Make it a **local multiplayer preference**: with it on, the cover is skipped permanently; with it off,
+   nothing skips it automatically. The user adds one clause for the join path: launching the game through the
+   friend-join action still shows the cover, i.e. the preference governs the ordinary launch into the main
+   menu, and the join path keeps its own behaviour instead of inheriting the preference.
+
+Either shape also removes today's defect: the skip currently rides a process-wide flag that a join sets and
+nothing clears, so the cover stays gone for the rest of the process.
 
 ## Required work
 
-1. Replace the process-wide static with an explicit, named decision that says who is skipping and why, so
+1. Replace the process-wide static with an explicit, named decision that says what is skipping and why, so
    "skipped once" and "skipped always" cannot be confused by the next reader. The shape is already wanted by
    `review/plugin-host-shell.md` (the intent on a port, not a static write from the shell).
-2. Put the choice on the configuration surface with the default the user picks, and make the join path's
-   behaviour read the same decision rather than a second flag.
-3. Verify all four paths in one session: first launch into the main menu, a Steam friend join, a return to
-   the main menu after playing, and a relaunch — each reads whether the cover appeared.
+2. Put the choice on the configuration surface, and make every launch path read that same decision instead of
+   a second flag, with the join path's own rule (show the cover) stated where the decision is made. The
+   preference's default is not stated in so many words: "turn it on to skip permanently" reads as off by
+   default, while the first candidate shape (the cover skipped on the first launch) reads as on. The cycle
+   settles that one word when it starts, rather than assuming either.
+3. Verify all four local paths in one session: an ordinary launch into the main menu, a launch through the
+   friend-join action, a return to the main menu after playing, and a relaunch — each reads whether the cover
+   appeared on this machine, with the preference on and off.
 
 ## Non-goals
 

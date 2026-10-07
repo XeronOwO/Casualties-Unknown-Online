@@ -217,7 +217,7 @@ public class MedicalToolApplicationTests
 	}
 
 	[Fact]
-	public void Guest_UsesCombatPenOnHost_CarriesTimedBodyEffects()
+	public void Guest_UsesCombatPenOnHost_CarriesTheWholeDoseInTheTerminal()
 	{
 		var (host, guest, _) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -253,11 +253,17 @@ public class MedicalToolApplicationTests
 		Assert.Equal(MedicalOperationTerminalReason.Completed, result.TerminalReason);
 		Assert.NotNull(result.ItemAfter);
 		Assert.Empty(result.ItemAfter!.Liquids);
-		Assert.Equal(3, result.TimedBodyEffects.Count);
-		Assert.Equal("highgradestimulant", result.TimedBodyEffects[0].EffectId);
-		Assert.True(Math.Abs(result.TimedBodyEffects[0].DurationSeconds - 144f) < 0.001f);
-		Assert.True(Math.Abs(result.TimedBodyEffects[1].DurationSeconds - 90f) < 0.001f);
-		Assert.True(Math.Abs(result.TimedBodyEffects[2].DurationSeconds - 50f) < 0.001f);
+
+		// The one unreported delta's dose: the whole drained plan, and the
+		// patient's own client turns each of the three liquids into the game's
+		// own injection effect — no CUO duration or per-ml coefficient travels.
+		Assert.Equal(3, result.AppliedDose.Count);
+		Assert.Equal("highgradestimulant", result.AppliedDose[0].LiquidId);
+		Assert.True(Math.Abs(result.AppliedDose[0].Amount - 60f) < 0.001f);
+		Assert.Equal("epinephrine", result.AppliedDose[1].LiquidId);
+		Assert.True(Math.Abs(result.AppliedDose[1].Amount - 15f) < 0.001f);
+		Assert.Equal("oxyline", result.AppliedDose[2].LiquidId);
+		Assert.True(Math.Abs(result.AppliedDose[2].Amount - 25f) < 0.001f);
 
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
 		Assert.Empty(saved.Liquids);
@@ -266,7 +272,7 @@ public class MedicalToolApplicationTests
 	}
 
 	[Fact]
-	public void Guest_UsesBloodCoagulantOnHost_CarriesTimedBodyEffect()
+	public void Guest_UsesBloodCoagulantOnHost_CarriesTheDoseInTheTerminal()
 	{
 		var (host, guest, _) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -287,16 +293,17 @@ public class MedicalToolApplicationTests
 		ops.SendStartRequest(HostId, 42, -1);
 		Assert.NotNull(ack);
 		Assert.True(ack!.Accepted);
-		// bloodcoagulant's native per-use amount is 33.334 ml; the medical
-		// session commits exactly that and carries the scaled timed effect.
+		// The native delegate's own per-use amount (33.334 ml) is what the
+		// session commits; the plan it produces is the procoagulant draw, and
+		// the timed body itself starts on the patient's client.
 		ops.SendEndRequest(ack.OperationId, 33.334f);
 		var result = Assert.Single(ends);
 		Assert.NotNull(result.ItemAfter);
 		Assert.True(Math.Abs(result.ItemAfter!.Liquids.Single().Amount - 66.666f) < 0.001f);
 
-		var timedBody = Assert.Single(result.TimedBodyEffects);
-		Assert.Equal("procoagulant", timedBody.EffectId);
-		Assert.True(Math.Abs(timedBody.DurationSeconds - 20f) < 0.01f);
+		var dose = Assert.Single(result.AppliedDose);
+		Assert.Equal("procoagulant", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 33.334f) < 0.01f);
 	}
 
 	[Fact]

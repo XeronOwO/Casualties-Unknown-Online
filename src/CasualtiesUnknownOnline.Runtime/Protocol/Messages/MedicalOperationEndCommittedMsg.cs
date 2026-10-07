@@ -42,8 +42,14 @@ public sealed class MedicalOperationEndCommittedMsg
 	[ProtoMember(10)]
 	public List<CharacterLimbMsg> TargetLimbs { get; set; } = [];
 
+	/// <summary>
+	/// The drained amounts of the last unreported delta, for the TARGET's own
+	/// client to apply to its own body through the game's native injection path.
+	/// Earlier deltas travelled on their own non-terminal state messages, so a
+	/// terminal without a final delta carries this empty.
+	/// </summary>
 	[ProtoMember(11)]
-	public List<TimedBodyEffectMsg> TimedBodyEffects { get; set; } = [];
+	public List<LiquidStackMsg> AppliedDose { get; set; } = [];
 
 	/// <summary>The operation category; non-injection/shrapnel clients use it to route active local minigame cleanup/apply.</summary>
 	[ProtoMember(13)]

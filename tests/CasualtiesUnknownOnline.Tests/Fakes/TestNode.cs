@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.DependencyInjection;
@@ -75,6 +76,11 @@ internal sealed class TestNode : IDisposable
 				// remaining match: the SteamService entry, then the transport's.
 				s.Replace(ServiceDescriptor.Singleton(_ => (ICuoService)steam));
 				s.Replace(ServiceDescriptor.Singleton(_ => (ICuoService)transport));
+				// The game's own content facts behind the limb-use chains: a test
+				// host has no game scene, so the suite's stub of the vanilla item
+				// and liquid registries answers instead (FakeLimbUseSemantics).
+				// A test that needs a different verdict replaces it here.
+				s.Replace(ServiceDescriptor.Singleton<ILimbUseSemantics>(FakeLimbUseSemantics.Instance));
 				TestLogging.RemoveFileSink(s); // before the test's overrides, so a test may still re-add a sink
 				extraRegistrations?.Invoke(s); // the test's overrides (e.g. stub mod control surfaces) — last, so they win
 			});

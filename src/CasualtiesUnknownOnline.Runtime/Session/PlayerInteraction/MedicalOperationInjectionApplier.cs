@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
@@ -7,10 +8,13 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// Applies the host-authoritative incremental injection mathematics to the
-/// character/item snapshots and builds the non-terminal and terminal wire
-/// messages. It owns no sessions/reservations — that state stays in
-/// <see cref="MedicalOperationSessionService"/>.
+/// Applies the host-authoritative half of an incremental injection — the drain
+/// of the operator's item and the committed-ml bookkeeping — and builds the
+/// non-terminal and terminal wire messages. The EFFECT is not applied here: the
+/// drained amounts travel to the target, whose own client runs the game's native
+/// <c>WaterContainerItem.Inject</c> path on its own body (Part A of
+/// <c>mod-cross-player-native-semantics</c>). It owns no sessions/reservations —
+/// that state stays in <see cref="MedicalOperationSessionService"/>.
 /// </summary>
 internal sealed class MedicalOperationInjectionApplier(
 	PlayerCharacterAccess access,
@@ -57,20 +61,17 @@ internal sealed class MedicalOperationInjectionApplier(
 
 		var newUserData = PlayerCharacterAccess.CloneCharacter(userData);
 		var newItem = PlayerCharacterAccess.CloneItem(userData.Items[itemIndex]);
-		var newTargetData = PlayerCharacterAccess.CloneCharacter(targetData);
 
-		if (!RemoteMedicineCatalog.TryCreatePlan(newItem.Liquids, newItem.ItemId, effective, out var plan) || plan.Count == 0)
+		if (!LiquidDrainPlan.TryCreate(newItem.Liquids, effective, out var plan) || plan.Count == 0)
 		{
-			_log.LogWarning("[MedicalOps] operation {OperationId} delta skipped: cannot build medicine plan for {ItemId}.", session.OperationId, newItem.ItemId);
+			_log.LogWarning("[MedicalOps] operation {OperationId} delta skipped: cannot build a drain plan for {ItemId}.", session.OperationId, newItem.ItemId);
 			return false;
 		}
 
-		RemoteMedicineApplication.Apply(newTargetData.Health!, newTargetData.Limbs, plan, session.LimbIndex);
 		PlayerItemUseService.ApplyDrain(newItem, plan);
 		newUserData.Items[itemIndex] = newItem;
 
 		_access.SaveCharacterData(session.Operator, newUserData);
-		_access.SaveCharacterData(session.Target, newTargetData);
 		SyncOperatorItemAfterUpdate(session.Operator, newItem);
 
 		session.CommittedMl += effective;
@@ -86,20 +87,29 @@ internal sealed class MedicalOperationInjectionApplier(
 			CommittedMl = session.CommittedMl,
 			Sequence = session.Sequence,
 			ItemAfter = PlayerCharacterAccess.CloneItem(newItem),
-			TargetHealth = newTargetData.Health,
-			TargetLimbs = newTargetData.Limbs,
+			TargetHealth = targetData.Health,
+			TargetLimbs = targetData.Limbs,
+			AppliedDose = ClonePlan(plan),
 		};
 		return true;
 	}
 
-	internal MedicalOperationEndCommittedMsg BuildTerminal(OperationSession session, MedicalOperationTerminalReason reason)
+	/// <summary>
+	/// The single terminal message. It carries the final authoritative item and
+	/// target snapshot plus the dose of the last unreported delta, which the
+	/// target's own client must still apply natively — every earlier delta
+	/// travelled on its own non-terminal state message.
+	/// </summary>
+	internal MedicalOperationEndCommittedMsg BuildTerminal(
+		OperationSession session,
+		MedicalOperationTerminalReason reason,
+		IReadOnlyList<LiquidStackMsg>? finalDose = null)
 	{
 		var userData = _access.GetCharacterData(session.Operator);
 		var targetData = _access.GetCharacterData(session.Target);
 		CharacterItemMsg? itemAfter = null;
 		CharacterHealthMsg? health = null;
 		List<CharacterLimbMsg> limbs = [];
-		var timedEffects = new List<TimedBodyEffectMsg>();
 
 		if (userData is not null)
 		{
@@ -114,11 +124,6 @@ internal sealed class MedicalOperationInjectionApplier(
 		{
 			health = targetData.Health;
 			limbs = [.. targetData.Limbs];
-			if (session.CommittedMl > 0f
-				&& RemoteMedicineCatalog.TryCreatePlan(session.OriginalLiquids, session.ItemId, session.CommittedMl, out var fullPlan))
-			{
-				timedEffects = RemoteMedicineApplication.BuildTimedEffects(fullPlan);
-			}
 		}
 
 		return new MedicalOperationEndCommittedMsg
@@ -133,9 +138,12 @@ internal sealed class MedicalOperationInjectionApplier(
 			ItemAfter = itemAfter,
 			TargetHealth = health,
 			TargetLimbs = limbs,
-			TimedBodyEffects = timedEffects,
+			AppliedDose = finalDose is null ? [] : ClonePlan(finalDose),
 		};
 	}
+
+	private static List<LiquidStackMsg> ClonePlan(IReadOnlyList<LiquidStackMsg> plan) =>
+		[.. plan.Select(l => new LiquidStackMsg { LiquidId = l.LiquidId, Amount = l.Amount })];
 
 	private void SyncOperatorItemAfterUpdate(ulong operatorSteamId, CharacterItemMsg item)
 	{

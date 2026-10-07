@@ -29,7 +29,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return false;
 		}
 
-		if (!LocalUseItemEligibility.IsUseItem(dragItem))
+		if (!LocalUseItemEligibility.IsUseItem(dragItem, domains.LimbUseSemantics))
 		{
 			return false;
 		}

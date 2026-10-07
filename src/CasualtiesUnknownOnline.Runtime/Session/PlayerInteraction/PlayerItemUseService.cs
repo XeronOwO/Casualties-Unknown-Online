@@ -25,6 +25,7 @@ internal sealed class PlayerItemUseService(
 	PlayerCharacterAccess characters,
 	IItemControl items,
 	IPlayerInteractionVisibility visibility,
+	ILimbUseSemantics limbUseSemantics,
 	ItemKernelAuthority kernelAuthority,
 	PlayerInteractionResultAuthority resultAuthority,
 	ILogger log)
@@ -34,6 +35,7 @@ internal sealed class PlayerItemUseService(
 	private readonly PlayerCharacterAccess _characters = characters;
 	private readonly IItemControl _items = items;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
+	private readonly ILimbUseSemantics _limbUseSemantics = limbUseSemantics;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
 	private readonly ILogger _log = log;
@@ -234,7 +236,7 @@ internal sealed class PlayerItemUseService(
 			newItem.Condition -= food.ConditionCost;
 			destroyed = newItem.Condition <= 0f;
 		}
-		else if (RemoteMedicineCatalog.IsInjectableItem(originalItem.ItemId))
+		else if (InjectionAdmission.IsInjectableContainer(_limbUseSemantics, originalItem.ItemId, originalItem.Liquids))
 		{
 			_log.LogWarning("[ItemUse] refused: injectable/IV medicine {ItemId} (id {InstanceId}) must use the medical operation session, not the one-shot request path.",
 				originalItem.ItemId, originalItem.InstanceId);

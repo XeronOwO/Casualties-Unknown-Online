@@ -22,6 +22,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// </summary>
 internal sealed class InjectionStartCoordinator(
 	PlayerCharacterAccess access,
+	ILimbUseSemantics limbUseSemantics,
 	MedicalOperationClaims claims,
 	MedicalOperationIdAllocator operationIds,
 	MedicalOperationSessionPublisher publisher,
@@ -31,6 +32,7 @@ internal sealed class InjectionStartCoordinator(
 	ILogger log)
 {
 	private readonly PlayerCharacterAccess _access = access;
+	private readonly ILimbUseSemantics _limbUseSemantics = limbUseSemantics;
 	private readonly MedicalOperationClaims _claims = claims;
 	private readonly MedicalOperationIdAllocator _operationIds = operationIds;
 	private readonly MedicalOperationSessionPublisher _publisher = publisher;
@@ -63,7 +65,7 @@ internal sealed class InjectionStartCoordinator(
 			return;
 		}
 
-		if (!InjectionStartValidator.TryValidateOperator(userData, msg.ItemInstanceId, out var itemIndex, out var itemReason))
+		if (!InjectionStartValidator.TryValidateOperator(_limbUseSemantics, userData, msg.ItemInstanceId, out var itemIndex, out var itemReason))
 		{
 			_log.LogWarning(
 				"[MedicalOps] refused start: {Operator} has no usable item (requested {ItemId}): {Reason}",
@@ -147,7 +149,6 @@ internal sealed class InjectionStartCoordinator(
 			LimbIndex = msg.LimbIndex,
 			Kind = msg.Kind,
 			AvailableMl = availableMl,
-			OriginalLiquids = [.. originalItem.Liquids.Select(l => new LiquidStackMsg { LiquidId = l.LiquidId, Amount = l.Amount })],
 			LastUpdateMs = _time.NowMs,
 		};
 

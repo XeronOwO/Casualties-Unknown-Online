@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -147,7 +146,11 @@ public sealed class ModLiquidTileDefinition
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
 	[DataMember(Order = 27)]
-	public Dictionary<string, string> CustomData { get; set; } = [];
+	public Dictionary<string, string> CustomData
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Bitmask that allows spawning on every world layer.</summary>
 	public const int AllSpawnLayers = -1;
@@ -222,22 +225,6 @@ public sealed class ModLiquidTileDefinition
 	}
 
 	/// <summary>Deserialize a liquid-tile definition payload. Returns null when the payload is not valid.</summary>
-	public static ModLiquidTileDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModLiquidTileDefinition));
-			return serializer.ReadObject(stream) as ModLiquidTileDefinition;
-		}
-		catch (Exception)
-		{
-			return null;
-		}
-	}
+	public static ModLiquidTileDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModLiquidTileDefinition>(payload);
 }

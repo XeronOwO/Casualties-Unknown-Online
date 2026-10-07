@@ -106,7 +106,7 @@ public sealed class GameAdapterMoodleContentProvider(
 			return true;
 		}
 
-		if (animation.FramePaths is not { Count: > 0 }
+		if (animation.FramePaths.Count == 0
 			|| float.IsNaN(animation.FramesPerSecond)
 			|| float.IsInfinity(animation.FramesPerSecond)
 			|| animation.FramesPerSecond <= 0f)

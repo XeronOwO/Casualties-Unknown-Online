@@ -20,7 +20,7 @@ amount-aware, so a check that was neither would inject dead recipes while claimi
 | 5 | Where the vocabulary comes from | the labels an accepted mod definition declares (each provider keeps its own `CraftingQualityDeclarations`, with the largest amount per label) plus the same direction's vanilla table (`Item.GlobalItems` / `Liquids.Registry`) |
 | 6 | Why the sources are consulted first | the pump order is not uniform: the item provider is registered before the recipe provider, the liquid provider after it, so a liquid bound in the same frame is still missing from `Liquids.Registry` — the tables alone would refuse a recipe that uses a label its sibling had just declared |
 | 7 | Table readiness | `Item.GlobalItems` and `Recipes.recipes` are built in one native body, items first (`WorldGeneration.Awake`); `Liquids.Registry`'s only assignment is its own static constructor. Verified in the shipped assembly by IL: one `stsfld` site each |
-| 8 | Null collections | `DataContractSerializer` runs no property initializer, so a null list round-trips as an explicit nil; the providers normalise it to empty instead of failing the definition (the remaining sites are filed as `todo/mod-payload-null-collection-tolerance.md`) |
+| 8 | Null collections | `DataContractSerializer` runs no constructor and no property initializer, so a null list round-trips as an explicit nil; this cycle's two providers normalise it to empty instead of failing the definition (the remaining sites were swept by `review/mod-payload-null-collection-tolerance.md`, whose rule now lives on the contracts: the member's setter plus the shared decode step) |
 
 ## 2. Whole-family audit
 
@@ -49,7 +49,7 @@ amount-aware, so a check that was neither would inject dead recipes while claimi
 | Amount awareness | a label nothing declares at the required amount is refused, from a mod declaration and from the vanilla table | `Recipe_IsRefusedWhenNoProviderReachesItsAmount` |
 | Source-first order | isolated twice: the mod item / mod liquid is bound but NEVER materialised, so only the declared sources can answer | `Recipe_IsInjectedFromAModDeclarationBeforeTheItemIsMaterialized`, `...AModLiquidDeclarationBeforeTheLiquidIsMaterialized` |
 | Satisfiable recipes still land | vanilla item, vanilla liquid, and the colliding-id-free declared paths | `Recipe_IsInjectedWhenAVanillaItemProvidesItsQuality`, `...AVanillaLiquidProvidesItsQuality` |
-| Null collections | a null list means none, not a failed definition | `TryBind_TreatsAnExplicitNullQualityListAsNoQualities`, `ModItemDefinitionTests.RoundTrip_ExplicitNullQualities_ComesBackAsNull` |
+| Null collections | a null list means none, not a failed definition | `TryBind_TreatsAnExplicitNullQualityListAsNoQualities`, `ModItemDefinitionTests.ExplicitNullQualities_IsNoneNotAFailedDefinition` |
 | Pump order unchanged | the two new registrations are not `ICuoService` | `GameAdapterComposition` diff + `ApiSurfaceGateTests`/`SourceShapeGateTests` green |
 | Public surface recorded | rename removed with three tombstones, four lines added | `ApiSurfaceGateTests` 11/11 |
 | Docs pair intact | both blocks edited, hashes re-recorded | `DocumentationTreeGateTests` (both blob hashes equal `git hash-object` of the pages) |

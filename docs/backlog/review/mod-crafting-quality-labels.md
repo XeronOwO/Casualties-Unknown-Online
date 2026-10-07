@@ -71,8 +71,12 @@ Two halves of one surface, both measured from the umbrella's own inventory:
    declared. For a LIQUID ingredient only presence is asked for, because its amounts are scaled by the
    volume in a container.
 5. **A null list means "none".** `ToPayload()` writes every member, but a mod that assigns null round-trips
-   an explicit nil (the serializer runs no property initializer), so both providers and the recipe provider
-   normalise a null collection before use instead of failing the definition with a logged exception.
+   an explicit nil (the serializer runs neither a constructor nor a property initializer), so the two
+   providers and the recipe provider normalise a null collection before use instead of failing the
+   definition with a logged exception. [The rule now belongs to the contracts themselves — the member's
+   setter plus the shared decode step — and the remaining sites were swept by
+   `review/mod-payload-null-collection-tolerance.md` (decision 244); this paragraph records what this cycle
+   landed.]
 6. **The probe is the game's own matcher.** Acceptance row 1 is judged by driving
    `Item.GetQualityThatMeetsCriteria` — the call `RecipeItem.GetMatchingItem` makes — with the built
    `ItemInfo.qualities`, not by re-reading the DTO.
@@ -113,7 +117,7 @@ reason for the source-first order, and the presence-only match.
 | 2 | A recipe that references a quality nobody provides is refused at load time | `Recipe_IsRefusedWhenNoProviderInItsOwnDirectionCarriesTheLabel` (absent label), `Recipe_IsRefusedWhenTheLabelComesFromTheOtherDirection` (both directions), `Recipe_IsRefusedWhenNoProviderReachesItsAmount` (mod and vanilla amounts) | Verified 2026-10-07 |
 | 3 | A recipe that can be satisfied is still injected | `Recipe_IsInjectedWhenAVanillaItemProvidesItsQuality`, `Recipe_IsInjectedWhenAVanillaLiquidProvidesItsQuality`, `Recipe_IsInjectedFromAModDeclarationBeforeTheItemIsMaterialized`, `Recipe_IsInjectedFromAModLiquidDeclarationBeforeTheLiquidIsMaterialized` — the last two isolate the declared-source path by never materialising the definition | Verified 2026-10-07 |
 | 4 | A declared label that is neither a vanilla-style token nor a canonical namespaced id is refused on BOTH surfaces | `TryBind_RefusesAQualityLabelThatIsNotCanonical` (3 accepted, 8 refused forms) and `LiquidQualities_AreValidatedAndMaterialized` | Verified 2026-10-07 |
-| 5 | A definition whose lists are explicit nulls binds as "no qualities" / is refused as "no ingredients" | `TryBind_TreatsAnExplicitNullQualityListAsNoQualities` + `ModItemDefinitionTests.RoundTrip_ExplicitNullQualities_ComesBackAsNull` | Verified 2026-10-07 |
+| 5 | A definition whose lists are explicit nulls binds as "no qualities" / is refused as "no ingredients" | `TryBind_TreatsAnExplicitNullQualityListAsNoQualities` + `ModItemDefinitionTests.ExplicitNullQualities_IsNoneNotAFailedDefinition` | Verified 2026-10-07 |
 | 6 | The liquid surface keeps its materialization behaviour after the rename | `LiquidQualities_AreValidatedAndMaterialized` (the liquid is injected and its labels reach `LiquidType.qualities`) + `ModLiquidDefinitionTests` | Verified 2026-10-07 |
 
 ## Non-goals

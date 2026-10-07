@@ -9,6 +9,20 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// CUO layers can discover and consume them. The framework stores the
 /// definitions as opaque bytes and never interprets the mod's payload.
 ///
+/// One rule governs every collection member of every typed payload contract in
+/// this assembly: <b>null means empty</b>. A mod that assigns null to a list,
+/// dictionary or byte array round-trips an explicit nil — the payload
+/// serializer runs no property initializer — and decoding it yields an empty
+/// collection, never a definition the binder skips with a logged exception.
+/// Both ends of a payload answer for it: the member's own setter coalesces a
+/// null write, and the shared decode step behind every contract's
+/// <c>FromPayload</c> (<c>ModPayloadCodec</c>) replaces a null collection member
+/// of the decoded graph with an empty one, nested contracts included — because a
+/// payload that OMITS a member's element never reaches the setter at all. A
+/// member that is genuinely required refuses an empty collection with its own
+/// message, and <c>ModPayloadNullCollectionTests</c> enumerates every such
+/// member from these contracts.
+///
 /// Registration requires <see cref="ModPermission.RegisterContent"/>: nothing
 /// is implicit, and the permission policy already refuses that flag on
 /// local-only network modes. The registry is process-local; it does not send

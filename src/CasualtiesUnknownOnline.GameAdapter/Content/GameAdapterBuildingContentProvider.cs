@@ -180,27 +180,21 @@ public sealed class GameAdapterBuildingContentProvider(
 
 	private bool ValidateDrops(string modId, string id, ModBuildingDefinition definition)
 	{
-		if (definition.DropOnDestroy is not null)
+		foreach (var drop in definition.DropOnDestroy)
 		{
-			foreach (var drop in definition.DropOnDestroy)
+			if (!IsValidDrop(drop))
 			{
-				if (!IsValidDrop(drop))
-				{
-					LogInvalidField(modId, id, "DropOnDestroy", 0f);
-					return false;
-				}
+				LogInvalidField(modId, id, "DropOnDestroy", 0f);
+				return false;
 			}
 		}
 
-		if (definition.AlwaysDrop is not null)
+		foreach (var drop in definition.AlwaysDrop)
 		{
-			foreach (var drop in definition.AlwaysDrop)
+			if (!IsValidDrop(drop))
 			{
-				if (!IsValidDrop(drop))
-				{
-					LogInvalidField(modId, id, "AlwaysDrop", 0f);
-					return false;
-				}
+				LogInvalidField(modId, id, "AlwaysDrop", 0f);
+				return false;
 			}
 		}
 

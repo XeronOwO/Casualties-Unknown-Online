@@ -44,7 +44,11 @@ public sealed class ModStatusDefinition
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
 	[DataMember(Order = 6)]
-	public Dictionary<string, string> CustomData { get; set; } = [];
+	public Dictionary<string, string> CustomData
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// When true for a limb-scoped status, the local vanilla moodle row shows
@@ -63,7 +67,11 @@ public sealed class ModStatusDefinition
 	/// <see cref="MoodleId"/>.
 	/// </summary>
 	[DataMember(Order = 8)]
-	public List<ModLimbMoodleBinding> LimbMoodles { get; set; } = [];
+	public List<ModLimbMoodleBinding> LimbMoodles
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Resolve the moodle id that should be presented for one affected limb.
@@ -78,7 +86,7 @@ public sealed class ModStatusDefinition
 			return MoodleId;
 		}
 
-		foreach (var binding in LimbMoodles ?? [])
+		foreach (var binding in LimbMoodles)
 		{
 			if (binding is null)
 			{
@@ -107,25 +115,6 @@ public sealed class ModStatusDefinition
 	}
 
 	/// <summary>Deserialize a status definition payload. Returns null when the payload is not a valid status definition.</summary>
-	public static ModStatusDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModStatusDefinition));
-			return serializer.ReadObject(stream) as ModStatusDefinition;
-		}
-		catch (Exception)
-		{
-			// Any deserialization failure means the payload is not a valid
-			// status definition under the current contract; the binder should
-			// refuse it rather than fail the whole mod discovery.
-			return null;
-		}
-	}
+	public static ModStatusDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModStatusDefinition>(payload);
 }

@@ -53,12 +53,6 @@ public sealed class GameAdapterRecipeContentProvider(
 			return false;
 		}
 
-		// A payload built by ToPayload() carries every member, but a mod that
-		// assigns null to the list round-trips it as an explicit nil, and a null
-		// list means "no ingredients" — which the refusal below reports — rather
-		// than a definition the binder must skip with a logged exception.
-		definition.Ingredients ??= [];
-
 		var id = registration.Definition.Id;
 		if (string.IsNullOrWhiteSpace(id))
 		{

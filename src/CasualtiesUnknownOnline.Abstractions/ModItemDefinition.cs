@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -74,11 +73,19 @@ public sealed class ModItemDefinition
 	/// the types from loaded assemblies and refuses non-Component types.
 	/// </summary>
 	[DataMember(Order = 13)]
-	public List<string> SpawnComponents { get; set; } = [];
+	public List<string> SpawnComponents
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
 	[DataMember(Order = 14)]
-	public Dictionary<string, string> CustomData { get; set; } = [];
+	public Dictionary<string, string> CustomData
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Average loose world-spawn count per worldgen chunk. Null or zero disables
@@ -139,7 +146,11 @@ public sealed class ModItemDefinition
 	/// amount a recipe requires.
 	/// </summary>
 	[DataMember(Order = 24)]
-	public List<ModCraftingQuality> Qualities { get; set; } = [];
+	public List<ModCraftingQuality> Qualities
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
@@ -151,25 +162,6 @@ public sealed class ModItemDefinition
 	}
 
 	/// <summary>Deserialize an item definition payload. Returns null when the payload is not a valid item definition.</summary>
-	public static ModItemDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModItemDefinition));
-			return serializer.ReadObject(stream) as ModItemDefinition;
-		}
-		catch (Exception)
-		{
-			// Any deserialization failure means the payload is not a valid item
-			// definition under the current contract; the binder should refuse it
-			// rather than fail the whole mod discovery.
-			return null;
-		}
-	}
+	public static ModItemDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModItemDefinition>(payload);
 }

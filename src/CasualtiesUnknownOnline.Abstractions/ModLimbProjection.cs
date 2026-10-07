@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Runtime.Serialization;
 
@@ -46,22 +45,6 @@ public sealed class ModLimbProjection
 	}
 
 	/// <summary>Deserialize a limb status payload. Returns null when the payload is not valid.</summary>
-	public static ModLimbProjection? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModLimbProjection));
-			return serializer.ReadObject(stream) as ModLimbProjection;
-		}
-		catch (Exception)
-		{
-			return null;
-		}
-	}
+	public static ModLimbProjection? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModLimbProjection>(payload);
 }

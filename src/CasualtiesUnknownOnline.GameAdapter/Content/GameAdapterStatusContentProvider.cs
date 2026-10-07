@@ -93,7 +93,7 @@ public sealed class GameAdapterStatusContentProvider(
 			return false;
 		}
 
-		if (definition.LimbMoodles is not { Count: > 0 })
+		if (definition.LimbMoodles.Count == 0)
 		{
 			return true;
 		}

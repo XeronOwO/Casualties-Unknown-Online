@@ -197,19 +197,16 @@ internal static class CustomItemBehaviorValidator
 			return false;
 		}
 
-		if (visual.MultiWornSprites is not null)
+		foreach (var multi in visual.MultiWornSprites)
 		{
-			foreach (var multi in visual.MultiWornSprites)
+			if (multi is null
+				|| IsInvalidFinite(multi.OffsetX)
+				|| IsInvalidFinite(multi.OffsetY))
 			{
-				if (multi is null
-					|| IsInvalidFinite(multi.OffsetX)
-					|| IsInvalidFinite(multi.OffsetY))
-				{
-					log.LogWarning(
-						"[ItemContent] {ModId}/{Id} has an invalid MultiWornSprites entry — refused.",
-						modId, id);
-					return false;
-				}
+				log.LogWarning(
+					"[ItemContent] {ModId}/{Id} has an invalid MultiWornSprites entry — refused.",
+					modId, id);
+				return false;
 			}
 		}
 
@@ -235,7 +232,7 @@ internal static class CustomItemBehaviorValidator
 			return true;
 		}
 
-		if (animation.FramePaths is not { Count: > 0 }
+		if (animation.FramePaths.Count == 0
 			|| float.IsNaN(animation.FramesPerSecond)
 			|| float.IsInfinity(animation.FramesPerSecond)
 			|| animation.FramesPerSecond <= 0f)

@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Runtime.Serialization;
 
@@ -47,7 +46,11 @@ public sealed class ModStatusUpdate
 
 	/// <summary>The mod-owned value payload. Illegal/absent for a removal frame.</summary>
 	[DataMember(Order = 6)]
-	public byte[] Value { get; set; } = [];
+	public byte[] Value
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>True when this frame clears the status value on the receiver; false when it writes <see cref="Value"/>.</summary>
 	[DataMember(Order = 7)]
@@ -115,22 +118,6 @@ public sealed class ModStatusUpdate
 	}
 
 	/// <summary>Deserialize a status update payload. Returns null when the payload is not a valid ModStatusUpdate.</summary>
-	public static ModStatusUpdate? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModStatusUpdate));
-			return serializer.ReadObject(stream) as ModStatusUpdate;
-		}
-		catch (Exception)
-		{
-			return null;
-		}
-	}
+	public static ModStatusUpdate? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModStatusUpdate>(payload);
 }

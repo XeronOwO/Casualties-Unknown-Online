@@ -109,13 +109,8 @@ internal static class CustomBuildingTemplateFactory
 		return template;
 	}
 
-	private static ItemDrop[] ToItemDrops(IEnumerable<ModBuildingDrop>? drops)
+	private static ItemDrop[] ToItemDrops(IEnumerable<ModBuildingDrop> drops)
 	{
-		if (drops is null)
-		{
-			return [];
-		}
-
 		var result = new List<ItemDrop>();
 		foreach (var drop in drops)
 		{
@@ -136,13 +131,8 @@ internal static class CustomBuildingTemplateFactory
 		return [.. result];
 	}
 
-	private static string[] ToItemCategories(IEnumerable<string>? categories)
+	private static string[] ToItemCategories(IEnumerable<string> categories)
 	{
-		if (categories is null)
-		{
-			return [];
-		}
-
 		var result = new List<string>();
 		foreach (var category in categories)
 		{

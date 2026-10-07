@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -70,11 +69,19 @@ public sealed class ModBuildingDefinition
 	/// the types from loaded assemblies and refuses non-Component types.
 	/// </summary>
 	[DataMember(Order = 12)]
-	public List<string> SpawnComponents { get; set; } = [];
+	public List<string> SpawnComponents
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
 	[DataMember(Order = 13)]
-	public Dictionary<string, string> CustomData { get; set; } = [];
+	public Dictionary<string, string> CustomData
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Chance-based drops spawned when the building is destroyed. Empty means no
@@ -82,7 +89,11 @@ public sealed class ModBuildingDefinition
 	/// when the base prefab carries one.
 	/// </summary>
 	[DataMember(Order = 14)]
-	public List<ModBuildingDrop> DropOnDestroy { get; set; } = [];
+	public List<ModBuildingDrop> DropOnDestroy
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Drops always spawned when the building is destroyed, regardless of chance.
@@ -90,7 +101,11 @@ public sealed class ModBuildingDefinition
 	/// <see cref="DropChanceMultiplier"/>.
 	/// </summary>
 	[DataMember(Order = 15)]
-	public List<ModBuildingDrop> AlwaysDrop { get; set; } = [];
+	public List<ModBuildingDrop> AlwaysDrop
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Additional vanilla item-loot categories included in the building's
@@ -98,7 +113,11 @@ public sealed class ModBuildingDefinition
 	/// <see cref="GuaranteedDropAmount"/>.
 	/// </summary>
 	[DataMember(Order = 16)]
-	public List<string> ItemCategoriesToAdd { get; set; } = [];
+	public List<string> ItemCategoriesToAdd
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Minimum automatic world-spawn attempts per chunk. Null means no automatic
@@ -218,25 +237,6 @@ public sealed class ModBuildingDefinition
 	}
 
 	/// <summary>Deserialize a building definition payload. Returns null when the payload is not a valid building definition.</summary>
-	public static ModBuildingDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModBuildingDefinition));
-			return serializer.ReadObject(stream) as ModBuildingDefinition;
-		}
-		catch (Exception)
-		{
-			// Any deserialization failure means the payload is not a valid
-			// building definition under the current contract; the binder should
-			// refuse it rather than fail the whole mod discovery.
-			return null;
-		}
-	}
+	public static ModBuildingDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModBuildingDefinition>(payload);
 }

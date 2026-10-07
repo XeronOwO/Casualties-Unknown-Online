@@ -140,7 +140,7 @@ public sealed class GameAdapterStructureContentProvider(
 			return false;
 		}
 
-		var rows = definition.Rows ?? [];
+		var rows = definition.Rows;
 		if (rows.Count != definition.Height)
 		{
 			_log.LogWarning(
@@ -149,9 +149,9 @@ public sealed class GameAdapterStructureContentProvider(
 			return false;
 		}
 
-		var vanillaBlocks = definition.VanillaBlocks ?? [];
-		var tileIds = definition.TileIds ?? [];
-		if (!TryValidateMarkerMaps(id, vanillaBlocks, tileIds, definition.SpawnCounts ?? []))
+		var vanillaBlocks = definition.VanillaBlocks;
+		var tileIds = definition.TileIds;
+		if (!TryValidateMarkerMaps(id, vanillaBlocks, tileIds, definition.SpawnCounts))
 		{
 			return false;
 		}

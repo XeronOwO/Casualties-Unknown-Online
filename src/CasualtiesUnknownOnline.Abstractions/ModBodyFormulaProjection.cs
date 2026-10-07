@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Runtime.Serialization;
 
@@ -65,22 +64,6 @@ public sealed class ModBodyFormulaProjection
 	}
 
 	/// <summary>Deserialize a body-formula status payload. Returns null when the payload is not valid.</summary>
-	public static ModBodyFormulaProjection? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModBodyFormulaProjection));
-			return serializer.ReadObject(stream) as ModBodyFormulaProjection;
-		}
-		catch (Exception)
-		{
-			return null;
-		}
-	}
+	public static ModBodyFormulaProjection? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModBodyFormulaProjection>(payload);
 }

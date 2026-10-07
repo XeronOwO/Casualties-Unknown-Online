@@ -16,6 +16,14 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// <c>WaterContainerItem.Inject</c> call is diverted into the session's dose
 /// stream, and the host remains the only authority for the committed
 /// item/target state (see <c>mod-cross-player-native-semantics</c>, Part A).
+/// <para>
+/// The topical family joined it in Part B: its carriers also run their own
+/// native limb action, but only to MEASURE one synchronous dose — the diverted
+/// <c>WaterContainerItem.ApplyToLimb</c> call reports the ml, the amount rides
+/// the one-shot use request, and the host commits the drain while the patient's
+/// client runs the effect. Both native-dispatched families therefore skip the
+/// treatment table's clip replay.
+/// </para>
 /// </summary>
 internal sealed class RemoteMedicalOperationHandler
 {
@@ -82,8 +90,8 @@ internal sealed class RemoteMedicalOperationHandler
 		// clip at the treated limb — is blocked in this view, so the treatment was
 		// silent on every side. Play what it would have played, inside the scope
 		// the character-sound capture reads: the operator hears it here and every
-		// other member receives it through the existing relay. An injection
-		// dispatch already RAN the item's own native limb action, whose clip was
+		// other member receives it through the existing relay. A native-dispatched
+		// family already RAN the item's own native limb action, whose clip was
 		// captured and relayed inside that window; replaying the table's copy
 		// would double it.
 		if (dispatch == LimbUseDispatch.Dispatched)
@@ -154,6 +162,13 @@ internal sealed class RemoteMedicalOperationHandler
 				: LimbUseDispatch.Refused;
 		}
 
+		if (LocalUseItemEligibility.IsTopicalRemoteItem(dragItem, _domains.LimbUseSemantics))
+		{
+			return TryStartRemoteTopicalUse(dragItem, limbIndex, target, itemInstanceId)
+				? LimbUseDispatch.DispatchedNative
+				: LimbUseDispatch.Refused;
+		}
+
 		if (dragItem.id == "tweezers")
 		{
 			return Dispatch(_shrapnelOps.TryStartRemoteShrapnelUse(dragItem, limbIndex, target, itemInstanceId));
@@ -165,15 +180,56 @@ internal sealed class RemoteMedicalOperationHandler
 		return LimbUseDispatch.Dispatched;
 	}
 
+	/// <summary>
+	/// Start the topical family's gesture: run the item's OWN native limb action
+	/// inside the treatment capture window, read the ml its delegate applied, and
+	/// carry that dose on the host-authoritative use request. The application
+	/// itself never runs here — the diverted native call is the measurement, the
+	/// host commits the drain and the patient's client runs the effect. Every
+	/// refusal returns false.
+	/// </summary>
+	private bool TryStartRemoteTopicalUse(Item dragItem, int limbIndex, ulong target, ulong itemInstanceId)
+	{
+		var display = RemoteMedicalView.DisplayBody;
+		if (display == null // Unity object — ==
+			|| limbIndex < 0
+			|| limbIndex >= display.limbs.Length
+			|| display.limbs[limbIndex] == null // Unity object — ==
+			|| display.limbs[limbIndex].dismembered)
+		{
+			_domains.Log.LogWarning("[MedicalView] refused topical use: no valid non-dismembered display limb {Limb}.", limbIndex);
+			return false;
+		}
+
+		if (!RemoteTopicalUseHandler.TryMeasure(dragItem, display.limbs[limbIndex], _domains.LimbUseSemantics, _domains.Log, out var doseMl))
+		{
+			return false;
+		}
+
+		_domains.PlayerInteraction.SendUseRequest(target, itemInstanceId, limbIndex, doseMl);
+		_domains.Log.LogInformation(
+			"[MedicalView] measured {Dose:F2} ml from {ItemId}'s own native limb action for {Target} limb {Limb} (id {InstanceId}).",
+			doseMl, dragItem.id, target, limbIndex, itemInstanceId);
+		return true;
+	}
+
 	private static LimbUseDispatch Dispatch(bool handled) =>
 		handled ? LimbUseDispatch.Dispatched : LimbUseDispatch.Refused;
 
 	/// <summary>
-	/// Play the clip(s) this item's own native limb action would have played, at
-	/// the treated limb of the displayed body — the position the peers replay it
-	/// at. The item's row and, for a topical container, the applied liquid's row
-	/// are separate facts because the native path plays them from separate calls;
-	/// an item the census records as natively silent plays nothing.
+	/// Play the clip this item's own native limb action would have played, at the
+	/// treated limb of the displayed body — the position the peers replay it at.
+	/// Only the families that do NOT run their own native action reach this: an
+	/// item the census records as natively silent plays nothing.
+	/// <para>
+	/// Both migrated chains are excluded by construction. The injection family's
+	/// delegate plays its own clip inside the measurement window
+	/// (<see cref="LimbUseDispatch.DispatchedNative"/>), and the topical family's
+	/// two clips are native too — the spray containers play <c>"spray"</c> in their
+	/// delegate inside that same window, and the cream containers' clip belongs to
+	/// the liquid's <c>onHealthUse</c>, which runs on the patient's own client.
+	/// Replaying either here would be a second decider for one clip.
+	/// </para>
 	/// </summary>
 	private void PlayTreatmentSound(Item dragItem, int limbIndex)
 	{
@@ -195,17 +251,6 @@ internal sealed class RemoteMedicalOperationHandler
 		if (clip is not null)
 		{
 			Sound.Play(clip, position, false, true, null, 1f, 1f, false, false);
-		}
-
-		if (dragItem.GetComponent<WaterContainerItem>() is { } container) // Unity object — ==
-		{
-			foreach (var liquid in container.stack)
-			{
-				if (RemoteMedicalTreatmentSoundCatalog.TryGetLiquidClip(liquid.liquidId, out var liquidClip) && liquidClip != clip)
-				{
-					Sound.Play(liquidClip, position, false, true, null, 1f, 1f, false, false);
-				}
-			}
 		}
 	}
 

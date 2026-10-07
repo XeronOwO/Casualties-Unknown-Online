@@ -9,9 +9,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// <para>
 /// The predicates are the native dispatch itself, not a copy of it:
 /// <c>PlayerCamera.ApplyWoundItem</c> sends an item whose
-/// <c>ItemInfo.usableOnLimb</c> is set to <c>useLimbAction</c>, and
+/// <c>ItemInfo.usableOnLimb</c> is set to <c>useLimbAction</c>,
 /// <c>WaterContainerItem.Inject</c> runs a liquid's <c>onHealthUse</c> only when
-/// its <c>LiquidType.injectable</c> is set. A liquid the tables never carried
+/// its <c>LiquidType.injectable</c> is set, and <c>WaterContainerItem.ApplyToLimb</c>
+/// runs it only when <c>healthUsable</c> is. A liquid the tables never carried
 /// therefore needs no CUO change to work between players.
 /// </para>
 /// </summary>
@@ -32,4 +33,16 @@ public interface ILimbUseSemantics
 	/// decides admission, never the effect.
 	/// </summary>
 	bool IsInjectableLiquid(string liquidId);
+
+	/// <summary>
+	/// The liquid's own data says the game applies it to a limb: its
+	/// <c>LiquidType.healthUsable</c> is set. That is the single flag
+	/// <c>WaterContainerItem.ApplyToLimb</c> gates the liquid's own
+	/// <c>onHealthUse</c> on, so it decides the topical chain's admission exactly
+	/// the way <see cref="IsInjectableLiquid"/> decides the injection chain's.
+	/// A liquid without it is still drawn by a topical container the game admits —
+	/// it simply contributes no effect — so this predicate decides admission,
+	/// never the effect.
+	/// </summary>
+	bool IsHealthUsableLiquid(string liquidId);
 }

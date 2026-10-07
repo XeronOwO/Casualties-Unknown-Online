@@ -78,12 +78,20 @@ public sealed class RemoteInventoryIntentMsg
 	}
 
 	/// <summary>
-	/// The liquid quantity <see cref="RemoteInventoryIntentKind.Drain"/> removes,
-	/// in the container's own units (<c>WaterContainerItem.Drain</c>). Zero is a
-	/// legal value — the native tick still runs on a frame whose delta time made
-	/// the amount zero — and it needs no <c>value + 1</c> encoding: unlike a slot
-	/// or a limb index there is no "no operand" state to tell it apart from, so
-	/// protobuf's default-zero rule round-trips it unchanged.
+	/// The liquid quantity the native call moved: the ml
+	/// <see cref="RemoteInventoryIntentKind.Drain"/> removes in the container's own
+	/// units (<c>WaterContainerItem.Drain</c>), or the ml one
+	/// <see cref="RemoteInventoryIntentKind.ApplyToLimb"/> use applies. It is
+	/// measured on the REQUESTER's client from the item's own native limb action —
+	/// a topical container's per-use amount is an <c>ldc.r4</c> literal inside its
+	/// delegate, so no table can hold it and the native call is the only source;
+	/// the host treats it as a request and caps it at what the authoritative item
+	/// really carries. Zero is a legal value — the native drain tick still runs on
+	/// a frame whose delta time made the amount zero — and it needs no
+	/// <c>value + 1</c> encoding: unlike a slot or a limb index there is no
+	/// "no operand" state to tell it apart from, so protobuf's default-zero rule
+	/// round-trips it unchanged. Zero on an <c>ApplyToLimb</c> intent means the
+	/// requester's client measured nothing, which the host refuses by name.
 	/// </summary>
 	[ProtoMember(8)]
 	public float Amount { get; set; }

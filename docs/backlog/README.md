@@ -62,7 +62,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
-- [Cross-player semantics from the game's own data](todo/mod-cross-player-native-semantics.md) — **High** — the injection chain reads the game's data.
+- [Cross-player semantics from the game's own data](todo/mod-cross-player-native-semantics.md) — **High** — the injection and topical chains read game data.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — give, spawn and a property editor.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.

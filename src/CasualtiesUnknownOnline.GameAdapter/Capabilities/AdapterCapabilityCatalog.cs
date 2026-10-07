@@ -129,7 +129,7 @@ internal static class AdapterCapabilityCatalog
 			[
 				typeof(LimbStatePatches), typeof(RemoteMedicalPatches), typeof(RemoteShrapnelMinigamePatch),
 				typeof(RemoteOtherMedicalMinigamePatch), typeof(BleedParticleWorldBloodPatch),
-				typeof(RemoteInjectionPatches),
+				typeof(RemoteInjectionPatches), typeof(RemoteTopicalPatches),
 			],
 			[],
 			[],

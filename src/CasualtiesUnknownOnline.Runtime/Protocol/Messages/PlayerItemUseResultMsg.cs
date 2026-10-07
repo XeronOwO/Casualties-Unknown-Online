@@ -63,4 +63,42 @@ public sealed class PlayerItemUseResultMsg
 	/// </summary>
 	[ProtoMember(10)]
 	public List<TimedBodyEffectMsg> TimedBodyEffects { get; set; } = [];
+
+	/// <summary>
+	/// The drain the host committed for the migrated TOPICAL family: the operator
+	/// measured one native <c>ApplyToLimb</c> call, the host capped it at what the
+	/// authoritative item carried and split it the way
+	/// <c>WaterContainerItem.CalculateDrain</c> does. Non-empty means the target's
+	/// own client applies it through the native path, and that
+	/// <see cref="Health"/>/<see cref="Limbs"/> carry nothing — the host computed no
+	/// body state for this family. Empty for every other family.
+	/// </summary>
+	[ProtoMember(11)]
+	public List<LiquidStackMsg> AppliedDose { get; set; } = [];
+
+	/// <summary>
+	/// The limb the operator's gesture selected, or -1 for the ordinary
+	/// most-injured-limb rule. It accompanies <see cref="AppliedDose"/>: the
+	/// affected side resolves it against its own body, exactly as the injection
+	/// chain's <c>NativeInjectionApply</c> does.
+	/// </summary>
+	public int LimbIndex
+	{
+		get => _limbSelection <= 0 ? -1 : _limbSelection - 1;
+		set => _limbSelection = value >= 0 ? value + 1 : 0;
+	}
+
+	private int _limbSelection;
+
+	/// <summary>
+	/// Wire representation of <see cref="LimbIndex"/>. Zero means "no explicit
+	/// selection"; a positive value is stored as <c>limbIndex + 1</c> so limb 0
+	/// is not omitted by protobuf's default-zero rule.
+	/// </summary>
+	[ProtoMember(12)]
+	public int LimbSelection
+	{
+		get => _limbSelection;
+		set => _limbSelection = value;
+	}
 }

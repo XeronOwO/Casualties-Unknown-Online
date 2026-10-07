@@ -12,12 +12,20 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
 /// The cross-player item-use operation (drink/food first slice plus the
-/// curated medicine, topical, limb-tool and wearable slices). The host
-/// validates the user and target against its authoritative character
-/// snapshots, consumes/drains a carried item or transfers a wearable onto the
-/// target's snapshot, applies the curated target-side body/limb effect and
-/// sends the two participants one authoritative result. It has no mutable
+/// curated medicine, limb-tool and wearable slices and the migrated topical
+/// one). The host validates the user and target against its authoritative
+/// character snapshots, consumes/drains a carried item or transfers a wearable
+/// onto the target's snapshot, applies the curated target-side body/limb effect
+/// and sends the two participants one authoritative result. It has no mutable
 /// session state — it only reacts to calls and messages.
+/// <para>
+/// The topical family is the exception the migration created: the host commits
+/// only the resource and carries the operator-reported dose to the target, whose
+/// own client runs the liquids' native <c>onHealthUse</c> bodies. The host
+/// therefore writes no target state for it, and the result carries no
+/// host-computed body snapshot — see
+/// <c>mod-cross-player-native-semantics</c> Part B.
+/// </para>
 /// </summary>
 internal sealed class PlayerItemUseService(
 	ISessionControl session,
@@ -44,7 +52,7 @@ internal sealed class PlayerItemUseService(
 	public event Action<PlayerItemUseResultMsg>? UseReceived;
 
 	/// <summary>Online UI entry: the local player uses one carried non-injectable consumable on another player (0 = host auto-select).</summary>
-	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1)
+	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1, float doseMl = 0f)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -62,6 +70,7 @@ internal sealed class PlayerItemUseService(
 			TargetSteamId = targetSteamId,
 			ItemInstanceId = itemInstanceId,
 			LimbIndex = targetLimbIndex,
+			DoseMl = doseMl,
 		};
 
 		if (_session.Role == SessionRole.Host)
@@ -89,7 +98,7 @@ internal sealed class PlayerItemUseService(
 			return;
 		}
 
-		TryExecuteUse(user, target, msg.ItemInstanceId, msg.LimbIndex, requireUserConscious: true);
+		TryExecuteUse(user, target, msg.ItemInstanceId, msg.LimbIndex, msg.DoseMl, requireUserConscious: true);
 	}
 
 	/// <summary>
@@ -105,7 +114,8 @@ internal sealed class PlayerItemUseService(
 		ulong requester,
 		ulong itemOwner,
 		ulong itemInstanceId,
-		int targetLimbIndex)
+		int targetLimbIndex,
+		float doseMl)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -135,7 +145,7 @@ internal sealed class PlayerItemUseService(
 			return;
 		}
 
-		TryExecuteUse(itemOwner, requester, itemInstanceId, targetLimbIndex, requireUserConscious: false);
+		TryExecuteUse(itemOwner, requester, itemInstanceId, targetLimbIndex, doseMl, requireUserConscious: false);
 	}
 
 	/// <summary>
@@ -151,6 +161,7 @@ internal sealed class PlayerItemUseService(
 		ulong target,
 		ulong itemInstanceId,
 		int limbIndex,
+		float doseMl,
 		bool requireUserConscious)
 	{
 		if (!_characters.IsInWorld(user) || !_characters.IsInWorld(target))
@@ -183,7 +194,7 @@ internal sealed class PlayerItemUseService(
 		CharacterItemMsg? originalItem;
 		if (itemInstanceId != 0)
 		{
-			if (!TryFindCarriedItem(userData.Items, itemInstanceId, out originalItem))
+			if (!CarriedItemUseTree.TryFind(userData.Items, itemInstanceId, out originalItem))
 			{
 				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable (requested {ItemId}).", user, itemInstanceId);
 				return false;
@@ -191,7 +202,7 @@ internal sealed class PlayerItemUseService(
 		}
 		else
 		{
-			originalItem = FindFirstUsableCarriedItem(userData.Items);
+			originalItem = CarriedItemUseTree.FindFirstUsable(userData.Items, _limbUseSemantics);
 			if (originalItem is null)
 			{
 				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable to auto-select.", user);
@@ -199,7 +210,7 @@ internal sealed class PlayerItemUseService(
 			}
 		}
 
-		if (!IsActuallyUsable(originalItem))
+		if (!CarriedItemUseTree.IsActuallyUsable(originalItem, _limbUseSemantics))
 		{
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or not in the catalog.", originalItem.ItemId, originalItem.InstanceId);
 			return false;
@@ -210,6 +221,7 @@ internal sealed class PlayerItemUseService(
 		var newTargetData = PlayerCharacterAccess.CloneCharacter(targetData);
 		var destroyed = false;
 		CharacterItemMsg? wornItem = null;
+		List<LiquidStackMsg>? appliedDose = null;
 		var timedEffects = new List<TimedLimbEffectMsg>();
 		var timedBodyEffects = new List<TimedBodyEffectMsg>();
 
@@ -228,7 +240,7 @@ internal sealed class PlayerItemUseService(
 		else if (RemoteConsumeApplication.TryCreateDrinkPlan(originalItem.Liquids, out var drinkPlan))
 		{
 			RemoteConsumeApplication.ApplyDrink(newTargetData.Health!, drinkPlan);
-			ApplyDrain(newItem, drinkPlan);
+			CarriedItemUseTree.ApplyDrain(newItem, drinkPlan);
 		}
 		else if (RemoteConsumeCatalog.TryGetFood(originalItem.ItemId, out var food))
 		{
@@ -252,12 +264,26 @@ internal sealed class PlayerItemUseService(
 
 			RemoteDrinkMedicineApplication.Apply(newTargetData.Health!, drinkMedicinePlan);
 			timedBodyEffects = RemoteDrinkMedicineApplication.BuildTimedEffects(drinkMedicinePlan);
-			ApplyDrain(newItem, drinkMedicinePlan);
+			CarriedItemUseTree.ApplyDrain(newItem, drinkMedicinePlan);
 		}
-		else if (RemoteTopicalCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var topicalPlan))
+		else if (TopicalAdmission.IsTopicalContainer(_limbUseSemantics, originalItem.ItemId, originalItem.Liquids))
 		{
-			RemoteTopicalApplication.Apply(newTargetData.Health!, newTargetData.Limbs, topicalPlan, limbIndex);
-			ApplyDrain(newItem, topicalPlan);
+			// The dose is the one the item's OWN delegate computed on the
+			// operator's client — the per-use ml is an ldc.r4 literal inside that
+			// closure, so no table can hold it and the host only caps it at what
+			// the item really carries (LiquidDrainPlan mirrors the native
+			// CalculateDrain). The effect belongs to the affected side: this
+			// branch commits the resource and carries the drained plan to the
+			// target, which runs each liquid's own onHealthUse through the native
+			// path. Nothing target-side is computed or saved here.
+			if (!LiquidDrainPlan.TryCreate(originalItem.Liquids, doseMl, out var topicalPlan))
+			{
+				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) carried no dose to apply to {Target}.", originalItem.ItemId, originalItem.InstanceId, target);
+				return false;
+			}
+
+			appliedDose = topicalPlan;
+			CarriedItemUseTree.ApplyDrain(newItem, topicalPlan);
 		}
 		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
 		{
@@ -293,15 +319,18 @@ internal sealed class PlayerItemUseService(
 
 		if (destroyed)
 		{
-			RemoveCarriedItem(newUserData.Items, originalItem.InstanceId);
+			CarriedItemUseTree.Remove(newUserData.Items, originalItem.InstanceId);
 		}
 		else
 		{
-			ReplaceCarriedItem(newUserData.Items, originalItem.InstanceId, newItem);
+			CarriedItemUseTree.Replace(newUserData.Items, originalItem.InstanceId, newItem);
 		}
 
 		_characters.SaveCharacterData(user, newUserData);
-		_characters.SaveCharacterData(target, newTargetData);
+		if (appliedDose is null)
+		{
+			_characters.SaveCharacterData(target, newTargetData);
+		}
 
 		if (user != _session.LocalSteamId)
 		{
@@ -342,6 +371,12 @@ internal sealed class PlayerItemUseService(
 			"[ItemUse] {User} used {ItemId} (id {InstanceId}) on {Target}; destroyed={Destroyed}.",
 			user, originalItem.ItemId, originalItem.InstanceId, target, destroyed);
 
+		// The migrated topical family publishes no host-computed body state: the
+		// target applies the dose itself through the native path, and neither
+		// display sink has a staleness guard, so echoing the target's own
+		// pre-dose report back would fight the effect this same message carries.
+		// Every other family keeps the host-applied snapshot untouched.
+		var targetAppliesLocally = appliedDose is not null;
 		PublishUse(new PlayerItemUseResultMsg
 		{
 			UserSteamId = user,
@@ -350,10 +385,12 @@ internal sealed class PlayerItemUseService(
 			ItemDestroyed = destroyed,
 			ItemAfter = destroyed ? null : PlayerCharacterAccess.CloneItem(newItem),
 			WornItem = wornItem,
-			Health = newTargetData.Health,
-			Limbs = [.. newTargetData.Limbs],
+			Health = targetAppliesLocally ? null : newTargetData.Health,
+			Limbs = targetAppliesLocally ? [] : [.. newTargetData.Limbs],
 			TimedEffects = timedEffects,
 			TimedBodyEffects = timedBodyEffects,
+			AppliedDose = appliedDose ?? [],
+			LimbIndex = limbIndex,
 		});
 		return true;
 	}
@@ -440,141 +477,13 @@ internal sealed class PlayerItemUseService(
 			[.. msg.Limbs.Select(PlayerInteractionKernelCodec.FromCharacterLimb)],
 			[.. msg.TimedEffects.Select(PlayerInteractionKernelCodec.FromTimedLimbEffect)],
 			[.. msg.TimedBodyEffects.Select(PlayerInteractionKernelCodec.FromTimedBodyEffect)],
+			[.. msg.AppliedDose.Select(PlayerInteractionKernelCodec.FromLiquidStack)],
+			msg.LimbIndex,
 			out _,
 			out var rejection))
 		{
 			_log.LogWarning("[ItemUse] kernel result rejected {User} -> {Target}: {Reason} ({Message}).",
 				msg.UserSteamId, msg.TargetSteamId, rejection!.Reason, rejection.Message);
 		}
-	}
-
-	internal static void ApplyDrain(CharacterItemMsg item, IReadOnlyList<LiquidStackMsg> drinkPlan)
-	{
-		var originalTotal = item.Liquids.Sum(s => s.Amount);
-		var after = new List<LiquidStackMsg>(item.Liquids.Count);
-		for (var i = 0; i < item.Liquids.Count; i++)
-		{
-			var consumed = i < drinkPlan.Count ? drinkPlan[i].Amount : 0f;
-			after.Add(new LiquidStackMsg
-			{
-				LiquidId = item.Liquids[i].LiquidId,
-				Amount = Math.Max(0f, item.Liquids[i].Amount - consumed),
-			});
-		}
-
-		after.RemoveAll(s => s.Amount < 0.5f);
-		var afterTotal = after.Sum(s => s.Amount);
-		item.Liquids = after;
-
-		// The wire item has no Capacity field; condition is total/capacity for a
-		// WaterContainerItem. Reconstruct the proportional condition from the
-		// original total/condition ratio so the local item update and the host
-		// record agree without needing the game's LiquidItemInfo table.
-		item.Condition = originalTotal > 0f && item.Condition > 0f
-			? afterTotal * item.Condition / originalTotal
-			: 0f;
-	}
-
-	private static bool TryFindCarriedItem(IReadOnlyList<CharacterItemMsg> items, ulong instanceId, out CharacterItemMsg item)
-	{
-		foreach (var candidate in items)
-		{
-			// Worn items (negative SlotIndex) are not selectable through the
-			// one-shot consume/use path; container contents carry the parent's
-			// non-negative slot, so recursion below still covers nested items.
-			if (candidate.SlotIndex < 0 || candidate.InstanceId == 0)
-			{
-				continue;
-			}
-
-			if (instanceId != 0 && candidate.InstanceId == instanceId)
-			{
-				item = candidate;
-				return true;
-			}
-
-			if (TryFindCarriedItem(candidate.Contents, instanceId, out item))
-			{
-				return true;
-			}
-		}
-
-		item = null!;
-		return false;
-	}
-
-	private static CharacterItemMsg? FindFirstUsableCarriedItem(IReadOnlyList<CharacterItemMsg> items)
-	{
-		foreach (var candidate in items)
-		{
-			if (candidate.SlotIndex >= 0 && candidate.InstanceId != 0 && IsActuallyUsable(candidate))
-			{
-				return candidate;
-			}
-
-			var nested = FindFirstUsableCarriedItem(candidate.Contents);
-			if (nested is not null)
-			{
-				return nested;
-			}
-		}
-
-		return null;
-	}
-
-	private static bool RemoveCarriedItem(List<CharacterItemMsg> items, ulong instanceId)
-	{
-		for (var i = 0; i < items.Count; i++)
-		{
-			if (items[i].InstanceId == instanceId)
-			{
-				items.RemoveAt(i);
-				return true;
-			}
-
-			if (RemoveCarriedItem(items[i].Contents, instanceId))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private static bool ReplaceCarriedItem(List<CharacterItemMsg> items, ulong instanceId, CharacterItemMsg replacement)
-	{
-		for (var i = 0; i < items.Count; i++)
-		{
-			if (items[i].InstanceId == instanceId)
-			{
-				items[i] = replacement;
-				return true;
-			}
-
-			if (ReplaceCarriedItem(items[i].Contents, instanceId, replacement))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private static bool IsActuallyUsable(CharacterItemMsg item)
-	{
-		if (item.Condition <= 0f
-			&& (RemoteConsumeCatalog.IsFoodItem(item.ItemId)
-				|| RemoteLimbToolCatalog.IsToolItem(item.ItemId)
-				|| RemoteWearCatalog.IsWearItem(item.ItemId)))
-		{
-			return false;
-		}
-
-		return RemoteWearCatalog.IsWearItem(item.ItemId)
-			|| RemoteConsumeCatalog.IsFoodItem(item.ItemId)
-			|| RemoteConsumeApplication.TryCreateDrinkPlan(item.Liquids, out _)
-			|| RemoteDrinkMedicineCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
-			|| RemoteTopicalCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
-			|| RemoteLimbToolCatalog.IsToolItem(item.ItemId);
 	}
 }

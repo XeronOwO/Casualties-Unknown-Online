@@ -80,6 +80,8 @@ internal sealed class PlayerInteractionResultAuthority(ItemKernelAuthority kerne
 		IReadOnlyList<PlayerInteractionLimb> limbs,
 		IReadOnlyList<PlayerInteractionTimedLimbEffect> timedEffects,
 		IReadOnlyList<PlayerInteractionTimedBodyEffect> timedBodyEffects,
+		IReadOnlyList<PlayerInteractionLiquidStack> appliedDose,
+		int limbIndex,
 		out CommittedBatch? batch,
 		out Rejection? rejection) =>
 		TryExecute(
@@ -97,7 +99,9 @@ internal sealed class PlayerInteractionResultAuthority(ItemKernelAuthority kerne
 				health,
 				limbs,
 				timedEffects,
-				timedBodyEffects),
+				timedBodyEffects,
+				appliedDose,
+				limbIndex),
 			actor,
 			"record-player-item-use-result",
 			out batch,

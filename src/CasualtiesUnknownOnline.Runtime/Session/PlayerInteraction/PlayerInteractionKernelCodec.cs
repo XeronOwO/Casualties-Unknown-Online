@@ -268,6 +268,16 @@ public static class PlayerInteractionKernelCodec
 	public static PlayerInteractionTimedBodyEffect FromTimedBodyEffect(TimedBodyEffectMsg effect) =>
 		new(effect.EffectId, effect.DurationSeconds, effect.DoseMl);
 
+	public static PlayerInteractionLiquidStack FromLiquidStack(LiquidStackMsg stack) =>
+		new(stack.LiquidId, stack.Amount);
+
+	public static LiquidStackMsg ToLiquidStack(PlayerInteractionLiquidStack stack) =>
+		new()
+		{
+			LiquidId = stack.LiquidId,
+			Amount = stack.Amount,
+		};
+
 	public static TimedBodyEffectMsg ToTimedBodyEffect(PlayerInteractionTimedBodyEffect effect) =>
 		new()
 		{
@@ -311,6 +321,8 @@ public static class PlayerInteractionKernelCodec
 			Limbs = [.. e.Limbs.Select(ToCharacterLimb)],
 			TimedEffects = [.. e.TimedEffects.Select(ToTimedLimbEffect)],
 			TimedBodyEffects = [.. e.TimedBodyEffects.Select(ToTimedBodyEffect)],
+			AppliedDose = [.. e.AppliedDose.Select(ToLiquidStack)],
+			LimbIndex = e.LimbIndex,
 		};
 
 	private static ComponentStateMsg ToComponentMessage(ItemComponentState component) =>

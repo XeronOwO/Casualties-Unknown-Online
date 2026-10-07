@@ -205,8 +205,14 @@ internal sealed partial class RemoteDragIntentCapture
 	internal void CaptureContainerLoad(ulong itemInstanceId, ulong containerInstanceId) =>
 		_containerMoves.Load(itemInstanceId, containerInstanceId);
 
-	/// <summary><c>PlayerCamera.ApplyWoundItem</c>: the dragged item is applied to a limb (R11).</summary>
-	internal void CaptureApplyToLimb(ulong itemInstanceId, int limbIndex)
+	/// <summary>
+	/// <c>PlayerCamera.ApplyWoundItem</c>: the dragged item is applied to a limb
+	/// (R11). <paramref name="doseMl"/> is the ml the dragged item's own native
+	/// limb action computed on this client, for the topical family whose per-use
+	/// amount no table can carry; it is 0 for every item the host computes for
+	/// itself.
+	/// </summary>
+	internal void CaptureApplyToLimb(ulong itemInstanceId, int limbIndex, float doseMl = 0f)
 	{
 		if (itemInstanceId != DraggedItemId)
 		{
@@ -214,7 +220,7 @@ internal sealed partial class RemoteDragIntentCapture
 			return;
 		}
 
-		Add(RemoteInventoryIntentKind.ApplyToLimb, itemInstanceId, 0, -1, 0, limbIndex);
+		Add(RemoteInventoryIntentKind.ApplyToLimb, itemInstanceId, 0, -1, 0, limbIndex, doseMl);
 	}
 
 	/// <summary>

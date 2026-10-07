@@ -101,7 +101,9 @@ formulas copied out of the game:
   can now name one chain as done.
 - The same shape in `RemoteTopicalCatalog`, `RemoteLimbToolCatalog` and `RemoteWearCatalog`; the
   decisions that introduced the slices describe them as curated (`docs/decisions/archive.md` entries
-  98, 100, 103).
+  98, 100, 103). `RemoteTopicalCatalog` is **deleted 2026-10-08** by Part B of
+  `docs/backlog/todo/mod-cross-player-native-semantics.md`, the same way the medicine table went with
+  Part A; the other two still answer for their chains.
 
 Consequences:
 

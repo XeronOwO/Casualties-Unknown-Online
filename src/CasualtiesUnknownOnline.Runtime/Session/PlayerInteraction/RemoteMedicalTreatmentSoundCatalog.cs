@@ -27,12 +27,6 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// <item><description><see cref="TreatmentClips"/> — the delegates that play a
 /// clip SYNCHRONOUSLY when the limb action runs. These are exactly the ones the
 /// blocked call silenced.</description></item>
-/// <item><description><see cref="TreatmentLiquidClips"/> — the topical
-/// containers, whose clip comes from the LIQUID's <c>onHealthUse</c> reached
-/// through <c>WaterContainerItem.ApplyToLimb</c> rather than from the item
-/// (<c>Liquids.cs:1074</c> / <c>:1100</c>), so the row is keyed by liquid id. A
-/// spray bottle holding one of them plays its own <c>spray</c> AND this clip,
-/// the way the native path does.</description></item>
 /// <item><description><see cref="UncarriedItems"/> — accepted items this table plays nothing for,
 /// recorded rather than left undecided, with the reason per group. The bandage family is here
 /// because its clip comes from the native minigame's own step (captured by
@@ -59,6 +53,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// them this table's old <c>UncarriedItems</c> rows simply recorded a silence the native
 /// path still keeps.
 /// </para>
+///
+/// <para>
+/// The topical family followed it (Part B). Both halves of its sound are native and the
+/// table has no row for either: the two spray containers play <c>"spray"</c> in their own
+/// delegate (Item.cs:2100/2124), relayed by the operator's measurement window, and the
+/// cream containers' clip comes from the LIQUID's <c>onHealthUse</c>
+/// (Liquids.cs:1074/1100), which now runs on the patient's own client through
+/// <c>NativeTopicalApply</c> and is relayed from there. Keeping the liquid rows would
+/// double the clip on the patient, who runs that delegate locally.
+/// </para>
 /// </summary>
 public static class RemoteMedicalTreatmentSoundCatalog
 {
@@ -82,25 +86,7 @@ public static class RemoteMedicalTreatmentSoundCatalog
 			["splint"] = "splint",
 			["tweezers"] = "tweezeruse",
 			["wrench"] = "wrenchhit",
-			// Topical containers that spray before they apply (Item.cs:2100/2124).
-			["disinfectant"] = "spray",
-			["spraybottle"] = "spray",
 		};
-
-	/// <summary>The health-usable liquids whose <c>onHealthUse</c> plays a cream clip (Liquids.cs:1074 reliefcream, :1100 woundglue).</summary>
-	private static readonly IReadOnlyDictionary<string, string> TreatmentLiquidClips =
-		new Dictionary<string, string>(StringComparer.Ordinal)
-		{
-			["reliefcream"] = "cream",
-			["woundglue"] = "cream",
-		};
-
-	/// <summary>Accepted items whose clip is the LIQUID's, not the item's — the topical cream containers (Item.cs:650/674 route through <c>ApplyToLimb</c>).</summary>
-	private static readonly string[] LiquidDrivenItems =
-	[
-		"paincream",
-		"woundglue",
-	];
 
 	/// <summary>Accepted items this table plays no clip for, in recorded groups: the bandage family (its clip is the native minigame's own step), the 2D-minigame surfaces, the tools whose delegate is silent, and the two groups whose clip belongs to the limb/gore presentation instead (see the class doc).</summary>
 	private static readonly string[] UncarriedItems =
@@ -142,13 +128,6 @@ public static class RemoteMedicalTreatmentSoundCatalog
 	/// <summary>The clip this item's native limb action would have played, when it plays one itself.</summary>
 	public static bool TryGetClip(string itemId, out string clip) =>
 		TreatmentClips.TryGetValue(itemId, out clip!);
-
-	/// <summary>The clip the applied LIQUID's own health use plays, for the topical container path.</summary>
-	public static bool TryGetLiquidClip(string liquidId, out string clip) =>
-		TreatmentLiquidClips.TryGetValue(liquidId, out clip!);
-
-	/// <summary>The items whose clip is decided by the liquid they hold (recorded so the census has no undecided item).</summary>
-	public static IReadOnlyCollection<string> LiquidDriven => LiquidDrivenItems;
 
 	/// <summary>The accepted items this table plays no clip for — each group's reason is on the array's own rows (a group may be natively silent OR carry a clip this table does not own, e.g. the limb's gore presentation).</summary>
 	public static IReadOnlyCollection<string> Uncarried => UncarriedItems;

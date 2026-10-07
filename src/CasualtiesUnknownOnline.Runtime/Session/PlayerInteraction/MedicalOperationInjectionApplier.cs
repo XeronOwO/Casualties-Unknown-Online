@@ -68,7 +68,7 @@ internal sealed class MedicalOperationInjectionApplier(
 			return false;
 		}
 
-		PlayerItemUseService.ApplyDrain(newItem, plan);
+		CarriedItemUseTree.ApplyDrain(newItem, plan);
 		newUserData.Items[itemIndex] = newItem;
 
 		_access.SaveCharacterData(session.Operator, newUserData);

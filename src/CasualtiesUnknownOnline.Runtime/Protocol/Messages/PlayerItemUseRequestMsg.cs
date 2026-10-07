@@ -51,4 +51,17 @@ public sealed class PlayerItemUseRequestMsg
 		get => _limbSelection <= 0 ? -1 : _limbSelection - 1;
 		set => _limbSelection = value >= 0 ? value + 1 : 0;
 	}
+
+	/// <summary>
+	/// The ml the ACTING player's own client measured for one use of this item:
+	/// it ran the item's native <c>useLimbAction</c> and the container call that
+	/// delegate made reported the amount it computed. The topical family needs it
+	/// because that amount is an <c>ldc.r4</c> literal inside the delegate and no
+	/// table can hold it; the host treats it as a request, capping it at what the
+	/// authoritative item really carries. Zero for every family that computes its
+	/// own effect (drink/food, drink medicine, limb tool, wear) and for a request
+	/// the acting client could not measure.
+	/// </summary>
+	[ProtoMember(4)]
+	public float DoseMl { get; set; }
 }

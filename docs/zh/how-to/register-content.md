@@ -61,6 +61,8 @@ if (context.Content.CanRegister)
 
 这些 DTO 大多另带一个 `CustomData` 字典，用来放已知类别还没命名的字段（`ModRecipeDefinition` 和 `ModLiquidDefinition` 没有）；而框架存下来的始终是你注册的那串不透明字节。
 
+上面这张表就是全部。表里的九个类别正是 `ModContentKind` 列出的、有 CUO 提供者去实体化的类别；表外的类别照样可以合法登记 —— 框架只校验类别的形状，从不校验它是否在表里 —— 但没有任何东西会绑它：它留在登记表里，控制台按规范 id 列出它，而它永远不会出现在世界里。绑定器会在加载时说一次，级别是警告，点名类别与你的定义 —— 那行日志就是「已登记」与「会存在」的分界，内容迟迟不见踪影时先看它。
+
 ## 查一条定义归谁
 
 ```csharp
@@ -91,7 +93,7 @@ if (context.ContentOwners.TryGetOwner(ModContentKind.Item, "example:wooden.sword
 
 ## 验证它真的成了
 
-载入模组，把 `context.Content.IsRegistered("wooden.sword")` 记进日志 —— true 就说明注册表收下了这条定义，日志里也没有针对它的拒绝。控制台的资源 id 补全（即 `ResourceLocation` 那套词表）会用规范 id 提示你的内容 —— 没声明命名空间的旧式注册没有规范 id，会被有意略过；带 `TemplateId` 的物品类别可以通过物品生成接口放出来。网络模式声明错了的模组，表现是内容只在本地存在，永远绑不进共享世界。
+载入模组，把 `context.Content.IsRegistered("wooden.sword")` 记进日志 —— true 就说明注册表收下了这条定义，日志里也没有针对它的拒绝。控制台的资源 id 补全（即 `ResourceLocation` 那套词表）会用规范 id 提示你的内容 —— 没声明命名空间的旧式注册没有规范 id，会被有意略过；带 `TemplateId` 的物品类别可以通过物品生成接口放出来。网络模式声明错了的模组，表现是内容只在本地存在，永远绑不进共享世界。没有任何提供者的类别则表现为加载时的一条警告，点名类别与定义：登记表收下了它，而不会有任何东西把它实体化。
 
 ## 相关阅读
 

@@ -25,7 +25,7 @@ implemented as its own deliverable with its own verification.
 
 | Layer | Question | State |
 |---|---|---|
-| 1. Definition | can content be added at all? | 12 content kinds, 9 with a provider |
+| 1. Definition | can content be added at all? | 9 content kinds, each with a provider |
 | 2. Local semantics | does the content behave like vanilla content? | tags yes; item and liquid qualities yes, and a quality reference that resolves to nothing is refused (stage 1, landed 2026-10-07); limb use and liquid effects no |
 | 3. Online semantics | does it work between players? | carried/dropped/container/durability follow the generic mechanisms; "use it on another player" is a curated id table |
 
@@ -177,10 +177,14 @@ Liquid side (`LiquidType` versus `ModLiquidDefinition`):
 The framework says a content kind exists, but nothing consumes it — the same silent shape the
 quality-reference check closed for recipes in stage 1:
 
-- `ModContentKind.Entity`, `ModContentKind.Setting` and `ModContentKind.Locale` have **no content
-  provider** (the nine providers cover the other nine kinds). `Entity` appears once in `src/`, as the
-  console resource-location label of the built-in player entity; `Setting` and `Locale` do not appear at
-  all. A registration for one of them is accepted and materializes nothing.
+- `ModContentKind.Entity`, `ModContentKind.Setting` and `ModContentKind.Locale` had **no content
+  provider** (the nine providers cover the other nine kinds). `Entity` appeared once in `src/`, as the
+  console resource-location label of the built-in player entity; `Setting` and `Locale` did not appear at
+  all. A registration for one of them was accepted and materialized nothing. **Cut and landed
+  2026-10-07 as `review/mod-content-kind-with-no-provider.md`**: the vocabulary now names only the kinds a
+  provider binds, the built-in resource entry carries its own kind word, the binder reports a
+  provider-less registration at warning level, and a gate ties the vocabulary, the providers and the
+  registration statements that name them into one list.
 - A `ModRecipeIngredient.Quality` that no provider can satisfy is now refused and reported at load time
   instead of becoming a recipe that can never be crafted — **landed 2026-10-07** with stage 1
   (`review/mod-crafting-quality-labels.md`), which also records the two reach limits that stay open there
@@ -188,7 +192,10 @@ quality-reference check closed for recipes in stage 1:
 
 ### C. Capability the game itself does not have
 
-These need new capability rather than a predicate, and none has a consumer:
+These need new capability rather than a predicate, and none has a consumer. None of them has a
+`ModContentKind` constant either: the vocabulary names only the kinds a provider binds, so a
+capability's kind joins it in the same change as the provider that binds it
+(`review/mod-content-kind-with-no-provider.md`).
 
 - **recipe override** — change or delete the 132 hardcoded vanilla recipes; CUO can only append.
 - **new layer modifiers and biomes** — the vanilla `LayerModifier` family.
@@ -214,7 +221,8 @@ first one).
 Two entries are first in line, because they are defects of a surface the API already promises rather than new
 capability, so they carry a reachable failure path instead of a wish: **a content kind with no provider**, and
 **a quality reference with no provider**. Both are filed at a higher priority than the capability entries when
-their own tickets are cut.
+their own tickets are cut. Both are now cut: `review/mod-crafting-quality-labels.md` (2026-10-07) and
+`review/mod-content-kind-with-no-provider.md` (2026-10-07).
 
 ## Open questions
 
@@ -223,8 +231,11 @@ their own tickets are cut.
   new feature.
 - Stage 3 with mixed-mod sessions: does the existing handshake consistency (mod id, version, permissions,
   `NativeBinding` parity) cover "same content, different semantics"?
-- Part 3's kind-versus-provider mapping: is a warning at registration the right shape, or should the
-  unimplemented kinds leave `ModContentKind` until a provider exists?
+- Part 3's kind-versus-provider mapping — **answered 2026-10-07** by
+  `review/mod-content-kind-with-no-provider.md`, and the answer is both halves taken together: the
+  unimplemented kinds leave `ModContentKind` (so a mod cannot write them through the API at all), and the
+  binder warns for any registration no provider binds (so a literal, hand-written kind is still answered
+  at load time rather than in silence). Neither half alone closes the failure path.
 
 ## Non-goals
 

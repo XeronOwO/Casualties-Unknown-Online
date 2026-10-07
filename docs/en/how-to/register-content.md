@@ -84,6 +84,13 @@ Most of these DTOs also carry a `CustomData` dictionary for the fields a well-kn
 yet — `ModRecipeDefinition` and `ModLiquidDefinition` do not — and the framework still stores
 whatever you registered as opaque bytes.
 
+That table is the whole list. The nine kinds in it are the ones `ModContentKind` names and a CUO
+provider materializes; a kind outside it is still a legal registration, because the framework checks
+the kind's shape and never its membership, but nothing binds it: it stays in the registry, the console
+lists it under its canonical id, and it never appears in the world. The binder says so once at load
+time, at warning level, naming the kind and your definition — that line is what separates "registered"
+from "will exist", and it is the one to read when your content stays invisible.
+
 ## Asking who owns a definition
 
 ```csharp
@@ -125,7 +132,9 @@ the definition, and the log carries no refusal for it. The console's resource-id
 `ResourceLocation` vocabulary) then offers your content under its canonical id — a legacy
 registration with no namespace has no canonical id and is deliberately skipped — and an item
 registered with a `TemplateId` can be spawned through the item spawn surface. A mod that declared the
-wrong `NetworkMode` shows up as content that exists locally and never binds into a shared world.
+wrong `NetworkMode` shows up as content that exists locally and never binds into a shared world. A kind
+no provider claims shows up as a load-time warning naming the kind and the definition: the registry took
+it and nothing will materialize it.
 
 ## Related reading
 

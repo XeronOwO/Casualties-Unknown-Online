@@ -15,8 +15,17 @@ public sealed class BuiltInResourceLocationSource(ILocalizationService localizat
 {
 	private static readonly ContentId PlayerId = ContentId.Parse($"{ContentId.BuiltInNamespace}:player");
 
+	/// <summary>
+	/// The console's kind word for a CUO-owned resource id, deliberately NOT a
+	/// <see cref="ModContentKind"/>: that vocabulary names the kinds a mod
+	/// registers and a provider materializes, CUO has no entity provider, and a
+	/// resource entry's kind is display text no consumer routes on (the
+	/// completion row renders it as <c>entity · &lt;name&gt;</c>).
+	/// </summary>
+	private const string PlayerKind = "entity";
+
 	public IReadOnlyList<ResourceLocationEntry> Entries =>
 	[
-		new(PlayerId, ModContentKind.Entity, localization.T("content.cu_player")),
+		new(PlayerId, PlayerKind, localization.T("content.cu_player")),
 	];
 }

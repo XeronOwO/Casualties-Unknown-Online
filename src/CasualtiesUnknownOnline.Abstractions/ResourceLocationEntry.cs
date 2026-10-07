@@ -18,7 +18,15 @@ public sealed class ResourceLocationEntry(ContentId id, string kind, string disp
 	/// <summary>The canonical <c>namespace:path</c> id — never the typed alias.</summary>
 	public ContentId Id { get; } = id;
 
-	/// <summary>The owning content kind (for example <see cref="ModContentKind.Item"/>).</summary>
+	/// <summary>
+	/// The kind the owning source labels this entry with — a
+	/// <see cref="ModContentKind"/> for registered content
+	/// (for example <see cref="ModContentKind.Item"/>), and a source-owned word
+	/// for CUO's own ids (the built-in player entity is <c>entity</c>, which is
+	/// deliberately not a <see cref="ModContentKind"/>). It is display text: no
+	/// framework consumer routes on it, and it is handed to a mod's own match
+	/// stage as part of the entry.
+	/// </summary>
 	public string Kind { get; } = kind;
 
 	/// <summary>The source's display name, or an empty string when the source has none.</summary>

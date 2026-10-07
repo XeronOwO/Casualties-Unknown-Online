@@ -226,7 +226,8 @@ var itemDefs = context.Content.Definitions; // snapshot; payloads are copied on 
 context.Content.TryUnregister("wooden.sword");
 ```
 
-- **作用域**：`IModContent` 是逐模组的不透明内容定义登记表（物品定义、武器数值、NPC 类型、配方、技能、地图条目）。模组在 `Bind` 里登记 id、[内容类别](glossary.md)与不透明载荷，也可以声明一个正数的 `schemaVersion`（默认 1）。框架从不解释、序列化或迁移载荷，所以内容结构与版本归模组自己；存下的版本在每次读取定义时原样带出。
+- **作用域**：`IModContent` 是逐模组的不透明内容定义登记表。模组在 `Bind` 里登记 id、[内容类别](glossary.md)与不透明载荷，也可以声明一个正数的 `schemaVersion`（默认 1）。框架从不解释、序列化或迁移载荷，所以内容结构与版本归模组自己；存下的版本在每次读取定义时原样带出。
+- **类别表列出的，就是框架真正能绑的**：`ModContentKind` 只有九个类别 —— `item`、`recipe`、`liquid`、`liquidtile`、`tile`、`building`、`structure`、`status`、`moodle` —— 每一个都对应下面的一张有类型 DTO。类别本身仍是模组自定义的标签，策略只校验它的形状、不校验它是否在这张表里，所以模组完全可以自造类别；但没有任何提供者的类别不会被实体化。这样的登记照样被接受，也照样可被枚举（运行时目录、归属查询与控制台的资源 id 补全都会列出它），而运行时绑定器会在加载时以警告级别点名这个类别与这条定义 —— 信息级别的「registered content」不是它的最终结论。CUO 有意不提供 `entity`、`setting`、`locale` 三个类别：设置与本地化是模组自己的事，模组实体类型是搁置的能力；在能绑它们的提供者出现之前，类别表里就不列它们。
 - **带命名空间的内容 id（content id）**：每个 CUO 内容 id 都是规范的 `namespace:path`。在清单里声明命名空间（`[CuoMod(..., Namespace = "mymod")]`），内容就可以用 `mymod:wooden.sword` 寻址，而游戏自带内容是 `cu:<item id>`（例如 `cu:fentanyl`）。[命名空间](glossary.md)的语法是 `[a-z][a-z0-9_]{0,31}`，路径是 `[a-z0-9][a-z0-9_.-]{0,94}`；Abstractions 里的 `ContentId` 负责解析、格式化，并把输入统一成小写。没声明命名空间的模组保留裸 id（按模组划分；跨模组重复仍会被报成冲突）。裸 id 同时也是内容提供者落到游戏表里的键，所以两个不同命名空间的模组为同一类别注册同一个裸 id，仍然是冲突 —— 规范地址能解析开，但游戏里只能存在一个条目。控制台的 `ResourceLocation` 补全接受规范 id 前缀、裸 id 或本地化显示名，并且总是插入规范 id。
 - **权限**：注册需要 `ModPermission.RegisterContent`。`CanRegister` 反映这份模组拷贝有没有声明该标志；每次 `TryRegister` 还会再强制一次。权限策略本来就拒绝在 `ClientOnly`／`Cosmetic` 上出现这个标志，所以只有带状态的模组才能注册内容。
 - **进程本地**：内容字节不过网络。内容是模组自身的一部分，所以一致性边界就是握手（模组 id／SemVer／权限／网络模式）；需要按客户端动态生成内容的模组要改用 `IModNetwork`／`IModCommands` 协调。

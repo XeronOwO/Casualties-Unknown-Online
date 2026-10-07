@@ -12,13 +12,19 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
 /// The cross-player item-use operation (the SOLID-food first slice plus the
-/// limb-tool and wearable slices and the three migrated native families:
+/// limb-tool slice, the wearable slice and the three migrated native families:
 /// injection, topical and drink). The host validates the user and target against
 /// its authoritative character snapshots, consumes/drains a carried item or
 /// transfers a wearable onto the target's snapshot, applies the curated
 /// target-side body/limb effect and sends the two participants one authoritative
 /// result. It has no mutable session state — it only reacts to calls and
 /// messages.
+/// <para>
+/// Which family a carried item belongs to is the item's own data, asked through
+/// the three content seams (<see cref="ILimbUseSemantics"/>,
+/// <see cref="IConsumeSemantics"/>, <see cref="IWearSemantics"/>) in the order the
+/// gesture routing uses, so no CUO id table decides it.
+/// </para>
 /// <para>
 /// The migrated families are the exception the migration created: the host
 /// commits only the resource and carries the operator-measured dose to the
@@ -37,6 +43,7 @@ internal sealed class PlayerItemUseService(
 	IPlayerInteractionVisibility visibility,
 	ILimbUseSemantics limbUseSemantics,
 	IConsumeSemantics consumeSemantics,
+	IWearSemantics wearSemantics,
 	ItemKernelAuthority kernelAuthority,
 	PlayerInteractionResultAuthority resultAuthority,
 	ILogger log)
@@ -48,6 +55,7 @@ internal sealed class PlayerItemUseService(
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ILimbUseSemantics _limbUseSemantics = limbUseSemantics;
 	private readonly IConsumeSemantics _consumeSemantics = consumeSemantics;
+	private readonly IWearSemantics _wearSemantics = wearSemantics;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
 	private readonly ILogger _log = log;
@@ -206,7 +214,7 @@ internal sealed class PlayerItemUseService(
 		}
 		else
 		{
-			originalItem = CarriedItemUseTree.FindFirstUsable(userData.Items, _limbUseSemantics, _consumeSemantics);
+			originalItem = CarriedItemUseTree.FindFirstUsable(userData.Items, _limbUseSemantics, _consumeSemantics, _wearSemantics);
 			if (originalItem is null)
 			{
 				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable to auto-select.", user);
@@ -214,9 +222,9 @@ internal sealed class PlayerItemUseService(
 			}
 		}
 
-		if (!CarriedItemUseTree.IsActuallyUsable(originalItem, _limbUseSemantics, _consumeSemantics))
+		if (!CarriedItemUseTree.IsActuallyUsable(originalItem, _limbUseSemantics, _consumeSemantics, _wearSemantics))
 		{
-			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or not in the catalog.", originalItem.ItemId, originalItem.InstanceId);
+			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or is not a family the one-shot path carries.", originalItem.ItemId, originalItem.InstanceId);
 			return false;
 		}
 
@@ -229,9 +237,18 @@ internal sealed class PlayerItemUseService(
 		List<LiquidStackMsg>? drinkDose = null;
 		var timedEffects = new List<TimedLimbEffectMsg>();
 
-		if (RemoteWearCatalog.IsWearItem(originalItem.ItemId))
+		// Where the item goes is the item's OWN data (ItemInfo.wearable /
+		// desiredWearLimb / wearSlotId), read through the same seam the operator's
+		// gesture asks, so the deleted 40-row id table no longer decides which
+		// wearables exist. One seam call answers both halves of the question, so a
+		// wearable can never be admitted and then fail to resolve: the read is the
+		// admission. The limb index comes back resolved because the character
+		// snapshot encodes a worn item as -(index + 2); the game's occupancy check
+		// compares the wear SLOT id, which is what makes two wearables in one slot
+		// collide even when they name different limbs.
+		if (_wearSemantics.TryGetWearPlacement(originalItem.ItemId, out var wearLimbIndex, out var wearSlotId))
 		{
-			if (!RemoteWearApplication.TryCreateWornItem(newTargetData.Limbs, newTargetData.Items, originalItem, out wornItem))
+			if (!RemoteWearApplication.TryCreateWornItem(_wearSemantics, wearLimbIndex, wearSlotId, newTargetData.Limbs, newTargetData.Items, originalItem, out wornItem))
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be placed on {Target} — target limb missing/dismembered or wear slot already occupied.", originalItem.ItemId, originalItem.InstanceId, target);
 				return false;

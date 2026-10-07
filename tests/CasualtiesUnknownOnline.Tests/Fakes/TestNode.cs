@@ -84,6 +84,10 @@ internal sealed class TestNode : IDisposable
 				// The same stand-in for the consume (drink) chain's content facts,
 				// whose production answer is Item.GlobalItems (FakeConsumeSemantics).
 				s.Replace(ServiceDescriptor.Singleton<IConsumeSemantics>(FakeConsumeSemantics.Instance));
+				// The same stand-in for the wearable (wear) chain's content facts,
+				// whose production answer is Item.GlobalItems plus the live limb
+				// layout (FakeWearSemantics).
+				s.Replace(ServiceDescriptor.Singleton<IWearSemantics>(FakeWearSemantics.Instance));
 				TestLogging.RemoveFileSink(s); // before the test's overrides, so a test may still re-add a sink
 				extraRegistrations?.Invoke(s); // the test's overrides (e.g. stub mod control surfaces) — last, so they win
 			});

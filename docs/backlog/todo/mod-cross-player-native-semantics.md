@@ -2,9 +2,9 @@
 
 - Status: Todo — **cut 2026-10-08** out of `mod-content-ceiling.md` Part 2 stage 2, which required this
   stage to become its own architecture ticket. Part A (the injection chain) landed in the same cycle;
-  Part B's topical chain landed 2026-10-08 as well, and so did its consume (drink) chain, so the ticket
-  carries the two remaining chains plus the solid-food branch, which was cut to its own ticket when the
-  drink chain landed.
+  Part B's topical chain landed 2026-10-08 as well, and so did its consume (drink) chain and its wear
+  chain, so the ticket carries the last remaining chain (the limb tool) plus the solid-food branch,
+  which was cut to its own ticket when the drink chain landed.
 - Priority: High
 - Category: Mod platform / remote medical / architecture
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2, stage 2)
@@ -292,18 +292,102 @@ directly, with no divertible container call and no data field carrying the amoun
 side cannot run it without an item instance. The `Food` half of `RemoteConsumeCatalog` still answers for
 it, and the ticket carries the two candidate designs and their trade-offs.
 
+## Part B — the wear chain (landed 2026-10-08)
+
+Putting an item on another player, migrated in the same shape as Part A and the
+two chains above — with one difference that decides the whole design: **there is
+nothing to measure.** A wear gesture runs no native action of its own on the
+operator's client, so the item never leaves the operator's hands until the host
+has committed the placement. Self-check:
+`docs/evidence/selfchecks/players/cross-player-native-wear-semantics-selfcheck.md`.
+
+### The predicate
+
+`WearAdmission` asks a new `IWearSemantics` seam (Runtime, answered by the Game
+Adapter over `Item.GlobalItems` and the live limb layout): the item's own data
+says the game wears it — `ItemInfo.wearable`, the flag the game's own wear flow
+dispatches on (`Body.AutoPickUpItem`, `PlayerCamera.TryPerformRadialAction`) —
+and its `desiredWearLimb` resolves to a limb index on this client's body. One
+seam call is BOTH the admission and the placement, so a wearable can never be
+admitted and then fail to resolve, and the host holds no separate refusal branch
+for that. No id table is consulted, so every vanilla wearable the 40-row table
+never carried and every mod garment qualify. The limb index is part of the answer
+because the character snapshot encodes a worn item as `-(limbIndex + 2)`, which
+is the wire shape the affected side restores from.
+
+The operator's side asks the SAME seam through
+`LocalUseItemEligibility.IsUseItem`, and `FamilyOf` — the measurement verdict —
+deliberately does not know this family: a wearable has no dose, and running its
+own action on the operator's client would take the item out of their hands for a
+gesture the host may still refuse.
+
+### The slot rule
+
+The host compares the target's worn items by their own `wearSlotId` — what
+`Body.GetWearableBySlotID` compares, and what the game's own save file records as
+the worn item's slot — so two wearables in one slot collide even when they name
+different limbs, exactly as they do natively. The limb index the seam resolved is
+then checked against the TARGET's snapshot (exists, not dismembered), which is the
+one part of the placement that is the affected body's own state — and the affected
+side repeats that check on its own body when it parents the garment, so a limb
+lost after the target's last report cannot receive one.
+
+### What the wear chain did NOT do
+
+Native `Body.AutoPickUpItem` DROPS whatever occupies the slot before wearing the
+new item. The cross-player path reaches neither native entry point, and dropping
+a worn item off a remote body into the world needs a world-drop fact (position,
+kernel ownership, a landed event) this chain does not have, so an occupied slot
+is still refused — the deleted table refused it too, so nothing regressed. The
+gap is recorded as a limit and needs its own design if a session wants it.
+
+Two smaller bounds are recorded with it in the self-check: the occupancy check
+discovers an occupant through the same placement answer the incoming item needs,
+so an occupant the host cannot place on its own limb layout counts as free where
+native's raw id comparison would refuse (the same single-prefab assumption the
+seam's limb half already makes); and the limb index is answered on the host's own
+body, which is a statement about the character prefab rather than about the
+wearer.
+
+### What Part B's wear chain deleted
+
+- `RemoteWearCatalog` (the 40-row id → `(wearSlotId, limbIndex)` registry) and
+  `RemoteWearProfile` (its row shape);
+- the plate's only two readers of that registry inside `RemoteWearApplication`,
+  which keeps its name and its role: pure placement on the target snapshot, now
+  over the seam plus the caller's resolved placement.
+
+### Hard acceptance
+
+Delete the constant table and every existing case of the chain stays green. The
+table had no test file of its own — its rows were exercised only through
+`WearTests`, whose four cases keep their names and their user-visible assertions
+— so nothing was dropped and nothing was rewritten in place. Three cases cover
+what a table cannot:
+`Wear_AnItemTheDeletedTableNeverCarried_IsPlacedFromTheItemsOwnData` (the id it
+never carried), `Wear_AnItemTheGameDoesNotCallAWearable_IsRefused` (the refusal
+path a table miss used to take, and the ordinary non-wearable still takes) and
+`Wear_TheSameWearSlotOnADifferentLimb_IsRefused`, which the independent review
+added because every vanilla slot maps 1:1 to a limb and the older same-limb case
+therefore could not discriminate the slot rule from a limb rule; a limb-comparison
+mutation reddens that case alone (1 failed / 6 passed). The new
+`WearChainContentGateTests` keeps an id-keyed table from growing back in the
+chain's own Runtime sources under any filename, reports the chains still carrying
+one as an exact set, and pins the adapter's registry read from the SYNTAX rather
+than the file text.
+
 ## Part B — the remaining chains
 
 The same shape, one chain per deliverable, each with its own hard acceptance:
 
 | Chain | Table today | Native predicate and path |
 |---|---|---|
-| Wear | `RemoteWearCatalog` | `wearable` with `desiredWearLimb` / `wearSlotId` |
 | Limb tool | `RemoteLimbToolCatalog`, `RemoteHealProfiles` | non-null `useLimbAction` plus the tool's own tag |
 
 Each of these also decides whether the item-level gesture routing can stop being a table (Part A left
 the routing itself table-driven: the operator picks the injection family by "usable on a limb and holds
-an injectable liquid"; this chain added the item's own `usable` flag beside it).
+an injectable liquid"; the drink chain added the item's own `usable` flag beside it, and the wear chain
+its own `wearable` flag).
 
 ## Red lines that do not change
 

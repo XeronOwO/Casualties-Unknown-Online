@@ -29,7 +29,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return false;
 		}
 
-		if (!LocalUseItemEligibility.IsUseItem(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics))
+		if (!LocalUseItemEligibility.IsUseItem(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.WearSemantics))
 		{
 			return false;
 		}
@@ -81,7 +81,10 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		// action, which for the two vanilla blood bags would draw blood into the
 		// operator's bag and out of the treated limb. The limb index the host
 		// receives stays -1 so the PATIENT still picks the treated limb on its own
-		// body, exactly as before the migration.
+		// body, exactly as before the migration. A WEARABLE lands in the default arm
+		// with the same reasoning a blood bag does: it has no dose, and running its
+		// own use action here would take the item out of the operator's hands for a
+		// gesture the host may still refuse.
 		var doseMl = 0f;
 		switch (LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics))
 		{

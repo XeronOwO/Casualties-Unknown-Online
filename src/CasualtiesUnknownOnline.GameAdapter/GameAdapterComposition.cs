@@ -201,5 +201,12 @@ public static class GameAdapterComposition
 		services.AddSingleton<GameConsumeSemantics>();
 		services.Replace(ServiceDescriptor.Singleton<IConsumeSemantics>(
 			p => p.GetRequiredService<GameConsumeSemantics>()));
+		// The game's own content facts behind the wearable (wear) chain, the same
+		// shape for the family that goes ON a body rather than into it:
+		// ItemInfo.wearable is the flag the game's own wear flow gates on, and its
+		// wearSlotId / desiredWearLimb are the placement that flow resolves.
+		services.AddSingleton<GameWearSemantics>();
+		services.Replace(ServiceDescriptor.Singleton<IWearSemantics>(
+			p => p.GetRequiredService<GameWearSemantics>()));
 	}
 }

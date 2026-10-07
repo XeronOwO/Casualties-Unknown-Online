@@ -646,7 +646,9 @@ public class PlayerDomainKernelTests
 				new PlayerInteractionHealth { Thirst = 9f },
 				[new PlayerInteractionLimb { Index = 1 }],
 				[new PlayerInteractionTimedLimbEffect(1, 10f, -4.5f)],
-				[timedBody]),
+				[timedBody],
+				[new PlayerInteractionLiquidStack("reliefcream", 10f)],
+				1),
 			new CommandContext(Epoch, Host)).Batch!;
 
 		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
@@ -661,6 +663,9 @@ public class PlayerDomainKernelTests
 		Assert.Equal(1, Assert.Single(@event.Limbs).Index);
 		Assert.Equal(10f, Assert.Single(@event.TimedEffects).DurationSeconds);
 		Assert.Equal("highgradestimulant", Assert.Single(@event.TimedBodyEffects).EffectId);
+		Assert.Equal("reliefcream", Assert.Single(@event.AppliedDose).LiquidId);
+		Assert.Equal(10f, Assert.Single(@event.AppliedDose).Amount);
+		Assert.Equal(1, @event.LimbIndex);
 	}
 
 	[Fact]

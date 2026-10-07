@@ -250,6 +250,15 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool TryDivertRemoteInjection(WaterContainerItem container, Limb limb, float amount) =>
 		_remoteMedicalOps.TryDivertInjection(container, limb, amount);
 
+	public bool TryDivertRemoteTopicalApply(WaterContainerItem container, Limb limb, float amount) =>
+		RemoteTopicalUseHandler.TryDivertApplyToLimb(container, limb, amount);
+
+	public float MeasureRemoteTopicalDose(Item dragItem, Limb limb) =>
+		LocalUseItemEligibility.IsTopicalRemoteItem(dragItem, domains.LimbUseSemantics)
+		&& RemoteTopicalUseHandler.TryMeasure(dragItem, limb, domains.LimbUseSemantics, domains.Log, out var doseMl)
+			? doseMl
+			: 0f;
+
 	public ulong LocalSteamId => _remoteDragIntents.LocalSteamId;
 
 	public void ReportRemoteDragUnresolved(Item dragItem) => _remoteDragIntents.ReportUnresolved(dragItem);

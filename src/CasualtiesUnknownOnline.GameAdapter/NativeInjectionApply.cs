@@ -43,7 +43,7 @@ internal static class NativeInjectionApply
 			return 0;
 		}
 
-		var limb = ResolveLimb(body, requestedLimbIndex);
+		var limb = NativeLimbTarget.Resolve(body, requestedLimbIndex);
 		if (limb is null)
 		{
 			log.LogWarning("[MedicalOps] dose skipped: the local body has no usable limb for {Limb}.", requestedLimbIndex);
@@ -86,43 +86,5 @@ internal static class NativeInjectionApply
 		}
 
 		return handled;
-	}
-
-	/// <summary>
-	/// The limb the dose lands on: the operator's own pick when it is a real,
-	/// attached limb of this body, otherwise the most injured one — the same
-	/// automatic rule the host applies for the heal slice
-	/// (<c>RemoteHealApplication.PickMostInjuredLimb</c>, pinned by
-	/// <c>InjectionSemanticsTests.LimbRule_TheRequestedLimbWinsAndAnInvalidOneFallsBackToTheMostInjured</c>),
-	/// evaluated on the affected side's own body.
-	/// </summary>
-	private static Limb? ResolveLimb(Body body, int requestedLimbIndex)
-	{
-		if (requestedLimbIndex >= 0
-			&& requestedLimbIndex < body.limbs.Length
-			&& body.limbs[requestedLimbIndex] != null // Unity object — ==
-			&& !body.limbs[requestedLimbIndex].dismembered)
-		{
-			return body.limbs[requestedLimbIndex];
-		}
-
-		Limb? best = null;
-		var bestScore = float.MaxValue;
-		foreach (var candidate in body.limbs)
-		{
-			if (candidate == null || candidate.dismembered) // Unity object — ==
-			{
-				continue;
-			}
-
-			var score = candidate.skinHealth + candidate.muscleHealth;
-			if (best is null || score < bestScore)
-			{
-				best = candidate;
-				bestScore = score;
-			}
-		}
-
-		return best;
 	}
 }

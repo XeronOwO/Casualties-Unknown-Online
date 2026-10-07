@@ -196,8 +196,13 @@ public class ItemUseTests
 	}
 
 	[Fact]
-	public void Guest_UsesPaincreamOnHost_AppliesTopicalAndSendsResult()
+	public void Guest_UsesPaincreamOnHost_CommitsTheDoseAndCarriesItToThePatient()
 	{
+		// Part B of mod-cross-player-native-semantics: the operator's own client
+		// measured 10 ml from paincream's own native limb action (`ApplyToLimb(limb,
+		// 10f)`, Item.cs:650-653) and the request carries it. The host commits the
+		// drain and carries the dose; the EFFECT belongs to the patient's client, so
+		// the host computes no body state and writes none.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -207,7 +212,7 @@ public class ItemUseTests
 		items.AdoptTransferredItem(GuestId, 42, cream);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, doseMl: 10f);
 
 		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
@@ -217,10 +222,19 @@ public class ItemUseTests
 		Assert.NotNull(result.ItemAfter);
 		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.9f) < 0.001f);
 
+		var dose = Assert.Single(result.AppliedDose);
+		Assert.Equal("reliefcream", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 10f) < 0.001f);
+
+		// The host publishes no body snapshot for this family: the two display sinks
+		// have no staleness guard, so echoing the patient's own pre-dose report back
+		// would fight the effect the same message carries.
+		Assert.Null(result.Health);
+		Assert.Empty(result.Limbs);
+
 		var hostData = characters.GetHostCharacterData()!;
-		var limb = hostData.Limbs[1];
-		Assert.True(Math.Abs(limb.SkinHealAmount - 3f) < 0.001f);
-		Assert.True(Math.Abs(limb.DisinfectionTime - 300f) < 0.001f);
+		Assert.Equal(0f, hostData.Limbs[1].SkinHealAmount);
+		Assert.Equal(0f, hostData.Limbs[1].DisinfectionTime);
 
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
 		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 90f) < 0.001f);
@@ -229,8 +243,12 @@ public class ItemUseTests
 	}
 
 	[Fact]
-	public void Guest_UsesTopicalOnSelectedLimb_AppliesRequestedLimbNotAutoPick()
+	public void Guest_UsesTopicalOnSelectedLimb_CarriesTheSelectionToThePatient()
 	{
+		// The limb choice moved to the side that owns the limb: the operator's pick
+		// rides the result and the PATIENT resolves it against its own body (the
+		// shared rule, pinned by InjectionSemanticsTests' limb case). The host neither
+		// picks nor applies.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -240,23 +258,47 @@ public class ItemUseTests
 		items.AdoptTransferredItem(GuestId, 42, cream);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42, targetLimbIndex: 0);
+			.SendUseRequest(HostId, 42, targetLimbIndex: 0, doseMl: 10f);
 
 		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.Equal(0, result.LimbIndex);
+		Assert.Single(result.AppliedDose);
 
 		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Limbs[0].SkinHealAmount - 3f) < 0.001f);
-		Assert.True(Math.Abs(hostData.Limbs[0].DisinfectionTime - 300f) < 0.001f);
+		Assert.Equal(0f, hostData.Limbs[0].SkinHealAmount);
 		Assert.Equal(0f, hostData.Limbs[1].SkinHealAmount);
-		Assert.Equal(0f, hostData.Limbs[1].DisinfectionTime);
 	}
 
 	[Fact]
-	public void Use_UnknownTopicalLiquid_IsRefused()
+	public void Use_ATopicalRequestWithNoMeasuredDose_IsRefused()
 	{
+		// The dose is the operator's own measurement; a request that carries none
+		// cannot become a draw, which is the native path's own early return for a
+		// container with nothing to give. The item is untouched and no result event
+		// reaches the kernel.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var cream = TopicalBottle(42, "paincream", "reliefcream", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, cream));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 100f) < 0.001f);
+	}
+
+	[Fact]
+	public void Use_ALiquidNoChainClaims_IsRefused()
+	{
+		// `mystery` is neither injectable nor health-usable, so the item's own data
+		// puts it in no chain: the deleted catalog refused it by id/allowlist, the
+		// game's registries refuse it by flag.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
@@ -271,9 +313,44 @@ public class ItemUseTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, bad));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, doseMl: 10f);
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Use_AContainerHoldingBothKinds_IsRefusedByTheInjectionFirstOrder()
+	{
+		// The one-shot path's family chain asks the injection rule before the
+		// topical one, so a container holding BOTH kinds is the injection chain's
+		// business and this path refuses it by name. That ordering is what makes
+		// the two admission rules' overlap harmless, and this is the production
+		// site where it is observable — TopicalSemanticsTests pins only that each
+		// rule declines the other's family.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var mixed = new CharacterItemMsg
+		{
+			InstanceId = 42,
+			ItemId = "paincream",
+			SlotIndex = 0,
+			Condition = 1f,
+			Liquids =
+			[
+				new LiquidStackMsg { LiquidId = "reliefcream", Amount = 90f },
+				new LiquidStackMsg { LiquidId = "fentanyl", Amount = 10f },
+			],
+		};
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, mixed));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, doseMl: 10f);
+
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 90f) < 0.001f);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "fentanyl").Amount - 10f) < 0.001f);
 	}
 }

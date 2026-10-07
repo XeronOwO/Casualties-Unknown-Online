@@ -288,6 +288,28 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			}
 		}
 
+		// The migrated topical family is the one effect in this handler that is
+		// EXECUTED rather than replayed: the host committed the drain and computed
+		// no body state, and the game's own ApplyToLimb body runs here, on the body
+		// it lands on. It therefore runs OUTSIDE the RemoteApply scope — that scope
+		// is the "this is a replay of a peer's fact" marker, and SoundPlayPatch
+		// refuses to relay any clip played inside it. A real effect's own clip must
+		// be relayed exactly as it is when the patient applies the same liquid
+		// locally, and nothing else in the handler keys off that scope. Part A's
+		// injection chain keeps its own narrower scope, which is why a delegate clip
+		// it plays (streptokinase) is still local to the patient.
+		if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.AppliedDose.Count > 0)
+		{
+			var handled = NativeTopicalApply.Apply(body, msg.LimbIndex, msg.AppliedDose, domains.Log);
+			domains.Log.LogInformation(
+				"[ItemUse] local body received {Count} topical stack(s) from {User} (limb {Limb}).",
+				handled, msg.UserSteamId, msg.LimbIndex);
+			// OR, not assignment, like the sibling halves above: the caller enforces
+			// user != target today, so only one half can be for the local player, but
+			// the report must not depend on that argument holding.
+			changed |= handled > 0;
+		}
+
 		if (changed)
 		{
 			domains.CharacterDataSync.ReportInventoryChanged(body);

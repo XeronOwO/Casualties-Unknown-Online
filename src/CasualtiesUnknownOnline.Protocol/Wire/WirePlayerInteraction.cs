@@ -72,4 +72,30 @@ public sealed class WirePlayerInteraction
 	/// <summary>For a same-owner container move, the destination container's instance id.</summary>
 	[ProtoMember(20)]
 	public ulong TargetParentItemId { get; set; }
+
+	/// <summary>
+	/// The drain the host committed for a migrated topical use, and the limb the
+	/// operator's gesture selected. Both ride the item-use event because the
+	/// affected side applies the effect; both are empty/-1 for every other
+	/// family. The limb rides as <c>limbIndex + 1</c> so limb 0 survives
+	/// protobuf's default-zero rule — the same encoding the use request uses.
+	/// </summary>
+	[ProtoMember(21)]
+	public List<WireLiquidStack> AppliedDose { get; set; } = [];
+
+	private int _limbSelection;
+
+	[ProtoMember(22)]
+	public int LimbSelection
+	{
+		get => _limbSelection;
+		set => _limbSelection = value;
+	}
+
+	/// <summary>The selected limb, or -1 for the ordinary most-injured-limb rule.</summary>
+	public int LimbIndex
+	{
+		get => _limbSelection <= 0 ? -1 : _limbSelection - 1;
+		set => _limbSelection = value >= 0 ? value + 1 : 0;
+	}
 }

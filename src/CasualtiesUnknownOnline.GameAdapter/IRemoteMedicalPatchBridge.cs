@@ -44,4 +44,26 @@ internal interface IRemoteMedicalPatchBridge
 	/// injection, which must run untouched.
 	/// </summary>
 	bool TryDivertRemoteInjection(WaterContainerItem container, Limb limb, float amount);
+
+	/// <summary>
+	/// The native topical call the operator's own client is running while it
+	/// measures a cross-player topical use (the item's own <c>useLimbAction</c>
+	/// reached <c>WaterContainerItem.ApplyToLimb</c>). Returns true when a
+	/// measurement owns this container and limb, in which case the caller must
+	/// NOT run the original: the ml becomes the request's dose, the host owns the
+	/// drain and the patient's client owns the effect. Returns false for every
+	/// local or unrelated application, which must run untouched.
+	/// </summary>
+	bool TryDivertRemoteTopicalApply(WaterContainerItem container, Limb limb, float amount);
+
+	/// <summary>
+	/// Measure the ml one topical use of <paramref name="dragItem"/> applies, for
+	/// the held-remote-item route: the requester's own client runs the item's
+	/// native limb action — the very call this release would have made — inside
+	/// the treatment capture window, and the diverted container call reports what
+	/// the delegate computed. Returns 0 when the item is not a topical container
+	/// or its own action delivered nothing, in which case the intent carries no
+	/// dose and the host refuses it by name.
+	/// </summary>
+	float MeasureRemoteTopicalDose(Item dragItem, Limb limb);
 }

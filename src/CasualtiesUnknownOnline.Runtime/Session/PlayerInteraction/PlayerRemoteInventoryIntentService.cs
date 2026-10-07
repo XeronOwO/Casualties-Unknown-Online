@@ -173,7 +173,7 @@ internal sealed class PlayerRemoteInventoryIntentService(
 				_take.HandleRemoteBackpackTransferToBody(requester, owner, msg.ItemInstanceId, msg.TargetSlotIndex);
 				break;
 			case RemoteInventoryIntentKind.ApplyToLimb:
-				_itemUse.HandleRemoteHeldItemUse(requester, owner, msg.ItemInstanceId, msg.TargetLimbIndex);
+				_itemUse.HandleRemoteHeldItemUse(requester, owner, msg.ItemInstanceId, msg.TargetLimbIndex, msg.Amount);
 				break;
 			default:
 				Forward(owner, msg);

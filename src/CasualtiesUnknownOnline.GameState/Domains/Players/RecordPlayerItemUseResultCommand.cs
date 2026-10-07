@@ -23,4 +23,6 @@ public sealed record RecordPlayerItemUseResultCommand(
 	PlayerInteractionHealth? Health,
 	IReadOnlyList<PlayerInteractionLimb> Limbs,
 	IReadOnlyList<PlayerInteractionTimedLimbEffect> TimedEffects,
-	IReadOnlyList<PlayerInteractionTimedBodyEffect> TimedBodyEffects) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);
+	IReadOnlyList<PlayerInteractionTimedBodyEffect> TimedBodyEffects,
+	IReadOnlyList<PlayerInteractionLiquidStack> AppliedDose,
+	int LimbIndex) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);

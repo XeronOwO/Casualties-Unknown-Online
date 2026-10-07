@@ -19,4 +19,6 @@ public sealed record PlayerItemUseResultEvent(
 	PlayerInteractionHealth? Health,
 	IReadOnlyList<PlayerInteractionLimb> Limbs,
 	IReadOnlyList<PlayerInteractionTimedLimbEffect> TimedEffects,
-	IReadOnlyList<PlayerInteractionTimedBodyEffect> TimedBodyEffects) : PlayerEvent;
+	IReadOnlyList<PlayerInteractionTimedBodyEffect> TimedBodyEffects,
+	IReadOnlyList<PlayerInteractionLiquidStack> AppliedDose,
+	int LimbIndex) : PlayerEvent;

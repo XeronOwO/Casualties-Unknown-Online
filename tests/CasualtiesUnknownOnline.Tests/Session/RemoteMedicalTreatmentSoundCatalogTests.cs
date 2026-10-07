@@ -7,9 +7,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// <summary>
 /// The remote limb treatment's clip table — the clip the blocked native limb
 /// action would have played, per accepted item. Every row is a DECISION: the
-/// item's own delegate clip, the applied LIQUID's clip for the topical
-/// containers (their delegate routes through <c>WaterContainerItem.ApplyToLimb</c>),
-/// or a recorded silence with its reason. The gate
+/// item's own delegate clip, or a recorded silence with its reason. The gate
 /// (<c>ItemAndBodySoundCaptureGateTests</c>) pins that no accepted item is
 /// undecided; these tests pin what the decided rows SAY.
 /// </summary>
@@ -24,8 +22,6 @@ public class RemoteMedicalTreatmentSoundCatalogTests
 	[InlineData("chestdrain", "syringe")]
 	[InlineData("tweezers", "tweezeruse")]
 	[InlineData("wrench", "wrenchhit")]
-	[InlineData("disinfectant", "spray")]
-	[InlineData("spraybottle", "spray")]
 	[InlineData("medicalsuture", "gore")] // its blocked delegate's first call is Body.DoGoreSound (Item.cs:378): the table names the base clip the limb's own Dismember plays, not one of the body's five rolled variants
 	public void ALimbTreatmentItem_CarriesItsNativeLimbActionClip(string itemId, string clip)
 	{
@@ -48,16 +44,25 @@ public class RemoteMedicalTreatmentSoundCatalogTests
 		Assert.DoesNotContain(itemId, RemoteMedicalTreatmentSoundCatalog.Uncarried);
 	}
 
-	[Fact]
-	public void TheTopicalContainers_CarryTheirLiquidsClip()
+	[Theory]
+	[InlineData("paincream")]
+	[InlineData("woundglue")]
+	[InlineData("disinfectant")]
+	[InlineData("spraybottle")]
+	public void ATopicalContainer_LeavesBothClipsToTheNativeCalls(string itemId)
 	{
-		Assert.True(RemoteMedicalTreatmentSoundCatalog.TryGetLiquidClip("reliefcream", out var relief));
-		Assert.Equal("cream", relief);
-		Assert.True(RemoteMedicalTreatmentSoundCatalog.TryGetLiquidClip("woundglue", out var glue));
-		Assert.Equal("cream", glue);
-
-		Assert.Contains("paincream", RemoteMedicalTreatmentSoundCatalog.LiquidDriven);
-		Assert.Contains("woundglue", RemoteMedicalTreatmentSoundCatalog.LiquidDriven);
+		// What this pins is the TABLE's half: it must stay silent for a topical
+		// container, because both halves of that clip are native now — the spray
+		// containers play "spray" in their own delegate (Item.cs:2100/2124), relayed
+		// by the operator's measurement window, and the cream containers' clip
+		// belongs to the liquid's onHealthUse (Liquids.cs:1074/1100), which runs on
+		// the patient's own client through NativeTopicalApply and is relayed from
+		// there. A row here would double the clip the patient plays locally. The
+		// other half — that those native deciders exist and cover all four ids — is
+		// pinned by ItemAndBodySoundCaptureGateTests (`VanillaTopicalCarriers` plus
+		// the handler/patch source pins), which can read the tree.
+		Assert.False(RemoteMedicalTreatmentSoundCatalog.TryGetClip(itemId, out _), $"{itemId} must not carry a table row");
+		Assert.DoesNotContain(itemId, RemoteMedicalTreatmentSoundCatalog.Uncarried);
 	}
 
 	[Theory]

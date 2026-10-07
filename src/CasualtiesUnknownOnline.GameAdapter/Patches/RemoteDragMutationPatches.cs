@@ -358,7 +358,11 @@ internal static class RemoteDragMutationPatches
 	/// <c>PlayerCamera.ApplyWoundItem</c> inside the release window (R11): the
 	/// dragged proxy is applied to a limb of the acting body, which is the landed
 	/// held-remote-item medical flow. The intent carries the limb the wound view is
-	/// pointing at, exactly as the native code reads it.
+	/// pointing at, exactly as the native code reads it, and — for a topical
+	/// container — the ml the proxy's own native limb action computes, measured
+	/// here because this is the very call that would have run it
+	/// (<c>PlayerCamera.cs:1658</c> → <c>:754</c>). The proxy is display-only, so
+	/// only the amount travels.
 	/// </summary>
 	[HarmonyPatch(typeof(PlayerCamera), "ApplyWoundItem")]
 	internal static class RemoteDragApplyWoundItemPatch
@@ -374,7 +378,16 @@ internal static class RemoteDragMutationPatches
 			var woundView = __instance.woundView != null // Unity object — ==
 				? __instance.woundView.GetComponent<WoundView>()
 				: null; // Unity object — ==
-			window.CaptureApplyToLimb(window.DraggedItemId, woundView != null ? woundView.limbLookingAt : -1);
+			var limbIndex = woundView != null ? woundView.limbLookingAt : -1;
+
+			// The native call this release replaces runs the item's own
+			// <c>useLimbAction(this.selectedLimb, dragItem)</c>; measuring it on the
+			// same limb keeps the amount the game's own delegate literal.
+			var doseMl = __instance.dragItem != null && __instance.selectedLimb != null // Unity objects — ==
+				? PatchBridge.Impl?.MeasureRemoteTopicalDose(__instance.dragItem, __instance.selectedLimb) ?? 0f
+				: 0f;
+
+			window.CaptureApplyToLimb(window.DraggedItemId, limbIndex, doseMl);
 			return false;
 		}
 	}

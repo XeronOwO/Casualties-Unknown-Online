@@ -2,7 +2,8 @@
 
 - Status: Todo — **cut 2026-10-08** out of `mod-content-ceiling.md` Part 2 stage 2, which required this
   stage to become its own architecture ticket. Part A (the injection chain) landed in the same cycle;
-  Part B carries the remaining chains.
+  Part B's first chain (topical) landed 2026-10-08 as well, so the ticket carries the three remaining
+  chains.
 - Priority: High
 - Category: Mod platform / remote medical / architecture
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2, stage 2)
@@ -127,13 +128,97 @@ one the inventory produced: `MedicalOperationSessionServiceTests`, `MedicalToolA
 computation are rewritten to pin the same user-visible outcome through the new mechanism, and the
 rewrite is listed in the self-check rather than done silently; no case was dropped.
 
-## Part B — the remaining chains (not started)
+## Part B — the topical chain (landed 2026-10-08)
+
+The dressing/ointment chain, migrated in the same shape as Part A. Self-check:
+`docs/evidence/selfchecks/players/cross-player-native-topical-semantics-selfcheck.md`.
+
+### The predicate
+
+`TopicalAdmission` is `InjectionAdmission`'s mirror over the same
+`ILimbUseSemantics` seam: the item's own data says it is a limb-drawable liquid
+container, AND at least one of its stacks holds a `healthUsable` liquid — the
+single flag native `WaterContainerItem.ApplyToLimb` gates the liquid's own
+`onHealthUse` on. The id table and both per-ml dictionaries are gone, so every
+vanilla container the table never carried and every mod one qualify. The two rules
+decline each other's family (verifiable against the game only by hand: six
+`healthUsable` liquids, twenty-six `injectable`, no overlap — the readable pin is
+the gate's carrier census), so what keeps a container holding BOTH kinds on one
+chain is the order the routing sites ask them in, injection first.
+`ItemUseTests.Use_AContainerHoldingBothKinds_IsRefusedByTheInjectionFirstOrder`
+pins that order at a production site, and
+`TopicalSemanticsTests.TheTwoRulesAreDisjointOnTheContentThisSuiteModels` pins only
+that each rule declines the other's family.
+
+### The dose
+
+`RemoteTopicalUseHandler.TryMeasure` runs the item's OWN `useLimbAction` inside
+the existing `NativeLimbActionScope`, and the new
+`WaterContainerItem.ApplyToLimb` prefix diverts that call: the ml the delegate
+computed (an `ldc.r4` literal — 10 for paincream, disinfectant and spraybottle,
+20 for woundglue) becomes the request's dose and the native call is swallowed, so
+the operator's own item is never drawn and the displayed copy is never mutated.
+Unlike the syringe family the vanilla topical delegate is one synchronous call,
+so the capture lives for the length of that call rather than a session.
+
+All three operator entries measure: the medical view's limb gesture (on the
+displayed limb), the world drag onto an in-world player (on that player's own
+render clone, falling back to the camera's selected limb, with the limb hint left
+at -1 so the patient still auto-picks), and the held-remote-item route (on the
+requester's own selected limb — the limb the replaced native call reads — with
+the amount riding the existing `RemoteInventoryIntentMsg.Amount`).
+
+### The effect
+
+The host builds the drain itself with `LiquidDrainPlan` (the native
+`CalculateDrain` shape, capped at what the authoritative item really carries),
+commits it and writes NO target state. The drained plan and the operator's limb
+ride `PlayerItemUseResultMsg.AppliedDose` / `.LimbSelection` and the journal
+event behind it; the patient's own client resolves the limb against its own body
+(`NativeLimbTarget`, shared with the injection chain) and runs each liquid's own
+`onHealthUse` through `NativeTopicalApply`, which is `ApplyToLimb`'s per-stack
+loop minus the drain.
+
+Two consequences worth naming, both shared with Part A: the host's copy of a
+guest target advances from the target's reports rather than per delta, and the
+result carries no host-computed body snapshot for this family.
+
+One deliberate difference from Part A, with its reason: the patient's apply runs
+OUTSIDE the `RemoteApply` scope, because `SoundPlayPatch` refuses to relay any
+clip played inside it and a topical container's liquid clip comes from
+`onHealthUse`. Keeping it inside would have removed a clip every peer hears
+today. The injection chain's equivalent tail is left as it stands.
+
+### What Part B deleted
+
+- `RemoteTopicalCatalog` (4 item ids, 6 liquids with per-ml coefficients, the
+  pain multiplier), `RemoteTopicalApplication`, `RemoteTopicalLiquidEffect`;
+- the treatment-sound table's four topical rows (`disinfectant` and `spraybottle`
+  from `TreatmentClips`, both cream rows and the `LiquidDrivenItems` list): both
+  halves of a topical clip are native now;
+- `RemoteMedicalOperationHandler.PlayTreatmentSound`'s liquid-clip half, which had
+  no other client left.
+
+### Hard acceptance
+
+Delete the constant table and every existing case of the chain stays green. The
+three `ItemUseTests` topical cases are rewritten in place to pin the same
+user-visible outcome through the new mechanism — the dose instead of the host's own
+per-ml math, the limb selection carried instead of resolved, the registries'
+verdict instead of an allowlist. The deleted catalog's 7 cases are not all
+replaceable and the self-check's §6 lists them one by one: four have a successor
+(three superseded in a stronger form, one replaced), and **three have none by
+construction** — they pinned CUO's transcription of the game's per-ml arithmetic,
+which is now the game's own delegate executed on the patient's client and cannot be
+reached from an L0 test. They are named rather than counted as replaced, and none
+was dropped silently.
+
+## Part B — the remaining chains
 
 The same shape, one chain per deliverable, each with its own hard acceptance:
 
 | Chain | Table today | Native predicate and path |
 |---|---|---|
-| Topical (dressing/ointment) | `RemoteTopicalCatalog` | `healthUsable` liquid, `ApplyToLimb(limb, amount)`; the per-item amount is again a literal in the delegate |
 | Eat / drink | `RemoteConsumeCatalog`, `RemoteDrinkMedicineCatalog` | `ItemInfo.useAction` → `WaterContainerItem.Drink` → `LiquidType.onDrink`, and the solid-food branch |
 | Wear | `RemoteWearCatalog` | `wearable` with `desiredWearLimb` / `wearSlotId` |
 | Limb tool | `RemoteLimbToolCatalog`, `RemoteHealProfiles` | non-null `useLimbAction` plus the tool's own tag |
@@ -181,10 +266,74 @@ an injectable liquid").
 
 ## Open questions
 
-- Does the third-party view stay acceptable at report cadence? Part A left the observer path on the
-  ordinary character sync; the acceptance batch judges it.
-- Should the remaining chains share one "native limb action" operator entry (one patch on `Inject` and
-  `ApplyToLimb` and `Drink`) instead of one per chain? Decide when the second chain is cut.
+- Does the third-party view stay acceptable at report cadence? Both migrated chains leave the observer
+  path on the ordinary character sync; the acceptance batch judges it.
+- ~~Should the remaining chains share one "native limb action" operator entry?~~ **Answered when the
+  second chain was cut.** The patch must stay per native call — `Inject` and `ApplyToLimb` are
+  different methods and a divert has to bind the one call the delegate actually reaches — but the
+  operator-side shape is now shared: `NativeLimbActionScope` around the item's own `useLimbAction`,
+  plus one divert member per native call. What the chains do NOT share is where the captured amount
+  goes, and they should not: the injection family owns a sustained session on the medical-operation
+  wire (start/update/end, reservations, a minigame), while the topical family measures one synchronous
+  call that rides the one-shot use request. Each remaining chain decides for itself, and `Drink` is a
+  third native call on a third wire family.
+
+## Limits recorded with Part B
+
+The full list is in the self-check; the ones a reader of this ticket should not
+have to go looking for:
+
+- **The sound scope is the one deliberate difference from Part A.** A topical
+  container's liquid clip comes from `onHealthUse`, which runs on the patient, and
+  `SoundPlayPatch` refuses to relay anything played inside the `RemoteApply` scope
+  — so the patient's apply runs outside it, in its own `CharacterMedicalUse`
+  scope, and the clip is relayed exactly as it is for a local application. Only
+  `Sound.Play` keys off that scope; Part A's injection tail is left as it stands.
+- **The measurement is one synchronous native call.** A delegate that deferred the
+  container call would measure nothing and the gesture is refused by name rather
+  than reported as a zero dose. Unreachable today: a topical container is a
+  vanilla `LiquidItemInfo` whose delegate is one `ApplyToLimb` call, and the mod
+  API cannot author a limb action at all (Part 3 A).
+- **The routing reads the liquid, the native dispatch reads the item.** A
+  container holding a `healthUsable` liquid whose delegate called `Inject` would
+  be admitted here, measure nothing and be refused — with the native `Inject`
+  having already run locally. No vanilla item is in that state and mod content
+  cannot author one yet; the refusal is logged and no host drain is committed.
+- **The world-drag entry has no limb of its own**, so it measures on the remote
+  player's render clone (falling back to the camera's selected limb) and still
+  sends the -1 hint, leaving the treated limb to the patient. The amount is
+  limb-independent for every delegate that can reach this chain today.
+- **A dose the patient cannot apply** (an unknown liquid, a `healthUsable` liquid
+  with no delegate, a body with no usable limb) is logged and skipped after the
+  host has committed the ml: the resource is spent without an effect.
+- **The dose's VALUE is the operator's own client assertion.** What is captured is
+  the amount argument the item's delegate passed — a per-item constant (10 or 20)
+  for this family — not what the container holds or would drain. The
+  truth-preserving step is the host's cap, `LiquidDrainPlan`'s
+  `Math.Min(amount, total)` over the authoritative stacks, so a client can ask for
+  no more liquid than the item really carries but it does choose the amount. Part
+  A's limits discuss the dose call COUNT; this is the same trust boundary on the
+  other family.
+- **One eligibility change is deliberate and user-visible.** The world drag's
+  `IsUseItem` used to refuse a topical bottle whose liquid was not one of the
+  deleted table's six, and the generic tail that followed would otherwise have
+  accepted it as a DRINK; with the table gone that bottle now falls through to the
+  drink branch, so dragging, say, a water-filled spraybottle onto a teammate feeds
+  them instead of dropping the item. That is the HOST's own behaviour for any water
+  container, and was already the behaviour for a syringe of water under the old
+  gate — the id table was the anomaly, not the rule — so the operator gate now
+  agrees with the chain it feeds.
+- **The journal dedupes the result by operation id**, so the ordinary missed-range
+  replay cannot double-apply the dose. The residual window is a re-delivery after a
+  checkpoint `Restore`, which clears that set: stated precisely, it is unreachable
+  from any current sender unless a mid-session restore rolls the kernel back behind
+  batches already applied. A real session must settle it; a dose is the first
+  member of this family for which that matters, every other effect it carries being
+  idempotent.
+- **Coverage direction:** every L0 topical case is the guest-operator direction. The
+  host-operator direction shares the same host entry and the same patient apply but
+  no case drives it, and no case drives a third peer — both are acceptance-batch
+  rows.
 
 ## Non-goals
 

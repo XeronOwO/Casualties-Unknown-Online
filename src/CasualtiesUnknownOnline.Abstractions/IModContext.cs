@@ -28,6 +28,18 @@ public interface IModContext
 	/// <summary>The mod message channel (report/定向 semantics, star topology — no auto-relay).</summary>
 	IModNetwork Network { get; }
 
+	/// <summary>
+	/// The declared-packet surface: a mod defines messages of its own — an id
+	/// it owns, who may send it, which copies run its chain — and the framework
+	/// routes and relays them. Use it instead of <see cref="Network"/> as soon
+	/// as the mod has more than one message type, or wants the host to fan a
+	/// report out rather than writing that by hand. Declaring and sending
+	/// require <see cref="ModPermission.SendNetworkMessage"/> — see
+	/// <see cref="IModPackets"/> for the full contract.
+	/// </summary>
+	[ApiStability(ApiStabilityLevel.Experimental)]
+	IModPackets Packets { get; }
+
 	/// <summary>The session state at bind time (a snapshot, not a live view).</summary>
 	ISessionInfo Session { get; }
 

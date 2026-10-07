@@ -225,7 +225,7 @@ Host: start normal Batch/Stream
 
 | id | 消息 | 方向 | 它带什么 |
 |---|---|---|---|
-| 75 | `ModMessage` | 上报加转发 | 共用的模组消息帧：发送模组的 id 加一份不透明[载荷](glossary.md) |
+| 75 | `ModMessage` | 上报加转发 | 共用的模组消息帧：发送模组的 id、一个可选的模组自有数据包 id（为空即匿名通道形式），加一份不透明[载荷](glossary.md) |
 | 86 / 87 | `ModCommandRequest` / `ModCommandResult` | 客机 → 主机／主机 → 请求方 | 主机权威的模组命令执行与结果 |
 | 122 | `KernelEnvelope` | 双向 | 四信封内核协议 |
 

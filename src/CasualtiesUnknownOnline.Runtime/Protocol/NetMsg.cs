@@ -64,12 +64,17 @@ public enum NetMsg : byte
 	// Speech (the Talker domain — the bubble text is DATA: the speaking side applied localization + random + distortion, the receiver only displays)
 	SpeechMsg = 74, // bidirectional: guest → host report of a spoken bubble; host → guest broadcast relay (the source excluded for players — a trader's bubble is host-broadcast)
 
-	// Mod messages (Phase 4 Mod API — the shared mod-message frame: the payload
-	// carries the sending mod's id + a raw payload; the receiving side routes by
-	// id to the locally-loaded mod, unknown ids are dropped with a log. Report/
-	// 定向 semantics, star topology, NO auto-relay — a guest's report reaches the
-	// host's copy of the mod only; broadcasting is the host-side mod's explicit call)
-	ModMessage = 75, // bidirectional: guest → host report; host → guest directed/broadcast
+	// Mod messages (Phase 4 Mod API — the shared mod-message frame: the sending
+	// mod's id + an optional declared packet id + a raw payload; the receiving
+	// side routes by mod id to the locally-loaded mod, and by packet id to the
+	// declaration that mod registered — unknown mod ids and undeclared packet
+	// ids are dropped with a log). An EMPTY packet id is the anonymous tunnel
+	// form: report/定向 semantics, star topology, NO auto-relay — a guest's
+	// report reaches the host's copy of the mod only; broadcasting is the
+	// host-side mod's explicit call. A DECLARED packet carries its own policy,
+	// so the framework relays a member's report to the other members when the
+	// declaration says the other members run it.)
+	ModMessage = 75, // bidirectional: guest → host report; host → guest directed/broadcast/relay
 
 	// Crafting (the crafting domain — ONE crafting operation = ONE report carrying
 	// its complete terminal state: the consumed/changed materials and the products.

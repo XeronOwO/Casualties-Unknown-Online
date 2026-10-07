@@ -116,6 +116,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Logger|property|-
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.MoodleRuntime|property|-> IModMoodleRuntime { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.NativeApi|property|-> IModNativeApi { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Network|property|-> IModNetwork { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModContext.Packets|property|-> IModPackets { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.PlayerJoined|event|-> Action<ulong>?
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.PlayerLeft|event|-> Action<ulong>?
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModContext.ResourceCompletion|property|-> IModResourceCompletion { get; }
@@ -176,6 +177,20 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.Broadcast(byte[] 
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.MessageReceived|event|-> Action<ulong, byte[]>?
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.SendToHost(byte[] payload)|method|-> void
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.SendToPeer(ulong steamId, byte[] payload)|method|-> void
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.IsHost|property|-> bool { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.PacketId|property|-> string { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.Payload|property|-> byte[] { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.Refuse(string reason)|method|-> void
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.SenderSteamId|property|-> ulong { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.Stage|property|-> ModPacketStage { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.Broadcast(string packetId, byte[] payload)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.CanSend|property|-> bool { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.IsRegistered(string packetId)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.PacketIds|property|-> IReadOnlyCollection<string> { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.Register(ModPacket packet)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.SendToHost(string packetId, byte[] payload)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.SendToPeer(ulong steamId, string packetId, byte[] payload)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.Unregister(string packetId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerInventory.Count|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerInventory.HandSlot|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerInventory.Items|property|-> IReadOnlyList<IModInventoryEntry> { get; }
@@ -549,6 +564,23 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.LimbDescr
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.LimbDisplayNameFormat|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.ToPayload()|method|-> byte[]
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModNativeApiOperations.LocalPlayerState|const field|-> string = "state"
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacket.Delivery|property|-> ModPacketDelivery { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacket.Handlers|property|-> IReadOnlyList<ModPacketHandler> { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacket.Id|property|-> string { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacket.Sender|property|-> ModPacketSender { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacket.ctor(string id, ModPacketSender sender, ModPacketDelivery delivery, params ModPacketHandler[] handlers)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModPacket
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketDelivery.EveryMember|enumvalue|= 2
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketDelivery.EveryOtherMember|enumvalue|= 1
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketDelivery.HostOnly|enumvalue|= 0
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketHandler.Handler|property|-> Action<IModPacketContext> { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketHandler.Stage|property|-> ModPacketStage { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketHandler.ctor(ModPacketStage stage, Action<IModPacketContext> handler)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModPacketHandler
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketSender.AnyMember|enumvalue|= 0
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketSender.GuestOnly|enumvalue|= 1
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketSender.HostOnly|enumvalue|= 2
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketStage.Apply|enumvalue|= 1
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketStage.Observe|enumvalue|= 2
+member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketStage.Validate|enumvalue|= 0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.AccessNativeApi|enumvalue|= 1 << 7
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.All|enumvalue|= ReadGameState | WriteGameState | SpawnEntity | SendNetworkMessage | RegisterContent | RegisterCommand | ExecuteHostAction | AccessNativeApi
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.ExecuteHostAction|enumvalue|= 1 << 6
@@ -716,6 +748,8 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleRuntime|interface|-
 type|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeApi|interface|-
 type|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeLocalPlayerState|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork|interface|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext|interface|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerInventory|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerState|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals|interface|-
@@ -767,6 +801,11 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleAnimation|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModNativeApiOperations|static class|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacket|sealed class|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketDelivery|enum|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketHandler|sealed class|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketSender|enum|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketStage|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeCategory|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition|sealed class|-

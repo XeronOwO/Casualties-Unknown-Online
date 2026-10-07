@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1042,
+  "count": 1044,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -4521,6 +4521,18 @@
       "row": "N8",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/ModCommandResultHandler.cs",
       "quote": "ctx.Mods.FireModCommandResultReceived(sender, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModLifecycle.cs",
+      "quote": "_channel.RelayPacket(mod.Manifest.Id, sender, packetId, payload);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModPacketsAdapter.cs",
+      "quote": "return channel.SendPacketToHost(manifest.Id, declared.Packet.Id, payload);"
     },
     {
       "cluster": "inline",

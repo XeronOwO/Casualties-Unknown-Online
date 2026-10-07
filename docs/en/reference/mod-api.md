@@ -99,7 +99,8 @@ thread, every stage exception-isolated. `IModContext` is what `Bind` receives:
 |---|---|
 | `Session` | a **snapshot at bind time**, not a live view — the host never fires `SessionActivated` (it activated at lobby creation) and events fired before discovery are lost. The snapshot is the only reliable "current state"; `MemberSteamIds` is the peer member set and the local peer is `LocalSteamId`. |
 | `Logger` | mod-scoped logger; its lines carry the mod id (`[Mod:<id>]`). |
-| `Network` | the mod message channel. |
+| `Network` | the mod message channel (the [anonymous tunnel](glossary.md) form). |
+| `Packets` | [declared packets](glossary.md): a mod-owned message id with its own policy and chain (**experimental**). |
 | `Commands` | host-authoritative commands. |
 | `ConsoleCommands` | local in-game console commands with no wire relay; the host-command surface is `Commands`. |
 | `State` | host-persistent per-mod state. |
@@ -142,6 +143,89 @@ the command request/result pair has a settlement, and it is the requester's own 
 
 **64 KiB payload cap** — framework policy (`ModChannel.MaxPayloadBytes`), not a line limit: refused at
 the sender and re-checked at the receiver.
+
+The tunnel is the *anonymous* form of the mod frame: one opaque payload per mod and one callback. A mod
+that has more than one message type, or wants the host to fan a report out, declares packets instead —
+see [Declared packets](#declared-packets) below. Both forms ride the same frame and the same rate limit.
+
+## Declared packets
+
+`IModContext.Packets` (`IModPackets`, **experimental**) is the surface a mod with behaviour of its own
+builds its messages on. The mod declares a packet once — an id it owns, who may send it, which copies run
+its chain, and the chain itself — and CUO owns everything else: the frame, the routing, the relay and the
+refusal story.
+
+```csharp
+context.Packets.Register(new ModPacket("machine.use",
+    ModPacketSender.GuestOnly,        // who may start it
+    ModPacketDelivery.HostOnly,       // which copies run the chain
+    new ModPacketHandler(ModPacketStage.Validate, ctx =>
+    {
+        if (ctx.Payload.Length != 1) { ctx.Refuse("a use carries one charge step"); }
+    }),
+    new ModPacketHandler(ModPacketStage.Apply, ctx => machine.Charge(ctx.Payload[0], ctx.SenderSteamId))));
+
+context.Packets.SendToHost("machine.use", [3]);   // a guest reports; the framework routes it
+```
+
+**The identity is the mod's.** The packet id rides the frame beside the mod id (`ModMessageMsg.PacketId`),
+so the receiving copy routes by the mod's own name for its message instead of a convention inside the
+payload. A packet id the receiving copy has not declared is dropped with a log — never guessed at — and an
+EMPTY id means the anonymous tunnel form above. The declaration is the same on every side that runs the
+mod, so a packet's shape is part of what the mod's version identifies.
+
+**Who may start it** is declared, and enforced twice — at the sender before the frame leaves, and again at
+the host when a member's frame arrives. The two `HostOnly` spellings below are different axes: this one is
+about who may START the packet, the delivery table's is about which copies RUN it:
+
+| `ModPacketSender` | A guest's `SendToHost` | A host-side send | A member's frame, at the host |
+|---|---|---|---|
+| `AnyMember` | accepted | accepted | accepted |
+| `GuestOnly` | accepted | refused | accepted (it is the report the declaration asks for) |
+| `HostOnly` | refused | accepted | refused |
+
+A guest never re-judges it on an inbound frame: the only peer a guest hears from is the host, and the host
+already judged the report before relaying it. `ctx.SenderSteamId` follows the same rule — a relayed
+delivery carries the relaying host, not the member that reported it, so a mod that needs the original
+reporter puts it in its own payload (an `EveryMember` reporter sees its own id in its own local run, which
+is the only place that identity is visible).
+
+**Who runs the chain** is declared as the packet's delivery, and it is the rule the host relays by. The
+sender's own copy runs it only under `EveryMember`; a relay always goes to every member except the frame's
+sender:
+
+| Call | `HostOnly` | `EveryOtherMember` | `EveryMember` |
+|---|---|---|---|
+| `SendToHost` (guest) | the host | the host, then the other members | the reporter, then the host and the other members |
+| `SendToHost` (host) | the host's own copy | refused — the declaration excludes the sender, and the host has no other copy | the host's own copy |
+| `SendToPeer` (host) | refused — no member copy may run it | that member | the host, then that member |
+| `Broadcast` (host) | refused | every other member (not the host's own copy) | every member, the host's own copy included |
+| `SendToPeer` / `Broadcast` (guest) | refused | refused | refused — the star has no member-to-member channel |
+
+**The chain runs in stages.** `Validate` runs before the framework relays or applies, `Apply` runs the
+effect, `Observe` runs after it and cannot refuse. The stages run in that fixed order whatever order they
+were declared in, and the declared order is kept inside one stage — so the two boundaries a mod orders its
+own handlers against are the framework's own steps. `ctx.Refuse(reason)` is a `Validate`-stage call: the
+first refusal ends the delivery, so no later handler runs and the host relays nothing. Calling it in a
+later stage is a logged no-op, because the packet has already been applied.
+
+**The failure story is explicit.** A handler that throws is isolated and logged with the mod id, the packet
+id and the stage, and the chain continues — one broken handler cannot wedge the receive path or swallow the
+other members' delivery. A frame from a peer that never completed a handshake reaches no chain, an
+undeclared packet id is dropped, and a declaration retired mid-chain still finishes the run it started.
+
+**Rails**: declaring and sending require `SendNetworkMessage`; ids use the canonical lower-case grammar
+content ids use; at most 64 declared packets per mod, 16 handlers per packet and 64 KiB per payload; frames
+ride the tunnel's own per-sender rate limit (20/s, burst 40), which bounds what a PEER can make a copy do —
+a local run is the mod's own call in its own frame and spends no budget. A packet this copy is already
+running is refused rather than run again, because a chain that sends its own packet would otherwise recurse
+until the stack ends the process, and a packet id that is not a legal id is dropped before anything echoes
+it. Every call that can refuse answers false with one framework log line naming the reason, and nothing is
+queued or re-sent.
+
+**A declared packet is transient.** The framework never buffers, replays or persists one, and it adds no
+late-join state: a mod that needs a late joiner to know something re-sends it on
+[`PlayerJoined`](#lifecycle-and-the-context), or keeps it in `State` / `Data`.
 
 ## Host commands
 
@@ -677,7 +761,11 @@ metadata travel in ONE assembly. Copy the example: `src/CasualtiesUnknownOnline.
   release the constant is a FROZEN baseline (`UnreleasedBaseline`) that no wire change moves, so a
   pre-release wire change ships with its commit and its ticket; from that release each behavioral wire
   change bumps it in the same change. A mod that adds wire behaviour follows the same schedule, and a
-  mod surface that adds no wire change never touches it.
+  mod surface that adds no wire change never touches it. A declared packet is a mod's own message on the
+  existing mod frame, so declaring one adds no CUO wire KIND of its own, and the packet's own version is
+  the mod's version, compared at the handshake like every other mod behaviour. The frame itself is CUO's:
+  when the framework adds a member to it — as it did for the packet id — that is a CUO wire change like any
+  other and is recorded the same way.
 - Mod versions are strict SemVer strings, validated at discovery and compared by precedence for
   state-bearing modes.
 - The 64 KiB cap is a policy constant (`ModChannel.MaxPayloadBytes`); raising it is a protocol-adjacent
@@ -687,7 +775,8 @@ metadata travel in ONE assembly. Copy the example: `src/CasualtiesUnknownOnline.
 
 Every mod behaviour above is covered by pure-managed tests over the production stack
 (`tests/.../Mods/`): discovery and dependency ordering, permission policy, SemVer, lifecycle, message
-routing and the permission/rate gates, host commands, mod-state saves, the local mod UI, content
+routing and the permission/rate gates, the declared-packet policy matrix and its failure story
+(`ModPacketsTests`, `ModPacketsFailureTests`, `ModPacketsRailsTests`), host commands, mod-state saves, the local mod UI, content
 registration and the content catalog, runtime mod data and status, the building runtime hooks, read game state, entity/item spawn,
 tile placement, the native API and its GameAdapter contract, the handshake matrix, the rate limiter,
 direction rows and wire round-trips.

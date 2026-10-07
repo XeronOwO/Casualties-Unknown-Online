@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Abstractions;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -22,4 +23,19 @@ public sealed class ModMessageMsg
 	/// <summary>The mod-owned payload (framework policy: ≤ 64 KiB, checked on both the send and the receive side).</summary>
 	[ProtoMember(2)]
 	public byte[] Payload { get; set; } = [];
+
+	/// <summary>
+	/// The declared packet's mod-owned id, when the frame is a declared packet
+	/// (<see cref="IModPackets"/>). It is what the receiving copy routes the
+	/// frame by, beside the mod id, so the identity of a mod's message is the
+	/// mod's own name for it instead of a convention inside the payload.
+	///
+	/// EMPTY means the frame is the anonymous tunnel form
+	/// (<see cref="IModNetwork"/>): one opaque payload per mod, delivered to the
+	/// mod's single receive callback, which is what the framework's own status
+	/// transport and the example mod's echo use. A non-empty id that the
+	/// receiving copy has not declared is dropped with a log — never guessed at.
+	/// </summary>
+	[ProtoMember(3)]
+	public string PacketId { get; set; } = string.Empty;
 }

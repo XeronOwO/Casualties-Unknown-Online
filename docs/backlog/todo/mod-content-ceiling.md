@@ -5,7 +5,7 @@
   starts, and the inventory stays the source of truth.
 - Priority: High
 - Category: Mod platform / architecture
-- Related: `docs/backlog/todo/mod-defined-wire-packets.md` (Part 3's custom replication domains, promoted on
+- Related: `docs/backlog/review/mod-defined-wire-packets.md` (Part 3's custom replication domains, promoted on
   its own), `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
   `docs/backlog/review/cucorelib-migration-support.md`, `docs/backlog/future/phase5-tooling-ecosystem.md`
 - Source: The 2026-09-25 tag/quality inventory and mod-ceiling analysis — the whole session's finding; user
@@ -208,7 +208,7 @@ The 2026-09-25 ruling was that the whole finding waits in `future/`; the 2026-10
 Each entry still becomes its own ticket with a real consumer named (the promotion funnel in
 `docs/en/reference/modification-policy.md`) and is split into stages that each produce a verifiable result —
 this ticket is the inventory and the plan, not one change that lands everything at once. An entry that needs
-a wire face is promoted with its own protocol decision (`docs/backlog/todo/mod-defined-wire-packets.md` is the
+a wire face is promoted with its own protocol decision (`docs/backlog/review/mod-defined-wire-packets.md` is the
 first one).
 
 Two entries are first in line, because they are defects of a surface the API already promises rather than new

@@ -322,6 +322,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		_domains.WorldTimeSync.Unbind();
 		_sessionBinding.Unbind();
 		_domains.Renderer.DestroyAllClones();
+		_domains.StandingMaterializer.ResetSessionState(); // the carried rows' incarnations are scene objects this side owns — teardown takes them like the clones
 		PatchBridge.Unbind(_bridge);
 	}
 

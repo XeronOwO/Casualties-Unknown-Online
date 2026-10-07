@@ -2,10 +2,12 @@
 
 - Status: Todo — **cut 2026-10-08** out of `mod-cross-player-native-semantics.md` when that ticket's
   consume (drink) chain landed and its "Eat / drink" row split: the drink half had the native shape the
-  migration is built on, the solid-food half does not. Its first step, the read-only side-effect
-  investigation the design demanded, landed 2026-10-08 (findings below); its second step — the item
-  category the investigation's one scope change demanded — is code now (see *The category, landed*
-  below), so what remains is the materialize/update/destroy step and then the food chain itself.
+  migration is built on, the solid-food half does not. The read-only side-effect investigation the design
+  demanded landed 2026-10-08 (findings below); §6's step 1 — the item category its one scope change asked
+  for — is code (see *The category, landed*); §6's step 2 — the materialize / update / destroy path — is
+  code too (see *The materialize path* and *What landed*). What remains is the food chain itself:
+  `Body.UseItem` → `item.Stats.useAction` against the eater's own body and the standing object, plus the §7
+  readings the acceptance batch owes.
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture
 - Parent: `docs/backlog/todo/mod-cross-player-native-semantics.md` (Part B)
@@ -206,11 +208,18 @@ This table is the **census**, not a first pass: every call site in the adapters 
 ### 7. Readings the acceptance batch owes (real machine, not L0)
 
 - the per-session standing-object count and the per-frame cost against the pre-change baseline (§5), plus the shape check that makes the recipe's premise observable: every standing object present in `Item.allItems` **and** answering the category query as a carried row (not a world row);
-- the presentation judgement: nothing visible, no dust or collision sound, no hover tooltip, no alt-hover label, **no light** (`LightItem`), no watch chatter (`WatchScript`) — this is the check that the disabled components and the collider/renderer switches really took;
+- the presentation judgement: nothing visible, no dust or collision sound, **no item-side audio at all** (the
+  Geiger counter's clicks and a gun's trigger/rack sounds are the ones a restored flag would start), no hover
+  tooltip, no alt-hover label, **no light** (`LightItem` and the `Light2D` itself), no watch chatter
+  (`WatchScript`) — this is the check that the disabled components and the collider/renderer switches really took;
 - the local-effect judgement: the fluid table at the parked spot and at the map edge is unchanged (`WaterContainerItem`'s clamped read — measured with a **damaged** bottle, since a pristine one does not drink), no entity or explosion appears at the parked spot, and the parked objects' condition tracks the data rather than a locally pinned 0 (`BatteryItem`);
 - the prefab facts that are asset data rather than C#: which layer an item collider sits on, trigger vs solid (`reversing/` holds no prefab data);
 - whether a standing object's local decay actually reaches the zero-condition destroy between two data refreshes;
-- Unity's behaviour for a `simulated = false` body whose velocity is written (the explosion path writes `rigidbody2D2.velocity`).
+- Unity's behaviour for a `simulated = false` body whose velocity is written (the explosion path writes `rigidbody2D2.velocity`);
+- **added by step 2: the per-session `[ERR][Unity:Exception]` count from every peer's log.** Restoring owner-local
+  component state onto a live copy is exactly how a script whose dependencies only exist on the owner's machine
+  starts throwing, and an NRE storm is a per-frame log line nothing else in this list would notice (the window is
+  short — one snapshot of divergence is enough — so a quiet run is not a proof unless the run covered each family).
 
 ## The category, landed (step 1 of §6)
 
@@ -261,11 +270,193 @@ position stream while being invisible, non-colliding and unsimulated. Convert it
 and let the ordinary world path materialize a proper copy is the shape the rest of this ticket assumes — is
 step 2's call, made at those two sites.
 
-What this step deliberately leaves open: the materialize/update/destroy path (step 2 — nothing creates a
-standing object yet, so the whole category is inert in play), the host-as-eater use report (step 3, now a
-named refusal rather than a silently wrong route), the four container-swap foods, and the two container
-shapes of constraint 5. The category's per-frame cost is one component lookup per classification (the
-marker is tested before the data arm, so unmarked items pay one `GetComponent` and no table lookup).
+What that step deliberately left open, and where each one was answered: the materialize/update/destroy path
+(*The materialize path (step 2 of §6)* and *What landed* below), the host-as-eater use report (still step 3,
+a named refusal rather than a silently wrong route), the four container-swap foods, and the two container
+shapes of constraint 5 (decided by step 2: CUO-owned parent links under one holder). The category's
+per-frame cost is one component lookup per classification (the marker is tested before the data arm, so
+unmarked items pay one `GetComponent` and no table lookup).
+
+## The materialize path (step 2 of §6) — the shape, decided before the code
+
+Step 1 made the category answerable and nothing creates a standing object yet. This is the shape step 2
+builds, with the two calls §6 deliberately left open — constraint 5's container form and the
+CARRIED→WORLD transition — made here together with the evidence each rests on.
+
+**1. The data edge is the carried fact table, not a second observer of the wire.** Every item the data
+carries as a member's carried row is already in `CloneFactTable`: the 1 Hz snapshot per owner (wholesale
+and recursive, `ApplySnapshot`), the single-fact merge (`ApplyCarriedSync`), the starting-supply merge
+(`ApplyCarriedInventory`) and the drop (`RemoveCarriedItem`). Each of those fires
+`CloneSnapshotUpdated(owner)`, whose only scene consumer today is the display-proxy renderer — §3's "other
+seam". That edge is NOT item-only: the same table fires it for the enemy bite/lunge/effect, the medical
+state and the limb event as well (eleven fire sites in all), because the clone renderer re-renders on those
+too. The materializer becomes that edge's second consumer, which answers §6.1's "the full table on world
+entry and reconnect" and "container contents recursively" without a new wire shape and without a second
+reading of the item tables; the price is that its reconcile must stay cheap, which is why a row whose data
+did not move costs one value comparison and no reflection (see the landed table below). The session end is
+the one thing that edge does NOT carry: `Clear()` drops the table silently, and the session binding's
+teardown is what retires the objects.
+
+**2. The container form (§6 constraint 5): CUO-owned parent links under ONE CUO root, flat.** Real
+`Container` children are what the display proxies use, and the game's own load path cannot build that
+tree for a non-authoritative copy: `Container.LoadItem` (`reversing/Assembly-CSharp/Assembly-CSharp/Container.cs:116-151`)
+refuses a child that already holds weight (`:119-123`) and refuses outright when the receiving container
+itself sits inside another one (`:125-129`) — and each refusal is a `PlayerCamera.main.DoAlert` with a
+localized player-facing line before it, so a nested container of contents would put "cannot stack
+containers" on a player's screen. What is left is the proxy path's answer, hand-attaching
+(`CloneInventoryRenderer.RestoreRemoteContent` does exactly that), and that shape is the one §6.5 named:
+`Container.itemCount` is `transform.childCount` (`Container.cs:11-17`), so hand-attached children make the
+standing container's own `ContainerBroke` → `UnloadAllItems` (`:46-77`, reachable from `Item.Update`'s
+destroy-at-zero, `Item.cs:157-164`) spill every standing child into the local world — `SetParent(null)`,
+`item.rb.simulated = true`, sprite on, `+1.5` up — i.e. duplicate live items out of another player's bag.
+The CUO root has neither refusal nor spill: the standing tree exists only in CUO's own bookkeeping (each
+object records its data parent), the objects are siblings under one plain, non-`Container` holder, and the
+apply path — never the game hierarchy — is what keeps nesting true. The price is the one §6.5 named:
+`Container`-shaped reads of a standing bag see no contents, which is correct for a copy whose contents are
+the data's.
+
+**3. The recipe: born inert, and quietly so.** Creation is `ItemPrefabResolver.Load` → `Instantiate` →
+the instance id AND the `StandingItemObject` marker attached in the same frame, before `Item.Start` runs
+(so `ItemWorldSync.OnItemInstantiated` never allocates a fresh id — §3's constraint, now redundancy on top
+of the category), then: parent under the CUO root; `rb.simulated = false`; every `Renderer` in the subtree
+disabled (not just the sprite: an item prefab may present itself through a line, a trail or a particle
+renderer); every `Collider2D` disabled; every `Light2D` disabled (matched by type name, the adapter does
+not reference the URP assembly, the same convention the proxy renderer uses); and the components that would
+act on OWNER-LOCAL state this side does not have disabled — §6.3's four writers (`WaterContainerItem` drinks
+the local fluid, `CustomItemBehaviour` explodes and spawns entities, `LightItem` and `WatchScript` present
+the copy) plus five more, each with its own evidence:
+
+| Component | Why it must not run |
+|---|---|
+| `WaterContainerItem` | drinks the local fluid every frame (and deletes it) |
+| `CustomItemBehaviour` | per-item behaviours that explode, spawn entities or destroy the item |
+| `LightItem` | a live light at the parked spot |
+| `WatchScript` | the item's own talker narrates the LOCAL player's readouts |
+| `EPdaScript` | re-enables its own glow renderer every frame (`EPdaScript.cs:34-44`) |
+| `GrapplingHook` | the restored `fired`/`pulling` flags make `Update` dereference `this.hook`, which only `Use` ever assigns — a copy NREs every frame (`GrapplingHook.cs:63-88`) |
+| `GunScript` | the restored trigger/rack flags make `Update` fire the real gun: a gunshot sound, `Fire()` writing the LOCAL body, and a real casing/round item instantiated into the world at the parked spot (`GunScript.cs:105-182`) |
+| `GeigerCounterAudio` | the restored `active` flag plays the counter's clicks at the parked spot (`GeigerCounterAudio.cs:21-43`) |
+| `AutoPump` | the worn flag drives the LOCAL body's blood pressure |
+
+The last three, and the two flags before them, are the family the display proxy's own path already answered
+(`RemoteItemPresentation.Apply` disables `GrapplingHook`, `WatchScript` and `AutoPump` on a clone, and says
+why: "running it would NRE the moment the restored fired flag is true"). A standing object needs the same
+answer for the same reason, with one difference: it is invisible, so the presentation half of that helper
+(which re-draws the fired sprite and can switch the dynamite fuse child ON) must NOT run on it.
+
+`BatteryItem`, `Item.Update`'s decay and the zero-condition destroy stay as they are: they run on the
+holder's own client too, so the data already carries their result, and §6.8 owns the bounded blink if one is
+ever observed.
+
+**4. The CARRIED→WORLD transition: retire the standing object and let the ordinary world path
+materialize.** The category note named two sites, and the change that creates the objects turned out to
+need six answers, because the id is now HELD by something the world path can see. `SpawnWorldItem` is the
+one entry every world materialization that reaches it goes through (the spawn event, the drop, the cook
+replay, the reconcile's landing, the restored-cut reconcile), and its "never materialize a second copy"
+guard would read the invisible, unsimulated incarnation as that copy — so it retires one for that id first.
+The four sites that decide over the same id BEFORE they get there ask on their own, because a skip or a
+re-place is what their own branch would do: `ItemApplication.OnRemoteItemDropped` (whose else-branch would
+re-place the standing object), `ItemApplication.OnRemoteItemDestroyed`, `ItemApplication.ApplyTrapDropPresentation`
+(whose "already left the world — initial drop state skipped" branch would swallow the drop) and
+`ItemCookReplayApplier.OnRemoteItemCooked` (whose duplicate check would swallow the cooked row);
+`ItemReconcile.Land` retires instead of returning early on "already present". All of them are decided by the
+MARKER (what the object was created as), never by the category — the data may already have moved the id into
+the world by the time the message arrives, and then `StandingItems.Is` is false while the object still
+carries every switch. Retirement zeroes the instance id BEFORE the deferred `Object.Destroy`, so the world
+path's own idempotency lookups (`FindWorldItem`, the adopt scan's "already synced" clause) answer "absent"
+in the same frame.
+
+**5. Lifetime is CUO's, from four signals.** (a) The data stops carrying the id for that owner — the
+reconcile retires it, with its standing descendants, on the very edge that carries the change; (b) the
+destroy report for that id (`ItemApplication.OnRemoteItemDestroyed`, which today logs and ignores a
+non-world item) retires it immediately rather than up to a second later; (c) the owner leaves the world —
+`RemoteSceneChanged(false)` retires its set, because the data no longer carries live rows for that member;
+(d) the session ends — the session binding's teardown retires everything and drops the holder, and the
+adapter teardown does the same, which is also what keeps an object from outliving the world it dereferences
+every frame in `Item.Update` (batch `20261002-h`). Materialization is gated on `HarmonyTraverse.HasWorld`
+(§6.7) and on the owner being in the world.
+
+**6. The objects are parked, not placed.** They are all parented to ONE plain CUO holder — a `GameObject`
+named `CUO Standing Items`, never a `Container`, never the local body, never a clone — and that holder sits
+at the world origin, so every standing object is at (0,0). Position is not a fact for a carried row (nobody
+simulates it; the owner's body sync is what moves it in the world), the objects are invisible and
+non-colliding, and a fixed spot makes the count and the effect readings of §7 readable in one place. The §7
+fluid-table row should be read against that spot: it is trivially green now, because `WaterContainerItem` —
+the only component that touched fluid — is disabled, and the row is kept as the check that nothing else
+learned to drink.
+
+**7. The objects are found by id, and the id index is the registry's fallback.** `RemoteItemSceneOps`
+keeps its id-addressed lookups answering for a standing object (§3's decision), and the materializer keeps
+its own id → object record with the owner and the data parent, because the flat root gives Unity no
+hierarchy to walk back.
+
+What this step deliberately leaves open, unchanged: the host-as-eater use report (step 3), the four
+container-swap foods, and the measurements §7 lists — none of them is observable until a standing object
+exists in a live session, which is what this step changes.
+
+### What landed (step 2 of §6)
+
+The objects are created, kept aligned and retired. The pieces:
+
+| Piece | Where | What it is |
+|---|---|---|
+| The wanted set | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemPlan.cs` | one owner's carried tree read as the rows that must be incarnated — parents before children, one row's data parent recorded, and the rows the data does not ask for (no instance id yet, or the data holds the id as a world row) left out |
+| The materializer | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemMaterializer.cs` | the fact edge's second consumer: reconcile the scene against the plan, create/update/retire, the id → object record (owner + data parent + creation frame), the one holder, the lifetime. The reconcile is gated on the item tree itself, by REFERENCE (the fact edge also fires for enemy/medical/limb events, which leave every list and entry instance in place), so only a fire that really changed the items rebuilds the plan and pays the per-row digest |
+| The recipe | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemRecipe.cs` | how one object is built and made inert — §6.2/§6.3's switches plus the nine disabled components as one small class, which is what the source-shape gate reads |
+| The wiring | `GameAdapterDomains` (built before the item application), `GameAdapterSessionBinding` (Bind / Unbind / OnSessionEnded), `GameAdapter.Dispose` | the materializer is a domain like the others: its teardown rides the session binding's teardown, and the adapter teardown takes it beside the clones |
+| The site answers | `ItemApplication` (`OnRemoteItemDropped`, `OnRemoteItemDestroyed`, `ApplyTrapDropPresentation`, `OnItemCorrection`), `ItemCookReplayApplier.OnRemoteItemCooked`, `ItemReconcile.Land`, `RemoteItemSceneOps.SpawnWorldItem` | the one funnel every world materialization that reaches it goes through retires a standing incarnation before its own "already present" guard; the four sites that decide over the same id before they get there ask on their own; a correction is routed to the materializer's flat apply instead of the container-recursive one |
+| The pins | `tests/CasualtiesUnknownOnline.Tests/Items/StandingItemPlanTests.cs`, `tests/CasualtiesUnknownOnline.NormativeGates.Tests/StandingItemGateTests.cs` | the plan's rules as a truth table, and the recipe / lifetime / transition shape as a source-shape gate (fourteen scanned bodies, matchers pinned by positive and negative samples, and the assertions written against syntax so a renamed, inverted or reordered statement fails rather than passing on an identifier) |
+
+Per-signal dispositions, one line per edge this step had to answer:
+
+| Signal | Disposition |
+|---|---|
+| the 1 Hz character snapshot (`CloneSnapshotUpdated`, wholesale and recursive) | the reconcile: rows the plan wants are created, existing ones get their state realigned, rows the plan no longer carries are retired |
+| a carried fact (use / slot / wear / pickup) | the same edge (the fact table fires it), so an existing object is realigned within the event, not the snapshot |
+| the starting-supply merge | the same edge; rows with no id yet are not incarnated, and a bound content under an unbound container keeps the nearest bound ancestor as its parent |
+| the drop (`ItemDropped` → `RemoveCarriedItem`) | `ItemApplication.OnRemoteItemDropped` retires the standing object by MARKER before its own "not present" branch, which materializes the world copy in the same pass (zeroing the id first is what makes the id-addressed idempotency lookups answer "absent") |
+| the destroy report (`ItemDestroyed`) | `ItemApplication.OnRemoteItemDestroyed` retires the standing object instead of logging and ignoring it |
+| a world row landing on an id that still stands (`ItemReconcile.Land`) | the standing object is retired first and the row materializes |
+| any world materialization at all (`SpawnWorldItem`) | the funnel retires a standing incarnation of that id before its own "already present" guard, so the spawn event, the cook replay and the restored-cut reconcile cannot be answered with the invisible object |
+| a drop or a conversion that decides over the same id before reaching the funnel (the trap-drop presentation, the cook replay's duplicate check) | both retire the standing incarnation first, so their own "already present / already left the world" branch cannot swallow the world row |
+| the host's correction (`ItemCorrectionReceived`) | routed to the materializer's flat apply (contents addressed by id, never through a `Container`); a row the data has not delivered is still the fact table's to create — one create path |
+| the owner leaving the world (`RemoteSceneChanged(false)`) | its whole set is retired, and nothing is materialized for an owner outside the world |
+| the session ending | `ResetSessionState` retires everything and drops the holder; the session binding's teardown and the adapter teardown both call it |
+| no live world (`HarmonyTraverse.HasWorld` false) | nothing is created (the §7 gate); the next data update re-delivers once the world is live |
+| an id that already has a local object this side did not create (a cross-player transfer in flight, a world copy) | never incarnated; and if the local object appears while a standing object already stands for that id, the standing one is retired — one id, one domain object |
+| an edge of the fact table that did not touch the items (enemy bite/lunge/effect, medical state, limb event) | the reconcile runs but writes nothing: each row is compared against the state last applied to it, so the reflection-backed digest is reached only by a row whose data moved |
+
+**The one place step 2 goes beyond §6.3's written recipe, and why.** §6.3 named four components; the recipe
+disables nine. Five more joined it, each because it acts on OWNER-LOCAL state that a copy does not have:
+`EPdaScript` (its `Update` re-enables its own glow renderer every frame — `reversing/Assembly-CSharp/Assembly-CSharp/EPdaScript.cs:34-44`),
+`GrapplingHook` (the restored `fired`/`pulling` flags dereference a `hook` that only `Use` assigns, so a copy
+NREs every frame — `GrapplingHook.cs:63-88`), `GunScript` (the restored trigger/rack flags make `Update` play
+the gunshot, call `Fire()` against the LOCAL body and instantiate a real casing/round item at the parked spot
+— `GunScript.cs:105-182`), `GeigerCounterAudio` (the restored `active` flag plays the counter's clicks —
+`GeigerCounterAudio.cs:21-43`) and `AutoPump` (its worn flag drives the LOCAL body's blood pressure). The
+display proxy's own path had already answered three of them for a clone
+(`RemoteItemPresentation.Apply`, "running it would NRE the moment the restored fired flag is true"); a
+standing object needs the same answer and must NOT take that helper's presentation half, which re-draws the
+fired sprite and can switch the dynamite fuse child on. The renderer sweep is stated as every `Renderer`
+for the same reason (an item prefab may present itself through a line, a trail or a particle renderer, not
+only a sprite).
+
+**What step 2 does not prove**: every §7 reading stays the acceptance batch's, because none of them is
+observable in-process — the per-session count and per-frame cost, the "nothing visible / no light / no sound"
+judgement, the parked-spot fluid, the condition tracking the data rather than a locally pinned 0, the
+prefab-level facts (collider layer, trigger or solid) which are asset data `reversing/` does not hold, whether
+local decay reaches the zero-condition destroy between two refreshes, and Unity's behaviour for a
+`simulated = false` body whose velocity is written.
+
+**Three named limits of the recipe's reach.** The sweep runs once, at creation and before any `Start`: a
+component §2's census does not list, that builds its own renderer inside its `Start`, is not covered by it,
+and that is one of the things the "nothing visible / no light" reading is for. Disabling a particle renderer
+hides its effect but does not stop the system simulating, so an item prefab carrying a live particle system
+still pays that cost — the per-frame reading against §5's baseline is what would show it. And the gate's
+disabled-component list is an exact-equality contract: it fails when the code and the list disagree, not
+when both are missing a component that acts on owner-local state SILENTLY (no throw, no sound, no visible
+change) — the criterion, the proxy path as precedent, the per-name evidence above and the per-session
+`[ERR][Unity:Exception]` reading are the substitute, and the silent class is caught by reading.
 
 ## The earlier candidate designs (kept for the record)
 

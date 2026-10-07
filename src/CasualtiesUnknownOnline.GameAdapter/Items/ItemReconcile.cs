@@ -18,11 +18,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 internal sealed class ItemReconcile(
 	IItemControl items,
 	ItemApplication itemApplication,
+	StandingItemMaterializer standing,
 	DropProtectionGuard guard,
 	ILogger<ItemReconcile> log)
 {
 	private readonly IItemControl _items = items;
 	private readonly ItemApplication _app = itemApplication;
+	private readonly StandingItemMaterializer _standing = standing;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly ILogger<ItemReconcile> _log = log;
 
@@ -221,10 +223,21 @@ internal sealed class ItemReconcile(
 	/// world on this side, or a prefab the local scene cannot serve — and must not be reported as
 	/// a spawn (batch 20261002-j's review, major-4: the count used to be taken from the call, not
 	/// from the result).
+	/// <para>
+	/// A STANDING object is not "already landed": it is this side's incarnation of a CARRIED row whose data
+	/// has since moved the id into the world, so it is retired first and the row materializes a proper world
+	/// copy here. The question is the MARKER, not the category — the category has already ended for that
+	/// object (that is what moved it here), and retiring by the category would leave the object standing
+	/// with the recipe's switches on while the position stream drives it.
+	/// </para>
 	/// </summary>
 	private void Land(WorldItem w, ref int spawned, ref int notTaken)
 	{
-		if (ItemApplication.FindWorldItem(w.ItemId) != null) // Unity object — ==
+		if (_standing.Retire(w.ItemId, "the data moved the row into the world"))
+		{
+			_log.LogInformation("[Reconcile] {Type} (id {ItemId}) was standing as a carried row — retired for its world row.", w.Item.ItemId, w.ItemId);
+		}
+		else if (ItemApplication.FindWorldItem(w.ItemId) != null) // Unity object — ==
 		{
 			return;
 		}

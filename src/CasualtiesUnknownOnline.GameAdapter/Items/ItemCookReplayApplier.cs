@@ -16,10 +16,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// </summary>
 internal sealed class ItemCookReplayApplier(
 	ItemApplication owner,
+	StandingItemMaterializer standing,
 	ISessionControl session,
 	Logger log)
 {
 	private readonly ItemApplication _owner = owner;
+	private readonly StandingItemMaterializer _standing = standing;
 	private readonly ISessionControl _session = session;
 	private readonly Logger _log = log;
 
@@ -36,6 +38,11 @@ internal sealed class ItemCookReplayApplier(
 			{
 				_log.LogWarning("[ItemCook] source {Source} not present locally — spawning the cooked item from the event fact.", sourceItemId);
 			}
+
+			// The cooked row is a WORLD fact, so a standing incarnation of that id must go before the
+			// duplicate check below — this path branches before the materialization funnel, and the standing
+			// object would otherwise answer the check and keep the steak from ever being materialized.
+			_standing.Retire(cooked.ItemId, "the cooked row is a world fact");
 
 			if (ItemApplication.FindWorldItem(cooked.ItemId) != null) // Unity object — ==; reliable-channel duplicate
 			{

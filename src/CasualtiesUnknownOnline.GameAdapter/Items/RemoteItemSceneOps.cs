@@ -21,9 +21,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// primitives while <see cref="ItemApplication"/> keeps the message-handler
 /// routing.
 /// </summary>
-internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
+internal sealed class RemoteItemSceneOps(ISessionControl session, StandingItemMaterializer standing, Logger log)
 {
 	private readonly ISessionControl _session = session;
+	private readonly StandingItemMaterializer _standing = standing;
 	private readonly Logger _log = log;
 	private readonly Dictionary<Item, int> _materializedFrame = [];
 
@@ -313,6 +314,15 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 	/// </summary>
 	internal void SpawnWorldItem(WorldItem w)
 	{
+		// This is the ONE entry every world materialization goes through (the spawn event, the drop, the
+		// cook replay, the reconcile's landing, the restored-cut reconcile), so it is where a standing
+		// incarnation of the row is retired first: the data has just declared the id a WORLD item, and
+		// leaving the carried copy in place would make the idempotency guard below read it as "already
+		// present" — no world copy would ever be materialized, and the invisible, unsimulated object would
+		// then be driven as a world item until some later keyframe retired it. Retiring here covers every
+		// caller, including the ones that branch before reaching this method.
+		_standing.Retire(w.ItemId, "the data moved the row into the world");
+
 		// A remote world item is a world fact: materializing one without a world
 		// scene is exactly the menu-scene burst of batch 20261002-h (each copy's
 		// Item.Update dereferences WorldGeneration.world every frame). The host

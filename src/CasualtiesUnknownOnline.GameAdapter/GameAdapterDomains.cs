@@ -76,6 +76,7 @@ internal sealed class GameAdapterDomains
 	internal readonly RemoteBackpackCoordinator RemoteBackpack;
 	internal readonly RemoteMedicalCoordinator RemoteMedical;
 	internal readonly DropProtectionGuard DropGuard;
+	internal readonly StandingItemMaterializer StandingMaterializer;
 	internal readonly ItemApplication ItemApplication;
 	internal readonly ItemReconcile ItemReconcile;
 	internal readonly ItemWorldSync ItemWorldSync;
@@ -264,8 +265,12 @@ internal sealed class GameAdapterDomains
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
 		RemoteMedical = new RemoteMedicalCoordinator(session, CharacterDataSync, mapper, loggerFactory.CreateLogger<RemoteMedicalCoordinator>());
 		DropGuard = new DropProtectionGuard(world.IsBreakDropPending);
-		ItemApplication = new ItemApplication(items, world, session, loggerFactory.CreateLogger<ItemApplication>());
-		ItemReconcile = new ItemReconcile(items, ItemApplication, DropGuard, loggerFactory.CreateLogger<ItemReconcile>());
+		// The carried rows' local incarnation (ticket mod-cross-player-solid-food-semantics, §6 step 2):
+		// the carried fact table's second consumer beside the clone renderer. Built before the item
+		// application and the reconcile, which route their drop / destroy / landing edges into it.
+		StandingMaterializer = new StandingItemMaterializer(session, items, FactTable, loggerFactory.CreateLogger<StandingItemMaterializer>());
+		ItemApplication = new ItemApplication(items, world, session, StandingMaterializer, loggerFactory.CreateLogger<ItemApplication>());
+		ItemReconcile = new ItemReconcile(items, ItemApplication, StandingMaterializer, DropGuard, loggerFactory.CreateLogger<ItemReconcile>());
 		OperationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
 		var itemReports = new ItemReportCommitter(items, OperationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());
 		ItemIds = new ItemIdAllocator(session, items, loggerFactory.CreateLogger<ItemIdAllocator>()); // ids are (counter, SteamId) — the counter reports the high-water mark and resumes from the host's grant on join/reconnect

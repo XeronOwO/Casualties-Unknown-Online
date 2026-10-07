@@ -40,11 +40,29 @@ internal sealed class RemotePlayerRenderer(
 	private long _nextCloneLogMs;
 
 	/// <summary>
-	/// The 1 Hz clone diagnostic's message template, shared by its Information
+	/// The repetition window every clone-creation failure asks before it writes its line. The ensure below
+	/// retries once per member PER FRAME, and a member out of the world never resolves the failure, so
+	/// without this a three-client session fills a rolling log at the rate batch `20261007-a` measured:
+	/// 58,148 identical lines / 8.796 MB in ~90 s on one client, still climbing at close. Three lines per
+	/// (member, failure) plus one summary per run that ends, and the capacity covers 32 of those subjects
+	/// (two per member) generously: past it the OLDEST is evicted, and an ask order cycling through more live
+	/// subjects than the window holds would evict the ones its own frame is about to ask.
+	/// </summary>
+	private readonly LogRepetitionGuard _cloneFailures = new(suppressAfter: 3, capacity: 64);
+
+	/// <summary>
+	/// The clone diagnostic's message template, shared by its Information
 	/// form (a carry participant) and its routine Debug form, so the two can
 	/// never drift apart.
 	/// </summary>
 	private const string CloneLine = "Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}{CarryTag}";
+
+	/// <summary>
+	/// The summary of a clone-creation failure run that ended, written where the member starts drawing a
+	/// clone again (or leaves, or the session does): the window's own lines are the diagnostic and this is
+	/// its size, so the bound never makes a standing failure's cost untold.
+	/// </summary>
+	private const string CloneFailureSuppressedLine = "Remote body: {Why} for {SteamId} — {Count} identical line(s) suppressed while the clone could not be built.";
 
 	internal void BindToSession()
 	{
@@ -119,6 +137,10 @@ internal sealed class RemotePlayerRenderer(
 	/// <summary>Session/entity ended — destroy every render clone.</summary>
 	internal void DestroyAllClones()
 	{
+		// The runs that outlive the session report their size before the window is
+		// forgotten: this is the storm's own case (its condition never resolved).
+		FlushCloneFailures();
+
 		// == null on the Unity clones (is null would miss scene-reload-destroyed objects).
 		foreach (var clone in _remoteClones.Values)
 		{
@@ -150,13 +172,14 @@ internal sealed class RemotePlayerRenderer(
 			// reference-comparison would miss it; retry creation next frame.
 			if (!_remoteClones.TryGetValue(remote.SteamId, out var clone) || clone == null)
 			{
-				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _log);
+				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _cloneFailures, _log);
 				if (clone == null)
 				{
 					continue; // template unavailable — retry next frame
 				}
 
 				_remoteClones[remote.SteamId] = clone;
+				EndCloneFailureRuns(remote.SteamId); // the member builds a clone again: its failure run is over
 				_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
 				// Render its carried items + limb presentation from the latest
 				// snapshot (a fresh report follows within 1 s at the latest).
@@ -218,6 +241,44 @@ internal sealed class RemotePlayerRenderer(
 		_session.Role == SessionRole.Host
 			? new Vector2(_session.GetRemoteSpawnPos(remote.SteamId).X, _session.GetRemoteSpawnPos(remote.SteamId).Y)
 			: new Vector2(remote.Position.X, remote.Position.Y);
+
+	/// <summary>
+	/// One member's clone-creation failure runs all ended — its clone is built again, or it left the world
+	/// and no attempt is made for it any more: each subject reports what its window swallowed, so the bound
+	/// never makes a standing failure's size untold. Silent for a subject that cost nothing, and a failure
+	/// that comes back after this reports its first line again.
+	/// </summary>
+	private void EndCloneFailureRuns(ulong steamId)
+	{
+		ReportCloneFailureRun(new(RemoteBodyFactory.NoTemplateWhy, steamId));
+		ReportCloneFailureRun(new(RemoteBodyFactory.NoBodyComponentWhy, steamId));
+	}
+
+	/// <summary>
+	/// The session is over with failure runs still open, which is the storm's own case (its condition never
+	/// resolved before the client closed): report every subject the window is still holding.
+	/// </summary>
+	private void FlushCloneFailures()
+	{
+		// A copy of the tracked subjects: TryFlush drops each one as it reports it.
+		var subjects = _cloneFailures.Subjects;
+		for (var i = 0; i < subjects.Count; i++)
+		{
+			if (subjects[i] is RemoteCloneFailureKey subject)
+			{
+				ReportCloneFailureRun(subject);
+			}
+		}
+	}
+
+	/// <summary>How many identical lines this subject's window refused — the run's own size, once.</summary>
+	private void ReportCloneFailureRun(RemoteCloneFailureKey subject)
+	{
+		if (_cloneFailures.TryFlush(subject, out var suppressed))
+		{
+			_log.LogWarning(CloneFailureSuppressedLine, subject.Why, subject.SteamId, suppressed);
+		}
+	}
 
 	/// <summary>Periodic clone diagnostics (1 Hz) — where the remote proxies actually are.</summary>
 	private void LogClonePosition()
@@ -325,6 +386,14 @@ internal sealed class RemotePlayerRenderer(
 	/// </summary>
 	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
 	{
+		if (!inWorld)
+		{
+			// No clone is ensured for a member out of the world, so its failure runs
+			// end here — and with them their windows, so a failure that comes back
+			// when it re-enters reports its first line instead of being refused.
+			EndCloneFailureRuns(steamId);
+		}
+
 		if (!inWorld && _remoteClones.TryGetValue(steamId, out var clone) && clone != null) // Unity object — ==
 		{
 			Object.Destroy(clone.transform.parent.gameObject);

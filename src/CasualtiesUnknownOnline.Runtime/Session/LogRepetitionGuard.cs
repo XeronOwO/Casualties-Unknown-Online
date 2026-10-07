@@ -42,6 +42,15 @@ internal sealed class LogRepetitionGuard(int suppressAfter, int capacity = 256)
 	internal int TrackedKeys => _entries.Count;
 
 	/// <summary>
+	/// Every subject this window is still holding, oldest first, as a COPY the caller may iterate while it
+	/// flushes (<see cref="TryFlush"/> mutates the set). A run that outlives the thing that reported it — a
+	/// failure the session ends before it resolves — is reported by walking this and flushing each subject:
+	/// the window's own lines say the fact, and the walk says how many repeats it swallowed, so a bound never
+	/// makes a standing repetition's size untold. Bounded by <c>capacity</c>, like the entries it names.
+	/// </summary>
+	internal IReadOnlyList<object> Subjects => [.. _order];
+
+	/// <summary>
 	/// True = write the line now, with <paramref name="repeat"/> as the line's index in the window (0 for
 	/// the first, so the log reads as "the third identical line"). False = the subject's window is spent
 	/// and the caller must count the line with <see cref="Suppressed"/> instead of writing it.

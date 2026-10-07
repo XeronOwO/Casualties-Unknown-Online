@@ -57,7 +57,7 @@
 per clone per frame, for as long as a clone has no `Body`. On a member that has left the world that
 condition does not resolve, so the line is unbounded and reproduces the storm this ticket is about — same
 shape, same level, different producer, and outside the census `LogVolumeGateTests` pins. Filed as
-`todo/remote-clone-warning-storm-on-member-dropout.md` with this reading as its evidence.
+`review/remote-clone-warning-storm-on-member-dropout.md` with this reading as its evidence.
 
 ## Residuals for the user
 

@@ -14,7 +14,7 @@
   introduced by this change" is never a reason to leave a defect alone.
 - Related: `done/layer-mod-baseline-divergence-on-continue.md` (the same warning from another producer),
   `todo/layer-change-member-recovery.md` (the split-out recovery half),
-  `todo/remote-clone-warning-storm-on-member-dropout.md` (the third producer of this family, filed by the
+  `review/remote-clone-warning-storm-on-member-dropout.md` (the third producer of this family, filed by the
   2026-10-07 batch), `done/guest-generation-segments-over-host-absence.md`,
   `done/reenter-baseline-adoption.md`,
   `review/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family),
@@ -123,9 +123,11 @@ through the change. Full reading and evidence pointers:
 2. **The row's second expectation fails, on a producer this cycle did not name.** The third client's log grew
    8.796 MB in ~90 s — 58,148 of its 58,960 lines are
    `Remote body: no Body component in "Experiment" clone.` — and a further 10-second sample measured
-   1.212 MB / 10 s = 7.25 MB/min at 639–866 lines/s, still climbing when the session closed (82,034 such
-   lines in the file it ended with), against ~8.2 MB/min before the fix. Filed as
-   `todo/remote-clone-warning-storm-on-member-dropout.md`.
+   1.212 MB / 10 s = 7.25 MB/min at 639–866 lines/s, still climbing when the session closed (the census
+   artifact the batch took afterwards reads **82,618** such lines of its 83,459 for that client since the
+   mark; an earlier draft of this list said 82,034, which the artifact does not support), against
+   ~8.2 MB/min before the fix. Filed as
+   `review/remote-clone-warning-storm-on-member-dropout.md`.
 3. **What this cycle bounded IS bounded on the real shape**, which is why this rejects the row and not the
    fix: `[ItemPhysics] settle` read 14 and 13 lines (was 4,445 of 7,368), `[Fluid] region` 5 and 7 (was 415),
    `[LayerMod] baseline divergence` 0–3 lines across the three attempts (the corrected 5-second keyframe

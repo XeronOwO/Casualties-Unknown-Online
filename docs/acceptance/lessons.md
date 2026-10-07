@@ -2366,9 +2366,11 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   is not a park.
 - Also, two things this run cost a step each: `container-read` demands `guest=<owner SteamId>` for EVERY mode
   including `local` (the recipe declares the placeholder, so the driver refuses the call with a usage message
-  — `-RecipeArg mode=local,guest=<SteamId>`), and a member left out of the world writes its log without bound
-  (`Remote body: no Body component in "Experiment" clone.`, measured at 7.25 MB/min), so a session that ends
-  with a member still out is closed promptly rather than left running.
+  — `-RecipeArg mode=local,guest=<SteamId>`), and a member left out of the world used to write its log without
+  bound (`Remote body: no Body component in "Experiment" clone.`, measured at 7.25 MB/min; bounded later the
+  same day by a window per (member, failure) plus a wind-down that reports what it swallowed —
+  `review/remote-clone-warning-storm-on-member-dropout.md`), so a session that ends with a member still out is
+  closed promptly rather than left running.
 - Harvested by this run: `.acceptance/tools/log-census.ps1` takes a `log.ps1` mark and prints, per client, the
   lines and megabytes written since it plus a count per pattern — the size a bounded/unbounded row is judged
   by, split by producer. `log.ps1 -Action read` returns matching lines but never counts them, which is how a

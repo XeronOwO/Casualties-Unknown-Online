@@ -71,8 +71,8 @@ internal sealed class StandingItemMaterializer
 	/// <summary>Instance id → the local incarnation of that carried row.</summary>
 	private readonly Dictionary<ulong, Incarnation> _objects = [];
 
-	/// <summary>Owner → the item tree the last reconcile saw, by reference (see <see cref="SeenTree"/>): what keeps the fact edge's non-item fires cheap.</summary>
-	private readonly Dictionary<ulong, SeenTree> _seen = [];
+	/// <summary>Owner → the item tree the last reconcile saw, by reference (see <see cref="StandingItemFingerprint"/>): what keeps the fact edge's non-item fires cheap.</summary>
+	private readonly Dictionary<ulong, StandingItemFingerprint> _seen = [];
 
 	/// <summary>Bounds a per-object failure line (a prefab the local scene cannot serve repeats on every snapshot).</summary>
 	private readonly LogRepetitionGuard _failures = new(suppressAfter: 3, capacity: 64);
@@ -176,13 +176,19 @@ internal sealed class StandingItemMaterializer
 	/// This edge is not item-only: the fact table also fires it for an enemy bite/lunge/effect, a medical
 	/// state and a limb event (eleven fire sites in all), because the clone renderer re-renders on those
 	/// too. The reconcile is therefore gated on the item tree itself: a fire that left every list and entry
-	/// instance in place is answered by one reference walk (<see cref="SeenTree"/>) and nothing else.
+	/// instance in place is answered by one reference walk (<see cref="StandingItemFingerprint"/>) and
+	/// nothing else. The fingerprint is recorded only AFTER the pass it describes, so a pass that throws
+	/// cannot leave it asserting a reconcile that never finished.
 	/// </para>
 	/// </summary>
 	private void OnOwnerFactsChanged(ulong owner)
 	{
 		if (!HarmonyTraverse.HasWorld)
 		{
+			// No world scene means the holder and every object under it are gone with the scene: the data
+			// and the scene now disagree without a single reference changing, so the fingerprints of the
+			// tree the last reconcile saw are dropped and the next fire rebuilds from scratch.
+			_seen.Clear();
 			_log.LogDebug("[StandingItem] {Owner}'s carried facts changed with no world scene on this side — nothing materialized.", owner);
 			return;
 		}
@@ -209,7 +215,6 @@ internal sealed class StandingItemMaterializer
 			return;
 		}
 
-		_seen[owner] = SeenTree.Of(data.Items);
 		var plan = StandingItemPlan.Build(owner, data.Items, _items.IsWorldItemRegistered);
 		foreach (var id in plan.Ids)
 		{
@@ -217,6 +222,7 @@ internal sealed class StandingItemMaterializer
 		}
 
 		RetireUnwanted(plan);
+		_seen[owner] = StandingItemFingerprint.Of(data.Items);
 		_log.LogDebug("[StandingItem] {Owner}: {Wanted} carried row(s) in the data, {Standing} standing object(s) alive.", owner, plan.Count, _objects.Count);
 	}
 
@@ -463,51 +469,5 @@ internal sealed class StandingItemMaterializer
 		internal ulong Owner;
 		internal ulong ParentId;
 		internal int CreatedFrame;
-	}
-
-	/// <summary>
-	/// One owner's item tree as the last reconcile saw it, by REFERENCE: the list instance, its element
-	/// instances and their contents, recursively. The fact table rewrites what it changes — a snapshot
-	/// replaces the whole message (and its list), a carried fact or a nested move replaces an element, a drop
-	/// removes one — so a tree whose references all still match has not changed, and the objects built from
-	/// it are already aligned. That is what lets the fact edge's non-item fires (an enemy bite, a medical
-	/// state, a limb event) cost one walk of the tree instead of a plan rebuild and a reflection-backed
-	/// digest of every row; a tree that DID change still gets the full realign, which is what keeps a local
-	/// copy's own decay corrected against the data (§6.8).
-	/// </summary>
-	private sealed class SeenTree
-	{
-		private object? _list;
-		private CharacterItemMsg[] _items = [];
-		private SeenTree[] _contents = [];
-
-		internal static SeenTree Of(List<CharacterItemMsg> items)
-		{
-			var seen = new SeenTree { _list = items, _items = [.. items], _contents = new SeenTree[items.Count] };
-			for (var i = 0; i < items.Count; i++)
-			{
-				seen._contents[i] = Of(items[i].Contents);
-			}
-
-			return seen;
-		}
-
-		internal bool Matches(List<CharacterItemMsg> items)
-		{
-			if (!ReferenceEquals(_list, items) || _items.Length != items.Count)
-			{
-				return false;
-			}
-
-			for (var i = 0; i < _items.Length; i++)
-			{
-				if (!ReferenceEquals(_items[i], items[i]) || !_contents[i].Matches(items[i].Contents))
-				{
-					return false;
-				}
-			}
-
-			return true;
-		}
 	}
 }

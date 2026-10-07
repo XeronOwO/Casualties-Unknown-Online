@@ -401,11 +401,12 @@ The objects are created, kept aligned and retired. The pieces:
 | Piece | Where | What it is |
 |---|---|---|
 | The wanted set | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemPlan.cs` | one owner's carried tree read as the rows that must be incarnated — parents before children, one row's data parent recorded, and the rows the data does not ask for (no instance id yet, or the data holds the id as a world row) left out |
-| The materializer | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemMaterializer.cs` | the fact edge's second consumer: reconcile the scene against the plan, create/update/retire, the id → object record (owner + data parent + creation frame), the one holder, the lifetime. The reconcile is gated on the item tree itself, by REFERENCE (the fact edge also fires for enemy/medical/limb events, which leave every list and entry instance in place), so only a fire that really changed the items rebuilds the plan and pays the per-row digest |
+| The materializer | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemMaterializer.cs` | the fact edge's second consumer: reconcile the scene against the plan, create/update/retire, the id → object record (owner + data parent + creation frame), the one holder, the lifetime. The reconcile is gated on the item tree itself (`StandingItemFingerprint`, by reference), because the fact edge also fires for enemy/medical/limb events, which leave every list and entry instance in place — a tree that really changed rebuilds the plan and realigns every row against the data |
+| The reconcile gate | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemFingerprint.cs` | one owner's tree by reference: the list, its entries and their contents. Pinned in both directions by `StandingItemFingerprintTests`, including the one shape it cannot see (an in-place field write to a stored entry, which two host-side writers do) and the safety net that bounds it to one interval — the owner's own 1 Hz report is deserialized fresh, so it replaces the message and its list every second |
 | The recipe | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemRecipe.cs` | how one object is built and made inert — §6.2/§6.3's switches plus the nine disabled components as one small class, which is what the source-shape gate reads |
 | The wiring | `GameAdapterDomains` (built before the item application), `GameAdapterSessionBinding` (Bind / Unbind / OnSessionEnded), `GameAdapter.Dispose` | the materializer is a domain like the others: its teardown rides the session binding's teardown, and the adapter teardown takes it beside the clones |
 | The site answers | `ItemApplication` (`OnRemoteItemDropped`, `OnRemoteItemDestroyed`, `ApplyTrapDropPresentation`, `OnItemCorrection`), `ItemCookReplayApplier.OnRemoteItemCooked`, `ItemReconcile.Land`, `RemoteItemSceneOps.SpawnWorldItem` | the one funnel every world materialization that reaches it goes through retires a standing incarnation before its own "already present" guard; the four sites that decide over the same id before they get there ask on their own; a correction is routed to the materializer's flat apply instead of the container-recursive one |
-| The pins | `tests/CasualtiesUnknownOnline.Tests/Items/StandingItemPlanTests.cs`, `tests/CasualtiesUnknownOnline.NormativeGates.Tests/StandingItemGateTests.cs` | the plan's rules as a truth table, and the recipe / lifetime / transition shape as a source-shape gate (fourteen scanned bodies, matchers pinned by positive and negative samples, and the assertions written against syntax so a renamed, inverted or reordered statement fails rather than passing on an identifier) |
+| The pins | `tests/CasualtiesUnknownOnline.Tests/Items/StandingItemPlanTests.cs`, `tests/CasualtiesUnknownOnline.Tests/Items/StandingItemFingerprintTests.cs`, `tests/CasualtiesUnknownOnline.NormativeGates.Tests/StandingItemGateTests.cs` | the plan's rules as a truth table, the reconcile gate's reference semantics (its blind spot included) as a second one, and the recipe / lifetime / transition shape as a source-shape gate (fourteen scanned bodies, matchers pinned by positive and negative samples, and the assertions written against syntax so a renamed, inverted or reordered statement fails rather than passing on an identifier) |
 
 Per-signal dispositions, one line per edge this step had to answer:
 
@@ -422,7 +423,7 @@ Per-signal dispositions, one line per edge this step had to answer:
 | the host's correction (`ItemCorrectionReceived`) | routed to the materializer's flat apply (contents addressed by id, never through a `Container`); a row the data has not delivered is still the fact table's to create — one create path |
 | the owner leaving the world (`RemoteSceneChanged(false)`) | its whole set is retired, and nothing is materialized for an owner outside the world |
 | the session ending | `ResetSessionState` retires everything and drops the holder; the session binding's teardown and the adapter teardown both call it |
-| no live world (`HarmonyTraverse.HasWorld` false) | nothing is created (the §7 gate); the next data update re-delivers once the world is live |
+| no live world (`HarmonyTraverse.HasWorld` false) | nothing is created (the §7 gate), every owner's reconcile gate is dropped (a scene loss takes the objects without changing a single reference), and the next data update re-delivers once the world is live |
 | an id that already has a local object this side did not create (a cross-player transfer in flight, a world copy) | never incarnated; and if the local object appears while a standing object already stands for that id, the standing one is retired — one id, one domain object |
 | an edge of the fact table that did not touch the items (enemy bite/lunge/effect, medical state, limb event) | the reconcile runs but writes nothing: each row is compared against the state last applied to it, so the reflection-backed digest is reached only by a row whose data moved |
 
@@ -448,15 +449,21 @@ prefab-level facts (collider layer, trigger or solid) which are asset data `reve
 local decay reaches the zero-condition destroy between two refreshes, and Unity's behaviour for a
 `simulated = false` body whose velocity is written.
 
-**Three named limits of the recipe's reach.** The sweep runs once, at creation and before any `Start`: a
-component §2's census does not list, that builds its own renderer inside its `Start`, is not covered by it,
-and that is one of the things the "nothing visible / no light" reading is for. Disabling a particle renderer
-hides its effect but does not stop the system simulating, so an item prefab carrying a live particle system
-still pays that cost — the per-frame reading against §5's baseline is what would show it. And the gate's
-disabled-component list is an exact-equality contract: it fails when the code and the list disagree, not
-when both are missing a component that acts on owner-local state SILENTLY (no throw, no sound, no visible
-change) — the criterion, the proxy path as precedent, the per-name evidence above and the per-session
-`[ERR][Unity:Exception]` reading are the substitute, and the silent class is caught by reading.
+**Three named limits of the recipe's reach, and one of the reconcile gate's.** The sweep runs once, at
+creation and before any `Start`: a component §2's census does not list, that builds its own renderer inside
+its `Start`, is not covered by it, and that is one of the things the "nothing visible / no light" reading is
+for. Disabling a particle renderer hides its effect but does not stop the system simulating, so an item
+prefab carrying a live particle system still pays that cost — the per-frame reading against §5's baseline is
+what would show it. And the gate's disabled-component list is an exact-equality contract: it fails when the
+code and the list disagree, not when both are missing a component that acts on owner-local state SILENTLY
+(no throw, no sound, no visible change) — the criterion, the proxy path as precedent, the per-name evidence
+above and the per-session `[ERR][Unity:Exception]` reading are the substitute, and the silent class is caught
+by reading. The reconcile gate's own limit: an in-place FIELD write to an entry the fact table already stores
+keeps every reference, and two host-side writers do that (`ItemArbitration.AdoptEvidence` on a
+transfer-table entry the clone table also holds, `TransferTableRestoreMerge.TakeState` on a stored snapshot);
+it is bounded to one interval because the owner's 1 Hz report is deserialized fresh and replaces the message
+and its list every second — a change that stopped replacing that instance would turn the gate from a delay
+into a blind spot, which is why the fingerprint's doc says so and its test pins the shape.
 
 ## The earlier candidate designs (kept for the record)
 

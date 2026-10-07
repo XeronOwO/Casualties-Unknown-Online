@@ -41,32 +41,62 @@ problem: `WaterContainerItem.Drink(Body body, float amount, string sound)` is a 
 whose effect is a liquid delegate that takes a `Body`, so the operator could measure it and the patient
 could run it.
 
-## The two candidate designs
+## The design constraint (settled 2026-10-08), and the two designs rejected so far
+
+**The constraint, measured.** A food delegate is not a pure function of `(body, item)`, which is what
+makes this chain different from the four that landed. Several delegates ask the EATING body for the
+item's own slot and replace the item there: `stonefruit` (`Item.cs:2606-2618`), `bucketofchicken`
+(`:2790-2800`), `popcorn` (`:2834-2844`) via `body.SlotOf(item)` → `body.DropItem(item)` →
+`body.PickUpItem(<what it becomes>)`, and `rosepod` (`:1437-1441`). The precondition for reusing them
+is therefore not just "a non-null item" — the item has to be one the eating body really holds, and the
+container swap has to be able to write where the item really is.
+
+In the cross-player case the item belongs to the FEEDER and the body belongs to the EATER, so the
+delegate's two halves cannot run on one machine: the body half (hunger, mood, the clamps, the random
+rolls, the talker reaction) must run on the eater's client, while the item half (the condition cost,
+the slot lookup, the container swap) can only be written where the item is real — the feeder's side.
+Anything that runs the whole delegate on one machine either feeds a display clone (the person feels
+nothing) or writes the item on the wrong side.
+
+**Rejected: give the item away first (a real transfer).** It changes the mechanic — a bite of your own
+sandwich becomes a handover — and it makes the eater's free inventory space a precondition for being
+fed. Raised and rejected by the user 2026-10-08.
+
+**Rejected: a scratch item handed to the delegate.** It has no slot on the eating body, so exactly the
+delegates above would read `SlotOf` = -1 and silently skip their container swap while the chain still
+claimed it ran the game's own code. Raised and rejected by the user 2026-10-08.
+
+**Open, and for the next round rather than for chat.** What carries the item half while the item
+stays the feeder's? The two candidates seen so far are (a) run the delegate's body half on the eater
+and its item half on the feeder's own copy, with the host carrying the resulting cost and identity
+between them, and (b) make the eater's copy a real, registered item for the duration of the meal with
+its own reporting rule. Each has a hole in a different place — a second truth for one instance id, or
+a container swap whose result the other side must be told about — so the choice has to be written up
+against the real item-report and transfer machinery, with the failure paths (a full inventory, a
+refused or interrupted eat, a disconnect mid-meal) named, before any code. The routing scope below is
+unaffected by the choice.
+
+## The candidate designs (kept for the record)
 
 Both keep the invariants the migrated chains established: the host owns admission, the resource and the
 arbitration; the affected side judges on its own picture; the numbers come from the game, never from a
 CUO table.
 
-**A — the affected side runs the item's own delegate against a scratch item.** The operator measures the
-item's cost (its own real item, run against the affected player's displayed body), and the patient
-materializes a hidden instance of the item from the wire state, runs `useAction(ownBody, scratch)`, then
-destroys it. Native execution on the body that eats, including the clamping, the random rolls and the
-talker reaction. Costs: a real Unity item instance is created and destroyed on the patient (CUO's
-item-fact carriers must not report it, which needs a scope or a marker), the delegate's item writes go
-to a copy (the authoritative cost has to come from the operator's run), and a delegate that moves or
-drops the item (`bucketofchicken`, `popcorn`) does so on a scratch object whose slot is -1.
+**A — the affected side runs the item's own delegate.** *Its scratch-object form is rejected above*,
+and so is the "transfer the item first" form: the delegate is not a pure `(body, item)` function, and
+the container transforms need the item to be in the eating body's slot list while a bite must not move
+ownership. What survives of A is the split itself — the body half on the eater, the item half where the
+item is real — with the carrier between them still open (see above).
 
 **B — the operator measures the delegate's body deltas and the patient applies them.** The operator runs
 the item's own `useAction` against the affected player's render clone inside a capture window, and the
 body fields it moved become the effect the host carries; the patient applies that delta through the
 existing health apply. Costs: the patient's half is CUO arithmetic rather than the game's own code
 (the family's whole point), the clone is momentarily fed (a talker bubble, an eat animation, the
-calories counter), and the clamping/random branches are evaluated on the clone's state rather than on
-the patient's own.
-
-The design question — how much fidelity the food branch is worth, given that the alternative to both is
-leaving a 25-row table in place — is the user's to settle at this ticket's start; the drink chain's
-landing does not decide it.
+calories counter), the clamping/random branches are evaluated on the clone's state rather than on the
+patient's own, and the item-level half (the condition cost, the container transforms) cannot come from
+the clone at all, because the clone holds no item. It stays the cheap fallback, and it is the only
+candidate whose holes are all already known.
 
 ## Scope
 

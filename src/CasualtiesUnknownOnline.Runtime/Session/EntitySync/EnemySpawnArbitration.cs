@@ -6,66 +6,95 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
-/// Enemy-spawn arbitration (PURE — no Unity, positions are explicit inputs):
+/// Enemy-spawn arbitration (PURE — no Unity; the host's facts and the member's
+/// positions are explicit inputs):
 /// generation-time animal entities are generated deterministically by BOTH sides
 /// (<c>WorldGeneration.DistributeEntities</c>, same seed), but each side holds
 /// its own process-local instances. Pairing the host's enemy instances with the
 /// guest's is the precondition for syncing them — and the pairing key is the
-/// generated position (deterministic). The host orders its animal entities by
-/// (x, y) ascending and assigns ids in that order; the guest orders its own the
-/// same way and pairs index-by-index. A count mismatch or an out-of-tolerance
-/// pair is a generation divergence — reported, never silently mispaired.
+/// generated position (deterministic). This class owns that key as well as the
+/// comparison: the host's generated set enters as FACTS and is ordered by the
+/// bind-time spawn anchor each fact carries, the member's entry orders its own
+/// frozen copies the same way, and the two are paired index-by-index. A count
+/// mismatch or an out-of-tolerance pair is a generation divergence — reported
+/// with the index it diverged at, never silently mispaired.
 /// </summary>
 internal sealed class EnemySpawnArbitration
 {
 	/// <summary>Max allowed distance between a paired host/guest spawn position (world units) — only absorbs float jitter, not a real divergence.</summary>
 	internal const float PairTolerance = 0.5f;
 
-	/// <summary>The deterministic allocation/pairing key: (x, y) ascending. Both sides' generated positions are identical, so both orders are identical. The Game Adapter sorts its animal entities with this same key.</summary>
+	/// <summary>The deterministic allocation/pairing key: (x, y) ascending. Both sides' generated positions are identical, so both orders are identical.</summary>
 	internal static int Compare(NetVector2 a, NetVector2 b)
 	{
 		var byX = a.X.CompareTo(b.X);
 		return byX != 0 ? byX : a.Y.CompareTo(b.Y);
 	}
 
-	/// <summary>Deterministic allocation order: (x, y) ascending (see <see cref="Compare"/>).</summary>
-	internal static IReadOnlyList<NetVector2> Order(IEnumerable<NetVector2> positions)
-	{
-		var ordered = positions.ToList();
-		ordered.Sort(Compare);
-		return ordered;
-	}
-
 	/// <summary>
-	/// Pair the host's ordered spawn positions with the guest's ordered spawn
-	/// positions index-by-index. Returns false (and no pairs) when the counts
-	/// differ or any pair exceeds <see cref="PairTolerance"/> — the caller must
-	/// treat that as a generation divergence (warn + degrade), not pair anyway.
+	/// Pair the host's generated facts against one member's own copies — the
+	/// generated-set pairing of a world entry and of the 60 s in-session repair.
+	/// <para>
+	/// The host side enters as FACTS, never as a position list, because the key
+	/// is the anchor each fact carries and nothing else. The live
+	/// <see cref="EnemyEntity.Position"/> is where the host's simulation has
+	/// already driven that animal, so a pairing keyed on it holds only in the
+	/// instant after generation. Batch `20261006-g` read what letting the caller
+	/// pick the field costs: a member that entered the world two minutes into a
+	/// run sorted the host's facts by their anchors and then compared the host's
+	/// LIVE positions against its own by-then-frozen copies, so the all-or-nothing
+	/// set failed on every 60 s repair for the whole session — five consecutive
+	/// cycles of `69 host vs 69 guest`, `mapping=False`, its generated animals
+	/// never following the host — while the member present at world entry, whose
+	/// one attempt ran a second after generation, read `mapping=True`.
+	/// </para>
+	/// <para>
+	/// Both sides are ordered by <see cref="Compare"/> first, then paired
+	/// index-by-index: the whole set pairs or none of it does (see
+	/// <see cref="PairingDivergence"/> for the reading a refusal reports).
+	/// </para>
 	/// </summary>
-	internal static bool TryPair(
-		IReadOnlyList<NetVector2> hostOrdered,
-		IReadOnlyList<NetVector2> guestOrdered,
-		out IReadOnlyList<(int HostIndex, int GuestIndex, float Distance)> pairs)
+	/// <param name="hostGeneratedFacts">The host's generated (non-runtime) enemy facts, in any order.</param>
+	/// <param name="copyPositions">The member's unbound copies, in the caller's own order — they are frozen at their generation positions, so each one's position IS its spawn position.</param>
+	/// <param name="pairs">The paired facts with the index of the member's copy each one binds, in the host's anchor order; empty when the verdict is false.</param>
+	/// <param name="divergence">What the attempt concluded: both counts, and on a key mismatch the first index whose distance exceeded <see cref="PairTolerance"/> with that distance.</param>
+	internal static bool TryPairGeneratedCopies(
+		IReadOnlyList<EnemyEntity> hostGeneratedFacts,
+		IReadOnlyList<NetVector2> copyPositions,
+		out IReadOnlyList<(EnemyEntity Host, int CopyIndex, float Distance)> pairs,
+		out PairingDivergence divergence)
 	{
 		pairs = [];
-		if (hostOrdered.Count != guestOrdered.Count)
+		var comparer = Comparer<NetVector2>.Create(Compare);
+		var hostOrdered = hostGeneratedFacts.OrderBy(fact => fact.SpawnPosition, comparer).ToList();
+		// The copy INDICES in anchor order — the caller binds by its own list. A
+		// stable order is what keeps two copies at the SAME position mapping to the
+		// same pair as the host side, whose LINQ order is stable too.
+		var copyOrder = Enumerable.Range(0, copyPositions.Count)
+			.OrderBy(index => copyPositions[index], comparer)
+			.ToList();
+
+		if (hostOrdered.Count != copyOrder.Count)
 		{
+			divergence = new PairingDivergence(hostOrdered.Count, copyPositions.Count, GeneratedPairingOutcome.CountMismatch, -1, 0f);
 			return false;
 		}
 
-		var result = new List<(int, int, float)>(hostOrdered.Count);
+		var result = new List<(EnemyEntity, int, float)>(hostOrdered.Count);
 		for (var i = 0; i < hostOrdered.Count; i++)
 		{
-			var distance = Distance(hostOrdered[i], guestOrdered[i]);
+			var distance = Distance(hostOrdered[i].SpawnPosition, copyPositions[copyOrder[i]]);
 			if (distance > PairTolerance)
 			{
+				divergence = new PairingDivergence(hostOrdered.Count, copyPositions.Count, GeneratedPairingOutcome.KeyMismatch, i, distance);
 				return false;
 			}
 
-			result.Add((i, i, distance));
+			result.Add((hostOrdered[i], copyOrder[i], distance));
 		}
 
 		pairs = result;
+		divergence = new PairingDivergence(hostOrdered.Count, copyPositions.Count, GeneratedPairingOutcome.Paired, -1, 0f);
 		return true;
 	}
 
@@ -78,17 +107,17 @@ internal sealed class EnemySpawnArbitration
 
 	/// <summary>
 	/// Is the generation baseline established after a repair pass?
-	/// <paramref name="paired"/> is what <see cref="TryPair"/> returned this
-	/// cycle, or the false sentinel when the pass never attempted a pair (no
-	/// candidates); <paramref name="unboundGuestCopies"/> counts the local copies
-	/// that still have no host id. A pair success establishes it. Zero copies left
-	/// to pair means the mapping object did not change — the baseline this member
-	/// established earlier stays established, so a repair with nothing to do
-	/// PRESERVES the flag instead of clearing it; clearing it used to switch off
-	/// the runtime-spawn bind as collateral (batch `20261002-f` row 1, where
-	/// already-bound copies were re-paired and every cycle reported mapping=False).
-	/// Anything else — copies that still need pairing and did not pair — is a
-	/// generation divergence: not established.
+	/// <paramref name="paired"/> is what <see cref="TryPairGeneratedCopies"/>
+	/// returned this cycle, or the false sentinel when the pass never attempted a
+	/// pair (no candidates); <paramref name="unboundGuestCopies"/> counts the
+	/// local copies that still have no host id. A pair success establishes it.
+	/// Zero copies left to pair means the mapping object did not change — the
+	/// baseline this member established earlier stays established, so a repair
+	/// with nothing to do PRESERVES the flag instead of clearing it; clearing it
+	/// used to switch off the runtime-spawn bind as collateral (batch
+	/// `20261002-f` row 1, where already-bound copies were re-paired and every
+	/// cycle reported mapping=False). Anything else — copies that still need
+	/// pairing and did not pair — is a generation divergence: not established.
 	/// </summary>
 	internal static bool ShouldRepairGenerationBaseline(bool previouslyEstablished, bool paired, int unboundGuestCopies) =>
 		paired || (previouslyEstablished && unboundGuestCopies == 0);
@@ -117,4 +146,41 @@ internal sealed class EnemySpawnArbitration
 	/// </summary>
 	internal static int AssertedBoundCopies(int hostGeneratedFacts, int unboundGuestCopies) =>
 		hostGeneratedFacts - unboundGuestCopies;
+
+	/// <summary>What a generated-set pairing attempt concluded — the three answers the caller branches on, stated rather than inferred from a sentinel.</summary>
+	internal enum GeneratedPairingOutcome
+	{
+		/// <summary>The whole set paired index-by-index inside <see cref="PairTolerance"/>.</summary>
+		Paired,
+
+		/// <summary>The two sides hold a different number of enemies, so no index was compared.</summary>
+		CountMismatch,
+
+		/// <summary>The counts agree and one index exceeded <see cref="PairTolerance"/> — the whole set is refused.</summary>
+		KeyMismatch,
+	}
+
+	/// <summary>
+	/// Where one generated-set pairing attempt diverged: both sides' counts and,
+	/// on a key mismatch, the first index whose distance exceeded
+	/// <see cref="PairTolerance"/> — as an index into the HOST's anchor order
+	/// (the two orders are the same list by then, so it also names the member's
+	/// copy at that rank). A count mismatch and "the copies stand somewhere else"
+	/// are different divergences, and batch `20261006-g` could read only the
+	/// counts: the index and its distance are what separate a member whose
+	/// generation stream did not reproduce the host's from one the pairing key
+	/// itself misjudged. <see cref="Outcome"/> carries which of the three answers
+	/// this is, so a SUCCESS is not read as a count mismatch — the sentinel index
+	/// alone cannot say that, and the caller reads this record after both verdicts.
+	/// </summary>
+	internal readonly record struct PairingDivergence(
+		int HostCount,
+		int CopyCount,
+		GeneratedPairingOutcome Outcome,
+		int FirstMismatchIndex,
+		float FirstMismatchDistance)
+	{
+		/// <summary>True only when the two sides' counts differ — no index was compared, so there is no distance to report.</summary>
+		internal bool IsCountMismatch => Outcome == GeneratedPairingOutcome.CountMismatch;
+	}
 }

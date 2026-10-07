@@ -17,12 +17,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// the native read) and publishes their presentation state. Guest: binds
 /// its locally generated copies to the host's ids on the world-entry snapshot
 /// AND on the 60 s in-session repair — spawn-anchor pairing against the UNBOUND
-/// copies only, so a late snapshot whose host animals have already wandered
-/// still pairs a member that has not bound its set yet, while the copies whose
-/// ids are already decided are never re-paired (a re-pair compares the host's
-/// bind-time anchor against the copy's current, already-driven position, so it
-/// can only fail) — and drives
-/// the frozen copies from the 20 Hz batch. No
+/// copies only (<see cref="EnemySpawnArbitration.TryPairGeneratedCopies"/> takes
+/// the host facts and owns the key), so a late snapshot whose host animals have
+/// already wandered still pairs a member that has not bound its set yet, while
+/// the copies whose ids are already decided are never re-paired (a re-pair
+/// compares the host's bind-time anchor against the copy's current,
+/// already-driven position, so it can only fail) — and drives the frozen copies
+/// from the 20 Hz batch. No
 /// enemy simulation on the guest — same pattern as the player render clones
 /// (RemoteBodyDriver). Both roles separate the generation baseline from a
 /// runtime spawn through the ONE rule <see cref="OnAnimalInstantiated"/> applies
@@ -283,22 +284,25 @@ internal sealed partial class EnemySyncCoordinator
 		// row 1: 4/4 cycles logged `generation spawn pairing failed` and
 		// `mapping=False` on both guests and switched off the runtime-spawn bind.
 		// The copies below have been frozen at their spawn spots since
-		// generation, so the repair key is the side that does NOT move. (The
-		// anchor is the host's FIRST-BIND position, which is its spawn position
-		// only while generation has just finished: an animal the host first bound
-		// after it moved is a pre-existing limit of this pairing, unchanged here —
-		// `EnemyStateCapture` can only report the missing-anchor case loudly,
-		// there is no reference to compare a late anchor against.)
-		var comparer = Comparer<NetVector2>.Create(EnemySpawnArbitration.Compare);
+		// generation, so the repair key is the side that does NOT move. WHICH
+		// field that key is, is not decided here any more: the arbitration takes
+		// the host facts and reads the bind-time anchor off them, because this
+		// call site is where the key was got wrong — batch `20261006-g`'s late
+		// joiner sorted the host facts by their anchors and then compared their
+		// LIVE positions against its own frozen copies, so the set failed every
+		// 60 s repair for the whole session and its animals never followed the
+		// host. (The anchor is the host's FIRST-BIND position, which is its spawn
+		// position only while generation has just finished: an animal the host
+		// first bound after it moved is a pre-existing limit of this pairing,
+		// unchanged here — `EnemyStateCapture` can only report the missing-anchor
+		// case loudly, there is no reference to compare a late anchor against.)
 		var generatedHost = hostStates
 			.Where(s => !runtimeIds.Contains(s.EntityId))
-			.OrderBy(s => s.SpawnPosition, comparer)
 			.ToList();
 		var generatedGuest = FindAnimals()
 			.Where(e => EnemySpawnArbitration.IsRepairCandidate(
 				hasHostId: _idByEntity.ContainsKey(e),
 				isRuntimeAnimal: _runtimeAnimals.Contains(e)))
-			.OrderBy(e => new NetVector2(e.transform.position.x, e.transform.position.y), comparer)
 			.ToList();
 
 		// An empty candidate set is NOT a divergence: it means nothing is left to
@@ -306,25 +310,35 @@ internal sealed partial class EnemySyncCoordinator
 		// failing on) copies whose identity is already decided.
 		var unboundGuestCopies = generatedGuest.Count;
 		var generatedPaired = false;
-		if (generatedHost.Count != 0 && unboundGuestCopies != 0)
+		if (unboundGuestCopies != 0)
 		{
-			var hostPositions = generatedHost.Select(e => e.Position).ToList();
-			var guestPositions = generatedGuest.Select(e => new NetVector2(e.transform.position.x, e.transform.position.y)).ToList();
-			generatedPaired = EnemySpawnArbitration.TryPair(hostPositions, guestPositions, out _);
+			var copyPositions = generatedGuest.Select(e => new NetVector2(e.transform.position.x, e.transform.position.y)).ToList();
+			generatedPaired = EnemySpawnArbitration.TryPairGeneratedCopies(generatedHost, copyPositions, out var pairs, out var divergence);
 			if (generatedPaired)
 			{
-				for (var i = 0; i < generatedHost.Count; i++)
+				foreach (var (host, copyIndex, _) in pairs)
 				{
-					Bind(generatedGuest[i], generatedHost[i].EntityId);
-					Freeze(generatedGuest[i]);
+					Bind(generatedGuest[copyIndex], host.EntityId);
+					Freeze(generatedGuest[copyIndex]);
 				}
-			}
-		}
 
-		if (!generatedPaired && unboundGuestCopies != 0)
-		{
-			_log.LogWarning("[Enemy] generation spawn pairing failed ({Host} host vs {Guest} guest generated enemies) — generated copies stay local (generation divergence); runtime spawns are still bound.",
-				generatedHost.Count, unboundGuestCopies);
+				// The worst key distance is the reading that says the two sides'
+				// generation outputs are the SAME set, not merely the same count:
+				// the verdict is all-or-nothing, so a pass either sits inside the
+				// tolerance or says nothing at all about how far inside.
+				_log.LogInformation("[Enemy] generated copies paired on the host's bind-time anchors ({Count} copies, worst key distance {Worst:F3} of the {Tolerance} world-unit tolerance).",
+					pairs.Count, pairs.Max(p => p.Distance), EnemySpawnArbitration.PairTolerance);
+			}
+			else if (divergence.IsCountMismatch)
+			{
+				_log.LogWarning("[Enemy] generation spawn pairing failed ({Host} host vs {Guest} guest generated enemies, count mismatch) — generated copies stay local (generation divergence); runtime spawns are still bound.",
+					divergence.HostCount, divergence.CopyCount);
+			}
+			else
+			{
+				_log.LogWarning("[Enemy] generation spawn pairing failed ({Host} host vs {Guest} guest generated enemies, first key mismatch at index {Index}: {Distance:F3} world units apart, tolerance {Tolerance}) — generated copies stay local (generation divergence); runtime spawns are still bound.",
+					divergence.HostCount, divergence.CopyCount, divergence.FirstMismatchIndex, divergence.FirstMismatchDistance, EnemySpawnArbitration.PairTolerance);
+			}
 		}
 
 		_mappingEstablished = EnemySpawnArbitration.ShouldRepairGenerationBaseline(

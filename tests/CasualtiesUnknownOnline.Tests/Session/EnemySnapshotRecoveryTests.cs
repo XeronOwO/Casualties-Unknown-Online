@@ -203,12 +203,20 @@ public class EnemySnapshotRecoveryTests
 			new NetVector2(10f, 12f),
 			new NetVector2(25f, 30f),
 		};
+		var hostFacts = anchors
+			.Select((anchor, index) => Anchored(
+				new NetworkEntityId(1, (uint)index + 1, 0),
+				live: boundCurrent[index],
+				spawn: anchor))
+			.ToArray();
 
 		// Premise 1: re-pairing the already-driven copies cannot succeed — this is
 		// the `generation spawn pairing failed (85 host vs 85 guest …)` shape from
-		// the batch's 4/4 repair cycles, reproduced without the adapter.
+		// the batch's 4/4 repair cycles, reproduced without the adapter. The host
+		// side is the facts (paired on their anchors), the copy side is where the
+		// drive has moved those copies to.
 		Assert.False(
-			EnemySpawnArbitration.TryPair(anchors, boundCurrent, out _),
+			EnemySpawnArbitration.TryPairGeneratedCopies(hostFacts, boundCurrent, out _, out _),
 			"the whole-set attempt on copies the drive has moved is exactly what the batch logged as `generation spawn pairing failed`");
 
 		// Premise 2: with every copy bound the candidate set is empty, and an
@@ -234,45 +242,61 @@ public class EnemySnapshotRecoveryTests
 	{
 		// The repair's real job: a member that has not bound its set yet (entry
 		// snapshot missed, late joiner, a set the next cycle establishes) pairs on
-		// the host's bind-time anchors. The unfixed host facts and the unbound
-		// copies are the same batch here — an individual copy cannot be added to an
-		// already-bound set through this path, because the host side of the pair is
-		// its whole generated table (honest limit, recorded on the ticket).
+		// the host's bind-time anchors — which is a PAIRING THAT ONLY WORKS ON THE
+		// ANCHOR, because by repair time the host's animals have wandered (the
+		// facts below carry a live pose far from their spawn anchors, exactly the
+		// shape batch `20261006-g`'s late joiner faced). The unfixed host facts and
+		// the unbound copies are the same batch here — an individual copy cannot be
+		// added to an already-bound set through this path, because the host side of
+		// the pair is its whole generated table (honest limit, recorded on the
+		// ticket).
 		var anchors = new[]
 		{
 			new NetVector2(10f, 20f),
 			new NetVector2(40f, 55f),
+		};
+		var wandered = new[]
+		{
+			new NetVector2(64f, 88f),
+			new NetVector2(12f, 70f),
 		};
 		var unboundAtSpawn = new[]
 		{
 			new NetVector2(10f, 20f),
 			new NetVector2(40f, 55f),
 		};
+		var hostFacts = anchors
+			.Select((anchor, index) => Anchored(
+				new NetworkEntityId(1, (uint)index + 1, 0),
+				live: wandered[index],
+				spawn: anchor))
+			.ToArray();
 
 		Assert.True(
-			EnemySpawnArbitration.TryPair(anchors, unboundAtSpawn, out var pairs),
-			"the frozen copies still sit at their spawn positions, so the repair pairs them");
+			EnemySpawnArbitration.TryPairGeneratedCopies(hostFacts, unboundAtSpawn, out var pairs, out _),
+			"the frozen copies still sit at their spawn positions, so the repair pairs them on the anchors");
 		Assert.True(pairs.Count == 2, "both unbound copies pair");
 	}
 
 	[Fact]
 	public void PairingPremise_TheLivePositionStopsMatching_WhileTheSpawnAnchorStillPairs()
 	{
-		// The mechanism this ticket fixes, pinned without the adapter: the guest's
-		// copies are frozen at their spawn positions, so pairing against the
-		// host's CURRENT position works only in the instant after generation. A
-		// repair snapshot therefore needs the spawn anchor as its key — otherwise
-		// it fails the tolerance for the whole set (the arbitration is
-		// all-or-nothing) and, worse, clears the guest's mapping-established flag.
+		// The mechanism this ticket fixed, pinned without the adapter: the guest's
+		// copies are frozen at their spawn positions, so pairing against the host's
+		// CURRENT position works only in the instant after generation. The pairing
+		// therefore takes the anchor off the fact itself — the caller no longer
+		// chooses the key, which is how batch `20261006-g`'s late joiner came to
+		// pair the host's live pose on every 60 s repair and never bind its set.
 		var spawn = new NetVector2(10f, 20f);
 		var moved = new NetVector2(40f, 55f);
+		var fact = Anchored(new NetworkEntityId(1, 1, 0), live: moved, spawn: spawn);
 
-		Assert.False(
-			EnemySpawnArbitration.TryPair([moved], [spawn], out _),
-			"a repair snapshot carrying only the live position cannot pair after the enemy walked away");
 		Assert.True(
-			EnemySpawnArbitration.TryPair([spawn], [spawn], out var pairs),
-			"the spawn anchor pairs at any later time");
+			EnemySpawnArbitration.Distance(fact.Position, spawn) > EnemySpawnArbitration.PairTolerance,
+			"the live position has left the tolerance — a key that reads it cannot pair after the enemy walked away");
+		Assert.True(
+			EnemySpawnArbitration.TryPairGeneratedCopies([fact], [spawn], out var pairs, out _),
+			"the fact's bind-time anchor pairs at any later time");
 		Assert.True(pairs.Count == 1, "the anchor pairs index-by-index");
 	}
 }

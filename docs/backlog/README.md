@@ -60,7 +60,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
-- [A late joiner never binds the generated enemies](todo/enemy-generation-pairing-late-join.md) — **High** — the whole set stays local.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
 - [Mod-defined wire packets](todo/mod-defined-wire-packets.md) — **High** — a mod owns its packet id and its handling chain.
@@ -149,6 +148,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
+- [A late joiner never binds the generated enemies](review/enemy-generation-pairing-late-join.md) — **High** — the key is the anchor, not the live pose.
 
 ### Future
 

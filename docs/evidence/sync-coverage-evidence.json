@@ -4411,8 +4411,8 @@
     {
       "cluster": "inline",
       "row": "N1",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs",
-      "quote": ".OrderBy(s => s.SpawnPosition, comparer)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySpawnArbitration.cs",
+      "quote": "OrderBy(fact => fact.SpawnPosition, comparer)"
     },
     {
       "cluster": "inline",

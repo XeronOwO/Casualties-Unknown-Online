@@ -43,8 +43,14 @@ internal sealed class EnemyRuntimeSpawnArbitration
 	/// Pair unbound host runtime states with unbound local runtime copies by
 	/// their positions (x, y ascending), all-or-nothing: an unequal count or
 	/// any pair farther than <see cref="EnemySpawnArbitration.PairTolerance"/>
-	/// fails. Both lists hold the same spawn-command positions, so sorting is
-	/// the deterministic identity; Unity's FindObjectsOfType order is not.
+	/// fails. Sorting is the deterministic identity; Unity's FindObjectsOfType
+	/// order is not. The key here is the LIVE pose, deliberately unlike the
+	/// generated set's bind-time anchor: the stream is this channel's carrier and
+	/// it carries NO anchor (<see cref="EnemyStreamWireMapper"/> writes none, and
+	/// <see cref="EnemySyncService"/> preserves one only for an id a snapshot
+	/// already buffered), so a runtime enemy the member first learned from the
+	/// stream has no anchor to key on at all — while its own copy was created
+	/// where the creation report placed that animal, and frozen there.
 	/// </summary>
 	internal static bool TryPairByPosition(
 		IReadOnlyList<NetVector2> statePositions,

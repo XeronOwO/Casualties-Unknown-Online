@@ -7,7 +7,7 @@
   properties (battery charge, liquid and millilitres, condition/durability and the rest) must be gettable,
   settable, mergeable and removable, and the family also covers handing an item out and creating an entity.
 - Related: `todo/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
-  `useLimbAction`, the wearable set, and the content kinds with no provider),
+  `useLimbAction` and the wearable set),
   `review/in-game-command-console-interactive.md` (the console the verbs land in),
   `review/id-system-namespaced-ids.md` (how a mod-authored item id is addressed),
   `done/runtime-entity-creation-rejection.md`, `done/runtime-entity-spawn-backfill.md` (the admission path a

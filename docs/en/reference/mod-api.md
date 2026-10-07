@@ -343,11 +343,22 @@ var itemDefs = context.Content.Definitions; // snapshot; payloads are copied on 
 context.Content.TryUnregister("wooden.sword");
 ```
 
-- **Scope**: `IModContent` is a per-mod registry of opaque content definitions (item defs, weapon
-  stats, NPC types, recipes, skills, map entries). A mod registers an id, a kind and an opaque payload
-  in `Bind`; it may also declare a positive `schemaVersion` (default 1). The framework never
-  interprets, serializes or migrates the payload, so the mod owns its content schema and versioning;
-  the stored version is carried verbatim on every definition read.
+- **Scope**: `IModContent` is a per-mod registry of opaque content definitions. A mod registers an id,
+  a [content kind](glossary.md) and an opaque payload in `Bind`; it may also declare a positive
+  `schemaVersion` (default 1). The framework never interprets, serializes or migrates the payload, so
+  the mod owns its content schema and versioning; the stored version is carried verbatim on every
+  definition read.
+- **The kind vocabulary names exactly what binds**: `ModContentKind` lists the nine kinds a CUO content
+  provider materializes — `item`, `recipe`, `liquid`, `liquidtile`, `tile`, `building`, `structure`,
+  `status`, `moodle` — and each of them is the kind of one typed DTO below. A kind is still a
+  mod-defined tag and the policy checks its shape rather than its membership, so a mod may register a
+  kind of its own; but nothing materializes a kind no provider claims. Such a registration is accepted
+  and stays enumerable — the runtime catalog, the ownership query and the console's resource-id
+  completion all list it — while the runtime binder reports it at load time at warning level, naming
+  the kind and the definition, so an Information-level "registered content" line is not the last word
+  on it. There is deliberately no `entity`, `setting` or `locale` kind: settings and localization are
+  mod-local concerns and a mod entity type is a parked capability, so the vocabulary leaves each of
+  them out until the provider that binds it exists.
 - **Namespaced [content ids](glossary.md)**: every CUO content id is a canonical `namespace:path`.
   Declare the mod's [namespace](glossary.md) in the manifest (`[CuoMod(..., Namespace = "mymod")]`);
   its content is then addressable as `mymod:wooden.sword`, while built-in game content is

@@ -70,8 +70,13 @@ public sealed class ModContentBinder(
 
 			if (!_providersByKind.TryGetValue(registration.Definition.Kind, out var provider))
 			{
-				log.LogDebug(
-					"[ModContentBinder] no provider for content kind {Kind}; {ModId}/{Id} stays opaque.",
+				// The registry takes any kind tag (kinds are mod-defined), so this
+				// map is the only thing that can judge a registration against what
+				// CUO can actually bind. Warning, not Debug: the mod author reads
+				// the default log level, and an entry that materializes nowhere is
+				// exactly what that level has to show.
+				log.LogWarning(
+					"[ModContentBinder] no provider is registered for content kind {Kind}; {ModId}/{Id} stays opaque and is never materialized.",
 					registration.Definition.Kind, registration.ModId, registration.Definition.Id);
 				continue;
 			}

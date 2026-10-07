@@ -341,14 +341,11 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentDefinition.Kind|pro
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentDefinition.SchemaVersion|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentDefinition.ctor(string id, string kind, byte[] data, int schemaVersion = 1)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModContentDefinition
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Building|const field|-> string = "building"
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Entity|const field|-> string = "entity"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Item|const field|-> string = "item"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Liquid|const field|-> string = "liquid"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.LiquidTile|const field|-> string = "liquidtile"
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Locale|const field|-> string = "locale"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Moodle|const field|-> string = "moodle"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Recipe|const field|-> string = "recipe"
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Setting|const field|-> string = "setting"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Status|const field|-> string = "status"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Structure|const field|-> string = "structure"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Tile|const field|-> string = "tile"
@@ -826,3 +823,6 @@ type|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry|sea
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality.Amount — renamed with its type to ModCraftingQuality: one crafting-quality label type for the item and liquid surfaces
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality.Id — renamed with its type to ModCraftingQuality: one crafting-quality label type for the item and liquid surfaces
 *REMOVED* type|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality — renamed to ModCraftingQuality: one crafting-quality label type for the item and liquid surfaces
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModContentKind.Entity — no CUO provider binds it: the kind word belongs to the built-in cu:player resource entry, and custom enemies stay a parked capability
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModContentKind.Locale — CUO core owns no locale surface (cucorelib-migration-support: localization is out of scope and mod-local), so the constant advertised a kind nothing binds
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModContentKind.Setting — CUO core owns no settings surface (cucorelib-migration-support: settings are out of scope for CUO core), so the constant advertised a kind nothing binds

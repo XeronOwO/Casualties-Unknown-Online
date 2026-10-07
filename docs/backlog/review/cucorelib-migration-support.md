@@ -76,9 +76,12 @@ port full CUCoreLib functionality (the non-goal rows below remain out of
 scope), but it now covers the content-binding family that CUCoreLib-style
 mods need:
 
-- `ModContentKind` in Abstractions — a stable base vocabulary for common
-  content kinds (item, recipe, liquid, tile, building, structure, status,
-  moodle, setting, locale).
+- `ModContentKind` in Abstractions — a stable base vocabulary for the content
+  kinds CUO binds (item, recipe, liquid, liquidtile, tile, building, structure,
+  status, moodle). `setting` and `locale` left that vocabulary on 2026-10-07
+  (`review/mod-content-kind-with-no-provider.md`, decision 245): this ticket
+  rules both surfaces out of CUO core, and a kind no provider binds never
+  materialized — the vocabulary now names only the kinds a provider binds.
 - `ModContentDefinition.SchemaVersion` and the
   `IModContent.TryRegister(id, kind, data, schemaVersion)` overload — a mod
   can version its opaque content schema; the framework stores the version

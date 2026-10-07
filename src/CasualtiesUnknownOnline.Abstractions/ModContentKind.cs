@@ -1,10 +1,14 @@
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// Common content kind names for mods migrating from library-style content
-/// systems. Content kinds are still mod-defined tags; these constants are the
-/// base vocabulary the framework's content catalog and future content binding
-/// layers can validate and display without interpreting mod payloads.
+/// The content kinds CUO binds: one constant per kind a content provider in the
+/// Game Adapter materializes, and therefore the vocabulary a mod registers
+/// under. Kinds are still mod-defined tags — the content policy validates the
+/// id, the kind's shape and the payload size, never membership of this list —
+/// so a mod may register a kind of its own, but a registration under a kind no
+/// provider claims stays opaque: the catalog and the console enumerate it and
+/// nothing materializes it. The runtime binder reports exactly that at load
+/// time, and a gate keeps this list equal to the kinds the providers declare.
 /// </summary>
 public static class ModContentKind
 {
@@ -26,9 +30,6 @@ public static class ModContentKind
 	/// <summary>A world building entity definition.</summary>
 	public const string Building = "building";
 
-	/// <summary>A world entity type (a non-item spawnable, for example the built-in player entity).</summary>
-	public const string Entity = "entity";
-
 	/// <summary>An authored multi-block structure definition.</summary>
 	public const string Structure = "structure";
 
@@ -37,10 +38,4 @@ public static class ModContentKind
 
 	/// <summary>A player-visible status/moodle definition.</summary>
 	public const string Moodle = "moodle";
-
-	/// <summary>A native settings/configuration option definition.</summary>
-	public const string Setting = "setting";
-
-	/// <summary>A localization entry or locale set definition.</summary>
-	public const string Locale = "locale";
 }

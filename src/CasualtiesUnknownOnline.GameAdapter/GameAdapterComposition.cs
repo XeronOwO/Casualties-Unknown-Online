@@ -188,5 +188,12 @@ public static class GameAdapterComposition
 		services.AddSingleton<LocalCharacterCapture>();
 		services.Replace(ServiceDescriptor.Singleton<ILocalCharacterCapture>(
 			p => p.GetRequiredService<LocalCharacterCapture>()));
+		// The game's own content facts behind the cross-player limb-use chains
+		// (mod-cross-player-native-semantics): the item and liquid registries answer
+		// what the injection chain may draw from, instead of a CUO id table. Same
+		// standalone-service shape and the same cycle reason as the two seams above.
+		services.AddSingleton<GameLimbUseSemantics>();
+		services.Replace(ServiceDescriptor.Singleton<ILimbUseSemantics>(
+			p => p.GetRequiredService<GameLimbUseSemantics>()));
 	}
 }

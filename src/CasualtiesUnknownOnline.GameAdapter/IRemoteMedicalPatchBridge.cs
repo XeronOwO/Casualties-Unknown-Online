@@ -33,4 +33,15 @@ internal interface IRemoteMedicalPatchBridge
 	/// handled, false when read-only must remain.
 	/// </summary>
 	bool TryStartRemoteWoundSpecial(Limb limb);
+
+	/// <summary>
+	/// The native injection call the operator's own client is running for a
+	/// cross-player syringe session (the item's own <c>useLimbAction</c> reached
+	/// <c>WaterContainerItem.Inject</c>). Returns true when a session owns this
+	/// container, in which case the caller must NOT run the original: the ml
+	/// becomes the session's dose, the host owns the drain and the patient's
+	/// client owns the effect. Returns false for every local or unrelated
+	/// injection, which must run untouched.
+	/// </summary>
+	bool TryDivertRemoteInjection(WaterContainerItem container, Limb limb, float amount);
 }

@@ -26,17 +26,26 @@ public class RemoteMedicalTreatmentSoundCatalogTests
 	[InlineData("wrench", "wrenchhit")]
 	[InlineData("disinfectant", "spray")]
 	[InlineData("spraybottle", "spray")]
-	[InlineData("antiserum", "syringe")]
-	[InlineData("bloodbag", "syringe")]
-	[InlineData("bloodbaghuman", "syringe")]
-	[InlineData("bloodcoagulant", "syringe")]
-	[InlineData("combatpen", "syringe")]
-	[InlineData("streptokinase", "syringe")]
 	[InlineData("medicalsuture", "gore")] // its blocked delegate's first call is Body.DoGoreSound (Item.cs:378): the table names the base clip the limb's own Dismember plays, not one of the body's five rolled variants
 	public void ALimbTreatmentItem_CarriesItsNativeLimbActionClip(string itemId, string clip)
 	{
 		Assert.True(RemoteMedicalTreatmentSoundCatalog.TryGetClip(itemId, out var actual));
 		Assert.Equal(clip, actual);
+	}
+
+	[Theory]
+	[InlineData("morphine")]
+	[InlineData("saline")]
+	[InlineData("syringe")]
+	[InlineData("antiserum")]
+	[InlineData("combatpen")]
+	public void AnInjectableCarrier_IsDecidedByTheItemsOwnNativeActionRatherThanThisTable(string itemId)
+	{
+		// Part A of mod-cross-player-native-semantics: the operator's client RUNS
+		// the item's own useLimbAction inside the medical capture window, so the
+		// clip comes from the game's delegate and a row here would double it.
+		Assert.False(RemoteMedicalTreatmentSoundCatalog.TryGetClip(itemId, out _), $"{itemId} must not carry a table row");
+		Assert.DoesNotContain(itemId, RemoteMedicalTreatmentSoundCatalog.Uncarried);
 	}
 
 	[Fact]
@@ -52,9 +61,6 @@ public class RemoteMedicalTreatmentSoundCatalogTests
 	}
 
 	[Theory]
-	[InlineData("syringe")] // the syringe-minigame items: 2D screen cues only
-	[InlineData("morphine")]
-	[InlineData("saline")]
 	[InlineData("aed")]
 	[InlineData("manualdefibrillator")]
 	[InlineData("bandage")] // the bandage family: the native minigame's own step carries it

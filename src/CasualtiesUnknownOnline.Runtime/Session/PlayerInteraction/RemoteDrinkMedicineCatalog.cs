@@ -36,7 +36,9 @@ public static class RemoteDrinkMedicineCatalog
 	// Coefficients are the linear part of Liquids.cs onDrink delegates. The
 	// injection and drink paths use different formulas (e.g. morphine drink
 	// opiate 0.4/ml vs inject 0.9/ml), so this catalog is intentionally separate
-	// from RemoteMedicineCatalog.
+	// from the injection chain — which reads the game's own LiquidType.onHealthUse
+	// delegates on the affected side instead of any per-ml table
+	// (mod-cross-player-native-semantics, Part A).
 	private static readonly IReadOnlyDictionary<string, RemoteDrinkMedicineEffect> Liquids =
 		new Dictionary<string, RemoteDrinkMedicineEffect>(StringComparer.Ordinal)
 		{

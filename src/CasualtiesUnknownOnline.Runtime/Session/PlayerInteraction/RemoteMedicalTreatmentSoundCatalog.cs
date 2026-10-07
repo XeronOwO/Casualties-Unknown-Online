@@ -37,13 +37,28 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// recorded rather than left undecided, with the reason per group. The bandage family is here
 /// because its clip comes from the native minigame's own step (captured by
 /// <c>BandageMinigameSoundPatches</c>, announced to the peers by that scope); the
-/// syringe/defibrillator families because their minigames play only 2D screen feedback, which the
+/// defibrillator family because its minigame plays only 2D screen feedback, which the
 /// user's ruling keeps local; and the amputating tools because their clip comes from the
 /// amputation minigame's completion rather than from the item's limb action — the same
 /// per-step shape, captured where it plays by <c>AmputationMinigameSoundPatch</c> and
 /// <c>ShrapnelMinigameSoundPatch</c> (<c>review/treatment-gore-presentation-carried.md</c> holds that
 /// census).</description></item>
 /// </list>
+///
+/// <para>
+/// The injection family left this table (Part A of
+/// <c>mod-cross-player-native-semantics</c>): the operator's client now RUNS the item's
+/// own <c>useLimbAction</c> inside the medical capture window
+/// (<c>NativeLimbActionScope</c>), so the clip is the native one — played by the
+/// delegate itself and classified by that scope — instead of a copy CUO replays. A
+/// carrier must therefore appear in this table NOWHERE: a row here would be a second
+/// decider for one clip. What that means per carrier is worth stating: six of the
+/// fifteen play <c>"syringe"</c> in their own delegate (relayed by that window), while
+/// the nine minigame carriers have no delegate-level clip at all — their only cue is the
+/// syringe minigame's 2D screen feedback, which the existing ruling keeps local — so for
+/// them this table's old <c>UncarriedItems</c> rows simply recorded a silence the native
+/// path still keeps.
+/// </para>
 /// </summary>
 public static class RemoteMedicalTreatmentSoundCatalog
 {
@@ -51,14 +66,6 @@ public static class RemoteMedicalTreatmentSoundCatalog
 	private static readonly IReadOnlyDictionary<string, string> TreatmentClips =
 		new Dictionary<string, string>(StringComparer.Ordinal)
 		{
-			// Injectable containers whose delegate plays "syringe" directly
-			// instead of starting the syringe minigame (Item.cs:1760/1926/1375/1734/1539/1565).
-			["antiserum"] = "syringe",
-			["bloodbag"] = "syringe",
-			["bloodbaghuman"] = "syringe",
-			["bloodcoagulant"] = "syringe",
-			["combatpen"] = "syringe",
-			["streptokinase"] = "syringe",
 			// Limb tools (Item.cs:696/1613/1589/616/1483/1509/4864).
 			["boneweldingtool"] = "boneweld",
 			["carcasssplint"] = "splint",
@@ -112,16 +119,6 @@ public static class RemoteMedicalTreatmentSoundCatalog
 		// Tools with no clip in their delegate.
 		"icepack",
 		"tourniquet",
-		// Injectable liquids whose delegate starts SyringeMinigame (2D cues only).
-		"ceftriaxone",
-		"fentanyl",
-		"heroin",
-		"morphine",
-		"naloxone",
-		"opium",
-		"ringersolution",
-		"saline",
-		"syringe",
 		// Defibrillators — AEDMinigame / ManualDefibMinigame cues are 2D.
 		"aed",
 		"manualdefibrillator",

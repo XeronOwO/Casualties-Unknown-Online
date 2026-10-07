@@ -88,14 +88,46 @@ public class ItemAndBodySoundCaptureGateTests
 	private const string RemoteMedicalHandlerFile =
 		"src/CasualtiesUnknownOnline.GameAdapter/RemoteMedicalOperationHandler.cs";
 
+	private const string RemoteInjectionPatchFile =
+		"src/CasualtiesUnknownOnline.GameAdapter/Patches/RemoteInjectionPatches.cs";
+
+	private const string RemoteInjectionSessionFile =
+		"src/CasualtiesUnknownOnline.GameAdapter/RemoteInjectionUseHandler.cs";
+
 	private const string OtherMedicalCatalogFile =
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteOtherMedicalCatalog.cs";
 
-	private const string MedicineCatalogFile =
-		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteMedicineCatalog.cs";
-
 	private const string TopicalCatalogFile =
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteTopicalCatalog.cs";
+
+	/// <summary>
+	/// The vanilla injectable carriers, pinned HERE because the injection chain
+	/// carries no id table any more: its admission rule is the game's own data
+	/// (<c>ItemInfo.usableOnLimb</c> + <c>LiquidType.injectable</c>) since Part A of
+	/// <c>mod-cross-player-native-semantics</c>, and a repository gate cannot read a
+	/// game assembly. The ids are the <c>WaterContainerItem.Inject</c> call sites in
+	/// the game's <c>Item.SetupItems()</c> (Item.cs), so a vanilla carrier this
+	/// census misses is a reviewed edit here rather than a silent gap — the same
+	/// shape, and the same declared reach, as the rest of this gate.
+	/// </summary>
+	private static readonly string[] VanillaInjectableCarriers =
+	[
+		"morphine",
+		"syringe",
+		"opium",
+		"heroin",
+		"naloxone",
+		"fentanyl",
+		"ceftriaxone",
+		"antiserum",
+		"bloodcoagulant",
+		"combatpen",
+		"streptokinase",
+		"bloodbag",
+		"saline",
+		"ringersolution",
+		"bloodbaghuman",
+	];
 
 	/// <summary>The catalogs whose entries define what the remote limb gesture accepts — the scan surface the treatment table must decide for, derived from the eligibility check itself rather than restated.</summary>
 	private static readonly string[] AcceptedItemCatalogFiles =
@@ -351,16 +383,60 @@ public class ItemAndBodySoundCaptureGateTests
 			Assert.True(decided.Add(id), $"`{id}` is decided twice in the treatment table (a liquid-driven item must not repeat another row)");
 		}
 
-		Assert.True(decided.Count >= 49, $"the treatment table decides only {decided.Count} item(s) — the table (or one of its groups) was emptied, not the decision");
+		Assert.True(decided.Count >= 34, $"the treatment table decides only {decided.Count} item(s) — the table (or one of its groups) was emptied, not the decision");
 
-		var missing = accepted.Where(id => !decided.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+		// The SECOND decider: the injection family plays its own clip natively (the
+		// operator's client runs the item's own useLimbAction inside the medical
+		// capture window), so its carriers are decided by the game's delegate and
+		// must NOT also carry a table row — two deciders for one clip is a double
+		// play, which is exactly what a migrated row would ship.
+		var native = new HashSet<string>(VanillaInjectableCarriers, StringComparer.Ordinal);
+		var doubled = decided.Where(native.Contains).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+		Assert.True(
+			doubled.Length == 0,
+			$"the treatment table decides [{string.Join(", ", doubled)}], which the item's own native limb action already plays — remove the table row");
+
+		var covered = new HashSet<string>(decided, StringComparer.Ordinal);
+		covered.UnionWith(native);
+		var missing = accepted.Where(id => !covered.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToArray();
 		Assert.True(
 			missing.Length == 0,
-			$"the remote limb gesture accepts [{string.Join(", ", missing)}] but the treatment table decides nothing for them — every accepted item needs a clip row or a recorded silence");
+			$"the remote limb gesture accepts [{string.Join(", ", missing)}] but neither the treatment table nor the native injection path decides them — every accepted item needs a clip row, a recorded silence, or the native limb action that plays its own");
+
+		// The native half has to EXIST for the split above to mean anything: the
+		// operator's client runs the item's own limb action inside the capture
+		// window, and the native injection call is diverted into the session instead
+		// of draining the item and mutating the display copy.
+		//
+		// What "native-decided" means, stated rather than implied: the item's own
+		// delegate owns the clip — NOT that a clip is necessarily played. Six of the
+		// fifteen carriers (antiserum, bloodbag, bloodbaghuman, bloodcoagulant,
+		// combatpen, streptokinase) play `Sound.Play("syringe", …)` in their own
+		// delegate, inside this window, so the operator hears it and every peer
+		// receives it. The other nine (morphine, syringe, opium, heroin, naloxone,
+		// fentanyl, ceftriaxone, saline, ringersolution) start the syringe minigame
+		// instead, whose only cue is its own 2D screen feedback — kept local by the
+		// existing ruling (see TheTwoDimensionalCues_OpenNoCaptureScope) — so for
+		// them this split means "the table must stay silent", which is what the
+		// deleted rows recorded as UncarriedItems anyway. The 15-id list is a
+		// hand-written census: a vanilla or mod carrier the game adds later is out of
+		// this pin's reach, which the class doc already declares for the game tree.
+		Assert.True(File.Exists(RepositoryPaths.File(RemoteInjectionSessionFile)), $"{RemoteInjectionSessionFile} is missing — nothing would run the item's own limb action");
+		var injectionSession = WithoutComments(RepositoryPaths.ReadText(RemoteInjectionSessionFile));
+		Assert.Contains("useLimbAction(", injectionSession, StringComparison.Ordinal);
+		Assert.Contains("NativeLimbActionScope.Enter(", injectionSession, StringComparison.Ordinal);
+		Assert.True(File.Exists(RepositoryPaths.File(RemoteInjectionPatchFile)), $"{RemoteInjectionPatchFile} is missing — the native injection call would drain the local item and mutate the displayed body copy");
+		Assert.True(
+			AnchorsOn(RepositoryPaths.ReadText(RemoteInjectionPatchFile), "WaterContainerItem", "Inject"),
+			"the injection divert must bind WaterContainerItem.Inject — the one native call every injection delegate reaches");
+		Assert.Contains(
+			"TryDivertRemoteInjection",
+			WithoutComments(RepositoryPaths.ReadText(RemoteInjectionPatchFile)),
+			StringComparison.Ordinal);
 
 		var medical = ClipsOf(RepositoryPaths.ReadText(PolicyFile), "IsMedicalClip");
 		var clips = ClipValues(table, "TreatmentClips");
-		Assert.True(clips.Count >= 15, $"only {clips.Count} clip row(s) could be read from the treatment table — the table was emptied, not the decision");
+		Assert.True(clips.Count >= 11, $"only {clips.Count} clip row(s) could be read from the treatment table — the table was emptied, not the decision");
 
 		foreach (var clip in clips)
 		{
@@ -387,10 +463,17 @@ public class ItemAndBodySoundCaptureGateTests
 		Assert.Contains("RemoteMedicalTreatmentSoundCatalog", handlerCode, StringComparison.Ordinal);
 		Assert.Contains("private void PlayTreatmentSound(", handlerCode, StringComparison.Ordinal);
 
-		var guard = handler.IndexOf("if (!TryDispatchLimbUse(", StringComparison.Ordinal);
+		var guard = handler.IndexOf("var dispatch = TryDispatchLimbUse(", StringComparison.Ordinal);
 		var play = handler.IndexOf("PlayTreatmentSound(dragItem, limbIndex);", StringComparison.Ordinal);
 		Assert.True(guard >= 0, "TryHandleLimbUse must dispatch through TryDispatchLimbUse so the play site has one success gate");
 		Assert.True(play > guard, "the treatment clip must be played AFTER the dispatch succeeded");
+
+		// The gate has TWO success outcomes: the clip-replaying families, and the
+		// injection family, which ran the item's own native limb action (whose clip
+		// the capture window already reported) and must therefore NOT replay the
+		// table's copy.
+		Assert.Contains("if (dispatch == LimbUseDispatch.Dispatched)", handlerCode, StringComparison.Ordinal);
+		Assert.Contains("LimbUseDispatch.DispatchedNative", handlerCode, StringComparison.Ordinal);
 
 		var playBody = MethodBody(handler, "private void PlayTreatmentSound(");
 		Assert.Contains("CallContext.Enter(CallContext.Origin.CharacterMedicalUse)", playBody, StringComparison.Ordinal);
@@ -610,7 +693,7 @@ public class ItemAndBodySoundCaptureGateTests
 		return end < 0 ? clean[start..] : clean[start..end];
 	}
 
-	/// <summary>Every item id the remote limb gesture accepts, read from the catalogs the eligibility check itself consults, plus the handler's own literal surface.</summary>
+	/// <summary>Every item id the remote limb gesture accepts: the catalogs the eligibility check still consults, plus the handler's own literal surface and the pinned vanilla injectable carriers (the injection family's admission is game data now).</summary>
 	private static IReadOnlyList<string> AcceptedItemIds()
 	{
 		var ids = new SortedSet<string>(StringComparer.Ordinal);
@@ -621,7 +704,7 @@ public class ItemAndBodySoundCaptureGateTests
 		}
 
 		ids.UnionWith(LiteralIds(RepositoryPaths.ReadText(OtherMedicalCatalogFile)));
-		ids.UnionWith(KeyIds(RepositoryPaths.ReadText(MedicineCatalogFile), "InjectionAmounts"));
+		ids.UnionWith(VanillaInjectableCarriers);
 		ids.UnionWith(KeyIds(RepositoryPaths.ReadText(TopicalCatalogFile), "TopicalAmounts"));
 		ids.Add("tweezers"); // the handler's own literal surface (dragItem.id == "tweezers")
 

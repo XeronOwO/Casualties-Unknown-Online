@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -13,17 +10,16 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// Remote-medical WoundView gesture routing. It maps a local dragged medical
 /// item released on a remote body-limb diagram to the host-authoritative
 /// medical operation session and keeps the display-only remote body copy
-/// untouched. Injectable/IV medicines are routed through the native syringe
-/// minigame first: the acting player physically pumps the amount, the operator
-/// sends incremental deltas while the minigame is running, and the host is the
-/// only authority for the committed item/target state.
+/// untouched. Injectable/IV medicines run the item's OWN native
+/// <c>useLimbAction</c> (the game picks its syringe minigame or its one-shot
+/// injection, and computes the ml), the resulting native
+/// <c>WaterContainerItem.Inject</c> call is diverted into the session's dose
+/// stream, and the host remains the only authority for the committed
+/// item/target state (see <c>mod-cross-player-native-semantics</c>, Part A).
 /// </summary>
 internal sealed class RemoteMedicalOperationHandler
 {
-	private static RemoteSyringeUseSession? _activeSyringe;
-	private static Action<ulong>? _cancelRequestSender;
-	private static Action<ulong, float>? _endRequestSender;
-	private static readonly HashSet<ulong> AuthoritativeItemIds = [];
+	private readonly RemoteInjectionUseHandler _injectionOps;
 
 	private readonly GameAdapterDomains _domains;
 	private readonly RemoteShrapnelOperationHandler _shrapnelOps;
@@ -32,11 +28,9 @@ internal sealed class RemoteMedicalOperationHandler
 	internal RemoteMedicalOperationHandler(GameAdapterDomains domains)
 	{
 		_domains = domains;
-		_cancelRequestSender = id => domains.PlayerInteraction.MedicalOperations.SendCancelRequest(id);
-		_endRequestSender = (id, total) => domains.PlayerInteraction.MedicalOperations.SendEndRequest(id, total);
 		_shrapnelOps = new RemoteShrapnelOperationHandler(domains);
 		_otherOps = new RemoteOtherMedicalOperationHandler(domains);
-		domains.PlayerInteraction.MedicalOperations.StartAckReceived += OnStartAckReceived;
+		_injectionOps = new RemoteInjectionUseHandler(domains);
 	}
 
 	internal bool TryHandleLimbUse(Item dragItem, int limbIndex)
@@ -71,14 +65,15 @@ internal sealed class RemoteMedicalOperationHandler
 			return false;
 		}
 
-		if (!LocalUseItemEligibility.IsMedicalLimbUseItem(dragItem))
+		if (!LocalUseItemEligibility.IsMedicalLimbUseItem(dragItem, _domains.LimbUseSemantics))
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: {ItemId} is not a supported remote medical/limb-treatment item.",
 				dragItem.id);
 			return false;
 		}
 
-		if (!TryDispatchLimbUse(dragItem, limbIndex, target, instance.Id))
+		var dispatch = TryDispatchLimbUse(dragItem, limbIndex, target, instance.Id);
+		if (dispatch == LimbUseDispatch.Refused)
 		{
 			return false;
 		}
@@ -87,35 +82,51 @@ internal sealed class RemoteMedicalOperationHandler
 		// clip at the treated limb — is blocked in this view, so the treatment was
 		// silent on every side. Play what it would have played, inside the scope
 		// the character-sound capture reads: the operator hears it here and every
-		// other member receives it through the existing relay.
-		PlayTreatmentSound(dragItem, limbIndex);
+		// other member receives it through the existing relay. An injection
+		// dispatch already RAN the item's own native limb action, whose clip was
+		// captured and relayed inside that window; replaying the table's copy
+		// would double it.
+		if (dispatch == LimbUseDispatch.Dispatched)
+		{
+			PlayTreatmentSound(dragItem, limbIndex);
+		}
+
 		return true;
+	}
+
+	/// <summary>How one limb-treatment gesture ended: the domain took it, the item's own native action took it, or nothing ran and the caller plays nothing.</summary>
+	private enum LimbUseDispatch
+	{
+		Refused,
+		Dispatched,
+		DispatchedNative,
 	}
 
 	/// <summary>
 	/// Route one accepted limb-treatment gesture to the domain that owns it.
-	/// Every refusal returns false, and the caller plays no clip for it.
+	/// Every refusal returns <see cref="LimbUseDispatch.Refused"/>, and the caller
+	/// plays no clip for it.
 	/// </summary>
-	private bool TryDispatchLimbUse(Item dragItem, int limbIndex, ulong target, ulong itemInstanceId)
+	private LimbUseDispatch TryDispatchLimbUse(Item dragItem, int limbIndex, ulong target, ulong itemInstanceId)
 	{
 		if (RemoteBandageMinigameCatalog.IsBandageItem(dragItem.id))
 		{
-			return _otherOps.TryStartRemoteBandageUse(dragItem, limbIndex, target, itemInstanceId);
+			return Dispatch(_otherOps.TryStartRemoteBandageUse(dragItem, limbIndex, target, itemInstanceId));
 		}
 
 		if (RemoteOtherMedicalCatalog.IsAed(dragItem.id))
 		{
-			return _otherOps.TryStartRemoteAedUse(dragItem, limbIndex, target, itemInstanceId);
+			return Dispatch(_otherOps.TryStartRemoteAedUse(dragItem, limbIndex, target, itemInstanceId));
 		}
 
 		if (RemoteOtherMedicalCatalog.IsManualDefibrillator(dragItem.id))
 		{
-			return _otherOps.TryStartRemoteManualDefibUse(dragItem, limbIndex, target, itemInstanceId);
+			return Dispatch(_otherOps.TryStartRemoteManualDefibUse(dragItem, limbIndex, target, itemInstanceId));
 		}
 
 		if (RemoteOtherMedicalCatalog.IsAmputationTool(dragItem.id))
 		{
-			return _otherOps.TryStartRemoteAmputationUse(dragItem, limbIndex, target, itemInstanceId);
+			return Dispatch(_otherOps.TryStartRemoteAmputationUse(dragItem, limbIndex, target, itemInstanceId));
 		}
 
 		if (RemoteOtherMedicalCatalog.IsDislocationWrench(dragItem.id)
@@ -125,7 +136,7 @@ internal sealed class RemoteMedicalOperationHandler
 			&& dislocationDisplay.limbs[limbIndex] is { } wrenchLimb
 			&& wrenchLimb.dislocated)
 		{
-			return _otherOps.TryStartRemoteDislocationUse(wrenchLimb, wrench: true, dragItem, target, itemInstanceId);
+			return Dispatch(_otherOps.TryStartRemoteDislocationUse(wrenchLimb, wrench: true, dragItem, target, itemInstanceId));
 		}
 
 		if (RemoteHealProfiles.IsHealItem(dragItem.id))
@@ -133,24 +144,29 @@ internal sealed class RemoteMedicalOperationHandler
 			_domains.PlayerInteraction.SendHealRequest(target, itemInstanceId, limbIndex);
 			_domains.Log.LogInformation("[MedicalView] requested heal of {Target} limb {Limb} with {ItemId} (id {InstanceId}).",
 				target, limbIndex, dragItem.id, itemInstanceId);
-			return true;
+			return LimbUseDispatch.Dispatched;
 		}
 
-		if (RemoteMedicineCatalog.IsInjectableItem(dragItem.id))
+		if (LocalUseItemEligibility.IsInjectableRemoteItem(dragItem, _domains.LimbUseSemantics))
 		{
-			return TryStartRemoteSyringeUse(dragItem, limbIndex, target, itemInstanceId);
+			return _injectionOps.TryStart(dragItem, limbIndex, target, itemInstanceId)
+				? LimbUseDispatch.DispatchedNative
+				: LimbUseDispatch.Refused;
 		}
 
 		if (dragItem.id == "tweezers")
 		{
-			return _shrapnelOps.TryStartRemoteShrapnelUse(dragItem, limbIndex, target, itemInstanceId);
+			return Dispatch(_shrapnelOps.TryStartRemoteShrapnelUse(dragItem, limbIndex, target, itemInstanceId));
 		}
 
 		_domains.PlayerInteraction.SendUseRequest(target, itemInstanceId, limbIndex);
 		_domains.Log.LogInformation("[MedicalView] requested use of {Target} limb {Limb} with {ItemId} (id {InstanceId}).",
 			target, limbIndex, dragItem.id, itemInstanceId);
-		return true;
+		return LimbUseDispatch.Dispatched;
 	}
+
+	private static LimbUseDispatch Dispatch(bool handled) =>
+		handled ? LimbUseDispatch.Dispatched : LimbUseDispatch.Refused;
 
 	/// <summary>
 	/// Play the clip(s) this item's own native limb action would have played, at
@@ -231,257 +247,23 @@ internal sealed class RemoteMedicalOperationHandler
 		return false;
 	}
 
-	/// <summary>
-	/// Called when the native minigame system ends the active remote syringe
-	/// minigame. The exact physically delivered ml is sent as one EndRequest;
-	/// the host reconciles it against all incremental updates and emits the
-	/// single authoritative EndCommitted. An empty minigame still ends the
-	/// session so reservations are released.
-	/// </summary>
-	internal static void CompleteActiveSyringeUse()
-	{
-		var session = _activeSyringe;
-		if (session == null)
-		{
-			return;
-		}
+	// ---- Injection session forwarding seam ----
+	// The syringe session, its dose stream and its completion paths live in
+	// RemoteInjectionUseHandler; these forwards keep the existing static call sites
+	// (patches, remote view close, medical apply) unchanged.
 
-		if (session.OperationId != 0)
-		{
-			_activeSyringe = null;
-			_endRequestSender?.Invoke(session.OperationId, session.InjectedMl);
-			return;
-		}
+	internal bool TryDivertInjection(WaterContainerItem container, Limb limb, float amount) =>
+		_injectionOps.TryDivertInjection(container, limb, amount);
 
-		// The start acknowledgement has not arrived yet. Keep the session alive
-		// so the later ack can either send EndRequest (the minigame completed)
-		// or CancelRequest (the view closed before the ack). Otherwise the host
-		// would hold an orphaned reservation until timeout.
-		session.EngineEnded = true;
-		if (!RemoteMedicalView.IsOpen)
-		{
-			session.CancelledBeforeAck = true;
-			RestoreIfNotAuthoritative(session);
-		}
-	}
+	internal static void CompleteActiveSyringeUse() => RemoteInjectionUseHandler.CompleteActiveSyringeUse();
 
-	/// <summary>
-	/// Cancel an in-flight remote syringe session without sending a request.
-	/// Used when the remote medical focus closes before the minigame ends;
-	/// returns true when a session was active so the caller can also end the
-	/// native minigame. Committed progress is not rolled back — the host keeps
-	/// the already-reported ml and releases the session on the cancel message.
-	/// </summary>
-	internal static bool CancelActiveSyringeUse()
-	{
-		var session = _activeSyringe;
-		if (session == null)
-		{
-			return false;
-		}
+	internal static bool CancelActiveSyringeUse() => RemoteInjectionUseHandler.CancelActiveSyringeUse();
 
-		var minigame = session.Minigame;
-
-		if (session.OperationId != 0)
-		{
-			_activeSyringe = null;
-			_cancelRequestSender?.Invoke(session.OperationId);
-			RestoreIfNotAuthoritative(session);
-		}
-		else
-		{
-			// Ack is still pending. Keep the session so the later ack can send
-			// the cancel request; the host must never hold an orphaned item.
-			session.CancelledBeforeAck = true;
-			session.EngineEnded = true;
-			RestoreIfNotAuthoritative(session);
-		}
-
-		// End only the exact minigame this session started; never tear down an
-		// unrelated native minigame that happened to be active after a stale
-		// session leaked.
-		if (minigame != null
-			&& MinigameBase.main != null // Unity object — ==
-			&& ReferenceEquals(MinigameBase.main.currentMinigame, minigame))
-		{
-			MinigameBase.main.EndMinigame();
-		}
-
-		return true;
-	}
-
-	/// <summary>
-	/// The host's authoritative item-after state was applied to the local item.
-	/// Cancel/close must not revert a real drained item back to its original
-	/// condition.
-	/// </summary>
 	internal static void MarkAuthoritativeItemApplied(ulong itemInstanceId) =>
-		AuthoritativeItemIds.Add(itemInstanceId);
+		RemoteInjectionUseHandler.MarkAuthoritativeItemApplied(itemInstanceId);
 
-	/// <summary>
-	/// A host-initiated terminal arrived (timeout/disconnect/remote cancel):
-	/// tear down the local native minigame and stop sending updates so the
-	/// operator cannot keep injecting into a session the host already closed.
-	/// </summary>
-	internal static void OnHostTerminal(ulong operationId)
-	{
-		var session = _activeSyringe;
-		if (session == null)
-		{
-			return;
-		}
-
-		// Before the start ack is received the local session has no operation
-		// id yet; with only one active local minigame at a time, any terminal
-		// result that arrives before the ack belongs to this pending session.
-		if (session.OperationId != 0 && session.OperationId != operationId)
-		{
-			return;
-		}
-
-		_activeSyringe = null;
-		RestoreIfNotAuthoritative(session);
-		EndMinigameIfCurrent(session);
-	}
-
-	private bool TryStartRemoteSyringeUse(Item dragItem, int limbIndex, ulong target, ulong itemInstanceId)
-	{
-		if (_activeSyringe != null)
-		{
-			return false;
-		}
-
-		var display = RemoteMedicalView.DisplayBody;
-		if (display == null // Unity object — ==
-			|| limbIndex < 0
-			|| limbIndex >= display.limbs.Length
-			|| display.limbs[limbIndex] == null // Unity object — ==
-			|| display.limbs[limbIndex].dismembered)
-		{
-			_domains.Log.LogWarning("[MedicalView] refused syringe use: no valid non-dismembered display limb {Limb}.", limbIndex);
-			return false;
-		}
-
-		if (MinigameBase.main == null // Unity object — ==
-			|| MinigameBase.main.currentMinigame != null)
-		{
-			_domains.Log.LogWarning("[MedicalView] refused syringe use: no free native minigame host for {Target}.", target);
-			return false;
-		}
-
-		if (!RemoteMedicineCatalog.TryGetInjectionAmount(dragItem.id, out var fullDose) || fullDose <= 0f)
-		{
-			_domains.Log.LogWarning("[MedicalView] refused syringe use: {ItemId} has no known injection amount.", dragItem.id);
-			return false;
-		}
-
-		var water = dragItem.GetComponent<WaterContainerItem>();
-		if (water == null) // Unity object — ==
-		{
-			_domains.Log.LogWarning("[MedicalView] refused syringe use: {ItemId} has no WaterContainerItem.", dragItem.id);
-			return false;
-		}
-
-		// A reused instance starts a new local lifecycle: previous authoritative
-		// markers must not suppress restore-to-original on a cancel before this
-		// session receives its first host state.
-		AuthoritativeItemIds.Remove(itemInstanceId);
-		var session = new RemoteSyringeUseSession(dragItem, water.Capacity, fullDose, target, itemInstanceId)
-		{
-			Progress = (operationId, delta) =>
-				_domains.PlayerInteraction.MedicalOperations.SendUpdate(operationId, delta),
-		};
-
-		var minigame = new SyringeMinigame(
-			mult => session.Accumulate(mult * fullDose),
-			display.limbs[limbIndex],
-			water.AverageColor());
-
-		MinigameBase.main.StartMinigame(minigame, dragItem);
-		if (!ReferenceEquals(MinigameBase.main.currentMinigame, minigame))
-		{
-			// StartMinigame refused (another minigame won a race after the
-			// check above); never leave a session that cannot be completed.
-			return false;
-		}
-
-		session.Minigame = minigame;
-		_activeSyringe = session;
-		_domains.PlayerInteraction.MedicalOperations.SendStartRequest(target, itemInstanceId, limbIndex);
-		_domains.Log.LogInformation("[MedicalView] started remote syringe minigame for {Target} limb {Limb} with {ItemId} (id {InstanceId}).",
-			target, limbIndex, dragItem.id, itemInstanceId);
-		return true;
-	}
-
-	private void OnStartAckReceived(MedicalOperationStartAckMsg msg)
-	{
-		var session = _activeSyringe;
-		if (session == null)
-		{
-			return;
-		}
-
-		if (!msg.Accepted)
-		{
-			_domains.Log.LogWarning("[MedicalView] remote syringe start rejected for {Target}: {Reason}.",
-				msg.TargetSteamId, msg.RejectReason);
-			_activeSyringe = null;
-			RestoreIfNotAuthoritative(session);
-			EndMinigameIfCurrent(session);
-			return;
-		}
-
-		if (session.Target != msg.TargetSteamId || session.ItemInstanceId != msg.ItemInstanceId)
-		{
-			return;
-		}
-
-		session.OperationId = msg.OperationId;
-
-		if (session.CancelledBeforeAck)
-		{
-			_domains.Log.LogInformation("[MedicalView] remote syringe session {OperationId} was cancelled before its ack; sending cancel.", msg.OperationId);
-			_activeSyringe = null;
-			_cancelRequestSender?.Invoke(msg.OperationId);
-			RestoreIfNotAuthoritative(session);
-			return;
-		}
-
-		if (session.EngineEnded)
-		{
-			_domains.Log.LogInformation("[MedicalView] remote syringe session {OperationId} ended before its ack; sending end.", msg.OperationId);
-			_activeSyringe = null;
-			_endRequestSender?.Invoke(msg.OperationId, session.InjectedMl);
-			return;
-		}
-
-		var pending = session.InjectedMl - session.SentMl;
-		if (pending > 0.01f && session.Progress is not null)
-		{
-			session.Progress(msg.OperationId, pending);
-			session.SentMl += pending;
-		}
-
-		_domains.Log.LogInformation("[MedicalView] remote syringe session {OperationId} accepted for {Target}.", msg.OperationId, msg.TargetSteamId);
-	}
-
-	private static void EndMinigameIfCurrent(RemoteSyringeUseSession session)
-	{
-		if (session.Minigame != null
-			&& MinigameBase.main != null // Unity object — ==
-			&& ReferenceEquals(MinigameBase.main.currentMinigame, session.Minigame))
-		{
-			MinigameBase.main.EndMinigame();
-		}
-	}
-
-	private static void RestoreIfNotAuthoritative(RemoteSyringeUseSession session)
-	{
-		if (!AuthoritativeItemIds.Contains(session.ItemInstanceId))
-		{
-			session.RestoreCondition();
-		}
-	}
+	internal static void OnHostTerminal(ulong operationId) =>
+		RemoteInjectionUseHandler.OnHostTerminal(operationId);
 
 	// ---- Shrapnel shared-session forwarding seam ----
 	// The shrapnel-specific state and native-minigame adapter live in
@@ -510,72 +292,4 @@ internal sealed class RemoteMedicalOperationHandler
 	internal static bool IsShrapnelPieceOwnedByOther(int pieceIndex) =>
 		RemoteShrapnelOperationHandler.IsShrapnelPieceOwnedByOther(pieceIndex);
 
-	private sealed class RemoteSyringeUseSession
-	{
-		private readonly Item _item;
-		private readonly float _originalCondition;
-		private readonly float _capacity;
-
-		internal RemoteSyringeUseSession(Item item, float capacity, float fullDose, ulong target, ulong itemInstanceId)
-		{
-			_item = item;
-			_originalCondition = item.condition;
-			_capacity = capacity > 0f ? capacity : fullDose;
-			Target = target;
-			ItemInstanceId = itemInstanceId;
-		}
-
-		internal ulong Target { get; }
-
-		internal ulong ItemInstanceId { get; }
-
-		internal ulong OperationId { get; set; }
-
-		internal float InjectedMl { get; private set; }
-
-		internal float SentMl { get; set; }
-
-		internal Action<ulong, float>? Progress { get; set; }
-
-		internal SyringeMinigame? Minigame { get; set; }
-
-		internal bool EngineEnded { get; set; }
-
-		internal bool CancelledBeforeAck { get; set; }
-
-		internal void Accumulate(float ml)
-		{
-			InjectedMl += ml;
-			// Keep the native minigame's syringe fill moving in sync with the
-			// ml delivered. The real liquid stacks are NOT changed here; the
-			// host result is the only authority that drains them.
-			_item.condition = Mathf.Max(0f, _originalCondition - InjectedMl / _capacity);
-			MaybeSendProgress();
-		}
-
-		internal void RestoreCondition() => _item.condition = _originalCondition;
-
-		private void MaybeSendProgress()
-		{
-			if (OperationId == 0 || Progress is null)
-			{
-				return;
-			}
-
-			var delta = InjectedMl - SentMl;
-			if (delta < 0.001f)
-			{
-				return;
-			}
-
-			// Per-frame report: every native minigame Update that actually
-			// delivered more liquid sends its delta immediately. The host
-			// broadcasts one authoritative State per accepted update, so the
-			// target/third-party view follows the syringe at frame granularity.
-			// Future adaptive flow control can lower this cadence dynamically
-			// without changing the protocol (see backlog future ticket).
-			Progress(OperationId, delta);
-			SentMl += delta;
-		}
-	}
 }

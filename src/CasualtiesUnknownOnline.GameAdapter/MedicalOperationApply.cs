@@ -28,10 +28,12 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			msg.OperatorSteamId,
 			msg.TargetSteamId,
 			msg.ItemInstanceId,
+			msg.LimbIndex,
+			msg.Kind,
 			msg.ItemAfter,
 			msg.TargetHealth,
 			msg.TargetLimbs,
-			[],
+			msg.AppliedDose,
 			null,
 			terminal: false);
 	}
@@ -57,10 +59,12 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			msg.OperatorSteamId,
 			msg.TargetSteamId,
 			msg.ItemInstanceId,
+			msg.LimbIndex,
+			msg.Kind,
 			msg.ItemAfter,
 			msg.TargetHealth,
 			msg.TargetLimbs,
-			msg.TimedBodyEffects,
+			msg.AppliedDose,
 			msg.AwardedItem,
 			terminal: true);
 	}
@@ -70,10 +74,12 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 		ulong operatorSteamId,
 		ulong targetSteamId,
 		ulong itemInstanceId,
+		int limbIndex,
+		MedicalOperationKind kind,
 		CharacterItemMsg? itemAfter,
 		CharacterHealthMsg? health,
 		IReadOnlyList<CharacterLimbMsg> limbs,
-		IReadOnlyList<TimedBodyEffectMsg> timedBodyEffects,
+		IReadOnlyList<LiquidStackMsg> appliedDose,
 		CharacterItemMsg? awardedItem,
 		bool terminal)
 	{
@@ -83,7 +89,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			RemoteOtherMedicalOperationHandler.OnHostTerminal(operationId);
 		}
 
-		if (health is null && itemAfter is null)
+		if (health is null && itemAfter is null && appliedDose.Count == 0)
 		{
 			return;
 		}
@@ -127,14 +133,28 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 				changed = true;
 			}
 
-			if (targetLocal && health is { } targetHealth)
+			if (targetLocal && kind == MedicalOperationKind.Injection)
+			{
+				// The EFFECT belongs to this side (Part A of
+				// mod-cross-player-native-semantics): the host decided the
+				// operation, owns the item and committed the drain, and this
+				// client runs the game's own injection path on its own body with
+				// the dose it just received. The host's copy of a guest body is
+				// report-driven anyway, so its echoed snapshot is deliberately NOT
+				// written over a native effect it has not seen yet — the immediate
+				// re-report below carries the result back to every peer.
+				if (appliedDose.Count > 0)
+				{
+					var handled = NativeInjectionApply.Apply(body, limbIndex, appliedDose, domains.Log);
+					changed |= handled > 0;
+					domains.Log.LogInformation(
+						"[MedicalOps] operation {OperationId} applied a native injection dose ({Liquids} liquid(s), {Handled} in the registry, terminal={Terminal}).",
+						operationId, appliedDose.Count, handled, terminal);
+				}
+			}
+			else if (targetLocal && health is { } targetHealth)
 			{
 				domains.CharacterDataSync.ApplyHealState(body, targetHealth, limbs);
-				if (terminal)
-				{
-					TimedBodyEffectApply.Apply(body, timedBodyEffects, domains.Log);
-				}
-
 				domains.Log.LogInformation("[MedicalOps] local target body updated (terminal={Terminal}).", terminal);
 				changed = true;
 			}
@@ -144,8 +164,22 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 		// immediately, even if this client is neither the operator nor target.
 		// The fact table is also advanced so the coordinator's next frame does
 		// not overwrite live progress with a stale 1 Hz snapshot.
-		domains.CharacterDataSync.ApplyMedicalState(targetSteamId, health, limbs);
-		domains.RemoteMedical.ApplyMedicalState(targetSteamId, health, limbs);
+		//
+		// The injection family is the exception, and for the same reason the
+		// family's own body write above is skipped: the host no longer applies the
+		// effect, so THIS message's TargetHealth/TargetLimbs are the target's last
+		// report — a snapshot from BEFORE the dose it carries. Neither sink has a
+		// staleness guard (CloneFactTable.ApplyMedicalState and
+		// RemoteMedicalCoordinator.ApplyMedicalState both write straight through),
+		// so feeding them this echo would REPLACE the display's live values with
+		// pre-injection ones on every delta. The display therefore advances from
+		// the target's own reports, exactly like every other state of a remote
+		// body; the other families keep the host-computed snapshot they still own.
+		if (kind != MedicalOperationKind.Injection)
+		{
+			domains.CharacterDataSync.ApplyMedicalState(targetSteamId, health, limbs);
+			domains.RemoteMedical.ApplyMedicalState(targetSteamId, health, limbs);
+		}
 
 		if (changed)
 		{

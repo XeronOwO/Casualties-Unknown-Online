@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -23,5 +22,4 @@ internal sealed class OperationSession
 	internal float CommittedMl;
 	internal int Sequence;
 	internal long LastUpdateMs;
-	internal List<LiquidStackMsg> OriginalLiquids = [];
 }

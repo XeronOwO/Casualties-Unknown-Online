@@ -49,6 +49,14 @@ public sealed class MedicalOperationStateMsg
 	[ProtoMember(13)]
 	public float ActionProgress { get; set; }
 
+	/// <summary>
+	/// The drained amounts this delta committed, for the TARGET's own client to
+	/// apply to its own body through the game's native injection path. Every
+	/// other recipient ignores it: the effect belongs to the affected side.
+	/// </summary>
+	[ProtoMember(14)]
+	public List<LiquidStackMsg> AppliedDose { get; set; } = [];
+
 	/// <summary>Shared shrapnel session piece state (empty for injection).</summary>
 	[ProtoMember(11)]
 	public List<ShrapnelPieceMsg> ShrapnelPieces { get; set; } = [];

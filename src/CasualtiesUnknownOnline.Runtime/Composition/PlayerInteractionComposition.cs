@@ -26,6 +26,11 @@ internal static class PlayerInteractionComposition
 		// game scene, so it captures nothing and the gate answers from this side's own
 		// latest snapshot; the plugin replaces it with the Game Adapter's live capture.
 		services.AddSingleton<ILocalCharacterCapture>(new UnavailableLocalCharacterCapture());
+		// The game's own content facts behind the limb-use chains. The base root
+		// has no game data, so nothing is a limb-use surface and every such chain
+		// refuses; the plugin replaces it with the Game Adapter's registry-backed
+		// implementation (mod-cross-player-native-semantics, Part A).
+		services.AddSingleton<ILimbUseSemantics>(new NoLimbUseSemantics());
 		// Remote medical operation session domain: generic start/update/end/cancel
 		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
 		// it for real-time injection; later stages reuse the same session envelope.

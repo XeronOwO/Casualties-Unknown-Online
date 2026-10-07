@@ -57,6 +57,10 @@ internal sealed class GameAdapterDomains
 	internal readonly IEntitySyncControl Entities;
 	internal readonly IHostRules HostRules;
 	internal readonly IPlayerInteractionVisibility InteractionVisibility;
+
+	/// <summary>The game's own content facts behind the limb-use chains (the DI-registered <c>ILimbUseSemantics</c>), shared by the gesture routing instead of a second stateless instance.</summary>
+	internal readonly ILimbUseSemantics LimbUseSemantics;
+
 	internal readonly ILogger<GameAdapter> Log;
 
 	internal readonly CloneFactTable FactTable;
@@ -160,6 +164,7 @@ internal sealed class GameAdapterDomains
 		WorldEntryFanout worldBackfill,
 		ILogger<GameAdapter> log,
 		IMapper mapper,
+		ILimbUseSemantics limbUseSemantics,
 		ILoggerFactory loggerFactory,
 		GameAdapterItemContentProvider itemContent,
 		GameAdapterBuildingContentProvider buildingContent,
@@ -174,6 +179,7 @@ internal sealed class GameAdapterDomains
 	{
 		Session = session;
 		Items = items;
+		LimbUseSemantics = limbUseSemantics;
 		ItemContent = itemContent;
 		BuildingContent = buildingContent;
 		TileContent = tileContent;

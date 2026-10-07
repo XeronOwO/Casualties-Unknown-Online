@@ -55,6 +55,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		IItemControl items,
 		IPlayerInteractionVisibility visibility,
 		ILocalCharacterCapture localCapture,
+		ILimbUseSemantics limbUseSemantics,
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
 		AdaptiveStreamRateService adaptiveRates,
@@ -111,6 +112,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 		_injectionStarts = new InjectionStartCoordinator(
 			_access,
+			limbUseSemantics,
 			_claims,
 			_operationIds,
 			_publisher,
@@ -349,15 +351,17 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		}
 
 		var finalMl = Math.Max(0f, Math.Min(session.AvailableMl, msg.TotalMl));
+		List<LiquidStackMsg>? finalDose = null;
 		if (finalMl - session.CommittedMl >= MinimumDeltaMl)
 		{
-			_applier.TryApplyDelta(session, finalMl - session.CommittedMl, out _);
+			_applier.TryApplyDelta(session, finalMl - session.CommittedMl, out var finalState);
+			finalDose = finalState?.AppliedDose;
 		}
 
 		_log.LogInformation(
 			"[MedicalOps] operation {OperationId} ended with {Total:F2} ml committed.",
 			session.OperationId, session.CommittedMl);
-		Terminate(session, MedicalOperationTerminalReason.Completed);
+		Terminate(session, MedicalOperationTerminalReason.Completed, finalDose);
 	}
 
 	public void HandleCancelRequest(ulong sender, MedicalOperationCancelMsg msg)
@@ -457,7 +461,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 	// ---- Host-side lifecycle ----
 
-	private void Terminate(OperationSession session, MedicalOperationTerminalReason reason)
+	private void Terminate(OperationSession session, MedicalOperationTerminalReason reason, IReadOnlyList<LiquidStackMsg>? finalDose = null)
 	{
 		if (!_active.Remove(session.OperationId))
 		{
@@ -467,7 +471,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_claims.ReleaseItem(session.ItemInstanceId);
 		_claims.ReleaseOperator(session.Operator);
 
-		var end = _applier.BuildTerminal(session, reason);
+		var end = _applier.BuildTerminal(session, reason, finalDose);
 		_log.LogInformation(
 			"[MedicalOps] operation {OperationId} terminal {Reason}: committed {Committed:F2} ml, item {ItemAfter}, target health {Target}.",
 			session.OperationId, reason, session.CommittedMl, end.ItemAfter?.Condition ?? -1f, session.Target);

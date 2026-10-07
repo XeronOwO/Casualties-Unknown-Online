@@ -6,7 +6,8 @@
 - Priority: High
 - Category: Mod platform / architecture
 - Related: `docs/backlog/review/mod-defined-wire-packets.md` (Part 3's custom replication domains, promoted on
-  its own), `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
+  its own), `docs/backlog/todo/mod-cross-player-native-semantics.md` (Part 2 stage 2, cut out on
+  2026-10-08), `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
   `docs/backlog/review/cucorelib-migration-support.md`, `docs/backlog/future/phase5-tooling-ecosystem.md`
 - Source: The 2026-09-25 tag/quality inventory and mod-ceiling analysis — the whole session's finding; user
   decision 2026-09-25 — ONE ticket holding every item, nothing filed under `todo/`, and the implementation
@@ -95,7 +96,9 @@ formulas copied out of the game:
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteMedicineCatalog.cs` —
   `InjectionAmounts` (15 containers) plus `Liquids` (immediate, opiate and timed branches), with the
   comments naming the decompiled sources they were transcribed from (`Liquids.cs` `Drink`/`Inject`
-  formulas and the `onHealthUse` branches).
+  formulas and the `onHealthUse` branches). **Deleted 2026-10-08** by
+  `docs/backlog/todo/mod-cross-player-native-semantics.md` Part A, which is the reason this inventory
+  can now name one chain as done.
 - The same shape in `RemoteTopicalCatalog`, `RemoteLimbToolCatalog` and `RemoteWearCatalog`; the
   decisions that introduced the slices describe them as curated (`docs/decisions/archive.md` entries
   98, 100, 103).
@@ -125,7 +128,9 @@ Add the liquid effect delegates and the limb-use behaviour only behind a real co
 questions*). Acceptance: a mod item satisfies a quality recipe, and a recipe that references a quality
 nobody provides is reported at load time instead of becoming a silently dead recipe.
 
-**Stage 2 — semantic predicate plus target-local execution (its own architecture ticket).** Replace the
+**Stage 2 — semantic predicate plus target-local execution (its own architecture ticket — cut 2026-10-08
+as `mod-cross-player-native-semantics.md`, whose Part A landed the injection chain and deleted the
+catalog below; this paragraph is the pre-cut statement of the direction).** Replace the
 id tables with predicates over the game's own data: the native eat/drink branch for solid food,
 `LiquidType.onDrink`, `injectable` with a `WaterContainerItem`, `Stats.HasTag("dressing")` or a non-null
 `useLimbAction`, `wearable` with `desiredWearLimb` / `wearSlotId`. The effect runs on the target's own

@@ -76,7 +76,7 @@ public sealed class MedicalOperationSessionServiceTests
 	}
 
 	[Fact]
-	public void Host_InjectsGuest_AppliesProgressOnTargetAndSendsStateEnd()
+	public void Host_InjectsGuest_CommitsTheDrainAndCarriesTheDoseToTheTarget()
 	{
 		var (host, guest, _) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -101,17 +101,26 @@ public sealed class MedicalOperationSessionServiceTests
 		hostOps.SendUpdate(hostAck.OperationId, 50f);
 		var progress = Assert.Single(guestStates);
 		Assert.True(Math.Abs(progress.CommittedMl - 50f) < 0.001f);
-		Assert.True(Math.Abs(progress.TargetHealth!.OpiateAmount - 45f) < 0.001f);
+
+		// The host owns the drain and hands the EFFECT to the patient's own
+		// client: the state carries exactly the drained morphine, and it no
+		// longer invents the per-ml result in its own snapshot.
+		var dose = Assert.Single(progress.AppliedDose);
+		Assert.Equal("morphine", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 50f) < 0.001f);
+		Assert.True(Math.Abs(progress.ItemAfter!.Liquids.Single().Amount - 50f) < 0.001f);
 
 		hostOps.SendEndRequest(hostAck.OperationId, 50f);
 		var end = Assert.Single(guestEnds);
 		Assert.Equal(MedicalOperationTerminalReason.Completed, end.TerminalReason);
 		Assert.True(Math.Abs(end.CommittedMl - 50f) < 0.001f);
+		Assert.Empty(end.AppliedDose); // every ml already rode its own state message
 
 		var guestSaved = characters.GetSavedCharacter(GuestId)!.Health!;
-		Assert.True(Math.Abs(guestSaved.OpiateAmount - 45f) < 0.001f);
+		Assert.True(Math.Abs(guestSaved.OpiateAmount) < 0.001f);
 		var hostItem = characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77);
 		Assert.True(Math.Abs(hostItem.Liquids.Single().Amount - 50f) < 0.001f);
+		Assert.Empty(items.GetTransferredItems(GuestId));
 	}
 
 	[Fact]
@@ -221,7 +230,7 @@ public sealed class MedicalOperationSessionServiceTests
 	}
 
 	[Fact]
-	public void Guest_InjectionStartUpdateEnd_AppliesProgressivelyAndEmitsSingleEnd()
+	public void Guest_InjectionStartUpdateEnd_CarriesEachDoseOnceAndEmitsSingleEnd()
 	{
 		var (host, guest, _) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -249,17 +258,19 @@ public sealed class MedicalOperationSessionServiceTests
 		Assert.True(Math.Abs(progress.CommittedMl - 50f) < 0.001f);
 		Assert.NotNull(progress.ItemAfter);
 		Assert.True(Math.Abs(progress.ItemAfter!.Liquids.Single().Amount - 50f) < 0.001f);
-		Assert.True(Math.Abs(progress.TargetHealth!.OpiateAmount - 45f) < 0.001f);
+		var dose = Assert.Single(progress.AppliedDose);
+		Assert.Equal("morphine", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 50f) < 0.001f);
 
 		guestOps.SendEndRequest(ack.OperationId, 50f);
 		var end = Assert.Single(ends);
 		Assert.Equal(MedicalOperationTerminalReason.Completed, end.TerminalReason);
 		Assert.True(Math.Abs(end.CommittedMl - 50f) < 0.001f);
 		Assert.NotNull(end.TargetHealth);
-		Assert.True(Math.Abs(end.TargetHealth!.OpiateAmount - 45f) < 0.001f);
+		Assert.Empty(end.AppliedDose);
 
 		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.OpiateAmount - 45f) < 0.001f);
+		Assert.True(Math.Abs(hostData.Health!.OpiateAmount) < 0.001f);
 		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
 		Assert.True(Math.Abs(transferred.Item.Liquids.Single().Amount - 50f) < 0.001f);
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
@@ -295,7 +306,9 @@ public sealed class MedicalOperationSessionServiceTests
 		var end = Assert.Single(ends);
 		Assert.Equal(MedicalOperationTerminalReason.Cancelled, end.TerminalReason);
 		Assert.True(Math.Abs(end.CommittedMl - 30f) < 0.001f);
-		Assert.True(Math.Abs(end.TargetHealth!.OpiateAmount - 27f) < 0.001f);
+		// The committed dose already rode its own state message; a cancelled
+		// terminal carries no second application.
+		Assert.Empty(end.AppliedDose);
 
 		// The same item can be started again after cancellation: no reservation leak.
 		var firstAck = ack;
@@ -319,10 +332,12 @@ public sealed class MedicalOperationSessionServiceTests
 		items.AdoptTransferredItem(GuestId, 42, morphine);
 
 		MedicalOperationStartAckMsg? ack = null;
+		var states = new List<MedicalOperationStateMsg>();
 		var hostEnds = new List<MedicalOperationEndCommittedMsg>();
 		var guestOps = guest.Services.GetRequiredService<IPlayerInteractionControl>().MedicalOperations;
 		var hostOps = host.Services.GetRequiredService<IPlayerInteractionControl>().MedicalOperations;
 		guestOps.StartAckReceived += m => ack = m;
+		guestOps.StateReceived += states.Add;
 		hostOps.EndCommittedReceived += hostEnds.Add;
 
 		guestOps.SendStartRequest(HostId, 42, targetLimbIndex: -1);
@@ -333,10 +348,16 @@ public sealed class MedicalOperationSessionServiceTests
 		guestOps.SendUpdate(ack.OperationId, 5f); // second frame is coalesced/buffered
 		guestOps.SendCancelRequest(ack.OperationId);
 
+		// The buffered frame is flushed before the terminal, so the cancel keeps
+		// the full 15 ml and each delivered ml reached the target exactly once.
+		Assert.Equal(2, states.Count);
+		Assert.True(Math.Abs(states[0].AppliedDose.Single().Amount - 10f) < 0.001f);
+		Assert.True(Math.Abs(states[1].AppliedDose.Single().Amount - 5f) < 0.001f);
+
 		var end = Assert.Single(hostEnds);
 		Assert.Equal(MedicalOperationTerminalReason.Cancelled, end.TerminalReason);
 		Assert.True(Math.Abs(end.CommittedMl - 15f) < 0.001f);
-		Assert.True(Math.Abs(end.TargetHealth!.OpiateAmount - 13.5f) < 0.001f);
+		Assert.Empty(end.AppliedDose);
 	}
 
 	[Fact]

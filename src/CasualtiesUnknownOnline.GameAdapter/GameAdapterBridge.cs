@@ -247,6 +247,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool TryStartRemoteWoundSpecial(Limb limb) =>
 		_remoteMedicalOps.TryStartRemoteWoundSpecial(limb);
 
+	public bool TryDivertRemoteInjection(WaterContainerItem container, Limb limb, float amount) =>
+		_remoteMedicalOps.TryDivertInjection(container, limb, amount);
+
 	public ulong LocalSteamId => _remoteDragIntents.LocalSteamId;
 
 	public void ReportRemoteDragUnresolved(Item dragItem) => _remoteDragIntents.ReportUnresolved(dragItem);

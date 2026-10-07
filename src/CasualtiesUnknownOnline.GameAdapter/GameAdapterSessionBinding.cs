@@ -23,6 +23,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.Renderer.BindToSession();
 		domains.ItemApplication.BindToSession();
 		domains.ItemReconcile.BindToSession();
+		domains.StandingMaterializer.BindToSession();
 		domains.ItemWorldSync.BindToSession();
 		domains.ItemPositionFollow.BindToSession();
 		domains.WorldEventSync.BindToSession();
@@ -77,6 +78,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.Renderer.Unbind();
 		domains.ItemApplication.Unbind();
 		domains.ItemReconcile.Unbind();
+		domains.StandingMaterializer.Unbind();
 		domains.ItemWorldSync.Unbind();
 		domains.ItemWorldSync.ResetPending(); // session ended — a pending drop cannot resolve anymore
 		domains.BlockBreakSync.ResetPending(); // a pending break's drops are gone with the world
@@ -145,6 +147,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.CharacterRagdollSync.Reset();
 		domains.Gate.ResetSessionState();
 		domains.ItemPositionAuthority.ResetSessionState();
+		domains.StandingMaterializer.ResetSessionState(); // the carried rows' incarnations die with the session
 		domains.FluidSync.ResetSessionState();
 		domains.TradeSync.ResetSessionState();
 		domains.Renderer.DestroyAllClones();

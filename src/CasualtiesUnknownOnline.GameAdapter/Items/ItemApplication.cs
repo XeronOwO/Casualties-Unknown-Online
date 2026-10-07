@@ -24,18 +24,21 @@ internal sealed class ItemApplication
 	private readonly ILogger<ItemApplication> _log;
 	private readonly ItemCookReplayApplier _cookReplay;
 	private readonly RemoteItemSceneOps _scene;
+	private readonly StandingItemMaterializer _standing;
 
 	internal ItemApplication(
 		IItemControl items,
 		IWorldControl world,
 		ISessionControl session,
+		StandingItemMaterializer standing,
 		ILogger<ItemApplication> log)
 	{
 		_items = items;
 		_world = world;
 		_log = log;
-		_scene = new RemoteItemSceneOps(session, log);
-		_cookReplay = new ItemCookReplayApplier(this, session, log);
+		_standing = standing;
+		_scene = new RemoteItemSceneOps(session, standing, log);
+		_cookReplay = new ItemCookReplayApplier(this, standing, session, log);
 	}
 
 	/// <summary>Pickup origin cache (id → world position) — the rollback target for a refused pickup (the pickup-start hook fills it).</summary>
@@ -99,6 +102,14 @@ internal sealed class ItemApplication
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
+			// The row left somebody's inventory into the world: retire the local incarnation of its
+			// carried row — a no-op unless one stands — and let the ordinary world path below materialize
+			// a proper copy. Asked FIRST and by the MARKER, never through the lookup or the category: a
+			// re-place of that object would drive an invisible, non-colliding, unsimulated copy with the
+			// position stream, and the data may already hold the id as a world row by now, which ends the
+			// category while every switch of the recipe stays on.
+			_standing.Retire(itemId, "the row left the inventory into the world");
+
 			var item = FindWorldItem(itemId);
 			if (item == null) // Unity object — ==; we never had it (it was in the dropper's inventory)
 			{
@@ -127,6 +138,15 @@ internal sealed class ItemApplication
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
+			// A standing object is this side's incarnation of a CARRIED row: the destroy report is the
+			// data saying that row is gone, so it is retired here rather than up to a second later on the
+			// next snapshot. Asked FIRST and by the MARKER: the category would already have ended if the
+			// data moved the id, and the object would then be left standing with the recipe's switches on.
+			if (_standing.Retire(itemId, "the data destroyed the carried row"))
+			{
+				return;
+			}
+
 			var item = FindWorldItem(itemId);
 			if (item == null) // Unity object — ==
 			{
@@ -166,6 +186,15 @@ internal sealed class ItemApplication
 			if (target == null) // Unity object — ==
 			{
 				_log.LogWarning("[ItemCorrection] {Type} (Instance {InstanceId}) not found locally — ignored.", item.ItemId, item.InstanceId);
+				return;
+			}
+
+			// A standing object's contents live in the data, not under a Container: the shared recursive
+			// apply would materialize each content as a real container child (its load guards included).
+			// The materializer's own apply path keeps the incarnation flat.
+			if (target.GetComponent<StandingItemObject>() != null) // Unity object — ==
+			{
+				_standing.ApplyCorrection(item);
 				return;
 			}
 
@@ -269,6 +298,12 @@ internal sealed class ItemApplication
 			foreach (var drop in drops)
 			{
 				var world = InitialDropStateMapper.ToWorldItem(drop);
+
+				// The drop's row is a world fact: a standing incarnation of that id is retired first, so the
+				// lookup below answers for the world copy this path then materializes. It branches before the
+				// materialization funnel, which is why it asks on its own.
+				_standing.Retire(world.ItemId, "the trap drop's row is a world fact");
+
 				var item = FindWorldItem(world.ItemId);
 				if (item == null) // Unity object — ==
 				{

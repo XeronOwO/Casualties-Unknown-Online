@@ -131,6 +131,16 @@ public sealed class ModItemDefinition
 	[DataMember(Order = 23)]
 	public ModItemVisual? Visual { get; set; }
 
+	/// <summary>
+	/// Crafting-quality labels the item provides, written into the vanilla
+	/// <c>ItemInfo.qualities</c> so a quality-based recipe (vanilla or
+	/// mod-authored) can match the item. A non-positive amount is normalised to
+	/// <c>1</c>, like the liquid side, because the matcher asks for at least the
+	/// amount a recipe requires.
+	/// </summary>
+	[DataMember(Order = 24)]
+	public List<ModCraftingQuality> Qualities { get; set; } = [];
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

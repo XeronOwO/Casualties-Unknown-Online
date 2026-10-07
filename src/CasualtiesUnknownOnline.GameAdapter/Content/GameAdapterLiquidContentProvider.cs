@@ -14,13 +14,20 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// injection flags, qualities and locale display text) are mapped into
 /// <c>LiquidType</c>; behavior callbacks are intentionally not part of this
 /// DTO because mods must not pass game delegates through Abstractions.
+///
+/// <para>
+/// It is also a <see cref="ICraftingQualitySource"/>: the crafting-quality labels
+/// its accepted definitions declare are written into <c>LiquidType.qualities</c>
+/// and reported to the recipe provider, on the same rule the item side uses.
+/// </para>
 /// </summary>
 public sealed class GameAdapterLiquidContentProvider(
-	ILogger<GameAdapterLiquidContentProvider> log) : IContentBindingProvider, ICuoService
+	ILogger<GameAdapterLiquidContentProvider> log) : IContentBindingProvider, ICuoService, ICraftingQualitySource
 {
 	private readonly ILogger<GameAdapterLiquidContentProvider> _log = log;
 	private readonly Dictionary<string, ModLiquidDefinition> _definitions = [];
 	private readonly HashSet<string> _injectedIds = [];
+	private readonly CraftingQualityDeclarations _qualities = new();
 	private Dictionary<string, LiquidType>? _lastRegistry;
 
 	/// <inheritdoc />
@@ -43,6 +50,11 @@ public sealed class GameAdapterLiquidContentProvider(
 			return false;
 		}
 
+		// A payload built by ToPayload() carries every member, but a mod that
+		// assigns null to the list round-trips it as an explicit nil, and a null
+		// list means "no qualities" rather than a definition the binder must skip.
+		definition.Qualities ??= [];
+
 		var id = registration.Definition.Id;
 		if (string.IsNullOrWhiteSpace(id))
 		{
@@ -58,12 +70,32 @@ public sealed class GameAdapterLiquidContentProvider(
 			return false;
 		}
 
+		if (!CraftingQualityDeclarations.IsValid(definition.Qualities, out var rejectedQuality))
+		{
+			_log.LogWarning(
+				"[LiquidContent] {ModId}/{Id} declares crafting quality '{Quality}' that is not a vanilla label or a canonical namespace:label id — refused.",
+				registration.ModId, id, rejectedQuality);
+			return false;
+		}
+
 		_definitions.Add(id, definition);
+		_qualities.Accept(definition.Qualities);
+		if (definition.Qualities.Count > 0)
+		{
+			_log.LogInformation(
+				"[LiquidContent] {ModId}/{Id} provides crafting qualities {Qualities}.",
+				registration.ModId, id, string.Join(", ", definition.Qualities.Select(quality => quality.Id)));
+		}
+
 		_log.LogInformation(
 			"[LiquidContent] accepted {ModId}/{Id} (schema {SchemaVersion}); injection waits for the vanilla liquid registry.",
 			registration.ModId, id, registration.Definition.SchemaVersion);
 		return true;
 	}
+
+	/// <inheritdoc />
+	public bool ProvidesQuality(string qualityId, float requiredAmount) =>
+		_qualities.Provides(qualityId, requiredAmount);
 
 	public void Initialize()
 	{
@@ -98,6 +130,16 @@ public sealed class GameAdapterLiquidContentProvider(
 			{
 				_injectedIds.Add(pair.Key);
 				_log.LogDebug("[LiquidContent] {Id} is already present in the vanilla liquid registry; no duplicate injected.", pair.Key);
+				if (pair.Value.Qualities.Count > 0)
+				{
+					// Nothing materialized this definition, so a label it declared
+					// is provided by nothing and a recipe requiring it can never be
+					// crafted (the ticket records that as a limit).
+					_log.LogWarning(
+						"[LiquidContent] {Id} was not injected, so the crafting quality it declares ({Quality}) is not provided by it.",
+						pair.Key, string.Join(", ", pair.Value.Qualities.Select(quality => quality.Id)));
+				}
+
 				continue;
 			}
 
@@ -134,8 +176,7 @@ public sealed class GameAdapterLiquidContentProvider(
 			injectable = definition.Injectable,
 			injectionSickness = definition.InjectionSickness,
 			localeFromItem = definition.LocaleFromItem,
-			qualities = [.. definition.Qualities
-				.Select(q => new CraftingQuality(q.Id, q.Amount <= 0f ? 1f : q.Amount))]
+			qualities = CraftingQualityDeclarations.ToGameQualities(definition.Qualities)
 		};
 	}
 

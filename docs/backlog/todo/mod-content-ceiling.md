@@ -26,7 +26,7 @@ implemented as its own deliverable with its own verification.
 | Layer | Question | State |
 |---|---|---|
 | 1. Definition | can content be added at all? | 12 content kinds, 9 with a provider |
-| 2. Local semantics | does the content behave like vanilla content? | tags yes; crafting qualities, limb use and liquid effects no |
+| 2. Local semantics | does the content behave like vanilla content? | tags yes; item and liquid qualities yes, and a quality reference that resolves to nothing is refused (stage 1, landed 2026-10-07); limb use and liquid effects no |
 | 3. Online semantics | does it work between players? | carried/dropped/container/durability follow the generic mechanisms; "use it on another player" is a curated id table |
 
 ## What the game itself leaves open (seam inventory)
@@ -74,10 +74,12 @@ Two decisions stand from 2026-09-25:
    is the precondition for a declared vocabulary later. It costs a convention, not architecture.
 
 What CUO exposes today: `ModItemDefinition.Tags` (written into `ItemInfo.tags`, with `ApplyTags` filling
-the private `actualTags`), `ModItemContainer.TagRestriction`, `ModLiquidDefinition.Qualities`, and
-`ModRecipeIngredient.Quality` / `QualityAmount` (mapped to `RecipeItem.quality` with `ignoredId` and the
-repair rule mirrored). What it does not: item qualities, limb use, the liquid effect delegates, and any
-validation of a label reference — those are Part 2 stage 1 and Part 3.
+the private `actualTags`), `ModItemDefinition.Qualities` and `ModLiquidDefinition.Qualities` (each written
+into the game's own quality list for its kind, which is the field the vanilla matcher reads),
+`ModItemContainer.TagRestriction`, and `ModRecipeIngredient.Quality` / `QualityAmount` (mapped to
+`RecipeItem.quality` with `ignoredId` and the repair rule mirrored, and checked against the labels a
+provider in the ingredient's own direction can reach). What it does not: limb use and the liquid effect
+delegates — those are Part 3.
 
 ## Part 2 — cross-player semantics: curated tables become capability predicates
 
@@ -106,16 +108,18 @@ Consequences:
 - The ceiling of the mod platform is therefore our maintenance speed, not the game's own capability.
 - The transcribed constants are a patch-stack debt against the root-cause rule in `AGENTS.md`: a game
   update that changes a formula moves the game and leaves our copy behind, silently.
-- The content DTOs cannot even declare what these chains would need: `ModItemDefinition` has no
-  qualities and no limb-use behaviour, `ModLiquidDefinition` has no drink/health delegates, and
-  `GameAdapterItemContentProvider.BuildItemInfo` writes no `info.qualities`.
+- The content DTOs still cannot declare what the remaining chains would need: `ModItemDefinition` has no
+  limb-use behaviour and no wearable set, and `ModLiquidDefinition` has no drink/health delegates.
+  (Qualities are no longer in this list — item and liquid qualities landed 2026-10-07 with stage 1,
+  `review/mod-crafting-quality-labels.md`.)
 
 ### Direction (staged — the stage split is mandatory)
 
 Each stage is its own deliverable with its own verification, and stage 1 must not be smuggled in as
 preparation for stage 2.
 
-**Stage 1 — content surface parity (small, self-contained).** `ModItemDefinition.Qualities` decoded
+**Stage 1 — content surface parity (small, self-contained; landed 2026-10-07 as
+`review/mod-crafting-quality-labels.md`).** `ModItemDefinition.Qualities` decoded
 into `ItemInfo.qualities`, so a mod item can satisfy a quality-based recipe (vanilla and mod-authored).
 Add the liquid effect delegates and the limb-use behaviour only behind a real consumer (see *Open
 questions*). Acceptance: a mod item satisfies a quality recipe, and a recipe that references a quality
@@ -170,15 +174,17 @@ Liquid side (`LiquidType` versus `ModLiquidDefinition`):
 
 ### B. Declaration versus materialization
 
-The framework says a content kind exists, but nothing consumes it — the same silent shape as a recipe
-that references a quality no item provides:
+The framework says a content kind exists, but nothing consumes it — the same silent shape the
+quality-reference check closed for recipes in stage 1:
 
 - `ModContentKind.Entity`, `ModContentKind.Setting` and `ModContentKind.Locale` have **no content
   provider** (the nine providers cover the other nine kinds). `Entity` appears once in `src/`, as the
   console resource-location label of the built-in player entity; `Setting` and `Locale` do not appear at
   all. A registration for one of them is accepted and materializes nothing.
-- Nothing checks at load time that a `ModRecipeIngredient.Quality` is provided by any item or liquid
-  anywhere, so a mistyped or unprovided quality becomes a recipe that can never be crafted, silently.
+- A `ModRecipeIngredient.Quality` that no provider can satisfy is now refused and reported at load time
+  instead of becoming a recipe that can never be crafted — **landed 2026-10-07** with stage 1
+  (`review/mod-crafting-quality-labels.md`), which also records the two reach limits that stay open there
+  (a LIQUID label's amount, and a definition whose id collides with a vanilla entry).
 
 ### C. Capability the game itself does not have
 

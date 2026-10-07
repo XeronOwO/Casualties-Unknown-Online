@@ -29,6 +29,8 @@ public class PatchBridgePortContractTests
 
 	private static readonly Type LayerPort = Adapter("CasualtiesUnknownOnline.GameAdapter.ILayerAdvancePatchPort");
 
+	private static readonly Type ItemCategoryPort = Adapter("CasualtiesUnknownOnline.GameAdapter.IItemCategoryPatchPort");
+
 	private static readonly Type BridgeImpl = Adapter("CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge");
 
 	private static readonly Type Seam = Adapter("CasualtiesUnknownOnline.GameAdapter.PatchBridge");
@@ -59,6 +61,33 @@ public class PatchBridgePortContractTests
 	[Fact]
 	public void LayerAdvancePort_DeclaresExactlyItsMembers() =>
 		Assert.Equal(Census(LayerAdvanceMembers), Census(DeclaredMembers(LayerPort)));
+
+	/// <summary>The item category port's whole surface: the data anchor (is this id a world row) and the refusal report for a local gesture on a standing item object.</summary>
+	private static readonly string[] ItemCategoryMembers =
+	[
+		"IsWorldItemRegistered",
+		"ReportStandingItemGestureRefused",
+	];
+
+	[Fact]
+	public void ItemCategoryPort_DeclaresExactlyItsMembers() =>
+		Assert.Equal(Census(ItemCategoryMembers), Census(DeclaredMembers(ItemCategoryPort)));
+
+	[Fact]
+	public void Aggregate_DoesNotDeclareAnyItemCategoryMember() =>
+		Assert.Empty(ItemCategoryMembers.Intersect(DeclaredMembers(Bridge), StringComparer.Ordinal));
+
+	[Fact]
+	public void Bridge_ImplementsTheItemCategoryPortAndDeclaresEveryMember()
+	{
+		Assert.True(ItemCategoryPort.IsAssignableFrom(BridgeImpl), "GameAdapterBridge does not implement IItemCategoryPatchPort");
+
+		var missing = ItemCategoryMembers
+			.Where(member => BridgeImpl.GetMethod(member, Any) is null)
+			.ToArray();
+
+		Assert.Empty(missing);
+	}
 
 	[Fact]
 	public void Aggregate_NoLongerDeclaresAnyFluidMember() =>
@@ -100,6 +129,7 @@ public class PatchBridgePortContractTests
 		Assert.Equal(Bridge, SeamType("Impl"));
 		Assert.Equal(Port, SeamType("Fluid"));
 		Assert.Equal(LayerPort, SeamType("LayerAdvance"));
+		Assert.Equal(ItemCategoryPort, SeamType("ItemCategory"));
 	}
 
 	private static Type SeamType(string property) =>

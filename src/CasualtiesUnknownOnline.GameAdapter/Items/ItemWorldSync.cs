@@ -124,8 +124,25 @@ internal sealed class ItemWorldSync(
 		item.GetComponent<RemoteInventoryItemId>() != null // Unity object — ==
 		|| item.GetComponentInParent<RemoteCloneRender>(includeInactive: true) != null; // Unity object — ==
 
-	/// <summary>True when the item's parent chain ends outside any inventory/body — it is part of the world.</summary>
-	internal static bool IsWorldItem(Item item)
+	/// <summary>
+	/// True when the object belongs to the WORLD ITEM domain: its parent chain ends outside any
+	/// inventory/body AND it is not a standing item object — the local incarnation of an item the
+	/// authoritative data carries as a member's CARRIED row (<see cref="StandingItems"/>).
+	/// <para>
+	/// The parent chain is the SCENE half of the question and it is no longer the whole test: a
+	/// standing object hangs under a CUO-owned holder, so the chain alone read it as a world item —
+	/// the reconcile's kill loop would delete it on the first keyframe, the host would stream its
+	/// parked position as a world fact, the guest's follow pump would switch it to local physics and
+	/// a remote pickup or destroy would address it. The data half (an id the item data does not hold
+	/// as a world row) is what keeps it out of every one of those paths, which is why the two halves
+	/// live in ONE predicate rather than at twenty call sites.
+	/// </para>
+	/// </summary>
+	internal static bool IsWorldItem(Item item) =>
+		!IsInInventoryOrBody(item) && !StandingItems.Is(item);
+
+	/// <summary>The scene half on its own: the item's parent chain ends outside any inventory/body. Not a domain verdict — <see cref="IsWorldItem"/> adds the category to it.</summary>
+	private static bool IsInInventoryOrBody(Item item)
 	{
 		var t = item.transform;
 		while (t != null)
@@ -135,13 +152,13 @@ internal sealed class ItemWorldSync(
 			// — they are character state, not world items.
 			if (t.GetComponent<InventorySlot>() != null || t.GetComponent<Body>() != null || t.GetComponent<Limb>() != null)
 			{
-				return false;
+				return true;
 			}
 
 			t = t.parent;
 		}
 
-		return true;
+		return false;
 	}
 
 	/// <summary>
@@ -156,6 +173,11 @@ internal sealed class ItemWorldSync(
 	/// not exclude it from the position stream, or the host never streams it
 	/// and the peer's copy free-simulates on its own physics ("dropping a bag
 	/// from the mouth — immediately desynced").
+	/// <para>
+	/// A standing item object is excluded at <see cref="IsWorldItem"/>: it is
+	/// carried by another member, so it must not be reported, streamed or
+	/// simulated as a standalone world item either.
+	/// </para>
 	/// </summary>
 	internal static bool IsStandaloneWorldItem(Item item)
 	{
@@ -340,6 +362,20 @@ internal sealed class ItemWorldSync(
 		if (_dropState.TryCancel(item, out var cancelledOp))
 		{
 			_trace.End(cancelledOp, OperationTrace.IdOf(item), "OnItemDestroyed", "Cancelled", "Destroyed");
+		}
+
+		// A standing item object is another member's carried item incarnated locally: its
+		// destruction is CUO's own retire step (the data moved the id elsewhere, or the session
+		// ended), never a fact about the owner's item — the owner's own client is the one that
+		// reports the item dying. The kernel's arbitration would already refuse this report
+		// (KernelCommandGateway.MayReportDestroyed answers Ignore for an item carried by another
+		// member), so sending it could only be loud, never right. The pending-drop bookkeeping above
+		// still runs: that is local state, not a report.
+		if (StandingItems.Is(item))
+		{
+			_log.LogDebug("[ItemDestroy] {Type} (id {ItemId}) is a standing item object — the local incarnation of another member's carried item, destroy not reported.",
+				item.id, item.GetComponent<ItemInstanceId>()?.Id ?? 0);
+			return;
 		}
 
 		var op = _trace.NextOperationId();

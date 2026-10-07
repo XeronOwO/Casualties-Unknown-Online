@@ -16,6 +16,24 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// </summary>
 public interface IItemControl : IRestoredWorldItemSource
 {
+	// ===== Data facts (read-only) =====
+
+	/// <summary>
+	/// Read-only: does the authoritative item data hold this id as a WORLD row?
+	/// The world table holds world rows alone, so a carried id, an id the data
+	/// has never judged and id 0 all answer false.
+	/// <para>
+	/// The Game Adapter's standing-item-object category is anchored on this
+	/// answer: such an object is the local incarnation of an item the data
+	/// carries as somebody's CARRIED row, and the category ends the moment the
+	/// data moves the id into the world. Ask it by id, never by scene state —
+	/// the same fact the kernel, the projection, the position stream and the
+	/// reconcile already read, so a category anchored here cannot drift from the
+	/// data it mirrors.
+	/// </para>
+	/// </summary>
+	bool IsWorldItemRegistered(ulong itemId);
+
 	// ===== Report side (the adapter's local compute reports here) =====
 
 	/// <summary>A runtime-generated item entered the world locally — record (host/solo) and report/broadcast.</summary>

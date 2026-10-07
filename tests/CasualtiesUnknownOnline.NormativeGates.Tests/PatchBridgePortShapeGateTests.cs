@@ -218,6 +218,11 @@ public class PatchBridgePortShapeGateTests
 		[
 			"TryDelegateLocalAdvance",
 		]),
+		("IItemCategoryPatchPort", AdapterDir + "IItemCategoryPatchPort.cs", false,
+		[
+			"IsWorldItemRegistered",
+			"ReportStandingItemGestureRefused",
+		]),
 	];
 
 	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
@@ -236,6 +241,7 @@ public class PatchBridgePortShapeGateTests
 		"Bind",
 		"Fluid",
 		"Impl",
+		"ItemCategory",
 		"LayerAdvance",
 		"ModContent",
 		"SessionSurface",
@@ -268,6 +274,7 @@ public class PatchBridgePortShapeGateTests
 	[
 		"IFluidPatchPort",
 		"ILayerAdvancePatchPort",
+		"IItemCategoryPatchPort",
 	];
 
 	public static IEnumerable<object[]> SeamCensus() =>

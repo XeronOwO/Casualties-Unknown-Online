@@ -499,7 +499,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _messageFlow.RegisterWorldItemIfAbsent(itemId, item);
 
-	internal bool IsWorldItemRegistered(ulong itemId) => _messageFlow.IsWorldItemRegistered(itemId);
+	public bool IsWorldItemRegistered(ulong itemId) => _messageFlow.IsWorldItemRegistered(itemId);
 
 	internal void FireItemSpawned(WorldItem item) => _messageFlow.FireItemSpawned(item);
 

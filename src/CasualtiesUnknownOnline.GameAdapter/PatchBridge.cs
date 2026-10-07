@@ -31,6 +31,9 @@ internal static class PatchBridge
 	/// <summary>The layer-transition domain's patch port (the member's own end-of-layer choice). The aggregate does not declare it, so this accessor is the only way that hook reaches the domain.</summary>
 	public static ILayerAdvancePatchPort? LayerAdvance => _bound as ILayerAdvancePatchPort;
 
+	/// <summary>The item category's patch port (the data fact that tells a standing item object from a world item, plus the report for the one refusal the patch layer makes). The aggregate does not declare it, so this accessor is the only way the static patches reach the item data.</summary>
+	public static IItemCategoryPatchPort? ItemCategory => _bound as IItemCategoryPatchPort;
+
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 
 	public static void Unbind(IPatchBridge impl)

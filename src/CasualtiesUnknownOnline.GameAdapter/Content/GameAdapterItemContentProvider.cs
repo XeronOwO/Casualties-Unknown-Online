@@ -18,9 +18,17 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// registration waits for <c>Item.GlobalItems</c>; template construction uses
 /// <see cref="CustomItemTemplateFactory"/> and the resolved templates are
 /// served through <see cref="TryResolveTemplate"/>.
+///
+/// <para>
+/// It is also a <see cref="ICraftingQualitySource"/>: the crafting-quality labels
+/// its accepted definitions declare are written into the vanilla
+/// <c>ItemInfo.qualities</c> — the field the game's own recipe matcher reads —
+/// and reported to the recipe provider, which validates quality references
+/// against them.
+/// </para>
 /// </summary>
 public sealed class GameAdapterItemContentProvider(
-	ILogger<GameAdapterItemContentProvider> log) : IContentBindingProvider, ICuoService
+	ILogger<GameAdapterItemContentProvider> log) : IContentBindingProvider, ICuoService, ICraftingQualitySource
 {
 	private readonly ILogger<GameAdapterItemContentProvider> _log = log;
 	private readonly Dictionary<string, ModItemDefinition> _definitions = [];
@@ -28,6 +36,7 @@ public sealed class GameAdapterItemContentProvider(
 	private readonly HashSet<string> _templateFailures = [];
 	private readonly HashSet<string> _lootPoolIds = [];
 	private readonly HashSet<string> _injectedItemIds = [];
+	private readonly CraftingQualityDeclarations _qualities = new();
 	private readonly Dictionary<ModItemDropSource, HashSet<string>> _dropSourceSeeded = [];
 	private Dictionary<string, List<string>>? _lastLootPool;
 
@@ -64,6 +73,11 @@ public sealed class GameAdapterItemContentProvider(
 			return false;
 		}
 
+		// A payload built by ToPayload() carries every member, but a mod that
+		// assigns null to the list round-trips it as an explicit nil, and a null
+		// list means "no qualities" rather than a definition the binder must skip.
+		definition.Qualities ??= [];
+
 		var id = registration.Definition.Id;
 		if (string.IsNullOrWhiteSpace(id))
 		{
@@ -93,12 +107,32 @@ public sealed class GameAdapterItemContentProvider(
 			return false;
 		}
 
+		if (!CraftingQualityDeclarations.IsValid(definition.Qualities, out var rejectedQuality))
+		{
+			_log.LogWarning(
+				"[ItemContent] {ModId}/{Id} declares crafting quality '{Quality}' that is not a vanilla label or a canonical namespace:label id — refused.",
+				registration.ModId, id, rejectedQuality);
+			return false;
+		}
+
 		_definitions.Add(id, definition);
+		_qualities.Accept(definition.Qualities);
+		if (definition.Qualities.Count > 0)
+		{
+			_log.LogInformation(
+				"[ItemContent] {ModId}/{Id} provides crafting qualities {Qualities}.",
+				registration.ModId, id, string.Join(", ", definition.Qualities.Select(quality => quality.Id)));
+		}
+
 		_log.LogInformation(
 			"[ItemContent] accepted {ModId}/{Id} (schema {SchemaVersion}); injection waits for the vanilla item table.",
 			registration.ModId, id, registration.Definition.SchemaVersion);
 		return true;
 	}
+
+	/// <inheritdoc />
+	public bool ProvidesQuality(string qualityId, float requiredAmount) =>
+		_qualities.Provides(qualityId, requiredAmount);
 
 	public void Initialize()
 	{
@@ -121,16 +155,27 @@ public sealed class GameAdapterItemContentProvider(
 			{
 				Item.GlobalItems.Add(pair.Key, BuildItemInfo(pair.Key, pair.Value));
 				_injectedItemIds.Add(pair.Key);
-				_log.LogInformation("[ItemContent] injected {Id} into Item.GlobalItems.", pair.Key);
+				_log.LogInformation(
+					"[ItemContent] injected {Id} into Item.GlobalItems ({QualityCount} crafting qualities).",
+					pair.Key, pair.Value.Qualities.Count);
 			}
 			else if (!_injectedItemIds.Contains(pair.Key))
 			{
 				// The id already belongs to the vanilla table: the mod copy is
 				// accepted as a definition but never injected, so the vanilla
-				// entry (and its cu:<id> resource id) stays authoritative.
+				// entry (and its cu:<id> resource id) stays authoritative. A label
+				// this definition declared is therefore provided by nothing, which
+				// is said out loud here because a recipe requiring it can never be
+				// crafted (the ticket records that as a limit).
 				_log.LogWarning(
 					"[ItemContent] {Id} already exists in the vanilla item table — the mod definition is not injected.",
 					pair.Key);
+				if (pair.Value.Qualities.Count > 0)
+				{
+					_log.LogWarning(
+						"[ItemContent] {Id} is not injected, so the crafting quality it declares ({Quality}) is not provided by it.",
+						pair.Key, string.Join(", ", pair.Value.Qualities.Select(quality => quality.Id)));
+				}
 			}
 
 			EnsureTemplate(pair.Key, pair.Value);
@@ -428,6 +473,11 @@ public sealed class GameAdapterItemContentProvider(
 		{
 			info.decayMinutes = definition.DecayMinutes;
 			info.rotSpeed = 1.666f / definition.DecayMinutes;
+		}
+
+		if (definition.Qualities.Count > 0)
+		{
+			info.qualities = CraftingQualityDeclarations.ToGameQualities(definition.Qualities);
 		}
 
 		if (definition.Tool is { } tool)

@@ -13,11 +13,21 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// into the vanilla recipe table. It waits for <c>Recipes.recipes</c> to be
 /// initialized, builds plain game <c>Recipe</c> objects from the mod DTO, and
 /// injects them exactly once per recipe-table generation.
+///
+/// <para>
+/// A reference that resolves to nothing is refused rather than injected as a
+/// recipe that can never be crafted: unknown result/ingredient items and liquids,
+/// and — through <see cref="ICraftingQualitySource"/> and the vanilla tables — a
+/// crafting-quality label the ingredient's own direction cannot provide at an
+/// amount the ingredient asks for.
+/// </para>
 /// </summary>
 public sealed class GameAdapterRecipeContentProvider(
-	ILogger<GameAdapterRecipeContentProvider> log) : IContentBindingProvider, ICuoService
+	ILogger<GameAdapterRecipeContentProvider> log,
+	IEnumerable<ICraftingQualitySource> qualitySources) : IContentBindingProvider, ICuoService
 {
 	private readonly ILogger<GameAdapterRecipeContentProvider> _log = log;
+	private readonly IReadOnlyList<ICraftingQualitySource> _qualitySources = [.. qualitySources];
 	private readonly Dictionary<string, ModRecipeDefinition> _definitions = [];
 	private readonly HashSet<string> _injectedKeys = [];
 	private readonly HashSet<string> _failedKeys = [];
@@ -42,6 +52,12 @@ public sealed class GameAdapterRecipeContentProvider(
 				registration.ModId, registration.Definition.Id);
 			return false;
 		}
+
+		// A payload built by ToPayload() carries every member, but a mod that
+		// assigns null to the list round-trips it as an explicit nil, and a null
+		// list means "no ingredients" — which the refusal below reports — rather
+		// than a definition the binder must skip with a logged exception.
+		definition.Ingredients ??= [];
 
 		var id = registration.Definition.Id;
 		if (string.IsNullOrWhiteSpace(id))
@@ -193,6 +209,17 @@ public sealed class GameAdapterRecipeContentProvider(
 				return null;
 			}
 
+			if (!specific && !CanSatisfyQuality(
+				ingredient.Quality,
+				ingredient.IsLiquid,
+				CraftingQualityDeclarations.ReachableAmount(ingredient.QualityAmount)))
+			{
+				_log.LogWarning(
+					"[RecipeContent] {Id} requires crafting quality '{Quality}' that no {Kind} provides at an amount this recipe can reach — skipped recipe.",
+					id, ingredient.Quality, ingredient.IsLiquid ? "liquid" : "item");
+				return null;
+			}
+
 			recipe.items.Add(new RecipeItem(ingredient.MinimumCondition < 0f ? 0f : ingredient.MinimumCondition)
 			{
 				specific = specific,
@@ -200,7 +227,7 @@ public sealed class GameAdapterRecipeContentProvider(
 				isLiquid = ingredient.IsLiquid,
 				quality = specific || string.IsNullOrWhiteSpace(ingredient.Quality)
 					? null
-					: new CraftingQuality(ingredient.Quality, ingredient.QualityAmount <= 0f ? 1f : ingredient.QualityAmount),
+					: new CraftingQuality(ingredient.Quality, CraftingQualityDeclarations.ReachableAmount(ingredient.QualityAmount)),
 				destroyItem = ingredient.DestroyItem,
 				ignoredId = recipe.isRepair ? string.Empty : definition.ResultItemId
 			});
@@ -232,6 +259,65 @@ public sealed class GameAdapterRecipeContentProvider(
 
 		return Item.GlobalItems.ContainsKey(id) || Resources.Load<GameObject>(id) != null; // Unity object — ==
 	}
+
+	/// <summary>
+	/// True when a provider in the ingredient's OWN direction declares the label
+	/// with an amount the recipe can reach.
+	///
+	/// <para>
+	/// Direction: the game's matcher is direction-selected — an item ingredient is
+	/// matched against <c>item.Stats.qualities</c> and a liquid one against the
+	/// liquid type's qualities (<c>RecipeItem.GetMatchingItem</c>) — and the two
+	/// vanilla vocabularies do not overlap, so a label carried only by the other
+	/// direction could never be consumed and must not count as provided.
+	/// </para>
+	///
+	/// <para>
+	/// Amount: for an ITEM ingredient the matcher asks
+	/// <c>q.amount &gt;= target.amount</c> against a fixed declared amount, so a
+	/// label nobody declares that high is unreachable. For a LIQUID ingredient the
+	/// amounts are scaled by the volume in a container (<c>GetScaledQualities</c>),
+	/// so only presence is asked for.
+	/// </para>
+	///
+	/// <para>
+	/// The mod sources are asked first, because a definition bound in the same
+	/// frame is not in the tables yet for the whole pump: the item provider is
+	/// registered before this provider and its items are already there, while the
+	/// liquid provider is registered after it, so a liquid bound this frame is
+	/// still missing from <c>Liquids.Registry</c>. The tables themselves need no
+	/// readiness guard: <c>Item.GlobalItems</c> and <c>Recipes.recipes</c> are
+	/// built in one native body, items first (<c>WorldGeneration.Awake</c> calls
+	/// <c>Item.SetupItems()</c> and then <c>Recipes.SetUpRecipes()</c>, whose only
+	/// assignment to the list is that body), so this — which runs only while a
+	/// recipe table is present — can always read the item vocabulary, and
+	/// <c>Liquids.Registry</c>'s only assignment is the type's own static
+	/// constructor, so reading it here has already run that constructor.
+	/// </para>
+	/// </summary>
+	private bool CanSatisfyQuality(string qualityId, bool isLiquid, float requiredAmount)
+	{
+		var kind = isLiquid ? ModContentKind.Liquid : ModContentKind.Item;
+		foreach (var source in _qualitySources)
+		{
+			if (string.Equals(source.Kind, kind, StringComparison.Ordinal)
+				&& source.ProvidesQuality(qualityId, isLiquid ? 0f : requiredAmount))
+			{
+				return true;
+			}
+		}
+
+		if (isLiquid)
+		{
+			return Liquids.Registry.Values.Any(liquid => Carries(liquid.qualities, qualityId, 0f));
+		}
+
+		return Item.GlobalItems.Values.Any(stats => Carries(stats.qualities, qualityId, requiredAmount));
+	}
+
+	private static bool Carries(List<CraftingQuality> qualities, string qualityId, float requiredAmount) =>
+		qualities.Any(quality =>
+			string.Equals(quality.id, qualityId, StringComparison.Ordinal) && quality.amount >= requiredAmount);
 
 	private static string BuildRecipeKey(Recipe recipe)
 	{

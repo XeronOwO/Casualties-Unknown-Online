@@ -337,6 +337,8 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Setting|const 
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Status|const field|-> string = "status"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Structure|const field|-> string = "structure"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Tile|const field|-> string = "tile"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModCraftingQuality.Amount|property|-> float { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModCraftingQuality.Id|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModDataScope.HostAuthoritative|enumvalue|= 3
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModDataScope.LocalOnly|enumvalue|= 1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModDataScope.Shared|enumvalue|= 2
@@ -368,6 +370,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.DropSources
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.FromPayload(byte[] payload)|static method|-> ModItemDefinition?
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Gun|property|-> ModItemGun? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Light|property|-> ModItemLight? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Qualities|property|-> List<ModCraftingQuality> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.SpawnComponents|property|-> List<string> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.SpawnFrequency|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Tags|property|-> string { get; set; }
@@ -476,11 +479,9 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.HealthUsa
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.Injectable|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.InjectionSickness|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.LocaleFromItem|property|-> bool { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.Qualities|property|-> List<ModLiquidQuality> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.Qualities|property|-> List<ModCraftingQuality> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.ToPayload()|method|-> byte[]
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.ValuePerLiter|property|-> float { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality.Amount|property|-> float { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality.Id|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidTileDefinition.AllLayersExcept(params int[] excludedLayerNumbers)|static method|-> int
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidTileDefinition.AllSpawnLayers|const field|-> int = -1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidTileDefinition.Buoyancy|property|-> float { get; set; }
@@ -741,6 +742,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentDefinition|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind|static class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModCraftingQuality|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModDataScope|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModGunAmmoType|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModGunFeedType|enum|-
@@ -759,7 +761,6 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModLightType|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbMoodleBinding|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidTileDefinition|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidTileVisualMode|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest|sealed class|-
@@ -783,3 +784,6 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileGenerationStyle|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileSleepQuality|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode|enum|-
 type|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry|sealed class|-
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality.Amount — renamed with its type to ModCraftingQuality: one crafting-quality label type for the item and liquid surfaces
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality.Id — renamed with its type to ModCraftingQuality: one crafting-quality label type for the item and liquid surfaces
+*REMOVED* type|CasualtiesUnknownOnline.Abstractions.ModLiquidQuality — renamed to ModCraftingQuality: one crafting-quality label type for the item and liquid surfaces

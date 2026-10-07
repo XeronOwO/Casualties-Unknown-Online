@@ -28,8 +28,8 @@ public class ModLiquidDefinitionTests
 			LocaleFromItem = false,
 			Qualities =
 			[
-				new ModLiquidQuality { Id = "chemical", Amount = 2f },
-				new ModLiquidQuality { Id = "toxic", Amount = 0.5f }
+				new ModCraftingQuality { Id = "chemical", Amount = 2f },
+				new ModCraftingQuality { Id = "toxic", Amount = 0.5f }
 			]
 		};
 

@@ -32,6 +32,11 @@ public class ModItemDefinitionTests
 			WorldSpawnPerChunk = 0.5f,
 			DropSources = ModItemDropSource.Corpse | ModItemDropSource.Trader1,
 			DecayMinutes = 90f,
+			Qualities =
+			[
+				new ModCraftingQuality { Id = "mymod:material", Amount = 3f },
+				new ModCraftingQuality { Id = "rippable" }
+			],
 			CustomData = new Dictionary<string, string>
 			{
 				["mod.metadata"] = "kept"
@@ -57,6 +62,11 @@ public class ModItemDefinitionTests
 		Assert.Equal(original.WorldSpawnPerChunk, restored.WorldSpawnPerChunk);
 		Assert.Equal(original.DropSources, restored.DropSources);
 		Assert.Equal(original.DecayMinutes, restored.DecayMinutes);
+		Assert.Equal(2, restored.Qualities.Count);
+		Assert.Equal("mymod:material", restored.Qualities[0].Id);
+		Assert.Equal(3f, restored.Qualities[0].Amount);
+		Assert.Equal("rippable", restored.Qualities[1].Id);
+		Assert.Equal(1f, restored.Qualities[1].Amount);
 		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
 	}
 
@@ -245,6 +255,19 @@ public class ModItemDefinitionTests
 		Assert.Equal(["Fx/TestMask0", "Fx/TestMask1"], restored.Visual.LiquidMaskAnimation.FramePaths);
 		Assert.Equal(6f, restored.Visual.LiquidMaskAnimation.FramesPerSecond);
 		Assert.False(restored.Visual.LiquidMaskAnimation.Loop);
+	}
+
+	[Fact]
+	public void RoundTrip_ExplicitNullQualities_ComesBackAsNull()
+	{
+		// The serializer does not run property initializers, so a mod that assigns
+		// null to the list round-trips an explicit nil instead of an empty list.
+		// That is why the content providers normalise a null list to an empty one
+		// rather than failing the definition.
+		var restored = ModItemDefinition.FromPayload(new ModItemDefinition { Qualities = null! }.ToPayload());
+
+		Assert.NotNull(restored);
+		Assert.Null(restored!.Qualities);
 	}
 
 	[Fact]

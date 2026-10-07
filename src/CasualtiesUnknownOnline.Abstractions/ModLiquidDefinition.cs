@@ -58,9 +58,9 @@ public sealed class ModLiquidDefinition
 	[DataMember(Order = 11)]
 	public bool LocaleFromItem { get; set; }
 
-	/// <summary>Crafting-quality tags associated with the liquid.</summary>
+	/// <summary>Crafting-quality labels the liquid provides, matched by quality-based recipes.</summary>
 	[DataMember(Order = 12)]
-	public List<ModLiquidQuality> Qualities { get; set; } = [];
+	public List<ModCraftingQuality> Qualities { get; set; } = [];
 
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()

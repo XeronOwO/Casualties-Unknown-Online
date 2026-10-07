@@ -120,6 +120,12 @@ public static class GameAdapterComposition
 		services.AddSingleton<GameAdapterItemContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
+		// The crafting-quality vocabulary the recipe provider validates a
+		// quality-referencing ingredient against: the item and liquid providers
+		// declare what their accepted definitions carry, and the recipe provider
+		// asks every source before it falls back to the vanilla tables. Neither
+		// registration is an ICuoService, so the pump order does not move.
+		services.AddSingleton<ICraftingQualitySource>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
 		// Vanilla content ids: the game's own item table becomes cu:<item id>
 		// with the game-localised display name, feeding the console's
 		// resource-location completion (the Runtime catalog aggregates it).
@@ -134,6 +140,7 @@ public static class GameAdapterComposition
 		services.AddSingleton<GameAdapterLiquidContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterLiquidContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterLiquidContentProvider>());
+		services.AddSingleton<ICraftingQualitySource>(p => p.GetRequiredService<GameAdapterLiquidContentProvider>());
 		// Liquid-tile content binding: typed static world-fluid DTOs into the
 		// vanilla FluidManager grid and local GameAdapter projection seams.
 		services.AddSingleton<GameAdapterLiquidTileContentProvider>();

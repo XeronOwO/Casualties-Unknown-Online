@@ -36,7 +36,7 @@ docs/en/reference/configuration.md | d4d4e0708638645e476720bfa78aee5f5093b134 | 
 docs/en/reference/feature-matrices.md | 3546f411e3a4f4f78f02c971bb14edc9bf486e05 | docs/zh/reference/feature-matrices.md | 6a942efc0bb693925c3321ad957df26a89ef08a6
 docs/en/reference/glossary.md | 262e669835de3abc257fe5ab86107cf482e7a88d | docs/zh/reference/glossary.md | 08b43f0be141113dcdf8ff0096ad838d9344ffe3
 docs/en/reference/logs.md | d3da963784a8a6d094377f91cf8f23af91a4eac7 | docs/zh/reference/logs.md | 12fe2563846c7bd752c107b7b1c274fd7a15bbe5
-docs/en/reference/mod-api.md | 284dfa6621425bdb5ebe9aa8fcdae4b0981c7867 | docs/zh/reference/mod-api.md | 87166dbe35d6ba9e528e9fb84c8c99b607c8b540
+docs/en/reference/mod-api.md | 0f9c1982eed6d68005efe0129fa62c106d0dac0e | docs/zh/reference/mod-api.md | 4908201ca805bf56c89c296f4833cb7c2a970290
 docs/en/reference/modification-policy.md | 4a4b7f4910164e5378dcf93d169b78ee75e26067 | docs/zh/reference/modification-policy.md | 91e1e1a6693c6c2f95592c0e2741e0a141ca98e2
 docs/en/reference/protocol-messages.md | f3d79a1ff7b4c8b20f931fca72888bccb1003294 | docs/zh/reference/protocol-messages.md | 9b717a7f4a4beea0a215d766f6dfd017193d99c5
 docs/en/reference/README.md | 746bac1e857e688d5e17a0627cc724668371f40d | docs/zh/reference/README.md | 5f6930e1bb4f0285c9640b4f1f074f6056655cec

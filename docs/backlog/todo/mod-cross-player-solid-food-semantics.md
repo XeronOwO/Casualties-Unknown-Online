@@ -3,9 +3,9 @@
 - Status: Todo — **cut 2026-10-08** out of `mod-cross-player-native-semantics.md` when that ticket's
   consume (drink) chain landed and its "Eat / drink" row split: the drink half had the native shape the
   migration is built on, the solid-food half does not. Its first step, the read-only side-effect
-  investigation the design demanded, landed 2026-10-08 (findings below); the code has not started, and
-  the investigation's one scope change is that the new object category must be named in code before any
-  materialization.
+  investigation the design demanded, landed 2026-10-08 (findings below); its second step — the item
+  category the investigation's one scope change demanded — is code now (see *The category, landed*
+  below), so what remains is the materialize/update/destroy step and then the food chain itself.
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture
 - Parent: `docs/backlog/todo/mod-cross-player-native-semantics.md` (Part B)
@@ -194,7 +194,7 @@ This table is the **census**, not a first pass: every call site in the adapters 
 
 **The split this is built on**: a world item's position and physics are the host's simulation (`ItemPositionAuthority` streams them, the guest's copy is soft-corrected); a carried item's *state* is its holder's fact — its own character snapshot and the carried events are how it is reported — and the item's **position** is not simulated by anybody while it is carried, because it is parented to the holder's body and travels with the body sync. The host arbitrates in both cases: it owns the table, decides who owns what (first valid claim wins) and refuses a destroy reported by anyone but the holder. So a standing object is the mirror of somebody else's carried item: it may age with the data, and it must not be a source of truth and must not write the world.
 
-1. **Category first**: a named marker for the new kind, anchored on the data, and **every site of the §3 census** consulted in the same change. The data fact is one query away — `_worldTable.ContainsKey` behind `ItemMessageFlowService.IsWorldItemRegistered`, wrapped by the Runtime-internal `IItemActionWorldAccess.IsWorldItem` (consumed by `ItemActionSync` alone) and **not on `IItemControl` today**, so exposing that one query to the adapter is part of this step. This is the hard prerequisite: the recipe below keeps the object a normal item, so without the category the reconcile kills it on the first keyframe, the host streams its parked position, and the guest's follow pump switches it to local physics.
+1. **Category first**: a named marker for the new kind, anchored on the data, and **every site of the §3 census** consulted in the same change. The data fact was one query away — `_worldTable.ContainsKey` behind `ItemMessageFlowService.IsWorldItemRegistered`, wrapped by the Runtime-internal `IItemActionWorldAccess.IsWorldItem` (consumed by `ItemActionSync` alone) and not on `IItemControl` — so exposing that one query to the adapter was part of this step: `IItemControl.IsWorldItemRegistered` is that query, and it landed with the category (*The category, landed* below holds the pieces and every census site's disposition). This is the hard prerequisite: the recipe below keeps the object a normal item, so without the category the reconcile kills it on the first keyframe, the host streams its parked position, and the guest's follow pump switches it to local physics.
 2. **It runs, but it is a non-authoritative copy.** Keep the object active and ordinary — in `Item.allItems`, full lifecycle, findable by id, writable by the data, and usable by the game's own machinery (which is what the eat needs) — and make it inert the way CUO already makes a guest's world-item copy inert: `rb.simulated = false` (the game's own "not in the world" switch, `Item.Update` sets it for a parentless item off-chunk), collider disabled (`CloneInventoryRenderer`'s "never pickable/blocking"), renderer off, parented to the CUO holder. The price of this shape is that §3's census stays live in full and constraint 1 becomes the blocker for any materialization — the switched-off variant (create it, write it, `SetActive(false)` before `Start`, so it is never registered in `Item.allItems` and never runs) would have made most of those rows moot; it was **rejected** as the shape to build on, because it turns the object into a component that never ran `Start` — outside the game's own item list, with no lifecycle, and a special case every future reader would have to learn.
 3. **Turn off the components that write outside the object.** §2's four writers are what force this: `WaterContainerItem` drinks the local fluid (on a guest the host's 1 Hz full viewport overwrites it; on the host it **is** the authority and the change is broadcast), `CustomItemBehaviour` (a parked `gravbag` explodes, an `exposedcore` spawns two crystal enemies, a `craftingbottle` destroys itself — real world writes on the host, local phantoms on a guest), and the two presentation components that make a parked copy noticeable (`LightItem`, `WatchScript`). Disabling a component stops its `Update` without stopping the data path — `ItemStateCodec` reads and writes those components' fields directly, so capture and restore keep working.
 4. **Never under the local body**, and never as a child of a container whose window a player can open unless that window is guarded.
@@ -211,6 +211,61 @@ This table is the **census**, not a first pass: every call site in the adapters 
 - the prefab facts that are asset data rather than C#: which layer an item collider sits on, trigger vs solid (`reversing/` holds no prefab data);
 - whether a standing object's local decay actually reaches the zero-condition destroy between two data refreshes;
 - Unity's behaviour for a `simulated = false` body whose velocity is written (the explosion path writes `rigidbody2D2.velocity`).
+
+## The category, landed (step 1 of §6)
+
+The category exists in code and every site of §3's census answers for it. The pieces:
+
+| Piece | Where | What it is |
+|---|---|---|
+| The named marker | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItemObject.cs` | the component the materializer will stamp on the object it creates as a carried row's local incarnation. It records what the object was CREATED as, and it is deliberately not the decision — `CloneInventoryRenderer` retires a stale display proxy by deactivating it before its deferred destroy, so a category a default component lookup can stop answering is the batch `20261006-h` hazard again |
+| The classifier | `src/CasualtiesUnknownOnline.GameAdapter/Items/StandingItems.cs` | `Is(item)` = the marker is present AND the item data does not hold its id as a world row. Both arms are load-bearing: without the marker, every parentless id-bearing object would classify as standing — a local drop whose report the host has not accepted yet is exactly that shape (the world table learns it from the next keyframe) — and without the data arm an object would stay standing after the data moved its id into the world |
+| The data anchor | `src/CasualtiesUnknownOnline.Runtime/Session/Items/IItemControl.cs` | `IsWorldItemRegistered(ulong)`, the one query §6.1 asked for, on the surface the adapter already composes; `ItemService`'s internal method became the interface implementation, still answered by the world table (`ItemMessageFlowService`) |
+| The patches' door | `src/CasualtiesUnknownOnline.GameAdapter/IItemCategoryPatchPort.cs` + `PatchBridge.ItemCategory` | a per-domain patch port, because the aggregate is frozen and a patch class is static; the port-shape gate pins the seam's census and the reflective port contract pins the compiled composition |
+| The shared classifiers | `ItemWorldSync.IsWorldItem` / `IsStandaloneWorldItem` | the parent-chain walk is now the SCENE half only (`IsInInventoryOrBody`) and one predicate adds the category. §3's census is precisely these two predicates' call-site list, so every site below answers for a standing object by construction rather than by twenty local fixes |
+
+Per-site dispositions, one line per §3 row:
+
+| §3 row | Disposition |
+|---|---|
+| `ItemUseSync.OnItemUsed` + `UseItemPatches` | **own verdict.** The use report refuses both existing routes for a standing object with a named log line: the world branch would publish a correction for an id the projection holds no row for, and the carried branch would publish another member's item as this side's own fact. The report that reaches the owner's real item is the food chain's step (§3's open row). The hook keeps letting the use run, which is what the eat needs |
+| `ItemReconcile` kill loop | fixed by the predicate: a standing object is `continue`d, not killed — the direct answer to §3's load-bearing finding |
+| `ItemReconcile` late id-less sweep, alignment loop | unchanged and safe (the sweep skips id-bearing objects, the alignment loop reads snapshot rows only) |
+| `GeneratedItemReconcile.Apply`, `GeneratedItemAuthority` | excluded twice: both gates ask for an id-LESS object first (a standing object always carries its id), and the predicate excludes it as well |
+| `ItemPositionAuthority` (10 Hz moves, 5 s refresh) | skipped by the predicate: no parked position rides the wire as a world fact, and the 5 s refresh no longer touches it. This is also what keeps the guest's receive half quiet: `ItemPositionFollow`'s follow set is fed ONLY by this stream |
+| `ItemPositionFollow` | two halves, both closed. The authority no longer streams a standing object's id, so no target is registered for it in the first place; and the receive half (`StartLocalPhysics`, reached from `OnRemoteItemMove` at a target's first registration — before any pump pass) refuses a standing object itself, because a move tick can still be in flight for an id the data moved out of the world after the host streamed it. The per-frame pump would only prune such a target on its next pass, which is too late for `bodyType`/position writes |
+| `RemoteItemSceneOps.FindWorldItem` / `ItemInstanceId`'s index | unchanged BY DESIGN: an id-stamped standing object must stay that id's domain object, because the apply path addresses it there (`ItemApplication.OnItemCorrection` → `ApplyAuthoritativeState`) |
+| `ItemApplication` (`OnRemoteItemPickedUp`, `OnRemoteItemDestroyed`, `ApplyTrapDropPresentation`) | the predicate now leaves a standing object alone at all three, which is what the existing comments already asked for ("a carried item … must never be killed by a remote destroy"). The fourth handler of the same file, `OnRemoteItemDropped`, has no world-item gate at all and is the transition edge below |
+| `ItemDropState` | a departure on a standing object is never owed (`HasReportOwed` answers false, so it cannot hold the owner's snapshots back) and `Settle` never turns it into a report. The entry itself is not cancelled: `DropPendingState.TrySettle` keeps an entry that cannot report yet, so it waits for another carrier (a re-pick, a destroy, the session teardown's `ResetPending`) |
+| `BodyPatches` (`WearWearable` prefix), `PickupSync.OnPickedUp`, `OnItemDropped` / `OnItemThrown` verdicts | the predicate answers "not a world item" / "not a standalone world item", so no false landed verdict is produced; the gesture itself is refused outright at the pickup gate below |
+| `ContainerItemSync` + `ContainerItemPatches` | the load prefix captures "not a world item" (so a load classifies as an inventory-internal move rather than a world→body pickup) and the unload's landed check rejects the departure. The container-contents shape stays §6 constraint 5's open call |
+| `NonAuthoritativeItemImpactGuard` + `NonAuthoritativeItemImpactPolicy` | neither half claims the impact, so a standing object's native presentation is neither suppressed as a guest copy nor reported as an authority's (the collider is off, so the hooks cannot fire) |
+| The drag-window family | unchanged: reachability is the guard (§4), and it is now a RULE rather than the collider alone — see the pickup gate row |
+| The carried/body-scoped marker selectors | safe by scope, unchanged (a standing object is never in the local body's subtree) |
+| `ItemProjection` + `ItemActionSync` | safe, unchanged — the stream writes (`ApplyRefresh`, `ApplyUpdateState`) are behind `_worldTable.TryGetValue`, and the command paths write the projection only after the kernel accepted the transition |
+| `ItemWorldSync.OnItemInstantiated` | excluded by the predicate, so §3's "attach the id before `Start`" is now belt-and-braces instead of the only defence: a standing object never allocates a fresh id and never reports a spawn |
+| `ItemWorldSync.OnItemDestroyed` | **own verdict.** Silent for a standing object: its destruction is CUO's own retire step or the session ending, never a fact about the owner's item — and the kernel would answer `Ignore` for a report about an item carried by another member, so the report could only be loud, never right |
+| `HeaterCookSync`, `CraftSyncService` | safe, unchanged (`IsWorldItemRegistered` already filters the craft family to world rows) |
+| `CloneFactTable` / `CharacterDataSync` / `CloneInventoryRenderer` | step 2's other seam: the category needs its own consumer of the carried-fact edge |
+| Session teardown | step 2 owns the standing category's lifetime (an object that outlives the world dereferences `WorldGeneration.world` every frame) |
+| Container contents recursion | step 2, under §6 constraint 5's open choice |
+| *not a §3 row* — the pickup gate | new: `DoPickupCheckPatch` refuses a standing object outright. That method is the one native gate the pickup, the ground wear and the recipe probe all pass through, so the object is unreachable by a local gesture as a rule, where the disabled collider alone would only make it unreachable by accident; the refusal is reported as itself, never as a distance/line-of-sight failure |
+
+**The one transition the category does not settle, named so step 2 does not miss it**: when the data moves
+an id from CARRIED to WORLD — its holder dropped it — the standing object's category correctly ends, but the
+object still carries the recipe's switches (`rb.simulated` off, collider disabled, renderer off, the writing
+components disabled). Two sites find the row's object by id and therefore treat the world row as already
+materialized: `ItemApplication.OnRemoteItemDropped` re-places that object instead of materializing a world
+copy, and `ItemReconcile.Land` returns early on the same lookup. The local copy would then be driven by the
+position stream while being invisible, non-colliding and unsimulated. Convert it or retire it — the retire
+and let the ordinary world path materialize a proper copy is the shape the rest of this ticket assumes — is
+step 2's call, made at those two sites.
+
+What this step deliberately leaves open: the materialize/update/destroy path (step 2 — nothing creates a
+standing object yet, so the whole category is inert in play), the host-as-eater use report (step 3, now a
+named refusal rather than a silently wrong route), the four container-swap foods, and the two container
+shapes of constraint 5. The category's per-frame cost is one component lookup per classification (the
+marker is tested before the data arm, so unmarked items pay one `GetComponent` and no table lookup).
 
 ## The earlier candidate designs (kept for the record)
 

@@ -45,6 +45,20 @@ internal sealed class ItemUseSync(IItemControl items, ISessionControl session, I
 			idComp = item.GetComponent<ItemInstanceId>();
 		}
 
+		// A STANDING item object is the local incarnation of another member's carried item, so this
+		// side's copy is not the fact and NEITHER branch below may take it: the world branch would
+		// publish a correction for an id the projection holds no row for (a carried row is not a
+		// world row), and the carried branch would publish another member's item as THIS side's own
+		// fact. The report that reaches the owner's real item is the food chain's own step — the
+		// open direction is the host as the eating side (ticket
+		// `docs/backlog/todo/mod-cross-player-solid-food-semantics.md`, §3's use-report row and §6).
+		if (StandingItems.Is(item))
+		{
+			_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) is a standing item object — the use stays local; the report to its owner is the food chain's step.",
+				item.id, idComp!.Id);
+			return;
+		}
+
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
 			var capture = ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item));

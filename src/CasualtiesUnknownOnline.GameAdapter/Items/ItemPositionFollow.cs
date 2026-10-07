@@ -283,6 +283,18 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 			return;
 		}
 
+		// A standing item object is another member's carried item incarnated locally, so the position
+		// stream is not its source of truth (the data is): a move entry can still be in flight for its
+		// id — the host streamed it while the data held that id as a world row, and the data has since
+		// moved it into somebody's inventory — and switching the body to local physics or aligning the
+		// position would write a world-item fact onto a non-authoritative copy. The target stays
+		// registered for now; the next pump pass drops it, reading the same category (ItemWorldSync's
+		// classifiers).
+		if (StandingItems.Is(item))
+		{
+			return;
+		}
+
 		var rb = item.rb;
 		var wasFrozen = rb.bodyType == RigidbodyType2D.Kinematic;
 		if (wasFrozen)

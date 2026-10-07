@@ -24,7 +24,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// casting the bound bridge, so this declaration is what makes it reachable.
 /// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort
 {
 	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
@@ -396,6 +396,14 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool TryRenderCustomLiquids(FluidManager manager) =>
 		domains.LiquidTileRender.TryRender(manager);
+
+	/// <summary>The item category's data anchor, forwarded from the Runtime's own item data: the static patches read it here, the shared classifiers read it through <c>StandingItems</c>.</summary>
+	public bool IsWorldItemRegistered(ulong itemId) => domains.Items.IsWorldItemRegistered(itemId);
+
+	/// <summary>The refusal half of the same port: the pickup gate refused a local gesture because its target is a standing item object.</summary>
+	public void ReportStandingItemGestureRefused(Item item, string source) =>
+		domains.Log.LogWarning("[StandingItem] {Type} (id {ItemId}) refused by {Source} — a standing item object is another member's carried item and is never reachable by a local gesture.",
+			item.id, item.GetComponent<ItemInstanceId>()?.Id ?? 0, source);
 
 	public bool TryGetCustomLiquidColor(byte worldByte, out Color color) =>
 		domains.LiquidTileContent.TryGetDisplayColor(worldByte, out color);

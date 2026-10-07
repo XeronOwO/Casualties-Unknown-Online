@@ -55,13 +55,12 @@ public static class KernelPlayerInteractionWireMapper
 				DurationSeconds = t.DurationSeconds,
 				BleedPerSecond = t.BleedPerSecond,
 			})],
-			TimedBodyEffects = [.. e.TimedBodyEffects.Select(t => new WirePlayerInteractionTimedBodyEffect
-			{
-				EffectId = t.EffectId,
-				DurationSeconds = t.DurationSeconds,
-				DoseMl = t.DoseMl,
-			})],
 			AppliedDose = [.. e.AppliedDose.Select(s => new WireLiquidStack
+			{
+				LiquidId = s.LiquidId,
+				Amount = s.Amount,
+			})],
+			DrinkDose = [.. e.DrinkDose.Select(s => new WireLiquidStack
 			{
 				LiquidId = s.LiquidId,
 				Amount = s.Amount,
@@ -115,9 +114,9 @@ public static class KernelPlayerInteractionWireMapper
 			FromWireHealth(p.Health),
 			[.. p.Limbs.Select(FromWireLimb)],
 			[.. p.TimedEffects.Select(t => new PlayerInteractionTimedLimbEffect(t.LimbIndex, t.DurationSeconds, t.BleedPerSecond))],
-			[.. p.TimedBodyEffects.Select(t => new PlayerInteractionTimedBodyEffect(t.EffectId, t.DurationSeconds, t.DoseMl))],
 			[.. p.AppliedDose.Select(s => new PlayerInteractionLiquidStack(s.LiquidId, s.Amount))],
-			p.LimbIndex);
+			p.LimbIndex,
+			[.. p.DrinkDose.Select(s => new PlayerInteractionLiquidStack(s.LiquidId, s.Amount))]);
 
 	private static WireItemIdentity ToWireIdentity(ItemIdentity identity) =>
 		new()

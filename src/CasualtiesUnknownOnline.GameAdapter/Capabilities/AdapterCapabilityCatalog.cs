@@ -99,6 +99,11 @@ internal static class AdapterCapabilityCatalog
 				typeof(RemoteDragPredicatePatches.RemoteDragHoldingItemPatch), typeof(RemoteDragPredicatePatches.RemoteDragHoldingSlotPatch),
 				typeof(RemoteDragPredicatePatches.RemoteDragGetItemPatch), typeof(RemoteDragPredicatePatches.RemoteDragGetWearablePatch),
 				typeof(RemoteDragPredicatePatches.RemoteDragPickupCheckPatch), typeof(RemoteDragPredicatePatches.RemoteDragOpenContainerPatch),
+				// The consume (drink) chain's divert: WaterContainerItem.Drink swallowed
+				// while this client measures a cross-player drink. It belongs to the item
+				// interaction surface rather than to the medical one the two limb diverts
+				// sit in, because drinking is not a medical treatment.
+				typeof(RemoteDrinkPatches),
 			],
 			[],
 			[],

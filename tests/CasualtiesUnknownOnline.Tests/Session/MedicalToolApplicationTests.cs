@@ -307,8 +307,14 @@ public class MedicalToolApplicationTests
 	}
 
 	[Fact]
-	public void Guest_UsesAntiradOnHost_CarriesTimedBodyEffectAndDrains()
+	public void Guest_UsesAntiradOnHost_CarriesTheMeasuredDrinkDose()
 	{
+		// antirad is a DRINK, not a limb treatment: the item's own use action is
+		// `Drink(body, 20f, "pills")` (Item.cs:1399), so the operator's client
+		// measured 20 ml and the request carries it. The host commits the drain and
+		// carries it as DrinkDose; the timed radiation tick the deleted
+		// TimedBodyEffect row used to schedule is now the liquid's own onDrink body,
+		// run on the patient's client.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -318,7 +324,7 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, antirad);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, doseMl: 20f);
 
 		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
@@ -327,15 +333,19 @@ public class MedicalToolApplicationTests
 		Assert.NotNull(result.ItemAfter);
 		Assert.True(Math.Abs(result.ItemAfter!.Liquids.Single().Amount - 80f) < 0.001f);
 
-		var timedBody = Assert.Single(result.TimedBodyEffects);
-		Assert.Equal("antirad", timedBody.EffectId);
-		Assert.True(Math.Abs(timedBody.DurationSeconds - 90f) < 0.001f);
+		var dose = Assert.Single(result.DrinkDose);
+		Assert.Equal("antirad", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 20f) < 0.001f);
+		Assert.Null(result.Health);
 		Assert.Empty(result.TimedEffects);
 	}
 
 	[Fact]
-	public void Guest_UsesSleepingPillsOnHost_AddsComponentAmount()
+	public void Guest_UsesSleepingPillsOnHost_CarriesTheMeasuredDrinkDose()
 	{
+		// sleepingpills drinks 5 ml (`Drink(body, 5f, "pills")`, Item.cs:1422) and
+		// the component dose is the liquid's own onDrink business on the patient's
+		// client, so the host carries the drain and no body state.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -345,19 +355,28 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, sleepingPills);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, doseMl: 5f);
 
 		var result = UseResult(received);
 		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.True(Math.Abs(result.Health!.SleepingPillsAmount - 300f) < 0.001f);
+		Assert.Null(result.Health);
+		var dose = Assert.Single(result.DrinkDose);
+		Assert.Equal("sleepingpills", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 5f) < 0.001f);
 
 		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.SleepingPillsAmount - 300f) < 0.001f);
+		Assert.Equal(0f, hostData.Health!.SleepingPillsAmount);
 	}
 
 	[Fact]
-	public void Guest_UsesMindwipeOnUnhappyHost_AppliesMindwipeScript()
+	public void Guest_UsesMindwipeOnHost_CarriesTheMeasuredDrinkDose()
 	{
+		// mindwipe's item-level health gate lives in the item's OWN delegate
+		// (Item.cs:1343-1352) and runs on the operator's client against the
+		// affected player's own body, so a healthy target delivers NO dose and the
+		// host refuses the request; this case is the admitted half. The liquid's own
+		// second gate (`MindwipeScript` already present) and the script it adds run
+		// on the patient's client through onDrink.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -371,25 +390,27 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, mindwipe);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, doseMl: 60f);
 
 		var result = UseResult(received);
-		Assert.True(result.Health!.MindwipeScriptPresent);
-		Assert.False(result.Health.MindwipeScriptActive);
+		Assert.Null(result.Health);
+		var dose = Assert.Single(result.DrinkDose);
+		Assert.Equal("mindwipe", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 60f) < 0.001f);
 
 		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(hostData.Health!.MindwipeScriptPresent);
-
-		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
-		var player = authority.QueryPlayers()!.Players.Single(p => p.SteamId == HostId);
-		Assert.NotNull(player.Body);
-		Assert.True(player.Body!.MindwipeScriptPresent);
-		Assert.False(player.Body!.MindwipeScriptActive);
+		Assert.False(hostData.Health!.MindwipeScriptPresent);
 	}
 
 	[Fact]
-	public void Use_MindwipeOnMentallyHealthyHost_IsRefused()
+	public void Use_ADrinkRequestWithNoMeasuredDose_IsRefused()
 	{
+		// The item-level gate that used to be mirrored here is now the item's own
+		// delegate on the operator's client: a refused drink reaches no
+		// WaterContainerItem.Drink call, so the request carries no dose — the same
+		// shape the topical chain's no-dose refusal has. The host cannot re-judge
+		// it: the gate's inputs are the patient's, and the patient's own body is
+		// where the liquid-level gate still runs.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var hostSnapshot = Snapshot(HostId, conscious: true);

@@ -81,6 +81,9 @@ internal sealed class TestNode : IDisposable
 				// and liquid registries answers instead (FakeLimbUseSemantics).
 				// A test that needs a different verdict replaces it here.
 				s.Replace(ServiceDescriptor.Singleton<ILimbUseSemantics>(FakeLimbUseSemantics.Instance));
+				// The same stand-in for the consume (drink) chain's content facts,
+				// whose production answer is Item.GlobalItems (FakeConsumeSemantics).
+				s.Replace(ServiceDescriptor.Singleton<IConsumeSemantics>(FakeConsumeSemantics.Instance));
 				TestLogging.RemoveFileSink(s); // before the test's overrides, so a test may still re-add a sink
 				extraRegistrations?.Invoke(s); // the test's overrides (e.g. stub mod control surfaces) — last, so they win
 			});

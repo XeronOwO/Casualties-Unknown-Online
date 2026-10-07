@@ -281,7 +281,6 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				{
 					domains.CharacterDataSync.ApplyHealState(body, health, msg.Limbs);
 					TimedLimbEffectApply.Apply(body, msg.TimedEffects, domains.Log);
-					TimedBodyEffectApply.Apply(body, msg.TimedBodyEffects, domains.Log);
 					domains.Log.LogInformation("[ItemUse] local body received a consumable from {User}.", msg.UserSteamId);
 					changed = true;
 				}
@@ -308,6 +307,22 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			// user != target today, so only one half can be for the local player, but
 			// the report must not depend on that argument holding.
 			changed |= handled > 0;
+		}
+
+		// The migrated drink family is executed for the same reason and under the
+		// same scope rule as the topical half above: the host committed the drain
+		// and computed no body state, and the liquids' own onDrink bodies run here,
+		// on the body that drank. Outside the RemoteApply scope, so the clips those
+		// delegates play (braingrow, antidepressants, antibiotics, antirad and
+		// sleeping pills play "pills") are relayed to the peers exactly as they are
+		// for a local drink.
+		if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.DrinkDose.Count > 0)
+		{
+			var drank = NativeDrinkApply.Apply(body, msg.DrinkDose, domains.Log);
+			domains.Log.LogInformation(
+				"[ItemUse] local body drank {Count} stack(s) from {User}.",
+				drank, msg.UserSteamId);
+			changed |= drank > 0;
 		}
 
 		if (changed)

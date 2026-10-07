@@ -2,8 +2,9 @@
 
 - Status: Todo — **cut 2026-10-08** out of `mod-content-ceiling.md` Part 2 stage 2, which required this
   stage to become its own architecture ticket. Part A (the injection chain) landed in the same cycle;
-  Part B's first chain (topical) landed 2026-10-08 as well, so the ticket carries the three remaining
-  chains.
+  Part B's topical chain landed 2026-10-08 as well, and so did its consume (drink) chain, so the ticket
+  carries the two remaining chains plus the solid-food branch, which was cut to its own ticket when the
+  drink chain landed.
 - Priority: High
 - Category: Mod platform / remote medical / architecture
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2, stage 2)
@@ -213,19 +214,96 @@ which is now the game's own delegate executed on the patient's client and cannot
 reached from an L0 test. They are named rather than counted as replaced, and none
 was dropped silently.
 
+## Part B — the consume (drink) chain (landed 2026-10-08)
+
+Everything a player drinks, migrated in the same shape as Part A and the topical chain. Self-check:
+`docs/evidence/selfchecks/players/cross-player-native-drink-semantics-selfcheck.md`. It covers both
+tables the row below used to name: the water/food containers `RemoteConsumeCatalog` carried and the
+drinkable medicines `RemoteDrinkMedicineCatalog` carried — they are the same native call, and the
+difference between water and naltrexone is only which liquid the container holds.
+
+### The predicate
+
+`ConsumeAdmission` asks a new `IConsumeSemantics` seam (Runtime, answered by the Game Adapter over
+`Item.GlobalItems`): the item's own data says the game can USE it as a liquid container — its
+`ItemInfo.Stats` is a `LiquidItemInfo` whose `usable` flag is set, which is exactly the gate
+`Body.UseItem` applies before running the item's own `useAction` — AND it still holds liquid. The LIQUID
+decides nothing: native `WaterContainerItem.Drink` has no liquid-level gate at all (unlike `Inject`'s
+`injectable` and `ApplyToLimb`'s `healthUsable`), it drains whatever the container holds and runs each
+liquid's own `onDrink`, so a liquid the deleted 14-row allowlist never carried is the game's own case
+rather than a reason to refuse.
+
+The limb rules are asked BEFORE this one at every routing site, and that order is what keeps the
+containers the game marks both ways (`saline`, `ringersolution`, `bloodbag`, `bloodbaghuman` — `usable`
+AND `usableOnLimb`) on the medical family, exactly as they behaved before this chain migrated. The two
+rules are not disjoint, which `ConsumeSemanticsTests` states and
+`ItemUseTests.Use_ADrinkableInjectableContainer_IsRefusedByTheInjectionFirstOrder` pins where it is
+observable.
+
+### The dose
+
+`RemoteDrinkUseHandler.TryMeasure` runs the item's OWN `useAction` and the new
+`WaterContainerItem.Drink` prefix diverts that call: the ml the delegate computed (an `ldc.r4` literal —
+100 for a water bottle, 20 for naltrexone, 5 for sleeping pills) becomes the request's dose and the
+native call is swallowed, so the operator's own item is never drawn and the liquids' `onDrink` bodies
+never run there. The delegate is handed the AFFECTED player's own body, because an item's use action can
+READ the body it drinks from — mindwipe's item-level health gate is the vanilla instance — and only that
+player's own picture may answer it. All three operator entries measure: the world drag (on the affected
+player's render clone, refused by name when it is not rendered), the held-remote-item route (on the
+requester's own body, with the ml riding the existing `RemoteInventoryIntentMsg.Amount`), and the
+wound-view release a drink container can reach.
+
+### The effect
+
+The host builds the drain with `LiquidDrainPlan` (the native `CalculateDrain` shape, capped at what the
+authoritative item really carries), commits it and writes NO target state. The drained plan rides
+`PlayerItemUseResultMsg.DrinkDose` and the journal event behind it; the patient's own client runs
+`NativeDrinkApply`, which is `Drink`'s per-stack loop minus the drain: each liquid's own
+`onDrink(ml, body)` inside the item-use sound scope, so the clips those delegates play are relayed
+exactly as a local drink's are. The timed bodies (`CoUtils.DoTimedOp` for antirad, naltrexone,
+braingrow), the component doses (sleeping pills, antidepressants, the mindwipe script) and the per-call
+random rolls therefore all start on the body they land on, with no CUO message in between.
+
+### What Part B's drink chain deleted
+
+- `RemoteDrinkMedicineCatalog` (12 item amounts, 13 per-ml liquid effects, the mindwipe mirror),
+  `RemoteDrinkMedicineApplication`, `RemoteDrinkMedicineEffect`;
+- `RemoteConsumeCatalog`'s 14-liquid table and its `DrinkAmountMl` constant,
+  `RemoteConsumeApplication`'s drink plan and effect, `RemoteLiquidEffect`;
+- the whole `TimedBodyEffectMsg` chain — `PlayerItemUseResultMsg.TimedBodyEffects`,
+  `PlayerInteractionTimedBodyEffect`, `WirePlayerInteractionTimedBodyEffect`, `TimedBodyEffectApply` and
+  its four remaining branches — which had no producer left once the last timed medicine effect became a
+  liquid's own delegate.
+
+### Hard acceptance
+
+Delete the constant tables and every existing case of the chain stays green. The two deleted catalogs'
+22 cases are dispositioned one by one in the self-check's §6, because "no case was dropped" is not true
+as a blanket statement: eight have no successor by construction (they pinned CUO's transcription of the
+game's per-ml arithmetic, which is now the game's own `onDrink` executed on the patient's client and
+cannot be reached from an L0 test), and the other fourteen are superseded in a stronger form, rewritten
+in place or kept unchanged.
+
+## Part B — the solid-food branch (cut to its own ticket)
+
+`todo/mod-cross-player-solid-food-semantics.md`. Its native shape is not this one: a food item's
+`useAction` is a delegate that calls `body.Eat` / `body.Drink` and writes body fields and the item
+directly, with no divertible container call and no data field carrying the amounts — so the affected
+side cannot run it without an item instance. The `Food` half of `RemoteConsumeCatalog` still answers for
+it, and the ticket carries the two candidate designs and their trade-offs.
+
 ## Part B — the remaining chains
 
 The same shape, one chain per deliverable, each with its own hard acceptance:
 
 | Chain | Table today | Native predicate and path |
 |---|---|---|
-| Eat / drink | `RemoteConsumeCatalog`, `RemoteDrinkMedicineCatalog` | `ItemInfo.useAction` → `WaterContainerItem.Drink` → `LiquidType.onDrink`, and the solid-food branch |
 | Wear | `RemoteWearCatalog` | `wearable` with `desiredWearLimb` / `wearSlotId` |
 | Limb tool | `RemoteLimbToolCatalog`, `RemoteHealProfiles` | non-null `useLimbAction` plus the tool's own tag |
 
 Each of these also decides whether the item-level gesture routing can stop being a table (Part A left
 the routing itself table-driven: the operator picks the injection family by "usable on a limb and holds
-an injectable liquid").
+an injectable liquid"; this chain added the item's own `usable` flag beside it).
 
 ## Red lines that do not change
 
@@ -263,6 +341,53 @@ an injectable liquid").
   logged and skipped on that side, so the resource is spent without an effect. The alternative — refusing
   the whole operation — would need the host to know the game's registry, which is the table this Part
   deleted.
+
+## Limits recorded with Part B's drink chain
+
+The full list is in the self-check; the ones a reader of this ticket should not
+have to go looking for:
+
+- **An item in the drink class whose delegate is not a drink runs its own action
+  on the operator's client and is then refused.** The class is the game's own
+  flag and nothing in the data says which native call a delegate makes, so the
+  measurement finds out by running it. The measurement sites ask the injection rule
+  first (`LocalUseItemEligibility.FamilyOf`), so the two vanilla blood bags — whose
+  `useAction` is `Item.DrawBlood`, a real fill of the operator's bag and a real
+  drain of the treated limb — are never measured and are refused by name exactly as
+  before this chain migrated (the independent review's blocker was that this order
+  was missing at the measurement sites while the host, the eligibility gate and the
+  medical handler all had it). What remains exposed is `liquidcentrifuge`: a usable
+  `LiquidItemInfo` whose `useAction` runs the centrifuge, reachable from BOTH the
+  world drag and the wound-view release, so dragging it onto a teammate separates
+  the operator's own centrifuge contents before the use is refused. A mod item in
+  that state is exposed the same way; the alternative is the hand-written "which
+  usable containers are drinks" list this ticket exists to delete.
+- **The mindwipe health gate moved from the host's mirror to the operator's own
+  native run.** It reads the drinking body's vitals, which belong to the patient,
+  so it runs on the operator's client against the affected player's displayed
+  body; the host sees a dose or no dose. A modified operator client can therefore
+  assert a dose for a target its own copy calls healthy — the trust boundary the
+  dose VALUE already has, and unavoidable once the gate's inputs became the
+  patient's own picture.
+- **The world-drag measurement refuses when the affected player's render clone is
+  not rendered on the operator's client.** The clone IS the body the item's own
+  use action is handed, and an item delegate may read it, so answering from this
+  client's own body would decide a remote fact from local state. The topical limb
+  measurement keeps its own fallback, because there the body argument is a clip's
+  position rather than a gate's input.
+- **Two eligibility changes are deliberate and user-visible**, both from asking
+  the item's flag instead of the deleted liquid allowlist: a limb-usable container
+  the game cannot USE (`spraybottle`, `syringe`) refilled with a drinkable liquid
+  is no longer fed to a teammate and now falls through to the native drop, and
+  the containers the game marks both ways stay refused on the one-shot path by
+  the routing order, as before.
+- **The native drink's trailing item-level clip is not replayed** (the `sound`
+  argument `Drink` plays at the end); no cross-player drink clip played before
+  this chain migrated either. The liquid-level clips some `onDrink` bodies play
+  are native now and are relayed from the patient.
+- **The dose's VALUE is still the operator's own client assertion**, capped by
+  the host at what the authoritative item carries — the same trust boundary the
+  topical chain records.
 
 ## Open questions
 

@@ -7,10 +7,13 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// Host → participant(s) authoritative result of a cross-player consumable use.
 /// One operation = one message: the acting player learns whether its item was
 /// consumed, destroyed or had its liquid stack drained, and the target receives
-/// the host-computed post-use body state so its local body can apply the exact
-/// same effect inside a RemoteApply scope. The target re-reports its character
-/// snapshot immediately, so the host save and every peer clone converge without
-/// waiting for the next 1 Hz tick.
+/// the effect. Two families have migrated to the affected side's own client — the
+/// topical application and the drink (injection rides its own session wire) — and
+/// for those the result carries the committed drain instead of any host-computed
+/// body state; every other family still receives the host-computed post-use body
+/// state and applies it inside a RemoteApply scope. The target re-reports its
+/// character snapshot immediately after applying either kind, so the host save and
+/// every peer clone converge without waiting for the next 1 Hz tick.
 /// </summary>
 [ProtoContract]
 public sealed class PlayerItemUseResultMsg
@@ -56,15 +59,6 @@ public sealed class PlayerItemUseResultMsg
 	public List<TimedLimbEffectMsg> TimedEffects { get; set; } = [];
 
 	/// <summary>
-	/// Timed body-level liquid effects the target's local body must run (e.g.
-	/// stimulant, procoagulant, epinephrine and oxyline injections). The host
-	/// does not simulate these timed/random branches; the target re-reports
-	/// through the normal snapshot path.
-	/// </summary>
-	[ProtoMember(10)]
-	public List<TimedBodyEffectMsg> TimedBodyEffects { get; set; } = [];
-
-	/// <summary>
 	/// The drain the host committed for the migrated TOPICAL family: the operator
 	/// measured one native <c>ApplyToLimb</c> call, the host capped it at what the
 	/// authoritative item carried and split it the way
@@ -101,4 +95,24 @@ public sealed class PlayerItemUseResultMsg
 		get => _limbSelection;
 		set => _limbSelection = value;
 	}
+
+	/// <summary>
+	/// The drain the host committed for the migrated DRINK family: the operator
+	/// measured one native <c>WaterContainerItem.Drink</c> call, the host capped
+	/// it at what the authoritative item carried and split it the way
+	/// <c>CalculateDrain</c> does. Non-empty means the target's own client runs
+	/// each liquid's own <c>onDrink</c> body over it, and that
+	/// <see cref="Health"/>/<see cref="Limbs"/> carry nothing — like the topical
+	/// family, the host computed no body state here. Empty for every other
+	/// family.
+	/// <para>
+	/// It is its own field rather than a flag beside <see cref="AppliedDose"/>
+	/// because the two name different native calls on the affected side
+	/// (<c>Drink</c>'s per-stack <c>onDrink</c> against <c>ApplyToLimb</c>'s
+	/// per-stack <c>onHealthUse</c>, which needs a limb) — so neither family has
+	/// to be inferred from the other's emptiness.
+	/// </para>
+	/// </summary>
+	[ProtoMember(13)]
+	public List<LiquidStackMsg> DrinkDose { get; set; } = [];
 }

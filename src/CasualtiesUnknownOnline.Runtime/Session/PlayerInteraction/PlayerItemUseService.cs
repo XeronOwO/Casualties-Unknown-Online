@@ -11,20 +11,22 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// The cross-player item-use operation (drink/food first slice plus the
-/// curated medicine, limb-tool and wearable slices and the migrated topical
-/// one). The host validates the user and target against its authoritative
-/// character snapshots, consumes/drains a carried item or transfers a wearable
-/// onto the target's snapshot, applies the curated target-side body/limb effect
-/// and sends the two participants one authoritative result. It has no mutable
-/// session state — it only reacts to calls and messages.
+/// The cross-player item-use operation (the SOLID-food first slice plus the
+/// limb-tool and wearable slices and the three migrated native families:
+/// injection, topical and drink). The host validates the user and target against
+/// its authoritative character snapshots, consumes/drains a carried item or
+/// transfers a wearable onto the target's snapshot, applies the curated
+/// target-side body/limb effect and sends the two participants one authoritative
+/// result. It has no mutable session state — it only reacts to calls and
+/// messages.
 /// <para>
-/// The topical family is the exception the migration created: the host commits
-/// only the resource and carries the operator-reported dose to the target, whose
-/// own client runs the liquids' native <c>onHealthUse</c> bodies. The host
-/// therefore writes no target state for it, and the result carries no
-/// host-computed body snapshot — see
-/// <c>mod-cross-player-native-semantics</c> Part B.
+/// The migrated families are the exception the migration created: the host
+/// commits only the resource and carries the operator-measured dose to the
+/// target, whose own client runs the game's own code — the liquids'
+/// <c>onHealthUse</c> for a limb application, their <c>onDrink</c> for a drink.
+/// The host therefore writes no target state for them, and the result carries no
+/// host-computed body snapshot — see <c>mod-cross-player-native-semantics</c>
+/// Parts A and B.
 /// </para>
 /// </summary>
 internal sealed class PlayerItemUseService(
@@ -34,6 +36,7 @@ internal sealed class PlayerItemUseService(
 	IItemControl items,
 	IPlayerInteractionVisibility visibility,
 	ILimbUseSemantics limbUseSemantics,
+	IConsumeSemantics consumeSemantics,
 	ItemKernelAuthority kernelAuthority,
 	PlayerInteractionResultAuthority resultAuthority,
 	ILogger log)
@@ -44,6 +47,7 @@ internal sealed class PlayerItemUseService(
 	private readonly IItemControl _items = items;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ILimbUseSemantics _limbUseSemantics = limbUseSemantics;
+	private readonly IConsumeSemantics _consumeSemantics = consumeSemantics;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
 	private readonly ILogger _log = log;
@@ -202,7 +206,7 @@ internal sealed class PlayerItemUseService(
 		}
 		else
 		{
-			originalItem = CarriedItemUseTree.FindFirstUsable(userData.Items, _limbUseSemantics);
+			originalItem = CarriedItemUseTree.FindFirstUsable(userData.Items, _limbUseSemantics, _consumeSemantics);
 			if (originalItem is null)
 			{
 				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable to auto-select.", user);
@@ -210,7 +214,7 @@ internal sealed class PlayerItemUseService(
 			}
 		}
 
-		if (!CarriedItemUseTree.IsActuallyUsable(originalItem, _limbUseSemantics))
+		if (!CarriedItemUseTree.IsActuallyUsable(originalItem, _limbUseSemantics, _consumeSemantics))
 		{
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or not in the catalog.", originalItem.ItemId, originalItem.InstanceId);
 			return false;
@@ -222,8 +226,8 @@ internal sealed class PlayerItemUseService(
 		var destroyed = false;
 		CharacterItemMsg? wornItem = null;
 		List<LiquidStackMsg>? appliedDose = null;
+		List<LiquidStackMsg>? drinkDose = null;
 		var timedEffects = new List<TimedLimbEffectMsg>();
-		var timedBodyEffects = new List<TimedBodyEffectMsg>();
 
 		if (RemoteWearCatalog.IsWearItem(originalItem.ItemId))
 		{
@@ -237,34 +241,19 @@ internal sealed class PlayerItemUseService(
 			destroyed = true; // the acting player's local item is removed; the wire carries WornItem for the target side
 			_log.LogInformation("[ItemUse] {User} wears {ItemId} (id {InstanceId}) on {Target}; slot {Slot}.", user, originalItem.ItemId, originalItem.InstanceId, target, wornItem.SlotIndex);
 		}
-		else if (RemoteConsumeApplication.TryCreateDrinkPlan(originalItem.Liquids, out var drinkPlan))
-		{
-			RemoteConsumeApplication.ApplyDrink(newTargetData.Health!, drinkPlan);
-			CarriedItemUseTree.ApplyDrain(newItem, drinkPlan);
-		}
-		else if (RemoteConsumeCatalog.TryGetFood(originalItem.ItemId, out var food))
-		{
-			RemoteConsumeApplication.ApplyFood(newTargetData.Health!, food);
-			newItem.Condition -= food.ConditionCost;
-			destroyed = newItem.Condition <= 0f;
-		}
 		else if (InjectionAdmission.IsInjectableContainer(_limbUseSemantics, originalItem.ItemId, originalItem.Liquids))
 		{
+			// Asked before the drink rule on purpose: the items both rules admit
+			// are the liquid containers the game can also draw from a limb
+			// (saline, ringersolution, a blood bag), and for those the one-shot
+			// path has always refused by name and pointed at the medical
+			// operation session. The limb rules ask their own flag
+			// (usableOnLimb) while this chain asks `usable`, so the order — not
+			// the data — is what keeps a dual-class container on the family the
+			// gesture was made for.
 			_log.LogWarning("[ItemUse] refused: injectable/IV medicine {ItemId} (id {InstanceId}) must use the medical operation session, not the one-shot request path.",
 				originalItem.ItemId, originalItem.InstanceId);
 			return false;
-		}
-		else if (RemoteDrinkMedicineCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var drinkMedicinePlan))
-		{
-			if (RemoteDrinkMedicineCatalog.IsMindwipeBlocked(originalItem.ItemId, newTargetData.Health!))
-			{
-				_log.LogInformation("[ItemUse] refused: {Target} is still mentally healthy for mindwipe.", target);
-				return false;
-			}
-
-			RemoteDrinkMedicineApplication.Apply(newTargetData.Health!, drinkMedicinePlan);
-			timedBodyEffects = RemoteDrinkMedicineApplication.BuildTimedEffects(drinkMedicinePlan);
-			CarriedItemUseTree.ApplyDrain(newItem, drinkMedicinePlan);
 		}
 		else if (TopicalAdmission.IsTopicalContainer(_limbUseSemantics, originalItem.ItemId, originalItem.Liquids))
 		{
@@ -284,6 +273,39 @@ internal sealed class PlayerItemUseService(
 
 			appliedDose = topicalPlan;
 			CarriedItemUseTree.ApplyDrain(newItem, topicalPlan);
+		}
+		else if (ConsumeAdmission.IsDrinkContainer(_consumeSemantics, originalItem.ItemId, originalItem.Liquids))
+		{
+			// The dose is the one the item's OWN use action computed on the
+			// operator's client — the per-use ml is an ldc.r4 literal inside the
+			// delegate that reaches WaterContainerItem.Drink (100 for a water
+			// bottle, 20 for naltrexone, 5 for sleeping pills), so no table can
+			// hold it and the host only caps it at what the item really carries
+			// (LiquidDrainPlan mirrors the native CalculateDrain). The effect
+			// belongs to the affected side: this branch commits the resource and
+			// carries the drained plan to the target, which runs each liquid's own
+			// onDrink delegate. Nothing target-side is computed or saved here.
+			//
+			// Asked AFTER the limb rules, and in the same order the operator's
+			// own entries measure: vanilla never needs the order (every topical
+			// carrier is `usable=false` and every drink container that is also
+			// limb-usable holds a liquid that is neither injectable nor
+			// health-usable), but a mod container the game marks both ways must
+			// measure the same native call this chain will run.
+			if (!LiquidDrainPlan.TryCreate(originalItem.Liquids, doseMl, out var drinkPlan))
+			{
+				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) carried no dose to drink for {Target}.", originalItem.ItemId, originalItem.InstanceId, target);
+				return false;
+			}
+
+			drinkDose = drinkPlan;
+			CarriedItemUseTree.ApplyDrain(newItem, drinkPlan);
+		}
+		else if (RemoteConsumeCatalog.TryGetFood(originalItem.ItemId, out var food))
+		{
+			RemoteConsumeApplication.ApplyFood(newTargetData.Health!, food);
+			newItem.Condition -= food.ConditionCost;
+			destroyed = newItem.Condition <= 0f;
 		}
 		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
 		{
@@ -313,7 +335,7 @@ internal sealed class PlayerItemUseService(
 		}
 		else
 		{
-			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is not in the remote-consumable/medicine/topical/limb-tool catalog.", originalItem.ItemId, originalItem.InstanceId);
+			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is not in the food/topical/drink/limb-tool families the one-shot path carries.", originalItem.ItemId, originalItem.InstanceId);
 			return false;
 		}
 
@@ -327,8 +349,11 @@ internal sealed class PlayerItemUseService(
 		}
 
 		_characters.SaveCharacterData(user, newUserData);
-		if (appliedDose is null)
+		if (appliedDose is null && drinkDose is null)
 		{
+			// No target state is written for either migrated family: their effect
+			// runs on the affected side, and re-saving the untouched clone here
+			// would only claim the host had computed something.
 			_characters.SaveCharacterData(target, newTargetData);
 		}
 
@@ -371,12 +396,13 @@ internal sealed class PlayerItemUseService(
 			"[ItemUse] {User} used {ItemId} (id {InstanceId}) on {Target}; destroyed={Destroyed}.",
 			user, originalItem.ItemId, originalItem.InstanceId, target, destroyed);
 
-		// The migrated topical family publishes no host-computed body state: the
-		// target applies the dose itself through the native path, and neither
-		// display sink has a staleness guard, so echoing the target's own
-		// pre-dose report back would fight the effect this same message carries.
-		// Every other family keeps the host-applied snapshot untouched.
-		var targetAppliesLocally = appliedDose is not null;
+		// The migrated topical and drink families publish no host-computed body
+		// state: the target applies the committed dose itself through the game's
+		// own code, and neither display sink has a staleness guard, so echoing the
+		// target's own pre-dose report back would fight the effect this same
+		// message carries. Every other family keeps the host-applied snapshot
+		// untouched.
+		var targetAppliesLocally = appliedDose is not null || drinkDose is not null;
 		PublishUse(new PlayerItemUseResultMsg
 		{
 			UserSteamId = user,
@@ -388,8 +414,8 @@ internal sealed class PlayerItemUseService(
 			Health = targetAppliesLocally ? null : newTargetData.Health,
 			Limbs = targetAppliesLocally ? [] : [.. newTargetData.Limbs],
 			TimedEffects = timedEffects,
-			TimedBodyEffects = timedBodyEffects,
 			AppliedDose = appliedDose ?? [],
+			DrinkDose = drinkDose ?? [],
 			LimbIndex = limbIndex,
 		});
 		return true;
@@ -476,9 +502,9 @@ internal sealed class PlayerItemUseService(
 			msg.Health is null ? null : PlayerInteractionKernelCodec.FromCharacterHealth(msg.Health),
 			[.. msg.Limbs.Select(PlayerInteractionKernelCodec.FromCharacterLimb)],
 			[.. msg.TimedEffects.Select(PlayerInteractionKernelCodec.FromTimedLimbEffect)],
-			[.. msg.TimedBodyEffects.Select(PlayerInteractionKernelCodec.FromTimedBodyEffect)],
 			[.. msg.AppliedDose.Select(PlayerInteractionKernelCodec.FromLiquidStack)],
 			msg.LimbIndex,
+			[.. msg.DrinkDose.Select(PlayerInteractionKernelCodec.FromLiquidStack)],
 			out _,
 			out var rejection))
 		{

@@ -1,9 +1,12 @@
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
-/// The remote-medical half of the Harmony patch bridge. Kept as its own
-/// interface so <see cref="IPatchBridge"/> stays under the architecture line
-/// gate while the native WoundView treatment surface has one focused seam.
+/// The remote native-call half of the Harmony patch bridge: the WoundView
+/// treatment surface AND the consume chain's drink, which is the same shape — a
+/// native container call swallowed while this client measures a cross-player use
+/// of an item it is holding. Kept as its own interface so
+/// <see cref="IPatchBridge"/> stays under the architecture line gate while those
+/// surfaces have one focused seam.
 /// </summary>
 internal interface IRemoteMedicalPatchBridge
 {
@@ -55,6 +58,28 @@ internal interface IRemoteMedicalPatchBridge
 	/// local or unrelated application, which must run untouched.
 	/// </summary>
 	bool TryDivertRemoteTopicalApply(WaterContainerItem container, Limb limb, float amount);
+
+	/// <summary>
+	/// The native drink call the operator's own client is running while it
+	/// measures a cross-player drink (the item's own <c>useAction</c> reached
+	/// <c>WaterContainerItem.Drink</c>). Returns true when a measurement owns this
+	/// container, in which case the caller must NOT run the original: the ml
+	/// becomes the request's dose, the host owns the drain and the patient's
+	/// client owns the effect. Returns false for every local or unrelated drink,
+	/// which must run untouched.
+	/// </summary>
+	bool TryDivertRemoteDrink(WaterContainerItem container, float amount);
+
+	/// <summary>
+	/// Measure the ml one drink of <paramref name="dragItem"/> takes, for the
+	/// held-remote-item route: the requester's own client runs the item's native
+	/// use action against the requester's OWN body — the body the native call
+	/// would have used — inside the capture window, and the diverted container
+	/// call reports what the delegate computed. Returns 0 when the item is not a
+	/// drink container or its own action delivered nothing, in which case the
+	/// intent carries no dose and the host refuses it by name.
+	/// </summary>
+	float MeasureRemoteDrinkDose(Item dragItem, Body drinker);
 
 	/// <summary>
 	/// Measure the ml one topical use of <paramref name="dragItem"/> applies, for

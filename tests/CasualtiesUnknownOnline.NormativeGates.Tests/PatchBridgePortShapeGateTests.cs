@@ -175,7 +175,9 @@ public class PatchBridgePortShapeGateTests
 		]),
 		("IRemoteMedicalPatchBridge", AdapterDir + "IRemoteMedicalPatchBridge.cs", true,
 		[
+			"MeasureRemoteDrinkDose",
 			"MeasureRemoteTopicalDose",
+			"TryDivertRemoteDrink",
 			"TryDivertRemoteInjection",
 			"TryDivertRemoteTopicalApply",
 			"TryHandleRemoteMedicalLimbUse",

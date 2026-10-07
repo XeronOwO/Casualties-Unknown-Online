@@ -45,8 +45,14 @@ public class ItemUseTests
 	}
 
 	[Fact]
-	public void Guest_UsesWaterOnHost_AppliesDrinkAndSendsResult()
+	public void Guest_UsesWaterOnHost_CommitsTheDoseAndCarriesItToThePatient()
 	{
+		// Part B of mod-cross-player-native-semantics, the drink chain: the
+		// operator's own client measured 100 ml from the water bottle's own use
+		// action (`Drink(body, 100f, "drink")`, Item.cs:3171) and the request
+		// carries it. The host commits the drain and carries it as DrinkDose; the
+		// EFFECT belongs to the patient's client (the water liquid's own onDrink),
+		// so the host computes no body state and writes none.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -56,7 +62,7 @@ public class ItemUseTests
 		items.AdoptTransferredItem(GuestId, 42, water);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, doseMl: 100f);
 
 		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
@@ -66,8 +72,20 @@ public class ItemUseTests
 		Assert.NotNull(result.ItemAfter);
 		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.8f) < 0.001f);
 
+		var dose = Assert.Single(result.DrinkDose);
+		Assert.Equal("water", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 100f) < 0.001f);
+
+		// No host-computed body state for this family, and the topical family's own
+		// dose member stays empty: the two name different native calls on the
+		// affected side.
+		Assert.Null(result.Health);
+		Assert.Empty(result.Limbs);
+		Assert.Empty(result.AppliedDose);
+
 		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.Thirst - 9f) < 0.001f);
+		Assert.Equal(0f, hostData.Health!.Thirst);
+
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
 		Assert.True(Math.Abs(saved.Condition - 0.8f) < 0.001f);
 		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "water").Amount - 400f) < 0.001f);
@@ -93,7 +111,7 @@ public class ItemUseTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>().UseReceived += m => guestUse = m;
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, doseMl: 100f);
 
 		Assert.NotNull(hostUse);
 		Assert.Equal(GuestId, hostUse!.UserSteamId);
@@ -173,23 +191,23 @@ public class ItemUseTests
 	}
 
 	[Fact]
-	public void Use_UnknownMedicineLiquid_IsRefused()
+	public void Use_ADrinkableInjectableContainer_IsRefusedByTheInjectionFirstOrder()
 	{
+		// The one-shot path's family chain asks the limb rules before the drink
+		// rule, so a container the game marks BOTH ways (saline is usable and
+		// usableOnLimb, and its liquid is injectable) stays the medical family's
+		// business and this path refuses it by name — the routing order, not the
+		// item's data, is what separates the two families, and this is the
+		// production site where it is observable (ConsumeSemanticsTests pins only
+		// that both rules answer for such a container).
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
-		var bad = new CharacterItemMsg
-		{
-			InstanceId = 42,
-			ItemId = "saline",
-			SlotIndex = 0,
-			Condition = 1f,
-			Liquids = [new LiquidStackMsg { LiquidId = "mystery", Amount = 750f }],
-		};
-		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, bad));
+		var saline = MedicineBottle(42, "saline", "saline", amount: 750f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, saline));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, doseMl: 100f);
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
@@ -294,11 +312,13 @@ public class ItemUseTests
 	}
 
 	[Fact]
-	public void Use_ALiquidNoChainClaims_IsRefused()
+	public void Use_AnItemNoChainClaims_IsRefused()
 	{
-		// `mystery` is neither injectable nor health-usable, so the item's own data
-		// puts it in no chain: the deleted catalog refused it by id/allowlist, the
-		// game's registries refuse it by flag.
+		// `spraybottle` is a limb-drawable container the game cannot USE (its
+		// `usable` flag is false) and `mystery` is neither injectable nor
+		// health-usable, so no rule claims this item: the deleted catalogs refused
+		// it by id and liquid allowlist, the game's own registries refuse it by
+		// flag.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));

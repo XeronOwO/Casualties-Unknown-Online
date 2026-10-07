@@ -41,52 +41,68 @@ problem: `WaterContainerItem.Drink(Body body, float amount, string sound)` is a 
 whose effect is a liquid delegate that takes a `Body`, so the operator could measure it and the patient
 could run it.
 
-## The design constraint (settled 2026-10-08), and the two designs rejected so far
+## The design — settled 2026-10-08 by the user: objects follow data
 
-**The constraint, measured.** A food delegate is not a pure function of `(body, item)`, which is what
-makes this chain different from the four that landed. Several delegates ask the EATING body for the
-item's own slot and replace the item there: `stonefruit` (`Item.cs:2606-2618`), `bucketofchicken`
-(`:2790-2800`), `popcorn` (`:2834-2844`) via `body.SlotOf(item)` → `body.DropItem(item)` →
-`body.PickUpItem(<what it becomes>)`, and `rosepod` (`:1437-1441`). The precondition for reusing them
-is therefore not just "a non-null item" — the item has to be one the eating body really holds, and the
-container swap has to be able to write where the item really is.
+**The principle.** If the synchronized data says an item exists, the item must also exist as a local
+game OBJECT on every client that holds that data. Data and object are meant to correspond; today they do
+not for items the local machine never had to draw or simulate (an item inside another player's
+inventory has a data row on every client and no object anywhere except on its holder's). That gap is
+what this ticket closes, and closing it is a platform change rather than a food-only change.
 
-In the cross-player case the item belongs to the FEEDER and the body belongs to the EATER, so the
-delegate's two halves cannot run on one machine: the body half (hunger, mood, the clamps, the random
-rolls, the talker reaction) must run on the eater's client, while the item half (the condition cost,
-the slot lookup, the container swap) can only be written where the item is real — the feeder's side.
-Anything that runs the whole delegate on one machine either feeds a display clone (the person feels
-nothing) or writes the item on the wrong side.
+**Shape of the change (to be written up before code).**
 
-**Rejected: give the item away first (a real transfer).** It changes the mechanic — a bite of your own
-sandwich becomes a handover — and it makes the eater's free inventory space a precondition for being
-fed. Raised and rejected by the user 2026-10-08.
+1. **Materialize on the data signals.** Every place the item data learns about an item — the full table
+   on world entry and reconnect, each committed batch's create/destroy/state-change, and container
+   contents recursively — gets a corresponding object create / update / destroy on the client. The
+   signals already exist; only world items are wired to them today (`ItemApplication`,
+   `ItemReconcile`, `ItemSnapshotService`).
+2. **Objects are kept aligned by an explicit apply path.** Data changes arrive; something writes them
+   onto the objects. This path is mandatory rather than optional — without it the objects go stale while
+   the data stays fresh. World items already have it (the position stream plus the item application);
+   the rest need it.
+3. **The objects are not the display proxies.** `RemoteCloneRender`-marked presentation copies of
+   another player's items are a rendering concern with their own lifetime and are deliberately excluded
+   from every authoritative report path; the new objects are the data's local incarnation and must be
+   kept in a separate category from them, with that separation stated in the code, not implied.
+4. **Then the food chain is ordinary.** With the item object present on the eater's client, the eat is
+   the game's own `Body.UseItem` → `item.Stats.useAction(body, item)` run against the eater's own body
+   and that object: the clamps, the random rolls, the talker reactions, the condition cost and the
+   container swap all happen natively. The resulting change rides the existing report → host
+   arbitration → broadcast path, so the feeder's own item (whose ownership never moved) receives the
+   result. No new wire shape, no ownership transfer, no inventory-space precondition, and a meal that
+   is interrupted or cut by a disconnect simply reports nothing and costs nothing.
 
-**Rejected: a scratch item handed to the delegate.** It has no slot on the eating body, so exactly the
-delegates above would read `SlotOf` = -1 and silently skip their container swap while the chain still
-claimed it ran the game's own code. Raised and rejected by the user 2026-10-08.
+**Side-effect investigation comes FIRST (next cycle, read-only).** Standing objects mean objects the
+local machine never had before, and they enter the game's own item list (`Item.allItems`). Before any
+code: enumerate every path that walks that list (physics and collision, rendering, sound, save/restore,
+the game's own sweeps, and CUO's reconciliation/kill logic), and for each record what it does with an
+object that is present but neither held nor in the world; confirm the reconciliation cannot mistake one
+for a stale row and kill it; measure the scale (how many objects a session adds, what each batch has to
+update, any per-frame cost); and hunt for counter-evidence — any path that would let a player click,
+pick up, count or report one of these objects as their own. The result of that investigation, not an
+assumption, decides whether the rule holds as stated or needs a scope limit.
 
-**Open, and for the next round rather than for chat.** What carries the item half while the item
-stays the feeder's? The two candidates seen so far are (a) run the delegate's body half on the eater
-and its item half on the feeder's own copy, with the host carrying the resulting cost and identity
-between them, and (b) make the eater's copy a real, registered item for the duration of the meal with
-its own reporting rule. Each has a hole in a different place — a second truth for one instance id, or
-a container swap whose result the other side must be told about — so the choice has to be written up
-against the real item-report and transfer machinery, with the failure paths (a full inventory, a
-refused or interrupted eat, a disconnect mid-meal) named, before any code. The routing scope below is
-unaffected by the choice.
+**Rejected on the way here (recorded so they are not re-proposed).**
 
-## The candidate designs (kept for the record)
+- *Give the item away first (a real transfer).* Rejected by the user: a bite of your own sandwich would
+  become a handover, and a full inventory would block being fed.
+- *Hand the delegate a scratch item.* Rejected by the user: it has no slot on the eating body, so the
+  container-swap delegates (`stonefruit`, `bucketofchicken`, `popcorn`, `rosepod` — `Item.cs:2606-2618`,
+  `:2790-2800`, `:2834-2844`, `:1437-1441`) would read `SlotOf` = -1 and silently skip their swap.
+- *Materialize only at the moment of the meal.* Rejected by the user as the wrong shape: the object
+  should exist whenever the data does, not be conjured for one action.
+
+## The earlier candidate designs (kept for the record)
 
 Both keep the invariants the migrated chains established: the host owns admission, the resource and the
 arbitration; the affected side judges on its own picture; the numbers come from the game, never from a
 CUO table.
 
-**A — the affected side runs the item's own delegate.** *Its scratch-object form is rejected above*,
-and so is the "transfer the item first" form: the delegate is not a pure `(body, item)` function, and
-the container transforms need the item to be in the eating body's slot list while a bite must not move
-ownership. What survives of A is the split itself — the body half on the eater, the item half where the
-item is real — with the carrier between them still open (see above).
+**A — the affected side runs the item's own delegate.** *Its scratch-object form and its
+transfer-the-item-first form are both rejected above.* What survives is the split the constraint
+forces: the body half on the eater's client, the item half where the item is real — and with the
+settled "objects follow data" rule the item half runs on the eater's own local object of the feeder's
+item, whose change then rides the ordinary report path back to the real one.
 
 **B — the operator measures the delegate's body deltas and the patient applies them.** The operator runs
 the item's own `useAction` against the affected player's render clone inside a capture window, and the
@@ -95,14 +111,19 @@ existing health apply. Costs: the patient's half is CUO arithmetic rather than t
 (the family's whole point), the clone is momentarily fed (a talker bubble, an eat animation, the
 calories counter), the clamping/random branches are evaluated on the clone's state rather than on the
 patient's own, and the item-level half (the condition cost, the container transforms) cannot come from
-the clone at all, because the clone holds no item. It stays the cheap fallback, and it is the only
-candidate whose holes are all already known.
+the clone at all, because the clone holds no item. Not needed under the settled design; kept as the
+record of the alternative.
 
 ## Scope
 
-The row also names the item-level gesture routing: with the table gone, the routing predicate should ask
-the game's own data (a `useAction`-bearing item whose class is not one of the other families) exactly
-the way the drink chain asks `usable`. Whatever routing the design needs is part of this ticket.
+Two things now, and the first is the platform change the settled design needs:
+
+- **Objects follow data** (the section above): the item materialize / update / destroy path that today exists
+  only for world items, extended to every item the synchronized data carries, with the side-effect
+  investigation done before the code.
+- **The food chain itself**: with the object present, the eat is the game's own `Body.UseItem` →
+  `useAction`, and the routing predicate asks the game's own data (a `useAction`-bearing item whose
+  class is not one of the other families) exactly the way the drink chain asks `usable`.
 
 ## Hard acceptance
 
@@ -111,7 +132,9 @@ green, with each deleted case's disposition listed in the self-check — the sta
 topical and drink chains were held to. The cases are
 `RemoteConsumeApplicationTests.ApplyFood_AppliesBreadEffect`, `..._Catalog_ExposesTheCuratedFoodItems`,
 `ItemUseTests.Host_UsesBreadOnGuest_AppliesFoodAndSendsResult`, and the `IsActuallyUsable` half of
-`CarriedItemUseTree`.
+`CarriedItemUseTree`. The platform half carries its own acceptance: the side-effect investigation's
+findings are answered one by one, and a session shows the same item count and no new per-frame cost
+against the pre-change baseline.
 
 ## Non-goals
 

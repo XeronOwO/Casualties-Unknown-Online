@@ -290,7 +290,9 @@ in place or kept unchanged.
 `useAction` is a delegate that calls `body.Eat` / `body.Drink` and writes body fields and the item
 directly, with no divertible container call and no data field carrying the amounts — so the affected
 side cannot run it without an item instance. The `Food` half of `RemoteConsumeCatalog` still answers for
-it, and the ticket carries the two candidate designs and their trade-offs.
+it, and the ticket carries the two candidate designs and their trade-offs; the user settled the shape on
+2026-10-08 ("objects follow data") and that ticket's first step, the read-only side-effect investigation
+of a standing object, has landed there with its findings and the scope limit they force.
 
 ## Part B — the wear chain (landed 2026-10-08)
 

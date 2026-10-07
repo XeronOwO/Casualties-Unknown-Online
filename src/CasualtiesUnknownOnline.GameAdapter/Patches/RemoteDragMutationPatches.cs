@@ -382,10 +382,22 @@ internal static class RemoteDragMutationPatches
 
 			// The native call this release replaces runs the item's own
 			// <c>useLimbAction(this.selectedLimb, dragItem)</c>; measuring it on the
-			// same limb keeps the amount the game's own delegate literal.
-			var doseMl = __instance.dragItem != null && __instance.selectedLimb != null // Unity objects — ==
-				? PatchBridge.Impl?.MeasureRemoteTopicalDose(__instance.dragItem, __instance.selectedLimb) ?? 0f
-				: 0f;
+			// same limb keeps the amount the game's own delegate literal. A DRINK
+			// container dragged onto this view belongs to the one-shot consume
+			// family instead — the host dispatches by the item's own data, not by
+			// the gesture — so it measures its own use action against the body that
+			// would drink it: the requester's own.
+			var doseMl = 0f;
+			if (__instance.dragItem != null) // Unity object — ==
+			{
+				doseMl = __instance.selectedLimb != null // Unity object — ==
+					? PatchBridge.Impl?.MeasureRemoteTopicalDose(__instance.dragItem, __instance.selectedLimb) ?? 0f
+					: 0f;
+				if (doseMl <= 0f)
+				{
+					doseMl = PatchBridge.Impl?.MeasureRemoteDrinkDose(__instance.dragItem, __instance.body) ?? 0f;
+				}
+			}
 
 			window.CaptureApplyToLimb(window.DraggedItemId, limbIndex, doseMl);
 			return false;

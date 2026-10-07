@@ -13,7 +13,59 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal static class LocalUseItemEligibility
 {
-	public static bool IsUseItem(Item item, ILimbUseSemantics semantics)
+	/// <summary>
+	/// The families the one-shot path carries, in the order the host's chain asks
+	/// them (<c>PlayerItemUseService</c>: wear, the injection refusal, topical,
+	/// drink, food, limb tool). <see cref="FamilyOf"/> is the ONE answer to "which
+	/// family is this gesture" on the operator's side, so a measurement site can
+	/// never run an item's own native action for a family the host will refuse.
+	/// </summary>
+	internal enum Family
+	{
+		/// <summary>No family this path carries; the host refuses it by name and nothing may be measured here.</summary>
+		None,
+
+		/// <summary>The medical operation session's family: this path refuses it by name, and its own action must NOT run here — a blood bag's <c>useAction</c> draws blood.</summary>
+		Injection,
+
+		/// <summary>Measured through the item's own limb action (a limb application).</summary>
+		Topical,
+
+		/// <summary>Measured through the item's own use action (a drink).</summary>
+		Drink,
+	}
+
+	/// <summary>
+	/// The family this item's one-shot gesture belongs to, asked in the host
+	/// chain's own order. The measurement sites ask THIS rather than one family's
+	/// predicate on its own: the ordering is what keeps a container the game marks
+	/// both ways on the family the host will dispatch, and what keeps a family the
+	/// host REFUSES from being measured at all.
+	/// </summary>
+	internal static Family FamilyOf(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics)
+	{
+		if (IsInjectableRemoteItem(item, limbSemantics))
+		{
+			return Family.Injection;
+		}
+
+		if (IsTopicalRemoteItem(item, limbSemantics))
+		{
+			return Family.Topical;
+		}
+
+		return IsDrinkRemoteItem(item, consumeSemantics) ? Family.Drink : Family.None;
+	}
+
+	/// <summary>
+	/// The families in the order the host's one-shot chain asks them, so an item
+	/// this gate admits is an item the host will either handle or refuse by name —
+	/// never one it does not recognise. The limb rules come before the drink rule
+	/// because the containers both admit (saline, ringersolution, a blood bag) are
+	/// the medical family's, and because a mod container the game marks as a drink
+	/// AND a topical carrier must measure the call the host will run.
+	/// </summary>
+	public static bool IsUseItem(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics)
 	{
 		if (item == null || item.condition <= 0f) // Unity object — ==
 		{
@@ -25,60 +77,17 @@ internal static class LocalUseItemEligibility
 			return true;
 		}
 
+		if (FamilyOf(item, limbSemantics, consumeSemantics) != Family.None)
+		{
+			return true;
+		}
+
 		if (RemoteConsumeCatalog.IsFoodItem(item.id))
 		{
 			return true;
 		}
 
-		if (IsInjectableRemoteItem(item, semantics))
-		{
-			return true;
-		}
-
-		if (RemoteDrinkMedicineCatalog.IsDrinkableMedicineItem(item.id))
-		{
-			var drinkMedicine = item.GetComponent<WaterContainerItem>();
-			if (drinkMedicine == null || drinkMedicine.CurrentTotal <= 0f) // Unity object — ==
-			{
-				return false;
-			}
-
-			foreach (var liquid in drinkMedicine.stack)
-			{
-				if (!RemoteDrinkMedicineCatalog.IsSupportedDrinkMedicineLiquid(liquid.liquidId))
-				{
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		if (IsTopicalRemoteItem(item, semantics))
-		{
-			return true;
-		}
-
-		if (RemoteLimbToolCatalog.IsToolItem(item.id))
-		{
-			return true;
-		}
-
-		var water = item.GetComponent<WaterContainerItem>();
-		if (water == null || water.CurrentTotal <= 0f) // Unity object — ==
-		{
-			return false;
-		}
-
-		foreach (var liquid in water.stack)
-		{
-			if (!RemoteConsumeCatalog.IsKnownLiquid(liquid.liquidId))
-			{
-				return false;
-			}
-		}
-
-		return true;
+		return RemoteLimbToolCatalog.IsToolItem(item.id);
 	}
 
 	/// <summary>
@@ -149,7 +158,7 @@ internal static class LocalUseItemEligibility
 	/// mod content that declares its own injectable liquid both qualify.
 	/// </summary>
 	internal static bool IsInjectableRemoteItem(Item item, ILimbUseSemantics semantics) =>
-		HasLimbContainer(item, out var container)
+		HasDrawableContainer(item, out var container)
 		&& InjectionAdmission.IsInjectableContainer(semantics, item.id, ToLiquidStacks(container));
 
 	/// <summary>
@@ -163,11 +172,24 @@ internal static class LocalUseItemEligibility
 	/// per-ml effect.
 	/// </summary>
 	internal static bool IsTopicalRemoteItem(Item item, ILimbUseSemantics semantics) =>
-		HasLimbContainer(item, out var container)
+		HasDrawableContainer(item, out var container)
 		&& TopicalAdmission.IsTopicalContainer(semantics, item.id, ToLiquidStacks(container));
 
+	/// <summary>
+	/// The drink family's eligibility, over the consume seam: the item is a
+	/// liquid container the game may USE as one (<c>LiquidItemInfo.usable</c>,
+	/// the flag <c>Body.UseItem</c> gates the item's own <c>useAction</c> on —
+	/// <see cref="ConsumeAdmission"/>) and it still holds liquid to drink. The
+	/// deleted catalogs answered this from an id list plus a per-liquid allowlist,
+	/// so a liquid the game knows but the list missed was refused; now the item's
+	/// own data and its live container answer it.
+	/// </summary>
+	internal static bool IsDrinkRemoteItem(Item item, IConsumeSemantics semantics) =>
+		HasDrawableContainer(item, out var container)
+		&& ConsumeAdmission.IsDrinkContainer(semantics, item.id, ToLiquidStacks(container));
+
 	/// <summary>An item that can still be drawn from: alive and holding liquid.</summary>
-	private static bool HasLimbContainer(Item item, out WaterContainerItem container)
+	private static bool HasDrawableContainer(Item item, out WaterContainerItem container)
 	{
 		container = null!;
 		if (item == null || item.condition <= 0f) // Unity object — ==

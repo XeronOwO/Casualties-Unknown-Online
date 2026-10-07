@@ -61,6 +61,9 @@ internal sealed class GameAdapterDomains
 	/// <summary>The game's own content facts behind the limb-use chains (the DI-registered <c>ILimbUseSemantics</c>), shared by the gesture routing instead of a second stateless instance.</summary>
 	internal readonly ILimbUseSemantics LimbUseSemantics;
 
+	/// <summary>The game's own content facts behind the consume (drink) chain (the DI-registered <c>IConsumeSemantics</c>), shared by the gesture routing for the same reason.</summary>
+	internal readonly IConsumeSemantics ConsumeSemantics;
+
 	internal readonly ILogger<GameAdapter> Log;
 
 	internal readonly CloneFactTable FactTable;
@@ -165,6 +168,7 @@ internal sealed class GameAdapterDomains
 		ILogger<GameAdapter> log,
 		IMapper mapper,
 		ILimbUseSemantics limbUseSemantics,
+		IConsumeSemantics consumeSemantics,
 		ILoggerFactory loggerFactory,
 		GameAdapterItemContentProvider itemContent,
 		GameAdapterBuildingContentProvider buildingContent,
@@ -180,6 +184,7 @@ internal sealed class GameAdapterDomains
 		Session = session;
 		Items = items;
 		LimbUseSemantics = limbUseSemantics;
+		ConsumeSemantics = consumeSemantics;
 		ItemContent = itemContent;
 		BuildingContent = buildingContent;
 		TileContent = tileContent;

@@ -92,7 +92,10 @@ formulas copied out of the game:
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteConsumeCatalog.cs` — `Food`
   keyed by 25 vanilla item ids and `Liquids` by 14 vanilla liquid ids, each entry carrying the effect
   coefficients; the type's own comment says "Unknown liquids/items are deliberately refused by the
-  host so an unsupported effect is never silently approximated."
+  host so an unsupported effect is never silently approximated." Its `Liquids` half and the whole
+  `RemoteDrinkMedicineCatalog` beside it are **deleted 2026-10-08** by Part B's consume chain; `Food`
+  still answers for the solid-food branch, which is a different native shape (its `useAction` writes
+  the eating body and the item directly) and has its own ticket.
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteMedicineCatalog.cs` —
   `InjectionAmounts` (15 containers) plus `Liquids` (immediate, opiate and timed branches), with the
   comments naming the decompiled sources they were transcribed from (`Liquids.cs` `Drink`/`Inject`
@@ -137,9 +140,10 @@ id tables with predicates over the game's own data: the native eat/drink branch 
 `LiquidType.onDrink`, `injectable` with a `WaterContainerItem`, `Stats.HasTag("dressing")` or a non-null
 `useLimbAction`, `wearable` with `desiredWearLimb` / `wearSlotId`. The effect runs on the target's own
 client through the native path; the host keeps only "is this operation allowed", resource consumption
-and first-writer-wins arbitration. A precedent for the shape already exists: the timed medicine
-branches travel as `TimedBodyEffectMsg` and run on the target's local body through the native
-`CoUtils.DoTimedOp` path. Migrate one chain first (injection or topical — medical is CUO's main line and
+and first-writer-wins arbitration. The precedent this paragraph named when it was written — the timed
+medicine branches travelling as `TimedBodyEffectMsg` and running on the target's local body — is itself
+gone: those branches are the drink chain's now and the field was deleted with it, because the liquid's
+own `onDrink` delegate IS that timed body and needs no CUO message to start it. Migrate one chain first (injection or topical — medical is CUO's main line and
 already has the operation session), then the remaining chains. Hard acceptance for the migration:
 delete the constant table and every existing acceptance case of that chain stays green.
 

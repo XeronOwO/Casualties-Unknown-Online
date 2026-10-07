@@ -195,5 +195,11 @@ public static class GameAdapterComposition
 		services.AddSingleton<GameLimbUseSemantics>();
 		services.Replace(ServiceDescriptor.Singleton<ILimbUseSemantics>(
 			p => p.GetRequiredService<GameLimbUseSemantics>()));
+		// The game's own content facts behind the consume (drink) chain, the same
+		// shape for the family that has no limb: ItemInfo.usable on a
+		// LiquidItemInfo is the gate the game's own use action runs behind.
+		services.AddSingleton<GameConsumeSemantics>();
+		services.Replace(ServiceDescriptor.Singleton<IConsumeSemantics>(
+			p => p.GetRequiredService<GameConsumeSemantics>()));
 	}
 }

@@ -25,18 +25,21 @@ internal static class CarriedItemUseTree
 	/// an item in a real slot whose own data puts it in one of the families the
 	/// host computes for itself.
 	/// </summary>
-	internal static CharacterItemMsg? FindFirstUsable(IReadOnlyList<CharacterItemMsg> items, ILimbUseSemantics semantics)
+	internal static CharacterItemMsg? FindFirstUsable(
+		IReadOnlyList<CharacterItemMsg> items,
+		ILimbUseSemantics limbSemantics,
+		IConsumeSemantics consumeSemantics)
 	{
 		foreach (var candidate in items)
 		{
 			if (candidate.SlotIndex >= 0
 				&& candidate.InstanceId != 0
-				&& IsActuallyUsable(candidate, semantics))
+				&& IsActuallyUsable(candidate, limbSemantics, consumeSemantics))
 			{
 				return candidate;
 			}
 
-			var nested = FindFirstUsable(candidate.Contents, semantics);
+			var nested = FindFirstUsable(candidate.Contents, limbSemantics, consumeSemantics);
 			if (nested is not null)
 			{
 				return nested;
@@ -47,7 +50,10 @@ internal static class CarriedItemUseTree
 	}
 
 	/// <summary>True when the item's own data still puts it in a family this path carries (and, for the condition-costing families, it has condition left).</summary>
-	internal static bool IsActuallyUsable(CharacterItemMsg item, ILimbUseSemantics semantics)
+	internal static bool IsActuallyUsable(
+		CharacterItemMsg item,
+		ILimbUseSemantics limbSemantics,
+		IConsumeSemantics consumeSemantics)
 	{
 		if (item.Condition <= 0f
 			&& (RemoteConsumeCatalog.IsFoodItem(item.ItemId)
@@ -59,9 +65,8 @@ internal static class CarriedItemUseTree
 
 		return RemoteWearCatalog.IsWearItem(item.ItemId)
 			|| RemoteConsumeCatalog.IsFoodItem(item.ItemId)
-			|| RemoteConsumeApplication.TryCreateDrinkPlan(item.Liquids, out _)
-			|| RemoteDrinkMedicineCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
-			|| TopicalAdmission.IsTopicalContainer(semantics, item.ItemId, item.Liquids)
+			|| ConsumeAdmission.IsDrinkContainer(consumeSemantics, item.ItemId, item.Liquids)
+			|| TopicalAdmission.IsTopicalContainer(limbSemantics, item.ItemId, item.Liquids)
 			|| RemoteLimbToolCatalog.IsToolItem(item.ItemId);
 	}
 

@@ -630,7 +630,6 @@ public class PlayerDomainKernelTests
 		var source = new GameStateKernel(Epoch);
 		var after = new PlayerInteractionItem(new ItemIdentity(42, "waterbottle"), new ItemData(0.8f, false, 0, [], []));
 		var worn = new PlayerInteractionItem(new ItemIdentity(7, "bikehelmet"), new ItemData(1f, false, -2, [], []));
-		var timedBody = new PlayerInteractionTimedBodyEffect("highgradestimulant", 144f, 60f);
 		var batch = source.Execute(
 			new RecordPlayerItemUseResultCommand(
 				new OperationId(1),
@@ -646,9 +645,9 @@ public class PlayerDomainKernelTests
 				new PlayerInteractionHealth { Thirst = 9f },
 				[new PlayerInteractionLimb { Index = 1 }],
 				[new PlayerInteractionTimedLimbEffect(1, 10f, -4.5f)],
-				[timedBody],
 				[new PlayerInteractionLiquidStack("reliefcream", 10f)],
-				1),
+				1,
+				[new PlayerInteractionLiquidStack("water", 100f)]),
 			new CommandContext(Epoch, Host)).Batch!;
 
 		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
@@ -662,10 +661,11 @@ public class PlayerDomainKernelTests
 		Assert.Equal(9f, @event.Health!.Thirst);
 		Assert.Equal(1, Assert.Single(@event.Limbs).Index);
 		Assert.Equal(10f, Assert.Single(@event.TimedEffects).DurationSeconds);
-		Assert.Equal("highgradestimulant", Assert.Single(@event.TimedBodyEffects).EffectId);
 		Assert.Equal("reliefcream", Assert.Single(@event.AppliedDose).LiquidId);
 		Assert.Equal(10f, Assert.Single(@event.AppliedDose).Amount);
 		Assert.Equal(1, @event.LimbIndex);
+		Assert.Equal("water", Assert.Single(@event.DrinkDose).LiquidId);
+		Assert.Equal(100f, Assert.Single(@event.DrinkDose).Amount);
 	}
 
 	[Fact]

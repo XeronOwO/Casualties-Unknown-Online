@@ -45,9 +45,6 @@ public sealed class WirePlayerInteraction
 	[ProtoMember(11)]
 	public List<WirePlayerInteractionTimedLimbEffect> TimedEffects { get; set; } = [];
 
-	[ProtoMember(12)]
-	public List<WirePlayerInteractionTimedBodyEffect> TimedBodyEffects { get; set; } = [];
-
 	[ProtoMember(13)]
 	public WireItemIdentity? ItemAfterIdentity { get; set; }
 
@@ -98,4 +95,14 @@ public sealed class WirePlayerInteraction
 		get => _limbSelection <= 0 ? -1 : _limbSelection - 1;
 		set => _limbSelection = value >= 0 ? value + 1 : 0;
 	}
+
+	/// <summary>
+	/// The drain the host committed for a migrated drink: the affected side runs
+	/// each liquid's own <c>onDrink</c> body over it, which is a different native
+	/// call from <see cref="AppliedDose"/>'s limb application, so the two ride
+	/// their own members rather than one list plus a discriminator. Empty for
+	/// every other family.
+	/// </summary>
+	[ProtoMember(23)]
+	public List<WireLiquidStack> DrinkDose { get; set; } = [];
 }

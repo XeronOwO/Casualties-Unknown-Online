@@ -29,7 +29,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return false;
 		}
 
-		if (!LocalUseItemEligibility.IsUseItem(dragItem, domains.LimbUseSemantics))
+		if (!LocalUseItemEligibility.IsUseItem(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics))
 		{
 			return false;
 		}
@@ -73,24 +73,45 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return false;
 		}
 
-		// The topical family's dose is the ml the item's OWN native limb action
-		// computes, so the gesture is measured on this client before the request
-		// leaves: the remote player's own render clone supplies the limb, and the
-		// limb index the host receives stays -1 so the PATIENT still picks the
-		// treated limb on its own body, exactly as before the migration.
+		// The measurement follows the host chain's family order, asked through the
+		// ONE family verdict (LocalUseItemEligibility.FamilyOf): only the topical
+		// and drink families are measured, because they are the ones whose dose the
+		// host needs, and an item the INJECTION rule claims is measured by nothing
+		// here — the host refuses it by name and this client must not run its own
+		// action, which for the two vanilla blood bags would draw blood into the
+		// operator's bag and out of the treated limb. The limb index the host
+		// receives stays -1 so the PATIENT still picks the treated limb on its own
+		// body, exactly as before the migration.
 		var doseMl = 0f;
-		if (LocalUseItemEligibility.IsTopicalRemoteItem(dragItem, domains.LimbUseSemantics))
+		switch (LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics))
 		{
-			var limb = ResolveMeasureLimb(target.SteamId);
-			if (limb == null // Unity object — ==
-				|| !RemoteTopicalUseHandler.TryMeasure(dragItem, limb, domains.LimbUseSemantics, domains.Log, out doseMl))
-			{
-				// Consume the release instead of falling through to the native drop:
-				// a refused remote use must not become a world drop.
-				domains.Log.LogWarning("[DragUse] refused: {ItemId} could not measure a topical dose for {Target}.",
-					dragItem.id, target.SteamId);
-				return true;
-			}
+			case LocalUseItemEligibility.Family.Topical:
+				var limb = ResolveMeasureLimb(target.SteamId);
+				if (limb == null // Unity object — ==
+					|| !RemoteTopicalUseHandler.TryMeasure(dragItem, limb, domains.LimbUseSemantics, domains.Log, out doseMl))
+				{
+					// Consume the release instead of falling through to the native drop:
+					// a refused remote use must not become a world drop.
+					domains.Log.LogWarning("[DragUse] refused: {ItemId} could not measure a topical dose for {Target}.",
+						dragItem.id, target.SteamId);
+					return true;
+				}
+
+				break;
+			case LocalUseItemEligibility.Family.Drink:
+				var drinker = ResolveDrinkBody(target.SteamId);
+				if (drinker == null // Unity object — ==
+					|| !RemoteDrinkUseHandler.TryMeasure(dragItem, drinker, domains.ConsumeSemantics, domains.Log, out doseMl))
+				{
+					domains.Log.LogWarning("[DragUse] refused: {ItemId} could not measure a drink dose for {Target}.",
+						dragItem.id, target.SteamId);
+					return true;
+				}
+
+				break;
+			default:
+				// Injection and None: nothing to measure, the host answers by name.
+				break;
 		}
 
 		domains.PlayerInteraction.SendUseRequest(target.SteamId, instanceId.Id, doseMl: doseMl);
@@ -117,4 +138,17 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 
 		return PlayerCamera.main != null ? PlayerCamera.main.selectedLimb : null; // Unity objects — ==
 	}
+
+	/// <summary>
+	/// The body a drink measurement runs against: the affected player's own render
+	/// clone. Unlike the topical limb, this body is SEMANTIC — an item's use action
+	/// may read it (mindwipe's item-level health gate is the vanilla instance) and
+	/// only that player's own picture may answer it, so a clone that is not
+	/// rendered yet refuses the gesture instead of answering the patient's facts
+	/// from this client's own body.
+	/// </summary>
+	private Body? ResolveDrinkBody(ulong targetSteamId) =>
+		domains.Renderer.TryGetRemoteBody(targetSteamId, out var body) && body != null // Unity object — ==
+			? body
+			: null;
 }

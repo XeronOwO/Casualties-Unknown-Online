@@ -31,6 +31,11 @@ internal static class PlayerInteractionComposition
 		// refuses; the plugin replaces it with the Game Adapter's registry-backed
 		// implementation (mod-cross-player-native-semantics, Part A).
 		services.AddSingleton<ILimbUseSemantics>(new NoLimbUseSemantics());
+		// The game's own content facts behind the consume (drink) chain, defaulted
+		// and replaced the same way: with no game data the base root admits no
+		// drink and the one-shot use path refuses it by name
+		// (mod-cross-player-native-semantics, Part B).
+		services.AddSingleton<IConsumeSemantics>(new NoConsumeSemantics());
 		// Remote medical operation session domain: generic start/update/end/cancel
 		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
 		// it for real-time injection; later stages reuse the same session envelope.

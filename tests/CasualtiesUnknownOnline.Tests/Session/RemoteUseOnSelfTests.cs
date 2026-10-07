@@ -20,8 +20,14 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 public class RemoteUseOnSelfTests
 {
 	[Fact]
-	public void Host_UsesRemoteHeldGuestWaterOnSelf_AppliesToOwnerAndHost()
+	public void Host_UsesRemoteHeldGuestWaterOnSelf_CommitsTheDoseForTheHost()
 	{
+		// The intent carries the ml the requester's own client measured from the
+		// dragged item's own use action (Part B of mod-cross-player-native-semantics);
+		// the host commits the drain and carries it as DrinkDose, and the EFFECT
+		// runs on the affected side — here the requester's own body, whose client
+		// runs the water liquid's own onDrink — so no host-computed body state
+		// exists to assert.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -37,6 +43,7 @@ public class RemoteUseOnSelfTests
 				OwnerSteamId = GuestId,
 				ItemInstanceId = 42,
 				TargetLimbIndex = -1,
+				Amount = 100f,
 			});
 
 		var result = UseResult(received);
@@ -47,8 +54,13 @@ public class RemoteUseOnSelfTests
 		Assert.NotNull(result.ItemAfter);
 		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.8f) < 0.001f);
 
+		var dose = Assert.Single(result.DrinkDose);
+		Assert.Equal("water", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 100f) < 0.001f);
+		Assert.Null(result.Health);
+
 		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.Thirst - 9f) < 0.001f);
+		Assert.Equal(0f, hostData.Health!.Thirst);
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
 		Assert.True(Math.Abs(saved.Condition - 0.8f) < 0.001f);
 		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "water").Amount - 400f) < 0.001f);
@@ -81,6 +93,7 @@ public class RemoteUseOnSelfTests
 				OwnerSteamId = GuestId,
 				ItemInstanceId = 42,
 				TargetLimbIndex = -1,
+				Amount = 100f,
 			});
 
 		var result = UseResult(received);
@@ -109,6 +122,7 @@ public class RemoteUseOnSelfTests
 				OwnerSteamId = HostId,
 				ItemInstanceId = 77,
 				TargetLimbIndex = -1,
+				Amount = 100f,
 			});
 
 		var result = UseResult(received);
@@ -116,8 +130,9 @@ public class RemoteUseOnSelfTests
 		Assert.Equal(GuestId, result.TargetSteamId);
 		Assert.Equal(77UL, result.ItemInstanceId);
 
+		Assert.Single(result.DrinkDose);
 		var guestData = characters.GetSavedCharacter(GuestId)!;
-		Assert.True(Math.Abs(guestData.Health!.Thirst - 9f) < 0.001f);
+		Assert.Equal(0f, guestData.Health!.Thirst);
 		var hostData = characters.GetHostCharacterData()!;
 		var saved = Assert.Single(hostData.Items);
 		Assert.True(Math.Abs(saved.Condition - 0.8f) < 0.001f);
@@ -141,13 +156,15 @@ public class RemoteUseOnSelfTests
 				OwnerSteamId = GuestId,
 				ItemInstanceId = 42,
 				TargetLimbIndex = -1,
+				Amount = 100f,
 			});
 
 		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.Thirst - 9f) < 0.001f);
+		Assert.Single(result.DrinkDose);
+		Assert.Equal(0f, hostData.Health!.Thirst);
 	}
 
 	[Fact]

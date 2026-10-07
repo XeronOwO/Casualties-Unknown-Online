@@ -265,9 +265,6 @@ public static class PlayerInteractionKernelCodec
 			BleedPerSecond = effect.BleedPerSecond,
 		};
 
-	public static PlayerInteractionTimedBodyEffect FromTimedBodyEffect(TimedBodyEffectMsg effect) =>
-		new(effect.EffectId, effect.DurationSeconds, effect.DoseMl);
-
 	public static PlayerInteractionLiquidStack FromLiquidStack(LiquidStackMsg stack) =>
 		new(stack.LiquidId, stack.Amount);
 
@@ -276,14 +273,6 @@ public static class PlayerInteractionKernelCodec
 		{
 			LiquidId = stack.LiquidId,
 			Amount = stack.Amount,
-		};
-
-	public static TimedBodyEffectMsg ToTimedBodyEffect(PlayerInteractionTimedBodyEffect effect) =>
-		new()
-		{
-			EffectId = effect.EffectId,
-			DurationSeconds = effect.DurationSeconds,
-			DoseMl = effect.DoseMl,
 		};
 
 	public static PlayerInventoryTransferMsg ToTransferMessage(PlayerInventoryTransferEvent e) =>
@@ -320,9 +309,9 @@ public static class PlayerInteractionKernelCodec
 			Health = e.Health is null ? null : ToCharacterHealth(e.Health),
 			Limbs = [.. e.Limbs.Select(ToCharacterLimb)],
 			TimedEffects = [.. e.TimedEffects.Select(ToTimedLimbEffect)],
-			TimedBodyEffects = [.. e.TimedBodyEffects.Select(ToTimedBodyEffect)],
 			AppliedDose = [.. e.AppliedDose.Select(ToLiquidStack)],
 			LimbIndex = e.LimbIndex,
+			DrinkDose = [.. e.DrinkDose.Select(ToLiquidStack)],
 		};
 
 	private static ComponentStateMsg ToComponentMessage(ItemComponentState component) =>

@@ -18,8 +18,11 @@ public static class LiquidDrainPlan
 {
 	/// <summary>
 	/// Build the proportional draw of <paramref name="amount"/> ml. False when
-	/// there is nothing to draw (no stacks, no liquid, or a non-positive amount),
-	/// which is the native path's own early return.
+	/// there is nothing to draw (no stacks, no liquid, or an amount that is not a
+	/// positive finite number), which is the native path's own early return. The
+	/// finiteness check is not decoration: the amount is a client-reported dose, and
+	/// a NaN would propagate through <c>Math.Min</c> into every stack's amount and
+	/// poison the item's liquid state.
 	/// </summary>
 	public static bool TryCreate(
 		IReadOnlyList<LiquidStackMsg>? liquids,
@@ -27,7 +30,7 @@ public static class LiquidDrainPlan
 		out List<LiquidStackMsg> drained)
 	{
 		drained = [];
-		if (liquids is null || liquids.Count == 0 || amount <= 0f)
+		if (liquids is null || liquids.Count == 0 || amount <= 0f || float.IsNaN(amount) || float.IsInfinity(amount))
 		{
 			return false;
 		}

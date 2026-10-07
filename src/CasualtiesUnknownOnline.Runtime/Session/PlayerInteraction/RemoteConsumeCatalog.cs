@@ -1,22 +1,29 @@
-using System.Collections.Generic;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using System;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// The host-authoritative catalog of consumables that may be used on another
-/// player in the first cross-player item-use slice: known drinkable liquids
-/// (water/food/juice/energy containers) and solid food items. It is a read-only
-/// presence registry — the Online UI uses it only to decide which held items are
-/// worth exposing, never as a source of truth. Unknown liquids/items are
-/// deliberately refused by the host so an unsupported effect is never silently
-/// approximated.
+/// The host-authoritative catalog of SOLID consumables that may be used on
+/// another player: the food items whose native use action feeds the eating body
+/// through <c>Body.Eat</c> / <c>Body.Drink</c> and the body fields around them.
+/// It is a read-only presence registry — the routing uses it only to decide
+/// which held items the consume chain carries, never as a source of truth about
+/// the effect. Unknown items are deliberately refused so an unsupported effect
+/// is never silently approximated.
+/// <para>
+/// The DRINK half this catalog used to carry is gone: a liquid container's dose
+/// is the ml its own use action computes on the operator's client
+/// (<c>WaterContainerItem.Drink</c>) and its effect is the liquid's own
+/// <c>onDrink</c> delegate, run on the affected side, so neither the
+/// <c>DrinkAmountMl</c> constant nor the per-100-ml liquid table has anything
+/// left to answer (see <see cref="ConsumeAdmission"/>). Solid food is a
+/// different native shape — its <c>useAction</c> writes the eating body and the
+/// item directly — so it keeps this table until it gets its own migration.
+/// </para>
 /// </summary>
 public static class RemoteConsumeCatalog
 {
-	public const float DrinkAmountMl = 100f;
-
 	private static readonly IReadOnlyDictionary<string, RemoteFoodEffect> Food =
 		new Dictionary<string, RemoteFoodEffect>(StringComparer.Ordinal)
 		{
@@ -47,62 +54,8 @@ public static class RemoteConsumeCatalog
 			["xalorissponge"] = new("xalorissponge", 1f, Hunger: 8f, WeightOffset: 0.15f, Sickness: 2f, SepticShock: 5f),
 		};
 
-	private static readonly IReadOnlyDictionary<string, RemoteLiquidEffect> Liquids =
-		new Dictionary<string, RemoteLiquidEffect>(StringComparer.Ordinal)
-		{
-			["water"] = new("water", ThirstPer100Ml: 9f, TemperaturePer100Ml: -0.25f),
-			["carbonatedwater"] = new("carbonatedwater", ThirstPer100Ml: 9f, HappinessPer100Ml: 0.8f, TemperaturePer100Ml: -0.25f),
-			["milk"] = new("milk", ThirstPer100Ml: 9f, HungerPer100Ml: 3f, HappinessPer100Ml: 0.5f, TemperaturePer100Ml: -0.25f),
-			["applejuice"] = new("applejuice", ThirstPer100Ml: 9f, WeightPer100Ml: 0.1f, HappinessPer100Ml: 1f, TemperaturePer100Ml: -0.3f),
-			["lemonade"] = new("lemonade", ThirstPer100Ml: 9f, WeightPer100Ml: 0.2f, HappinessPer100Ml: 1.2f, TemperaturePer100Ml: -0.3f),
-			["icetea"] = new("icetea", ThirstPer100Ml: 9f, WeightPer100Ml: 0.4f, HappinessPer100Ml: 1.4f, TemperaturePer100Ml: -0.3f, SicknessPer100Ml: 3.5f),
-			["soup"] = new("soup", ThirstPer100Ml: 9f, HungerPer100Ml: 10f, HappinessPer100Ml: 1f),
-			["coffee"] = new("coffee", ThirstPer100Ml: 12f, WeightPer100Ml: 0.1f, StaminaPer100Ml: 25f, EnergyPer100Ml: 15f, HappinessPer100Ml: 2.5f, SicknessPer100Ml: 15f, CaffeinatedPer100Ml: 350f),
-			["energydrink"] = new("energydrink", ThirstPer100Ml: 9f, WeightPer100Ml: 0.4f, StaminaPer100Ml: 25f, EnergyPer100Ml: 20f, HappinessPer100Ml: 2.5f, SicknessPer100Ml: 20f, CaffeinatedPer100Ml: 400f),
-			["soda"] = new("soda", ThirstPer100Ml: 9f, WeightPer100Ml: 0.4f, StaminaPer100Ml: 4f, EnergyPer100Ml: 4f, HappinessPer100Ml: 1.5f, SicknessPer100Ml: 5f, CaffeinatedPer100Ml: 80f, TemperaturePer100Ml: -0.3f),
-			["sportsdrink"] = new("sportsdrink", ThirstPer100Ml: 13f, WeightPer100Ml: 1f, StaminaPer100Ml: 25f, EnergyPer100Ml: 10f, HappinessPer100Ml: 0.5f, SicknessPer100Ml: 2f),
-			["chocolatemilk"] = new("chocolatemilk", ThirstPer100Ml: 9f, HungerPer100Ml: 2.5f, HappinessPer100Ml: 1f, TemperaturePer100Ml: -0.25f, SicknessPer100Ml: 12f),
-			["cereal"] = new("cereal", ThirstPer100Ml: 7.5f, HungerPer100Ml: 6f, HappinessPer100Ml: 1.5f, TemperaturePer100Ml: -0.25f),
-			["ketchup"] = new("ketchup", ThirstPer100Ml: 6f, HungerPer100Ml: 8f, WeightPer100Ml: 1f, HappinessPer100Ml: -2.5f, SicknessPer100Ml: 5f),
-		};
-
 	public static bool IsFoodItem(string itemId) => Food.ContainsKey(itemId);
-
-	public static bool IsKnownLiquid(string liquidId) => Liquids.ContainsKey(liquidId);
 
 	public static bool TryGetFood(string itemId, out RemoteFoodEffect effect) =>
 		Food.TryGetValue(itemId, out effect!);
-
-	public static bool TryGetLiquid(string liquidId, out RemoteLiquidEffect effect) =>
-		Liquids.TryGetValue(liquidId, out effect!);
-
-	/// <summary>
-	/// True when the liquid stack is non-empty, every liquid in it is in the
-	/// curated catalog and the total is above zero. Mixed unknown liquids are
-	/// refused as a whole so the host never approximates an unsupported effect.
-	/// </summary>
-	public static bool IsDrinkable(IReadOnlyList<LiquidStackMsg>? liquids)
-	{
-		if (liquids is null || liquids.Count == 0)
-		{
-			return false;
-		}
-
-		var total = 0f;
-		foreach (var liquid in liquids)
-		{
-			if (!IsKnownLiquid(liquid.LiquidId))
-			{
-				return false;
-			}
-
-			total += liquid.Amount;
-		}
-
-		return total > 0f;
-	}
-
-	/// <summary>True when the item is either a known solid food or a drinkable liquid container.</summary>
-	public static bool IsUsableItem(CharacterItemMsg item) =>
-		IsFoodItem(item.ItemId) || IsDrinkable(item.Liquids);
 }

@@ -3,7 +3,9 @@
 - Status: Todo — the attribution reading this ticket's first job asks for was taken by batch `20261007-a`
   (2026-10-07), so the door is chosen and the recovery itself is what is left to develop: see
   `## The reading (batch 20261007-a)` below and
-  `docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md`.
+  `docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md`. Batch `20261007-c` (2026-10-07)
+  re-read the held and the dropped shapes on the same fixture and changed no part of that verdict; its
+  reading is `## The second reading (batch 20261007-c)` below.
 - Priority: Medium
 - Category: World generation / layer transition / member recovery
 - Source: acceptance batch `20261005-b` (2026-10-05), observed while staging
@@ -56,6 +58,24 @@ whether a member's inbound dispatch was parked through the host's `skiplayer` ch
   at +20 s the same window shows the loaded world with a character on screen and the peer tag.
 - **Nothing throws**: no `[ERR][Unity:Exception]` and no exception stack on any client in any attempt, on
   either side of the change.
+
+## The second reading (batch `20261007-c`, 2026-10-07) — the dropped pair came back by itself
+
+Batch `20261007-c` re-drove the same fixture for `done/layer-change-member-dropout.md`, parking BOTH members
+inside one command for the held attempt and driving the same command with no park as its control. Record:
+`docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md`.
+
+- **Both members can be held at once.** With host, guest and alt all parked across the change (13 s on the
+  members), both members read `inWorld: true` with `container-read mode=local` answering `localCount: 1` — the
+  item they carried into the change — at +16 s and +34 s. The park is therefore repeatable per member, not a
+  one-member trick.
+- **The control's two members BOTH returned on their own.** With no park they were out at +6–9 s
+  (`inWorld: false`, `localCount: 0`) and both read `inWorld: true` again at +30 s. "Never" is not this
+  fixture's default outcome: the spread across the three batches (recovery inside 20 s, inside 30 s, and one
+  member still out at +60 s) is what a recovery must be judged against, and it is also why a recovery cannot
+  be "wait for the game".
+- **The exit still follows the inbound the member processes.** The two attempts differ only in the park and
+  the park decides them, on the same world minutes apart — the door batch `20261007-a` chose still stands.
 
 ## Acceptance
 

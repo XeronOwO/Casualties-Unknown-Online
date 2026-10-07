@@ -50,11 +50,6 @@ public sealed class GameAdapterLiquidContentProvider(
 			return false;
 		}
 
-		// A payload built by ToPayload() carries every member, but a mod that
-		// assigns null to the list round-trips it as an explicit nil, and a null
-		// list means "no qualities" rather than a definition the binder must skip.
-		definition.Qualities ??= [];
-
 		var id = registration.Definition.Id;
 		if (string.IsNullOrWhiteSpace(id))
 		{

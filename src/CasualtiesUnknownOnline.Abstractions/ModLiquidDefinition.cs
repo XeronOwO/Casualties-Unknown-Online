@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -60,7 +59,11 @@ public sealed class ModLiquidDefinition
 
 	/// <summary>Crafting-quality labels the liquid provides, matched by quality-based recipes.</summary>
 	[DataMember(Order = 12)]
-	public List<ModCraftingQuality> Qualities { get; set; } = [];
+	public List<ModCraftingQuality> Qualities
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
@@ -72,22 +75,6 @@ public sealed class ModLiquidDefinition
 	}
 
 	/// <summary>Deserialize a liquid definition payload. Returns null when the payload is not a valid liquid definition.</summary>
-	public static ModLiquidDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModLiquidDefinition));
-			return serializer.ReadObject(stream) as ModLiquidDefinition;
-		}
-		catch (Exception)
-		{
-			return null;
-		}
-	}
+	public static ModLiquidDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModLiquidDefinition>(payload);
 }

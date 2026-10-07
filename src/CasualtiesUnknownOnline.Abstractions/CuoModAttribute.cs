@@ -54,7 +54,11 @@ public sealed class CuoModAttribute(string id, string displayName, string versio
 	/// order). Empty by default. Missing targets, self-dependencies,
 	/// duplicated declarations and dependency cycles are rejected at discovery.
 	/// </summary>
-	public string[] Dependencies { get; set; } = [];
+	public string[] Dependencies
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// The game's own code this mod binds — the DECLARED NATIVE BINDING of the

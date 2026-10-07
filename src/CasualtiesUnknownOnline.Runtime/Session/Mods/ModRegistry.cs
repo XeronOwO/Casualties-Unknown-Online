@@ -107,7 +107,7 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 				}
 			}
 
-			var dependencies = attribute.Dependencies ?? [];
+			var dependencies = attribute.Dependencies;
 			if (!AreDependenciesWellFormed(id, dependencies))
 			{
 				continue;

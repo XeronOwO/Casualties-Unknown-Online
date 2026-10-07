@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -49,7 +48,11 @@ public sealed class ModRecipeDefinition
 
 	/// <summary>The ordered ingredient requirements.</summary>
 	[DataMember(Order = 9)]
-	public List<ModRecipeIngredient> Ingredients { get; set; } = [];
+	public List<ModRecipeIngredient> Ingredients
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
@@ -61,22 +64,6 @@ public sealed class ModRecipeDefinition
 	}
 
 	/// <summary>Deserialize a recipe definition payload. Returns null when the payload is not a valid recipe definition.</summary>
-	public static ModRecipeDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModRecipeDefinition));
-			return serializer.ReadObject(stream) as ModRecipeDefinition;
-		}
-		catch (Exception)
-		{
-			return null;
-		}
-	}
+	public static ModRecipeDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModRecipeDefinition>(payload);
 }

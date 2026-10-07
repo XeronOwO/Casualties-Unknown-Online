@@ -205,7 +205,7 @@ public sealed class GameAdapterTileContentProvider(
 			return false;
 		}
 
-		if (definition.Drops is not { Count: > 0 })
+		if (definition.Drops.Count == 0)
 		{
 			return false;
 		}
@@ -358,7 +358,7 @@ public sealed class GameAdapterTileContentProvider(
 			return false;
 		}
 
-		foreach (var drop in definition.Drops ?? [])
+		foreach (var drop in definition.Drops)
 		{
 			if (drop is null || string.IsNullOrWhiteSpace(drop.ItemId))
 			{

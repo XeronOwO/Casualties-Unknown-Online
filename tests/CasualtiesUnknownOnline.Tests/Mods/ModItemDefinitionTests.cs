@@ -258,16 +258,19 @@ public class ModItemDefinitionTests
 	}
 
 	[Fact]
-	public void RoundTrip_ExplicitNullQualities_ComesBackAsNull()
+	public void ExplicitNullQualities_IsNoneNotAFailedDefinition()
 	{
-		// The serializer does not run property initializers, so a mod that assigns
-		// null to the list round-trips an explicit nil instead of an empty list.
-		// That is why the content providers normalise a null list to an empty one
-		// rather than failing the definition.
-		var restored = ModItemDefinition.FromPayload(new ModItemDefinition { Qualities = null! }.ToPayload());
+		// The payload serializer runs no property initializer, so a member that
+		// nothing owns round-trips an explicit nil and every consumer that
+		// dereferences the list without a guard fails the whole definition. The
+		// contract owns the rule instead: null IS "none", in both directions.
+		var definition = new ModItemDefinition { Qualities = null! };
+		Assert.Empty(definition.Qualities);
+
+		var restored = ModItemDefinition.FromPayload(definition.ToPayload());
 
 		Assert.NotNull(restored);
-		Assert.Null(restored!.Qualities);
+		Assert.Empty(restored!.Qualities);
 	}
 
 	[Fact]

@@ -50,7 +50,11 @@ public sealed class ModItemTool
 
 	/// <summary>Swing sounds randomly used when attacking.</summary>
 	[DataMember(Order = 10)]
-	public List<string> SwingSounds { get; set; } = ["BSSwing1", "BSSwing2", "BSSwing3", "BSSwing4"];
+	public List<string> SwingSounds
+	{
+		get;
+		set => field = value ?? [];
+	} = ["BSSwing1", "BSSwing2", "BSSwing3", "BSSwing4"];
 
 	/// <summary>Playback volume for swing sounds.</summary>
 	[DataMember(Order = 11)]

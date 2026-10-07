@@ -49,7 +49,11 @@ public sealed class ModItemVisual
 	/// does not exist on the target body at wear time.
 	/// </summary>
 	[DataMember(Order = 6)]
-	public List<ModItemLimbWornSprite> MultiWornSprites { get; set; } = [];
+	public List<ModItemLimbWornSprite> MultiWornSprites
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Optional frame animation for the item's primary/held sprite when the item

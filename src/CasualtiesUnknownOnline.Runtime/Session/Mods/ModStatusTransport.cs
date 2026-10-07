@@ -142,7 +142,7 @@ internal sealed class ModStatusTransport(
 			}
 			else
 			{
-				_status.TryApplyBodyStatus(update.StatusId, update.PlayerSteamId, update.Value ?? [], senderSteamId);
+				_status.TryApplyBodyStatus(update.StatusId, update.PlayerSteamId, update.Value, senderSteamId);
 			}
 		}
 		else
@@ -153,7 +153,7 @@ internal sealed class ModStatusTransport(
 			}
 			else
 			{
-				_status.TryApplyLimbStatus(update.StatusId, update.PlayerSteamId, update.LimbSlot, update.Value ?? [], senderSteamId);
+				_status.TryApplyLimbStatus(update.StatusId, update.PlayerSteamId, update.LimbSlot, update.Value, senderSteamId);
 			}
 		}
 

@@ -27,5 +27,9 @@ public sealed class ModStatusMoodleRequest
 	public string? LimbName { get; set; }
 
 	/// <summary>The mod-owned status payload (a defensive copy; may be empty when the status value is empty).</summary>
-	public byte[] Payload { get; set; } = [];
+	public byte[] Payload
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 }

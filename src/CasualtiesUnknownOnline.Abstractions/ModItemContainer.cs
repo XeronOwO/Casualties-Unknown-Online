@@ -30,5 +30,9 @@ public sealed class ModItemContainer
 
 	/// <summary>Optional item-tag restriction. Empty means every item is accepted.</summary>
 	[DataMember(Order = 5)]
-	public List<string> TagRestriction { get; set; } = [];
+	public List<string> TagRestriction
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 }

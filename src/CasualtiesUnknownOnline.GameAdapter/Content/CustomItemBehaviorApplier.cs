@@ -91,28 +91,25 @@ internal static class CustomItemBehaviorApplier
 			state.WornSortingOrder = sortingOrder;
 		}
 
-		if (visual.MultiWornSprites is not null)
+		foreach (var multi in visual.MultiWornSprites)
 		{
-			foreach (var multi in visual.MultiWornSprites)
+			if (multi is null
+				|| string.IsNullOrWhiteSpace(multi.LimbName)
+				|| string.IsNullOrWhiteSpace(multi.SpritePath))
 			{
-				if (multi is null
-					|| string.IsNullOrWhiteSpace(multi.LimbName)
-					|| string.IsNullOrWhiteSpace(multi.SpritePath))
-				{
-					continue;
-				}
-
-				var sprite = Resources.Load<Sprite>(multi.SpritePath);
-				if (sprite == null) // Unity object — ==
-				{
-					log.LogWarning(
-						"[ItemContent] cannot resolve multi-worn sprite resource for template {Template}, limb {Limb}: {Path}.",
-						template.name, multi.LimbName, multi.SpritePath);
-					continue;
-				}
-
-				state.AddMultiWornSprite(multi.LimbName, sprite, new Vector2(multi.OffsetX, multi.OffsetY));
+				continue;
 			}
+
+			var sprite = Resources.Load<Sprite>(multi.SpritePath);
+			if (sprite == null) // Unity object — ==
+			{
+				log.LogWarning(
+					"[ItemContent] cannot resolve multi-worn sprite resource for template {Template}, limb {Limb}: {Path}.",
+					template.name, multi.LimbName, multi.SpritePath);
+				continue;
+			}
+
+			state.AddMultiWornSprite(multi.LimbName, sprite, new Vector2(multi.OffsetX, multi.OffsetY));
 		}
 
 		if (state.HasMultiWornSprites)
@@ -178,7 +175,8 @@ internal static class CustomItemBehaviorApplier
 		ILogger log,
 		string kind)
 	{
-		if (animation.FramePaths is not { Count: > 0 } framePaths)
+		var framePaths = animation.FramePaths;
+		if (framePaths.Count == 0)
 		{
 			return [];
 		}
@@ -232,7 +230,7 @@ internal static class CustomItemBehaviorApplier
 		cont.maxWeightPerItem = container.MaxWeightPerItem;
 		cont.encumberanceMult = container.EncumbranceReduction;
 		cont.itemsVisible = container.ItemsVisible;
-		cont.tagRestriction = container.TagRestriction?.ToArray() ?? [];
+		cont.tagRestriction = [.. container.TagRestriction];
 	}
 
 	private static void ApplyBattery(GameObject template, ModItemBattery battery)

@@ -43,7 +43,11 @@ public sealed class ModStructureDefinition
 	/// <see cref="Height"/> rows.
 	/// </summary>
 	[DataMember(Order = 5)]
-	public List<string> Rows { get; set; } = [];
+	public List<string> Rows
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Marker character → vanilla block index. Markers are single-character
@@ -51,7 +55,11 @@ public sealed class ModStructureDefinition
 	/// appear in both this map and <see cref="TileIds"/>.
 	/// </summary>
 	[DataMember(Order = 6)]
-	public Dictionary<string, int> VanillaBlocks { get; set; } = [];
+	public Dictionary<string, int> VanillaBlocks
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Marker character → custom tile content id. The referenced tile must be
@@ -59,7 +67,11 @@ public sealed class ModStructureDefinition
 	/// before the structure can be placed.
 	/// </summary>
 	[DataMember(Order = 7)]
-	public Dictionary<string, string> TileIds { get; set; } = [];
+	public Dictionary<string, string> TileIds
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Optional worldgen distribution counts, one per biome depth. An absent
@@ -68,11 +80,19 @@ public sealed class ModStructureDefinition
 	/// and never placed).
 	/// </summary>
 	[DataMember(Order = 8)]
-	public List<int> SpawnCounts { get; set; } = [];
+	public List<int> SpawnCounts
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
 	[DataMember(Order = 9)]
-	public Dictionary<string, string> CustomData { get; set; } = [];
+	public Dictionary<string, string> CustomData
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Resolve the worldgen spawn count for one biome depth. Returns false when
@@ -83,7 +103,7 @@ public sealed class ModStructureDefinition
 	public bool TryGetSpawnCount(int depth, out int count)
 	{
 		count = 0;
-		if (SpawnCounts is null || depth < 0 || depth >= SpawnCounts.Count)
+		if (depth < 0 || depth >= SpawnCounts.Count)
 		{
 			return false;
 		}
@@ -102,25 +122,6 @@ public sealed class ModStructureDefinition
 	}
 
 	/// <summary>Deserialize a structure definition payload. Returns null when the payload is not a valid structure definition.</summary>
-	public static ModStructureDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModStructureDefinition));
-			return serializer.ReadObject(stream) as ModStructureDefinition;
-		}
-		catch (Exception)
-		{
-			// Any deserialization failure means the payload is not a valid
-			// structure definition under the current contract; the binder should
-			// refuse it rather than fail the whole mod discovery.
-			return null;
-		}
-	}
+	public static ModStructureDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModStructureDefinition>(payload);
 }

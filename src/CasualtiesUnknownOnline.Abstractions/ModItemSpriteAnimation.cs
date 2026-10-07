@@ -18,7 +18,11 @@ public sealed class ModItemSpriteAnimation
 	/// applied.
 	/// </summary>
 	[DataMember(Order = 1)]
-	public List<string> FramePaths { get; set; } = [];
+	public List<string> FramePaths
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Playback speed in frames per second. Must be positive.</summary>
 	[DataMember(Order = 2)]

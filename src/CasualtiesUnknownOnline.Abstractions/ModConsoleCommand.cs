@@ -26,7 +26,7 @@ public sealed class ModConsoleCommand(
 
 	public CommandPermission Permission { get; } = permission;
 
-	public IReadOnlyList<CommandArgumentKind> ArgumentKinds { get; } = [.. argumentKinds];
+	public IReadOnlyList<CommandArgumentKind> ArgumentKinds { get; } = argumentKinds is null ? [] : [.. argumentKinds];
 
 	/// <summary>The command body. Return the output text (null = no output); throwing is isolated by the console.</summary>
 	public Func<IModConsoleCommandContext, string?> Handler { get; } = handler;

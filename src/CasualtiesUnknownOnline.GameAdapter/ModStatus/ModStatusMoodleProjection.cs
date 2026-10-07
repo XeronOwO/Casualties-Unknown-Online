@@ -200,6 +200,8 @@ internal sealed class ModStatusMoodleProjection(
 			Scope = presence.Scope,
 			LimbSlot = presence.LimbSlot,
 			LimbName = GetLimbName(limb),
+			// The store query's own nullable source; the request member would
+			// normalise a null anyway (the same rule the payload contracts own).
 			Payload = payload ?? []
 		};
 
@@ -272,7 +274,8 @@ internal sealed class ModStatusMoodleProjection(
 
 	private Sprite[] LoadAnimationFrames(string moodleId, ModMoodleAnimation animation)
 	{
-		if (animation.FramePaths is not { Count: > 0 } framePaths)
+		var framePaths = animation.FramePaths;
+		if (framePaths.Count == 0)
 		{
 			return [];
 		}

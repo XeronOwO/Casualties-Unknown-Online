@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -56,7 +55,11 @@ public sealed class ModMoodleDefinition
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
 	[DataMember(Order = 9)]
-	public Dictionary<string, string> CustomData { get; set; } = [];
+	public Dictionary<string, string> CustomData
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Optional frame animation for the moodle icon. When present, the Game
@@ -132,25 +135,6 @@ public sealed class ModMoodleDefinition
 	}
 
 	/// <summary>Deserialize a moodle definition payload. Returns null when the payload is not a valid moodle definition.</summary>
-	public static ModMoodleDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModMoodleDefinition));
-			return serializer.ReadObject(stream) as ModMoodleDefinition;
-		}
-		catch (Exception)
-		{
-			// Any deserialization failure means the payload is not a valid
-			// moodle definition under the current contract; the binder should
-			// refuse it rather than fail the whole mod discovery.
-			return null;
-		}
-	}
+	public static ModMoodleDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModMoodleDefinition>(payload);
 }

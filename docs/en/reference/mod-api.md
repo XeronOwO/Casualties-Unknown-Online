@@ -404,6 +404,24 @@ context.Content.TryUnregister("wooden.sword");
 | `ModStatusDefinition` (`Status`, seventh) | display and description text, a body/limb scope, save-enabled metadata, an optional moodle id, optional per-limb moodle routing (`ShowPerLimbMoodles` plus `LimbMoodles`) and an extensible `CustomData` dictionary. The provider validates the scope/id/save fields and stores the static descriptor as migration base; it does not create a per-player or per-limb status bag — dynamic runtime values belong to the status runtime seam. |
 | `ModMoodleDefinition` (`Moodle`, eighth) | display and description text, a vanilla moodle intensity, a stable icon/resource id key, critical/chipped/important presentation flags, hold seconds, an optional `ModMoodleAnimation` frame-path icon animation, optional per-limb display/description templates (`LimbDisplayNameFormat` / `LimbDescriptionFormat`) and an extensible `CustomData` dictionary. The provider stores the static descriptor; `ModStatusMoodleProjection` feeds active status-linked moodles into the vanilla moodle manager, and a `Moodle.Start` patch drives the vanilla moodle UI image from the authored frames. Moodle content is still never a wire feature. |
 
+**Null means empty.** Every collection member of every typed contract above — a list, a dictionary or a
+`byte[]` — means "none" when it is null, and the framework answers for that at both ends of a payload. A
+member's own setter coalesces null, so a mod that assigns null builds a definition whose list reads empty
+and whose payload writes an empty collection instead of an explicit nil. And because the payload serializer
+runs neither a constructor nor a field initializer, a payload that simply OMITS a member's element would
+leave that member unset — so every `FromPayload` goes through one shared decode step (`ModPayloadCodec`)
+that replaces each null collection member of the decoded graph with an empty one, nested contracts and
+collection entries included. No provider normalises a payload collection any more, so a definition cannot
+behave differently depending on which consumer read it first. A member that is genuinely required is not an
+exception: an empty collection flows into that provider's own validation, which refuses the definition with
+a reason it names — an item's sprite animation with no frame paths, a recipe with no ingredients, a
+structure whose grid has no rows. The same rule covers the collections a mod builds in code rather than
+decodes (the attribute's `Dependencies`, `ModConsoleCommand.ArgumentKinds`, `ModManifest.Dependencies`,
+`ModPacket.Handlers` and the runtime moodle request's `Payload`), and the `ModPayloadNullCollectionTests`
+census discovers every collection member of the assembly's public classes — the 27 payload members, those
+five declarations and the registry's defensive-copy accessor — and drives all three shapes for each one (a
+payload we built, an explicit nil and an omitted element), so a new member cannot be added without the rule.
+
 **Crafting-quality labels.** A quality id is a *label*: either a vanilla one — a bare lower-case token
 such as `rippable`, which is how a mod says "this content provides that vanilla label" — or a
 mod-authored one namespaced with the content-id grammar (`mymod:material`), which keeps two mods'

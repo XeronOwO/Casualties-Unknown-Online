@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -101,7 +100,11 @@ public sealed class ModTileDefinition
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
 	[DataMember(Order = 19)]
-	public Dictionary<string, string> CustomData { get; set; } = [];
+	public Dictionary<string, string> CustomData
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>
 	/// Copper-relative world-generation multiplier. Zero disables automatic
@@ -123,7 +126,11 @@ public sealed class ModTileDefinition
 
 	/// <summary>Optional item drops spawned when the tile breaks. Empty means no custom drops.</summary>
 	[DataMember(Order = 23)]
-	public List<ModTileDrop> Drops { get; set; } = [];
+	public List<ModTileDrop> Drops
+	{
+		get;
+		set => field = value ?? [];
+	} = [];
 
 	/// <summary>Bitmask that allows spawning on every world layer.</summary>
 	public const int AllSpawnLayers = -1;
@@ -199,25 +206,6 @@ public sealed class ModTileDefinition
 	}
 
 	/// <summary>Deserialize a tile definition payload. Returns null when the payload is not a valid tile definition.</summary>
-	public static ModTileDefinition? FromPayload(byte[] payload)
-	{
-		if (payload is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			using var stream = new MemoryStream(payload);
-			var serializer = new DataContractSerializer(typeof(ModTileDefinition));
-			return serializer.ReadObject(stream) as ModTileDefinition;
-		}
-		catch (Exception)
-		{
-			// Any deserialization failure means the payload is not a valid tile
-			// definition under the current contract; the binder should refuse it
-			// rather than fail the whole mod discovery.
-			return null;
-		}
-	}
+	public static ModTileDefinition? FromPayload(byte[] payload) =>
+		ModPayloadCodec.Decode<ModTileDefinition>(payload);
 }

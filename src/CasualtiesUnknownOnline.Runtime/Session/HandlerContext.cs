@@ -22,7 +22,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
 	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
 	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw,
-	IKernelProtocolControl kernelProtocol) :
+	IKernelProtocolControl kernelProtocol, ILayerAdvanceControl layerAdvance) :
 	IWorldHandlerContext,
 	IWorldKernelHandlerContext,
 	IWorldSessionHandlerContext,
@@ -39,6 +39,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ISceneHandlerContext,
 	ITutorialSessionHandlerContext,
 	IWorldTimeHandlerContext,
+	ILayerAdvanceHandlerContext,
 	IKernelProtocolContext,
 	IEmptyHandlerContext
 {
@@ -52,6 +53,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The world-time domain (host-authoritative speed requests/broadcasts).</summary>
 	public IWorldTimeControl WorldTime { get; } = worldTime;
+
+	/// <summary>The end-of-layer choice's domain (a member's choice drives the host's own layer advance).</summary>
+	public ILayerAdvanceControl LayerAdvance { get; } = layerAdvance;
 
 	/// <summary>The direct player-interaction domain (take items from another player, host-authoritative).</summary>
 	public IPlayerInteractionControl PlayerInteraction { get; } = playerInteraction;

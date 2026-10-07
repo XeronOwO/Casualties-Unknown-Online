@@ -27,6 +27,8 @@ public class PatchBridgePortContractTests
 
 	private static readonly Type Port = Adapter("CasualtiesUnknownOnline.GameAdapter.IFluidPatchPort");
 
+	private static readonly Type LayerPort = Adapter("CasualtiesUnknownOnline.GameAdapter.ILayerAdvancePatchPort");
+
 	private static readonly Type BridgeImpl = Adapter("CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge");
 
 	private static readonly Type Seam = Adapter("CasualtiesUnknownOnline.GameAdapter.PatchBridge");
@@ -48,9 +50,24 @@ public class PatchBridgePortContractTests
 	public void FluidPort_DeclaresExactlyTheFluidMembers() =>
 		Assert.Equal(Census(FluidMembers), Census(DeclaredMembers(Port)));
 
+	/// <summary>The layer-transition port's whole surface, as the port declares it.</summary>
+	private static readonly string[] LayerAdvanceMembers =
+	[
+		"TryDelegateLocalAdvance",
+	];
+
+	[Fact]
+	public void LayerAdvancePort_DeclaresExactlyItsMembers() =>
+		Assert.Equal(Census(LayerAdvanceMembers), Census(DeclaredMembers(LayerPort)));
+
 	[Fact]
 	public void Aggregate_NoLongerDeclaresAnyFluidMember() =>
 		Assert.Empty(FluidMembers.Intersect(DeclaredMembers(Bridge), StringComparer.Ordinal));
+
+	/// <summary>The layer-transition domain never lived in the aggregate: its only door is the port.</summary>
+	[Fact]
+	public void Aggregate_DoesNotDeclareAnyLayerAdvanceMember() =>
+		Assert.Empty(LayerAdvanceMembers.Intersect(DeclaredMembers(Bridge), StringComparer.Ordinal));
 
 	[Fact]
 	public void Bridge_ImplementsTheFluidPortAndDeclaresEveryMember()
@@ -64,12 +81,25 @@ public class PatchBridgePortContractTests
 		Assert.Empty(missing);
 	}
 
-	/// <summary>The seam's two doors: the aggregate for the unmigrated domains, the port for the fluid domain.</summary>
 	[Fact]
-	public void Seam_ExposesTheAggregateAndThePort()
+	public void Bridge_ImplementsTheLayerAdvancePortAndDeclaresEveryMember()
+	{
+		Assert.True(LayerPort.IsAssignableFrom(BridgeImpl), "GameAdapterBridge does not implement ILayerAdvancePatchPort");
+
+		var missing = LayerAdvanceMembers
+			.Where(member => BridgeImpl.GetMethod(member, Any) is null)
+			.ToArray();
+
+		Assert.Empty(missing);
+	}
+
+	/// <summary>The seam's doors: the aggregate for the unmigrated domains, one per port-shaped seam.</summary>
+	[Fact]
+	public void Seam_ExposesTheAggregateAndThePorts()
 	{
 		Assert.Equal(Bridge, SeamType("Impl"));
 		Assert.Equal(Port, SeamType("Fluid"));
+		Assert.Equal(LayerPort, SeamType("LayerAdvance"));
 	}
 
 	private static Type SeamType(string property) =>

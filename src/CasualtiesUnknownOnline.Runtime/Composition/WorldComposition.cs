@@ -34,6 +34,8 @@ internal static class WorldComposition
 		services.AddSingleton<RuntimeEntityRegistry>(); // the host's accepted runtime-created entity table (the E3 backfill's source)
 		services.AddSingleton<WorldTimeChannel>(); // the world-time request/broadcast channel (host authority — the Game Adapter owns the policy)
 		services.AddSingleton<IWorldTimeControl>(p => p.GetRequiredService<WorldTimeChannel>());
+		services.AddSingleton<LayerAdvanceRequestChannel>(); // the end-of-layer choice's request flow (one guest → host request per member click)
+		services.AddSingleton<ILayerAdvanceControl>(p => p.GetRequiredService<LayerAdvanceRequestChannel>());
 		services.AddSingleton<EntityEventChannel>(); // the entity-event channel + the consumption/opened/health/layout registries
 		services.AddSingleton<RuntimeEntityChannel>(); // the runtime entity-creation channel + its E3 recovery tables
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)

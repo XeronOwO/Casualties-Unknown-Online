@@ -317,4 +317,17 @@ public enum NetMsg : byte
 	// because a guest never simulates an authoritative landing.
 	ItemImpact = 141, // host → guest: the authority played a world-item impact presentation at this position
 
+	// The end-of-layer choice (member intent, host authority: the native
+	// end-of-layer panel appears on the client whose own body is at the layer's
+	// bottom, and its "Continue" is that member's judgment that the layer is
+	// finished — but the layer's generation baseline is captured on the HOST's
+	// boundary, so a member's own regeneration has nothing to generate from and
+	// the session never moves). The member reports the choice instead, stamped
+	// with its kernel generation — the same identity every layer-relative world
+	// report carries — and the host drives its own advance when the stamp IS the
+	// generation it is in. A request for any other layer, or from a peer that is
+	// not a handshaken member, changes nothing; two members choosing at the same
+	// moment produce one advance.
+	LayerAdvanceRequest = 142, // guest → host: a member reached the end of the layer and chose to continue
+
 }

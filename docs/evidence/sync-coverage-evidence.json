@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1031,
+  "count": 1042,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -6189,6 +6189,72 @@
       "row": "R3",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/WorldJoinHandler.cs",
       "quote": "ctx.World.FireWorldJoinReceived(msg.IsTutorial, msg.RunBaselineFollows);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "LayerAdvanceRequest = 142, // guest → host: a member reached the end of the layer and chose to continue"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/LayerAdvanceRequestMsg.cs",
+      "quote": "public WorldGenerationMsg? Generation { get; set; }"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/LayerAdvanceRequestHandler.cs",
+      "quote": "[PacketHandler(NetMsg.LayerAdvanceRequest, NetMessageDirection.GuestToHost)]"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/LayerAdvanceRequestChannel.cs",
+      "quote": "if (!_session.TryGetMember(sender, out var member) || !member.Handshaken)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/LayerAdvanceRequestChannel.cs",
+      "quote": "var relation = WorldReportGeneration.Relate(_generations.Current, msg.Generation);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Composition/WorldComposition.cs",
+      "quote": "services.AddSingleton<ILayerAdvanceControl>(p => p.GetRequiredService<LayerAdvanceRequestChannel>());"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationContinueRunPatch.cs",
+      "quote": "[HarmonyPatch(typeof(WorldGeneration), \"ContinueRun\")]"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/LayerAdvanceCoordinator.cs",
+      "quote": "world.StartCoroutine(world.RegenerateWorld(false));"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/LayerAdvancePolicy.cs",
+      "quote": "return generating || regenerating ? LayerAdvanceDecision.AlreadyAdvancing : LayerAdvanceDecision.Drive;"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationRegenerateWorldPatch.cs",
+      "quote": "if (!LayerAdvancePolicy.ShouldSuppressLocalDescent(fromPanelEntry, delegated))"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/LayerAdvanceCoordinator.cs",
+      "quote": "if (!LayerAdvancePolicy.ShouldDelegateLocalAdvance(_session.Role, _session.SessionActive))"
     }
   ]
 }

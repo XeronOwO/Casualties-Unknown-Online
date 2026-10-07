@@ -73,7 +73,8 @@ internal static class NetworkingPacketPlaneComposition
 			p.GetRequiredService<IWorldTimeControl>(),
 			p.GetRequiredService<IPlayerInteractionControl>(),
 			p.GetRequiredService<ITutorialClawControl>(),
-			p.GetRequiredService<IKernelProtocolControl>()));
+			p.GetRequiredService<IKernelProtocolControl>(),
+			p.GetRequiredService<ILayerAdvanceControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 	}

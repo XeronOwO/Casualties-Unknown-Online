@@ -165,6 +165,8 @@ Host: start normal Batch/Stream
 | 106 | `RadiationLineState` | 主机 → 客机 | 辐射线的 active／timeGone 状态 |
 | 134 / 135 | `RuntimeEntitySnapshot` / `RuntimeEntityRejected` | 主机 → 客机／主机 → 上报方 | 运行时创建实体的绝对表／让挂起的重报停下来的拒绝 |
 | 140 | `RunFacts` | 主机 → 客机 | 发送时点读到的局计时与本层辐射计时，盖上局基线那代的戳（接收端把读数换算成本世界的基数） |
+| 141 | `ItemImpact` | 主机 → 客机 | 权威侧自己在某个位置播下的世界物品落地表现（落地音、落地方块脚步声、扬尘或毛绒玩具的吱声） |
+| 142 | `LayerAdvanceRequest` | 客机 → 主机 | 某成员走到本层尽头并选择继续，盖上自己的内核世代戳——戳等于主机当前世代时，主机才驱动本层的推进 |
 
 **流体、世界时间与教学**
 

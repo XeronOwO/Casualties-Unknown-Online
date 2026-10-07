@@ -62,6 +62,23 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A late joiner never binds the generated enemies](todo/enemy-generation-pairing-late-join.md) — **High** — the whole set stays local.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
+- [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
+- [Mod-defined wire packets](todo/mod-defined-wire-packets.md) — **High** — a mod owns its packet id and its handling chain.
+- [The end-of-layer choice must reach every member](todo/layer-complete-choice-for-members.md) — **High** — a dead host must not strand the group.
+- [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — give, spawn and a property editor.
+- [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
+- [The radiation line stops above the layer floor](todo/radiation-line-floor-stop.md) — **Medium** — a host switch, on by default.
+- [Heal restores severed limbs and clears hollow](todo/heal-command-limb-and-hollow-restore.md) — **Medium** — KrokMP parity for the heal command.
+- [A player's own music, heard by the group](todo/player-music-sync-playback.md) — **Medium** — transfer the file, then play.
+- [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.
+- [The loading screen says what it waits for](todo/loading-screen-progress-detail.md) — **Low-Medium** — reuse the game's own line.
+- [Descent ambience parity](todo/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
+- [Single-file package for the core plugin](todo/single-file-plugin-package.md) — **Low-Medium** — extensions stay separate.
+- [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
+- [The off-screen arrow's label escapes the edge](todo/offscreen-arrow-label-clipping.md) — **Low** — all four edges.
+- [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
+- [The version shows the build's commit](todo/version-string-build-suffix.md) — **Low** — in the log and the UI.
+- [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 
 ### In progress
 
@@ -137,7 +154,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [PVP](future/pvp.md) — **Low** — deferred until PvE is stable.
 - [KrokMP lower-priority candidates](future/krokmp-candidates.md) — **Low** — voice and vote-kick.
-- [Remote medical CPR](future/remote-medical-cpr.md) — **Low** — custom CPR is not native.
 - [EnemyCombatOrderPolicy follow-up](future/enemy-combat-order-policy-kernel.md) — **Low** — the kernel-process follow-up.
 - [Generic Prediction Runtime](future/generic-prediction-runtime.md) — **Low** — the future prediction architecture.
 - [Strict validation / anti-cheat](future/strict-validation-anti-cheat.md) — **Low** — hardening beyond the MVP scope.
@@ -145,7 +161,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md) — **Low** — the compatibility adapter.
 - [Handshake identity and refusal reasons](future/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names which dimension failed.
 - [Adapter-shell verification harness](future/adapter-shell-verification-harness.md) — **Low** — keeps the live-game half.
-- [Mod content ceiling](future/mod-content-ceiling.md) — **Medium** — cross-player predicates plus the parked surface gaps.
 - [The wire surface is recorded beside the protocol version](future/wire-surface-baseline.md) — **Medium** — the schema moves without the number.
 
 ### Resolved

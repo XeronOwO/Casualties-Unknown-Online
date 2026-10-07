@@ -24,7 +24,7 @@ The user confirmed the design before implementation:
 | 1 | [Medical operation session + real-time injection](remote-medical-stage-1-injection-session.md) | Generic `MedicalOperationSession` protocol and the migration of syringe/IV medicine to real-time incremental injection |
 | 2 | [Multiplayer shrapnel removal](remote-medical-stage-2-shrapnel-multiplayer.md) | Shared shrapnel minigame session with per-piece ownership, concurrent operators, force-ungrab and end/abort semantics |
 | 3 | [Remaining native medical minigames/actions](remote-medical-stage-3-other-actions.md) | Bandage/dressing minigame, splint/tourniquet removal, dislocation, AED, manual defibrillation, amputation and remaining WoundView actions |
-| Future | [CPR enhancement](../future/remote-medical-cpr.md) | KrokMP custom CPR; not native parity, deferred to future |
+| Promoted | [CPR enhancement](../todo/remote-medical-cpr.md) | KrokMP custom CPR; not native parity, promoted to `todo/` on 2026-10-07 |
 
 ## Global acceptance criteria
 
@@ -52,5 +52,5 @@ The user confirmed the design before implementation:
 
 ## Non-goals / open
 
-- No CPR parity in this roadmap; see `future/remote-medical-cpr.md`.
+- No CPR parity in this roadmap; the KrokMP-style CPR is its own promoted ticket, `todo/remote-medical-cpr.md`.
 - No anti-cheat hard validation beyond accept-first arbitration; strict validation remains a separate future item.

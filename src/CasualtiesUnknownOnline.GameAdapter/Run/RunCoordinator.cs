@@ -270,10 +270,10 @@ internal sealed class RunCoordinator(
 
 		if (HarmonyTraverse.IsGenerating())
 		{
-			// The host re-broadcast WorldJoin (its layer switch re-runs
-			// GenerateWorld) while our own generation is running — we are
-			// already loading. Our layer switch is our own ContinueRun, never
-			// the host's instruction.
+			// This client generates for a reason of its own (a run start, or a producer
+			// that owns its descent): the instruction belongs to a layer this side is
+			// already leaving. A member's end-of-layer choice is no longer such a
+			// reason — it is delegated, and the session re-invites this client.
 			_phase = RunPhase.Idle;
 			return;
 		}

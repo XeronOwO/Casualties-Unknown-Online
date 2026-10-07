@@ -209,6 +209,10 @@ public class PatchBridgePortShapeGateTests
 			"TryGetCustomWaterInfo",
 			"TryRenderCustomLiquids",
 		]),
+		("ILayerAdvancePatchPort", AdapterDir + "ILayerAdvancePatchPort.cs", false,
+		[
+			"TryDelegateLocalAdvance",
+		]),
 	];
 
 	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
@@ -227,6 +231,7 @@ public class PatchBridgePortShapeGateTests
 		"Bind",
 		"Fluid",
 		"Impl",
+		"LayerAdvance",
 		"ModContent",
 		"SessionSurface",
 		"Unbind",
@@ -246,6 +251,19 @@ public class PatchBridgePortShapeGateTests
 	/// alongside its pin still fails here.
 	/// </summary>
 	private const int ComposedSeamFloor = 10;
+
+	/// <summary>
+	/// The port-shaped seams the ONE implementation serves itself. A port served
+	/// through a delegate object instead (<c>IModContentPatchBridge</c>, held by
+	/// <c>GameAdapterBridge</c> as <c>_modContent</c>) contributes no member to the
+	/// class's own surface, so the two pins below are stated against this list
+	/// rather than against every uncomposed seam.
+	/// </summary>
+	private static readonly string[] BridgePorts =
+	[
+		"IFluidPatchPort",
+		"ILayerAdvancePatchPort",
+	];
 
 	public static IEnumerable<object[]> SeamCensus() =>
 		Seams.Select(seam => new object[] { seam.Interface, seam.File, Census(seam.Members) });
@@ -284,20 +302,22 @@ public class PatchBridgePortShapeGateTests
 	}
 
 	/// <summary>
-	/// The migration's guard: a port is not a rename of the aggregate. No port
-	/// member may also be declared by IPatchBridge, the aggregate must not
-	/// compose the port, and the fluid domain's members reachable through the
-	/// aggregate must be exactly none — otherwise the port would be the whole
-	/// interface under a new name and this ticket's split would be cosmetic.
+	/// The migration's guard: a port is not a rename of the aggregate. Every
+	/// port-shaped seam (the seams the aggregate does NOT compose) must declare no
+	/// member the aggregate declares — otherwise the port would be the whole
+	/// interface under a new name and the split would be cosmetic.
 	/// </summary>
 	[Fact]
 	public void ThePort_IsNotReachableThroughTheAggregate()
 	{
-		var port = Seams.Single(seam => seam.Interface == "IFluidPatchPort");
-		Assert.False(port.Composed, "the port is composed by the aggregate — the compiler would keep the members reachable through IPatchBridge");
+		var aggregate = DeclaredMembers(AggregateFile);
+		var reachable = Seams
+			.Where(seam => !seam.Composed)
+			.SelectMany(seam => seam.Members.Intersect(aggregate, StringComparer.Ordinal)
+				.Select(member => $"{seam.Interface}.{member} is declared by the aggregate too — the port would be reachable through IPatchBridge"))
+			.ToArray();
 
-		var shared = port.Members.Intersect(DeclaredMembers(AggregateFile), StringComparer.Ordinal).ToArray();
-		Assert.Empty(shared);
+		Assert.Empty(reachable);
 	}
 
 	/// <summary>One name, one door: a member declared by two seams — or by a seam and the aggregate — would be reachable through either, which is how the wall grows back.</summary>
@@ -317,13 +337,13 @@ public class PatchBridgePortShapeGateTests
 
 	[Fact]
 	public void Bridge_ImplementsExactlyTheAggregateAndThePorts() =>
-		Assert.Equal(Census(["IFluidPatchPort", "IPatchBridge"]), Census(BaseList(BridgeFile)));
+		Assert.Equal(Census(BridgePorts.Append("IPatchBridge")), Census(BaseList(BridgeFile)));
 
 	/// <summary>
 	/// The class serves the seams and nothing else: its public surface is exactly
-	/// the aggregate's members plus the composed seams' plus the port's, so a new
-	/// public member is a red whether it was declared on an interface or only on
-	/// the class, and a member removed from an interface but left here is caught
+	/// the aggregate's members plus the composed seams' plus the served ports', so
+	/// a new public member is a red whether it was declared on an interface or only
+	/// on the class, and a member removed from an interface but left here is caught
 	/// too (it would be an orphan surface no patch can reach by contract).
 	/// </summary>
 	[Fact]
@@ -331,7 +351,7 @@ public class PatchBridgePortShapeGateTests
 	{
 		var expected = AggregateMembers
 			.Concat(Seams.Where(seam => seam.Composed).SelectMany(seam => seam.Members))
-			.Concat(Seams.Where(seam => !seam.Composed && seam.Interface == "IFluidPatchPort").SelectMany(seam => seam.Members));
+			.Concat(Seams.Where(seam => BridgePorts.Contains(seam.Interface, StringComparer.Ordinal)).SelectMany(seam => seam.Members));
 
 		Assert.Equal(Census(expected), Census(PublicMembers(BridgeFile)));
 	}

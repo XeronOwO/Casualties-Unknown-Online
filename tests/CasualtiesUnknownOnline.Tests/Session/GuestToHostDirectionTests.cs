@@ -38,6 +38,7 @@ public class GuestToHostDirectionTests(DirectionProbe probe) : IClassFixture<Dir
 		NetMsg.MedicalOperationCancel,
 		NetMsg.MedicalOperationTargetCheckAnswer,
 		NetMsg.BlockDamageReport,
+		NetMsg.LayerAdvanceRequest,
 	};
 
 	[Theory]

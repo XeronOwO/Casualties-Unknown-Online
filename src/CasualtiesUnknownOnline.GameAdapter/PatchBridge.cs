@@ -28,6 +28,9 @@ internal static class PatchBridge
 	/// <summary>The fluid domain's patch port (the simulation tick, the local drink report, the custom-liquid resolution and the tile-touch re-application). The aggregate does not declare those members any more, so this accessor is the only way a patch reaches the fluid domain.</summary>
 	public static IFluidPatchPort? Fluid => _bound as IFluidPatchPort;
 
+	/// <summary>The layer-transition domain's patch port (the member's own end-of-layer choice). The aggregate does not declare it, so this accessor is the only way that hook reaches the domain.</summary>
+	public static ILayerAdvancePatchPort? LayerAdvance => _bound as ILayerAdvancePatchPort;
+
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 
 	public static void Unbind(IPatchBridge impl)

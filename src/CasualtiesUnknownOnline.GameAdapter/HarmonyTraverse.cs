@@ -68,6 +68,27 @@ internal static class HarmonyTraverse
 	}
 
 	/// <summary>
+	/// A layer regeneration is under way — <c>WorldGeneration.doingRegen</c>
+	/// (WorldGeneration.cs:1042-1064), which is set for the whole transition
+	/// INCLUDING the fade that runs before <c>generatingWorld</c> turns true and
+	/// cleared once the old scene is cleared. The native end-of-layer entry guards
+	/// on this field together with <see cref="IsGenerating"/> and the public
+	/// <c>worldExists</c>; its fourth clause — the local body standing at the
+	/// layer's bottom — is deliberately not part of this read, because that clause
+	/// ties the choice to the body that made it.
+	/// </summary>
+	public static bool IsRegenerating()
+	{
+		if (WorldGeneration.world == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var regen = Traverse.Create(WorldGeneration.world).Field("doingRegen");
+		return regen.FieldExists() && regen.GetValue<bool>();
+	}
+
+	/// <summary>
 	/// The game's own "in world" expression, shared by every seam that must act
 	/// only inside a live, finished world: the camera exists, the world exists (no
 	/// scene reload in flight), and generation is not running.

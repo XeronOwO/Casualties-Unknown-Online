@@ -287,6 +287,34 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void LayerAdvanceRequest_RoundTripsTheGenerationStamp()
+	{
+		// The stamp is the whole arbitration key: a request whose generation decoded as
+		// "no stamp" or as another layer would be refused by the host, so a member's
+		// choice would never become the session's next step.
+		var decoded = NetPacket.DecodePayload<LayerAdvanceRequestMsg>(
+			NetPacket.Encode(NetMsg.LayerAdvanceRequest, new LayerAdvanceRequestMsg
+			{
+				Generation = new WorldGenerationMsg { RunEpoch = 9UL, LayerIndex = 4 },
+			}));
+
+		Assert.NotNull(decoded.Generation);
+		Assert.Equal(9UL, decoded.Generation!.RunEpoch);
+		Assert.Equal(4, decoded.Generation.LayerIndex);
+	}
+
+	[Fact]
+	public void LayerAdvanceRequest_WithoutAStamp_DecodesAsNull()
+	{
+		// A peer with no committed run baseline sends no stamp at all, and that is the
+		// state the host refuses — the shape must survive as "absent", not as zeros.
+		var decoded = NetPacket.DecodePayload<LayerAdvanceRequestMsg>(
+			NetPacket.Encode(NetMsg.LayerAdvanceRequest, new LayerAdvanceRequestMsg()));
+
+		Assert.Null(decoded.Generation);
+	}
+
+	[Fact]
 	public void WorldJoin_RunEpoch_RoundTrips()
 	{
 		// The identity a member validates its checkpoint sets against: a value that

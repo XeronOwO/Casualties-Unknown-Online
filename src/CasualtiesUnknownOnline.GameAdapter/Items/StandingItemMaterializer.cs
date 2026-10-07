@@ -306,7 +306,7 @@ internal sealed class StandingItemMaterializer
 	/// expensive half of that comparison — <see cref="ItemStateCodec.CaptureDigest"/> reads the components
 	/// back by reflection — is paid per row only on a fire that actually changed the owner's item tree; the
 	/// fact edge fires for enemy bites, medical state and limb events too, and those fires are answered by
-	/// one reference walk (<see cref="SeenTree"/>).
+	/// one reference walk (<see cref="StandingItemFingerprint"/>).
 	/// </summary>
 	private static void ApplyState(Item target, CharacterItemMsg data)
 	{

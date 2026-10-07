@@ -80,6 +80,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		IPlayerInteractionVisibility visibility,
 		ILimbUseSemantics limbUseSemantics,
 		IConsumeSemantics consumeSemantics,
+		IWearSemantics wearSemantics,
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
 		IMedicalOperationControl medicalOperations,
@@ -92,7 +93,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
-		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, kernelAuthority, resultAuthority, log);
+		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, kernelAuthority, resultAuthority, log);
 		_remoteInventory = new PlayerRemoteInventoryIntentService(session, sender, access, hostRules, visibility, _itemUse, _take, time, log);
 		_carry = new PlayerCarryService(
 			session,

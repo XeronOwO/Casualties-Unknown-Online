@@ -64,6 +64,9 @@ internal sealed class GameAdapterDomains
 	/// <summary>The game's own content facts behind the consume (drink) chain (the DI-registered <c>IConsumeSemantics</c>), shared by the gesture routing for the same reason.</summary>
 	internal readonly IConsumeSemantics ConsumeSemantics;
 
+	/// <summary>The game's own content facts behind the wearable (wear) chain (the DI-registered <c>IWearSemantics</c>), shared by the gesture routing for the same reason.</summary>
+	internal readonly IWearSemantics WearSemantics;
+
 	internal readonly ILogger<GameAdapter> Log;
 
 	internal readonly CloneFactTable FactTable;
@@ -169,6 +172,7 @@ internal sealed class GameAdapterDomains
 		IMapper mapper,
 		ILimbUseSemantics limbUseSemantics,
 		IConsumeSemantics consumeSemantics,
+		IWearSemantics wearSemantics,
 		ILoggerFactory loggerFactory,
 		GameAdapterItemContentProvider itemContent,
 		GameAdapterBuildingContentProvider buildingContent,
@@ -185,6 +189,7 @@ internal sealed class GameAdapterDomains
 		Items = items;
 		LimbUseSemantics = limbUseSemantics;
 		ConsumeSemantics = consumeSemantics;
+		WearSemantics = wearSemantics;
 		ItemContent = itemContent;
 		BuildingContent = buildingContent;
 		TileContent = tileContent;

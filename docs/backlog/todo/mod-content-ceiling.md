@@ -106,13 +106,18 @@ formulas copied out of the game:
   decisions that introduced the slices describe them as curated (`docs/decisions/archive.md` entries
   98, 100, 103). `RemoteTopicalCatalog` is **deleted 2026-10-08** by Part B of
   `docs/backlog/todo/mod-cross-player-native-semantics.md`, the same way the medicine table went with
-  Part A; the other two still answer for their chains.
+  Part A; `RemoteWearCatalog` (the 40-row wearable registry) is **deleted 2026-10-08** by the same
+  ticket's wear chain, which reads `ItemInfo.wearable` / `desiredWearLimb` / `wearSlotId` instead;
+  `RemoteLimbToolCatalog` still answers for its chain.
 
 Consequences:
 
 - Mod content — and any vanilla content the tables do not carry — can be carried, dropped, traded and
-  saved, but it has no cross-player semantics: a mod food cannot be fed to another player, a mod
-  medicine cannot be injected, a mod dressing cannot be applied, a mod wearable cannot be put on.
+  saved, but it has no cross-player semantics **for the chains that still carry a table**: a mod food
+  cannot be fed to another player, a mod limb tool cannot be applied. The four migrated chains
+  (injection, topical, drink, wear) answer from the game's own data and therefore already reach mod
+  content: a mod medicine can be injected, a mod dressing applied, a mod drink fed and a mod garment
+  put on.
 - The ceiling of the mod platform is therefore our maintenance speed, not the game's own capability.
 - The transcribed constants are a patch-stack debt against the root-cause rule in `AGENTS.md`: a game
   update that changes a formula moves the game and leaves our copy behind, silently.

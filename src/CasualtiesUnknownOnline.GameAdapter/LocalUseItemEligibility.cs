@@ -10,6 +10,13 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// data (or the chain that has not migrated yet) makes it a supported remote
 /// item. Split out of <see cref="PlayerInteractionApply"/> at the 600-line gate;
 /// no game state beyond the item it is handed.
+/// <para>
+/// The wear family is asked through the same <see cref="IWearSemantics"/> seam the
+/// host's chain asks (<see cref="WearAdmission"/>), so "is this a wearable" has
+/// one answer on both sides; it is deliberately NOT a
+/// <see cref="Family"/> member, because a wear gesture has nothing to measure —
+/// the operator sends the request and the host does the placement.
+/// </para>
 /// </summary>
 internal static class LocalUseItemEligibility
 {
@@ -60,19 +67,21 @@ internal static class LocalUseItemEligibility
 	/// <summary>
 	/// The families in the order the host's one-shot chain asks them, so an item
 	/// this gate admits is an item the host will either handle or refuse by name —
-	/// never one it does not recognise. The limb rules come before the drink rule
+	/// never one it does not recognise. The wear rule comes first (the host's chain
+	/// asks it before the injection refusal, because a wearable is a wearable
+	/// whatever else its data says); the limb rules then come before the drink rule
 	/// because the containers both admit (saline, ringersolution, a blood bag) are
 	/// the medical family's, and because a mod container the game marks as a drink
 	/// AND a topical carrier must measure the call the host will run.
 	/// </summary>
-	public static bool IsUseItem(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics)
+	public static bool IsUseItem(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics, IWearSemantics wearSemantics)
 	{
 		if (item == null || item.condition <= 0f) // Unity object — ==
 		{
 			return false;
 		}
 
-		if (RemoteWearCatalog.IsWearItem(item.id))
+		if (WearAdmission.IsWearable(wearSemantics, item.id))
 		{
 			return true;
 		}

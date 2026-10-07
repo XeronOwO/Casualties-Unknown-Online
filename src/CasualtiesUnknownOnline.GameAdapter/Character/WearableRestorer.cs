@@ -67,6 +67,18 @@ internal sealed class WearableRestorer(ILogger<WearableRestorer> log)
 		ItemStateCodec.RestoreContents(item, itemData.Contents);
 
 		var limb = body.limbs[limbIndex];
+		if (limb.dismembered)
+		{
+			// The game's own wear flow refuses a dismembered limb (WearWearable,
+			// Body.cs:1494-1498) and this path mirrors that flow: the limb is a fact
+			// about THIS body, and a body that lost it after its last report must not
+			// have a garment parented to an inactive limb. The host's own check reads
+			// the same body's SNAPSHOT, which is a report and can be older than this.
+			_log.LogWarning("Restore: worn {ItemId} names limb {Limb}, which is dismembered on this body — skipped.", itemData.ItemId, limbIndex);
+			Object.Destroy(go);
+			return;
+		}
+
 		item.rb.simulated = false;
 		item.transform.SetParent(limb.transform);
 		item.transform.localScale = Vector3.one;

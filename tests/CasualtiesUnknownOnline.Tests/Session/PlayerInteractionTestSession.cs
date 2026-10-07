@@ -58,6 +58,13 @@ internal static class PlayerInteractionTestSession
 			new CharacterLimbMsg { Index = 0, SkinHealth = 50f, MuscleHealth = 50f },
 			new CharacterLimbMsg { Index = 1, SkinHealth = 20f, MuscleHealth = 30f },
 			new CharacterLimbMsg { Index = 2, SkinHealth = 80f, MuscleHealth = 80f },
+			// The limb families the wear slices name (the game's own LimbNum layout:
+			// 3-5 arm, 6-8 arm, 9-11 leg, 12-14 leg): a wear case needs the limb its
+			// own item data resolves to, and the SLOT rule needs two of them to tell
+			// a slot collision from a limb one.
+			new CharacterLimbMsg { Index = 4, SkinHealth = 60f, MuscleHealth = 60f },
+			new CharacterLimbMsg { Index = 9, SkinHealth = 70f, MuscleHealth = 70f },
+			new CharacterLimbMsg { Index = 11, SkinHealth = 65f, MuscleHealth = 65f },
 		];
 		return data;
 	}

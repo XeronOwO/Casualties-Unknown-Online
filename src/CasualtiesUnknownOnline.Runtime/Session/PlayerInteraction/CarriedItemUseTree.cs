@@ -28,18 +28,19 @@ internal static class CarriedItemUseTree
 	internal static CharacterItemMsg? FindFirstUsable(
 		IReadOnlyList<CharacterItemMsg> items,
 		ILimbUseSemantics limbSemantics,
-		IConsumeSemantics consumeSemantics)
+		IConsumeSemantics consumeSemantics,
+		IWearSemantics wearSemantics)
 	{
 		foreach (var candidate in items)
 		{
 			if (candidate.SlotIndex >= 0
 				&& candidate.InstanceId != 0
-				&& IsActuallyUsable(candidate, limbSemantics, consumeSemantics))
+				&& IsActuallyUsable(candidate, limbSemantics, consumeSemantics, wearSemantics))
 			{
 				return candidate;
 			}
 
-			var nested = FindFirstUsable(candidate.Contents, limbSemantics, consumeSemantics);
+			var nested = FindFirstUsable(candidate.Contents, limbSemantics, consumeSemantics, wearSemantics);
 			if (nested is not null)
 			{
 				return nested;
@@ -53,17 +54,19 @@ internal static class CarriedItemUseTree
 	internal static bool IsActuallyUsable(
 		CharacterItemMsg item,
 		ILimbUseSemantics limbSemantics,
-		IConsumeSemantics consumeSemantics)
+		IConsumeSemantics consumeSemantics,
+		IWearSemantics wearSemantics)
 	{
+		var wearable = WearAdmission.IsWearable(wearSemantics, item.ItemId);
 		if (item.Condition <= 0f
-			&& (RemoteConsumeCatalog.IsFoodItem(item.ItemId)
-				|| RemoteLimbToolCatalog.IsToolItem(item.ItemId)
-				|| RemoteWearCatalog.IsWearItem(item.ItemId)))
+			&& (wearable
+				|| RemoteConsumeCatalog.IsFoodItem(item.ItemId)
+				|| RemoteLimbToolCatalog.IsToolItem(item.ItemId)))
 		{
 			return false;
 		}
 
-		return RemoteWearCatalog.IsWearItem(item.ItemId)
+		return wearable
 			|| RemoteConsumeCatalog.IsFoodItem(item.ItemId)
 			|| ConsumeAdmission.IsDrinkContainer(consumeSemantics, item.ItemId, item.Liquids)
 			|| TopicalAdmission.IsTopicalContainer(limbSemantics, item.ItemId, item.Liquids)

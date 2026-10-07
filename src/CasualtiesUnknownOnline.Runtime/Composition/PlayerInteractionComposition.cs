@@ -36,6 +36,11 @@ internal static class PlayerInteractionComposition
 		// drink and the one-shot use path refuses it by name
 		// (mod-cross-player-native-semantics, Part B).
 		services.AddSingleton<IConsumeSemantics>(new NoConsumeSemantics());
+		// The game's own content facts behind the wearable (wear) chain, defaulted
+		// and replaced the same way: with no game data nothing is a wearable and the
+		// one-shot use path refuses the gesture by name
+		// (mod-cross-player-native-semantics, Part B's wear chain).
+		services.AddSingleton<IWearSemantics>(new NoWearSemantics());
 		// Remote medical operation session domain: generic start/update/end/cancel
 		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
 		// it for real-time injection; later stages reuse the same session envelope.

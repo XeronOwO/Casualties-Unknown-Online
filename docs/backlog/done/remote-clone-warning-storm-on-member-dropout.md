@@ -1,20 +1,23 @@
 # A member out of the world writes one Warning per clone per frame, unbounded
 
-- Status: Review — code and gates landed 2026-10-07 (both failure lines behind a window per (member, failure),
-  the runs drained where they end, the census extended); the runtime row is the next batch's, re-driving
-  `layer-change-member-dropout`'s fixture with both members' inbound parked.
+- Status: Done (batch `20261007-c`, 2026-10-07: the runtime row PASSES — with both members driven out of the
+  world, each client writes three lines per (member, failure) subject plus one summary per run that ended
+  (8 lines for two subjects) and grows at ~0.40 MB/min against this ticket's 7.25 MB/min reading, while the
+  parked attempt that holds both members in the world reads 0 of the line. History: the code and the gates
+  landed 2026-10-07 in the cycle above, and batch `20261007-a` measured the unbounded shape.)
 - Priority: Medium
 - Category: Observability / log volume (the log-storm family)
-- Source: acceptance batch `20261007-a` (2026-10-07), the row `todo/layer-change-member-dropout.md`
+- Source: acceptance batch `20261007-a` (2026-10-07), the row `done/layer-change-member-dropout.md`
   scheduled for that batch. Filed rather than fixed because an acceptance run changes no code
   (`docs/acceptance/AGENTS.md` rule 8, and that ticket's own rejection).
-- Related: `todo/layer-change-member-dropout.md` (the batch's ticket; this is the third producer of the
+- Related: `done/layer-change-member-dropout.md` (the batch's ticket; this is the third producer of the
   family that cycle bounded), `todo/layer-change-member-recovery.md` (the same session's attribution: the
   member is out of the world with no local body, which is the state this line repeats in),
   `review/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family),
   `docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md` (this reading),
   `docs/evidence/selfchecks/items/remote-clone-warning-storm-selfcheck.md` (this cycle's fact sheet),
   `docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md` (the shape the cycle bounded)
+- Acceptance record: `docs/evidence/acceptance/remote-clone-warning-storm-on-member-dropout-20261007-c.md`
 
 ## Symptom (read from batch `20261007-a`, three clients, one lobby)
 
@@ -78,8 +81,8 @@ Both failure lines are bounded and the census names them; the runtime row is the
 
 ## Required work
 
-Status of each item after the 2026-10-07 cycle: items 1-3 are done (see *Landed*), item 4 is the runtime row the
-next batch reads.
+Status of each item after the 2026-10-07 cycle: all four are done — items 1-3 in the cycle's own change
+(see *Landed*) and item 4 by batch `20261007-c`, which read the runtime row.
 
 1. **Bound it by the mechanism already in the tree, not by a new one.** — **done**: both failure lines ask a
    `LogRepetitionGuard` keyed on (failure, member) and are written inside the ask; the level policy's answer
@@ -90,10 +93,13 @@ next batch reads.
    fails the gate instead of filling a log.
 3. **Keep the detector's information.** — **done**: the first three lines carry the whole message plus the
    window's index, the member is named, and each ended run reports how many identical lines its window refused.
-4. **Read the storm's own cost as a size, not as a line count**, when the row is judged. — **the next batch's
-   row**: the re-run of `layer-change-member-dropout`'s fixture (both members' inbound parked inside one command
-   for ~9 s) reads each client's growth in MB since its mark, expecting at most six lines per member — three
-   per subject — plus at most one summary per run that ended, against the 58,148 lines of this batch's reading.
+4. **Read the storm's own cost as a size, not as a line count**, when the row is judged. — **done, read by
+   batch `20261007-c`**: the re-run of `layer-change-member-dropout`'s fixture drove the change with no park,
+   which put both members out of the world for ~8 s, and the census since the mark read 8 lines per client
+   (two (member, failure) subjects, each three lines plus one summary) against the 58,148 lines of batch
+   `20261007-a`, with the summaries reporting 156 / 207 (guest) and 108 / 221 (alt) refused lines as the
+   volume the window swallowed. The same batch's parked attempt reads 0 of the line on all three clients.
+   Record: `docs/evidence/acceptance/remote-clone-warning-storm-on-member-dropout-20261007-c.md`.
 
 ## Non-goals
 

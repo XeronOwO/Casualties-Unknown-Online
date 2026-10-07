@@ -1,12 +1,13 @@
 # Consecutive layer changes drop the members out of the world and storm the log
 
-- Status: Todo — Rejected (batch `20261007-a`, 2026-10-07: the three-client row ran and BOTH of its
-  expectations fail on the real shape — the members do NOT stay in the world, and a THIRD producer of the
-  same log family grows at the pre-fix rate; the two producers the 2026-10-06 cycle bounded are confirmed
-  bounded on the same shape, so the fix stands and is incomplete. See
-  `## Acceptance readings (batch 20261007-a)` below and
-  `docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md`). The member-recovery half stays
-  split out in `todo/layer-change-member-recovery.md`, whose attribution reading that batch took.
+- Status: Done (batch `20261007-c`, 2026-10-07: the row re-driven with BOTH members' inbound parked inside
+  ONE command PASSES — both members stay in the world with the item they carried across the change, and
+  every client's growth read as a size stays at 0.35–0.6 MB/min against the ~8.2 MB/min storm. The same
+  session's unparked control still drops both members and returns them inside 30 s, so the park is the
+  deciding variable. History: batch `20261007-a` rejected this row on the shape it could only half protect
+  and filed the family's third producer, which is bounded and read in
+  `done/remote-clone-warning-storm-on-member-dropout.md`. The member-recovery half stays split out in
+  `todo/layer-change-member-recovery.md`.)
 - Priority: Medium
 - Category: World generation / layer transition / observability
 - Source: agent acceptance batch `20261005-b` (2026-10-05), observed while staging that run's row 4 and
@@ -14,11 +15,12 @@
   introduced by this change" is never a reason to leave a defect alone.
 - Related: `done/layer-mod-baseline-divergence-on-continue.md` (the same warning from another producer),
   `todo/layer-change-member-recovery.md` (the split-out recovery half),
-  `review/remote-clone-warning-storm-on-member-dropout.md` (the third producer of this family, filed by the
+  `done/remote-clone-warning-storm-on-member-dropout.md` (the third producer of this family, filed by the
   2026-10-07 batch), `done/guest-generation-segments-over-host-absence.md`,
   `done/reenter-baseline-adoption.md`,
   `review/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family),
   `docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md` (the rejection's own record)
+- Acceptance record: `docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md`
 
 ## Symptom (evidence)
 
@@ -127,7 +129,7 @@ through the change. Full reading and evidence pointers:
    artifact the batch took afterwards reads **82,618** such lines of its 83,459 for that client since the
    mark; an earlier draft of this list said 82,034, which the artifact does not support), against
    ~8.2 MB/min before the fix. Filed as
-   `review/remote-clone-warning-storm-on-member-dropout.md`.
+   `done/remote-clone-warning-storm-on-member-dropout.md`.
 3. **What this cycle bounded IS bounded on the real shape**, which is why this rejects the row and not the
    fix: `[ItemPhysics] settle` read 14 and 13 lines (was 4,445 of 7,368), `[Fluid] region` 5 and 7 (was 415),
    `[LayerMod] baseline divergence` 0–3 lines across the three attempts (the corrected 5-second keyframe
@@ -136,6 +138,31 @@ through the change. Full reading and evidence pointers:
    inbound, the member stays; not held, the member leaves. That is the answer `## What is not known yet`
    item 1 was waiting for, and `todo/layer-change-member-recovery.md`'s record carries the reading.
 
+## Acceptance readings (batch `20261007-c`, 2026-10-07)
+
+The batch re-drove the row on three clients with BOTH members' inbound parked inside ONE command (arm host,
+guest and alt → `skiplayer` → an explicit 9-second hold → disarm), which is the gap batch `20261007-a`'s
+Limits named, and read the family's third producer in the same session on an unparked control attempt. Full
+reading and evidence pointers: `docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md`.
+
+1. **The row passes.** At +16 s and +34 s after the change both members read `inWorld: true` with
+   `container-read mode=local` answering `localCount: 1` — the same `emergencylight` they carried into the
+   change — and both window frames show the loaded world with the other peers' name tags. The two parks
+   were armed for 13 s (members) and 11 s (host), inside the 15-second black-window ceiling, and both
+   layer advances (the driven one at 11:23:50.783 and the game's own follow-up at 11:23:59.881) fell inside
+   the window.
+2. **The control attempt keeps the fixture honest.** Minutes later in the same session, the same command
+   with no park dropped both members (`inWorld: false`, `localCount: 0` at +6–9 s) and they returned on
+   their own inside 30 s, so the row's pass is the park's doing and not a change in the game's behaviour.
+3. **The growth stays a size, not a rate.** Attempt A's census since its mark read 0.261 / 0.452 / 0.396 MB
+   for host / guest / alt over ~45 s (0.35–0.6 MB/min) with `no Body component`, `not found in scene`,
+   `[Fluid] region` and `[LayerMod] baseline divergence` all at 0, and `[ItemPhysics] settle` at 0 / 69 / 4 —
+   the window is per (item, distance band), so a copy whose band moves reports again, and the excerpt shows
+   each subject stopping at `repeat 7` with a `1 subject(s) held back` note.
+4. **The family's third producer is bounded on the same shape** — 3 lines per (member, failure) subject plus
+   one summary per run, read in `done/remote-clone-warning-storm-on-member-dropout.md`. No client logged
+   `[ERR]`, `[ERR][Unity:Exception]` or any `Exception` line in either attempt.
+
 ## Required work
 
 Status of each item after the 2026-10-06 cycle:
@@ -143,7 +170,10 @@ Status of each item after the 2026-10-06 cycle:
 1. **Attribute it first** — **partly done**: the storm's volume and the warning's cadence are attributed from
    the batch's record, its artifacts and the client log that survived. The member's exit is NOT attributed
    and moved to `todo/layer-change-member-recovery.md` (item 2 there is the red-first reading).
-2. **Bound the diagnostic** — **done** (see *Landed*); the runtime row is the next batch's.
+2. **Bound the diagnostic** — **done** (see *Landed*): the runtime row was read by batch `20261007-c` and
+   the two producers this cycle bounded held on the real shape (`[ItemPhysics] settle` 0 / 69 / 4,
+   `[Fluid] region` 0, `[LayerMod] baseline divergence` 0), and the family's third producer is bounded and
+   read in `done/remote-clone-warning-storm-on-member-dropout.md`.
 3. **Recover the member** — **open, moved** to `todo/layer-change-member-recovery.md`, with the reason: the
    cause of the missing body is unknown, and a recovery written before the reading would be a guess.
 4. **Audit the family** — **done for the sites this cycle could name**, and stated as a census rather than a
@@ -151,9 +181,10 @@ Status of each item after the 2026-10-06 cycle:
    behind a window or demonstrably low-frequency (the trader state stream, the 5-second world-time resend,
    the 1 Hz character snapshot). A NEW high-frequency line elsewhere is caught only once it is named in
    `LogVolumeGateTests`; `review/steam-transport-send-limit-runaway.md` stays its own ticket.
-5. **Real-machine acceptance** — **ran as batch `20261007-a` and REJECTED the row**: the fix's half passes
-   and both of the row's expectations fail, see `## Acceptance readings (batch 20261007-a)` above. The re-run
-   owes the third producer's bound, and for the staying-in-the-world half an attempt that holds BOTH members.
+5. **Real-machine acceptance** — **ran as batch `20261007-a` (rejected) and batch `20261007-c` (passes)**:
+   the c batch's parked attempt holds both members in the world with their carried item and its unparked
+   control still reproduces the dropout, see `## Acceptance readings (batch 20261007-c)` above. The
+   remaining layer-descent and recovery questions live in `todo/layer-change-member-recovery.md`.
 
 ## Non-goals
 

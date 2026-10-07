@@ -8,10 +8,10 @@
 - Category: World generation / layer transition / member recovery
 - Source: acceptance batch `20261005-b` (2026-10-05), observed while staging
   `done/drop-pending-single-slot-overwrite.md`'s row 4 and recorded there as a limit. Split out of
-  `todo/layer-change-member-dropout.md` on 2026-10-06, whose 2026-10-06 cycle bounded that ticket's log-storm
+  `done/layer-change-member-dropout.md` on 2026-10-06, whose 2026-10-06 cycle bounded that ticket's log-storm
   half but did NOT attribute this half — the cause is unknown, so no fix is claimed here and the first job of
   the cycle that takes this ticket is to ATTRIBUTE it, not to implement a recovery.
-- Related: `todo/layer-change-member-dropout.md` (the umbrella ticket: its log-storm half landed
+- Related: `done/layer-change-member-dropout.md` (the umbrella ticket: its log-storm half landed
   2026-10-06, its item list still carries this work), `done/layer-mod-baseline-divergence-on-continue.md`
   (the same warning from another producer — a Continue that reopened the wrong world, a genuine detector,
   NOT this shape), `done/reenter-baseline-adoption.md` (a member that never left the session generates
@@ -25,7 +25,7 @@
 | During the same session the member still believed it was in the world: `role: Guest`, `inWorld: true`, `gateWaiting: false`, page `Home` | `r4-guest-state.json` / `r4-alt-state.json`, same directory |
 | A SECOND layer advance follows the first on its own about 9 s later, so one `skiplayer` command is already a consecutive change; the host's `[LayerReset]` line appears twice per attempt | the batch record's Limits, `[LayerReset] dropped the previous layer's world-rooted items; …` |
 | Nothing recovered on its own — the batch restarted all three clients cold and re-judged the remaining rows in a second session | the batch record's Sessions paragraph |
-| The same window carried the log storm this repository has since bounded; whether the storm and the missing body share a cause, one causes the other, or both follow from the layer change is NOT known | `docs/backlog/todo/layer-change-member-dropout.md` and `docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md` |
+| The same window carried the log storm this repository has since bounded; whether the storm and the missing body share a cause, one causes the other, or both follow from the layer change is NOT known | `docs/backlog/done/layer-change-member-dropout.md` and `docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md` |
 
 ## Why this is not fixed yet
 

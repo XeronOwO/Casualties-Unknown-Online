@@ -1,10 +1,16 @@
 # Mod content ceiling: the native label surface, cross-player semantics and the parked gaps
 
-- Status: Future
-- Priority: Medium
+- Status: Todo — **promoted 2026-10-07** by the user's backlog directive (open-ended content customisation and
+  a mod-extensible platform); the stages below are the work plan, cut into their own tickets as each one
+  starts, and the inventory stays the source of truth.
+- Priority: High
 - Category: Mod platform / architecture
-- Related: `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`, `docs/backlog/review/cucorelib-migration-support.md`, `docs/backlog/future/phase5-tooling-ecosystem.md`
-- Source: The 2026-09-25 tag/quality inventory and mod-ceiling analysis — the whole session's finding; user decision 2026-09-25 — ONE future ticket holding every item, nothing filed under `todo/`, and the implementation split into stages when it is promoted.
+- Related: `docs/backlog/todo/mod-defined-wire-packets.md` (Part 3's custom replication domains, promoted on
+  its own), `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
+  `docs/backlog/review/cucorelib-migration-support.md`, `docs/backlog/future/phase5-tooling-ecosystem.md`
+- Source: The 2026-09-25 tag/quality inventory and mod-ceiling analysis — the whole session's finding; user
+  decision 2026-09-25 — ONE ticket holding every item, nothing filed under `todo/`, and the implementation
+  split into stages when it is promoted. The 2026-10-07 directive is that promotion.
 
 ## Why this ticket exists
 
@@ -12,8 +18,8 @@ The session started from a narrow question ("is there a Forge-style tag system, 
 for a tag instead of an item?") and ended with the mod platform's ceiling. Everything that came out of
 it lives here so it is not re-derived: the native label surface and what CUO exposes of it (Part 1), the
 cross-player chains that cap what mod content can do online (Part 2), and the smaller gaps with no
-consumer (Part 3). This is a memo, not a work item: nothing below is implemented until its entry is
-promoted.
+consumer (Part 3). It was written as a memo; it is now the promoted work item, and every stage below is
+implemented as its own deliverable with its own verification.
 
 ## The ceiling, in three layers
 
@@ -192,14 +198,17 @@ These need new capability rather than a predicate, and none has a consumer:
 
 ## Promotion rule
 
-Nothing here enters `todo/` until its entry is promoted: the 2026-09-25 ruling was that the whole
-finding waits in `future/`. Each entry is then promoted on its own, as its own ticket, with a real
-consumer named (the promotion funnel in `docs/en/reference/modification-policy.md`), and every promoted
-entry is split into stages that each produce a verifiable result.
+The 2026-09-25 ruling was that the whole finding waits in `future/`; the 2026-10-07 directive promoted it.
+Each entry still becomes its own ticket with a real consumer named (the promotion funnel in
+`docs/en/reference/modification-policy.md`) and is split into stages that each produce a verifiable result —
+this ticket is the inventory and the plan, not one change that lands everything at once. An entry that needs
+a wire face is promoted with its own protocol decision (`docs/backlog/todo/mod-defined-wire-packets.md` is the
+first one).
 
-Two entries change class when promoted, because they are defects of a surface the API already promises
-rather than new capability: **a content kind with no provider**, and **a quality reference with no
-provider**. Both should then be filed at a higher priority and carry a reachable failure path.
+Two entries are first in line, because they are defects of a surface the API already promises rather than new
+capability, so they carry a reachable failure path instead of a wish: **a content kind with no provider**, and
+**a quality reference with no provider**. Both are filed at a higher priority than the capability entries when
+their own tickets are cut.
 
 ## Open questions
 

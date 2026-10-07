@@ -2343,7 +2343,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   (`ItemDistanceLog` for the two per-frame correction lines, the snapshot diagnostics in `LayerModifierSync`,
   and the 10 Hz fluid region receive handler); `LogVolumeGateTests` pins the call sites and fails when a
   window call is removed. The batch's own attribution is recorded in
-  `docs/backlog/todo/layer-change-member-dropout.md` and corrected there rather than edited away.
+  `docs/backlog/done/layer-change-member-dropout.md` and corrected there rather than edited away.
 - Read a log-growth figure by MEASURING the lines per class before naming a culprit: the diagnostic that
   explains the observed state and the diagnostic that produces the volume are often two different lines, and
   a ticket that names the wrong one spends its cycle on the wrong bound. A per-frame line at Information is
@@ -2369,7 +2369,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   — `-RecipeArg mode=local,guest=<SteamId>`), and a member left out of the world used to write its log without
   bound (`Remote body: no Body component in "Experiment" clone.`, measured at 7.25 MB/min; bounded later the
   same day by a window per (member, failure) plus a wind-down that reports what it swallowed —
-  `review/remote-clone-warning-storm-on-member-dropout.md`), so a session that ends with a member still out is
+  `done/remote-clone-warning-storm-on-member-dropout.md`), so a session that ends with a member still out is
   closed promptly rather than left running.
 - Harvested by this run: `.acceptance/tools/log-census.ps1` takes a `log.ps1` mark and prints, per client, the
   lines and megabytes written since it plus a count per pattern — the size a bounded/unbounded row is judged
@@ -2420,3 +2420,24 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - Change: the record names BOTH the run's commit and the artifact's `ProductVersion` and says the delta is
   documentation-only; `tools/verify-deploy.ps1` against this tree's build output before the clients start is
   what makes that statement checkable.
+
+## 2026-10-07 — Batch `20261007-c`: a park that must hold SEVERAL clients is one command, and the census needs `&`
+
+- Symptom: the row needed BOTH members held through the host's `skiplayer` change. The earlier batch's 9.4 s
+  park had come from the wall clock BETWEEN separate tool calls — unbounded, unreproducible, and armed on one
+  member only — so the row's pass condition had never been reached on both. This batch armed host, guest and
+  alt, drove the change and disarmed inside ONE `pwsh` invocation (arm → `skiplayer` → explicit
+  `Start-Sleep 9` → disarm) and BOTH members stayed in the world with their carried item, while the same
+  session's unparked control still dropped both and returned them inside 30 s.
+- Cause: the hold a park provides is the wall clock between arming and clearing it, and the change it must
+  cover takes seconds (the members were out at +6 s in the control). A sequence of driver calls is not a hold,
+  and the client's own `GuestHostSilenceWatchdog` caps the hold at 15 s — so the shape is "one command, one
+  explicit sleep", not "one call per member".
+- Change: arm EVERY client the row needs held, read each arm result (`armed: true`) BEFORE driving the change
+  so a failed arm cannot silently produce an unprotected attempt, hold with an explicit `Start-Sleep`, then
+  disarm inside the same command. `.acceptance/20261007-c/runbook-20261007-c.md` is the recorded shape.
+- Also: `.acceptance/tools/log-census.ps1 -Patterns 'a','b'` invoked through `powershell -File` printed one
+  comma-joined pattern name with `= 0` for every client while the log held eight hits. `-File` passes every
+  argument as a literal string, so the array arrived as `a,b` and matched nothing. Call the helper with `&` in
+  the current session, and treat a comma-joined pattern name in the output as the tell that the census
+  checked nothing.

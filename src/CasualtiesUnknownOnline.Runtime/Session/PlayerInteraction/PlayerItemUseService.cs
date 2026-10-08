@@ -9,19 +9,21 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// The cross-player item-use operation (the SOLID-food first slice plus the
-/// limb-tool slice, the wearable slice and the three migrated native families:
-/// injection, topical and drink). The host validates the user and target against
-/// its authoritative character snapshots, consumes/drains a carried item or
-/// transfers a wearable onto the target's snapshot, applies the curated
-/// target-side body/limb effect and sends the two participants one authoritative
-/// result. It has no mutable session state — it only reacts to calls and
-/// messages.
+/// The cross-player item-use operation (the wearable slice and the five migrated
+/// native families: injection, topical, drink, solid food and the limb tool). The
+/// host validates the user and target against its authoritative character
+/// snapshots, commits the resource a use spends — the drain a topical or drink
+/// gesture measured, the state and the consumption a limb tool's own delegate left
+/// on the affected side — and sends the two participants one authoritative result.
+/// It has no mutable session state — it only reacts to calls and messages.
 /// <para>
 /// Which family a carried item belongs to is the item's own data, asked through
-/// the three content seams (<see cref="ILimbUseSemantics"/>,
-/// <see cref="IConsumeSemantics"/>, <see cref="IWearSemantics"/>) in the order the
-/// gesture routing uses, so no CUO id table decides it.
+/// the four content seams (<see cref="ILimbUseSemantics"/>,
+/// <see cref="IConsumeSemantics"/>, <see cref="IWearSemantics"/>,
+/// <see cref="ISolidFoodSemantics"/>) in the order the gesture routing uses, so no
+/// CUO id table decides it. The limb tool's family is the one whose item-level
+/// claims are still asked as well (<see cref="LimbToolAdmission"/>), because the
+/// session chains that own the minigame families have not migrated yet.
 /// </para>
 /// <para>
 /// The migrated families are the exception the migration created: the host
@@ -33,13 +35,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// Parts A and B.
 /// </para>
 /// <para>
-/// The SOLID-FOOD family is the migration's end point: nothing is measured and
-/// nothing is computed anywhere but on the affected side, which runs the item's
-/// own <c>Body.UseItem</c> → <c>useAction</c> against its own body and its own
-/// object of the offered item. The host's part of that request is the ADMISSION
-/// (the grant the eater's outcome report is matched against) plus the second
-/// result it publishes from that report, so the item — which never changed owner
-/// — reaches its owner's own item. Where a use's item state LANDS is
+/// The two families whose effect belongs ENTIRELY to the affected side are the
+/// migration's end point: nothing is measured and nothing is computed anywhere but
+/// there — the LIMB TOOL runs the item's own <c>useLimbAction</c> against the
+/// treated player's own limb (<see cref="LimbToolAdmission"/>), and the SOLID FOOD
+/// runs the item's own <c>Body.UseItem</c> → <c>useAction</c> against the eater's
+/// own body. The host's part of either request is the ADMISSION (the grant the
+/// affected side's outcome report is matched against) plus the second result it
+/// publishes from that report, so the item — which never changed owner — reaches
+/// its owner's own item. Where a use's item state LANDS is
 /// <see cref="PlayerItemUseCommit"/>'s.
 /// </para>
 /// </summary>
@@ -56,7 +60,7 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 	private readonly ISolidFoodSemantics _solidFoodSemantics;
 	private readonly PlayerInteractionResultAuthority _resultAuthority;
 	private readonly PlayerItemUseCommit _commit;
-	private readonly PlayerSolidFoodEatService _solidFoodEat;
+	private readonly PlayerItemActionOutcomeService _outcomes;
 	private readonly ILogger _log;
 
 	public PlayerItemUseService(
@@ -85,19 +89,21 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 		_resultAuthority = resultAuthority;
 		_log = log;
 
-		// One commit side and one solid-food half, shared with the family chain below:
-		// the state a use leaves on the item lives in exactly one place (statement over
-		// the same objects twice would be two answers to "who committed this").
+		// One commit side and one affected-side outcome half, shared with the family
+		// chain below: the state a use leaves on the item lives in exactly one place
+		// (statement over the same objects twice would be two answers to "who
+		// committed this"), and both families whose effect runs on the affected side
+		// report through the same admission table.
 		_commit = new PlayerItemUseCommit(session, characters, items, kernelAuthority, log);
-		_solidFoodEat = new PlayerSolidFoodEatService(characters, solidFoodSemantics, _commit, log);
+		_outcomes = new PlayerItemActionOutcomeService(characters, limbUseSemantics, solidFoodSemantics, _commit, log);
 	}
 
-	/// <summary>Composition wiring: the solid-food admission table is session-scoped, so the session's end drops it.</summary>
+	/// <summary>Composition wiring: the affected-side admission table is session-scoped, so the session's end drops it.</summary>
 	internal void BindToSession() => _session.SessionEnded += ResetSessionState;
 
 	public void Dispose() => _session.SessionEnded -= ResetSessionState;
 
-	public void ResetSessionState() => _solidFoodEat.ResetSessionState();
+	public void ResetSessionState() => _outcomes.ResetSessionState();
 
 	/// <summary>An authoritative cross-player consumable use result arrived — the Game Adapter applies the local participant half.</summary>
 	public event Action<PlayerItemUseResultMsg>? UseReceived;
@@ -286,7 +292,6 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 		CharacterItemMsg? wornItem = null;
 		List<LiquidStackMsg>? appliedDose = null;
 		List<LiquidStackMsg>? drinkDose = null;
-		var timedEffects = new List<TimedLimbEffectMsg>();
 
 		// Where the item goes is the item's OWN data (ItemInfo.wearable /
 		// desiredWearLimb / wearSlotId), read through the same seam the operator's
@@ -380,7 +385,7 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			// cost) — so the host's whole part of the request is the ADMISSION: the
 			// grant the eater's one outcome report is matched against, because without
 			// it that report would be one member writing another member's item.
-			_solidFoodEat.Admit(target, originalItem.InstanceId, user);
+			_outcomes.Admit(target, originalItem.InstanceId, user);
 			_log.LogInformation("[ItemUse] {User} offers {ItemId} (id {InstanceId}) to {Target} — the eat runs on the eater's own client.",
 				user, originalItem.ItemId, originalItem.InstanceId, target);
 			PublishUse(new PlayerItemUseResultMsg
@@ -392,31 +397,33 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			});
 			return true;
 		}
-		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
+		else if (LimbToolAdmission.IsLimbTool(_limbUseSemantics, _solidFoodSemantics, originalItem.ItemId))
 		{
-			if (!RemoteLimbToolApplication.TryApply(
-				newTargetData.Health!,
-				newTargetData.Limbs,
-				tool,
-				out var resolvedLimbIndex,
-				limbIndex,
-				originalItem.Condition))
+			// The limb tool belongs to the affected side exactly as the eat above does:
+			// its own client runs the item's own useLimbAction against its own limb and
+			// its own object of the offered item, so the whole limb effect — the field
+			// writes, the limb component the tool turns into (SplintLimb,
+			// TourniquetScript, ChilledLimb), the timed op a delegate starts
+			// (medicalsuture's bleed ramp), the item condition the delegate itself
+			// spends — is the game's own code on the body it lands on. NOTHING is
+			// committed here: the host's whole part of the request is the ADMISSION (the
+			// grant the affected side's one outcome report is matched against), because
+			// without it that report would be one member writing another member's item.
+			// The deleted RemoteLimbToolCatalog's transcribed numbers (condition cost,
+			// per-tool body deltas, the component fields, the timed ramp) are what this
+			// branch no longer carries.
+			_outcomes.Admit(target, originalItem.InstanceId, user);
+			_log.LogInformation("[ItemUse] {User} uses {ItemId} (id {InstanceId}) on {Target} — the item's own limb action runs on the affected side.",
+				user, originalItem.ItemId, originalItem.InstanceId, target);
+			PublishUse(new PlayerItemUseResultMsg
 			{
-				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be applied to {Target} — required limb missing, no limb data, or component ineligible.", originalItem.ItemId, originalItem.InstanceId, target);
-				return false;
-			}
-
-			newItem.Condition -= tool.ConditionCost;
-			destroyed = newItem.Condition <= 0f && tool.DestroyAtZero;
-			if (tool.TimedBleedDurationSeconds > 0f)
-			{
-				timedEffects.Add(new TimedLimbEffectMsg
-				{
-					LimbIndex = resolvedLimbIndex,
-					DurationSeconds = tool.TimedBleedDurationSeconds,
-					BleedPerSecond = tool.TimedBleedPerSecond,
-				});
-			}
+				UserSteamId = user,
+				TargetSteamId = target,
+				ItemInstanceId = originalItem.InstanceId,
+				TargetRunsLimbAction = true,
+				LimbIndex = limbIndex,
+			});
+			return true;
 		}
 		else
 		{
@@ -475,7 +482,6 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			WornItem = wornItem,
 			Health = targetAppliesLocally ? null : newTargetData.Health,
 			Limbs = targetAppliesLocally ? [] : [.. newTargetData.Limbs],
-			TimedEffects = timedEffects,
 			AppliedDose = appliedDose ?? [],
 			DrinkDose = drinkDose ?? [],
 			LimbIndex = limbIndex,
@@ -487,49 +493,53 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 	public void FireUseReceived(PlayerItemUseResultMsg msg) => UseReceived?.Invoke(msg);
 
 	/// <summary>
-	/// Any role: the local client ran a cross-player eat — report the eaten item's
-	/// state so the host can hand it to the item's owner. Guest → host on the wire;
-	/// the host handles its own eat locally, because the host is the affected side
-	/// there just as a guest is (its admission came from its own request path).
+	/// Any role: the local client ran a cross-player use whose effect belongs to this
+	/// side — report what the used item became so the host can hand it to the item's
+	/// owner. Guest → host on the wire; the host handles its own case locally,
+	/// because the host is the affected side there just as a guest is (its admission
+	/// came from its own request path). <paramref name="consumed"/> is the limb-tool
+	/// family's observation that the run destroyed the item object; the eat reports
+	/// false because its report is issued from inside the use call.
 	/// </summary>
-	public void SendItemEatOutcome(ulong itemInstanceId, float condition)
+	public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed)
 	{
 		if (!_session.SessionActive || itemInstanceId == 0)
 		{
 			return;
 		}
 
-		var msg = new PlayerItemEatOutcomeMsg
+		var msg = new PlayerItemActionOutcomeMsg
 		{
 			ItemInstanceId = itemInstanceId,
 			Condition = condition,
+			Consumed = consumed,
 		};
 
 		if (_session.Role == SessionRole.Host)
 		{
-			HandleItemEatOutcome(_session.LocalSteamId, msg);
+			HandleItemActionOutcome(_session.LocalSteamId, msg);
 			return;
 		}
 
-		_sender.Send(_session.HostSteamId, NetMsg.PlayerItemEatOutcome, msg);
+		_sender.Send(_session.HostSteamId, NetMsg.PlayerItemActionOutcome, msg);
 	}
 
 	/// <summary>
-	/// Host only: the affected side ran a cross-player eat — its outcome is
-	/// committed onto the item's OWNER and published as the ordinary use result, so
-	/// the owner's own item and every peer's clone learn it through the same path
-	/// every other family uses. The refused cases and what the item became are
-	/// <see cref="PlayerSolidFoodEatService.HandleOutcome"/>'s, because the admitted
-	/// eat is what authorizes the write at all.
+	/// Host only: the affected side ran a cross-player use — its outcome is committed
+	/// onto the item's OWNER and published as the ordinary use result, so the owner's
+	/// own item and every peer's clone learn it through the same path every other
+	/// family uses. The refused cases and what the item became are
+	/// <see cref="PlayerItemActionOutcomeService.HandleOutcome"/>'s, because the
+	/// admitted use is what authorizes the write at all.
 	/// </summary>
-	public void HandleItemEatOutcome(ulong sender, PlayerItemEatOutcomeMsg msg)
+	public void HandleItemActionOutcome(ulong sender, PlayerItemActionOutcomeMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
 			return;
 		}
 
-		if (_solidFoodEat.HandleOutcome(sender, msg) is { } result)
+		if (_outcomes.HandleOutcome(sender, msg) is { } result)
 		{
 			PublishUse(result);
 		}
@@ -551,11 +561,11 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			msg.WornItem is null ? null : PlayerInteractionKernelCodec.FromCharacterItem(msg.WornItem),
 			msg.Health is null ? null : PlayerInteractionKernelCodec.FromCharacterHealth(msg.Health),
 			[.. msg.Limbs.Select(PlayerInteractionKernelCodec.FromCharacterLimb)],
-			[.. msg.TimedEffects.Select(PlayerInteractionKernelCodec.FromTimedLimbEffect)],
 			[.. msg.AppliedDose.Select(PlayerInteractionKernelCodec.FromLiquidStack)],
 			msg.LimbIndex,
 			[.. msg.DrinkDose.Select(PlayerInteractionKernelCodec.FromLiquidStack)],
 			msg.TargetEatsTheItem,
+			msg.TargetRunsLimbAction,
 			out _,
 			out var rejection))
 		{

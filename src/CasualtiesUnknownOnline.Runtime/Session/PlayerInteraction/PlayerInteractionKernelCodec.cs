@@ -254,17 +254,6 @@ public static class PlayerInteractionKernelCodec
 			IsVital = limb.IsVital,
 		};
 
-	public static PlayerInteractionTimedLimbEffect FromTimedLimbEffect(TimedLimbEffectMsg effect) =>
-		new(effect.LimbIndex, effect.DurationSeconds, effect.BleedPerSecond);
-
-	public static TimedLimbEffectMsg ToTimedLimbEffect(PlayerInteractionTimedLimbEffect effect) =>
-		new()
-		{
-			LimbIndex = effect.LimbIndex,
-			DurationSeconds = effect.DurationSeconds,
-			BleedPerSecond = effect.BleedPerSecond,
-		};
-
 	public static PlayerInteractionLiquidStack FromLiquidStack(LiquidStackMsg stack) =>
 		new(stack.LiquidId, stack.Amount);
 
@@ -308,11 +297,11 @@ public static class PlayerInteractionKernelCodec
 			WornItem = e.WornItem is null ? null : ToCharacterItem(e.WornItem),
 			Health = e.Health is null ? null : ToCharacterHealth(e.Health),
 			Limbs = [.. e.Limbs.Select(ToCharacterLimb)],
-			TimedEffects = [.. e.TimedEffects.Select(ToTimedLimbEffect)],
 			AppliedDose = [.. e.AppliedDose.Select(ToLiquidStack)],
 			LimbIndex = e.LimbIndex,
 			DrinkDose = [.. e.DrinkDose.Select(ToLiquidStack)],
 			TargetEatsTheItem = e.TargetEatsTheItem,
+			TargetRunsLimbAction = e.TargetRunsLimbAction,
 		};
 
 	private static ComponentStateMsg ToComponentMessage(ItemComponentState component) =>

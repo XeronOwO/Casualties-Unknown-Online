@@ -14,19 +14,38 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 public class RemoteMedicalTreatmentSoundCatalogTests
 {
 	[Theory]
-	[InlineData("splint", "splint")]
-	[InlineData("carcasssplint", "splint")]
-	[InlineData("boneweldingtool", "boneweld")]
-	[InlineData("clottingmush", "goo")]
 	[InlineData("musharm", "goo")]
-	[InlineData("chestdrain", "syringe")]
 	[InlineData("tweezers", "tweezeruse")]
 	[InlineData("wrench", "wrenchhit")]
-	[InlineData("medicalsuture", "gore")] // its blocked delegate's first call is Body.DoGoreSound (Item.cs:378): the table names the base clip the limb's own Dismember plays, not one of the body's five rolled variants
-	public void ALimbTreatmentItem_CarriesItsNativeLimbActionClip(string itemId, string clip)
+	public void ASessionFamilyTool_CarriesTheClipItsBlockedNativeCallWouldHavePlayed(string itemId, string clip)
 	{
+		// The rows that are left serve the gestures whose native call the remote view
+		// still blocks and no migrated chain runs: the wound-view bandage session's
+		// musharm, and the shrapnel and dislocation sessions' held tools.
 		Assert.True(RemoteMedicalTreatmentSoundCatalog.TryGetClip(itemId, out var actual));
 		Assert.Equal(clip, actual);
+	}
+
+	[Theory]
+	[InlineData("splint")]
+	[InlineData("carcasssplint")]
+	[InlineData("boneweldingtool")]
+	[InlineData("clottingmush")]
+	[InlineData("chestdrain")]
+	[InlineData("medicalsuture")]
+	[InlineData("icepack")]
+	[InlineData("tourniquet")]
+	public void ALimbTool_LeavesItsClipToItsOwnNativeAction(string itemId)
+	{
+		// Part B's last chain: the TREATED player's client runs the item's own
+		// useLimbAction through NativeLimbToolApply, inside the medical capture scope,
+		// so the delegate's own clip ("splint", "boneweld", "goo", the chest drain's
+		// "syringe", the suture's gore roll) is relayed from the body it lands on. A row
+		// here would double it, and the two tools whose delegate plays nothing
+		// (icepack, tourniquet) need no recorded silence either — their native action
+		// IS the decision now.
+		Assert.False(RemoteMedicalTreatmentSoundCatalog.TryGetClip(itemId, out _), $"{itemId} must not carry a table row");
+		Assert.DoesNotContain(itemId, RemoteMedicalTreatmentSoundCatalog.Uncarried);
 	}
 
 	[Theory]
@@ -71,8 +90,6 @@ public class RemoteMedicalTreatmentSoundCatalogTests
 	[InlineData("bandage")] // the bandage family: the native minigame's own step carries it
 	[InlineData("rag")]
 	[InlineData("alginate")]
-	[InlineData("icepack")]
-	[InlineData("tourniquet")]
 	[InlineData("adhesivebandage")]
 	[InlineData("makeshiftwrench")]
 	[InlineData("machete")] // the amputation's completion plays the limb's gore presentation, carried by the minigame step's own capture scope (AmputationMinigameSoundPatch)

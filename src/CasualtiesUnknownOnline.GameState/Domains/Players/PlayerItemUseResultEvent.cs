@@ -18,8 +18,8 @@ public sealed record PlayerItemUseResultEvent(
 	PlayerInteractionItem? WornItem,
 	PlayerInteractionHealth? Health,
 	IReadOnlyList<PlayerInteractionLimb> Limbs,
-	IReadOnlyList<PlayerInteractionTimedLimbEffect> TimedEffects,
 	IReadOnlyList<PlayerInteractionLiquidStack> AppliedDose,
 	int LimbIndex,
 	IReadOnlyList<PlayerInteractionLiquidStack> DrinkDose,
-	bool TargetEatsTheItem = false) : PlayerEvent;
+	bool TargetEatsTheItem = false,
+	bool TargetRunsLimbAction = false) : PlayerEvent;

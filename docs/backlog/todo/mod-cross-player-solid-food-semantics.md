@@ -7,7 +7,7 @@
 - Acceptance record: `docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md`
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture
-- Parent: `docs/backlog/todo/mod-cross-player-native-semantics.md` (Part B)
+- Parent: `docs/backlog/review/mod-cross-player-native-semantics.md` (Part B)
 - Related: `docs/backlog/todo/mod-content-ceiling.md` (Part 2 stage 2, its pre-cut statement),
   `docs/evidence/selfchecks/players/cross-player-native-drink-semantics-selfcheck.md` (the sibling
   chain that landed), `docs/evidence/selfchecks/players/cross-player-native-topical-semantics-selfcheck.md`,

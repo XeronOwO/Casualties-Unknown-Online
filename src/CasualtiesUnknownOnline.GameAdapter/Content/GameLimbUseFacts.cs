@@ -43,4 +43,28 @@ internal static class GameLimbUseFacts
 		!string.IsNullOrEmpty(liquidId)
 		&& Liquids.Registry.TryGetValue(liquidId, out var liquid)
 		&& liquid.healthUsable;
+
+	/// <summary>
+	/// The limb-tool family's fact: the item carries a limb action of its own and
+	/// no liquid container. Native <c>PlayerCamera.ApplyWoundItem</c>
+	/// (PlayerCamera.cs:739-762) is
+	/// <c>body.conscious &amp;&amp; ActuallyUsableOnLimb</c> → <c>usableOnLimb</c> →
+	/// <c>useLimbAction(limb, item)</c>, and for an item with no
+	/// <c>WaterContainerItem</c> the <c>ActuallyUsableOnLimb</c> read
+	/// (ItemInfo.cs:10-15) is <c>usableOnLimb</c> itself — which is also the flag
+	/// that selects the <c>useLimbAction</c> branch over the container branch. A
+	/// container is the liquid chains' and is refused here.
+	/// <para>
+	/// The delegate is required to be assigned as well: native would throw on the
+	/// <c>useLimbAction</c> call of a <c>usableOnLimb</c> item that carries none, so
+	/// this path refuses by name instead of reproducing that null dereference (the
+	/// same deviation the two liquid chains record).
+	/// </para>
+	/// </summary>
+	internal static bool IsLimbActionItem(string? itemId) =>
+		!string.IsNullOrEmpty(itemId)
+		&& Item.GlobalItems.TryGetValue(itemId, out var info)
+		&& info is not LiquidItemInfo
+		&& info.usableOnLimb
+		&& info.useLimbAction is not null;
 }

@@ -644,10 +644,11 @@ public class PlayerDomainKernelTests
 				worn,
 				new PlayerInteractionHealth { Thirst = 9f },
 				[new PlayerInteractionLimb { Index = 1 }],
-				[new PlayerInteractionTimedLimbEffect(1, 10f, -4.5f)],
 				[new PlayerInteractionLiquidStack("reliefcream", 10f)],
 				1,
-				[new PlayerInteractionLiquidStack("water", 100f)]),
+				[new PlayerInteractionLiquidStack("water", 100f)],
+				TargetEatsTheItem: false,
+				TargetRunsLimbAction: true),
 			new CommandContext(Epoch, Host)).Batch!;
 
 		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
@@ -660,12 +661,13 @@ public class PlayerDomainKernelTests
 		Assert.Equal("bikehelmet", @event.WornItem!.Identity.DefinitionId);
 		Assert.Equal(9f, @event.Health!.Thirst);
 		Assert.Equal(1, Assert.Single(@event.Limbs).Index);
-		Assert.Equal(10f, Assert.Single(@event.TimedEffects).DurationSeconds);
 		Assert.Equal("reliefcream", Assert.Single(@event.AppliedDose).LiquidId);
 		Assert.Equal(10f, Assert.Single(@event.AppliedDose).Amount);
 		Assert.Equal(1, @event.LimbIndex);
 		Assert.Equal("water", Assert.Single(@event.DrinkDose).LiquidId);
 		Assert.Equal(100f, Assert.Single(@event.DrinkDose).Amount);
+		Assert.False(@event.TargetEatsTheItem);
+		Assert.True(@event.TargetRunsLimbAction);
 	}
 
 	[Fact]

@@ -216,7 +216,7 @@ Host: start normal Batch/Stream
 | 99 / 100 | `PlayerCarryStartRequest` / `PlayerCarryStopRequest` | 客机 → 主机 | 开始／停止背负一名昏迷或死亡的世界内玩家 |
 | 102 | `PlayerHealRequest` | 客机 → 主机 | 用随身医疗物品治另一名世界内玩家 |
 | 116 | `PlayerItemUseRequest` | 客机 → 主机 | 对另一名世界内玩家使用随身的饮品／食物 |
-| 143 | `PlayerItemEatOutcome` | 客机 → 主机 | 固体食物在本地吃完了：该物品吃后的耐久 |
+| 143 | `PlayerItemActionOutcome` | 受影响一方 → 主机 | 物品自己的动作在本机跑完了（固体食物进食或肢体工具使用）：这件物品变成了什么样，以及这次动作有没有把它消耗掉 |
 | 118 / 119 | `PlayerPushRequest` / `PlayerPushResult` | 客机 → 主机／主机 → 所有人 | 一次推搡请求与权威的推力结果 |
 | 107 / 108 | `TraderRecruitRequest` / `TraderRecruitResult` | 客机 → 主机／主机 → 目标 | 在商人处招募一名死亡玩家，以及权威的事后身体状态 |
 | 127–133 | `MedicalOperationStartRequest`、`StartAck`、`Update`、`State`、`EndRequest`、`EndCommitted`、`Cancel` | 操作方 ↔ 主机 ↔ 各客户端 | 医疗操作会话：主机持有登记表与预留、增量进度，以及唯一一次终态提交 |

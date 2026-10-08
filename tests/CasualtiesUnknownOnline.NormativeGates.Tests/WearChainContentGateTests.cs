@@ -75,14 +75,13 @@ public class WearChainContentGateTests
 	/// remaining work, listed EXACTLY rather than as a floor, so growth is visible
 	/// too: a new catalog beside these fails this gate, and so does a migration that
 	/// deletes one without updating the list. Measured 2026-10-08, the cycle the
-	/// SOLID-FOOD chain's table left it (limb tool, heal profiles, the bandage
-	/// minigame's items and the treatment-sound table).
+	/// LIMB-TOOL chain's table left it (the heal profiles, the bandage minigame's items
+	/// and the treatment-sound table), which is the row this census now reports.
 	/// </summary>
 	private static readonly string[] PendingCatalogFiles =
 	[
 		"RemoteBandageMinigameCatalog.cs",
 		"RemoteHealProfiles.cs",
-		"RemoteLimbToolCatalog.cs",
 		"RemoteMedicalTreatmentSoundCatalog.cs",
 	];
 	[Fact]

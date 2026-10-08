@@ -67,10 +67,11 @@ internal static class CarriedItemUseTree
 	{
 		var wearable = WearAdmission.IsWearable(wearSemantics, item.ItemId);
 		var solidFood = SolidFoodAdmission.IsFeedable(solidFoodSemantics, item.ItemId);
+		var limbTool = LimbToolAdmission.IsLimbTool(limbSemantics, solidFoodSemantics, item.ItemId);
 		if (item.Condition <= 0f
 			&& (wearable
 				|| solidFood
-				|| RemoteLimbToolCatalog.IsToolItem(item.ItemId)))
+				|| limbTool))
 		{
 			return false;
 		}
@@ -79,7 +80,7 @@ internal static class CarriedItemUseTree
 			|| solidFood
 			|| ConsumeAdmission.IsDrinkContainer(consumeSemantics, item.ItemId, item.Liquids)
 			|| TopicalAdmission.IsTopicalContainer(limbSemantics, item.ItemId, item.Liquids)
-			|| RemoteLimbToolCatalog.IsToolItem(item.ItemId);
+			|| limbTool;
 	}
 
 	/// <summary>

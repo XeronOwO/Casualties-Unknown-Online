@@ -93,17 +93,20 @@ public interface IPlayerInteractionControl
 	event Action<PlayerItemUseResultMsg>? UseReceived;
 
 	/// <summary>
-	/// Any role: the local client ran a cross-player EAT — report the eaten item's
-	/// state so the host can hand it to the item's owner (guest → host on the wire;
-	/// the host handles its own eat locally, because it is the affected side there
-	/// just as a guest is). The solid-food family is the one where the item's whole
-	/// effect runs on the affected side, so the item's post-eat state exists only
-	/// there; the host matches the report against the eat it admitted.
+	/// Any role: the local client ran a cross-player use whose effect belongs to this
+	/// side — report what the used item became so the host can hand it to the item's
+	/// owner (guest → host on the wire; the host handles its own case locally,
+	/// because it is the affected side there just as a guest is). The two families
+	/// that run on the affected side are the solid-food eat and the limb-tool use, so
+	/// the item's post-use state exists only here; the host matches the report against
+	/// the use it admitted. <paramref name="consumed"/> is the limb-tool family's own
+	/// observation that the run destroyed the item object itself; the eat passes false
+	/// and the host keeps its own verdict.
 	/// </summary>
-	void SendItemEatOutcome(ulong itemInstanceId, float condition);
+	void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed);
 
-	/// <summary>Host only: a cross-player eat's outcome arrived (from the wire or the host's own client).</summary>
-	void HandleItemEatOutcome(ulong sender, PlayerItemEatOutcomeMsg msg);
+	/// <summary>Host only: an affected-side use's outcome arrived (from the wire or the host's own client).</summary>
+	void HandleItemActionOutcome(ulong sender, PlayerItemActionOutcomeMsg msg);
 
 	/// <summary>Any role: request a push/shove on an in-world player (guest → host on the wire; host handles locally).</summary>
 	void SendPushRequest(ulong targetSteamId);

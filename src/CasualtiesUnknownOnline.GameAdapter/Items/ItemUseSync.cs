@@ -73,7 +73,10 @@ internal sealed class ItemUseSync(
 		{
 			if (SolidFoodAdmission.IsFeedable(_solidFoodSemantics, item.id))
 			{
-				_playerInteraction.SendItemEatOutcome(idComp!.Id, item.condition);
+				// Consumed is false: this report is issued from inside the eat's own use
+				// call, so a delegate that destroys the item has not destroyed it yet —
+				// the host keeps its own verdict for that half.
+				_playerInteraction.SendItemActionOutcome(idComp!.Id, item.condition, consumed: false);
 				_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) is a standing item object — the eat's outcome reported to the host for its owner.", item.id, idComp.Id);
 			}
 			else

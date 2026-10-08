@@ -176,7 +176,7 @@ public class ItemUseTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(GuestId, 77);
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendItemEatOutcome(77, 0.41f);
+			.SendItemActionOutcome(77, 0.41f, consumed: false);
 
 		var results = UseResults(received);
 		Assert.Equal(2, results.Count);
@@ -212,7 +212,7 @@ public class ItemUseTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(GuestId, 77);
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendItemEatOutcome(77, 0.75f);
+			.SendItemActionOutcome(77, 0.75f, consumed: false);
 
 		var applied = UseResults(received)[1];
 		Assert.True(applied.ItemDestroyed);
@@ -232,7 +232,7 @@ public class ItemUseTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendItemEatOutcome(77, 0.41f);
+			.SendItemActionOutcome(77, 0.41f, consumed: false);
 
 		Assert.Empty(UseResults(received));
 		Assert.True(Math.Abs(characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).Condition - 0.75f) < 0.001f);
@@ -253,8 +253,8 @@ public class ItemUseTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(GuestId, 77);
 		var eater = guest.Services.GetRequiredService<IPlayerInteractionControl>();
-		eater.SendItemEatOutcome(77, 0.41f);
-		eater.SendItemEatOutcome(77, 0.1f);
+		eater.SendItemActionOutcome(77, 0.41f, consumed: false);
+		eater.SendItemActionOutcome(77, 0.1f, consumed: false);
 
 		Assert.Equal(2, UseResults(received).Count);
 		Assert.True(Math.Abs(characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).Condition - 0.41f) < 0.001f);
@@ -284,7 +284,7 @@ public class ItemUseTests
 		{
 			if (msg.TargetEatsTheItem)
 			{
-				interaction.SendItemEatOutcome(77, 0.41f);
+				interaction.SendItemActionOutcome(77, 0.41f, consumed: false);
 			}
 		};
 

@@ -866,11 +866,11 @@ public sealed class OnlineUiMemberProjectionTests
 			remove { }
 		}
 
-		public void SendItemEatOutcome(ulong itemInstanceId, float condition)
+		public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed)
 		{
 		}
 
-		public void HandleItemEatOutcome(ulong sender, PlayerItemEatOutcomeMsg msg)
+		public void HandleItemActionOutcome(ulong sender, PlayerItemActionOutcomeMsg msg)
 		{
 		}
 

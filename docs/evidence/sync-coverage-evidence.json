@@ -6272,7 +6272,7 @@
       "cluster": "inline",
       "row": "P9",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs",
-      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerItemEatOutcome, msg);"
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerItemActionOutcome, msg);"
     }
   ]
 }

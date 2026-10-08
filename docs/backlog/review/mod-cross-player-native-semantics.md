@@ -701,3 +701,29 @@ have to go looking for:
 - Not a mod-API surface change: Part 3 A/C of the ceiling ticket stay parked until a real consumer.
 - Not a rewrite of the operation-session protocol: the session envelope, claims and terminal semantics
   are reused as they are.
+
+## Topical entry correction (2026-10-08)
+
+The user's ruling that a topical application is the MEDICAL view's action — decision 246 applied to this
+chain, after the same rule landed for the limb tool — closed the last place in the ITEM-USE path where one
+player's client chose another player's limb. (The heal slice still auto-selects on the host; that is its
+own long-recorded rule, pinned by its own cases, and this cycle does not touch it.)
+
+- The world drag no longer carries the family. `LocalUseItemEligibility.IsWorldDragFamily` admits the
+  families whose native call site IS the inventory use (a drink, a meal, the wear placement) plus
+  injection, which is admitted only so the host can refuse it by name; a topical carrier released on a
+  teammate now falls through to the native drop, which is what the inventory use means for an item the game
+  marks `usable=false`. The topical dose measurement and `ResolveMeasureLimb` are deleted with it.
+- The host refuses a topical request that names no limb, and the affected side applies to the limb the
+  request named or refuses (`NativeTopicalApply` asks `NativeLimbTarget.ResolveNamed`). `TopicalUseBranch`
+  holds the host's half, split out of `PlayerItemUseService` at the 600-line gate.
+- The medical view is unchanged and is now the only entry: `TryStartRemoteTopicalUse` validates the display
+  limb and puts it on the request.
+- Evidence: `docs/evidence/selfchecks/players/topical-entry-and-named-limb-selfcheck.md`;
+  `TopicalChainGateTests` (2 facts) and `ItemUseTests.Use_ATopicalRequestThatNamesNoLimb_IsRefused`, each
+  red on the pre-fix tree, and the tests that used a world-drag-shaped request for another purpose now name
+  a limb where they needed one, so each is refused by the branch its own name claims (the dose plan, the
+  chain's final else, the injection order) instead of by the new rule.
+- Acceptance rows for the batch: (a) a topical container released on a teammate in the world drops instead
+  of applying anything; (b) a wound-view release applies the dose to the limb the operator picked, on the
+  patient's own screen.

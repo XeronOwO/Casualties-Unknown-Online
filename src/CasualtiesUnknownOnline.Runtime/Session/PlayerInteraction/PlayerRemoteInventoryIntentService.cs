@@ -264,7 +264,10 @@ internal sealed class PlayerRemoteInventoryIntentService(
 				refusal = string.Empty;
 				return true;
 			case RemoteInventoryIntentKind.ApplyToLimb:
-				// -1 is the landed flow's "pick the most injured limb" request.
+				// -1 is legal AT THIS LAYER — the release names no limb when the wound view is
+				// not readable — and whether it may be SERVED is the host chain's decision: the
+				// families whose limb IS the action refuse it there (decision 246), while the
+				// injection chain's -1 stays a legal auto-select.
 				if (msg.TargetLimbIndex < -1)
 				{
 					refusal = $"invalid target limb {msg.TargetLimbIndex}.";

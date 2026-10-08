@@ -40,6 +40,9 @@ It is not reserved for rejected items or user-reported problems.
    - Ask of every action whether it needs information its gesture cannot carry — a limb, an identity,
      an intent. A fallback that supplies it ("the most injured limb", "the first match") is the defect
      itself: refuse the request or ask the user, never ship the fallback and record it as a limit.
+     "Ask the user" means a case NO recorded decision covers: when the rule or a ruling already answers it
+     — the item's own data separating two entries, a family the user has already placed on one entry —
+     refusing IS that ruling's execution, and re-asking it is itself a process violation.
    - Keep the entries ISOLATED. When one item could be claimed by two of them, the item's own data says
      which action each entry runs. Deciding by order (a family chain, an if-else ladder) means two
      scenarios were merged, and every rule built on top of it inherits the error.

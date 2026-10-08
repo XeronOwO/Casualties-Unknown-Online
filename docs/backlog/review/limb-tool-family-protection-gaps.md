@@ -30,10 +30,11 @@
   synthetic source.
 - Evidence: `docs/evidence/selfchecks/players/limb-tool-named-limb-refusal-selfcheck.md` (mechanism
   inventory, whole-family audit, the two measured mutations, the limits), and decision 246's second half.
-- Deliberately NOT in this cycle: the TOPICAL world drag keeps its most-injured-limb resolve — the
-  sibling question parked on the user's ruling, named in the self-check's §2/§5 — and the native half of
-  this change (whether the refusal happens on a live body, and what its log says there) stays an
-  acceptance row.
+- Not in this cycle, and landed in the next one: the TOPICAL world drag kept its most-injured-limb
+  resolve here; the user's ruling that a topical application is the medical view's action closed that
+  sibling reach too (`docs/evidence/selfchecks/players/topical-entry-and-named-limb-selfcheck.md`,
+  decision 246). What stays an acceptance row is the native half of both changes — whether the refusal
+  happens on a live body, and what its log says there.
 
 ## Gap 1 — a NAMED but unusable limb still falls back to the most injured one
 

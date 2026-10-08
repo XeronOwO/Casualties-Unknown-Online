@@ -40,21 +40,30 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal static class NativeTopicalApply
 {
 	/// <summary>
-	/// Apply one drained dose to <paramref name="requestedLimbIndex"/> of the
-	/// local body; returns how many stacks the game's registry answered for, so
-	/// the caller knows whether the body actually moved.
+	/// Apply one drained dose from <paramref name="itemInstanceId"/> to
+	/// <paramref name="requestedLimbIndex"/> of the local body; returns how many stacks
+	/// the game's registry answered for, so the caller knows whether the body actually
+	/// moved.
 	/// </summary>
-	internal static int Apply(Body body, int requestedLimbIndex, IReadOnlyList<LiquidStackMsg> dose, ILogger log)
+	internal static int Apply(Body body, ulong itemInstanceId, int requestedLimbIndex, IReadOnlyList<LiquidStackMsg> dose, ILogger log)
 	{
 		if (dose.Count == 0 || body.limbs.Length == 0)
 		{
 			return 0;
 		}
 
-		var limb = NativeLimbTarget.Resolve(body, requestedLimbIndex);
+		// The limb the request NAMED, and nothing else: a topical application's call
+		// site is the wound view's release onto a limb (its own useLimbAction runs on
+		// this body's limb), so the operator's pick IS the gesture (decision 246). A
+		// limb this body can no longer serve — dismembered since the pick — is refused
+		// rather than substituted; the automatic most-injured rule stays in
+		// `NativeLimbTarget.Resolve` for the chain whose -1 is a legal auto-select.
+		var limb = NativeLimbTarget.ResolveNamed(body, requestedLimbIndex);
 		if (limb is null)
 		{
-			log.LogWarning("[ItemUse] topical dose skipped: the local body has no usable limb for {Limb}.", requestedLimbIndex);
+			log.LogWarning(
+				"[ItemUse] topical dose skipped: limb {Limb} of the request for item {ItemId} is not a usable limb of this body (gone, dismembered, or past its layout) — refused rather than applied to another limb.",
+				requestedLimbIndex, itemInstanceId);
 			return 0;
 		}
 

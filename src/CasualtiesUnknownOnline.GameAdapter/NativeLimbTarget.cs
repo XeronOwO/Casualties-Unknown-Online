@@ -5,18 +5,18 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// body. TWO verdicts live here and the difference is the point:
 /// <see cref="ResolveNamed"/> answers with the limb the request NAMED and with
 /// nothing when this body cannot serve it, while <see cref="Resolve"/> keeps the
-/// automatic rule the injection and topical chains share — the operator's pick
+/// automatic rule the INJECTION chain uses — the operator's pick
 /// when it is a real, attached limb of this body, otherwise the most injured one
 /// (the same rule the host applies for the heal slice,
 /// <c>RemoteHealApplication.PickMostInjuredLimb</c>, pinned by
 /// <c>InjectionSemanticsTests.LimbRule_TheRequestedLimbWinsAndAnInvalidOneFallsBackToTheMostInjured</c>),
 /// where a -1 limb is a legal auto-select.
 /// <para>
-/// The limb-tool family asks the NAMED question and nothing else (decision 246):
-/// the limb IS that action, the host refuses a request that names none, and
-/// substituting another limb is the very defect the family's rule names. Shared by
-/// the chains that landed from <c>mod-cross-player-native-semantics</c> so each
-/// rule exists once: the limb is a fact about the patient's body, and only that
+/// The limb-tool AND topical families ask the NAMED question and nothing else
+/// (decision 246): for both, the limb IS that action, the host refuses a request that
+/// names none, and substituting another limb is the very defect the rule names. Shared
+/// by the chains that landed from <c>mod-cross-player-native-semantics</c> so each
+/// verdict exists once: the limb is a fact about the patient's body, and only that
 /// body's own client can answer it.
 /// </para>
 /// </summary>

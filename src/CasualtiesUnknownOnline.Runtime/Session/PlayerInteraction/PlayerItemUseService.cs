@@ -330,22 +330,14 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 		}
 		else if (TopicalAdmission.IsTopicalContainer(_limbUseSemantics, originalItem.ItemId, originalItem.Liquids))
 		{
-			// The dose is the one the item's OWN delegate computed on the
-			// operator's client — the per-use ml is an ldc.r4 literal inside that
-			// closure, so no table can hold it and the host only caps it at what
-			// the item really carries (LiquidDrainPlan mirrors the native
-			// CalculateDrain). The effect belongs to the affected side: this
-			// branch commits the resource and carries the drained plan to the
-			// target, which runs each liquid's own onHealthUse through the native
-			// path. Nothing target-side is computed or saved here.
-			if (!LiquidDrainPlan.TryCreate(originalItem.Liquids, doseMl, out var topicalPlan))
+			// The decision and the plan live in TopicalUseBranch: the request must name
+			// the limb the wound view carried (that release IS the application's native
+			// call site, decision 246) and must carry the dose the operator's own item
+			// delegate measured. Nothing target-side is computed or saved here.
+			if (!TopicalUseBranch.TryPlan(limbIndex, target, originalItem, doseMl, newItem, _log, out appliedDose))
 			{
-				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) carried no dose to apply to {Target}.", originalItem.ItemId, originalItem.InstanceId, target);
 				return false;
 			}
-
-			appliedDose = topicalPlan;
-			CarriedItemUseTree.ApplyDrain(newItem, topicalPlan);
 		}
 		else if (ConsumeAdmission.IsDrinkContainer(_consumeSemantics, originalItem.ItemId, originalItem.Liquids))
 		{

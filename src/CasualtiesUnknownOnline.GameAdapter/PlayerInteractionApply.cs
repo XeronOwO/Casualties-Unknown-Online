@@ -298,7 +298,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		// it plays (streptokinase) is still local to the patient.
 		if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.AppliedDose.Count > 0)
 		{
-			var handled = NativeTopicalApply.Apply(body, msg.LimbIndex, msg.AppliedDose, domains.Log);
+			var handled = NativeTopicalApply.Apply(body, msg.ItemInstanceId, msg.LimbIndex, msg.AppliedDose, domains.Log);
 			domains.Log.LogInformation(
 				"[ItemUse] local body received {Count} topical stack(s) from {User} (limb {Limb}).",
 				handled, msg.UserSteamId, msg.LimbIndex);

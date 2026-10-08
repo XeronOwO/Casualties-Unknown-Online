@@ -35,13 +35,13 @@ records that someone decided the step was done, not what proved it. Keep it to o
 (a command, a file, or a measured result); the full detail belongs in the cycle's ticket or
 evidence file.
 
-- [x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified — evidence: self-check §1 (10 mechanisms, `reversing/` cites in `Body.cs`/`Item.cs`/`PlayerCamera.cs`/`NonDescriptCan.cs`); the census (139 use actions, 41 feeding + the can) reproduces from `Item.cs`'s `SetupItems`
-- [x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: self-check §2 — the gesture verdict, the host's auto-select + chain, the request half, the affected side's run, the item report, the commit and both content gates moved in one pass
-- [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: self-check §3 (13 rows, each naming the case or gate that pins it) plus §6's per-case dispositions of the deleted catalog's four cases
-- [x] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided — evidence: self-check §4 — L0 host+guest cases over the real kernel/wire (request half, outcome half, consume shape, refusals, the host-as-eater nested publish) + `SolidFoodChainGateTests`; the game-side half and §7's readings are named as the acceptance batch's
-- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation — evidence: the handoff fixes step 3 (the eat chain + the host-as-eater report + the catalog's deletion) as this cycle's work; the design was frozen by the user 2026-10-08 and the ticket's Scope states it
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0 warnings/0 errors, `dotnet format` exit 0, behaviour 4805/4805, normative gates 547/547 with the delivery-checklist gate excluded (548 total; one full run with the build)
-- [x] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round) — evidence: largest touched `src/` file 527 lines (`PlayerInteractionApply.cs`), the new ones 186/151/103/100/71/50; no new type carries a boolean state field; the deleted table, its row type and its application are gone with their consumers
+- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+- [ ] Self-check table: mechanism x change x evidence, every cell filled
+- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+- [ ] Build + dotnet format + dotnet test normative gates pass
+- [ ] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round)
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

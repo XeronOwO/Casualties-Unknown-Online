@@ -115,3 +115,4 @@ acceptance row | 验收行 | 验收行 | 验收项，检查点，用例 | one sc
 residual | 残余项 | 残余项（residual） | 残留项，遗留项，剩余工作 | an acceptance row only a person can judge; it is never a self-issued pass
 dependency preflight | 依赖体检 | 依赖体检（dependency preflight） | 环境检查，依赖检测 | the read-only check reporting present, missing, unknown or pending per acceptance dependency
 crafting-quality label | 制作品质标签 | 制作品质标签（crafting-quality label） | 品质名，标签，品质词条 | a crafting-quality id: a vanilla one is a bare token (`rippable`), a mod-authored one is namespaced (`mymod:material`), and the game compares them ordinally
+entry mapping | 入口对照 | 入口对照（entry mapping） | 入口映射，映射表，入口表 | the game's own call site each CUO gesture is the counterpart of, one line per entry, decided before any design that crosses players or mirrors a native action

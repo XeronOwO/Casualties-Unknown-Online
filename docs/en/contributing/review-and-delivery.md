@@ -11,8 +11,9 @@ for what the gates refuse.
 
 ## The hard order
 
-Understand → mechanism inventory → plan and self-check table → user approval (large changes only) →
-red test (defects only) → implement → build and gates → deploy → runtime verification → independent
+Understand → **entry mapping (whenever behaviour crosses players or mirrors a native action)** →
+mechanism inventory → plan and self-check table → user approval (large changes only) → red test
+(defects only) → implement → build and gates → deploy → runtime verification → independent
 adversarial self-check → structure review → commit.
 
 This applies to all normal work: features, bug fixes, user-facing changes and internal improvements.
@@ -28,7 +29,25 @@ It is not reserved for rejected items or user-reported problems.
 3. **Check for a reusable native game UI or mechanism first.** If the game already has a surface for
    the feature, reuse it. If it does not, document the evidence and get user direction before building
    custom UI.
-4. **Defects only: make the expected failure visible before fixing.** Add a regression test or runtime
+4. **Map CUO's entry points to the game's own — one line each — before designing anything that
+   crosses players or mirrors a native action.** A missing mapping is a design defect, not an
+   implementation detail:
+   - Name the native CALL SITE each CUO gesture is the counterpart of. A gesture is a call site, not a
+     family name: `PlayerCamera.TryPerformSpecialUIAction`'s `WoundViewLimb` branch is the counterpart
+     of the medical panel, the radial's `UseItem` / `WearWearable` of the inventory use. An entry with
+     no native counterpart is CUO's own invention: its scope is argued with the user, never inherited
+     from an older CUO table or list.
+   - Ask of every action whether it needs information its gesture cannot carry — a limb, an identity,
+     an intent. A fallback that supplies it ("the most injured limb", "the first match") is the defect
+     itself: refuse the request or ask the user, never ship the fallback and record it as a limit.
+   - Keep the entries ISOLATED. When one item could be claimed by two of them, the item's own data says
+     which action each entry runs. Deciding by order (a family chain, an if-else ladder) means two
+     scenarios were merged, and every rule built on top of it inherits the error.
+   - The user-approval step in the hard order covers THIS scope, including every user-visible behaviour
+     change the list introduces: a parent ticket's frozen direction, a handoff's work order or an
+     existing implementation are never that approval, and a behaviour change noticed mid-cycle goes
+     back to the user as an open question instead of into a limits section.
+5. **Defects only: make the expected failure visible before fixing.** Add a regression test or runtime
    probe that fails on the current code, covering the reported scenario and its neighbours, and record
    the red. New feature work writes behaviour tests directly and needs no pre-implementation red —
    with no pre-existing defect there is nothing meaningful to watch fail. Red → green is a hard gate
@@ -36,11 +55,11 @@ It is not reserved for rejected items or user-reported problems.
    substitute for having watched it fail. If the implementation was made without first watching the
    regression test fail, stop and go back to the pre-fix code to record the red before presenting. The
    red step only needs the focused failing test to run; the full suite runs once the fix is in place.
-5. **Implement, then verify against the full matrix.** Build, deploy the latest artifacts, verify the
+6. **Implement, then verify against the full matrix.** Build, deploy the latest artifacts, verify the
    deployed artifact identity (hash or timestamp), then run the runtime, log and dual-client checks
    where they apply, and confirm every acceptance-matrix row before the change moves on. A build that
    passes without the latest DLLs running is not completion.
-6. **Run an independent adversarial self-check before the commit.** Use a fresh context — an
+7. **Run an independent adversarial self-check before the commit.** Use a fresh context — an
    independent subagent, not the same reasoning path that produced the change. Start it against the
    FROZEN working tree: implement, run the affected tests and `dotnet format`, then stop editing until
    the report lands, and spend that window on non-conflicting work (deployment build, documentation
@@ -51,13 +70,13 @@ It is not reserved for rejected items or user-reported problems.
    milestone, but do not edit until the final report lands. The prompt template, its FULL and NARROWED
    risk tiers, and the rule that every claim copied from an older document must be re-checked against
    the current tree live in [review-prompt.md](../../development/review-prompt.md).
-7. **When a delivery is rejected or verification fails, run a root-cause loop.** Answer "why was it
+8. **When a delivery is rejected or verification fails, run a root-cause loop.** Answer "why was it
    missed", record the process lesson and fix the leak before moving on; moving the ticket back is not
    enough.
-8. **Keep incomplete or unverified work open.** Do not claim completion, do not reclassify known gaps
+9. **Keep incomplete or unverified work open.** Do not claim completion, do not reclassify known gaps
    as future work, and do not move to review until the exact scenario and the full acceptance matrix
    are verified.
-9. **Budget the working context and hand off at phase boundaries.** Batching suits small, strongly
+10. **Budget the working context and hand off at phase boundaries.** Batching suits small, strongly
    related work only. After a task, or a phase of a multi-stage task, judge how much context is spent
    (long documents read, large sources, independent reviews, full-suite runs) and stop at the boundary
    with a handoff that states what landed, what is verified and what comes next. Exhausted context
@@ -151,7 +170,7 @@ while any required box is unchecked.
 - [Gates and binding rules](gates-and-rules.md) — what a change has to satisfy
 - [Writing documentation](documentation-standard.md) — the rules a documentation change follows
 - [Delivery checklist](../../evidence/delivery-checklist.md) — the executable gate for a cycle
-- [Independent review template](../../development/review-prompt.md) — the prompt for step 6
+- [Independent review template](../../development/review-prompt.md) — the prompt for step 7
 
 ---
 

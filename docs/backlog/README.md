@@ -52,6 +52,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Limb-tool protections weaker than recorded](todo/limb-tool-family-protection-gaps.md) — **High** — a named-but-unusable limb still falls back.
+- [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
 - [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 6's swap passes; rows 7-8 need fixtures.

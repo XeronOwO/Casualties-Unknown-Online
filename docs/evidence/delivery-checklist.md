@@ -35,6 +35,7 @@ records that someone decided the step was done, not what proved it. Keep it to o
 (a command, a file, or a measured result); the full detail belongs in the cycle's ticket or
 evidence file.
 
+- [x] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit — evidence: the rule and the hard order in AGENTS.md; this cycle's mapping and its fix are `957b0deb`
 - [x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified — evidence: self-check §1 — the dispatch (PlayerCamera.cs:739-762), the 56-item census, the nine deleted rows and every literal cited from Item.cs
 - [x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: self-check §2 — both halves, every operator entry, the sound split and every claim of the one admission rule
 - [x] Self-check table: mechanism x change x evidence, every cell filled — evidence: self-check §3 — one discriminating case per mechanism, the chain's 68 focused cases green, two mutations measured

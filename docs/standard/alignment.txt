@@ -38,7 +38,7 @@ docs/en/reference/glossary.md | f0c64df315a47748caeee40c23c13032a9c13300 | docs/
 docs/en/reference/logs.md | d3da963784a8a6d094377f91cf8f23af91a4eac7 | docs/zh/reference/logs.md | 12fe2563846c7bd752c107b7b1c274fd7a15bbe5
 docs/en/reference/mod-api.md | 67d2e441170a8b35d0ed5b1936acee5c8c98ddfa | docs/zh/reference/mod-api.md | 8f9136534816e7321e08d70ee5bb70de9cb66357
 docs/en/reference/modification-policy.md | 4a4b7f4910164e5378dcf93d169b78ee75e26067 | docs/zh/reference/modification-policy.md | 91e1e1a6693c6c2f95592c0e2741e0a141ca98e2
-docs/en/reference/protocol-messages.md | bb97d96fb63f3dacd9b371a8da97d451764764db | docs/zh/reference/protocol-messages.md | 31407e51949beab12745406f2e5cca69f7d69b7d
+docs/en/reference/protocol-messages.md | 526796e94a542dbe923b3b9d2cb56c85d53127f6 | docs/zh/reference/protocol-messages.md | ec0f70be3a93b1a5a36c94f12cbf7598d947ee09
 docs/en/reference/README.md | 746bac1e857e688d5e17a0627cc724668371f40d | docs/zh/reference/README.md | 5f6930e1bb4f0285c9640b4f1f074f6056655cec
 docs/en/start/install-and-play.md | a4beae7cabb4ab4a9f37e1e2c0b3ff4ded7cea82 | docs/zh/start/install-and-play.md | 6a5429c073d0fc4b93e494e45737c2bdc569d11c
 docs/en/start/README.md | ca30fc1d1b32f72c146cc78db12850a11130cd4e | docs/zh/start/README.md | 919c5b19dc81461a3e588e12aab37ce9b33e6017

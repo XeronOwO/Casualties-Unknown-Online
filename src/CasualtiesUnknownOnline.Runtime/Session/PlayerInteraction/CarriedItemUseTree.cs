@@ -29,18 +29,19 @@ internal static class CarriedItemUseTree
 		IReadOnlyList<CharacterItemMsg> items,
 		ILimbUseSemantics limbSemantics,
 		IConsumeSemantics consumeSemantics,
-		IWearSemantics wearSemantics)
+		IWearSemantics wearSemantics,
+		ISolidFoodSemantics solidFoodSemantics)
 	{
 		foreach (var candidate in items)
 		{
 			if (candidate.SlotIndex >= 0
 				&& candidate.InstanceId != 0
-				&& IsActuallyUsable(candidate, limbSemantics, consumeSemantics, wearSemantics))
+				&& IsActuallyUsable(candidate, limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics))
 			{
 				return candidate;
 			}
 
-			var nested = FindFirstUsable(candidate.Contents, limbSemantics, consumeSemantics, wearSemantics);
+			var nested = FindFirstUsable(candidate.Contents, limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics);
 			if (nested is not null)
 			{
 				return nested;
@@ -50,24 +51,32 @@ internal static class CarriedItemUseTree
 		return null;
 	}
 
-	/// <summary>True when the item's own data still puts it in a family this path carries (and, for the condition-costing families, it has condition left).</summary>
+	/// <summary>
+	/// True when the item's own data still puts it in a family this path carries
+	/// (and, for the condition-costing families, it has condition left). The
+	/// solid-food arm asks the item's own use-action shape: an item whose action
+	/// hands the eater a replacement object is NOT carried, which is what keeps the
+	/// host's auto-select from offering one the family chain must refuse.
+	/// </summary>
 	internal static bool IsActuallyUsable(
 		CharacterItemMsg item,
 		ILimbUseSemantics limbSemantics,
 		IConsumeSemantics consumeSemantics,
-		IWearSemantics wearSemantics)
+		IWearSemantics wearSemantics,
+		ISolidFoodSemantics solidFoodSemantics)
 	{
 		var wearable = WearAdmission.IsWearable(wearSemantics, item.ItemId);
+		var solidFood = SolidFoodAdmission.IsFeedable(solidFoodSemantics, item.ItemId);
 		if (item.Condition <= 0f
 			&& (wearable
-				|| RemoteConsumeCatalog.IsFoodItem(item.ItemId)
+				|| solidFood
 				|| RemoteLimbToolCatalog.IsToolItem(item.ItemId)))
 		{
 			return false;
 		}
 
 		return wearable
-			|| RemoteConsumeCatalog.IsFoodItem(item.ItemId)
+			|| solidFood
 			|| ConsumeAdmission.IsDrinkContainer(consumeSemantics, item.ItemId, item.Liquids)
 			|| TopicalAdmission.IsTopicalContainer(limbSemantics, item.ItemId, item.Liquids)
 			|| RemoteLimbToolCatalog.IsToolItem(item.ItemId);

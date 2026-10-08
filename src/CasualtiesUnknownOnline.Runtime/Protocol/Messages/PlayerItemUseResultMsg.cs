@@ -115,4 +115,19 @@ public sealed class PlayerItemUseResultMsg
 	/// </summary>
 	[ProtoMember(13)]
 	public List<LiquidStackMsg> DrinkDose { get; set; } = [];
+
+	/// <summary>
+	/// True for the SOLID-FOOD family's request half: the TARGET's own client must
+	/// run the game's own use action (<c>Body.UseItem</c> → <c>Stats.useAction</c>)
+	/// against its own body and its own object of this item
+	/// (<see cref="ItemInstanceId"/>), because that delegate writes the eating body
+	/// and the item it is handed. Everything else in this message is empty for the
+	/// request half — the host computed no body state and changed no item state —
+	/// and the item's own post-eat state follows in the SECOND result the host
+	/// publishes from the eater's outcome report
+	/// (<see cref="PlayerItemEatOutcomeMsg"/>), whose <see cref="UserSteamId"/> is
+	/// the item's owner.
+	/// </summary>
+	[ProtoMember(14)]
+	public bool TargetEatsTheItem { get; set; }
 }

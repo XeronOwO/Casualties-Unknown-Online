@@ -25,4 +25,5 @@ public sealed record RecordPlayerItemUseResultCommand(
 	IReadOnlyList<PlayerInteractionTimedLimbEffect> TimedEffects,
 	IReadOnlyList<PlayerInteractionLiquidStack> AppliedDose,
 	int LimbIndex,
-	IReadOnlyList<PlayerInteractionLiquidStack> DrinkDose) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);
+	IReadOnlyList<PlayerInteractionLiquidStack> DrinkDose,
+	bool TargetEatsTheItem = false) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);

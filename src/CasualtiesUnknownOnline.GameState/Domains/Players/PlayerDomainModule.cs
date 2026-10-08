@@ -57,7 +57,8 @@ internal sealed class PlayerDomainModule : IDomainModule
 				c.TimedEffects,
 				c.AppliedDose,
 				c.LimbIndex,
-				c.DrinkDose)),
+				c.DrinkDose,
+				c.TargetEatsTheItem)),
 			_ => DomainDecision.Reject(RejectionReason.UnknownCommand, $"unknown player command {command.GetType().Name}"),
 		};
 

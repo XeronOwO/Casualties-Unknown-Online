@@ -21,4 +21,5 @@ public sealed record PlayerItemUseResultEvent(
 	IReadOnlyList<PlayerInteractionTimedLimbEffect> TimedEffects,
 	IReadOnlyList<PlayerInteractionLiquidStack> AppliedDose,
 	int LimbIndex,
-	IReadOnlyList<PlayerInteractionLiquidStack> DrinkDose) : PlayerEvent;
+	IReadOnlyList<PlayerInteractionLiquidStack> DrinkDose,
+	bool TargetEatsTheItem = false) : PlayerEvent;

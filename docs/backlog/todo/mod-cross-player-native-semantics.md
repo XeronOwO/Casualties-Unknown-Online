@@ -284,15 +284,17 @@ game's per-ml arithmetic, which is now the game's own `onDrink` executed on the 
 cannot be reached from an L0 test), and the other fourteen are superseded in a stronger form, rewritten
 in place or kept unchanged.
 
-## Part B — the solid-food branch (cut to its own ticket)
+## Part B — the solid-food branch (landed 2026-10-08, its own ticket)
 
-`todo/mod-cross-player-solid-food-semantics.md`. Its native shape is not this one: a food item's
+`review/mod-cross-player-solid-food-semantics.md`. Its native shape is not this one: a food item's
 `useAction` is a delegate that calls `body.Eat` / `body.Drink` and writes body fields and the item
 directly, with no divertible container call and no data field carrying the amounts — so the affected
-side cannot run it without an item instance. The `Food` half of `RemoteConsumeCatalog` still answers for
-it, and the ticket carries the two candidate designs and their trade-offs; the user settled the shape on
-2026-10-08 ("objects follow data") and that ticket's first step, the read-only side-effect investigation
-of a standing object, has landed there with its findings and the scope limit they force.
+side cannot run it without an item instance, and getting that object there first was the branch's own
+work. The `Food` half of `RemoteConsumeCatalog` was its last table and is now deleted: the family's
+verdict is the item's own use action, the EATER's client runs it against its own body and its own object
+of the offered item, and the item's post-eat state reaches its owner through the ordinary result. All
+three of that ticket's steps landed; the user settled the shape on 2026-10-08 ("objects follow data"), and
+the self-check is `docs/evidence/selfchecks/players/cross-player-solid-food-semantics-selfcheck.md`.
 
 ## Part B — the wear chain (landed 2026-10-08)
 

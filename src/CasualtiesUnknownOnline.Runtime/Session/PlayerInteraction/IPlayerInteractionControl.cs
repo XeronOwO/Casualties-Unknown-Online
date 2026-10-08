@@ -92,6 +92,19 @@ public interface IPlayerInteractionControl
 	/// <summary>An authoritative cross-player consumable-use result arrived — the Game Adapter consumes/updates the user's item and/or applies the target's post-use state.</summary>
 	event Action<PlayerItemUseResultMsg>? UseReceived;
 
+	/// <summary>
+	/// Any role: the local client ran a cross-player EAT — report the eaten item's
+	/// state so the host can hand it to the item's owner (guest → host on the wire;
+	/// the host handles its own eat locally, because it is the affected side there
+	/// just as a guest is). The solid-food family is the one where the item's whole
+	/// effect runs on the affected side, so the item's post-eat state exists only
+	/// there; the host matches the report against the eat it admitted.
+	/// </summary>
+	void SendItemEatOutcome(ulong itemInstanceId, float condition);
+
+	/// <summary>Host only: a cross-player eat's outcome arrived (from the wire or the host's own client).</summary>
+	void HandleItemEatOutcome(ulong sender, PlayerItemEatOutcomeMsg msg);
+
 	/// <summary>Any role: request a push/shove on an in-world player (guest → host on the wire; host handles locally).</summary>
 	void SendPushRequest(ulong targetSteamId);
 

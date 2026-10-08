@@ -66,6 +66,7 @@ public static class KernelPlayerInteractionWireMapper
 				Amount = s.Amount,
 			})],
 			LimbIndex = e.LimbIndex,
+			TargetEatsTheItem = e.TargetEatsTheItem,
 		};
 
 		if (e.ItemAfter is { } after)
@@ -116,7 +117,8 @@ public static class KernelPlayerInteractionWireMapper
 			[.. p.TimedEffects.Select(t => new PlayerInteractionTimedLimbEffect(t.LimbIndex, t.DurationSeconds, t.BleedPerSecond))],
 			[.. p.AppliedDose.Select(s => new PlayerInteractionLiquidStack(s.LiquidId, s.Amount))],
 			p.LimbIndex,
-			[.. p.DrinkDose.Select(s => new PlayerInteractionLiquidStack(s.LiquidId, s.Amount))]);
+			[.. p.DrinkDose.Select(s => new PlayerInteractionLiquidStack(s.LiquidId, s.Amount))],
+			p.TargetEatsTheItem);
 
 	private static WireItemIdentity ToWireIdentity(ItemIdentity identity) =>
 		new()

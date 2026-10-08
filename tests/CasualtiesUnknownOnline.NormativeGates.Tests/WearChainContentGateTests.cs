@@ -74,14 +74,13 @@ public class WearChainContentGateTests
 	/// The chains that still carry an id-keyed table, by filename — the migration's
 	/// remaining work, listed EXACTLY rather than as a floor, so growth is visible
 	/// too: a new catalog beside these fails this gate, and so does a migration that
-	/// deletes one without updating the list. Measured 2026-10-08, the cycle the wear
-	/// table left it (food, limb tool, heal profiles, the bandage minigame's items
-	/// and the treatment-sound table).
+	/// deletes one without updating the list. Measured 2026-10-08, the cycle the
+	/// SOLID-FOOD chain's table left it (limb tool, heal profiles, the bandage
+	/// minigame's items and the treatment-sound table).
 	/// </summary>
 	private static readonly string[] PendingCatalogFiles =
 	[
 		"RemoteBandageMinigameCatalog.cs",
-		"RemoteConsumeCatalog.cs",
 		"RemoteHealProfiles.cs",
 		"RemoteLimbToolCatalog.cs",
 		"RemoteMedicalTreatmentSoundCatalog.cs",

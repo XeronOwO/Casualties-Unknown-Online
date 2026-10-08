@@ -66,6 +66,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
 - [Cross-player solid food from the game's own data](todo/mod-cross-player-solid-food-semantics.md) — **High** — the eat runs on the eater's client.
 - [Mod-authored effects](todo/mod-authored-effects.md) — **High** — a code registration face and the operation surface it writes through.
+- [Content registration carries its type](todo/mod-content-typed-registration.md) — **High** — a typed definition instead of an opaque payload.
+- [No opaque payloads in the mod API](todo/mod-api-no-opaque-envelopes.md) — **High** — a typed data model where the shape is the mod's own.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — give, spawn and a property editor.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.

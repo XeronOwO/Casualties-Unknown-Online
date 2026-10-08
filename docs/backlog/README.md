@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Limb-tool protections weaker than recorded](todo/limb-tool-family-protection-gaps.md) — **High** — a named-but-unusable limb still falls back.
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
@@ -85,6 +84,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [Limb-tool protections weaker than recorded](review/limb-tool-family-protection-gaps.md) — **High** — the affected side refuses a limb it cannot serve.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [A null collection in a content payload must mean "none"](review/mod-payload-null-collection-tolerance.md) — **Medium** — both ends answer for it.
 - [Content kinds with no provider](review/mod-content-kind-with-no-provider.md) — **Medium-High** — the vocabulary names what binds, the binder the rest.

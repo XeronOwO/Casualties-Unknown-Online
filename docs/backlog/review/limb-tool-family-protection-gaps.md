@@ -1,6 +1,6 @@
 # The limb-tool family's two protections are weaker than its record says
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Player interaction / cross-player item use (limb tools)
 - Source: the independent NARROWED adversarial review of the entry-mapping record cycle (2026-10-08),
@@ -11,6 +11,29 @@
   `docs/evidence/selfchecks/players/cross-player-native-limb-tool-semantics-selfcheck.md` §4/§5,
   `review/mod-cross-player-native-semantics.md` (the family's parent ticket),
   `docs/en/contributing/gates-and-rules.md` ("Writing a new gate")
+
+## What landed (2026-10-08)
+
+- `NativeLimbTarget` now carries TWO verdicts behind one guard: `ResolveNamed` answers with the limb the
+  request named or with nothing, and `Resolve` is `ResolveNamed ?? PickMostInjured` — so the family's
+  question and the sibling chains' auto-select cannot drift apart. `NativeLimbToolApply` asks the NAMED
+  one, and a limb this body cannot serve ends the run with a log naming the item and the index
+  (`[ItemUse] the limb tool on {Type} (id {ItemId}) cannot run: limb {Limb} of the request is not a
+  usable limb of this body (gone, dismembered, or past its layout) — refused rather than applied to
+  another limb.`) instead of landing on a limb nobody picked.
+- `LimbToolChainGateTests` gained two facts and one contract case and tightened the resolve assertions
+  inside its existing run fact (5 facts / 11 cases → 6 / 12): the apply's resolve is the named one and the
+  fallback name is ABSENT from that file (this is the cycle's red — it fails on the pre-fix tree), the
+  isolation is now read from `LocalUseItemEligibility`'s `IsUseItem`/`FamilyOf` where the gate actually
+  lives with the file's own alias spellings resolved, and `IsMedicalLimbUseItem` is asserted as the place
+  the limb rule IS asked; `TheMemberScoping_ReadsTheNamedMemberAndNotItsNeighbour` pins the scoping with a
+  synthetic source.
+- Evidence: `docs/evidence/selfchecks/players/limb-tool-named-limb-refusal-selfcheck.md` (mechanism
+  inventory, whole-family audit, the two measured mutations, the limits), and decision 246's second half.
+- Deliberately NOT in this cycle: the TOPICAL world drag keeps its most-injured-limb resolve — the
+  sibling question parked on the user's ruling, named in the self-check's §2/§5 — and the native half of
+  this change (whether the refusal happens on a live body, and what its log says there) stays an
+  acceptance row.
 
 ## Gap 1 — a NAMED but unusable limb still falls back to the most injured one
 
@@ -77,7 +100,7 @@ have, the run is REFUSED with a log naming the item and the patient, and no limb
 was not picked for. The reading is the treated side's own limb state plus the operator's and the third
 peer's view of it.
 
-## Evidence reproduced from the tree (2026-10-08)
+## Evidence reproduced from the tree (2026-10-08, the PRE-FIX state this ticket was filed from)
 
 - `NativeLimbTarget.Resolve`'s full body: the guarded return of `body.limbs[requestedLimbIndex]`, then
   the `skinHealth + muscleHealth` minimum loop over the attachable limbs.

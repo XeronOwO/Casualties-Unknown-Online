@@ -74,10 +74,18 @@ internal static class NativeLimbToolApply
 			return false;
 		}
 
-		var limb = NativeLimbTarget.Resolve(body, requestedLimbIndex);
+		// The limb the request NAMED and nothing else: this family's whole meaning is
+		// which limb the operator picked (decision 246), so a limb this body can no
+		// longer serve — dismembered since the pick, or an index past its layout — is a
+		// REFUSAL, never a silent landing on the most injured one. The automatic rule
+		// stays with the injection and topical chains, where a -1 limb is a legal
+		// auto-select (NativeLimbTarget's class doc).
+		var limb = NativeLimbTarget.ResolveNamed(body, requestedLimbIndex);
 		if (limb is null)
 		{
-			domains.Log.LogWarning("[ItemUse] the limb tool on {Type} (id {ItemId}) cannot run: the local body has no usable limb for {Limb}.", item.id, itemInstanceId, requestedLimbIndex);
+			domains.Log.LogWarning(
+				"[ItemUse] the limb tool on {Type} (id {ItemId}) cannot run: limb {Limb} of the request is not a usable limb of this body (gone, dismembered, or past its layout) — refused rather than applied to another limb.",
+				item.id, itemInstanceId, requestedLimbIndex);
 			return false;
 		}
 

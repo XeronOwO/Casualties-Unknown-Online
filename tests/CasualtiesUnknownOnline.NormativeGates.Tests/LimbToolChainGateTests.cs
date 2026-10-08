@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
@@ -65,6 +66,8 @@ public class LimbToolChainGateTests
 	private const string DragUseFile = "src/CasualtiesUnknownOnline.GameAdapter/CrossPlayerDragUse.cs";
 
 	private const string UseServiceFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs";
+
+	private const string EligibilityFile = "src/CasualtiesUnknownOnline.GameAdapter/LocalUseItemEligibility.cs";
 
 	private const string ResultApplyFile = "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs";
 
@@ -153,8 +156,16 @@ public class LimbToolChainGateTests
 			apply.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "domains.StandingMaterializer.TryGetStandingItem");
 
-		// The limb is this body's own, resolved against its own layout.
+		// The limb is this body's own, resolved against its own layout — and it is the
+		// limb the request NAMED, with no substitute: this family's whole meaning is
+		// which limb the operator picked (decision 246), the host already refuses a
+		// request that names none, and the automatic "most injured limb" rule belongs
+		// to the injection and topical chains, whose -1 IS a legal auto-select. A
+		// fallback here lands the tool on a limb nobody picked.
 		Assert.Contains(
+			apply.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "NativeLimbTarget.ResolveNamed");
+		Assert.DoesNotContain(
 			apply.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "NativeLimbTarget.Resolve");
 
@@ -194,6 +205,81 @@ public class LimbToolChainGateTests
 	}
 
 	[Fact]
+	public void TheWorldDragGate_AsksNoLimbRuleAndTheMedicalGateIsWhereItIsAsked()
+	{
+		var eligibility = Parse(EligibilityFile);
+
+		// The world drag's question is `IsUseItem` over `FamilyOf`, and a limb tool has
+		// no useAction at all — so asking the limb rule HERE is exactly the cross-player
+		// reach the user rejected, and on an item both entries could claim it would
+		// decide by the order of a family chain instead of by the item's own data.
+		// Scoped to those two members on purpose: this same file's medical gate
+		// legitimately asks the rule, and a doc comment that explains the exclusion is
+		// not a call (the walk reads nodes, so comments are deliberately outside it).
+		var useItem = Members(eligibility, "IsUseItem").ToList();
+		var familyOf = Members(eligibility, "FamilyOf").ToList();
+		Assert.True(useItem.Count > 0, $"{EligibilityFile}: IsUseItem not found — the isolation scan read nothing");
+		Assert.True(familyOf.Count > 0, $"{EligibilityFile}: FamilyOf not found — the isolation scan read nothing");
+		var worldDragGate = useItem.Concat(familyOf).ToList();
+		Assert.DoesNotContain(
+			worldDragGate.OfType<IdentifierNameSyntax>(),
+			identifier => identifier.Identifier.ValueText == "LimbToolAdmission");
+
+		// Identifiers are what the walk reads, so a spelling that hides the name would
+		// walk past it: the set is resolved from the file's own directives instead of
+		// being assumed (decision 245 closed the same loophole in the content-kind
+		// gate, where an alias-driven probe stayed green).
+		var ruleNames = RuleSpellings(eligibility);
+		Assert.DoesNotContain(
+			worldDragGate.OfType<IdentifierNameSyntax>(),
+			identifier => ruleNames.Contains(identifier.Identifier.ValueText));
+
+		// ...and the medical view is where it IS asked, so the two entries stay
+		// isolated by the item's own data rather than by a chain's order.
+		var medicalGate = Members(eligibility, "IsMedicalLimbUseItem").ToList();
+		Assert.True(medicalGate.Count > 0, $"{EligibilityFile}: IsMedicalLimbUseItem not found — the medical half of the isolation scan read nothing");
+		Assert.Contains(
+			medicalGate.OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "LimbToolAdmission.IsLimbTool");
+	}
+
+	/// <summary>
+	/// Every identifier that DENOTES the limb rule inside the parsed file: its own name,
+	/// any alias the file declares for it (convention 7 prefers a using alias over a
+	/// fully qualified name, so the spelling is RESOLVED rather than forbidden), and —
+	/// under a using-static, which leaves them bare — the rule's own member names.
+	/// </summary>
+	private static HashSet<string> RuleSpellings(SyntaxNode file)
+	{
+		var names = new HashSet<string>(StringComparer.Ordinal) { "LimbToolAdmission" };
+		foreach (var directive in file.DescendantNodes().OfType<UsingDirectiveSyntax>())
+		{
+			if (directive.Name?.ToString().EndsWith("LimbToolAdmission", StringComparison.Ordinal) != true)
+			{
+				continue;
+			}
+
+			names.Add(directive.Alias?.Name.ToString() ?? "LimbToolAdmission");
+			if (directive.StaticKeyword.IsKind(SyntaxKind.StaticKeyword))
+			{
+				names.UnionWith(Parse(RuleFile)
+					.DescendantNodes()
+					.OfType<MethodDeclarationSyntax>()
+					.Select(method => method.Identifier.ValueText));
+			}
+		}
+
+		return names;
+	}
+
+	/// <summary>Everything declared inside the named members, so an isolation question can be asked of one gate rather than of a whole file.</summary>
+	private static IEnumerable<SyntaxNode> Members(SyntaxNode root, string methodName) =>
+		root.DescendantNodes()
+			.OfType<MethodDeclarationSyntax>()
+			.Where(method => method.Identifier.ValueText == methodName)
+			.SelectMany(method => method.DescendantNodes());
+
+	[Fact]
 	public void TheAdmissionRule_RefusesEveryItemAnUnmigratedChainClaims()
 	{
 		// The rule's own exclusions are the chain's boundary: an item that reaches this
@@ -227,6 +313,37 @@ public class LimbToolChainGateTests
 		Assert.Contains(
 			rule.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "SolidFoodAdmission.Classify");
+	}
+
+	/// <summary>
+	/// The isolation scan is scoped to MEMBERS, so its contract is that it reads the
+	/// right one: in a synthetic source where one method asks the limb rule and its
+	/// neighbour does not, the two must answer differently. Without this the scoping
+	/// could silently widen to the whole file — which the real gate would then always
+	/// fail, because the medical half legitimately asks the rule — or narrow to
+	/// nothing, which is why every real scan also carries a "found something" floor.
+	/// </summary>
+	[Fact]
+	public void TheMemberScoping_ReadsTheNamedMemberAndNotItsNeighbour()
+	{
+		var root = CSharpSyntaxTree.ParseText(
+			"""
+			internal static class Sample
+			{
+				internal static bool Asks(string id) => LimbToolAdmission.IsLimbTool(id);
+
+				internal static bool DoesNot(string id) => SolidFoodAdmission.IsFeedable(id);
+			}
+			""",
+			new CSharpParseOptions(LanguageVersion.Preview)).GetRoot();
+
+		Assert.Contains(
+			Members(root, "Asks").OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "LimbToolAdmission.IsLimbTool");
+		Assert.DoesNotContain(
+			Members(root, "DoesNot").OfType<IdentifierNameSyntax>(),
+			identifier => identifier.Identifier.ValueText == "LimbToolAdmission");
+		Assert.Empty(Members(root, "NotDeclared"));
 	}
 
 	[Theory]

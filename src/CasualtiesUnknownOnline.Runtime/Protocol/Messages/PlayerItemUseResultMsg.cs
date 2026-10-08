@@ -66,7 +66,9 @@ public sealed class PlayerItemUseResultMsg
 	/// The limb the operator's gesture selected, or -1 for the ordinary
 	/// most-injured-limb rule. It accompanies <see cref="AppliedDose"/>: the
 	/// affected side resolves it against its own body, exactly as the injection
-	/// chain's <c>NativeInjectionApply</c> does.
+	/// chain's <c>NativeInjectionApply</c> does — <c>TargetRunsLimbAction</c> is
+	/// the exception, because that family's limb IS its action: it asks for the
+	/// limb the request NAMED and refuses rather than substituting one.
 	/// </summary>
 	public int LimbIndex
 	{

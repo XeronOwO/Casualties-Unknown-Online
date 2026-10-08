@@ -73,34 +73,20 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return false;
 		}
 
-		// The measurement follows the host chain's family order, asked through the
-		// ONE family verdict (LocalUseItemEligibility.FamilyOf): only the topical
-		// and drink families are measured, because they are the ones whose dose the
-		// host needs, and an item the INJECTION rule claims is measured by nothing
-		// here — the host refuses it by name and this client must not run its own
-		// action, which for the two vanilla blood bags would draw blood into the
-		// operator's bag and out of the treated limb. The limb index the host
-		// receives stays -1 so the PATIENT still picks the treated limb on its own
-		// body, exactly as before the migration. A WEARABLE lands in the default arm
-		// with the same reasoning a blood bag does: it has no dose, and running its
-		// own use action here would take the item out of the operator's hands for a
-		// gesture the host may still refuse.
+		// The measurement follows the ONE family verdict (LocalUseItemEligibility.FamilyOf):
+		// the DRINK family is the one measured here, because it is the only family this
+		// gesture runs whose dose the host needs. An item the INJECTION rule claims is
+		// measured by nothing — the host refuses it by name and this client must not run
+		// its own action, which for the two vanilla blood bags would draw blood into the
+		// operator's bag and out of the treated limb — and a WEARABLE lands in the default
+		// arm for the same reason: it has no dose, and running its own use action here
+		// would take the item out of the operator's hands for a gesture the host may still
+		// refuse. The TOPICAL family does not reach this method at all: its action is the
+		// wound view's, so `IsUseItem` refuses the release here and the native drop runs,
+		// instead of a dose landing on a limb the operator never picked (decision 246).
 		var doseMl = 0f;
 		switch (LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.SolidFoodSemantics))
 		{
-			case LocalUseItemEligibility.Family.Topical:
-				var limb = ResolveMeasureLimb(target.SteamId);
-				if (limb == null // Unity object — ==
-					|| !RemoteTopicalUseHandler.TryMeasure(dragItem, limb, domains.LimbUseSemantics, domains.Log, out doseMl))
-				{
-					// Consume the release instead of falling through to the native drop:
-					// a refused remote use must not become a world drop.
-					domains.Log.LogWarning("[DragUse] refused: {ItemId} could not measure a topical dose for {Target}.",
-						dragItem.id, target.SteamId);
-					return true;
-				}
-
-				break;
 			case LocalUseItemEligibility.Family.Drink:
 				var drinker = ResolveDrinkBody(target.SteamId);
 				if (drinker == null // Unity object — ==
@@ -124,25 +110,6 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		domains.Log.LogInformation("[DragUse] dropped {ItemId} on {Target} (instance {Instance}).",
 			dragItem.id, target.SteamId, instanceId.Id);
 		return true;
-	}
-
-	/// <summary>
-	/// The limb a topical measurement runs on. The remote player's own render
-	/// clone is the right one — the native delegate plays its clip at that limb,
-	/// so the relayed position is next to the patient the peers can see — and its
-	/// most-injured attached limb mirrors the automatic pick this gesture has
-	/// always had. A clone that is not rendered yet (a joiner mid-entry) falls back
-	/// to the limb the native call itself would have used, which keeps the gesture
-	/// measurable instead of turning it into a silent no-op.
-	/// </summary>
-	private Limb? ResolveMeasureLimb(ulong targetSteamId)
-	{
-		if (domains.Renderer.TryGetRemoteBody(targetSteamId, out var body) && body != null) // Unity object — ==
-		{
-			return NativeLimbTarget.Resolve(body, -1);
-		}
-
-		return PlayerCamera.main != null ? PlayerCamera.main.selectedLimb : null; // Unity objects — ==
 	}
 
 	/// <summary>

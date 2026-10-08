@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.

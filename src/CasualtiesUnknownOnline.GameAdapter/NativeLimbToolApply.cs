@@ -78,8 +78,8 @@ internal static class NativeLimbToolApply
 		// which limb the operator picked (decision 246), so a limb this body can no
 		// longer serve — dismembered since the pick, or an index past its layout — is a
 		// REFUSAL, never a silent landing on the most injured one. The automatic rule
-		// stays with the injection and topical chains, where a -1 limb is a legal
-		// auto-select (NativeLimbTarget's class doc).
+		// stays with the injection chain, where a -1 limb is a legal auto-select
+		// (NativeLimbTarget's class doc).
 		var limb = NativeLimbTarget.ResolveNamed(body, requestedLimbIndex);
 		if (limb is null)
 		{

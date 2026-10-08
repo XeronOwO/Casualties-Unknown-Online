@@ -160,8 +160,8 @@ public class LimbToolChainGateTests
 		// limb the request NAMED, with no substitute: this family's whole meaning is
 		// which limb the operator picked (decision 246), the host already refuses a
 		// request that names none, and the automatic "most injured limb" rule belongs
-		// to the injection and topical chains, whose -1 IS a legal auto-select. A
-		// fallback here lands the tool on a limb nobody picked.
+		// to the INJECTION chain, whose -1 IS a legal auto-select. A fallback here
+		// lands the tool on a limb nobody picked.
 		Assert.Contains(
 			apply.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "NativeLimbTarget.ResolveNamed");

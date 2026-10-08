@@ -17,10 +17,12 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// <para>
 /// The curated per-item ml table and the per-ml effect table this replaces were
 /// deleted with the catalog; the effect itself now belongs to the patient's own
-/// client, so nothing here pins a coefficient. The limb rule the deleted
-/// catalog's cases also covered is the shared one
-/// (<c>InjectionSemanticsTests.LimbRule_TheRequestedLimbWinsAndAnInvalidOneFallsBackToTheMostInjured</c>),
-/// and neither chain resolves it on the host any more.
+/// client, so nothing here pins a coefficient. Neither chain resolves a limb on the
+/// host: a topical request must name the one the WOUND VIEW carried (decision 246),
+/// and the injection chain's automatic rule — the shared one the deleted catalog's
+/// cases also covered
+/// (<c>InjectionSemanticsTests.LimbRule_TheRequestedLimbWinsAndAnInvalidOneFallsBackToTheMostInjured</c>)
+/// — is the injection chain's alone.
 /// </para>
 /// </summary>
 public class TopicalSemanticsTests

@@ -35,7 +35,12 @@ internal static class LocalUseItemEligibility
 		/// <summary>The medical operation session's family: this path refuses it by name, and its own action must NOT run here — a blood bag's <c>useAction</c> draws blood.</summary>
 		Injection,
 
-		/// <summary>Measured through the item's own limb action (a limb application).</summary>
+		/// <summary>
+		/// Measured through the item's own limb action (a limb application) — which is
+		/// the WOUND VIEW's action rather than this gesture's. It stays in the verdict
+		/// because the host chain and the medical view's own measurement ask the same
+		/// question; <see cref="IsWorldDragFamily"/> is what keeps it off the world drag.
+		/// </summary>
 		Topical,
 
 		/// <summary>Measured through the item's own use action (a drink).</summary>
@@ -111,8 +116,30 @@ internal static class LocalUseItemEligibility
 			return true;
 		}
 
-		return FamilyOf(item, limbSemantics, consumeSemantics, solidFoodSemantics) != Family.None;
+		return IsWorldDragFamily(FamilyOf(item, limbSemantics, consumeSemantics, solidFoodSemantics));
 	}
+
+	/// <summary>
+	/// The families the world drag carries — the ones whose native call site IS the
+	/// inventory use: the item's own <c>useAction</c> through <c>Body.UseItem</c> (a
+	/// drink, a meal). The wear placement is admitted before this verdict
+	/// (<see cref="WearAdmission.IsWearable"/>), because a wear gesture has nothing to
+	/// measure and is deliberately not a <see cref="Family"/> member. The INJECTION
+	/// family is admitted only so the host can refuse it BY NAME: its native use action
+	/// draws blood into the operator's bag, which is the one thing this gesture must
+	/// never run.
+	/// <para>
+	/// The TOPICAL family is absent for exactly the reason the LIMB-TOOL family is: its
+	/// native call site is the wound view's release onto a limb
+	/// (<c>PlayerCamera.ApplyWoundItem</c>, which runs the item's own
+	/// <c>useLimbAction(this.selectedLimb, item)</c>), so it is the MEDICAL view's
+	/// action, and the limb it lands on is the one piece of information a world drag
+	/// cannot carry. <see cref="IsMedicalLimbUseItem"/> is its entry, and it carries the
+	/// limb the operator picked (decision 246).
+	/// </para>
+	/// </summary>
+	private static bool IsWorldDragFamily(Family family) =>
+		family is Family.Injection or Family.Drink or Family.SolidFood;
 
 	/// <summary>
 	/// The narrower eligibility for the native WoundView remote-limb treatment

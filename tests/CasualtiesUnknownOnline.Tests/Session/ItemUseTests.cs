@@ -393,7 +393,7 @@ public class ItemUseTests
 		items.AdoptTransferredItem(GuestId, 42, cream);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42, doseMl: 10f);
+			.SendUseRequest(HostId, 42, targetLimbIndex: 0, doseMl: 10f);
 
 		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
@@ -421,6 +421,33 @@ public class ItemUseTests
 		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 90f) < 0.001f);
 		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
 		Assert.True(Math.Abs(transferred.Item.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 90f) < 0.001f);
+	}
+
+	[Fact]
+	public void Use_ATopicalRequestThatNamesNoLimb_IsRefused()
+	{
+		// A topical application IS the wound view's action: its native call site is
+		// PlayerCamera.ApplyWoundItem's `ApplyToLimb(this.selectedLimb, 100f)`, and the
+		// gesture that carries the operator's pick is the wound-view release
+		// (RemoteMedicalOperationHandler validates the display limb and sends the
+		// measured dose WITH it). The world drag is the inventory use — eat, drink,
+		// wear — and carries no limb, so a topical request that names none is refused
+		// instead of being resolved to whatever limb the patient's body happens to
+		// hold (decision 246). Nothing is committed and no result reaches the kernel.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var cream = TopicalBottle(42, "paincream", "reliefcream", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, cream));
+		items.AdoptTransferredItem(GuestId, 42, cream);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, doseMl: 10f);
+
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 100f) < 0.001f);
 	}
 
 	[Fact]
@@ -458,8 +485,9 @@ public class ItemUseTests
 	{
 		// The dose is the operator's own measurement; a request that carries none
 		// cannot become a draw, which is the native path's own early return for a
-		// container with nothing to give. The item is untouched and no result event
-		// reaches the kernel.
+		// container with nothing to give. The limb is named so the request reaches THIS
+		// refusal rather than the wound-view rule's (which fires first for the family).
+		// The item is untouched and no result event reaches the kernel.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
@@ -467,7 +495,7 @@ public class ItemUseTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, cream));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, targetLimbIndex: 0);
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
@@ -496,7 +524,7 @@ public class ItemUseTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, bad));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42, doseMl: 10f);
+			.SendUseRequest(HostId, 42, targetLimbIndex: 0, doseMl: 10f);
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
@@ -529,7 +557,7 @@ public class ItemUseTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, mixed));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42, doseMl: 10f);
+			.SendUseRequest(HostId, 42, targetLimbIndex: 0, doseMl: 10f);
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);

@@ -399,6 +399,18 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 		}
 		else if (LimbToolAdmission.IsLimbTool(_limbUseSemantics, _solidFoodSemantics, originalItem.ItemId))
 		{
+			// A limb tool has no `useAction` at all — only a `useLimbAction` — so the
+			// inventory-use gesture cannot mean it, and the request must say WHICH limb:
+			// the medical view's release carries the limb the operator picked, while a
+			// world drag releases onto a body and names none. A request without a limb is
+			// therefore refused rather than resolved to the affected side's most-injured
+			// limb, which would guess at the one thing this action is about.
+			if (limbIndex < 0)
+			{
+				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is a limb tool but the request named no limb — it is applied through the medical view, which carries the limb the operator picked.", originalItem.ItemId, originalItem.InstanceId);
+				return false;
+			}
+
 			// The limb tool belongs to the affected side exactly as the eat above does:
 			// its own client runs the item's own useLimbAction against its own limb and
 			// its own object of the offered item, so the whole limb effect — the field

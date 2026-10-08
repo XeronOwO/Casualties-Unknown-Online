@@ -62,6 +62,8 @@ public class LimbToolChainGateTests
 
 	private const string ApplyFile = "src/CasualtiesUnknownOnline.GameAdapter/NativeLimbToolApply.cs";
 
+	private const string DragUseFile = "src/CasualtiesUnknownOnline.GameAdapter/CrossPlayerDragUse.cs";
+
 	private const string UseServiceFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs";
 
 	private const string ResultApplyFile = "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs";
@@ -173,6 +175,17 @@ public class LimbToolChainGateTests
 		Assert.Contains(
 			useService.DescendantNodes().OfType<AssignmentExpressionSyntax>(),
 			assignment => assignment.Left.ToString() == "TargetRunsLimbAction" && assignment.Right.ToString() == "true");
+
+		// ...and the family is reachable from the MEDICAL VIEW only: the inventory-use
+		// gesture (the world drag) carries what the game can use from the inventory, and
+		// a limb tool has no useAction at all. A request that names no limb is refused by
+		// the host, so neither entry can be reached through the other.
+		Assert.DoesNotContain(
+			Parse(DragUseFile).DescendantNodes().OfType<IdentifierNameSyntax>(),
+			identifier => identifier.Identifier.ValueText == "LimbToolAdmission");
+		Assert.Contains(
+			useService.DescendantNodes().OfType<BinaryExpressionSyntax>(),
+			binary => binary.ToString().Contains("limbIndex < 0", StringComparison.Ordinal));
 
 		var resultApply = Parse(ResultApplyFile);
 		Assert.Contains(

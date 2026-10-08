@@ -22,6 +22,32 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 public class MedicalToolApplicationTests
 {
 	[Fact]
+	public void Use_ALimbToolWithNoLimbNamed_IsRefused()
+	{
+		// The inventory-use gesture (a world drag onto a player) names no limb, and a
+		// limb tool's whole meaning is which limb it lands on — it has no useAction at
+		// all, only a useLimbAction. So such a request is refused rather than resolved to
+		// the affected side's most-injured limb; the medical view is the entry, and it
+		// always carries the limb the operator picked.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var splint = Item(42, "splint", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, splint));
+		items.AdoptTransferredItem(GuestId, 42, splint);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.Empty(UseResults(received));
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.False(hostData.Limbs[1].Splinted);
+		Assert.Empty(hostData.Limbs[1].Components);
+		Assert.Single(characters.GetSavedCharacter(GuestId)!.Items);
+	}
+
+	[Fact]
 	public void Guest_UsesBoneweldingToolOnHost_AdmitsItAndChangesNothing()
 	{
 		// The limb tool is the fifth migrated family: the host's whole part of the
@@ -41,7 +67,7 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, tool);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, 1);
 
 		var request = Assert.Single(UseResults(received));
 		Assert.Equal(GuestId, request.UserSteamId);
@@ -73,7 +99,7 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, tool);
 
 		var interactions = guest.Services.GetRequiredService<IPlayerInteractionControl>();
-		interactions.SendUseRequest(HostId, 42);
+		interactions.SendUseRequest(HostId, 42, 1);
 
 		// The treated player's client ran the delegate and reports what the item became.
 		// The host is the affected side here, so its own client files the report.
@@ -110,7 +136,7 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, splint);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, 1);
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendItemActionOutcome(42, 0f, consumed: true);
 
@@ -160,7 +186,7 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, icepack);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, 1);
 		var interactions = host.Services.GetRequiredService<IPlayerInteractionControl>();
 		interactions.SendItemActionOutcome(42, 0.5f, consumed: false);
 		interactions.SendItemActionOutcome(42, 0.1f, consumed: false);
@@ -183,7 +209,7 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, splint);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, 1);
 
 		var request = Assert.Single(UseResults(received));
 		Assert.True(request.TargetRunsLimbAction);
@@ -211,7 +237,7 @@ public class MedicalToolApplicationTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tweezers));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, 1);
 
 		// The one-shot tweezers path is gone; it must not emit a use result or
 		// mutate the authoritative limb. Shrapnel goes through the shared session.
@@ -231,7 +257,7 @@ public class MedicalToolApplicationTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tweezers));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, 1);
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
@@ -257,7 +283,7 @@ public class MedicalToolApplicationTests
 		items.AdoptTransferredItem(GuestId, 42, suture);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, 1);
 
 		var request = Assert.Single(UseResults(received));
 		Assert.Equal(GuestId, request.UserSteamId);
@@ -478,7 +504,7 @@ public class MedicalToolApplicationTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, mindwipe));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+			.SendUseRequest(HostId, 42, 1);
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);

@@ -64,6 +64,12 @@ Adversarially verify:
   directions (every entry resolves, every item is listed); status fields match their containers.
 - **E. What the change does NOT say.** Missing rows, unstated limits, over-claims, evidence that was
   deleted rather than moved.
+- **F. Contract shape — only when the change adds or changes an `Abstractions` member.** Ask the three
+  questions the modification policy puts in front of every baseline line: is a payload a typed definition
+  or the framework's own data model; is a handle a CUO-defined type or an engine type, never `object`; is a
+  binary value an explicit leaf rather than the envelope? A member that fails one is a finding. So is a
+  claim that a SCAN enforces this: the judgement lives in the review, and a spelling check would flag a
+  legitimate binary leaf while an envelope spelled as JSON passed it.
 
 Report findings by severity (blocker / major / minor / nit), each with a path or `file:line`, the
 quoted text, and how you verified it. Then state explicitly what you could NOT falsify and what you

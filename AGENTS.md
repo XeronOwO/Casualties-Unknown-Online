@@ -69,6 +69,11 @@ not the goal.
   cause; do not avoid a needed refactor out of fear of churn — the cost moves, it does not disappear.
 - `[RULE]` Pragmatic future-proofing: leave room for foreseeable evolution, do not pre-build for imagined
   futures.
+- `[RULE]` **A mechanism needs a named consumer**: before adding one, name the caller that reads what it
+  produces — a form nothing transports, compares or interprets is a guess, not a design. Deferring the
+  question (an envelope that "stays opaque", a field "somebody across a boundary will read") is how a
+  mechanism acquires cost with no beneficiary, so the mechanism inventory answers it for everything the
+  change ADDS.
 - `[CRITICAL]` Compatibility is never a design input, before and after release. The boundary is the
   protocol-version check at handshake — the host refuses a peer whose `HandshakeMsg.Protocol` differs and
   the guest ends the session on a mismatched `HandshakeAckMsg.Protocol` — so a change never keeps an old
@@ -130,6 +135,16 @@ not the goal.
     fails until the baseline is reviewed and updated, a removal names its reason, and a surface that is
     not `Stable` declares its level with `[ApiStability]`
     (`docs/en/reference/modification-policy.md`).
+15. `[RULE]` **No erased type in the mod-visible contract**: a public `Abstractions` member never takes or
+    returns `byte[]`, `object`, `Delegate`, `dynamic` or `IntPtr`. A payload is a typed definition or the
+    framework's own data model, a handle is a CUO-defined type or an engine type, and a value that really is
+    binary is an explicit leaf rather than the envelope. This one is enforced where the decision is made and
+    NOT by a scan: a spelling check would flag a legitimate binary leaf while an envelope spelled as JSON
+    walked past it, so its declaration could never equal its reach. The review is the contract-shape
+    questions every baseline addition already goes through
+    (`docs/en/reference/modification-policy.md`; the adversarial pass asks them too,
+    `docs/development/review-prompt.md`), and the debt the current contract carries is the sweep's three
+    tickets in `docs/backlog/README.md`.
 
 ## Development Workflow (binding)
 
@@ -137,7 +152,8 @@ Applies to all normal work — features, bug fixes, user-facing changes and inte
 only to previously rejected items or user-reported problems.
 
 **Hard order:** understand → **entry mapping (whenever behaviour crosses players or mirrors a native
-action)** → mechanism inventory → plan + self-check table → user approval (large changes only) → red
+action)** → mechanism inventory (**and, for a mechanism the change ADDS, the consumer that reads it**) →
+plan + self-check table → user approval (large changes only) → red
 test (defects only) → implement → build/gates → deploy → runtime verification → independent adversarial
 self-check → structure review → commit.
 

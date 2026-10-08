@@ -87,6 +87,23 @@ re-spelling a reference is not), a C# 14 `extension` block folds its receiver in
 parameter list, and an `[ApiStability]` argument the gate cannot resolve to a level is a failure rather
 than a silent fallback to the default level.
 
+**Before you add a line, answer three questions.** An addition here is a reviewed act, and the review is
+where a contract's SHAPE is judged — deliberately not a scan: a `byte[]` is legitimate as an explicit
+binary leaf and illegitimate as an envelope, and an envelope spelled as a JSON string would walk past any
+spelling check.
+
+- **A payload**: is it a typed definition, or the framework's own data model? An opaque blob in a contract
+  whose shape CUO defines erases a type CUO owns; a blob where the MOD defines the shape hides the
+  structure from validation, logging and every other diagnostic.
+- **A handle**: is it a CUO-defined type or an engine type (`GameObject`)? Never `object` — an untyped
+  handle cannot be documented, cannot be type-checked, and says nothing about what it is.
+- **A binary value**: is it an explicit leaf, with the reason the value really is bytes? That is the one
+  place bytes belong, and it is a value inside a typed shape, never the shape itself.
+
+A member that fails one of them is not ready to be added, and the fix is the surface's own typing rather
+than a convention. The three `Critical` tickets in `docs/backlog/README.md` are the debt this contract
+still carries from before the rule, and each one removes its own share.
+
 ## Patching CUO itself
 
 Harmony patching of CUO's own code is **allowed and not treated as hostile**: `Runtime` and

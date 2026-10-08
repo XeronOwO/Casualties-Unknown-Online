@@ -5,9 +5,13 @@
   starts, and the inventory stays the source of truth.
 - Priority: High
 - Category: Mod platform / architecture
-- Related: `docs/backlog/review/mod-defined-wire-packets.md` (Part 3's custom replication domains, promoted on
-  its own), `docs/backlog/review/mod-cross-player-native-semantics.md` (Part 2 stage 2, cut out on
-  2026-10-08), `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
+- Related: `docs/backlog/todo/mod-authored-effects.md` (Stage 3, cut out on 2026-10-08 with the user's
+  ruling that supersedes its consumer gate),
+  `docs/backlog/review/mod-declared-behaviour-with-no-function.md` (Part 3.A's declared-behaviour gap,
+  cut out on 2026-10-08 with its item twin), `docs/backlog/review/mod-defined-wire-packets.md` (Part 3's
+  custom replication domains, promoted on its own),
+  `docs/backlog/review/mod-cross-player-native-semantics.md` (Part 2 stage 2, cut out on 2026-10-08),
+  `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
   `docs/backlog/review/cucorelib-migration-support.md`, `docs/backlog/future/phase5-tooling-ecosystem.md`
 - Source: The 2026-09-25 tag/quality inventory and mod-ceiling analysis — the whole session's finding; user
   decision 2026-09-25 — ONE ticket holding every item, nothing filed under `todo/`, and the implementation
@@ -140,8 +144,10 @@ preparation for stage 2.
 `review/mod-crafting-quality-labels.md`).** `ModItemDefinition.Qualities` decoded
 into `ItemInfo.qualities`, so a mod item can satisfy a quality-based recipe (vanilla and mod-authored).
 Add the liquid effect delegates and the limb-use behaviour only behind a real consumer (see *Open
-questions*). Acceptance: a mod item satisfies a quality recipe, and a recipe that references a quality
-nobody provides is reported at load time instead of becoming a silently dead recipe.
+questions*) — **the consumer gate is superseded 2026-10-08** (see Stage 3 below); what stays is the
+requirement that no stage be smuggled in as another's preparation. Acceptance: a mod item satisfies a
+quality recipe, and a recipe that references a quality nobody provides is reported at load time instead of
+becoming a silently dead recipe.
 
 **Stage 2 — semantic predicate plus target-local execution (its own architecture ticket — cut 2026-10-08
 as `mod-cross-player-native-semantics.md`, whose Part A landed the injection chain and deleted the
@@ -157,9 +163,14 @@ own `onDrink` delegate IS that timed body and needs no CUO message to start it. 
 already has the operation session), then the remaining chains. Hard acceptance for the migration:
 delete the constant table and every existing acceptance case of that chain stays green.
 
-**Stage 3 — mod-registered semantics (only if stage 2 leaves a real need).** A registration surface for
-semantics the game's own data cannot express (a mod-authored medical interaction, for example). It needs
-a wire face, a permission and consistency rules; trigger is a second real consumer.
+**Stage 3 — mod-registered semantics.** A registration surface for semantics the game's own data cannot
+express (a mod-authored effect or medical interaction, for example). It needs a permission and consistency
+rules, and a wire face only where the existing chains do not already carry what the effect needs. **Cut
+2026-10-08 as `todo/mod-authored-effects.md`.** The paragraph's old trigger — "only if stage 2 leaves a real
+need ... trigger is a second real consumer" — is **SUPERSEDED** by the user's 2026-10-08 ruling that a
+highly customisable effect surface is the point of the platform, so the consumer count is no longer the
+gate; the stage's own content is unchanged, and the successor ticket carries the supersession with the
+ruling in the user's words.
 
 ### Red lines that do not change
 
@@ -191,7 +202,11 @@ Item side (`ItemInfo` versus `ModItemDefinition` and its behaviour DTOs):
 Liquid side (`LiquidType` versus `ModLiquidDefinition`):
 
 - **`onDrink` / `onHealthUse`** — the effect delegates. `GameAdapterLiquidContentProvider` maps only the
-  static fields, so a mod liquid can declare `HealthUsable` while no effect function exists.
+  static fields, so a mod liquid can declare `HealthUsable` while no effect function exists. **Cut
+  2026-10-08 as `review/mod-declared-behaviour-with-no-function.md`**: the native path does not null-check, so
+  the gap is a crash rather than a missing feature (the open question below is answered there), and the
+  family audit that cut it found the same shape on the item side — `ModItemDefinition.Usable` /
+  `UsableWithLmb` with no `useAction`. Both halves are that ticket's cycle.
 
 ### B. Declaration versus materialization
 
@@ -248,8 +263,10 @@ their own tickets are cut. Both are now cut: `review/mod-crafting-quality-labels
 ## Open questions
 
 - Vanilla null-delegate behaviour: a mod liquid with `HealthUsable = true` and no `onHealthUse` — does the
-  native path null-check or throw? The answer decides whether that half of stage 1 is a defect fix or a
-  new feature.
+  native path null-check or throw? **Answered 2026-10-08: it throws.** `WaterContainerItem.ApplyToLimb`,
+  `WaterContainerItem.Inject` and `WaterContainerItem.Drink` all call their delegate with no null check, and
+  CUO's own custom-byte drink handler did the same, so that half is a defect fix — cut with its item twin as
+  `review/mod-declared-behaviour-with-no-function.md`.
 - Stage 3 with mixed-mod sessions: does the existing handshake consistency (mod id, version, permissions,
   `NativeBinding` parity) cover "same content, different semantics"?
 - Part 3's kind-versus-provider mapping — **answered 2026-10-07** by

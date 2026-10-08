@@ -16,6 +16,17 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// DTO because mods must not pass game delegates through Abstractions.
 ///
 /// <para>
+/// The delegates the GAME calls are still installed, because it calls them with
+/// no null check at all: <c>WaterContainerItem.Drink</c> runs <c>onDrink</c> for
+/// whatever liquid a container holds (no flag gates it), and
+/// <c>WaterContainerItem.ApplyToLimb</c> / <c>Inject</c> run <c>onHealthUse</c>
+/// behind the liquid's own <c>healthUsable</c> / <c>injectable</c> flag. Every
+/// liquid built here therefore carries both, and the effect the API cannot author
+/// yet is a no-op that names the content instead of a null the game would throw
+/// on.
+/// </para>
+///
+/// <para>
 /// It is also a <see cref="ICraftingQualitySource"/>: the crafting-quality labels
 /// its accepted definitions declare are written into <c>LiquidType.qualities</c>
 /// and reported to the recipe provider, on the same rule the item side uses.
@@ -85,6 +96,17 @@ public sealed class GameAdapterLiquidContentProvider(
 		_log.LogInformation(
 			"[LiquidContent] accepted {ModId}/{Id} (schema {SchemaVersion}); injection waits for the vanilla liquid registry.",
 			registration.ModId, id, registration.Definition.SchemaVersion);
+
+		// The two flags below are the only gates the native limb paths have before
+		// they run the effect delegate, so a definition that sets one declares an
+		// effect this API cannot carry yet. Said at load time, where the author reads.
+		if (definition.HealthUsable || definition.Injectable)
+		{
+			_log.LogWarning(
+				"[LiquidContent] {ModId}/{Id} declares HealthUsable/Injectable — the mod API cannot author an effect function, so applying or injecting this liquid consumes it with no effect.",
+				registration.ModId, id);
+		}
+
 		return true;
 	}
 
@@ -156,7 +178,7 @@ public sealed class GameAdapterLiquidContentProvider(
 	{
 	}
 
-	private static LiquidType BuildLiquid(string id, ModLiquidDefinition definition)
+	private LiquidType BuildLiquid(string id, ModLiquidDefinition definition)
 	{
 		return new LiquidType
 		{
@@ -171,7 +193,13 @@ public sealed class GameAdapterLiquidContentProvider(
 			injectable = definition.Injectable,
 			injectionSickness = definition.InjectionSickness,
 			localeFromItem = definition.LocaleFromItem,
-			qualities = CraftingQualityDeclarations.ToGameQualities(definition.Qualities)
+			qualities = CraftingQualityDeclarations.ToGameQualities(definition.Qualities),
+			onDrink = (ml, body) => _log.LogWarning(
+				"[LiquidContent] {Id} was drunk ({Ml:F1} ml) with no effect — the mod API cannot author a drink effect.",
+				id, ml),
+			onHealthUse = (ml, limb) => _log.LogWarning(
+				"[LiquidContent] {Id} was used on a limb ({Ml:F1} ml) with no effect — the mod API cannot author an effect function.",
+				id, ml)
 		};
 	}
 

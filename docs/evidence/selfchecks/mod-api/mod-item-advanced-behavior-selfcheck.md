@@ -17,7 +17,7 @@ is added.
 |---|---|---|
 | 1 | Typed behavior DTOs | `ModItemContainer`, `ModItemBattery`, `ModItemLight`, `ModItemTool`, `ModItemGun` plus their stable enums are plain DataContract types in Abstractions. |
 | 2 | Provider validation | `CustomItemBehaviorValidator` refuses negative container/tool/light values, NaN battery start charge, non-0..1 light colors, negative gun fields, negative magazine capacity, and zero shots per fire before the definition is accepted. |
-| 3 | Static ItemInfo mapping | `GameAdapterItemContentProvider.BuildItemInfo` wires tool/gun `useAction`, `usable`, `usableWithLMB`, `autoAttack`, the `gun` tag, battery `destroyAtZeroCondition` / `decayInfo` defaults, and `DecayMinutes` → `rotSpeed`. |
+| 3 | Static ItemInfo mapping | `ModItemInfoFactory.Build` (then `GameAdapterItemContentProvider.BuildItemInfo`) wires tool/gun `useAction`, `usable`, `usableWithLMB`, `autoAttack`, the `gun` tag, battery `destroyAtZeroCondition` / `decayInfo` defaults, and `DecayMinutes` → `rotSpeed`. |
 | 4 | Runtime component mapping | `CustomItemBehaviorApplier` configures vanilla `Container`, `BatteryItem`, and `GunScript` on the cached runtime template, and creates/configured `Light2D` through the existing reflection-by-name convention for URP. |
 | 5 | Template path | `CustomItemTemplateFactory` calls the behavior applier after renaming the template and before mod-authored `SpawnComponents`, so all custom item materialization paths inherit the behavior. |
 | 6 | Battery defaults | Preset-to-capacity/type mapping follows vanilla small/medium/large (50/100/300); `StartCharge` supports percentage/fraction or absolute and a negative sentinel for full. |

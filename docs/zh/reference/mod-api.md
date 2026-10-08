@@ -256,6 +256,8 @@ context.Content.TryUnregister("wooden.sword");
 
 同一条规则也堵住引用的另一头，而且只在材料自己的方向上：游戏拿物品材料去比物品的品质、拿液体材料去比液体的品质，而两套原版词汇表并不重叠，所以只有另一个方向携带的标签不算数。材料的品质要求，若同方向上没有任何提供者能达到它要求的数量（无论游戏自带还是模组所写），加载期就带警告拒收，并写明是哪张配方、哪枚标签、哪个方向 —— 而不是把它注入成一张永远做不出来的配方。两处够不到的地方仍然保留：液体标签的数量不校验，因为它的数量随容器里的体积缩放；而 id 与游戏表里已有条目冲突的定义根本不会被注入，只由它声明的标签于是让它的配方做不出来 —— 该冲突在跳过这份定义时会上报。
 
+**声明了行为、却没有函数可用。** 有两处声明会走到这个接口目前还带不过去的游戏委托，框架对两处都给出答案，而不是让游戏去调用一个空的函数。`ModItemDefinition.Usable`／`UsableWithLmb` 通向 `ItemInfo.useAction`，游戏自己的 `Body.UseItem` 与 `Body.UseItemInHand` 只凭物品自己的 `usable` 标志就调用它（手持使用还要 `usableWithLMB`）：一份声明了「可使用」、却没有 `Tool` 或 `Gun` 行为的定义，注册时会拿到一个「点名这份内容、什么也不改」的使用动作，而这条声明会在加载期上报。`ModLiquidDefinition.HealthUsable`／`Injectable` 通向液体的 `onHealthUse`（`WaterContainerItem.ApplyToLimb` 与 `Inject`），而每一种模组液体的 `onDrink` 都能被 `WaterContainerItem.Drink` 走到 —— 那处调用前面没有任何标志拦着：所以提供者构建的每一种液体都同时带着这两个委托，各自点名这份液体、不产生任何效果，而声明了效果标志的定义会在加载期上报。于是模组液体照常能喝、能抹、能注射，该消耗的照常消耗 —— 那两个标志里「效果」的那一半，才是目前不存在的东西。自己写这个函数是另一项能力，而效果永远跑在拥有这份状态的那个客户端上。
+
 **建筑运行时钩子。** `context.BuildingRuntime` 让模组为每个自定义建筑 id 注册一个预制体钩子和／或一个实例钩子。预制体钩子收到一个朴素的 `ModBuildingPrefabRequest`（建筑／模板 id），返回组件类型名；Game Adapter 在运行时模板被缓存之前把它们挂上去。实例钩子收到一个 `ModBuildingInstanceRequest`（建筑／模板 id 加世界 X／Y／旋转），返回组件类型名；Game Adapter 在每一个自定义建筑克隆体变成活跃之前把它们挂上去。只会咨询归属模组自己的钩子。没有活的 `GameObject`、游戏类型或 Unity 类型穿过 Abstractions，也不新增线上消息；模组自己写的组件负责自己的初始化。
 
 这些内容既不让内容字节过网络，也不新增 `NetMsg`：Game Adapter 在每个装了该模组的机器上本地绑定。

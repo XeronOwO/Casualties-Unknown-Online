@@ -19,7 +19,7 @@ Two halves of one surface, both measured from the umbrella's own inventory:
 
 1. **A mod item could not declare a crafting quality.** `ModLiquidDefinition.Qualities` mapped into
    `LiquidType.qualities`, but `ModItemDefinition` had no qualities at all and
-   `GameAdapterItemContentProvider.BuildItemInfo` wrote no `info.qualities`, so a mod item could never
+   `ModItemInfoFactory.Build` (then `GameAdapterItemContentProvider.BuildItemInfo`) wrote no `info.qualities`, so a mod item could never
    satisfy a quality-based recipe — neither a mod-authored one nor one of the 169 vanilla ingredient
    entries that carry a quality.
 2. **A quality reference that resolved to nothing was silent.** `GameAdapterRecipeContentProvider` built
@@ -48,7 +48,7 @@ Two halves of one surface, both measured from the umbrella's own inventory:
    umbrella's Part 1 decision is that unification belongs in the CUO mod API, not in the game data, and two
    identical DTOs for one label surface is the patch stack that decision forbids. `ModItemDefinition.Qualities`
    takes the same type and the same amount normalisation as the liquid side.
-2. **The item provider stays the only writer of `ItemInfo`.** `BuildItemInfo` fills `info.qualities`, so the
+2. **The item mapping stays the only writer of `ItemInfo`.** `ModItemInfoFactory.Build` fills `info.qualities`, so the
    vanilla matcher finds a mod item exactly as it finds a vanilla one; `Item.Stats` needs no new path.
 3. **A declared label is either a vanilla label or a namespaced one.** Part 1 decision 2 (namespace
    mod-authored ids, reusing the content-id grammar, "a convention, not architecture") became a checked

@@ -453,6 +453,21 @@ label's amount is not checked, because its amounts scale with the volume in a co
 whose id collides with an entry already in the game table is never injected at all, so a label only it
 declares leaves its recipes uncraftable — that collision is reported when the definition is skipped.
 
+**A declared behaviour with no function.** Two declarations reach a game delegate this API cannot carry
+yet, and the framework answers for both of them instead of letting the game call a null one.
+`ModItemDefinition.Usable` / `UsableWithLmb` reach `ItemInfo.useAction`, which the game's own
+`Body.UseItem` and `Body.UseItemInHand` run behind the item's `usable` flag (`usableWithLMB` too, for the
+hand): a definition that
+declares usability without a `Tool` or `Gun` behaviour is registered with a use action that names the
+content and changes nothing, and the declaration is reported at load. `ModLiquidDefinition.HealthUsable`
+/ `Injectable` reach the liquid's `onHealthUse` (`WaterContainerItem.ApplyToLimb` and `Inject`), and EVERY
+mod liquid's `onDrink` is reachable through `WaterContainerItem.Drink`, which no flag gates at all: every
+liquid the provider builds therefore carries both delegates, each of which names the liquid and applies no
+effect, and a declared effect flag is reported at load. So a mod liquid is drunk, applied and injected
+normally and consumes what it would have consumed — the effect half of those flags is what does not exist
+yet. Authoring that function is a separate capability, and an effect always runs on the client that owns
+the state.
+
 **Building runtime hooks.** `context.BuildingRuntime` lets a mod register one prefab hook and/or one
 instance hook per custom building id. A prefab hook receives a plain `ModBuildingPrefabRequest`
 (building/template id) and returns component type names; the Game Adapter attaches them to the inactive

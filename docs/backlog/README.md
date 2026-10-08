@@ -83,7 +83,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [Cross-player solid food from the game's own data](review/mod-cross-player-solid-food-semantics.md) — **High** — the eat runs on the eater's client.
 - [A null collection in a content payload must mean "none"](review/mod-payload-null-collection-tolerance.md) — **Medium** — both ends answer for it.
 - [Content kinds with no provider](review/mod-content-kind-with-no-provider.md) — **Medium-High** — the vocabulary names what binds, the binder the rest.
 - [Mod-defined wire packets](review/mod-defined-wire-packets.md) — **High** — a mod owns its packet id and chain; two-client rows need a batch.
@@ -188,6 +187,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Layer changes drop members and storm the log](done/layer-change-member-dropout.md) — **Medium** — both members held when both are parked.
 - [A member out of the world warns once per clone per frame](done/remote-clone-warning-storm-on-member-dropout.md) — **Medium** — bounded per subject.
 - [Container moves reach the viewer as a snapshot](done/container-move-snapshot-only-sync.md) — **Medium** — classifies on the departure; control now read.
+- [Cross-player solid food from the game's own data](done/mod-cross-player-solid-food-semantics.md) — **High** — the eat runs on the eater's client.
 - [A same-frame second drop overwrites the pending report of the first](done/drop-pending-single-slot-overwrite.md) — **Medium** — world half passes 2/2.
 - [A second drop report at the same position loses its world object](done/second-drop-report-loses-its-world-object.md) — **Medium** — no proxy is adopted.
 - [Local item lands inside a remote display proxy](done/local-item-into-remote-display.md) — **Medium** — the seam refuses a display-proxy target.

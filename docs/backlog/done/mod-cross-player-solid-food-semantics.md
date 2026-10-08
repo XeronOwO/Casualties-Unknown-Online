@@ -1,9 +1,9 @@
 # Cross-player solid food from the game's own data
 
-- Status: Review — **step 3 (the food chain itself) landed 2026-10-08**; see *What landed (step 3)*.
-  The ticket's two earlier steps landed in the same branch (`The category, landed`, `The materialize path`).
-  What remains after step 3 is not code: the acceptance batch owes §7's readings (real machine), and
-  the four container-swap foods are answered by name in step 3's landing section.
+- Status: Done (batch `20261008-a`: all fifteen rows of the §7 / Hard-acceptance reading table pass; the
+  frame-based half of the presentation row is a residual for the user, and the feed gesture's pointer half
+  was driven through the production request entry instead — both named in the record's Limits)
+- Acceptance record: `docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md`
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture
 - Parent: `docs/backlog/todo/mod-cross-player-native-semantics.md` (Part B)

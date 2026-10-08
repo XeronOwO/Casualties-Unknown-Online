@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// The standing item object's build, lifetime and transition gate (ticket
-/// <c>backlog/review/mod-cross-player-solid-food-semantics.md</c>, §6 step 2).
+/// <c>backlog/done/mod-cross-player-solid-food-semantics.md</c>, §6 step 2).
 ///
 /// <para>
 /// The category (step 1) made every classifier answer for an object the data carries as a member's CARRIED

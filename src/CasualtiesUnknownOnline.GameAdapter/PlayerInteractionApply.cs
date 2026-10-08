@@ -325,6 +325,18 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			changed |= drank > 0;
 		}
 
+		// The solid-food family is EXECUTED here for the same reason and under the same
+		// scope rule as the two families above, with one difference that makes it the
+		// migration's end point: nothing was measured and nothing was committed, so this
+		// call IS the whole effect. The game's own Body.UseItem runs the item's own use
+		// action against THIS body and the standing object the host addressed — its own
+		// local incarnation of the offered item — and the item's resulting state travels
+		// back through the eater's report to the host, which hands it to the item's owner.
+		if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.TargetEatsTheItem)
+		{
+			changed |= NativeSolidFoodEat.Apply(body, msg.ItemInstanceId, domains);
+		}
+
 		if (changed)
 		{
 			domains.CharacterDataSync.ReportInventoryChanged(body);

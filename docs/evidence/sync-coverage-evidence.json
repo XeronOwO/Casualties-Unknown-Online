@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1044,
+  "count": 1045,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -6267,6 +6267,12 @@
       "row": "R10",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/LayerAdvanceCoordinator.cs",
       "quote": "if (!LayerAdvancePolicy.ShouldDelegateLocalAdvance(_session.Role, _session.SessionActive))"
+    },
+    {
+      "cluster": "inline",
+      "row": "P9",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerItemEatOutcome, msg);"
     }
   ]
 }

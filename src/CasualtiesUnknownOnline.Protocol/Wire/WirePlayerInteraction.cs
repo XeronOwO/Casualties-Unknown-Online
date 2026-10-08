@@ -105,4 +105,14 @@ public sealed class WirePlayerInteraction
 	/// </summary>
 	[ProtoMember(23)]
 	public List<WireLiquidStack> DrinkDose { get; set; } = [];
+
+	/// <summary>
+	/// True for the solid-food family's request half: the target's own client runs
+	/// the item's own use action, and the item's post-eat state follows in the
+	/// second result the host publishes from the eater's outcome report. Nothing
+	/// else in the payload is meaningful for that half. False for every other
+	/// family and for that second result.
+	/// </summary>
+	[ProtoMember(24)]
+	public bool TargetEatsTheItem { get; set; }
 }

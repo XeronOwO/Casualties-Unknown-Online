@@ -29,7 +29,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return false;
 		}
 
-		if (!LocalUseItemEligibility.IsUseItem(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.WearSemantics))
+		if (!LocalUseItemEligibility.IsUseItem(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.WearSemantics, domains.SolidFoodSemantics))
 		{
 			return false;
 		}
@@ -86,7 +86,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		// own use action here would take the item out of the operator's hands for a
 		// gesture the host may still refuse.
 		var doseMl = 0f;
-		switch (LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics))
+		switch (LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.SolidFoodSemantics))
 		{
 			case LocalUseItemEligibility.Family.Topical:
 				var limb = ResolveMeasureLimb(target.SteamId);
@@ -113,7 +113,10 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 
 				break;
 			default:
-				// Injection and None: nothing to measure, the host answers by name.
+				// Injection, solid food and None: nothing to measure, the host answers by
+				// name. Solid food is the one family whose WHOLE action runs on the
+				// affected side — measuring it here would feed the operator, take the
+				// item out of their hands and play its sounds at the wrong body.
 				break;
 		}
 

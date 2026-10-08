@@ -106,6 +106,24 @@ internal sealed class StandingItemMaterializer
 	// ===== the item domain's four questions =====
 
 	/// <summary>
+	/// The standing object this id stands for, when there is one — the category's own index, which is the
+	/// only lookup that answers from what the object was CREATED as rather than from the data (an id the
+	/// data has since moved into the world still has its incarnation here until the world path retires it).
+	/// The cross-player eat uses it to find the object it must run the game's own use action against.
+	/// </summary>
+	internal bool TryGetStandingItem(ulong itemId, out Item item)
+	{
+		if (_objects.TryGetValue(itemId, out var incarnation) && incarnation.Item != null) // Unity object — ==
+		{
+			item = incarnation.Item;
+			return true;
+		}
+
+		item = null!;
+		return false;
+	}
+
+	/// <summary>
 	/// Retire the standing object for an id, with its standing contents, and answer whether there was one.
 	/// The data-moved-into-the-world sites ask this instead of asking the CATEGORY: by the time a drop or a
 	/// world row arrives the data may already hold the id as a world item, so

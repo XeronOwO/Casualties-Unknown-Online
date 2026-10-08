@@ -67,6 +67,9 @@ internal sealed class GameAdapterDomains
 	/// <summary>The game's own content facts behind the wearable (wear) chain (the DI-registered <c>IWearSemantics</c>), shared by the gesture routing for the same reason.</summary>
 	internal readonly IWearSemantics WearSemantics;
 
+	/// <summary>The game's own content facts behind the SOLID-FOOD chain (the DI-registered <c>ISolidFoodSemantics</c>), shared by the gesture routing for the same reason.</summary>
+	internal readonly ISolidFoodSemantics SolidFoodSemantics;
+
 	internal readonly ILogger<GameAdapter> Log;
 
 	internal readonly CloneFactTable FactTable;
@@ -174,6 +177,7 @@ internal sealed class GameAdapterDomains
 		ILimbUseSemantics limbUseSemantics,
 		IConsumeSemantics consumeSemantics,
 		IWearSemantics wearSemantics,
+		ISolidFoodSemantics solidFoodSemantics,
 		ILoggerFactory loggerFactory,
 		GameAdapterItemContentProvider itemContent,
 		GameAdapterBuildingContentProvider buildingContent,
@@ -191,6 +195,7 @@ internal sealed class GameAdapterDomains
 		LimbUseSemantics = limbUseSemantics;
 		ConsumeSemantics = consumeSemantics;
 		WearSemantics = wearSemantics;
+		SolidFoodSemantics = solidFoodSemantics;
 		ItemContent = itemContent;
 		BuildingContent = buildingContent;
 		TileContent = tileContent;
@@ -281,7 +286,7 @@ internal sealed class GameAdapterDomains
 		ItemSlotSync = new ItemSlotSync(items, session, itemDropState, ItemIds, OperationTrace, loggerFactory.CreateLogger<ItemSlotSync>());
 		PickupSync = new PickupSync(items, session, ItemApplication, itemDropState, ItemIds, OperationTrace, itemReports, ItemSlotSync);
 		ContainerSync = new ContainerItemSync(items, itemDropState, ItemIds, OperationTrace, itemReports, session, loggerFactory.CreateLogger<ContainerItemSync>());
-		ItemUseSync = new ItemUseSync(items, session, ItemIds, loggerFactory.CreateLogger<ItemUseSync>());
+		ItemUseSync = new ItemUseSync(items, session, ItemIds, playerInteraction, solidFoodSemantics, loggerFactory.CreateLogger<ItemUseSync>());
 		GunStateSync = new GunStateSync(ItemUseSync, loggerFactory.CreateLogger<GunStateSync>());
 		ItemPositionAuthority = new ItemPositionAuthority(items, session, adaptiveRates);
 		ItemPositionFollow = new ItemPositionFollow(items, DropGuard, session, loggerFactory.CreateLogger<ItemPositionFollow>());

@@ -88,6 +88,10 @@ internal sealed class TestNode : IDisposable
 				// whose production answer is Item.GlobalItems plus the live limb
 				// layout (FakeWearSemantics).
 				s.Replace(ServiceDescriptor.Singleton<IWearSemantics>(FakeWearSemantics.Instance));
+				// The same stand-in for the SOLID-FOOD chain's content facts, whose
+				// production answer is the item's own use-action shape read from its
+				// compiled body (FakeSolidFoodSemantics).
+				s.Replace(ServiceDescriptor.Singleton<ISolidFoodSemantics>(FakeSolidFoodSemantics.Instance));
 				TestLogging.RemoveFileSink(s); // before the test's overrides, so a test may still re-add a sink
 				extraRegistrations?.Invoke(s); // the test's overrides (e.g. stub mod control surfaces) — last, so they win
 			});

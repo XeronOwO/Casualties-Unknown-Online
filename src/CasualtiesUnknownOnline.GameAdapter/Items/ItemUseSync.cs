@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
@@ -15,12 +16,26 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// heals on the next ordinary action. The host's OWN use needs no arbitration
 /// (its local object IS the fact) — it broadcasts the full carried item
 /// instead, so the peers' clones of the host flip the moment the use lands.
+/// <para>
+/// A STANDING item object takes the chain's third route, added with the
+/// cross-player eat: the use ran against another member's carried item's local
+/// incarnation, so its post-use state is a fact about THAT member's item and
+/// goes back through the host instead of being published as this side's own.
+/// </para>
 /// </summary>
-internal sealed class ItemUseSync(IItemControl items, ISessionControl session, ItemIdAllocator ids, ILogger<ItemUseSync> log)
+internal sealed class ItemUseSync(
+	IItemControl items,
+	ISessionControl session,
+	ItemIdAllocator ids,
+	IPlayerInteractionControl playerInteraction,
+	ISolidFoodSemantics solidFoodSemantics,
+	ILogger<ItemUseSync> log)
 {
 	private readonly IItemControl _items = items;
 	private readonly ISessionControl _session = session;
 	private readonly ItemIdAllocator _ids = ids;
+	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
+	private readonly ISolidFoodSemantics _solidFoodSemantics = solidFoodSemantics;
 	private readonly ILogger<ItemUseSync> _log = log;
 
 	internal void OnItemUsed(Item item)
@@ -49,13 +64,23 @@ internal sealed class ItemUseSync(IItemControl items, ISessionControl session, I
 		// side's copy is not the fact and NEITHER branch below may take it: the world branch would
 		// publish a correction for an id the projection holds no row for (a carried row is not a
 		// world row), and the carried branch would publish another member's item as THIS side's own
-		// fact. The report that reaches the owner's real item is the food chain's own step — the
-		// open direction is the host as the eating side (ticket
-		// `docs/backlog/todo/mod-cross-player-solid-food-semantics.md`, §3's use-report row and §6).
+		// fact. A use of one is the cross-player eat (the host admitted it, and the one grant it
+		// issued is what this report settles): what the item became goes to the host, which commits
+		// it onto the item's OWNER and hands it to that owner's own item through the ordinary result.
+		// The family's own gate keeps this route to that case — this hook also reports a gun's state
+		// (GunStateSync), and a standing gun is not a food and never runs its own use here.
 		if (StandingItems.Is(item))
 		{
-			_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) is a standing item object — the use stays local; the report to its owner is the food chain's step.",
-				item.id, idComp!.Id);
+			if (SolidFoodAdmission.IsFeedable(_solidFoodSemantics, item.id))
+			{
+				_playerInteraction.SendItemEatOutcome(idComp!.Id, item.condition);
+				_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) is a standing item object — the eat's outcome reported to the host for its owner.", item.id, idComp.Id);
+			}
+			else
+			{
+				_log.LogDebug("[ItemUsed] {Type} (id {ItemId}) is a standing item object that is not a solid food — nothing reported.", item.id, idComp!.Id);
+			}
+
 			return;
 		}
 

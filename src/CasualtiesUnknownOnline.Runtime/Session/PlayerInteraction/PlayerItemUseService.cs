@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.GameState;
-using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -34,31 +32,72 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// host-computed body snapshot — see <c>mod-cross-player-native-semantics</c>
 /// Parts A and B.
 /// </para>
+/// <para>
+/// The SOLID-FOOD family is the migration's end point: nothing is measured and
+/// nothing is computed anywhere but on the affected side, which runs the item's
+/// own <c>Body.UseItem</c> → <c>useAction</c> against its own body and its own
+/// object of the offered item. The host's part of that request is the ADMISSION
+/// (the grant the eater's outcome report is matched against) plus the second
+/// result it publishes from that report, so the item — which never changed owner
+/// — reaches its owner's own item. Where a use's item state LANDS is
+/// <see cref="PlayerItemUseCommit"/>'s.
+/// </para>
 /// </summary>
-internal sealed class PlayerItemUseService(
-	ISessionControl session,
-	PacketSender sender,
-	PlayerCharacterAccess characters,
-	IItemControl items,
-	IPlayerInteractionVisibility visibility,
-	ILimbUseSemantics limbUseSemantics,
-	IConsumeSemantics consumeSemantics,
-	IWearSemantics wearSemantics,
-	ItemKernelAuthority kernelAuthority,
-	PlayerInteractionResultAuthority resultAuthority,
-	ILogger log)
+internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 {
-	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
-	private readonly PlayerCharacterAccess _characters = characters;
-	private readonly IItemControl _items = items;
-	private readonly IPlayerInteractionVisibility _visibility = visibility;
-	private readonly ILimbUseSemantics _limbUseSemantics = limbUseSemantics;
-	private readonly IConsumeSemantics _consumeSemantics = consumeSemantics;
-	private readonly IWearSemantics _wearSemantics = wearSemantics;
-	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
-	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
-	private readonly ILogger _log = log;
+	private readonly ISessionControl _session;
+	private readonly PacketSender _sender;
+	private readonly PlayerCharacterAccess _characters;
+	private readonly IItemControl _items;
+	private readonly IPlayerInteractionVisibility _visibility;
+	private readonly ILimbUseSemantics _limbUseSemantics;
+	private readonly IConsumeSemantics _consumeSemantics;
+	private readonly IWearSemantics _wearSemantics;
+	private readonly ISolidFoodSemantics _solidFoodSemantics;
+	private readonly PlayerInteractionResultAuthority _resultAuthority;
+	private readonly PlayerItemUseCommit _commit;
+	private readonly PlayerSolidFoodEatService _solidFoodEat;
+	private readonly ILogger _log;
+
+	public PlayerItemUseService(
+		ISessionControl session,
+		PacketSender sender,
+		PlayerCharacterAccess characters,
+		IItemControl items,
+		IPlayerInteractionVisibility visibility,
+		ILimbUseSemantics limbUseSemantics,
+		IConsumeSemantics consumeSemantics,
+		IWearSemantics wearSemantics,
+		ISolidFoodSemantics solidFoodSemantics,
+		ItemKernelAuthority kernelAuthority,
+		PlayerInteractionResultAuthority resultAuthority,
+		ILogger log)
+	{
+		_session = session;
+		_sender = sender;
+		_characters = characters;
+		_items = items;
+		_visibility = visibility;
+		_limbUseSemantics = limbUseSemantics;
+		_consumeSemantics = consumeSemantics;
+		_wearSemantics = wearSemantics;
+		_solidFoodSemantics = solidFoodSemantics;
+		_resultAuthority = resultAuthority;
+		_log = log;
+
+		// One commit side and one solid-food half, shared with the family chain below:
+		// the state a use leaves on the item lives in exactly one place (statement over
+		// the same objects twice would be two answers to "who committed this").
+		_commit = new PlayerItemUseCommit(session, characters, items, kernelAuthority, log);
+		_solidFoodEat = new PlayerSolidFoodEatService(characters, solidFoodSemantics, _commit, log);
+	}
+
+	/// <summary>Composition wiring: the solid-food admission table is session-scoped, so the session's end drops it.</summary>
+	internal void BindToSession() => _session.SessionEnded += ResetSessionState;
+
+	public void Dispose() => _session.SessionEnded -= ResetSessionState;
+
+	public void ResetSessionState() => _solidFoodEat.ResetSessionState();
 
 	/// <summary>An authoritative cross-player consumable use result arrived — the Game Adapter applies the local participant half.</summary>
 	public event Action<PlayerItemUseResultMsg>? UseReceived;
@@ -214,7 +253,7 @@ internal sealed class PlayerItemUseService(
 		}
 		else
 		{
-			originalItem = CarriedItemUseTree.FindFirstUsable(userData.Items, _limbUseSemantics, _consumeSemantics, _wearSemantics);
+			originalItem = CarriedItemUseTree.FindFirstUsable(userData.Items, _limbUseSemantics, _consumeSemantics, _wearSemantics, _solidFoodSemantics);
 			if (originalItem is null)
 			{
 				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable to auto-select.", user);
@@ -222,13 +261,25 @@ internal sealed class PlayerItemUseService(
 			}
 		}
 
-		if (!CarriedItemUseTree.IsActuallyUsable(originalItem, _limbUseSemantics, _consumeSemantics, _wearSemantics))
+		if (!CarriedItemUseTree.IsActuallyUsable(originalItem, _limbUseSemantics, _consumeSemantics, _wearSemantics, _solidFoodSemantics))
 		{
+			// The solid-food family's one refused shape keeps its own reason: the item
+			// does feed a body, but its own use action would hand the eater a
+			// replacement object, and there is nothing on the affected side to hand it
+			// to — the object would be created in the EATER's world (a phantom item at
+			// its parked position, plus the game's own "too far" alert when it tries to
+			// put it in the eater's hand). Asked before the family chain so the refusal
+			// is never reported as "not a family this path carries".
+			if (SolidFoodAdmission.Classify(_solidFoodSemantics, originalItem.ItemId) == SolidFoodVerdict.EatsAndReplaces)
+			{
+				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) feeds a body but hands the eater a replacement object when its own use action runs — the cross-player path cannot deliver that object.", originalItem.ItemId, originalItem.InstanceId);
+				return false;
+			}
+
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or is not a family the one-shot path carries.", originalItem.ItemId, originalItem.InstanceId);
 			return false;
 		}
 
-		var newUserData = PlayerCharacterAccess.CloneCharacter(userData);
 		var newItem = PlayerCharacterAccess.CloneItem(originalItem);
 		var newTargetData = PlayerCharacterAccess.CloneCharacter(targetData);
 		var destroyed = false;
@@ -318,11 +369,28 @@ internal sealed class PlayerItemUseService(
 			drinkDose = drinkPlan;
 			CarriedItemUseTree.ApplyDrain(newItem, drinkPlan);
 		}
-		else if (RemoteConsumeCatalog.TryGetFood(originalItem.ItemId, out var food))
+		else if (SolidFoodAdmission.Classify(_solidFoodSemantics, originalItem.ItemId) != SolidFoodVerdict.NotSolidFood)
 		{
-			RemoteConsumeApplication.ApplyFood(newTargetData.Health!, food);
-			newItem.Condition -= food.ConditionCost;
-			destroyed = newItem.Condition <= 0f;
+			// The eat belongs to the affected side: its own client runs the game's own
+			// Body.UseItem → useAction against its own body and its own object of the
+			// offered item, and reports what the item became. NOTHING is committed here
+			// — not the item (the eater's own run writes it, and the report below
+			// carries the result to its owner) and not the target's body (the game
+			// writes it, with its own clamps, rolls, talker reactions and condition
+			// cost) — so the host's whole part of the request is the ADMISSION: the
+			// grant the eater's one outcome report is matched against, because without
+			// it that report would be one member writing another member's item.
+			_solidFoodEat.Admit(target, originalItem.InstanceId, user);
+			_log.LogInformation("[ItemUse] {User} offers {ItemId} (id {InstanceId}) to {Target} — the eat runs on the eater's own client.",
+				user, originalItem.ItemId, originalItem.InstanceId, target);
+			PublishUse(new PlayerItemUseResultMsg
+			{
+				UserSteamId = user,
+				TargetSteamId = target,
+				ItemInstanceId = originalItem.InstanceId,
+				TargetEatsTheItem = true,
+			});
+			return true;
 		}
 		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
 		{
@@ -356,16 +424,11 @@ internal sealed class PlayerItemUseService(
 			return false;
 		}
 
-		if (destroyed)
-		{
-			CarriedItemUseTree.Remove(newUserData.Items, originalItem.InstanceId);
-		}
-		else
-		{
-			CarriedItemUseTree.Replace(newUserData.Items, originalItem.InstanceId, newItem);
-		}
-
-		_characters.SaveCharacterData(user, newUserData);
+		// The order is the chain's own and is load-bearing: the owner's snapshot, then the
+		// target's, then the item's own record — which is why the commit is asked in two
+		// halves here instead of one call (the cross-player eat, which has no target-side
+		// state to write, uses the one-call entry).
+		_commit.SaveOwnerSnapshot(user, originalItem.InstanceId, newItem, destroyed);
 		if (appliedDose is null && drinkDose is null)
 		{
 			// No target state is written for either migrated family: their effect
@@ -374,25 +437,7 @@ internal sealed class PlayerItemUseService(
 			_characters.SaveCharacterData(target, newTargetData);
 		}
 
-		if (user != _session.LocalSteamId)
-		{
-			if (destroyed)
-			{
-				_items.RemoveTransferredItem(user, originalItem.InstanceId);
-				if (wornItem is null)
-				{
-					DestroyKernelCarriedItemIfPresent(originalItem.InstanceId);
-				}
-			}
-			else
-			{
-				_items.UpdateTransferredItem(user, originalItem.InstanceId, PlayerCharacterAccess.CloneItem(newItem));
-			}
-		}
-		else
-		{
-			SyncHostItemAfterUse(originalItem.InstanceId, newItem, destroyed);
-		}
+		_commit.SyncItemRecord(user, originalItem.InstanceId, newItem, destroyed, movedToTheTarget: wornItem is not null);
 
 		// A wearable transfer moves the item into the target's ownership. For a
 		// guest target the transfer table must learn the item so reconnect
@@ -405,7 +450,7 @@ internal sealed class PlayerItemUseService(
 			}
 			else
 			{
-				CommitWornItemToHost(originalItem.InstanceId, wornItem);
+				_commit.CommitWornItemToHost(originalItem.InstanceId, wornItem);
 			}
 		}
 
@@ -441,65 +486,53 @@ internal sealed class PlayerItemUseService(
 	/// <summary>Kernel projection path: a use result event arrived — surface it for the Game Adapter.</summary>
 	public void FireUseReceived(PlayerItemUseResultMsg msg) => UseReceived?.Invoke(msg);
 
-	/// <summary>Remove a guest-owned item from the kernel when a cross-player use consumed it (non-wearable).</summary>
-	private void DestroyKernelCarriedItemIfPresent(ulong itemId)
-	{
-		if (_kernelAuthority.FindItem(itemId) is not null)
-		{
-			_kernelAuthority.TryDestroy(_session.LocalSteamId, itemId, TerminalKind.Consumed, out _, out _);
-		}
-	}
-
 	/// <summary>
-	/// Keep the item kernel authoritative when the host is the user: a destroyed
-	/// host item is removed from the kernel when known; a surviving host item is
-	/// spawned/updated with the post-use state.
+	/// Any role: the local client ran a cross-player eat — report the eaten item's
+	/// state so the host can hand it to the item's owner. Guest → host on the wire;
+	/// the host handles its own eat locally, because the host is the affected side
+	/// there just as a guest is (its admission came from its own request path).
 	/// </summary>
-	private void SyncHostItemAfterUse(ulong itemId, CharacterItemMsg item, bool destroyed)
+	public void SendItemEatOutcome(ulong itemInstanceId, float condition)
 	{
-		var current = _kernelAuthority.FindItem(itemId);
-		if (destroyed)
+		if (!_session.SessionActive || itemInstanceId == 0)
 		{
-			if (current is not null)
-			{
-				_kernelAuthority.TryDestroy(_session.LocalSteamId, itemId, TerminalKind.Consumed, out _, out _);
-			}
-
 			return;
 		}
 
-		if (current is null)
+		var msg = new PlayerItemEatOutcomeMsg
 		{
-			_kernelAuthority.TrySpawnCarried(_session.LocalSteamId, itemId, item.ItemId, item, out _, out _);
-		}
-		else
-		{
-			_kernelAuthority.TryUpdateState(_session.LocalSteamId, itemId, item, out _, out _);
-		}
-	}
+			ItemInstanceId = itemInstanceId,
+			Condition = condition,
+		};
 
-	/// <summary>
-	/// Make the kernel own a wearable that crossed to the host target. Guest
-	/// targets go through the transfer-table adopt path; the host has no
-	/// transfer-table row, so this keeps the item kernel authoritative when the
-	/// host becomes the owner.
-	/// </summary>
-	private void CommitWornItemToHost(ulong itemId, CharacterItemMsg item)
-	{
-		var current = _kernelAuthority.FindItem(itemId);
-		if (current is null)
+		if (_session.Role == SessionRole.Host)
 		{
-			_kernelAuthority.TrySpawnCarried(_session.LocalSteamId, itemId, item.ItemId, item, out _, out _);
+			HandleItemEatOutcome(_session.LocalSteamId, msg);
 			return;
 		}
 
-		_kernelAuthority.TryTransfer(
-			_session.LocalSteamId,
-			itemId,
-			new ActorId(_session.LocalSteamId),
-			item,
-			out _,
-			out _);
+		_sender.Send(_session.HostSteamId, NetMsg.PlayerItemEatOutcome, msg);
+	}
+
+	/// <summary>
+	/// Host only: the affected side ran a cross-player eat — its outcome is
+	/// committed onto the item's OWNER and published as the ordinary use result, so
+	/// the owner's own item and every peer's clone learn it through the same path
+	/// every other family uses. The refused cases and what the item became are
+	/// <see cref="PlayerSolidFoodEatService.HandleOutcome"/>'s, because the admitted
+	/// eat is what authorizes the write at all.
+	/// </summary>
+	public void HandleItemEatOutcome(ulong sender, PlayerItemEatOutcomeMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		{
+			return;
+		}
+
+		if (_solidFoodEat.HandleOutcome(sender, msg) is { } result)
+		{
+			PublishUse(result);
+		}
 	}
 
 	private void PublishUse(PlayerItemUseResultMsg msg)
@@ -522,6 +555,7 @@ internal sealed class PlayerItemUseService(
 			[.. msg.AppliedDose.Select(PlayerInteractionKernelCodec.FromLiquidStack)],
 			msg.LimbIndex,
 			[.. msg.DrinkDose.Select(PlayerInteractionKernelCodec.FromLiquidStack)],
+			msg.TargetEatsTheItem,
 			out _,
 			out var rejection))
 		{

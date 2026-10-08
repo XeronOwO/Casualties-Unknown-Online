@@ -10,7 +10,7 @@ operation, the resource and the arbitration. Same shape as Part A (injection) an
 Part B's topical chain, one chain per deliverable — except for SOLID food, which
 is cut to its own ticket because its native `useAction` writes the eating body
 and the item directly and needs an item instance the affected side does not have
-(`todo/mod-cross-player-solid-food-semantics.md`).
+(`review/mod-cross-player-solid-food-semantics.md`).
 
 ## 1. Mechanism inventory
 

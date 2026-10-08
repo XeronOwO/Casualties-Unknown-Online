@@ -93,9 +93,11 @@ formulas copied out of the game:
   keyed by 25 vanilla item ids and `Liquids` by 14 vanilla liquid ids, each entry carrying the effect
   coefficients; the type's own comment says "Unknown liquids/items are deliberately refused by the
   host so an unsupported effect is never silently approximated." Its `Liquids` half and the whole
-  `RemoteDrinkMedicineCatalog` beside it are **deleted 2026-10-08** by Part B's consume chain; `Food`
-  still answers for the solid-food branch, which is a different native shape (its `useAction` writes
-  the eating body and the item directly) and has its own ticket.
+  `RemoteDrinkMedicineCatalog` beside it were **deleted 2026-10-08** by Part B's consume chain, and its
+  `Food` half — the file itself, with `RemoteFoodEffect` and `RemoteConsumeApplication` — is **deleted
+  2026-10-08** by the solid-food ticket's step 3, which read the family out of the item's own use action
+  instead (`review/mod-cross-player-solid-food-semantics.md`). This row is the record of what the
+  hand-transcribed tables were, not a live inventory.
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteMedicineCatalog.cs` —
   `InjectionAmounts` (15 containers) plus `Liquids` (immediate, opiate and timed branches), with the
   comments naming the decompiled sources they were transcribed from (`Liquids.cs` `Drink`/`Inject`

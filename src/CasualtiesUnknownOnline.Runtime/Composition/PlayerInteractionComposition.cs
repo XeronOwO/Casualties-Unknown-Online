@@ -41,6 +41,12 @@ internal static class PlayerInteractionComposition
 		// one-shot use path refuses the gesture by name
 		// (mod-cross-player-native-semantics, Part B's wear chain).
 		services.AddSingleton<IWearSemantics>(new NoWearSemantics());
+		// The game's own content facts behind the SOLID-FOOD chain, defaulted and
+		// replaced the same way: with no game data nothing is a solid food and the
+		// one-shot use path refuses the gesture by name. The question is the item's
+		// own use-action shape, which only the game's own code can answer
+		// (mod-cross-player-solid-food-semantics, step 3).
+		services.AddSingleton<ISolidFoodSemantics>(new NoSolidFoodSemantics());
 		// Remote medical operation session domain: generic start/update/end/cancel
 		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
 		// it for real-time injection; later stages reuse the same session envelope.

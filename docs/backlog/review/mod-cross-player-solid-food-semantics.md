@@ -1,13 +1,9 @@
 # Cross-player solid food from the game's own data
 
-- Status: Todo — **cut 2026-10-08** out of `mod-cross-player-native-semantics.md` when that ticket's
-  consume (drink) chain landed and its "Eat / drink" row split: the drink half had the native shape the
-  migration is built on, the solid-food half does not. The read-only side-effect investigation the design
-  demanded landed 2026-10-08 (findings below); §6's step 1 — the item category its one scope change asked
-  for — is code (see *The category, landed*); §6's step 2 — the materialize / update / destroy path — is
-  code too (see *The materialize path* and *What landed*). What remains is the food chain itself:
-  `Body.UseItem` → `item.Stats.useAction` against the eater's own body and the standing object, plus the §7
-  readings the acceptance batch owes.
+- Status: Review — **step 3 (the food chain itself) landed 2026-10-08**; see *What landed (step 3)*.
+  The ticket's two earlier steps landed in the same branch (`The category, landed`, `The materialize path`).
+  What remains after step 3 is not code: the acceptance batch owes §7's readings (real machine), and
+  the four container-swap foods are answered by name in step 3's landing section.
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture
 - Parent: `docs/backlog/todo/mod-cross-player-native-semantics.md` (Part B)
@@ -93,7 +89,11 @@ assumption, decides whether the rule holds as stated or needs a scope limit.
   become a handover, and a full inventory would block being fed.
 - *Hand the delegate a scratch item.* Rejected by the user: it has no slot on the eating body, so the
   container-swap delegates (`stonefruit`, `bucketofchicken`, `popcorn`, `rosepod` — `Item.cs:2606-2618`,
-  `:2790-2800`, `:2834-2844`, `:1437-1441`) would read `SlotOf` = -1 and silently skip their swap.
+  `:2790-2800`, `:2834-2844`, `:1437-1441`) would resolve no slot for it. (`Body.SlotOf` answers **0**,
+  not -1, for an item the body does not hold — `Body.cs:1333-1343` — so the swap would not skip
+  silently: `DropItem` is a no-op for such an item and the `PickUpItem` that follows would run its
+  distance check against a body that is somewhere else. Step 3 read that through and refuses the two
+  swap-shaped foods by name; see *What landed (step 3)*.)
 - *Materialize only at the moment of the meal.* Rejected by the user as the wrong shape: the object
   should exist whenever the data does, not be conjured for one action.
 
@@ -465,6 +465,56 @@ it is bounded to one interval because the owner's 1 Hz report is deserialized fr
 and its list every second — a change that stopped replacing that instance would turn the gate from a delay
 into a blind spot, which is why the fingerprint's doc says so and its test pins the shape.
 
+## What landed (step 3)
+
+The eat is the game's own code, run on the affected side, and the item it writes travels back to its
+owner. The pieces:
+
+| Piece | Where | What it is |
+|---|---|---|
+| The family verdict | `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ISolidFoodSemantics.cs`, `SolidFoodAdmission.cs`, `SolidFoodVerdict.cs` + `src/CasualtiesUnknownOnline.GameAdapter/Content/GameSolidFoodFacts.cs` | the item's OWN use-action shape, answered by the Game Adapter from `Item.GlobalItems` and, when there is a use action, from that delegate's compiled body — read through the instruction reader the adapter's own transpilers are handed instructions by (`PatchProcessor.GetOriginalInstructions`), never by RUNNING it |
+| The one rule's two questions | `SolidFoodAdmission.Classify` / `IsFeedable` | `Classify` is the family (all three shapes) and `IsFeedable` is what the one-shot path carries — the replacement shape is refused, the others are the family |
+| The host's request half | `PlayerItemUseService`'s family arm | commits NOTHING: it records the admission and publishes the result with `TargetEatsTheItem = true`, which is the whole of the host's part |
+| The admission | `SolidFoodEatGrants.cs` + `PlayerSolidFoodEatService.cs` | one entry per (eater, item) the host admitted, consumed by the one outcome report it authorizes — the item belongs to somebody else, so without it that report would be one member writing another member's item |
+| The eat | `src/CasualtiesUnknownOnline.GameAdapter/NativeSolidFoodEat.cs` + `PlayerInteractionApply.OnPlayerItemUseReceived` | the target's own client runs `Body.UseItem` → `Stats.useAction` against its own body and the standing object, inside the item-use sound scope and outside the `RemoteApply` scope (a real effect's clips are relayed, as a local eat's are) |
+| The report back | `Items/ItemUseSync.OnItemUsed` + `Runtime/Protocol/Messages/PlayerItemEatOutcomeMsg.cs` | the standing object's use takes the chain's third route: the item's post-eat condition is reported to the host instead of being published as this side's own fact |
+| The commit + the result | `PlayerSolidFoodEatService.HandleOutcome` + `PlayerItemUseCommit.cs` | the state lands on the item's OWNER (character snapshot / guest transfer table / kernel) and is published as the ordinary use result, so the owner's own item and every peer's clone learn it through the path every other family uses |
+| The pins | `tests/…/Session/SolidFoodAdmissionTests.cs`, `tests/…/NormativeGates.Tests/SolidFoodChainGateTests.cs` | the admission rule and the tree gate as behaviour cases (the vanilla edibles the deleted table never carried included), and the chain's shape as a source gate: no id-keyed table in its Runtime sources, the verdict read from the delegate's body, the eat on the affected side, the outcome reported from the standing branch, matcher pinned both ways |
+
+**Which items are feedable, and why that is the answer.** The deleted table carried 25 ids; the item's
+own action answers for **42** (the 41 vanilla items whose delegate calls `Body.Eat`/`Body.Drink`, plus the
+component-driven `nondescriptcan`, which does so one call away — which is why the reader follows the
+delegate's own direct callees exactly one level). The alternative data answers were measured over the
+vanilla table and rejected: `ItemInfo.category == "food"` holds 25 ids but is a DISPLAY classifier (the
+unidentified-item label reads it), so it files 18 edibles under `"custom"` (a fruit, a mushroom, a
+cactus flesh, internal organs …) and calls `ketchup` food although it is a drink — 4 ids the deleted
+table carried would have been lost; and the shape flags (`usable`, not left-click, not a liquid
+container, not wearable) still admit 24 items that act on the USER's own world — a watch that talks, a
+geiger counter that clicks, dynamite that arms, a drain that empties fluid where the eater stands, a
+present that spawns items. Reading the delegate is the only side-effect-free way to ask the code itself,
+and it is what the family's own census (41 + the can) already named.
+
+**The four container-swap foods, answered by name.** Two of them (`bucketofchicken`, `popcorn`) do feed a
+body and are in the family, but their last bite instantiates a replacement object and hands it to the
+eater; on the affected side that object would be created in the EATER's world (a phantom item at the
+parked spot, plus the game's own "too far" alert when it tries to put it in the eater's hand) and the
+eater does not own the item, so there is nothing to hand it to. The family refuses that shape by name,
+before the chain, and the operator's own gesture falls through to the native drop exactly as it did
+before the family existed. The other two (`stonefruitclosed`, `rosepod`) never call `Body.Eat`/`Body.Drink`
+at all: they were never in the deleted table and are not in the family now, so nothing about them changes.
+
+**What step 3 does not prove**: every §7 reading stays the acceptance batch's, because none of them is
+observable in-process — the per-session standing-object count, the presentation judgement, the parked
+fluid, and Unity's behaviour for a `simulated = false` body. Two of the family's own readings join them:
+the eater's own body really moves by the food's own amounts (the clamp at 125, the vomit/burp rolls, the
+talker reactions), and the item's condition really follows the bite on its owner's item. The named limits
+of this step: a mod whose use action feeds the body through a helper of its own (two calls away) is not
+recognised and keeps the behaviour it has today; a report is matched to the admission by (eater, item),
+so two eats of the same item in flight at once — by one eater or by two — settle in report order rather
+than being told apart; and the nesting the host-as-eater path needs is proven at the message level (the
+kernel, the wire and the result projection), not through `Body.UseItem` or the other `BatchCommitted`
+subscribers.
+
 ## The earlier candidate designs (kept for the record)
 
 Both keep the invariants the migrated chains established: the host owns admission, the resource and the
@@ -502,15 +552,15 @@ Two things now, and the first is the platform change the settled design needs:
 
 Delete `RemoteConsumeCatalog` (both the table and the type) and every existing case of the chain stays
 green, with each deleted case's disposition listed in the self-check — the standard the injection,
-topical and drink chains were held to. The cases are
-`RemoteConsumeApplicationTests.ApplyFood_AppliesBreadEffect`, `..._Catalog_ExposesTheCuratedFoodItems`,
-`ItemUseTests.Host_UsesBreadOnGuest_AppliesFoodAndSendsResult`, and the `IsActuallyUsable` half of
-`CarriedItemUseTree`. The platform half carries its own acceptance: the side-effect investigation's
-findings are answered one by one, and a session shows what the change is supposed to show — the same
-**world** item count with no duplicate objects, the standing set matching the synchronized carried rows
-**recursively** (every nested `Contents` entry, not the top-level `Items.Count`), and no per-frame cost
-beyond one `Item.Update` per standing object against the pre-change baseline (the 2026-10-08
-investigation's §5 fixes what that baseline is and §7 lists the readings the acceptance batch owes).
+topical and drink chains were held to. The deleted cases are named one by one in the cycle's self-check
+(`docs/evidence/selfchecks/players/cross-player-solid-food-semantics-selfcheck.md` §6), together with
+their successors and the ones that have no successor by construction. The platform half carries its own
+acceptance: the side-effect investigation's findings are answered one by one, and a session shows what
+the change is supposed to show — the same **world** item count with no duplicate objects, the standing
+set matching the synchronized carried rows **recursively** (every nested `Contents` entry, not the
+top-level `Items.Count`), and no per-frame cost beyond one `Item.Update` per standing object against the
+pre-change baseline (the 2026-10-08 investigation's §5 fixes what that baseline is and §7 lists the
+readings the acceptance batch owes).
 
 ## Non-goals
 

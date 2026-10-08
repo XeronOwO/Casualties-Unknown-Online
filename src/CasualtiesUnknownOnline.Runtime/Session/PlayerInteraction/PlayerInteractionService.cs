@@ -81,6 +81,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		ILimbUseSemantics limbUseSemantics,
 		IConsumeSemantics consumeSemantics,
 		IWearSemantics wearSemantics,
+		ISolidFoodSemantics solidFoodSemantics,
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
 		IMedicalOperationControl medicalOperations,
@@ -93,7 +94,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
-		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, kernelAuthority, resultAuthority, log);
+		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, kernelAuthority, resultAuthority, log);
+		_itemUse.BindToSession(); // the admitted-eat table is session-scoped
 		_remoteInventory = new PlayerRemoteInventoryIntentService(session, sender, access, hostRules, visibility, _itemUse, _take, time, log);
 		_carry = new PlayerCarryService(
 			session,
@@ -173,6 +175,12 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void FireUseReceived(PlayerItemUseResultMsg msg) =>
 		_itemUse.FireUseReceived(msg);
 
+	public void SendItemEatOutcome(ulong itemInstanceId, float condition) =>
+		_itemUse.SendItemEatOutcome(itemInstanceId, condition);
+
+	public void HandleItemEatOutcome(ulong sender, PlayerItemEatOutcomeMsg msg) =>
+		_itemUse.HandleItemEatOutcome(sender, msg);
+
 	public void SendPushRequest(ulong targetSteamId) =>
 		_push.SendPushRequest(targetSteamId);
 
@@ -184,6 +192,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 
 	public void Dispose()
 	{
+		_itemUse.Dispose();
 		_carry.Dispose();
 		_carryKernelProjection.Dispose();
 		_resultProjection.Dispose();

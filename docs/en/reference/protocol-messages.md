@@ -268,6 +268,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 99 / 100 | `PlayerCarryStartRequest` / `PlayerCarryStopRequest` | guest → host | start/stop carrying an unconscious or dead in-world player |
 | 102 | `PlayerHealRequest` | guest → host | use a carried medical item on another in-world player |
 | 116 | `PlayerItemUseRequest` | guest → host | use a carried drink/food on another in-world player |
+| 143 | `PlayerItemEatOutcome` | guest → host | the solid-food eat ran on this client: the eaten item's post-use condition |
 | 118 / 119 | `PlayerPushRequest` / `PlayerPushResult` | guest → host / host → all | a push request and the authoritative force |
 | 107 / 108 | `TraderRecruitRequest` / `TraderRecruitResult` | guest → host / host → target | recruit a dead player at a trader and the authoritative post-revive body state |
 | 127–133 | `MedicalOperationStartRequest`, `StartAck`, `Update`, `State`, `EndRequest`, `EndCommitted`, `Cancel` | operator ↔ host ↔ clients | the medical operation session: host-owned registry, reservations, incremental progress, one terminal commit |

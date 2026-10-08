@@ -23,9 +23,9 @@ internal static class LocalUseItemEligibility
 	/// <summary>
 	/// The families the one-shot path carries, in the order the host's chain asks
 	/// them (<c>PlayerItemUseService</c>: wear, the injection refusal, topical,
-	/// drink, food, limb tool). <see cref="FamilyOf"/> is the ONE answer to "which
-	/// family is this gesture" on the operator's side, so a measurement site can
-	/// never run an item's own native action for a family the host will refuse.
+	/// drink, solid food, limb tool). <see cref="FamilyOf"/> is the ONE answer to
+	/// "which family is this gesture" on the operator's side, so a measurement site
+	/// can never run an item's own native action for a family the host will refuse.
 	/// </summary>
 	internal enum Family
 	{
@@ -40,6 +40,15 @@ internal static class LocalUseItemEligibility
 
 		/// <summary>Measured through the item's own use action (a drink).</summary>
 		Drink,
+
+		/// <summary>
+		/// The solid-food family: nothing is measured and nothing runs here. The eat is
+		/// the whole use action, and the host runs it on the AFFECTED side's client —
+		/// running it here to measure it would feed the operator, take the item out of
+		/// their hands (the container-swap foods drop and replace it) and play its
+		/// sounds at the wrong body.
+		/// </summary>
+		SolidFood,
 	}
 
 	/// <summary>
@@ -49,7 +58,7 @@ internal static class LocalUseItemEligibility
 	/// both ways on the family the host will dispatch, and what keeps a family the
 	/// host REFUSES from being measured at all.
 	/// </summary>
-	internal static Family FamilyOf(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics)
+	internal static Family FamilyOf(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics, ISolidFoodSemantics solidFoodSemantics)
 	{
 		if (IsInjectableRemoteItem(item, limbSemantics))
 		{
@@ -61,7 +70,12 @@ internal static class LocalUseItemEligibility
 			return Family.Topical;
 		}
 
-		return IsDrinkRemoteItem(item, consumeSemantics) ? Family.Drink : Family.None;
+		if (IsDrinkRemoteItem(item, consumeSemantics))
+		{
+			return Family.Drink;
+		}
+
+		return IsSolidFoodRemoteItem(item, solidFoodSemantics) ? Family.SolidFood : Family.None;
 	}
 
 	/// <summary>
@@ -74,7 +88,7 @@ internal static class LocalUseItemEligibility
 	/// the medical family's, and because a mod container the game marks as a drink
 	/// AND a topical carrier must measure the call the host will run.
 	/// </summary>
-	public static bool IsUseItem(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics, IWearSemantics wearSemantics)
+	public static bool IsUseItem(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics, IWearSemantics wearSemantics, ISolidFoodSemantics solidFoodSemantics)
 	{
 		if (item == null || item.condition <= 0f) // Unity object — ==
 		{
@@ -86,12 +100,7 @@ internal static class LocalUseItemEligibility
 			return true;
 		}
 
-		if (FamilyOf(item, limbSemantics, consumeSemantics) != Family.None)
-		{
-			return true;
-		}
-
-		if (RemoteConsumeCatalog.IsFoodItem(item.id))
+		if (FamilyOf(item, limbSemantics, consumeSemantics, solidFoodSemantics) != Family.None)
 		{
 			return true;
 		}
@@ -196,6 +205,19 @@ internal static class LocalUseItemEligibility
 	internal static bool IsDrinkRemoteItem(Item item, IConsumeSemantics semantics) =>
 		HasDrawableContainer(item, out var container)
 		&& ConsumeAdmission.IsDrinkContainer(semantics, item.id, ToLiquidStacks(container));
+
+	/// <summary>
+	/// The solid-food family's eligibility, over <see cref="ISolidFoodSemantics"/>:
+	/// the item's own use action feeds a body and does not hand the eater a
+	/// replacement object (<see cref="SolidFoodAdmission.IsFeedable"/>). No table
+	/// answers it — the deleted <c>RemoteConsumeCatalog</c> carried 25 ids with
+	/// hand-transcribed numbers, while the game's own content has 41 body-feeding
+	/// items plus the component-driven can, and their amounts are literals inside
+	/// each delegate. Nothing is measured here: the host runs this item's whole
+	/// action on the affected side, so the operator's client must not run it at all.
+	/// </summary>
+	internal static bool IsSolidFoodRemoteItem(Item item, ISolidFoodSemantics semantics) =>
+		item != null && SolidFoodAdmission.IsFeedable(semantics, item.id); // Unity object — ==
 
 	/// <summary>An item that can still be drawn from: alive and holding liquid.</summary>
 	private static bool HasDrawableContainer(Item item, out WaterContainerItem container)

@@ -122,8 +122,13 @@ public class ItemUseTests
 	}
 
 	[Fact]
-	public void Host_UsesBreadOnGuest_AppliesFoodAndSendsResult()
+	public void Host_OffersBreadToGuest_AsksTheEaterToRunTheGamesOwnEat()
 	{
+		// The solid-food family's request half (mod-cross-player-solid-food-semantics,
+		// step 3): the host computes NOTHING. A food's use action writes the eating
+		// body AND the item it is handed, so the eat belongs to the affected side's
+		// client, which owns both — and the host's whole part of the request is the
+		// admission that authorizes the one outcome report it will receive.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "bread", slot: 0)));
@@ -135,29 +140,187 @@ public class ItemUseTests
 		var result = UseResult(received);
 		Assert.Equal(HostId, result.UserSteamId);
 		Assert.Equal(GuestId, result.TargetSteamId);
+		Assert.Equal(77UL, result.ItemInstanceId);
+		Assert.True(result.TargetEatsTheItem);
+
+		// No host-computed body state and no item state: the eat has not run yet, and
+		// the item's post-eat state arrives with the eater's own report.
+		Assert.Null(result.Health);
+		Assert.Empty(result.Limbs);
+		Assert.Null(result.ItemAfter);
 		Assert.False(result.ItemDestroyed);
-		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.41f) < 0.001f);
+		Assert.Null(result.WornItem);
+		Assert.Empty(result.AppliedDose);
+		Assert.Empty(result.DrinkDose);
 
-		var guestData = characters.GetSavedCharacter(GuestId)!;
-		Assert.True(Math.Abs(guestData.Health!.Hunger - 9f) < 0.001f);
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Items.Single(i => i.InstanceId == 77).Condition - 0.41f) < 0.001f);
+		// Nothing was consumed, destroyed or spawned anywhere: the owner's snapshot
+		// still carries the whole loaf and the kernel holds no item fact for it (the
+		// family that consumed it would have spawned/updated one).
+		Assert.True(Math.Abs(characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).Condition - 0.75f) < 0.001f);
+		Assert.Null(host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(77));
+	}
 
-		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
-		var kernelItem = authority.FindItem(77);
+	[Fact]
+	public void Guest_EatsTheBreadAndReportsTheOutcome_TheHostHandsItToItsOwner()
+	{
+		// The outcome half: the eater's client ran the game's own eat against its own
+		// body and its own object of the offered item, and reports what the item
+		// became. The host commits that onto the item's OWNER — whose ownership never
+		// moved — and publishes it as the ordinary use result, so the owner's own item
+		// and every peer's clone learn it through the path every other family uses.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "bread", slot: 0)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(GuestId, 77);
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemEatOutcome(77, 0.41f);
+
+		var results = UseResults(received);
+		Assert.Equal(2, results.Count);
+		var applied = results[1];
+		Assert.Equal(HostId, applied.UserSteamId);
+		Assert.Equal(GuestId, applied.TargetSteamId);
+		Assert.False(applied.TargetEatsTheItem);
+		Assert.False(applied.ItemDestroyed);
+		Assert.NotNull(applied.ItemAfter);
+		Assert.True(Math.Abs(applied.ItemAfter!.Condition - 0.41f) < 0.001f);
+		Assert.Null(applied.Health);
+
+		Assert.True(Math.Abs(characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).Condition - 0.41f) < 0.001f);
+		var kernelItem = host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(77);
 		Assert.NotNull(kernelItem);
 		Assert.Equal(ItemLocationKind.Carried, kernelItem!.Value.Location.Kind);
 		Assert.Equal(HostId, kernelItem.Value.Location.Owner.Value);
 		Assert.True(Math.Abs(kernelItem.Value.Data.Condition - 0.41f) < 0.001f);
+	}
 
-		// The guest's replay kernel receives the same post-use item fact through
-		// KernelEnvelope.
-		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
-		var guestKernelItem = guestAuthority.FindItem(77);
-		Assert.NotNull(guestKernelItem);
-		Assert.Equal(ItemLocationKind.Carried, guestKernelItem!.Value.Location.Kind);
-		Assert.Equal(HostId, guestKernelItem.Value.Location.Owner.Value);
-		Assert.True(Math.Abs(guestKernelItem.Value.Data.Condition - 0.41f) < 0.001f);
+	[Fact]
+	public void Guest_EatsAFoodWhoseUseConsumesIt_AndItsOwnerLosesTheItem()
+	{
+		// exposedcore's own use action destroys the item object, so the item is gone
+		// whatever its condition says. The shape is read from the item's own data
+		// before the eat, because the eater's copy is already destroyed by the time a
+		// report could carry that fact.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "exposedcore", slot: 0)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(GuestId, 77);
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemEatOutcome(77, 0.75f);
+
+		var applied = UseResults(received)[1];
+		Assert.True(applied.ItemDestroyed);
+		Assert.Null(applied.ItemAfter);
+		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 77);
+	}
+
+	[Fact]
+	public void EatOutcome_WithoutAnAdmittedEat_ChangesNothing()
+	{
+		// The one write the item domain refuses by rule is a member changing another
+		// member's carried item, so the admission IS the authorization: an outcome for
+		// an eat this host never admitted finds no grant and is refused by name.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "bread", slot: 0)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemEatOutcome(77, 0.41f);
+
+		Assert.Empty(UseResults(received));
+		Assert.True(Math.Abs(characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).Condition - 0.75f) < 0.001f);
+		Assert.Null(host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(77));
+	}
+
+	[Fact]
+	public void Guest_EatsTheBread_TwiceReportsOnce()
+	{
+		// One admission, one report: a second outcome for the same eat has no grant
+		// left, so a late or repeated report can never roll an item's settled state
+		// back.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "bread", slot: 0)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(GuestId, 77);
+		var eater = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		eater.SendItemEatOutcome(77, 0.41f);
+		eater.SendItemEatOutcome(77, 0.1f);
+
+		Assert.Equal(2, UseResults(received).Count);
+		Assert.True(Math.Abs(characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).Condition - 0.41f) < 0.001f);
+	}
+
+	[Fact]
+	public void Host_EatsAsTheAffectedSide_AndItsOutcomeIsHandledFromInsideTheResultProjection()
+	{
+		// The host can be the affected side just as a guest can, and there its own
+		// client is the one running the game's own eat: the adapter's result handler
+		// (which the kernel projection calls inline) runs the action, the action's use
+		// report comes straight back into this service, and the commit + second result
+		// are published from inside the projection of the FIRST result. This case
+		// reproduces exactly that nesting at the message level — which is the part a
+		// test host can drive — with the two participants' roles swapped relative to
+		// the case above.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var bread = Item(77, "bread", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, bread));
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		items.AdoptTransferredItem(GuestId, 77, bread);
+
+		var interaction = host.Services.GetRequiredService<IPlayerInteractionControl>();
+		interaction.UseReceived += msg =>
+		{
+			if (msg.TargetEatsTheItem)
+			{
+				interaction.SendItemEatOutcome(77, 0.41f);
+			}
+		};
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 77);
+
+		var results = UseResults(received);
+		Assert.Equal(2, results.Count);
+		Assert.True(results[0].TargetEatsTheItem);
+		Assert.Equal(GuestId, results[1].UserSteamId);
+		Assert.Equal(HostId, results[1].TargetSteamId);
+		Assert.True(Math.Abs(results[1].ItemAfter!.Condition - 0.41f) < 0.001f);
+
+		Assert.True(Math.Abs(characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 77).Condition - 0.41f) < 0.001f);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 77);
+		Assert.True(Math.Abs(transferred.Item.Condition - 0.41f) < 0.001f);
+	}
+
+	[Fact]
+	public void Use_OfAFoodThatHandsTheEaterAReplacement_IsRefused()
+	{
+		// bucketofchicken's action instantiates an empty bucket and tries to put it in
+		// the eater's hand: on the affected side that object would be created in the
+		// EATER's world — a phantom item left at the parked spot plus the game's own
+		// "too far" alert — so the family refuses the shape by name instead of running
+		// it there. The item is untouched and no result reaches the kernel.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bucketofchicken", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.Empty(UseResults(received));
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
 	[Fact]

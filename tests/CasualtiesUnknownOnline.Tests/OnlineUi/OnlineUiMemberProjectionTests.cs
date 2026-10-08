@@ -866,6 +866,14 @@ public sealed class OnlineUiMemberProjectionTests
 			remove { }
 		}
 
+		public void SendItemEatOutcome(ulong itemInstanceId, float condition)
+		{
+		}
+
+		public void HandleItemEatOutcome(ulong sender, PlayerItemEatOutcomeMsg msg)
+		{
+		}
+
 		public void SendPushRequest(ulong targetSteamId)
 		{
 		}

@@ -254,7 +254,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		RemoteTopicalUseHandler.TryDivertApplyToLimb(container, limb, amount);
 
 	public float MeasureRemoteTopicalDose(Item dragItem, Limb limb) =>
-		LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics)
+		LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.SolidFoodSemantics)
 			== LocalUseItemEligibility.Family.Topical
 		&& RemoteTopicalUseHandler.TryMeasure(dragItem, limb, domains.LimbUseSemantics, domains.Log, out var doseMl)
 			? doseMl
@@ -264,7 +264,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		RemoteDrinkUseHandler.TryDivertDrink(container, amount);
 
 	public float MeasureRemoteDrinkDose(Item dragItem, Body drinker) =>
-		LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics)
+		LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.SolidFoodSemantics)
 			== LocalUseItemEligibility.Family.Drink
 		&& RemoteDrinkUseHandler.TryMeasure(dragItem, drinker, domains.ConsumeSemantics, domains.Log, out var drinkDoseMl)
 			? drinkDoseMl

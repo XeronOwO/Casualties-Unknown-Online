@@ -335,4 +335,13 @@ public enum NetMsg : byte
 	// moment produce one advance.
 	LayerAdvanceRequest = 142, // guest → host: a member reached the end of the layer and chose to continue
 
+	// The cross-player solid-food eat's outcome report (the affected side runs
+	// the game's own use action, so only that side can say what the eaten item
+	// became: the eat wrote the eater's copy of another member's carried item).
+	// The host admitted the eat first — that admission is the grant this report is
+	// matched against, one report per admitted eat — then commits the reported
+	// state into the owner's authoritative record and publishes the ordinary use
+	// result, so the item stays its owner's fact and reaches its owner's own item.
+	PlayerItemEatOutcome = 143, // eater → host: the solid-food eat ran on this client; the eaten item's post-use condition
+
 }

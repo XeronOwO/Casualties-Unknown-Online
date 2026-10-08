@@ -208,5 +208,12 @@ public static class GameAdapterComposition
 		services.AddSingleton<GameWearSemantics>();
 		services.Replace(ServiceDescriptor.Singleton<IWearSemantics>(
 			p => p.GetRequiredService<GameWearSemantics>()));
+		// The game's own content facts behind the SOLID-FOOD chain, the same shape
+		// for the family whose behaviour is not data at all: the item's use action
+		// is a delegate, and its compiled body is what says whether it feeds the
+		// eating body (Body.Eat / Body.Drink) and what it does to the item object.
+		services.AddSingleton<GameSolidFoodFacts>();
+		services.Replace(ServiceDescriptor.Singleton<ISolidFoodSemantics>(
+			p => p.GetRequiredService<GameSolidFoodFacts>()));
 	}
 }

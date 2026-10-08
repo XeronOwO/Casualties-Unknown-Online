@@ -117,6 +117,21 @@ internal static class PlayerInteractionTestSession
 		PlayerInteractionKernelCodec.ToUseMessage(KernelPlayerInteractionWireMapper.FromWireItemUseResult(
 			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerItemUseResult).PlayerInteraction!));
 
+	/// <summary>
+	/// Every use result a peer received, in order — the solid-food family publishes
+	/// TWO for one eat (the request half that asks the eater to run the game's own
+	/// action, then the result the outcome report makes the host commit onto the
+	/// item's owner), so a family test reads the list rather than the single event
+	/// <see cref="UseResult"/> insists on.
+	/// </summary>
+	internal static IReadOnlyList<PlayerItemUseResultMsg> UseResults(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
+	[
+		.. KernelEvents(received)
+			.Where(e => e.Kind == WireEventKind.PlayerItemUseResult)
+			.Select(e => PlayerInteractionKernelCodec.ToUseMessage(
+				KernelPlayerInteractionWireMapper.FromWireItemUseResult(e.PlayerInteraction!))),
+	];
+
 	internal static void SeedHostEntities(TestNode host, ulong guestId, float guestX, float guestY = 0f, bool standing = true)
 	{
 		var entities = host.Services.GetRequiredService<IEntitySyncControl>();

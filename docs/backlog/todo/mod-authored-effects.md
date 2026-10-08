@@ -4,7 +4,8 @@
   Stage 3 gate. The gate said "only if stage 2 leaves a real need ... trigger is a second real consumer";
   the user's ruling is that a highly customisable effect surface is the point of the mod platform, so the
   consumer count is no longer the trigger. The old gate is recorded as SUPERSEDED (not deleted) in
-  `mod-content-ceiling.md`'s Stage 3 paragraph, with this ticket as its successor.
+  `mod-content-ceiling.md`'s Stage 3 paragraph, with this ticket as its successor. **Order:** it follows
+  `mod-content-typed-registration.md`, which retypes the content contract this surface registers into.
 - Priority: High (user-promoted)
 - Category: Mod platform / mod API
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2 Stage 3 and Part 3.A's effect gap)

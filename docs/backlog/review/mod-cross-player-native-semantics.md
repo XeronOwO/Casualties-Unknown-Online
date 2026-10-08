@@ -425,6 +425,15 @@ chain has not migrated.
 * **The operator** measures nothing: a limb-tool gesture runs no native action of its own
   (`RemoteTopicalUseHandler`'s measurement has no counterpart here), so the item stays in their hands
   until the host commits — the wear chain's shape, not the topical one.
+* **The entry is the medical view, and only it.** A world drag is the cross-player form of USING an item
+  from the inventory, so it carries what the game can use that way (`ItemInfo.usable` → the item's own
+  `useAction`: food, drink, wear); a limb tool has no `useAction` at all — only a `useLimbAction`, whose
+  whole meaning is which limb it lands on. The family is therefore reached from the medical view, whose
+  release carries the limb the operator picked, and the HOST refuses a limb-tool request that names no
+  limb (`limbIndex < 0`) instead of resolving it to the affected side's most-injured limb. The deleted
+  catalog's own rows showed the same need from the other side — one of them hard-coded its torso. The
+  first draft of this cycle admitted the family from the world drag as well, and the user caught it:
+  that is why the rule lives in the host and not only in the drag gate, so neither entry can be crossed.
 * **The host** admits the use and commits NOTHING: `PlayerItemUseService` publishes the request half
   (`PlayerItemUseResultMsg.TargetRunsLimbAction`, with the limb the gesture selected) and remembers the
   pair in `ItemActionGrants`. The admission is the grant the one outcome report is matched against,
@@ -502,10 +511,14 @@ case per claim, and the new `LimbToolChainGateTests` keeps a successor table fro
   (one of the four ids this chain newly reaches) drains its own battery in its `useAction`, and that
   drain does not reach the owner. What a delegate writes to the LIMB is unaffected — that is the
   patient's own state and reaches the host through its ordinary character report.
-* **The gesture's INTENT is not on the request.** The two dual-use ids (`bulbskin`, `xalorissponge`) are
-  refused here and stay on the eat family, so their limb half is unreachable cross-player from the wound
-  view as well. Lifting that needs the request to say which of an item's two actions was meant — a
-  protocol question, not a table's — and until then the family order is what decides.
+* **The gesture's INTENT is not on the request**, and this chain answers that by REFUSING rather than by
+  guessing: a limb tool without a limb is refused (above), and the two dual-use ids (`bulbskin`,
+  `xalorissponge`) stay on the eat family, so their limb half is unreachable cross-player from either
+  entry. Lifting that needs the request to say which of an item's two native actions was meant — a
+  protocol question, not a table's. The rule of thumb the user settled while reviewing this cycle: the
+  inventory-use gesture carries `useAction`, the medical view carries `useLimbAction`, and an item that
+  has both is two different actions in two isolated flows — nothing may arbitrate between them by family
+  order.
 * **A locally refused application leaves its grant in place**, because the affected side reports nothing
   when it cannot run the action (no standing object, no usable limb, the item left the inventory). The
   entry is bounded (one per admitted use) and harmless on its own (a report needs the grant, and the

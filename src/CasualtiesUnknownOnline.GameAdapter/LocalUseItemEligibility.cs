@@ -87,6 +87,17 @@ internal static class LocalUseItemEligibility
 	/// because the containers both admit (saline, ringersolution, a blood bag) are
 	/// the medical family's, and because a mod container the game marks as a drink
 	/// AND a topical carrier must measure the call the host will run.
+	/// <para>
+	/// The LIMB-TOOL family is deliberately NOT admitted here, and that is a rule about
+	/// this gesture rather than about the family: a world drag is the cross-player form
+	/// of USING an item from the inventory, so it carries what the game can use that way
+	/// (`ItemInfo.usable` → the item's own `useAction`), and a limb tool has no
+	/// `useAction` at all — only a `useLimbAction`, whose whole meaning is which limb it
+	/// lands on. Those belong to the medical view, whose release carries the limb the
+	/// operator picked (<see cref="IsMedicalLimbUseItem"/>), and the host refuses the
+	/// family outright when a request names no limb, so neither entry can be reached
+	/// through the other.
+	/// </para>
 	/// </summary>
 	public static bool IsUseItem(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics, IWearSemantics wearSemantics, ISolidFoodSemantics solidFoodSemantics)
 	{
@@ -100,12 +111,7 @@ internal static class LocalUseItemEligibility
 			return true;
 		}
 
-		if (FamilyOf(item, limbSemantics, consumeSemantics, solidFoodSemantics) != Family.None)
-		{
-			return true;
-		}
-
-		return LimbToolAdmission.IsLimbTool(limbSemantics, solidFoodSemantics, item.id);
+		return FamilyOf(item, limbSemantics, consumeSemantics, solidFoodSemantics) != Family.None;
 	}
 
 	/// <summary>

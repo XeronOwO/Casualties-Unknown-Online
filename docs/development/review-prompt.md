@@ -27,6 +27,27 @@ What the change claims (these are the claims to attack, never the evidence for t
 
 Adversarially verify:
 
+- **A0. The PREMISE, before anything else — and this check is mandatory for any change whose behaviour
+  crosses players, mirrors a native action, or changes something a player can do.** Do not accept the
+  design as given: write down, yourself, the mapping the change depends on and check it against the
+  game's own call sites. For each entry the change touches, answer three questions in this order and
+  report each answer as a finding if it is wrong or missing:
+  1. **Which native action is this CUO gesture the counterpart of?** Name the decompiled call site
+     (a gesture is a call site, not a family name) and quote it. A CUO entry with no native
+     counterpart is itself a finding: it is CUO's own invention and its scope must be argued, not
+     inherited from an older CUO table.
+  2. **Does the action need information the gesture cannot carry?** A limb, an identity, an intent, a
+     target: if the request has no field for it and the code substitutes a fallback ("the most injured
+     limb", "the first match"), that fallback IS the finding — a design contradiction shipped as a
+     default. It must be refused or asked about, never documented as a limit.
+  3. **Could this item/action belong to two entries at once?** If two flows can both claim it and the
+     code decides by ORDER (a family chain, an if-else ladder), the finding is the shared decision, not
+     the order: the two entries are meant to be isolated, and the item's own data has to say which
+     action each entry runs.
+  An earlier cycle shipped a cross-player limb tool reachable from the inventory-use gesture (which
+  names no limb) with the limb resolved to the target's most-injured one, and this section exists
+  because the review of that cycle was scoped to attack the implementation and could not see the wrong
+  premise. Ask the same three questions of the change in front of you.
 - **A. Every copied claim.** The change restates facts carried over from tickets, handoffs, or older
   documents. For each one, open the code or test it names and confirm the CURRENT state. A stale
   restatement is a finding even when the original document was correct when it was written — this is

@@ -4,7 +4,7 @@
   接口抽象为的是什么？你搞这种鬼玩意，不是反模式吗？". The objection is the type erasure itself, and it holds
   at this position: the mod hands a typed contract OVER and the contract turns it into bytes, so every consumer
   re-derives the type at run time instead of the compiler checking it.
-- Priority: High
+- Priority: Critical
 - Category: Mod platform / mod API
 - Related: `docs/backlog/todo/mod-api-no-opaque-envelopes.md` (step 2 of the same ruling: the surfaces where a
   payload does cross a boundary), `docs/backlog/todo/mod-authored-effects.md` (the code-registration surface

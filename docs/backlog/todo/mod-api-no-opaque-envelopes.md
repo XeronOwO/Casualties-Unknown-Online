@@ -4,7 +4,7 @@
   完全不应该存在！！！". It is the second half of the ruling that produced
   `mod-content-typed-registration.md`, and it covers the surfaces where the payload really does cross a
   boundary — the half the first ticket deliberately left alone.
-- Priority: High
+- Priority: Critical
 - Category: Mod platform / protocol / architecture
 - Related: `docs/backlog/todo/mod-content-typed-registration.md` (step 1 of the same ruling),
   `docs/backlog/todo/mod-authored-effects.md` (follows this one, and would otherwise be built twice),
@@ -46,15 +46,22 @@ So the split is not "local versus networked": it is "the library knows the shape
 for content (its own DTOs) and for status (its own projections), and does not know it for a mod's own packets
 and data — which is exactly where a typed data model replaces the blob.
 
-## Where a byte envelope stands today
+## The census (the whole public surface, taken 2026-10-08 from the API baseline)
 
-| Surface | Today | Verdict |
-|---|---|---|
-| Content registration | `TryRegister(id, kind, byte[] data, version)` | typed definition — `mod-content-typed-registration.md` |
-| Mod-defined packets | the handler payload is `byte[]` | the mod's shape, carried as the typed data model so the framework can validate, bound and log it |
-| Mod runtime data / state | `IModData` / `IModState` values are `byte[]` | same |
-| Status updates and projections | `ModStatusUpdate.ToPayload()` broadcast; `ModBodyFormulaProjection` / `ModLimbProjection` | CUO's own shapes: typed wire contracts, the shape every other protocol message already has |
-| Save archive entries (`SaveArchiveEntry.Content`) | file bytes | stays — an explicit binary leaf of a FILE, not an API envelope |
+Every `byte[]` on the mod-visible contract, with its stability level. The census is the baseline file
+(`docs/contracts/abstractions-api-baseline.txt`), so it is exactly what a mod can see — and it is complete.
+
+| Surface | Level | What it carries | Verdict |
+|---|---|---|---|
+| `IModContent.TryRegister` (both overloads), `ModContentDefinition` (ctor + `Data`), and the nine content DTOs' `ToPayload` / `FromPayload` | Stable | a definition's serialized form | a typed definition — step 1 |
+| `IModContext.Network` → `IModNetwork.SendToHost` / `SendToPeer` / `Broadcast` / `MessageReceived` | Stable | a mod's own message bytes | the data model (the raw channel `IModContext.Packets` already supersedes for new work) |
+| `IModPackets.SendToHost` / `SendToPeer` / `Broadcast`, `IModPacketContext.Payload` | Experimental | a declared packet's payload | the data model |
+| `IModData.TryGet` / `TrySet` / `TryApplyShared`, `IModState.TryGet` / `TrySet` | Stable | a mod's own keyed value | the data model |
+| `IModStatusRuntime` (six methods), `IModStatusTransport` (three), `ModStatusUpdate.Value` / `ForBody` / `ForLimb` / `ToPayload` / `FromPayload`, `ModStatusMoodleRequest.Payload` | Stable | a mod's status value, and CUO's own update envelope | the data model for the mod's value; a typed wire contract for CUO's envelope |
+| `ModBodyFormulaProjection`, `ModLimbProjection` (`ToPayload` / `FromPayload`) | Stable | CUO's own projection of body/limb state | a typed wire contract |
+| `IModNativeApi`'s admitted value surface (it lists `byte[]` among the "framework-safe values") | Advanced | a native operation's arguments and result | the data model replaces `byte[]` there too; the registry's own shape is `mod-api-typed-seams.md` |
+| `SaveArchiveEntry.Content` (save files) | internal | a file's bytes | kept — a binary leaf of a FILE, not an API envelope |
+| The data model's own binary leaf | — | data that really is bytes | the one place a mod says "this value is binary", on purpose |
 
 ## What the change has to decide
 

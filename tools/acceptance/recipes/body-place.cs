@@ -9,8 +9,8 @@
 // physics settles the body afterwards. The run reads both positions first (body-read) and records the
 // substitution in the record's Limits.
 ((System.Func<string>)(() => {
-	var x = {{n:x}};
-	var y = {{n:y}};
+	var x = (float)({{n:x}});
+	var y = (float)({{n:y}});
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-local-body\"}"; }
 	body.transform.position = new Vector3(x, y, body.transform.position.z);

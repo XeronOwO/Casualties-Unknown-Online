@@ -1,6 +1,6 @@
 # Cross-player solid food semantics from the game's own data self-check
 
-Ticket: `docs/backlog/review/mod-cross-player-solid-food-semantics.md` (steps 1 and 2 landed
+Ticket: `docs/backlog/done/mod-cross-player-solid-food-semantics.md` (steps 1 and 2 landed
 earlier in the same branch; this cycle is step 3, the food chain itself). Rule of the family
 (`mod-cross-player-native-semantics` Parts A and B): the game's own code runs the effect on the
 affected side, the host keeps admission, the resource and the arbitration, and no CUO table

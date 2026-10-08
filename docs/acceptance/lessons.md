@@ -2441,3 +2441,73 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   argument as a literal string, so the array arrived as `a,b` and matched nothing. Call the helper with `&` in
   the current session, and treat a comma-joined pattern name in the output as the tell that the census
   checked nothing.
+
+## 2026-10-08 — Batch `20261008-a`: the parked spot is the map's corner, and it decides what the rows can show
+
+- Symptom: the standing-object rows that ask for a presentation judgement and for local decay could not be
+  read the way the ticket's plan assumed. The parked objects sit at the world origin, which on this world is
+  a SOLID block at the map's corner (`world 1024x1024`, cell (0,0) solid) more than 450 world units below
+  the inhabited floor and unlit; and a copy forced to condition 0 did not decay and was not destroyed.
+- Cause: two independent facts, both properties of the design plus the world. The holder parks everything at
+  (0,0) on purpose, so a camera can only reach it by teleporting a body into rock, and the frame there is a
+  dark rock face in which a disabled renderer and an unlit sprite look identical. The decay and the
+  destroy-at-zero both sit behind `Item.Update`'s live-chunk guard, and the corner's chunk renderer is off,
+  so a parked copy neither rots nor dies locally — its condition moves only when the data moves it.
+- Change: judge the presentation row on the machine read (every `Renderer` in the subtree disabled, collider
+  disabled, every sound-playing component disabled, `Light2D` off — and read a source's `isPlaying`, not only
+  its `enabled`, because one prefab's `AudioSource` stays enabled while the component that plays it is off) and
+  offer the frame as a residual for the user instead of calling it a visual pass; read the decay row as "not
+  reachable while parked" and cite the chunk-renderer guard. The parked spot's own address (origin, inside
+  rock, at the map edge) is worth stating in any future standing-object row before the session, because it
+  decides both.
+
+## 2026-10-08 — Batch `20261008-a`: the drag gesture needs the pointer ON the target, and the camera sits below the body
+
+- Symptom: the cross-player eat could not be triggered by the product's own drag gesture. A local item
+  released over the target needs the target inside 1.5 world units of `Camera.main.ScreenToWorldPoint(
+  Input.mousePosition)`, and the run may not move the pointer; placing the target at the pointer's own world
+  point satisfied the overlap test (the log line `[DragUse] dropped … on …` appeared) but the product's
+  line-of-sight gate then refused it (`[Visibility] blocked … by ground at (11.0,466.0)`), because that point
+  is always below the feeder's feet.
+- Cause: two measured geometry facts. This game's camera sits ~3.8 world units BELOW the player's body
+  (body y 468.615 / camera y 464.761 on the guest; 463.885 / 460.209 on the host), so even a pointer sitting
+  essentially on the window's centre maps to a world point below the feeder's feet — the host's cursor also
+  sat below its own centre (offset −4.4 world units at zoom 2, while the guest's read +0.02). Zooming the
+  camera for the release call (a write that the game reverts within a second, so it only holds inside ONE
+  eval) shrinks the offset but leaves it below the feet.
+- Change: drive the chain through the production entry the gesture itself calls
+  (`IPlayerInteractionControl.SendUseRequest(target, item, instanceId, dose)`) with the target standing beside
+  the feeder, where the product's own line-of-sight gate, family verdict, host admission, affected-side eat,
+  outcome report and commit still decide; the committed `remote-gesture` recipe remains the way to prove the
+  gesture's own half (its `[DragUse] dropped …` lines), and the record names which half came from which. A
+  future run that needs the whole gesture in one shot should first find a place where the pointer's world
+  point is in open air with a clear line to the feeder — and remember that a release the gesture refuses still
+  runs the native path and DROPS the item (`[DragFlow] release fell through to the WORLD path`).
+
+## 2026-10-08 — Batch `20261008-a`: a committed recipe can fail on fractional arguments
+
+- Symptom: `drive-in-process.ps1 -Action recipe -Recipe body-place -RecipeArg x=74.5,y=470.5` answered
+  `eval 'recipe:body-place' failed: (1,1): InteractiveHost` on both clients, while the same recipe with
+  integer arguments (`x=10,y=490`) ran and moved the body. An ad-hoc probe with the same body of code and
+  fractional values worked.
+- Cause: the recipe's own placeholder shape. `var x = {{n:x}};` makes an `int` for an integer argument but a
+  `double` for a fractional one, and `new Vector3(x, y, body.transform.position.z)` has no implicit
+  `double`→`float` conversion, so the submission does not compile — and the evaluator reports that as the
+  opaque `(1,1): InteractiveHost` rather than as a C# error.
+- Change: the recipe casts its placeholders (`var x = (float)({{n:x}});`), the shape every other reader under
+  `tools/acceptance/recipes/` already uses; a recipe whose arguments are numbers should be smoked with a
+  fractional value before a batch depends on it, because an integer-only run never sees this.
+
+## 2026-10-08 — Batch `20261008-a`: the host's own starting supplies carry no instance id until they enter the domain
+
+- Symptom: the guest materialized nothing for the host's starting `emergencylight` while the host materialized
+  the guest's, and the data-side read showed the host's row with `InstanceId 0` (`[StandingItem] …: 0 carried
+  row(s) in the data, 0 standing object(s) alive.` on the guest against `1 carried row(s) … 1 standing
+  object(s)` on the host).
+- Cause: by design, and documented on `CarriedInventoryReporter`: the guest reports its whole carried
+  inventory (self-assigned ids) once its generation finishes, while the host's own supplies are the authority
+  and get their ids lazily, on the first domain entry (`EnsureId` in the use/slot/drop chains). A carried row
+  with no id is exactly the row `StandingItemPlan` leaves out.
+- Change: a standing-object fixture binds the host's own items first — `item-provide … mode=create` (its
+  `Body.PickUpItem` allocates the id) or any local slot move/use — and the record states that the id-less row
+  was excluded by the plan's own rule rather than missed by the materializer.

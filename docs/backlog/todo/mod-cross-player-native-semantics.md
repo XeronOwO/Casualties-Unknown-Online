@@ -286,7 +286,7 @@ in place or kept unchanged.
 
 ## Part B — the solid-food branch (landed 2026-10-08, its own ticket)
 
-`done/mod-cross-player-solid-food-semantics.md`. Its native shape is not this one: a food item's
+`todo/mod-cross-player-solid-food-semantics.md`. Its native shape is not this one: a food item's
 `useAction` is a delegate that calls `body.Eat` / `body.Drink` and writes body fields and the item
 directly, with no divertible container call and no data field carrying the amounts — so the affected
 side cannot run it without an item instance, and getting that object there first was the branch's own

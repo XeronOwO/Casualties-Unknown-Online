@@ -96,7 +96,7 @@ formulas copied out of the game:
   `RemoteDrinkMedicineCatalog` beside it were **deleted 2026-10-08** by Part B's consume chain, and its
   `Food` half — the file itself, with `RemoteFoodEffect` and `RemoteConsumeApplication` — is **deleted
   2026-10-08** by the solid-food ticket's step 3, which read the family out of the item's own use action
-  instead (`done/mod-cross-player-solid-food-semantics.md`). This row is the record of what the
+  instead (`todo/mod-cross-player-solid-food-semantics.md`). This row is the record of what the
   hand-transcribed tables were, not a live inventory.
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteMedicineCatalog.cs` —
   `InjectionAmounts` (15 containers) plus `Liquids` (immediate, opiate and timed branches), with the

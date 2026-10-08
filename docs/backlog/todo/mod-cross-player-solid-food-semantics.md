@@ -1,8 +1,9 @@
 # Cross-player solid food from the game's own data
 
-- Status: Done (batch `20261008-a`: all fifteen rows of the §7 / Hard-acceptance reading table pass; the
-  frame-based half of the presentation row is a residual for the user, and the feed gesture's pointer half
-  was driven through the production request entry instead — both named in the record's Limits)
+- Status: Todo — Rejected (batch `20261008-a`: row 5's visual half is `unproven` — the run's only frame was
+  taken while the player was unconscious and under attack, so it proves nothing about the parked objects, and
+  the parked spot is inside solid rock at the map corner; every other row of the fifteen passes, and the
+  record names what closing this one needs)
 - Acceptance record: `docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md`
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture

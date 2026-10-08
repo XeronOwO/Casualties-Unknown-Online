@@ -2511,3 +2511,48 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - Change: a standing-object fixture binds the host's own items first — `item-provide … mode=create` (its
   `Body.PickUpItem` allocates the id) or any local slot move/use — and the record states that the id-less row
   was excluded by the plan's own rule rather than missed by the materializer.
+
+## 2026-10-08 — Batch `20261008-a`: a frame taken while the player is unconscious proves nothing (the user caught it)
+
+- Symptom: the presentation row was judged from `w1-host-parked-spot.png`, a dark, empty frame captured at
+  the parked spot, and the record offered it to the user as "nothing to see". The user answered that the
+  character was unconscious, so its view was dark and blurred — "你能看到才有鬼" — and that crystal enemies
+  could be heard attacking it at the time.
+- Cause: the run never read the OBSERVER's own state at capture time. The same session had read
+  `consciousness 0` minutes later, and the logs carry the host's pain/`death1`/`death4` vocalisations from
+  19:38:09 and 56 `[EnemyAttack] … CrystalLunge` announcements between 19:38:01 and 19:41:23 — the capture
+  sat inside that window. A blinded or unconscious player's rendering is dimmed by the game, so a dark frame
+  is exactly what a conscious-observer check would have predicted.
+- Change: judge no visual row without reading the observing player's own state in the same step as the
+  capture (`alive`, `conscious`, consciousness value, any blackout/blind effect) and writing that reading next
+  to the frame in the record. A frame whose observer state is unknown is not evidence, and a dark frame is
+  never "nothing visible" without it.
+
+## 2026-10-08 — Batch `20261008-a`: a fixture item's side effects are the run's own, and they were not watched
+
+- Symptom: the fixture's `exposedcore` (chosen for the "destroys the item and spawns two crystal enemies"
+  shape) rotted to condition 0 on its owner and did exactly that: two `crystalenemy` objects appeared at the
+  guest's position (19:37:58), CUO mirrored them to the host as runtime spawns, and they attacked the host —
+  56 lunges over three and a half minutes — leaving it unconscious. Nothing in the record mentioned it; the
+  user heard it from the machine's audio.
+- Cause: the run treated its own fixture as inert. An item with a self-destruct or world-spawning behaviour
+  runs that behaviour on the side that owns the real item, and the resulting entities are real, synced and
+  hostile; the run's census searched for `[ERR]`/`[WRN]` and for standing-object lines, never for the spawn
+  and attack lines its own fixture could produce.
+- Change: a fixture item with a self-destruct, world-spawning or hostile side effect is either left out or
+  declared in the scope page WITH its consequences, and the run's log census searches for the lines that
+  behaviour produces (here: `[EntitySpawn]`, `[EnemyAttack]`, `[CharacterSound] Pain`) over the whole run
+  window. An absence row ("no entity appears here") needs a census that spans the event that could create
+  one: this batch's census was read thirteen minutes before the spawn, so it was a snapshot, not evidence.
+
+## 2026-10-08 — Batch `20261008-a`: a verdict moved to `done/` came back when the evidence behind it fell
+
+- Symptom: the batch accepted the ticket (fifteen rows, one residual) and moved it to `done/`; one user
+  message about a frame took that back — the ticket is `todo/` again with `- Status: Todo — Rejected (…)`,
+  and the index and five prose references moved with it.
+- Cause: the verdict rested on a frame that could not carry it (previous entry), and the review that ran
+  before the move checked the record against the artifacts but could not know what the run's own world had
+  been doing (the crystal attack) or what the user saw on screen.
+- Change: for a row whose evidence is a picture of the world, the record names the observer's state and the
+  census window; and a rejection costs the same edit as an acceptance — the folder, the status field, the
+  index row and every reference move in one change, which is exactly what the batch did.

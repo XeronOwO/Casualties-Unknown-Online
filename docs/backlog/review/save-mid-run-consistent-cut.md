@@ -987,7 +987,7 @@ in-game rows open.
       above names the four test anchors; all 83 acceptance anchors re-resolved on this commit.
 - [x] **Each of the four recorded gaps is fixed in this stage, deleted from the stage's scope with a
       reason, or explicitly deferred BY THE USER** and recorded here as deferred for the unified pass
-      — never silently reclassified as "future work" (`AGENTS.md` Development Workflow step 8: "Keep
+      — never silently reclassified as "future work" (`AGENTS.md` Development Workflow: "Keep
       incomplete or unverified work open. Do not claim completion, do not reclassify known gaps as
       future, and do not move to `review/` until the exact scenario and full acceptance matrix are
       verified.") — evidence: all four are FIXED in this ticket (1 the restore ATTEMPT identity,

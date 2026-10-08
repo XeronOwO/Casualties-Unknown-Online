@@ -1,7 +1,8 @@
 # Acceptance record — Cross-player solid food from the game's own data
 
-- Ticket: `mod-cross-player-solid-food-semantics` — verdict: **moved to `done/`** (rows 1–15 pass; the
-  frame-based half of row 5 is a residual for the user, named below)
+- Ticket: `mod-cross-player-solid-food-semantics` — verdict: **moved back to `docs/backlog/todo/`**
+  (row 5's visual half is `unproven`: the run's only frame was taken while the player was unconscious and
+  under attack, so it proves nothing; every other row passes)
 - Batch: `20261008-a` — tickets: `mod-cross-player-solid-food-semantics` (the batch's only ticket; its
 
   scope page is `docs/evidence/acceptance/20261008-a-scope.md`)
@@ -29,10 +30,10 @@ committed recipes `log-level`, `container-read`, `item-provide`, `container-fill
 | 2 | Per-frame cost against the run's own baseline | machine | pass (limits) | the host's own samples: 52.1 fps / `smoothDelta` 0.0192 with 2 standing objects and 271 items, 46.2 fps / 0.0216 with 0 and 267 items, 52.9 fps / 0.0189 with 0 and 267 items — the run's own noise band (46–53 fps) exceeds any effect of the set: `f1-host-frame-with.json`, `f2-host-frame-without.json`, `f3-host-frame-with2.json`. By construction each object pays one `Item.Update` (it is in `Item.allItems`) and returns early at the parked spot (row 11's chunk-renderer guard) |
 | 3 | The standing set matches the synchronized carried rows **recursively** | machine | pass | world 1 (host): data `topLevel:6, recursive:8` → 8 objects, the two nested rows (`geigercounter`, `exposedcore`) recorded with their data parent (`ParentId:9492956821` in `p2-host-data.json`'s `objects[]`; the eight objects themselves are listed in `p3-host-standing.json`); world 2: `topLevel:2, recursive:2` → 2 (`f1-host-data.json`, `f1-host-standing.json`), and the guest's side `topLevel:2, recursive:2` → 1 object + one id-less row (`f1-guest-data.json`, `f1-guest-standing.json`) |
 | 4 | Same world item count, no duplicate objects | machine | pass | every standing object answers the data's own world-row query `false` while the object's id is the owner's carried row (`worldRow:false` in `p3-host-standing.json`, `p1-guest-standing.json`, `f1-*.json`); the materializer's id→object record holds exactly one incarnation per id (`p2-host-data.json` → `objects[]`); the retire line for the excluded case (`retired exposedcore … the data no longer carries the row`, host log 19:37:59) |
-| 5 | Presentation: nothing visible, no dust/collision sound, no audio, no hover tooltip, no alt-hover label | visual + machine | pass (frame half is a residual) | machine: every renderer in every subtree disabled (`renderers:{count:1,enabled:0}`, `p3-host-standing.json`), every collider disabled (`colliders:{enabled:0}`, `triggers:0`), and every component that PLAYS a sound disabled (`GeigerCounterAudio:"false"`, `WatchScript:"false"`, `CustomItemBehaviour:"false"`), with the items' own `LiquidAffect` and `BatteryItem` left enabled by design; one parked prefab does carry an enabled `AudioSource` (`geigercounter`, `audio:{count:1,enabled:1}` in `p3-host-standing.json`) — the run read the source's `enabled` flag, not its `isPlaying` state, and no sound line names a standing object in the log census (Limits); hover: the disabled collider is invisible to the game's own `Physics2D.OverlapPoint` hover probe and the pickup gate refuses a standing object by rule. Frame: `w1-host-parked-spot.png` (the host's window with its body at the parked spot) shows no item shape — see the residual |
-| 6 | No light and no watch chatter from a parked object | machine + visual | pass | the light-carrying items (`emergencylight`, `flashlight`) read `lights:{count:1,enabled:0}` with `LightItem:"false"`; `WatchScript:"false"` on the watch, `GeigerCounterAudio:"false"` on the counter (`p3-host-standing.json`, `p3-guest-standing.json`); the frame `w1-host-parked-spot.png` is unlit rock, which a live `Light2D` would have lit; no talker/sound line for a standing object in the log census |
+| 5 | Presentation: nothing visible, no dust/collision sound, no audio, no hover tooltip, no alt-hover label | visual + machine | **machine half pass; visual half `unproven`** | machine: every renderer in every subtree disabled (`renderers:{count:1,enabled:0}`, `p3-host-standing.json`), every collider disabled (`colliders:{enabled:0}`, `triggers:0`), and every component that PLAYS a sound disabled (`GeigerCounterAudio:"false"`, `WatchScript:"false"`, `CustomItemBehaviour:"false"`), with the items' own `LiquidAffect` and `BatteryItem` left enabled by design; one parked prefab does carry an enabled `AudioSource` (`geigercounter`, `audio:{count:1,enabled:1}` in `p3-host-standing.json`) — the run read the source's `enabled` flag, not its `isPlaying` state, and no sound line names a standing object in the log census; hover: the disabled collider is invisible to the game's own `Physics2D.OverlapPoint` hover probe and the pickup gate refuses a standing object by rule. **The frame `w1-host-parked-spot.png` is withdrawn as evidence**: it was captured while the host was unconscious and being attacked (see Limits), so its darkness is the player's blacked-out vision, not proof about the parked objects |
+| 6 | No light and no watch chatter from a parked object | machine | pass | the light-carrying items (`emergencylight`, `flashlight`) read `lights:{count:1,enabled:0}` with `LightItem:"false"`; `WatchScript:"false"` on the watch, `GeigerCounterAudio:"false"` on the counter (`p3-host-standing.json`, `p3-guest-standing.json`); no talker/sound line for a standing object in the log census. The frame is NOT used here: it was taken with an unconscious player, whose vision is dimmed, so it cannot show whether a light was on |
 | 7 | Fluid table at the parked spot and at the map edge unchanged (damaged bottle) | machine | pass | the corner is the map's own edge (world 1024×1024, parked spot = cell 0,0): seeded cells (0,0) and (1,0) = 1 and the control (8,8) = 1 (`p6-host-fluid-seed-a/b/c.json`); across the window between the damage write and the after-read (19:34:33 → 19:40:48, 6 min 15 s, with the object itself standing for 8 min 2 s) no cell was zeroed — the game's own fluid simulation had spread the water over 12 neighbour cells, the control still 1 (`p25-host-fluid-after.json`, `p25-host-fluid-control.json`); `WaterContainerItem:"false"` on the parked bottle (`p3-host-standing.json`) |
-| 8 | No entity and no explosion appears at the parked spot | machine | pass (single census) | the census within 6 units of the parked spot, read once with the whole fixture standing (`p6-host-nearby-before.json`): `CrystalEnemy:0`, `Enemy` type absent, `BearTrap:0`, `FreshItemDrop:0`, `nonStandingItems:0`; the two world-spawning shapes were staged and did not fire on the copy: `CustomItemBehaviour:"false"` on the parked `exposedcore` (`p3-host-standing.json`), while the owner's own `exposedcore` did self-destruct on its own client and the parked copy retired with its data row (host log 19:37:59). The scope page promised a before/after pair; only the single read was taken (Limits) |
+| 8 | No entity and no explosion appears at the parked spot | machine | pass (single census; the fixture's own spawn named) | the census within 6 units of the parked spot, read once with the whole fixture standing (`p6-host-nearby-before.json`): `CrystalEnemy:0`, `Enemy` type absent, `BearTrap:0`, `FreshItemDrop:0`, `nonStandingItems:0` — nothing at the parked spot. **The same shape did fire elsewhere in this run and the record names it**: the fixture's own `exposedcore` (owner side, the guest) reached condition 0 and its `CustomItemBehaviour` destroyed it and spawned two `crystalenemy` objects at the guest's position (guest log 19:37:58.434: `[EntitySpawn] reporting crystalenemy at (101.1,490.8)`), which CUO mirrored to the host as runtime spawns (host log 19:37:58.446 `reporting crystalenemy at (101.1,490.8)`, 19:37:58.476 `host bound runtime spawn … (prefab crystalenemy)`), after which the two enemies attacked the host repeatedly — 56 `[EnemyAttack] … CrystalLunge` announcements between 19:38:01 and 19:41:23 and the host's pain vocalisations from 19:38:09 — while the parked copy on the peer kept `CustomItemBehaviour:"false"` and merely retired with its data row (host log 19:37:59). The census predates all of it (Limits) |
 | 9 | A parked object's condition tracks the data rather than a locally pinned 0 | machine | pass | the owner's forced writes (bread → 0.4, bottle → 0.5) appeared on the peer's copies (`p4-guest-bread-write.json` / `p4-guest-bottle-write.json` → `p5-host-standing.json`: `bread condition=0.4`, `waterbottle condition=0.5`); a copy forced to 0 was restored to the owner's value by the next snapshot (`p26-host-bread-zero.json` → `p27-host-standing-restored.json`: `0.3782`); world 2 reads both directions side by side (`f1-host-standing.json` 0.3173 vs `f1-host-data.json` 0.3169; `f1-guest-standing.json` 0.6511 vs `f1-host-data.json` 0.6507) |
 | 10 | The prefab facts: collider layer, trigger or solid | machine | pass | every standing object reads `itemLayer:"Item"`, `colliders:{count:1,enabled:0,triggers:0,layers:"Item"}` and `rb:{bodyType:"Dynamic",simulated:false,gravityScale:1}` (`p3-host-standing.json`, `p3-guest-standing.json`, `f1-*.json`) — an item prefab's own collider is a solid collider on the `Item` layer, and the recipe's sweep disabled it |
 | 11 | Whether local decay reaches the zero-condition destroy between two data refreshes | machine | pass (observed) | forced to condition 0 the parked bread survives: it is still active, in `Item.allItems`, at condition 0 (`p26-host-bread-zero.json`, `p26-host-standing-after-zero.json`), because `Item.Update`'s decay and destroy both sit behind the live-chunk guard and the parked spot's chunk renderer is off; the next data refresh restored the owner's value (`p27-host-standing-restored.json`), so the ticket's predicted blink is not reachable while parked |
@@ -43,12 +44,11 @@ committed recipes `log-level`, `container-read`, `item-provide`, `container-fill
 
 ## Residuals for the user
 
-- **Row 5's frame half.** `w1-host-parked-spot.png` is the host's own window with its body placed at the
-  parked spot: no item shape is visible in it. The spot is inside solid rock at the map's corner
-  (block at cell (0,0) is solid, `p25-host-origin-block.json`) and unlit, so the frame cannot by itself
-  separate "renderer off" from "nothing to light". The row's judgement rests on the machine read (every
-  renderer in every subtree disabled); the frame is offered for a person to confirm there is nothing to
-  see.
+- None outstanding. The one item this record first put here — the frame `w1-host-parked-spot.png` — is
+  withdrawn: the user reported that the character was unconscious during the capture, and the logs confirm
+  the host was under attack through that window (56 `CrystalLunge` announcements, 19:38:01 → 19:41:23, and
+  its pain vocalisations from 19:38:09). An unconscious player's vision is dark and blurred, so the frame
+  says nothing about the parked objects. Nothing is asked of the user for this ticket.
 
 ## Limits
 
@@ -73,10 +73,30 @@ committed recipes `log-level`, `container-read`, `item-provide`, `container-fill
 - Row 5's audio half is a flag read, not a playback read: one parked prefab (`geigercounter`) carries an
   enabled `AudioSource`, the run read `enabled` rather than `isPlaying`, and the component that plays it is
   disabled. No sound line names a standing object, but the claim rests on the component state.
+- **Row 5's visual half is `unproven`, and the reason is the run's own state.** The only frame
+  (`w1-host-parked-spot.png`) was captured while the host was unconscious and under attack, so its darkness
+  is the player's blacked-out vision. The parked spot itself is inside solid rock at the map corner
+  (`p25-host-origin-block.json`), so a camera can only be brought there by teleporting a body into rock —
+  which is what the capture did, and which is also how the player's state at that moment came to matter. The
+  run read the player's body state at other moments (`e1`-`e3` vitals, `body-read`) but **not at capture
+  time**; the user's report is what exposed it. Closing this row needs either a capture with an awake,
+  unharmed player (the parked spot's own position makes that a design question) or the row re-worded onto
+  the machine read (every `Renderer` in the subtree disabled is already the definitive statement that
+  nothing is drawn).
+- **The fixture changed the run's world, and the record owns it now.** The fixture `exposedcore` I created
+  on the guest rots at 0.4165 and destroys itself at condition 0; the owner-side `CustomItemBehaviour` then
+  spawned two crystal enemies at the guest's position (19:37:58), CUO mirrored them to the host as runtime
+  spawns, and they attacked the host 56 times over the next three and a half minutes (19:38:01 → 19:41:23),
+  knocking it out; the host's pain/`death1`/`death4` vocalisations were relayed from 19:38:09. The parked
+  copies were never involved (their `CustomItemBehaviour` is disabled and the peer's copy retired when the
+  data dropped the row), but the run's world was no longer the quiet fixture the later readings assumed: the
+  host was unconscious for the rest of world 1 and through part of world 2 (where a declared placement's
+  fall did further damage). Each eat reading is still bracketed by its own before/after pair, which is why
+  its deltas hold; a fixture item with a self-destruct or world-spawning behaviour should either be left out
+  or its consequences declared and watched in the census.
 - Row 8's census was read once with the whole fixture standing (`p6-host-nearby-before.json`), not as the
-  scope page's before/after pair; the absence claim is supported by the disabled `CustomItemBehaviour` and
-  by the owner-side self-destruct retiring the copy instead of spawning anything on the peer, not by a
-  second census.
+  scope page's before/after pair, and it predates the crystal spawn by thirteen minutes — the absence claim
+  is about the PARKED SPOT only, and the run's own entity spawn elsewhere is named above.
 - The random consequences of the eat (the 20% vomit and the 10% burp roll) did not fire in either bite and
   the meal-end roll was not armed through `Body.Burp` afterwards (the clients had already been asked to
   quit): the clamp's deterministic consequence (overflow → `sicknessAmount`) was exercised instead.
@@ -106,8 +126,10 @@ committed recipes `log-level`, `container-read`, `item-provide`, `container-fill
 - The object exists on the client that does not hold the item, it is in the game's own item list, and its
   category answers from the data, not the parent chain (rows 1, 4).
 - The materialization is recursive and carries the data's parent links (row 3).
-- The objects are inert towards the world: no light, no sound, no collision, no pickup, no entity spawn,
-  no fluid drain, and Unity accepts a velocity write on them without moving them (rows 5–8, 12).
+- The parked objects are inert towards the world: no light, no sound, no collision, no pickup, no fluid
+  drain, and Unity accepts a velocity write on them without moving them (rows 5–8, 12). The one entity
+  spawn this run produced came from the fixture's OWNER-side item, not from a parked copy, and it is named
+  in row 8 and in the Limits.
 - The data, not the object, owns the state: condition follows the owner's value both ways, and a locally
   forced value is restored (row 9).
 - The eat is the game's own code on the eater's client, and its item-side half lands on the owner's real

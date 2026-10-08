@@ -62,6 +62,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
+- [Cross-player solid food from the game's own data](todo/mod-cross-player-solid-food-semantics.md) — **High** — the eat runs on the eater's client.
 - [Cross-player semantics from the game's own data](todo/mod-cross-player-native-semantics.md) — **High** — three chains native; wear and limb tool left.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — give, spawn and a property editor.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
@@ -187,7 +188,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Layer changes drop members and storm the log](done/layer-change-member-dropout.md) — **Medium** — both members held when both are parked.
 - [A member out of the world warns once per clone per frame](done/remote-clone-warning-storm-on-member-dropout.md) — **Medium** — bounded per subject.
 - [Container moves reach the viewer as a snapshot](done/container-move-snapshot-only-sync.md) — **Medium** — classifies on the departure; control now read.
-- [Cross-player solid food from the game's own data](done/mod-cross-player-solid-food-semantics.md) — **High** — the eat runs on the eater's client.
 - [A same-frame second drop overwrites the pending report of the first](done/drop-pending-single-slot-overwrite.md) — **Medium** — world half passes 2/2.
 - [A second drop report at the same position loses its world object](done/second-drop-report-loses-its-world-object.md) — **Medium** — no proxy is adopted.
 - [Local item lands inside a remote display proxy](done/local-item-into-remote-display.md) — **Medium** — the seam refuses a display-proxy target.

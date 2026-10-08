@@ -136,9 +136,10 @@ not the goal.
 Applies to all normal work — features, bug fixes, user-facing changes and internal improvements — not
 only to previously rejected items or user-reported problems.
 
-**Hard order:** understand → mechanism inventory → plan + self-check table → user approval (large
-changes only) → red test (defects only) → implement → build/gates → deploy → runtime verification →
-independent adversarial self-check → structure review → commit.
+**Hard order:** understand → **entry mapping (whenever behaviour crosses players or mirrors a native
+action)** → mechanism inventory → plan + self-check table → user approval (large changes only) → red
+test (defects only) → implement → build/gates → deploy → runtime verification → independent adversarial
+self-check → structure review → commit.
 
 1. `[RULE]` **Frame the task from the user's perspective**: reproduction steps, expected behaviour and an
    acceptance matrix (roles, directions, views, related families) for a user-reported issue; functional
@@ -147,21 +148,41 @@ independent adversarial self-check → structure review → commit.
    ask the user when the design is ambiguous or has user-visible trade-offs; once it is clear, proceed
    autonomously on implementation detail.
 3. `[RULE]` **Check for a reusable native game UI or mechanism first.**
-4. `[GATE]` **Defects only: make the expected failure visible before fixing.** Add a regression test or
+4. `[CRITICAL]` **Map CUO's entry points to the game's own, one line each, before designing anything that
+   crosses players or mirrors a native action** — and treat a missing mapping as a design defect, not an
+   implementation detail:
+   - Name the native CALL SITE each CUO gesture is the counterpart of (a gesture is a call site, not a
+     family name; `PlayerCamera.TryPerformSpecialUIAction`'s `WoundViewLimb` branch is the counterpart of
+     the medical panel, the radial's `UseItem`/`WearWearable` of the inventory use). An entry with no
+     native counterpart is CUO's own invention: its scope is argued with the user, never inherited from
+     an older CUO table or list.
+   - Ask of every action whether it needs information its gesture cannot carry — a limb, an identity, an
+     intent. A fallback that supplies it ("the most injured limb", "the first match") is the defect
+     itself: refuse the request or ask the user; never ship the fallback and record it as a limit.
+   - Keep the entries ISOLATED: when one item could be claimed by two of them, the item's own data says
+     which action each entry runs. Deciding by order (a family chain, an if-else ladder) means two
+     scenarios were merged, and every rule built on top of it inherits the error.
+   - The `User approval` step above covers THIS scope, including every user-visible behaviour change it
+     introduces: a parent ticket's frozen direction, a handoff's work order or an existing
+     implementation are never that approval, and a behaviour change noticed mid-cycle goes back to the
+     user as an open question instead of into a limits section.
+5. `[GATE]` **Defects only: make the expected failure visible before fixing.** Add a regression test or
    runtime probe that fails on the current code and record the red before implementing; a compile error
    caused by a missing type is not a red, and "it passes now" is no substitute for having observed it fail.
-5. `[GATE]` **Implement, then verify against the full matrix**: build → deploy the latest artifacts →
+6. `[GATE]` **Implement, then verify against the full matrix**: build → deploy the latest artifacts →
    verify the deployed artifact identity → runtime and log checks → every acceptance row passes. The
    rows of a ticket in `review/` are judged by the agent-run acceptance in `docs/acceptance/`.
-6. `[GATE]` **Run an independent adversarial self-check BEFORE the commit**, in a fresh context and
+7. `[GATE]` **Run an independent adversarial self-check BEFORE the commit**, in a fresh context and
    against the FROZEN working tree; fix its findings in the SAME commit. Template:
    `docs/development/review-prompt.md`.
-7. `[RULE]` **A rejected delivery or a failed verification runs a root-cause loop**: analyse why it was
-   missed, record the process lesson, fix the leak. Moving the ticket back is not enough.
-8. `[CRITICAL]` **Keep incomplete or unverified work open**: no completion claim, no reclassifying a
+8. `[RULE]` **A rejected delivery or a failed verification runs a root-cause loop**: analyse why it was
+   missed, record the process lesson IN THE RULE AND WORKFLOW FILES THAT LOAD NEXT TIME — a lesson that
+   lives in a gitignored, non-auto-loaded notes file has not been recorded — fix the leak. Moving the
+   ticket back is not enough.
+9. `[CRITICAL]` **Keep incomplete or unverified work open**: no completion claim, no reclassifying a
    known gap as "future", no moving on before the exact scenario and the full acceptance matrix are
    verified.
-9. `[RULE]` **Budget the working context; hand off at phase boundaries**: after a task, or a phase of a
+10. `[RULE]` **Budget the working context; hand off at phase boundaries**: after a task, or a phase of a
    multi-stage task, judge how much context is spent and stop at the boundary with a handoff that states
    what landed, what is verified and what comes next — an exhausted context produces shallow work.
 

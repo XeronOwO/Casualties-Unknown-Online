@@ -73,7 +73,7 @@ internal sealed class RemoteMedicalOperationHandler
 			return false;
 		}
 
-		if (!LocalUseItemEligibility.IsMedicalLimbUseItem(dragItem, _domains.LimbUseSemantics))
+		if (!LocalUseItemEligibility.IsMedicalLimbUseItem(dragItem, _domains.LimbUseSemantics, _domains.SolidFoodSemantics))
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: {ItemId} is not a supported remote medical/limb-treatment item.",
 				dragItem.id);
@@ -174,10 +174,15 @@ internal sealed class RemoteMedicalOperationHandler
 			return Dispatch(_shrapnelOps.TryStartRemoteShrapnelUse(dragItem, limbIndex, target, itemInstanceId));
 		}
 
+		// Everything left is the migrated LIMB-TOOL family when the item's own data
+		// calls it one: the treated player's client runs the item's own useLimbAction,
+		// so the request is the whole gesture and the clip is the delegate's own —
+		// DispatchedNative is what keeps this table from replaying a second copy of it.
+		var native = LimbToolAdmission.IsLimbTool(_domains.LimbUseSemantics, _domains.SolidFoodSemantics, dragItem.id);
 		_domains.PlayerInteraction.SendUseRequest(target, itemInstanceId, limbIndex);
 		_domains.Log.LogInformation("[MedicalView] requested use of {Target} limb {Limb} with {ItemId} (id {InstanceId}).",
 			target, limbIndex, dragItem.id, itemInstanceId);
-		return LimbUseDispatch.Dispatched;
+		return native ? LimbUseDispatch.DispatchedNative : LimbUseDispatch.Dispatched;
 	}
 
 	/// <summary>

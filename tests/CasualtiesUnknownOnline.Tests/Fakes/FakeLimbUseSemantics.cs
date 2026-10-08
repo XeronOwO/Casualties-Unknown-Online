@@ -43,9 +43,29 @@ internal sealed class FakeLimbUseSemantics : ILimbUseSemantics
 		"alcohol", "bleach", "reliefcream", "woundglue", "disinfectant", "soap",
 	};
 
+	/// <summary>
+	/// The vanilla items whose own <c>useLimbAction</c> the limb-tool family runs on
+	/// the treated player's client. The five the suite exercises plus one item the
+	/// deleted catalog never carried (<c>roselight</c>) — the migration's own point:
+	/// the game's data decides the family, not a CUO list — plus one id per session
+	/// chain that still claims its items (<c>bandage</c>, <c>adhesivebandage</c>,
+	/// <c>musharm</c>, <c>aed</c>, <c>machete</c>, <c>wrench</c>, <c>tweezers</c>), so
+	/// the admission rule's exclusions are exercised rather than assumed.
+	/// </summary>
+	private static readonly HashSet<string> LimbActionItems = new(StringComparer.Ordinal)
+	{
+		"medicalsuture", "boneweldingtool", "clottingmush", "chestdrain", "splint",
+		"carcasssplint", "tourniquet", "icepack", "roselight", "bulbskin",
+		"glowplantfruit", "antisepticmush", "plasmacutter", "xalorissponge",
+		"bandage", "adhesivebandage", "musharm", "aed", "manualdefibrillator",
+		"machete", "wrench", "tweezers",
+	};
+
 	public bool IsLimbUsableLiquidContainer(string itemId) => LimbUsableContainers.Contains(itemId);
 
 	public bool IsInjectableLiquid(string liquidId) => InjectableLiquids.Contains(liquidId);
 
 	public bool IsHealthUsableLiquid(string liquidId) => HealthUsableLiquids.Contains(liquidId);
+
+	public bool IsLimbActionItem(string itemId) => LimbActionItems.Contains(itemId);
 }

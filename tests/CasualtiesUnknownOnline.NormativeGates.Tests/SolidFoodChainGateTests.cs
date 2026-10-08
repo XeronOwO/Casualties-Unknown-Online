@@ -40,10 +40,12 @@ public class SolidFoodChainGateTests
 {
 	/// <summary>
 	/// The chain's OWN Runtime sources — the seam, its default, the rule, the shape,
-	/// the admission table, the eat's host half and where a use's item state lands.
-	/// These are what must hold no id-keyed table, whatever they are named later; the
-	/// deleted <c>RemoteConsumeCatalog.cs</c> is where the old one lived, and the wear
-	/// chain's own gate enumerates the remaining catalogs of the directory.
+	/// the admission table and the affected side's host half (both shared with the
+	/// limb-tool chain, which reports through the same one-admission-one-report path),
+	/// plus where a use's item state lands. These are what must hold no id-keyed
+	/// table, whatever they are named later; the deleted <c>RemoteConsumeCatalog.cs</c>
+	/// is where the old one lived, and the wear chain's own gate enumerates the
+	/// remaining catalogs of the directory.
 	/// </summary>
 	private static readonly string[] ChainSources =
 	[
@@ -51,8 +53,8 @@ public class SolidFoodChainGateTests
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/NoSolidFoodSemantics.cs",
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/SolidFoodAdmission.cs",
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/SolidFoodVerdict.cs",
-		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/SolidFoodEatGrants.cs",
-		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerSolidFoodEatService.cs",
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ItemActionGrants.cs",
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemActionOutcomeService.cs",
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseCommit.cs",
 	];
 
@@ -181,7 +183,7 @@ public class SolidFoodChainGateTests
 		var report = Parse(UseReportFile);
 		Assert.Contains(
 			report.DescendantNodes().OfType<InvocationExpressionSyntax>(),
-			invocation => invocation.Expression is MemberAccessExpressionSyntax access && access.Name.Identifier.ValueText == "SendItemEatOutcome");
+			invocation => invocation.Expression is MemberAccessExpressionSyntax access && access.Name.Identifier.ValueText == "SendItemActionOutcome");
 		Assert.Contains(
 			report.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "StandingItems.Is");

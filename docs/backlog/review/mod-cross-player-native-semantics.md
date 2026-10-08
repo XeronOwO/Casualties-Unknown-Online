@@ -1,10 +1,12 @@
 # Cross-player semantics from the game's own data
 
-- Status: Todo — **cut 2026-10-08** out of `mod-content-ceiling.md` Part 2 stage 2, which required this
-  stage to become its own architecture ticket. Part A (the injection chain) landed in the same cycle;
-  Part B's topical chain landed 2026-10-08 as well, and so did its consume (drink) chain and its wear
-  chain, so the ticket carries the last remaining chain (the limb tool) plus the solid-food branch,
-  which was cut to its own ticket when the drink chain landed.
+- Status: Review — every chain the ticket named is landed and the code is complete; what is left is the
+  agent acceptance batch (the native halves need a game process). **Cut 2026-10-08** out of
+  `mod-content-ceiling.md` Part 2 stage 2, which required this stage to become its own architecture
+  ticket. Part A (the injection chain) landed in the same cycle; Part B's topical chain landed
+  2026-10-08 as well, and so did its consume (drink), wear and limb-tool chains — the last one is this
+  ticket's own final section. The solid-food branch was cut to its own ticket when the drink chain
+  landed.
 - Priority: High
 - Category: Mod platform / remote medical / architecture
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2, stage 2)
@@ -380,18 +382,151 @@ chain's own Runtime sources under any filename, reports the chains still carryin
 one as an exact set, and pins the adapter's registry read from the SYNTAX rather
 than the file text.
 
-## Part B — the remaining chains
+## Part B — the limb-tool chain (landed 2026-10-08)
 
-The same shape, one chain per deliverable, each with its own hard acceptance:
+The last chain, and the one whose table was the largest collection of transcribed numbers after the
+injection catalog: `RemoteLimbToolCatalog` carried nine ids with a per-tool condition cost, a set of
+body/limb deltas, multiplicative factors, a required limb index, component fields and a timed ramp —
+every one of them an `ldc.r4` literal inside that item's own `useLimbAction` body
+(<c>Item.cs:284-1638</c>).
 
-| Chain | Table today | Native predicate and path |
-|---|---|---|
-| Limb tool | `RemoteLimbToolCatalog`, `RemoteHealProfiles` | non-null `useLimbAction` plus the tool's own tag |
+### The predicate
 
-Each of these also decides whether the item-level gesture routing can stop being a table (Part A left
-the routing itself table-driven: the operator picks the injection family by "usable on a limb and holds
-an injectable liquid"; the drink chain added the item's own `usable` flag beside it, and the wear chain
-its own `wearable` flag).
+`ILimbUseSemantics.IsLimbActionItem` — the item's own `ItemInfo.usableOnLimb` AND an assigned
+`useLimbAction`, and NOT a `LiquidItemInfo`. That is the native dispatch read off the game's own data:
+`PlayerCamera.ApplyWoundItem` (<c>PlayerCamera.cs:739-762</c>) gates on
+`body.conscious && ActuallyUsableOnLimb(item)` and then runs `useLimbAction(selectedLimb, item)` for
+every item whose `usableOnLimb` is set; for an item with no `WaterContainerItem`,
+`ActuallyUsableOnLimb` (<c>ItemInfo.cs:10-15</c>) IS `usableOnLimb`. The container exclusion is the
+family boundary rather than a data claim: liquid carriers belong to the injection, topical and drink
+chains, which are asked first, so a container never reaches this family's run.
+
+`LimbToolAdmission` is the family's ONE rule and both sides ask it. It asks the seam and then refuses
+every item another chain claims, one line per claim with the chain that owns it: the heal item
+set (`RemoteHealProfiles`, the ticket above this one), the wound-view bandage minigame's items
+(`RemoteBandageMinigameCatalog`), the amputation/defibrillator/wrench sessions
+(`RemoteOtherMedicalCatalog`), the shared shrapnel session's tweezers
+(`ShrapnelStartValidator.IsTweezers`), and the SOLID-FOOD family — that last one asked through the
+item's own data rather than by id, because an item can be both: `bulbskin`'s own `useAction` drinks 4.5
+(<c>Item.cs:2534-2544</c>) and `xalorissponge`'s eats 8 (<c>Item.cs:2571-2578</c>) while both also
+carry a limb action, and the host's chain asks the solid-food rule first. Without that line a
+wound-view gesture on one of them would make the treated player EAT it, because the request cannot say
+which of the two actions the gesture meant — so their limb half stays unreachable cross-player until
+the request can carry that intent, which is a protocol question rather than a table's. With every
+claim named the chain reaches **12 vanilla ids**: the eight the deleted table carried (its ninth row,
+`musharm`, is the bandage session's) plus `roselight`, `glowplantfruit`, `antisepticmush` and
+`plasmacutter`, which the table never carried at all. Those claims are the reason the chain's
+item-level routing is still a table after this migration — the question the section below used to
+leave open is now answered for THIS family (it asks the game), and stays open exactly where another
+chain has not migrated.
+
+### What runs where
+
+* **The operator** measures nothing: a limb-tool gesture runs no native action of its own
+  (`RemoteTopicalUseHandler`'s measurement has no counterpart here), so the item stays in their hands
+  until the host commits — the wear chain's shape, not the topical one.
+* **The host** admits the use and commits NOTHING: `PlayerItemUseService` publishes the request half
+  (`PlayerItemUseResultMsg.TargetRunsLimbAction`, with the limb the gesture selected) and remembers the
+  pair in `ItemActionGrants`. The admission is the grant the one outcome report is matched against,
+  because the item belongs to somebody else and the item domain refuses a member's report about another
+  member's item.
+* **The treated player's own client** runs the item's own `useLimbAction` against its own limb and its
+  own standing object of the offered item (`NativeLimbToolApply`), inside the medical capture scope so
+  the delegate's clip is relayed from the body it lands on. The limb fields, the limb component the tool
+  turns into (`SplintLimb`, `TourniquetScript`, `ChilledLimb`), the timed op a delegate starts
+  (`medicalsuture`'s bleed ramp through `CoUtils.DoTimedOp`, keyed by the limb's own name so doses
+  accumulate) and the item condition the delegate spends are all the game's own code.
+* **The report back** is the affected-side outcome message the solid-food chain already used, generalised
+  to `PlayerItemActionOutcomeMsg` with this family's own observation: the delegates that consume the
+  object (`tourniquet`, `splint`, `carcasssplint` destroy the item they were handed) are invisible to
+  the item's own data, and the applier that ran the delegate can see the destruction afterwards — so the
+  report carries `Consumed` beside the condition, and the host commits it onto the item's OWNER.
+  The eat keeps reporting `false` there and the host keeps its own verdict, because that report is
+  issued from inside the game's own use call, before a destroying delegate could run.
+* **The report waits one frame**, and that is a fact about Unity rather than about this chain:
+  `Object.Destroy` is deferred to the end of the frame, so the object a consuming delegate destroyed is
+  still non-null on the line after the delegate returns. The applier therefore reads the condition the
+  run left immediately (the destroy takes the object, not the field the delegate wrote) and reports from
+  a coroutine on the next frame, where that destroy has landed. An earlier draft reported inline and
+  would have reported every consuming tool as surviving — the independent review caught it, which is why
+  the deferral is stated here rather than left in the code.
+
+### What the chain deleted
+
+`RemoteLimbToolCatalog`, `RemoteLimbToolProfile`, `RemoteLimbToolApplication`,
+`RemoteLimbComponentKind` and their 15-case test class; the `TimedLimbEffectMsg` chain end to end
+(the message, its wire class, the kernel event record, the codec's two converters, the result
+message's field and the adapter's `TimedLimbEffectApply`), because the timed ramp is now the delegate's
+own `CoUtils.DoTimedOp` on the patient; and the treatment-sound table's six limb-tool clip rows plus its
+two recorded silences for them, because those clips are the delegate's own now.
+
+### Hard acceptance
+
+The table is gone and every case of that chain is green: `MedicalToolApplicationTests` reads the new
+two-step shape (a request half that changes nothing, an outcome half that commits), the tweezers
+refusals and the drink/injection cases stand unchanged, `LimbToolAdmissionTests` pins the rule with one
+case per claim, and the new `LimbToolChainGateTests` keeps a successor table from growing back.
+
+### Limits recorded with this chain
+
+* **Mod content still cannot author a limb action.** `ModItemDefinition` has no limb-use behaviour
+  (Part 3 A of the ceiling ticket), so this chain's reach grows over VANILLA items the deleted table
+  missed (`roselight`, `glowplantfruit`, `antisepticmush`, `plasmacutter` — four of the 56 ids that
+  carry a limb action; the other 52 are the two liquid chains', a session chain's, or the two
+  body-feeding dual-use ones the predicate above refuses) rather than over mod-authored ones. The
+  predicate is ready for a mod item the day the DTO can declare one; nothing in this chain asks an id.
+* **The gesture families keep their claims.** An item whose native action is a minigame (the dressing
+  family, `musharm`, `tweezers`, `wrench`, the defibrillators, the amputating blades) stays with the
+  session chain that owns its gesture, so this family never runs a minigame on the treated player. That
+  is a deliberate boundary: natively the minigame is played by the body's owner, so routing one here
+  would hand the treated player the operator's work. `LimbToolAdmission` names every such claim, and the
+  ticket that migrates those chains removes its own line.
+* **One user-visible change follows from that boundary**: a `musharm` dragged onto a teammate in the
+  WORLD (not in the wound view) was applied by the deleted table's one-shot numbers and is now refused
+  exactly like every other dressing, because the bandage minigame's claim covers the wound-view path and
+  the world-drag path is the one-shot path. The old behaviour was the anomaly: native `musharm` is a
+  2.5-turn minigame, not a one-shot heal.
+* **A consumed tool's condition is not carried.** The component-bearing tools destroy the object, so the
+  affected side reports condition 0 with `Consumed`; the value the item held at that moment lives on the
+  limb component the native delegate filled instead, which is where the game keeps it.
+* **The native gate on the treatING body is not reproduced.** Native asks `body.conscious` and the
+  depression cutoff of the player who acts — in a single player that is also the player treated, so the
+  pair is not a "may this limb be treated" rule cross-player. The operator's own gesture gates are the
+  operator's; the treated side is often unconscious by design.
+* **The standing object is the offered item's local incarnation**, so the run happens against the state
+  the last authoritative fact left (condition, liquids, components). A tool whose delegate reads a
+  field the fact path does not carry would read the prefab's default — true for the nine deleted ids
+  (their delegates read `item.condition` and their own sprite) and named here as the general limit.
+* **Only the item's condition and its consumption travel back.** The report is the solid-food one, so a
+  delegate that writes another part of the ITEM leaves the owner's copy at its old value: `plasmacutter`
+  (one of the four ids this chain newly reaches) drains its own battery in its `useAction`, and that
+  drain does not reach the owner. What a delegate writes to the LIMB is unaffected — that is the
+  patient's own state and reaches the host through its ordinary character report.
+* **The gesture's INTENT is not on the request.** The two dual-use ids (`bulbskin`, `xalorissponge`) are
+  refused here and stay on the eat family, so their limb half is unreachable cross-player from the wound
+  view as well. Lifting that needs the request to say which of an item's two actions was meant — a
+  protocol question, not a table's — and until then the family order is what decides.
+* **A locally refused application leaves its grant in place**, because the affected side reports nothing
+  when it cannot run the action (no standing object, no usable limb, the item left the inventory). The
+  entry is bounded (one per admitted use) and harmless on its own (a report needs the grant, and the
+  grant writes nothing), but a session with many refused uses accumulates them until it ends.
+* **The affected side asserts the owner's item state.** The reported condition is written onto the
+  owner's item with no host-side cap — the host has no second source for what a delegate spent — and
+  `Consumed` can remove the row outright. It is the same trust boundary the two liquid chains record for
+  their dose's VALUE, and reaching it takes a modified client.
+* **A delegate that no-ops is reported as a run.** The applier cannot tell a delegate that moved the limb
+  from one whose own guard refused (`chestdrain` on the wrong limb, a component tool on an occupied one):
+  the old chain's by-name refusals for those cases went with the table, and the game's own guard is the
+  refusal now. The log line says the action ran, which it did.
+* **The native gate on the treatING body is not reproduced.** Native asks `body.conscious` and the
+  depression cutoff of the player who acts — in a single player that is also the player treated, so the
+  pair is not a "may this limb be treated" rule cross-player. The operator's own gesture gates are the
+  operator's. The HOST still refuses a request whose target is not conscious/alive
+  (`TryExecuteUse`'s own gate), which is a different question and the one the treated side's state has to
+  answer on this path.
+* **The native half needs a game process.** Whether the run really lands on the right limb, whether the
+  component appears on the treated player's client, whether the one-frame deferral sees the destroy it
+  was written for and what the third peer sees are acceptance rows.
 
 ## Red lines that do not change
 

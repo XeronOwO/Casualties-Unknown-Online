@@ -13,6 +13,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// </summary>
 internal static class ShrapnelStartValidator
 {
+	/// <summary>The shared shrapnel session's held tool — the one item the wound-view gesture routes to that session instead of to a limb-use family.</summary>
+	internal static bool IsTweezers(string? itemId) => itemId == "tweezers";
+
 	internal static bool TryValidateOperator(
 		ulong operatorId,
 		CharacterDataMsg? operatorData,
@@ -44,7 +47,7 @@ internal static class ShrapnelStartValidator
 			}
 
 			var item = operatorData.Items[itemIndex];
-			if (item.ItemId != "tweezers" || item.Condition <= 0f)
+			if (!IsTweezers(item.ItemId) || item.Condition <= 0f)
 			{
 				reason = "Item is not usable tweezers.";
 				return false;

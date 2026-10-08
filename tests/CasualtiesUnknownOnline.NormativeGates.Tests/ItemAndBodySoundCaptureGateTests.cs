@@ -149,12 +149,43 @@ public class ItemAndBodySoundCaptureGateTests
 		"spraybottle",
 	];
 
-	/// <summary>The catalogs whose entries define what the remote limb gesture accepts — the scan surface the treatment table must decide for, derived from the eligibility check itself rather than restated.</summary>
+	/// <summary>
+	/// The vanilla limb tools whose own <c>useLimbAction</c> is now the decision for
+	/// both the effect and the clip: Part B's last chain replaced
+	/// <c>RemoteLimbToolCatalog</c> with the game's own data
+	/// (<c>ItemInfo.usableOnLimb</c> + <c>useLimbAction</c>), so the ids that catalog
+	/// carried are a hand-written census here — minus the two another chain still
+	/// claims (<c>musharm</c>, the wound-view bandage session's item, and
+	/// <c>tweezers</c>, the shrapnel session's), which the surface already counts
+	/// through those catalogs. The ids and their delegate-level clips are the
+	/// <c>useLimbAction</c> bodies in <c>Item.SetupItems()</c>
+	/// (Item.cs:616/696/1483/1509/1589/1613, and the suture's own gore roll at 378).
+	/// </summary>
+	private static readonly string[] VanillaLimbToolItems =
+	[
+		"boneweldingtool",
+		"carcasssplint",
+		"chestdrain",
+		"clottingmush",
+		"icepack",
+		"medicalsuture",
+		"splint",
+		"tourniquet",
+	];
+
+	/// <summary>
+	/// The catalogs whose entries define what the remote limb gesture accepts — the
+	/// scan surface the treatment table must decide for, derived from the eligibility
+	/// check itself rather than restated. <c>RemoteLimbToolCatalog.cs</c> left the list
+	/// with Part B's limb-tool chain: that family's answer is the game's own item data
+	/// (<c>ItemInfo.usableOnLimb</c> + <c>useLimbAction</c>, and the claims its own gate
+	/// pins), so only the two session catalogs that still decide an item-level gesture
+	/// remain here.
+	/// </summary>
 	private static readonly string[] AcceptedItemCatalogFiles =
 	[
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteHealProfiles.cs",
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteBandageMinigameCatalog.cs",
-		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemoteLimbToolCatalog.cs",
 	];
 
 	/// <summary>
@@ -398,7 +429,7 @@ public class ItemAndBodySoundCaptureGateTests
 			Assert.True(decided.Add(id), $"`{id}` is decided twice in the treatment table (silent rows must not repeat a clip row)");
 		}
 
-		Assert.True(decided.Count >= 30, $"the treatment table decides only {decided.Count} item(s) — the table (or one of its groups) was emptied, not the decision");
+		Assert.True(decided.Count >= 22, $"the treatment table decides only {decided.Count} item(s) — the table (or one of its groups) was emptied, not the decision");
 
 		// The SECOND decider: a migrated chain plays its own clip natively (the
 		// operator's client runs the item's own useLimbAction inside the medical
@@ -408,6 +439,7 @@ public class ItemAndBodySoundCaptureGateTests
 		// which is exactly what a migrated row would ship.
 		var native = new HashSet<string>(VanillaInjectableCarriers, StringComparer.Ordinal);
 		native.UnionWith(VanillaTopicalCarriers);
+		native.UnionWith(VanillaLimbToolItems);
 		var doubled = decided.Where(native.Contains).OrderBy(id => id, StringComparer.Ordinal).ToArray();
 		Assert.True(
 			doubled.Length == 0,
@@ -470,7 +502,14 @@ public class ItemAndBodySoundCaptureGateTests
 
 		var medical = ClipsOf(RepositoryPaths.ReadText(PolicyFile), "IsMedicalClip");
 		var clips = ClipValues(table, "TreatmentClips");
-		Assert.True(clips.Count >= 9, $"only {clips.Count} clip row(s) could be read from the treatment table — the table was emptied, not the decision");
+
+		// Three clip rows, and that number IS the migration's own progress: the table
+		// only serves the gestures whose native call is still blocked in the remote view
+		// and not run by a migrated chain — the wound-view bandage session's musharm and
+		// the shrapnel and dislocation sessions' held tools. The injectable, topical and
+		// limb-tool families' rows are gone because their delegates play those clips
+		// themselves on the side that runs them.
+		Assert.True(clips.Count >= 3, $"only {clips.Count} clip row(s) could be read from the treatment table — the table was emptied, not the decision");
 
 		foreach (var clip in clips)
 		{
@@ -727,7 +766,7 @@ public class ItemAndBodySoundCaptureGateTests
 		return end < 0 ? clean[start..] : clean[start..end];
 	}
 
-	/// <summary>Every item id the remote limb gesture accepts: the catalogs the eligibility check still consults, plus the handler's own literal surface and the pinned vanilla carriers of the two chains whose admission is game data now.</summary>
+	/// <summary>Every item id the remote limb gesture accepts: the catalogs the eligibility check still consults, plus the handler's own literal surface and the pinned vanilla carriers and tools of the three chains whose admission is game data now.</summary>
 	private static IReadOnlyList<string> AcceptedItemIds()
 	{
 		var ids = new SortedSet<string>(StringComparer.Ordinal);
@@ -740,6 +779,7 @@ public class ItemAndBodySoundCaptureGateTests
 		ids.UnionWith(LiteralIds(RepositoryPaths.ReadText(OtherMedicalCatalogFile)));
 		ids.UnionWith(VanillaInjectableCarriers);
 		ids.UnionWith(VanillaTopicalCarriers);
+		ids.UnionWith(VanillaLimbToolItems);
 		ids.Add("tweezers"); // the handler's own literal surface (dragItem.id == "tweezers")
 
 		return [.. ids];

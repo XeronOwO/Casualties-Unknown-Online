@@ -105,7 +105,7 @@ internal static class LocalUseItemEligibility
 			return true;
 		}
 
-		return RemoteLimbToolCatalog.IsToolItem(item.id);
+		return LimbToolAdmission.IsLimbTool(limbSemantics, solidFoodSemantics, item.id);
 	}
 
 	/// <summary>
@@ -116,7 +116,7 @@ internal static class LocalUseItemEligibility
 	/// point, and they would otherwise be routed as a remote wear/feed action
 	/// from the wrong UI.
 	/// </summary>
-	public static bool IsMedicalLimbUseItem(Item item, ILimbUseSemantics semantics)
+	public static bool IsMedicalLimbUseItem(Item item, ILimbUseSemantics semantics, ISolidFoodSemantics solidFoodSemantics)
 	{
 		if (item == null || item.condition <= 0f) // Unity object — ==
 		{
@@ -128,7 +128,7 @@ internal static class LocalUseItemEligibility
 			return true;
 		}
 
-		if (RemoteLimbToolCatalog.IsToolItem(item.id))
+		if (LimbToolAdmission.IsLimbTool(semantics, solidFoodSemantics, item.id))
 		{
 			return true;
 		}

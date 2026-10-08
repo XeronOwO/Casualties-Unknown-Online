@@ -6,7 +6,7 @@
 - Priority: High
 - Category: Mod platform / architecture
 - Related: `docs/backlog/review/mod-defined-wire-packets.md` (Part 3's custom replication domains, promoted on
-  its own), `docs/backlog/todo/mod-cross-player-native-semantics.md` (Part 2 stage 2, cut out on
+  its own), `docs/backlog/review/mod-cross-player-native-semantics.md` (Part 2 stage 2, cut out on
   2026-10-08), `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
   `docs/backlog/review/cucorelib-migration-support.md`, `docs/backlog/future/phase5-tooling-ecosystem.md`
 - Source: The 2026-09-25 tag/quality inventory and mod-ceiling analysis — the whole session's finding; user
@@ -102,28 +102,31 @@ formulas copied out of the game:
   `InjectionAmounts` (15 containers) plus `Liquids` (immediate, opiate and timed branches), with the
   comments naming the decompiled sources they were transcribed from (`Liquids.cs` `Drink`/`Inject`
   formulas and the `onHealthUse` branches). **Deleted 2026-10-08** by
-  `docs/backlog/todo/mod-cross-player-native-semantics.md` Part A, which is the reason this inventory
+  `docs/backlog/review/mod-cross-player-native-semantics.md` Part A, which is the reason this inventory
   can now name one chain as done.
 - The same shape in `RemoteTopicalCatalog`, `RemoteLimbToolCatalog` and `RemoteWearCatalog`; the
   decisions that introduced the slices describe them as curated (`docs/decisions/archive.md` entries
-  98, 100, 103). `RemoteTopicalCatalog` is **deleted 2026-10-08** by Part B of
-  `docs/backlog/todo/mod-cross-player-native-semantics.md`, the same way the medicine table went with
-  Part A; `RemoteWearCatalog` (the 40-row wearable registry) is **deleted 2026-10-08** by the same
-  ticket's wear chain, which reads `ItemInfo.wearable` / `desiredWearLimb` / `wearSlotId` instead;
-  `RemoteLimbToolCatalog` still answers for its chain.
+  98, 100, 103). All three are **deleted 2026-10-08** by
+  `docs/backlog/review/mod-cross-player-native-semantics.md`: `RemoteTopicalCatalog` by Part B, the
+  same way the medicine table went with Part A; `RemoteWearCatalog` (the 40-row wearable registry) by
+  its wear chain, which reads `ItemInfo.wearable` / `desiredWearLimb` / `wearSlotId` instead; and
+  `RemoteLimbToolCatalog` (the ten-row tool registry with its transcribed condition costs, deltas and
+  timed ramp) by its limb-tool chain, which reads `ItemInfo.usableOnLimb` + `useLimbAction` and runs the
+  delegate on the treated player's own client. No cross-player chain carries an id table any more.
 
 Consequences:
 
-- Mod content — and any vanilla content the tables do not carry — can be carried, dropped, traded and
-  saved, but it has no cross-player semantics **for the chains that still carry a table**: a mod food
-  cannot be fed to another player, a mod limb tool cannot be applied. The four migrated chains
-  (injection, topical, drink, wear) answer from the game's own data and therefore already reach mod
-  content: a mod medicine can be injected, a mod dressing applied, a mod drink fed and a mod garment
-  put on.
+- Every cross-player chain answers from the game's own data now, so the ceiling they imposed is gone:
+  a vanilla item the deleted tables never carried (or a game update moved a number inside) reaches
+  another player with the game's own code. What mod content can still not declare is the SURFACE: the
+  DTOs below cannot express a limb action, a wearable set or a liquid's effect delegate, so a mod item
+  cannot ask for those chains to carry it.
 - The ceiling of the mod platform is therefore our maintenance speed, not the game's own capability.
 - The transcribed constants are a patch-stack debt against the root-cause rule in `AGENTS.md`: a game
-  update that changes a formula moves the game and leaves our copy behind, silently.
-- The content DTOs still cannot declare what the remaining chains would need: `ModItemDefinition` has no
+  update that changes a formula moves the game and leaves our copy behind, silently. The five
+  cross-player chains have paid that debt off: the injection, topical, drink, wear and limb-tool
+  catalogs are deleted.
+- The content DTOs still cannot declare what those chains would need: `ModItemDefinition` has no
   limb-use behaviour and no wearable set, and `ModLiquidDefinition` has no drink/health delegates.
   (Qualities are no longer in this list — item and liquid qualities landed 2026-10-07 with stage 1,
   `review/mod-crafting-quality-labels.md`.)
@@ -175,9 +178,9 @@ The vanilla type carries the field; the mod DTO does not, so the content cannot 
 Item side (`ItemInfo` versus `ModItemDefinition` and its behaviour DTOs):
 
 - **item qualities** — the stage 1 item of Part 2, not repeated here.
-- **`useLimbAction`** — apply to a limb (bandage, splint, tourniquet, amputation). The only mention in
-  `src/` is a comment in `RemoteLimbToolProfile.cs`, so CUO covers its own curated list and offers no mod
-  surface.
+- **`useLimbAction`** — apply to a limb (bandage, splint, tourniquet, amputation). The cross-player
+  chain reads the game's own data for every vanilla limb action now, but the DTO still cannot declare
+  one: a mod item has no limb-use behaviour, so it is carried, dropped and saved and never applied.
 - **the wearable set** — `wearableArmor`, `wearableIsolation`, `wearableHitDurabilityLossMultiplier`,
   `desiredWearLimb`, `wearSlotId`, `wearableCanBeHeld`, `wearableVisualOffset`; the last two appear in
   `src/` only as reads.

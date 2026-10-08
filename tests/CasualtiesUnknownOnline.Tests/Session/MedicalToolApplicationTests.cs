@@ -22,8 +22,13 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 public class MedicalToolApplicationTests
 {
 	[Fact]
-	public void Guest_UsesBoneweldingToolOnHost_AppliesToolAndSendsResult()
+	public void Guest_UsesBoneweldingToolOnHost_AdmitsItAndChangesNothing()
 	{
+		// The limb tool is the fifth migrated family: the host's whole part of the
+		// request is the admission, because the AFFECTED side's own client runs the
+		// item's own useLimbAction against its own limb. The deleted catalog's numbers
+		// (condition cost 0.5, skin -25, muscle -26, pain +30, bleed +5, bone-heal timer
+		// x0.25, blood viscosity +2) used to be applied to this snapshot right here.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -38,22 +43,64 @@ public class MedicalToolApplicationTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var result = UseResult(received);
-		Assert.Equal(GuestId, result.UserSteamId);
-		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.Equal(42UL, result.ItemInstanceId);
-		Assert.False(result.ItemDestroyed);
-		Assert.NotNull(result.ItemAfter);
-		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.25f) < 0.001f);
+		var request = Assert.Single(UseResults(received));
+		Assert.Equal(GuestId, request.UserSteamId);
+		Assert.Equal(HostId, request.TargetSteamId);
+		Assert.Equal(42UL, request.ItemInstanceId);
+		Assert.True(request.TargetRunsLimbAction);
+		Assert.False(request.TargetEatsTheItem);
+		Assert.False(request.ItemDestroyed);
+		Assert.Null(request.ItemAfter);
+		Assert.Null(request.Health);
+		Assert.Empty(request.Limbs);
 
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.BloodViscosity - 7f) < 0.001f);
-		Assert.True(Math.Abs(hostData.Limbs[1].BoneHealTimer - 25f) < 0.001f);
+		var untouched = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(untouched.Health!.BloodViscosity - 5f) < 0.001f);
+		Assert.True(Math.Abs(untouched.Limbs[1].BoneHealTimer - 100f) < 0.001f);
+		var carried = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(carried.Condition - 0.75f) < 0.001f);
 	}
 
 	[Fact]
-	public void Guest_UsesSplintOnHost_AppliesComponentAndDestroysItem()
+	public void AffectedSideOutcome_CommitsTheConditionTheOwnActionLeft()
 	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var tool = Item(42, "boneweldingtool", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tool));
+		items.AdoptTransferredItem(GuestId, 42, tool);
+
+		var interactions = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		interactions.SendUseRequest(HostId, 42);
+
+		// The treated player's client ran the delegate and reports what the item became.
+		// The host is the affected side here, so its own client files the report.
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemActionOutcome(42, 0.25f, consumed: false);
+
+		var results = UseResults(received);
+		Assert.Equal(2, results.Count);
+		var committed = results[1];
+		Assert.Equal(GuestId, committed.UserSteamId);
+		Assert.Equal(HostId, committed.TargetSteamId);
+		Assert.False(committed.ItemDestroyed);
+		Assert.NotNull(committed.ItemAfter);
+		Assert.True(Math.Abs(committed.ItemAfter!.Condition - 0.25f) < 0.001f);
+
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Condition - 0.25f) < 0.001f);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
+		Assert.True(Math.Abs(transferred.Item.Condition - 0.25f) < 0.001f);
+	}
+
+	[Fact]
+	public void AffectedSideOutcome_ConsumedComponentTool_RemovesTheOwnersRow()
+	{
+		// The component-bearing tools turn the item into the limb component and destroy
+		// the object they were handed (Item.cs:1489 for the splint), which is the one
+		// thing the tool's own data cannot say — hence the report's own flag.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -64,15 +111,12 @@ public class MedicalToolApplicationTests
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemActionOutcome(42, 0f, consumed: true);
 
-		var result = UseResult(received);
-		Assert.True(result.ItemDestroyed);
-		Assert.Null(result.ItemAfter);
-
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(hostData.Limbs[1].Splinted);
-		var state = Assert.Single(hostData.Limbs[1].Components);
-		Assert.Equal("SplintLimb", state.TypeName);
+		var committed = UseResults(received)[1];
+		Assert.True(committed.ItemDestroyed);
+		Assert.Null(committed.ItemAfter);
 		Assert.Empty(characters.GetSavedCharacter(GuestId)!.Items);
 		Assert.Empty(items.GetTransferredItems(GuestId));
 
@@ -87,59 +131,72 @@ public class MedicalToolApplicationTests
 	}
 
 	[Fact]
-	public void Guest_UsesTourniquetOnHost_AppliesComponentAndDestroysItem()
+	public void AffectedSideOutcome_WithoutAnAdmittedUse_IsRefused()
+	{
+		// The admission IS the grant: without it the report would be one member writing
+		// another member's carried item.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var splint = Item(42, "splint", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, splint));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemActionOutcome(42, 0.4f, consumed: false);
+
+		Assert.Empty(UseResults(received));
+		Assert.True(Math.Abs(characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42).Condition - 0.75f) < 0.001f);
+	}
+
+	[Fact]
+	public void AffectedSideOutcome_Twice_SettlesTheItemOnce()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
 		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
-		var tourniquet = Item(42, "tourniquet", slot: 0);
-		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tourniquet));
-		items.AdoptTransferredItem(GuestId, 42, tourniquet);
-
-		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
-
-		var result = UseResult(received);
-		Assert.True(result.ItemDestroyed);
-		Assert.Null(result.ItemAfter);
-
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(hostData.Limbs[1].BlockedBleeding);
-		var state = Assert.Single(hostData.Limbs[1].Components);
-		Assert.Equal("TourniquetScript", state.TypeName);
-		Assert.Empty(characters.GetSavedCharacter(GuestId)!.Items);
-	}
-
-	[Fact]
-	public void Guest_UsesIcepackOnHost_AppliesComponentAndKeepsUsedItem()
-	{
-		var (host, guest, received) = CreateSession();
-		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
-		var items = host.Services.GetRequiredService<IItemControl>();
-		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
-		hostSnapshot.Health!.Temperature = 37f;
-		characters.SaveHostCharacterData(hostSnapshot);
 		var icepack = Item(42, "icepack", slot: 0);
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, icepack));
 		items.AdoptTransferredItem(GuestId, 42, icepack);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
+		var interactions = host.Services.GetRequiredService<IPlayerInteractionControl>();
+		interactions.SendItemActionOutcome(42, 0.5f, consumed: false);
+		interactions.SendItemActionOutcome(42, 0.1f, consumed: false);
 
-		var result = UseResult(received);
-		Assert.False(result.ItemDestroyed);
-		Assert.NotNull(result.ItemAfter);
-		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.25f) < 0.001f);
-
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.Temperature - 36f) < 0.001f);
-		var state = Assert.Single(hostData.Limbs[1].Components);
-		Assert.Equal("ChilledLimb", state.TypeName);
+		var results = UseResults(received);
+		Assert.Equal(2, results.Count);
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
-		Assert.True(Math.Abs(saved.Condition - 0.25f) < 0.001f);
-		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
-		Assert.True(Math.Abs(transferred.Item.Condition - 0.25f) < 0.001f);
+		Assert.True(Math.Abs(saved.Condition - 0.5f) < 0.001f);
+	}
+
+	[Fact]
+	public void Guest_UsesSplintOnHost_IsAdmittedWithoutSpendingTheItem()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var splint = Item(42, "splint", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, splint));
+		items.AdoptTransferredItem(GuestId, 42, splint);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var request = Assert.Single(UseResults(received));
+		Assert.True(request.TargetRunsLimbAction);
+		Assert.False(request.ItemDestroyed);
+		Assert.Null(request.ItemAfter);
+
+		// Nothing ran on the host: no component, no limb latch, and the item is still
+		// the guest's carried row until the affected side reports what its own run left.
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.False(hostData.Limbs[1].Splinted);
+		Assert.Empty(hostData.Limbs[1].Components);
+		Assert.Single(characters.GetSavedCharacter(GuestId)!.Items);
+		Assert.Single(items.GetTransferredItems(GuestId));
 	}
 
 	[Fact]
@@ -181,8 +238,13 @@ public class MedicalToolApplicationTests
 	}
 
 	[Fact]
-	public void Guest_UsesMedicalSutureOnHost_AppliesImmediateAndCarriesTimedEffect()
+	public void Guest_UsesMedicalSutureOnHost_AdmitsItWithoutAHostTimedEffect()
 	{
+		// medicalsuture is the tool whose delegate starts a timed op of its own
+		// (`CoUtils.DoTimedOp("suture" + limb.name, …)`, Item.cs:381-384), keyed by the
+		// limb's own name so repeated doses accumulate. That ramp, the immediate
+		// pain/skin-heal and the item's condition cost all run inside the delegate on
+		// the treated player's client now, so no TimedLimbEffectMsg exists any more.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -197,22 +259,17 @@ public class MedicalToolApplicationTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var result = UseResult(received);
-		Assert.Equal(GuestId, result.UserSteamId);
-		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.False(result.ItemDestroyed);
-		Assert.NotNull(result.ItemAfter);
-		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.24f) < 0.001f);
+		var request = Assert.Single(UseResults(received));
+		Assert.Equal(GuestId, request.UserSteamId);
+		Assert.Equal(HostId, request.TargetSteamId);
+		Assert.True(request.TargetRunsLimbAction);
+		Assert.False(request.ItemDestroyed);
+		Assert.Null(request.ItemAfter);
 
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Limbs[1].Pain - 22.5f) < 0.001f);
-		Assert.True(Math.Abs(hostData.Limbs[1].SkinHealAmount - 25f) < 0.001f);
-		Assert.True(Math.Abs(hostData.Limbs[1].BleedAmount - 20f) < 0.001f);
-
-		var timed = Assert.Single(result.TimedEffects);
-		Assert.Equal(1, timed.LimbIndex);
-		Assert.True(Math.Abs(timed.DurationSeconds - 10f) < 0.001f);
-		Assert.True(Math.Abs(timed.BleedPerSecond + 4.5f) < 0.001f);
+		var untouched = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(untouched.Limbs[1].Pain - 10f) < 0.001f);
+		Assert.True(Math.Abs(untouched.Limbs[1].SkinHealAmount) < 0.001f);
+		Assert.True(Math.Abs(untouched.Limbs[1].BleedAmount - 20f) < 0.001f);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -337,7 +394,6 @@ public class MedicalToolApplicationTests
 		Assert.Equal("antirad", dose.LiquidId);
 		Assert.True(Math.Abs(dose.Amount - 20f) < 0.001f);
 		Assert.Null(result.Health);
-		Assert.Empty(result.TimedEffects);
 	}
 
 	[Fact]

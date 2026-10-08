@@ -175,11 +175,11 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void FireUseReceived(PlayerItemUseResultMsg msg) =>
 		_itemUse.FireUseReceived(msg);
 
-	public void SendItemEatOutcome(ulong itemInstanceId, float condition) =>
-		_itemUse.SendItemEatOutcome(itemInstanceId, condition);
+	public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed) =>
+		_itemUse.SendItemActionOutcome(itemInstanceId, condition, consumed);
 
-	public void HandleItemEatOutcome(ulong sender, PlayerItemEatOutcomeMsg msg) =>
-		_itemUse.HandleItemEatOutcome(sender, msg);
+	public void HandleItemActionOutcome(ulong sender, PlayerItemActionOutcomeMsg msg) =>
+		_itemUse.HandleItemActionOutcome(sender, msg);
 
 	public void SendPushRequest(ulong targetSteamId) =>
 		_push.SendPushRequest(targetSteamId);

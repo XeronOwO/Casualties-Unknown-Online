@@ -280,7 +280,6 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				else if (msg.Health is { } health)
 				{
 					domains.CharacterDataSync.ApplyHealState(body, health, msg.Limbs);
-					TimedLimbEffectApply.Apply(body, msg.TimedEffects, domains.Log);
 					domains.Log.LogInformation("[ItemUse] local body received a consumable from {User}.", msg.UserSteamId);
 					changed = true;
 				}
@@ -335,6 +334,17 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.TargetEatsTheItem)
 		{
 			changed |= NativeSolidFoodEat.Apply(body, msg.ItemInstanceId, domains);
+		}
+
+		// The limb tool is the eat's sibling and the last of the migration's five
+		// families: nothing was measured and nothing was committed, so this call IS the
+		// whole effect. The game's own useLimbAction runs against THIS body's limb (the
+		// limb the operator picked, resolved against this body) and this client's own
+		// object of the offered item, which is what makes the limb component, the timed
+		// op and the item's condition cost the game's own code rather than a table's.
+		if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.TargetRunsLimbAction)
+		{
+			changed |= NativeLimbToolApply.Apply(body, msg.LimbIndex, msg.ItemInstanceId, domains);
 		}
 
 		if (changed)

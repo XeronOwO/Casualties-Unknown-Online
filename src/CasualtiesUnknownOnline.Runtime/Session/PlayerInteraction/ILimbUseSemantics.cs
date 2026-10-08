@@ -45,4 +45,23 @@ public interface ILimbUseSemantics
 	/// never the effect.
 	/// </summary>
 	bool IsHealthUsableLiquid(string liquidId);
+
+	/// <summary>
+	/// The item's own data says a limb action OF ITS OWN applies it, and that it is
+	/// not a liquid carrier: <c>ItemInfo.usableOnLimb</c> is set, its
+	/// <c>useLimbAction</c> delegate is assigned, and its <c>ItemInfo</c> is not a
+	/// <c>LiquidItemInfo</c>. That is the native dispatch for the non-container
+	/// half — <c>PlayerCamera.ApplyWoundItem</c> runs
+	/// <c>useLimbAction(limb, item)</c> for every item whose
+	/// <c>ActuallyUsableOnLimb</c> holds, and a non-container answers that with
+	/// <c>usableOnLimb</c> alone (<c>ItemInfo.cs:10-15</c>).
+	/// <para>
+	/// The container exclusion is the family boundary, not a data claim: a liquid
+	/// container is drawn by the injection and topical chains, which are asked
+	/// before this family, and by the drink chain for the containers the game marks
+	/// usable. Those chains own every container — including one whose liquid makes
+	/// it inert — so a container never reaches this family's native run.
+	/// </para>
+	/// </summary>
+	bool IsLimbActionItem(string itemId);
 }

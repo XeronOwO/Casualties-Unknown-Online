@@ -18,4 +18,6 @@ internal sealed class GameLimbUseSemantics : ILimbUseSemantics
 	public bool IsInjectableLiquid(string liquidId) => GameLimbUseFacts.IsInjectableLiquid(liquidId);
 
 	public bool IsHealthUsableLiquid(string liquidId) => GameLimbUseFacts.IsHealthUsableLiquid(liquidId);
+
+	public bool IsLimbActionItem(string itemId) => GameLimbUseFacts.IsLimbActionItem(itemId);
 }

@@ -49,12 +49,6 @@ public static class KernelPlayerInteractionWireMapper
 			ItemDestroyed = e.ItemDestroyed,
 			Health = e.Health is null ? null : ToWireHealth(e.Health),
 			Limbs = [.. e.Limbs.Select(ToWireLimb)],
-			TimedEffects = [.. e.TimedEffects.Select(t => new WirePlayerInteractionTimedLimbEffect
-			{
-				LimbIndex = t.LimbIndex,
-				DurationSeconds = t.DurationSeconds,
-				BleedPerSecond = t.BleedPerSecond,
-			})],
 			AppliedDose = [.. e.AppliedDose.Select(s => new WireLiquidStack
 			{
 				LiquidId = s.LiquidId,
@@ -67,6 +61,7 @@ public static class KernelPlayerInteractionWireMapper
 			})],
 			LimbIndex = e.LimbIndex,
 			TargetEatsTheItem = e.TargetEatsTheItem,
+			TargetRunsLimbAction = e.TargetRunsLimbAction,
 		};
 
 		if (e.ItemAfter is { } after)
@@ -114,11 +109,11 @@ public static class KernelPlayerInteractionWireMapper
 			FromWireItem(p.WornItemIdentity, p.WornItemData, p.WornItemContents),
 			FromWireHealth(p.Health),
 			[.. p.Limbs.Select(FromWireLimb)],
-			[.. p.TimedEffects.Select(t => new PlayerInteractionTimedLimbEffect(t.LimbIndex, t.DurationSeconds, t.BleedPerSecond))],
 			[.. p.AppliedDose.Select(s => new PlayerInteractionLiquidStack(s.LiquidId, s.Amount))],
 			p.LimbIndex,
 			[.. p.DrinkDose.Select(s => new PlayerInteractionLiquidStack(s.LiquidId, s.Amount))],
-			p.TargetEatsTheItem);
+			p.TargetEatsTheItem,
+			p.TargetRunsLimbAction);
 
 	private static WireItemIdentity ToWireIdentity(ItemIdentity identity) =>
 		new()

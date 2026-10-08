@@ -42,9 +42,6 @@ public sealed class WirePlayerInteraction
 	[ProtoMember(10)]
 	public List<WirePlayerInteractionLimb> Limbs { get; set; } = [];
 
-	[ProtoMember(11)]
-	public List<WirePlayerInteractionTimedLimbEffect> TimedEffects { get; set; } = [];
-
 	[ProtoMember(13)]
 	public WireItemIdentity? ItemAfterIdentity { get; set; }
 
@@ -115,4 +112,15 @@ public sealed class WirePlayerInteraction
 	/// </summary>
 	[ProtoMember(24)]
 	public bool TargetEatsTheItem { get; set; }
+
+	/// <summary>
+	/// True for the limb-tool family's request half: the TREATED player's own client
+	/// runs the item's own limb action (<c>useLimbAction</c>) against its own limb and
+	/// its own object of the offered item, and <see cref="LimbSelection"/> names the
+	/// limb it must treat. Like the eat above, nothing else in the payload is
+	/// meaningful for that half and the item's post-use state follows in the second
+	/// result the host publishes from that side's outcome report.
+	/// </summary>
+	[ProtoMember(25)]
+	public bool TargetRunsLimbAction { get; set; }
 }

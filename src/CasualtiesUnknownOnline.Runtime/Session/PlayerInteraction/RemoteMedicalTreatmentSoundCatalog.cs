@@ -63,27 +63,30 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// <c>NativeTopicalApply</c> and is relayed from there. Keeping the liquid rows would
 /// double the clip on the patient, who runs that delegate locally.
 /// </para>
+///
+/// <para>
+/// The LIMB-TOOL family is the third to leave (Part B's last chain). Its clips are the
+/// delegates' own — <c>"boneweld"</c>, <c>"splint"</c>, <c>"syringe"</c> for the chest
+/// drain, <c>"goo"</c>, and the limb's gore roll for the suture (Item.cs:696/1613/1589/
+/// 616/378/1483/1509) — and the delegate now runs on the TREATED player's client through
+/// <c>NativeLimbToolApply</c>, inside the same medical capture scope, so every clip is
+/// native and relayed from the body it lands on. The two tools whose delegate plays
+/// nothing (<c>icepack</c>, <c>tourniquet</c>) simply stay silent, as they always were.
+/// The rows those items used to hold are gone for the injection and topical families'
+/// reason: a row here plus the delegate's own clip is one clip played twice.
+/// </para>
 /// </summary>
 public static class RemoteMedicalTreatmentSoundCatalog
 {
-	/// <summary>The accepted items whose native limb action plays a clip itself, mapped to that exact clip.</summary>
+	/// <summary>The accepted items whose native limb action plays a clip itself, mapped to that exact clip. The migrated chains' items are NOT listed here any more: their clip is played by the delegate this side now runs, and a row would be a second decider for one clip.</summary>
 	private static readonly IReadOnlyDictionary<string, string> TreatmentClips =
 		new Dictionary<string, string>(StringComparer.Ordinal)
 		{
-			// Limb tools (Item.cs:696/1613/1589/616/1483/1509/4864).
-			["boneweldingtool"] = "boneweld",
-			["carcasssplint"] = "splint",
-			["chestdrain"] = "syringe",
-			["clottingmush"] = "goo",
-			// The suture's own delegate plays the limb's gore roll (Item.cs:378 →
-			// Body.DoGoreSound). The blocked call is suppressed in the remote view, so
-			// the clip has to come from here; the body's roll picks one of five
-			// variants, and this table names the base clip the limb's own Dismember
-			// plays first (Limb.cs:98) — the variation is native flavour, not a
-			// second fact to carry.
-			["medicalsuture"] = "gore",
+			// musharm is the wound-view bandage session's item (its clip comes from that
+			// session's own step) but its delegate also plays "goo"; the routing hands it
+			// to the session, which is the half this table still serves.
 			["musharm"] = "goo",
-			["splint"] = "splint",
+			// The shared shrapnel and dislocation sessions' held tools.
 			["tweezers"] = "tweezeruse",
 			["wrench"] = "wrenchhit",
 		};
@@ -102,9 +105,6 @@ public static class RemoteMedicalTreatmentSoundCatalog
 		"sterilizedbandage",
 		// Heal items whose delegate plays nothing at all.
 		"adhesivebandage",
-		// Tools with no clip in their delegate.
-		"icepack",
-		"tourniquet",
 		// Defibrillators — AEDMinigame / ManualDefibMinigame cues are 2D.
 		"aed",
 		"manualdefibrillator",

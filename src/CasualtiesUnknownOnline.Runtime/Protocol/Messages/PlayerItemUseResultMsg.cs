@@ -51,14 +51,6 @@ public sealed class PlayerItemUseResultMsg
 	public CharacterItemMsg? WornItem { get; set; }
 
 	/// <summary>
-	/// Timed limb ticks the target's local body must run (e.g. medicalsuture's
-	/// per-second bleed reduction). Empty for immediate-only uses. The host does
-	/// not simulate these; the target re-reports through the normal snapshot path.
-	/// </summary>
-	[ProtoMember(9)]
-	public List<TimedLimbEffectMsg> TimedEffects { get; set; } = [];
-
-	/// <summary>
 	/// The drain the host committed for the migrated TOPICAL family: the operator
 	/// measured one native <c>ApplyToLimb</c> call, the host capped it at what the
 	/// authoritative item carried and split it the way
@@ -125,9 +117,22 @@ public sealed class PlayerItemUseResultMsg
 	/// request half — the host computed no body state and changed no item state —
 	/// and the item's own post-eat state follows in the SECOND result the host
 	/// publishes from the eater's outcome report
-	/// (<see cref="PlayerItemEatOutcomeMsg"/>), whose <see cref="UserSteamId"/> is
+	/// (<see cref="PlayerItemActionOutcomeMsg"/>), whose <see cref="UserSteamId"/> is
 	/// the item's owner.
 	/// </summary>
 	[ProtoMember(14)]
 	public bool TargetEatsTheItem { get; set; }
+
+	/// <summary>
+	/// True for the LIMB-TOOL family's request half: the TREATED player's own client
+	/// must run the item's own limb action (<c>ItemInfo.useLimbAction</c>) against its
+	/// own limb and its own object of this item
+	/// (<see cref="ItemInstanceId"/>), because that delegate writes the limb, the limb
+	/// component it may turn into and the item it is handed. <see cref="LimbIndex"/>
+	/// names the limb it must treat. Like the eat above, everything else is empty for
+	/// this half and the item's post-use state follows in the second result the host
+	/// publishes from that side's outcome report.
+	/// </summary>
+	[ProtoMember(15)]
+	public bool TargetRunsLimbAction { get; set; }
 }

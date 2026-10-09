@@ -489,6 +489,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Name|proper
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Permission|property|-> CommandPermission { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Usage|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.ctor(string name, string description, string usage, CommandPermission permission, IReadOnlyList<CommandArgumentKind> argumentKinds, Func<IModConsoleCommandContext, string?> handler)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModConsoleCommand
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentContract.TryGetKind(Type contract, out string kind)|static method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Building|const field|-> string = "building"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Item|const field|-> string = "item"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Liquid|const field|-> string = "liquid"
@@ -981,6 +982,8 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingPlacement|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingPrefabRequest|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentAttribute|sealed class|Attribute
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentContract|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModCraftingQuality|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModDataScope|enum|-

@@ -53,6 +53,7 @@ internal sealed class ModLifecycle(
 	private readonly SessionService _session = session;
 	private readonly ModChannel _channel = channel;
 	private readonly ModRegistry _registry = registry;
+	private readonly ModContentDeclarationScanner _contentDeclarations = new(log);
 	private readonly ITimeSource _time = time;
 	private readonly ILoggerFactory _loggerFactory = loggerFactory;
 	private readonly ILogger _log = log;
@@ -145,7 +146,12 @@ internal sealed class ModLifecycle(
 
 	private void DiscoverAndLoad()
 	{
-		var discovered = _registry.Discover(AppDomain.CurrentDomain.GetAssemblies());
+		var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+		var discovered = _registry.Discover(assemblies);
+
+		// The content census runs before the load loop, so the [ModContent] classes
+		// of an assembly NO mod of which loads are still reported once.
+		_contentDeclarations.Census(assemblies);
 		var loadedIds = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var d in discovered)
 		{
@@ -181,6 +187,7 @@ internal sealed class ModLifecycle(
 					_nativeApiProvider,
 					_contentControl,
 					_resourceCompletionStages);
+				RegisterDeclarations(d, context);
 				instance.Bind(context);
 				instance.Initialize();
 				instance.Start();
@@ -192,6 +199,23 @@ internal sealed class ModLifecycle(
 			{
 				_log.LogError(e, "[Mods] {Id} failed to load — skipped, the other mods continue.", d.Manifest.Id);
 			}
+		}
+	}
+
+	/// <summary>
+	/// The attribute half of content registration, run BEFORE the mod's own
+	/// <see cref="ICuoMod.Bind"/>: the declarations written next to the mod land
+	/// first, so a bind that also registers by code sees them, and a duplicate id
+	/// is refused on the code side instead of on the declared one. The scan owns
+	/// the refusals and their logging — this is the per-mod call and its summary.
+	/// </summary>
+	private void RegisterDeclarations(DiscoveredMod mod, ModContext context)
+	{
+		var registered = _contentDeclarations.Register(mod.Type, context.Content);
+		if (registered > 0)
+		{
+			_log.LogInformation("[Mods] {Id} registered {Count} content declaration(s) declared by [ModContent].",
+				mod.Manifest.Id, registered);
 		}
 	}
 

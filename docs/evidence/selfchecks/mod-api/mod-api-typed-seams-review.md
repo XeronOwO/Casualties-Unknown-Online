@@ -88,7 +88,8 @@ What did fall:
 - Index budget: the moved ticket's row is **142** characters against `BacklogIntegrityGateTests`'
   `IndexLineBudget = 160`, and it sits under `### Review` with the ticket in `review/`.
 - Reference integrity: `docs/backlog/todo/mod-api-typed-seams.md` is gone, `docs/backlog/review/…` exists,
-  the README row moved Todo → Review, `docs/backlog/todo/mod-content-attribute-declarations.md` re-points,
+  the README row moved Todo → Review, `docs/backlog/review/mod-content-attribute-declarations.md` re-points
+  (that path moved from `todo/` when stage B of that ticket landed),
   and the dated done-ticket's location claim is updated. One stale `todo/` pointer survives (m2).
 - The deleted value surface's callers: `ModNativeApiPolicy` is called from exactly one production file
   (`ModNativeApiAdapter.CanInvoke` → `IsValidOperation`), and no `MaxArguments` / `MaxStringLength` /

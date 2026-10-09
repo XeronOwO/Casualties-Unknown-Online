@@ -19,22 +19,30 @@
 1. **A bare marker attribute declares content**: `[ModContent]` on a class. It carries NO data — not even
    the id — because the address belongs to the definition (decision 247) and "Attribute 只负责发现" is the
    user's rule. Discovery instantiates the class and reads its members.
-2. **The kind comes from the kind family, never from the attribute or the class name.** A class derives from
-   exactly one per-kind base (`ModItemContent`, `ModRecipeContent`, `ModLiquidContent`,
-   `ModLiquidTileContent`, `ModTileContent`, `ModBuildingContent`, `ModStructureContent`,
-   `ModStatusContent`, `ModMoodleContent`), which supplies `Kind` (fixed by the type, as in decision 247),
-   the `SchemaVersion` default, and the registration-time validation seam; `Id` is the declaration's own
-   override. A class reaching two kinds is refused at scan with a log naming it — never guessed.
-   Why a base and not a bare interface: **.NET Framework 4.8 has no default interface members**, so a
-   per-kind base is what keeps the identity boilerplate in one place instead of an adapter per kind.
+2. **The kind comes from the kind interface the class implements, never from the attribute or the class
+   name.** Nine kind interfaces (`IModItemContent`, `IModRecipeContent`, `IModLiquidContent`,
+   `IModLiquidTileContent`, `IModTileContent`, `IModBuildingContent`, `IModStructureContent`,
+   `IModStatusContent`, `IModMoodleContent`), each carrying its kind's data members and extending
+   `IModContentDefinition`. **Any type that implements one is registrable**: a mod's own class, or the
+   framework's DTO — `ModItemDefinition` becomes one implementation of `IModItemContent` rather than the only
+   accepted shape, which is what keeps materialization open instead of binding it to a framework type (the
+   user's requirement: "任何自定义类型只需要实现那个接口"). Implementing two kind interfaces is refused at
+   scan with a log naming the class — never guessed — and a `Kind` that disagrees with the implemented kind
+   interfaces is the same named refusal.
+   A per-kind base (`ModItemContent`, …) exists as an OPTIONAL convenience that supplies the `Id` / `Kind` /
+   `SchemaVersion` boilerplate; it is never required, because **.NET Framework 4.8 has no default interface
+   members** and a mod class that already has a base (a `MonoBehaviour`, its own hierarchy) must still be
+   able to declare content.
 3. **Capability facets are additive interfaces on the same class** (`IModUsableContent`,
    `IModWearableContent`, `IModContainerContent`, `IModBatteryContent`, `IModLightContent`,
    `IModToolContent`, `IModGunContent`, `IModVisualContent`): they are columns of ONE entry, never a second
    entry and never a second id. "An item that is also usable" is one item registration with a facet — not
    two registrations.
 4. **One class = one registration.** The registry, the catalog, the ownership query, the console vocabulary
-   and the binders are unchanged underneath: the scan is a declaration front-end over
-   `IModContent.TryRegister(IModContentDefinition)`, not a second registry.
+   and the binders keep their shape: the scan is a declaration front-end over
+   `IModContent.TryRegister(IModContentDefinition)`, not a second registry. What does change is what the nine
+   providers read — the kind interface instead of the concrete DTO — and that change alone is what lets a
+   mod-authored type materialize.
 5. **Behaviour seams stay per-interface**: `IModCommand`, the declared-packet chain,
    `IResourceLocationMatchStage`, the entity-spawn and placement seams already work as "implement the
    interface, get the capability". A class may declare content and behaviours at once — different
@@ -68,14 +76,18 @@ things the game can address and delete on their own.**
 
 ## Open at implementation
 
-- Whether a facet interface replaces the DTO's nested member objects (`Tool`, `Gun`, `Container`,
-  `Battery`, `Light`, `Visual`) or maps onto them 1:1; either way the provider reads one shape.
+- How a facet interface meets the DTO's nested member objects (`Tool`, `Gun`, `Container`, `Battery`,
+  `Light`, `Visual`): flatten them into flat facet members (the DTO delegates to its nested objects) or let
+  the facet interface hand the nested object back. Either way the provider reads ONE shape, and either way a
+  mod-authored class is never forced to `new` a framework type to fill a facet.
 - Whether the scanned instance is stored as it is (decision 247's rule) or snapshotted at registration once
   its members have been read.
 
 ## Non-goals
 
 - No second registry, no second permission rail, no second binder.
+- No framework type required to declare content: the nine DTOs are implementations of the kind interfaces,
+  not the contract, and the code path keeps accepting either.
 - No change to the wire or the save: content is process-local either way.
 - No auto-loading of assemblies that declare no mod.
 - No compatibility shim: the code path and the scan are the same contract, so neither is kept alive for the
@@ -83,8 +95,11 @@ things the game can address and delete on their own.**
 
 ## Acceptance (mod-author visible, judged at the acceptance batch)
 
-- A mod declares an item and a recipe by attribute only, with no registration call, and both materialize in
+- A mod declares an item and a recipe by attribute only, from ITS OWN classes implementing the kind
+  interfaces (no framework DTO instantiated anywhere), with no registration call, and both materialize in
   game tables.
+- The same two definitions registered through code, as `ModItemDefinition` instances, still materialize —
+  one provider, two ways to feed it.
 - A class that reaches two kinds is refused with a log naming it; the other declarations still bind.
 - A declaration whose getter throws is refused, named, and does not stop its siblings.
 - Two mods declaring the same bare id still report the existing conflict; the scan adds no new id rule.

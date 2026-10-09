@@ -4,9 +4,9 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The phase-3 typed limb physiology status projection DTO. Nullable fields
-/// mean "do not touch this limb field", so round-trip must preserve both set and
-/// unset values.
+/// The limb physiology status projection: an ABSENT field means "do not touch
+/// this limb field", so round-trip must preserve both set and unset values, and
+/// the field names the GameAdapter reads are pinned here.
 /// </summary>
 public class ModLimbProjectionTests
 {
@@ -21,9 +21,8 @@ public class ModLimbProjectionTests
 			InfectionAmount = 12f,
 		};
 
-		var restored = ModLimbProjection.FromPayload(original.ToPayload());
-		Assert.NotNull(restored);
-		Assert.Equal(3.5f, restored!.BleedAmount);
+		Assert.True(ModLimbProjection.TryFromValue(original.ToValue(), out var restored));
+		Assert.Equal(3.5f, restored.BleedAmount);
 		Assert.Equal(-2f, restored.SkinHealth);
 		Assert.Null(restored.MuscleHealth);
 		Assert.Equal(12f, restored.InfectionAmount);
@@ -34,19 +33,29 @@ public class ModLimbProjectionTests
 	{
 		var original = new ModLimbProjection();
 
-		var restored = ModLimbProjection.FromPayload(original.ToPayload());
-		Assert.NotNull(restored);
-		Assert.Null(restored!.BleedAmount);
+		Assert.True(ModLimbProjection.TryFromValue(original.ToValue(), out var restored));
+		Assert.Null(restored.BleedAmount);
 		Assert.Null(restored.SkinHealth);
 		Assert.Null(restored.MuscleHealth);
 		Assert.Null(restored.InfectionAmount);
 	}
 
 	[Fact]
-	public void InvalidPayload_ReturnsNull()
+	public void AnUnsetField_IsAbsentFromTheValue()
 	{
-		Assert.Null(ModLimbProjection.FromPayload([]));
-		Assert.Null(ModLimbProjection.FromPayload([1, 2, 3]));
-		Assert.Null(ModLimbProjection.FromPayload(null!));
+		var value = new ModLimbProjection { SkinHealth = 1f }.ToValue();
+
+		Assert.Equal(ModValueKind.Map, value.Kind);
+		Assert.True(value.TryGetField(ModLimbProjection.FieldSkinHealth, out _));
+		Assert.False(value.TryGetField(ModLimbProjection.FieldMuscleHealth, out _));
+	}
+
+	[Fact]
+	public void InvalidValue_IsRefused()
+	{
+		Assert.False(ModLimbProjection.TryFromValue(null, out _));
+		Assert.False(ModLimbProjection.TryFromValue(ModValue.Integer(1), out _));
+		Assert.False(ModLimbProjection.TryFromValue(
+			ModValue.Map((ModLimbProjection.FieldBleedAmount, ModValue.Boolean(true))), out _));
 	}
 }

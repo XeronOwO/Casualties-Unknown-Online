@@ -76,6 +76,118 @@ Every `byte[]` on the mod-visible contract, with its stability level. The census
    decision 241 (the pre-release baseline is frozen, so the change ships with its commit and its ticket).
 5. **What stays byte-shaped**: file bytes in the save archive, and the model's own binary leaf.
 
+## Frozen shape (2026-10-09)
+
+The ruling fixes *what*: a CUO-owned typed data model, one explicit binary leaf, no opaque envelope left on
+the mod-visible contract. This section fixes *how* so the implementation follows a written shape. It is
+staged, each stage its own cycle with its own gates and deployment:
+
+- **Stage A — the mod's own data over the wire (LANDED 2026-10-09)**: the model, its codec,
+  `IModNetwork`, `IModPackets` and `IModPacketContext`, and — forced by the first three — CUO's own status
+  frame: `ModStatusUpdate`, `IModStatusRuntime`, `IModStatusTransport` and the two projections. The codec
+  was the last user of `ModPayloadCodec`, so that file and the `DataContractSerializer` decode seam beside
+  it are deleted in stage A rather than in B.
+- **Stage B — the stores and the remaining surfaces**: `IModData`, `IModState` (and its file), the runtime
+  moodle request's remaining call sites and `IModNativeApi`'s admitted value list, plus the last of the
+  `byte[]` on the mod-visible contract. Stage B is what retires the last of decision 244's paper trail; its
+  decode half already went with stage A.
+
+The census rows are split the same way, and a surface never carries both spellings: a stage moves its rows
+whole.
+
+### 1. The value model (`ModValue`, `ModValueKind`)
+
+- Kinds: `Boolean`, `Integer` (`long`), `Number` (`double`), `Text` (`string`), `Binary`, `List`, `Map`.
+  Two numeric kinds because one `double` would lose a Steam id (2^53) silently, and the model's whole point
+  is that a value means what it says. **No Null kind**: absence is structural — a `false` from a `Try`, a
+  map field that is not there — so nothing has to decide what a nil element meant.
+- `ModValue` is a sealed, immutable class; every factory copies what it is handed, so a value can be shared,
+  cached and read from two threads without a defensive copy (which deletes the clone-on-read/write
+  ceremony every one of these surfaces does today).
+- Factories: `ModValue.Boolean`, `.Integer`, `.Number`, `.Text`, `.Binary`, `.List(params ModValue[])`,
+  `.Map(params (string Key, ModValue Value)[])`. A null argument is an `ArgumentNullException` (a
+  programming error in the mod's own code) except a null `params` array, which is an empty container —
+  the same "null means none" rule the collection members already carry.
+- Accessors: `Kind`, `TryGetBoolean`, `TryGetInteger`, `TryGetNumber` (accepts `Integer` as a widening),
+  `TryGetText`, `TryGetBinary`, `Items`/`Fields` (**null** unless the kind is `List`/`Map`, so a wrong kind
+  cannot read as "empty"), `TryGetField(string name, out ModValue value)`.
+- `Equals`/`GetHashCode`/`==`/`!=` are structural (`IEquatable<ModValue>`), and `ToString()` renders a
+  bounded, log-safe form — the ticket's own reason for typing this at all is that the framework must be
+  able to log it.
+- The binary leaf is an explicit value, not an envelope: one kind whose payload the framework never
+  interprets. Spelled `ReadOnlyMemory<byte>` rather than `byte[]` on purpose — rule 15's letter admits a
+  binary leaf and bans the erased spelling, and a `ReadOnlyMemory<byte>` cannot be mutated through the
+  model.
+
+### 2. The budgets and the refusal (one validator)
+
+Nothing validates a value except the encoder: accepting a value IS being able to encode it inside the
+budgets, so there is no second rule to drift.
+
+| Budget | Value | Why that number |
+|---|---|---|
+| Depth | 8 | the deepest contract CUO itself carries is 2; a mod's own structure has room and a recursive builder still refuses |
+| Values per graph | 4096 | bounds the walk, not the shape |
+| Entries per list/map | 1024 | the same order as the stores' own per-mod caps |
+| Text | 16 KiB encoded | a payload rail, not a string limit |
+| Binary leaf | 32 KiB encoded | the frame's own 64 KiB cap is the outer bound |
+| Encoded total | the surface's own cap (`ModChannel.MaxPayloadBytes` 64 KiB on the wire) | one place, already documented |
+
+A refusal is a `bool` plus a reason string that names the PATH inside the model
+(`$.targets[3].hp: a number must be finite`) and the budget it broke, in the same shape the content
+providers already refuse in. Decode enforces the same budgets WHILE it walks — the depth is checked before
+recursing, and a length is checked against the bytes actually left — so a malformed or hostile payload is
+refused rather than recursed into. A non-finite number and text that is not valid UTF-16 are refused at
+encode: the model round-trips exactly or it does not travel.
+
+### 3. The wire
+
+The value model gets a canonical binary encoding owned by CUO (`ModValueCodec`, `internal` in Runtime — the
+mod-visible contract never sees bytes). Tag byte per value, fixed-width little-endian lengths, containers
+length-prefixed. `ModMessageMsg.Payload` keeps carrying `byte[]`: the frame's field is CUO's own transport
+detail and both of its ends are CUO's, so the protocol message does not change shape — only what the bytes
+mean, and the receive side decodes before any mod callback runs (a decode failure is dropped with the
+refusal, exactly like the over-cap drop beside it). Protocol number: pre-release, so decision 241 freezes
+it; a wire change ships with its commit and its ticket.
+
+The 64 KiB rail is measured on the ENCODED size, at both ends, where it is measured today.
+
+### 4. What does NOT change
+
+- `IModNetwork`'s `void` (no-op plus a log) and `IModPackets`' `bool` refusal shapes: this ticket retypes
+  the payload, it does not redesign the refusal story of a surface that has one.
+- The permission, role, session, rate-limit and fan-out rules of either surface.
+- `SaveArchiveEntry.Content` (a file's bytes), the save archive, and `ModStateFile`'s own byte fields: a
+  file's content is a binary leaf of a FILE, which the census already keeps.
+- No compatibility layer of any kind (already a non-goal above).
+
+### 5. What the implementation owes the reader
+
+A `docs/en/reference/mod-api.md` section per block for the model (kinds, factories, accessors, budgets, the
+refusal shape), the two how-to pages that show `Encoding.UTF8.GetBytes` rewritten, the baseline lines, the
+alignment pairs recomputed, the cycle's self-check, and a decision entry recording the shape.
+
+## What landed (2026-10-09, stage A)
+
+The shape above, implemented and verified: `ModValue`/`ModValueKind`, `ModValueCodec` (the one validator),
+`IModNetwork`, `IModPackets`, `IModPacketContext`, `ModStatusUpdate` (a map whose field names are its wire
+contract), `IModStatusRuntime`, `IModStatusTransport` (`TryHandleStatusUpdate`), the two projections
+(`ToValue`/`TryFromValue`), the retirement of `ModPayloadCodec` and of `[DataContract]`, the example mods,
+the API baseline (25 tombstones, plus two entries whose type changed in place), the terminology registry, both document blocks and the alignment record.
+`docs/evidence/selfchecks/mod-api/mod-value-model-selfcheck.md` is the record; the census rows this cycle
+moved are the network, packet, status-frame, status-value and projection rows, whole.
+
+Two facts worth carrying forward:
+
+- **The per-delivery byte copy is DELETED, not moved.** The old contract promised a handler its own copy of
+  the payload precisely because a handler could rewrite it; an immutable value makes the copy and the
+  promise unnecessary, and the case that pinned the copy is replaced by one that pins what a value
+  guarantees (`OneImmutableValue_ServesTheWholeDelivery`).
+- **The null-collection census shrank by a member for a real reason.** The runtime moodle request's
+  `Payload` is a `ModValue` now, so it is not a collection member; the census is
+  `ModNullCollectionRuleTests` with 26 rows, and the model's read-only `Items`/`Fields` views are a named
+  group rather than rows. `review/mod-payload-null-collection-tolerance.md` records the retirement.
+
 ## Non-goals
 
 - Not a compatibility layer: the old payload overloads do not survive beside the model.

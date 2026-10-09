@@ -52,6 +52,15 @@ not by each consumer. Today it is decided per consumer and unevenly.
 
 ## What landed
 
+> **[Narrowed again 2026-10-09 by the typed value model.]** The DECODE half of this rule and the census
+> that drove it are RETIRED, not moved: `ModStatusUpdate` and the two status projections were the last
+> contracts CUO carried over a boundary as serialized objects, and they carry a `ModValue` now, so
+> `ModPayloadCodec`, the `[DataContract]` attributes and the three payload shapes this ticket's rows 1-4
+> measured no longer exist (ticket `todo/mod-api-no-opaque-envelopes.md`, stage A). What is left is the
+> MEMBER half, and its census is `ModNullCollectionRuleTests` — 26 rows, one fewer than the 27 below,
+> because the runtime moodle request's `Payload` is a `ModValue` now and a value is not a collection. The
+> value model's own read-only `Items`/`Fields` views are a NAMED group in that census rather than rows.
+
 > **[Narrowed 2026-10-08 by decision 247.]** The counts below are this cycle's record. A content definition
 > is a registered typed object now and is never serialized, so the decode seam reaches only the contracts
 > CUO itself carries over a boundary (`ModStatusUpdate` and the two status projections) and the census is
@@ -103,15 +112,13 @@ not by each consumer. Today it is decided per consumer and unevenly.
 
 | # | Row | How it is judged | Result |
 |---|---|---|---|
-| 1 | Every collection member of every payload contract means "none" when the payload carries an explicit nil for it | `ModPayloadNullCollectionTests.ExplicitlyNullCollection_IsNoneInBothPaths`, one row per member (27) | pass |
-| 2 | … when the payload OMITS the member's element | the same 27 rows: the element is removed from a real payload and the member still reads empty, and re-encoding the decoded definition writes an empty collection rather than a nil | pass |
-| 3 | … and when a mod assigns null in C# | the same 27 rows | pass |
-| 4 | A payload we build never carries an explicit nil for a collection member | the same 27 rows assert the member's own element is free of `i:nil` | pass |
-| 5 | The census reaches every collection member of the assembly, so a new member cannot arrive without the rule | `Census_CoversEveryCollectionMemberOfEveryPayloadContract`: pinned count + equality with the assembly scan (33 names) | pass |
-| 6 | The five declarations a mod builds in code follow the same rule | `CodeConstructedDeclarations_TreatNullAsNone` | pass |
-| 7 | A definition with every payload collection member null still BINDS | `ModContentNullCollectionBindingTests`: item, liquid, liquid tile, building, tile, status, moodle, and the structure with a grid | pass |
-| 8 | A member that is genuinely required is refused with the message that says why, never with the binder's logged exception | the same suite: a frame-less item animation, a recipe with no ingredients, a structure with no rows, a frame-less moodle animation — each read from the provider's own warning, with no error entry on the binder | pass |
-| 9 | No provider normalises a payload collection any more | the guard sweep in *What landed*; the census plus the binder suite fail if either end loses the rule | pass |
+| 1 | Every collection member of every mod-built declaration means "none" when a mod assigns null in C# | `ModNullCollectionRuleTests.NullCollectionWrite_IsNone`, one row per member (26) | pass |
+| 2 | The census reaches every collection member of the assembly, so a new member cannot arrive without the rule | `ModNullCollectionRuleTests.Census_CoversEveryModAuthoredDeclarationTheAssemblyBuilds`: pinned count (26) plus equality with the assembly scan | pass |
+| 3 | The declarations a mod can only build through a constructor follow the same rule | `ModNullCollectionRuleTests.ParameterObjectDeclarations_TreatNullAsNone` | pass |
+| 4 | A definition with every collection member null still BINDS | `ModContentNullCollectionBindingTests`: item, liquid, liquid tile, building, tile, status, moodle, and the structure with a grid | pass |
+| 5 | A member that is genuinely required is refused with the message that says why, never with the binder's logged exception | the same suite: a frame-less item animation, a recipe with no ingredients, a structure with no rows, a frame-less moodle animation — each read from the provider's own warning, with no error entry on the binder | pass |
+| 6 | No provider normalises a collection any more | the guard sweep in *What landed*; the census plus the binder suite fail if the rule is lost | pass |
+| — | *(retired)* rows 1-5 of the previous revision: an explicit nil in a payload, an omitted element, a null write, a payload we build staying free of nils, and the payload-member census | the contracts they measured are gone — a status value is a `ModValue` and CUO encodes it, so there is no decoded object graph and no nil to normalise (ticket `todo/mod-api-no-opaque-envelopes.md`, stage A) | retired |
 
 ## Non-goals
 

@@ -7,8 +7,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// is mod-authored, so without caps a broken or hostile mod could grow the
 /// framework's per-frame work without bound or poison the registry with an id
 /// the router cannot address. Ids are bounded by grammar, chains by length,
-/// declarations by count — every refusal is a log line, never a silent
-/// truncation.
+/// declarations by count, and the value a packet carries by the framework's own
+/// encoder (<see cref="ModValueCodec"/>, the one validator) — every refusal is a
+/// log line naming the reason, never a silent truncation.
 /// </summary>
 internal static class ModPacketPolicy
 {
@@ -48,10 +49,6 @@ internal static class ModPacketPolicy
 
 		return true;
 	}
-
-	/// <summary>A payload must be present and inside the mod-message cap (empty is valid).</summary>
-	public static bool IsValidPayload(byte[]? payload) =>
-		payload is not null && payload.Length <= ModChannel.MaxPayloadBytes;
 
 	/// <summary>Declaring a brand-new packet must not exceed the per-mod count cap.</summary>
 	public static bool CanAdd(int currentCount) => currentCount < MaxPacketsPerMod;

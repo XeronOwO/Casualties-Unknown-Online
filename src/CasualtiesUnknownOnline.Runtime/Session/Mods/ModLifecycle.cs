@@ -277,10 +277,24 @@ internal sealed class ModLifecycle(
 			return;
 		}
 
+		// The frame is CUO's own encoding of the mod's value, and this is the
+		// one place it becomes typed again: a payload that is not exactly one
+		// value inside the budgets is dropped with the refusal, before any
+		// mod-authored callback runs. The raw bytes stay alongside it for the
+		// relay below — the host forwards the frame it received, never a
+		// re-encoding of what a handler made of its copy (it cannot make
+		// anything of it: a value is immutable).
+		if (!ModValueCodec.TryDecode(payload, ModChannel.MaxPayloadBytes, out var value, out var refusal))
+		{
+			_log.LogWarning("[Mods] {Sender} sent a value for {ModId} this framework cannot decode — {Reason}",
+				sender, msg.ModId, refusal);
+			return;
+		}
+
 		var packetId = msg.PacketId ?? string.Empty;
 		if (packetId.Length == 0)
 		{
-			SafeRun(mod, "MessageReceived", () => mod.Context.FireMessageReceived(sender, payload));
+			SafeRun(mod, "MessageReceived", () => mod.Context.FireMessageReceived(sender, value!));
 			return;
 		}
 
@@ -299,7 +313,7 @@ internal sealed class ModLifecycle(
 		// chain isolates its own handlers; the isolation here covers the rest of
 		// the routing, so no mod-authored declaration can wedge the receive path.
 		var route = ModPacketRoute.UnknownPacket;
-		SafeRun(mod, $"packet {packetId}", () => route = mod.Context.RoutePacket(sender, packetId, payload));
+		SafeRun(mod, $"packet {packetId}", () => route = mod.Context.RoutePacket(sender, packetId, value!));
 		if (route == ModPacketRoute.Relay)
 		{
 			_channel.RelayPacket(mod.Manifest.Id, sender, packetId, payload);

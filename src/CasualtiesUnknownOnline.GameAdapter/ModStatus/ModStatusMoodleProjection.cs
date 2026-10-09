@@ -171,10 +171,10 @@ internal sealed class ModStatusMoodleProjection(
 			return null;
 		}
 
-		byte[]? payload;
+		ModValue? value;
 		if (presence.Scope == ModStatusScope.Body)
 		{
-			if (!_statusStore.TryGetBodyValue(presence.ModId, presence.StatusId, _session.LocalSteamId, out payload))
+			if (!_statusStore.TryGetBodyValue(presence.ModId, presence.StatusId, _session.LocalSteamId, out value))
 			{
 				return null;
 			}
@@ -186,7 +186,7 @@ internal sealed class ModStatusMoodleProjection(
 				presence.StatusId,
 				_session.LocalSteamId,
 				presence.LimbSlot,
-				out payload))
+				out value))
 			{
 				return null;
 			}
@@ -200,9 +200,7 @@ internal sealed class ModStatusMoodleProjection(
 			Scope = presence.Scope,
 			LimbSlot = presence.LimbSlot,
 			LimbName = GetLimbName(limb),
-			// The store query's own nullable source; the request member would
-			// normalise a null anyway (the same rule the payload contracts own).
-			Payload = payload ?? []
+			Value = value,
 		};
 
 		try

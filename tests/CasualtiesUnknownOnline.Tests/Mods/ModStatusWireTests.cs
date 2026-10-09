@@ -1,3 +1,4 @@
+using static CasualtiesUnknownOnline.Tests.Mods.ModValues;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -12,7 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// published by the host as <see cref="ModStatusUpdate"/> frames over the
 /// existing <see cref="IModNetwork"/> channel and applied/removed on the guest
 /// mirror. Local-only and host-authoritative scopes do not use this seam, and
-/// non-status payloads are not consumed.
+/// a value that is not a status frame is not consumed.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ModStatusWireTests
@@ -39,11 +40,11 @@ public class ModStatusWireTests
 		Assert.True(hostStatus.TryDeclare("infection", ModStatusScope.Body, ModDataScope.Shared));
 		Assert.True(guestStatus.TryDeclare("infection", ModStatusScope.Body, ModDataScope.Shared));
 
-		Assert.True(TransportOf(host).TryBroadcastBodyStatus("infection", HostId, [1, 2]));
+		Assert.True(TransportOf(host).TryBroadcastBodyStatus("infection", HostId, Ints(1, 2)));
 		Assert.True(hostStatus.TryGetBodyStatus("infection", HostId, out var hostValue));
-		Assert.Equal([1, 2], hostValue);
+		Assert.Equal(Ints(1, 2), hostValue);
 		Assert.True(guestStatus.TryGetBodyStatus("infection", HostId, out var guestValue));
-		Assert.Equal([1, 2], guestValue);
+		Assert.Equal(Ints(1, 2), guestValue);
 
 		Assert.Contains(SyncMod(host).Received, r => r.Sender == HostId && r.Consumed);
 		Assert.Contains(SyncMod(guest).Received, r => r.Sender == HostId && r.Consumed);
@@ -58,7 +59,7 @@ public class ModStatusWireTests
 
 		Assert.True(hostStatus.TryDeclare("infection", ModStatusScope.Body, ModDataScope.Shared));
 		Assert.True(guestStatus.TryDeclare("infection", ModStatusScope.Body, ModDataScope.Shared));
-		Assert.True(TransportOf(host).TryBroadcastBodyStatus("infection", HostId, [1, 2]));
+		Assert.True(TransportOf(host).TryBroadcastBodyStatus("infection", HostId, Ints(1, 2)));
 		Assert.True(guestStatus.TryGetBodyStatus("infection", HostId, out _));
 
 		Assert.True(TransportOf(host).TryBroadcastRemoveBodyStatus("infection", HostId));
@@ -79,9 +80,9 @@ public class ModStatusWireTests
 		Assert.True(hostStatus.TryDeclare("limb.bleed", ModStatusScope.Limb, ModDataScope.Shared));
 		Assert.True(guestStatus.TryDeclare("limb.bleed", ModStatusScope.Limb, ModDataScope.Shared));
 
-		Assert.True(TransportOf(host).TryBroadcastLimbStatus("limb.bleed", HostId, 2, [7, 8]));
+		Assert.True(TransportOf(host).TryBroadcastLimbStatus("limb.bleed", HostId, 2, Ints(7, 8)));
 		Assert.True(guestStatus.TryGetLimbStatus("limb.bleed", HostId, 2, out var guestValue));
-		Assert.Equal([7, 8], guestValue);
+		Assert.Equal(Ints(7, 8), guestValue);
 
 		Assert.True(TransportOf(host).TryBroadcastRemoveLimbStatus("limb.bleed", HostId, 2));
 		Assert.False(guestStatus.TryGetLimbStatus("limb.bleed", HostId, 2, out _));
@@ -96,8 +97,8 @@ public class ModStatusWireTests
 		Assert.True(hostStatus.TryDeclare("local.status", ModStatusScope.Body, ModDataScope.LocalOnly));
 		Assert.True(hostStatus.TryDeclare("host.secret", ModStatusScope.Body, ModDataScope.HostAuthoritative));
 
-		Assert.False(TransportOf(host).TryBroadcastBodyStatus("local.status", HostId, [1]));
-		Assert.False(TransportOf(host).TryBroadcastBodyStatus("host.secret", HostId, [1]));
+		Assert.False(TransportOf(host).TryBroadcastBodyStatus("local.status", HostId, Ints(1)));
+		Assert.False(TransportOf(host).TryBroadcastBodyStatus("host.secret", HostId, Ints(1)));
 		Assert.False(hostStatus.TryGetBodyStatus("local.status", HostId, out _));
 	}
 
@@ -106,15 +107,15 @@ public class ModStatusWireTests
 	{
 		var (_, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 
-		Assert.False(TransportOf(guest).TryBroadcastBodyStatus("infection", GuestId, [1]));
+		Assert.False(TransportOf(guest).TryBroadcastBodyStatus("infection", GuestId, Ints(1)));
 		Assert.False(TransportOf(guest).TryBroadcastRemoveBodyStatus("infection", GuestId));
 	}
 
 	[Fact]
-	public void TryHandleStatusPayload_ReturnsFalseForNonStatusPayload()
+	public void TryHandleStatusUpdate_ReturnsFalseForAValueThatIsNotAStatusFrame()
 	{
 		var (_, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 
-		Assert.False(TransportOf(guest).TryHandleStatusPayload(HostId, [1, 2, 3]));
+		Assert.False(TransportOf(guest).TryHandleStatusUpdate(HostId, ModValue.Text("not a status frame")));
 	}
 }

@@ -17,8 +17,8 @@ public sealed class TestEchoMod : ICuoMod
 	/// <summary>The lifecycle stages in call order (Bind is a phase of the discovery frame).</summary>
 	public List<string> Lifecycle { get; } = [];
 
-	/// <summary>The messages routed to this copy (senderSteamId, payload).</summary>
-	public List<(ulong Sender, byte[] Payload)> Received { get; } = [];
+	/// <summary>The messages routed to this copy (senderSteamId, value).</summary>
+	public List<(ulong Sender, ModValue Value)> Received { get; } = [];
 
 	/// <summary>The bind-time context — the snapshot tests read Session from it.</summary>
 	public IModContext? Context { get; private set; }
@@ -28,7 +28,7 @@ public sealed class TestEchoMod : ICuoMod
 	public void Bind(IModContext context)
 	{
 		Context = context;
-		context.Network.MessageReceived += (sender, payload) => Received.Add((sender, payload));
+		context.Network.MessageReceived += (sender, value) => Received.Add((sender, value));
 		Lifecycle.Add("Bind");
 	}
 

@@ -185,7 +185,7 @@ public sealed class ModStatusStore(ILogger log)
 		return true;
 	}
 
-	internal bool TryGetBodyValue(string modId, string statusId, ulong playerSteamId, out byte[]? value)
+	internal bool TryGetBodyValue(string modId, string statusId, ulong playerSteamId, out ModValue? value)
 	{
 		value = null;
 		if (!TryGetEntry(modId, statusId, out var entry)
@@ -195,11 +195,11 @@ public sealed class ModStatusStore(ILogger log)
 			return false;
 		}
 
-		value = (byte[])stored.Clone();
+		value = stored;
 		return true;
 	}
 
-	internal bool TrySetBodyValue(string modId, string statusId, ulong playerSteamId, byte[] value)
+	internal bool TrySetBodyValue(string modId, string statusId, ulong playerSteamId, ModValue value)
 	{
 		if (!ModStatusPolicy.IsValidValue(value) || !TryGetEntry(modId, statusId, out var entry)
 			|| entry.Scope != ModStatusScope.Body)
@@ -209,7 +209,7 @@ public sealed class ModStatusStore(ILogger log)
 			return false;
 		}
 
-		entry.BodyValues[playerSteamId] = (byte[])value.Clone();
+		entry.BodyValues[playerSteamId] = value;
 		_revision = unchecked(_revision + 1);
 		StatusChanged?.Invoke();
 		return true;
@@ -232,7 +232,7 @@ public sealed class ModStatusStore(ILogger log)
 		return true;
 	}
 
-	internal bool TryGetLimbValue(string modId, string statusId, ulong playerSteamId, int limbSlot, out byte[]? value)
+	internal bool TryGetLimbValue(string modId, string statusId, ulong playerSteamId, int limbSlot, out ModValue? value)
 	{
 		value = null;
 		if (!TryGetEntry(modId, statusId, out var entry)
@@ -244,11 +244,11 @@ public sealed class ModStatusStore(ILogger log)
 			return false;
 		}
 
-		value = (byte[])stored.Clone();
+		value = stored;
 		return true;
 	}
 
-	internal bool TrySetLimbValue(string modId, string statusId, ulong playerSteamId, int limbSlot, byte[] value)
+	internal bool TrySetLimbValue(string modId, string statusId, ulong playerSteamId, int limbSlot, ModValue value)
 	{
 		if (!ModStatusPolicy.IsValidValue(value)
 			|| !TryGetEntry(modId, statusId, out var entry)
@@ -266,7 +266,7 @@ public sealed class ModStatusStore(ILogger log)
 			entry.LimbValues[playerSteamId] = limbs;
 		}
 
-		limbs[limbSlot] = (byte[])value.Clone();
+		limbs[limbSlot] = value;
 		_revision = unchecked(_revision + 1);
 		StatusChanged?.Invoke();
 		return true;
@@ -381,7 +381,7 @@ public sealed class ModStatusStore(ILogger log)
 						entry.SchemaVersion,
 						bodyEntry.Key,
 						-1,
-						(byte[])bodyEntry.Value.Clone()));
+						bodyEntry.Value));
 				}
 
 				foreach (var limbOwner in entry.LimbValues)
@@ -402,7 +402,7 @@ public sealed class ModStatusStore(ILogger log)
 							entry.SchemaVersion,
 							limbOwner.Key,
 							limbEntry.Key,
-							(byte[])limbEntry.Value.Clone()));
+							limbEntry.Value));
 					}
 				}
 			}
@@ -493,8 +493,8 @@ public sealed class ModStatusStore(ILogger log)
 
 		public ModStatusProjectionKind ProjectionKind { get; } = projectionKind;
 
-		public Dictionary<ulong, byte[]> BodyValues { get; } = [];
+		public Dictionary<ulong, ModValue> BodyValues { get; } = [];
 
-		public Dictionary<ulong, Dictionary<int, byte[]>> LimbValues { get; } = [];
+		public Dictionary<ulong, Dictionary<int, ModValue>> LimbValues { get; } = [];
 	}
 }

@@ -20,10 +20,10 @@
 
 | 调用 | 在主机上 | 在客机上 |
 |---|---|---|
-| `SendToHost(payload)` | 什么都不做 —— 主机本身就是目的地 | 上报给主机那份模组 |
-| `SendToPeer(steamId, payload)` | 发给某一个成员的副本 | 什么都不做 |
-| `Broadcast(payload)` | 发给所有成员，包括主机自己的副本 | 什么都不做 |
-| `MessageReceived += (sender, payload)` | 收到客机的上报，或主机自己的广播 | 收到定向或广播帧 |
+| `SendToHost(value)` | 什么都不做 —— 主机本身就是目的地 | 上报给主机那份模组 |
+| `SendToPeer(steamId, value)` | 发给某一个成员的副本 | 什么都不做 |
+| `Broadcast(value)` | 发给所有成员，包括主机自己的副本 | 什么都不做 |
+| `MessageReceived += (sender, value)` | 收到客机的上报，或主机自己的广播 | 收到定向或广播帧 |
 
 会话之外所有发送都是空操作，所以模组不必先检查有没有会话。
 
@@ -44,9 +44,8 @@ public sealed class PingMod : ICuoMod
 	{
 		_context = context;
 
-		context.Network.MessageReceived += (sender, payload) =>
-			context.Logger.LogInformation("[Ping] from {Sender}: {Text}",
-				sender, Encoding.UTF8.GetString(payload));
+		context.Network.MessageReceived += (sender, value) =>
+			context.Logger.LogInformation("[Ping] from {Sender}: {Value}", sender, value);
 
 		context.Ui.Register("ping", "Ping", window =>
 		{
@@ -55,14 +54,14 @@ public sealed class PingMod : ICuoMod
 				return;
 			}
 
-			var payload = Encoding.UTF8.GetBytes("ping");
+			var value = ModValue.Map(("kind", ModValue.Text("ping")), ("at", ModValue.Integer(Environment.TickCount)));
 			if (context.Session.IsHost)
 			{
-				context.Network.Broadcast(payload);  // 主机 → 所有人
+				context.Network.Broadcast(value);  // 主机 → 所有人
 			}
 			else
 			{
-				context.Network.SendToHost(payload); // 客机 → 主机那份
+				context.Network.SendToHost(value); // 客机 → 主机那份
 			}
 		});
 	}
@@ -70,7 +69,7 @@ public sealed class PingMod : ICuoMod
 }
 ```
 
-载荷是**不透明的字节**：框架从不解析里面的内容，所以格式、版本和迁移都由你决定。片段省略的 `using` 指令可以在示例模组里看到。
+载荷是一个[值](../reference/glossary.md) —— CUO 的类型化数据模型，绝不是不透明字节 —— 框架会校验它的形状、给它上限、能把它记进日志；而它的**含义**归你。片段省略的 `using` 指令可以在示例模组里看到。
 
 ## 消息没送到时
 
@@ -78,7 +77,7 @@ public sealed class PingMod : ICuoMod
 
 - 传输本身可靠，但超出单发送方突发额度的帧会被**直接丢弃并留日志**，不排队也不重发 —— 持续速率每秒 20 条，突发额度 40 条；
 - 所以不要建立在重传上：让**下一条**消息带上完整状态，这样丢一帧损失的是新鲜度，而不是正确性；
-- 载荷上限是 **64 KiB**，发送端拒绝、接收端再检查一次；
+- 值的编码上限是 **64 KiB**，发送端拒绝、接收端再检查一次；框架编码不出来的值会被拒，并留一行点名它内部路径的日志；
 - 接收方不认识这条消息所属模组时，会丢弃并留日志。用 `NetworkMode.Synchronized` 时这种情况会更早被拦住 —— 没装这个模组的成员在加入[握手](../reference/glossary.md)时就被拒绝。
 
 ## 验证它真的成了

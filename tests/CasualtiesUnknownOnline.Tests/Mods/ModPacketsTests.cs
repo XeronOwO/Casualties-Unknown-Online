@@ -1,3 +1,5 @@
+using static CasualtiesUnknownOnline.Tests.Mods.ModPacketsWorld;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Xunit;
 
@@ -32,7 +34,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, [1]));
+		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, Step(1)));
 
 		Assert.Equal(ThreeStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.ReportPacket));
 		Assert.Equal(ThreeStep, ModPacketsWorld.Fixture(w.G2).RunsOf(TestPacketMod.ReportPacket));
@@ -44,7 +46,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, [1]);
+		ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, Step(1));
 
 		Assert.Equal(G1Id, ModPacketsWorld.Fixture(w.Host).Runs[0].Sender);
 		Assert.Equal(HostId, ModPacketsWorld.Fixture(w.G2).Runs[0].Sender); // the other members hear it from the host
@@ -55,7 +57,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.AllPacket, [1]));
+		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.AllPacket, Step(1)));
 
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.G1).RunsOf(TestPacketMod.AllPacket));
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.AllPacket));
@@ -68,7 +70,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.Host).Broadcast(TestPacketMod.AllPacket, [2]));
+		Assert.True(ModPacketsWorld.Surface(w.Host).Broadcast(TestPacketMod.AllPacket, Step(2)));
 
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.AllPacket));
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.G1).RunsOf(TestPacketMod.AllPacket));
@@ -81,7 +83,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.Host).Broadcast(TestPacketMod.BroadcastPacket, [2]));
+		Assert.True(ModPacketsWorld.Surface(w.Host).Broadcast(TestPacketMod.BroadcastPacket, Step(2)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.BroadcastPacket));
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.G1).RunsOf(TestPacketMod.BroadcastPacket));
@@ -93,7 +95,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.Host).SendToPeer(G2Id, TestPacketMod.BroadcastPacket, [3]));
+		Assert.True(ModPacketsWorld.Surface(w.Host).SendToPeer(G2Id, TestPacketMod.BroadcastPacket, Step(3)));
 
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.G2).RunsOf(TestPacketMod.BroadcastPacket));
 		Assert.Empty(ModPacketsWorld.Fixture(w.G1).RunsOf(TestPacketMod.BroadcastPacket));
@@ -105,7 +107,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.HostOnlyPacket, [1]));
+		Assert.True(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.HostOnlyPacket, Step(1)));
 
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.HostOnlyPacket));
 		Assert.Empty(ModPacketsWorld.Fixture(w.G1).Runs);
@@ -117,7 +119,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.AllPacket, [1]));
+		Assert.True(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.AllPacket, Step(1)));
 
 		// The host reaches its own copy without a wire hop, and nothing else runs.
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.AllPacket));
@@ -130,7 +132,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.Host).SendToPeer(G2Id, TestPacketMod.AllPacket, [3]));
+		Assert.True(ModPacketsWorld.Surface(w.Host).SendToPeer(G2Id, TestPacketMod.AllPacket, Step(3)));
 
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.AllPacket));
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.G2).RunsOf(TestPacketMod.AllPacket));
@@ -144,7 +146,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.HostOnlyPacket, [1]));
+		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.HostOnlyPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -154,7 +156,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		w.Host.Transport.Deliver(G1Id, ModPacketsWorld.Frame(TestPacketMod.HostOnlyPacket, [1]));
+		w.Host.Transport.Deliver(G1Id, ModPacketsWorld.Frame(TestPacketMod.HostOnlyPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -164,7 +166,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.False(ModPacketsWorld.Surface(w.Host).Broadcast(TestPacketMod.ReportPacket, [1]));
+		Assert.False(ModPacketsWorld.Surface(w.Host).Broadcast(TestPacketMod.ReportPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 		Assert.Empty(ModPacketsWorld.Fixture(w.G1).Runs);
@@ -175,8 +177,8 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.False(ModPacketsWorld.Surface(w.G1).Broadcast(TestPacketMod.AllPacket, [1]));
-		Assert.False(ModPacketsWorld.Surface(w.G1).SendToPeer(G2Id, TestPacketMod.AllPacket, [1]));
+		Assert.False(ModPacketsWorld.Surface(w.G1).Broadcast(TestPacketMod.AllPacket, Step(1)));
+		Assert.False(ModPacketsWorld.Surface(w.G1).SendToPeer(G2Id, TestPacketMod.AllPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.G1).Runs);
 		Assert.Empty(ModPacketsWorld.Fixture(w.G2).Runs);
@@ -187,8 +189,8 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.False(ModPacketsWorld.Surface(w.Host).SendToPeer(G2Id, TestPacketMod.HostOnlyPacket, [1]));
-		Assert.False(ModPacketsWorld.Surface(w.Host).Broadcast(TestPacketMod.HostOnlyPacket, [1]));
+		Assert.False(ModPacketsWorld.Surface(w.Host).SendToPeer(G2Id, TestPacketMod.HostOnlyPacket, Step(1)));
+		Assert.False(ModPacketsWorld.Surface(w.Host).Broadcast(TestPacketMod.HostOnlyPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.G2).Runs);
 	}
@@ -198,7 +200,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.False(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.BroadcastPacket, [1]));
+		Assert.False(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.BroadcastPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -208,7 +210,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.False(ModPacketsWorld.Surface(w.Host).SendToPeer(G1Id + 999, TestPacketMod.BroadcastPacket, [1]));
+		Assert.False(ModPacketsWorld.Surface(w.Host).SendToPeer(G1Id + 999, TestPacketMod.BroadcastPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.G1).Runs);
 		Assert.Empty(ModPacketsWorld.Fixture(w.G2).Runs);
@@ -221,7 +223,7 @@ public class ModPacketsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.OrderedPacket, [1]));
+		Assert.True(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.OrderedPacket, Step(1)));
 
 		Assert.Equal(
 			["Validate:v1", "Apply:a1", "Apply:a2", "Observe:o1"],
@@ -229,20 +231,21 @@ public class ModPacketsTests
 	}
 
 	[Fact]
-	public void AHandlersInPlaceWrite_StaysInsideItsOwnDelivery()
+	public void OneImmutableValue_ServesTheWholeDelivery()
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
+		var value = ModValue.Map(("step", ModValue.Integer(1)), ("tags", ModValue.List(ModValue.Text("a"), ModValue.Text("b"))));
 
 		// EveryMember: the reporter's own copy runs locally, the host runs its
-		// copy, the other member runs on the relayed frame. A validate handler
-		// rewrites the payload in place, so the FIRST byte each copy saw proves
-		// what that copy received, and the second row proves the rewrite reached
-		// the delivery's own later handler.
-		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.RewritePacket, [1]));
+		// copy, the other member runs on the relayed frame. A value is immutable,
+		// so every copy reads exactly what the sender handed in — the model's own
+		// encoding round-trips a nested value — and the two handlers of ONE
+		// delivery read the same value, with no per-delivery copy in between.
+		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.RoundTripPacket, value));
 
-		Assert.Equal([(byte)1, (byte)99], ModPacketsWorld.BytesOf(w.G1, TestPacketMod.RewritePacket));
-		Assert.Equal([(byte)1, (byte)99], ModPacketsWorld.BytesOf(w.Host, TestPacketMod.RewritePacket));
-		Assert.Equal([(byte)1, (byte)99], ModPacketsWorld.BytesOf(w.G2, TestPacketMod.RewritePacket));
+		Assert.Equal([value, value], ModPacketsWorld.ValuesOf(w.G1, TestPacketMod.RoundTripPacket));
+		Assert.Equal([value, value], ModPacketsWorld.ValuesOf(w.Host, TestPacketMod.RoundTripPacket));
+		Assert.Equal([value, value], ModPacketsWorld.ValuesOf(w.G2, TestPacketMod.RoundTripPacket));
 	}
 
 	[Fact]
@@ -251,10 +254,10 @@ public class ModPacketsTests
 		var w = ModPacketsWorld.CreateThreeNode();
 
 		// EveryMember runs the reporter's own copy first, and its validate stage
-		// refuses a zero first byte — so nothing leaves the reporter at all.
-		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.RewritePacket, [0]));
+		// refuses a step below 1 — so nothing leaves the reporter at all.
+		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.AllPacket, Step(0)));
 
-		Assert.Equal(["Validate:validate"], ModPacketsWorld.Fixture(w.G1).RunsOf(TestPacketMod.RewritePacket));
+		Assert.Equal(["Validate:validate"], ModPacketsWorld.Fixture(w.G1).RunsOf(TestPacketMod.AllPacket));
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 		Assert.Empty(ModPacketsWorld.Fixture(w.G2).Runs);
 	}
@@ -266,7 +269,7 @@ public class ModPacketsTests
 
 		for (var i = 0; i < ModRateLimitPolicy.ModMessageBurst + 1; i++)
 		{
-			ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, [1]);
+			ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, Step(1));
 		}
 
 		Assert.Equal(

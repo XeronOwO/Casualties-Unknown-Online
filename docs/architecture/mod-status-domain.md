@@ -58,7 +58,7 @@ mod-specific payload interpretation and would violate the typed-domain rule.
 
 **Do not put arbitrary mod status blobs into GameState.**
 
-GameState has no project references. A generic `Dictionary<string, byte[]>`
+GameState has no project references. A generic `Dictionary<string, ModValue>`
 status bag in the kernel would be a non-typed backdoor. The existing typed
 kernel is not the right home for mod-defined schemas that the kernel cannot
 validate.
@@ -122,12 +122,12 @@ key operations are:
 public interface IModStatusRuntime
 {
     bool TryDeclare(string statusId, ModStatusScope scope, ModDataScope runtimeScope, int schemaVersion = 1);
-    bool TryGetBodyStatus(string statusId, ulong playerSteamId, out byte[]? value);
-    bool TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out byte[]? value);
-    bool TrySetBodyStatus(string statusId, ulong playerSteamId, byte[] value);
-    bool TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value);
-    bool TryApplyBodyStatus(string statusId, ulong playerSteamId, byte[] value, ulong senderSteamId);
-    bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value, ulong senderSteamId);
+    bool TryGetBodyStatus(string statusId, ulong playerSteamId, out ModValue? value);
+    bool TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out ModValue? value);
+    bool TrySetBodyStatus(string statusId, ulong playerSteamId, ModValue value);
+    bool TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value);
+    bool TryApplyBodyStatus(string statusId, ulong playerSteamId, ModValue value, ulong senderSteamId);
+    bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value, ulong senderSteamId);
     bool TryApplyRemoveBodyStatus(string statusId, ulong playerSteamId, ulong senderSteamId);
     bool TryApplyRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ulong senderSteamId);
     bool TryRemoveBodyStatus(string statusId, ulong playerSteamId);
@@ -139,11 +139,11 @@ public interface IModStatusRuntime
 
 public interface IModStatusTransport
 {
-    bool TryBroadcastBodyStatus(string statusId, ulong playerSteamId, byte[] value);
-    bool TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value);
+    bool TryBroadcastBodyStatus(string statusId, ulong playerSteamId, ModValue value);
+    bool TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value);
     bool TryBroadcastRemoveBodyStatus(string statusId, ulong playerSteamId);
     bool TryBroadcastRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot);
-    bool TryHandleStatusPayload(ulong senderSteamId, byte[] payload);
+    bool TryHandleStatusUpdate(ulong senderSteamId, ModValue value);
 }
 ```
 

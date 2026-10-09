@@ -1,3 +1,4 @@
+using static CasualtiesUnknownOnline.Tests.Mods.ModValues;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -41,7 +42,7 @@ public class ModStatusProjectionStoreTests
 		Assert.True(status.TrySetBodyStatus(
 			"body.formula",
 			HostId,
-			new ModBodyFormulaProjection { JumpSpeed = 4f, Immunity = 8f }.ToPayload()));
+			new ModBodyFormulaProjection { JumpSpeed = 4f, Immunity = 8f }.ToValue()));
 
 		var snapshots = store.GetProjectionSnapshots(HostId);
 		var snapshot = Assert.Single(snapshots);
@@ -51,9 +52,8 @@ public class ModStatusProjectionStoreTests
 		Assert.Equal(HostId, snapshot.PlayerSteamId);
 		Assert.Equal(-1, snapshot.LimbSlot);
 
-		var projection = ModBodyFormulaProjection.FromPayload(snapshot.Value);
-		Assert.NotNull(projection);
-		Assert.Equal(4f, projection!.JumpSpeed);
+		Assert.True(ModBodyFormulaProjection.TryFromValue(snapshot.Value, out var projection));
+		Assert.Equal(4f, projection.JumpSpeed);
 		Assert.Equal(8f, projection.Immunity);
 	}
 
@@ -73,7 +73,7 @@ public class ModStatusProjectionStoreTests
 			"limb.proj",
 			HostId,
 			2,
-			new ModLimbProjection { BleedAmount = 1.5f, SkinHealth = -3f }.ToPayload()));
+			new ModLimbProjection { BleedAmount = 1.5f, SkinHealth = -3f }.ToValue()));
 
 		var snapshot = Assert.Single(store.GetProjectionSnapshots(HostId));
 		Assert.Equal("limb.proj", snapshot.StatusId);
@@ -81,9 +81,8 @@ public class ModStatusProjectionStoreTests
 		Assert.Equal(ModStatusProjectionKind.LimbPhysiology, snapshot.ProjectionKind);
 		Assert.Equal(2, snapshot.LimbSlot);
 
-		var projection = ModLimbProjection.FromPayload(snapshot.Value);
-		Assert.NotNull(projection);
-		Assert.Equal(1.5f, projection!.BleedAmount);
+		Assert.True(ModLimbProjection.TryFromValue(snapshot.Value, out var projection));
+		Assert.Equal(1.5f, projection.BleedAmount);
 		Assert.Equal(-3f, projection.SkinHealth);
 	}
 
@@ -124,7 +123,7 @@ public class ModStatusProjectionStoreTests
 		Assert.True(status.TrySetBodyStatus(
 			"body.formula",
 			HostId,
-			new ModBodyFormulaProjection { MaxEncumbrance = 1f }.ToPayload()));
+			new ModBodyFormulaProjection { MaxEncumbrance = 1f }.ToValue()));
 		Assert.Equal(1, changes);
 		Assert.Single(store.GetProjectionSnapshots(HostId));
 
@@ -141,7 +140,7 @@ public class ModStatusProjectionStoreTests
 		var store = StoreOf(host);
 
 		Assert.True(status.TryDeclare("opaque", ModStatusScope.Body, ModDataScope.LocalOnly));
-		Assert.True(status.TrySetBodyStatus("opaque", HostId, [1, 2, 3]));
+		Assert.True(status.TrySetBodyStatus("opaque", HostId, Ints(1, 2, 3)));
 
 		Assert.Empty(store.GetProjectionSnapshots(HostId));
 	}
@@ -154,10 +153,10 @@ public class ModStatusProjectionStoreTests
 		var store = StoreOf(host);
 
 		Assert.True(status.TryDeclare("opaque.body", ModStatusScope.Body, ModDataScope.LocalOnly));
-		Assert.True(status.TrySetBodyStatus("opaque.body", HostId, [1, 2, 3]));
+		Assert.True(status.TrySetBodyStatus("opaque.body", HostId, Ints(1, 2, 3)));
 
 		Assert.True(status.TryDeclare("opaque.limb", ModStatusScope.Limb, ModDataScope.LocalOnly));
-		Assert.True(status.TrySetLimbStatus("opaque.limb", HostId, 3, [4, 5]));
+		Assert.True(status.TrySetLimbStatus("opaque.limb", HostId, 3, Ints(4, 5)));
 
 		var presences = store.GetStatusPresences(HostId);
 		Assert.Equal(2, presences.Count);

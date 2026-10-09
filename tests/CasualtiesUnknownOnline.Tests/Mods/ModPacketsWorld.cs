@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
@@ -12,9 +13,9 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// <summary>
 /// The declared-packet cases' shared world: three REAL nodes (a host and two
 /// guests over the production composition root, transport and Steam replaced by
-/// fakes) plus the two lookups and the frame helper every case needs. Internal
-/// rather than public: the packet cases are split by behaviour family across
-/// three test classes, and this is the one piece they share.
+/// fakes) plus the lookups, the value helpers and the frame helper every case
+/// needs. Internal rather than public: the packet cases are split by behaviour
+/// family across three test classes, and this is the one piece they share.
 /// </summary>
 internal sealed record ModPacketsWorld(TestNode Host, TestNode G1, TestNode G2)
 {
@@ -50,15 +51,28 @@ internal sealed record ModPacketsWorld(TestNode Host, TestNode G1, TestNode G2)
 
 	internal static IModPackets Surface(TestNode node) => Fixture(node).Context!.Packets;
 
-	/// <summary>The first bytes one packet's runs saw on this copy, in run order — the payload contract's probe.</summary>
-	internal static List<byte> BytesOf(TestNode node, string packetId) => Fixture(node).BytesOf(packetId);
+	/// <summary>The value each run of one packet read on this copy, in run order.</summary>
+	internal static List<ModValue> ValuesOf(TestNode node, string packetId) => Fixture(node).ValuesOf(packetId);
 
-	/// <summary>A declared-packet frame as a peer would put it on the wire.</summary>
-	internal static byte[] Frame(string packetId, byte[] payload) =>
-		NetPacket.Encode(NetMsg.ModMessage, new ModMessageMsg
+	/// <summary>The ordinary value the fixture's packets carry.</summary>
+	internal static ModValue Step(int step) => ModValue.Integer(step);
+
+	/// <summary>A value that is structurally legal and still cannot fit the payload rail.</summary>
+	internal static ModValue OverCapValue() => ModValues.OverCap();
+
+	/// <summary>A declared-packet frame as a peer would put it on the wire — the value encoded the way the channel carries it.</summary>
+	internal static byte[] Frame(string packetId, ModValue value)
+	{
+		if (!ModValueCodec.TryEncode(value, ModChannel.MaxPayloadBytes, out var encoded, out var refusal))
+		{
+			throw new InvalidOperationException($"the fixture's frame value cannot be encoded: {refusal}");
+		}
+
+		return NetPacket.Encode(NetMsg.ModMessage, new ModMessageMsg
 		{
 			ModId = "test.packets",
 			PacketId = packetId,
-			Payload = payload,
+			Payload = encoded,
 		});
+	}
 }

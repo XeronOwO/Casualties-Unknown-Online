@@ -7,9 +7,9 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// The typed status transport test mod. It declares the same
 /// <see cref="NetworkMode.Synchronized"/> + <see cref="ModPermission.SendNetworkMessage"/>
 /// contract as the other message tests and routes every inbound mod-message
-/// frame to <see cref="IModStatusTransport.TryHandleStatusPayload"/> so a
+/// frame to <see cref="IModStatusTransport.TryHandleStatusUpdate"/> so a
 /// host-originated status update is applied to the local mirror automatically
-/// in tests (a production mod may route non-status frames alongside it).
+/// in tests (a production mod may route non-status values alongside it).
 /// All state is instance state (the xunit runner parallelizes test classes,
 /// and a shared static would race them).
 /// </summary>
@@ -26,9 +26,9 @@ public sealed class TestStatusSyncMod : ICuoMod
 	public void Bind(IModContext context)
 	{
 		Context = context;
-		context.Network.MessageReceived += (sender, payload) =>
+		context.Network.MessageReceived += (sender, value) =>
 		{
-			var consumed = context.StatusTransport.TryHandleStatusPayload(sender, payload);
+			var consumed = context.StatusTransport.TryHandleStatusUpdate(sender, value);
 			Received.Add((sender, consumed));
 		};
 	}

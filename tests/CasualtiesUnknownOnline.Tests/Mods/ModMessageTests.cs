@@ -1,5 +1,5 @@
 using System.Linq;
-using System.Text;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,9 +12,13 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// The mod message channel over the real three-node star: a guest's report
 /// reaches the host's copy of the mod (the sender rides through), the host's
 /// broadcast reaches every member INCLUDING the host's own copy, unknown ids
-/// and over-cap payloads are dropped, and every wrong-role / out-of-session
+/// and over-cap frames are dropped, and every wrong-role / out-of-session
 /// call is a no-op (a host "sending to host" talks to itself locally — it
 /// must not loop back a frame to its own SteamId).
+///
+/// The mod-facing half carries a <see cref="ModValue"/>; the frame-level cases
+/// below still drive <see cref="ModChannel"/> directly with bytes, because that
+/// is what the channel's own rail is about.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ModMessageTests
@@ -50,13 +54,13 @@ public class ModMessageTests
 	public void GuestReport_ReachesHostCopyWithSender()
 	{
 		var w = CreateThreeNode();
-		var payload = Encoding.UTF8.GetBytes("hello from g1");
+		var value = ModValue.Text("hello from g1");
 
-		Echo(w.G1).Context!.Network.SendToHost(payload);
+		Echo(w.G1).Context!.Network.SendToHost(value);
 
 		var received = Echo(w.Host).Received.Single();
 		Assert.Equal(G1Id, received.Sender);
-		Assert.Equal(payload, received.Payload);
+		Assert.Equal(value, received.Value);
 		Assert.Empty(Echo(w.G2).Received); // no auto-relay — g2 sees nothing
 	}
 
@@ -64,19 +68,19 @@ public class ModMessageTests
 	public void HostBroadcast_ReachesEveryMemberIncludingHost()
 	{
 		var w = CreateThreeNode();
-		var payload = Encoding.UTF8.GetBytes("to everyone");
+		var value = ModValue.Map(("kind", ModValue.Text("to everyone")), ("count", ModValue.Integer(3)));
 
-		Echo(w.Host).Context!.Network.Broadcast(payload);
+		Echo(w.Host).Context!.Network.Broadcast(value);
 
 		var hostReceived = Assert.Single(Echo(w.Host).Received);
 		Assert.Equal(HostId, hostReceived.Sender);
-		Assert.Equal(payload, hostReceived.Payload); // the local fire rides the same sender semantics
+		Assert.Equal(value, hostReceived.Value); // the local fire rides the same sender semantics
 		var g1Received = Assert.Single(Echo(w.G1).Received);
 		Assert.Equal(HostId, g1Received.Sender);
-		Assert.Equal(payload, g1Received.Payload);
+		Assert.Equal(value, g1Received.Value);
 		var g2Received = Assert.Single(Echo(w.G2).Received);
 		Assert.Equal(HostId, g2Received.Sender);
-		Assert.Equal(payload, g2Received.Payload);
+		Assert.Equal(value, g2Received.Value);
 	}
 
 	[Fact]
@@ -84,11 +88,11 @@ public class ModMessageTests
 	{
 		var w = CreateThreeNode();
 
-		Echo(w.Host).Context!.Network.SendToPeer(G2Id, [1, 2, 3]);
+		Echo(w.Host).Context!.Network.SendToPeer(G2Id, ModValue.Integer(99));
 
 		var directed = Assert.Single(Echo(w.G2).Received);
 		Assert.Equal(HostId, directed.Sender);
-		Assert.Equal([1, 2, 3], directed.Payload);
+		Assert.Equal(ModValue.Integer(99), directed.Value);
 		Assert.Empty(Echo(w.G1).Received);
 		Assert.Empty(Echo(w.Host).Received); // directed — no local fire
 	}
@@ -114,11 +118,25 @@ public class ModMessageTests
 	}
 
 	[Fact]
-	public void ExactCapPayload_Passes()
+	public void AFullyPaddedFrame_IsAcceptedByTheRailAndDroppedAsAValue()
 	{
 		var w = CreateThreeNode();
 
+		// The channel's rail is about the FRAME: a full-size frame leaves the
+		// sender. What the receiving copy does with it is the value's business —
+		// bytes that are not exactly one value inside the budgets are dropped
+		// there, with the refusal in the log.
 		w.G1.Services.GetRequiredService<ModChannel>().SendToHost("test.echo", new byte[ModChannel.MaxPayloadBytes]);
+
+		Assert.Empty(Echo(w.Host).Received);
+	}
+
+	[Fact]
+	public void AValueThatFillsTheRailExactly_Passes()
+	{
+		var w = CreateThreeNode();
+
+		Echo(w.G1).Context!.Network.SendToHost(ModValues.AtTheRail());
 
 		Assert.Single(Echo(w.Host).Received);
 	}
@@ -132,7 +150,7 @@ public class ModMessageTests
 		var steam = new FakeSteamService(G1Id);
 		var g1 = TestNode.Create(G1Id, network, steam, clock, pumpFirstFrame: true);
 
-		Echo(g1).Context!.Network.SendToHost([1]);
+		Echo(g1).Context!.Network.SendToHost(ModValue.Integer(1));
 
 		Assert.Empty(Echo(g1).Received); // nothing sent, nothing routed back
 	}
@@ -169,11 +187,11 @@ public class ModMessageTests
 		var host = TestNode.Create(HostId, network, hostSteam, clock, pumpFirstFrame: true);
 		host.Steam.FireLobbyCreated(LobbyId);
 
-		Echo(host).Context!.Network.Broadcast([7]);
+		Echo(host).Context!.Network.Broadcast(ModValue.Integer(7));
 
 		var local = Assert.Single(Echo(host).Received);
 		Assert.Equal(HostId, local.Sender);
-		Assert.Equal([7], local.Payload);
+		Assert.Equal(ModValue.Integer(7), local.Value);
 	}
 	[Fact]
 	public void ModWithoutSendNetworkMessage_SendIsRefused()
@@ -183,7 +201,7 @@ public class ModMessageTests
 		var mod = (TestPermissionlessCommandMod)w.G1.Services.GetRequiredService<ModService>()
 			.LoadedMods.Single(m => m is TestPermissionlessCommandMod);
 
-		mod.Context!.Network.SendToHost([1, 2, 3]);
+		mod.Context!.Network.SendToHost(ModValue.List(ModValue.Integer(1), ModValue.Integer(2), ModValue.Integer(3)));
 
 		Assert.Empty(frames);
 	}

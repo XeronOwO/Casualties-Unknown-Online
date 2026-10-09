@@ -34,7 +34,7 @@ internal sealed class ModStatusAdapter(
 		return store.TryDeclare(manifest.Id, statusId, scope, runtimeScope, schemaVersion, projectionKind);
 	}
 
-	public bool TryGetBodyStatus(string statusId, ulong playerSteamId, out byte[]? value)
+	public bool TryGetBodyStatus(string statusId, ulong playerSteamId, out ModValue? value)
 	{
 		value = null;
 		if (!CanReadStatus(statusId))
@@ -45,7 +45,7 @@ internal sealed class ModStatusAdapter(
 		return store.TryGetBodyValue(manifest.Id, statusId, playerSteamId, out value);
 	}
 
-	public bool TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out byte[]? value)
+	public bool TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out ModValue? value)
 	{
 		value = null;
 		if (!CanReadStatus(statusId))
@@ -56,7 +56,7 @@ internal sealed class ModStatusAdapter(
 		return store.TryGetLimbValue(manifest.Id, statusId, playerSteamId, limbSlot, out value);
 	}
 
-	public bool TrySetBodyStatus(string statusId, ulong playerSteamId, byte[] value)
+	public bool TrySetBodyStatus(string statusId, ulong playerSteamId, ModValue value)
 	{
 		if (!TryWriteGuard(statusId))
 		{
@@ -66,7 +66,7 @@ internal sealed class ModStatusAdapter(
 		return store.TrySetBodyValue(manifest.Id, statusId, playerSteamId, value);
 	}
 
-	public bool TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value)
+	public bool TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value)
 	{
 		if (!TryWriteGuard(statusId))
 		{
@@ -76,7 +76,7 @@ internal sealed class ModStatusAdapter(
 		return store.TrySetLimbValue(manifest.Id, statusId, playerSteamId, limbSlot, value);
 	}
 
-	public bool TryApplyBodyStatus(string statusId, ulong playerSteamId, byte[] value, ulong senderSteamId)
+	public bool TryApplyBodyStatus(string statusId, ulong playerSteamId, ModValue value, ulong senderSteamId)
 	{
 		if (!TryApplyGuard(statusId, senderSteamId))
 		{
@@ -86,7 +86,7 @@ internal sealed class ModStatusAdapter(
 		return store.TrySetBodyValue(manifest.Id, statusId, playerSteamId, value);
 	}
 
-	public bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value, ulong senderSteamId)
+	public bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value, ulong senderSteamId)
 	{
 		if (!TryApplyGuard(statusId, senderSteamId))
 		{

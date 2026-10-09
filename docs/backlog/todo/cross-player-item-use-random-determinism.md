@@ -107,10 +107,16 @@ variant must agree: `FluidPresentationMsg` carries the roll's RESULT because the
 - **Cadence divergence: real, and already recorded.** The injection chain's per-call terms follow the
   accepted-delta cadence rather than the operator's frame count (the limit quoted in *What the report
   says*). Every peer agrees on the result; what differs is the result a LOCAL use would have produced.
-- **Presentation divergence: the one genuine two-roller shape**, and it is transient. The operator sees the
-  values its own roll just wrote onto the display clone until the authoritative values land: for shrapnel
-  the host's state message follows immediately (the break-grasp report is what triggers the host's roll),
-  and for the measured chains the display advances from the affected side's own report.
+- **A divergence on screen, and it is a divergence, not a wording problem: the one place that rolls
+  twice.** Two sites run the same effect twice, once per machine: `ShrapnelMinigame.BreakGrasp`
+  (`ShrapnelMinigame.cs:61-77`) runs on the operator's client against the display clone and the host rolls
+  the same event again in `ShrapnelSessionStateWriter.ApplyBreakGrasp`; and the measured use action of the
+  solid-food chain runs the item's own delegate on the operator's client while the eater runs it for real.
+  In both, the operator's screen holds a value for a moment that NO other peer ever holds — calling that
+  "presentation" describes where it lands, not how real it is: until the authoritative value arrives, that
+  screen is wrong. It is bounded (the host's state message follows the break-grasp report immediately, and
+  the display advances from the affected side's report) and it is not the state, but "short-lived" is not
+  "not a divergence", and the fix for it is mechanism C rather than mechanism A.
 
 ### 4. What that means for the candidate mechanisms
 
@@ -131,6 +137,38 @@ variant must agree: `FluidPresentationMsg` carries the roll's RESULT because the
 The state-preserving invariant worth keeping, now stated: **one roller per authoritative value**, decided
 by which side owns the body, with the roll's RESULT travelling as a fact. The engine-global window of
 mechanism A would put a second owner on that resource for no gain this family can name.
+
+### Verified chain: a nausea-causing liquid given to another player (2026-10-09)
+
+The user asked this case by name ("我给其他玩家引用引发反胃的液体"), so the chain is written out rather than
+left inside §1's row. Call sites, in order:
+
+- The roll itself lives in the LIQUID's own body: `groundwater`'s `onDrink` rolls `Random.value > 0.5f`
+  and then `Random.Range(7f, 15f)` into `body.sicknessAmount` (`Liquids.cs:1663-1678`), and `lumalgae`
+  rolls `Random.value > 0.35f` into the same field plus `Random.value < 0.1f` into
+  `body.vomiter.Vomit()` (`Liquids.cs:1690-1707`). `onDrink` is called from exactly one place in the
+  game: `WaterContainerItem.Drink`'s per-stack loop (`WaterContainerItem.cs:198-215`).
+- **The affected side runs it.** `NativeDrinkApply.Apply` calls `liquid.onDrink(stack.Amount, body)` on the
+  drinker's own client, in the drinker's own frame.
+- **The operator's side cannot run it.** `RemoteDrinkUseHandler.TryMeasure` runs the item's own
+  `useAction` (`info.useAction(drinker, dragItem)`) with a capture window armed; the item delegates that
+  drink
+  are bare `container.Drink(body, N, "drink")` calls (`Item.cs:1869`, `:3171` and the rest of the
+  `WaterContainerItem.Drink` rows), and `RemoteDrinkPatches`' prefix on `WaterContainerItem.Drink`
+  swallows that call while the window owns the container — so no `onDrink`, no roll, and no `Drain` on the
+  operator's client. (`Harmony` binds the prefix's `float amount` by name, so the prefix really is on the
+  overload that runs the liquid body.)
+- **The field travels.** `sicknessAmount` is part of the character report
+  (`CharacterHealthMsg.SicknessAmount`) and is written onto the operator's display clone by
+  `RemoteCharacterDisplayProjection`. The host's copy of the drinker advances from the same report.
+
+So for THIS case two peers never hold different values — not even briefly: the only machine that rolled is
+the one whose body it is, and the other side's copy of it is report-driven. What differs is WHEN the
+operator learns the value, which is the ordinary report cadence every field shares. The cases where a
+screen really can show a value nobody holds are the two in §3, and there the honest word is divergence,
+not "presentation only": mechanism C is what removes them, and it is a user-visible change (the operator's
+screen would stop showing its own local roll) which is why it waits for the acceptance batch or the user's
+call rather than being applied silently.
 
 ## Establish first (investigation order)
 
@@ -153,8 +191,9 @@ mechanism A would put a second owner on that resource for no gain this family ca
 
 ## Candidate mechanisms (evaluate, do not pick before step 3)
 
-> **[Answered 2026-10-09 by §Investigation 3-4.]** The classification is presentation (plus the recorded
-> cadence limit), so A and D are not needed and B is already the family's shape; C is the only mechanism
+> **[Answered 2026-10-09 by §Investigation 3-4.]** The classification is: no state divergence, the recorded
+> cadence limit, and ONE real divergence on screen (the two double-roll sites §3 names). So A and D are not
+> needed and B is already the family's shape; C is the only mechanism
 > the finding points at, and it has two named sites. The list below is kept as the evaluation it was.
 
 - **A — one temporary deterministic window (the user's proposal).** Both sides derive a seed from the action's

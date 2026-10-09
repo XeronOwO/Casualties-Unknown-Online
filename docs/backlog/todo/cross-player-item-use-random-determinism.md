@@ -5,7 +5,9 @@
   不同步性？". **Steps 1-3 are done (2026-10-09, code-only — see *Investigation*): the divergence does NOT
   reach authoritative state** — every authoritative value of this family has exactly ONE roller — so the
   priority stays High rather than rising to Critical. What is left: step 4 (the two-client reproduction)
-  and the disposition of the two display-side double-rolls §3 names.
+  and the two divergences on screen §3 names. **The user then set the target for those (2026-10-09): remove
+  the divergence without paying for it in perceived latency, ticket only this round — see *The target the
+  user set*, which carries the two-layer answer and the escalation.**
 - Priority: High — **raise to Critical if the investigation shows the divergence reaches authoritative state**
   (a body value, a limb fact, an item amount). Presentation-only divergence stays High.
 - Category: Players / cross-player semantics
@@ -169,6 +171,51 @@ screen really can show a value nobody holds are the two in §3, and there the ho
 not "presentation only": mechanism C is what removes them, and it is a user-visible change (the operator's
 screen would stop showing its own local roll) which is why it waits for the acceptance batch or the user's
 call rather than being applied silently.
+
+## The target the user set (2026-10-09): no divergence AND no perceived latency
+
+The user's instruction: "能不能消除延迟的同时尽可能消除延迟感？能做到吗？只改票，不在本轮开发". So the ticket
+now carries the target and the way to reach it; nothing is implemented this round.
+
+**Yes, and it splits into two layers, because "延迟感" does not come from the value being late — it comes
+from NOTHING happening.** The distinction that makes both goals reachable is which feedback ASSERTS a
+number:
+
+- **Layer 1 — immediate, and roll-free.** The part of the feedback that cannot disagree with anyone:
+  the item leaving the hand, the gesture and its animation, the clip, the screen shake, the "this is
+  being applied" acknowledgement. These stay local and instant, and they are not a prediction: nothing
+  in them depends on the roll, so they cannot be wrong. This is what the player's sense of immediacy
+  actually keys on.
+- **Layer 2 — the values, authority-first.** The numbers (pain, bleed, skin/muscle, sickness, a limb
+  latch, the gore variant a roll picked) arrive with the authoritative value instead of being invented
+  locally: for the measured chains from the affected side's immediate report, and for the shrapnel
+  slip from the host's state message that the break-grasp report itself triggers. Mechanism C, plus
+  this split, removes the divergence and leaves the wait on the numbers only — while something
+  immediate still happens, which is the difference between "the number landed late" and "the game
+  froze".
+
+**If the numbers' delay is perceptible anyway, the escalation is already named:** make those two sites'
+rolls reproducible from an identity BOTH sides already carry — the operation id that is on the wire, the
+participants, the run epoch — so the operator computes the TRUE value immediately instead of waiting.
+That is mechanism A (the user's own first proposal), scoped to exactly two call sites rather than to the
+family, and it is affordable precisely there:
+
+- the shrapnel site is CUO's own code already — `ShrapnelSessionStateWriter.ApplyBreakGrasp` mirrors the
+  native formula on the host — so the stream can move off `UnityEngine.Random` on both sides with the
+  mapped values unchanged;
+- the measured solid-food action runs the GAME's own delegate, so it needs the window shape: set the
+  engine random state from the action identity around the call, restore it after, and make sure nothing
+  else draws inside (the "what has to be true" list in *Candidate mechanisms* below).
+
+**How the acceptance rows judge it** — the two rows the batch adds:
+
+| # | Row | Fails when |
+|---|---|---|
+| 6 | during a grip-slip and during a measured cross-player use, neither screen ever shows a number that changes afterwards | any value visibly corrects itself |
+| 7 | the same two actions never read as a stall: something immediate covers the wait for the value | the action appears to do nothing until the authority answers |
+
+Row 6 is mechanism C's test; row 7 is the one that decides whether the seeded stream (row 7 failing) is
+worth its cost. Neither row is judged from code — both need the two-client run.
 
 ## Establish first (investigation order)
 

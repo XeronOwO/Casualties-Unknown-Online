@@ -19,25 +19,32 @@
 1. **A bare marker attribute declares content**: `[ModContent]` on a class. It carries NO data — not even
    the id — because the address belongs to the definition (decision 247) and "Attribute 只负责发现" is the
    user's rule. Discovery instantiates the class and reads its members.
-2. **The kind comes from the kind interface the class implements, never from the attribute or the class
-   name.** Nine kind interfaces (`IModItemContent`, `IModRecipeContent`, `IModLiquidContent`,
-   `IModLiquidTileContent`, `IModTileContent`, `IModBuildingContent`, `IModStructureContent`,
-   `IModStatusContent`, `IModMoodleContent`), each carrying its kind's data members and extending
-   `IModContentDefinition`. **Any type that implements one is registrable**: a mod's own class, or the
-   framework's DTO — `ModItemDefinition` becomes one implementation of `IModItemContent` rather than the only
-   accepted shape, which is what keeps materialization open instead of binding it to a framework type (the
-   user's requirement: "任何自定义类型只需要实现那个接口"). Implementing two kind interfaces is refused at
-   scan with a log naming the class — never guessed — and a `Kind` that disagrees with the implemented kind
-   interfaces is the same named refusal.
-   A per-kind base (`ModItemContent`, …) exists as an OPTIONAL convenience that supplies the `Id` / `Kind` /
-   `SchemaVersion` boilerplate; it is never required, because **.NET Framework 4.8 has no default interface
-   members** and a mod class that already has a base (a `MonoBehaviour`, its own hierarchy) must still be
-   able to declare content.
-3. **Capability facets are additive interfaces on the same class** (`IModUsableContent`,
-   `IModWearableContent`, `IModContainerContent`, `IModBatteryContent`, `IModLightContent`,
-   `IModToolContent`, `IModGunContent`, `IModVisualContent`): they are columns of ONE entry, never a second
-   entry and never a second id. "An item that is also usable" is one item registration with a facet — not
-   two registrations.
+2. **Every declaration type is an interface plus a ready-made implementation.** The nine kind interfaces are
+   `IModItemDefinition`, `IModRecipeDefinition`, `IModLiquidDefinition`, `IModLiquidTileDefinition`,
+   `IModTileDefinition`, `IModBuildingDefinition`, `IModStructureDefinition`, `IModStatusDefinition`,
+   `IModMoodleDefinition`, each extending `IModContentDefinition`; today's classes (`ModItemDefinition`, …)
+   become the framework's implementations of them rather than the only accepted shape. The same rule applies
+   one level down to every member type a provider reads — `IModItemTool`, `IModItemGun`, `IModItemContainer`,
+   `IModItemBattery`, `IModItemLight`, `IModItemVisual`, `IModItemSpriteAnimation`,
+   `IModItemLimbWornSprite`, `IModRecipeIngredient`, `IModCraftingQuality`, `IModBuildingDrop`,
+   `IModTileDrop`, `IModMoodleAnimation`, `IModLimbMoodleBinding` — because a mod that computes one value
+   will want to compute the nested ones. So there are two rungs: `new ModItemDefinition { … }` when the
+   fields are constants, and implementing `IModItemDefinition` when a value is computed ("提供平台，也给出
+   上限，但不堵死上限"). The default implementations stay `sealed` plain data carriers; partial customisation
+   is COMPOSITION — implement the interface and hand back a filled default for the members you do not touch —
+   never inheritance from a data class.
+3. **One class-level contract: the kind interface.** The kind comes from which kind interface the class
+   implements, never from the attribute or the class name. A class implementing two kind interfaces is
+   refused at scan with a log naming it — never guessed — and a `Kind` that disagrees with the implemented
+   interface is the same named refusal. A per-kind base class (`ModItemContent`, …) exists as an OPTIONAL
+   convenience that supplies the `Id` / `Kind` / `SchemaVersion` boilerplate; it is never required, because
+   **.NET Framework 4.8 has no default interface members** and a mod class that already has a base (a
+   `MonoBehaviour`, its own hierarchy) must still be able to declare content.
+   Capabilities are NOT extra interfaces on the class: "an item that is also usable, wearable or a container"
+   is the same single registration, whose `Tool` / `Gun` / `Container` / `Battery` / `Light` / `Visual`
+   members are themselves interface-typed. That keeps the existing data shape (nothing is flattened onto the
+   class), keeps one entry and one id per declaration, and is a smaller concept count than a
+   facet-interface family.
 4. **One class = one registration.** The registry, the catalog, the ownership query, the console vocabulary
    and the binders keep their shape: the scan is a declaration front-end over
    `IModContent.TryRegister(IModContentDefinition)`, not a second registry. What does change is what the nine
@@ -74,20 +81,49 @@ things the game can address and delete on their own.**
   framework-instantiated (`ModRegistry` requires a public parameterless constructor).
 - Null collections keep meaning "none" at the read seam (decision 244's member half).
 
+## Persistence and serialization (what this ticket must not break, and what it makes load-bearing)
+
+- **A definition is code, not data: it is never serialized or stored.** Every peer re-declares it and the
+  handshake (mod id / SemVer / permissions / mode) is the consistency boundary — the rule decision 247
+  landed. An interface makes that mandatory: a mod-authored implementation may compute its members, so there
+  is no stable shape to write down. The save keeps content IDS, and an id whose definition is gone is
+  salvaged per entry (`DamageReport.EntryReason.ContentMissing`).
+- **CUO's own envelopes stay typed and versioned** (`ModStatusUpdate`, the two projections). The data model
+  for a mod's runtime value is `docs/backlog/todo/mod-api-no-opaque-envelopes.md`'s subject, not this
+  ticket's, and the discriminator is the modification policy's own: a shape CUO owns must be typed, while a
+  shape the MOD owns (`IModState`'s value bytes, the mod's half of a status value) is honestly bytes plus a
+  `SchemaVersion`, with the mod owning its reader and writer.
+- **Per-instance mod data is the part that really has to persist, and this ticket does not invent it.** It
+  needs a stable identity across save/load, reconnect and a transfer between players, a version rule both
+  ways (older save + newer mod, newer save + older mod), and determinism across peers for anything synced.
+  There is no first-class home for it today (mods fake it with their own `IModState` keys), so it waits for a
+  named consumer instead of being pre-built here.
+- **Computing a definition's values makes the content fingerprint load-bearing.** `SaveManifest.ContentFingerprint`
+  is written as `string.Empty` everywhere it is produced today (`WorldCutWriter`), so nothing checks that two
+  peers or two saves agree on what the content IS. With code-driven definitions two copies of the same mod
+  version can materialize different content — a local config changes a weight — and nothing notices. Opening
+  this ceiling therefore owes the fingerprint a meaning: a hash of the materialized content, reported as a
+  named mismatch instead of silently accepted.
+- **Keep the default implementations plain and settable.** The framework reads the interface; a future
+  data-driven loader (a JSON content pack) would deserialize into the concrete default, which is why its
+  members stay public `{ get; set; }` with no required constructor arguments. That is also why the deleted
+  `[DataContract]` attributes are not missed: a modern serializer needs no attribute when the members are
+  public and settable.
+
 ## Open at implementation
 
-- How a facet interface meets the DTO's nested member objects (`Tool`, `Gun`, `Container`, `Battery`,
-  `Light`, `Visual`): flatten them into flat facet members (the DTO delegates to its nested objects) or let
-  the facet interface hand the nested object back. Either way the provider reads ONE shape, and either way a
-  mod-authored class is never forced to `new` a framework type to fill a facet.
 - Whether the scanned instance is stored as it is (decision 247's rule) or snapshotted at registration once
-  its members have been read.
+  its members have been read — and what a snapshot would mean for a member that computes its value.
+- Whether the content fingerprint lands here or in the save-side ticket it really belongs to: it is a
+  consequence of opening this ceiling, not a requirement of the scanner.
 
 ## Non-goals
 
 - No second registry, no second permission rail, no second binder.
 - No framework type required to declare content: the nine DTOs are implementations of the kind interfaces,
   not the contract, and the code path keeps accepting either.
+- No persistence of definitions, and no second data model for a mod's runtime values: definitions are
+  re-declared by code on every peer, runtime values stay with the sweep ticket.
 - No change to the wire or the save: content is process-local either way.
 - No auto-loading of assemblies that declare no mod.
 - No compatibility shim: the code path and the scan are the same contract, so neither is kept alive for the
@@ -98,6 +134,11 @@ things the game can address and delete on their own.**
 - A mod declares an item and a recipe by attribute only, from ITS OWN classes implementing the kind
   interfaces (no framework DTO instantiated anywhere), with no registration call, and both materialize in
   game tables.
+- A declaration whose members COMPUTE their values (a weight that depends on the mod's own configuration, not
+  a constant) materializes with the computed values, and they are re-read when the game table is rebuilt —
+  the same definition feeding a fresh world can carry different numbers.
+- A mod-authored nested implementation (its own `IModItemTool`, say) materializes with that tool's values:
+  the seam is the interface, not the framework's class.
 - The same two definitions registered through code, as `ModItemDefinition` instances, still materialize —
   one provider, two ways to feed it.
 - A class that reaches two kinds is refused with a log naming it; the other declarations still bind.
@@ -105,3 +146,5 @@ things the game can address and delete on their own.**
 - Two mods declaring the same bare id still report the existing conflict; the scan adds no new id rule.
 - An assembly without `[CuoMod]` that declares content by attribute alone binds nothing (and says so), while
   the same definitions registered through code bind.
+- Owed by the fingerprint rule above: two clients that materialize different content under the same id and
+  the same mod version are reported as a named mismatch rather than silently accepted.

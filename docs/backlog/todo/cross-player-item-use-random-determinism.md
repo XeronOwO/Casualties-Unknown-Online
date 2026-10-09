@@ -6,8 +6,10 @@
   reach authoritative state** — every authoritative value of this family has exactly ONE roller — so the
   priority stays High rather than rising to Critical. What is left: step 4 (the two-client reproduction)
   and the two divergences on screen §3 names. **The user then set the target for those (2026-10-09): remove
-  the divergence without paying for it in perceived latency, ticket only this round — see *The target the
-  user set*, which carries the two-layer answer and the escalation.**
+  the divergence WITHOUT waiting for the authority — random-state control, not a local guess and not a
+  delay.** *The target the user set* carries the per-site answer: the grip-slip window is safe and gives
+  immediate-plus-correct, and the measured-use site is done with a comparison that decides between the same
+  window and a side-effect-free local run. Ticket only this round, no implementation.
 - Priority: High — **raise to Critical if the investigation shows the divergence reaches authoritative state**
   (a body value, a limb fact, an item amount). Presentation-only divergence stays High.
 - Category: Players / cross-player semantics
@@ -122,10 +124,12 @@ variant must agree: `FluidPresentationMsg` carries the roll's RESULT because the
 
 ### 4. What that means for the candidate mechanisms
 
-- **A — the temporary deterministic window: not needed, and not sufficient.** There is no second
-  authoritative roller for a window to synchronize, and the one double-roll site cannot be covered by one:
-  the host's roll happens after the operator's report crosses the wire, so no window on either machine
-  spans both rolls.
+- **A — the temporary deterministic window: not needed for state agreement, and not sufficient there.**
+  There is no second authoritative roller for a window to synchronize in the five migrated chains or the
+  host-applied operations, and the host's roll in the injection cadence case happens after the operator's
+  report crosses the wire, so no window on either machine spans both rolls. It IS the mechanism for the two
+  double-roll sites, per site and with the safety net described in *The target the user set* — that is the
+  narrow, deliberate exception rather than a family-wide rule.
 - **B — carry the outcome**: this is already the family's shape wherever the outcome is a fact (the drain
   plan, the state message, the healed health). It is the mechanism to reach for if a future roll ever
   decides something the current facts do not carry.
@@ -137,8 +141,9 @@ variant must agree: `FluidPresentationMsg` carries the roll's RESULT because the
   intercept every one of them, and §3 gives no state reason to.
 
 The state-preserving invariant worth keeping, now stated: **one roller per authoritative value**, decided
-by which side owns the body, with the roll's RESULT travelling as a fact. The engine-global window of
-mechanism A would put a second owner on that resource for no gain this family can name.
+by which side owns the body, with the roll's RESULT travelling as a fact. For the family at large that needs
+no window at all; the ONE place a window IS the answer is the pair of double-roll sites, and each of them is
+decided on its own in *The target the user set* below.
 
 ### Verified chain: a nausea-causing liquid given to another player (2026-10-09)
 
@@ -167,55 +172,45 @@ left inside §1's row. Call sites, in order:
 So for THIS case two peers never hold different values — not even briefly: the only machine that rolled is
 the one whose body it is, and the other side's copy of it is report-driven. What differs is WHEN the
 operator learns the value, which is the ordinary report cadence every field shares. The cases where a
-screen really can show a value nobody holds are the two in §3, and there the honest word is divergence,
-not "presentation only": mechanism C is what removes them, and it is a user-visible change (the operator's
-screen would stop showing its own local roll) which is why it waits for the acceptance batch or the user's
-call rather than being applied silently.
+screen really can show a value nobody holds are the two in §3, and there the honest word is divergence, not
+"presentation only". Both are answered by random-state control rather than by waiting — per site, with the
+caveat each one carries — in *The target the user set* below.
 
 ## The target the user set (2026-10-09): no divergence AND no perceived latency
 
 The user's instruction: "能不能消除延迟的同时尽可能消除延迟感？能做到吗？只改票，不在本轮开发". So the ticket
 now carries the target and the way to reach it; nothing is implemented this round.
 
-**Yes, and it splits into two layers, because "延迟感" does not come from the value being late — it comes
-from NOTHING happening.** The distinction that makes both goals reachable is which feedback ASSERTS a
-number:
+**Why waiting is not actually required, and where it is.** The user asked why there must be any waiting at
+all: control the random state and both sides compute the same value, so the local side can show it at once.
+That is right, and it is mechanism A scoped to the two sites rather than to the family. What decides whether
+it works is one question per site: **do both runs consume the same draws in the same order?** A window can
+only promise the same STREAM, not the same sequence of choices — so at a site whose draw sequence depends on
+state the two sides hold differently, a shared seed can produce a *wrong* value that looks authoritative,
+which is worse than a late one.
 
-- **Layer 1 — immediate, and roll-free.** The part of the feedback that cannot disagree with anyone:
-  the item leaving the hand, the gesture and its animation, the clip, the screen shake, the "this is
-  being applied" acknowledgement. These stay local and instant, and they are not a prediction: nothing
-  in them depends on the roll, so they cannot be wrong. This is what the player's sense of immediacy
-  actually keys on.
-- **Layer 2 — the values, authority-first.** The numbers (pain, bleed, skin/muscle, sickness, a limb
-  latch, the gore variant a roll picked) arrive with the authoritative value instead of being invented
-  locally: for the measured chains from the affected side's immediate report, and for the shrapnel
-  slip from the host's state message that the break-grasp report itself triggers. Mechanism C, plus
-  this split, removes the divergence and leaves the wait on the numbers only — while something
-  immediate still happens, which is the difference between "the number landed late" and "the game
-  froze".
+| Site | The draws | Verdict |
+|---|---|---|
+| shrapnel grip-slip — the native `ShrapnelMinigame.BreakGrasp` on the operator's client and CUO's own host-side mirror `ShrapnelSessionStateWriter.ApplyBreakGrasp` | unconditional, fixed order: skin `Random.Range(4f, 6f)`, bleed `Random.Range(0.4f, 1f)`, pain `Random.Range(9f, 16f)`, and for a head limb `Random.value < 0.8f` then `Random.value`. The only branch that steers them reads `isHead`, which both sides agree on | **SAFE, and it is exactly the shape the user asked for: immediate AND correct, no waiting, no divergence.** Both sides derive the stream from the operation id plus the slip's own sequence number (the report already carries one); the host's mirror stops drawing from `new Random()` — a defect in its own right, since it makes the authoritative value unreproducible by anyone, including a replay — and the operator's local run gets the state set and restored around the native call. The only other drawer inside that call is `DoGoreSound`'s clip pick, which then becomes deterministic on both sides and is relayed as such |
+| measured cross-player use — the item's own `useAction` (solid food and the like) | inside a branch tree the GAME writes, keyed on the BODY's own state: `float num24 = Random.value * 100f;` then a chain of thresholds, with `body.Eat(...)`, hunger and `HoldingItem("filterstraw")` among the inputs (`Item.cs:3618-3887`) | **a shared seed cannot be trusted on its own here**: the operator runs that delegate against the target's DISPLAY clone (report-driven, up to one report old) while the eater runs it against the real body, so the two can take different branches, spend a different number of draws and land on different values — silently. Two ways forward, and the choice is a measurement rather than an opinion: (a) do it anyway WITH a comparison — the request carries the nonce the seed is derived from, each side derives its own numbers, the operator shows its value at once, and the authority's value is compared against it and a disagreement is logged. If that log stays empty across the acceptance run, the site keeps "immediate and correct"; (b) if it does not stay empty, this site's local run goes back to being side-effect-free (it measures the dose and writes no numbers) and the value arrives with the report |
 
-**If the numbers' delay is perceptible anyway, the escalation is already named:** make those two sites'
-rolls reproducible from an identity BOTH sides already carry — the operation id that is on the wire, the
-participants, the run epoch — so the operator computes the TRUE value immediately instead of waiting.
-That is mechanism A (the user's own first proposal), scoped to exactly two call sites rather than to the
-family, and it is affordable precisely there:
+**What the change costs, either way.** A CUO-owned derived stream (the roll moves off `UnityEngine.Random`
+for that site, or the engine's state is set and restored around the call), the request carrying the nonce the
+seed is derived from — a wire change, free before release (decision 241) — and, per site, the statement that
+nothing else draws inside the window. The engine-global caveat is real but small here: the two sites are
+short, synchronous calls.
 
-- the shrapnel site is CUO's own code already — `ShrapnelSessionStateWriter.ApplyBreakGrasp` mirrors the
-  native formula on the host — so the stream can move off `UnityEngine.Random` on both sides with the
-  mapped values unchanged;
-- the measured solid-food action runs the GAME's own delegate, so it needs the window shape: set the
-  engine random state from the action identity around the call, restore it after, and make sure nothing
-  else draws inside (the "what has to be true" list in *Candidate mechanisms* below).
-
-**How the acceptance rows judge it** — the two rows the batch adds:
+**Acceptance rows** — these replace "is the wait perceptible" with something factual:
 
 | # | Row | Fails when |
 |---|---|---|
 | 6 | during a grip-slip and during a measured cross-player use, neither screen ever shows a number that changes afterwards | any value visibly corrects itself |
-| 7 | the same two actions never read as a stall: something immediate covers the wait for the value | the action appears to do nothing until the authority answers |
+| 7 | the derived-value comparison for the measured use stays empty: both sides derived the same outcome | a derived value disagreed with the authority's |
+| 8 | the same two actions never read as a stall, and the immediate, roll-free feedback still plays locally | the action appears to do nothing |
 
-Row 6 is mechanism C's test; row 7 is the one that decides whether the seeded stream (row 7 failing) is
-worth its cost. Neither row is judged from code — both need the two-client run.
+Rows 6 and 7 are the seeded window's test, and row 7 decides whether the measured-use site keeps (a) or (b).
+Row 8 is the target the user set in the first place. None of the three is judged from code: they need the
+two-client run.
 
 ## Establish first (investigation order)
 

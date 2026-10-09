@@ -2,7 +2,7 @@
 
 Risk tier: **FULL** (architecture, cross-module, and a mod-visible `Abstractions` contract). Reviewed
 revision: the UNCOMMITTED working tree on `master` at HEAD `dfb0470a`, read frozen; no file was modified
-and `dotnet format` was not run. Change reviewed: `docs/backlog/todo/mod-content-attribute-declarations.md`
+and `dotnet format` was not run. Change reviewed: `docs/backlog/review/mod-content-attribute-declarations.md` (moved from `todo/` when stage B landed; a dated record keeps the rest of its text as written)
 stage A, decision 251, against the author's own record
 `docs/evidence/selfchecks/mod-api/mod-content-declaration-contract-selfcheck.md`.
 

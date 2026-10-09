@@ -37,7 +37,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// </para>
 /// <para>
 /// Why it exists: ticket
-/// <c>docs/backlog/todo/mod-content-attribute-declarations.md</c> discovers a
+/// <c>docs/backlog/review/mod-content-attribute-declarations.md</c> discovers a
 /// mod's own class and reads its members through this same seam, so a provider
 /// that still demanded the framework's class would make that ticket's rows (a
 /// computed weight, a mod-authored nested implementation) unreachable.

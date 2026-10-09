@@ -18,7 +18,7 @@
   `docs/backlog/review/remote-medical-stage-1-injection-session.md`,
   `docs/backlog/review/concurrent-medical-operations.md`,
   `docs/backlog/todo/mod-authored-effects.md` (its census already counts the per-call rolls),
-  `docs/backlog/todo/mod-content-attribute-declarations.md` (a mod-authored effect is what would make this
+  `docs/backlog/review/mod-content-attribute-declarations.md` (a mod-authored effect is what would make this
   worse), decision 246 (the item-gesture mapping), `docs/en/internals/judgment-ownership.md`.
 - Source: the user's 2026-10-08 request.
 

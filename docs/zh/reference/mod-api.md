@@ -229,6 +229,26 @@ context.Ui.Unregister("status");
 ## 内容注册
 
 ```csharp
+// 写在自己模组旁边：这个类本身就是那份声明，类别由它实现的契约决定 ——
+// 没有任何注册调用，发现阶段会替你登记。
+[ModContent]
+public sealed class HealingRecipe : IModRecipeDefinition
+{
+    public string Id => "healing.recipe";
+    public string Kind => ModContentKind.Recipe;
+    public int SchemaVersion => 2;
+    public string ResultItemId => "bandage";
+    public bool ResultIsLiquid => false;
+    public int ResultAmount => 1;
+    public float ResultCondition => 1f;
+    public bool DontDrainResultLiquid => false;
+    public int Intelligence => 0;
+    public string Category => ModRecipeCategory.Medicine;
+    public bool IsRepair => false;
+    public List<ModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
+}
+
+// 也可以用代码注册 —— 批量生成的内容走这条路。
 if (context.Content.CanRegister)
 {
     context.Content.TryRegister(new ModItemDefinition
@@ -256,6 +276,10 @@ var itemDefs = context.Content.Definitions; // the registered instances, not cop
 context.Content.TryUnregister("wooden.sword");
 ```
 
+- **用特性声明内容**：写在自己模组旁边的一个类挂上光秃秃的 `[ModContent]`（特性本身不带任何数据，连 id 都不带），框架就会替你登记它 —— 声明因此就写在拥有它的代码旁边，一行注册调用都不用写。发现阶段会读每一个引用了这套接口的程序集，从**类实现的类别契约**得出它的类别（`IModItemDefinition` 对应 `ModContentKind.Item` 这件事只有一处，在 `ModContentContract` 里），把这个类实例化，然后交给和代码路径同一个 `IModContent.TryRegister` —— 一个登记表、一道权限栏、一个绑定器，内容从哪条路来都一样。扫描跑在 `ICuoMod.Bind` **之前**，所以模组自己的 `Bind` 已经能看到它声明的内容。
+- **扫描要求什么，又会点名拒绝什么**：类必须是公开的具体类，并且有公开的无参构造函数；必须恰好实现**一个**类别契约 —— 实现两个、一个都不实现、或者它的 `Kind` 成员与自己实现的契约对不上，都会被拒绝，日志里点名这个类；类别从不靠猜。成员必须读得出来 —— 扫描会把契约的每个成员都读一遍，所以某个 getter **抛异常**时，被拒的只有这一条声明，它的同伴照样绑定。同时挂着 `[CuoMod]` 与 `[ModContent]` 的类也会被拒：模组不是它自己的内容。
+- **归属看嵌套**：嵌套在某个模组类里的声明就归那个模组；没有嵌套在任何模组里的声明归它所在程序集声明的那个模组 —— 所以那种程序集只能声明一个模组：一个程序集里有多个模组时，顶层声明没有归属，会被拒绝并点名，而模组本身照常加载。本仓库自带的示例程序集正是声明了两个模组、于是把声明嵌进模组类里的例子。只声明了 `[ModContent]` 类、却没有 `[CuoMod]` 模组的程序集什么都不会登记，并在加载时把这件事说出来。
+- **定义是代码，不是数据**：登记一份定义就是执行模组的代码，所以成员可以按模组自己的状态算出来，游戏拿到的就是建表那一刻读到的那个数 —— 世界重建会重新读它，同一个 id、同一个模组版本，换一个新世界就可以带不同的数字。定义永远不会被序列化（见「进程本地」一条），扫描也不新增任何 id 规则：同一个模组里 id 写了两遍，或者两个模组撞了同一个 id，被拒的方式与代码路径完全一样。
 - **作用域**：`IModContent` 是逐模组的有类型内容定义登记表。模组要么填好下面某一张自带的数据类，要么在某个成员需要计算时自己实现该类别的接口；给它 id 与正数的 `schemaVersion`（默认 1），然后把对象本身登记进来。定义自带类别 —— 数据类的类别由类型固定 —— 所以类别不可能和数据对不上；框架也从不解释模组的成员：读它们的是按类别注册进来的那个提供者。登记表留下的是模组交出来的那个实例，并且从不改写它，所以注册之后就不要再改它。
 - **类别表列出的，就是框架真正能绑的**：`ModContentKind` 只有九个类别 —— `item`、`recipe`、`liquid`、`liquidtile`、`tile`、`building`、`structure`、`status`、`moodle` —— 每一个都对应下面的一张有类型 DTO。类别本身仍是模组自定义的标签，策略只校验它的形状、不校验它是否在这张表里，所以模组完全可以自造类别；但没有任何提供者的类别不会被实体化。这样的登记照样被接受，也照样可被枚举（运行时目录、归属查询与控制台的资源 id 补全都会列出它），而运行时绑定器会在加载时以警告级别点名这个类别与这条定义 —— 信息级别的「registered content」不是它的最终结论。CUO 有意不提供 `entity`、`setting`、`locale` 三个类别：设置与本地化是模组自己的事，模组实体类型是搁置的能力；在能绑它们的提供者出现之前，类别表里就不列它们。
 - **带命名空间的内容 id（content id）**：每个 CUO 内容 id 都是规范的 `namespace:path`。在清单里声明命名空间（`[CuoMod(..., Namespace = "mymod")]`），内容就可以用 `mymod:wooden.sword` 寻址，而游戏自带内容是 `cu:<item id>`（例如 `cu:fentanyl`）。[命名空间](glossary.md)的语法是 `[a-z][a-z0-9_]{0,31}`，路径是 `[a-z0-9][a-z0-9_.-]{0,94}`；Abstractions 里的 `ContentId` 负责解析、格式化，并把输入统一成小写。没声明命名空间的模组保留裸 id（按模组划分；跨模组重复仍会被报成冲突）。裸 id 同时也是内容提供者落到游戏表里的键，所以两个不同命名空间的模组为同一类别注册同一个裸 id，仍然是冲突 —— 规范地址能解析开，但游戏里只能存在一个条目。控制台的 `ResourceLocation` 补全接受规范 id 前缀、裸 id 或本地化显示名，并且总是插入规范 id。
@@ -266,7 +290,7 @@ context.Content.TryUnregister("wooden.sword");
 - **内容归属查询**：`context.ContentOwners.TryGetOwner(kind, id, out owner)` 能查出任一框架范围内注册内容的归属模组 id。它是 CUCoreLib 那套逐类别 `TryGetOwnerModGuid` 的迁移替代；查询只读、不需要权限，匹配与歧义策略与运行时目录一致 —— 类别加 id 重复就返回 false。
 - **共享内容的绑定边界**：运行时内容绑定器只接收那些网络模式能保证「每个可能收到这些内容实例的玩家都有同一份」的模组内容（`Synchronized`、`Authoritative`、`RequiresAllPlayers`）。`HostOnly`、`ClientOnly` 与 `Cosmetic` 的内容永远不绑进共享世界状态：没装同一个模组的客机无法安全地把主机专属物品实体化出来。这是「本地模组数据」与「公开／共享模组数据」之分在静态内容上的第一次具体实现。
 
-**有类型的内容定义。** Abstractions 为每个众所周知的类别提供一个**类别接口**（`IModItemDefinition` 及其八个同类），以及框架自带的实现（`ModItemDefinition` 等）。模组交哪一种都行，框架一视同仁：每个值都是常量就填数据类，有值要算就实现接口。提供者读的是**接口**，所以绑定不依赖框架的那个类；数据类把 `Kind` 固定在自己类别的常量上，所以绑它的正好就是读它的那个提供者；想自造类别的模组直接实现 `IModContentDefinition`。下面这张表用各自带的实现来描述每个类别；接口声明的是同一批成员。
+**有类型的内容定义。** Abstractions 为每个众所周知的类别提供一个**类别接口**（`IModItemDefinition` 及其八个同类），以及框架自带的实现（`ModItemDefinition` 等）。模组交哪一种都行，框架一视同仁：每个值都是常量就填数据类，有值要算就实现接口。提供者读的是**接口**，所以绑定不依赖框架的那个类；数据类把 `Kind` 固定在自己类别的常量上，所以绑它的正好就是读它的那个提供者；想自造类别的模组直接实现 `IModContentDefinition`。实现契约的类要把契约的**每一个**成员都写出来 —— 接口实现要求返回类型完全一致，所以集合成员用的就是数据类那套 `List<T>`／`Dictionary<K,V>` 类型 —— 只想改一部分则是**组合**：不去碰的成员交回一份填好的默认实现，而**不要**去继承数据类，那是 `sealed` 的。下面这张表用各自带的实现来描述每个类别；接口声明的是同一批成员。
 
 | DTO（类别） | 它携带什么，适配器怎么绑 |
 |---|---|

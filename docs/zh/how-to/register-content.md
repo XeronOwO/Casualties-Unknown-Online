@@ -23,7 +23,60 @@ public sealed class ExampleMod : ICuoMod
 
 声明了 `Namespace = "example"`，你的物品地址就是 `example:wooden.sword`；游戏自带内容的地址保持 `cu:<物品 id>`，比如 `cu:fentanyl`。命名空间的语法是 `[a-z][a-z0-9_]{0,31}`，路径段（bare id）的语法是 `[a-z0-9][a-z0-9_.-]{0,94}` —— 首字符加最多 94 个后续字符，合计最长 95。`ContentId` 负责解析与格式化，并在解析外部输入时规范大小写；注册这一步要求你给的已经是规范小写形式。没有声明命名空间的模组继续用裸 id，作用域仍限自己；但裸 id 同时也是游戏表里的键，所以两个模组为同一类别注册同一个裸 id 就是冲突 —— 两个规范地址都能解析，游戏表里却只能存在一条；控制台的资源 id 补全会把这类歧义裸 id 整条略过，不给出游戏兑现不了的地址。
 
-## 在 `Bind` 里注册
+## 写在模组旁边就行
+
+最省事的做法是给自己的一个类挂上 `[ModContent]`：特性本身不带数据，id、类别和结构版本都在类里，一行注册调用都不用写。
+
+```csharp
+[CuoMod("cuo.example", "CUO Example", "0.1.0", NetworkMode = NetworkMode.Synchronized,
+	Namespace = "example",
+	Permissions = ModPermission.RegisterContent)]
+public sealed class ExampleMod : ICuoMod
+{
+	public void Bind(IModContext context)
+	{
+		// 这里什么都不用注册：下面那个嵌套的类已经是内容了
+	}
+
+	public void Initialize() { }
+	public void Start() { }
+	public void Update() { }
+	public void Stop() { }
+	public void Dispose() { }
+
+	/// <summary>它实现哪个契约，它就是哪一类内容：这里是配方，读它的是配方提供者。</summary>
+	[ModContent]
+	public sealed class HealingRecipe : IModRecipeDefinition
+	{
+		public string Id => "healing.recipe";
+		public string Kind => ModContentKind.Recipe;
+		public int SchemaVersion => 2;
+		public string ResultItemId => "bandage";
+		public bool ResultIsLiquid => false;
+		public int ResultAmount => 1;
+		public float ResultCondition => 1f;
+		public bool DontDrainResultLiquid => false;
+		public int Intelligence => 0;
+		public string Category => ModRecipeCategory.Medicine;
+		public bool IsRepair => false;
+		public List<ModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
+	}
+}
+```
+
+**类别就是类实现的契约** —— 这里是 `IModRecipeDefinition`，所以读它的是配方提供者 —— 既不看类名，也不看标签。加载时框架会读每个模组的程序集，把每个 `[ModContent]` 类实例化，再交给和代码路径同一个 `TryRegister`；这一切发生在 `Bind` 之前，所以你自己的 `Bind` 里已经能看到它。
+
+扫描有三条硬要求，每一条被拒时都会有一行日志点名那个类：
+
+- 公开的具体类，并且有公开的无参构造函数。
+- 恰好实现**一个**类别契约。实现两个、一个都不实现、或者 `Kind` 成员和自己实现的契约对不上，都会被拒 —— 类别从不靠猜。同时挂着 `[CuoMod]` 与 `[ModContent]` 的类也会被拒：模组不是它自己的内容。
+- 成员必须读得出来：扫描会把契约的每个成员都读一遍，所以某个 getter 抛异常时，被拒的只有这一条声明，旁边的照常绑定。
+
+**归属看嵌套**，同样不靠猜。嵌在模组类里的声明归那个模组；没有嵌进任何模组的声明，归它所在程序集声明的那个模组 —— 所以那种程序集只能有一个模组：程序集里有两个模组时，顶层声明会被点名拒绝（模组本身照常加载）；只声明了 `[ModContent]` 类、却没有 `[CuoMod]` 模组的程序集什么都不会登记，并在加载时把这件事说出来。
+
+## 或者在 `Bind` 里用代码注册
+
+批量生成的内容 —— 比如一张表里长出二十个配方变体 —— 是代码的活；而一个没有声明模组的程序集，只有这一条路：
 
 ```csharp
 if (context.Content.CanRegister)
@@ -89,6 +142,7 @@ if (context.ContentOwners.TryGetOwner(ModContentKind.Item, "example:wooden.sword
 - 结构版本（schema version）不是正数，或者一个模组的定义超过 1024 条。
 - id 不是规范的小写路径段：含大写、含空白、路径里带 `:`，或者路径超过 95 个字符。
 - 两个模组注册了同一类别、同一个裸 id。
+- 扫描发现不了的 `[ModContent]` 类：不是公开类、是抽象类、是开放泛型、没有公开的无参构造函数、没有类别契约或有两个、`Kind` 成员和自己实现的契约对不上、或者某个成员的 getter 抛异常。每一种都被点名拒绝，而且丢掉的只是这一条声明 —— 旁边那条照常绑定。
 
 拒绝的表现是 `false` 加一行日志；不会静默截断，也不会抛异常。
 
@@ -101,7 +155,7 @@ if (context.ContentOwners.TryGetOwner(ModContentKind.Item, "example:wooden.sword
 
 ## 验证它真的成了
 
-载入模组，把 `context.Content.IsRegistered("wooden.sword")` 记进日志 —— true 就说明注册表收下了这条定义，日志里也没有针对它的拒绝。控制台的资源 id 补全（即 `ResourceLocation` 那套词表）会用规范 id 提示你的内容 —— 没声明命名空间的旧式注册没有规范 id，会被有意略过；带 `TemplateId` 的物品类别可以通过物品生成接口放出来。网络模式声明错了的模组，表现是内容只在本地存在，永远绑不进共享世界。没有任何提供者的类别则表现为加载时的一条警告，点名类别与定义：登记表收下了它，而不会有任何东西把它实体化。
+载入模组，把 `context.Content.IsRegistered("wooden.sword")` 记进日志 —— true 就说明注册表收下了这条定义，日志里也没有针对它的拒绝。走特性声明进来的定义会拿到和代码注册同一条日志，里面带的是扫描实例化出来的那个类（`registered content healing.recipe (recipe, schema 2, HealingRecipe)`），而模组自己的 `Bind` 里也已经能对 `IsRegistered` 问出 true。控制台的资源 id 补全（即 `ResourceLocation` 那套词表）会用规范 id 提示你的内容 —— 没声明命名空间的旧式注册没有规范 id，会被有意略过；带 `TemplateId` 的物品类别可以通过物品生成接口放出来。网络模式声明错了的模组，表现是内容只在本地存在，永远绑不进共享世界。没有任何提供者的类别则表现为加载时的一条警告，点名类别与定义：登记表收下了它，而不会有任何东西把它实体化。
 
 ## 相关阅读
 

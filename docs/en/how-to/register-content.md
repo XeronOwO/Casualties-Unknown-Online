@@ -39,7 +39,72 @@ different namespaces — the canonical addresses both resolve, but only one game
 the console's resource-id completion skips such an ambiguous bare id entirely rather than offer an
 address the game cannot honour.
 
-## Register in `Bind`
+## Declare it next to the mod
+
+The shortest path is a class of your own carrying `[ModContent]`: the attribute holds no data, the class
+carries the id, the kind and the schema version, and no registration call is written at all.
+
+```csharp
+[CuoMod("cuo.example", "CUO Example", "0.1.0", NetworkMode = NetworkMode.Synchronized,
+	Namespace = "example",
+	Permissions = ModPermission.RegisterContent)]
+public sealed class ExampleMod : ICuoMod
+{
+	public void Bind(IModContext context)
+	{
+		// nothing to register: the nested class below is content already
+	}
+
+	public void Initialize() { }
+	public void Start() { }
+	public void Update() { }
+	public void Stop() { }
+	public void Dispose() { }
+
+	/// <summary>One kind contract decides what this is: a recipe, and the recipe provider reads it.</summary>
+	[ModContent]
+	public sealed class HealingRecipe : IModRecipeDefinition
+	{
+		public string Id => "healing.recipe";
+		public string Kind => ModContentKind.Recipe;
+		public int SchemaVersion => 2;
+		public string ResultItemId => "bandage";
+		public bool ResultIsLiquid => false;
+		public int ResultAmount => 1;
+		public float ResultCondition => 1f;
+		public bool DontDrainResultLiquid => false;
+		public int Intelligence => 0;
+		public string Category => ModRecipeCategory.Medicine;
+		public bool IsRepair => false;
+		public List<ModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
+	}
+}
+```
+
+The KIND is the contract the class implements — here `IModRecipeDefinition`, so the recipe provider is what
+reads it — never the class name and never a tag. At load time the framework reads every mod's assembly,
+instantiates each `[ModContent]` class and hands it to the same `TryRegister` the code path uses, BEFORE
+`Bind` runs: your own bind already sees what you declared.
+
+Three things the scan insists on, and each refusal is a log line naming the class:
+
+- A public, concrete class with a public parameterless constructor.
+- Exactly ONE kind contract. Two of them, none of them, or a `Kind` member that disagrees with the contract
+  are all refused — the kind is never guessed. A class that carries `[CuoMod]` and `[ModContent]` together
+  is refused too: a mod is not its own content.
+- Members that can be read: the scan reads every member of the contract, so a getter that THROWS refuses
+  that one declaration and its siblings still bind.
+
+Where a declaration belongs is decided by NESTING, and never guessed either. A declaration nested inside a
+mod class is that mod's. A declaration that is not nested in a mod belongs to the mod its assembly
+declares, so that assembly has to declare exactly one: an assembly with two mods refuses its top-level
+declarations by name (the mods themselves still load), and an assembly that declares `[ModContent]` classes
+but no `[CuoMod]` mod registers nothing and says so at load time.
+
+## Or register it in `Bind`
+
+Generated or bulk content — twenty recipe variants from one table — is code's job, and an assembly that
+declares no mod has only this path:
 
 ```csharp
 if (context.Content.CanRegister)
@@ -126,6 +191,10 @@ catalog: an ambiguous kind + id answers `false` rather than guessing.
 - An id that is not a canonical lower-case path segment: upper case, whitespace, an embedded `:`, or
   a path over 95 characters.
 - Two mods registering the same kind and the same bare id.
+- A `[ModContent]` class the scan cannot discover: not public, abstract, an open generic, no public
+  parameterless constructor, no kind contract or more than one, a `Kind` member that disagrees with the
+  contract it implements, or a member getter that throws. Each one is refused by name and only that
+  declaration is lost — the class next to it still binds.
 
 A refusal is a `false` plus a log line; nothing is silently truncated, and nothing throws.
 
@@ -143,7 +212,10 @@ A refusal is a `false` plus a log line; nothing is silently truncated, and nothi
 ## Check that it worked
 
 Load the mod and log `context.Content.IsRegistered("wooden.sword")` — `true` means the registry took
-the definition, and the log carries no refusal for it. The console's resource-id completion (the
+the definition, and the log carries no refusal for it. A declaration that came in by attribute gets the
+same line as a code registration, with the class the scan built in it (`registered content healing.recipe
+(recipe, schema 2, HealingRecipe)`), and a mod's own `Bind` can already ask `IsRegistered` for it. The
+console's resource-id completion (the
 `ResourceLocation` vocabulary) then offers your content under its canonical id — a legacy
 registration with no namespace has no canonical id and is deliberately skipped — and an item
 registered with a `TemplateId` can be spawned through the item spawn surface. A mod that declared the

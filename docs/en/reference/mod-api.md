@@ -369,6 +369,26 @@ context.Ui.Unregister("status");
 ## Content registration
 
 ```csharp
+// Declared next to the mod: the class IS the declaration, and the kind is the
+// contract it implements — nothing registers it, discovery does.
+[ModContent]
+public sealed class HealingRecipe : IModRecipeDefinition
+{
+    public string Id => "healing.recipe";
+    public string Kind => ModContentKind.Recipe;
+    public int SchemaVersion => 2;
+    public string ResultItemId => "bandage";
+    public bool ResultIsLiquid => false;
+    public int ResultAmount => 1;
+    public float ResultCondition => 1f;
+    public bool DontDrainResultLiquid => false;
+    public int Intelligence => 0;
+    public string Category => ModRecipeCategory.Medicine;
+    public bool IsRepair => false;
+    public List<ModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
+}
+
+// Or registered by code, which is what generated or bulk content does.
 if (context.Content.CanRegister)
 {
     context.Content.TryRegister(new ModItemDefinition
@@ -396,6 +416,32 @@ var itemDefs = context.Content.Definitions; // the registered instances, not cop
 context.Content.TryUnregister("wooden.sword");
 ```
 
+- **Declarations by attribute**: a class next to the mod carries a bare `[ModContent]` — no data, not even
+  the id — and the framework registers it, so a declaration lives where the code that owns it lives and no
+  registration call is written. At discovery the scan reads every assembly that references this surface,
+  takes each declaration's KIND from the kind CONTRACT the class implements (`ModContentContract` is the
+  one place that maps `IModItemDefinition` to `ModContentKind.Item`), instantiates the class and hands it to
+  the same `IModContent.TryRegister` the code path uses — one registry, one permission rail, one binder,
+  whichever way content arrives. The scan runs BEFORE `ICuoMod.Bind`, so a mod's own bind already sees what
+  it declared.
+- **What the scan requires, and what it refuses by name**: a public concrete class with a public
+  parameterless constructor; exactly ONE kind contract — a class that reaches two of them, none of them, or
+  one whose `Kind` member disagrees with the contract it implements is refused with a log naming the class,
+  because a kind is never guessed; and members that can be read — the scan reads every member of the
+  contract, so a getter that THROWS refuses that ONE declaration and leaves its siblings binding. A class
+  that carries `[CuoMod]` and `[ModContent]` together is refused as well: a mod is not its own content.
+- **Ownership is nesting**: a declaration NESTED inside a mod class belongs to that mod; a declaration that
+  is not nested in a mod belongs to the mod its assembly declares, so that assembly has to declare exactly
+  one — a top-level declaration in an assembly that declares several mods has no owner and is refused with
+  a log naming it, while the mods themselves still load. This repository's own example assembly declares
+  two mods and nests its declarations for exactly that reason. An assembly that declares `[ModContent]`
+  classes but no `[CuoMod]` mod registers nothing and says so at load time.
+- **A definition is code, not data**: registering one executes the mod's code, so a member may compute its
+  value from the mod's own state, and the number the game carries is the one that was read when the table
+  was built — a rebuilt world re-reads it, and a fresh world can carry different numbers under the same id
+  and the same mod version. Nothing serializes a definition (see *Process-local*), and the scan adds no id
+  rule of its own: an id declared twice inside one mod, or by two mods, is refused exactly as the code path
+  refuses it.
 - **Scope**: `IModContent` is a per-mod registry of typed content definitions. A mod either fills in one of
   the ready-made data classes below or implements that kind's interface itself when a member is computed,
   gives it its id and an optional positive `schemaVersion` (default 1), and registers the object itself in
@@ -462,8 +508,12 @@ registers either shape and the framework treats them alike: fill in the data cla
 constant, implement the interface when one is computed. The provider reads the INTERFACE, so nothing about
 the binding depends on the framework's class; the data classes fix `Kind` to their kind's constant, so
 exactly the provider that reads them is the one that binds them, and a mod that wants a kind of its own
-implements `IModContentDefinition` directly. The table below describes each kind through its ready-made
-implementation; the interface carries the same members.
+implements `IModContentDefinition` directly. A class that implements a contract declares EVERY member of
+it — interface implementation requires an exact return type, so a collection member is the same
+`List<T>`/`Dictionary<K,V>` type the data class uses — and partial customisation is COMPOSITION: hand back
+a filled default for the members you do not touch, never inherit from a data class, which stays `sealed`.
+The table below describes each kind through its ready-made implementation; the interface carries the same
+members.
 
 | DTO (kind) | What it carries, and how the adapter binds it |
 |---|---|

@@ -1,6 +1,6 @@
 # The kind contract is an interface: content declarations a mod may implement
 
-Cycle 2026-10-09. Ticket `docs/backlog/todo/mod-content-attribute-declarations.md`, **stage A** (the
+Cycle 2026-10-09. Ticket `docs/backlog/review/mod-content-attribute-declarations.md` (moved from `todo/` when stage B landed; a dated record keeps the rest of its text as written), **stage A** (the
 declaration contract). Decision 251. Baseline commit `dfb0470a`; this record describes the working tree
 that carries the change.
 

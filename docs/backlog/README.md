@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Content declarations by attribute](todo/mod-content-attribute-declarations.md) — **High** — a scanned declaration instead of a Bind list.
 - [Random rolls in a cross-player item use](todo/cross-player-item-use-random-determinism.md) — **High** — one deterministic window?
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
@@ -66,6 +65,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
+- [A declaration's nested member types are not contracts](todo/mod-content-nested-member-contracts.md) — **Medium** — a mod cannot implement its own `Tool`.
+- [Two peers that materialize different content are never compared](todo/mod-content-fingerprint.md) — **Medium** — nothing checks what a peer's content IS.
 - [Cross-player solid food from the game's own data](todo/mod-cross-player-solid-food-semantics.md) — **High** — the eat runs on the eater's client.
 - [Mod-authored effects](todo/mod-authored-effects.md) — **High** — a code registration face and the operation surface it writes through.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — give, spawn and a property editor.
@@ -94,6 +95,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A null collection in a content payload must mean "none"](review/mod-payload-null-collection-tolerance.md) — **Medium** — both ends answer for it.
 - [Content kinds with no provider](review/mod-content-kind-with-no-provider.md) — **Medium-High** — the vocabulary names what binds, the binder the rest.
 - [Content registration carries its type](review/mod-content-typed-registration.md) — **Critical** — a typed definition instead of an opaque payload; landed.
+- [Content declarations by attribute](review/mod-content-attribute-declarations.md) — **High** — stage B landed; the scan replaces the Bind list.
 - [No opaque payloads in the mod API](review/mod-api-no-opaque-envelopes.md) — **Critical** — a typed data model where the shape is the mod's own; landed.
 - [Typed seams, not object handles](review/mod-api-typed-seams.md) — **Critical** — one typed projection per operation; a framework seam left.
 - [Mod-defined wire packets](review/mod-defined-wire-packets.md) — **High** — a mod owns its packet id and chain; two-client rows need a batch.

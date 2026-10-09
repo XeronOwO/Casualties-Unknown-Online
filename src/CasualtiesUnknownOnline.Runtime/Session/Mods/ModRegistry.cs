@@ -37,7 +37,7 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 		var candidates = new List<DiscoveredMod>();
 
 		foreach (var type in assemblies
-			.SelectMany(a => SafeGetTypes(a))
+			.SelectMany(AssemblyTypes.Loadable)
 			.Where(t => t.IsClass && !t.IsAbstract && (t.IsPublic || t.IsNestedPublic) && typeof(ICuoMod).IsAssignableFrom(t)))
 		{
 			var attribute = (CuoModAttribute?)type.GetCustomAttributes(typeof(CuoModAttribute), inherit: false).FirstOrDefault();
@@ -191,21 +191,6 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 		}
 
 		return accepted;
-	}
-
-	private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
-	{
-		try
-		{
-			return assembly.GetTypes();
-		}
-		catch (ReflectionTypeLoadException e)
-		{
-			// The loadable types of a partially-loadable assembly (the unloadable
-			// ones are null entries) — a mod DLL with an unresolvable dependency
-			// must not take the whole scan down with it.
-			return e.Types.OfType<Type>();
-		}
 	}
 
 	private bool AreDependenciesWellFormed(string id, string[] dependencies)

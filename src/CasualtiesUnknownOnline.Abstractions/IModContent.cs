@@ -36,7 +36,10 @@ public interface IModContent
 	/// when the mod lacks <see cref="ModPermission.RegisterContent"/>, the
 	/// definition is null, its id or kind fails the content policy rails, its
 	/// schema version is not positive, or the id is already registered by this
-	/// mod. Register during <see cref="ICuoMod.Bind"/>.
+	/// mod. A mod registers during <see cref="ICuoMod.Bind"/>; the framework
+	/// registers a mod's <see cref="ModContentAttribute"/> declarations through
+	/// this same method just BEFORE that bind, so a bind that also registers sees
+	/// them and a duplicate id is refused on the code side.
 	/// </summary>
 	bool TryRegister(IModContentDefinition definition);
 

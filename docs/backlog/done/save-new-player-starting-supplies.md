@@ -72,7 +72,9 @@ read off the generation baseline.
   got nothing — and the one exception is a body the world already has a character for (that restore
   is its own reported event from S4.2, and a second line for the same fact is the noise decision
   179's rules exist to remove).
-- **`IStartingSupplyBehaviour`** (Abstractions) is the engine seam: the two acts only Unity can
+- **`IStartingSupplyBehaviour`** is the engine seam (`CasualtiesUnknownOnline.Runtime.Session.World`;
+  decision 250 took it off the mod-visible `Abstractions` surface, where it had been only because the
+  Runtime needed it too): the two acts only Unity can
   perform — create a content id's item at the local body, put it in a slot — with items and bodies
   as opaque handles. `GameStartingSupplyTarget` (GameAdapter/WorldGen) implements it over the game's
   OWN calls (`Utils.Create(id, body.transform.position, 0f)` and `Body.PickUpItem(item, slot, true)`,

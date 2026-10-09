@@ -8,7 +8,7 @@
 - Priority: High
 - Category: Mod platform / mod API
 - Related: `docs/backlog/review/mod-content-typed-registration.md` (the typed contract this sits on),
-  `docs/backlog/review/mod-api-no-opaque-envelopes.md` and `docs/backlog/todo/mod-api-typed-seams.md` (both
+  `docs/backlog/review/mod-api-no-opaque-envelopes.md` and `docs/backlog/review/mod-api-typed-seams.md` (both
   change the shape this scanner reads, so they land first),
   `docs/backlog/todo/mod-authored-effects.md` (its code-registration surface is the same question),
   `docs/en/reference/mod-api.md` (the page a mod author reads), decision 247.

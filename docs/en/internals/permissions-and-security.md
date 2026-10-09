@@ -73,12 +73,12 @@ have produced".
 
 ## The native API surface is bounded
 
-`AccessNativeApi` does not hand over the game. It reaches a curated registry whose value surface is
-deliberately narrow: operation ids are capped at 128 characters, calls at 16 arguments, strings at 4096
-characters, values of the framework's own data model at 64 KiB encoded and primitive arrays at 1024
-elements. Unity and game-assembly
-objects and arbitrary object graphs are rejected on both sides of the adapter seam, so a native
-operation cannot smuggle a live game object out to a mod.
+`AccessNativeApi` does not hand over the game. It reaches a curated registry whose operations are declared
+one by one: an operation id is capped at 128 characters and must name a registered operation, and what an
+operation gives back is fixed by the signature of the projection that returns it — a CUO-owned type such as
+`IModNativeLocalPlayerState`, never an `object` the caller has to downcast. That is a tighter bound than a
+scanned value surface: a value outside the declared type cannot be produced in the first place, so nothing
+has to be rejected after the fact, and a live Unity or game-assembly object has no signature to travel in.
 
 ## Visibility, not sandboxing
 

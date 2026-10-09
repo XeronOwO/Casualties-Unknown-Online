@@ -4,9 +4,11 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
-/// The per-mod native-API adapter. The common read-only projection
-/// (<see cref="ModNativeApiOperations.LocalPlayerState"/>) is exposed both
-/// through the generic operation registry and as a typed convenience.
+/// The per-mod native-API adapter: the permission gate plus the operation's own
+/// typed projection. There is no generic invoke path — a mod reaches a native
+/// operation through a method whose signature declares that operation's result,
+/// so the permission check and the availability check are the only things that
+/// decide the outcome.
 /// </summary>
 internal sealed class ModNativeApiAdapter(ModManifest manifest, IModNativeApiProvider nativeApiProvider, ILogger log) : IModNativeApi
 {
@@ -22,60 +24,25 @@ internal sealed class ModNativeApiAdapter(ModManifest manifest, IModNativeApiPro
 		return nativeApiProvider.IsRegistered(operation);
 	}
 
-	public bool TryInvoke(string operation, object?[] arguments, out object? result)
+	public bool TryGetLocalPlayerState(out IModNativeLocalPlayerState state)
 	{
-		result = null;
+		state = null!;
 
 		if (!ModPermissionGate.Try(log, manifest, ModPermission.AccessNativeApi))
 		{
 			return false;
 		}
 
-		if (!ModNativeApiPolicy.IsValidOperation(operation))
+		if (!nativeApiProvider.TryGetLocalPlayerState(out var result))
 		{
-			log.LogWarning("[Mods] {ModId} tried to invoke a native operation with an invalid id '{Operation}' — refused.",
-				manifest.Id, operation);
+			log.LogWarning("[Mods] {ModId} native operation {Operation} is not available (no local body, or the Game Adapter does not provide it) — refused.",
+				manifest.Id, ModNativeApiOperations.LocalPlayerState);
 			return false;
 		}
 
-		if (!ModNativeApiPolicy.IsValidArguments(arguments))
-		{
-			log.LogWarning("[Mods] {ModId} tried to invoke native operation {Operation} with unsafe/over-cap arguments — refused.",
-				manifest.Id, operation);
-			return false;
-		}
-
-		if (!nativeApiProvider.TryInvoke(operation, arguments, out var nativeResult))
-		{
-			log.LogWarning("[Mods] {ModId} native operation {Operation} is not available or was refused by the Game Adapter — refused.",
-				manifest.Id, operation);
-			return false;
-		}
-
-		if (!ModNativeApiPolicy.IsSafeResult(nativeResult))
-		{
-			log.LogWarning("[Mods] {ModId} native operation {Operation} returned an unsafe value type {ValueType} — refused.",
-				manifest.Id, operation, nativeResult?.GetType().FullName ?? "null");
-			return false;
-		}
-
-		result = nativeResult;
-		log.LogInformation("[Mods] {ModId} invoked native operation {Operation} ({ArgumentCount} argument(s)).",
-			manifest.Id, operation, arguments.Length);
+		state = result;
+		log.LogInformation("[Mods] {ModId} invoked native operation {Operation}.",
+			manifest.Id, ModNativeApiOperations.LocalPlayerState);
 		return true;
-	}
-
-	public bool TryGetLocalPlayerState(out IModNativeLocalPlayerState state)
-	{
-		state = null!;
-
-		if (TryInvoke(ModNativeApiOperations.LocalPlayerState, [], out var result)
-			&& result is IModNativeLocalPlayerState localState)
-		{
-			state = localState;
-			return true;
-		}
-
-		return false;
 	}
 }

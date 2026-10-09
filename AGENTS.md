@@ -143,8 +143,8 @@ not the goal.
     walked past it, so its declaration could never equal its reach. The review is the contract-shape
     questions every baseline addition already goes through
     (`docs/en/reference/modification-policy.md`; the adversarial pass asks them too,
-    `docs/development/review-prompt.md`), and the debt the current contract carries is the sweep's three
-    tickets in `docs/backlog/README.md`.
+    `docs/development/review-prompt.md`), and the sweep's three tickets have all landed, so the
+    contract carries none of that debt.
 
 ## Development Workflow (binding)
 

@@ -163,7 +163,6 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleRuntime.TryUnregist
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeApi.CanAccess|property|-> bool { get; }
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeApi.CanInvoke(string operation)|method|-> bool
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeApi.TryGetLocalPlayerState(out IModNativeLocalPlayerState state)|method|-> bool
-member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeApi.TryInvoke(string operation, object?[] arguments, out object? result)|method|-> bool
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeLocalPlayerState.Alive|property|-> bool { get; }
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeLocalPlayerState.BrainHealth|property|-> float { get; }
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeLocalPlayerState.Conscious|property|-> bool { get; }
@@ -261,9 +260,6 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo.IsHost|property|
 member|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo.LocalSteamId|property|-> ulong { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo.MemberSteamIds|property|-> IReadOnlyList<ulong> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo.SessionActive|property|-> bool { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour.Create(string itemId)|method|-> object?
-member|Stable|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour.LocalBody|property|-> object? { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour.TryPlace(object body, object item, int slot)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBatteryPreset.Large|enumvalue|= 2
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBatteryPreset.Medium|enumvalue|= 1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBatteryPreset.Small|enumvalue|= 0
@@ -815,7 +811,6 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModUi|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModUiWindow|interface|-
 type|Experimental|CasualtiesUnknownOnline.Abstractions.IResourceLocationMatchStage|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo|interface|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBatteryPreset|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition|sealed class|IModContentDefinition
@@ -938,3 +933,8 @@ type|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry|sea
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModData.TrySet(string key, byte[] value) — a runtime data value is a ModValue now: the store keeps the typed model instead of an opaque byte array (ticket mod-api-no-opaque-envelopes)
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModState.TryGet(string key, out byte[]? value) — a mod-state value is a ModValue now: the file stores the value's canonical encoding (ticket mod-api-no-opaque-envelopes)
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModState.TrySet(string key, byte[] value) — a mod-state value is a ModValue now: the file stores the value's canonical encoding (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModNativeApi.TryInvoke(string operation, object?[] arguments, out object? result) — the mod-visible contract carries no erased type: each registered operation is reached through its own typed projection (TryGetLocalPlayerState), and CanInvoke stays as the availability probe (ticket mod-api-typed-seams)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour.Create(string itemId) — a framework seam, not a mod contract: the Game Adapter implements it and a test host substitutes it, and no mod path reaches it, so it moved to CasualtiesUnknownOnline.Runtime.Session.World (ticket mod-api-typed-seams)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour.LocalBody — moved to CasualtiesUnknownOnline.Runtime.Session.World: a framework seam the Game Adapter implements and a test host substitutes, which no mod path reaches (ticket mod-api-typed-seams)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour.TryPlace(object body, object item, int slot) — moved to CasualtiesUnknownOnline.Runtime.Session.World: a framework seam the Game Adapter implements and a test host substitutes, which no mod path reaches (ticket mod-api-typed-seams)
+*REMOVED* type|CasualtiesUnknownOnline.Abstractions.IStartingSupplyBehaviour — moved to CasualtiesUnknownOnline.Runtime.Session.World: the mod-visible surface promises a shape to mod authors and may not carry a type no mod can reach (ticket mod-api-typed-seams)

@@ -124,6 +124,15 @@ things the game can address and delete on their own.**
   not the contract, and the code path keeps accepting either.
 - No persistence of definitions, and no second data model for a mod's runtime values: definitions are
   re-declared by code on every peer, runtime values stay with the sweep ticket.
+- **No registration of the game's own content.** The vanilla tables belong to the game and are rebuilt by it
+  (`Item.SetupItems`, `Recipes.SetUpRecipes`, `WorldGeneration.tiles`); CUO only PROJECTS them read-only into
+  the same address vocabulary — `VanillaItemResourceLocationSource` turns `Item.GlobalItems` into
+  `cu:<item id>` entries in the same `ResourceLocationCatalog` the mod content feeds, and deliberately skips
+  ids a mod injected. Registering the vanilla set as definitions would invert ownership (a per-mod registry
+  holding views over tables the game rewrites), and the binder would re-materialize hundreds of entries that
+  are already there.
+- **Any content CUO itself ships goes through the same `TryRegister` path as a mod's** — never a private
+  channel. That is the dogfooding this architecture needs; the game's own content is not CUO's to register.
 - No change to the wire or the save: content is process-local either way.
 - No auto-loading of assemblies that declare no mod.
 - No compatibility shim: the code path and the scan are the same contract, so neither is kept alive for the

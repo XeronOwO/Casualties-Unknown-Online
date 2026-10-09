@@ -9,7 +9,7 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModRecipeDefinition"/> payloads from shared-content mods
+/// Binds <see cref="ModRecipeDefinition"/> definitions from shared-content mods
 /// into the vanilla recipe table. It waits for <c>Recipes.recipes</c> to be
 /// initialized, builds plain game <c>Recipe</c> objects from the mod DTO, and
 /// injects them exactly once per recipe-table generation.
@@ -39,17 +39,12 @@ public sealed class GameAdapterRecipeContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModRecipeDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModRecipeDefinition definition)
 		{
 			_log.LogWarning(
-				"[RecipeContent] {ModId}/{Id} payload is not a valid ModRecipeDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[RecipeContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModRecipeDefinition));
 			return false;
 		}
 

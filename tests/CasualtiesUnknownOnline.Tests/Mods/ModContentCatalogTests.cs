@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// <summary>
 /// The read-only content catalog base: it enumerates the framework-wide mod
 /// content view, filters by kind, resolves a unique kind + id, and reports
-/// cross-mod/schema conflicts without interpreting payloads.
+/// cross-mod/schema conflicts without reading a definition's typed members.
 /// </summary>
 public class ModContentCatalogTests
 {
@@ -22,9 +22,9 @@ public class ModContentCatalogTests
 	public void Catalog_EnumeratesAndFiltersByKind()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1)),
-			new ModContentRegistration("mod.a", new ModContentDefinition("potion", "recipe", [2], 1)),
-			new ModContentRegistration("mod.b", new ModContentDefinition("axe", "item", [3], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", "item")),
+			new ModContentRegistration("mod.a", new StubContentDefinition("potion", "recipe")),
+			new ModContentRegistration("mod.b", new StubContentDefinition("axe", "item")));
 
 		Assert.Equal(3, catalog.Entries.Count);
 		Assert.Equal(["sword", "axe"], catalog.OfKind("item").Select(e => e.Definition.Id));
@@ -36,7 +36,7 @@ public class ModContentCatalogTests
 	public void Catalog_TryResolve_ReturnsSingleMatch()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", "item", 1)));
 
 		Assert.True(catalog.TryResolve("item", "sword", out var entry));
 		Assert.NotNull(entry);
@@ -48,8 +48,8 @@ public class ModContentCatalogTests
 	public void Catalog_TryResolve_RefusesUnknownAndAmbiguous()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1)),
-			new ModContentRegistration("mod.b", new ModContentDefinition("sword", "item", [2], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", "item")),
+			new ModContentRegistration("mod.b", new StubContentDefinition("sword", "item")));
 
 		Assert.False(catalog.TryResolve("item", "missing", out _));
 		Assert.False(catalog.TryResolve("item", "sword", out _));
@@ -60,8 +60,8 @@ public class ModContentCatalogTests
 	public void Catalog_ReportsDuplicateIdsAcrossMods()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1)),
-			new ModContentRegistration("mod.b", new ModContentDefinition("sword", "item", [2], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", "item")),
+			new ModContentRegistration("mod.b", new StubContentDefinition("sword", "item")));
 
 		var conflict = Assert.Single(catalog.Conflicts);
 		Assert.Equal(ModContentConflictKind.DuplicateId, conflict.ConflictKind);
@@ -74,8 +74,8 @@ public class ModContentCatalogTests
 	public void Catalog_ReportsSchemaVersionMismatchForSameContent()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1)),
-			new ModContentRegistration("mod.b", new ModContentDefinition("sword", "item", [2], 2)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", "item")),
+			new ModContentRegistration("mod.b", new StubContentDefinition("sword", "item", 2)));
 
 		var conflicts = catalog.Conflicts;
 		Assert.Contains(conflicts, c => c.ConflictKind == ModContentConflictKind.DuplicateId);
@@ -86,8 +86,8 @@ public class ModContentCatalogTests
 	public void Catalog_AllowsSameIdInDifferentKinds()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("shared", "item", [1], 1)),
-			new ModContentRegistration("mod.b", new ModContentDefinition("shared", "recipe", [2], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("shared", "item")),
+			new ModContentRegistration("mod.b", new StubContentDefinition("shared", "recipe")));
 
 		Assert.False(catalog.HasConflicts);
 		Assert.True(catalog.TryResolve("item", "shared", out _));
@@ -98,7 +98,7 @@ public class ModContentCatalogTests
 	public void Catalog_ResolvesCanonicalNamespaceId()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1), "mymod"));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", "item"), "mymod"));
 
 		Assert.True(catalog.TryResolve("item", "mymod:sword", out var entry));
 		Assert.Equal("mod.a", entry!.ModId);
@@ -111,8 +111,8 @@ public class ModContentCatalogTests
 	public void Catalog_NamespacedSameBareId_IsStillAGameKeyConflict()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1), "moda"),
-			new ModContentRegistration("mod.b", new ModContentDefinition("sword", "item", [2], 1), "modb"));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", "item"), "moda"),
+			new ModContentRegistration("mod.b", new StubContentDefinition("sword", "item"), "modb"));
 
 		// Both canonical addresses are distinct and resolve...
 		Assert.True(catalog.TryResolve("item", "moda:sword", out var first));
@@ -133,8 +133,8 @@ public class ModContentCatalogTests
 	public void Catalog_ConflictIdentity_IsTheBareGameId()
 	{
 		var catalog = CreateCatalog(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1), "mymod"),
-			new ModContentRegistration("mod.b", new ModContentDefinition("sword", "item", [2], 1), "mymod"));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", "item"), "mymod"),
+			new ModContentRegistration("mod.b", new StubContentDefinition("sword", "item"), "mymod"));
 
 		var conflict = Assert.Single(catalog.Conflicts);
 

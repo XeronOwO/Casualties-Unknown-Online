@@ -9,10 +9,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// <summary>
 /// The generic content binder. It runs once after the first-frame mod discovery
 /// (the mods have already registered their content in <c>Bind</c>) and routes
-/// every opaque definition to the provider registered for that content kind.
+/// every definition to the provider registered for its content kind.
 /// This is the extensible skeleton for future recipe/tile/building/liquid
-/// providers: the binder does not know game types and does not interpret
-/// payloads; providers do.
+/// providers: the binder does not know game types and does not read a
+/// definition's typed members; providers do.
 /// </summary>
 public sealed class ModContentBinder(
 	IModContentControl control,

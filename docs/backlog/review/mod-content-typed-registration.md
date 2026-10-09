@@ -1,6 +1,6 @@
 # Content registration carries its type: a typed definition instead of an opaque payload
 
-- Status: Todo — **raised 2026-10-08 by the user**, who rejected the current shape in one line: "不能接受，你做
+- Status: Review — implementation landed 2026-10-08 (see *What landed*) and was independently reviewed the same day; the acceptance batch is pending. It was **raised 2026-10-08 by the user**, who rejected the current shape in one line: "不能接受，你做
   接口抽象为的是什么？你搞这种鬼玩意，不是反模式吗？". The objection is the type erasure itself, and it holds
   at this position: the mod hands a typed contract OVER and the contract turns it into bytes, so every consumer
   re-derives the type at run time instead of the compiler checking it.
@@ -77,6 +77,58 @@ The generalizable rule lands in `AGENTS.md`'s *Engineering Discipline* with this
 named consumer — say which caller reads what it produces; a form nothing transports, compares or interprets is
 a guess, not a design.** The repository already applies that judgement to content kinds and to quality
 references; this is the same judgement aimed at its own internals.
+
+## What landed (the frozen shape)
+
+1. **`IModContentDefinition`** (Abstractions): `Id`, `Kind`, `SchemaVersion` and nothing else. The nine
+   content DTOs implement it; each keeps its own typed members.
+2. **`TryRegister(IModContentDefinition definition)`** replaces both byte[] overloads: the call site is
+   type-checked, the kind travels with the object (`Kind` is a constant of the DTO's type), and a
+   definition cannot be filed under another kind by hand.
+3. **Providers claim by kind and cast** (`registration.Definition is ModItemDefinition definition`); the
+   binder keeps routing by `Kind`, and a mod-authored definition under a claimed kind is the same named
+   refusal a failed decode used to be.
+4. **Registry, catalog, ownership query, console resource-id completion and binder work on the base
+   interface**, so the property the payload step bought is kept: a store that knows no content schema, and
+   a mod that can register a kind of its own by implementing the interface.
+5. **Serialization stays where it crosses a boundary.** `ModPayloadCodec` now serves `ModStatusUpdate`
+   and the two status projections only; the content DTOs and their member objects lost `ToPayload`,
+   `FromPayload`, `[DataContract]` and `[DataMember]`, and `ModContentPolicy` lost `MaxDefinitionBytes`
+   and `IsValidData`. `ModContentDefinition` is deleted (registry keeps the instance the mod built).
+6. **Decision 244's member half is kept**: every collection member still coalesces a null write, because a
+   mod fills those objects in code — the decode half is what shrank. `ModPayloadNullCollectionTests` now
+   discovers the two groups separately (travelling contracts: three payload shapes; mod-built
+   declarations: a null write for each member).
+
+## Mechanism inventory (every touched mechanism, with its source)
+
+| Mechanism | Where | Evidence |
+|---|---|---|
+| Registration contract | `Abstractions/IModContent.cs`, new `IModContentDefinition.cs` | source + `ModContentTests` |
+| Nine content DTOs | `Abstractions/Mod{Item,Recipe,Liquid,LiquidTile,Tile,Building,Structure,Status,Moodle}Definition.cs` | source + the nine definition suites (`Kind` constant, defaults, null members) |
+| Per-mod registry | `Runtime/Session/Mods/ModContentAdapter.cs` | source + `ModContentTests` |
+| Registration record / policy | `ModContentRegistration.cs`, `ModContentPolicy.cs` | source + `ModContentTests.PolicyCaps_*` |
+| Display name seam | `Runtime/Session/Content/ModContentDisplayName.cs` | source + `ModContentResourceLocationSourceTests` |
+| Binder | `Runtime/Session/Mods/ModContentBinder.cs` | source + `ModContentBinderTests` |
+| Catalog / owner query / console resource ids | `ModContentCatalog.cs`, `ModContentOwnerQueryAdapter.cs`, `ModContentResourceLocationSource.cs` | source + their suites |
+| Nine adapter providers | `GameAdapter/Content/GameAdapter*ContentProvider.cs` | source + the nine `Patching/*ProviderTests` suites |
+| Travelling payloads | `ModPayloadCodec.cs`, `ModStatusUpdate.cs`, the two projections | source + `ModPayloadNullCollectionTests` (1 payload member, 3 shapes) |
+| Public surface | `docs/contracts/abstractions-api-baseline.txt` | `ApiSurfaceGateTests` (removals carry tombstones) |
+| Human docs | `docs/{en,zh}/reference/mod-api.md`, `how-to/register-content.md`, `start/your-first-mod.md`, `reference/glossary.md` | `docs/standard/alignment.txt` re-recorded for all four pairs |
+| Example mod / acceptance recipe | `src/CasualtiesUnknownOnline.ModExample/ExampleMod.cs`, `tools/acceptance/recipes/building-template-inject.cs` | source; the recipe is the live-provider proof of the typed seam |
+
+## Self-check table
+
+| Mechanism × change | What proves it |
+|---|---|
+| A definition carries its own identity | the nine suites assert each DTO's `Kind` constant, `Id` and `SchemaVersion`; `ModContentTests.BindRegistersContent_ContextExposesIt` reads them off the real stack |
+| A wrong pairing is unreachable at the call site | `TryRegister` takes only the definition; the provider's cast refusal is driven family-wide by `ModContentNullCollectionBindingTests.EveryProvider_RefusesADefinitionOfAnotherTypeFiledUnderItsKind` (nine real providers, one `StubContentDefinition` per claimed kind) |
+| The registry keeps the mod's instance | `ModContentTests.RegisteredDefinition_IsStoredAsTheInstanceTheModHandedOver` (`Assert.Same`) |
+| Rails still refuse | `ModContentTests` — null definition, empty/short/long kind, invalid id, non-positive schema version, duplicate, count cap |
+| Providers read typed members | the nine `Patching/*` provider suites, `ModContentNullCollectionBindingTests` through the real binder |
+| The serialized surface shrank to what travels | `ModPayloadNullCollectionTests`: one payload contract member driven through all three shapes, 27 mod-built members driven with a null write |
+| Nothing serializes a content definition | no `ToPayload`/`FromPayload` under the content DTOs (grep), the removals tombstoned in the baseline |
+| Docs match the code | `alignment.txt` re-recorded for the four edited pairs, self-check manifest rows marked historical |
 
 ## Non-goals
 

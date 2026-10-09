@@ -9,7 +9,7 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModLiquidTileDefinition"/> payloads from shared-content mods
+/// Binds <see cref="ModLiquidTileDefinition"/> definitions from shared-content mods
 /// into the vanilla world-fluid grid. Each definition receives a deterministic
 /// custom world-fluid byte (starting at 7, allocated in stable id order), is
 /// mapped through <c>FluidManager.WorldFluidToLiquidID</c>, and serves the
@@ -35,17 +35,12 @@ public sealed class GameAdapterLiquidTileContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModLiquidTileDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModLiquidTileDefinition definition)
 		{
 			_log.LogWarning(
-				"[LiquidTileContent] {ModId}/{Id} payload is not a valid ModLiquidTileDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[LiquidTileContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModLiquidTileDefinition));
 			return false;
 		}
 

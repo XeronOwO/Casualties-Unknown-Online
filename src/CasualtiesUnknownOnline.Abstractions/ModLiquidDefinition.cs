@@ -1,80 +1,62 @@
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
 
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The versioned, mod-authored data contract for one liquid content
-/// definition. It is a plain DTO in Abstractions: no game assembly, no Unity
-/// type, no Runtime dependency. The Game Adapter liquid provider decodes it and
-/// maps the static fields into the vanilla <c>LiquidType</c> registry.
+/// The mod-authored definition of one liquid content definition. It is a plain
+/// DTO in Abstractions: no game assembly, no Unity type, no Runtime dependency.
+/// The Game Adapter liquid provider reads it and maps the static fields into
+/// the vanilla <c>LiquidType</c> registry.
 /// </summary>
-[DataContract]
-public sealed class ModLiquidDefinition
+public sealed class ModLiquidDefinition : IModContentDefinition
 {
+	/// <summary>The mod-scoped content id: a canonical lower-case path segment, unique within the registering mod.</summary>
+	public string Id { get; set; } = "";
+
+	/// <summary>The content kind this definition registers under - fixed by its type, never chosen by a caller.</summary>
+	public string Kind => ModContentKind.Liquid;
+
+	/// <summary>The mod-owned content schema version the framework stores verbatim (default 1).</summary>
+	public int SchemaVersion { get; set; } = 1;
+
 	/// <summary>Player-facing liquid name.</summary>
-	[DataMember(Order = 1)]
 	public string DisplayName { get; set; } = "";
 
 	/// <summary>Player-facing liquid description.</summary>
-	[DataMember(Order = 2)]
 	public string Description { get; set; } = "";
 
 	/// <summary>Liquid tint red component (0..1).</summary>
-	[DataMember(Order = 3)]
 	public float ColorR { get; set; } = 1f;
 
 	/// <summary>Liquid tint green component (0..1).</summary>
-	[DataMember(Order = 4)]
 	public float ColorG { get; set; } = 1f;
 
 	/// <summary>Liquid tint blue component (0..1).</summary>
-	[DataMember(Order = 5)]
 	public float ColorB { get; set; } = 1f;
 
 	/// <summary>Liquid tint alpha component (0..1).</summary>
-	[DataMember(Order = 6)]
 	public float ColorA { get; set; } = 1f;
 
 	/// <summary>Value per liter in vanilla units.</summary>
-	[DataMember(Order = 7)]
 	public float ValuePerLiter { get; set; }
 
 	/// <summary>Whether the liquid can be used on skin.</summary>
-	[DataMember(Order = 8)]
 	public bool HealthUsable { get; set; }
 
 	/// <summary>Whether the liquid can be injected.</summary>
-	[DataMember(Order = 9)]
 	public bool Injectable { get; set; }
 
 	/// <summary>Sickness added by injection.</summary>
-	[DataMember(Order = 10)]
 	public float InjectionSickness { get; set; } = 1f;
 
 	/// <summary>Reuse locale text from an item registration.</summary>
-	[DataMember(Order = 11)]
 	public bool LocaleFromItem { get; set; }
 
 	/// <summary>Crafting-quality labels the liquid provides, matched by quality-based recipes.</summary>
-	[DataMember(Order = 12)]
 	public List<ModCraftingQuality> Qualities
 	{
 		get;
 		set => field = value ?? [];
 	} = [];
 
-	/// <summary>Serialize this definition into the opaque payload format.</summary>
-	public byte[] ToPayload()
-	{
-		using var stream = new MemoryStream();
-		var serializer = new DataContractSerializer(typeof(ModLiquidDefinition));
-		serializer.WriteObject(stream, this);
-		return stream.ToArray();
-	}
-
-	/// <summary>Deserialize a liquid definition payload. Returns null when the payload is not a valid liquid definition.</summary>
-	public static ModLiquidDefinition? FromPayload(byte[] payload) =>
-		ModPayloadCodec.Decode<ModLiquidDefinition>(payload);
 }

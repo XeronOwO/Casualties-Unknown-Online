@@ -49,7 +49,7 @@ amount-aware, so a check that was neither would inject dead recipes while claimi
 | Amount awareness | a label nothing declares at the required amount is refused, from a mod declaration and from the vanilla table | `Recipe_IsRefusedWhenNoProviderReachesItsAmount` |
 | Source-first order | isolated twice: the mod item / mod liquid is bound but NEVER materialised, so only the declared sources can answer | `Recipe_IsInjectedFromAModDeclarationBeforeTheItemIsMaterialized`, `...AModLiquidDeclarationBeforeTheLiquidIsMaterialized` |
 | Satisfiable recipes still land | vanilla item, vanilla liquid, and the colliding-id-free declared paths | `Recipe_IsInjectedWhenAVanillaItemProvidesItsQuality`, `...AVanillaLiquidProvidesItsQuality` |
-| Null collections | a null list means none, not a failed definition | `TryBind_TreatsAnExplicitNullQualityListAsNoQualities`, `ModItemDefinitionTests.ExplicitNullQualities_IsNoneNotAFailedDefinition` |
+| Null collections | a null list means none, not a failed definition | `TryBind_TreatsAnExplicitNullQualityListAsNoQualities`, `ModItemDefinitionTests.NullCollectionMembers_MeanNone` |
 | Pump order unchanged | the two new registrations are not `ICuoService` | `GameAdapterComposition` diff + `ApiSurfaceGateTests`/`SourceShapeGateTests` green |
 | Public surface recorded | rename removed with three tombstones, four lines added | `ApiSurfaceGateTests` 11/11 |
 | Docs pair intact | both blocks edited, hashes re-recorded | `DocumentationTreeGateTests` (both blob hashes equal `git hash-object` of the pages) |

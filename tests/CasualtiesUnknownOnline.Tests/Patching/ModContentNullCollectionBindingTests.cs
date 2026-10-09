@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -20,8 +19,10 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// DTO the case omits is simply absent). The definition either binds, or the
 /// provider refuses it with its own reason in the log — never with the binder's
 /// logged exception, which would leave the mod without the content it declared.
-/// The test project never compile-references GameAdapter, so the provider roster
-/// and its loggers are built reflectively.
+/// The same roster answers the typed refusal: a definition that claims a
+/// provider's kind without being its DTO type is refused by every one of the
+/// nine. The test project never compile-references GameAdapter, so the provider
+/// roster and its loggers are built reflectively.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ModContentNullCollectionBindingTests
@@ -40,8 +41,9 @@ public class ModContentNullCollectionBindingTests
 	[Fact]
 	public void Item_EveryCollectionNull_Binds()
 	{
-		var run = Run(Registration("null.item", ModContentKind.Item, new ModItemDefinition
+		var run = Run(Registration(new ModItemDefinition
 		{
+			Id = "null.item",
 			DisplayName = "Null-tolerated shard",
 			SpawnComponents = null!,
 			CustomData = null!,
@@ -55,8 +57,9 @@ public class ModContentNullCollectionBindingTests
 	[Fact]
 	public void Item_AnimationWithoutFrames_IsRefusedByItsOwnRule()
 	{
-		var run = Run(Registration("frameless.item", ModContentKind.Item, new ModItemDefinition
+		var run = Run(Registration(new ModItemDefinition
 		{
+			Id = "frameless.item",
 			DisplayName = "Frameless shard",
 			Visual = new ModItemVisual
 			{
@@ -72,8 +75,9 @@ public class ModContentNullCollectionBindingTests
 	[Fact]
 	public void Recipe_WithoutIngredients_IsRefusedByItsOwnRule()
 	{
-		var run = Run(Registration("empty.recipe", ModContentKind.Recipe, new ModRecipeDefinition
+		var run = Run(Registration(new ModRecipeDefinition
 		{
+			Id = "empty.recipe",
 			ResultItemId = "log",
 			Ingredients = null!
 		}));
@@ -84,8 +88,9 @@ public class ModContentNullCollectionBindingTests
 	[Fact]
 	public void Liquid_EveryCollectionNull_Binds()
 	{
-		var run = Run(Registration("null.liquid", ModContentKind.Liquid, new ModLiquidDefinition
+		var run = Run(Registration(new ModLiquidDefinition
 		{
+			Id = "null.liquid",
 			DisplayName = "Null-tolerated liquid",
 			Qualities = null!
 		}));
@@ -96,8 +101,9 @@ public class ModContentNullCollectionBindingTests
 	[Fact]
 	public void LiquidTile_EveryCollectionNull_Binds()
 	{
-		var run = Run(Registration("null.liquidtile", ModContentKind.LiquidTile, new ModLiquidTileDefinition
+		var run = Run(Registration(new ModLiquidTileDefinition
 		{
+			Id = "null.liquidtile",
 			LiquidId = "water",
 			SpawnLayers = ModLiquidTileDefinition.AllSpawnLayers,
 			MaxFloodFill = 128,
@@ -110,8 +116,9 @@ public class ModContentNullCollectionBindingTests
 	[Fact]
 	public void Building_EveryCollectionNull_Binds()
 	{
-		var run = Run(Registration("null.building", ModContentKind.Building, new ModBuildingDefinition
+		var run = Run(Registration(new ModBuildingDefinition
 		{
+			Id = "null.building",
 			TemplateId = "wall",
 			DropOnDestroy = null!,
 			AlwaysDrop = null!,
@@ -126,8 +133,9 @@ public class ModContentNullCollectionBindingTests
 	[Fact]
 	public void Tile_EveryCollectionNull_Binds()
 	{
-		var run = Run(Registration("null.tile", ModContentKind.Tile, new ModTileDefinition
+		var run = Run(Registration(new ModTileDefinition
 		{
+			Id = "null.tile",
 			TemplateTileIndex = 1,
 			Drops = null!,
 			CustomData = null!
@@ -140,8 +148,9 @@ public class ModContentNullCollectionBindingTests
 	public void Structure_NullCollections_AreRefusedOrBoundByTheirOwnRule()
 	{
 		var run = Run(
-			Registration("rowless.structure", ModContentKind.Structure, new ModStructureDefinition
+			Registration(new ModStructureDefinition
 			{
+				Id = "rowless.structure",
 				Width = 1,
 				Height = 1,
 				Rows = null!,
@@ -150,8 +159,9 @@ public class ModContentNullCollectionBindingTests
 				SpawnCounts = null!,
 				CustomData = null!
 			}),
-			Registration("marker.structure", ModContentKind.Structure, new ModStructureDefinition
+			Registration(new ModStructureDefinition
 			{
+				Id = "marker.structure",
 				Width = 1,
 				Height = 1,
 				Rows = ["#"],
@@ -170,8 +180,9 @@ public class ModContentNullCollectionBindingTests
 	[Fact]
 	public void Status_EveryCollectionNull_Binds()
 	{
-		var run = Run(Registration("null.status", ModContentKind.Status, new ModStatusDefinition
+		var run = Run(Registration(new ModStatusDefinition
 		{
+			Id = "null.status",
 			DisplayName = "Null-tolerated status",
 			Scope = ModStatusScope.Limb,
 			ShowPerLimbMoodles = true,
@@ -186,13 +197,15 @@ public class ModContentNullCollectionBindingTests
 	public void Moodle_NullCollections_AreRefusedOrBoundByTheirOwnRule()
 	{
 		var run = Run(
-			Registration("null.moodle", ModContentKind.Moodle, new ModMoodleDefinition
+			Registration(new ModMoodleDefinition
 			{
+				Id = "null.moodle",
 				IconId = "icons.lead",
 				CustomData = null!
 			}),
-			Registration("frameless.moodle", ModContentKind.Moodle, new ModMoodleDefinition
+			Registration(new ModMoodleDefinition
 			{
+				Id = "frameless.moodle",
 				IconId = "icons.lead",
 				IconAnimation = new ModMoodleAnimation { FramePaths = null!, FramesPerSecond = 12f }
 			}));
@@ -201,12 +214,53 @@ public class ModContentNullCollectionBindingTests
 		run.AssertRefusedByProvider(ModContentKind.Moodle, "frameless.moodle", "invalid icon animation");
 	}
 
-	private static ModContentRegistration Registration(string id, string kind, object definition)
+	/// <summary>
+	/// The typed registry decodes no payload any more, so the refusal a provider
+	/// can still reach is a definition that claims its kind without being the DTO
+	/// it reads — a definition a mod wrote itself, or another DTO type. The cast is
+	/// now the only thing between a claimed kind and a materialized entry, and the
+	/// shape is identical nine times, so every provider is driven here: one that
+	/// quietly accepted a foreign definition would bind content nothing can read.
+	/// </summary>
+	[Fact]
+	public void EveryProvider_RefusesADefinitionOfAnotherTypeFiledUnderItsKind()
 	{
-		var payload = (byte[])definition.GetType().GetMethod("ToPayload", BindingFlags.Public | BindingFlags.Instance)!
-			.Invoke(definition, null)!;
-		return new ModContentRegistration(ModId, new ModContentDefinition(id, kind, payload, 1));
+		var run = Run(
+			Registration(new StubContentDefinition("wrong.item", ModContentKind.Item)),
+			Registration(new StubContentDefinition("wrong.recipe", ModContentKind.Recipe)),
+			Registration(new StubContentDefinition("wrong.liquid", ModContentKind.Liquid)),
+			Registration(new StubContentDefinition("wrong.liquidtile", ModContentKind.LiquidTile)),
+			Registration(new StubContentDefinition("wrong.tile", ModContentKind.Tile)),
+			Registration(new StubContentDefinition("wrong.building", ModContentKind.Building)),
+			Registration(new StubContentDefinition("wrong.structure", ModContentKind.Structure)),
+			Registration(new StubContentDefinition("wrong.status", ModContentKind.Status)),
+			Registration(new StubContentDefinition("wrong.moodle", ModContentKind.Moodle)));
+
+		run.AssertRefusedByProvider(
+			ModContentKind.Item, "wrong.item", "claims kind item but is a StubContentDefinition, not a ModItemDefinition");
+		run.AssertRefusedByProvider(
+			ModContentKind.Recipe, "wrong.recipe", "claims kind recipe but is a StubContentDefinition, not a ModRecipeDefinition");
+		run.AssertRefusedByProvider(
+			ModContentKind.Liquid, "wrong.liquid", "claims kind liquid but is a StubContentDefinition, not a ModLiquidDefinition");
+		run.AssertRefusedByProvider(
+			ModContentKind.LiquidTile, "wrong.liquidtile",
+			"claims kind liquidtile but is a StubContentDefinition, not a ModLiquidTileDefinition");
+		run.AssertRefusedByProvider(
+			ModContentKind.Tile, "wrong.tile", "claims kind tile but is a StubContentDefinition, not a ModTileDefinition");
+		run.AssertRefusedByProvider(
+			ModContentKind.Building, "wrong.building",
+			"claims kind building but is a StubContentDefinition, not a ModBuildingDefinition");
+		run.AssertRefusedByProvider(
+			ModContentKind.Structure, "wrong.structure",
+			"claims kind structure but is a StubContentDefinition, not a ModStructureDefinition");
+		run.AssertRefusedByProvider(
+			ModContentKind.Status, "wrong.status", "claims kind status but is a StubContentDefinition, not a ModStatusDefinition");
+		run.AssertRefusedByProvider(
+			ModContentKind.Moodle, "wrong.moodle", "claims kind moodle but is a StubContentDefinition, not a ModMoodleDefinition");
 	}
+
+	private static ModContentRegistration Registration(IModContentDefinition definition) =>
+		new(ModId, definition);
 
 	/// <summary>
 	/// One binder run: the real providers, a recording binder logger and one

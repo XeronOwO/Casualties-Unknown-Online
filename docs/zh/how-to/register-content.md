@@ -8,7 +8,7 @@
 
 ## 内容和模组一起走，不走网络
 
-你注册的字节就是你模组程序集的一部分；注册表只在进程内，里面的东西谁都不会收到。一致性边界是模组握手 —— 模组 id、版本、权限、网络模式 —— 所以可能收到你内容实例的每一名玩家都必须跑同一版本的模组。正因如此，运行时绑定器只接受能保证“每个接收方都有一份”的网络模式：`Synchronized`、`Authoritative`、`RequiresAllPlayers`；`HostOnly`、`ClientOnly`、`Cosmetic` 的内容永远不会被绑进共享世界状态。
+你注册的那份定义就是你模组程序集的一部分；注册表只在进程内，里面的东西谁都不会收到。一致性边界是模组握手 —— 模组 id、版本、权限、网络模式 —— 所以可能收到你内容实例的每一名玩家都必须跑同一版本的模组。正因如此，运行时绑定器只接受能保证“每个接收方都有一份”的网络模式：`Synchronized`、`Authoritative`、`RequiresAllPlayers`；`HostOnly`、`ClientOnly`、`Cosmetic` 的内容永远不会被绑进共享世界状态。
 
 ## 先声明命名空间
 
@@ -28,8 +28,9 @@ public sealed class ExampleMod : ICuoMod
 ```csharp
 if (context.Content.CanRegister)
 {
-	var sword = new ModItemDefinition
+	context.Content.TryRegister(new ModItemDefinition
 	{
+		Id = "wooden.sword",
 		DisplayName = "Wooden Sword",
 		Description = "A simple wooden sword.",
 		Weight = 1f,
@@ -37,18 +38,23 @@ if (context.Content.CanRegister)
 		Usable = true,
 		Tags = "weapon",
 		TemplateId = "stone"
-	}.ToPayload();
+	});
 
-	context.Content.TryRegister("wooden.sword", ModContentKind.Item, sword);
-	context.Content.TryRegister("healing.recipe", ModContentKind.Recipe, recipeBytes, schemaVersion: 2);
+	context.Content.TryRegister(new ModRecipeDefinition
+	{
+		Id = "healing.recipe",
+		SchemaVersion = 2,
+		ResultItemId = "bandage",
+		Ingredients = [new ModRecipeIngredient { ItemId = "cloth" }]
+	});
 }
 ```
 
-`TryRegister` 收的是裸 id、内容类别（content kind）和一个不透明的载荷。`Definitions` 返回一份快照，读出来的载荷都是副本；`IsRegistered` 回答单个 id，`TryUnregister` 撤掉一条定义。注册要放在 `Bind` 里：注册表在发现与 `Bind` 之前就已经加载过一次，之后再注册就是你自己的竞态。
+`TryRegister` 收的是定义对象本身。它自带 id、自带类别（类别由类型固定，所以你注册的东西不可能被登记到不属于它的类别下），也自带结构版本。`Definitions` 返回你注册进去的那些定义（是同一批实例，不是副本）；`IsRegistered` 回答单个 id，`TryUnregister` 撤掉一条定义。注册要放在 `Bind` 里：注册表在发现与 `Bind` 之前就已经加载过一次，之后再注册就是你自己的竞态。
 
-## 有类型化载荷的类别
+## 有类型化定义的类别
 
-注册本身只认识 `id`、类别和 `bytes` 三样。对框架今天会绑进游戏的类别，`CUO.Abstractions` 另外提供了 DTO，你填好之后用 `ToPayload()` 变成载荷：
+对框架今天会绑进游戏的类别，`CUO.Abstractions` 提供了一份 DTO，你填好之后原样注册：
 
 | 类别 | DTO | 适配器拿它做什么 |
 |---|---|---|
@@ -59,9 +65,11 @@ if (context.Content.CanRegister)
 | `tile`、`structure` | `ModTileDefinition`、`ModStructureDefinition` | 分配地块索引，并可喂给世界生成 |
 | `status`、`moodle` | `ModStatusDefinition`、`ModMoodleDefinition` | 存下投影要读的静态描述 |
 
-这些 DTO 大多另带一个 `CustomData` 字典，用来放已知类别还没命名的字段（`ModRecipeDefinition` 和 `ModLiquidDefinition` 没有）；而框架存下来的始终是你注册的那串不透明字节。
+这些 DTO 大多另带一个 `CustomData` 字典，用来放已知类别还没命名的字段（`ModRecipeDefinition` 和 `ModLiquidDefinition` 没有）；而框架留下的是你注册的那个对象本身，不是它的副本 —— 注册之后就不要再改它。
 
-上面这张表就是全部。表里的九个类别正是 `ModContentKind` 列出的、有 CUO 提供者去实体化的类别；表外的类别照样可以合法登记 —— 框架只校验类别的形状，从不校验它是否在表里 —— 但没有任何东西会绑它：它留在登记表里，控制台按规范 id 列出它，而它永远不会出现在世界里。绑定器会在加载时说一次，级别是警告，点名类别与你的定义 —— 那行日志就是「已登记」与「会存在」的分界，内容迟迟不见踪影时先看它。
+上面这张表就是全部。表里的九个类别正是 `ModContentKind` 列出的、有 CUO 提供者去实体化的类别；表外的类别照样可以合法登记 —— 自己实现 `IModContentDefinition`，自报类别标签，数据也归你自己 —— 因为框架只校验类别的形状，从不校验它是否在表里 —— 但没有任何东西会绑它：它留在登记表里，控制台按规范 id 列出它，而它永远不会出现在世界里。绑定器会在加载时说一次，级别是警告，点名类别与你的定义 —— 那行日志就是「已登记」与「会存在」的分界，内容迟迟不见踪影时先看它。
+
+自己写的定义如果冒充那九个类别之一，就是另一种情况，这时要找的是提供者那行日志：`{ModId}/{Id} claims kind {Kind} but is a {Type}, not a {ModItemDefinition} — refused`。提供者只读它自己那份 DTO，所以类型不对的定义无论类别标签写得多准都不会被绑。
 
 ## 查一条定义归谁
 
@@ -77,8 +85,8 @@ if (context.ContentOwners.TryGetOwner(ModContentKind.Item, "example:wooden.sword
 ## 会被拒绝的情况
 
 - 没声明 `RegisterContent`：`CanRegister` 是 false，每次调用都返回 false 并写日志。
-- 同一个模组里 id 重复，或者 id、类别为空。
-- 载荷超过 64 KiB、结构版本（schema version）不是正数、一个模组的定义超过 1024 条。
+- 传进来的定义是 null，同一个模组里 id 重复，id 为空，或者类别为空／超过 64 个字符。
+- 结构版本（schema version）不是正数，或者一个模组的定义超过 1024 条。
 - id 不是规范的小写路径段：含大写、含空白、路径里带 `:`，或者路径超过 95 个字符。
 - 两个模组注册了同一类别、同一个裸 id。
 
@@ -87,7 +95,7 @@ if (context.ContentOwners.TryGetOwner(ModContentKind.Item, "example:wooden.sword
 ## 常见坑
 
 - **不要在游戏跑起来之后再注册。** 注册是内容，不是运行时状态；注册表属于 `Bind`，没有任何逐帧路径通向它。
-- **结构版本和它的迁移都归你。** 框架原样存下你的字节和你自报的版本，版本之间绝不替你转换。
+- **结构版本归你。** 框架原样存下你自报的版本，版本之间绝不替你转换；你注册的东西长什么形状，就是那份 C# 类型本身。
 - **游戏表还没就绪不是你的问题。** 适配器的各个 provider 会等自己那张表；表好了自然会来读你的定义。
 - **注册内容不等于同步内容。** 注册好的物品不会自己出现在任何地方；把它放进世界是一次生成，那是另一个权限、另一页的事。
 

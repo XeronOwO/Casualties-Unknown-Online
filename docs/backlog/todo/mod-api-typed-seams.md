@@ -5,7 +5,7 @@
   (two tickets) and exactly two `object`-shaped holes plus one string-keyed call, all listed below.
 - Priority: Critical
 - Category: Mod platform / mod API
-- Related: `docs/backlog/todo/mod-content-typed-registration.md` and
+- Related: `docs/backlog/review/mod-content-typed-registration.md` and
   `docs/backlog/todo/mod-api-no-opaque-envelopes.md` (the same sweep), `docs/backlog/todo/mod-authored-effects.md`
   (its effect context needs the same answer: an engine-typed handle and named operations, never `object`),
   `docs/en/reference/modification-policy.md` (the visibility rule: only a designed capability becomes a

@@ -70,7 +70,7 @@ vitals | 生命体征 | 生命体征（vitals） | 血量，生命值 | the proj
 content id | 内容 id | 内容 id（content id） | 内容编号，资源 id | the canonical `namespace:path` address of a registered content definition
 namespace | 命名空间 | 命名空间（namespace） | 前缀，域 | the mod-declared first half of a content id; context separates it from the C# keyword
 content kind | 内容类别 | 内容类别（content kind） | 内容类型 | the `kind` string a definition is registered under, such as `item` or `recipe`
-schema version | 结构版本 | 结构版本（schema version） | 架构版本，格式版本号 | the mod-owned version stored with an opaque persisted payload; the framework never migrates it
+schema version | 结构版本 | 结构版本（schema version） | 架构版本，格式版本号 | the mod-owned version declared on its state, runtime value or content definition; the framework never migrates it
 mod state | 模组状态 | 模组状态（mod state） | 模组存档，模组数据 | the host-persistent per-mod key/value table behind `IModState`
 rollback | 回滚 | 回滚（rollback） | 撤销，退回 | undoing a locally applied action after arbitration refuses the claim
 tombstone | 墓碑 | 墓碑（tombstone） | 标记，记号 | a recorded refusal that stops a later repeat of the same creation
@@ -89,7 +89,7 @@ native api | 原生操作注册表 | 原生操作注册表 | 原生接口，游�
 building runtime | 建筑运行时 | 建筑运行时 | 建筑数据，建筑存储 | the host-persistent mod building table the adapter turns into Unity behaviour
 feature matrix | 特性矩阵 | 特性矩阵 | 特征表，功能矩阵 | the table of game features and their sync status; the CSV file is the machine copy
 configuration profile | 配置档案 | 配置档案（configuration profile） | 配置模板，配置方案 | a named snapshot of every configuration setting, stored beside the config file
-payload | 载荷 | 载荷 | 数据包，内容体 | the opaque bytes a message or a content definition carries; the framework never reads inside them
+payload | 载荷 | 载荷 | 数据包，内容体 | the opaque bytes a message or a runtime value carries; the framework never reads inside them
 declared packet | 声明数据包 | 声明数据包（declared packet） | 自定义包，消息包 | a mod-owned message id with its own declared sender and delivery policy and its own handler chain, routed by the framework
 packet chain | 处理链 | 处理链（packet chain） | 回调链，处理器链 | the ordered validate/apply/observe handlers one declared packet runs
 anonymous tunnel | 匿名通道 | 匿名通道（anonymous tunnel） | 隧道，原始通道 | the packet-less form of the mod frame: one opaque payload per mod and one receive callback

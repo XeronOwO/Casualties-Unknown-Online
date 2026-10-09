@@ -4,60 +4,48 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The typed liquid content payload contract: a mod can serialize a
-/// <see cref="ModLiquidDefinition"/> into the opaque content payload and the
-/// Game Adapter liquid provider can decode it without a private format.
+/// The typed liquid definition a mod hands to <see cref="IModContent"/>: the
+/// identity its type fixes (<see cref="ModContentKind.Liquid"/>), the qualities
+/// collection where null means "none" and the tint/injection defaults the
+/// definition declares. Nothing serializes a definition any more, so this suite
+/// pins the answers the definition itself owns.
 /// </summary>
 public class ModLiquidDefinitionTests
 {
 	[Fact]
-	public void RoundTrip_PreservesLiquidFields()
+	public void Identity_IsFixedByTheType()
 	{
-		var original = new ModLiquidDefinition
-		{
-			DisplayName = "Green Goo",
-			Description = "Sticky green liquid.",
-			ColorR = 0.2f,
-			ColorG = 0.8f,
-			ColorB = 0.4f,
-			ColorA = 0.9f,
-			ValuePerLiter = 12.5f,
-			HealthUsable = true,
-			Injectable = true,
-			InjectionSickness = 0.3f,
-			LocaleFromItem = false,
-			Qualities =
-			[
-				new ModCraftingQuality { Id = "chemical", Amount = 2f },
-				new ModCraftingQuality { Id = "toxic", Amount = 0.5f }
-			]
-		};
+		var defaults = new ModLiquidDefinition();
 
-		var restored = ModLiquidDefinition.FromPayload(original.ToPayload());
+		Assert.Equal(ModContentKind.Liquid, defaults.Kind);
+		Assert.Empty(defaults.Id);
+		Assert.Equal(1, defaults.SchemaVersion);
 
-		Assert.NotNull(restored);
-		Assert.Equal(original.DisplayName, restored!.DisplayName);
-		Assert.Equal(original.Description, restored.Description);
-		Assert.Equal(original.ColorR, restored.ColorR);
-		Assert.Equal(original.ColorG, restored.ColorG);
-		Assert.Equal(original.ColorB, restored.ColorB);
-		Assert.Equal(original.ColorA, restored.ColorA);
-		Assert.Equal(original.ValuePerLiter, restored.ValuePerLiter);
-		Assert.True(restored.HealthUsable);
-		Assert.True(restored.Injectable);
-		Assert.Equal(original.InjectionSickness, restored.InjectionSickness);
-		Assert.False(restored.LocaleFromItem);
-		Assert.Equal(2, restored.Qualities.Count);
-		Assert.Equal("chemical", restored.Qualities[0].Id);
-		Assert.Equal(2f, restored.Qualities[0].Amount);
-		Assert.Equal("toxic", restored.Qualities[1].Id);
+		var authored = new ModLiquidDefinition { Id = "test.goo", SchemaVersion = 5 };
+
+		Assert.Equal("test.goo", authored.Id);
+		Assert.Equal(5, authored.SchemaVersion);
 	}
 
 	[Fact]
-	public void InvalidPayload_ReturnsNull()
+	public void NullCollectionMembers_MeanNone()
 	{
-		Assert.Null(ModLiquidDefinition.FromPayload([]));
-		Assert.Null(ModLiquidDefinition.FromPayload([1, 2, 3]));
-		Assert.Null(ModLiquidDefinition.FromPayload(null!));
+		var definition = new ModLiquidDefinition { Qualities = null! };
+
+		Assert.Empty(definition.Qualities);
+	}
+
+	[Fact]
+	public void DeclaredDefaults_HoldOnAFreshDefinition()
+	{
+		var definition = new ModLiquidDefinition();
+
+		Assert.Empty(definition.DisplayName);
+		Assert.Empty(definition.Description);
+		Assert.Equal(1f, definition.ColorR);
+		Assert.Equal(1f, definition.ColorG);
+		Assert.Equal(1f, definition.ColorB);
+		Assert.Equal(1f, definition.ColorA);
+		Assert.Equal(1f, definition.InjectionSickness);
 	}
 }

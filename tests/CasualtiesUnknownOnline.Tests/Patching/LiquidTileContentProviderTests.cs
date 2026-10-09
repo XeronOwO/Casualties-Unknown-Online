@@ -34,14 +34,12 @@ public class LiquidTileContentProviderTests
 		return Activator.CreateInstance(ProviderType, [logger])!;
 	}
 
-	private static bool TryBind(object provider, string id, ModLiquidTileDefinition definition)
+	private static bool TryBind(object provider, ModLiquidTileDefinition definition)
 	{
 		var bind = provider.GetType().GetMethod(
 			"TryBind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("TryBind not found.");
-		var registration = new ModContentRegistration(
-			"mod.a",
-			new ModContentDefinition(id, ModContentKind.LiquidTile, definition.ToPayload(), 1));
+		var registration = new ModContentRegistration("mod.a", definition);
 		return (bool)bind.Invoke(provider, [registration])!;
 	}
 
@@ -61,9 +59,10 @@ public class LiquidTileContentProviderTests
 		return [.. ids];
 	}
 
-	private static ModLiquidTileDefinition ValidTile(float spawnAmount = 0f) =>
+	private static ModLiquidTileDefinition ValidTile(string id, float spawnAmount = 0f) =>
 		new()
 		{
+			Id = id,
 			LiquidId = "water",
 			SpawnAmount = spawnAmount,
 			SpawnLayers = ModLiquidTileDefinition.AllSpawnLayers,
@@ -75,8 +74,8 @@ public class LiquidTileContentProviderTests
 	{
 		var provider = CreateProvider();
 
-		Assert.True(TryBind(provider, "zebra", ValidTile(2f)));
-		Assert.True(TryBind(provider, "alpha", ValidTile(1f)));
+		Assert.True(TryBind(provider, ValidTile("zebra", 2f)));
+		Assert.True(TryBind(provider, ValidTile("alpha", 1f)));
 
 		Assert.Equal(["alpha", "zebra"], SnapshotIds(provider));
 	}
@@ -86,11 +85,11 @@ public class LiquidTileContentProviderTests
 	{
 		var provider = CreateProvider();
 
-		var valid = ValidTile();
-		var invalid = ValidTile();
+		var valid = ValidTile("valid");
+		var invalid = ValidTile("invalid");
 		invalid.Drag = 1.5f;
 
-		Assert.True(TryBind(provider, "valid", valid));
-		Assert.False(TryBind(provider, "invalid", invalid));
+		Assert.True(TryBind(provider, valid));
+		Assert.False(TryBind(provider, invalid));
 	}
 }

@@ -42,7 +42,7 @@ public sealed class ExampleMod : ICuoMod
 CUO 会调用一次 `Bind(IModContext context)`，所有东西都从这个 context 拿：
 
 ```csharp
-context.Content.TryRegister("example.recipe", "recipe", [0x01, 0x02, 0x03]);
+context.Content.TryRegister(new ModItemDefinition { Id = "example.trophy", DisplayName = "Example Trophy" });
 context.Network.MessageReceived += (sender, payload) => { /* … */ };
 context.Commands.Register(new ModCommand("echo", c => $"echo:{string.Join(" ", c.Arguments)}"));
 context.Ui.Register("example", "CUO Example", window => window.Label("hello"));

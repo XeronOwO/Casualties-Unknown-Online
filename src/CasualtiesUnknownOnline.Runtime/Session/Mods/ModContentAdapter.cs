@@ -8,29 +8,35 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// <summary>
 /// The per-mod content registry: a small definition list scoped by
 /// construction to one mod id. Registration failures are logged and refused
-/// (missing permission, invalid id/kind/data, duplicate id, count cap); the
-/// stored payloads are defensive copies and every read returns another copy.
+/// (missing permission, null definition, invalid id/kind/schema version,
+/// duplicate id, count cap). The registry keeps the definition object the mod
+/// handed over — it takes no copy — so a mod registers a definition it does not
+/// mutate afterwards.
 /// </summary>
 internal sealed class ModContentAdapter(ModManifest manifest, ILogger log) : IModContent
 {
-	private readonly List<ModContentDefinition> _definitions = [];
+	private readonly List<IModContentDefinition> _definitions = [];
 
 	public bool CanRegister => ModPermissionGate.HasPermission(manifest, ModPermission.RegisterContent);
 
 	public int Count => _definitions.Count;
 
-	public IReadOnlyCollection<ModContentDefinition> Definitions => [.. _definitions];
+	public IReadOnlyCollection<IModContentDefinition> Definitions => [.. _definitions];
 
-	public bool TryRegister(string id, string kind, byte[] data) =>
-		TryRegister(id, kind, data, 1);
-
-	public bool TryRegister(string id, string kind, byte[] data, int schemaVersion)
+	public bool TryRegister(IModContentDefinition definition)
 	{
 		if (!ModPermissionGate.Try(log, manifest, ModPermission.RegisterContent))
 		{
 			return false;
 		}
 
+		if (definition is null)
+		{
+			log.LogWarning("[Mods] {ModId} tried to register a null content definition — refused.", manifest.Id);
+			return false;
+		}
+
+		var id = definition.Id;
 		if (!ModContentPolicy.IsValidId(id))
 		{
 			log.LogWarning("[Mods] {ModId} tried to register content with an invalid id {Id} — refused.",
@@ -38,24 +44,17 @@ internal sealed class ModContentAdapter(ModManifest manifest, ILogger log) : IMo
 			return false;
 		}
 
-		if (!ModContentPolicy.IsValidKind(kind))
+		if (!ModContentPolicy.IsValidKind(definition.Kind))
 		{
 			log.LogWarning("[Mods] {ModId} tried to register content {Id} with an invalid kind {Kind} — refused.",
-				manifest.Id, id, kind);
+				manifest.Id, id, definition.Kind);
 			return false;
 		}
 
-		if (!ModContentPolicy.IsValidSchemaVersion(schemaVersion))
+		if (!ModContentPolicy.IsValidSchemaVersion(definition.SchemaVersion))
 		{
 			log.LogWarning("[Mods] {ModId} tried to register content {Id} with invalid schema version {SchemaVersion} — refused.",
-				manifest.Id, id, schemaVersion);
-			return false;
-		}
-
-		if (!ModContentPolicy.IsValidData(data))
-		{
-			log.LogWarning("[Mods] {ModId} tried to register content {Id} with a {Length}-byte payload; the cap is {Cap} bytes — refused.",
-				manifest.Id, id, data?.Length ?? 0, ModContentPolicy.MaxDefinitionBytes);
+				manifest.Id, id, definition.SchemaVersion);
 			return false;
 		}
 
@@ -73,10 +72,9 @@ internal sealed class ModContentAdapter(ModManifest manifest, ILogger log) : IMo
 			return false;
 		}
 
-		var definition = new ModContentDefinition(id, kind, data, schemaVersion);
 		_definitions.Add(definition);
-		log.LogInformation("[Mods] {ModId} registered content {Id} ({Kind}, schema {SchemaVersion}, {Length} bytes).",
-			manifest.Id, id, kind, definition.SchemaVersion, data.Length);
+		log.LogInformation("[Mods] {ModId} registered content {Id} ({Kind}, schema {SchemaVersion}, {DefinitionType}).",
+			manifest.Id, id, definition.Kind, definition.SchemaVersion, definition.GetType().Name);
 		return true;
 	}
 

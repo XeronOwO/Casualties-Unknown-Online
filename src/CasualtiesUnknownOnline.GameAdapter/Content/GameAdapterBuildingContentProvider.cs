@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
 /// The building content binding provider: it turns
-/// <see cref="ModBuildingDefinition"/> payloads from shared-content mods into
+/// <see cref="ModBuildingDefinition"/> definitions from shared-content mods into
 /// runtime <c>BuildingEntity</c> prefab templates so CUO's existing
 /// <c>EntitySpawned</c> channel can materialize the custom building without
 /// exposing game types to mods. Template construction uses
@@ -37,17 +37,12 @@ public sealed class GameAdapterBuildingContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModBuildingDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModBuildingDefinition definition)
 		{
 			_log.LogWarning(
-				"[BuildingContent] {ModId}/{Id} payload is not a valid ModBuildingDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[BuildingContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModBuildingDefinition));
 			return false;
 		}
 

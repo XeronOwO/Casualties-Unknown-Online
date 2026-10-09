@@ -34,14 +34,12 @@ public class ItemWorldGenProviderTests
 		return Activator.CreateInstance(ProviderType, [logger])!;
 	}
 
-	private static bool TryBind(object provider, string id, ModItemDefinition definition)
+	private static bool TryBind(object provider, ModItemDefinition definition)
 	{
 		var bind = provider.GetType().GetMethod(
 			"TryBind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("TryBind not found.");
-		var registration = new ModContentRegistration(
-			"mod.a",
-			new ModContentDefinition(id, ModContentKind.Item, definition.ToPayload(), 1));
+		var registration = new ModContentRegistration("mod.a", definition);
 		return (bool)bind.Invoke(provider, [registration])!;
 	}
 
@@ -61,9 +59,10 @@ public class ItemWorldGenProviderTests
 		return [.. ids];
 	}
 
-	private static ModItemDefinition ValidItem(float? worldSpawnPerChunk = 0.1f) =>
+	private static ModItemDefinition ValidItem(string id, float? worldSpawnPerChunk = 0.1f) =>
 		new()
 		{
+			Id = id,
 			Category = "misc",
 			TemplateId = "stone",
 			WorldSpawnPerChunk = worldSpawnPerChunk
@@ -74,10 +73,10 @@ public class ItemWorldGenProviderTests
 	{
 		var provider = CreateProvider();
 
-		Assert.True(TryBind(provider, "zebra", ValidItem(2f)));
-		Assert.True(TryBind(provider, "alpha", ValidItem(1f)));
-		Assert.True(TryBind(provider, "disabled", ValidItem(null)));
-		Assert.True(TryBind(provider, "zero", ValidItem(0f)));
+		Assert.True(TryBind(provider, ValidItem("zebra", 2f)));
+		Assert.True(TryBind(provider, ValidItem("alpha", 1f)));
+		Assert.True(TryBind(provider, ValidItem("disabled", null)));
+		Assert.True(TryBind(provider, ValidItem("zero", 0f)));
 
 		Assert.Equal(["alpha", "zebra"], SnapshotIds(provider));
 	}
@@ -87,10 +86,10 @@ public class ItemWorldGenProviderTests
 	{
 		var provider = CreateProvider();
 
-		Assert.True(TryBind(provider, "valid", ValidItem(0.5f)));
-		Assert.False(TryBind(provider, "negative", ValidItem(-0.1f)));
-		Assert.False(TryBind(provider, "nan", ValidItem(float.NaN)));
-		Assert.False(TryBind(provider, "inf", ValidItem(float.PositiveInfinity)));
-		Assert.False(TryBind(provider, "neginf", ValidItem(float.NegativeInfinity)));
+		Assert.True(TryBind(provider, ValidItem("valid", 0.5f)));
+		Assert.False(TryBind(provider, ValidItem("negative", -0.1f)));
+		Assert.False(TryBind(provider, ValidItem("nan", float.NaN)));
+		Assert.False(TryBind(provider, ValidItem("inf", float.PositiveInfinity)));
+		Assert.False(TryBind(provider, ValidItem("neginf", float.NegativeInfinity)));
 	}
 }

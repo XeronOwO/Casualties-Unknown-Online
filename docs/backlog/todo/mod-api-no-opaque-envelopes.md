@@ -6,7 +6,7 @@
   boundary — the half the first ticket deliberately left alone.
 - Priority: Critical
 - Category: Mod platform / protocol / architecture
-- Related: `docs/backlog/todo/mod-content-typed-registration.md` (step 1 of the same ruling),
+- Related: `docs/backlog/review/mod-content-typed-registration.md` (step 1 of the same ruling),
   `docs/backlog/todo/mod-authored-effects.md` (follows this one, and would otherwise be built twice),
   `docs/backlog/review/mod-defined-wire-packets.md` (the packet surface),
   `docs/backlog/review/mod-payload-null-collection-tolerance.md` (the rule that exists because of the payload

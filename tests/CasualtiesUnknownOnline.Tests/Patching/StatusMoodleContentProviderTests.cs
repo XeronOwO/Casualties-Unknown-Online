@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -11,8 +12,9 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// The GameAdapter status/moodle static content provider validation surface.
 /// The test project never compile-references GameAdapter (it binds game
 /// assemblies), so these lock the provider contracts reflectively: both kinds
-/// are accepted as typed static descriptors, while invalid schema/scope data is
-/// refused before any future runtime domain consumes it.
+/// are accepted as typed static descriptors, while a definition of another type
+/// filed under a provider's kind, or invalid schema/scope data, is refused
+/// before any future runtime domain consumes it.
 /// </summary>
 [Trait("Category", "Integration")]
 public class StatusMoodleContentProviderTests
@@ -27,15 +29,26 @@ public class StatusMoodleContentProviderTests
 		return Activator.CreateInstance(providerType, [logger])!;
 	}
 
-	private static bool TryBind(object provider, string kind, string id, byte[] payload)
+	private static bool TryBind(object provider, IModContentDefinition definition)
 	{
 		var bind = provider.GetType().GetMethod(
 			"TryBind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("TryBind not found.");
-		var registration = new ModContentRegistration(
-			"mod.a",
-			new ModContentDefinition(id, kind, payload, 1));
+		var registration = new ModContentRegistration("mod.a", definition);
 		return (bool)bind.Invoke(provider, [registration])!;
+	}
+
+	/// <summary>
+	/// The provider's own lookup, so a refusal is asserted on the registry and
+	/// not only on the return value: a definition the provider refused must not
+	/// be kept.
+	/// </summary>
+	private static bool IsKept(object provider, string id)
+	{
+		var method = provider.GetType().GetMethod(
+			"TryGetDefinition", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("TryGetDefinition not found.");
+		return (bool)method.Invoke(provider, [id, null])!;
 	}
 
 	[Fact]
@@ -44,20 +57,24 @@ public class StatusMoodleContentProviderTests
 		var provider = CreateProvider(
 			"CasualtiesUnknownOnline.GameAdapter.Content.GameAdapterStatusContentProvider");
 
-		var body = new ModStatusDefinition { Scope = ModStatusScope.Body };
-		var limb = new ModStatusDefinition { Scope = ModStatusScope.Limb };
+		var body = new ModStatusDefinition { Id = "status.body", Scope = ModStatusScope.Body };
+		var limb = new ModStatusDefinition { Id = "status.limb", Scope = ModStatusScope.Limb };
 
-		Assert.True(TryBind(provider, ModContentKind.Status, "status.body", body.ToPayload()));
-		Assert.True(TryBind(provider, ModContentKind.Status, "status.limb", limb.ToPayload()));
+		Assert.True(TryBind(provider, body));
+		Assert.True(TryBind(provider, limb));
 	}
 
 	[Fact]
-	public void StatusProvider_RejectsInvalidPayload()
+	public void StatusProvider_RefusesADefinitionOfAnotherTypeFiledUnderItsKind()
 	{
 		var provider = CreateProvider(
 			"CasualtiesUnknownOnline.GameAdapter.Content.GameAdapterStatusContentProvider");
 
-		Assert.False(TryBind(provider, ModContentKind.Status, "status.bad", [1, 2, 3]));
+		// The typed registry decodes no payload any more, so the reachable
+		// refusal is a definition that claims the status kind without being a
+		// ModStatusDefinition: it must be refused and never kept.
+		Assert.False(TryBind(provider, new StubContentDefinition("status.bad", ModContentKind.Status)));
+		Assert.False(IsKept(provider, "status.bad"));
 	}
 
 	[Fact]
@@ -68,6 +85,7 @@ public class StatusMoodleContentProviderTests
 
 		var valid = new ModStatusDefinition
 		{
+			Id = "status.perlimb",
 			Scope = ModStatusScope.Limb,
 			MoodleId = "moodle.default",
 			ShowPerLimbMoodles = true,
@@ -79,6 +97,7 @@ public class StatusMoodleContentProviderTests
 
 		var bodyWithPerLimb = new ModStatusDefinition
 		{
+			Id = "status.body-perlimb",
 			Scope = ModStatusScope.Body,
 			MoodleId = "moodle.default",
 			ShowPerLimbMoodles = true
@@ -86,6 +105,7 @@ public class StatusMoodleContentProviderTests
 
 		var bindingsWithoutFlag = new ModStatusDefinition
 		{
+			Id = "status.bindings-no-flag",
 			Scope = ModStatusScope.Limb,
 			MoodleId = "moodle.default",
 			LimbMoodles =
@@ -96,6 +116,7 @@ public class StatusMoodleContentProviderTests
 
 		var duplicateLimb = new ModStatusDefinition
 		{
+			Id = "status.duplicate-limb",
 			Scope = ModStatusScope.Limb,
 			MoodleId = "moodle.default",
 			ShowPerLimbMoodles = true,
@@ -106,10 +127,10 @@ public class StatusMoodleContentProviderTests
 			]
 		};
 
-		Assert.True(TryBind(provider, ModContentKind.Status, "status.perlimb", valid.ToPayload()));
-		Assert.False(TryBind(provider, ModContentKind.Status, "status.body-perlimb", bodyWithPerLimb.ToPayload()));
-		Assert.False(TryBind(provider, ModContentKind.Status, "status.bindings-no-flag", bindingsWithoutFlag.ToPayload()));
-		Assert.False(TryBind(provider, ModContentKind.Status, "status.duplicate-limb", duplicateLimb.ToPayload()));
+		Assert.True(TryBind(provider, valid));
+		Assert.False(TryBind(provider, bodyWithPerLimb));
+		Assert.False(TryBind(provider, bindingsWithoutFlag));
+		Assert.False(TryBind(provider, duplicateLimb));
 	}
 
 	[Fact]
@@ -118,9 +139,10 @@ public class StatusMoodleContentProviderTests
 		var provider = CreateProvider(
 			"CasualtiesUnknownOnline.GameAdapter.Content.GameAdapterMoodleContentProvider");
 
-		var valid = new ModMoodleDefinition { IconId = "icons.lead", Intensity = 2, HoldSeconds = 1f };
+		var valid = new ModMoodleDefinition { Id = "moodle.valid", IconId = "icons.lead", Intensity = 2, HoldSeconds = 1f };
 		var validAnimated = new ModMoodleDefinition
 		{
+			Id = "moodle.valid-animated",
 			IconId = "icons.lead",
 			Intensity = 2,
 			HoldSeconds = 1f,
@@ -131,11 +153,12 @@ public class StatusMoodleContentProviderTests
 				Loop = true
 			}
 		};
-		var missingIcon = new ModMoodleDefinition { IconId = "" };
-		var negativeHold = new ModMoodleDefinition { IconId = "icons.lead", HoldSeconds = -1f };
-		var negativeIntensity = new ModMoodleDefinition { IconId = "icons.lead", Intensity = -1 };
+		var missingIcon = new ModMoodleDefinition { Id = "moodle.no-icon", IconId = "" };
+		var negativeHold = new ModMoodleDefinition { Id = "moodle.neg-hold", IconId = "icons.lead", HoldSeconds = -1f };
+		var negativeIntensity = new ModMoodleDefinition { Id = "moodle.neg-int", IconId = "icons.lead", Intensity = -1 };
 		var invalidAnimationFps = new ModMoodleDefinition
 		{
+			Id = "moodle.bad-anim-fps",
 			IconId = "icons.lead",
 			IconAnimation = new ModMoodleAnimation
 			{
@@ -145,6 +168,7 @@ public class StatusMoodleContentProviderTests
 		};
 		var invalidAnimationEmpty = new ModMoodleDefinition
 		{
+			Id = "moodle.bad-anim-empty",
 			IconId = "icons.lead",
 			IconAnimation = new ModMoodleAnimation
 			{
@@ -153,13 +177,13 @@ public class StatusMoodleContentProviderTests
 			}
 		};
 
-		Assert.True(TryBind(provider, ModContentKind.Moodle, "moodle.valid", valid.ToPayload()));
-		Assert.True(TryBind(provider, ModContentKind.Moodle, "moodle.valid-animated", validAnimated.ToPayload()));
-		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.no-icon", missingIcon.ToPayload()));
-		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.neg-hold", negativeHold.ToPayload()));
-		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.neg-int", negativeIntensity.ToPayload()));
-		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.bad-anim-fps", invalidAnimationFps.ToPayload()));
-		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.bad-anim-empty", invalidAnimationEmpty.ToPayload()));
+		Assert.True(TryBind(provider, valid));
+		Assert.True(TryBind(provider, validAnimated));
+		Assert.False(TryBind(provider, missingIcon));
+		Assert.False(TryBind(provider, negativeHold));
+		Assert.False(TryBind(provider, negativeIntensity));
+		Assert.False(TryBind(provider, invalidAnimationFps));
+		Assert.False(TryBind(provider, invalidAnimationEmpty));
 	}
 
 	[Fact]
@@ -170,10 +194,11 @@ public class StatusMoodleContentProviderTests
 
 		var tooLong = new ModMoodleDefinition
 		{
+			Id = "moodle.long-limb-format",
 			IconId = "icons.lead",
 			LimbDisplayNameFormat = new string('x', 257)
 		};
 
-		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.long-limb-format", tooLong.ToPayload()));
+		Assert.False(TryBind(provider, tooLong));
 	}
 }

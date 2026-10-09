@@ -60,19 +60,12 @@ public class CraftingQualityLabelTests
 		return Activator.CreateInstance(providerType, arguments)!;
 	}
 
-	private static bool TryBind(object provider, string id, object definition)
+	private static bool TryBind(object provider, IModContentDefinition definition)
 	{
-		var payload = (byte[])definition.GetType().GetMethod("ToPayload")!.Invoke(definition, null)!;
-		var kind = definition switch
-		{
-			ModItemDefinition => ModContentKind.Item,
-			ModLiquidDefinition => ModContentKind.Liquid,
-			_ => ModContentKind.Recipe
-		};
 		var bind = provider.GetType().GetMethod(
 			"TryBind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("TryBind not found.");
-		var registration = new ModContentRegistration("mod.a", new ModContentDefinition(id, kind, payload, 1));
+		var registration = new ModContentRegistration("mod.a", definition);
 		return (bool)bind.Invoke(provider, [registration])!;
 	}
 
@@ -170,18 +163,21 @@ public class CraftingQualityLabelTests
 		return (string?)result.GetType().GetField("id")!.GetValue(result) ?? string.Empty;
 	}
 
-	private static ModItemDefinition ItemWithQuality(string qualityId, float amount) => new()
+	private static ModItemDefinition ItemWithQuality(string id, string qualityId, float amount) => new()
 	{
+		Id = id,
 		DisplayName = "Mod weave",
 		Qualities = [new ModCraftingQuality { Id = qualityId, Amount = amount }]
 	};
 
 	private static ModRecipeDefinition RecipeByQuality(
+		string id,
 		string resultItemId,
 		string qualityId,
 		float amount = 1f,
 		bool isLiquid = false) => new()
 		{
+			Id = id,
 			ResultItemId = resultItemId,
 			Ingredients = [new ModRecipeIngredient { Quality = qualityId, QualityAmount = amount, IsLiquid = isLiquid }]
 		};
@@ -213,8 +209,8 @@ public class CraftingQualityLabelTests
 	public void ItemQualities_SatisfyTheVanillaRecipeMatcher()
 	{
 		var provider = CreateItemProvider();
-		Assert.True(TryBind(provider, "custom_weave", ItemWithQuality("dressing", 2f)));
-		Assert.True(TryBind(provider, "custom_bundle", ItemWithQuality("mymod:material", 0f)));
+		Assert.True(TryBind(provider, ItemWithQuality("custom_weave", "dressing", 2f)));
+		Assert.True(TryBind(provider, ItemWithQuality("custom_bundle", "mymod:material", 0f)));
 
 		PrepareGameTables();
 		InvokeUpdate(provider);
@@ -243,32 +239,34 @@ public class CraftingQualityLabelTests
 
 		// The two accepted forms: a vanilla-style bare label, and a canonical
 		// namespaced content id.
-		Assert.True(TryBind(provider, "bare", ItemWithQuality("rippable", 1f)));
-		Assert.True(TryBind(provider, "namespaced", ItemWithQuality("mymod:material", 1f)));
-		Assert.True(TryBind(provider, "underscored", ItemWithQuality("a1_b2", 1f)));
+		Assert.True(TryBind(provider, ItemWithQuality("bare", "rippable", 1f)));
+		Assert.True(TryBind(provider, ItemWithQuality("namespaced", "mymod:material", 1f)));
+		Assert.True(TryBind(provider, ItemWithQuality("underscored", "a1_b2", 1f)));
 
 		// Everything the game's ordinal comparison could never match.
-		Assert.False(TryBind(provider, "empty", ItemWithQuality(string.Empty, 1f)));
-		Assert.False(TryBind(provider, "padded", ItemWithQuality(" rippable", 1f)));
-		Assert.False(TryBind(provider, "upper_bare", ItemWithQuality("Rippable", 1f)));
-		Assert.False(TryBind(provider, "upper_namespaced", ItemWithQuality("mymod:Material", 1f)));
-		Assert.False(TryBind(provider, "two_separators", ItemWithQuality("mymod:sub:material", 1f)));
-		Assert.False(TryBind(provider, "no_path", ItemWithQuality("mymod:", 1f)));
-		Assert.False(TryBind(provider, "no_namespace", ItemWithQuality(":material", 1f)));
-		Assert.False(TryBind(provider, "spaced_path", ItemWithQuality("mymod:mat erial", 1f)));
+		Assert.False(TryBind(provider, ItemWithQuality("empty", string.Empty, 1f)));
+		Assert.False(TryBind(provider, ItemWithQuality("padded", " rippable", 1f)));
+		Assert.False(TryBind(provider, ItemWithQuality("upper_bare", "Rippable", 1f)));
+		Assert.False(TryBind(provider, ItemWithQuality("upper_namespaced", "mymod:Material", 1f)));
+		Assert.False(TryBind(provider, ItemWithQuality("two_separators", "mymod:sub:material", 1f)));
+		Assert.False(TryBind(provider, ItemWithQuality("no_path", "mymod:", 1f)));
+		Assert.False(TryBind(provider, ItemWithQuality("no_namespace", ":material", 1f)));
+		Assert.False(TryBind(provider, ItemWithQuality("spaced_path", "mymod:mat erial", 1f)));
 	}
 
 	[Fact]
 	public void LiquidQualities_AreValidatedAndMaterialized()
 	{
 		var provider = CreateLiquidProvider();
-		Assert.True(TryBind(provider, "custom_solvent", new ModLiquidDefinition
+		Assert.True(TryBind(provider, new ModLiquidDefinition
 		{
+			Id = "custom_solvent",
 			DisplayName = "Mod solvent",
 			Qualities = [new ModCraftingQuality { Id = "mymod:solvent", Amount = 0f }]
 		}));
-		Assert.False(TryBind(provider, "bad_solvent", new ModLiquidDefinition
+		Assert.False(TryBind(provider, new ModLiquidDefinition
 		{
+			Id = "bad_solvent",
 			Qualities = [new ModCraftingQuality { Id = "mymod:Solvent" }]
 		}));
 
@@ -286,15 +284,17 @@ public class CraftingQualityLabelTests
 	public void TryBind_TreatsAnExplicitNullQualityListAsNoQualities()
 	{
 		var itemProvider = CreateItemProvider();
-		Assert.True(TryBind(itemProvider, "no_qualities", new ModItemDefinition
+		Assert.True(TryBind(itemProvider, new ModItemDefinition
 		{
+			Id = "no_qualities",
 			DisplayName = "Plain",
 			Qualities = null!
 		}));
 
 		var liquidProvider = CreateLiquidProvider();
-		Assert.True(TryBind(liquidProvider, "no_qualities_liquid", new ModLiquidDefinition
+		Assert.True(TryBind(liquidProvider, new ModLiquidDefinition
 		{
+			Id = "no_qualities_liquid",
 			DisplayName = "Plain liquid",
 			Qualities = null!
 		}));
@@ -302,8 +302,9 @@ public class CraftingQualityLabelTests
 		// A recipe with no ingredients is refused for that reason, not with the
 		// binder's logged exception.
 		var recipeProvider = CreateRecipeProvider();
-		Assert.False(TryBind(recipeProvider, "no_ingredients", new ModRecipeDefinition
+		Assert.False(TryBind(recipeProvider, new ModRecipeDefinition
 		{
+			Id = "no_ingredients",
 			ResultItemId = "log",
 			Ingredients = null!
 		}));
@@ -313,12 +314,12 @@ public class CraftingQualityLabelTests
 	public void Recipe_IsRefusedWhenNoProviderInItsOwnDirectionCarriesTheLabel()
 	{
 		var itemProvider = CreateItemProvider();
-		Assert.True(TryBind(itemProvider, "custom_weave", ItemWithQuality("mymod:material", 1f)));
-		Assert.True(TryBind(itemProvider, "custom_plain", new ModItemDefinition { DisplayName = "Plain" }));
+		Assert.True(TryBind(itemProvider, ItemWithQuality("custom_weave", "mymod:material", 1f)));
+		Assert.True(TryBind(itemProvider, new ModItemDefinition { Id = "custom_plain", DisplayName = "Plain" }));
 
 		var recipeProvider = CreateRecipeProvider(itemProvider);
-		Assert.True(TryBind(recipeProvider, "weavable", RecipeByQuality("custom_weave", "mymod:material")));
-		Assert.True(TryBind(recipeProvider, "dead", RecipeByQuality("custom_plain", "mymod:absent")));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("weavable", "custom_weave", "mymod:material")));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("dead", "custom_plain", "mymod:absent")));
 
 		PrepareGameTables();
 		InvokeUpdate(itemProvider);
@@ -334,10 +335,10 @@ public class CraftingQualityLabelTests
 		// injected into the table, so nothing but the provider's own declaration
 		// can answer for its label.
 		var itemProvider = CreateItemProvider();
-		Assert.True(TryBind(itemProvider, "custom_weave", ItemWithQuality("mymod:material", 1f)));
+		Assert.True(TryBind(itemProvider, ItemWithQuality("custom_weave", "mymod:material", 1f)));
 
 		var recipeProvider = CreateRecipeProvider(itemProvider);
-		Assert.True(TryBind(recipeProvider, "weavable", RecipeByQuality("log", "mymod:material")));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("weavable", "log", "mymod:material")));
 
 		PrepareGameTables();
 		AddVanillaItem("log");
@@ -353,13 +354,14 @@ public class CraftingQualityLabelTests
 		// registered AFTER the recipe provider, so a liquid bound in this frame is
 		// still missing from Liquids.Registry when the recipe is built.
 		var liquidProvider = CreateLiquidProvider();
-		Assert.True(TryBind(liquidProvider, "custom_solvent", new ModLiquidDefinition
+		Assert.True(TryBind(liquidProvider, new ModLiquidDefinition
 		{
+			Id = "custom_solvent",
 			Qualities = [new ModCraftingQuality { Id = "mymod:solvent", Amount = 0.5f }]
 		}));
 
 		var recipeProvider = CreateRecipeProvider(liquidProvider);
-		Assert.True(TryBind(recipeProvider, "solvent_recipe", RecipeByQuality("log", "mymod:solvent", 0f, isLiquid: true)));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("solvent_recipe", "log", "mymod:solvent", 0f, isLiquid: true)));
 
 		PrepareGameTables();
 		AddVanillaItem("log");
@@ -372,8 +374,8 @@ public class CraftingQualityLabelTests
 	public void Recipe_IsInjectedWhenAVanillaItemProvidesItsQuality()
 	{
 		var recipeProvider = CreateRecipeProvider();
-		Assert.True(TryBind(recipeProvider, "choppable", RecipeByQuality("log", "cutting", 4f)));
-		Assert.True(TryBind(recipeProvider, "unprovided", RecipeByQuality("log", "flogiston")));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("choppable", "log", "cutting", 4f)));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("unprovided", "log", "flogiston")));
 
 		PrepareGameTables();
 		AddVanillaItem("log", ("cutting", 200f));
@@ -386,8 +388,8 @@ public class CraftingQualityLabelTests
 	public void Recipe_IsInjectedWhenAVanillaLiquidProvidesItsQuality()
 	{
 		var recipeProvider = CreateRecipeProvider();
-		Assert.True(TryBind(recipeProvider, "drinkable", RecipeByQuality("log", "water", 50f, isLiquid: true)));
-		Assert.True(TryBind(recipeProvider, "unprovided", RecipeByQuality("plank", "flogiston", 50f, isLiquid: true)));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("drinkable", "log", "water", 50f, isLiquid: true)));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("unprovided", "plank", "flogiston", 50f, isLiquid: true)));
 
 		PrepareGameTables();
 		AddVanillaItem("log");
@@ -408,8 +410,8 @@ public class CraftingQualityLabelTests
 		// vanilla vocabularies do not overlap. Each recipe below finds its label in
 		// the OTHER direction's table only, so neither can ever be crafted.
 		var recipeProvider = CreateRecipeProvider();
-		Assert.True(TryBind(recipeProvider, "item_asking_for_water", RecipeByQuality("log", "water")));
-		Assert.True(TryBind(recipeProvider, "liquid_asking_for_cutting", RecipeByQuality("plank", "cutting", 1f, isLiquid: true)));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("item_asking_for_water", "log", "water")));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("liquid_asking_for_cutting", "plank", "cutting", 1f, isLiquid: true)));
 
 		PrepareGameTables();
 		AddVanillaItem("log", ("cutting", 200f));
@@ -426,12 +428,12 @@ public class CraftingQualityLabelTests
 		// The matcher asks `q.amount >= target.amount` against a FIXED declared
 		// amount in the item direction, so presence alone is not matchability.
 		var itemProvider = CreateItemProvider();
-		Assert.True(TryBind(itemProvider, "custom_weave", ItemWithQuality("mymod:material", 1f)));
+		Assert.True(TryBind(itemProvider, ItemWithQuality("custom_weave", "mymod:material", 1f)));
 
 		var recipeProvider = CreateRecipeProvider(itemProvider);
-		Assert.True(TryBind(recipeProvider, "reachable", RecipeByQuality("log", "mymod:material", 1f)));
-		Assert.True(TryBind(recipeProvider, "mod_short", RecipeByQuality("plank", "mymod:material", 5f)));
-		Assert.True(TryBind(recipeProvider, "vanilla_short", RecipeByQuality("beam", "cutting", 4f)));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("reachable", "log", "mymod:material", 1f)));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("mod_short", "plank", "mymod:material", 5f)));
+		Assert.True(TryBind(recipeProvider, RecipeByQuality("vanilla_short", "beam", "cutting", 4f)));
 
 		PrepareGameTables();
 		AddVanillaItem("log");

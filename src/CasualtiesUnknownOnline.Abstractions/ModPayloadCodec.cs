@@ -7,14 +7,18 @@ using System.Runtime.Serialization;
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The one decode seam every typed mod payload goes through: each contract's
-/// <c>FromPayload</c> is a call into this codec. Besides the deserialization it
-/// enforces the rule the members themselves declare — a collection member that
-/// is null means "none" — because the serializer runs NEITHER a constructor NOR
-/// a field initializer: an explicit nil reaches the member's coalescing setter,
-/// but a member whose element is ABSENT from the payload is never set at all and
-/// would stay null. Only a decode can see that shape, which is why the rule
-/// lives at both ends: on the member (a write) and here (a decode).
+/// The one decode seam every payload contract CUO itself carries goes through:
+/// the status update and the two status projections. A content definition is
+/// registered as a typed object and is never serialized (see
+/// <see cref="IModContentDefinition"/>), so it is not a contract of this codec.
+/// Each travelling contract's <c>FromPayload</c> is a call into this codec.
+/// Besides the deserialization it enforces the rule the members themselves
+/// declare — a collection member that is null means "none" — because the
+/// serializer runs NEITHER a constructor NOR a field initializer: an explicit
+/// nil reaches the member's coalescing setter, but a member whose element is
+/// ABSENT from the payload is never set at all and would stay null. Only a
+/// decode can see that shape, which is why the rule lives at both ends: on the
+/// member (a write) and here (a decode).
 /// </summary>
 internal static class ModPayloadCodec
 {

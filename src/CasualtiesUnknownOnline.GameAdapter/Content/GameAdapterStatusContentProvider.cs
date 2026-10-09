@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModStatusDefinition"/> payloads from shared-content mods
+/// Binds <see cref="ModStatusDefinition"/> definitions from shared-content mods
 /// into a small, validated static status-descriptor registry. This provider
 /// intentionally does not create per-player or per-limb runtime status bags:
 /// dynamic status state belongs to a future typed mod-data domain. It gives
@@ -26,17 +26,12 @@ public sealed class GameAdapterStatusContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModStatusDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModStatusDefinition definition)
 		{
 			_log.LogWarning(
-				"[StatusContent] {ModId}/{Id} payload is not a valid ModStatusDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[StatusContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModStatusDefinition));
 			return false;
 		}
 

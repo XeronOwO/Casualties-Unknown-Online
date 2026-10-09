@@ -34,14 +34,12 @@ public class TileWorldGenProviderTests
 		return Activator.CreateInstance(ProviderType, [logger])!;
 	}
 
-	private static bool TryBind(object provider, string id, ModTileDefinition definition)
+	private static bool TryBind(object provider, ModTileDefinition definition)
 	{
 		var bind = provider.GetType().GetMethod(
 			"TryBind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("TryBind not found.");
-		var registration = new ModContentRegistration(
-			"mod.a",
-			new ModContentDefinition(id, ModContentKind.Tile, definition.ToPayload(), 1));
+		var registration = new ModContentRegistration("mod.a", definition);
 		return (bool)bind.Invoke(provider, [registration])!;
 	}
 
@@ -61,9 +59,10 @@ public class TileWorldGenProviderTests
 		return [.. ids];
 	}
 
-	private static ModTileDefinition ValidTile(float spawnAmount = 0f) =>
+	private static ModTileDefinition ValidTile(string id, float spawnAmount = 0f) =>
 		new()
 		{
+			Id = id,
 			TemplateTileIndex = 1,
 			SpawnAmount = spawnAmount,
 			SpawnLayers = ModTileDefinition.AllSpawnLayers,
@@ -75,8 +74,8 @@ public class TileWorldGenProviderTests
 	{
 		var provider = CreateProvider();
 
-		Assert.True(TryBind(provider, "zebra", ValidTile(2f)));
-		Assert.True(TryBind(provider, "alpha", ValidTile(1f)));
+		Assert.True(TryBind(provider, ValidTile("zebra", 2f)));
+		Assert.True(TryBind(provider, ValidTile("alpha", 1f)));
 
 		Assert.Equal(["alpha", "zebra"], SnapshotIds(provider));
 	}
@@ -86,12 +85,12 @@ public class TileWorldGenProviderTests
 	{
 		var provider = CreateProvider();
 
-		var valid = ValidTile();
+		var valid = ValidTile("valid");
 		valid.Drops = [new ModTileDrop { ItemId = "item", Chance = 0.5f }];
-		var invalid = ValidTile();
+		var invalid = ValidTile("invalid");
 		invalid.Drops = [new ModTileDrop { ItemId = "item", Chance = 1.5f }];
 
-		Assert.True(TryBind(provider, "valid", valid));
-		Assert.False(TryBind(provider, "invalid", invalid));
+		Assert.True(TryBind(provider, valid));
+		Assert.False(TryBind(provider, invalid));
 	}
 }

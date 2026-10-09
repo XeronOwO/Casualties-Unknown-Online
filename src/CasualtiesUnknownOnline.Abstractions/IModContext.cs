@@ -85,7 +85,7 @@ public interface IModContext
 	/// <summary>
 	/// Per-mod local moodle-presentation resolvers. A mod can register a
 	/// resolver per runtime status id and route active body/limb statuses to a
-	/// static <see cref="ModMoodleDefinition"/> from its own opaque payload.
+	/// static <see cref="ModMoodleDefinition"/> it registered as content.
 	/// This is local-only presentation; it never exposes game/Unity types and
 	/// adds no wire surface. See <see cref="IModMoodleRuntime"/>.
 	/// </summary>
@@ -107,7 +107,7 @@ public interface IModContext
 	IModUi Ui { get; }
 
 	/// <summary>
-	/// Mod content registration (opaque content definitions scoped to this mod
+	/// Mod content registration (typed content definitions scoped to this mod
 	/// id). Registration requires <see cref="ModPermission.RegisterContent"/> —
 	/// see <see cref="IModContent"/> for the full contract.
 	/// </summary>
@@ -116,7 +116,7 @@ public interface IModContext
 	/// <summary>
 	/// Read-only framework-wide content ownership lookup. It resolves which mod
 	/// registered a given content kind + id, without exposing Runtime internals
-	/// or interpreting payloads. See <see cref="IModContentOwnerQuery"/>.
+	/// or interpreting a definition. See <see cref="IModContentOwnerQuery"/>.
 	/// </summary>
 	IModContentOwnerQuery ContentOwners { get; }
 

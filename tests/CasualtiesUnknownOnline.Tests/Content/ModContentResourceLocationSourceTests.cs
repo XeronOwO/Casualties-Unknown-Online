@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -24,9 +25,9 @@ public class ModContentResourceLocationSourceTests
 	public void Entries_SkipBareIdRegisteredBySeveralMods()
 	{
 		var source = CreateSource(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, [1]), "moda"),
-			new ModContentRegistration("mod.b", new ModContentDefinition("sword", ModContentKind.Item, [2]), "modb"),
-			new ModContentRegistration("mod.c", new ModContentDefinition("axe", ModContentKind.Item, [3]), "modc"));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", ModContentKind.Item), "moda"),
+			new ModContentRegistration("mod.b", new StubContentDefinition("sword", ModContentKind.Item), "modb"),
+			new ModContentRegistration("mod.c", new StubContentDefinition("axe", ModContentKind.Item), "modc"));
 
 		var entry = Assert.Single(source.Entries);
 
@@ -36,9 +37,9 @@ public class ModContentResourceLocationSourceTests
 	[Fact]
 	public void Entries_UseCanonicalIdAndTypedDisplayName()
 	{
-		var itemPayload = new ModItemDefinition { DisplayName = "Wooden Sword" }.ToPayload();
+		var item = new ModItemDefinition { Id = "sword", DisplayName = "Wooden Sword" };
 		var source = CreateSource(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, itemPayload), "mymod"));
+			new ModContentRegistration("mod.a", item, "mymod"));
 
 		var entry = Assert.Single(source.Entries);
 
@@ -51,7 +52,7 @@ public class ModContentResourceLocationSourceTests
 	public void Entries_FallBackToRegisteredIdWhenKindHasNoTypedDisplayName()
 	{
 		var source = CreateSource(
-			new ModContentRegistration("mod.a", new ModContentDefinition("healing.recipe", ModContentKind.Recipe, [1, 2]), "mymod"));
+			new ModContentRegistration("mod.a", new StubContentDefinition("healing.recipe", ModContentKind.Recipe), "mymod"));
 
 		var entry = Assert.Single(source.Entries);
 
@@ -63,8 +64,8 @@ public class ModContentResourceLocationSourceTests
 	public void Entries_SkipLegacyRegistrationsWithoutNamespace()
 	{
 		var source = CreateSource(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, [1])),
-			new ModContentRegistration("mod.b", new ModContentDefinition("axe", ModContentKind.Item, [2]), "mymod"));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", ModContentKind.Item)),
+			new ModContentRegistration("mod.b", new StubContentDefinition("axe", ModContentKind.Item), "mymod"));
 
 		var entry = Assert.Single(source.Entries);
 
@@ -77,7 +78,7 @@ public class ModContentResourceLocationSourceTests
 		// Registration validation refuses this today; the source stays defensive
 		// so a future registry change cannot emit a non-addressable entry.
 		var source = CreateSource(
-			new ModContentRegistration("mod.a", new ModContentDefinition("Bad Id", ModContentKind.Item, [1]), "mymod"));
+			new ModContentRegistration("mod.a", new StubContentDefinition("Bad Id", ModContentKind.Item), "mymod"));
 
 		Assert.Empty(source.Entries);
 	}
@@ -86,7 +87,7 @@ public class ModContentResourceLocationSourceTests
 	public void Entries_AreStableAcrossCalls()
 	{
 		var source = CreateSource(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, [1]), "mymod"));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", ModContentKind.Item), "mymod"));
 
 		Assert.Equal(
 			source.Entries.Select(e => e.Id.ToString()),

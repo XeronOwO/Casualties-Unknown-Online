@@ -31,7 +31,7 @@ not by each consumer. Today it is decided per consumer and unevenly.
 - The trap was pinned for the nil shape: a test asserted that a definition built with a null `Qualities`
   list comes back with a null list, which is why the two providers that read it normalised it
   (`definition.Qualities ??= []`). Its replacement,
-  `ModItemDefinitionTests.ExplicitNullQualities_IsNoneNotAFailedDefinition`, pins the rule instead.
+  `ModItemDefinitionTests.NullCollectionMembers_MeanNone`, pins the rule instead.
 - The members whose consumers dereferenced them with **no guard at all** are both named `SpawnComponents`:
   `CustomItemTemplateFactory` and `CustomBuildingTemplateFactory` hand it to `CustomComponentAttach.Attach`,
   which iterates it, and each provider's own success line reads `definition.SpawnComponents.Count`. A null of
@@ -51,6 +51,12 @@ not by each consumer. Today it is decided per consumer and unevenly.
   there, and the two shapes above are what the guards and the missing ones actually decided.
 
 ## What landed
+
+> **[Narrowed 2026-10-08 by decision 247.]** The counts below are this cycle's record. A content definition
+> is a registered typed object now and is never serialized, so the decode seam reaches only the contracts
+> CUO itself carries over a boundary (`ModStatusUpdate` and the two status projections) and the census is
+> one payload member driven through three shapes plus 27 mod-built declarations driven with a null write.
+> The MEMBER half below is unchanged and is what every mod-built declaration answers for.
 
 - **The rule is answered at both ends of a payload.** Every collection member of every mod-authored contract
   in `CasualtiesUnknownOnline.Abstractions` is a field-backed property whose setter coalesces null
@@ -89,7 +95,7 @@ not by each consumer. Today it is decided per consumer and unevenly.
   assembly-wide equality assertion; `ModContentNullCollectionBindingTests` drives the real content binder
   through all nine GameAdapter providers.
 - The `Qualities` test that pinned the trap is replaced by
-  `ModItemDefinitionTests.ExplicitNullQualities_IsNoneNotAFailedDefinition`: it pins the rule instead.
+  `ModItemDefinitionTests.NullCollectionMembers_MeanNone`: it pins the rule instead.
 - Docs: the rule on the mod API page in both blocks (with the pair hashes re-recorded), decision 244, the
   cycle's self-check, this ticket.
 

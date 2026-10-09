@@ -1,283 +1,165 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The typed item content payload contract: a mod can serialize a
-/// <see cref="ModItemDefinition"/> into the opaque byte payload and the
-/// Runtime/Game Adapter can read it back without a private format.
+/// The typed item definition a mod hands to <see cref="IModContent"/>: the
+/// identity its type fixes (<see cref="ModContentKind.Item"/>), the collection
+/// members where null means "none" and the defaults the definition and the
+/// member objects it carries declare. Nothing serializes a definition any more,
+/// so this suite pins the answers the definition itself owns — a wrong kind
+/// constant, a member that stops coalescing null or a changed authoring default
+/// fails here.
 /// </summary>
 public class ModItemDefinitionTests
 {
 	[Fact]
-	public void RoundTrip_PreservesCoreFields()
+	public void Identity_IsFixedByTheType()
 	{
-		var original = new ModItemDefinition
-		{
-			DisplayName = "Test Shard",
-			Description = "A brittle shard.",
-			Category = "misc",
-			Weight = 0.5f,
-			Value = 7,
-			Usable = true,
-			UsableWithLmb = true,
-			Wearable = false,
-			DestroyAtZeroCondition = true,
-			Tags = "test,shard",
-			SpawnFrequency = 3,
-			TemplateId = "stone",
-			SpawnComponents = ["Example.ShardBehaviour, ExampleMod"],
-			WorldSpawnPerChunk = 0.5f,
-			DropSources = ModItemDropSource.Corpse | ModItemDropSource.Trader1,
-			DecayMinutes = 90f,
-			Qualities =
-			[
-				new ModCraftingQuality { Id = "mymod:material", Amount = 3f },
-				new ModCraftingQuality { Id = "rippable" }
-			],
-			CustomData = new Dictionary<string, string>
-			{
-				["mod.metadata"] = "kept"
-			}
-		};
+		var defaults = new ModItemDefinition();
 
-		var restored = ModItemDefinition.FromPayload(original.ToPayload());
+		Assert.Equal(ModContentKind.Item, defaults.Kind);
+		Assert.Empty(defaults.Id);
+		Assert.Equal(1, defaults.SchemaVersion);
 
-		Assert.NotNull(restored);
-		Assert.Equal(original.DisplayName, restored!.DisplayName);
-		Assert.Equal(original.Description, restored.Description);
-		Assert.Equal(original.Category, restored.Category);
-		Assert.Equal(original.Weight, restored.Weight);
-		Assert.Equal(original.Value, restored.Value);
-		Assert.True(restored.Usable);
-		Assert.True(restored.UsableWithLmb);
-		Assert.False(restored.Wearable);
-		Assert.True(restored.DestroyAtZeroCondition);
-		Assert.Equal(original.Tags, restored.Tags);
-		Assert.Equal(original.SpawnFrequency, restored.SpawnFrequency);
-		Assert.Equal(original.TemplateId, restored.TemplateId);
-		Assert.Equal(original.SpawnComponents, restored.SpawnComponents);
-		Assert.Equal(original.WorldSpawnPerChunk, restored.WorldSpawnPerChunk);
-		Assert.Equal(original.DropSources, restored.DropSources);
-		Assert.Equal(original.DecayMinutes, restored.DecayMinutes);
-		Assert.Equal(2, restored.Qualities.Count);
-		Assert.Equal("mymod:material", restored.Qualities[0].Id);
-		Assert.Equal(3f, restored.Qualities[0].Amount);
-		Assert.Equal("rippable", restored.Qualities[1].Id);
-		Assert.Equal(1f, restored.Qualities[1].Amount);
-		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
+		var authored = new ModItemDefinition { Id = "test.shard", SchemaVersion = 3 };
+
+		Assert.Equal("test.shard", authored.Id);
+		Assert.Equal(3, authored.SchemaVersion);
 	}
 
 	[Fact]
-	public void RoundTrip_PreservesAdvancedBehaviorFields()
+	public void NullCollectionMembers_MeanNone()
 	{
-		var original = new ModItemDefinition
+		var definition = new ModItemDefinition
 		{
-			Container = new ModItemContainer
-			{
-				Capacity = 20f,
-				MaxWeightPerItem = 7f,
-				EncumbranceReduction = 0.5f,
-				ItemsVisible = true,
-				TagRestriction = ["tool", "medical"]
-			},
-			Battery = new ModItemBattery
-			{
-				Preset = ModBatteryPreset.Large,
-				StartCharge = 0.75f,
-				SpawnWithBattery = false
-			},
-			Light = new ModItemLight
-			{
-				Intensity = 1.2f,
-				ColorR = 0.1f,
-				ColorG = 0.2f,
-				ColorB = 0.3f,
-				ColorA = 0.4f,
-				FalloffIntensity = 0.6f,
-				OuterRadius = 9f,
-				InnerRadius = 1f,
-				OuterAngle = 270f,
-				InnerAngle = 45f,
-				LightType = ModLightType.Sprite,
-				OffsetX = 2f,
-				OffsetY = 3f,
-				Rotation = 10f,
-				AddLightItem = false
-			},
-			Tool = new ModItemTool
-			{
-				Damage = 30f,
-				StructuralDamage = 40f,
-				AttackCooldownMultiplier = 0.8f,
-				Distance = 3f,
-				KnockBack = 300f,
-				Cooldown = 0.4f,
-				AttackAnimation = "CustomSwing",
-				StaminaUse = 0.7f,
-				Piercing = true,
-				SwingSounds = ["Swing1", "Swing2"],
-				Volume = 0.6f,
-				RotateAmount = 20f,
-				PhysicalSwing = false,
-				DoAttackAnimation = false,
-				MetalMoreDamage = true,
-				ConditionLossOnHit = 0.03f
-			},
-			Gun = new ModItemGun
-			{
-				AmmoType = ModGunAmmoType.Rifle,
-				FiringMode = ModGunFiringMode.Auto,
-				FeedType = ModGunFeedType.Mag,
-				MagCapacity = 30,
-				KnockBack = 5f,
-				StructureDamage = 100f,
-				AnimalDamage = 200f,
-				Loudness = 80f,
-				DesiredGasTime = 0.5f,
-				ShotsPerFire = 2,
-				VerticalSpread = 0.1f,
-				ConditionLossPerShot = 0.2f
-			}
-		};
-
-		var restored = ModItemDefinition.FromPayload(original.ToPayload());
-
-		Assert.NotNull(restored);
-		Assert.NotNull(restored!.Container);
-		Assert.Equal(original.Container.Capacity, restored.Container.Capacity);
-		Assert.Equal(original.Container.MaxWeightPerItem, restored.Container.MaxWeightPerItem);
-		Assert.Equal(original.Container.EncumbranceReduction, restored.Container.EncumbranceReduction);
-		Assert.True(restored.Container.ItemsVisible);
-		Assert.Equal(original.Container.TagRestriction, restored.Container.TagRestriction);
-		Assert.NotNull(restored.Battery);
-		Assert.Equal(ModBatteryPreset.Large, restored.Battery.Preset);
-		Assert.Equal(0.75f, restored.Battery.StartCharge);
-		Assert.False(restored.Battery.SpawnWithBattery);
-		Assert.NotNull(restored.Light);
-		Assert.Equal(1.2f, restored.Light.Intensity);
-		Assert.Equal(0.1f, restored.Light.ColorR);
-		Assert.Equal(0.6f, restored.Light.FalloffIntensity);
-		Assert.Equal(ModLightType.Sprite, restored.Light.LightType);
-		Assert.False(restored.Light.AddLightItem);
-		Assert.NotNull(restored.Tool);
-		Assert.Equal(30f, restored.Tool.Damage);
-		Assert.True(restored.Tool.Piercing);
-		Assert.Equal(["Swing1", "Swing2"], restored.Tool.SwingSounds);
-		Assert.NotNull(restored.Gun);
-		Assert.Equal(ModGunAmmoType.Rifle, restored.Gun.AmmoType);
-		Assert.Equal(ModGunFiringMode.Auto, restored.Gun.FiringMode);
-		Assert.Equal(ModGunFeedType.Mag, restored.Gun.FeedType);
-		Assert.Equal(30, restored.Gun.MagCapacity);
-		Assert.Equal(0.2f, restored.Gun.ConditionLossPerShot);
-	}
-
-	[Fact]
-	public void RoundTrip_PreservesVisualFields()
-	{
-		var original = new ModItemDefinition
-		{
+			SpawnComponents = null!,
+			CustomData = null!,
+			Qualities = null!,
+			Container = new ModItemContainer { TagRestriction = null! },
+			Tool = new ModItemTool { SwingSounds = null! },
 			Visual = new ModItemVisual
 			{
-				WornSpritePath = "Clothing/TestWorn",
-				WornSpriteOffsetX = 1.5f,
-				WornSpriteOffsetY = -2.5f,
-				WornSpriteSortingOrder = 12,
-				LiquidMaskPath = "Containers/TestMask",
-				MultiWornSprites =
-				[
-					new ModItemLimbWornSprite
-					{
-						LimbName = "Head",
-						SpritePath = "Clothing/TestHat",
-						OffsetX = 0.5f,
-						OffsetY = -1f
-					},
-					new ModItemLimbWornSprite
-					{
-						LimbName = "UpTorso",
-						SpritePath = "Clothing/TestPack",
-						OffsetX = 2f,
-						OffsetY = 0.25f
-					}
-				],
-				BaseSpriteAnimation = new ModItemSpriteAnimation
-				{
-					FramePaths = ["Fx/TestBase0", "Fx/TestBase1"],
-					FramesPerSecond = 8f,
-					Loop = false
-				},
-				WornSpriteAnimation = new ModItemSpriteAnimation
-				{
-					FramePaths = ["Fx/TestWorn0", "Fx/TestWorn1", "Fx/TestWorn2"],
-					FramesPerSecond = 10f,
-					Loop = true
-				},
-				LiquidMaskAnimation = new ModItemSpriteAnimation
-				{
-					FramePaths = ["Fx/TestMask0", "Fx/TestMask1"],
-					FramesPerSecond = 6f,
-					Loop = false
-				}
+				MultiWornSprites = null!,
+				BaseSpriteAnimation = new ModItemSpriteAnimation { FramePaths = null! },
+				WornSpriteAnimation = new ModItemSpriteAnimation { FramePaths = null! },
+				LiquidMaskAnimation = new ModItemSpriteAnimation { FramePaths = null! }
 			}
 		};
 
-		var restored = ModItemDefinition.FromPayload(original.ToPayload());
+		var container = definition.Container!;
+		var tool = definition.Tool!;
+		var visual = definition.Visual!;
 
-		Assert.NotNull(restored);
-		Assert.NotNull(restored!.Visual);
-		Assert.Equal("Clothing/TestWorn", restored.Visual.WornSpritePath);
-		Assert.Equal(1.5f, restored.Visual.WornSpriteOffsetX);
-		Assert.Equal(-2.5f, restored.Visual.WornSpriteOffsetY);
-		Assert.Equal(12, restored.Visual.WornSpriteSortingOrder);
-		Assert.Equal("Containers/TestMask", restored.Visual.LiquidMaskPath);
-		Assert.NotNull(restored.Visual.MultiWornSprites);
-		Assert.Equal(2, restored.Visual.MultiWornSprites.Count);
-		Assert.Equal("Head", restored.Visual.MultiWornSprites[0].LimbName);
-		Assert.Equal("Clothing/TestHat", restored.Visual.MultiWornSprites[0].SpritePath);
-		Assert.Equal(0.5f, restored.Visual.MultiWornSprites[0].OffsetX);
-		Assert.Equal(-1f, restored.Visual.MultiWornSprites[0].OffsetY);
-		Assert.Equal("UpTorso", restored.Visual.MultiWornSprites[1].LimbName);
-		Assert.Equal("Clothing/TestPack", restored.Visual.MultiWornSprites[1].SpritePath);
-		Assert.Equal(2f, restored.Visual.MultiWornSprites[1].OffsetX);
-		Assert.Equal(0.25f, restored.Visual.MultiWornSprites[1].OffsetY);
-		Assert.NotNull(restored.Visual.BaseSpriteAnimation);
-		Assert.Equal(["Fx/TestBase0", "Fx/TestBase1"], restored.Visual.BaseSpriteAnimation.FramePaths);
-		Assert.Equal(8f, restored.Visual.BaseSpriteAnimation.FramesPerSecond);
-		Assert.False(restored.Visual.BaseSpriteAnimation.Loop);
-		Assert.NotNull(restored.Visual.WornSpriteAnimation);
-		Assert.Equal(["Fx/TestWorn0", "Fx/TestWorn1", "Fx/TestWorn2"], restored.Visual.WornSpriteAnimation.FramePaths);
-		Assert.Equal(10f, restored.Visual.WornSpriteAnimation.FramesPerSecond);
-		Assert.True(restored.Visual.WornSpriteAnimation.Loop);
-		Assert.NotNull(restored.Visual.LiquidMaskAnimation);
-		Assert.Equal(["Fx/TestMask0", "Fx/TestMask1"], restored.Visual.LiquidMaskAnimation.FramePaths);
-		Assert.Equal(6f, restored.Visual.LiquidMaskAnimation.FramesPerSecond);
-		Assert.False(restored.Visual.LiquidMaskAnimation.Loop);
-	}
-
-	[Fact]
-	public void ExplicitNullQualities_IsNoneNotAFailedDefinition()
-	{
-		// The payload serializer runs no property initializer, so a member that
-		// nothing owns round-trips an explicit nil and every consumer that
-		// dereferences the list without a guard fails the whole definition. The
-		// contract owns the rule instead: null IS "none", in both directions.
-		var definition = new ModItemDefinition { Qualities = null! };
+		Assert.Empty(definition.SpawnComponents);
+		Assert.Empty(definition.CustomData);
 		Assert.Empty(definition.Qualities);
-
-		var restored = ModItemDefinition.FromPayload(definition.ToPayload());
-
-		Assert.NotNull(restored);
-		Assert.Empty(restored!.Qualities);
+		Assert.Empty(container.TagRestriction);
+		Assert.Empty(tool.SwingSounds);
+		Assert.Empty(visual.MultiWornSprites);
+		Assert.Empty(visual.BaseSpriteAnimation!.FramePaths);
+		Assert.Empty(visual.WornSpriteAnimation!.FramePaths);
+		Assert.Empty(visual.LiquidMaskAnimation!.FramePaths);
 	}
 
 	[Fact]
-	public void InvalidPayload_ReturnsNull()
+	public void DeclaredDefaults_HoldOnAFreshDefinition()
 	{
-		Assert.Null(ModItemDefinition.FromPayload([]));
-		Assert.Null(ModItemDefinition.FromPayload([1, 2, 3]));
-		Assert.Null(ModItemDefinition.FromPayload(null!));
+		var definition = new ModItemDefinition();
+
+		Assert.Empty(definition.DisplayName);
+		Assert.Empty(definition.Description);
+		Assert.Equal("nospawn", definition.Category);
+		Assert.Empty(definition.Tags);
+		Assert.Equal(1, definition.SpawnFrequency);
+		Assert.Empty(definition.TemplateId);
+	}
+
+	[Fact]
+	public void ContainerDefaults_HoldOnAFreshContainer()
+	{
+		var container = new ModItemContainer();
+
+		Assert.Equal(10f, container.Capacity);
+		Assert.Equal(5f, container.MaxWeightPerItem);
+		Assert.Equal(1f, container.EncumbranceReduction);
+	}
+
+	[Fact]
+	public void BatteryDefaults_HoldOnAFreshBattery()
+	{
+		var battery = new ModItemBattery();
+
+		Assert.Equal(ModBatteryPreset.Medium, battery.Preset);
+		Assert.Equal(-1f, battery.StartCharge);
+		Assert.True(battery.SpawnWithBattery);
+	}
+
+	[Fact]
+	public void LightDefaults_HoldOnAFreshLight()
+	{
+		var light = new ModItemLight();
+
+		Assert.Equal(0.75f, light.Intensity);
+		Assert.Equal(1f, light.ColorR);
+		Assert.Equal(1f, light.ColorG);
+		Assert.Equal(1f, light.ColorB);
+		Assert.Equal(1f, light.ColorA);
+		Assert.Equal(0.5f, light.FalloffIntensity);
+		Assert.Equal(7.5f, light.OuterRadius);
+		Assert.Equal(360f, light.OuterAngle);
+		Assert.Equal(360f, light.InnerAngle);
+		Assert.Equal(ModLightType.Point, light.LightType);
+		Assert.True(light.AddLightItem);
+	}
+
+	[Fact]
+	public void ToolDefaults_HoldOnAFreshTool()
+	{
+		var tool = new ModItemTool();
+
+		Assert.Equal(25f, tool.Damage);
+		Assert.Equal(25f, tool.StructuralDamage);
+		Assert.Equal(0.66f, tool.AttackCooldownMultiplier);
+		Assert.Equal(2.5f, tool.Distance);
+		Assert.Equal(270f, tool.KnockBack);
+		Assert.Equal(0.35f, tool.Cooldown);
+		Assert.Equal("SwingAnim", tool.AttackAnimation);
+		Assert.Equal(0.5f, tool.StaminaUse);
+		Assert.Equal(["BSSwing1", "BSSwing2", "BSSwing3", "BSSwing4"], tool.SwingSounds);
+		Assert.Equal(0.5f, tool.Volume);
+		Assert.Equal(15.5f, tool.RotateAmount);
+		Assert.True(tool.PhysicalSwing);
+		Assert.True(tool.DoAttackAnimation);
+		Assert.Equal(0.02f, tool.ConditionLossOnHit);
+	}
+
+	[Fact]
+	public void VisualDefaults_HoldOnAFreshVisual()
+	{
+		var visual = new ModItemVisual();
+
+		Assert.Empty(visual.WornSpritePath);
+		Assert.Empty(visual.LiquidMaskPath);
+
+		var animation = new ModItemSpriteAnimation();
+		Assert.Equal(12f, animation.FramesPerSecond);
+		Assert.True(animation.Loop);
+
+		var wornSprite = new ModItemLimbWornSprite();
+		Assert.Empty(wornSprite.LimbName);
+		Assert.Empty(wornSprite.SpritePath);
+	}
+
+	[Fact]
+	public void CraftingQualityDefaults_HoldOnAFreshQuality()
+	{
+		// The declared 1 is what a quality-based recipe asks for when the author
+		// leaves the amount out; the Game Adapter normalises a non-positive
+		// amount, not this DTO.
+		var quality = new ModCraftingQuality { Id = "rippable" };
+
+		Assert.Equal(1f, quality.Amount);
 	}
 }

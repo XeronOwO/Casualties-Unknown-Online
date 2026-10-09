@@ -39,14 +39,14 @@ no wire message, no JObject snapshot, and no game/Unity type in Abstractions.
 | `WorldGenerationDamageBlockPatch` | Prefix captures original custom block; Postfix spawns authored drops before reporting the break. |
 | `IPatchBridge` / `GameAdapterBridge` | Added `OnCustomTileOreGeneration` and `OnCustomTileBroken` seams. |
 | `GameAdapterDomains` | Owns `TileWorldGenDistribution`. |
-| Tests | `ModTileDefinitionTests` round-trip/helper tests + reflective `TileWorldGenProviderTests`. |
+| Tests | `ModTileDefinitionTests` identity/default/helper tests + reflective `TileWorldGenProviderTests`. |
 | Protocol version | Unchanged (no wire). |
 
 ## 3. Self-check table
 
 | Mechanism | Change | Evidence |
 |---|---|---|
-| DTO round-trip | New worldgen/drop fields survive the opaque payload | `ModTileDefinitionTests.RoundTrip_PreservesWorldGenerationAndDrops` |
+| Declared fields | The worldgen and drop fields the DTO declares hold on a fresh definition — the payload round trip this row was originally cited through is deleted by decision 247 | `ModTileDefinitionTests.DeclaredDefaults_HoldOnAFreshDefinition`, `ModTileDefinitionTests.ModTileDropDefaults_HoldOnAFreshDrop` |
 | Layer helpers | Depth/mask edge cases are explicit | `ModTileDefinitionTests.CanSpawnInLayer_HandlesAllZeroAndDepthBounds` and `LayerMaskHelpers_BuildExpectedMasks` |
 | Stable worldgen order | Provider snapshot is id-ordered | `TileWorldGenProviderTests.GetDefinitionsForWorldGen_ReturnsStableIdOrder` |
 | Drop validation | Invalid authored chance is refused at bind time | `TileWorldGenProviderTests.TryBind_AcceptsValidDropAndRejectsInvalidDropChance` |

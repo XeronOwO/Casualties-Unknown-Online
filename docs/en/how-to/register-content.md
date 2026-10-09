@@ -10,7 +10,7 @@ the framework treats it as part of the world. Read [Your first mod](../start/you
 
 ## Content travels with the mod, not over the wire
 
-The bytes you register are part of your mod assembly; the registry is process-local and nothing about
+The definition you register is part of your mod assembly; the registry is process-local and nothing about
 it is sent to anyone. The consistency boundary is the mod handshake — mod id, version, permissions
 and network mode — so every player who can receive an instance of your content must run the same mod
 version. That is why the runtime binder only routes content from modes that guarantee a matching copy
@@ -44,8 +44,9 @@ address the game cannot honour.
 ```csharp
 if (context.Content.CanRegister)
 {
-	var sword = new ModItemDefinition
+	context.Content.TryRegister(new ModItemDefinition
 	{
+		Id = "wooden.sword",
 		DisplayName = "Wooden Sword",
 		Description = "A simple wooden sword.",
 		Weight = 1f,
@@ -53,23 +54,28 @@ if (context.Content.CanRegister)
 		Usable = true,
 		Tags = "weapon",
 		TemplateId = "stone"
-	}.ToPayload();
+	});
 
-	context.Content.TryRegister("wooden.sword", ModContentKind.Item, sword);
-	context.Content.TryRegister("healing.recipe", ModContentKind.Recipe, recipeBytes, schemaVersion: 2);
+	context.Content.TryRegister(new ModRecipeDefinition
+	{
+		Id = "healing.recipe",
+		SchemaVersion = 2,
+		ResultItemId = "bandage",
+		Ingredients = [new ModRecipeIngredient { ItemId = "cloth" }]
+	});
 }
 ```
 
-`TryRegister` takes the bare id, the kind and an opaque payload. `Definitions` returns a snapshot
-whose payloads are copied on read, `IsRegistered` answers for one id, and `TryUnregister` removes a
-definition. Registration belongs in `Bind`: the registry is loaded once before discovery and `Bind`,
-so a definition registered later is a race you own.
+`TryRegister` takes the definition object. It carries its own id, its own kind — fixed by its type, so
+what you register cannot be filed under a kind that does not belong to it — and its own schema version.
+`Definitions` returns the definitions you registered (the same instances, not copies), `IsRegistered`
+answers for one id, and `TryUnregister` removes a definition. Registration belongs in `Bind`: the registry
+is loaded once before discovery and `Bind`, so a definition registered later is a race you own.
 
-## The kinds with a typed payload
+## The kinds with a typed definition
 
-Registration itself only understands `id`, `kind` and `bytes`. For the kinds the framework binds into
-the game today, `CUO.Abstractions` also ships a DTO you fill in and turn into the payload with
-`ToPayload()`:
+For the kinds the framework binds into the game today, `CUO.Abstractions` ships a DTO you fill in and
+register as it is:
 
 | Kind | DTO | What the adapter does with it |
 |---|---|---|
@@ -81,15 +87,20 @@ the game today, `CUO.Abstractions` also ships a DTO you fill in and turn into th
 | `status`, `moodle` | `ModStatusDefinition`, `ModMoodleDefinition` | stores the static descriptor the projection reads |
 
 Most of these DTOs also carry a `CustomData` dictionary for the fields a well-known kind does not name
-yet — `ModRecipeDefinition` and `ModLiquidDefinition` do not — and the framework still stores
-whatever you registered as opaque bytes.
+yet — `ModRecipeDefinition` and `ModLiquidDefinition` do not — and the framework keeps the object you
+registered rather than a copy of it: register a definition you do not mutate afterwards.
 
 That table is the whole list. The nine kinds in it are the ones `ModContentKind` names and a CUO
-provider materializes; a kind outside it is still a legal registration, because the framework checks
-the kind's shape and never its membership, but nothing binds it: it stays in the registry, the console
-lists it under its canonical id, and it never appears in the world. The binder says so once at load
+provider materializes; a kind outside it is still a legal registration — implement `IModContentDefinition`
+yourself, declare your own kind tag and its own data — because the framework checks the kind's shape and
+never its membership, but nothing binds it: it stays in the registry, the console lists it under its
+canonical id, and it never appears in the world. The binder says so once at load
 time, at warning level, naming the kind and your definition — that line is what separates "registered"
 from "will exist", and it is the one to read when your content stays invisible.
+
+A hand-written definition that claims one of the nine kinds is the other case, and the line to look for is
+the provider's: `{ModId}/{Id} claims kind {Kind} but is a {Type}, not a {ModItemDefinition} — refused`. The
+provider reads its own DTO, so a definition of another type never binds, however well its kind tag matches.
 
 ## Asking who owns a definition
 
@@ -106,8 +117,8 @@ catalog: an ambiguous kind + id answers `false` rather than guessing.
 ## What is refused
 
 - The `RegisterContent` flag missing: `CanRegister` is false and every call returns false with a log.
-- A duplicate id inside the same mod, an empty id or an empty kind.
-- A payload over 64 KiB, a non-positive schema version, or more than 1024 definitions per mod.
+- A null definition, a duplicate id inside the same mod, an empty id, or an empty or over-long kind.
+- A non-positive schema version, or more than 1024 definitions per mod.
 - An id that is not a canonical lower-case path segment: upper case, whitespace, an embedded `:`, or
   a path over 95 characters.
 - Two mods registering the same kind and the same bare id.
@@ -118,8 +129,8 @@ A refusal is a `false` plus a log line; nothing is silently truncated, and nothi
 
 - **Do not register while you play.** Registration is content, not runtime state; the registry
   belongs in `Bind` and there is no per-frame path into it.
-- **You own the schema and its migrations.** The framework stores your bytes and your `schemaVersion`
-  verbatim and never converts between versions.
+- **You own the schema version.** The framework stores your `schemaVersion` verbatim and never converts
+  between versions; the shape of what you registered is the C# type you filled in.
 - **The game table not being ready is not your problem.** The adapter providers wait for the table
   they fill; your definition is read from the registry when it is.
 - **Registering content is not synchronizing it.** A registered item appears nowhere by itself;

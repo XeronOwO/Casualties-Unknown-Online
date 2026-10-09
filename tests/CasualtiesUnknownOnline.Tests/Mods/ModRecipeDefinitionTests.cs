@@ -4,70 +4,57 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The typed recipe content payload contract: mods can serialize a
-/// <see cref="ModRecipeDefinition"/> into the opaque content payload and the
-/// Game Adapter recipe provider can decode it without a private format.
+/// The typed recipe definition a mod hands to <see cref="IModContent"/>: the
+/// identity its type fixes (<see cref="ModContentKind.Recipe"/>), the ingredient
+/// list where null means "none" and the result/ingredient defaults the
+/// definition and its ingredients declare. Nothing serializes a definition any
+/// more, so this suite pins the answers the definition itself owns.
 /// </summary>
 public class ModRecipeDefinitionTests
 {
 	[Fact]
-	public void RoundTrip_PreservesRecipeFields()
+	public void Identity_IsFixedByTheType()
 	{
-		var original = new ModRecipeDefinition
-		{
-			ResultItemId = "custom.rope",
-			ResultIsLiquid = false,
-			ResultAmount = 2,
-			ResultCondition = 0.8f,
-			DontDrainResultLiquid = true,
-			Intelligence = 5,
-			Category = ModRecipeCategory.Materials,
-			IsRepair = false,
-			Ingredients =
-			[
-				new ModRecipeIngredient
-				{
-					ItemId = "foliage",
-					Quality = "",
-					QualityAmount = 1f,
-					MinimumCondition = 0.7f,
-					DestroyItem = true
-				},
-				new ModRecipeIngredient
-				{
-					ItemId = "",
-					Quality = "cutting",
-					QualityAmount = 1.5f,
-					MinimumCondition = 0.9f,
-					DestroyItem = false
-				}
-			]
-		};
+		var defaults = new ModRecipeDefinition();
 
-		var restored = ModRecipeDefinition.FromPayload(original.ToPayload());
+		Assert.Equal(ModContentKind.Recipe, defaults.Kind);
+		Assert.Empty(defaults.Id);
+		Assert.Equal(1, defaults.SchemaVersion);
 
-		Assert.NotNull(restored);
-		Assert.Equal(original.ResultItemId, restored!.ResultItemId);
-		Assert.False(restored.ResultIsLiquid);
-		Assert.Equal(original.ResultAmount, restored.ResultAmount);
-		Assert.Equal(original.ResultCondition, restored.ResultCondition);
-		Assert.True(restored.DontDrainResultLiquid);
-		Assert.Equal(original.Intelligence, restored.Intelligence);
-		Assert.Equal(original.Category, restored.Category);
-		Assert.False(restored.IsRepair);
-		Assert.Equal(2, restored.Ingredients.Count);
-		Assert.Equal("foliage", restored.Ingredients[0].ItemId);
-		Assert.Equal(0.7f, restored.Ingredients[0].MinimumCondition);
-		Assert.Equal("cutting", restored.Ingredients[1].Quality);
-		Assert.Equal(1.5f, restored.Ingredients[1].QualityAmount);
-		Assert.False(restored.Ingredients[1].DestroyItem);
+		var authored = new ModRecipeDefinition { Id = "test.rope", SchemaVersion = 2 };
+
+		Assert.Equal("test.rope", authored.Id);
+		Assert.Equal(2, authored.SchemaVersion);
 	}
 
 	[Fact]
-	public void InvalidPayload_ReturnsNull()
+	public void NullCollectionMembers_MeanNone()
 	{
-		Assert.Null(ModRecipeDefinition.FromPayload([]));
-		Assert.Null(ModRecipeDefinition.FromPayload([1, 2, 3]));
-		Assert.Null(ModRecipeDefinition.FromPayload(null!));
+		var definition = new ModRecipeDefinition { Ingredients = null! };
+
+		Assert.Empty(definition.Ingredients);
+	}
+
+	[Fact]
+	public void DeclaredDefaults_HoldOnAFreshDefinition()
+	{
+		var definition = new ModRecipeDefinition();
+
+		Assert.Empty(definition.ResultItemId);
+		Assert.Equal(1, definition.ResultAmount);
+		Assert.Equal(1f, definition.ResultCondition);
+		Assert.Equal(ModRecipeCategory.Materials, definition.Category);
+	}
+
+	[Fact]
+	public void IngredientDefaults_HoldOnAFreshIngredient()
+	{
+		var ingredient = new ModRecipeIngredient();
+
+		Assert.Empty(ingredient.ItemId);
+		Assert.Empty(ingredient.Quality);
+		Assert.Equal(1f, ingredient.QualityAmount);
+		Assert.Equal(0.9f, ingredient.MinimumCondition);
+		Assert.True(ingredient.DestroyItem);
 	}
 }

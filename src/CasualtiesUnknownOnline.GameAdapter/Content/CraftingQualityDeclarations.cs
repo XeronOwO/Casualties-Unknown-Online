@@ -40,8 +40,8 @@ internal sealed class CraftingQualityDeclarations
 	/// <summary>
 	/// True when every label is one the game could match. False names the
 	/// offending label so the caller can report it; a null entry is refused with
-	/// an empty id, because a payload can carry one and the injection path would
-	/// otherwise dereference it.
+	/// an empty id, because a mod can put a null entry in the list and the
+	/// injection path would otherwise dereference it.
 	/// </summary>
 	internal static bool IsValid(List<ModCraftingQuality> qualities, out string rejectedId)
 	{

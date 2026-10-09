@@ -5,7 +5,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// which mod registered a given content id, the same way CUCoreLib's per-kind
 /// registries expose <c>TryGetOwnerModGuid</c>. The query is only over the
 /// static content that mods declared through <see cref="IModContent"/>; it does
-/// not interpret payloads and does not expose Runtime internals.
+/// not read a definition's typed members and does not expose Runtime internals.
 /// </summary>
 public interface IModContentOwnerQuery
 {

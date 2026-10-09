@@ -1,33 +1,36 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
 
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The versioned, mod-authored data contract for one static status descriptor.
-/// It is a plain data object in Abstractions: no Unity type, no game type, no
-/// Runtime dependency. The payload is registered through the opaque
-/// <see cref="IModContent"/> channel with
+/// The mod-authored definition of one static status descriptor. It is a plain
+/// data object in Abstractions: no Unity type, no game type, no Runtime
+/// dependency. A mod fills it in and registers it through
+/// <see cref="IModContent"/>; its <see cref="Kind"/> is
 /// <see cref="ModContentKind.Status"/>. This seam describes the status type
 /// and its presentation/save metadata; the per-player/per-limb runtime values
 /// belong to a future typed mod-data domain and are deliberately not part of
 /// this contract.
 /// </summary>
-[DataContract]
-public sealed class ModStatusDefinition
+public sealed class ModStatusDefinition : IModContentDefinition
 {
+	/// <summary>The mod-scoped content id: a canonical lower-case path segment, unique within the registering mod.</summary>
+	public string Id { get; set; } = "";
+
+	/// <summary>The content kind this definition registers under - fixed by its type, never chosen by a caller.</summary>
+	public string Kind => ModContentKind.Status;
+
+	/// <summary>The mod-owned content schema version the framework stores verbatim (default 1).</summary>
+	public int SchemaVersion { get; set; } = 1;
+
 	/// <summary>Player-facing status name.</summary>
-	[DataMember(Order = 1)]
 	public string DisplayName { get; set; } = "";
 
 	/// <summary>Player-facing status description.</summary>
-	[DataMember(Order = 2)]
 	public string Description { get; set; } = "";
 
 	/// <summary>Whether the status is body-level or per-limb.</summary>
-	[DataMember(Order = 3)]
 	public ModStatusScope Scope { get; set; } = ModStatusScope.Body;
 
 	/// <summary>
@@ -35,15 +38,12 @@ public sealed class ModStatusDefinition
 	/// mod-owned save payload. Static metadata only; no save is implemented by
 	/// this seam.
 	/// </summary>
-	[DataMember(Order = 4)]
 	public bool SaveEnabled { get; set; } = true;
 
 	/// <summary>Optional id of a <see cref="ModMoodleDefinition"/> used to present this status.</summary>
-	[DataMember(Order = 5)]
 	public string MoodleId { get; set; } = "";
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
-	[DataMember(Order = 6)]
 	public Dictionary<string, string> CustomData
 	{
 		get;
@@ -56,7 +56,6 @@ public sealed class ModStatusDefinition
 	/// into a single row. Only meaningful with
 	/// <see cref="ModStatusScope.Limb"/>.
 	/// </summary>
-	[DataMember(Order = 7)]
 	public bool ShowPerLimbMoodles { get; set; }
 
 	/// <summary>
@@ -66,7 +65,6 @@ public sealed class ModStatusDefinition
 	/// limb-scoped; a limb without a matching entry falls back to
 	/// <see cref="MoodleId"/>.
 	/// </summary>
-	[DataMember(Order = 8)]
 	public List<ModLimbMoodleBinding> LimbMoodles
 	{
 		get;
@@ -105,16 +103,4 @@ public sealed class ModStatusDefinition
 	/// <summary>Whether this status asks for one moodle row per affected limb.</summary>
 	public bool ShowsPerLimbMoodles => Scope == ModStatusScope.Limb && ShowPerLimbMoodles;
 
-	/// <summary>Serialize this definition into the opaque payload format.</summary>
-	public byte[] ToPayload()
-	{
-		using var stream = new MemoryStream();
-		var serializer = new DataContractSerializer(typeof(ModStatusDefinition));
-		serializer.WriteObject(stream, this);
-		return stream.ToArray();
-	}
-
-	/// <summary>Deserialize a status definition payload. Returns null when the payload is not a valid status definition.</summary>
-	public static ModStatusDefinition? FromPayload(byte[] payload) =>
-		ModPayloadCodec.Decode<ModStatusDefinition>(payload);
 }

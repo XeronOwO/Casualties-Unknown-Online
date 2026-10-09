@@ -9,10 +9,11 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
 /// The mod content registration surface over the real mod stack: definitions
-/// are registered per-mod through <see cref="IModContext.Content"/], invalid
-/// or duplicate registrations are refused, RegisterContent is enforced, the
-/// plugin-facing <see cref="IModContentControl"/> aggregates every mod's
-/// entries, and payloads are defensively copied on write and read.
+/// are registered per-mod through <see cref="IModContext.Content"/>, the
+/// definition carries its own id/kind/schema version, invalid or duplicate
+/// registrations are refused, RegisterContent is enforced, the plugin-facing
+/// <see cref="IModContentControl"/> aggregates every mod's entries, and the
+/// registry keeps the instance the mod handed over.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ModContentTests
@@ -40,8 +41,8 @@ public class ModContentTests
 		Assert.Equal(2, mod.Context.Content.Count);
 
 		var sword = mod.Context.Content.Definitions.Single(d => d.Id == "wooden.sword");
-		Assert.Equal("item", sword.Kind);
-		Assert.Equal([1, 2, 3], sword.Data);
+		Assert.Equal(ModContentKind.Item, sword.Kind);
+		Assert.IsType<ModItemDefinition>(sword);
 	}
 
 	[Fact]
@@ -63,8 +64,8 @@ public class ModContentTests
 		var content = ContentMod(host).Context!.Content;
 		var originalCount = content.Count;
 
-		Assert.False(content.TryRegister("bad.schema", "item", [1], 0));
-		Assert.False(content.TryRegister("bad.schema", "item", [1], -1));
+		Assert.False(content.TryRegister(new StubContentDefinition("bad.schema", schemaVersion: 0)));
+		Assert.False(content.TryRegister(new StubContentDefinition("bad.schema", schemaVersion: -1)));
 		Assert.False(content.IsRegistered("bad.schema"));
 		Assert.Equal(originalCount, content.Count);
 	}
@@ -88,11 +89,13 @@ public class ModContentTests
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var content = ContentMod(host).Context!.Content;
 
-		Assert.False(content.TryRegister("Bad.Id", "item", [1]), "upper-case ids cannot be canonicalised silently");
-		Assert.False(content.TryRegister("ns:sword", "item", [1]), "the namespace separator belongs to the canonical id");
-		Assert.False(content.TryRegister("bad id", "item", [1]), "whitespace is not a valid path");
-		Assert.False(content.TryRegister(new string('a', ContentId.MaxPathLength + 1), "item", [1]), "over-length path refused");
-		Assert.True(content.TryRegister("canonical.id_9", "item", [1]));
+		Assert.False(content.TryRegister(new StubContentDefinition("Bad.Id")), "upper-case ids cannot be canonicalised silently");
+		Assert.False(content.TryRegister(new StubContentDefinition("ns:sword")), "the namespace separator belongs to the canonical id");
+		Assert.False(content.TryRegister(new StubContentDefinition("bad id")), "whitespace is not a valid path");
+		Assert.False(
+			content.TryRegister(new StubContentDefinition(new string('a', ContentId.MaxPathLength + 1))),
+			"over-length path refused");
+		Assert.True(content.TryRegister(new StubContentDefinition("canonical.id_9")));
 	}
 
 	[Fact]
@@ -126,7 +129,7 @@ public class ModContentTests
 		var content = EchoMod(host).Context!.Content;
 
 		Assert.False(content.CanRegister, "RegisterContent is required: nothing is implicit.");
-		Assert.False(content.TryRegister("x", "item", [1]));
+		Assert.False(content.TryRegister(new StubContentDefinition("x")));
 		Assert.Equal(0, content.Count);
 	}
 
@@ -137,10 +140,12 @@ public class ModContentTests
 		var content = ContentMod(host).Context!.Content;
 		var originalCount = content.Count;
 
-		Assert.False(content.TryRegister("", "item", [1]));
-		Assert.False(content.TryRegister("id", "", [1]));
-		Assert.False(content.TryRegister("id", "item", null!));
-		Assert.False(content.TryRegister("id", "item", new byte[ModContentPolicy.MaxDefinitionBytes + 1]));
+		Assert.False(content.TryRegister(null!));
+		Assert.False(content.TryRegister(new StubContentDefinition("")));
+		Assert.False(content.TryRegister(new StubContentDefinition("id", kind: "")));
+		Assert.False(content.TryRegister(new StubContentDefinition("id", kind: "   ")));
+		Assert.False(content.TryRegister(new StubContentDefinition(
+			"id", kind: new string('k', ModContentPolicy.MaxKindLength + 1))));
 		Assert.Equal(originalCount, content.Count);
 	}
 
@@ -150,7 +155,7 @@ public class ModContentTests
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var content = ContentMod(host).Context!.Content;
 
-		Assert.False(content.TryRegister("wooden.sword", "item", [9]));
+		Assert.False(content.TryRegister(new StubContentDefinition("wooden.sword")));
 		Assert.Equal(2, content.Count);
 	}
 
@@ -167,21 +172,16 @@ public class ModContentTests
 	}
 
 	[Fact]
-	public void PayloadsAreDefensivelyCopied_OnWriteAndRead()
+	public void RegisteredDefinition_IsStoredAsTheInstanceTheModHandedOver()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var content = ContentMod(host).Context!.Content;
 
-		var original = new byte[] { 1, 2, 3 };
-		Assert.True(content.TryRegister("copy.test", "item", original));
-		original[0] = 9; // caller mutation must not leak into the registry
+		var definition = new ModItemDefinition { Id = "kept.test", DisplayName = "Kept" };
+		Assert.True(content.TryRegister(definition));
 
-		var definition = content.Definitions.Single(d => d.Id == "copy.test");
-		var firstRead = definition.Data;
-		firstRead[1] = 8; // caller mutation of the returned copy must not leak either
-
-		var secondRead = content.Definitions.Single(d => d.Id == "copy.test").Data;
-		Assert.Equal([1, 2, 3], secondRead);
+		Assert.Same(definition, content.Definitions.Single(d => d.Id == "kept.test"));
+		Assert.Same(definition, content.Definitions.Single(d => d.Kind == ModContentKind.Item && d.Id == "kept.test"));
 	}
 
 	[Fact]
@@ -192,8 +192,8 @@ public class ModContentTests
 
 		var contentEntries = control.Entries.Where(e => e.ModId == "test.content").ToList();
 		Assert.Equal(2, contentEntries.Count);
-		Assert.Contains(contentEntries, e => e.Definition.Id == "wooden.sword" && e.Definition.Kind == "item");
-		Assert.Contains(contentEntries, e => e.Definition.Id == "healing.recipe" && e.Definition.Kind == "recipe");
+		Assert.Contains(contentEntries, e => e.Definition.Id == "wooden.sword" && e.Definition.Kind == ModContentKind.Item);
+		Assert.Contains(contentEntries, e => e.Definition.Id == "healing.recipe" && e.Definition.Kind == ModContentKind.Recipe);
 	}
 
 	[Fact]
@@ -205,10 +205,10 @@ public class ModContentTests
 
 		Assert.True(ModContentPolicy.IsValidKind("recipe"));
 		Assert.False(ModContentPolicy.IsValidKind(""));
+		Assert.False(ModContentPolicy.IsValidKind(new string('k', ModContentPolicy.MaxKindLength + 1)));
 
-		Assert.True(ModContentPolicy.IsValidData([]));
-		Assert.False(ModContentPolicy.IsValidData(null));
-		Assert.False(ModContentPolicy.IsValidData(new byte[ModContentPolicy.MaxDefinitionBytes + 1]));
+		Assert.True(ModContentPolicy.IsValidSchemaVersion(1));
+		Assert.False(ModContentPolicy.IsValidSchemaVersion(0));
 
 		Assert.True(ModContentPolicy.CanAdd(ModContentPolicy.MaxDefinitionsPerMod - 1));
 		Assert.False(ModContentPolicy.CanAdd(ModContentPolicy.MaxDefinitionsPerMod));

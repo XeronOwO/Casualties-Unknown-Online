@@ -33,14 +33,12 @@ public class ItemAdvancedBehaviorProviderTests
 		return Activator.CreateInstance(ProviderType, [logger])!;
 	}
 
-	private static bool TryBind(object provider, string id, ModItemDefinition definition)
+	private static bool TryBind(object provider, ModItemDefinition definition)
 	{
 		var bind = provider.GetType().GetMethod(
 			"TryBind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("TryBind not found.");
-		var registration = new ModContentRegistration(
-			"mod.a",
-			new ModContentDefinition(id, ModContentKind.Item, definition.ToPayload(), 1));
+		var registration = new ModContentRegistration("mod.a", definition);
 		return (bool)bind.Invoke(provider, [registration])!;
 	}
 
@@ -94,8 +92,9 @@ public class ItemAdvancedBehaviorProviderTests
 	public void Update_ToolAndGunSetStaticUseDefaultsAndTags()
 	{
 		var provider = CreateProvider();
-		Assert.True(TryBind(provider, "custom_tool", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "custom_tool",
 			Tool = new ModItemTool
 			{
 				Damage = 30f,
@@ -105,8 +104,9 @@ public class ItemAdvancedBehaviorProviderTests
 				Cooldown = 0.4f
 			}
 		}));
-		Assert.True(TryBind(provider, "custom_gun", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "custom_gun",
 			Tags = "utility",
 			Gun = new ModItemGun
 			{
@@ -137,8 +137,9 @@ public class ItemAdvancedBehaviorProviderTests
 	public void Update_BatteryOverridesDestroyAtZeroAndSetsDecayFlag()
 	{
 		var provider = CreateProvider();
-		Assert.True(TryBind(provider, "custom_battery", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "custom_battery",
 			DestroyAtZeroCondition = true,
 			DecayMinutes = 60f,
 			Battery = new ModItemBattery
@@ -162,8 +163,9 @@ public class ItemAdvancedBehaviorProviderTests
 	public void TryBind_AcceptsVisualDto()
 	{
 		var provider = CreateProvider();
-		Assert.True(TryBind(provider, "custom_visual", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "custom_visual",
 			Visual = new ModItemVisual
 			{
 				WornSpritePath = "Clothing/TestWorn",
@@ -208,8 +210,9 @@ public class ItemAdvancedBehaviorProviderTests
 	{
 		var provider = CreateProvider();
 
-		Assert.True(TryBind(provider, "valid", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "valid",
 			Container = new ModItemContainer { Capacity = 20f },
 			Battery = new ModItemBattery { StartCharge = 0.5f },
 			Light = new ModItemLight { Intensity = 1f },
@@ -217,36 +220,44 @@ public class ItemAdvancedBehaviorProviderTests
 			Gun = new ModItemGun { ShotsPerFire = 1 }
 		}));
 
-		Assert.False(TryBind(provider, "bad_container", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_container",
 			Container = new ModItemContainer { Capacity = -1f }
 		}));
-		Assert.False(TryBind(provider, "bad_battery", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_battery",
 			Battery = new ModItemBattery { StartCharge = float.NaN }
 		}));
-		Assert.False(TryBind(provider, "bad_light", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_light",
 			Light = new ModItemLight { Intensity = -0.1f }
 		}));
-		Assert.False(TryBind(provider, "bad_tool", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_tool",
 			Tool = new ModItemTool { Damage = -1f }
 		}));
-		Assert.False(TryBind(provider, "bad_gun_mag", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_gun_mag",
 			Gun = new ModItemGun { MagCapacity = -1 }
 		}));
-		Assert.False(TryBind(provider, "bad_gun_shots", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_gun_shots",
 			Gun = new ModItemGun { ShotsPerFire = 0 }
 		}));
-		Assert.False(TryBind(provider, "bad_visual", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_visual",
 			Visual = new ModItemVisual { WornSpriteOffsetX = float.NaN }
 		}));
-		Assert.False(TryBind(provider, "bad_visual_multi", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_visual_multi",
 			Visual = new ModItemVisual
 			{
 				MultiWornSprites =
@@ -261,8 +272,9 @@ public class ItemAdvancedBehaviorProviderTests
 				]
 			}
 		}));
-		Assert.False(TryBind(provider, "bad_visual_animation_fps", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_visual_animation_fps",
 			Visual = new ModItemVisual
 			{
 				BaseSpriteAnimation = new ModItemSpriteAnimation
@@ -272,8 +284,9 @@ public class ItemAdvancedBehaviorProviderTests
 				}
 			}
 		}));
-		Assert.False(TryBind(provider, "bad_visual_animation_zero_fps", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_visual_animation_zero_fps",
 			Visual = new ModItemVisual
 			{
 				LiquidMaskAnimation = new ModItemSpriteAnimation
@@ -283,8 +296,9 @@ public class ItemAdvancedBehaviorProviderTests
 				}
 			}
 		}));
-		Assert.False(TryBind(provider, "bad_visual_animation_empty", new ModItemDefinition
+		Assert.False(TryBind(provider, new ModItemDefinition
 		{
+			Id = "bad_visual_animation_empty",
 			Visual = new ModItemVisual
 			{
 				WornSpriteAnimation = new ModItemSpriteAnimation

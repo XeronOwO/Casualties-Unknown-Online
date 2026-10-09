@@ -1,114 +1,76 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The typed tile content payload contract: a mod can serialize a
-/// <see cref="ModTileDefinition"/> into the opaque byte payload and the
-/// Runtime/Game Adapter can read it back without a private format.
+/// The typed tile definition a mod hands to <see cref="IModContent"/>: the
+/// identity its type fixes (<see cref="ModContentKind.Tile"/>), the collection
+/// members where null means "none", the defaults the definition and its drop
+/// entries declare, and the layer-mask helpers that need no payload. Nothing
+/// serializes a definition any more, so this suite pins the answers the
+/// definition itself owns.
 /// </summary>
 public class ModTileDefinitionTests
 {
 	[Fact]
-	public void RoundTrip_PreservesCoreFields()
+	public void Identity_IsFixedByTheType()
 	{
-		var original = new ModTileDefinition
-		{
-			DisplayName = "Auric Ore",
-			Description = "A rare conductive ore.",
-			TemplateTileIndex = 1,
-			SpritePath = "CustomTiles/auric",
-			TileName = "AuricTile",
-			Health = 777f,
-			HitSound = "crystal",
-			StepSound = "Rock",
-			SleepQuality = ModTileSleepQuality.Bad,
-			NoVariation = true,
-			Metallic = true,
-			Toxicity = 2.5f,
-			Slippery = true,
-			ColorR = 0.25f,
-			ColorG = 0.5f,
-			ColorB = 0.75f,
-			ColorA = 1f,
-			ColliderType = ModTileColliderType.Grid,
-			CustomData = new Dictionary<string, string>
-			{
-				["mod.metadata"] = "kept"
-			}
-		};
+		var defaults = new ModTileDefinition();
 
-		var restored = ModTileDefinition.FromPayload(original.ToPayload());
+		Assert.Equal(ModContentKind.Tile, defaults.Kind);
+		Assert.Empty(defaults.Id);
+		Assert.Equal(1, defaults.SchemaVersion);
 
-		Assert.NotNull(restored);
-		Assert.Equal(original.DisplayName, restored!.DisplayName);
-		Assert.Equal(original.Description, restored.Description);
-		Assert.Equal(original.TemplateTileIndex, restored.TemplateTileIndex);
-		Assert.Equal(original.SpritePath, restored.SpritePath);
-		Assert.Equal(original.TileName, restored.TileName);
-		Assert.Equal(original.Health, restored.Health);
-		Assert.Equal(original.HitSound, restored.HitSound);
-		Assert.Equal(original.StepSound, restored.StepSound);
-		Assert.Equal(original.SleepQuality, restored.SleepQuality);
-		Assert.True(restored.NoVariation);
-		Assert.True(restored.Metallic);
-		Assert.Equal(original.Toxicity, restored.Toxicity);
-		Assert.True(restored.Slippery);
-		Assert.Equal(original.ColorR, restored.ColorR);
-		Assert.Equal(original.ColorG, restored.ColorG);
-		Assert.Equal(original.ColorB, restored.ColorB);
-		Assert.Equal(original.ColorA, restored.ColorA);
-		Assert.Equal(original.ColliderType, restored.ColliderType);
-		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
+		var authored = new ModTileDefinition { Id = "test.auric", SchemaVersion = 2 };
+
+		Assert.Equal("test.auric", authored.Id);
+		Assert.Equal(2, authored.SchemaVersion);
 	}
 
 	[Fact]
-	public void RoundTrip_PreservesMissingOptionalVisualSource()
+	public void NullCollectionMembers_MeanNone()
 	{
-		var original = new ModTileDefinition
+		var definition = new ModTileDefinition
 		{
-			DisplayName = "Plain",
-			TemplateTileIndex = null,
-			SpritePath = "",
-			Health = 50f
+			CustomData = null!,
+			Drops = null!
 		};
 
-		var restored = ModTileDefinition.FromPayload(original.ToPayload());
-
-		Assert.NotNull(restored);
-		Assert.Null(restored!.TemplateTileIndex);
-		Assert.Empty(restored.SpritePath);
-		Assert.Equal(50f, restored.Health);
+		Assert.Empty(definition.CustomData);
+		Assert.Empty(definition.Drops);
 	}
 
 	[Fact]
-	public void RoundTrip_PreservesWorldGenerationAndDrops()
+	public void DeclaredDefaults_HoldOnAFreshDefinition()
 	{
-		var original = new ModTileDefinition
-		{
-			DisplayName = "Auric Ore",
-			SpawnAmount = 1.5f,
-			SpawnLayers = ModTileDefinition.LayersToMask(4, 5, 6),
-			GenerationStyle = ModTileGenerationStyle.HeavyVeins | ModTileGenerationStyle.Inner,
-			Drops =
-			[
-				new ModTileDrop { ItemId = "auricfragment", Chance = 0.8f, MinCondition = 0.2f, MaxCondition = 0.9f }
-			]
-		};
+		var definition = new ModTileDefinition();
 
-		var restored = ModTileDefinition.FromPayload(original.ToPayload());
+		Assert.Empty(definition.DisplayName);
+		Assert.Empty(definition.Description);
+		Assert.Empty(definition.SpritePath);
+		Assert.Empty(definition.TileName);
+		Assert.Equal(100f, definition.Health);
+		Assert.Equal("rock", definition.HitSound);
+		Assert.Equal("Rock", definition.StepSound);
+		Assert.Equal(ModTileSleepQuality.Bad, definition.SleepQuality);
+		Assert.Equal(1f, definition.ColorR);
+		Assert.Equal(1f, definition.ColorG);
+		Assert.Equal(1f, definition.ColorB);
+		Assert.Equal(1f, definition.ColorA);
+		Assert.Equal(ModTileColliderType.Grid, definition.ColliderType);
+		Assert.Equal(ModTileDefinition.AllSpawnLayers, definition.SpawnLayers);
+		Assert.Equal(ModTileGenerationStyle.Vein, definition.GenerationStyle);
+	}
 
-		Assert.NotNull(restored);
-		Assert.Equal(original.SpawnAmount, restored!.SpawnAmount);
-		Assert.Equal(original.SpawnLayers, restored.SpawnLayers);
-		Assert.Equal(original.GenerationStyle, restored.GenerationStyle);
-		var drop = Assert.Single(restored.Drops);
-		Assert.Equal("auricfragment", drop.ItemId);
-		Assert.Equal(0.8f, drop.Chance);
-		Assert.Equal(0.2f, drop.MinCondition);
-		Assert.Equal(0.9f, drop.MaxCondition);
+	[Fact]
+	public void ModTileDropDefaults_HoldOnAFreshDrop()
+	{
+		var drop = new ModTileDrop();
+
+		Assert.Empty(drop.ItemId);
+		Assert.Equal(1f, drop.Chance);
+		Assert.Equal(1f, drop.MaxCondition);
 	}
 
 	[Fact]
@@ -134,13 +96,5 @@ public class ModTileDefinitionTests
 		Assert.Equal(1 | 4, ModTileDefinition.LayersToMask(1, 3));
 		Assert.Equal(ModTileDefinition.AllSpawnLayers, ModTileDefinition.AllLayersExcept());
 		Assert.Equal(~(1 | 4), ModTileDefinition.AllLayersExcept(1, 3));
-	}
-
-	[Fact]
-	public void InvalidPayload_ReturnsNull()
-	{
-		Assert.Null(ModTileDefinition.FromPayload([]));
-		Assert.Null(ModTileDefinition.FromPayload([1, 2, 3]));
-		Assert.Null(ModTileDefinition.FromPayload(null!));
 	}
 }

@@ -74,7 +74,7 @@ with its reason recorded.
 | Layer | What it proves | Result |
 |---|---|---|
 | Build | the contract and every consumer compile against it, with warnings as errors | `dotnet build CasualtiesUnknownOnline.slnx` — 0 warnings, 0 errors |
-| Focused suite | the content family, its providers and the console vocabulary | 205/205, driven by 25 filter conditions each written in full (the repository's measured trap is that a `~A\|~B` shorthand selects zero tests and still reports success) |
+| Focused suite | the content family, its providers and the console vocabulary | 207/207, driven by 25 filter conditions each written in full (the repository's measured trap is that a `~A\|~B` shorthand selects zero tests and still reports success) |
 | Behaviour suite | nothing else moved | 4852/4852 (was 4850; the two new cases are this seam's) |
 | **The seam** | a mod-authored implementation of EACH kind is accepted by the REAL provider for that kind, and the value the framework reads is the computed one rather than the delegated default | `ModAuthoredDefinitionBindingTests` — 2/2: one real binder run over all nine real GameAdapter providers (built reflectively, since the test project never compile-references GameAdapter) with nine fixtures that implement only their kind interface, and a second case asserting `Assert.Same`, the computed `DisplayName`/`Weight`, and that an untouched member still equals the default |
 | The refusal | a definition that claims a kind without implementing its contract is refused by all nine, naming the contract it wanted | `ModContentNullCollectionBindingTests.EveryProvider_RefusesADefinitionOfAnotherTypeFiledUnderItsKind` — nine assertions, whose expected strings moved from the class names to the interface names in this change |

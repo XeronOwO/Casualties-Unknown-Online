@@ -1,4 +1,15 @@
 {
   "//": "Anchors that a GATED document cites but that no test declares any more. Every entry must still be cited by its document (the gate fails on a stale exception) and must carry a reason. Add here only for a HISTORICAL record inside a gated document — a red/green log or a dated pass narrative — never to excuse a live claim: a live claim whose anchor is gone is a finding, not an exception. Point-in-time record folders (docs/evidence/selfchecks/, docs/backlog/done/, docs/backlog/resolved/) are out of scope entirely and need no entries — the one canonical list is BacklogIntegrityGateTests.RecordPrefixes.",
-  "exceptions": []
+  "exceptions": [
+    {
+      "Ticket": "docs/evidence/acceptance/mod-data-sync-model-20260927.md",
+      "Anchor": "ModDataTests.LocalOnly_AnyRoleCanReadWriteRemove_AndCopiesAreDefensive",
+      "Reason": "Dated acceptance record (batch 20260927-b) of the byte-shaped runtime-data store. The 2026-10-09 value-model cycle renamed the case to LocalOnly_AnyRoleCanReadWriteRemove_AndAValueIsImmutableNotCopied, because the defensive copy it was named for is gone (a ModValue is immutable). Per BacklogIntegrityGateTests's own rule, a test renamed afterwards must not force this record to be rewritten: the batch ran the earlier name, and the rule the row judged is unchanged."
+    },
+    {
+      "Ticket": "docs/evidence/acceptance/mod-data-sync-model-20260927.md",
+      "Anchor": "ModDataTests.ValueCaps_AreEnforcedWithoutSilentTruncation",
+      "Reason": "Same dated record and same rename: the 2026-10-09 cycle renamed the case to ValueCaps_AreEnforcedByTheEncoderWithoutSilentTruncation, since the cap is now the value's encoded size and the encoder is its one validator. The row's judgement (a value over the cap is refused, never truncated) still holds for the renamed case."
+    }
+  ]
 }

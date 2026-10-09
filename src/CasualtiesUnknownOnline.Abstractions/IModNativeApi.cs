@@ -7,9 +7,10 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// types — registers a curated set of named operations, and a mod can only
 /// invoke those operation ids. Arguments and results are restricted to the
 /// framework-safe value surface (<c>null</c>, strings, numeric primitives,
-/// <c>byte[]</c>, primitive arrays, and framework DTO types such as
-/// <see cref="IModNativeLocalPlayerState"/>); Unity/game-assembly objects never
-/// cross the boundary.
+/// <see cref="ModValue"/> — the typed data model, whose binary leaf is where
+/// bytes really are the value — primitive arrays, and framework DTO types such
+/// as <see cref="IModNativeLocalPlayerState"/>); Unity/game-assembly objects
+/// never cross the boundary.
 ///
 /// Invoking requires <see cref="ModPermission.AccessNativeApi"/>: nothing is
 /// implicit, and every call also checks and logs the permission before acting.

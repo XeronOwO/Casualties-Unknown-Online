@@ -6,7 +6,7 @@
 - Priority: Critical
 - Category: Mod platform / mod API
 - Related: `docs/backlog/review/mod-content-typed-registration.md` and
-  `docs/backlog/todo/mod-api-no-opaque-envelopes.md` (the same sweep), `docs/backlog/todo/mod-authored-effects.md`
+  `docs/backlog/review/mod-api-no-opaque-envelopes.md` (the same sweep), `docs/backlog/todo/mod-authored-effects.md`
   (its effect context needs the same answer: an engine-typed handle and named operations, never `object`),
   `docs/en/reference/modification-policy.md` (the visibility rule: only a designed capability becomes a
   contract, and `internal` plus `InternalsVisibleTo` is the normal shape for what the framework shares with

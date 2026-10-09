@@ -9,9 +9,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// <summary>
 /// The runtime-data half of the Phase 4 Mod API / CUCoreLib migration seam.
 /// This is NOT a persistence store and NOT a sync engine: it owns the
-/// per-mod ephemeral slot table and the primitive defensive-copy mechanics,
-/// leaving role/scope gatekeeping to the per-mod <see cref="IModData"/> adapter
-/// (mirroring <see cref="ModStateStore"/>).
+/// per-mod ephemeral slot table, leaving role/scope gatekeeping to the per-mod
+/// <see cref="IModData"/> adapter (mirroring <see cref="ModStateStore"/>). A
+/// slot holds the mod's <see cref="ModValue"/> itself — the model is immutable,
+/// so there is nothing to copy on read or write and no way for a later
+/// mutation to reach a stored value.
 ///
 /// Shared values exist on host and guest slots only when the mod explicitly
 /// applies a host-originated value through the adapter; the framework never
@@ -67,24 +69,31 @@ internal sealed class ModDataStore(ILogger log)
 		return true;
 	}
 
-	internal bool TryGetValue(string modId, string key, out byte[]? value)
+	internal bool TryGetValue(string modId, string key, out ModValue? value)
 	{
 		value = null;
-		if (!TryGetSlot(modId, key, out var slot) || slot.Value is null)
+		if (!TryGetSlot(modId, key, out var slot))
 		{
 			return false;
 		}
 
-		value = (byte[])slot.Value.Clone();
-		return true;
+		value = slot.Value;
+		return value is not null;
 	}
 
-	internal bool TrySetValue(string modId, string key, byte[] value)
+	internal bool TrySetValue(string modId, string key, ModValue value)
 	{
-		if (!ModDataPolicy.IsValidKey(key) || !ModDataPolicy.IsValidValue(value))
+		if (!ModDataPolicy.IsValidKey(key))
 		{
-			_log.LogWarning("[Mods] {ModId} tried to write runtime data {Key} with an invalid key/value — refused.",
+			_log.LogWarning("[Mods] {ModId} tried to write runtime data with an invalid key {Key} — refused.",
 				modId, key);
+			return false;
+		}
+
+		if (!ModDataPolicy.IsValidValue(value, out var refusal))
+		{
+			_log.LogWarning("[Mods] {ModId} tried to write runtime data {Key} with a value the framework cannot carry — {Reason}",
+				modId, key, refusal);
 			return false;
 		}
 
@@ -95,7 +104,7 @@ internal sealed class ModDataStore(ILogger log)
 			return false;
 		}
 
-		slot.Value = (byte[])value.Clone();
+		slot.Value = value;
 		return true;
 	}
 
@@ -172,13 +181,14 @@ internal sealed class ModDataStore(ILogger log)
 	}
 
 	/// <summary>One mod's declared runtime-data slot. Value is null until the first successful write/apply.</summary>
-	internal sealed class ModDataSlot(ModDataScope scope, int schemaVersion, byte[]? value)
+	internal sealed class ModDataSlot(ModDataScope scope, int schemaVersion, ModValue? value)
 	{
 		public ModDataScope Scope { get; } = scope;
 
 		public int SchemaVersion { get; } = schemaVersion;
 
-		public byte[]? Value { get; set; } = value is null ? null : (byte[])value.Clone();
+		/// <summary>The stored value itself, shared rather than copied: a <see cref="ModValue"/> is immutable.</summary>
+		public ModValue? Value { get; set; } = value;
 	}
 
 	// ---- Per-mod API adapter ----
@@ -201,7 +211,7 @@ internal sealed class ModDataStore(ILogger log)
 			return store.TryDeclare(manifest.Id, key, scope, schemaVersion);
 		}
 
-		public bool TryGet(string key, out byte[]? value)
+		public bool TryGet(string key, out ModValue? value)
 		{
 			value = null;
 			if (!store.TryGetScope(manifest.Id, key, out var scope))
@@ -219,7 +229,7 @@ internal sealed class ModDataStore(ILogger log)
 			return store.TryGetValue(manifest.Id, key, out value);
 		}
 
-		public bool TrySet(string key, byte[] value)
+		public bool TrySet(string key, ModValue value)
 		{
 			if (!store.TryGetScope(manifest.Id, key, out var scope))
 			{
@@ -238,7 +248,7 @@ internal sealed class ModDataStore(ILogger log)
 			return store.TrySetValue(manifest.Id, key, value);
 		}
 
-		public bool TryApplyShared(string key, byte[] value, ulong senderSteamId)
+		public bool TryApplyShared(string key, ModValue value, ulong senderSteamId)
 		{
 			if (!store.TryGetScope(manifest.Id, key, out var scope))
 			{

@@ -56,7 +56,7 @@ not by each consumer. Today it is decided per consumer and unevenly.
 > that drove it are RETIRED, not moved: `ModStatusUpdate` and the two status projections were the last
 > contracts CUO carried over a boundary as serialized objects, and they carry a `ModValue` now, so
 > `ModPayloadCodec`, the `[DataContract]` attributes and the three payload shapes this ticket's rows 1-4
-> measured no longer exist (ticket `todo/mod-api-no-opaque-envelopes.md`, stage A). What is left is the
+> measured no longer exist (ticket `review/mod-api-no-opaque-envelopes.md`, stage A). What is left is the
 > MEMBER half, and its census is `ModNullCollectionRuleTests` — 26 rows, one fewer than the 27 below,
 > because the runtime moodle request's `Payload` is a `ModValue` now and a value is not a collection. The
 > value model's own read-only `Items`/`Fields` views are a NAMED group in that census rather than rows.
@@ -118,7 +118,7 @@ not by each consumer. Today it is decided per consumer and unevenly.
 | 4 | A definition with every collection member null still BINDS | `ModContentNullCollectionBindingTests`: item, liquid, liquid tile, building, tile, status, moodle, and the structure with a grid | pass |
 | 5 | A member that is genuinely required is refused with the message that says why, never with the binder's logged exception | the same suite: a frame-less item animation, a recipe with no ingredients, a structure with no rows, a frame-less moodle animation — each read from the provider's own warning, with no error entry on the binder | pass |
 | 6 | No provider normalises a collection any more | the guard sweep in *What landed*; the census plus the binder suite fail if the rule is lost | pass |
-| — | *(retired)* rows 1-5 of the previous revision: an explicit nil in a payload, an omitted element, a null write, a payload we build staying free of nils, and the payload-member census | the contracts they measured are gone — a status value is a `ModValue` and CUO encodes it, so there is no decoded object graph and no nil to normalise (ticket `todo/mod-api-no-opaque-envelopes.md`, stage A) | retired |
+| — | *(retired)* rows 1-5 of the previous revision: an explicit nil in a payload, an omitted element, a null write, a payload we build staying free of nils, and the payload-member census | the contracts they measured are gone — a status value is a `ModValue` and CUO encodes it, so there is no decoded object graph and no nil to normalise (ticket `review/mod-api-no-opaque-envelopes.md`, stage A) | retired |
 
 ## Non-goals
 

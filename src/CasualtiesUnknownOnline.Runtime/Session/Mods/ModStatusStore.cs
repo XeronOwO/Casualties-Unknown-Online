@@ -8,11 +8,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
 /// The runtime status half of the mod-status domain (phase 1). It owns the
-/// ephemeral per-mod status slot table and defensive-copy mechanics; the
+/// ephemeral per-mod status slot table; the
 /// per-mod <see cref="IModStatusRuntime"/> adapter applies role/scope gates.
 ///
-/// This is NOT a vanilla game integration layer. The store only keeps opaque
-/// mod payloads keyed by status id + player + optional limb slot. GameAdapter
+/// This is NOT a vanilla game integration layer. The store keeps the mod's own
+/// <see cref="ModValue"/> keyed by status id + player + optional limb slot — the
+/// value itself, shared rather than copied, because a value is immutable. GameAdapter
 /// remains the only layer that can translate a status into a vanilla body/limb
 /// effect. No automatic replication is implemented here; shared values are
 /// applied explicitly by the guest from a host-originated message.
@@ -345,10 +346,12 @@ public sealed class ModStatusStore(ILogger log)
 	}
 
 	/// <summary>
-	/// Snapshot every non-opaque projection value stored for one player. This is
-	/// the GameAdapter-facing read seam: it returns defensive copies and all
+	/// Snapshot every stored status value whose projection kind is a typed one
+	/// (not <see cref="ModStatusProjectionKind.None"/>), for one player. This is
+	/// the GameAdapter-facing read seam: it hands out the stored values themselves
+	/// (immutable, so nothing to copy) and all
 	/// projection metadata needed to apply/remove the vanilla overlay without the
-	/// GameAdapter reaching into the mod API or interpreting arbitrary statuses.
+	/// GameAdapter reaching into the mod API or interpreting a mod's own value.
 	/// </summary>
 	internal IReadOnlyList<ModStatusProjectionSnapshot> GetProjectionSnapshots(ulong playerSteamId)
 	{
@@ -415,7 +418,7 @@ public sealed class ModStatusStore(ILogger log)
 	/// List every runtime status value currently stored for one player,
 	/// regardless of projection kind. This is the GameAdapter read seam for
 	/// presentation-only features such as the vanilla moodle row: it returns
-	/// status identity/scope/slot without exposing mod-owned payload bytes.
+	/// status identity/scope/slot without exposing the mod's own value.
 	/// </summary>
 	internal IReadOnlyList<StatusPresence> GetStatusPresences(ulong playerSteamId)
 	{

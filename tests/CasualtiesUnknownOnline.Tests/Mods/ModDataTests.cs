@@ -8,11 +8,12 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The runtime mod-data seam: a process-local, scope-declared store with
-/// explicit shared-mirror application and no automatic snapshot protocol.
-/// Tests cover local-only independence, shared host-write/guest-apply,
-/// host-authoritative host-only visibility, scope validation by network mode,
-/// defensive copies, and policy caps.
+/// The runtime mod-data seam: a process-local, scope-declared store of
+/// <see cref="ModValue"/> with explicit shared-mirror application and no
+/// automatic snapshot protocol. Tests cover local-only independence, shared
+/// host-write/guest-apply, host-authoritative host-only visibility, scope
+/// validation by network mode, the value model's immutability in place of the
+/// old defensive copies, and the policy caps.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ModDataTests
@@ -30,7 +31,7 @@ public class ModDataTests
 			.LoadedMods.Single(m => m is TestClientOnlyDataMod)).Context!.Data;
 
 	[Fact]
-	public void LocalOnly_AnyRoleCanReadWriteRemove_AndCopiesAreDefensive()
+	public void LocalOnly_AnyRoleCanReadWriteRemove_AndAValueIsImmutableNotCopied()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var data = DataOf(host);
@@ -42,14 +43,17 @@ public class ModDataTests
 		Assert.Equal(1, schemaVersion);
 
 		var original = new byte[] { 1, 2, 3 };
-		Assert.True(data.TrySet("local", original));
-		original[0] = 9; // caller mutation must not leak into the store
+		var stored = ModValue.Binary(original);
+		Assert.True(data.TrySet("local", stored));
+		original[0] = 9; // the value copied the bytes: the caller's later write cannot reach it
 
 		Assert.True(data.TryGet("local", out var firstRead));
-		firstRead![1] = 8; // caller mutation of the returned copy must not leak either
+		Assert.Equal(stored, firstRead);
+		Assert.True(firstRead!.TryGetBinary(out var bytes));
+		Assert.Equal([1, 2, 3], bytes.ToArray());
 
 		Assert.True(data.TryGet("local", out var secondRead));
-		Assert.Equal([1, 2, 3], secondRead);
+		Assert.Equal(stored, secondRead);
 
 		Assert.Single(data.Keys);
 		Assert.Contains("local", data.Keys);
@@ -70,13 +74,13 @@ public class ModDataTests
 
 		Assert.True(hostData.TryDeclare("local", ModDataScope.LocalOnly));
 		Assert.True(guestData.TryDeclare("local", ModDataScope.LocalOnly));
-		Assert.True(hostData.TrySet("local", [1]));
-		Assert.True(guestData.TrySet("local", [2]));
+		Assert.True(hostData.TrySet("local", ModValue.Integer(1)));
+		Assert.True(guestData.TrySet("local", ModValue.Integer(2)));
 
 		Assert.True(hostData.TryGet("local", out var hostValue));
 		Assert.True(guestData.TryGet("local", out var guestValue));
-		Assert.Equal([1], hostValue);
-		Assert.Equal([2], guestValue);
+		Assert.Equal(ModValue.Integer(1), hostValue);
+		Assert.Equal(ModValue.Integer(2), guestValue);
 	}
 
 	[Fact]
@@ -88,25 +92,25 @@ public class ModDataTests
 
 		Assert.True(hostData.TryDeclare("shared", ModDataScope.Shared));
 		Assert.True(guestData.TryDeclare("shared", ModDataScope.Shared));
-		Assert.True(hostData.TrySet("shared", [1, 2]));
+		Assert.True(hostData.TrySet("shared", ModValues.Ints(1, 2)));
 
 		// Guests cannot mutate the authoritative value; they must request through commands/messages.
-		Assert.False(guestData.TrySet("shared", [9]));
+		Assert.False(guestData.TrySet("shared", ModValues.Ints(9)));
 		Assert.False(guestData.TryGet("shared", out _), "the guest has no mirror until it applies a host value.");
 		Assert.False(guestData.TryRemove("shared"));
 
 		// A host-originated value may be applied to the local mirror.
-		Assert.True(guestData.TryApplyShared("shared", [3, 4], HostId));
+		Assert.True(guestData.TryApplyShared("shared", ModValues.Ints(3, 4), HostId));
 		Assert.True(guestData.TryGet("shared", out var guestMirror));
-		Assert.Equal([3, 4], guestMirror);
+		Assert.Equal(ModValues.Ints(3, 4), guestMirror);
 
 		// Non-host senders and host-side apply are refused.
-		Assert.False(guestData.TryApplyShared("shared", [5], GuestId));
-		Assert.False(hostData.TryApplyShared("shared", [6], HostId));
+		Assert.False(guestData.TryApplyShared("shared", ModValues.Ints(5), GuestId));
+		Assert.False(hostData.TryApplyShared("shared", ModValues.Ints(6), HostId));
 
 		// The host's authoritative value remains unchanged by guest mirror applies.
 		Assert.True(hostData.TryGet("shared", out var hostValue));
-		Assert.Equal([1, 2], hostValue);
+		Assert.Equal(ModValues.Ints(1, 2), hostValue);
 
 		// The host can remove the slot.
 		Assert.True(hostData.TryRemove("shared"));
@@ -122,17 +126,17 @@ public class ModDataTests
 
 		Assert.True(hostData.TryDeclare("host", ModDataScope.HostAuthoritative));
 		Assert.True(guestData.TryDeclare("host", ModDataScope.HostAuthoritative));
-		Assert.True(hostData.TrySet("host", [7, 8]));
+		Assert.True(hostData.TrySet("host", ModValues.Ints(7, 8)));
 
 		Assert.True(hostData.TryGet("host", out var hostValue));
-		Assert.Equal([7, 8], hostValue);
+		Assert.Equal(ModValues.Ints(7, 8), hostValue);
 		Assert.True(hostData.TryGetScope("host", out var hostScope));
 		Assert.Equal(ModDataScope.HostAuthoritative, hostScope);
 
 		// The framework keeps no guest mirror for host-authoritative data.
 		Assert.False(guestData.TryGet("host", out _));
 		Assert.False(guestData.TryGetScope("host", out _));
-		Assert.False(guestData.TryApplyShared("host", [9], HostId));
+		Assert.False(guestData.TryApplyShared("host", ModValues.Ints(9), HostId));
 		Assert.False(guestData.TryRemove("host"));
 		Assert.Empty(guestData.Keys);
 		Assert.Equal(0, guestData.Count);
@@ -147,7 +151,7 @@ public class ModDataTests
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var data = DataOf(host);
 
-		Assert.False(data.TrySet("missing", [1]), "writing an undeclared slot must be refused.");
+		Assert.False(data.TrySet("missing", ModValue.Integer(1)), "writing an undeclared slot must be refused.");
 		Assert.False(data.TryGet("missing", out _));
 		Assert.False(data.TryGetScope("missing", out _));
 
@@ -161,16 +165,23 @@ public class ModDataTests
 	}
 
 	[Fact]
-	public void ValueCaps_AreEnforcedWithoutSilentTruncation()
+	public void ValueCaps_AreEnforcedByTheEncoderWithoutSilentTruncation()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var data = DataOf(host);
 
 		Assert.True(data.TryDeclare("local", ModDataScope.LocalOnly));
-		Assert.False(data.TrySet("local", new byte[64 * 1024 + 1]), "over-cap values are refused.");
-		Assert.True(data.TrySet("local", []), "empty values are legal.");
+		Assert.False(data.TrySet("local", ModValues.OverCap()), "a value that cannot be encoded inside the cap is refused.");
+		Assert.False(data.TrySet("local", null!), "a null value is refused rather than stored.");
+		Assert.True(data.TrySet("local", ModValue.Text("")), "an empty text is a value and is legal.");
 		Assert.True(data.TryGet("local", out var empty));
-		Assert.Empty(empty!);
+		Assert.True(empty!.TryGetText(out var text));
+		Assert.Equal("", text);
+
+		// The rail is inclusive: a value whose encoding is exactly the cap is inside it.
+		Assert.True(data.TrySet("local", ModValues.AtTheRail()), "a value that encodes to exactly the cap is legal.");
+		Assert.True(data.TryGet("local", out var atRail));
+		Assert.Equal(ModValues.AtTheRail(), atRail);
 	}
 
 	[Fact]

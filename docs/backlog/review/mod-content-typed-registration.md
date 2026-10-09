@@ -6,7 +6,7 @@
   re-derives the type at run time instead of the compiler checking it.
 - Priority: Critical
 - Category: Mod platform / mod API
-- Related: `docs/backlog/todo/mod-api-no-opaque-envelopes.md` (step 2 of the same ruling: the surfaces where a
+- Related: `docs/backlog/review/mod-api-no-opaque-envelopes.md` (step 2 of the same ruling: the surfaces where a
   payload does cross a boundary), `docs/backlog/todo/mod-authored-effects.md` (the code-registration surface
   this one must precede — it is an API over the same contract),
   `docs/backlog/review/mod-declared-behaviour-with-no-function.md`,

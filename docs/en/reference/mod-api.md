@@ -123,7 +123,8 @@ thread, every stage exception-isolated. `IModContext` is what `Bind` receives:
 ## Values
 
 Every mod-authored datum that crosses a CUO surface — a message, a packet's payload, a runtime status
-value — is a **`ModValue`**, the framework's own typed data model. Bytes are never the contract: where CUO
+value, a runtime data slot, a mod-state entry — is a **`ModValue`**, the framework's own typed data model.
+Bytes are never the contract: where CUO
 defines the shape a contract is typed, and where the MOD defines it the framework still has to be able to
 validate it, bound it structurally, log it and show it, which an opaque blob prevents.
 
@@ -304,14 +305,16 @@ context.Commands.TryExecute("heal", new[] { "alice" }, result => { /* ... */ });
 ## Mod state
 
 ```csharp
-context.State.TrySet("loadout", bytes);       // host-only + WriteGameState
-context.State.TryGet("loadout", out var bytes);
+context.State.TrySet("loadout", ModValue.Map(                // host-only + WriteGameState
+    ("weapon", ModValue.Text("rifle")),
+    ("mags", ModValue.Integer(3))));
+context.State.TryGet("loadout", out var loadout);
 context.State.TrySetSchemaVersion(2);
 ```
 
-- **Scope**: `IModState` is scoped to the mod id — a mod can only read and write its own entry. Values
-  are opaque `byte[]`; the framework never interprets or serializes the mod payload, so the mod owns
-  its schema and migration.
+- **Scope**: `IModState` is scoped to the mod id — a mod can only read and write its own entry. A value
+  is a `ModValue` (see [Values](#values)), so the framework can encode, bound and log it while the mod
+  keeps owning what its fields mean: the format, the schema and the migration are the mod's.
 - **Host-only save authority**: `TrySet` / `TrySetSchemaVersion` / `TryRemove` / `TryClear` require the
   host role **and** `ModPermission.WriteGameState`. A guest copy sees `CanWrite = false` and cannot
   read the host's table; a synchronized mod that needs host state coordinates through `IModNetwork` /
@@ -319,14 +322,18 @@ context.State.TrySetSchemaVersion(2);
 - **Persistence**: the host writes a versioned protobuf file under
   `BepInEx/config/CasualtiesUnknownOnline.mod-state.bin` (atomic temp plus replace). Each write
   persists the full table; the in-memory table is process-scoped and loaded once before
-  discovery/`Bind`. A missing file is empty; a corrupt or unknown-version file degrades to empty with a
-  warning — never a startup crash, never a guessed migration.
+  discovery/`Bind`. Each entry is stored as the value's canonical encoding. A missing file is empty; a
+  corrupt or unknown-version file degrades to empty with a warning, a single stored value the framework
+  cannot read back is dropped by name with its reason, and the file's version 1 — which held whatever
+  bytes the mod chose — is refused whole rather than reinterpreted. Never a startup crash, never a
+  guessed migration.
 - **Metadata**: the file carries the mod id, the mod version (last writer) and the mod-declared schema
   version. `SchemaVersion` defaults to 1; the framework stores it verbatim and does not migrate.
 - **Missing-mod policy**: an entry for a mod that is not currently loaded is preserved untouched, so
   the data is still there if the mod returns.
-- **Safety rails**: key ≤128 characters, ≤1024 keys per mod, value ≤64 KiB. Errors are refused with a
-  log, never silently truncated.
+- **Safety rails**: key ≤128 characters, ≤1024 keys per mod, a value's encoding ≤64 KiB plus the model's
+  own structural budgets. Errors are refused with a log naming the path inside the model, never silently
+  truncated.
 
 ## Mod UI
 
@@ -336,7 +343,7 @@ context.Ui.Register("status", "My Mod Status", window =>
     window.Label($"session active: {context.Session.SessionActive}");
     if (window.Button("ping"))
     {
-        context.Network.Broadcast(Encoding.UTF8.GetBytes("ping"));
+        context.Network.Broadcast(ModValue.Text("ping"));
     }
     var text = window.TextField(_lastText);
     _lastText = text; // the mod owns persistent UI state
@@ -602,8 +609,12 @@ if (context.NativeApi.CanAccess)
 - **Permission**: invoking requires `ModPermission.AccessNativeApi`. `CanAccess` reflects the declared
   flag; every invoke method also enforces it (false with a log otherwise).
 - **Safe value surface**: arguments and results are restricted to `null`, strings, numeric primitives,
-  capped `byte[]` and primitive arrays, and framework DTO types (currently
-  `IModNativeLocalPlayerState`). Unity objects, game-assembly objects and arbitrary object graphs are
+  `ModValue` (see [Values](#values) — its `Binary` leaf is where a byte payload belongs), capped
+  single-dimensional primitive arrays, and framework DTO types (currently
+  `IModNativeLocalPlayerState`). A raw `byte[]` is not admitted any more: the model's binary leaf
+  replaced it (a signed `sbyte[]` stays an ordinary primitive array — this stack does not separate the two
+  at the array level, so the rule is about the contract's spelling rather than a boundary).
+  Unity objects, game-assembly objects and arbitrary object graphs are
   refused before and after the Game Adapter seam — they never cross to a mod.
 - **Registered operation in this slice**: `local.player.state`
   (`ModNativeApiOperations.LocalPlayerState`) returns the local player body's position, vitals,
@@ -619,7 +630,7 @@ if (context.NativeApi.CanAccess)
 // Local-only presentation/config/debug state: never leaves this process.
 if (context.Data.TryDeclare("settings", ModDataScope.LocalOnly))
 {
-    context.Data.TrySet("settings", myBytes);
+    context.Data.TrySet("settings", ModValue.Map(("volume", ModValue.Number(0.8))));
     context.Data.TryGet("settings", out var current);
 }
 
@@ -627,9 +638,10 @@ if (context.Data.TryDeclare("settings", ModDataScope.LocalOnly))
 // applying a host-originated value received over context.Network.
 if (context.Data.TryDeclare("score", ModDataScope.Shared))
 {
-    context.Data.TrySet("score", scoreBytes);                  // host only
-    context.Network.Broadcast(scoreBytes);                     // mod-owned payload/serialization
-    context.Data.TryApplyShared("score", payload, senderSteamId); // guest, in MessageReceived
+    var score = ModValue.Integer(42);
+    context.Data.TrySet("score", score);                        // host only
+    context.Network.Broadcast(score);                           // the same value, typed
+    context.Data.TryApplyShared("score", value, senderSteamId);  // guest, in MessageReceived
 }
 
 // Host-authoritative state: the framework keeps no guest mirror.
@@ -637,15 +649,17 @@ if (context.Data.TryDeclare("hostSecret", ModDataScope.HostAuthoritative))
 {
     if (context.Session.IsHost)
     {
-        context.Data.TrySet("hostSecret", secretBytes);
+        context.Data.TrySet("hostSecret", ModValue.Binary(secret));
     }
 }
 ```
 
 - **Scope**: `IModData` is a per-mod, process-local, **ephemeral** runtime store. It is not `IModState`
   and not a generic snapshot service. The mod declares each slot's scope once and then reads/writes
-  opaque `byte[]` values with the same caps as the durable state store (key ≤128, value ≤64 KiB,
-  ≤1024 slots per mod).
+  `ModValue` values with the same caps as the durable state store (key ≤128, a value's encoding
+  ≤64 KiB, ≤1024 slots per mod). A value is immutable, so a read hands back the value itself and a
+  caller's later write to its own array cannot reach the stored slot — nothing to copy, in either
+  direction.
 - **No persistence and no automatic sync**: values exist only for the current process. Durable values
   belong in `IModState`; cooperative gameplay facts belong in CUO's typed kernel domains. The framework
   never sends a runtime data value — shared mirrors are applied explicitly by the mod from a value it

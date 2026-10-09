@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// (<see cref="IModData"/>). The store is ephemeral and process-local, but the
 /// same bounds as the durable mod-state store are still required so a broken or
 /// hostile mod cannot grow an unbounded in-memory table or hide a shared slot
-/// behind a giant payload. Scope validation is also centralized here: local-only
+/// behind a giant value. Scope validation is also centralized here: local-only
 /// data is valid for every mode, shared data must be state-bearing (and must
 /// have the message permission that makes a mirror reachable), and
 /// host-authoritative data requires a host-capable mode.
@@ -15,16 +15,25 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 internal static class ModDataPolicy
 {
 	public const int MaxKeyLength = 128;
+
+	/// <summary>The cap on a slot's ENCODED value; the model's own structural budgets bound the shape inside it.</summary>
 	public const int MaxValueBytes = 64 * 1024;
+
 	public const int MaxSlotsPerMod = 1024;
 
 	/// <summary>Keys must be non-empty, not all whitespace, and within the length cap.</summary>
 	public static bool IsValidKey(string? key) =>
 		!string.IsNullOrWhiteSpace(key) && key!.Length <= MaxKeyLength;
 
-	/// <summary>Values must be non-null and within the per-value size cap (empty byte[] is valid).</summary>
-	public static bool IsValidValue(byte[]? value) =>
-		value is not null && value.Length <= MaxValueBytes;
+	/// <summary>
+	/// Values must be non-null and encodable inside <see cref="MaxValueBytes"/>.
+	/// The encoder is the one validator — accepting a value IS being able to
+	/// encode it — so there is no second rule here to drift from it, and
+	/// <paramref name="refusal"/> carries its reason (the path inside the model
+	/// and the budget it broke) for the caller's log line.
+	/// </summary>
+	public static bool IsValidValue(ModValue? value, out string? refusal) =>
+		ModValueCodec.TryEncode(value, MaxValueBytes, out _, out refusal);
 
 	/// <summary>Schema versions are mod-owned but must be positive.</summary>
 	public static bool IsValidSchemaVersion(int schemaVersion) => schemaVersion >= 1;

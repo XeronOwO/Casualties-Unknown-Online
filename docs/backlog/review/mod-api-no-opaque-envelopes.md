@@ -1,9 +1,10 @@
 # No opaque payloads in the mod API: a typed data model instead of a byte envelope
 
-- Status: Todo — **raised 2026-10-08 by the user**: "什么运走存下来，我觉得就不应该存在字节形式的啊 /
+- Status: Review — **raised 2026-10-08 by the user**: "什么运走存下来，我觉得就不应该存在字节形式的啊 /
   完全不应该存在！！！". It is the second half of the ruling that produced
   `mod-content-typed-registration.md`, and it covers the surfaces where the payload really does cross a
-  boundary — the half the first ticket deliberately left alone.
+  boundary — the half the first ticket deliberately left alone. Both stages landed 2026-10-09; the
+  mod-visible contract now carries no `byte[]` outside the model's own binary leaf.
 - Priority: Critical
 - Category: Mod platform / protocol / architecture
 - Related: `docs/backlog/review/mod-content-typed-registration.md` (step 1 of the same ruling),
@@ -87,10 +88,10 @@ staged, each stage its own cycle with its own gates and deployment:
   frame: `ModStatusUpdate`, `IModStatusRuntime`, `IModStatusTransport` and the two projections. The codec
   was the last user of `ModPayloadCodec`, so that file and the `DataContractSerializer` decode seam beside
   it are deleted in stage A rather than in B.
-- **Stage B — the stores and the remaining surfaces**: `IModData`, `IModState` (and its file), the runtime
-  moodle request's remaining call sites and `IModNativeApi`'s admitted value list, plus the last of the
-  `byte[]` on the mod-visible contract. Stage B is what retires the last of decision 244's paper trail; its
-  decode half already went with stage A.
+- **Stage B — the stores and the remaining surfaces (LANDED 2026-10-09)**: `IModData`, `IModState` (and its
+  file), the runtime moodle request's remaining call sites and `IModNativeApi`'s admitted value list, plus
+  the last of the `byte[]` on the mod-visible contract. Stage B is what retires the last of decision 244's
+  paper trail; its decode half already went with stage A.
 
 The census rows are split the same way, and a surface never carries both spellings: a stage moves its rows
 whole.
@@ -116,8 +117,11 @@ whole.
   able to log it.
 - The binary leaf is an explicit value, not an envelope: one kind whose payload the framework never
   interprets. Spelled `ReadOnlyMemory<byte>` rather than `byte[]` on purpose — rule 15's letter admits a
-  binary leaf and bans the erased spelling, and a `ReadOnlyMemory<byte>` cannot be mutated through the
-  model.
+  binary leaf and bans the erased spelling, and no TYPED path mutates a value. (The letter of "immutable" is
+  about the model's own API: `TryGetBinary` hands out the value's own memory, so a caller willing to call
+  `MemoryMarshal.TryGetArray` can reach the backing array. That is the stage B review's N2, recorded rather
+  than claimed away — it needs a deliberate call, the mod is in-process trusted code, and nothing a peer
+  sends reaches it.)
 
 ### 2. The budgets and the refusal (one validator)
 
@@ -187,6 +191,51 @@ Two facts worth carrying forward:
   `Payload` is a `ModValue` now, so it is not a collection member; the census is
   `ModNullCollectionRuleTests` with 26 rows, and the model's read-only `Items`/`Fields` views are a named
   group rather than rows. `review/mod-payload-null-collection-tolerance.md` records the retirement.
+
+## What landed (2026-10-09, stage B)
+
+The stores and the last byte-shaped surfaces, whole:
+
+- **`IModData`** takes and returns a `ModValue` (`TryGet` / `TrySet` / `TryApplyShared`); the slot keeps the
+  value itself, so the clone on read and on write is deleted rather than moved, and both stores accept a
+  value exactly when the one encoder can encode it inside their own 64 KiB cap — the policies call it and
+  carry its refusal into their log line instead of owning a second value rule.
+- **`IModState`** takes and returns a `ModValue`; each entry is persisted as the value's canonical encoding
+  in the file's own byte field (a FILE's binary leaf, which the census keeps).
+- **The mod-state file's version becomes 2.** A version-1 file held whatever bytes the mod chose, and the
+  same string can now decode as a different value — a lone `0x00` reads as `false` — so no migration can
+  tell the two apart: the file is refused whole, which is the degradation its own contract already promises
+  for a version this build does not read. A single entry that is not one value is dropped by name with its
+  reason while the rest of the table loads.
+- **`IModNativeApi`'s admitted value surface** trades its `byte[]` arm for `ModValue`, and its array shapes
+  are decided by rank and element type rather than by twelve `T[]` type patterns. Reason, measured on the
+  built assembly: on this stack a signed and an unsigned array of the same width are NOT distinguishable by
+  pattern (`value is sbyte[]` is true for a `byte[]` and the other way round; likewise `short`/`ushort`,
+  `int`/`uint`, `long`/`ulong`, while `bool[]`, `float[]`, `decimal[]`, `string[]` and `char[]` are exact),
+  so a pattern list cannot state the one rule this change exists to state — that a raw byte array is no
+  longer admitted. The element-type comparison states it and keeps the signed twin admitted.
+- **The runtime moodle request needed no code**: stage A had already moved its `Payload` to `Value`, and
+  this cycle verified its two call sites (`ModStatusMoodleProjection` building it from the store's value,
+  the resolver registry carrying it).
+
+The census rows this cycle moved are the two store rows and the native-API row, whole; the file's own leaf
+and the model's binary leaf are the only two rows left, and both are meant to stay. `IModData`, `IModState`
+and the native value list are recorded as five tombstones plus five new baseline lines.
+
+Two facts worth carrying forward:
+
+- **A save file's byte semantics are part of its version.** The mod-state file's shape did not change (the
+  same field, the same keys) and its version still had to move, because what a stored string MEANS changed
+  and one old value (a lone `0x00`) would otherwise have come back as a valid new one.
+- **Two blocks' byte-era samples were still standing after stage A** — the Mod UI snippet's
+  `Encoding.UTF8.GetBytes("ping")` in both languages and the save-data how-to's encoded JSON — and this
+  cycle rewrote them onto the model. A doc example that cannot compile against the contract is a defect,
+  not a leftover.
+
+Limits: no game process and no two-client session were available this cycle, so a live mod's runtime data
+and its cross-session state are the acceptance batch's rows; the platform behaviour behind the native
+value list (the signed/unsigned array equivalence) was measured on the built assemblies rather than
+reasoned about.
 
 ## Non-goals
 

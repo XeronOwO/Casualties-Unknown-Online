@@ -5,16 +5,18 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// <summary>
 /// The host-persistent mod-state surface (Phase 4 Mod API remainder).
 /// Each mod's state is scoped to its own mod id and stored by the framework as
-/// opaque byte arrays — the framework never interprets or serializes the mod's
-/// payload, so a mod can change its own schema behind <see cref="SchemaVersion"/>
-/// and migrate/rebuild as needed. Writes are host-only: CUO's save authority is
-/// the host (architecture.md §8), so a guest copy of a synchronized mod must
-/// use the existing message/command surfaces to coordinate with the host copy,
-/// not write a local file.
+/// <see cref="ModValue"/> — the framework's typed data model, not an opaque
+/// byte array — so the framework can validate a value, bound it structurally,
+/// log it and show it, while the mod still owns what its fields mean and can
+/// change its own schema behind <see cref="SchemaVersion"/> and migrate/rebuild
+/// as needed. Writes are host-only: CUO's save authority is the host
+/// (architecture.md §8), so a guest copy of a synchronized mod must use the
+/// existing message/command surfaces to coordinate with the host copy, not
+/// write a local file.
 ///
-/// Values are copied on read and on write — the store never shares its internal
-/// arrays with the mod, so a later mutation of a returned/input array cannot
-/// corrupt the persisted state without an explicit Set.
+/// A value is immutable, so the store shares it rather than copying: no typed
+/// path changes a value a mod read back, and only an explicit <c>TrySet</c>
+/// replaces what is persisted.
 /// </summary>
 public interface IModState
 {
@@ -46,17 +48,19 @@ public interface IModState
 	bool TrySetSchemaVersion(int schemaVersion);
 
 	/// <summary>
-	/// Read one value. Returns false when the key is absent or the mod state is
-	/// not available on this side. The returned array is a defensive copy.
+	/// Read one value as a <see cref="ModValue"/>. Returns false when the key is
+	/// absent or the mod state is not available on this side. No copy is made
+	/// and none is needed: a value is immutable.
 	/// </summary>
-	bool TryGet(string key, out byte[]? value);
+	bool TryGet(string key, out ModValue? value);
 
 	/// <summary>
 	/// Write one value. Requires <see cref="CanWrite"/>, a valid non-empty key,
-	/// and a value within the framework's state caps. The array is copied before
-	/// storage and the whole table is persisted atomically on success.
+	/// and a value the framework can encode inside the state caps; a refusal
+	/// logs the path inside the model and the budget it broke. The whole table
+	/// is persisted atomically on success.
 	/// </summary>
-	bool TrySet(string key, byte[] value);
+	bool TrySet(string key, ModValue value);
 
 	/// <summary>Remove one key. Requires <see cref="CanWrite"/>.</summary>
 	bool TryRemove(string key);

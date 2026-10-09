@@ -4,7 +4,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
 /// An internal, immutable snapshot of one stored runtime status value that has
-/// a non-opaque projection kind. It is the read seam between
+/// a typed projection kind (anything but `None`). It is the read seam between
 /// <see cref="ModStatusStore"/> and the GameAdapter's vanilla body/limb
 /// projection; it deliberately uses only Abstractions types, never mod instances
 /// or game/Unity types — and the value it carries is immutable, so sharing it

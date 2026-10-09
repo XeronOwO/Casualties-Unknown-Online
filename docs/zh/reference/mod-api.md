@@ -85,7 +85,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 
 ## 值
 
-凡是要跨过 CUO 接口面的模组自有数据 —— 一条消息、一个数据包的载荷、一份运行时状态值 —— 都是 **`ModValue`**，也就是框架自己的类型化数据模型。字节永远不是契约：形状归 CUO 所有的地方契约就是类型化的；形状归**模组**所有的地方，框架仍然必须能校验它、按结构给它上限、能记日志、能在控制台里显示它 —— 一块不透明的东西这些都做不到。
+凡是要跨过 CUO 接口面的模组自有数据 —— 一条消息、一个数据包的载荷、一份运行时状态值、一个运行时数据槽位、一条模组状态 —— 都是 **`ModValue`**，也就是框架自己的类型化数据模型。字节永远不是契约：形状归 CUO 所有的地方契约就是类型化的；形状归**模组**所有的地方，框架仍然必须能校验它、按结构给它上限、能记日志、能在控制台里显示它 —— 一块不透明的东西这些都做不到。
 
 ```csharp
 context.Network.Broadcast(ModValue.Map(
@@ -189,17 +189,19 @@ context.Commands.TryExecute("heal", new[] { "alice" }, result => { /* ... */ });
 ## 模组状态
 
 ```csharp
-context.State.TrySet("loadout", bytes);       // host-only + WriteGameState
-context.State.TryGet("loadout", out var bytes);
+context.State.TrySet("loadout", ModValue.Map(                // host-only + WriteGameState
+    ("weapon", ModValue.Text("rifle")),
+    ("mags", ModValue.Integer(3))));
+context.State.TryGet("loadout", out var loadout);
 context.State.TrySetSchemaVersion(2);
 ```
 
-- **作用域**：`IModState` 按模组 id 划分 —— 一个模组只能读写自己那一条。值是不透明的 `byte[]`；框架从不解释、也不序列化模组载荷，所以结构与迁移都归模组自己。
+- **作用域**：`IModState` 按模组 id 划分 —— 一个模组只能读写自己那一条。值是 `ModValue`（见[值](#值)），框架因此能编码它、给它设结构上限、把它写进日志，而字段含义仍然归模组：格式、结构与迁移都是模组自己的事。
 - **存档权只属主机**：`TrySet`／`TrySetSchemaVersion`／`TryRemove`／`TryClear` 需要主机角色**并且**有 `ModPermission.WriteGameState`。客机那份 `CanWrite` 是 false，也读不到主机的表；需要主机状态的同步类模组要通过 `IModNetwork`／`IModCommands` 协调。
-- **持久化**：主机在 `BepInEx/config/CasualtiesUnknownOnline.mod-state.bin` 写一个带版本的 protobuf 文件（临时文件加替换，原子写）。每次写入落盘整张表；内存中的表是进程级的，在发现／`Bind` 之前加载一次。文件不存在视为空表；文件损坏或版本不认识则带一行警告退化成空表 —— 绝不启动崩溃，也绝不猜着迁移。
+- **持久化**：主机在 `BepInEx/config/CasualtiesUnknownOnline.mod-state.bin` 写一个带版本的 protobuf 文件（临时文件加替换，原子写）。每次写入落盘整张表；内存中的表是进程级的，在发现／`Bind` 之前加载一次。每条记录存的是该值的规范编码。文件不存在视为空表；文件损坏或版本不认识则带一行警告退化成空表；单条值读不回来时，按名字带着原因丢掉它；文件版本 1 存的是模组自己选的字节，整份拒绝而不是重新解释。绝不启动崩溃，也绝不猜着迁移。
 - **元数据**：文件里带模组 id、模组版本（最后写入方）与模组自己声明的[结构版本](glossary.md)。`SchemaVersion` 默认 1；框架原样存下、不替你迁移。
 - **模组缺失时的策略**：当前未加载的模组，它那条记录原样保留，模组回来时数据还在。
-- **安全栏**：键 ≤128 字符、每个模组 ≤1024 个键、单值 ≤64 KiB。越界是拒绝加一行日志，绝不静默截断。
+- **安全栏**：键 ≤128 字符、每个模组 ≤1024 个键、单值的编码 ≤64 KiB，另加数据模型自己的结构上限。越界是拒绝加一行日志，日志会点出模型内部的路径，绝不静默截断。
 
 ## 模组界面
 
@@ -209,7 +211,7 @@ context.Ui.Register("status", "My Mod Status", window =>
     window.Label($"session active: {context.Session.SessionActive}");
     if (window.Button("ping"))
     {
-        context.Network.Broadcast(Encoding.UTF8.GetBytes("ping"));
+        context.Network.Broadcast(ModValue.Text("ping"));
     }
     var text = window.TextField(_lastText);
     _lastText = text; // the mod owns persistent UI state
@@ -347,7 +349,7 @@ if (context.NativeApi.CanAccess)
 
 - **作用域**：`IModNativeApi` 是按权限开放的原生操作登记表。运行时从不暴露任意反射或对游戏程序集的直接访问；只有 Game Adapter 能注册操作，也只有那些操作 id 可被调用。
 - **权限**：调用需要 `ModPermission.AccessNativeApi`。`CanAccess` 反映是否声明了该标志；每个调用方法也会再强制一次（否则返回 false 并留日志）。
-- **安全的取值范围**：参数与结果只允许 `null`、字符串、数值基元、有上限的 `byte[]` 与基元数组，以及框架 DTO 类型（目前是 `IModNativeLocalPlayerState`）。Unity 对象、游戏程序集对象与任意对象图在 Game Adapter 接缝前后都会被拒 —— 它们永远不会到达模组。
+- **安全的取值范围**：参数与结果只允许 `null`、字符串、数值基元、`ModValue`（见[值](#值) —— 真要传字节就用它的二进制叶子）、有上限的一维基元数组，以及框架 DTO 类型（目前是 `IModNativeLocalPlayerState`）。裸 `byte[]` 不再被接受：它已被数据模型的二进制叶子取代（带符号的 `sbyte[]` 仍是普通基元数组 —— 运行时在数组层面不区分这两者，所以这条规则管的是契约的写法，不是安全边界）。Unity 对象、游戏程序集对象与任意对象图在 Game Adapter 接缝前后都会被拒 —— 它们永远不会到达模组。
 - **这一片注册的操作**：`local.player.state`（`ModNativeApiOperations.LocalPlayerState`）以 `IModNativeLocalPlayerState` 返回本机玩家身体的位置、生命体征、意识，以及派生出的存活／清醒标志。它只读、只在本地：没有线上消息，也不改变权威归属。
 - **策略边界**：第一片刻意只读。写入／原生变更类操作要等到有具体消费者、且它的同步与权威边界设计出来之后才注册 —— 这就是那道逃生口策略的明示决定：只开精选白名单，永不开放反射。
 
@@ -357,7 +359,7 @@ if (context.NativeApi.CanAccess)
 // Local-only presentation/config/debug state: never leaves this process.
 if (context.Data.TryDeclare("settings", ModDataScope.LocalOnly))
 {
-    context.Data.TrySet("settings", myBytes);
+    context.Data.TrySet("settings", ModValue.Map(("volume", ModValue.Number(0.8))));
     context.Data.TryGet("settings", out var current);
 }
 
@@ -365,9 +367,10 @@ if (context.Data.TryDeclare("settings", ModDataScope.LocalOnly))
 // applying a host-originated value received over context.Network.
 if (context.Data.TryDeclare("score", ModDataScope.Shared))
 {
-    context.Data.TrySet("score", scoreBytes);                     // host only
-    context.Network.Broadcast(scoreBytes);                        // mod-owned payload/serialization
-    context.Data.TryApplyShared("score", payload, senderSteamId); // guest, in MessageReceived
+    var score = ModValue.Integer(42);
+    context.Data.TrySet("score", score);                        // host only
+    context.Network.Broadcast(score);                           // the same value, typed
+    context.Data.TryApplyShared("score", value, senderSteamId);  // guest, in MessageReceived
 }
 
 // Host-authoritative state: the framework keeps no guest mirror.
@@ -375,12 +378,12 @@ if (context.Data.TryDeclare("hostSecret", ModDataScope.HostAuthoritative))
 {
     if (context.Session.IsHost)
     {
-        context.Data.TrySet("hostSecret", secretBytes);
+        context.Data.TrySet("hostSecret", ModValue.Binary(secret));
     }
 }
 ```
 
-- **作用域**：`IModData` 是逐模组、进程本地、**临时**的运行时存储。它不是 `IModState`，也不是通用快照服务。模组为每个槽位声明一次作用域，然后以不透明 `byte[]` 读写，上限与持久状态存储一致（键 ≤128、单值 ≤64 KiB、每模组 ≤1024 个槽位）。
+- **作用域**：`IModData` 是逐模组、进程本地、**临时**的运行时存储。它不是 `IModState`，也不是通用快照服务。模组为每个槽位声明一次作用域，然后以 `ModValue` 读写，上限与持久状态存储一致（键 ≤128、单值的编码 ≤64 KiB、每模组 ≤1024 个槽位）。值不可变，所以读回来的就是那个值本身，调用方之后再改自己的数组也够不到已存的槽位 —— 两个方向都没有副本要记。
 - **不持久化，也不自动同步**：值只活在当前进程里。要持久化的值放 `IModState`；协作玩法事实放 CUO 有类型的内核领域。框架从不发送运行时数据值 —— 共享镜像由模组自己、用从 `IModNetwork` 收到的值显式套用，所以不存在隐藏的 JToken／JObject 快照协议。
 - **作用域取值**：`LocalOnly` —— 任何网络模式都行，任何角色都能读写与移除。`Shared` —— 只有带状态的模式（`Synchronized`、`Authoritative`、`RequiresAllPlayers`），且模组必须声明 `SendNetworkMessage`（镜像要有意义就得有传输）；主机是唯一写入方，客机用会话主机的 SteamId 调 `TryApplyShared` 存一份本地镜像。`HostAuthoritative` —— 带状态的模式外加 `HostOnly`；框架存储里只有主机能读写，客机没有镜像，需要值就用 `IModCommands`／`IModNetwork` 协调。
 - **角色门**：`Shared`／`HostAuthoritative` 槽位上的 `TrySet` 与 `TryRemove` 需要主机角色。`TryApplyShared` 需要客机那份拷贝、`Shared` 槽位，且发送方等于会话主机。这些检查都会留日志并返回 false，绝不静默忽略。

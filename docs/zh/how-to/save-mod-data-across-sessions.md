@@ -8,22 +8,24 @@
 
 ## 一张表，一个主人
 
-`context.State` 的作用域就是你的模组 id：你只读写自己那一条，别人的碰不到。值是 `byte[]`，内容不透明，框架既不解释也不序列化，所以格式、版本和迁移都归你。
+`context.State` 的作用域就是你的模组 id：你只读写自己那一条，别人的碰不到。值是 `ModValue` —— 框架自己的类型化数据模型（见[模组 API 参考](../reference/mod-api.md)）—— 你交给它一个值，它存下这个值的编码。字段是什么意思、怎么定版本、怎么迁移，仍然归你。
 
 ```csharp
 if (context.State.CanWrite)
 {
-	context.State.TrySet("loadout", Encoding.UTF8.GetBytes(json));
+	context.State.TrySet("loadout", ModValue.Map(
+		("weapon", ModValue.Text("rifle")),
+		("mags", ModValue.Integer(3))));
 	context.State.TrySetSchemaVersion(2);
 }
 
-if (context.State.TryGet("loadout", out var bytes))
+if (context.State.TryGet("loadout", out var loadout))
 {
-	// bytes 是你自己的格式;结构版本变了就按 context.State.SchemaVersion 分支
+	// loadout 就是你自己的值；结构版本变了就按 context.State.SchemaVersion 分支
 }
 ```
 
-两个方向都是副本：你传进去的数组、或者你拿到手的数组，之后怎么改都不会动到已存的表，除非再显式调一次 `TrySet`。
+值不可变，所以两个方向从构造上就是安全的：你之后怎么改自己的数组都动不到已存的东西，读回来的值也不会被任何人改掉。
 
 ## 只有主机能写，而且要有标志
 
@@ -34,7 +36,7 @@ if (context.State.TryGet("loadout", out var bytes))
 - 主机把它写进 `BepInEx/config/CasualtiesUnknownOnline.mod-state.bin`，每次成功调用做一次“临时文件 + 原子替换”。
 - **每次写入都会落盘整张表。** 值变了再写，不要逐帧写。
 - 内存里的表属于进程，只在发现模组与 `Bind` 之前加载一次，所以在 `Bind` 里读到的已经是上一次会话的数据。
-- 文件不存在就是空状态。文件损坏或者版本不认识，会带着一行警告退化成空 —— 绝不因此启动崩溃，也绝不猜着迁移。
+- 文件不存在就是空状态。文件损坏或者版本不认识，会带着一行警告退化成空；单条值读不回来时，就按名字带着原因丢掉那一条 —— 绝不因此启动崩溃，也绝不猜着迁移。
 - 文件里记着模组 id、最后写入者的模组版本，以及你自报的结构版本（schema version）。`SchemaVersion` 在你设置之前默认为 1。
 
 ## 模组缺席时数据留着
@@ -43,13 +45,13 @@ if (context.State.TryGet("loadout", out var bytes))
 
 ## 上限
 
-键最长 128 个字符，一个模组最多 1024 个键，单个值最大 64 KiB。越过上限的调用返回 `false` 并写日志；不会静默截断。
+键最长 128 个字符，一个模组最多 1024 个键，单个值的编码最大 64 KiB —— 另加数据模型自己的结构上限（嵌套层数、列表／映射的条目数、文本大小）。越过上限的调用返回 `false`，日志会点出模型内部的路径；不会静默截断。
 
 ## 常见坑
 
 - **要看返回值。** 被拒绝的写入否则完全不可见：`TrySet` 返回的是 `bool`。
 - **能重建的东西不要存。** 这一层是给模组自己的数据用的；世界状态归内核，拿这里当镜像迟早会和世界对不上。
-- **结构版本别塞进载荷。** `TrySetSchemaVersion` 记的是框架替你携带的元数据；下一次开局，你自己的迁移代码把 `SchemaVersion` 读回来。
+- **结构版本别塞进值里。** `TrySetSchemaVersion` 记的是框架替你携带的元数据；下一次开局，你自己的迁移代码把 `SchemaVersion` 读回来。
 - **客机自己去写本地文件，从构造上就是错的。** 表在主机那份副本上；客机要配合它，而不是再长出一张。
 
 ## 验证它真的成了

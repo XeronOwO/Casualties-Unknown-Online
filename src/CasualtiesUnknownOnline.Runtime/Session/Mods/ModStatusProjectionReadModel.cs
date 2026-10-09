@@ -57,7 +57,7 @@ public sealed class ModStatusProjectionReadModel : ICuoService
 	/// <summary>Visible projection snapshots for the local player (host-authoritative statuses are hidden on a guest).</summary>
 	internal IReadOnlyList<ModStatusProjectionSnapshot> ProjectionSnapshots => _snapshots;
 
-	/// <summary>Visible status presences for the local player, including opaque/presentation-only slots; host-authoritative presences are hidden on a guest.</summary>
+	/// <summary>Visible status presences for the local player, including presentation-only slots (a `None` projection kind); host-authoritative presences are hidden on a guest.</summary>
 	internal IReadOnlyList<ModStatusStore.StatusPresence> StatusPresences => _presences;
 
 	internal ulong CurrentRevision => _statusStore.CurrentRevision;

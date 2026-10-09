@@ -156,14 +156,22 @@ public class ModNativeApiTests
 		Assert.False(ModNativeApiPolicy.IsValidOperation(new string('a', ModNativeApiPolicy.MaxOperationLength + 1)));
 
 		Assert.True(ModNativeApiPolicy.IsValidArguments([]));
-		Assert.True(ModNativeApiPolicy.IsValidArguments([1, "x", true, 1.5f, new byte[] { 1, 2 }]));
+		Assert.True(ModNativeApiPolicy.IsValidArguments([1, "x", true, 1.5f, ModValues.Ints(1, 2)]));
+		Assert.True(
+			ModNativeApiPolicy.IsValidArguments([new int[] { 1, 2 }, new sbyte[] { 1 }, new string[] { "a" }]),
+			"the admitted primitive arrays are still accepted.");
 		Assert.False(ModNativeApiPolicy.IsValidArguments(new object?[ModNativeApiPolicy.MaxArguments + 1]));
 		Assert.False(ModNativeApiPolicy.IsValidArguments([new object()]));
+		Assert.False(ModNativeApiPolicy.IsValidArguments([new byte[] { 1, 2 }]), "the binary leaf of the value model replaced the raw byte array.");
+		Assert.False(ModNativeApiPolicy.IsValidArguments([new byte[][] { new byte[1] }]), "a jagged array is not an admitted shape.");
+		Assert.False(ModNativeApiPolicy.IsValidArguments([ModValues.OverCap()]), "a value the framework cannot encode is not a safe argument.");
 
 		Assert.True(ModNativeApiPolicy.IsSafeResult(null));
 		Assert.True(ModNativeApiPolicy.IsSafeResult("ok"));
 		Assert.True(ModNativeApiPolicy.IsSafeResult(new float[] { 1f, 2f }));
+		Assert.True(ModNativeApiPolicy.IsSafeResult(ModValue.Binary(new byte[] { 1, 2 })));
 		Assert.True(ModNativeApiPolicy.IsSafeResult(new FakeNativeLocalPlayerState(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, false, false)));
 		Assert.False(ModNativeApiPolicy.IsSafeResult(new object()));
+		Assert.False(ModNativeApiPolicy.IsSafeResult(new byte[] { 1, 2 }), "a raw byte array is no longer part of the admitted value surface.");
 	}
 }

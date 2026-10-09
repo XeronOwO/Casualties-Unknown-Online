@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.ModStatus;
 ///
 /// This class is the ONLY layer that may turn a runtime status value into a
 /// game behavior. It never exposes a game/Unity type through Abstractions and
-/// it never touches arbitrary opaque status payloads. The projection
+/// it never interprets a status the mod declared with no projection kind. The projection
 /// covers body values that are recomputed from scratch (encumbrance,
 /// immunity, jump speed, average pain), circulation offsets wrapped around
 /// Body.HandleCirculation, and limb physiology values that are modified

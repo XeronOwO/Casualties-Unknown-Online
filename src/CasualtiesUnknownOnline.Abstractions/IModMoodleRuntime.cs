@@ -13,8 +13,8 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// This is the CUO-safe replacement for CUCoreLib's
 /// <c>MoodleRegistry.RegisterBody/RegisterLimb</c> callbacks: instead of
 /// receiving a live <c>Body</c>/<c>Limb</c> game object, the mod receives a
-/// plain <see cref="ModStatusMoodleRequest"/> (opaque payload + stable limb
-/// slot/name). It is local-only presentation and adds no wire surface.
+/// plain <see cref="ModStatusMoodleRequest"/> (the mod's own value plus the
+/// stable player/limb identity). It is local-only presentation and adds no wire surface.
 /// </summary>
 public interface IModMoodleRuntime
 {

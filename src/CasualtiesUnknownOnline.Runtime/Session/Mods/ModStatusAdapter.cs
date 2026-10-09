@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
-/// The per-mod <see cref="IModStatusRuntime"/> adapter. Role/scope gates, the
-/// mod-id scoping, and defensive copies live here; the primitive table and
+/// The per-mod <see cref="IModStatusRuntime"/> adapter. Role/scope gates and
+/// the mod-id scoping live here; the primitive table and
 /// projection read seam live in <see cref="ModStatusStore"/>. This is a
 /// separate top-level type so the store stays under the architecture gate while
 /// keeping the adapter in the same mod-status domain.

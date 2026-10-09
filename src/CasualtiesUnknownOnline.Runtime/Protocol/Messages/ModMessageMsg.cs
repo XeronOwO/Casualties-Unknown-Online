@@ -5,8 +5,11 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
 /// The shared mod-message frame (NetMsg.ModMessage — Phase 4 Mod API). The
-/// payload is opaque to the framework: the mod owns its serialization (JSON,
-/// hand-written, whatever its own dependencies allow). The receiving side
+/// payload is CUO's canonical encoding of the sending mod's
+/// <see cref="ModValue"/> (see <see cref="IModNetwork"/>): the framework owns
+/// the bytes, so it can validate, bound and log what travels, and a mod that
+/// wants its own compact format puts it in the value's binary leaf. The
+/// receiving side
 /// routes by <see cref="ModId"/> to the locally-loaded mod with that id and
 /// drops unknown ids with a log — the payload never reaches the game.
 /// Reliable channel (the default): ordering and delivery are guaranteed while
@@ -20,7 +23,7 @@ public sealed class ModMessageMsg
 	[ProtoMember(1)]
 	public string ModId { get; set; } = string.Empty;
 
-	/// <summary>The mod-owned payload (framework policy: ≤ 64 KiB, checked on both the send and the receive side).</summary>
+	/// <summary>The encoded value this frame carries (framework policy: ≤ 64 KiB encoded, checked on both the send and the receive side).</summary>
 	[ProtoMember(2)]
 	public byte[] Payload { get; set; } = [];
 
@@ -31,7 +34,7 @@ public sealed class ModMessageMsg
 	/// mod's own name for it instead of a convention inside the payload.
 	///
 	/// EMPTY means the frame is the anonymous tunnel form
-	/// (<see cref="IModNetwork"/>): one opaque payload per mod, delivered to the
+	/// (<see cref="IModNetwork"/>): one value per mod, delivered to the
 	/// mod's single receive callback, which is what the framework's own status
 	/// transport and the example mod's echo use. A non-empty id that the
 	/// receiving copy has not declared is dropped with a log — never guessed at.

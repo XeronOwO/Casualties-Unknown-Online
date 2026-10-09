@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -8,12 +7,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
 /// The mod-state half of the Phase 4 Mod API. Each mod gets a per-id key/value
-/// store of opaque bytes. The host is the only save authority, so writes (and
-/// host reads) are refused outside the host role — this store only owns the
-/// table + persistence; the per-mod adapter applies the role/permission gate.
-/// The disk store is versioned, atomic and degrade-to-empty on corruption; the
-/// in-memory table is loaded once at Initialize (before discovery/Bind) and
-/// lives for the process.
+/// table of <see cref="ModValue"/> — the framework's typed data model, kept in
+/// memory as the value itself and written to the file as its canonical
+/// encoding. The host is the only save authority, so writes (and host reads)
+/// are refused outside the host role — this store only owns the table +
+/// persistence; the per-mod adapter applies the role/permission gate. The disk
+/// store is versioned, atomic and degrade-to-empty on corruption; the in-memory
+/// table is loaded once at Initialize (before discovery/Bind) and lives for the
+/// process.
 /// </summary>
 internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 {
@@ -43,7 +44,7 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 				continue;
 			}
 
-			var values = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+			var values = new Dictionary<string, ModValue>(StringComparer.Ordinal);
 			foreach (var state in entry.States)
 			{
 				if (state is null || string.IsNullOrWhiteSpace(state.Key))
@@ -51,7 +52,16 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 					continue;
 				}
 
-				values[state.Key] = (byte[])state.Value.Clone();
+				// The file stores a value's encoding; a byte string that is not one value is
+				// dropped by name rather than guessed at, and the rest of the table still loads.
+				if (!ModValueCodec.TryDecode(state.Value, ModStatePolicy.MaxValueBytes, out var value, out var refusal))
+				{
+					_log.LogWarning("[Mods] {ModId}/{Key} carries a stored value the framework cannot read — dropped ({Reason}).",
+						entry.ModId, state.Key, refusal);
+					continue;
+				}
+
+				values[state.Key] = value!;
 			}
 
 			_modState[entry.ModId] = new ModStateEntry
@@ -69,7 +79,7 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 
 	// ---- Primitive table access (no role checks — the adapter gates them) ----
 
-	internal bool TryGetValue(string modId, string key, out byte[]? value)
+	internal bool TryGetValue(string modId, string key, out ModValue? value)
 	{
 		value = null;
 		if (!_modState.TryGetValue(modId, out var entry) || !entry.Values.TryGetValue(key, out var stored))
@@ -77,7 +87,7 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 			return false;
 		}
 
-		value = (byte[])stored.Clone();
+		value = stored;
 		return true;
 	}
 
@@ -106,7 +116,7 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 		return true;
 	}
 
-	internal bool TrySet(ModManifest manifest, string key, byte[] value)
+	internal bool TrySet(ModManifest manifest, string key, ModValue value)
 	{
 		if (!ModStatePolicy.IsValidKey(key))
 		{
@@ -115,10 +125,10 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 			return false;
 		}
 
-		if (!ModStatePolicy.IsValidValue(value))
+		if (!ModStatePolicy.IsValidValue(value, out var refusal))
 		{
-			_log.LogWarning("[Mods] {ModId} tried to write a {Length}-byte mod-state value; the cap is {Cap} bytes — refused.",
-				manifest.Id, value.Length, ModStatePolicy.MaxValueBytes);
+			_log.LogWarning("[Mods] {ModId} tried to write mod state {Key} with a value the framework cannot carry — {Reason}",
+				manifest.Id, key, refusal);
 			return false;
 		}
 
@@ -131,7 +141,7 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 			return false;
 		}
 
-		entry.Values[key] = (byte[])value.Clone();
+		entry.Values[key] = value;
 		entry.ModVersion = manifest.Version;
 		Persist();
 		return true;
@@ -187,17 +197,34 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 			return;
 		}
 
-		var entries = _modState.Values.Select(e => new ModStateFile.Entry
+		var entries = new List<ModStateFile.Entry>(_modState.Count);
+		foreach (var entry in _modState.Values)
 		{
-			ModId = e.ModId,
-			ModVersion = e.ModVersion,
-			SchemaVersion = e.SchemaVersion,
-			States = [.. e.Values.Select(p => new ModStateFile.StateEntry
+			var states = new List<ModStateFile.StateEntry>(entry.Values.Count);
+			foreach (var pair in entry.Values)
 			{
-				Key = p.Key,
-				Value = (byte[])p.Value.Clone(),
-			})],
-		}).ToList();
+				// The file carries a value's canonical encoding. A value that reached the
+				// table was accepted by this same encoder, so this cannot fail for a value
+				// written through TrySet; one that somehow does not encode is named and
+				// skipped rather than written as something else.
+				if (!ModValueCodec.TryEncode(pair.Value, ModStatePolicy.MaxValueBytes, out var encoded, out var refusal))
+				{
+					_log.LogError("[Mods] {ModId}/{Key} cannot be written to the mod-state file — skipped ({Reason}).",
+						entry.ModId, pair.Key, refusal);
+					continue;
+				}
+
+				states.Add(new ModStateFile.StateEntry { Key = pair.Key, Value = encoded });
+			}
+
+			entries.Add(new ModStateFile.Entry
+			{
+				ModId = entry.ModId,
+				ModVersion = entry.ModVersion,
+				SchemaVersion = entry.SchemaVersion,
+				States = states,
+			});
+		}
 
 		if (!_stateFile.Save(entries))
 		{
@@ -219,7 +246,7 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 
 		public int Count => store.GetCount(manifest.Id);
 
-		public bool TryGet(string key, out byte[]? value)
+		public bool TryGet(string key, out ModValue? value)
 		{
 			if (!EnsureHostStateRead("read"))
 			{
@@ -240,7 +267,7 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 			return store.TrySetSchemaVersion(manifest, schemaVersion);
 		}
 
-		public bool TrySet(string key, byte[] value)
+		public bool TrySet(string key, ModValue value)
 		{
 			if (!EnsureHostStateWrite("write"))
 			{
@@ -304,6 +331,7 @@ internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 
 		public int SchemaVersion { get; set; } = 1;
 
-		public Dictionary<string, byte[]> Values { get; set; } = [];
+		/// <summary>The mod's table, shared rather than copied: a <see cref="ModValue"/> is immutable.</summary>
+		public Dictionary<string, ModValue> Values { get; set; } = [];
 	}
 }

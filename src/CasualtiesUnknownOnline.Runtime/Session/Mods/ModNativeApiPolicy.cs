@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Abstractions;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -5,10 +6,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// <summary>
 /// The pure native-API policy: operation-id shape rails and the safe
 /// argument/result value surface. The surface is deliberately bounded — a mod
-/// may pass/receive null, strings, numeric primitives, capped byte/primitive
-/// arrays, and framework DTO types such as <see cref="IModNativeLocalPlayerState"/>.
-/// Unity/game-assembly objects and arbitrary object graphs are rejected before
-/// and after the Game Adapter seam.
+/// may pass/receive null, strings, numeric primitives, <see cref="ModValue"/>
+/// (the framework's typed data model, which carries the binary leaf where bytes
+/// really are the value), capped primitive arrays, and framework DTO types such
+/// as <see cref="IModNativeLocalPlayerState"/>. Unity/game-assembly objects and
+/// arbitrary object graphs are rejected before and after the Game Adapter seam.
 /// </summary>
 public static class ModNativeApiPolicy
 {
@@ -21,8 +23,8 @@ public static class ModNativeApiPolicy
 	/// <summary>Maximum string length for an argument value.</summary>
 	public const int MaxStringLength = 4096;
 
-	/// <summary>Maximum byte-array length for an argument/result value.</summary>
-	public const int MaxByteArrayLength = 64 * 1024;
+	/// <summary>Maximum ENCODED size for a <see cref="ModValue"/> argument/result value; the model's own structural budgets bound the shape inside it.</summary>
+	public const int MaxValueBytes = 64 * 1024;
 
 	/// <summary>Maximum element count for a primitive-array argument/result.</summary>
 	public const int MaxArrayLength = 1024;
@@ -80,25 +82,52 @@ public static class ModNativeApiPolicy
 			return true;
 		}
 
+		if (value is Array array)
+		{
+			return IsSafeArray(array);
+		}
+
 		return value switch
 		{
 			string s => s.Length <= MaxStringLength,
 			bool or byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal => true,
-			byte[] bytes => bytes.Length <= MaxByteArrayLength,
+			ModValue modValue => ModValueCodec.TryEncode(modValue, MaxValueBytes, out _, out _),
 			IModNativeLocalPlayerState => true,
-			bool[] a => a.Length <= MaxArrayLength,
-			sbyte[] a => a.Length <= MaxArrayLength,
-			short[] a => a.Length <= MaxArrayLength,
-			ushort[] a => a.Length <= MaxArrayLength,
-			int[] a => a.Length <= MaxArrayLength,
-			uint[] a => a.Length <= MaxArrayLength,
-			long[] a => a.Length <= MaxArrayLength,
-			ulong[] a => a.Length <= MaxArrayLength,
-			float[] a => a.Length <= MaxArrayLength,
-			double[] a => a.Length <= MaxArrayLength,
-			decimal[] a => a.Length <= MaxArrayLength,
-			string[] a => a.Length <= MaxArrayLength,
 			_ => false
 		};
+	}
+
+	/// <summary>
+	/// The admitted array shapes, decided by RANK and ELEMENT TYPE rather than by
+	/// a list of <c>T[]</c> type patterns — because on this stack a signed and an
+	/// unsigned array of the same width are NOT distinguishable by pattern:
+	/// measured on net48, <c>value is sbyte[]</c> is true for a <c>byte[]</c> and
+	/// the other way round (the same holds for <c>short[]</c>/<c>ushort[]</c>,
+	/// <c>int[]</c>/<c>uint[]</c>, <c>long[]</c>/<c>ulong[]</c>; every other
+	/// element type is exact). A pattern list therefore cannot state the one rule
+	/// this surface exists to state now — that the model's binary leaf replaced
+	/// the raw byte array — so the element type is compared explicitly and
+	/// <c>byte</c> is simply not in the admitted list.
+	/// </summary>
+	private static bool IsSafeArray(Array array)
+	{
+		if (array.Rank != 1 || array.Length > MaxArrayLength)
+		{
+			return false;
+		}
+
+		var element = array.GetType().GetElementType();
+		return element == typeof(bool)
+			|| element == typeof(sbyte)
+			|| element == typeof(short)
+			|| element == typeof(ushort)
+			|| element == typeof(int)
+			|| element == typeof(uint)
+			|| element == typeof(long)
+			|| element == typeof(ulong)
+			|| element == typeof(float)
+			|| element == typeof(double)
+			|| element == typeof(decimal)
+			|| element == typeof(string);
 	}
 }

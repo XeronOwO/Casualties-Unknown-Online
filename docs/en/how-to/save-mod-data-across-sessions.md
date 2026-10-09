@@ -12,25 +12,28 @@ flag from it.
 
 ## One table, one owner
 
-`context.State` is scoped to your mod id: you read and write your own entry and nobody else's. Values
-are opaque `byte[]`, and the framework never interprets or serialises them, so the format, the
-versioning and the migration are yours.
+`context.State` is scoped to your mod id: you read and write your own entry and nobody else's. A value is
+a `ModValue` — the framework's typed data model (see [the mod API reference](../reference/mod-api.md)) —
+so you hand it a value and it stores that value's encoding. What your fields mean, how they version and
+how they migrate are still yours.
 
 ```csharp
 if (context.State.CanWrite)
 {
-	context.State.TrySet("loadout", Encoding.UTF8.GetBytes(json));
+	context.State.TrySet("loadout", ModValue.Map(
+		("weapon", ModValue.Text("rifle")),
+		("mags", ModValue.Integer(3))));
 	context.State.TrySetSchemaVersion(2);
 }
 
-if (context.State.TryGet("loadout", out var bytes))
+if (context.State.TryGet("loadout", out var loadout))
 {
-	// bytes is your own format; switch on context.State.SchemaVersion if it changed
+	// loadout is your own value; switch on context.State.SchemaVersion if it changed
 }
 ```
 
-Both directions copy: mutating the array you passed, or the one you received, does not touch the
-stored table until the next explicit `TrySet`.
+A value is immutable, so both directions are safe by construction: nothing you do to your own arrays
+afterwards can change what is stored, and what you read back cannot be changed by anyone else.
 
 ## Only the host writes, and only with the flag
 
@@ -49,7 +52,8 @@ write.
 - The in-memory table is process-scoped and is loaded once, before mod discovery and `Bind`, so
   reading in `Bind` already returns last session's data.
 - A missing file means empty state. A corrupt or unknown-version file degrades to empty with a
-  warning — never a startup crash, and never a guessed migration.
+  warning, and a single stored value the framework cannot read back is dropped by name with its
+  reason — never a startup crash, and never a guessed migration.
 - The file records the mod id, the mod version of the last writer and your declared schema version.
   `SchemaVersion` defaults to 1 until you set it.
 
@@ -61,15 +65,16 @@ session.
 
 ## Limits
 
-A key is at most 128 characters, a mod holds at most 1024 keys, and a value is at most 64 KiB. A call
-that breaks a limit returns `false` and logs; nothing is silently truncated.
+A key is at most 128 characters, a mod holds at most 1024 keys, and a value's encoding is at most
+64 KiB — plus the data model's own budgets (nesting, entries per list or map, text size). A call
+that breaks a limit returns `false` and logs the path inside the model; nothing is silently truncated.
 
 ## Traps
 
 - **Read the return value.** A refused write is otherwise invisible: `TrySet` answers `bool`.
 - **Do not persist what you can rebuild.** This surface is for data the mod owns; world state belongs
   to the kernel, and a mod that mirrors it will disagree with the world sooner or later.
-- **Keep the schema version out of your payload.** `TrySetSchemaVersion` is stored as metadata the
+- **Keep the schema version out of your value.** `TrySetSchemaVersion` is stored as metadata the
   framework carries for you; your own migration code reads `SchemaVersion` back on the next run.
 - **A guest that writes a local file is wrong by construction.** The host's copy is the table; a guest
   coordinates with it instead of growing a second one.

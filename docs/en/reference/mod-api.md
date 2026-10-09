@@ -587,39 +587,42 @@ of these surfaces.
 ```csharp
 if (context.NativeApi.CanAccess)
 {
-    // The generic operation registry (Game Adapter-curated, not arbitrary reflection)
-    if (context.NativeApi.TryInvoke("local.player.state", [], out var raw))
+    // The registered operation set (Game Adapter-curated, not arbitrary reflection):
+    // the probe answers whether this adapter build provides an operation at all.
+    if (context.NativeApi.CanInvoke(ModNativeApiOperations.LocalPlayerState))
     {
-        var state = (IModNativeLocalPlayerState)raw;
-        var hp = state.BrainHealth;
-    }
-
-    // Typed convenience for the same registered operation
-    if (context.NativeApi.TryGetLocalPlayerState(out var local))
-    {
-        var x = local.X;
-        var y = local.Y;
+        // ... and every operation is reached through its own typed projection.
+        if (context.NativeApi.TryGetLocalPlayerState(out var local))
+        {
+            var x = local.X;
+            var y = local.Y;
+            var hp = local.BrainHealth;
+        }
     }
 }
 ```
 
-- **Scope**: `IModNativeApi` is a permission-gated registry of named native operations. The Runtime
-  never exposes arbitrary reflection or direct access to game assemblies; only the Game Adapter
-  registers operations, and only those operation ids are invokable.
+- **Scope**: `IModNativeApi` is a permission-gated registry of named native operations, each reached
+  through its own typed projection. The Runtime never exposes arbitrary reflection or direct access
+  to game assemblies; only the Game Adapter registers operations, and only those operation ids are
+  invokable. There is no untyped way in: an operation's result is declared by the signature of the
+  method that reaches it, never as an `object` the caller has to downcast.
 - **Permission**: invoking requires `ModPermission.AccessNativeApi`. `CanAccess` reflects the declared
-  flag; every invoke method also enforces it (false with a log otherwise).
-- **Safe value surface**: arguments and results are restricted to `null`, strings, numeric primitives,
-  `ModValue` (see [Values](#values) — its `Binary` leaf is where a byte payload belongs), capped
-  single-dimensional primitive arrays, and framework DTO types (currently
-  `IModNativeLocalPlayerState`). A raw `byte[]` is not admitted any more: the model's binary leaf
-  replaced it (a signed `sbyte[]` stays an ordinary primitive array — this stack does not separate the two
-  at the array level, so the rule is about the contract's spelling rather than a boundary).
-  Unity objects, game-assembly objects and arbitrary object graphs are
-  refused before and after the Game Adapter seam — they never cross to a mod.
+  flag; every projection also enforces it (false with a log otherwise).
+- **Values**: an operation's result is a framework DTO (`IModNativeLocalPlayerState`) or a `ModValue`
+  (see [Values](#values) — its `Binary` leaf is where a byte payload belongs); a raw `byte[]` appears
+  in no signature. Unity objects, game-assembly objects and arbitrary object graphs never cross the
+  Game Adapter seam.
 - **Registered operation in this slice**: `local.player.state`
   (`ModNativeApiOperations.LocalPlayerState`) returns the local player body's position, vitals,
   consciousness and derived alive/conscious flags as `IModNativeLocalPlayerState`. It is read-only and
   local-only: no wire message, no authority change.
+- **Adding an operation**: it costs one typed method on `IModNativeApi`, its counterpart on the
+  Runtime → Game Adapter seam, a constant in `ModNativeApiOperations`, and the id recognised in the Game
+  Adapter's `IsRegistered` — that last one is what keeps `CanInvoke` truthful. That is deliberate — the
+  reviewed contract shape, not a string, is what puts an operation in front of mod authors, and the
+  baseline gate (`docs/contracts/abstractions-api-baseline.txt`) fails until the new signature is
+  reviewed and recorded.
 - **Policy boundary**: the first slice is deliberately read-only. Write and native-mutation operations
   are not registered until a concrete consumer exists and its sync/authority boundary is designed —
   the explicit escape-hatch policy decision: a curated allowlist, never open reflection.

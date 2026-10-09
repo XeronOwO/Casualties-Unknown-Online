@@ -524,14 +524,9 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	bool IModNativeApiProvider.IsRegistered(string operation) =>
 		operation == ModNativeApiOperations.LocalPlayerState;
 
-	bool IModNativeApiProvider.TryInvoke(string operation, object?[] arguments, out object? result)
+	bool IModNativeApiProvider.TryGetLocalPlayerState(out IModNativeLocalPlayerState state)
 	{
-		result = null;
-
-		if (operation != ModNativeApiOperations.LocalPlayerState || arguments.Length != 0)
-		{
-			return false;
-		}
+		state = null!;
 
 		var body = _domains.Run.LocalBody;
 		if (body == null) // Unity object — == (scene-reload check)
@@ -540,7 +535,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		}
 
 		var position = body.transform.position;
-		result = new NativeLocalPlayerState(
+		state = new NativeLocalPlayerState(
 			position.x,
 			position.y,
 			body.brainHealth,

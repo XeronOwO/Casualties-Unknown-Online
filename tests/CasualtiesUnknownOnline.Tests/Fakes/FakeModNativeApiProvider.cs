@@ -5,37 +5,42 @@ using CasualtiesUnknownOnline.Runtime.Session.Mods;
 namespace CasualtiesUnknownOnline.Tests.Fakes;
 
 /// <summary>
-/// A recording fake for the Runtime → Game Adapter native-API seam. It lets the
-/// mod native-API tests verify the permission/policy layer without loading the
-/// game assembly and without touching Unity.
+/// A fake for the Runtime → Game Adapter native-API seam. It lets the mod
+/// native-API tests verify the permission gate and the typed projection without
+/// loading the game assembly and without touching Unity. The seam has one entry
+/// per operation, so the fake records how often that entry was reached instead
+/// of a generic call log.
 /// </summary>
 internal sealed class FakeModNativeApiProvider : IModNativeApiProvider
 {
-	private readonly List<(string Operation, object?[] Arguments)> _calls = [];
+	public int LocalPlayerStateCalls { get; private set; }
+
+	public int RegistrationProbes { get; private set; }
 
 	public bool Available { get; set; } = true;
 
-	public object? Result { get; set; }
+	public IModNativeLocalPlayerState? Result { get; set; }
 
 	public HashSet<string> RegisteredOperations { get; } =
 		[ModNativeApiOperations.LocalPlayerState];
 
-	public IReadOnlyList<(string Operation, object?[] Arguments)> Calls => _calls;
-
-	public bool IsRegistered(string operation) =>
-		Available && RegisteredOperations.Contains(operation);
-
-	public bool TryInvoke(string operation, object?[] arguments, out object? result)
+	public bool IsRegistered(string operation)
 	{
-		_calls.Add((operation, arguments));
-		result = null;
+		RegistrationProbes++;
+		return Available && RegisteredOperations.Contains(operation);
+	}
 
-		if (!Available || !RegisteredOperations.Contains(operation))
+	public bool TryGetLocalPlayerState(out IModNativeLocalPlayerState state)
+	{
+		LocalPlayerStateCalls++;
+
+		if (!Available || Result is null)
 		{
+			state = null!;
 			return false;
 		}
 
-		result = Result;
+		state = Result;
 		return true;
 	}
 }

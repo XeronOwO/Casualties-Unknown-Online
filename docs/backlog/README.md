@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Typed seams, not object handles](todo/mod-api-typed-seams.md) — **Critical** — no untyped handle or string-keyed call in the contract.
 - [Content declarations by attribute](todo/mod-content-attribute-declarations.md) — **High** — a scanned declaration instead of a Bind list.
 - [Random rolls in a cross-player item use](todo/cross-player-item-use-random-determinism.md) — **High** — one deterministic window?
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
@@ -96,6 +95,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Content kinds with no provider](review/mod-content-kind-with-no-provider.md) — **Medium-High** — the vocabulary names what binds, the binder the rest.
 - [Content registration carries its type](review/mod-content-typed-registration.md) — **Critical** — a typed definition instead of an opaque payload; landed.
 - [No opaque payloads in the mod API](review/mod-api-no-opaque-envelopes.md) — **Critical** — a typed data model where the shape is the mod's own; landed.
+- [Typed seams, not object handles](review/mod-api-typed-seams.md) — **Critical** — one typed projection per operation; a framework seam left.
 - [Mod-defined wire packets](review/mod-defined-wire-packets.md) — **High** — a mod owns its packet id and chain; two-client rows need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.

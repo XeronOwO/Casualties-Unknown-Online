@@ -331,26 +331,26 @@ if (context.GameState.CanRead)
 ```csharp
 if (context.NativeApi.CanAccess)
 {
-    // The generic operation registry (Game Adapter-curated, not arbitrary reflection)
-    if (context.NativeApi.TryInvoke("local.player.state", [], out var raw))
+    // The registered operation set (Game Adapter-curated, not arbitrary reflection):
+    // the probe answers whether this adapter build provides an operation at all.
+    if (context.NativeApi.CanInvoke(ModNativeApiOperations.LocalPlayerState))
     {
-        var state = (IModNativeLocalPlayerState)raw;
-        var hp = state.BrainHealth;
-    }
-
-    // Typed convenience for the same registered operation
-    if (context.NativeApi.TryGetLocalPlayerState(out var local))
-    {
-        var x = local.X;
-        var y = local.Y;
+        // ... and every operation is reached through its own typed projection.
+        if (context.NativeApi.TryGetLocalPlayerState(out var local))
+        {
+            var x = local.X;
+            var y = local.Y;
+            var hp = local.BrainHealth;
+        }
     }
 }
 ```
 
-- **作用域**：`IModNativeApi` 是按权限开放的原生操作登记表。运行时从不暴露任意反射或对游戏程序集的直接访问；只有 Game Adapter 能注册操作，也只有那些操作 id 可被调用。
-- **权限**：调用需要 `ModPermission.AccessNativeApi`。`CanAccess` 反映是否声明了该标志；每个调用方法也会再强制一次（否则返回 false 并留日志）。
-- **安全的取值范围**：参数与结果只允许 `null`、字符串、数值基元、`ModValue`（见[值](#值) —— 真要传字节就用它的二进制叶子）、有上限的一维基元数组，以及框架 DTO 类型（目前是 `IModNativeLocalPlayerState`）。裸 `byte[]` 不再被接受：它已被数据模型的二进制叶子取代（带符号的 `sbyte[]` 仍是普通基元数组 —— 运行时在数组层面不区分这两者，所以这条规则管的是契约的写法，不是安全边界）。Unity 对象、游戏程序集对象与任意对象图在 Game Adapter 接缝前后都会被拒 —— 它们永远不会到达模组。
+- **作用域**：`IModNativeApi` 是按权限开放的原生操作登记表，每个操作各有一条类型化投影可以抵达。运行时从不暴露任意反射或对游戏程序集的直接访问；只有 Game Adapter 能注册操作，也只有那些操作 id 可被调用。这里没有无类型的入口：一个操作返回什么，由抵达它的那个方法的签名说了算，绝不交给调用方把 `object` 强转回来。
+- **权限**：调用需要 `ModPermission.AccessNativeApi`。`CanAccess` 反映是否声明了该标志；每条投影也会再强制一次（否则返回 false 并留日志）。
+- **取值**：一个操作的结果要么是框架 DTO（`IModNativeLocalPlayerState`），要么是 `ModValue`（见[值](#值) —— 真要传字节就用它的二进制叶子）；任何签名里都不出现裸 `byte[]`。Unity 对象、游戏程序集对象与任意对象图永远不会穿过 Game Adapter 接缝。
 - **这一片注册的操作**：`local.player.state`（`ModNativeApiOperations.LocalPlayerState`）以 `IModNativeLocalPlayerState` 返回本机玩家身体的位置、生命体征、意识，以及派生出的存活／清醒标志。它只读、只在本地：没有线上消息，也不改变权威归属。
+- **新增一个操作**：代价是在 `IModNativeApi` 上加一个类型化方法、在运行时到 Game Adapter 的接缝上补上对应的那一条、在 `ModNativeApiOperations` 里加一个常量，并让 Game Adapter 的 `IsRegistered` 认得这个 id —— 最后这一条是 `CanInvoke` 说实话的前提。这是刻意的 —— 让一个操作出现在模组作者面前的是那份被审阅过的契约形状，不是一个字符串；在新签名被审阅并记进 `docs/contracts/abstractions-api-baseline.txt` 之前，契约门禁会一直红着。
 - **策略边界**：第一片刻意只读。写入／原生变更类操作要等到有具体消费者、且它的同步与权威边界设计出来之后才注册 —— 这就是那道逃生口策略的明示决定：只开精选白名单，永不开放反射。
 
 ## 运行时模组数据

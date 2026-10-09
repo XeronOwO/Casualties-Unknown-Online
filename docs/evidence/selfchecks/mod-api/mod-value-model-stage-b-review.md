@@ -209,7 +209,7 @@ a parameter list, and this change's five all have parameter lists, so all five c
 **One thing the change does not say, and should not be read as saying:** `IModNativeApi.TryInvoke(string
 operation, object?[] arguments, out object? result)` is still an erased-key shape on the mod-visible contract
 (the baseline records it as `Advanced`). That is pre-existing, deliberate debt with its own ticket
-(`docs/backlog/todo/mod-api-typed-seams.md`, whose own table names that exact line), and the census row this
+(`docs/backlog/review/mod-api-typed-seams.md`, whose own table names that exact line), and the census row this
 cycle moved says so ("the registry's own shape is `mod-api-typed-seams.md`") — so it is a known gap, not a
 new one, but rule 15's letter is not yet satisfied by the contract as a whole.
 

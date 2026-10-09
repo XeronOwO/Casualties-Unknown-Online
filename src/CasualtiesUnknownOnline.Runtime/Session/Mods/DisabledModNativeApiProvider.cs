@@ -1,3 +1,5 @@
+using CasualtiesUnknownOnline.Abstractions;
+
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
@@ -11,9 +13,9 @@ internal sealed class DisabledModNativeApiProvider : IModNativeApiProvider
 {
 	public bool IsRegistered(string operation) => false;
 
-	public bool TryInvoke(string operation, object?[] arguments, out object? result)
+	public bool TryGetLocalPlayerState(out IModNativeLocalPlayerState state)
 	{
-		result = null;
+		state = null!;
 		return false;
 	}
 }

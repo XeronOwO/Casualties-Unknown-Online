@@ -10,9 +10,10 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
 /// The mod native-API surface (Phase 4 Mod API remainder): the call is gated by
-/// AccessNativeApi, malformed operations and unsafe values are refused before
-/// the adapter seam, unsafe provider results are refused after it, and the
-/// read-only local-player projection works through the typed convenience.
+/// AccessNativeApi, the operation id's shape is checked before the adapter seam,
+/// and each operation is reached through its own typed projection. There is no
+/// untyped invoke path left to test — the projection's own signature is what
+/// declares an operation's result type.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ModNativeApiTests
@@ -29,6 +30,13 @@ public class ModNativeApiTests
 		(TestEchoMod)node.Services.GetRequiredService<ModService>()
 			.LoadedMods.Single(m => m is TestEchoMod);
 
+	private static TestNode HostWith(FakeModNativeApiProvider fake)
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId,
+			extraRegistrations: s => s.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(fake)));
+		return host;
+	}
+
 	[Fact]
 	public void MissingAccessNativeApiPermission_IsRefused()
 	{
@@ -39,32 +47,25 @@ public class ModNativeApiTests
 
 		Assert.False(native.CanAccess, "AccessNativeApi is required: nothing is implicit.");
 		Assert.False(native.CanInvoke(ModNativeApiOperations.LocalPlayerState));
-		Assert.False(native.TryInvoke(ModNativeApiOperations.LocalPlayerState, [], out _));
 		Assert.False(native.TryGetLocalPlayerState(out _));
 	}
 
 	[Fact]
-	public void WithPermission_ForwardsToProviderAndReturnsSafeResult()
+	public void WithPermission_ReturnsTheProvidersTypedProjection()
 	{
 		var expected = new FakeNativeLocalPlayerState(10f, 20f, 90f, 80f, 70f, 60f, 50f, 37f, 45f, true, true);
 		var fake = new FakeModNativeApiProvider { Result = expected };
-		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId,
-			extraRegistrations: s => s.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(fake)));
-
-		using var hostScope = host;
+		using var host = HostWith(fake);
 
 		var native = NativeApiMod(host).Context!.NativeApi;
 
 		Assert.True(native.CanAccess);
 		Assert.True(native.CanInvoke(ModNativeApiOperations.LocalPlayerState));
-		Assert.True(native.TryInvoke(ModNativeApiOperations.LocalPlayerState, [], out var result));
-		Assert.Same(expected, result);
-
-		var call = Assert.Single(fake.Calls);
-		Assert.Equal(ModNativeApiOperations.LocalPlayerState, call.Operation);
-		Assert.Empty(call.Arguments);
 
 		Assert.True(native.TryGetLocalPlayerState(out var state));
+		Assert.Same(expected, state);
+		Assert.Equal(1, fake.LocalPlayerStateCalls);
+
 		Assert.Equal(10f, state.X);
 		Assert.Equal(20f, state.Y);
 		Assert.Equal(90f, state.BrainHealth);
@@ -79,71 +80,63 @@ public class ModNativeApiTests
 	}
 
 	[Fact]
-	public void UnknownOperation_IsRefused()
+	public void NoLocalBodyToProject_IsRefused()
+	{
+		var fake = new FakeModNativeApiProvider { Result = null };
+		using var host = HostWith(fake);
+
+		var native = NativeApiMod(host).Context!.NativeApi;
+
+		Assert.True(native.CanInvoke(ModNativeApiOperations.LocalPlayerState),
+			"the operation is registered; what is missing is the body to project.");
+		Assert.False(native.TryGetLocalPlayerState(out var state));
+		Assert.Null(state);
+		Assert.Equal(1, fake.LocalPlayerStateCalls);
+	}
+
+	[Fact]
+	public void ProviderThatRefusesEveryOperation_IsRefused()
+	{
+		// The Runtime-only composition's shape (DisabledModNativeApiProvider): the adapter
+		// still reaches the projection, which is what answers "unavailable".
+		var fake = new FakeModNativeApiProvider { Available = false };
+		using var host = HostWith(fake);
+
+		var native = NativeApiMod(host).Context!.NativeApi;
+
+		Assert.False(native.CanInvoke(ModNativeApiOperations.LocalPlayerState));
+		Assert.False(native.TryGetLocalPlayerState(out var state));
+		Assert.Null(state);
+		Assert.Equal(1, fake.LocalPlayerStateCalls);
+	}
+
+	[Fact]
+	public void UnregisteredOperation_IsNotInvokable()
 	{
 		var fake = new FakeModNativeApiProvider();
-		fake.RegisteredOperations.Clear();
-		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId,
-			extraRegistrations: s => s.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(fake)));
-
-		using var hostScope = host;
+		using var host = HostWith(fake);
 
 		var native = NativeApiMod(host).Context!.NativeApi;
 
 		Assert.False(native.CanInvoke("unknown.operation"));
-		Assert.False(native.TryInvoke("unknown.operation", [], out _));
-		Assert.Single(fake.Calls);
-		Assert.Equal("unknown.operation", fake.Calls[0].Operation);
+		Assert.Equal(1, fake.RegistrationProbes);
+		Assert.Equal(0, fake.LocalPlayerStateCalls);
 	}
 
 	[Fact]
-	public void MalformedOperationOrUnsafeArguments_IsRefusedBeforeProvider()
+	public void MalformedOperationId_IsRefusedBeforeTheProviderSeesIt()
 	{
 		var fake = new FakeModNativeApiProvider();
-		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId,
-			extraRegistrations: s => s.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(fake)));
-
-		using var hostScope = host;
-
-		var native = NativeApiMod(host).Context!.NativeApi;
-		var tooLong = new string('a', ModNativeApiPolicy.MaxOperationLength + 1);
-
-		Assert.False(native.TryInvoke("", [], out _));
-		Assert.False(native.TryInvoke(tooLong, [], out _));
-		Assert.False(native.TryInvoke(ModNativeApiOperations.LocalPlayerState, [new object()], out _));
-		Assert.Empty(fake.Calls);
-	}
-
-	[Fact]
-	public void UnsafeProviderResult_IsRefusedAfterSeam()
-	{
-		var fake = new FakeModNativeApiProvider { Result = new object() };
-		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId,
-			extraRegistrations: s => s.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(fake)));
-
-		using var hostScope = host;
+		using var host = HostWith(fake);
 
 		var native = NativeApiMod(host).Context!.NativeApi;
 
-		Assert.False(native.TryInvoke(ModNativeApiOperations.LocalPlayerState, [], out var result));
-		Assert.Null(result);
-		Assert.Single(fake.Calls);
-	}
-
-	[Fact]
-	public void ArgumentCountCap_IsRefusedBeforeProvider()
-	{
-		var fake = new FakeModNativeApiProvider();
-		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId,
-			extraRegistrations: s => s.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(fake)));
-
-		using var hostScope = host;
-
-		var native = NativeApiMod(host).Context!.NativeApi;
-		var arguments = Enumerable.Repeat<object?>(1, ModNativeApiPolicy.MaxArguments + 1).ToArray();
-
-		Assert.False(native.TryInvoke(ModNativeApiOperations.LocalPlayerState, arguments, out _));
-		Assert.Empty(fake.Calls);
+		Assert.False(native.CanInvoke(""));
+		Assert.False(native.CanInvoke(new string('a', ModNativeApiPolicy.MaxOperationLength + 1)));
+		Assert.False(native.CanInvoke("has space"));
+		Assert.False(native.CanInvoke(ModNativeApiOperations.LocalPlayerState + "!"));
+		Assert.Equal(0, fake.RegistrationProbes);
+		Assert.Equal(0, fake.LocalPlayerStateCalls);
 	}
 
 	[Fact]
@@ -154,24 +147,5 @@ public class ModNativeApiTests
 		Assert.False(ModNativeApiPolicy.IsValidOperation(""));
 		Assert.False(ModNativeApiPolicy.IsValidOperation("has space"));
 		Assert.False(ModNativeApiPolicy.IsValidOperation(new string('a', ModNativeApiPolicy.MaxOperationLength + 1)));
-
-		Assert.True(ModNativeApiPolicy.IsValidArguments([]));
-		Assert.True(ModNativeApiPolicy.IsValidArguments([1, "x", true, 1.5f, ModValues.Ints(1, 2)]));
-		Assert.True(
-			ModNativeApiPolicy.IsValidArguments([new int[] { 1, 2 }, new sbyte[] { 1 }, new string[] { "a" }]),
-			"the admitted primitive arrays are still accepted.");
-		Assert.False(ModNativeApiPolicy.IsValidArguments(new object?[ModNativeApiPolicy.MaxArguments + 1]));
-		Assert.False(ModNativeApiPolicy.IsValidArguments([new object()]));
-		Assert.False(ModNativeApiPolicy.IsValidArguments([new byte[] { 1, 2 }]), "the binary leaf of the value model replaced the raw byte array.");
-		Assert.False(ModNativeApiPolicy.IsValidArguments([new byte[][] { new byte[1] }]), "a jagged array is not an admitted shape.");
-		Assert.False(ModNativeApiPolicy.IsValidArguments([ModValues.OverCap()]), "a value the framework cannot encode is not a safe argument.");
-
-		Assert.True(ModNativeApiPolicy.IsSafeResult(null));
-		Assert.True(ModNativeApiPolicy.IsSafeResult("ok"));
-		Assert.True(ModNativeApiPolicy.IsSafeResult(new float[] { 1f, 2f }));
-		Assert.True(ModNativeApiPolicy.IsSafeResult(ModValue.Binary(new byte[] { 1, 2 })));
-		Assert.True(ModNativeApiPolicy.IsSafeResult(new FakeNativeLocalPlayerState(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, false, false)));
-		Assert.False(ModNativeApiPolicy.IsSafeResult(new object()));
-		Assert.False(ModNativeApiPolicy.IsSafeResult(new byte[] { 1, 2 }), "a raw byte array is no longer part of the admitted value surface.");
 	}
 }

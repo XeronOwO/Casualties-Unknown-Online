@@ -1,12 +1,20 @@
+using CasualtiesUnknownOnline.Abstractions;
+
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
 /// The Runtime → Game Adapter boundary for the mod native-API surface. The
-/// Runtime owns permission/policy gating and the safe value surface; the Game
-/// Adapter owns the actual named operations (it is the only layer allowed to
-/// know game-private types). This seam deliberately returns <see cref="object"/>
-/// so the operation set can grow, but the Runtime refuses any value outside the
-/// policy's safe surface before it reaches a mod.
+/// Runtime owns permission and operation-id gating; the Game Adapter owns the
+/// actual operations (it is the only layer allowed to know game-private types)
+/// and declares one typed entry per operation — the same shape
+/// <see cref="IModItemSpawner"/> gives the mod content API. Nothing crosses this
+/// seam as <see cref="object"/>: an operation's result type is part of the
+/// seam, so a value the policy would have had to refuse after the fact cannot
+/// be produced in the first place, and the registered operation set is what
+/// <see cref="IsRegistered"/> reports. That probe and the projections are two
+/// INDEPENDENT answers, so an implementation keeps them consistent: a provider
+/// that registers an operation and then refuses its projection — or the reverse
+/// — makes the mod-visible availability probe lie.
 /// </summary>
 public interface IModNativeApiProvider
 {
@@ -14,8 +22,9 @@ public interface IModNativeApiProvider
 	bool IsRegistered(string operation);
 
 	/// <summary>
-	/// Invoke a registered native operation. The caller (ModService) is
-	/// responsible for permission, operation-shape and value-safety gating.
+	/// The registered <see cref="ModNativeApiOperations.LocalPlayerState"/>
+	/// operation: the local body's position, vitals and derived flags. False when
+	/// there is no local body to project (a menu scene, a scene swap in flight).
 	/// </summary>
-	bool TryInvoke(string operation, object?[] arguments, out object? result);
+	bool TryGetLocalPlayerState(out IModNativeLocalPlayerState state);
 }

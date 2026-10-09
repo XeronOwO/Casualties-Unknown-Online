@@ -6,8 +6,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// An internal, immutable snapshot of one stored runtime status value that has
 /// a non-opaque projection kind. It is the read seam between
 /// <see cref="ModStatusStore"/> and the GameAdapter's vanilla body/limb
-/// projection; it deliberately uses only Abstractions types and defensive
-/// byte copies, never mod instances or game/Unity types.
+/// projection; it deliberately uses only Abstractions types, never mod instances
+/// or game/Unity types — and the value it carries is immutable, so sharing it
+/// costs nothing.
 /// </summary>
 internal sealed class ModStatusProjectionSnapshot(
 	string modId,
@@ -18,7 +19,7 @@ internal sealed class ModStatusProjectionSnapshot(
 	int schemaVersion,
 	ulong playerSteamId,
 	int limbSlot,
-	byte[] value)
+	ModValue value)
 {
 	/// <summary>The owning mod id (status ids are mod-scoped).</summary>
 	public string ModId { get; } = modId;
@@ -44,6 +45,6 @@ internal sealed class ModStatusProjectionSnapshot(
 	/// <summary>The limb slot; -1 for body-level snapshots.</summary>
 	public int LimbSlot { get; } = limbSlot;
 
-	/// <summary>The mod-owned value payload (defensive copy at creation time).</summary>
-	public byte[] Value { get; } = value;
+	/// <summary>The mod-owned status value.</summary>
+	public ModValue Value { get; } = value;
 }

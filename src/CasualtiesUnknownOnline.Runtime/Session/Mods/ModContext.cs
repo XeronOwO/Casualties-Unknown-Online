@@ -138,11 +138,11 @@ internal sealed class ModContext(
 
 	internal void FirePlayerLeft(ulong steamId) => PlayerLeft?.Invoke(steamId);
 
-	internal void FireMessageReceived(ulong sender, byte[] payload) => _network.FireMessageReceived(sender, payload);
+	internal void FireMessageReceived(ulong sender, ModValue value) => _network.FireMessageReceived(sender, value);
 
 	/// <summary>Route one received declared-packet frame on this copy (the mod domain's receive path calls this).</summary>
-	internal ModPacketRoute RoutePacket(ulong sender, string packetId, byte[] payload) =>
-		_packets.Route(sender, packetId, payload);
+	internal ModPacketRoute RoutePacket(ulong sender, string packetId, ModValue value) =>
+		_packets.Route(sender, packetId, value);
 
 	internal void FailPendingCommands(string reason) => _commands.FailPending(reason);
 

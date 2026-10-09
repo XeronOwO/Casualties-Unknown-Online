@@ -27,8 +27,8 @@ public interface IModStatusRuntime
 	/// tells the framework whether the value is body-level or per-limb. The
 	/// runtime scope tells the framework whether the value is local, shared, or
 	/// host-authoritative. <paramref name="projectionKind"/> tells the Game
-	/// Adapter which well-known typed payload shape to decode (opaque by
-	/// default). Returns false for invalid ids/scopes/projection kinds,
+	/// Adapter which well-known typed shape to read out of the value (the model
+	/// itself by default). Returns false for invalid ids/scopes/projection kinds,
 	/// duplicate declarations, or a runtime scope the mod's network mode cannot
 	/// use.
 	/// </summary>
@@ -40,22 +40,22 @@ public interface IModStatusRuntime
 		ModStatusProjectionKind projectionKind = ModStatusProjectionKind.None);
 
 	/// <summary>Read a body-level status value. Returns false for absent/undeclared values or hidden host-authoritative guest slots.</summary>
-	bool TryGetBodyStatus(string statusId, ulong playerSteamId, out byte[]? value);
+	bool TryGetBodyStatus(string statusId, ulong playerSteamId, out ModValue? value);
 
 	/// <summary>Read a limb-level status value for a specific limb slot. Returns false for absent/undeclared values or hidden host-authoritative guest slots.</summary>
-	bool TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out byte[]? value);
+	bool TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out ModValue? value);
 
 	/// <summary>Write a body-level status value. Local-only is any-role; shared/host-authoritative is host-only.</summary>
-	bool TrySetBodyStatus(string statusId, ulong playerSteamId, byte[] value);
+	bool TrySetBodyStatus(string statusId, ulong playerSteamId, ModValue value);
 
 	/// <summary>Write a limb-level status value. Local-only is any-role; shared/host-authoritative is host-only.</summary>
-	bool TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value);
+	bool TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value);
 
 	/// <summary>Apply a shared body status value received from the host into this guest's local mirror.</summary>
-	bool TryApplyBodyStatus(string statusId, ulong playerSteamId, byte[] value, ulong senderSteamId);
+	bool TryApplyBodyStatus(string statusId, ulong playerSteamId, ModValue value, ulong senderSteamId);
 
 	/// <summary>Apply a shared limb status value received from the host into this guest's local mirror.</summary>
-	bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value, ulong senderSteamId);
+	bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value, ulong senderSteamId);
 
 	/// <summary>
 	/// Apply a shared body status removal received from the host into this

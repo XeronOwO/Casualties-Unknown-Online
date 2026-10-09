@@ -51,7 +51,11 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Judgment ownership** — whose machine decides what happens to a player: that player's own client, on its own screen and timeline; the host keeps the world and the arbitration.
 - **Rollback** — undoing a locally applied action after the host's arbitration refused the claim.
 - **Admission** — the host's decision whether a member's submission may reach the kernel at all.
-- **Payload** — the opaque bytes a message or a runtime value carries; CUO never reads inside them.
+- **Value** — the typed data model a mod carries across a CUO surface (`ModValue`): a boolean, integer,
+  number, text, binary leaf, list or map. A message, a packet payload and a runtime status value are all
+  one.
+- **Payload** — the bytes one frame carries on the wire. A mod never sees them: it hands the framework a
+  value, and the framework encodes it.
 
 ## Joining and versions
 
@@ -79,7 +83,7 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Tombstone** — a recorded refusal that stops the same creation being retried.
 - **Declared packet** — a mod-owned message id with its own sender and delivery policy and its own handler chain; the framework routes and relays it.
 - **Packet chain** — the ordered validate/apply/observe handlers one declared packet runs.
-- **Anonymous tunnel** — the packet-less form of the mod frame: one opaque payload per mod and one receive callback.
+- **Anonymous tunnel** — the packet-less form of the mod frame: one value per mod and one receive callback.
 
 ## Contracts and modification
 

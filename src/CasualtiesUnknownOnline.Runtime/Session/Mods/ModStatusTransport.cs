@@ -30,7 +30,7 @@ internal sealed class ModStatusTransport(
 	private readonly SessionService _session = session;
 	private readonly ILogger _log = log;
 
-	public bool TryBroadcastBodyStatus(string statusId, ulong playerSteamId, byte[] value)
+	public bool TryBroadcastBodyStatus(string statusId, ulong playerSteamId, ModValue value)
 	{
 		if (!CanBroadcast(statusId))
 		{
@@ -44,13 +44,13 @@ internal sealed class ModStatusTransport(
 		}
 
 		var update = ModStatusUpdate.ForBody(statusId, playerSteamId, schemaVersion, value);
-		_network.Broadcast(update.ToPayload());
-		_log.LogInformation("[Mods] {ModId} broadcast body status {StatusId} for player {Player} ({Length} bytes).",
-			_manifest.Id, statusId, playerSteamId, value.Length);
+		_network.Broadcast(update.ToValue());
+		_log.LogInformation("[Mods] {ModId} broadcast body status {StatusId} for player {Player} ({Value}).",
+			_manifest.Id, statusId, playerSteamId, value);
 		return true;
 	}
 
-	public bool TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value)
+	public bool TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value)
 	{
 		if (!CanBroadcast(statusId))
 		{
@@ -64,9 +64,9 @@ internal sealed class ModStatusTransport(
 		}
 
 		var update = ModStatusUpdate.ForLimb(statusId, playerSteamId, limbSlot, schemaVersion, value);
-		_network.Broadcast(update.ToPayload());
-		_log.LogInformation("[Mods] {ModId} broadcast limb status {StatusId} for player {Player} slot {Slot} ({Length} bytes).",
-			_manifest.Id, statusId, playerSteamId, limbSlot, value.Length);
+		_network.Broadcast(update.ToValue());
+		_log.LogInformation("[Mods] {ModId} broadcast limb status {StatusId} for player {Player} slot {Slot} ({Value}).",
+			_manifest.Id, statusId, playerSteamId, limbSlot, value);
 		return true;
 	}
 
@@ -84,7 +84,7 @@ internal sealed class ModStatusTransport(
 		}
 
 		var update = ModStatusUpdate.RemoveBody(statusId, playerSteamId, schemaVersion);
-		_network.Broadcast(update.ToPayload());
+		_network.Broadcast(update.ToValue());
 		_log.LogInformation("[Mods] {ModId} broadcast body status removal {StatusId} for player {Player}.",
 			_manifest.Id, statusId, playerSteamId);
 		return true;
@@ -104,16 +104,15 @@ internal sealed class ModStatusTransport(
 		}
 
 		var update = ModStatusUpdate.RemoveLimb(statusId, playerSteamId, limbSlot, schemaVersion);
-		_network.Broadcast(update.ToPayload());
+		_network.Broadcast(update.ToValue());
 		_log.LogInformation("[Mods] {ModId} broadcast limb status removal {StatusId} for player {Player} slot {Slot}.",
 			_manifest.Id, statusId, playerSteamId, limbSlot);
 		return true;
 	}
 
-	public bool TryHandleStatusPayload(ulong senderSteamId, byte[] payload)
+	public bool TryHandleStatusUpdate(ulong senderSteamId, ModValue value)
 	{
-		var update = ModStatusUpdate.FromPayload(payload);
-		if (update is null)
+		if (!ModStatusUpdate.TryFromValue(value, out var update))
 		{
 			return false;
 		}
@@ -142,7 +141,7 @@ internal sealed class ModStatusTransport(
 			}
 			else
 			{
-				_status.TryApplyBodyStatus(update.StatusId, update.PlayerSteamId, update.Value, senderSteamId);
+				_status.TryApplyBodyStatus(update.StatusId, update.PlayerSteamId, update.Value!, senderSteamId);
 			}
 		}
 		else
@@ -153,7 +152,7 @@ internal sealed class ModStatusTransport(
 			}
 			else
 			{
-				_status.TryApplyLimbStatus(update.StatusId, update.PlayerSteamId, update.LimbSlot, update.Value, senderSteamId);
+				_status.TryApplyLimbStatus(update.StatusId, update.PlayerSteamId, update.LimbSlot, update.Value!, senderSteamId);
 			}
 		}
 

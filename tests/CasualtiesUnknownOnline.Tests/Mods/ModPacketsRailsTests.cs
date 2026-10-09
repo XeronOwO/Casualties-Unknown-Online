@@ -1,3 +1,4 @@
+using static CasualtiesUnknownOnline.Tests.Mods.ModPacketsWorld;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -37,7 +38,7 @@ public class ModPacketsRailsTests
 				TestPacketMod.ThrowingPacket,
 				TestPacketMod.SelfRetiringPacket,
 				TestPacketMod.SelfSendPacket,
-				TestPacketMod.RewritePacket,
+				TestPacketMod.RoundTripPacket,
 			],
 			ModPacketsWorld.Surface(w.Host).PacketIds);
 		Assert.True(ModPacketsWorld.Surface(w.Host).CanSend);
@@ -104,18 +105,18 @@ public class ModPacketsRailsTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost("packets.missing", [1]));
+		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost("packets.missing", Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
 
 	[Fact]
-	public void ANullOrOverCapPayload_IsRefused()
+	public void ANullOrOverCapValue_IsRefused()
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
 		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, null!));
-		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, new byte[ModChannel.MaxPayloadBytes + 1]));
+		Assert.False(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, OverCapValue()));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -128,7 +129,7 @@ public class ModPacketsRailsTests
 		var steam = new FakeSteamService(G1Id);
 		var g1 = TestNode.Create(G1Id, network, steam, clock, pumpFirstFrame: true);
 
-		Assert.False(ModPacketsWorld.Surface(g1).SendToHost(TestPacketMod.ReportPacket, [1]));
+		Assert.False(ModPacketsWorld.Surface(g1).SendToHost(TestPacketMod.ReportPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(g1).Runs);
 	}
@@ -146,7 +147,7 @@ public class ModPacketsRailsTests
 			ModPacketSender.AnyMember,
 			ModPacketDelivery.HostOnly,
 			new ModPacketHandler(ModPacketStage.Apply, _ => { }))));
-		Assert.False(permissionless.Context.Packets.SendToHost("packets.noperm", [1]));
+		Assert.False(permissionless.Context.Packets.SendToHost("packets.noperm", Step(1)));
 	}
 
 	[Fact]
@@ -155,7 +156,7 @@ public class ModPacketsRailsTests
 		var w = ModPacketsWorld.CreateThreeNode();
 		var echo = (TestEchoMod)w.G1.Services.GetRequiredService<ModService>().LoadedMods.Single(m => m is TestEchoMod);
 
-		Assert.False(echo.Context!.Packets.SendToHost(TestPacketMod.ReportPacket, [1]));
+		Assert.False(echo.Context!.Packets.SendToHost(TestPacketMod.ReportPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -168,7 +169,7 @@ public class ModPacketsRailsTests
 		var guestChannel = w.G1.Services.GetRequiredService<ModChannel>();
 
 		// The wire boundary answers for itself: the wrong role, the relay from a
-		// guest, and an over-cap payload are all refused there too, so a caller
+		// guest, and an over-cap frame are all refused there too, so a caller
 		// that bypassed the adapter cannot put an illegal frame on the wire.
 		Assert.False(hostChannel.SendPacketToHost("test.packets", TestPacketMod.ReportPacket, [1]));
 		Assert.False(guestChannel.SendPacketToAll("test.packets", TestPacketMod.ReportPacket, [1]));

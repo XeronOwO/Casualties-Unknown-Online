@@ -250,10 +250,9 @@ internal sealed class ModStatusVanillaProjection
 			if (snapshot.ProjectionKind == ModStatusProjectionKind.BodyFormula
 				&& snapshot.Scope == ModStatusScope.Body)
 			{
-				var projection = ModBodyFormulaProjection.FromPayload(snapshot.Value);
-				if (projection is null)
+				if (!ModBodyFormulaProjection.TryFromValue(snapshot.Value, out var projection))
 				{
-					_log.LogWarning("[StatusProjection] {ModId}/{StatusId} is declared BodyFormula but its payload is not a valid ModBodyFormulaProjection — skipped.",
+					_log.LogWarning("[StatusProjection] {ModId}/{StatusId} is declared BodyFormula but its value is not a valid ModBodyFormulaProjection — skipped.",
 						snapshot.ModId, snapshot.StatusId);
 					continue;
 				}
@@ -263,10 +262,9 @@ internal sealed class ModStatusVanillaProjection
 			else if (snapshot.ProjectionKind == ModStatusProjectionKind.LimbPhysiology
 				&& snapshot.Scope == ModStatusScope.Limb)
 			{
-				var projection = ModLimbProjection.FromPayload(snapshot.Value);
-				if (projection is null)
+				if (!ModLimbProjection.TryFromValue(snapshot.Value, out var projection))
 				{
-					_log.LogWarning("[StatusProjection] {ModId}/{StatusId} is declared LimbPhysiology but its payload is not a valid ModLimbProjection — skipped.",
+					_log.LogWarning("[StatusProjection] {ModId}/{StatusId} is declared LimbPhysiology but its value is not a valid ModLimbProjection — skipped.",
 						snapshot.ModId, snapshot.StatusId);
 					continue;
 				}

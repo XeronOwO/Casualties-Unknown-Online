@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 ///   <see cref="TryBroadcastLimbStatus"/> and the remove overloads commit the
 ///   authoritative value and fan it out to every member (including the host's
 ///   own local frame, which the handler consumes without re-applying).
-/// - Guest only: <see cref="TryHandleStatusPayload"/> parses a host-originated
+/// - Guest only: <see cref="TryHandleStatusUpdate"/> parses a host-originated
 ///   typed frame and applies it to the local mirror through
 ///   <see cref="IModStatusRuntime.TryApplyBodyStatus"/>/TryApplyLimb or the
 ///   corresponding remove methods.
@@ -32,7 +32,7 @@ public interface IModStatusTransport
 	/// status is not a declared shared slot, the host write is refused, or the
 	/// call is outside a host session.
 	/// </summary>
-	bool TryBroadcastBodyStatus(string statusId, ulong playerSteamId, byte[] value);
+	bool TryBroadcastBodyStatus(string statusId, ulong playerSteamId, ModValue value);
 
 	/// <summary>
 	/// Host only: commit a shared limb status and broadcast it as a typed
@@ -40,7 +40,7 @@ public interface IModStatusTransport
 	/// status is not a declared shared slot, the host write is refused, or the
 	/// call is outside a host session.
 	/// </summary>
-	bool TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value);
+	bool TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value);
 
 	/// <summary>
 	/// Host only: remove a shared body status from the host authority and
@@ -59,13 +59,13 @@ public interface IModStatusTransport
 	bool TryBroadcastRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot);
 
 	/// <summary>
-	/// Try to consume a payload as a typed <see cref="ModStatusUpdate"/>. On a
+	/// Try to consume a value as a typed <see cref="ModStatusUpdate"/>. On a
 	/// guest this applies a host-originated set/removal to the local mirror. On
 	/// the host this consumes the local echo of its own broadcast without
-	/// re-applying. Returns true when the payload is a recognized status frame
+	/// re-applying. Returns true when the value is a recognized status frame
 	/// (even when the underlying runtime apply refused — those refusals are
-	/// logged by the status surface); returns false for non-status payloads so
-	/// a mod can continue routing its other mod-message traffic.
+	/// logged by the status surface); returns false for a value that is not a
+	/// status frame, so a mod can continue routing its other mod-message traffic.
 	/// </summary>
-	bool TryHandleStatusPayload(ulong senderSteamId, byte[] payload);
+	bool TryHandleStatusUpdate(ulong senderSteamId, ModValue value);
 }

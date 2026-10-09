@@ -1,3 +1,4 @@
+using static CasualtiesUnknownOnline.Tests.Mods.ModPacketsWorld;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -30,7 +31,7 @@ public class ModPacketsFailureTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.RefusingPacket, [0]));
+		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.RefusingPacket, Step(0)));
 
 		Assert.Equal(["Validate:validate"], ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.RefusingPacket));
 		Assert.Empty(ModPacketsWorld.Fixture(w.G2).RunsOf(TestPacketMod.RefusingPacket));
@@ -41,7 +42,7 @@ public class ModPacketsFailureTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.RefusingPacket, [1]);
+		ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.RefusingPacket, Step(1));
 
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.RefusingPacket));
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.G2).RunsOf(TestPacketMod.RefusingPacket));
@@ -52,7 +53,7 @@ public class ModPacketsFailureTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ThrowingPacket, [0]);
+		ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ThrowingPacket, Step(0));
 
 		Assert.Equal(ThreeStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.ThrowingPacket));
 	}
@@ -62,8 +63,8 @@ public class ModPacketsFailureTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ThrowingPacket, [0]);
-		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, [1]));
+		ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ThrowingPacket, Step(0));
+		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.ReportPacket, Step(1)));
 
 		Assert.Equal(ThreeStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.ReportPacket));
 	}
@@ -73,7 +74,7 @@ public class ModPacketsFailureTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		w.Host.Transport.Deliver(G1Id, ModPacketsWorld.Frame("packets.missing", [1]));
+		w.Host.Transport.Deliver(G1Id, ModPacketsWorld.Frame("packets.missing", Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -85,7 +86,7 @@ public class ModPacketsFailureTests
 
 		// A peer chooses this text: it is refused by the registration grammar
 		// before anything echoes it, and the log names its length instead.
-		w.Host.Transport.Deliver(G1Id, ModPacketsWorld.Frame(new string('x', 4096), [1]));
+		w.Host.Transport.Deliver(G1Id, ModPacketsWorld.Frame(new string('x', 4096), Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -95,7 +96,7 @@ public class ModPacketsFailureTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		w.Host.Transport.Deliver(4242, ModPacketsWorld.Frame(TestPacketMod.ReportPacket, [1]));
+		w.Host.Transport.Deliver(4242, ModPacketsWorld.Frame(TestPacketMod.ReportPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -109,7 +110,7 @@ public class ModPacketsFailureTests
 		// A presence row WITHOUT the handshake bit — the shape the gate exists
 		// for, and the one a "not a member at all" frame cannot exercise.
 		((ISessionControl)w.Host.Session).GetOrCreateMember(peer);
-		w.Host.Transport.Deliver(peer, ModPacketsWorld.Frame(TestPacketMod.ReportPacket, [1]));
+		w.Host.Transport.Deliver(peer, ModPacketsWorld.Frame(TestPacketMod.ReportPacket, Step(1)));
 
 		Assert.Empty(ModPacketsWorld.Fixture(w.Host).Runs);
 	}
@@ -136,11 +137,11 @@ public class ModPacketsFailureTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.SelfRetiringPacket, [1]));
+		Assert.True(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.SelfRetiringPacket, Step(1)));
 
 		Assert.Equal(TwoStep, ModPacketsWorld.Fixture(w.Host).RunsOf(TestPacketMod.SelfRetiringPacket));
 		Assert.False(ModPacketsWorld.Surface(w.Host).IsRegistered(TestPacketMod.SelfRetiringPacket));
-		Assert.False(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.SelfRetiringPacket, [1]));
+		Assert.False(ModPacketsWorld.Surface(w.Host).SendToHost(TestPacketMod.SelfRetiringPacket, Step(1)));
 	}
 
 	[Fact]
@@ -148,7 +149,7 @@ public class ModPacketsFailureTests
 	{
 		var w = ModPacketsWorld.CreateThreeNode();
 
-		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.SelfSendPacket, [1]));
+		Assert.True(ModPacketsWorld.Surface(w.G1).SendToHost(TestPacketMod.SelfSendPacket, Step(1)));
 
 		// Exactly one run per copy: the nested send is refused, while the outer
 		// delivery still completes its own send and relay.

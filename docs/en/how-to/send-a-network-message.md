@@ -24,10 +24,10 @@ host broadcasts the result downward.**
 
 | Call | On the host | On a guest |
 |---|---|---|
-| `SendToHost(payload)` | nothing — the host is the destination | reports to the host's copy of the mod |
-| `SendToPeer(steamId, payload)` | sends to one member's copy | nothing |
-| `Broadcast(payload)` | sends to every member, including the host's own copy | nothing |
-| `MessageReceived += (sender, payload)` | a guest's report, or the host's own broadcast | a directed or broadcast frame |
+| `SendToHost(value)` | nothing — the host is the destination | reports to the host's copy of the mod |
+| `SendToPeer(steamId, value)` | sends to one member's copy | nothing |
+| `Broadcast(value)` | sends to every member, including the host's own copy | nothing |
+| `MessageReceived += (sender, value)` | a guest's report, or the host's own broadcast | a directed or broadcast frame |
 
 Outside a session every send is a no-op, so a mod does not have to check the session first.
 
@@ -50,9 +50,8 @@ public sealed class PingMod : ICuoMod
 	{
 		_context = context;
 
-		context.Network.MessageReceived += (sender, payload) =>
-			context.Logger.LogInformation("[Ping] from {Sender}: {Text}",
-				sender, Encoding.UTF8.GetString(payload));
+		context.Network.MessageReceived += (sender, value) =>
+			context.Logger.LogInformation("[Ping] from {Sender}: {Value}", sender, value);
 
 		context.Ui.Register("ping", "Ping", window =>
 		{
@@ -61,14 +60,14 @@ public sealed class PingMod : ICuoMod
 				return;
 			}
 
-			var payload = Encoding.UTF8.GetBytes("ping");
+			var value = ModValue.Map(("kind", ModValue.Text("ping")), ("at", ModValue.Integer(Environment.TickCount)));
 			if (context.Session.IsHost)
 			{
-				context.Network.Broadcast(payload);  // host → everyone
+				context.Network.Broadcast(value);  // host → everyone
 			}
 			else
 			{
-				context.Network.SendToHost(payload); // guest → the host's copy
+				context.Network.SendToHost(value); // guest → the host's copy
 			}
 		});
 	}
@@ -76,8 +75,7 @@ public sealed class PingMod : ICuoMod
 }
 ```
 
-The payload is **opaque bytes**: the framework never looks inside, so the format, its version and any
-migration are yours. The `using` directives the snippet leaves out are in the example mod.
+The payload is a [value](../reference/glossary.md) - CUO's typed data model, never opaque bytes - so the framework validates its shape, bounds it and can log it, while what it MEANS stays yours. The `using` directives the snippet leaves out are in the example mod.
 
 ## When a message never arrives
 
@@ -87,7 +85,8 @@ The policy is *accepted loss*, not guaranteed delivery:
   queued and never re-sent — 20 messages per second sustained, with a burst of 40;
 - so do not build on retries: design the **next** message to carry the state, so a lost frame costs
   freshness rather than correctness;
-- payloads are capped at **64 KiB**, refused at the sender and checked again at the receiver;
+- values are capped at **64 KiB** encoded, refused at the sender and checked again at the receiver, and a
+  value the framework cannot encode is refused with one log line naming the path inside it;
 - a message whose mod is unknown to the receiver is dropped with a log. With
   `NetworkMode.Synchronized` that case is prevented earlier, at the join
   [handshake](../reference/glossary.md), because a member without the mod is refused.

@@ -23,7 +23,7 @@ context.Ui.Register("status", "My Mod Status", window =>
 
 	if (window.Button("ping"))
 	{
-		context.Network.Broadcast(Encoding.UTF8.GetBytes("ping"));
+		context.Network.Broadcast(ModValue.Text("ping"));
 	}
 
 	_text = window.TextField(_text);

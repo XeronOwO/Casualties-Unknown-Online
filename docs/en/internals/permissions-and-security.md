@@ -103,7 +103,7 @@ box.
   ungated, and closing that is a later hardening pass.
 - **Save contents.** There is no anti-cheat on what a world archive holds.
 - **A mod that misbehaves inside the surface it was granted.** Once a mod has `SendNetworkMessage`, the
-  channel checks size and rate, not meaning — the payload is opaque bytes by design.
+  channel checks size and rate, not meaning — the value's shape is validated, and its MEANING stays the mod's own.
 - **A peer's honesty about its own body.** A judgment on the judging client's own screen cannot be
   verified from outside; that is the deliberate cost of [judgment ownership](judgment-ownership.md).
 

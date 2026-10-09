@@ -83,24 +83,43 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `PlayerJoined` / `PlayerLeft` | 某个成员的握手完成／某个成员被移除（主机侧）。这不是世界内实体的加入。每个成员各触发一次，包括你自己。 |
 | `SessionEnded` | 会话拆掉了。主机退出时客机不会收到针对主机的 `PlayerLeft`，只有 `SessionEnded`。 |
 
+## 值
+
+凡是要跨过 CUO 接口面的模组自有数据 —— 一条消息、一个数据包的载荷、一份运行时状态值 —— 都是 **`ModValue`**，也就是框架自己的类型化数据模型。字节永远不是契约：形状归 CUO 所有的地方契约就是类型化的；形状归**模组**所有的地方，框架仍然必须能校验它、按结构给它上限、能记日志、能在控制台里显示它 —— 一块不透明的东西这些都做不到。
+
+```csharp
+context.Network.Broadcast(ModValue.Map(
+    ("kind", ModValue.Text("ping")),
+    ("count", ModValue.Integer(3)),
+    ("tags", ModValue.List(ModValue.Text("a"), ModValue.Text("b")))));
+```
+
+- **种类**：`Boolean`、`Integer`（`long`）、`Number`（`double`）、`Text`、`Binary`、`List`、`Map`。数值分两种，是因为单个 `double` 装不下 2^53 以上的 Steam id，会悄悄四舍五入；也没有 null 这一种，「没有」是结构性的 —— `Try` 返回 `false`、映射里根本没有那个字段。
+- **构造**：`ModValue.Boolean`／`.Integer`／`.Number`／`.Text`／`.Binary`／`.List(params …)`／`.Map(params (string Key, ModValue Value)[])`。值不可变，构造时会复制传进来的东西，所以可以放心共享与缓存。传 null 参数是 `ArgumentNullException`；`params` 数组传 null 表示空容器。
+- **读取**：`Kind`、`TryGetBoolean`／`TryGetInteger`／`TryGetNumber`／`TryGetText`／`TryGetBinary`、`TryGetField(name, out value)`，以及 `Items`／`Fields` —— 种类不是 `List`／`Map` 时它们是 **null**，所以读错种类不会看起来像「空」。整数也能按数字读；数字永远不会按整数读出来。
+- **二进制叶子**：`Binary` 是模组唯一能说「这个值就是字节」的地方，而且是刻意为之。想用自家紧凑编码的模组把字节放这里；框架从不解释它。
+- **上限**：深度 8、一张值图 4096 个值、列表或映射 1024 项、文本 16 KiB、字段名 256 字节、二进制叶子 32 KiB —— 再加上接口面对编码后总量的上限（线上是 64 KiB）。
+- **拒收**：除了框架自己的编码器，没有第二个校验者 —— 能收下一个值，就等于能把它编码出去。拒收会点名模型内部的路径与它撞破的上限：`$.targets[3].hp: a number must be finite to travel`，形状与其余所有拒收一致。
+- **日志**：`ToString()` 输出有上限的 JSON 形状，所以一行框架日志永远不会随载荷变大。
+
 ## 模组消息
 
 `IModNetwork` —— 上报／定向语义、星形拓扑、**不自动转发**：
 
 | 调用 | 主机 | 客机 | 说明 |
 |---|---|---|---|
-| `SendToHost(payload)` | 空操作 | 上报给主机那份模组 | 不在会话里：空操作 |
-| `SendToPeer(steamId, payload)` | 发给某一个成员的那份 | 空操作 | |
-| `Broadcast(payload)` | 发给每一个成员，**包括**主机自己那份（以本机 SteamId 本地触发） | 空操作 | 「所有一侧都跑这段」用这个 |
-| `MessageReceived` | `(senderSteamId, payload)` —— 客机的上报，或主机自己的广播 | 一条定向或广播帧 | |
+| `SendToHost(value)` | 空操作 | 上报给主机那份模组 | 不在会话里：空操作 |
+| `SendToPeer(steamId, value)` | 发给某一个成员的那份 | 空操作 | |
+| `Broadcast(value)` | 发给每一个成员，**包括**主机自己那份（以本机 SteamId 本地触发） | 空操作 | 「所有一侧都跑这段」用这个 |
+| `MessageReceived` | `(senderSteamId, value)` —— 客机的上报，或主机自己的广播 | 一条定向或广播帧 | |
 
-模组必须声明 `SendNetworkMessage`：没声明的发送在发送端被拒（空操作加一行日志），没声明的接收被丢弃。[载荷](glossary.md)是**不透明的**；不认识的模组 id 会被丢弃并留日志。传输本身可靠；单发送方的速率上限是持续 20 条每秒、突发 40 条（`ModRateLimitPolicy`）。
+模组必须声明 `SendNetworkMessage`：没声明的发送在发送端被拒（空操作加一行日志），没声明的接收被丢弃。[值](glossary.md)是类型化的 `ModValue`（见[值](#值)），绝不是不透明字节；不认识的模组 id 会被丢弃并留日志。传输本身可靠；单发送方的速率上限是持续 20 条每秒、突发 40 条（`ModRateLimitPolicy`）。
 
-**丢帧是被接受的损失。** 超出突发额度的帧直接丢弃并留日志，从不排队，也不会重发：`ModMessage` 与模组状态传输（`ModStatusTransport`）按设计就容忍丢失 —— 它们携带不透明载荷、没有回填，所以恢复手段是**下一条**消息，而不是重试。只有命令的请求／结果这一对是有结算的，结算依据是请求方自己的截止时间。
+**丢帧是被接受的损失。** 超出突发额度的帧直接丢弃并留日志，从不排队，也不会重发：`ModMessage` 与模组状态传输（`ModStatusTransport`）按设计就容忍丢失 —— 它们携带值、没有回填，所以恢复手段是**下一条**消息，而不是重试。只有命令的请求／结果这一对是有结算的，结算依据是请求方自己的截止时间。
 
-**64 KiB 载荷上限** —— 这是框架策略（`ModChannel.MaxPayloadBytes`），不是行长度限制：发送端拒绝，接收端再查一次。
+**64 KiB 值上限** —— 这是框架策略（`ModChannel.MaxPayloadBytes`），不是行长度限制：按**编码后**的值计算，发送端拒绝，接收端再查一次。框架编码不出来的值（[值](#值)里那几项上限）会被拒，并留一行点名它内部路径的日志。
 
-通道是模组帧的**匿名**形式：每个模组一份不透明载荷、一个回调。消息种类不止一种、或者想让主机把一次上报扇出去的模组，改为声明数据包 —— 见下面的[声明数据包](#声明数据包)。两种形式搭同一个帧，也共用同一条限流。
+通道是模组帧的**匿名**形式：每个模组一份值、一个回调。消息种类不止一种、或者想让主机把一次上报扇出去的模组，改为声明数据包 —— 见下面的[声明数据包](#声明数据包)。两种形式搭同一个帧，也共用同一条限流。
 
 ## 声明数据包
 
@@ -112,14 +131,17 @@ context.Packets.Register(new ModPacket("machine.use",
     ModPacketDelivery.HostOnly,       // 哪些副本跑这条链
     new ModPacketHandler(ModPacketStage.Validate, ctx =>
     {
-        if (ctx.Payload.Length != 1) { ctx.Refuse("一次使用只带一格充能"); }
+        if (!ctx.Value.TryGetInteger(out var step) || step is < 1 or > 10)
+        {
+            ctx.Refuse($"一次使用只带 1..10 之间的充能步长；这个值是 {ctx.Value}");
+        }
     }),
-    new ModPacketHandler(ModPacketStage.Apply, ctx => machine.Charge(ctx.Payload[0], ctx.SenderSteamId))));
+    new ModPacketHandler(ModPacketStage.Apply, ctx => machine.Charge(ctx, ctx.SenderSteamId))));
 
-context.Packets.SendToHost("machine.use", [3]);   // 客机上报，路由由框架负责
+context.Packets.SendToHost("machine.use", ModValue.Integer(3));   // 客机上报，路由由框架负责
 ```
 
-**身份归模组所有。** 数据包 id 与模组 id 一起搭在帧上（`ModMessageMsg.PacketId`），所以接收那一侧按模组自己给这条消息起的名字路由，而不是靠载荷内部的约定。接收副本没有声明的数据包 id 会被丢弃并留日志 —— 绝不去猜；id 为**空**就是上面的匿名通道形式。运行这个模组的每一侧声明都相同，所以数据包的形状属于「模组版本标识什么」的一部分。
+**身份归模组所有。** 数据包 id 与模组 id 一起搭在帧上（`ModMessageMsg.PacketId`），所以接收那一侧按模组自己给这条消息起的名字路由，而不是靠值内部的约定。接收副本没有声明的数据包 id 会被丢弃并留日志 —— 绝不去猜；id 为**空**就是上面的匿名通道形式。运行这个模组的每一侧声明都相同，所以数据包的形状属于「模组版本标识什么」的一部分。
 
 **谁能发起**是声明出来的，并且执行两次 —— 发送端在帧离开之前一次，成员帧到达主机时再一次。下面两张表里都出现的 `HostOnly` 是两条不同的轴：这一张管的是「谁能**发起**这个数据包」，投递那张管的是「哪些副本**跑**它」：
 
@@ -145,7 +167,7 @@ context.Packets.SendToHost("machine.use", [3]);   // 客机上报，路由由框
 
 **失败路径是写明的。** 处理函数抛异常会被隔离，日志里带模组 id、数据包 id 与阶段，链继续往下走 —— 一个坏掉的处理函数既卡不住接收路径，也吞不掉其他成员的那次投递。没有完成握手的同伴发来的帧到不了任何链，没声明的数据包 id 被丢弃，链跑到一半把声明注销掉也仍然会跑完这一次。
 
-**护栏**：声明与发送都需要 `SendNetworkMessage`；id 用内容 id 那套规范小写文法；每个模组最多声明 64 个数据包、每个包最多 16 个处理函数、每份载荷最多 64 KiB；帧走通道自己的逐发送方限流（每秒 20 条、突发 40 条），它约束的是「一个同伴能让这一份做多少事」—— 本地运行是模组自己帧里的自己的调用，不花额度。本副本正在跑的数据包不会再次进入，因为一条把自己再发一次的链会一直递归到栈把进程带走；不合法的数据包 id 在任何东西复述它之前就被丢弃。每个可能被拒的调用都以 `false` 加一行写明原因的框架日志作答，什么都不排队、也不重发。
+**护栏**：声明与发送都需要 `SendNetworkMessage`；id 用内容 id 那套规范小写文法；每个模组最多声明 64 个数据包、每个包最多 16 个处理函数、每个值最多 64 KiB；帧走通道自己的逐发送方限流（每秒 20 条、突发 40 条），它约束的是「一个同伴能让这一份做多少事」—— 本地运行是模组自己帧里的自己的调用，不花额度。本副本正在跑的数据包不会再次进入，因为一条把自己再发一次的链会一直递归到栈把进程带走；不合法的数据包 id 在任何东西复述它之前就被丢弃。每个可能被拒的调用都以 `false` 加一行写明原因的框架日志作答，什么都不排队、也不重发。
 
 **声明数据包是临时的。** 框架从不缓存、回放或持久化数据包，也不为它保留任何迟到加入所需的状态：需要让后加入者知道点什么的模组，在 [`PlayerJoined`](#生命周期与上下文) 上重发一次，或者把值放进 `State`／`Data`。
 
@@ -256,7 +278,7 @@ context.Content.TryUnregister("wooden.sword");
 | `ModStatusDefinition`（`Status`，第七个） | 显示与描述文本、身体／肢体作用域、可存盘元数据、可选的心情图标 id、可选的逐肢体心情图标路由（`ShowPerLimbMoodles` 加 `LimbMoodles`）和一个可扩展的 `CustomData` 字典。提供者校验作用域／id／存盘字段，把静态描述符存下作为迁移基底；它不创建逐玩家或逐肢体的状态袋 —— 动态运行值属于状态运行时接缝。 |
 | `ModMoodleDefinition`（`Moodle`，第八个） | 显示与描述文本、游戏自带的心情图标强度、稳定的图标／资源 id 键、critical／chipped／important 表现标志、持续秒数、可选的 `ModMoodleAnimation` 逐帧路径图标动画、可选的逐肢体显示／描述模板（`LimbDisplayNameFormat`／`LimbDescriptionFormat`）和一个可扩展的 `CustomData` 字典。提供者存下静态描述符；`ModStatusMoodleProjection` 把活跃的状态关联心情图标喂给原版心情图标管理器，`Moodle.Start` 补丁按作者的帧驱动原版界面图像。心情图标内容依旧不是线上特性。 |
 
-**null 就是「没有」。** 上述每份定义里的集合成员 —— 列表、字典或 `byte[]` —— 为 null 时都表示「没有」，而且由成员自己负责：模组赋 null 得到的定义里，列表读出来就是空的。对内容定义来说，规则到此为止 —— 登记表留的是那个有类型对象，没有任何东西会去序列化它。规则的另一半仍然属于 CUO 自己跨边界的那些契约 —— `ModStatusUpdate` 与两份状态投影。它们的载荷序列化器既不跑构造函数、也不跑字段初始值设定项，一份干脆**省略**了某个成员元素的载荷会让该成员根本没被赋值 —— 于是每个 `FromPayload` 都走同一个解码步骤（`ModPayloadCodec`），把解码出来的对象图里每个为 null 的集合成员换成空集合，嵌套契约与集合元素一并覆盖。再也没有哪个提供者去规整载荷里的集合，所以同一份定义不会因为「先被哪个消费者读到」而表现不同。真正必需的成员并不是例外：空集合会流进那个提供者自己的校验，由它带原因拒收 —— 没有帧路径的物品精灵动画、没有材料的配方、网格里一行都没有的结构。同一条规则也覆盖模组在代码里构造、而不是解码出来的那些集合（特性上的 `Dependencies`、`ModConsoleCommand.ArgumentKinds`、`ModManifest.Dependencies`、`ModPacket.Handlers`，以及运行时心情图标请求的 `Payload`）；`ModPayloadNullCollectionTests` 这份普查会枚举程序集里公开类上的每一个集合成员 —— 跨边界载荷契约的成员、模组要填的那些声明，以及只能通过带参构造函数构建的那四个 —— 对每个成员都验证一次 null 写入，对跨边界载荷的成员还验证三种形态（我们自己写出的载荷、显式 nil、元素被省略），新增一个都绕不过这条规则。
+**null 就是「没有」。** 上述每份定义里的集合成员 —— 列表或字典 —— 为 null 时都表示「没有」，而且由成员自己负责：模组赋 null 得到的定义里，列表读出来就是空的。整条规则现在只剩这一半：登记表留的是那个有类型对象，没有任何东西会去序列化一份定义，所以既没有需要解码步骤去修补的载荷，也没有第二处能决定这条规则的地方。真正必需的成员并不是例外：空集合会流进那个提供者自己的校验，由它带原因拒收 —— 没有帧路径的物品精灵动画、没有材料的配方、网格里一行都没有的结构。同一条规则也覆盖模组在代码里构造的那些集合（`CuoModAttribute.Dependencies`、`ModConsoleCommand.ArgumentKinds`、`ModManifest.Dependencies`、`ModPacket.Handlers`）；`ModNullCollectionRuleTests` 这份普查会枚举程序集里公开类上的每一个集合成员 —— 模组要填的那些声明，加上只能通过带参构造函数构建的那四个 —— 对每个成员都验证一次 null 写入，新增一个都绕不过这条规则。声明里那种「值模型」成员不算集合：`ModValue` 的 items 与 fields 是只读视图，普查把它们点名列出，而不是计成行。
 
 **制作品质标签。** 品质 id 是一枚*标签*：要么是游戏自带的（一个全小写的裸词，例如 `rippable` —— 模组用它表示「这份内容提供游戏自带的这个标签」），要么是模组自己写的、按内容 id 文法加命名空间的（`mymod:material`），后者把两个模组的词汇表分开。游戏比对标签用的是序数字符串比较，并且要求数量不低于材料声明的数量，所以模组写下什么，比的就是什么：声明的标签既不是规范形式的带命名空间 id、也不是裸的原版风格词时，绑定期就带警告拒收，而不是把它存成一枚永远匹配不上的标签。`ModItemDefinition.Qualities` 与 `ModLiquidDefinition.Qualities` 分别写进各自类别的游戏自带品质列表，于是一张按品质匹配的配方命中模组物品或液体，和命中游戏自带内容完全一样。
 
@@ -376,15 +398,15 @@ if (context.StatusRuntime.TryDeclare(
 {
     var projection = new ModBodyFormulaProjection { MaxEncumbrance = 2f, Immunity = 5f, HeartRateOffset = 12f };
     context.StatusTransport.TryBroadcastBodyStatus(
-        "strength.potion", playerSteamId, projection.ToPayload());
+        "strength.potion", playerSteamId, projection.ToValue());
 }
 
 if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataScope.Shared))
 {
-    context.StatusTransport.TryBroadcastLimbStatus("bleeding", playerSteamId, limbSlot, payload); // host only
-    context.Network.MessageReceived += (sender, payload) =>
+    context.StatusTransport.TryBroadcastLimbStatus("bleeding", playerSteamId, limbSlot, value); // host only
+    context.Network.MessageReceived += (sender, value) =>
     {
-        if (context.StatusTransport.TryHandleStatusPayload(sender, payload))
+        if (context.StatusTransport.TryHandleStatusUpdate(sender, value))
         {
             return; // other mod-message traffic continues here
         }
@@ -392,14 +414,14 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
 }
 ```
 
-- **作用域**：`IModStatusRuntime` 是静态内容 `ModStatusDefinition` 在运行时的对应物。值临时、进程本地，以「状态 id、玩家 SteamId、可选肢体槽位」为键。字节载荷的结构与版本归模组自己。
+- **作用域**：`IModStatusRuntime` 是静态内容 `ModStatusDefinition` 在运行时的对应物。值临时、进程本地，以「状态 id、玩家 SteamId、可选肢体槽位」为键。值自身的结构与版本归模组自己。
 - **作用域规则**：与 `IModData` 同一套 `ModDataScope` —— `LocalOnly` 任意角色；`Shared` 主机写、客机显式套用；`HostAuthoritative` 仅主机且客机无镜像。
-- **有类型传输**：`IModStatusTransport` 把已提交的共享值以带版本的 `ModStatusUpdate` 帧发布到既有的 `IModNetwork` 通道上。主机调 `TryBroadcastBodyStatus`／`TryBroadcastLimbStatus`（以及对应的移除重载）；每一侧都在自己的模组消息处理函数里调 `TryHandleStatusPayload`，于是来自主机的帧会自动套用或移除客机镜像。主机消费自己的广播回响，但不会重复套用。
+- **有类型传输**：`IModStatusTransport` 把已提交的共享值以带版本的 `ModStatusUpdate` 帧发布到既有的 `IModNetwork` 通道上。主机调 `TryBroadcastBodyStatus`／`TryBroadcastLimbStatus`（以及对应的移除重载）；每一侧都在自己的模组消息处理函数里调 `TryHandleStatusUpdate`，于是来自主机的帧会自动套用或移除客机镜像。主机消费自己的广播回响，但不会重复套用。帧本身就是一个模型值，它的字段名就是它的契约（`id`、`scope`、`player`、`limb`、`schema`、`remove`、`value`）：不认识的字段被忽略，缺了必需字段的帧被点名拒收。
 - **客机请求路径**：这条接缝不新增框架命令。需要主机修改共享或主机权威状态的客机仍然用 `IModCommands`；主机命令处理函数是语义校验者，校验通过后调用一个 `TryBroadcast*` 辅助方法发布已提交结果。
-- **有类型投影**：`TryDeclare` 可以带一个可选的 `ModStatusProjectionKind`（`BodyFormula` 或 `LimbPhysiology`）。带了这个值，模组的不透明状态值就应该是配套的 DTO（`ModBodyFormulaProjection`／`ModLimbProjection`）；GameAdapter 只解码这些众所周知的载荷，并在本地原版 `Body`／`Limb` 完成自身更新之后套用叠加值。载荷字节与序列化仍然归模组，且没有游戏或 Unity 类型穿过 Abstractions。
+- **有类型投影**：`TryDeclare` 可以带一个可选的 `ModStatusProjectionKind`（`BodyFormula` 或 `LimbPhysiology`）。带了这个值，模组的状态值就应该是配套的投影（`ModBodyFormulaProjection`／`ModLimbProjection`，用 `ToValue()` 构造）；GameAdapter 只读这些众所周知的字段映射，并在本地原版 `Body`／`Limb` 完成自身更新之后套用叠加值。没有游戏或 Unity 类型穿过 Abstractions。
 - **投影覆盖的字段**：身体侧有 `MaxEncumbrance`、`TotalEncumbrance`、`Immunity`、`JumpSpeed`、`AveragePain`，以及 `HeartRateOffset`、`RespiratoryRateOffset`、`BloodPressureOffset`；肢体侧有 `BleedAmount`、`SkinHealth`、`MuscleHealth`、`InfectionAmount`。循环系统的偏移通过专门的 `Body.HandleCirculation` 前缀／后置接缝套用：原生公式之前先去掉上一次的偏移，公式之后再套上当前偏移，于是这些每帧重算的值稳定在「原生基数加模组偏移」上，而不是每帧被抹掉。原版心情图标行由 `ModStatusMoodleProjection` 通过 `MoodleManager.AddAllMoodles` 的前缀／后置补丁喂给，不走身体叠加。肢体作用域的状态可以用 `ModStatusDefinition.ShowPerLimbMoodles` 选择「每个受影响肢体一行」，用 `LimbMoodles` 把不同肢体路由到不同心情图标描述符，并用心情图标层的 `LimbDisplayNameFormat`／`LimbDescriptionFormat` 模板生成带肢体名的提示文本。
 - **本地心情图标解析器**：`IModMoodleRuntime` 让模组为每个运行时状态 id 注册一个解析器。解析器收到一个朴素的 `ModStatusMoodleRequest`（状态／玩家／肢体身份加模组自己的载荷），返回一个静态心情图标 id。GameAdapter 的本地心情图标行投影会对每个活跃的身体／肢体存在调用它，解析器缺失或返回 null 时退回静态的状态／心情图标路由。这是 CUCoreLib `RegisterBody`／`RegisterLimb` 回调的 CUO 安全替代：没有 `Body`／`Limb`／游戏委托穿过 Abstractions，而且它是只在本地生效的表现，没有线上消息。
-- **边界**：不透明的 `None` 状态永远不被 GameAdapter 解释 —— 只有身体／肢体投影状态会到达原版层，存储变更事件是内部的。不新增 `NetMsg`，也不抬协议号：有类型的帧搭在既有的 `NetMsg.ModMessage` 通道上，也不引入任何通用 JObject 快照。
+- **边界**：`None` 状态是模组自己的值，永远不被 GameAdapter 解释 —— 只有身体／肢体投影状态会到达原版层，存储变更事件是内部的。不新增 `NetMsg`，也不抬协议号：有类型的帧搭在既有的 `NetMsg.ModMessage` 通道上，也不引入任何通用 JObject 快照。
 
 ## 资源补全
 

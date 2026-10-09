@@ -175,23 +175,23 @@ member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeLocalPlayerState.
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeLocalPlayerState.Thirst|property|-> float { get; }
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeLocalPlayerState.X|property|-> float { get; }
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeLocalPlayerState.Y|property|-> float { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.Broadcast(byte[] payload)|method|-> void
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.MessageReceived|event|-> Action<ulong, byte[]>?
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.SendToHost(byte[] payload)|method|-> void
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.SendToPeer(ulong steamId, byte[] payload)|method|-> void
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.Broadcast(ModValue value)|method|-> void
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.MessageReceived|event|-> Action<ulong, ModValue>?
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.SendToHost(ModValue value)|method|-> void
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModNetwork.SendToPeer(ulong steamId, ModValue value)|method|-> void
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.IsHost|property|-> bool { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.PacketId|property|-> string { get; }
-member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.Payload|property|-> byte[] { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.Refuse(string reason)|method|-> void
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.SenderSteamId|property|-> ulong { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.Stage|property|-> ModPacketStage { get; }
-member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.Broadcast(string packetId, byte[] payload)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPacketContext.Value|property|-> ModValue { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.Broadcast(string packetId, ModValue value)|method|-> bool
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.CanSend|property|-> bool { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.IsRegistered(string packetId)|method|-> bool
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.PacketIds|property|-> IReadOnlyCollection<string> { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.Register(ModPacket packet)|method|-> bool
-member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.SendToHost(string packetId, byte[] payload)|method|-> bool
-member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.SendToPeer(ulong steamId, string packetId, byte[] payload)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.SendToHost(string packetId, ModValue value)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.SendToPeer(ulong steamId, string packetId, ModValue value)|method|-> bool
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModPackets.Unregister(string packetId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerInventory.Count|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerInventory.HandSlot|property|-> int { get; }
@@ -224,25 +224,25 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TrySet(string key, 
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TrySetSchemaVersion(int schemaVersion)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.StatusCount|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.StatusIds|property|-> IReadOnlyCollection<string> { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryApplyBodyStatus(string statusId, ulong playerSteamId, byte[] value, ulong senderSteamId)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value, ulong senderSteamId)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryApplyBodyStatus(string statusId, ulong playerSteamId, ModValue value, ulong senderSteamId)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value, ulong senderSteamId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryApplyRemoveBodyStatus(string statusId, ulong playerSteamId, ulong senderSteamId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryApplyRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ulong senderSteamId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryDeclare(string statusId, ModStatusScope scope, ModDataScope runtimeScope, int schemaVersion = 1, ModStatusProjectionKind projectionKind = None)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetBodyStatus(string statusId, ulong playerSteamId, out byte[]? value)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out byte[]? value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetBodyStatus(string statusId, ulong playerSteamId, out ModValue? value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out ModValue? value)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetRuntimeScope(string statusId, out ModDataScope runtimeScope)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetSchemaVersion(string statusId, out int schemaVersion)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetScope(string statusId, out ModStatusScope scope)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryRemoveBodyStatus(string statusId, ulong playerSteamId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TrySetBodyStatus(string statusId, ulong playerSteamId, byte[] value)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryBroadcastBodyStatus(string statusId, ulong playerSteamId, byte[] value)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TrySetBodyStatus(string statusId, ulong playerSteamId, ModValue value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryBroadcastBodyStatus(string statusId, ulong playerSteamId, ModValue value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ModValue value)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryBroadcastRemoveBodyStatus(string statusId, ulong playerSteamId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryBroadcastRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryHandleStatusPayload(ulong senderSteamId, byte[] payload)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryHandleStatusUpdate(ulong senderSteamId, ModValue value)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStructurePlacement.CanPlace|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStructurePlacement.TryPlaceStructure(string structureId, int originX, int originY)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTilePlacement.CanPlace|property|-> bool { get; }
@@ -269,14 +269,22 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModBatteryPreset.Medium|enumv
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBatteryPreset.Small|enumvalue|= 0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.AveragePain|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.BloodPressureOffset|property|-> float { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FromPayload(byte[] payload)|static method|-> ModBodyFormulaProjection?
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FieldAveragePain|const field|-> string = "averagePain"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FieldBloodPressureOffset|const field|-> string = "bloodPressureOffset"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FieldHeartRateOffset|const field|-> string = "heartRateOffset"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FieldImmunity|const field|-> string = "immunity"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FieldJumpSpeed|const field|-> string = "jumpSpeed"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FieldMaxEncumbrance|const field|-> string = "maxEncumbrance"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FieldRespiratoryRateOffset|const field|-> string = "respiratoryRateOffset"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FieldTotalEncumbrance|const field|-> string = "totalEncumbrance"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.HeartRateOffset|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.Immunity|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.JumpSpeed|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.MaxEncumbrance|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.RespiratoryRateOffset|property|-> float { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.ToPayload()|method|-> byte[]
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.ToValue()|method|-> ModValue
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.TotalEncumbrance|property|-> float { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.TryFromValue(ModValue? value, out ModBodyFormulaProjection projection)|static method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.AllLayersExcept(params int[] excludedLayerNumbers)|static method|-> int
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.AllSpawnLayers|const field|-> int = -1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.AlwaysDrop|property|-> List<ModBuildingDrop> { get; set; }
@@ -474,11 +482,15 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModLightType.Sprite|enumvalue
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbMoodleBinding.LimbName|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbMoodleBinding.MoodleId|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.BleedAmount|property|-> float? { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.FromPayload(byte[] payload)|static method|-> ModLimbProjection?
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.FieldBleedAmount|const field|-> string = "bleedAmount"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.FieldInfectionAmount|const field|-> string = "infectionAmount"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.FieldMuscleHealth|const field|-> string = "muscleHealth"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.FieldSkinHealth|const field|-> string = "skinHealth"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.InfectionAmount|property|-> float? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.MuscleHealth|property|-> float? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.SkinHealth|property|-> float? { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.ToPayload()|method|-> byte[]
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.ToValue()|method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.TryFromValue(ModValue? value, out ModLimbProjection projection)|static method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.ColorA|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.ColorB|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.ColorG|property|-> float { get; set; }
@@ -629,18 +641,24 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.ShowsPerL
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.LimbName|property|-> string? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.LimbSlot|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.ModId|property|-> string { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.Payload|property|-> byte[] { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.PlayerSteamId|property|-> ulong { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.Scope|property|-> ModStatusScope { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.StatusId|property|-> string { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.Value|property|-> ModValue? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusProjectionKind.BodyFormula|enumvalue|= 1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusProjectionKind.LimbPhysiology|enumvalue|= 2
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusProjectionKind.None|enumvalue|= 0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusScope.Body|enumvalue|= 1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusScope.Limb|enumvalue|= 2
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ForBody(string statusId, ulong playerSteamId, int schemaVersion, byte[] value)|static method|-> ModStatusUpdate
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ForLimb(string statusId, ulong playerSteamId, int limbSlot, int schemaVersion, byte[] value)|static method|-> ModStatusUpdate
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FromPayload(byte[] payload)|static method|-> ModStatusUpdate?
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FieldId|const field|-> string = "id"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FieldLimb|const field|-> string = "limb"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FieldPlayer|const field|-> string = "player"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FieldRemove|const field|-> string = "remove"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FieldSchema|const field|-> string = "schema"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FieldScope|const field|-> string = "scope"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FieldValue|const field|-> string = "value"
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ForBody(string statusId, ulong playerSteamId, int schemaVersion, ModValue value)|static method|-> ModStatusUpdate
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ForLimb(string statusId, ulong playerSteamId, int limbSlot, int schemaVersion, ModValue value)|static method|-> ModStatusUpdate
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.LimbSlot|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.PlayerSteamId|property|-> ulong { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.Remove|property|-> bool { get; set; }
@@ -649,8 +667,9 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.RemoveLimb(st
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.SchemaVersion|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.Scope|property|-> ModStatusScope { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.StatusId|property|-> string { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ToPayload()|method|-> byte[]
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.Value|property|-> byte[] { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ToValue()|method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.TryFromValue(ModValue? value, out ModStatusUpdate update)|static method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.Value|property|-> ModValue? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStructureDefinition.CustomData|property|-> Dictionary<string, string> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStructureDefinition.Description|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStructureDefinition.DisplayName|property|-> string { get; set; }
@@ -713,6 +732,35 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileSleepQuality.Bad|enumv
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileSleepQuality.Good|enumvalue|= 3
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileSleepQuality.Mediocre|enumvalue|= 1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileSleepQuality.Okay|enumvalue|= 2
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Binary(ReadOnlyMemory<byte> value)|static method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Boolean(bool value)|static method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Equals(ModValue? other)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Equals(object? obj)|override method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Fields|property|-> IReadOnlyDictionary<string, ModValue>? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.GetHashCode()|override method|-> int
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Integer(long value)|static method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Items|property|-> IReadOnlyList<ModValue>? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Kind|property|-> ModValueKind { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.List(params ModValue[] items)|static method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Map(params (string Key, ModValue Value)[] fields)|static method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Number(double value)|static method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.Text(string value)|static method|-> ModValue
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.ToString()|override method|-> string
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.TryGetBinary(out ReadOnlyMemory<byte> value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.TryGetBoolean(out bool value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.TryGetField(string name, out ModValue value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.TryGetInteger(out long value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.TryGetNumber(out double value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.TryGetText(out string value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.operator!=(ModValue? left, ModValue? right)|static operator|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValue.operator==(ModValue? left, ModValue? right)|static operator|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValueKind.Binary|enumvalue|= 4
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValueKind.Boolean|enumvalue|= 0
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValueKind.Integer|enumvalue|= 1
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValueKind.List|enumvalue|= 5
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValueKind.Map|enumvalue|= 6
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValueKind.Number|enumvalue|= 2
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModValueKind.Text|enumvalue|= 3
 member|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode.Authoritative|enumvalue|implicit #5
 member|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode.ClientOnly|enumvalue|implicit #1
 member|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode.Cosmetic|enumvalue|implicit #2
@@ -824,6 +872,8 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition|sealed class|
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileGenerationStyle|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileSleepQuality|enum|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModValue|sealed class|IEquatable<ModValue>
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModValueKind|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.NetworkMode|enum|-
 type|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry|sealed class|-
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModContent.TryRegister(string id, string kind, byte[] data) — replaced by TryRegister(IModContentDefinition definition): the kind travels with the object, so no caller can file a definition under another kind
@@ -858,3 +908,28 @@ type|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry|sea
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModContentKind.Entity — no CUO provider binds it: the kind word belongs to the built-in cu:player resource entry, and custom enemies stay a parked capability
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModContentKind.Locale — CUO core owns no locale surface (cucorelib-migration-support: localization is out of scope and mod-local), so the constant advertised a kind nothing binds
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModContentKind.Setting — CUO core owns no settings surface (cucorelib-migration-support: settings are out of scope for CUO core), so the constant advertised a kind nothing binds
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModNetwork.Broadcast(byte[] payload) — a mod's own message carries a typed ModValue now - the opaque byte envelope is gone (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModNetwork.SendToHost(byte[] payload) — a mod's own message carries a typed ModValue now - the opaque byte envelope is gone (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModNetwork.SendToPeer(ulong steamId, byte[] payload) — a mod's own message carries a typed ModValue now - the opaque byte envelope is gone (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModPacketContext.Payload — a mod's own message carries a typed ModValue now - the opaque byte envelope is gone (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModPackets.Broadcast(string packetId, byte[] payload) — a mod's own message carries a typed ModValue now - the opaque byte envelope is gone (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModPackets.SendToHost(string packetId, byte[] payload) — a mod's own message carries a typed ModValue now - the opaque byte envelope is gone (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModPackets.SendToPeer(ulong steamId, string packetId, byte[] payload) — a mod's own message carries a typed ModValue now - the opaque byte envelope is gone (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryApplyBodyStatus(string statusId, ulong playerSteamId, byte[] value, ulong senderSteamId) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value, ulong senderSteamId) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetBodyStatus(string statusId, ulong playerSteamId, out byte[]? value) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out byte[]? value) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TrySetBodyStatus(string statusId, ulong playerSteamId, byte[] value) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryBroadcastBodyStatus(string statusId, ulong playerSteamId, byte[] value) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModStatusTransport.TryHandleStatusPayload(ulong senderSteamId, byte[] payload) — a status value is a ModValue now, and the frame is consumed with TryHandleStatusUpdate
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.FromPayload(byte[] payload) — the projection is a value of the model (ToValue/TryFromValue) instead of serialized bytes
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.ToPayload() — the projection is a value of the model (ToValue/TryFromValue) instead of serialized bytes
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.FromPayload(byte[] payload) — the projection is a value of the model (ToValue/TryFromValue) instead of serialized bytes
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.ToPayload() — the projection is a value of the model (ToValue/TryFromValue) instead of serialized bytes
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest.Payload — the request carries the mod's value (ModValue) instead of bytes
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ForBody(string statusId, ulong playerSteamId, int schemaVersion, byte[] value) — CUO's status frame is a model value now: its field names are the wire contract (ToValue/TryFromValue)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ForLimb(string statusId, ulong playerSteamId, int limbSlot, int schemaVersion, byte[] value) — CUO's status frame is a model value now: its field names are the wire contract (ToValue/TryFromValue)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FromPayload(byte[] payload) — CUO's status frame is a model value now: its field names are the wire contract (ToValue/TryFromValue)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ToPayload() — CUO's status frame is a model value now: its field names are the wire contract (ToValue/TryFromValue)

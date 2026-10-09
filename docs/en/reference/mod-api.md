@@ -120,31 +120,68 @@ thread, every stage exception-isolated. `IModContext` is what `Bind` receives:
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). Not the in-world entity join. Each member exactly once, including yourself. |
 | `SessionEnded` | the session tore down. A guest's `PlayerLeft` for the host is not fired on host exit — only `SessionEnded`. |
 
+## Values
+
+Every mod-authored datum that crosses a CUO surface — a message, a packet's payload, a runtime status
+value — is a **`ModValue`**, the framework's own typed data model. Bytes are never the contract: where CUO
+defines the shape a contract is typed, and where the MOD defines it the framework still has to be able to
+validate it, bound it structurally, log it and show it, which an opaque blob prevents.
+
+```csharp
+context.Network.Broadcast(ModValue.Map(
+    ("kind", ModValue.Text("ping")),
+    ("count", ModValue.Integer(3)),
+    ("tags", ModValue.List(ModValue.Text("a"), ModValue.Text("b")))));
+```
+
+- **Kinds**: `Boolean`, `Integer` (`long`), `Number` (`double`), `Text`, `Binary`, `List`, `Map`. Two
+  numeric kinds because one `double` cannot carry a Steam id past 2^53 without silently rounding it, and
+  there is no null kind: absence is structural — a `false` from a `Try`, a map field that is not there.
+- **Build**: `ModValue.Boolean` / `.Integer` / `.Number` / `.Text` / `.Binary` / `.List(params …)` /
+  `.Map(params (string Key, ModValue Value)[])`. A value is immutable and copies what it is handed, so it
+  is safe to share and to cache. A null argument is an `ArgumentNullException`; a null `params` array
+  means an empty container.
+- **Read**: `Kind`, `TryGetBoolean` / `TryGetInteger` / `TryGetNumber` / `TryGetText` / `TryGetBinary`,
+  `TryGetField(name, out value)`, and `Items` / `Fields` — **null** unless the kind is `List` / `Map`, so
+  a wrong kind cannot read as "empty". An integer reads as a number as well; a number never reads as an
+  integer.
+- **The binary leaf**: `Binary` is the one place a mod says "this value really is bytes", on purpose. A mod
+  with its own compact encoding puts it there; the framework never interprets it.
+- **Budgets**: depth 8, 4096 values per graph, 1024 entries per list or map, 16 KiB of text, 256 bytes per
+  field name, 32 KiB per binary leaf — plus the surface's own cap on the encoded total (64 KiB on the
+  wire).
+- **Refusals**: nothing validates a value except the framework's encoder, so accepting a value IS being
+  able to encode it. A refusal names the path inside the model and the budget it broke —
+  `$.targets[3].hp: a number must be finite to travel` — in the same shape every other refusal takes.
+- **Logging**: `ToString()` renders a bounded, JSON-shaped form, so a framework log line never scales with
+  a payload.
+
 ## Mod messages
 
 `IModNetwork` — report/directed semantics, star topology, **no auto-relay**:
 
 | Call | Host | Guest | Notes |
 |---|---|---|---|
-| `SendToHost(payload)` | no-op | reports to the host's copy of the mod | outside a session: no-op |
-| `SendToPeer(steamId, payload)` | sends to one member's copy | no-op | |
-| `Broadcast(payload)` | every member **including** the host's own copy (local fire with its own SteamId) | no-op | the "all sides run this" call |
-| `MessageReceived` | `(senderSteamId, payload)` — a report (guest) or the host's own broadcast | a directed or broadcast frame | |
+| `SendToHost(value)` | no-op | reports to the host's copy of the mod | outside a session: no-op |
+| `SendToPeer(steamId, value)` | sends to one member's copy | no-op | |
+| `Broadcast(value)` | every member **including** the host's own copy (local fire with its own SteamId) | no-op | the "all sides run this" call |
+| `MessageReceived` | `(senderSteamId, value)` — a report (guest) or the host's own broadcast | a directed or broadcast frame | |
 
 The mod must declare `SendNetworkMessage`: undeclared sends are refused at the sender (no-op plus a
-log) and undeclared receives are dropped. The [payload](glossary.md) is **opaque**; unknown mod ids
-are dropped with a log. Frames are reliable at the transport; the per-sender rate limit is 20/s
-sustained with a 40-frame burst (`ModRateLimitPolicy`).
+log) and undeclared receives are dropped. The [value](glossary.md) is a typed `ModValue` (see
+[Values](#values)), never opaque bytes; unknown mod ids are dropped with a log. Frames are reliable at the
+transport; the per-sender rate limit is 20/s sustained with a 40-frame burst (`ModRateLimitPolicy`).
 
 **A drop is accepted loss.** An over-burst frame is dropped with a log and never queued, and nothing is
 re-sent: `ModMessage` and the mod-status transport (`ModStatusTransport`) are loss-tolerant by design —
-they carry opaque payloads with no backfill, so the next message, never a retry, is the recovery. Only
+they carry values with no backfill, so the next message, never a retry, is the recovery. Only
 the command request/result pair has a settlement, and it is the requester's own deadline.
 
-**64 KiB payload cap** — framework policy (`ModChannel.MaxPayloadBytes`), not a line limit: refused at
-the sender and re-checked at the receiver.
+**64 KiB value cap** — framework policy (`ModChannel.MaxPayloadBytes`), not a line limit: measured on the
+ENCODED value, refused at the sender and re-checked at the receiver. A value the framework cannot encode —
+the budgets in [Values](#values) — is refused with one log line naming the path inside it.
 
-The tunnel is the *anonymous* form of the mod frame: one opaque payload per mod and one callback. A mod
+The tunnel is the *anonymous* form of the mod frame: one value per mod and one callback. A mod
 that has more than one message type, or wants the host to fan a report out, declares packets instead —
 see [Declared packets](#declared-packets) below. Both forms ride the same frame and the same rate limit.
 
@@ -161,16 +198,19 @@ context.Packets.Register(new ModPacket("machine.use",
     ModPacketDelivery.HostOnly,       // which copies run the chain
     new ModPacketHandler(ModPacketStage.Validate, ctx =>
     {
-        if (ctx.Payload.Length != 1) { ctx.Refuse("a use carries one charge step"); }
+        if (!ctx.Value.TryGetInteger(out var step) || step is < 1 or > 10)
+        {
+            ctx.Refuse($"a use carries one charge step in 1..10; this value was {ctx.Value}");
+        }
     }),
-    new ModPacketHandler(ModPacketStage.Apply, ctx => machine.Charge(ctx.Payload[0], ctx.SenderSteamId))));
+    new ModPacketHandler(ModPacketStage.Apply, ctx => machine.Charge(ctx, ctx.SenderSteamId))));
 
-context.Packets.SendToHost("machine.use", [3]);   // a guest reports; the framework routes it
+context.Packets.SendToHost("machine.use", ModValue.Integer(3));   // a guest reports; the framework routes it
 ```
 
 **The identity is the mod's.** The packet id rides the frame beside the mod id (`ModMessageMsg.PacketId`),
 so the receiving copy routes by the mod's own name for its message instead of a convention inside the
-payload. A packet id the receiving copy has not declared is dropped with a log — never guessed at — and an
+value. A packet id the receiving copy has not declared is dropped with a log — never guessed at — and an
 EMPTY id means the anonymous tunnel form above. The declaration is the same on every side that runs the
 mod, so a packet's shape is part of what the mod's version identifies.
 
@@ -424,25 +464,20 @@ that binds it, and a mod that wants a kind of its own implements `IModContentDef
 | `ModStatusDefinition` (`Status`, seventh) | display and description text, a body/limb scope, save-enabled metadata, an optional moodle id, optional per-limb moodle routing (`ShowPerLimbMoodles` plus `LimbMoodles`) and an extensible `CustomData` dictionary. The provider validates the scope/id/save fields and stores the static descriptor as migration base; it does not create a per-player or per-limb status bag — dynamic runtime values belong to the status runtime seam. |
 | `ModMoodleDefinition` (`Moodle`, eighth) | display and description text, a vanilla moodle intensity, a stable icon/resource id key, critical/chipped/important presentation flags, hold seconds, an optional `ModMoodleAnimation` frame-path icon animation, optional per-limb display/description templates (`LimbDisplayNameFormat` / `LimbDescriptionFormat`) and an extensible `CustomData` dictionary. The provider stores the static descriptor; `ModStatusMoodleProjection` feeds active status-linked moodles into the vanilla moodle manager, and a `Moodle.Start` patch drives the vanilla moodle UI image from the authored frames. Moodle content is still never a wire feature. |
 
-**Null means empty.** Every collection member of every declaration above — a list, a dictionary or a
-`byte[]` — means "none" when it is null, and the member itself answers for that: a mod that assigns null
-builds a definition whose list reads empty. That is the whole rule for a content definition now, because
-the registry keeps the typed object and nothing serializes it. The second half of the rule still belongs
-to the contracts CUO itself carries over a boundary — `ModStatusUpdate` and the two status projections.
-Their payload serializer runs neither a constructor nor a field initializer, so a payload that OMITS a
-member's element would leave that member unset, and every `FromPayload` therefore goes through one shared
-decode step (`ModPayloadCodec`) that replaces each null collection member of the decoded graph with an
-empty one, nested contracts and collection entries included. No provider normalises a payload collection,
-so a definition cannot behave differently depending on which consumer read it first. A member that is
-genuinely required is not an exception: an empty collection flows into that provider's own validation,
-which refuses the definition with a reason it names — an item's sprite animation with no frame paths, a
-recipe with no ingredients, a structure whose grid has no rows. The same rule covers the collections a mod
-builds in code rather than decodes (the attribute's `Dependencies`, `ModConsoleCommand.ArgumentKinds`,
-`ModManifest.Dependencies`, `ModPacket.Handlers` and the runtime moodle request's `Payload`), and the
-`ModPayloadNullCollectionTests` census discovers every collection member of the assembly's public classes —
-the travelling payload contracts' members, the declarations a mod fills in, and the four it can only build
-through a constructor with arguments — driving a null write for each of them and all three payload shapes
-for a travelling member, so a new member cannot be added without the rule.
+**Null means empty.** Every collection member of every declaration above — a list or a dictionary — means
+"none" when it is null, and the member itself answers for that: a mod that assigns null builds a
+definition whose list reads empty. That is the whole rule, and it has one half now: the registry keeps the
+typed object and nothing serializes a declaration, so there is no decode step for a payload to repair and
+no second place the rule could be decided. A member that is genuinely required is not an exception: an
+empty collection flows into that provider's own validation, which refuses the definition with a reason it
+names — an item's sprite animation with no frame paths, a recipe with no ingredients, a structure whose
+grid has no rows. The same rule covers the collections a mod builds in code (`CuoModAttribute.Dependencies`,
+`ModConsoleCommand.ArgumentKinds`, `ModManifest.Dependencies`, `ModPacket.Handlers`), and the
+`ModNullCollectionRuleTests` census discovers every collection member of the assembly's public classes —
+the declarations a mod fills in plus the four it can only build through a constructor with arguments —
+driving a null write for each of them, so a new member cannot be added without the rule. A declaration's
+own value model member is not a collection: a `ModValue` carries its items and fields as read-only views,
+which the census names rather than counts.
 
 **Crafting-quality labels.** A quality id is a *label*: either a vanilla one — a bare lower-case token
 such as `rippable`, which is how a mod says "this content provides that vanilla label" — or a
@@ -640,15 +675,15 @@ if (context.StatusRuntime.TryDeclare(
 {
     var projection = new ModBodyFormulaProjection { MaxEncumbrance = 2f, Immunity = 5f, HeartRateOffset = 12f };
     context.StatusTransport.TryBroadcastBodyStatus(
-        "strength.potion", playerSteamId, projection.ToPayload());
+        "strength.potion", playerSteamId, projection.ToValue());
 }
 
 if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataScope.Shared))
 {
-    context.StatusTransport.TryBroadcastLimbStatus("bleeding", playerSteamId, limbSlot, payload); // host only
-    context.Network.MessageReceived += (sender, payload) =>
+    context.StatusTransport.TryBroadcastLimbStatus("bleeding", playerSteamId, limbSlot, value); // host only
+    context.Network.MessageReceived += (sender, value) =>
     {
-        if (context.StatusTransport.TryHandleStatusPayload(sender, payload))
+        if (context.StatusTransport.TryHandleStatusUpdate(sender, value))
         {
             return; // other mod-message traffic continues here
         }
@@ -658,24 +693,25 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
 
 - **Scope**: `IModStatusRuntime` is the per-mod runtime counterpart to static `ModStatusDefinition`
   content. Values are ephemeral, process-local and keyed by `(status id, player SteamId, optional limb
-  slot)`. The mod owns the byte payload schema and version.
+  slot)`. The mod owns the value's own shape and version.
 - **Scopes**: the same `ModDataScope` rules as `IModData` — `LocalOnly` for any role, `Shared` for
   host-write plus explicit guest apply, `HostAuthoritative` for host-only with no guest mirror.
 - **Typed transport**: `IModStatusTransport` publishes committed shared values as versioned
   `ModStatusUpdate` frames over the existing `IModNetwork` channel. The host calls
   `TryBroadcastBodyStatus` / `TryBroadcastLimbStatus` (and the remove overloads); every side calls
-  `TryHandleStatusPayload` from its mod-message handler so guest mirrors are applied and removed
+  `TryHandleStatusUpdate` from its mod-message handler so guest mirrors are applied and removed
   automatically from a host-originated frame. The host consumes its own broadcast echo without
-  re-applying.
+  re-applying. The frame itself is a value of the model whose field names are its contract (`id`,
+  `scope`, `player`, `limb`, `schema`, `remove`, `value`), so a receiver that does not know a field
+  ignores it and a frame missing one it needs is refused by name.
 - **Guest request path**: this seam adds no framework command. A guest that needs the host to change a
   shared or host-authoritative status still uses `IModCommands`; the host command handler is the
   semantic validator and then calls a `TryBroadcast*` helper to publish the committed result.
 - **Typed projection**: `TryDeclare` accepts an optional `ModStatusProjectionKind` (`BodyFormula` or
-  `LimbPhysiology`). When set, the mod's opaque status value should be the matching typed DTO
-  (`ModBodyFormulaProjection` / `ModLimbProjection`); the GameAdapter decodes only those well-known
-  payloads and applies additive overlays to the local vanilla `Body`/`Limb` after their native
-  updates. The mod still owns the payload bytes and serialization, and no game or Unity type crosses
-  Abstractions.
+  `LimbPhysiology`). When set, the mod's status value should be the matching typed projection
+  (`ModBodyFormulaProjection` / `ModLimbProjection`, built with `ToValue()`); the GameAdapter reads only
+  those well-known field maps and applies additive overlays to the local vanilla `Body`/`Limb` after their
+  native updates. No game or Unity type crosses Abstractions.
 - **Projection scope**: body fields are `MaxEncumbrance`, `TotalEncumbrance`, `Immunity`, `JumpSpeed`,
   `AveragePain`, plus `HeartRateOffset`, `RespiratoryRateOffset` and `BloodPressureOffset`; limb fields
   are `BleedAmount`, `SkinHealth`, `MuscleHealth` and `InfectionAmount`. The circulation offsets are
@@ -688,16 +724,16 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
   descriptors with `LimbMoodles`, and use the moodle-level `LimbDisplayNameFormat` /
   `LimbDescriptionFormat` templates for limb-aware tooltip text.
 - **Local moodle resolver**: `IModMoodleRuntime` lets a mod register one resolver per runtime status id.
-  The resolver receives a plain `ModStatusMoodleRequest` (status/player/limb identity plus the mod-owned
-  payload) and returns a static moodle id. The GameAdapter's local moodle-row projection calls it for
+  The resolver receives a plain `ModStatusMoodleRequest` (status/player/limb identity plus the mod's own
+  value) and returns a static moodle id. The GameAdapter's local moodle-row projection calls it for
   each active body/limb presence and falls back to the static status/moodle routing when the resolver is
   absent or returns null. This is the CUO-safe replacement for CUCoreLib's `RegisterBody` /
   `RegisterLimb` callbacks: no `Body`/`Limb`/game delegate crosses Abstractions, and it is local-only
   presentation with no wire message.
-- **Boundary**: opaque `None` statuses are never interpreted by the GameAdapter — only body/limb
-  projection statuses reach the vanilla layer, and the store change event is internal. No new `NetMsg`
-  and no protocol bump: the typed frames ride the existing `NetMsg.ModMessage` channel, and no generic
-  JObject snapshot is introduced.
+- **Boundary**: `None` statuses are the mod's own value and are never interpreted by the GameAdapter —
+  only body/limb projection statuses reach the vanilla layer, and the store change event is internal. No
+  new `NetMsg` and no protocol bump: the typed frames ride the existing `NetMsg.ModMessage` channel, and
+  no generic JObject snapshot is introduced.
 
 ## Resource completion
 

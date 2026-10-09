@@ -80,10 +80,11 @@ public interface IModPackets
 	/// permission, the packet is not declared, this side may not send it
 	/// (<see cref="ModPacketSender"/>), the declaration excludes the sender and
 	/// there is no other side to reach (<see cref="ModPacketDelivery.EveryOtherMember"/>),
-	/// the payload is null or over the cap, there is no active session, or a
+	/// the value is null or cannot be encoded inside the framework's 64 KiB rail,
+	/// there is no active session, or a
 	/// <see cref="ModPacketStage.Validate"/> handler refused the local run.
 	/// </summary>
-	bool SendToHost(string packetId, byte[] payload);
+	bool SendToHost(string packetId, ModValue value);
 
 	/// <summary>
 	/// Host only: send the packet to one member's copy of this mod. Returns
@@ -91,7 +92,7 @@ public interface IModPackets
 	/// a guest has no peer channels, and a
 	/// <see cref="ModPacketDelivery.HostOnly"/> packet never runs on a member.
 	/// </summary>
-	bool SendToPeer(ulong steamId, string packetId, byte[] payload);
+	bool SendToPeer(ulong steamId, string packetId, ModValue value);
 
 	/// <summary>
 	/// Host only: send the packet to every member's copy of this mod. Whether
@@ -102,5 +103,5 @@ public interface IModPackets
 	/// refused. Returns false (with a log) on the same checks as
 	/// <see cref="SendToPeer"/>.
 	/// </summary>
-	bool Broadcast(string packetId, byte[] payload);
+	bool Broadcast(string packetId, ModValue value);
 }

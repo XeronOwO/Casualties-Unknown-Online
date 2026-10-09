@@ -21,8 +21,9 @@ internal static class ModStatusPolicy
 	public static bool IsValidStatusId(string? statusId) =>
 		!string.IsNullOrWhiteSpace(statusId) && statusId!.Length <= MaxStatusIdLength;
 
-	public static bool IsValidValue(byte[]? value) =>
-		value is not null && value.Length <= MaxValueBytes;
+	/// <summary>A status value must be acceptable to the framework's encoder — one validator, and the same budgets every other surface applies.</summary>
+	public static bool IsValidValue(ModValue? value) =>
+		value is not null && ModValueCodec.TryEncode(value, MaxValueBytes, out _, out _);
 
 	public static bool IsValidSchemaVersion(int schemaVersion) => schemaVersion >= 1;
 

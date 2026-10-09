@@ -4532,7 +4532,7 @@
       "cluster": "enemies-trade",
       "row": "N8",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModPacketsAdapter.cs",
-      "quote": "return channel.SendPacketToHost(manifest.Id, declared.Packet.Id, payload);"
+      "quote": "return channel.SendPacketToHost(manifest.Id, declared.Packet.Id, encoded);"
     },
     {
       "cluster": "inline",

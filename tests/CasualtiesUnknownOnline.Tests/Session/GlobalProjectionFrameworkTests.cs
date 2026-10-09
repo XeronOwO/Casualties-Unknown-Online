@@ -10,6 +10,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
+using CasualtiesUnknownOnline.Tests.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -261,7 +262,7 @@ public class GlobalProjectionFrameworkTests
 				ModDataScope.LocalOnly,
 				1,
 				ModStatusProjectionKind.BodyFormula));
-			Assert.True(store.TrySetBodyValue("test.mod", "body.proj", HostId, [1, 2, 3]));
+			Assert.True(store.TrySetBodyValue("test.mod", "body.proj", HostId, ModValues.Ints(1, 2, 3)));
 
 			var readModel = host.Services.GetRequiredService<ModStatusProjectionReadModel>();
 			Assert.Contains(readModel.ProjectionSnapshots, s => s.StatusId == "body.proj" && s.PlayerSteamId == HostId);
@@ -299,7 +300,7 @@ public class GlobalProjectionFrameworkTests
 				ModDataScope.HostAuthoritative,
 				1,
 				ModStatusProjectionKind.BodyFormula));
-			Assert.True(store.TrySetBodyValue("test.mod", "host.secret", GuestId, [1]));
+			Assert.True(store.TrySetBodyValue("test.mod", "host.secret", GuestId, ModValues.Ints(1)));
 
 			var readModel = guest.Services.GetRequiredService<ModStatusProjectionReadModel>();
 			Assert.DoesNotContain(readModel.ProjectionSnapshots, s => s.StatusId == "host.secret");
@@ -322,7 +323,7 @@ public class GlobalProjectionFrameworkTests
 				ModDataScope.LocalOnly,
 				1,
 				ModStatusProjectionKind.BodyFormula));
-			Assert.True(store.TrySetBodyValue("test.mod", "late.id", 0, [1]));
+			Assert.True(store.TrySetBodyValue("test.mod", "late.id", 0, ModValues.Ints(1)));
 
 			var readModel = node.Services.GetRequiredService<ModStatusProjectionReadModel>();
 			Assert.Contains(readModel.ProjectionSnapshots, s => s.StatusId == "late.id" && s.PlayerSteamId == 0);
@@ -331,7 +332,7 @@ public class GlobalProjectionFrameworkTests
 			node.Update();
 
 			Assert.DoesNotContain(readModel.ProjectionSnapshots, s => s.PlayerSteamId == 0);
-			Assert.True(store.TrySetBodyValue("test.mod", "late.id", HostId, [2]));
+			Assert.True(store.TrySetBodyValue("test.mod", "late.id", HostId, ModValues.Ints(2)));
 			Assert.Contains(readModel.ProjectionSnapshots, s => s.StatusId == "late.id" && s.PlayerSteamId == HostId);
 		}
 	}

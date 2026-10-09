@@ -1,4 +1,3 @@
-using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -39,15 +38,15 @@ public sealed class ExampleMod : ICuoMod
 			Category = "nospawn",
 		});
 
-		// The anonymous tunnel: one callback for every opaque payload this mod
-		// receives, and the fan-out written by hand.
-		context.Network.MessageReceived += (sender, payload) =>
+		// The anonymous tunnel: one callback for every value this mod receives,
+		// and the fan-out written by hand. The value is typed, so the echo wraps
+		// what arrived instead of re-encoding text.
+		context.Network.MessageReceived += (sender, value) =>
 		{
-			var text = Encoding.UTF8.GetString(payload);
-			context.Logger.LogInformation("[Example] echo from {Sender}: {Text}", sender, text);
+			context.Logger.LogInformation("[Example] echo from {Sender}: {Value}", sender, value);
 			if (context.Session.IsHost)
 			{
-				context.Network.Broadcast(Encoding.UTF8.GetBytes($"echo:{text}"));
+				context.Network.Broadcast(ModValue.Map(("echo", value)));
 			}
 		};
 
@@ -56,14 +55,16 @@ public sealed class ExampleMod : ICuoMod
 		context.Packets.Register(new ModPacket(EchoPacket, ModPacketSender.AnyMember, ModPacketDelivery.EveryOtherMember,
 			new ModPacketHandler(ModPacketStage.Validate, ctx =>
 			{
-				if (ctx.Payload.Length == 0)
+				if (!ctx.Value.TryGetText(out var text) || text.Length == 0)
 				{
-					ctx.Refuse("an echo carries text");
+					ctx.Refuse($"an echo carries non-empty text; this value was {ctx.Value}");
 				}
 			}),
 			new ModPacketHandler(ModPacketStage.Apply, ctx =>
-				context.Logger.LogInformation("[Example] {Packet} from {Sender}: {Text}",
-					EchoPacket, ctx.SenderSteamId, Encoding.UTF8.GetString(ctx.Payload)))));
+			{
+				ctx.Value.TryGetText(out var text);
+				context.Logger.LogInformation("[Example] {Packet} from {Sender}: {Text}", EchoPacket, ctx.SenderSteamId, text);
+			})));
 
 		context.Commands.Register(new ModCommand("echo", c => $"echo:{string.Join(" ", c.Arguments)}"));
 		context.Commands.Register(new ModCommand("whoami", c => $"requester:{c.RequesterSteamId}", isHostAction: true));
@@ -110,14 +111,14 @@ public sealed class ExampleMod : ICuoMod
 		}
 
 		var text = string.Join(" ", ctx.Arguments);
-		var payload = Encoding.UTF8.GetBytes(text);
+		var value = ModValue.Text(text);
 
 		// The packet is declared AnyMember + EveryOtherMember, so the sender's own
 		// copy never runs it: a guest reports it (the host and the other members
 		// run the chain) and the host broadcasts it to the other members.
 		var sent = ctx.Session.IsHost
-			? _context!.Packets.Broadcast(EchoPacket, payload)
-			: _context!.Packets.SendToHost(EchoPacket, payload);
+			? _context!.Packets.Broadcast(EchoPacket, value)
+			: _context!.Packets.SendToHost(EchoPacket, value);
 
 		return sent
 			? ctx.Session.IsHost

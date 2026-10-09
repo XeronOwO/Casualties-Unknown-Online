@@ -92,9 +92,9 @@ internal sealed class ModPacketsAdapter(
 
 	public bool IsRegistered(string packetId) => packetId is not null && _packets.ContainsKey(packetId);
 
-	public bool SendToHost(string packetId, byte[] payload)
+	public bool SendToHost(string packetId, ModValue value)
 	{
-		if (!TryBeginSend(packetId, payload, out var declared) || !CheckLocalSender(declared.Packet))
+		if (!TryBeginSend(packetId, value, out var declared, out var encoded) || !CheckLocalSender(declared.Packet))
 		{
 			return false;
 		}
@@ -104,12 +104,12 @@ internal sealed class ModPacketsAdapter(
 			// A guest's report: the host's copy is the only copy it can reach.
 			// Only EveryMember runs the reporter's own copy, and a local refusal
 			// stops the frame before it leaves.
-			if (declared.Packet.Delivery == ModPacketDelivery.EveryMember && !RunLocal(declared, payload))
+			if (declared.Packet.Delivery == ModPacketDelivery.EveryMember && !RunLocal(declared, value))
 			{
 				return false;
 			}
 
-			return channel.SendPacketToHost(manifest.Id, declared.Packet.Id, payload);
+			return channel.SendPacketToHost(manifest.Id, declared.Packet.Id, encoded);
 		}
 
 		if (declared.Packet.Delivery == ModPacketDelivery.EveryOtherMember)
@@ -120,12 +120,12 @@ internal sealed class ModPacketsAdapter(
 		}
 
 		// The host reaches its own copy without a wire hop.
-		return RunLocal(declared, payload);
+		return RunLocal(declared, value);
 	}
 
-	public bool SendToPeer(ulong steamId, string packetId, byte[] payload)
+	public bool SendToPeer(ulong steamId, string packetId, ModValue value)
 	{
-		if (!TryBeginSend(packetId, payload, out var declared)
+		if (!TryBeginSend(packetId, value, out var declared, out var encoded)
 			|| !CheckLocalSender(declared.Packet)
 			|| !CheckHostRoute(declared.Packet))
 		{
@@ -146,17 +146,17 @@ internal sealed class ModPacketsAdapter(
 			return false;
 		}
 
-		if (declared.Packet.Delivery == ModPacketDelivery.EveryMember && !RunLocal(declared, payload))
+		if (declared.Packet.Delivery == ModPacketDelivery.EveryMember && !RunLocal(declared, value))
 		{
 			return false;
 		}
 
-		return channel.SendPacketToPeer(manifest.Id, steamId, declared.Packet.Id, payload);
+		return channel.SendPacketToPeer(manifest.Id, steamId, declared.Packet.Id, encoded);
 	}
 
-	public bool Broadcast(string packetId, byte[] payload)
+	public bool Broadcast(string packetId, ModValue value)
 	{
-		if (!TryBeginSend(packetId, payload, out var declared)
+		if (!TryBeginSend(packetId, value, out var declared, out var encoded)
 			|| !CheckLocalSender(declared.Packet)
 			|| !CheckHostRoute(declared.Packet))
 		{
@@ -172,12 +172,12 @@ internal sealed class ModPacketsAdapter(
 
 		// EveryOtherMember excludes the sender, which here is the host itself,
 		// so the host's own copy does not run; EveryMember runs it first.
-		if (declared.Packet.Delivery == ModPacketDelivery.EveryMember && !RunLocal(declared, payload))
+		if (declared.Packet.Delivery == ModPacketDelivery.EveryMember && !RunLocal(declared, value))
 		{
 			return false;
 		}
 
-		return channel.SendPacketToAll(manifest.Id, declared.Packet.Id, payload);
+		return channel.SendPacketToAll(manifest.Id, declared.Packet.Id, encoded);
 	}
 
 	/// <summary>
@@ -185,7 +185,7 @@ internal sealed class ModPacketsAdapter(
 	/// declaration up, judge the sender against it, run the chain and answer
 	/// whether the host still owes the other members a relay.
 	/// </summary>
-	internal ModPacketRoute Route(ulong sender, string packetId, byte[] payload)
+	internal ModPacketRoute Route(ulong sender, string packetId, ModValue value)
 	{
 		if (packetId is null || !_packets.TryGetValue(packetId, out var declared))
 		{
@@ -204,15 +204,10 @@ internal sealed class ModPacketsAdapter(
 			return ModPacketRoute.Refused;
 		}
 
-		// The chain works on its own copy of the payload whenever this delivery
-		// may be relayed: the frame the host sends on carries the bytes it
-		// received, whatever a handler made of its copy (the interface promises
-		// exactly that, and a mod that rewrites its buffer before relaying must
-		// not silently rewrite the wire).
-		var chainPayload = session.Role == SessionRole.Host && declared.Packet.Delivery != ModPacketDelivery.HostOnly
-			? (byte[])payload.Clone()
-			: payload;
-		var context = new PacketContext(declared.Packet.Id, sender, chainPayload, session.Role == SessionRole.Host, log);
+		// One immutable value serves the whole delivery: a handler cannot
+		// rewrite what the other handlers — or the relayed frame — carry, which
+		// is what the old per-delivery byte copy was protecting.
+		var context = new PacketContext(declared.Packet.Id, sender, value, session.Role == SessionRole.Host, log);
 		if (!RunGuarded(declared, context))
 		{
 			return ModPacketRoute.Refused;
@@ -232,18 +227,19 @@ internal sealed class ModPacketsAdapter(
 
 	// ---- Internals ----
 
-	private bool TryBeginSend(string packetId, byte[] payload, out DeclaredPacket declared)
+	private bool TryBeginSend(string packetId, ModValue value, out DeclaredPacket declared, out byte[] encoded)
 	{
 		declared = null!;
+		encoded = [];
 		if (!RequirePermission())
 		{
 			return false;
 		}
 
-		if (!ModPacketPolicy.IsValidPayload(payload))
+		if (!ModValueCodec.TryEncode(value, ModChannel.MaxPayloadBytes, out encoded, out var refusal))
 		{
-			log.LogWarning("[Mods] {ModId} tried to send packet {PacketId} with a null or over-{Cap}-byte payload — refused.",
-				manifest.Id, packetId, ModChannel.MaxPayloadBytes);
+			log.LogWarning("[Mods] {ModId} tried to send packet {PacketId} with a value the framework cannot encode — {Reason}",
+				manifest.Id, packetId, refusal);
 			return false;
 		}
 
@@ -309,12 +305,11 @@ internal sealed class ModPacketsAdapter(
 	};
 
 	/// <summary>Run this copy's chain for a locally-originated frame; false when it refused or is already running.</summary>
-	private bool RunLocal(DeclaredPacket declared, byte[] payload)
+	private bool RunLocal(DeclaredPacket declared, ModValue value)
 	{
-		// The local run gets its own copy for the same reason the host's relay
-		// does: what a handler writes stays inside this delivery, and the frame
-		// the send call carries keeps the bytes the caller passed.
-		var context = new PacketContext(declared.Packet.Id, session.LocalSteamId, (byte[])payload.Clone(), session.Role == SessionRole.Host, log);
+		// The local run and the frame the send call carries share one immutable
+		// value: there is nothing a handler could rewrite into the wire.
+		var context = new PacketContext(declared.Packet.Id, session.LocalSteamId, value, session.Role == SessionRole.Host, log);
 		if (!RunGuarded(declared, context))
 		{
 			return false;
@@ -401,7 +396,7 @@ internal sealed class ModPacketsAdapter(
 	private sealed record DeclaredPacket(ModPacket Packet, IReadOnlyList<ModPacketHandler> Chain);
 
 	/// <summary>One delivery's context — the value every handler of that delivery shares.</summary>
-	private sealed class PacketContext(string packetId, ulong sender, byte[] payload, bool isHost, ILogger log) : IModPacketContext
+	private sealed class PacketContext(string packetId, ulong sender, ModValue value, bool isHost, ILogger log) : IModPacketContext
 	{
 		public string PacketId { get; } = packetId;
 
@@ -411,7 +406,7 @@ internal sealed class ModPacketsAdapter(
 
 		public bool IsHost { get; } = isHost;
 
-		public byte[] Payload { get; } = payload;
+		public ModValue Value { get; } = value;
 
 		internal string? Refusal { get; private set; }
 

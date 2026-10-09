@@ -69,6 +69,19 @@ public class LiquidTileContentProviderTests
 			MaxFloodFill = 128
 		};
 
+	private static object BoundView(object provider, string id)
+	{
+		var method = provider.GetType().GetMethod(
+			"TryGetDefinition", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("TryGetDefinition not found.");
+		object?[] arguments = [id, null];
+		Assert.True((bool)method.Invoke(provider, arguments)!);
+		return arguments[1]!;
+	}
+
+	private static object? Member(object target, string name) =>
+		target.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(target);
+
 	[Fact]
 	public void GetDefinitionsForWorldGen_ReturnsStableIdOrder()
 	{
@@ -91,5 +104,43 @@ public class LiquidTileContentProviderTests
 
 		Assert.True(TryBind(provider, valid));
 		Assert.False(TryBind(provider, invalid));
+	}
+
+	/// <summary>
+	/// The fluid grid's own defaults, and where they live. A declaration may leave
+	/// the liquid id, the fill liquid, the flood-fill budget, the visual base and
+	/// the consume-on-drink flag out or out of range, and the grid is built from
+	/// the values CUO supplies for them — but the author's object is a contract the
+	/// framework READS, and an implementation may compute its members, so the
+	/// defaults belong on the provider's own view and never on the declaration.
+	/// </summary>
+	[Fact]
+	public void TryBind_AppliesTheGridsDefaultsToAViewAndLeavesTheDeclarationAlone()
+	{
+		var provider = CreateProvider();
+		var declaration = new ModLiquidTileDefinition
+		{
+			Id = "raw.tile",
+			LiquidId = "",
+			FillLiquidId = "",
+			MaxFloodFill = 0,
+			VisualLiquidByte = 0,
+			ConsumeOnDrink = false
+		};
+
+		Assert.True(TryBind(provider, declaration));
+
+		var view = BoundView(provider, "raw.tile");
+		Assert.Equal("raw.tile", Member(view, "LiquidId"));
+		Assert.Equal("raw.tile", Member(view, "FillLiquidId"));
+		Assert.Equal(1, (int)Member(view, "MaxFloodFill")!);
+		Assert.Equal(1, (int)Member(view, "VisualLiquidByte")!);
+		Assert.True((bool)Member(view, "ConsumeOnDrink")!);
+
+		Assert.Equal("", declaration.LiquidId);
+		Assert.Equal("", declaration.FillLiquidId);
+		Assert.Equal(0, declaration.MaxFloodFill);
+		Assert.Equal(0, declaration.VisualLiquidByte);
+		Assert.False(declaration.ConsumeOnDrink);
 	}
 }

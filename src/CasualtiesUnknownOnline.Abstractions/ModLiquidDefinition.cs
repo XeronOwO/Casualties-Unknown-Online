@@ -3,60 +3,63 @@ using System.Collections.Generic;
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The mod-authored definition of one liquid content definition. It is a plain
-/// DTO in Abstractions: no game assembly, no Unity type, no Runtime dependency.
-/// The Game Adapter liquid provider reads it and maps the static fields into
-/// the vanilla <c>LiquidType</c> registry.
+/// The framework's ready-made <see cref="IModLiquidDefinition"/>: a plain data
+/// object in Abstractions with no game assembly, no Unity type and no Runtime
+/// dependency, which is also why it cannot compute a member. Use it when every
+/// value is a constant; implement the interface when one is computed.
+///
+/// It stays constructible with no arguments and every member stays settable on
+/// purpose: the framework reads the interface, and a future data-driven loader
+/// would deserialize into this concrete type.
 /// </summary>
-public sealed class ModLiquidDefinition : IModContentDefinition
+public sealed class ModLiquidDefinition : IModLiquidDefinition
 {
-	/// <summary>The mod-scoped content id: a canonical lower-case path segment, unique within the registering mod.</summary>
+	/// <inheritdoc />
 	public string Id { get; set; } = "";
 
-	/// <summary>The content kind this definition registers under - fixed by its type, never chosen by a caller.</summary>
+	/// <inheritdoc />
 	public string Kind => ModContentKind.Liquid;
 
-	/// <summary>The mod-owned content schema version the framework stores verbatim (default 1).</summary>
+	/// <inheritdoc />
 	public int SchemaVersion { get; set; } = 1;
 
-	/// <summary>Player-facing liquid name.</summary>
+	/// <inheritdoc />
 	public string DisplayName { get; set; } = "";
 
-	/// <summary>Player-facing liquid description.</summary>
+	/// <inheritdoc />
 	public string Description { get; set; } = "";
 
-	/// <summary>Liquid tint red component (0..1).</summary>
+	/// <inheritdoc />
 	public float ColorR { get; set; } = 1f;
 
-	/// <summary>Liquid tint green component (0..1).</summary>
+	/// <inheritdoc />
 	public float ColorG { get; set; } = 1f;
 
-	/// <summary>Liquid tint blue component (0..1).</summary>
+	/// <inheritdoc />
 	public float ColorB { get; set; } = 1f;
 
-	/// <summary>Liquid tint alpha component (0..1).</summary>
+	/// <inheritdoc />
 	public float ColorA { get; set; } = 1f;
 
-	/// <summary>Value per liter in vanilla units.</summary>
+	/// <inheritdoc />
 	public float ValuePerLiter { get; set; }
 
-	/// <summary>Whether the liquid can be used on skin.</summary>
+	/// <inheritdoc />
 	public bool HealthUsable { get; set; }
 
-	/// <summary>Whether the liquid can be injected.</summary>
+	/// <inheritdoc />
 	public bool Injectable { get; set; }
 
-	/// <summary>Sickness added by injection.</summary>
+	/// <inheritdoc />
 	public float InjectionSickness { get; set; } = 1f;
 
-	/// <summary>Reuse locale text from an item registration.</summary>
+	/// <inheritdoc />
 	public bool LocaleFromItem { get; set; }
 
-	/// <summary>Crafting-quality labels the liquid provides, matched by quality-based recipes.</summary>
+	/// <inheritdoc />
 	public List<ModCraftingQuality> Qualities
 	{
 		get;
 		set => field = value ?? [];
 	} = [];
-
 }

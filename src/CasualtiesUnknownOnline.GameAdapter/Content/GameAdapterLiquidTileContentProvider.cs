@@ -9,7 +9,7 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModLiquidTileDefinition"/> definitions from shared-content mods
+/// Binds <see cref="IModLiquidTileDefinition"/> declarations from shared-content mods
 /// into the vanilla world-fluid grid. Each definition receives a deterministic
 /// custom world-fluid byte (starting at 7, allocated in stable id order), is
 /// mapped through <c>FluidManager.WorldFluidToLiquidID</c>, and serves the
@@ -23,7 +23,7 @@ public sealed class GameAdapterLiquidTileContentProvider(
 	private const byte FirstCustomWorldByte = 7;
 
 	private readonly ILogger<GameAdapterLiquidTileContentProvider> _log = log;
-	private readonly Dictionary<string, ModLiquidTileDefinition> _definitions = [];
+	private readonly Dictionary<string, IModLiquidTileDefinition> _definitions = [];
 	private readonly Dictionary<string, byte> _worldBytesById = [];
 	private readonly Dictionary<byte, string> _idsByWorldByte = [];
 	private readonly HashSet<string> _failedIds = [];
@@ -35,12 +35,12 @@ public sealed class GameAdapterLiquidTileContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModLiquidTileDefinition definition)
+		if (registration.Definition is not IModLiquidTileDefinition declaration)
 		{
 			_log.LogWarning(
-				"[LiquidTileContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[LiquidTileContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModLiquidTileDefinition));
+				registration.Definition.GetType().Name, nameof(IModLiquidTileDefinition));
 			return false;
 		}
 
@@ -59,13 +59,13 @@ public sealed class GameAdapterLiquidTileContentProvider(
 			return false;
 		}
 
-		NormalizeDefaults(id, definition);
-		if (!TryValidateDefinition(id, definition))
+		var bound = Normalize(id, declaration);
+		if (!TryValidateDefinition(id, bound))
 		{
 			return false;
 		}
 
-		_definitions.Add(id, definition);
+		_definitions.Add(id, bound);
 		_log.LogInformation(
 			"[LiquidTileContent] accepted {ModId}/{Id} (schema {SchemaVersion}); world-byte allocation waits for the fluid manager.",
 			registration.ModId, id, registration.Definition.SchemaVersion);
@@ -105,7 +105,7 @@ public sealed class GameAdapterLiquidTileContentProvider(
 	internal bool HasAny() => _definitions.Count > 0;
 
 	/// <summary>Snapshot every accepted definition in stable id order for deterministic world generation.</summary>
-	internal IReadOnlyList<KeyValuePair<string, ModLiquidTileDefinition>> GetDefinitionsForWorldGen() =>
+	internal IReadOnlyList<KeyValuePair<string, IModLiquidTileDefinition>> GetDefinitionsForWorldGen() =>
 		[.. _definitions.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
 
 	/// <summary>Resolve the stable content id to its allocated custom world-fluid byte.</summary>
@@ -128,14 +128,14 @@ public sealed class GameAdapterLiquidTileContentProvider(
 	}
 
 	/// <summary>Resolve the original typed definition by stable content id.</summary>
-	internal bool TryGetDefinition(string id, out ModLiquidTileDefinition definition)
+	internal bool TryGetDefinition(string id, out IModLiquidTileDefinition definition)
 	{
 		definition = null!;
 		return _definitions.TryGetValue(id, out definition!);
 	}
 
 	/// <summary>Resolve a definition by its allocated custom world-fluid byte.</summary>
-	internal bool TryGetDefinitionByWorldByte(byte worldByte, out ModLiquidTileDefinition definition)
+	internal bool TryGetDefinitionByWorldByte(byte worldByte, out IModLiquidTileDefinition definition)
 	{
 		definition = null!;
 		return _idsByWorldByte.TryGetValue(worldByte, out var id)
@@ -259,7 +259,7 @@ public sealed class GameAdapterLiquidTileContentProvider(
 		return Liquids.Registry.TryGetValue(definition.LiquidId, out liquidType!);
 	}
 
-	private bool TryAllocateWorldByte(string id, ModLiquidTileDefinition definition, out byte worldByte)
+	private bool TryAllocateWorldByte(string id, IModLiquidTileDefinition definition, out byte worldByte)
 	{
 		for (var candidate = FirstCustomWorldByte; candidate < byte.MaxValue; candidate++)
 		{
@@ -335,30 +335,34 @@ public sealed class GameAdapterLiquidTileContentProvider(
 		_log.LogInformation("[LiquidTileContent] added {Count} liquid tile definition(s).", _definitions.Count);
 	}
 
-	private static void NormalizeDefaults(string id, ModLiquidTileDefinition definition)
+	/// <summary>
+	/// Apply the fluid grid's own defaults to one declaration. The defaults are
+	/// NOT written into the object the mod handed over — a declaration is a
+	/// contract the framework reads, and an implementation may compute its
+	/// members — so they live on a <see cref="NormalizedLiquidTileDefinition"/>
+	/// view that every reader then asks.
+	/// </summary>
+	private NormalizedLiquidTileDefinition Normalize(string id, IModLiquidTileDefinition declaration)
 	{
-		if (string.IsNullOrWhiteSpace(definition.LiquidId))
+		var liquidId = string.IsNullOrWhiteSpace(declaration.LiquidId) ? id : declaration.LiquidId;
+		var fillLiquidId = string.IsNullOrWhiteSpace(declaration.FillLiquidId) ? liquidId : declaration.FillLiquidId;
+		var maxFloodFill = declaration.MaxFloodFill <= 0 ? 1 : declaration.MaxFloodFill;
+		var visualLiquidByte = declaration.VisualLiquidByte is < 1 or > 6 ? 1 : declaration.VisualLiquidByte;
+
+		var consumeOnDrink = declaration.ConsumeOnDrink;
+		if (!consumeOnDrink)
 		{
-			definition.LiquidId = id;
+			_log.LogWarning(
+				"[LiquidTileContent] {Id} requested ConsumeOnDrink=false; CUO's FluidInteraction drink path always consumes the cell, so the value is normalized to true.",
+				id);
+			consumeOnDrink = true;
 		}
 
-		if (string.IsNullOrWhiteSpace(definition.FillLiquidId))
-		{
-			definition.FillLiquidId = definition.LiquidId;
-		}
-
-		if (definition.MaxFloodFill <= 0)
-		{
-			definition.MaxFloodFill = 1;
-		}
-
-		if (definition.VisualLiquidByte < 1 || definition.VisualLiquidByte > 6)
-		{
-			definition.VisualLiquidByte = 1;
-		}
+		return new NormalizedLiquidTileDefinition(
+			declaration, liquidId, fillLiquidId, maxFloodFill, visualLiquidByte, consumeOnDrink);
 	}
 
-	private bool TryValidateDefinition(string id, ModLiquidTileDefinition definition)
+	private bool TryValidateDefinition(string id, IModLiquidTileDefinition definition)
 	{
 		if (float.IsNaN(definition.SpawnAmount) || float.IsInfinity(definition.SpawnAmount) || definition.SpawnAmount < 0f)
 		{
@@ -394,20 +398,9 @@ public sealed class GameAdapterLiquidTileContentProvider(
 			return false;
 		}
 
-		if (definition.MaxFloodFill <= 0)
-		{
-			_log.LogWarning("[LiquidTileContent] {Id} has invalid MaxFloodFill {MaxFloodFill} — refused.", id, definition.MaxFloodFill);
-			return false;
-		}
-
-		if (!definition.ConsumeOnDrink)
-		{
-			_log.LogWarning(
-				"[LiquidTileContent] {Id} requested ConsumeOnDrink=false; CUO's FluidInteraction drink path always consumes the cell, so the value is normalized to true.",
-				id);
-			definition.ConsumeOnDrink = true;
-		}
-
+		// MaxFloodFill and ConsumeOnDrink are settled by Normalize above, so there is
+		// nothing left to refuse here: the view this method receives already carries
+		// a positive flood-fill budget and the always-consume drink rule.
 		return true;
 	}
 

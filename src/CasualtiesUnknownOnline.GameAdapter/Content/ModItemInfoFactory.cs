@@ -26,7 +26,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 internal static class ModItemInfoFactory
 {
 	/// <summary>Build the vanilla <c>ItemInfo</c> one accepted definition describes.</summary>
-	internal static ItemInfo Build(string id, ModItemDefinition definition, ILogger log)
+	internal static ItemInfo Build(string id, IModItemDefinition definition, ILogger log)
 	{
 		var info = new ItemInfo
 		{
@@ -48,9 +48,10 @@ internal static class ModItemInfoFactory
 			info.rotSpeed = 1.666f / definition.DecayMinutes;
 		}
 
-		if (definition.Qualities.Count > 0)
+		var qualities = ModDeclarationCollections.OrEmpty(definition.Qualities);
+		if (qualities.Count > 0)
 		{
-			info.qualities = CraftingQualityDeclarations.ToGameQualities(definition.Qualities);
+			info.qualities = CraftingQualityDeclarations.ToGameQualities(qualities);
 		}
 
 		if (definition.Tool is { } tool)

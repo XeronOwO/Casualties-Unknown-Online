@@ -74,21 +74,24 @@ is loaded once before discovery and `Bind`, so a definition registered later is 
 
 ## The kinds with a typed definition
 
-For the kinds the framework binds into the game today, `CUO.Abstractions` ships a DTO you fill in and
-register as it is:
+For the kinds the framework binds into the game today, `CUO.Abstractions` ships a KIND INTERFACE and a
+ready-made data class that implements it. Fill the class in and register it when every value is a
+constant; implement the interface when a value is computed — the provider reads the interface, so both
+register the same way:
 
-| Kind | DTO | What the adapter does with it |
+| Kind | Contract (ready-made class) | What the adapter does with it |
 |---|---|---|
-| `item` | `ModItemDefinition` | registers the item and builds a runtime template from `TemplateId` |
-| `recipe` | `ModRecipeDefinition` | injects the recipe into the recipe table |
-| `liquid`, `liquidtile` | `ModLiquidDefinition`, `ModLiquidTileDefinition` | fills the liquid registry and the world fluid grid |
-| `building` | `ModBuildingDefinition` | builds the building template and can feed world generation |
-| `tile`, `structure` | `ModTileDefinition`, `ModStructureDefinition` | allocates a block index and can feed world generation |
-| `status`, `moodle` | `ModStatusDefinition`, `ModMoodleDefinition` | stores the static descriptor the projection reads |
+| `item` | `IModItemDefinition` (`ModItemDefinition`) | registers the item and builds a runtime template from `TemplateId` |
+| `recipe` | `IModRecipeDefinition` (`ModRecipeDefinition`) | injects the recipe into the recipe table |
+| `liquid`, `liquidtile` | `IModLiquidDefinition`, `IModLiquidTileDefinition` (`ModLiquidDefinition`, `ModLiquidTileDefinition`) | fills the liquid registry and the world fluid grid |
+| `building` | `IModBuildingDefinition` (`ModBuildingDefinition`) | builds the building template and can feed world generation |
+| `tile`, `structure` | `IModTileDefinition`, `IModStructureDefinition` (`ModTileDefinition`, `ModStructureDefinition`) | allocates a block index and can feed world generation |
+| `status`, `moodle` | `IModStatusDefinition`, `IModMoodleDefinition` (`ModStatusDefinition`, `ModMoodleDefinition`) | stores the static descriptor the projection reads |
 
-Most of these DTOs also carry a `CustomData` dictionary for the fields a well-known kind does not name
-yet — `ModRecipeDefinition` and `ModLiquidDefinition` do not — and the framework keeps the object you
-registered rather than a copy of it: register a definition you do not mutate afterwards.
+Most of these contracts also carry a `CustomData` dictionary for the fields a well-known kind does not name
+yet — `IModRecipeDefinition` and `IModLiquidDefinition` do not — and the framework keeps the object you
+registered rather than a copy of it, and never writes to it: register a definition you do not mutate
+afterwards.
 
 That table is the whole list. The nine kinds in it are the ones `ModContentKind` names and a CUO
 provider materializes; a kind outside it is still a legal registration — implement `IModContentDefinition`
@@ -99,8 +102,9 @@ time, at warning level, naming the kind and your definition — that line is wha
 from "will exist", and it is the one to read when your content stays invisible.
 
 A hand-written definition that claims one of the nine kinds is the other case, and the line to look for is
-the provider's: `{ModId}/{Id} claims kind {Kind} but is a {Type}, not a {ModItemDefinition} — refused`. The
-provider reads its own DTO, so a definition of another type never binds, however well its kind tag matches.
+the provider's: `{ModId}/{Id} claims kind {Kind} but is a {Type}, not an IModItemDefinition — refused`.
+The provider reads the kind's contract, so a definition that does not implement it never binds, however
+well its kind tag matches.
 
 ## Asking who owns a definition
 

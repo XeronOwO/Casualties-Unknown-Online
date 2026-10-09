@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.ModStatus;
 /// The GameAdapter vanilla moodle-row projection for mod statuses
 /// (mod-status domain phase 3, local UI seam). It reads the runtime mod status
 /// presences for the local player, resolves the linked static
-/// <see cref="ModMoodleDefinition"/> descriptors, and feeds them to the vanilla
+/// <see cref="IModMoodleDefinition"/> descriptors, and feeds them to the vanilla
 /// <see cref="MoodleManager"/> through its public <c>AddMoodle</c> surface.
 ///
 /// This is a local presentation seam: no wire message, no game/Unity type in
@@ -62,7 +62,7 @@ internal sealed class ModStatusMoodleProjection(
 			var runtimeMoodleId = ResolveRuntimeMoodleId(presence, limb);
 			var useRuntimeMoodle = !string.IsNullOrWhiteSpace(runtimeMoodleId);
 			string moodleId;
-			ModStatusDefinition? statusDefinition = null;
+			IModStatusDefinition? statusDefinition = null;
 			if (useRuntimeMoodle)
 			{
 				moodleId = runtimeMoodleId!;
@@ -248,7 +248,7 @@ internal sealed class ModStatusMoodleProjection(
 		return moodleId;
 	}
 
-	private static string FormatLimbDisplayName(ModMoodleDefinition moodle, Limb? limb, bool showPerLimb)
+	private static string FormatLimbDisplayName(IModMoodleDefinition moodle, Limb? limb, bool showPerLimb)
 	{
 		if (!showPerLimb || limb == null) // Unity object — ==
 		{
@@ -259,7 +259,7 @@ internal sealed class ModStatusMoodleProjection(
 		return moodle.FormatLimbDisplayName(limbName);
 	}
 
-	private static string FormatLimbDescription(ModMoodleDefinition moodle, Limb? limb, bool showPerLimb)
+	private static string FormatLimbDescription(IModMoodleDefinition moodle, Limb? limb, bool showPerLimb)
 	{
 		if (!showPerLimb || limb == null) // Unity object — ==
 		{

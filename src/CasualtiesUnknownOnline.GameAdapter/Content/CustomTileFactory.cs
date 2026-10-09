@@ -18,7 +18,7 @@ internal static class CustomTileFactory
 {
 	internal static TileBase? Create(
 		string id,
-		ModTileDefinition definition,
+		IModTileDefinition definition,
 		WorldGeneration world,
 		ILogger log)
 	{
@@ -42,7 +42,7 @@ internal static class CustomTileFactory
 
 	private static Sprite? ResolveSprite(
 		string id,
-		ModTileDefinition definition,
+		IModTileDefinition definition,
 		WorldGeneration world,
 		ILogger log)
 	{

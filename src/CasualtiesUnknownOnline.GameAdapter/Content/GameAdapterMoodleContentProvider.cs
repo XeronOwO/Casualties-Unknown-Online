@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModMoodleDefinition"/> definitions from shared-content mods
+/// Binds <see cref="IModMoodleDefinition"/> definitions from shared-content mods
 /// into a small, validated static moodle/presentation descriptor registry.
 /// This provider intentionally does not feed the vanilla moodle manager: custom
 /// moodle display is a GameAdapter/local-UI concern and needs a real UI seam.
@@ -16,7 +16,7 @@ public sealed class GameAdapterMoodleContentProvider(
 	ILogger<GameAdapterMoodleContentProvider> log) : IContentBindingProvider, ICuoService
 {
 	private readonly ILogger<GameAdapterMoodleContentProvider> _log = log;
-	private readonly Dictionary<string, ModMoodleDefinition> _definitions = [];
+	private readonly Dictionary<string, IModMoodleDefinition> _definitions = [];
 
 	/// <inheritdoc />
 	public string Kind => ModContentKind.Moodle;
@@ -24,12 +24,12 @@ public sealed class GameAdapterMoodleContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModMoodleDefinition definition)
+		if (registration.Definition is not IModMoodleDefinition definition)
 		{
 			_log.LogWarning(
-				"[MoodleContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[MoodleContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModMoodleDefinition));
+				registration.Definition.GetType().Name, nameof(IModMoodleDefinition));
 			return false;
 		}
 
@@ -132,7 +132,7 @@ public sealed class GameAdapterMoodleContentProvider(
 		return true;
 	}
 
-	private bool ValidateLimbTextFormats(string modId, string id, ModMoodleDefinition definition)
+	private bool ValidateLimbTextFormats(string modId, string id, IModMoodleDefinition definition)
 	{
 		if (definition.LimbDisplayNameFormat is { Length: > 256 }
 			|| definition.LimbDescriptionFormat is { Length: > 256 })
@@ -167,6 +167,6 @@ public sealed class GameAdapterMoodleContentProvider(
 	}
 
 	/// <summary>Resolve a bound static moodle descriptor.</summary>
-	internal bool TryGetDefinition(string id, out ModMoodleDefinition definition) =>
+	internal bool TryGetDefinition(string id, out IModMoodleDefinition definition) =>
 		_definitions.TryGetValue(id, out definition!);
 }

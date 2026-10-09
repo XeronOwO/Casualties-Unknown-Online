@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Validates the advanced behavior DTOs on a <see cref="ModItemDefinition"/>
+/// Validates the advanced behavior DTOs on a <see cref="IModItemDefinition"/>
 /// before the Game Adapter accepts it. The checks only cover authored numeric
 /// contracts that could produce invalid runtime state (negative capacities,
 /// NaN light values, zero-shot guns); game state that is later changed by the
@@ -15,7 +15,7 @@ internal static class CustomItemBehaviorValidator
 	internal static bool Validate(
 		string modId,
 		string id,
-		ModItemDefinition definition,
+		IModItemDefinition definition,
 		ILogger log)
 	{
 		var valid = true;

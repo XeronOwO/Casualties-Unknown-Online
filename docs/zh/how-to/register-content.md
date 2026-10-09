@@ -54,22 +54,22 @@ if (context.Content.CanRegister)
 
 ## 有类型化定义的类别
 
-对框架今天会绑进游戏的类别，`CUO.Abstractions` 提供了一份 DTO，你填好之后原样注册：
+对框架今天会绑进游戏的类别，`CUO.Abstractions` 提供一个**类别接口**，以及实现它的自带数据类。每个值都是常量就把数据类填好注册；有值要算就实现那个接口 —— 提供者读的是接口，所以两种交法一样：
 
-| 类别 | DTO | 适配器拿它做什么 |
+| 类别 | 契约（自带实现） | 适配器拿它做什么 |
 |---|---|---|
-| `item` | `ModItemDefinition` | 登记物品，并按 `TemplateId` 组装一份运行时模板 |
-| `recipe` | `ModRecipeDefinition` | 把配方注入配方表 |
-| `liquid`、`liquidtile` | `ModLiquidDefinition`、`ModLiquidTileDefinition` | 填液体注册表与世界流体网格 |
-| `building` | `ModBuildingDefinition` | 组装建筑模板，并可喂给世界生成（world generation） |
-| `tile`、`structure` | `ModTileDefinition`、`ModStructureDefinition` | 分配地块索引，并可喂给世界生成 |
-| `status`、`moodle` | `ModStatusDefinition`、`ModMoodleDefinition` | 存下投影要读的静态描述 |
+| `item` | `IModItemDefinition`（`ModItemDefinition`） | 登记物品，并按 `TemplateId` 组装一份运行时模板 |
+| `recipe` | `IModRecipeDefinition`（`ModRecipeDefinition`） | 把配方注入配方表 |
+| `liquid`、`liquidtile` | `IModLiquidDefinition`、`IModLiquidTileDefinition`（`ModLiquidDefinition`、`ModLiquidTileDefinition`） | 填液体注册表与世界流体网格 |
+| `building` | `IModBuildingDefinition`（`ModBuildingDefinition`） | 组装建筑模板，并可喂给世界生成（world generation） |
+| `tile`、`structure` | `IModTileDefinition`、`IModStructureDefinition`（`ModTileDefinition`、`ModStructureDefinition`） | 分配地块索引，并可喂给世界生成 |
+| `status`、`moodle` | `IModStatusDefinition`、`IModMoodleDefinition`（`ModStatusDefinition`、`ModMoodleDefinition`） | 存下投影要读的静态描述 |
 
-这些 DTO 大多另带一个 `CustomData` 字典，用来放已知类别还没命名的字段（`ModRecipeDefinition` 和 `ModLiquidDefinition` 没有）；而框架留下的是你注册的那个对象本身，不是它的副本 —— 注册之后就不要再改它。
+这些契约大多另带一个 `CustomData` 字典，用来放已知类别还没命名的字段（`IModRecipeDefinition` 和 `IModLiquidDefinition` 没有）；而框架留下的是你注册的那个对象本身，不是它的副本，也从不改写它 —— 注册之后就不要再改它。
 
 上面这张表就是全部。表里的九个类别正是 `ModContentKind` 列出的、有 CUO 提供者去实体化的类别；表外的类别照样可以合法登记 —— 自己实现 `IModContentDefinition`，自报类别标签，数据也归你自己 —— 因为框架只校验类别的形状，从不校验它是否在表里 —— 但没有任何东西会绑它：它留在登记表里，控制台按规范 id 列出它，而它永远不会出现在世界里。绑定器会在加载时说一次，级别是警告，点名类别与你的定义 —— 那行日志就是「已登记」与「会存在」的分界，内容迟迟不见踪影时先看它。
 
-自己写的定义如果冒充那九个类别之一，就是另一种情况，这时要找的是提供者那行日志：`{ModId}/{Id} claims kind {Kind} but is a {Type}, not a {ModItemDefinition} — refused`。提供者只读它自己那份 DTO，所以类型不对的定义无论类别标签写得多准都不会被绑。
+自己写的定义如果冒充那九个类别之一，就是另一种情况，这时要找的是提供者那行日志：`{ModId}/{Id} claims kind {Kind} but is a {Type}, not an IModItemDefinition — refused`。提供者读的是该类别的契约，所以没实现它的定义无论类别标签写得多准都不会被绑。
 
 ## 查一条定义归谁
 

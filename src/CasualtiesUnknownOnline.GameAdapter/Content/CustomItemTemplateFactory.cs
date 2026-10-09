@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// </summary>
 internal static class CustomItemTemplateFactory
 {
-	internal static GameObject? Create(string id, ModItemDefinition definition, ILogger log)
+	internal static GameObject? Create(string id, IModItemDefinition definition, ILogger log)
 	{
 		var templateId = definition.TemplateId;
 		if (string.IsNullOrWhiteSpace(templateId))
@@ -60,7 +60,7 @@ internal static class CustomItemTemplateFactory
 		item.id = id;
 
 		CustomItemBehaviorApplier.Apply(template, definition, log);
-		CustomComponentAttach.Attach(template, definition.SpawnComponents, log, "ItemContent");
+		CustomComponentAttach.Attach(template, ModDeclarationCollections.OrEmpty(definition.SpawnComponents), log, "ItemContent");
 		return template;
 	}
 }

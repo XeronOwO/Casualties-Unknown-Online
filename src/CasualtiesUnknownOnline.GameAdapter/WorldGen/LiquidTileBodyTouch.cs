@@ -48,7 +48,7 @@ internal sealed class LiquidTileBodyTouch(
 		_log.LogDebug("[LiquidTileTouch] liquid tile touch at=({X},{Y}) dt={Dt:F3}.", pos.x, pos.y, dt);
 	}
 
-	private static void ApplyRates(Body body, ModLiquidTileDefinition definition, float dt)
+	private static void ApplyRates(Body body, IModLiquidTileDefinition definition, float dt)
 	{
 		body.wetness = Mathf.Clamp(body.wetness + definition.WetnessPerSecond * dt, 0f, 100f);
 		body.temperature += definition.TemperaturePerSecond * dt;

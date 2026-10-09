@@ -9,7 +9,7 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModRecipeDefinition"/> definitions from shared-content mods
+/// Binds <see cref="IModRecipeDefinition"/> definitions from shared-content mods
 /// into the vanilla recipe table. It waits for <c>Recipes.recipes</c> to be
 /// initialized, builds plain game <c>Recipe</c> objects from the mod DTO, and
 /// injects them exactly once per recipe-table generation.
@@ -28,7 +28,7 @@ public sealed class GameAdapterRecipeContentProvider(
 {
 	private readonly ILogger<GameAdapterRecipeContentProvider> _log = log;
 	private readonly IReadOnlyList<ICraftingQualitySource> _qualitySources = [.. qualitySources];
-	private readonly Dictionary<string, ModRecipeDefinition> _definitions = [];
+	private readonly Dictionary<string, IModRecipeDefinition> _definitions = [];
 	private readonly HashSet<string> _injectedKeys = [];
 	private readonly HashSet<string> _failedKeys = [];
 	private List<Recipe>? _lastRecipeList;
@@ -39,12 +39,12 @@ public sealed class GameAdapterRecipeContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModRecipeDefinition definition)
+		if (registration.Definition is not IModRecipeDefinition definition)
 		{
 			_log.LogWarning(
-				"[RecipeContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[RecipeContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModRecipeDefinition));
+				registration.Definition.GetType().Name, nameof(IModRecipeDefinition));
 			return false;
 		}
 
@@ -61,7 +61,7 @@ public sealed class GameAdapterRecipeContentProvider(
 			return false;
 		}
 
-		if (definition.Ingredients.Count == 0)
+		if (ModDeclarationCollections.OrEmpty(definition.Ingredients).Count == 0)
 		{
 			_log.LogWarning("[RecipeContent] {ModId}/{Id} has no ingredients — refused.", registration.ModId, id);
 			return false;
@@ -135,7 +135,7 @@ public sealed class GameAdapterRecipeContentProvider(
 			_injectedKeys.Add(key);
 			_log.LogInformation(
 				"[RecipeContent] injected {Id} (result {Result}, {IngredientCount} ingredients) into Recipes.recipes.",
-				pair.Key, pair.Value.ResultItemId, pair.Value.Ingredients.Count);
+				pair.Key, pair.Value.ResultItemId, ModDeclarationCollections.OrEmpty(pair.Value.Ingredients).Count);
 		}
 	}
 
@@ -147,7 +147,7 @@ public sealed class GameAdapterRecipeContentProvider(
 	{
 	}
 
-	private Recipe? BuildRecipe(string id, ModRecipeDefinition definition)
+	private Recipe? BuildRecipe(string id, IModRecipeDefinition definition)
 	{
 		if (!TryParseCategory(definition.Category, out var category))
 		{
@@ -179,7 +179,7 @@ public sealed class GameAdapterRecipeContentProvider(
 			items = []
 		};
 
-		foreach (var ingredient in definition.Ingredients)
+		foreach (var ingredient in ModDeclarationCollections.OrEmpty(definition.Ingredients))
 		{
 			var specific = !string.IsNullOrWhiteSpace(ingredient.ItemId);
 			if (!specific && string.IsNullOrWhiteSpace(ingredient.Quality))

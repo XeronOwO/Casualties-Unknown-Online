@@ -3,120 +3,109 @@ using System.Collections.Generic;
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The mod-authored definition of one static terrain tile. It is a plain data
-/// object in Abstractions: no Unity type, no game type, no Runtime dependency.
-/// A mod fills it in and registers it through <see cref="IModContent"/>; the
-/// Game Adapter provider reads it and
-/// maps the static fields into the vanilla <c>WorldGeneration.tiles</c> palette
-/// and <c>BlockInfo</c> behavior. World-generation placement is intentionally
-/// not part of this DTO — mods choose where static tiles appear.
+/// The framework's ready-made <see cref="IModTileDefinition"/>: a plain data
+/// object in Abstractions with no Unity type, no game type and no Runtime
+/// dependency, which is also why it cannot compute a member. Use it when every
+/// value is a constant; implement the interface when one is computed.
+///
+/// It stays constructible with no arguments and every member stays settable on
+/// purpose: the framework reads the interface, and a future data-driven loader
+/// would deserialize into this concrete type.
+///
+/// The two static mask builders and the layer sentinel stay here as the
+/// mod-facing helpers a declaration is authored with; the rule that reads the
+/// mask is <see cref="ModLayerSpawnRule"/>.
 /// </summary>
-public sealed class ModTileDefinition : IModContentDefinition
+public sealed class ModTileDefinition : IModTileDefinition
 {
-	/// <summary>The mod-scoped content id: a canonical lower-case path segment, unique within the registering mod.</summary>
+	/// <inheritdoc />
 	public string Id { get; set; } = "";
 
-	/// <summary>The content kind this definition registers under - fixed by its type, never chosen by a caller.</summary>
+	/// <inheritdoc />
 	public string Kind => ModContentKind.Tile;
 
-	/// <summary>The mod-owned content schema version the framework stores verbatim (default 1).</summary>
+	/// <inheritdoc />
 	public int SchemaVersion { get; set; } = 1;
 
-	/// <summary>Player-facing tile name.</summary>
+	/// <inheritdoc />
 	public string DisplayName { get; set; } = "";
 
-	/// <summary>Player-facing tile description.</summary>
+	/// <inheritdoc />
 	public string Description { get; set; } = "";
 
-	/// <summary>
-	/// Optional vanilla block index used as the visual base. When
-	/// <see cref="SpritePath"/> is empty, the Game Adapter copies the sprite
-	/// from this vanilla tile so a mod-authored definition can reuse an
-	/// existing tile's artwork without shipping a Unity asset.
-	/// </summary>
+	/// <inheritdoc />
 	public int? TemplateTileIndex { get; set; }
 
-	/// <summary>
-	/// Optional resource path to a <c>Sprite</c>. When set, the Game Adapter
-	/// loads this sprite and it wins over <see cref="TemplateTileIndex"/>.
-	/// Mod-local asset injection is a future Resource API concern; this field is
-	/// the stable seam that such an API can feed.
-	/// </summary>
+	/// <inheritdoc />
 	public string SpritePath { get; set; } = "";
 
-	/// <summary>Optional explicit Unity object name for the generated tile asset. Defaults to the content id.</summary>
+	/// <inheritdoc />
 	public string TileName { get; set; } = "";
 
-	/// <summary>Damage required to break the block.</summary>
+	/// <inheritdoc />
 	public float Health { get; set; } = 100f;
 
-	/// <summary>Vanilla hit-sound reference used when the block is damaged.</summary>
+	/// <inheritdoc />
 	public string HitSound { get; set; } = "rock";
 
-	/// <summary>Vanilla footstep-sound reference used when the block is walked on.</summary>
+	/// <inheritdoc />
 	public string StepSound { get; set; } = "Rock";
 
-	/// <summary>Rest quality while sleeping on the tile.</summary>
+	/// <inheritdoc />
 	public ModTileSleepQuality SleepQuality { get; set; } = ModTileSleepQuality.Bad;
 
-	/// <summary>Disables the game's visual tile variation for this tile.</summary>
+	/// <inheritdoc />
 	public bool NoVariation { get; set; }
 
-	/// <summary>Enables the vanilla metallic damage behavior for the tile.</summary>
+	/// <inheritdoc />
 	public bool Metallic { get; set; }
 
-	/// <summary>Vanilla toxirock radiation behavior value applied to the block.</summary>
+	/// <inheritdoc />
 	public float Toxicity { get; set; }
 
-	/// <summary>Enables the vanilla ice behavior for the tile.</summary>
+	/// <inheritdoc />
 	public bool Slippery { get; set; }
 
-	/// <summary>Tile tint red component (0..1).</summary>
+	/// <inheritdoc />
 	public float ColorR { get; set; } = 1f;
 
-	/// <summary>Tile tint green component (0..1).</summary>
+	/// <inheritdoc />
 	public float ColorG { get; set; } = 1f;
 
-	/// <summary>Tile tint blue component (0..1).</summary>
+	/// <inheritdoc />
 	public float ColorB { get; set; } = 1f;
 
-	/// <summary>Tile tint alpha component (0..1).</summary>
+	/// <inheritdoc />
 	public float ColorA { get; set; } = 1f;
 
-	/// <summary>Unity tile collider shape.</summary>
+	/// <inheritdoc />
 	public ModTileColliderType ColliderType { get; set; } = ModTileColliderType.Grid;
 
-	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
+	/// <inheritdoc />
 	public Dictionary<string, string> CustomData
 	{
 		get;
 		set => field = value ?? [];
 	} = [];
 
-	/// <summary>
-	/// Copper-relative world-generation multiplier. Zero disables automatic
-	/// spawning; 2f means twice as much as copper, 0.5f means half as much.
-	/// </summary>
+	/// <inheritdoc />
 	public float SpawnAmount { get; set; }
 
-	/// <summary>
-	/// Bitmask of allowed world layers for automatic spawning. -1 means every
-	/// layer; 0 disables automatic spawning. Layer N is bit N-1 (N starts at 1).
-	/// </summary>
+	/// <inheritdoc />
 	public int SpawnLayers { get; set; } = AllSpawnLayers;
 
-	/// <summary>Preset world-generation shapes used when <see cref="SpawnAmount"/> is greater than zero.</summary>
+	/// <inheritdoc />
 	public ModTileGenerationStyle GenerationStyle { get; set; } = ModTileGenerationStyle.Vein;
 
-	/// <summary>Optional item drops spawned when the tile breaks. Empty means no custom drops.</summary>
+	/// <inheritdoc />
 	public List<ModTileDrop> Drops
 	{
 		get;
 		set => field = value ?? [];
 	} = [];
 
-	/// <summary>Bitmask that allows spawning on every world layer.</summary>
-	public const int AllSpawnLayers = -1;
+	/// <summary>Bitmask that allows spawning on every world layer; one home, see <see cref="ModLayerSpawnRule.AllSpawnLayers"/>.</summary>
+	public const int AllSpawnLayers = ModLayerSpawnRule.AllSpawnLayers;
 
 	/// <summary>Build a layer bitmask from one-based layer numbers.</summary>
 	public static int LayersToMask(params int[] layerNumbers)
@@ -157,26 +146,4 @@ public sealed class ModTileDefinition : IModContentDefinition
 
 		return mask;
 	}
-
-	/// <summary>
-	/// Whether this tile is permitted to spawn automatically on a zero-based
-	/// biome depth. Depth 0 is layer 1; a negative or too-large depth has no
-	/// layer bit and returns false.
-	/// </summary>
-	public bool CanSpawnInLayer(int biomeDepth)
-	{
-		if (SpawnLayers == 0 || biomeDepth < 0)
-		{
-			return false;
-		}
-
-		if (SpawnLayers == AllSpawnLayers)
-		{
-			return true;
-		}
-
-		var layerNumber = biomeDepth + 1;
-		return layerNumber > 0 && layerNumber <= 31 && (SpawnLayers & (1 << (layerNumber - 1))) != 0;
-	}
-
 }

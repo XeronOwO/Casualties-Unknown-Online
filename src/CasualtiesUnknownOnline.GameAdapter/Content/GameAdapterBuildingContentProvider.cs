@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
 /// The building content binding provider: it turns
-/// <see cref="ModBuildingDefinition"/> definitions from shared-content mods into
+/// <see cref="IModBuildingDefinition"/> definitions from shared-content mods into
 /// runtime <c>BuildingEntity</c> prefab templates so CUO's existing
 /// <c>EntitySpawned</c> channel can materialize the custom building without
 /// exposing game types to mods. Template construction uses
@@ -23,7 +23,7 @@ public sealed class GameAdapterBuildingContentProvider(
 {
 	private readonly ILogger<GameAdapterBuildingContentProvider> _log = log;
 	private readonly ModBuildingRuntimeStore _buildingRuntime = buildingRuntime;
-	private readonly Dictionary<string, ModBuildingDefinition> _definitions = [];
+	private readonly Dictionary<string, IModBuildingDefinition> _definitions = [];
 	private readonly Dictionary<string, string> _owners = [];
 	private readonly Dictionary<string, GameObject> _templates = [];
 	private readonly HashSet<string> _templateFailures = [];
@@ -37,12 +37,12 @@ public sealed class GameAdapterBuildingContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModBuildingDefinition definition)
+		if (registration.Definition is not IModBuildingDefinition definition)
 		{
 			_log.LogWarning(
-				"[BuildingContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[BuildingContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModBuildingDefinition));
+				registration.Definition.GetType().Name, nameof(IModBuildingDefinition));
 			return false;
 		}
 
@@ -142,13 +142,13 @@ public sealed class GameAdapterBuildingContentProvider(
 	/// Both sides must iterate the same set in the same order when consuming the
 	/// shared generation random stream.
 	/// </summary>
-	internal IReadOnlyList<KeyValuePair<string, ModBuildingDefinition>> GetDefinitionsForWorldGen() =>
+	internal IReadOnlyList<KeyValuePair<string, IModBuildingDefinition>> GetDefinitionsForWorldGen() =>
 		[.. _definitions
 			.Where(pair => pair.Value.GenerationStyle != ModBuildingGenerationStyle.None
 				&& (pair.Value.SpawnMinPerChunk is > 0f || pair.Value.SpawnMaxPerChunk is > 0f))
 			.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
 
-	private bool ValidateWorldGen(string modId, string id, ModBuildingDefinition definition)
+	private bool ValidateWorldGen(string modId, string id, IModBuildingDefinition definition)
 	{
 		foreach (var (label, value) in new[]
 		{
@@ -173,9 +173,9 @@ public sealed class GameAdapterBuildingContentProvider(
 		return true;
 	}
 
-	private bool ValidateDrops(string modId, string id, ModBuildingDefinition definition)
+	private bool ValidateDrops(string modId, string id, IModBuildingDefinition definition)
 	{
-		foreach (var drop in definition.DropOnDestroy)
+		foreach (var drop in ModDeclarationCollections.OrEmpty(definition.DropOnDestroy))
 		{
 			if (!IsValidDrop(drop))
 			{
@@ -184,7 +184,7 @@ public sealed class GameAdapterBuildingContentProvider(
 			}
 		}
 
-		foreach (var drop in definition.AlwaysDrop)
+		foreach (var drop in ModDeclarationCollections.OrEmpty(definition.AlwaysDrop))
 		{
 			if (!IsValidDrop(drop))
 			{
@@ -224,7 +224,7 @@ public sealed class GameAdapterBuildingContentProvider(
 			modId, id, field, value);
 	}
 
-	private void EnsureTemplate(string id, ModBuildingDefinition definition)
+	private void EnsureTemplate(string id, IModBuildingDefinition definition)
 	{
 		if (_templates.ContainsKey(id) || _templateFailures.Contains(id) || _vanillaIds.Contains(id))
 		{
@@ -251,7 +251,7 @@ public sealed class GameAdapterBuildingContentProvider(
 		ApplyLocale(id, definition);
 		_log.LogInformation(
 			"[BuildingContent] built runtime template for {Id} (base {TemplateId}, components {ComponentCount}).",
-			id, definition.TemplateId, definition.SpawnComponents.Count);
+			id, definition.TemplateId, ModDeclarationCollections.OrEmpty(definition.SpawnComponents).Count);
 	}
 
 	internal void ApplyInstanceHook(string id, GameObject instance)
@@ -350,7 +350,7 @@ public sealed class GameAdapterBuildingContentProvider(
 		CustomComponentAttach.Attach(target, components.Take(MaxHookComponents), _log, "BuildingContent");
 	}
 
-	private static void ApplyLocale(string id, ModBuildingDefinition definition)
+	private static void ApplyLocale(string id, IModBuildingDefinition definition)
 	{
 		if (Locale.currentLang is null)
 		{

@@ -17,6 +17,14 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// interprets its typed members, so a mod registers a definition it does not
 /// mutate afterwards.
 ///
+/// A COLLECTION member of a declaration means "none" when it is null, and the
+/// read seam answers for that rule rather than each consumer. The framework's
+/// own implementations cannot produce null — a null write coalesces into an
+/// empty collection — and a mod-authored implementation that returns null for a
+/// member it does not carry is read as "none" through
+/// <see cref="ModDeclarationCollections"/>, so one absent list can never take a
+/// provider, and every declaration ordered after it, down with it.
+///
 /// The surface is `Stable` rather than `Experimental`: it replaces the stable
 /// `TryRegister(id, kind, byte[] data)` shape instead of adding a capability,
 /// and its nine implementations are Stable types already, so a lower level here

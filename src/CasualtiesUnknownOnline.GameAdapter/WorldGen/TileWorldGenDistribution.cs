@@ -92,7 +92,7 @@ internal sealed class TileWorldGenDistribution(
 		}
 	}
 
-	private static bool CanSpawn(ModTileDefinition definition, WorldGeneration world) =>
+	private static bool CanSpawn(IModTileDefinition definition, WorldGeneration world) =>
 		definition is not null
 		&& definition.SpawnAmount > 0f
 		&& definition.CanSpawnInLayer(world.biomeDepth);

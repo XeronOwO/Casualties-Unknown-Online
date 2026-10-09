@@ -75,7 +75,8 @@ have produced".
 
 `AccessNativeApi` does not hand over the game. It reaches a curated registry whose value surface is
 deliberately narrow: operation ids are capped at 128 characters, calls at 16 arguments, strings at 4096
-characters, byte arrays at 64 KiB and primitive arrays at 1024 elements. Unity and game-assembly
+characters, values of the framework's own data model at 64 KiB encoded and primitive arrays at 1024
+elements. Unity and game-assembly
 objects and arbitrary object graphs are rejected on both sides of the adapter seam, so a native
 operation cannot smuggle a live game object out to a mod.
 

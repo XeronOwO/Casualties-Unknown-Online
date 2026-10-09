@@ -50,8 +50,9 @@ public interface IModContext
 	IModConsoleCommands ConsoleCommands { get; }
 
 	/// <summary>
-	/// Host-persistent per-mod state (opaque key/value bytes, scoped to this mod
-	/// id). Writes require <see cref="ModPermission.WriteGameState"/> and the host
+	/// Host-persistent per-mod state (typed <see cref="ModValue"/> entries,
+	/// scoped to this mod id). Writes require
+	/// <see cref="ModPermission.WriteGameState"/> and the host
 	/// role; see <see cref="IModState"/> for the full contract.
 	/// </summary>
 	IModState State { get; }

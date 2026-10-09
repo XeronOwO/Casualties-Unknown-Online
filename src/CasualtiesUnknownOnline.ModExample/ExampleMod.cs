@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.ModExample;
 /// missing copy is refused — exactly what the two-process verification proves.
 ///
 /// It shows both network forms side by side: the anonymous tunnel
-/// (<see cref="IModNetwork"/>, one opaque payload and one callback, echoed by
+/// (<see cref="IModNetwork"/>, one value per mod and one callback, echoed by
 /// hand) and a DECLARED packet (<see cref="IModPackets"/>, an id the mod owns
 /// with the framework doing the relay). The console command
 /// <c>exampleecho &lt;text&gt;</c> drives the declared one on a real session.

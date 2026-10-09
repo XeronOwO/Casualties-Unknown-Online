@@ -37,20 +37,25 @@ public interface IModData
 	bool TryDeclare(string key, ModDataScope scope, int schemaVersion = 1);
 
 	/// <summary>
-	/// Read one declared runtime value. The returned array is a defensive copy.
-	/// Returns false for an undeclared key, an absent value, or a
-	/// host-authoritative slot on a guest copy (the framework keeps no guest
-	/// mirror for that scope).
+	/// Read one declared runtime value as a <see cref="ModValue"/> — the
+	/// framework's typed data model, not an opaque blob. No copy is made and
+	/// none is needed: a value is immutable, so the one an earlier read
+	/// returned stays valid to hold. Returns false for an undeclared key, an
+	/// absent value, or a host-authoritative slot on a guest copy (the
+	/// framework keeps no guest mirror for that scope).
 	/// </summary>
-	bool TryGet(string key, out byte[]? value);
+	bool TryGet(string key, out ModValue? value);
 
 	/// <summary>
 	/// Write one declared runtime value. Local-only slots may be written by any
 	/// role. Shared and host-authoritative slots are host-only writes; guests
 	/// must ask the host through <see cref="IModCommands"/> /
-	/// <see cref="IModNetwork"/> and then apply the accepted value.
+	/// <see cref="IModNetwork"/> and then apply the accepted value. The value
+	/// is accepted when the framework can encode it inside this surface's
+	/// 64 KiB rail and the model's structural budgets; a refusal logs the path
+	/// inside the model and the budget it broke.
 	/// </summary>
-	bool TrySet(string key, byte[] value);
+	bool TrySet(string key, ModValue value);
 
 	/// <summary>
 	/// Apply a shared value received from the host into this guest's local
@@ -59,7 +64,7 @@ public interface IModData
 	/// session host. This is the explicit, non-automatic replication step: the
 	/// mod still owns sending/receiving the value over <see cref="IModNetwork"/>.
 	/// </summary>
-	bool TryApplyShared(string key, byte[] value, ulong senderSteamId);
+	bool TryApplyShared(string key, ModValue value, ulong senderSteamId);
 
 	/// <summary>
 	/// Remove a declared runtime value. Local-only slots may be removed by any

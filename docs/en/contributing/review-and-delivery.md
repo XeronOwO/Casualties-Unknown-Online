@@ -110,6 +110,11 @@ It is not reserved for rejected items or user-reported problems.
   Passing tests and gates is necessary, not sufficient.
 - **The adversarial self-check must be independent.** A fresh context, never the reasoning path that
   produced the fix.
+- **A review's findings are dispositioned ONE BY ONE.** Every finding the reviewer wrote is either fixed
+  or named as deliberately not fixed, with its reason. A summary row that replaces a bulleted finding
+  with one line silently drops the rest of that finding's family: a review listed six stale comments
+  under one heading, the disposition table said "one stale `cref` — fixed", and the other five rotted for
+  a whole cycle until the next review found them again.
 - **Rejection root-cause loop.** When a delivered item is rejected, record why it was missed; moving
   the ticket back is not enough — the leak must be understood.
 

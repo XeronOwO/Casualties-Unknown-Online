@@ -21,7 +21,9 @@ namespace CasualtiesUnknownOnline.Abstractions;
 ///
 /// A value is immutable and copies what it is handed, so it may be shared with the framework, cached and
 /// read from two threads; the defensive copies the byte-shaped surfaces needed on every read and write
-/// disappear with it. Building a value is total — the framework accepts it when it can be ENCODED inside the
+/// disappear with it. "Immutable" is a statement about the model's own API: no typed path changes a value,
+/// and the only way past that is to reach a container's or the binary leaf's backing storage on purpose
+/// (which corrupts nothing but the caller's own value). Building a value is total — the framework accepts it when it can be ENCODED inside the
 /// framework's budgets, and a refusal names the path inside the model and the budget it broke — so nothing
 /// here fails halfway through a mod's own composition.
 /// </summary>
@@ -150,7 +152,7 @@ public sealed class ModValue : IEquatable<ModValue>
 		return Kind == ModValueKind.Text;
 	}
 
-	/// <summary>Reads the binary leaf; false for any other kind. The memory is this value's own copy.</summary>
+	/// <summary>Reads the binary leaf; false for any other kind. The memory is this value's own copy, and no typed path changes those bytes — a caller that deliberately reaches the backing array through <c>MemoryMarshal</c> is outside that guarantee, as with any <see cref="ReadOnlyMemory{T}"/> over an array.</summary>
 	public bool TryGetBinary(out ReadOnlyMemory<byte> value)
 	{
 		value = _binary;

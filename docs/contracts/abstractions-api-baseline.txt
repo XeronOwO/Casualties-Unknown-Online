@@ -133,13 +133,13 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.TilePlacement|pro
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Ui|property|-> IModUi { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.Count|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.Keys|property|-> IReadOnlyCollection<string> { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryApplyShared(string key, byte[] value, ulong senderSteamId)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryApplyShared(string key, ModValue value, ulong senderSteamId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryDeclare(string key, ModDataScope scope, int schemaVersion = 1)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryGet(string key, out byte[]? value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryGet(string key, out ModValue? value)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryGetSchemaVersion(string key, out int schemaVersion)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryGetScope(string key, out ModDataScope scope)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryRemove(string key)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TrySet(string key, byte[] value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TrySet(string key, ModValue value)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModEntitySpawn.CanSpawn|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModEntitySpawn.TrySpawn(string prefabId, float x, float y, float rotation)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModGameState.CanRead|property|-> bool { get; }
@@ -218,9 +218,9 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.Count|property|-> i
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.Keys|property|-> IReadOnlyCollection<string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.SchemaVersion|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TryClear()|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TryGet(string key, out byte[]? value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TryGet(string key, out ModValue? value)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TryRemove(string key)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TrySet(string key, byte[] value)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TrySet(string key, ModValue value)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TrySetSchemaVersion(int schemaVersion)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.StatusCount|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusRuntime.StatusIds|property|-> IReadOnlyCollection<string> { get; }
@@ -933,3 +933,8 @@ type|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry|sea
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ForLimb(string statusId, ulong playerSteamId, int limbSlot, int schemaVersion, byte[] value) — CUO's status frame is a model value now: its field names are the wire contract (ToValue/TryFromValue)
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.FromPayload(byte[] payload) — CUO's status frame is a model value now: its field names are the wire contract (ToValue/TryFromValue)
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusUpdate.ToPayload() — CUO's status frame is a model value now: its field names are the wire contract (ToValue/TryFromValue)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModData.TryApplyShared(string key, byte[] value, ulong senderSteamId) — a shared mirror is a ModValue now: the store keeps the typed model instead of an opaque byte array (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModData.TryGet(string key, out byte[]? value) — a runtime data value is a ModValue now: the store keeps the typed model instead of an opaque byte array (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModData.TrySet(string key, byte[] value) — a runtime data value is a ModValue now: the store keeps the typed model instead of an opaque byte array (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModState.TryGet(string key, out byte[]? value) — a mod-state value is a ModValue now: the file stores the value's canonical encoding (ticket mod-api-no-opaque-envelopes)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.IModState.TrySet(string key, byte[] value) — a mod-state value is a ModValue now: the file stores the value's canonical encoding (ticket mod-api-no-opaque-envelopes)

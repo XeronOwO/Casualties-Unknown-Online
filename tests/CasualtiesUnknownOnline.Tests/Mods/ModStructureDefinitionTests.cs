@@ -1,77 +1,61 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The typed structure content payload contract: a mod can serialize a
-/// <see cref="ModStructureDefinition"/> into the opaque byte payload and the
-/// Runtime/Game Adapter can read it back without a private format.
+/// The typed structure definition a mod hands to <see cref="IModContent"/>: the
+/// identity its type fixes (<see cref="ModContentKind.Structure"/>), the grid and
+/// marker collections where null means "none", the 1x1 defaults the definition
+/// declares, and the depth lookup that needs no payload. Nothing serializes a
+/// definition any more, so this suite pins the answers the definition itself
+/// owns.
 /// </summary>
 public class ModStructureDefinitionTests
 {
 	[Fact]
-	public void RoundTrip_PreservesCoreFields()
+	public void Identity_IsFixedByTheType()
 	{
-		var original = new ModStructureDefinition
-		{
-			DisplayName = "Auric Shrine",
-			Description = "A small shrine built from auric ore.",
-			Width = 3,
-			Height = 2,
-			Rows =
-			[
-				"#.#",
-				"###"
-			],
-			VanillaBlocks = new Dictionary<string, int>
-			{
-				["#"] = 5
-			},
-			TileIds = new Dictionary<string, string>
-			{
-				["@"] = "custom.auric"
-			},
-			SpawnCounts = [2, 1, 0, 1, 3],
-			CustomData = new Dictionary<string, string>
-			{
-				["mod.metadata"] = "kept"
-			}
-		};
+		var defaults = new ModStructureDefinition();
 
-		var restored = ModStructureDefinition.FromPayload(original.ToPayload());
+		Assert.Equal(ModContentKind.Structure, defaults.Kind);
+		Assert.Empty(defaults.Id);
+		Assert.Equal(1, defaults.SchemaVersion);
 
-		Assert.NotNull(restored);
-		Assert.Equal(original.DisplayName, restored!.DisplayName);
-		Assert.Equal(original.Description, restored.Description);
-		Assert.Equal(original.Width, restored.Width);
-		Assert.Equal(original.Height, restored.Height);
-		Assert.Equal(original.Rows, restored.Rows);
-		Assert.Equal(5, restored.VanillaBlocks["#"]);
-		Assert.Equal("custom.auric", restored.TileIds["@"]);
-		Assert.Equal(original.SpawnCounts, restored.SpawnCounts);
-		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
+		var authored = new ModStructureDefinition { Id = "test.shrine", SchemaVersion = 2 };
+
+		Assert.Equal("test.shrine", authored.Id);
+		Assert.Equal(2, authored.SchemaVersion);
 	}
 
 	[Fact]
-	public void RoundTrip_PreservesEmptyOptionalMaps()
+	public void NullCollectionMembers_MeanNone()
 	{
-		var original = new ModStructureDefinition
+		var definition = new ModStructureDefinition
 		{
-			Width = 1,
-			Height = 1,
-			Rows = ["."]
+			Rows = null!,
+			VanillaBlocks = null!,
+			TileIds = null!,
+			SpawnCounts = null!,
+			CustomData = null!
 		};
 
-		var restored = ModStructureDefinition.FromPayload(original.ToPayload());
+		Assert.Empty(definition.Rows);
+		Assert.Empty(definition.VanillaBlocks);
+		Assert.Empty(definition.TileIds);
+		Assert.Empty(definition.SpawnCounts);
+		Assert.Empty(definition.CustomData);
+	}
 
-		Assert.NotNull(restored);
-		Assert.Single(restored!.Rows);
-		Assert.Equal(".", restored.Rows[0]);
-		Assert.Empty(restored.VanillaBlocks);
-		Assert.Empty(restored.TileIds);
-		Assert.Empty(restored.SpawnCounts);
+	[Fact]
+	public void DeclaredDefaults_HoldOnAFreshDefinition()
+	{
+		var definition = new ModStructureDefinition();
+
+		Assert.Empty(definition.DisplayName);
+		Assert.Empty(definition.Description);
+		Assert.Equal(1, definition.Width);
+		Assert.Equal(1, definition.Height);
 	}
 
 	[Fact]
@@ -111,13 +95,5 @@ public class ModStructureDefinitionTests
 
 		Assert.True(definition.TryGetSpawnCount(1, out var count));
 		Assert.Equal(0, count);
-	}
-
-	[Fact]
-	public void InvalidPayload_ReturnsNull()
-	{
-		Assert.Null(ModStructureDefinition.FromPayload([]));
-		Assert.Null(ModStructureDefinition.FromPayload([1, 2, 3]));
-		Assert.Null(ModStructureDefinition.FromPayload(null!));
 	}
 }

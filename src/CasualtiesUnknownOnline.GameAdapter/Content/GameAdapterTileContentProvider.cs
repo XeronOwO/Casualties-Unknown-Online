@@ -11,7 +11,7 @@ using Random = UnityEngine.Random;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModTileDefinition"/> payloads from shared-content mods into
+/// Binds <see cref="ModTileDefinition"/> definitions from shared-content mods into
 /// the vanilla world palette. Each definition receives a deterministic custom
 /// block index (never a vanilla index), gets a Unity <see cref="Tile"/> built by
 /// <see cref="CustomTileFactory"/>, and is served through the
@@ -40,17 +40,12 @@ public sealed class GameAdapterTileContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModTileDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModTileDefinition definition)
 		{
 			_log.LogWarning(
-				"[TileContent] {ModId}/{Id} payload is not a valid ModTileDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[TileContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModTileDefinition));
 			return false;
 		}
 

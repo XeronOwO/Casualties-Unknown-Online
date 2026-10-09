@@ -1,31 +1,34 @@
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
 
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The versioned, mod-authored data contract for one static moodle/presentation
-/// descriptor. It is a plain data object in Abstractions: no Unity type, no
-/// game type, no Runtime dependency. The payload is registered through the
-/// opaque <see cref="IModContent"/> channel with
+/// The mod-authored definition of one static moodle/presentation descriptor.
+/// It is a plain data object in Abstractions: no Unity type, no game type, no
+/// Runtime dependency. A mod fills it in and registers it through
+/// <see cref="IModContent"/>; its <see cref="Kind"/> is
 /// <see cref="ModContentKind.Moodle"/>. This seam carries the presentation
 /// metadata; actually feeding the vanilla moodle row is a GameAdapter/local UI
 /// concern and is not implemented by this static content contract.
 /// </summary>
-[DataContract]
-public sealed class ModMoodleDefinition
+public sealed class ModMoodleDefinition : IModContentDefinition
 {
+	/// <summary>The mod-scoped content id: a canonical lower-case path segment, unique within the registering mod.</summary>
+	public string Id { get; set; } = "";
+
+	/// <summary>The content kind this definition registers under - fixed by its type, never chosen by a caller.</summary>
+	public string Kind => ModContentKind.Moodle;
+
+	/// <summary>The mod-owned content schema version the framework stores verbatim (default 1).</summary>
+	public int SchemaVersion { get; set; } = 1;
+
 	/// <summary>Player-facing moodle title.</summary>
-	[DataMember(Order = 1)]
 	public string DisplayName { get; set; } = "";
 
 	/// <summary>Player-facing moodle description.</summary>
-	[DataMember(Order = 2)]
 	public string Description { get; set; } = "";
 
 	/// <summary>Vanilla moodle background tier.</summary>
-	[DataMember(Order = 3)]
 	public int Intensity { get; set; } = 1;
 
 	/// <summary>
@@ -34,27 +37,21 @@ public sealed class ModMoodleDefinition
 	/// so mods use a stable string key that a later local resource/GameAdapter
 	/// binding can resolve.
 	/// </summary>
-	[DataMember(Order = 4)]
 	public string IconId { get; set; } = "";
 
 	/// <summary>Whether the vanilla critical glow overlay is shown.</summary>
-	[DataMember(Order = 5)]
 	public bool Critical { get; set; }
 
 	/// <summary>Whether the moodle is shown only when the player has a chip.</summary>
-	[DataMember(Order = 6)]
 	public bool ChippedOnly { get; set; }
 
 	/// <summary>Whether the moodle belongs in the main row instead of the side row.</summary>
-	[DataMember(Order = 7)]
 	public bool Important { get; set; } = true;
 
 	/// <summary>Default display hold duration when a future moodle surface consumes this definition.</summary>
-	[DataMember(Order = 8)]
 	public float HoldSeconds { get; set; } = 0.75f;
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
-	[DataMember(Order = 9)]
 	public Dictionary<string, string> CustomData
 	{
 		get;
@@ -66,7 +63,6 @@ public sealed class ModMoodleDefinition
 	/// Adapter registers the first frame as the static icon and drives the
 	/// vanilla moodle UI image from the ordered resource-path frames.
 	/// </summary>
-	[DataMember(Order = 10)]
 	public ModMoodleAnimation? IconAnimation { get; set; }
 
 	/// <summary>
@@ -76,7 +72,6 @@ public sealed class ModMoodleDefinition
 	/// <c>{limb}</c> by the affected vanilla limb's short display name.
 	/// Empty means the moodle title is used unchanged.
 	/// </summary>
-	[DataMember(Order = 11)]
 	public string LimbDisplayNameFormat { get; set; } = "";
 
 	/// <summary>
@@ -86,7 +81,6 @@ public sealed class ModMoodleDefinition
 	/// limb's short display name. Empty means the moodle description is used
 	/// unchanged.
 	/// </summary>
-	[DataMember(Order = 12)]
 	public string LimbDescriptionFormat { get; set; } = "";
 
 	/// <summary>
@@ -125,16 +119,4 @@ public sealed class ModMoodleDefinition
 			.Replace("{limb}", limbName);
 	}
 
-	/// <summary>Serialize this definition into the opaque payload format.</summary>
-	public byte[] ToPayload()
-	{
-		using var stream = new MemoryStream();
-		var serializer = new DataContractSerializer(typeof(ModMoodleDefinition));
-		serializer.WriteObject(stream, this);
-		return stream.ToArray();
-	}
-
-	/// <summary>Deserialize a moodle definition payload. Returns null when the payload is not a valid moodle definition.</summary>
-	public static ModMoodleDefinition? FromPayload(byte[] payload) =>
-		ModPayloadCodec.Decode<ModMoodleDefinition>(payload);
 }

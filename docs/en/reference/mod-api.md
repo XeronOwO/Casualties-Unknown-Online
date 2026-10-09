@@ -324,8 +324,9 @@ context.Ui.Unregister("status");
 ```csharp
 if (context.Content.CanRegister)
 {
-    var itemBytes = new ModItemDefinition
+    context.Content.TryRegister(new ModItemDefinition
     {
+        Id = "wooden.sword",
         DisplayName = "Wooden Sword",
         Description = "A simple wooden sword.",
         Weight = 1f,
@@ -334,20 +335,26 @@ if (context.Content.CanRegister)
         Tags = "weapon",
         TemplateId = "stone",
         SpawnComponents = ["Example.WoodenSwordBehaviour, ExampleMod"]
-    }.ToPayload();
+    });
 
-    context.Content.TryRegister("wooden.sword", ModContentKind.Item, itemBytes);
-    context.Content.TryRegister("healing.recipe", ModContentKind.Recipe, myRecipeDefinitionBytes, schemaVersion: 2);
+    context.Content.TryRegister(new ModRecipeDefinition
+    {
+        Id = "healing.recipe",
+        SchemaVersion = 2,
+        ResultItemId = "bandage",
+        Ingredients = [new ModRecipeIngredient { ItemId = "cloth" }]
+    });
 }
-var itemDefs = context.Content.Definitions; // snapshot; payloads are copied on read
+var itemDefs = context.Content.Definitions; // the registered instances, not copies
 context.Content.TryUnregister("wooden.sword");
 ```
 
-- **Scope**: `IModContent` is a per-mod registry of opaque content definitions. A mod registers an id,
-  a [content kind](glossary.md) and an opaque payload in `Bind`; it may also declare a positive
-  `schemaVersion` (default 1). The framework never interprets, serializes or migrates the payload, so
-  the mod owns its content schema and versioning; the stored version is carried verbatim on every
-  definition read.
+- **Scope**: `IModContent` is a per-mod registry of typed content definitions. A mod builds one of the
+  typed DTOs below (or its own `IModContentDefinition`), gives it its id and an optional
+  positive `schemaVersion` (default 1), and registers the object itself in `Bind`. The definition carries
+  its own kind — fixed by its type — so the kind cannot disagree with the data, and the framework never
+  interprets the mod's members: the provider registered for that kind is what reads them. The registry
+  keeps the instance the mod handed over, so a mod registers a definition it does not mutate afterwards.
 - **The kind vocabulary names exactly what binds**: `ModContentKind` lists the nine kinds a CUO content
   provider materializes — `item`, `recipe`, `liquid`, `liquidtile`, `tile`, `building`, `structure`,
   `status`, `moodle` — and each of them is the kind of one typed DTO below. A kind is still a
@@ -374,20 +381,21 @@ context.Content.TryUnregister("wooden.sword");
   whether this mod copy declared the flag; every `TryRegister` call also enforces it. The permission
   policy already refuses that flag on `ClientOnly`/`Cosmetic`, so only state-bearing mods may register
   content.
-- **Process-local**: content bytes do not travel over the wire. Content is part of the mod itself, so
-  the handshake (mod id / SemVer / permissions / network mode) is the consistency boundary; a mod that
-  needs client-specific dynamic content coordinates through `IModNetwork` / `IModCommands` instead.
-- **Rules**: an empty id or kind, a null or over-cap payload, a non-positive schema version, or a
-  duplicate id within the same mod is refused; `TryUnregister` removes a definition. A content id must
-  already be a canonical lower-case path segment (`ContentId.IsValidPath`): upper case, whitespace, the
-  `:` separator and ids longer than 95 characters are refused. Rails: kind ≤64 characters, schema
-  version positive, payload ≤64 KiB, ≤1024 definitions per mod. Errors are refused with a log, never
+- **Process-local**: a content definition does not travel over the wire. Content is part of the mod
+  assembly, so the handshake (mod id / SemVer / permissions / network mode) is the consistency boundary; a
+  mod that needs client-specific dynamic content coordinates through `IModNetwork` / `IModCommands`
+  instead.
+- **Rules**: a null definition, an empty id or kind, a kind over 64 characters, a non-positive schema
+  version, or a duplicate id within the same mod is refused; `TryUnregister` removes a definition. A
+  content id must already be a canonical lower-case path segment (`ContentId.IsValidPath`): upper case,
+  whitespace, the `:` separator and ids longer than 95 characters are refused. Rails: kind ≤64
+  characters, schema version positive, ≤1024 definitions per mod. Errors are refused with a log, never
   silently truncated.
 - **Framework read view**: `IModContentControl.Entries` exposes every mod's registered definitions to
   other CUO layers (the plugin, future native-content consumers) as a read-only snapshot. The runtime
   content catalog (`IModContentCatalog`) adds kind filtering, unique kind+id resolution and cross-mod
-  duplicate/schema-version conflict diagnostics without interpreting payloads; it is the intended base
-  for a future native-content binder.
+  duplicate/schema-version conflict diagnostics without reading a definition's typed members; it is the
+  intended base for a future native-content binder.
 - **Content ownership query**: `context.ContentOwners.TryGetOwner(kind, id, out owner)` resolves the
   owning mod id for any framework-wide content registration. It is the migration replacement for
   CUCoreLib's per-kind `TryGetOwnerModGuid`; the query is read-only, needs no permission, and follows
@@ -400,8 +408,9 @@ context.Content.TryUnregister("wooden.sword");
   materialise a host-only item. This is the first concrete implementation of the local-only versus
   public/shared mod-data distinction for static content.
 
-**Typed definitions.** Abstractions ships one DTO per well-known kind; a mod fills it and calls
-`ToPayload()`, and the framework still stores bytes opaquely. The Game Adapter is what decodes them.
+**Typed definitions.** Abstractions ships one DTO per well-known kind; a mod fills it in and registers
+the object itself. Its `Kind` is a constant of the type, so exactly the provider that reads it is the one
+that binds it, and a mod that wants a kind of its own implements `IModContentDefinition` directly.
 
 | DTO (kind) | What it carries, and how the adapter binds it |
 |---|---|
@@ -415,23 +424,25 @@ context.Content.TryUnregister("wooden.sword");
 | `ModStatusDefinition` (`Status`, seventh) | display and description text, a body/limb scope, save-enabled metadata, an optional moodle id, optional per-limb moodle routing (`ShowPerLimbMoodles` plus `LimbMoodles`) and an extensible `CustomData` dictionary. The provider validates the scope/id/save fields and stores the static descriptor as migration base; it does not create a per-player or per-limb status bag — dynamic runtime values belong to the status runtime seam. |
 | `ModMoodleDefinition` (`Moodle`, eighth) | display and description text, a vanilla moodle intensity, a stable icon/resource id key, critical/chipped/important presentation flags, hold seconds, an optional `ModMoodleAnimation` frame-path icon animation, optional per-limb display/description templates (`LimbDisplayNameFormat` / `LimbDescriptionFormat`) and an extensible `CustomData` dictionary. The provider stores the static descriptor; `ModStatusMoodleProjection` feeds active status-linked moodles into the vanilla moodle manager, and a `Moodle.Start` patch drives the vanilla moodle UI image from the authored frames. Moodle content is still never a wire feature. |
 
-**Null means empty.** Every collection member of every typed contract above — a list, a dictionary or a
-`byte[]` — means "none" when it is null, and the framework answers for that at both ends of a payload. A
-member's own setter coalesces null, so a mod that assigns null builds a definition whose list reads empty
-and whose payload writes an empty collection instead of an explicit nil. And because the payload serializer
-runs neither a constructor nor a field initializer, a payload that simply OMITS a member's element would
-leave that member unset — so every `FromPayload` goes through one shared decode step (`ModPayloadCodec`)
-that replaces each null collection member of the decoded graph with an empty one, nested contracts and
-collection entries included. No provider normalises a payload collection any more, so a definition cannot
-behave differently depending on which consumer read it first. A member that is genuinely required is not an
-exception: an empty collection flows into that provider's own validation, which refuses the definition with
-a reason it names — an item's sprite animation with no frame paths, a recipe with no ingredients, a
-structure whose grid has no rows. The same rule covers the collections a mod builds in code rather than
-decodes (the attribute's `Dependencies`, `ModConsoleCommand.ArgumentKinds`, `ModManifest.Dependencies`,
-`ModPacket.Handlers` and the runtime moodle request's `Payload`), and the `ModPayloadNullCollectionTests`
-census discovers every collection member of the assembly's public classes — the 27 payload members, those
-five declarations and the registry's defensive-copy accessor — and drives all three shapes for each one (a
-payload we built, an explicit nil and an omitted element), so a new member cannot be added without the rule.
+**Null means empty.** Every collection member of every declaration above — a list, a dictionary or a
+`byte[]` — means "none" when it is null, and the member itself answers for that: a mod that assigns null
+builds a definition whose list reads empty. That is the whole rule for a content definition now, because
+the registry keeps the typed object and nothing serializes it. The second half of the rule still belongs
+to the contracts CUO itself carries over a boundary — `ModStatusUpdate` and the two status projections.
+Their payload serializer runs neither a constructor nor a field initializer, so a payload that OMITS a
+member's element would leave that member unset, and every `FromPayload` therefore goes through one shared
+decode step (`ModPayloadCodec`) that replaces each null collection member of the decoded graph with an
+empty one, nested contracts and collection entries included. No provider normalises a payload collection,
+so a definition cannot behave differently depending on which consumer read it first. A member that is
+genuinely required is not an exception: an empty collection flows into that provider's own validation,
+which refuses the definition with a reason it names — an item's sprite animation with no frame paths, a
+recipe with no ingredients, a structure whose grid has no rows. The same rule covers the collections a mod
+builds in code rather than decodes (the attribute's `Dependencies`, `ModConsoleCommand.ArgumentKinds`,
+`ModManifest.Dependencies`, `ModPacket.Handlers` and the runtime moodle request's `Payload`), and the
+`ModPayloadNullCollectionTests` census discovers every collection member of the assembly's public classes —
+the travelling payload contracts' members, the declarations a mod fills in, and the four it can only build
+through a constructor with arguments — driving a null write for each of them and all three payload shapes
+for a travelling member, so a new member cannot be added without the rule.
 
 **Crafting-quality labels.** A quality id is a *label*: either a vanilla one — a bare lower-case token
 such as `rippable`, which is how a mod says "this content provides that vanilla label" — or a

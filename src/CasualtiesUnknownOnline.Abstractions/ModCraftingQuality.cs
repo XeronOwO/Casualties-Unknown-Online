@@ -1,5 +1,3 @@
-using System.Runtime.Serialization;
-
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
@@ -17,14 +15,11 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// used verbatim.
 /// </para>
 /// </summary>
-[DataContract]
 public sealed class ModCraftingQuality
 {
 	/// <summary>The crafting-quality id.</summary>
-	[DataMember(Order = 1)]
 	public string Id { get; set; } = "";
 
 	/// <summary>The quality amount.</summary>
-	[DataMember(Order = 2)]
 	public float Amount { get; set; } = 1f;
 }

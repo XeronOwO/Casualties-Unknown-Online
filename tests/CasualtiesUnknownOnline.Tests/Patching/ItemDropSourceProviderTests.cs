@@ -33,14 +33,12 @@ public class ItemDropSourceProviderTests
 		return Activator.CreateInstance(ProviderType, [logger])!;
 	}
 
-	private static bool TryBind(object provider, string id, ModItemDefinition definition)
+	private static bool TryBind(object provider, ModItemDefinition definition)
 	{
 		var bind = provider.GetType().GetMethod(
 			"TryBind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("TryBind not found.");
-		var registration = new ModContentRegistration(
-			"mod.a",
-			new ModContentDefinition(id, ModContentKind.Item, definition.ToPayload(), 1));
+		var registration = new ModContentRegistration("mod.a", definition);
 		return (bool)bind.Invoke(provider, [registration])!;
 	}
 
@@ -93,8 +91,9 @@ public class ItemDropSourceProviderTests
 	public void Update_ExplicitDropSourceSuppressesCategoryFallbackAndSeedsSourcePool()
 	{
 		var provider = CreateProvider();
-		Assert.True(TryBind(provider, "custom_med", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "custom_med",
 			Category = "rare",
 			SpawnFrequency = 2,
 			DropSources = ModItemDropSource.MedicalCrate
@@ -119,8 +118,9 @@ public class ItemDropSourceProviderTests
 		var pool = GetLootPool();
 		pool["rare"] = new List<string> { "custom_med" };
 
-		Assert.True(TryBind(provider, "custom_med", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "custom_med",
 			Category = "rare",
 			SpawnFrequency = 1,
 			DropSources = ModItemDropSource.MedicalCrate
@@ -137,8 +137,9 @@ public class ItemDropSourceProviderTests
 	public void Update_AllTradersExpandsToIndividualTraderCategories()
 	{
 		var provider = CreateProvider();
-		Assert.True(TryBind(provider, "custom_trade", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "custom_trade",
 			SpawnFrequency = 1,
 			DropSources = ModItemDropSource.AllTraders
 		}));
@@ -163,8 +164,9 @@ public class ItemDropSourceProviderTests
 	public void Update_ZeroFrequencyRegistersNoExplicitSourcePool()
 	{
 		var provider = CreateProvider();
-		Assert.True(TryBind(provider, "custom_none", new ModItemDefinition
+		Assert.True(TryBind(provider, new ModItemDefinition
 		{
+			Id = "custom_none",
 			SpawnFrequency = 0,
 			DropSources = ModItemDropSource.DropCapsule
 		}));

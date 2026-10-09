@@ -4,9 +4,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
 /// The runtime read-only content catalog. It is the base layer between the
-/// mod-facing opaque <c>IModContent</c> registry and future native-content
+/// mod-facing <c>IModContent</c> registry and future native-content
 /// binding: it can enumerate, filter, resolve, and report schema/ownership
-/// conflicts without interpreting any mod payload. It is NOT a mod-facing
+/// conflicts without reading a definition's typed members. It is NOT a mod-facing
 /// surface and never exposes Runtime internals back to mods.
 /// </summary>
 public interface IModContentCatalog

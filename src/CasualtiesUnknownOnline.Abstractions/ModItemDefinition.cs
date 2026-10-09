@@ -1,62 +1,57 @@
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
 
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The versioned, mod-authored data contract for one item content definition.
-/// It is deliberately a plain data object in Abstractions: no game type, no
-/// Unity type, no Runtime dependency. The payload is still registered through
-/// the opaque <see cref="IModContent"/> channel; this type is the first
-/// well-known schema that the Runtime content binder and a Game Adapter
-/// provider can decode without inventing a private format.
+/// The mod-authored definition of one item content. It is deliberately a plain
+/// data object in Abstractions: no game type, no Unity type, no Runtime
+/// dependency. A mod fills it in and registers it through
+/// <see cref="IModContent"/>; the Runtime content binder routes it by
+/// <see cref="Kind"/> to the Game Adapter provider that materializes it, and
+/// that provider reads these typed members instead of decoding a private format.
 /// </summary>
-[DataContract]
-public sealed class ModItemDefinition
+public sealed class ModItemDefinition : IModContentDefinition
 {
+	/// <summary>The mod-scoped content id: a canonical lower-case path segment, unique within the registering mod.</summary>
+	public string Id { get; set; } = "";
+
+	/// <summary>The content kind this definition registers under - fixed by its type, never chosen by a caller.</summary>
+	public string Kind => ModContentKind.Item;
+
+	/// <summary>The mod-owned content schema version the framework stores verbatim (default 1).</summary>
+	public int SchemaVersion { get; set; } = 1;
+
 	/// <summary>Player-facing item name.</summary>
-	[DataMember(Order = 1)]
 	public string DisplayName { get; set; } = "";
 
 	/// <summary>Player-facing item description.</summary>
-	[DataMember(Order = 2)]
 	public string Description { get; set; } = "";
 
 	/// <summary>Vanilla spawn/category tag; defaults to "nospawn" when empty.</summary>
-	[DataMember(Order = 3)]
 	public string Category { get; set; } = "nospawn";
 
 	/// <summary>Item weight in vanilla units.</summary>
-	[DataMember(Order = 4)]
 	public float Weight { get; set; }
 
 	/// <summary>Vanilla item value.</summary>
-	[DataMember(Order = 5)]
 	public int Value { get; set; }
 
 	/// <summary>Whether the item can be used from the hand.</summary>
-	[DataMember(Order = 6)]
 	public bool Usable { get; set; }
 
 	/// <summary>Whether the item can be used with the left mouse button.</summary>
-	[DataMember(Order = 7)]
 	public bool UsableWithLmb { get; set; }
 
 	/// <summary>Whether the item can be worn on a body.</summary>
-	[DataMember(Order = 8)]
 	public bool Wearable { get; set; }
 
 	/// <summary>Whether the item is destroyed when its condition reaches zero.</summary>
-	[DataMember(Order = 9)]
 	public bool DestroyAtZeroCondition { get; set; }
 
 	/// <summary>Vanilla tag string, empty when none.</summary>
-	[DataMember(Order = 10)]
 	public string Tags { get; set; } = "";
 
 	/// <summary>Relative spawn/trader/loot weighting.</summary>
-	[DataMember(Order = 11)]
 	public int SpawnFrequency { get; set; } = 1;
 
 	/// <summary>
@@ -64,7 +59,6 @@ public sealed class ModItemDefinition
 	/// definition is static-item-info only; the Game Adapter cannot materialize
 	/// a prefab for it.
 	/// </summary>
-	[DataMember(Order = 12)]
 	public string TemplateId { get; set; } = "";
 
 	/// <summary>
@@ -72,7 +66,6 @@ public sealed class ModItemDefinition
 	/// runtime template before it is instantiated. The Game Adapter resolves
 	/// the types from loaded assemblies and refuses non-Component types.
 	/// </summary>
-	[DataMember(Order = 13)]
 	public List<string> SpawnComponents
 	{
 		get;
@@ -80,7 +73,6 @@ public sealed class ModItemDefinition
 	} = [];
 
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
-	[DataMember(Order = 14)]
 	public Dictionary<string, string> CustomData
 	{
 		get;
@@ -93,7 +85,6 @@ public sealed class ModItemDefinition
 	/// the item on ground inside the isolated generation stream. The existing
 	/// generation-item snapshot synchronizes both sides — no new wire is needed.
 	/// </summary>
-	[DataMember(Order = 15)]
 	public float? WorldSpawnPerChunk { get; set; }
 
 	/// <summary>
@@ -102,27 +93,21 @@ public sealed class ModItemDefinition
 	/// the selected source pools (corpse, built-in crates, trader stock). Leave
 	/// null to use the vanilla category fallback.
 	/// </summary>
-	[DataMember(Order = 16)]
 	public ModItemDropSource? DropSources { get; set; }
 
 	/// <summary>Optional container behavior applied to the runtime item template.</summary>
-	[DataMember(Order = 17)]
 	public ModItemContainer? Container { get; set; }
 
 	/// <summary>Optional battery behavior applied to the runtime item template.</summary>
-	[DataMember(Order = 18)]
 	public ModItemBattery? Battery { get; set; }
 
 	/// <summary>Optional light behavior applied to the runtime item template.</summary>
-	[DataMember(Order = 19)]
 	public ModItemLight? Light { get; set; }
 
 	/// <summary>Optional melee/tool behavior applied to the item's static use action.</summary>
-	[DataMember(Order = 20)]
 	public ModItemTool? Tool { get; set; }
 
 	/// <summary>Optional firearm behavior applied to the runtime item template and static use action.</summary>
-	[DataMember(Order = 21)]
 	public ModItemGun? Gun { get; set; }
 
 	/// <summary>
@@ -131,11 +116,9 @@ public sealed class ModItemDefinition
 	/// vanilla decay path (including battery-powered drain when
 	/// <see cref="Battery"/> is present).
 	/// </summary>
-	[DataMember(Order = 22)]
 	public float DecayMinutes { get; set; }
 
 	/// <summary>Optional visual presentation (worn sprite and liquid mask).</summary>
-	[DataMember(Order = 23)]
 	public ModItemVisual? Visual { get; set; }
 
 	/// <summary>
@@ -145,23 +128,10 @@ public sealed class ModItemDefinition
 	/// <c>1</c>, like the liquid side, because the matcher asks for at least the
 	/// amount a recipe requires.
 	/// </summary>
-	[DataMember(Order = 24)]
 	public List<ModCraftingQuality> Qualities
 	{
 		get;
 		set => field = value ?? [];
 	} = [];
 
-	/// <summary>Serialize this definition into the opaque payload format.</summary>
-	public byte[] ToPayload()
-	{
-		using var stream = new MemoryStream();
-		var serializer = new DataContractSerializer(typeof(ModItemDefinition));
-		serializer.WriteObject(stream, this);
-		return stream.ToArray();
-	}
-
-	/// <summary>Deserialize an item definition payload. Returns null when the payload is not a valid item definition.</summary>
-	public static ModItemDefinition? FromPayload(byte[] payload) =>
-		ModPayloadCodec.Decode<ModItemDefinition>(payload);
 }

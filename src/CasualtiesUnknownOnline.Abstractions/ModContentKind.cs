@@ -3,12 +3,13 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// <summary>
 /// The content kinds CUO binds: one constant per kind a content provider in the
 /// Game Adapter materializes, and therefore the vocabulary a mod registers
-/// under. Kinds are still mod-defined tags — the content policy validates the
-/// id, the kind's shape and the payload size, never membership of this list —
-/// so a mod may register a kind of its own, but a registration under a kind no
-/// provider claims stays opaque: the catalog and the console enumerate it and
-/// nothing materializes it. The runtime binder reports exactly that at load
-/// time, and a gate keeps this list equal to the kinds the providers declare.
+/// under. Kinds are still open tags — the content policy validates the id and
+/// the kind's shape, never membership of this list — so a mod may implement
+/// <see cref="IModContentDefinition"/> with a kind of its own, but a
+/// registration under a kind no provider claims stays opaque: the catalog and
+/// the console enumerate it and nothing materializes it. The runtime binder
+/// reports exactly that at load time, and a gate keeps this list equal to the
+/// kinds the providers declare.
 /// </summary>
 public static class ModContentKind
 {

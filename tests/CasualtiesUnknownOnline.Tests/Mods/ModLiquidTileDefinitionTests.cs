@@ -4,75 +4,62 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The typed liquid-tile content payload contract: a mod can serialize a
-/// <see cref="ModLiquidTileDefinition"/> into the opaque content payload and
-/// the Game Adapter liquid-tile provider can decode it without a private
-/// format.
+/// The typed liquid-tile definition a mod hands to <see cref="IModContent"/>:
+/// the identity its type fixes (<see cref="ModContentKind.LiquidTile"/>), the
+/// custom-data collection where null means "none", the fluid/tint/consumption
+/// defaults the definition declares and the layer helpers that need no payload.
+/// Nothing serializes a definition any more, so this suite pins the answers the
+/// definition itself owns.
 /// </summary>
 public class ModLiquidTileDefinitionTests
 {
 	[Fact]
-	public void RoundTrip_PreservesLiquidTileFields()
+	public void Identity_IsFixedByTheType()
 	{
-		var original = new ModLiquidTileDefinition
-		{
-			DisplayName = "Toxic Pool",
-			Description = "A pool of toxic liquid.",
-			LiquidId = "toxin",
-			FillLiquidId = "toxin",
-			Buoyancy = 0.4f,
-			Drag = 0.8f,
-			PushBodies = false,
-			WetnessPerSecond = 30f,
-			TemperaturePerSecond = -1f,
-			SicknessPerSecond = 2f,
-			DirtynessPerSecond = 3f,
-			DisinfectPerSecond = 0.5f,
-			SlipPerSecond = 0.1f,
-			RagdollBarDrainPerSecond = 0.2f,
-			VisualMode = ModLiquidTileVisualMode.ExistingLiquidPlusTint,
-			VisualLiquidByte = 3,
-			TintR = 0.2f,
-			TintG = 0.8f,
-			TintB = 0.4f,
-			TintA = 0.9f,
-			VisualAssetPath = "pools/toxic",
-			SpawnAmount = 4f,
-			SpawnLayers = ModLiquidTileDefinition.LayersToMask(2, 4),
-			MaxFloodFill = 256,
-			ConsumeOnDrink = true,
-			ConsumeOnFill = false
-		};
+		var defaults = new ModLiquidTileDefinition();
 
-		var restored = ModLiquidTileDefinition.FromPayload(original.ToPayload());
+		Assert.Equal(ModContentKind.LiquidTile, defaults.Kind);
+		Assert.Empty(defaults.Id);
+		Assert.Equal(1, defaults.SchemaVersion);
 
-		Assert.NotNull(restored);
-		Assert.Equal(original.DisplayName, restored!.DisplayName);
-		Assert.Equal(original.Description, restored.Description);
-		Assert.Equal(original.LiquidId, restored.LiquidId);
-		Assert.Equal(original.FillLiquidId, restored.FillLiquidId);
-		Assert.Equal(original.Buoyancy, restored.Buoyancy);
-		Assert.Equal(original.Drag, restored.Drag);
-		Assert.False(restored.PushBodies);
-		Assert.Equal(original.WetnessPerSecond, restored.WetnessPerSecond);
-		Assert.Equal(original.TemperaturePerSecond, restored.TemperaturePerSecond);
-		Assert.Equal(original.SicknessPerSecond, restored.SicknessPerSecond);
-		Assert.Equal(original.DirtynessPerSecond, restored.DirtynessPerSecond);
-		Assert.Equal(original.DisinfectPerSecond, restored.DisinfectPerSecond);
-		Assert.Equal(original.SlipPerSecond, restored.SlipPerSecond);
-		Assert.Equal(original.RagdollBarDrainPerSecond, restored.RagdollBarDrainPerSecond);
-		Assert.Equal(ModLiquidTileVisualMode.ExistingLiquidPlusTint, restored.VisualMode);
-		Assert.Equal(3, restored.VisualLiquidByte);
-		Assert.Equal(original.TintR, restored.TintR);
-		Assert.Equal(original.TintG, restored.TintG);
-		Assert.Equal(original.TintB, restored.TintB);
-		Assert.Equal(original.TintA, restored.TintA);
-		Assert.Equal("pools/toxic", restored.VisualAssetPath);
-		Assert.Equal(4f, restored.SpawnAmount);
-		Assert.Equal(original.SpawnLayers, restored.SpawnLayers);
-		Assert.Equal(256, restored.MaxFloodFill);
-		Assert.True(restored.ConsumeOnDrink);
-		Assert.False(restored.ConsumeOnFill);
+		var authored = new ModLiquidTileDefinition { Id = "test.toxic.pool", SchemaVersion = 2 };
+
+		Assert.Equal("test.toxic.pool", authored.Id);
+		Assert.Equal(2, authored.SchemaVersion);
+	}
+
+	[Fact]
+	public void NullCollectionMembers_MeanNone()
+	{
+		var definition = new ModLiquidTileDefinition { CustomData = null! };
+
+		Assert.Empty(definition.CustomData);
+	}
+
+	[Fact]
+	public void DeclaredDefaults_HoldOnAFreshDefinition()
+	{
+		var definition = new ModLiquidTileDefinition();
+
+		Assert.Empty(definition.DisplayName);
+		Assert.Empty(definition.Description);
+		Assert.Empty(definition.LiquidId);
+		Assert.Empty(definition.FillLiquidId);
+		Assert.Equal(0.6f, definition.Buoyancy);
+		Assert.Equal(0.915f, definition.Drag);
+		Assert.True(definition.PushBodies);
+		Assert.Equal(20f, definition.WetnessPerSecond);
+		Assert.Equal(ModLiquidTileVisualMode.ExistingLiquidPlusTint, definition.VisualMode);
+		Assert.Equal(1, definition.VisualLiquidByte);
+		Assert.Equal(1f, definition.TintR);
+		Assert.Equal(1f, definition.TintG);
+		Assert.Equal(1f, definition.TintB);
+		Assert.Equal(1f, definition.TintA);
+		Assert.Empty(definition.VisualAssetPath);
+		Assert.Equal(ModLiquidTileDefinition.AllSpawnLayers, definition.SpawnLayers);
+		Assert.Equal(128, definition.MaxFloodFill);
+		Assert.True(definition.ConsumeOnDrink);
+		Assert.True(definition.ConsumeOnFill);
 	}
 
 	[Fact]
@@ -84,13 +71,5 @@ public class ModLiquidTileDefinitionTests
 		Assert.False(new ModLiquidTileDefinition { SpawnLayers = 0 }.CanSpawnInLayer(0));
 		Assert.True(new ModLiquidTileDefinition { SpawnLayers = ModLiquidTileDefinition.LayersToMask(2) }.CanSpawnInLayer(1));
 		Assert.False(new ModLiquidTileDefinition { SpawnLayers = ModLiquidTileDefinition.LayersToMask(2) }.CanSpawnInLayer(0));
-	}
-
-	[Fact]
-	public void InvalidPayload_ReturnsNull()
-	{
-		Assert.Null(ModLiquidTileDefinition.FromPayload([]));
-		Assert.Null(ModLiquidTileDefinition.FromPayload([1, 2, 3]));
-		Assert.Null(ModLiquidTileDefinition.FromPayload(null!));
 	}
 }

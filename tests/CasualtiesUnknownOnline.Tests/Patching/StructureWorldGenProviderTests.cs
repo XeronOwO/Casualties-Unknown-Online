@@ -33,8 +33,8 @@ public class StructureWorldGenProviderTests
 		return Activator.CreateInstance(ProviderType, [logger])!;
 	}
 
-	private static ModContentRegistration Registration(string id, ModStructureDefinition definition) =>
-		new("mod.a", new ModContentDefinition(id, ModContentKind.Structure, definition.ToPayload(), 1));
+	private static ModContentRegistration Registration(ModStructureDefinition definition) =>
+		new("mod.a", definition);
 
 	private static string[] SnapshotIds(object provider)
 	{
@@ -62,6 +62,7 @@ public class StructureWorldGenProviderTests
 
 		var zebra = new ModStructureDefinition
 		{
+			Id = "zebra",
 			Width = 1,
 			Height = 1,
 			Rows = ["#"],
@@ -70,6 +71,7 @@ public class StructureWorldGenProviderTests
 		};
 		var alpha = new ModStructureDefinition
 		{
+			Id = "alpha",
 			Width = 1,
 			Height = 1,
 			Rows = ["#"],
@@ -77,8 +79,8 @@ public class StructureWorldGenProviderTests
 			SpawnCounts = [1]
 		};
 
-		Assert.True((bool)bind.Invoke(provider, [Registration("zebra", zebra)])!);
-		Assert.True((bool)bind.Invoke(provider, [Registration("alpha", alpha)])!);
+		Assert.True((bool)bind.Invoke(provider, [Registration(zebra)])!);
+		Assert.True((bool)bind.Invoke(provider, [Registration(alpha)])!);
 
 		var ids = SnapshotIds(provider);
 

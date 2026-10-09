@@ -31,7 +31,13 @@ public sealed class ExampleMod : ICuoMod
 	public void Bind(IModContext context)
 	{
 		_context = context;
-		context.Content.TryRegister("example.recipe", "recipe", [0x01, 0x02, 0x03]);
+		context.Content.TryRegister(new ModItemDefinition
+		{
+			Id = "example.trophy",
+			DisplayName = "Example Trophy",
+			Description = "Content registered by the CUO example mod.",
+			Category = "nospawn",
+		});
 
 		// The anonymous tunnel: one callback for every opaque payload this mod
 		// receives, and the fan-out written by hand.

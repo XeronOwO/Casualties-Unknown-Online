@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
@@ -9,7 +8,7 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModLiquidDefinition"/> payloads from shared-content mods
+/// Binds <see cref="ModLiquidDefinition"/> definitions from shared-content mods
 /// into the vanilla liquid registry. Static fields (color, value, health/
 /// injection flags, qualities and locale display text) are mapped into
 /// <c>LiquidType</c>; behavior callbacks are intentionally not part of this
@@ -47,17 +46,12 @@ public sealed class GameAdapterLiquidContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModLiquidDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModLiquidDefinition definition)
 		{
 			_log.LogWarning(
-				"[LiquidContent] {ModId}/{Id} payload is not a valid ModLiquidDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[LiquidContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModLiquidDefinition));
 			return false;
 		}
 

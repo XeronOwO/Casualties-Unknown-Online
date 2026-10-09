@@ -12,7 +12,7 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The generic content binder: it routes opaque content registrations to
+/// The generic content binder: it routes content registrations to
 /// per-kind providers after mod discovery, and it only binds content from
 /// network modes that guarantee all peers have the same static content.
 /// </summary>
@@ -25,7 +25,7 @@ public class ModContentBinderTests
 		var provider = new RecordingProvider(ModContentKind.Item);
 		var binder = CreateBinder(
 			new FakeContentControl(
-				new ModContentRegistration("shared.mod", new ModContentDefinition("sword", ModContentKind.Item, [], 1))),
+				new ModContentRegistration("shared.mod", new StubContentDefinition("sword", ModContentKind.Item))),
 			new FakeModsControl([
 				new ModManifest("shared.mod", "Shared", "1.0.0", NetworkMode.Synchronized, null)
 			]),
@@ -44,8 +44,8 @@ public class ModContentBinderTests
 		var provider = new RecordingProvider(ModContentKind.Item);
 		var binder = CreateBinder(
 			new FakeContentControl(
-				new ModContentRegistration("host.mod", new ModContentDefinition("sword", ModContentKind.Item, [], 1)),
-				new ModContentRegistration("shared.mod", new ModContentDefinition("tool", ModContentKind.Item, [], 1))),
+				new ModContentRegistration("host.mod", new StubContentDefinition("sword", ModContentKind.Item)),
+				new ModContentRegistration("shared.mod", new StubContentDefinition("tool", ModContentKind.Item))),
 			new FakeModsControl([
 				new ModManifest("host.mod", "Host", "1.0.0", NetworkMode.HostOnly, null),
 				new ModManifest("shared.mod", "Shared", "1.0.0", NetworkMode.Authoritative, null)
@@ -64,7 +64,7 @@ public class ModContentBinderTests
 		var provider = new RecordingProvider(ModContentKind.Item);
 		var binder = CreateBinder(
 			new FakeContentControl(
-				new ModContentRegistration("shared.mod", new ModContentDefinition("sword", ModContentKind.Item, [], 1))),
+				new ModContentRegistration("shared.mod", new StubContentDefinition("sword", ModContentKind.Item))),
 			new FakeModsControl([
 				new ModManifest("shared.mod", "Shared", "1.0.0", NetworkMode.RequiresAllPlayers, null)
 			]),
@@ -94,7 +94,7 @@ public class ModContentBinderTests
 		var binder = CreateBinder(
 			log,
 			new FakeContentControl(
-				new ModContentRegistration("shared.mod", new ModContentDefinition("future", "future-kind", [], 1))),
+				new ModContentRegistration("shared.mod", new StubContentDefinition("future", "future-kind"))),
 			new FakeModsControl([
 				new ModManifest("shared.mod", "Shared", "1.0.0", NetworkMode.Synchronized, null)
 			]),
@@ -116,8 +116,8 @@ public class ModContentBinderTests
 		var throwing = new ThrowingProvider(ModContentKind.Recipe);
 		var binder = CreateBinder(
 			new FakeContentControl(
-				new ModContentRegistration("shared.mod", new ModContentDefinition("sword", ModContentKind.Item, [], 1)),
-				new ModContentRegistration("shared.mod", new ModContentDefinition("soup", ModContentKind.Recipe, [], 1))),
+				new ModContentRegistration("shared.mod", new StubContentDefinition("sword", ModContentKind.Item)),
+				new ModContentRegistration("shared.mod", new StubContentDefinition("soup", ModContentKind.Recipe))),
 			new FakeModsControl([
 				new ModManifest("shared.mod", "Shared", "1.0.0", NetworkMode.Synchronized, null)
 			]),

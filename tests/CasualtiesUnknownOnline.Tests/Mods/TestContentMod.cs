@@ -22,8 +22,18 @@ public sealed class TestContentMod : ICuoMod
 	public void Bind(IModContext context)
 	{
 		Context = context;
-		Registered = context.Content.TryRegister("wooden.sword", "item", [1, 2, 3], 2);
-		context.Content.TryRegister("healing.recipe", "recipe", [4, 5]);
+		Registered = context.Content.TryRegister(new ModItemDefinition
+		{
+			Id = "wooden.sword",
+			SchemaVersion = 2,
+			DisplayName = "Wooden Sword",
+		});
+		context.Content.TryRegister(new ModRecipeDefinition
+		{
+			Id = "healing.recipe",
+			ResultItemId = "bandage",
+			Ingredients = [new ModRecipeIngredient { ItemId = "cloth" }],
+		});
 	}
 
 	public void Initialize()

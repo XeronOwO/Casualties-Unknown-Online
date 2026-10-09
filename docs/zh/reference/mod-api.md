@@ -207,8 +207,9 @@ context.Ui.Unregister("status");
 ```csharp
 if (context.Content.CanRegister)
 {
-    var itemBytes = new ModItemDefinition
+    context.Content.TryRegister(new ModItemDefinition
     {
+        Id = "wooden.sword",
         DisplayName = "Wooden Sword",
         Description = "A simple wooden sword.",
         Weight = 1f,
@@ -217,26 +218,31 @@ if (context.Content.CanRegister)
         Tags = "weapon",
         TemplateId = "stone",
         SpawnComponents = ["Example.WoodenSwordBehaviour, ExampleMod"]
-    }.ToPayload();
+    });
 
-    context.Content.TryRegister("wooden.sword", ModContentKind.Item, itemBytes);
-    context.Content.TryRegister("healing.recipe", ModContentKind.Recipe, myRecipeDefinitionBytes, schemaVersion: 2);
+    context.Content.TryRegister(new ModRecipeDefinition
+    {
+        Id = "healing.recipe",
+        SchemaVersion = 2,
+        ResultItemId = "bandage",
+        Ingredients = [new ModRecipeIngredient { ItemId = "cloth" }]
+    });
 }
-var itemDefs = context.Content.Definitions; // snapshot; payloads are copied on read
+var itemDefs = context.Content.Definitions; // the registered instances, not copies
 context.Content.TryUnregister("wooden.sword");
 ```
 
-- **作用域**：`IModContent` 是逐模组的不透明内容定义登记表。模组在 `Bind` 里登记 id、[内容类别](glossary.md)与不透明载荷，也可以声明一个正数的 `schemaVersion`（默认 1）。框架从不解释、序列化或迁移载荷，所以内容结构与版本归模组自己；存下的版本在每次读取定义时原样带出。
+- **作用域**：`IModContent` 是逐模组的有类型内容定义登记表。模组在 `Bind` 里构建下面某一张 DTO（或自己实现 `IModContentDefinition`），给它 id 与正数的 `schemaVersion`（默认 1），然后把对象本身登记进来。定义自带类别 —— 类别由类型固定 —— 所以类别不可能和数据对不上；框架也从不解释模组的成员：读它们的是按类别注册进来的那个提供者。登记表留下的是模组交出来的那个实例，所以注册之后就不要再改它。
 - **类别表列出的，就是框架真正能绑的**：`ModContentKind` 只有九个类别 —— `item`、`recipe`、`liquid`、`liquidtile`、`tile`、`building`、`structure`、`status`、`moodle` —— 每一个都对应下面的一张有类型 DTO。类别本身仍是模组自定义的标签，策略只校验它的形状、不校验它是否在这张表里，所以模组完全可以自造类别；但没有任何提供者的类别不会被实体化。这样的登记照样被接受，也照样可被枚举（运行时目录、归属查询与控制台的资源 id 补全都会列出它），而运行时绑定器会在加载时以警告级别点名这个类别与这条定义 —— 信息级别的「registered content」不是它的最终结论。CUO 有意不提供 `entity`、`setting`、`locale` 三个类别：设置与本地化是模组自己的事，模组实体类型是搁置的能力；在能绑它们的提供者出现之前，类别表里就不列它们。
 - **带命名空间的内容 id（content id）**：每个 CUO 内容 id 都是规范的 `namespace:path`。在清单里声明命名空间（`[CuoMod(..., Namespace = "mymod")]`），内容就可以用 `mymod:wooden.sword` 寻址，而游戏自带内容是 `cu:<item id>`（例如 `cu:fentanyl`）。[命名空间](glossary.md)的语法是 `[a-z][a-z0-9_]{0,31}`，路径是 `[a-z0-9][a-z0-9_.-]{0,94}`；Abstractions 里的 `ContentId` 负责解析、格式化，并把输入统一成小写。没声明命名空间的模组保留裸 id（按模组划分；跨模组重复仍会被报成冲突）。裸 id 同时也是内容提供者落到游戏表里的键，所以两个不同命名空间的模组为同一类别注册同一个裸 id，仍然是冲突 —— 规范地址能解析开，但游戏里只能存在一个条目。控制台的 `ResourceLocation` 补全接受规范 id 前缀、裸 id 或本地化显示名，并且总是插入规范 id。
 - **权限**：注册需要 `ModPermission.RegisterContent`。`CanRegister` 反映这份模组拷贝有没有声明该标志；每次 `TryRegister` 还会再强制一次。权限策略本来就拒绝在 `ClientOnly`／`Cosmetic` 上出现这个标志，所以只有带状态的模组才能注册内容。
-- **进程本地**：内容字节不过网络。内容是模组自身的一部分，所以一致性边界就是握手（模组 id／SemVer／权限／网络模式）；需要按客户端动态生成内容的模组要改用 `IModNetwork`／`IModCommands` 协调。
-- **规则**：id 或类别为空、载荷为 null 或超上限、结构版本不是正数、同一个模组内 id 重复，都会被拒；`TryUnregister` 撤掉一条定义。内容 id 必须已经是规范的小写路径段（`ContentId.IsValidPath`）：大写、空白、`:` 分隔符，以及超过 95 字符的 id 都被拒。安全栏：类别 ≤64 字符、结构版本必须为正、载荷 ≤64 KiB、每个模组 ≤1024 条定义。越界是拒绝加一行日志，绝不静默截断。
-- **框架读取视图**：`IModContentControl.Entries` 把每个模组登记的定义以只读快照的形式暴露给 CUO 的其他层（插件，以及将来的原生内容消费者）。运行时内容目录（`IModContentCatalog`）在此之上加了类别筛选、按类别加 id 的唯一解析，以及跨模组重复／结构版本冲突的诊断，而不解释载荷；它是将来原生内容绑定器的既定基础。
+- **进程本地**：内容定义不过网络。内容是模组自身的一部分，所以一致性边界就是握手（模组 id／SemVer／权限／网络模式）；需要按客户端动态生成内容的模组要改用 `IModNetwork`／`IModCommands` 协调。
+- **规则**：定义是 null、id 或类别为空、类别超过 64 字符、结构版本不是正数、同一个模组内 id 重复，都会被拒；`TryUnregister` 撤掉一条定义。内容 id 必须已经是规范的小写路径段（`ContentId.IsValidPath`）：大写、空白、`:` 分隔符，以及超过 95 字符的 id 都被拒。安全栏：类别 ≤64 字符、结构版本必须为正、每个模组 ≤1024 条定义。越界是拒绝加一行日志，绝不静默截断。
+- **框架读取视图**：`IModContentControl.Entries` 把每个模组登记的定义以只读快照的形式暴露给 CUO 的其他层（插件，以及将来的原生内容消费者）。运行时内容目录（`IModContentCatalog`）在此之上加了类别筛选、按类别加 id 的唯一解析，以及跨模组重复／结构版本冲突的诊断，而不去读定义里的成员；它是将来原生内容绑定器的既定基础。
 - **内容归属查询**：`context.ContentOwners.TryGetOwner(kind, id, out owner)` 能查出任一框架范围内注册内容的归属模组 id。它是 CUCoreLib 那套逐类别 `TryGetOwnerModGuid` 的迁移替代；查询只读、不需要权限，匹配与歧义策略与运行时目录一致 —— 类别加 id 重复就返回 false。
 - **共享内容的绑定边界**：运行时内容绑定器只接收那些网络模式能保证「每个可能收到这些内容实例的玩家都有同一份」的模组内容（`Synchronized`、`Authoritative`、`RequiresAllPlayers`）。`HostOnly`、`ClientOnly` 与 `Cosmetic` 的内容永远不绑进共享世界状态：没装同一个模组的客机无法安全地把主机专属物品实体化出来。这是「本地模组数据」与「公开／共享模组数据」之分在静态内容上的第一次具体实现。
 
-**有类型的内容定义。** Abstractions 为每个众所周知的类别提供一个 DTO；模组填好、调用 `ToPayload()`，框架依旧不透明地存字节，真正解码的是 Game Adapter。
+**有类型的内容定义。** Abstractions 为每个众所周知的类别提供一个 DTO；模组填好之后把对象本身登记进来。它的 `Kind` 是类型上的常量，所以绑它的正好就是读它的那个提供者；想自造类别的模组直接实现 `IModContentDefinition`。
 
 | DTO（类别） | 它携带什么，适配器怎么绑 |
 |---|---|
@@ -250,7 +256,7 @@ context.Content.TryUnregister("wooden.sword");
 | `ModStatusDefinition`（`Status`，第七个） | 显示与描述文本、身体／肢体作用域、可存盘元数据、可选的心情图标 id、可选的逐肢体心情图标路由（`ShowPerLimbMoodles` 加 `LimbMoodles`）和一个可扩展的 `CustomData` 字典。提供者校验作用域／id／存盘字段，把静态描述符存下作为迁移基底；它不创建逐玩家或逐肢体的状态袋 —— 动态运行值属于状态运行时接缝。 |
 | `ModMoodleDefinition`（`Moodle`，第八个） | 显示与描述文本、游戏自带的心情图标强度、稳定的图标／资源 id 键、critical／chipped／important 表现标志、持续秒数、可选的 `ModMoodleAnimation` 逐帧路径图标动画、可选的逐肢体显示／描述模板（`LimbDisplayNameFormat`／`LimbDescriptionFormat`）和一个可扩展的 `CustomData` 字典。提供者存下静态描述符；`ModStatusMoodleProjection` 把活跃的状态关联心情图标喂给原版心情图标管理器，`Moodle.Start` 补丁按作者的帧驱动原版界面图像。心情图标内容依旧不是线上特性。 |
 
-**null 就是「没有」。** 上述每份有类型契约里的集合成员 —— 列表、字典或 `byte[]` —— 为 null 时都表示「没有」，而且框架在载荷的两端都为此负责。成员自己的 setter 会把 null 归一，所以模组赋 null 得到的定义里，列表读出来是空的，写出去的载荷也是空集合而不是显式 nil。又因为载荷序列化器既不跑构造函数、也不跑字段初始值设定项，一份干脆**省略**了某个成员元素的载荷会让该成员根本没被赋值 —— 于是每个 `FromPayload` 都走同一个解码步骤（`ModPayloadCodec`），把解码出来的对象图里每个为 null 的集合成员换成空集合，嵌套契约与集合元素一并覆盖。再也没有哪个提供者去规整载荷里的集合，所以同一份定义不会因为「先被哪个消费者读到」而表现不同。真正必需的成员并不是例外：空集合会流进那个提供者自己的校验，由它带原因拒收 —— 没有帧路径的物品精灵动画、没有材料的配方、网格里一行都没有的结构。同一条规则也覆盖模组在代码里构造、而不是解码出来的那些集合（特性上的 `Dependencies`、`ModConsoleCommand.ArgumentKinds`、`ModManifest.Dependencies`、`ModPacket.Handlers`，以及运行时心情图标请求的 `Payload`）；`ModPayloadNullCollectionTests` 这份普查会枚举程序集里公开类上的每一个集合成员 —— 27 个载荷成员、上面这五个声明，以及登记表那个返回防御性副本的访问器 —— 并对每个成员验证三种形态（我们自己写出的载荷、显式 nil、元素被省略），新增一个都绕不过这条规则。
+**null 就是「没有」。** 上述每份定义里的集合成员 —— 列表、字典或 `byte[]` —— 为 null 时都表示「没有」，而且由成员自己负责：模组赋 null 得到的定义里，列表读出来就是空的。对内容定义来说，规则到此为止 —— 登记表留的是那个有类型对象，没有任何东西会去序列化它。规则的另一半仍然属于 CUO 自己跨边界的那些契约 —— `ModStatusUpdate` 与两份状态投影。它们的载荷序列化器既不跑构造函数、也不跑字段初始值设定项，一份干脆**省略**了某个成员元素的载荷会让该成员根本没被赋值 —— 于是每个 `FromPayload` 都走同一个解码步骤（`ModPayloadCodec`），把解码出来的对象图里每个为 null 的集合成员换成空集合，嵌套契约与集合元素一并覆盖。再也没有哪个提供者去规整载荷里的集合，所以同一份定义不会因为「先被哪个消费者读到」而表现不同。真正必需的成员并不是例外：空集合会流进那个提供者自己的校验，由它带原因拒收 —— 没有帧路径的物品精灵动画、没有材料的配方、网格里一行都没有的结构。同一条规则也覆盖模组在代码里构造、而不是解码出来的那些集合（特性上的 `Dependencies`、`ModConsoleCommand.ArgumentKinds`、`ModManifest.Dependencies`、`ModPacket.Handlers`，以及运行时心情图标请求的 `Payload`）；`ModPayloadNullCollectionTests` 这份普查会枚举程序集里公开类上的每一个集合成员 —— 跨边界载荷契约的成员、模组要填的那些声明，以及只能通过带参构造函数构建的那四个 —— 对每个成员都验证一次 null 写入，对跨边界载荷的成员还验证三种形态（我们自己写出的载荷、显式 nil、元素被省略），新增一个都绕不过这条规则。
 
 **制作品质标签。** 品质 id 是一枚*标签*：要么是游戏自带的（一个全小写的裸词，例如 `rippable` —— 模组用它表示「这份内容提供游戏自带的这个标签」），要么是模组自己写的、按内容 id 文法加命名空间的（`mymod:material`），后者把两个模组的词汇表分开。游戏比对标签用的是序数字符串比较，并且要求数量不低于材料声明的数量，所以模组写下什么，比的就是什么：声明的标签既不是规范形式的带命名空间 id、也不是裸的原版风格词时，绑定期就带警告拒收，而不是把它存成一枚永远匹配不上的标签。`ModItemDefinition.Qualities` 与 `ModLiquidDefinition.Qualities` 分别写进各自类别的游戏自带品质列表，于是一张按品质匹配的配方命中模组物品或液体，和命中游戏自带内容完全一样。
 

@@ -33,11 +33,11 @@
 	}
 	else if (mode == "bind") {
 		var definition = new CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition();
+		definition.Id = id;
 		definition.DisplayName = "Acceptance Runtime Template";
 		definition.Description = "acceptance-only runtime building template";
 		definition.TemplateId = template;
-		var content = new CasualtiesUnknownOnline.Abstractions.ModContentDefinition(id, CasualtiesUnknownOnline.Abstractions.ModContentKind.Building, definition.ToPayload());
-		var registration = new CasualtiesUnknownOnline.Runtime.Session.Mods.ModContentRegistration(owner, content, null);
+		var registration = new CasualtiesUnknownOnline.Runtime.Session.Mods.ModContentRegistration(owner, definition, null);
 		accepted = provider.TryBind(registration);
 		detail = accepted ? "bound" : "refused";
 	}

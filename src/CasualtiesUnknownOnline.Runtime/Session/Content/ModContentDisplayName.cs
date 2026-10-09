@@ -3,26 +3,26 @@ using CasualtiesUnknownOnline.Abstractions;
 namespace CasualtiesUnknownOnline.Runtime.Session.Content;
 
 /// <summary>
-/// Resolves the human-readable name of a mod content definition from its
-/// well-known typed DTO. Content payloads stay opaque to the framework, but the
-/// typed DTOs in Abstractions are the framework's own contract, so the console
-/// can show a display name without the Game Adapter. Kinds without a typed
-/// display name (for example recipes) fall back to the registered id.
+/// Resolves the human-readable name of a mod content definition from the typed
+/// definition the mod registered. The registry keeps the mod's own typed object,
+/// so the console can show a display name without the Game Adapter and without
+/// decoding anything. Kinds without a typed display name (recipes, or a kind a
+/// mod declared itself) fall back to the registered id.
 /// </summary>
 internal static class ModContentDisplayName
 {
-	public static string Resolve(ModContentDefinition definition)
+	public static string Resolve(IModContentDefinition definition)
 	{
-		var displayName = definition.Kind switch
+		var displayName = definition switch
 		{
-			ModContentKind.Item => ModItemDefinition.FromPayload(definition.Data)?.DisplayName,
-			ModContentKind.Liquid => ModLiquidDefinition.FromPayload(definition.Data)?.DisplayName,
-			ModContentKind.LiquidTile => ModLiquidTileDefinition.FromPayload(definition.Data)?.DisplayName,
-			ModContentKind.Tile => ModTileDefinition.FromPayload(definition.Data)?.DisplayName,
-			ModContentKind.Building => ModBuildingDefinition.FromPayload(definition.Data)?.DisplayName,
-			ModContentKind.Structure => ModStructureDefinition.FromPayload(definition.Data)?.DisplayName,
-			ModContentKind.Status => ModStatusDefinition.FromPayload(definition.Data)?.DisplayName,
-			ModContentKind.Moodle => ModMoodleDefinition.FromPayload(definition.Data)?.DisplayName,
+			ModItemDefinition item => item.DisplayName,
+			ModLiquidDefinition liquid => liquid.DisplayName,
+			ModLiquidTileDefinition liquidTile => liquidTile.DisplayName,
+			ModTileDefinition tile => tile.DisplayName,
+			ModBuildingDefinition building => building.DisplayName,
+			ModStructureDefinition structure => structure.DisplayName,
+			ModStatusDefinition status => status.DisplayName,
+			ModMoodleDefinition moodle => moodle.DisplayName,
 			_ => null,
 		};
 

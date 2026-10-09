@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -7,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModMoodleDefinition"/> payloads from shared-content mods
+/// Binds <see cref="ModMoodleDefinition"/> definitions from shared-content mods
 /// into a small, validated static moodle/presentation descriptor registry.
 /// This provider intentionally does not feed the vanilla moodle manager: custom
 /// moodle display is a GameAdapter/local-UI concern and needs a real UI seam.
@@ -25,17 +24,12 @@ public sealed class GameAdapterMoodleContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModMoodleDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModMoodleDefinition definition)
 		{
 			_log.LogWarning(
-				"[MoodleContent] {ModId}/{Id} payload is not a valid ModMoodleDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[MoodleContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModMoodleDefinition));
 			return false;
 		}
 

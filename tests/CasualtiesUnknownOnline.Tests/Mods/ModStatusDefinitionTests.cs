@@ -1,69 +1,65 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// The typed status content payload contract: a mod can serialize a
-/// <see cref="ModStatusDefinition"/> into the opaque byte payload and the
-/// Runtime/Game Adapter can read it back without a private format.
+/// The typed status definition a mod hands to <see cref="IModContent"/>: the
+/// identity its type fixes (<see cref="ModContentKind.Status"/>), the collection
+/// members where null means "none", the body/limb defaults the definition
+/// declares, and the per-limb moodle routing that needs no payload. Nothing
+/// serializes a definition any more, so this suite pins the answers the
+/// definition itself owns.
 /// </summary>
 public class ModStatusDefinitionTests
 {
 	[Fact]
-	public void RoundTrip_PreservesCoreFields()
+	public void Identity_IsFixedByTheType()
 	{
-		var original = new ModStatusDefinition
-		{
-			DisplayName = "Lead Poisoning",
-			Description = "Slowly accumulating heavy-metal exposure.",
-			Scope = ModStatusScope.Limb,
-			SaveEnabled = false,
-			MoodleId = "moodle.lead",
-			ShowPerLimbMoodles = true,
-			LimbMoodles =
-			[
-				new ModLimbMoodleBinding { LimbName = "LeftArm", MoodleId = "moodle.lead.left" },
-				new ModLimbMoodleBinding { LimbName = "RightArm", MoodleId = "moodle.lead.right" }
-			],
-			CustomData = new Dictionary<string, string>
-			{
-				["mod.metadata"] = "kept"
-			}
-		};
+		var defaults = new ModStatusDefinition();
 
-		var restored = ModStatusDefinition.FromPayload(original.ToPayload());
+		Assert.Equal(ModContentKind.Status, defaults.Kind);
+		Assert.Empty(defaults.Id);
+		Assert.Equal(1, defaults.SchemaVersion);
 
-		Assert.NotNull(restored);
-		Assert.Equal(original.DisplayName, restored!.DisplayName);
-		Assert.Equal(original.Description, restored.Description);
-		Assert.Equal(ModStatusScope.Limb, restored.Scope);
-		Assert.False(restored.SaveEnabled);
-		Assert.Equal("moodle.lead", restored.MoodleId);
-		Assert.True(restored.ShowPerLimbMoodles);
-		Assert.Equal(2, restored.LimbMoodles.Count);
-		Assert.Equal("LeftArm", restored.LimbMoodles[0].LimbName);
-		Assert.Equal("moodle.lead.left", restored.LimbMoodles[0].MoodleId);
-		Assert.Equal("RightArm", restored.LimbMoodles[1].LimbName);
-		Assert.Equal("moodle.lead.right", restored.LimbMoodles[1].MoodleId);
-		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
+		var authored = new ModStatusDefinition { Id = "test.lead", SchemaVersion = 3 };
+
+		Assert.Equal("test.lead", authored.Id);
+		Assert.Equal(3, authored.SchemaVersion);
 	}
 
 	[Fact]
-	public void RoundTrip_PreservesOptionalDefaults()
+	public void NullCollectionMembers_MeanNone()
 	{
-		var original = new ModStatusDefinition();
+		var definition = new ModStatusDefinition
+		{
+			CustomData = null!,
+			LimbMoodles = null!
+		};
 
-		var restored = ModStatusDefinition.FromPayload(original.ToPayload());
+		Assert.Empty(definition.CustomData);
+		Assert.Empty(definition.LimbMoodles);
+	}
 
-		Assert.NotNull(restored);
-		Assert.Equal(ModStatusScope.Body, restored!.Scope);
-		Assert.True(restored.SaveEnabled);
-		Assert.Empty(restored.MoodleId);
-		Assert.False(restored.ShowPerLimbMoodles);
-		Assert.Empty(restored.LimbMoodles);
-		Assert.Empty(restored.CustomData);
+	[Fact]
+	public void DeclaredDefaults_HoldOnAFreshDefinition()
+	{
+		var definition = new ModStatusDefinition();
+
+		Assert.Empty(definition.DisplayName);
+		Assert.Empty(definition.Description);
+		Assert.Equal(ModStatusScope.Body, definition.Scope);
+		Assert.True(definition.SaveEnabled);
+		Assert.Empty(definition.MoodleId);
+	}
+
+	[Fact]
+	public void LimbBindingDefaults_HoldOnAFreshBinding()
+	{
+		var binding = new ModLimbMoodleBinding();
+
+		Assert.Empty(binding.LimbName);
+		Assert.Empty(binding.MoodleId);
 	}
 
 	[Fact]
@@ -112,13 +108,5 @@ public class ModStatusDefinitionTests
 
 		Assert.Equal("moodle.body", bodyStatus.ResolveMoodleId("LeftArm"));
 		Assert.Equal("moodle.default", limbStatus.ResolveMoodleId("LeftArm"));
-	}
-
-	[Fact]
-	public void InvalidPayload_ReturnsNull()
-	{
-		Assert.Null(ModStatusDefinition.FromPayload([]));
-		Assert.Null(ModStatusDefinition.FromPayload([1, 2, 3]));
-		Assert.Null(ModStatusDefinition.FromPayload(null!));
 	}
 }

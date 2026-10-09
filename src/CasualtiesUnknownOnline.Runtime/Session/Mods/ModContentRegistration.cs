@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// none), and the mod-scoped definition. Returning this to consumers keeps the
 /// per-mod namespace explicit without leaking the ModService internals.
 /// </summary>
-public sealed record ModContentRegistration(string ModId, ModContentDefinition Definition, string? Namespace = null)
+public sealed record ModContentRegistration(string ModId, IModContentDefinition Definition, string? Namespace = null)
 {
 	/// <summary>
 	/// The canonical <c>namespace:path</c> id of this entry. False when the mod

@@ -44,9 +44,8 @@ public class GameAdapterItemInjectionContractTests
 			.SetValue(null, table);
 
 		var provider = Activator.CreateInstance(providerType, CreateLogger(providerType))!;
-		var payload = new ModItemDefinition { DisplayName = "Mod Bandage" }.ToPayload();
 		var registration = new ModContentRegistration(
-			"mod.a", new ModContentDefinition("bandage", ModContentKind.Item, payload));
+			"mod.a", new ModItemDefinition { Id = "bandage", DisplayName = "Mod Bandage" });
 
 		Assert.True((bool)providerType.GetMethod("TryBind")!.Invoke(provider, [registration])!,
 			"a mod definition may be accepted even when its id collides with a vanilla item");

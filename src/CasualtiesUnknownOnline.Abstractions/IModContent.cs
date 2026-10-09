@@ -6,22 +6,10 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// The mod content registration surface (Phase 4 Mod API remainder).
 /// A mod registers its content definitions — items, recipes, NPC types,
 /// skills, map entries and similar static facts — with the framework so other
-/// CUO layers can discover and consume them. The framework stores the
-/// definitions as opaque bytes and never interprets the mod's payload.
-///
-/// One rule governs every collection member of every typed payload contract in
-/// this assembly: <b>null means empty</b>. A mod that assigns null to a list,
-/// dictionary or byte array round-trips an explicit nil — the payload
-/// serializer runs no property initializer — and decoding it yields an empty
-/// collection, never a definition the binder skips with a logged exception.
-/// Both ends of a payload answer for it: the member's own setter coalesces a
-/// null write, and the shared decode step behind every contract's
-/// <c>FromPayload</c> (<c>ModPayloadCodec</c>) replaces a null collection member
-/// of the decoded graph with an empty one, nested contracts included — because a
-/// payload that OMITS a member's element never reaches the setter at all. A
-/// member that is genuinely required refuses an empty collection with its own
-/// message, and <c>ModPayloadNullCollectionTests</c> enumerates every such
-/// member from these contracts.
+/// CUO layers can discover and consume them. The definition carries its own id,
+/// kind and schema version (<see cref="IModContentDefinition"/>), so the kind
+/// travels with the object and the registry reads nothing but the typed members
+/// the mod handed it.
 ///
 /// Registration requires <see cref="ModPermission.RegisterContent"/>: nothing
 /// is implicit, and the permission policy already refuses that flag on
@@ -31,6 +19,9 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// is the consistency boundary; a mod that needs client-specific dynamic
 /// content must coordinate through <see cref="IModNetwork"/> /
 /// <see cref="IModCommands"/> instead.
+///
+/// The registry stores the definition object as it was handed over — it makes
+/// no copy — so a mod registers a definition it does not mutate afterwards.
 /// </summary>
 public interface IModContent
 {
@@ -41,20 +32,13 @@ public interface IModContent
 	bool CanRegister { get; }
 
 	/// <summary>
-	/// Register one content definition with schema version 1. Returns false (with
-	/// a framework log) when the mod lacks <see cref="ModPermission.RegisterContent"/>,
-	/// the id/kind/payload fails the content policy rails, or the id is already
-	/// registered by this mod. Register during <see cref="ICuoMod.Bind"/>.
+	/// Register one content definition. Returns false (with a framework log)
+	/// when the mod lacks <see cref="ModPermission.RegisterContent"/>, the
+	/// definition is null, its id or kind fails the content policy rails, its
+	/// schema version is not positive, or the id is already registered by this
+	/// mod. Register during <see cref="ICuoMod.Bind"/>.
 	/// </summary>
-	bool TryRegister(string id, string kind, byte[] data);
-
-	/// <summary>
-	/// Register one content definition with a mod-owned schema version. The
-	/// framework stores the version verbatim and never migrates the payload, so
-	/// the mod owns schema compatibility. Returns false for the same reasons as
-	/// the version-1 overload plus a non-positive schema version.
-	/// </summary>
-	bool TryRegister(string id, string kind, byte[] data, int schemaVersion);
+	bool TryRegister(IModContentDefinition definition);
 
 	/// <summary>Remove a previously registered definition by id. Returns false when no such id exists.</summary>
 	bool TryUnregister(string id);
@@ -63,10 +47,10 @@ public interface IModContent
 	bool IsRegistered(string id);
 
 	/// <summary>
-	/// A snapshot of this mod's registered definitions (copy — safe to hold).
-	/// Each definition's payload is copied on read.
+	/// A snapshot of this mod's registered definitions: the instances the mod
+	/// registered, not copies of them.
 	/// </summary>
-	IReadOnlyCollection<ModContentDefinition> Definitions { get; }
+	IReadOnlyCollection<IModContentDefinition> Definitions { get; }
 
 	/// <summary>The number of registered definitions for this mod.</summary>
 	int Count { get; }

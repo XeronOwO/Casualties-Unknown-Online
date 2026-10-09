@@ -12,115 +12,156 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
 /// <summary>
-/// One rule for every collection member of every mod-authored payload contract
-/// in Abstractions: <b>null means empty</b>, and the member itself owns that
-/// rule. A member can be null two ways, and the fix has to answer both: an
-/// explicit nil reaches the member's coalescing setter, while an element the
-/// payload OMITS is never set at all — the serializer runs no constructor and
-/// no initializer — so only the decode seam can repair it. A provider that
-/// dereferences either shape without a guard turns "I did not set this" into a
-/// definition the binder skips with a logged exception.
+/// One rule for every collection member of every mod-authored declaration in
+/// Abstractions: <b>null means empty</b>, and the declaration itself owns that
+/// rule.
 ///
-/// This suite is the census: its rows are DISCOVERED from the contracts, so a
-/// new collection member becomes a new row automatically and a member that
-/// forgets the rule fails here instead of in a provider months later. A member
-/// that is nested (a list on a behaviour DTO, on a sprite animation, on a
-/// container) is reached through the contract that carries it, which is the
-/// same <c>ToPayload</c>/<c>FromPayload</c> pair a provider decodes.
+/// The rule used to need two halves because a payload had two shapes: an
+/// explicit nil reached the member's coalescing setter, while an element the
+/// payload OMITTED was never set at all — the serializer runs no constructor and
+/// no initializer — so only the decode seam (<c>ModPayloadCodec</c>) could
+/// repair it. A content definition is a typed object now
+/// (<see cref="IModContentDefinition"/>): the registry keeps the instance the mod
+/// built and nothing serializes it, so the decode half has shrunk to the
+/// contracts CUO itself carries over a boundary (<see cref="ModStatusUpdate"/>
+/// and the two status projections), and the member half is what every
+/// mod-authored declaration answers for.
+///
+/// This suite is the census of both halves. Its rows are DISCOVERED, so a new
+/// collection member becomes a new row automatically and a member that forgets
+/// the rule fails here instead of in a provider months later: every collection
+/// member of a travelling payload contract is driven through all three payload
+/// shapes, and every other collection member the assembly declares — the
+/// content definitions a mod fills in, nested member objects included — is
+/// driven with a null write.
 /// </summary>
 public class ModPayloadNullCollectionTests
 {
 	/// <summary>
-	/// The number of collection members the payload contracts carry. It is a
-	/// floor, not a formality: adding or removing a member must move this number
-	/// in the same change, which is what makes the census a deliberate act.
+	/// The number of collection members the travelling payload contracts carry.
+	/// It is a floor, not a formality: adding or removing a member must move this
+	/// number in the same change, which is what makes the census a deliberate act.
 	/// </summary>
-	private const int ExpectedMemberCount = 27;
+	private const int ExpectedPayloadMemberCount = 1;
+
+	/// <summary>
+	/// The number of collection members a mod fills in on a declaration it builds
+	/// in code — the runtime moodle request included, because a caller builds it
+	/// with an object initializer. Same rule: the number moves only when a member
+	/// does.
+	/// </summary>
+	private const int ExpectedConstructedMemberCount = 27;
 
 	private static readonly XNamespace Xsi = "http://www.w3.org/2001/XMLSchema-instance";
 
-	private static readonly IReadOnlyList<CollectionMember> Members = DiscoverCollectionMembers();
+	/// <summary>
+	/// The declarations whose only constructor takes arguments (an attribute, a
+	/// manifest, a packet or a command), so the discovery below cannot instantiate
+	/// them and their own test pins them. A declaration a caller can build with an
+	/// object initializer is discovered like every other mod-built declaration.
+	/// </summary>
+	private static readonly string[] ParameterObjectMembers =
+	[
+		"CuoModAttribute.Dependencies",
+		"ModConsoleCommand.ArgumentKinds",
+		"ModManifest.Dependencies",
+		"ModPacket.Handlers",
+	];
 
-	private static readonly Dictionary<string, CollectionMember> MembersByName =
-		Members.ToDictionary(member => member.Name, StringComparer.Ordinal);
+	private static readonly IReadOnlyList<CollectionMember> PayloadMembers = DiscoverPayloadMembers();
 
-	/// <summary>One row per collection member, so a failure names the exact member.</summary>
-	public static IEnumerable<object[]> CollectionMemberNames =>
-		Members.Select(member => new object[] { member.Name });
+	private static readonly IReadOnlyList<ConstructedMember> ConstructedMembers = DiscoverConstructedMembers();
+
+	private static readonly Dictionary<string, CollectionMember> PayloadMembersByName =
+		PayloadMembers.ToDictionary(member => member.Name, StringComparer.Ordinal);
+
+	private static readonly Dictionary<string, ConstructedMember> ConstructedMembersByName =
+		ConstructedMembers.ToDictionary(member => member.Name, StringComparer.Ordinal);
+
+	/// <summary>One row per travelling payload member, so a failure names the exact member.</summary>
+	public static IEnumerable<object[]> PayloadMemberNames =>
+		PayloadMembers.Select(member => new object[] { member.Name });
+
+	/// <summary>One row per mod-built declaration member, so a failure names the exact member.</summary>
+	public static IEnumerable<object[]> ConstructedMemberNames =>
+		ConstructedMembers.Select(member => new object[] { member.Name });
 
 	[Fact]
-	public void Census_CoversEveryCollectionMemberOfEveryPayloadContract()
+	public void Census_CoversEveryCollectionMemberOfEveryTravellingPayloadContract()
 	{
-		Assert.Equal(ExpectedMemberCount, Members.Count);
+		Assert.Equal(ExpectedPayloadMemberCount, PayloadMembers.Count);
 
 		// The scan is a TYPE SHAPE rule, and both directions are pinned: a
-		// non-collection member of the same contract is not a row, a nested
-		// contract's collection member is one with the parent as its carrier,
-		// and a contract that is not part of a payload at all is not a row.
-		Assert.DoesNotContain(Members, member => member.Property.Name == nameof(ModItemDefinition.DisplayName));
-		Assert.DoesNotContain(Members, member => member.Carrier == typeof(ModManifest));
-		Assert.Contains(Members, member => member is
-		{ Carrier: var carrier, Property.Name: "TagRestriction" } && carrier == typeof(ModItemDefinition));
-		Assert.Contains(Members, member => member is
-		{ Carrier: var carrier, Property.Name: "FramePaths" } && carrier == typeof(ModItemDefinition));
-		Assert.Contains(Members, member => member.Property.Name == nameof(ModStatusUpdate.Value));
+		// non-collection member of the same contract is not a row, and a content
+		// definition is not a payload contract at all any more — it is a
+		// declaration the mod builds, so its members belong to the other census.
+		Assert.Contains(PayloadMembers, member => member.Property.Name == nameof(ModStatusUpdate.Value));
+		Assert.DoesNotContain(PayloadMembers, member => member.Carrier == typeof(ModItemDefinition));
+		Assert.DoesNotContain(PayloadMembers, member => member.Property.Name == nameof(ModItemDefinition.DisplayName));
 
 		// Every member reads non-null on a CONSTRUCTED instance. That is the
 		// member initializer doing its job and it says nothing about a decoded
 		// one: the serializer runs no initializer, which is why the theory below
 		// drives the omitted shape separately.
-		Assert.All(Members, member => Assert.NotNull(member.Property.GetValue(Reached(NewCarrier(member), member))));
-
-		// The assembly has no collection member outside this census: the payload
-		// contracts above plus the declarations a mod builds in code, which own
-		// the same rule at their own construction point (the case below pins
-		// them). A new one anywhere fails here until it is accounted for. The
-		// scan is over public CLASSES because an interface member is a read-only
-		// view the framework answers, not a declaration a mod fills in.
-		Assert.Equal(
-			[
-				.. new[]
-				{
-					"CuoModAttribute.Dependencies",
-					"ModConsoleCommand.ArgumentKinds",
-					// Not a mod-authored member: the registry's defensive copy of
-					// bytes the registration policy already refused when null, so
-					// the accessor can never answer null either.
-					"ModContentDefinition.Data",
-					"ModManifest.Dependencies",
-					"ModPacket.Handlers",
-					"ModStatusMoodleRequest.Payload",
-				}
-					.Concat(Members.Select(member => member.Name))
-					.OrderBy(name => name, StringComparer.Ordinal),
-			],
-			EveryCollectionMemberInTheAssembly());
+		Assert.All(PayloadMembers, member => Assert.NotNull(member.Property.GetValue(Reached(NewCarrier(member), member))));
 	}
 
 	[Fact]
-	public void CodeConstructedDeclarations_TreatNullAsNone()
+	public void Census_CoversEveryModAuthoredDeclarationTheAssemblyBuilds()
+	{
+		Assert.Equal(ExpectedConstructedMemberCount, ConstructedMembers.Count);
+
+		// Both directions again: a member a mod fills in is a row — the item
+		// definition carries its own list, its nested container and its nested
+		// sprite animation each carry theirs — while a payload contract's member
+		// is not, and the declarations that need constructor arguments are named
+		// separately rather than silently dropped.
+		Assert.Contains(ConstructedMembers, member => member.Name == "ModItemDefinition.SpawnComponents");
+		Assert.Contains(ConstructedMembers, member => member.Name == "ModItemDefinition.CustomData");
+		Assert.Contains(ConstructedMembers, member => member.Name == "ModItemContainer.TagRestriction");
+		Assert.Contains(ConstructedMembers, member => member.Name == "ModItemSpriteAnimation.FramePaths");
+		Assert.Contains(ConstructedMembers, member => member.Name == "ModRecipeDefinition.Ingredients");
+		Assert.DoesNotContain(ConstructedMembers, member => member.Carrier == typeof(ModStatusUpdate));
+
+		// The assembly has no collection member outside this census: the rows
+		// above plus the declarations that need constructor arguments. A new one
+		// anywhere fails here until it is accounted for. The scan is over public
+		// CLASSES because an interface member is a read-only view the framework
+		// answers, not a declaration a mod fills in.
+		Assert.Equal(
+			[
+				.. ParameterObjectMembers
+					.Concat(PayloadMembers.Select(member => member.Name))
+					.Concat(ConstructedMembers.Select(member => member.Name))
+					.OrderBy(name => name, StringComparer.Ordinal),
+			],
+			EveryCollectionMemberInTheAssembly());
+
+		// Every one of them reads non-null before anything is assigned: that is
+		// the initializer, and it is what keeps a provider from dereferencing a
+		// list the mod never filled in.
+		Assert.All(ConstructedMembers, member =>
+		{
+			var carrier = Activator.CreateInstance(member.Carrier)!;
+			Assert.NotNull(member.Property.GetValue(carrier));
+		});
+	}
+
+	[Fact]
+	public void ParameterObjectDeclarations_TreatNullAsNone()
 	{
 		Assert.Empty(new CuoModAttribute("mod.a", "A", "1.0.0") { Dependencies = null! }.Dependencies);
 		Assert.Empty(new ModManifest("mod.a", "A", "1.0.0", NetworkMode.Synchronized, null, dependencies: null!).Dependencies);
 		Assert.Empty(new ModPacket("packet.a", ModPacketSender.AnyMember, ModPacketDelivery.EveryMember, (ModPacketHandler[])null!).Handlers);
-		Assert.Empty(new ModStatusMoodleRequest { Payload = null! }.Payload);
 		Assert.Empty(new ModConsoleCommand(
 			"echo", "Echo a line", "echo <text>", CommandPermission.Anyone, null!, _ => null).ArgumentKinds);
 	}
 
-	private static IReadOnlyList<string> EveryCollectionMemberInTheAssembly() =>
-		[.. typeof(IModContent).Assembly.GetTypes()
-			.Where(type => type.IsClass && (type.IsPublic || type.IsNestedPublic))
-			.SelectMany(type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-				.Where(property => IsCollection(property.PropertyType))
-				.Select(property => $"{type.Name}.{property.Name}"))
-			.OrderBy(name => name, StringComparer.Ordinal)];
-
 	[Theory]
-	[MemberData(nameof(CollectionMemberNames))]
+	[MemberData(nameof(PayloadMemberNames))]
 	public void ExplicitlyNullCollection_IsNoneInBothPaths(string memberName)
 	{
-		var member = MembersByName[memberName];
+		var member = PayloadMembersByName[memberName];
 		var definition = NewCarrier(member);
 
 		// A payload we built ourselves never carries an explicit nil for a
@@ -151,7 +192,33 @@ public class ModPayloadNullCollectionTests
 			$"{member.Name} was re-encoded as an explicit nil after decoding an omitted element.");
 	}
 
-	private static IReadOnlyList<CollectionMember> DiscoverCollectionMembers()
+	[Theory]
+	[MemberData(nameof(ConstructedMemberNames))]
+	public void NullCollectionWrite_IsNone(string memberName)
+	{
+		var member = ConstructedMembersByName[memberName];
+		var declaration = Activator.CreateInstance(member.Carrier)!;
+
+		member.Property.SetValue(declaration, null);
+
+		AssertEmpty(member, member.Property.GetValue(declaration));
+	}
+
+	private static IReadOnlyList<string> EveryCollectionMemberInTheAssembly() =>
+		[.. typeof(IModContent).Assembly.GetTypes()
+			.Where(type => type.IsClass && (type.IsPublic || type.IsNestedPublic))
+			.SelectMany(type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+				.Where(property => IsCollection(property.PropertyType))
+				.Select(property => $"{type.Name}.{property.Name}"))
+			.OrderBy(name => name, StringComparer.Ordinal)];
+
+	/// <summary>
+	/// Every collection member of every contract CUO itself carries over a
+	/// boundary: a <c>[DataContract]</c> class reachable from a payload root (the
+	/// type that owns the <c>ToPayload</c>/<c>FromPayload</c> pair), with the
+	/// member path that reaches it.
+	/// </summary>
+	private static IReadOnlyList<CollectionMember> DiscoverPayloadMembers()
 	{
 		var contracts = typeof(IModContent).Assembly.GetTypes()
 			.Where(type => type.IsClass && type.GetCustomAttribute<DataContractAttribute>() is not null)
@@ -169,6 +236,25 @@ public class ModPayloadNullCollectionTests
 				.OrderBy(member => member.Name, StringComparer.Ordinal),
 		];
 	}
+
+	/// <summary>
+	/// Every collection member of every declaration a mod builds in code: a
+	/// public class the assembly exposes that is not a travelling payload
+	/// contract and that a mod can instantiate with no arguments. The ones that
+	/// need constructor arguments are named by <see cref="ParameterObjectMembers"/>
+	/// and pinned by their own test, and the equality assertion in the census
+	/// fails if a class moves between the two groups.
+	/// </summary>
+	private static IReadOnlyList<ConstructedMember> DiscoverConstructedMembers() =>
+		[.. typeof(IModContent).Assembly.GetTypes()
+			.Where(type => type.IsClass
+				&& (type.IsPublic || type.IsNestedPublic)
+				&& type.GetCustomAttribute<DataContractAttribute>() is null
+				&& type.GetConstructor(Type.EmptyTypes) is not null)
+			.SelectMany(type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+				.Where(property => IsCollection(property.PropertyType))
+				.Select(property => new ConstructedMember(type, property)))
+			.OrderBy(member => member.Name, StringComparer.Ordinal)];
 
 	/// <summary>
 	/// Every contract's way into a payload: the root contract that owns the
@@ -305,10 +391,21 @@ public class ModPayloadNullCollectionTests
 		Assert.Empty((IEnumerable)value!);
 	}
 
+	private static void AssertEmpty(ConstructedMember member, object? value)
+	{
+		Assert.True(value is not null, $"{member.Name} read back null instead of an empty collection.");
+		Assert.Empty((IEnumerable)value!);
+	}
+
 	private sealed record Carrier(Type Root, IReadOnlyList<PropertyInfo> Path);
 
 	private sealed record CollectionMember(Type Carrier, IReadOnlyList<PropertyInfo> Path, PropertyInfo Property)
 	{
 		internal string Name => $"{Property.DeclaringType!.Name}.{Property.Name}";
+	}
+
+	private sealed record ConstructedMember(Type Carrier, PropertyInfo Property)
+	{
+		internal string Name => $"{Carrier.Name}.{Property.Name}";
 	}
 }

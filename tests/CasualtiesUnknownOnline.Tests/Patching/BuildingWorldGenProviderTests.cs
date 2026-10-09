@@ -35,14 +35,12 @@ public class BuildingWorldGenProviderTests
 		return Activator.CreateInstance(ProviderType, [logger, buildingRuntime])!;
 	}
 
-	private static bool TryBind(object provider, string id, ModBuildingDefinition definition)
+	private static bool TryBind(object provider, ModBuildingDefinition definition)
 	{
 		var bind = provider.GetType().GetMethod(
 			"TryBind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("TryBind not found.");
-		var registration = new ModContentRegistration(
-			"mod.a",
-			new ModContentDefinition(id, ModContentKind.Building, definition.ToPayload(), 1));
+		var registration = new ModContentRegistration("mod.a", definition);
 		return (bool)bind.Invoke(provider, [registration])!;
 	}
 
@@ -63,11 +61,13 @@ public class BuildingWorldGenProviderTests
 	}
 
 	private static ModBuildingDefinition ValidBuilding(
+		string id,
 		float? min = 0.01f,
 		float? max = 0.05f,
 		ModBuildingGenerationStyle style = ModBuildingGenerationStyle.Standard) =>
 		new()
 		{
+			Id = id,
 			TemplateId = "crate",
 			SpawnMinPerChunk = min,
 			SpawnMaxPerChunk = max,
@@ -79,10 +79,10 @@ public class BuildingWorldGenProviderTests
 	{
 		var provider = CreateProvider();
 
-		Assert.True(TryBind(provider, "zebra", ValidBuilding(0.01f, 0.02f)));
-		Assert.True(TryBind(provider, "alpha", ValidBuilding(0.01f, 0.02f)));
-		Assert.True(TryBind(provider, "disabled", ValidBuilding(null, null)));
-		Assert.True(TryBind(provider, "none", ValidBuilding(0.01f, 0.02f, ModBuildingGenerationStyle.None)));
+		Assert.True(TryBind(provider, ValidBuilding("zebra", 0.01f, 0.02f)));
+		Assert.True(TryBind(provider, ValidBuilding("alpha", 0.01f, 0.02f)));
+		Assert.True(TryBind(provider, ValidBuilding("disabled", null, null)));
+		Assert.True(TryBind(provider, ValidBuilding("none", 0.01f, 0.02f, ModBuildingGenerationStyle.None)));
 
 		Assert.Equal(["alpha", "zebra"], SnapshotIds(provider));
 	}
@@ -92,13 +92,14 @@ public class BuildingWorldGenProviderTests
 	{
 		var provider = CreateProvider();
 
-		Assert.True(TryBind(provider, "valid", ValidBuilding()));
-		Assert.False(TryBind(provider, "negative", ValidBuilding(-0.1f, 0.1f)));
-		Assert.False(TryBind(provider, "nan", ValidBuilding(float.NaN, 0.1f)));
-		Assert.False(TryBind(provider, "inf", ValidBuilding(0f, float.PositiveInfinity)));
-		Assert.False(TryBind(provider, "min-gt-max", ValidBuilding(0.5f, 0.1f)));
-		Assert.False(TryBind(provider, "bad-offset", new ModBuildingDefinition
+		Assert.True(TryBind(provider, ValidBuilding("valid")));
+		Assert.False(TryBind(provider, ValidBuilding("negative", -0.1f, 0.1f)));
+		Assert.False(TryBind(provider, ValidBuilding("nan", float.NaN, 0.1f)));
+		Assert.False(TryBind(provider, ValidBuilding("inf", 0f, float.PositiveInfinity)));
+		Assert.False(TryBind(provider, ValidBuilding("min-gt-max", 0.5f, 0.1f)));
+		Assert.False(TryBind(provider, new ModBuildingDefinition
 		{
+			Id = "bad-offset",
 			TemplateId = "crate",
 			SurfaceOffset = -1f,
 			GenerationStyle = ModBuildingGenerationStyle.Standard,
@@ -112,23 +113,27 @@ public class BuildingWorldGenProviderTests
 	{
 		var provider = CreateProvider();
 
-		Assert.True(TryBind(provider, "valid-drop", new ModBuildingDefinition
+		Assert.True(TryBind(provider, new ModBuildingDefinition
 		{
+			Id = "valid-drop",
 			TemplateId = "crate",
 			DropOnDestroy = [new ModBuildingDrop { ItemId = "scrap", Chance = 0.5f }]
 		}));
-		Assert.False(TryBind(provider, "empty-item", new ModBuildingDefinition
+		Assert.False(TryBind(provider, new ModBuildingDefinition
 		{
+			Id = "empty-item",
 			TemplateId = "crate",
 			DropOnDestroy = [new ModBuildingDrop { ItemId = "" }]
 		}));
-		Assert.False(TryBind(provider, "chance-gt-1", new ModBuildingDefinition
+		Assert.False(TryBind(provider, new ModBuildingDefinition
 		{
+			Id = "chance-gt-1",
 			TemplateId = "crate",
 			DropOnDestroy = [new ModBuildingDrop { ItemId = "scrap", Chance = 1.5f }]
 		}));
-		Assert.False(TryBind(provider, "bad-condition", new ModBuildingDefinition
+		Assert.False(TryBind(provider, new ModBuildingDefinition
 		{
+			Id = "bad-condition",
 			TemplateId = "crate",
 			AlwaysDrop = [new ModBuildingDrop { ItemId = "scrap", MinCondition = 0.8f, MaxCondition = 0.2f }]
 		}));

@@ -9,6 +9,16 @@ when it is null, and **both ends of a payload answer for it** — the member's o
 null write, and the shared decode step behind every `FromPayload` for a member the payload omits (the
 serializer runs no constructor and no initializer, so an absent element has no other owner).
 
+**[Narrowed 2026-10-08 by decision 247, the typed content registration cycle.]** The decode half below now
+reaches only the contracts CUO itself carries over a boundary — `ModStatusUpdate` and the two status
+projections; a content definition is a registered typed object (`IModContentDefinition`) and is never
+serialized. The member half stands unchanged and is what every mod-built declaration answers for. The census
+is two groups now: the travelling payload contracts' collection members, driven through all three shapes
+(one member, `ModStatusUpdate.Value`), and the declarations a mod builds in code, driven with a null write
+(27 members). The rows and the mutation record below are this cycle's record as it stood on 2026-10-07, and
+the content-DTO test names they cite (`ModItemDefinitionTests.ExplicitNullQualities_IsNoneNotAFailedDefinition`,
+now `NullCollectionMembers_MeanNone`, and the `FromPayload` decode rows) no longer exist in that form.
+
 ## 1. Mechanism inventory
 
 | # | Mechanism | Evidence / decision |

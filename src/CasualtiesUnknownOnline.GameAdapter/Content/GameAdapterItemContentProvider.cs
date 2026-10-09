@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
 /// The first concrete content binding provider: it turns
-/// <see cref="ModItemDefinition"/> payloads from shared-content mods into vanilla
+/// <see cref="ModItemDefinition"/> definitions from shared-content mods into vanilla
 /// <c>ItemInfo</c> entries and, when the DTO supplies a <c>TemplateId</c>, into
 /// a runtime <c>GameObject</c> template so CUO's restore/spawn paths can
 /// materialize the custom item without exposing game types to mods. Static
@@ -58,17 +58,12 @@ public sealed class GameAdapterItemContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModItemDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModItemDefinition definition)
 		{
 			_log.LogWarning(
-				"[ItemContent] {ModId}/{Id} payload is not a valid ModItemDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[ItemContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModItemDefinition));
 			return false;
 		}
 

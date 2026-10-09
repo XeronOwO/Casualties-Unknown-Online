@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModStructureDefinition"/> payloads from shared-content mods
+/// Binds <see cref="ModStructureDefinition"/> definitions from shared-content mods
 /// into a small, validated structure registry. The provider does not perform
 /// world-generation distribution; it compiles the authored grid into cells that
 /// the Game Adapter can place through the existing <c>SetBlock</c> path. No wire
@@ -32,17 +32,12 @@ public sealed class GameAdapterStructureContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (!string.Equals(registration.Definition.Kind, Kind, StringComparison.Ordinal))
-		{
-			return false;
-		}
-
-		var definition = ModStructureDefinition.FromPayload(registration.Definition.Data);
-		if (definition is null)
+		if (registration.Definition is not ModStructureDefinition definition)
 		{
 			_log.LogWarning(
-				"[StructureContent] {ModId}/{Id} payload is not a valid ModStructureDefinition — refused.",
-				registration.ModId, registration.Definition.Id);
+				"[StructureContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
+				registration.Definition.GetType().Name, nameof(ModStructureDefinition));
 			return false;
 		}
 

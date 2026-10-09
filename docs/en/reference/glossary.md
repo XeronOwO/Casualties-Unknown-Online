@@ -51,7 +51,7 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Judgment ownership** — whose machine decides what happens to a player: that player's own client, on its own screen and timeline; the host keeps the world and the arbitration.
 - **Rollback** — undoing a locally applied action after the host's arbitration refused the claim.
 - **Admission** — the host's decision whether a member's submission may reach the kernel at all.
-- **Payload** — the opaque bytes a message or a content definition carries; CUO never reads inside them.
+- **Payload** — the opaque bytes a message or a runtime value carries; CUO never reads inside them.
 
 ## Joining and versions
 
@@ -75,7 +75,7 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Content id** — the canonical `namespace:path` address of one registered content definition.
 - **Namespace** — the mod-declared first half of a content id; it is what keeps two mods' ids apart.
 - **Content kind** — the kind a definition is registered under, such as `item`, `recipe` or `tile`.
-- **Schema version** — the version a mod stores next to its own opaque payload; the framework carries it and never migrates it.
+- **Schema version** — the version a mod declares on its own state, runtime value or content definition; the framework carries it and never migrates it.
 - **Tombstone** — a recorded refusal that stops the same creation being retried.
 - **Declared packet** — a mod-owned message id with its own sender and delivery policy and its own handler chain; the framework routes and relays it.
 - **Packet chain** — the ordered validate/apply/observe handlers one declared packet runs.

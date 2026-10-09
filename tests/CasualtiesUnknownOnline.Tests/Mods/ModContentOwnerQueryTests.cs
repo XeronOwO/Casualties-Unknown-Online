@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
@@ -17,8 +18,8 @@ public class ModContentOwnerQueryTests
 	public void OwnerQuery_ReturnsSingleOwner()
 	{
 		var query = CreateQuery(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, [1], 1)),
-			new ModContentRegistration("mod.b", new ModContentDefinition("potion", ModContentKind.Recipe, [2], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", ModContentKind.Item)),
+			new ModContentRegistration("mod.b", new StubContentDefinition("potion", ModContentKind.Recipe)));
 
 		Assert.True(query.TryGetOwner(ModContentKind.Item, "sword", out var owner));
 		Assert.Equal("mod.a", owner);
@@ -30,7 +31,7 @@ public class ModContentOwnerQueryTests
 	public void OwnerQuery_ReturnsFalseForUnknown()
 	{
 		var query = CreateQuery(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, [1], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", ModContentKind.Item)));
 
 		Assert.False(query.TryGetOwner(ModContentKind.Item, "missing", out var owner));
 		Assert.Equal(string.Empty, owner);
@@ -40,8 +41,8 @@ public class ModContentOwnerQueryTests
 	public void OwnerQuery_ReturnsFalseForAmbiguous()
 	{
 		var query = CreateQuery(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, [1], 1)),
-			new ModContentRegistration("mod.b", new ModContentDefinition("sword", ModContentKind.Item, [2], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", ModContentKind.Item)),
+			new ModContentRegistration("mod.b", new StubContentDefinition("sword", ModContentKind.Item)));
 
 		Assert.False(query.TryGetOwner(ModContentKind.Item, "sword", out var owner));
 		Assert.Equal(string.Empty, owner);
@@ -51,8 +52,8 @@ public class ModContentOwnerQueryTests
 	public void OwnerQuery_DistinguishesSameIdAcrossKinds()
 	{
 		var query = CreateQuery(
-			new ModContentRegistration("mod.a", new ModContentDefinition("shared", ModContentKind.Item, [1], 1)),
-			new ModContentRegistration("mod.b", new ModContentDefinition("shared", ModContentKind.Recipe, [2], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("shared", ModContentKind.Item)),
+			new ModContentRegistration("mod.b", new StubContentDefinition("shared", ModContentKind.Recipe)));
 
 		Assert.True(query.TryGetOwner(ModContentKind.Item, "shared", out var owner));
 		Assert.Equal("mod.a", owner);
@@ -64,8 +65,8 @@ public class ModContentOwnerQueryTests
 	public void OwnerQuery_ResolvesCanonicalIdAndKeepsLegacyBareId()
 	{
 		var query = CreateQuery(
-			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, [1], 1), "mymod"),
-			new ModContentRegistration("mod.b", new ModContentDefinition("legacy", ModContentKind.Item, [2], 1)));
+			new ModContentRegistration("mod.a", new StubContentDefinition("sword", ModContentKind.Item), "mymod"),
+			new ModContentRegistration("mod.b", new StubContentDefinition("legacy", ModContentKind.Item)));
 
 		Assert.True(query.TryGetOwner(ModContentKind.Item, "mymod:sword", out var owner));
 		Assert.Equal("mod.a", owner);

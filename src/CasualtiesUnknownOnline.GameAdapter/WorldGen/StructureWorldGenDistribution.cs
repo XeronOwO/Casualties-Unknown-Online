@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using Microsoft.Extensions.Logging;
 using UnityEngine;

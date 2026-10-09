@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// </summary>
 internal static class CustomBuildingTemplateFactory
 {
-	internal static GameObject? Create(string id, ModBuildingDefinition definition, ILogger log)
+	internal static GameObject? Create(string id, IModBuildingDefinition definition, ILogger log)
 	{
 		var templateId = definition.TemplateId;
 		if (string.IsNullOrWhiteSpace(templateId))
@@ -101,11 +101,11 @@ internal static class CustomBuildingTemplateFactory
 			building.guaranteedDropAmount = definition.GuaranteedDropAmount.Value;
 		}
 
-		building.itemsDropOnDestroy = ToItemDrops(definition.DropOnDestroy);
-		building.alwaysDrop = ToItemDrops(definition.AlwaysDrop);
-		building.itemCategoriesToAdd = ToItemCategories(definition.ItemCategoriesToAdd);
+		building.itemsDropOnDestroy = ToItemDrops(ModDeclarationCollections.OrEmpty(definition.DropOnDestroy));
+		building.alwaysDrop = ToItemDrops(ModDeclarationCollections.OrEmpty(definition.AlwaysDrop));
+		building.itemCategoriesToAdd = ToItemCategories(ModDeclarationCollections.OrEmpty(definition.ItemCategoriesToAdd));
 
-		CustomComponentAttach.Attach(template, definition.SpawnComponents, log, "BuildingContent");
+		CustomComponentAttach.Attach(template, ModDeclarationCollections.OrEmpty(definition.SpawnComponents), log, "BuildingContent");
 		return template;
 	}
 

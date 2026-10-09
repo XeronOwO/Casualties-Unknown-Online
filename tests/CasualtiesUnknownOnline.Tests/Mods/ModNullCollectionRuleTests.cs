@@ -137,6 +137,28 @@ public class ModNullCollectionRuleTests
 			"echo", "Echo a line", "echo <text>", CommandPermission.Anyone, null!, _ => null).ArgumentKinds);
 	}
 
+	/// <summary>
+	/// The rule's OTHER half, at the read seam. A declaration built from a
+	/// framework data class cannot produce null, but a mod-authored class that
+	/// implements a kind contract computes its members and may hand back null for
+	/// one it does not carry — and a consumer that dereferenced it would throw
+	/// where no per-definition catch exists. Every consumer asks here instead, so
+	/// both shapes mean the same thing; an existing collection is returned as it
+	/// is, not copied.
+	/// </summary>
+	[Fact]
+	public void ADeclarationThatCarriesNoCollection_ReadsAsNoneAtTheReadSeam()
+	{
+		Assert.Empty(ModDeclarationCollections.OrEmpty<string>(null));
+		Assert.Empty(ModDeclarationCollections.OrEmpty<string, string>(null));
+
+		var list = new List<string> { "one" };
+		Assert.Same(list, ModDeclarationCollections.OrEmpty(list));
+
+		var map = new Dictionary<string, string> { ["one"] = "1" };
+		Assert.Same(map, ModDeclarationCollections.OrEmpty(map));
+	}
+
 	[Theory]
 	[MemberData(nameof(ConstructedMemberNames))]
 	public void NullCollectionWrite_IsNone(string memberName)

@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
 /// The first concrete content binding provider: it turns
-/// <see cref="ModItemDefinition"/> definitions from shared-content mods into vanilla
+/// <see cref="IModItemDefinition"/> definitions from shared-content mods into vanilla
 /// <c>ItemInfo</c> entries and, when the DTO supplies a <c>TemplateId</c>, into
 /// a runtime <c>GameObject</c> template so CUO's restore/spawn paths can
 /// materialize the custom item without exposing game types to mods. Static
@@ -30,7 +30,7 @@ public sealed class GameAdapterItemContentProvider(
 	ILogger<GameAdapterItemContentProvider> log) : IContentBindingProvider, ICuoService, ICraftingQualitySource
 {
 	private readonly ILogger<GameAdapterItemContentProvider> _log = log;
-	private readonly Dictionary<string, ModItemDefinition> _definitions = [];
+	private readonly Dictionary<string, IModItemDefinition> _definitions = [];
 	private readonly Dictionary<string, GameObject> _templates = [];
 	private readonly HashSet<string> _templateFailures = [];
 	private readonly HashSet<string> _lootPoolIds = [];
@@ -58,12 +58,12 @@ public sealed class GameAdapterItemContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModItemDefinition definition)
+		if (registration.Definition is not IModItemDefinition definition)
 		{
 			_log.LogWarning(
-				"[ItemContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[ItemContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModItemDefinition));
+				registration.Definition.GetType().Name, nameof(IModItemDefinition));
 			return false;
 		}
 
@@ -96,7 +96,8 @@ public sealed class GameAdapterItemContentProvider(
 			return false;
 		}
 
-		if (!CraftingQualityDeclarations.IsValid(definition.Qualities, out var rejectedQuality))
+		var qualities = ModDeclarationCollections.OrEmpty(definition.Qualities);
+		if (!CraftingQualityDeclarations.IsValid(qualities, out var rejectedQuality))
 		{
 			_log.LogWarning(
 				"[ItemContent] {ModId}/{Id} declares crafting quality '{Quality}' that is not a vanilla label or a canonical namespace:label id — refused.",
@@ -105,12 +106,12 @@ public sealed class GameAdapterItemContentProvider(
 		}
 
 		_definitions.Add(id, definition);
-		_qualities.Accept(definition.Qualities);
-		if (definition.Qualities.Count > 0)
+		_qualities.Accept(qualities);
+		if (qualities.Count > 0)
 		{
 			_log.LogInformation(
 				"[ItemContent] {ModId}/{Id} provides crafting qualities {Qualities}.",
-				registration.ModId, id, string.Join(", ", definition.Qualities.Select(quality => quality.Id)));
+				registration.ModId, id, string.Join(", ", qualities.Select(quality => quality.Id)));
 		}
 
 		_log.LogInformation(
@@ -156,7 +157,7 @@ public sealed class GameAdapterItemContentProvider(
 				_injectedItemIds.Add(pair.Key);
 				_log.LogInformation(
 					"[ItemContent] injected {Id} into Item.GlobalItems ({QualityCount} crafting qualities).",
-					pair.Key, pair.Value.Qualities.Count);
+					pair.Key, ModDeclarationCollections.OrEmpty(pair.Value.Qualities).Count);
 			}
 			else if (!_injectedItemIds.Contains(pair.Key))
 			{
@@ -169,11 +170,12 @@ public sealed class GameAdapterItemContentProvider(
 				_log.LogWarning(
 					"[ItemContent] {Id} already exists in the vanilla item table — the mod definition is not injected.",
 					pair.Key);
-				if (pair.Value.Qualities.Count > 0)
+				var qualities = ModDeclarationCollections.OrEmpty(pair.Value.Qualities);
+				if (qualities.Count > 0)
 				{
 					_log.LogWarning(
 						"[ItemContent] {Id} is not injected, so the crafting quality it declares ({Quality}) is not provided by it.",
-						pair.Key, string.Join(", ", pair.Value.Qualities.Select(quality => quality.Id)));
+						pair.Key, string.Join(", ", qualities.Select(quality => quality.Id)));
 				}
 			}
 
@@ -218,7 +220,7 @@ public sealed class GameAdapterItemContentProvider(
 	/// distribution. Both sides must iterate the same set in the same order when
 	/// consuming the shared generation random stream.
 	/// </summary>
-	internal IReadOnlyList<KeyValuePair<string, ModItemDefinition>> GetDefinitionsForWorldSpawn() =>
+	internal IReadOnlyList<KeyValuePair<string, IModItemDefinition>> GetDefinitionsForWorldSpawn() =>
 		[.. _definitions
 			.Where(pair => pair.Value.WorldSpawnPerChunk is > 0f)
 			.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
@@ -243,7 +245,7 @@ public sealed class GameAdapterItemContentProvider(
 	/// category pool (it appears only as a world spawn), matching CUCoreLib's
 	/// fallback rule.
 	/// </summary>
-	private void EnsureLootPool(string id, ModItemDefinition definition)
+	private void EnsureLootPool(string id, IModItemDefinition definition)
 	{
 		var pool = ItemLootPool.pool;
 		if (!ReferenceEquals(_lastLootPool, pool))
@@ -310,7 +312,7 @@ public sealed class GameAdapterItemContentProvider(
 	/// game type to mods. The item is deliberately NOT added to its generic
 	/// category pool when a mod explicitly chooses fixed sources.
 	/// </summary>
-	private void EnsureDropSources(string id, ModItemDefinition definition)
+	private void EnsureDropSources(string id, IModItemDefinition definition)
 	{
 		if (definition.DropSources is not { } sources)
 		{
@@ -420,7 +422,7 @@ public sealed class GameAdapterItemContentProvider(
 			_ => string.Empty
 		};
 
-	private void EnsureTemplate(string id, ModItemDefinition definition)
+	private void EnsureTemplate(string id, IModItemDefinition definition)
 	{
 		if (string.IsNullOrWhiteSpace(definition.TemplateId) || _templates.ContainsKey(id))
 		{
@@ -449,7 +451,7 @@ public sealed class GameAdapterItemContentProvider(
 		_templates.Add(id, template);
 		_log.LogInformation(
 			"[ItemContent] built runtime template for {Id} (base {TemplateId}, components {ComponentCount}).",
-			id, definition.TemplateId, definition.SpawnComponents.Count);
+			id, definition.TemplateId, ModDeclarationCollections.OrEmpty(definition.SpawnComponents).Count);
 	}
 
 }

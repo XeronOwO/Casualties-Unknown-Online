@@ -13,6 +13,13 @@
   `docs/backlog/todo/mod-authored-effects.md` (its code-registration surface is the same question),
   `docs/en/reference/mod-api.md` (the page a mod author reads), decision 247.
 - Source: the user's 2026-10-08 question and the follow-up ("它实现多个接口…是一个注册入口还是每个接口实现都要注册一遍？").
+- Stage A (landed 2026-10-09): the nine kind interfaces and their ready-made implementations are in,
+  every consumer reads the interface rather than the framework's class, and the derived rules a
+  declaration feeds moved to the framework — evidence
+  `docs/evidence/selfchecks/mod-api/mod-content-declaration-contract-selfcheck.md`, decision 251.
+  **Remaining for this ticket:** the bare `[ModContent]` attribute, the scan that discovers it, the
+  kind-mismatch and two-kinds refusals, the optional per-kind base classes, and the content-fingerprint
+  question the acceptance section owes.
 
 ## The shape (settled)
 

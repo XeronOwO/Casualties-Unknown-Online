@@ -8,7 +8,7 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModLiquidDefinition"/> definitions from shared-content mods
+/// Binds <see cref="IModLiquidDefinition"/> definitions from shared-content mods
 /// into the vanilla liquid registry. Static fields (color, value, health/
 /// injection flags, qualities and locale display text) are mapped into
 /// <c>LiquidType</c>; behavior callbacks are intentionally not part of this
@@ -35,7 +35,7 @@ public sealed class GameAdapterLiquidContentProvider(
 	ILogger<GameAdapterLiquidContentProvider> log) : IContentBindingProvider, ICuoService, ICraftingQualitySource
 {
 	private readonly ILogger<GameAdapterLiquidContentProvider> _log = log;
-	private readonly Dictionary<string, ModLiquidDefinition> _definitions = [];
+	private readonly Dictionary<string, IModLiquidDefinition> _definitions = [];
 	private readonly HashSet<string> _injectedIds = [];
 	private readonly CraftingQualityDeclarations _qualities = new();
 	private Dictionary<string, LiquidType>? _lastRegistry;
@@ -46,12 +46,12 @@ public sealed class GameAdapterLiquidContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModLiquidDefinition definition)
+		if (registration.Definition is not IModLiquidDefinition definition)
 		{
 			_log.LogWarning(
-				"[LiquidContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[LiquidContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModLiquidDefinition));
+				registration.Definition.GetType().Name, nameof(IModLiquidDefinition));
 			return false;
 		}
 
@@ -70,7 +70,8 @@ public sealed class GameAdapterLiquidContentProvider(
 			return false;
 		}
 
-		if (!CraftingQualityDeclarations.IsValid(definition.Qualities, out var rejectedQuality))
+		var qualities = ModDeclarationCollections.OrEmpty(definition.Qualities);
+		if (!CraftingQualityDeclarations.IsValid(qualities, out var rejectedQuality))
 		{
 			_log.LogWarning(
 				"[LiquidContent] {ModId}/{Id} declares crafting quality '{Quality}' that is not a vanilla label or a canonical namespace:label id — refused.",
@@ -79,12 +80,12 @@ public sealed class GameAdapterLiquidContentProvider(
 		}
 
 		_definitions.Add(id, definition);
-		_qualities.Accept(definition.Qualities);
-		if (definition.Qualities.Count > 0)
+		_qualities.Accept(qualities);
+		if (qualities.Count > 0)
 		{
 			_log.LogInformation(
 				"[LiquidContent] {ModId}/{Id} provides crafting qualities {Qualities}.",
-				registration.ModId, id, string.Join(", ", definition.Qualities.Select(quality => quality.Id)));
+				registration.ModId, id, string.Join(", ", qualities.Select(quality => quality.Id)));
 		}
 
 		_log.LogInformation(
@@ -137,18 +138,19 @@ public sealed class GameAdapterLiquidContentProvider(
 				continue;
 			}
 
+			var qualities = ModDeclarationCollections.OrEmpty(pair.Value.Qualities);
 			if (Liquids.Registry.ContainsKey(pair.Key))
 			{
 				_injectedIds.Add(pair.Key);
 				_log.LogDebug("[LiquidContent] {Id} is already present in the vanilla liquid registry; no duplicate injected.", pair.Key);
-				if (pair.Value.Qualities.Count > 0)
+				if (qualities.Count > 0)
 				{
 					// Nothing materialized this definition, so a label it declared
 					// is provided by nothing and a recipe requiring it can never be
 					// crafted (the ticket records that as a limit).
 					_log.LogWarning(
 						"[LiquidContent] {Id} was not injected, so the crafting quality it declares ({Quality}) is not provided by it.",
-						pair.Key, string.Join(", ", pair.Value.Qualities.Select(quality => quality.Id)));
+						pair.Key, string.Join(", ", qualities.Select(quality => quality.Id)));
 				}
 
 				continue;
@@ -160,7 +162,7 @@ public sealed class GameAdapterLiquidContentProvider(
 			_injectedIds.Add(pair.Key);
 			_log.LogInformation(
 				"[LiquidContent] injected {Id} (value {Value:F1}, qualities {QualityCount}) into Liquids.Registry.",
-				pair.Key, pair.Value.ValuePerLiter, pair.Value.Qualities.Count);
+				pair.Key, pair.Value.ValuePerLiter, qualities.Count);
 		}
 	}
 
@@ -172,7 +174,7 @@ public sealed class GameAdapterLiquidContentProvider(
 	{
 	}
 
-	private LiquidType BuildLiquid(string id, ModLiquidDefinition definition)
+	private LiquidType BuildLiquid(string id, IModLiquidDefinition definition)
 	{
 		return new LiquidType
 		{
@@ -187,7 +189,7 @@ public sealed class GameAdapterLiquidContentProvider(
 			injectable = definition.Injectable,
 			injectionSickness = definition.InjectionSickness,
 			localeFromItem = definition.LocaleFromItem,
-			qualities = CraftingQualityDeclarations.ToGameQualities(definition.Qualities),
+			qualities = CraftingQualityDeclarations.ToGameQualities(ModDeclarationCollections.OrEmpty(definition.Qualities)),
 			onDrink = (ml, body) => _log.LogWarning(
 				"[LiquidContent] {Id} was drunk ({Ml:F1} ml) with no effect — the mod API cannot author a drink effect.",
 				id, ml),
@@ -197,7 +199,7 @@ public sealed class GameAdapterLiquidContentProvider(
 		};
 	}
 
-	private static void ApplyLocale(string id, ModLiquidDefinition definition)
+	private static void ApplyLocale(string id, IModLiquidDefinition definition)
 	{
 		if (Locale.currentLang is null)
 		{

@@ -396,12 +396,13 @@ var itemDefs = context.Content.Definitions; // the registered instances, not cop
 context.Content.TryUnregister("wooden.sword");
 ```
 
-- **Scope**: `IModContent` is a per-mod registry of typed content definitions. A mod builds one of the
-  typed DTOs below (or its own `IModContentDefinition`), gives it its id and an optional
-  positive `schemaVersion` (default 1), and registers the object itself in `Bind`. The definition carries
-  its own kind — fixed by its type — so the kind cannot disagree with the data, and the framework never
-  interprets the mod's members: the provider registered for that kind is what reads them. The registry
-  keeps the instance the mod handed over, so a mod registers a definition it does not mutate afterwards.
+- **Scope**: `IModContent` is a per-mod registry of typed content definitions. A mod either fills in one of
+  the ready-made data classes below or implements that kind's interface itself when a member is computed,
+  gives it its id and an optional positive `schemaVersion` (default 1), and registers the object itself in
+  `Bind`. The definition carries its own kind — fixed by its type in the data classes — so the kind cannot
+  disagree with the data, and the framework never interprets the mod's members: the provider registered for
+  that kind is what reads them. The registry keeps the instance the mod handed over and never writes to it,
+  so a mod registers a definition it does not mutate afterwards.
 - **The kind vocabulary names exactly what binds**: `ModContentKind` lists the nine kinds a CUO content
   provider materializes — `item`, `recipe`, `liquid`, `liquidtile`, `tile`, `building`, `structure`,
   `status`, `moodle` — and each of them is the kind of one typed DTO below. A kind is still a
@@ -455,9 +456,14 @@ context.Content.TryUnregister("wooden.sword");
   materialise a host-only item. This is the first concrete implementation of the local-only versus
   public/shared mod-data distinction for static content.
 
-**Typed definitions.** Abstractions ships one DTO per well-known kind; a mod fills it in and registers
-the object itself. Its `Kind` is a constant of the type, so exactly the provider that reads it is the one
-that binds it, and a mod that wants a kind of its own implements `IModContentDefinition` directly.
+**Typed definitions.** Abstractions ships one KIND INTERFACE per well-known kind — `IModItemDefinition` and
+its eight siblings — plus the framework's ready-made implementation of it (`ModItemDefinition`, …). A mod
+registers either shape and the framework treats them alike: fill in the data class when every value is a
+constant, implement the interface when one is computed. The provider reads the INTERFACE, so nothing about
+the binding depends on the framework's class; the data classes fix `Kind` to their kind's constant, so
+exactly the provider that reads them is the one that binds them, and a mod that wants a kind of its own
+implements `IModContentDefinition` directly. The table below describes each kind through its ready-made
+implementation; the interface carries the same members.
 
 | DTO (kind) | What it carries, and how the adapter binds it |
 |---|---|
@@ -472,19 +478,21 @@ that binds it, and a mod that wants a kind of its own implements `IModContentDef
 | `ModMoodleDefinition` (`Moodle`, eighth) | display and description text, a vanilla moodle intensity, a stable icon/resource id key, critical/chipped/important presentation flags, hold seconds, an optional `ModMoodleAnimation` frame-path icon animation, optional per-limb display/description templates (`LimbDisplayNameFormat` / `LimbDescriptionFormat`) and an extensible `CustomData` dictionary. The provider stores the static descriptor; `ModStatusMoodleProjection` feeds active status-linked moodles into the vanilla moodle manager, and a `Moodle.Start` patch drives the vanilla moodle UI image from the authored frames. Moodle content is still never a wire feature. |
 
 **Null means empty.** Every collection member of every declaration above — a list or a dictionary — means
-"none" when it is null, and the member itself answers for that: a mod that assigns null builds a
-definition whose list reads empty. That is the whole rule, and it has one half now: the registry keeps the
-typed object and nothing serializes a declaration, so there is no decode step for a payload to repair and
-no second place the rule could be decided. A member that is genuinely required is not an exception: an
-empty collection flows into that provider's own validation, which refuses the definition with a reason it
-names — an item's sprite animation with no frame paths, a recipe with no ingredients, a structure whose
-grid has no rows. The same rule covers the collections a mod builds in code (`CuoModAttribute.Dependencies`,
-`ModConsoleCommand.ArgumentKinds`, `ModManifest.Dependencies`, `ModPacket.Handlers`), and the
-`ModNullCollectionRuleTests` census discovers every collection member of the assembly's public classes —
-the declarations a mod fills in plus the four it can only build through a constructor with arguments —
-driving a null write for each of them, so a new member cannot be added without the rule. A declaration's
-own value model member is not a collection: a `ModValue` carries its items and fields as read-only views,
-which the census names rather than counts.
+"none" when it is null, and the read seam answers for that: a mod that assigns null to a data-class member
+builds a declaration whose list reads empty, and a class that implements a kind interface and returns null
+for a member it does not carry is read as "none" as well (`ModDeclarationCollections` is where a consumer
+asks, so neither shape can throw inside a provider). That is the whole rule, and it has one half now: the
+registry keeps the typed object and nothing serializes a declaration, so there is no decode step for a
+payload to repair and no second place the rule could be decided. A member that is genuinely required is not
+an exception: an empty collection flows into that provider's own validation, which refuses the definition
+with a reason it names — an item's sprite animation with no frame paths, a recipe with no ingredients, a
+structure whose grid has no rows. The same rule covers the collections a mod builds in code
+(`CuoModAttribute.Dependencies`, `ModConsoleCommand.ArgumentKinds`, `ModManifest.Dependencies`,
+`ModPacket.Handlers`), and the `ModNullCollectionRuleTests` census discovers every collection member of the
+assembly's public classes — the declarations a mod fills in plus the four it can only build through a
+constructor with arguments — driving a null write for each of them, so a new member cannot be added without
+the rule. A declaration's own value model member is not a collection: a `ModValue` carries its items and
+fields as read-only views, which the census names rather than counts.
 
 **Crafting-quality labels.** A quality id is a *label*: either a vanilla one — a bare lower-case token
 such as `rippable`, which is how a mod says "this content provides that vanilla label" — or a
@@ -492,7 +500,7 @@ mod-authored one namespaced with the content-id grammar (`mymod:material`), whic
 vocabularies apart. The game matches labels with an ordinal string comparison and asks for at least the
 amount an ingredient declares, so what a mod writes is what gets compared: a declared label that is neither
 a canonical namespaced id nor a bare vanilla-style token is refused at bind with a warning, instead of being
-stored as a label that can never match. `ModItemDefinition.Qualities` and `ModLiquidDefinition.Qualities`
+stored as a label that can never match. `IModItemDefinition.Qualities` and `IModLiquidDefinition.Qualities`
 are written into the game's own quality list for their kind, so a quality-based recipe matches a mod item
 or liquid exactly as it matches a vanilla one.
 
@@ -508,11 +516,11 @@ declares leaves its recipes uncraftable — that collision is reported when the 
 
 **A declared behaviour with no function.** Two declarations reach a game delegate this API cannot carry
 yet, and the framework answers for both of them instead of letting the game call a null one.
-`ModItemDefinition.Usable` / `UsableWithLmb` reach `ItemInfo.useAction`, which the game's own
+`IModItemDefinition.Usable` / `UsableWithLmb` reach `ItemInfo.useAction`, which the game's own
 `Body.UseItem` and `Body.UseItemInHand` run behind the item's `usable` flag (`usableWithLMB` too, for the
 hand): a definition that
 declares usability without a `Tool` or `Gun` behaviour is registered with a use action that names the
-content and changes nothing, and the declaration is reported at load. `ModLiquidDefinition.HealthUsable`
+content and changes nothing, and the declaration is reported at load. `IModLiquidDefinition.HealthUsable`
 / `Injectable` reach the liquid's `onHealthUse` (`WaterContainerItem.ApplyToLimb` and `Inject`), and EVERY
 mod liquid's `onDrink` is reachable through `WaterContainerItem.Drink`, which no flag gates at all: every
 liquid the provider builds therefore carries both delegates, each of which names the liquid and applies no

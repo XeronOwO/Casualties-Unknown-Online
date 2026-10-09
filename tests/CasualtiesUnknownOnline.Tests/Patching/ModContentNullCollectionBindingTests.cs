@@ -20,8 +20,8 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// provider refuses it with its own reason in the log — never with the binder's
 /// logged exception, which would leave the mod without the content it declared.
 /// The same roster answers the typed refusal: a definition that claims a
-/// provider's kind without being its DTO type is refused by every one of the
-/// nine. The test project never compile-references GameAdapter, so the provider
+/// provider's kind without implementing that kind's contract is refused by every
+/// one of the nine. The test project never compile-references GameAdapter, so the provider
 /// roster and its loggers are built reflectively.
 /// </summary>
 [Trait("Category", "Integration")]
@@ -237,26 +237,26 @@ public class ModContentNullCollectionBindingTests
 			Registration(new StubContentDefinition("wrong.moodle", ModContentKind.Moodle)));
 
 		run.AssertRefusedByProvider(
-			ModContentKind.Item, "wrong.item", "claims kind item but is a StubContentDefinition, not a ModItemDefinition");
+			ModContentKind.Item, "wrong.item", "claims kind item but is a StubContentDefinition, not an IModItemDefinition");
 		run.AssertRefusedByProvider(
-			ModContentKind.Recipe, "wrong.recipe", "claims kind recipe but is a StubContentDefinition, not a ModRecipeDefinition");
+			ModContentKind.Recipe, "wrong.recipe", "claims kind recipe but is a StubContentDefinition, not an IModRecipeDefinition");
 		run.AssertRefusedByProvider(
-			ModContentKind.Liquid, "wrong.liquid", "claims kind liquid but is a StubContentDefinition, not a ModLiquidDefinition");
+			ModContentKind.Liquid, "wrong.liquid", "claims kind liquid but is a StubContentDefinition, not an IModLiquidDefinition");
 		run.AssertRefusedByProvider(
 			ModContentKind.LiquidTile, "wrong.liquidtile",
-			"claims kind liquidtile but is a StubContentDefinition, not a ModLiquidTileDefinition");
+			"claims kind liquidtile but is a StubContentDefinition, not an IModLiquidTileDefinition");
 		run.AssertRefusedByProvider(
-			ModContentKind.Tile, "wrong.tile", "claims kind tile but is a StubContentDefinition, not a ModTileDefinition");
+			ModContentKind.Tile, "wrong.tile", "claims kind tile but is a StubContentDefinition, not an IModTileDefinition");
 		run.AssertRefusedByProvider(
 			ModContentKind.Building, "wrong.building",
-			"claims kind building but is a StubContentDefinition, not a ModBuildingDefinition");
+			"claims kind building but is a StubContentDefinition, not an IModBuildingDefinition");
 		run.AssertRefusedByProvider(
 			ModContentKind.Structure, "wrong.structure",
-			"claims kind structure but is a StubContentDefinition, not a ModStructureDefinition");
+			"claims kind structure but is a StubContentDefinition, not an IModStructureDefinition");
 		run.AssertRefusedByProvider(
-			ModContentKind.Status, "wrong.status", "claims kind status but is a StubContentDefinition, not a ModStatusDefinition");
+			ModContentKind.Status, "wrong.status", "claims kind status but is a StubContentDefinition, not an IModStatusDefinition");
 		run.AssertRefusedByProvider(
-			ModContentKind.Moodle, "wrong.moodle", "claims kind moodle but is a StubContentDefinition, not a ModMoodleDefinition");
+			ModContentKind.Moodle, "wrong.moodle", "claims kind moodle but is a StubContentDefinition, not an IModMoodleDefinition");
 	}
 
 	private static ModContentRegistration Registration(IModContentDefinition definition) =>

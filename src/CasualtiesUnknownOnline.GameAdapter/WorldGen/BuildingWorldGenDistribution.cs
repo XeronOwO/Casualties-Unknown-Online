@@ -85,7 +85,7 @@ internal sealed class BuildingWorldGenDistribution(
 		}
 	}
 
-	private bool TrySpawnStandard(WorldGeneration world, string id, ModBuildingDefinition definition)
+	private bool TrySpawnStandard(WorldGeneration world, string id, IModBuildingDefinition definition)
 	{
 		var randomPos = new Vector2(
 			Random.Range(-(float)world.halfWidth, world.halfWidth),
@@ -122,7 +122,7 @@ internal sealed class BuildingWorldGenDistribution(
 		return true;
 	}
 
-	private bool TrySpawnDropPod(WorldGeneration world, string id, ModBuildingDefinition definition)
+	private bool TrySpawnDropPod(WorldGeneration world, string id, IModBuildingDefinition definition)
 	{
 		var randomPos = new Vector2(
 			Random.Range(-(float)world.halfWidth + 50f, world.halfWidth - 50f),
@@ -155,7 +155,7 @@ internal sealed class BuildingWorldGenDistribution(
 			_ => Vector2.down
 		};
 
-	private static void ApplyRandomFlip(GameObject created, ModBuildingDefinition definition)
+	private static void ApplyRandomFlip(GameObject created, IModBuildingDefinition definition)
 	{
 		if ((definition.RandomFlip ?? true) && Random.value > 0.5f)
 		{

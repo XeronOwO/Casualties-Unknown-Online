@@ -3,136 +3,117 @@ using System.Collections.Generic;
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The mod-authored definition of one liquid-tile / world-liquid definition.
-/// It is a plain DTO in Abstractions: no game assembly, no Unity type, no
-/// Runtime dependency. The Game Adapter liquid-tile provider reads it,
-/// allocates a stable custom world-fluid byte, maps the static fields into
-/// the vanilla fluid grid behaviour, and runs local projection (body touch,
-/// drink, visual) entirely inside the Game Adapter.
+/// The framework's ready-made <see cref="IModLiquidTileDefinition"/>: a plain
+/// data object in Abstractions with no game assembly, no Unity type and no
+/// Runtime dependency, which is also why it cannot compute a member. Use it when
+/// every value is a constant; implement the interface when one is computed.
 ///
-/// Behaviour callbacks (CUCoreLib-style OnTouch/OnEnter/OnExit/OnDrinkOverride)
-/// are intentionally not part of this DTO: mods cannot pass game delegates
-/// through Abstractions, and CUO's local-compute/remote-verify model keeps
-/// per-player body effects on the acting client.
+/// It stays constructible with no arguments and every member stays settable on
+/// purpose: the framework reads the interface, and a future data-driven loader
+/// would deserialize into this concrete type.
+///
+/// The two static mask builders and the layer sentinel stay here as the
+/// mod-facing helpers a declaration is authored with; the rule that reads the
+/// mask is <see cref="ModLayerSpawnRule"/>.
 /// </summary>
-public sealed class ModLiquidTileDefinition : IModContentDefinition
+public sealed class ModLiquidTileDefinition : IModLiquidTileDefinition
 {
-	/// <summary>The mod-scoped content id: a canonical lower-case path segment, unique within the registering mod.</summary>
+	/// <inheritdoc />
 	public string Id { get; set; } = "";
 
-	/// <summary>The content kind this definition registers under - fixed by its type, never chosen by a caller.</summary>
+	/// <inheritdoc />
 	public string Kind => ModContentKind.LiquidTile;
 
-	/// <summary>The mod-owned content schema version the framework stores verbatim (default 1).</summary>
+	/// <inheritdoc />
 	public int SchemaVersion { get; set; } = 1;
 
-	/// <summary>Player-facing liquid-tile name. When empty, the LiquidId locale is used.</summary>
+	/// <inheritdoc />
 	public string DisplayName { get; set; } = "";
 
-	/// <summary>Player-facing liquid-tile description. When empty, the LiquidId locale is used.</summary>
+	/// <inheritdoc />
 	public string Description { get; set; } = "";
 
-	/// <summary>
-	/// Logical liquid content id (vanilla or a registered <see cref="ModLiquidDefinition"/>).
-	/// Used for drinking and display resolution.
-	/// </summary>
+	/// <inheritdoc />
 	public string LiquidId { get; set; } = "";
 
-	/// <summary>
-	/// Logical liquid id used when the world byte is mapped by container/fill
-	/// tools. Defaults to <see cref="LiquidId"/>.
-	/// </summary>
+	/// <inheritdoc />
 	public string FillLiquidId { get; set; } = "";
 
-	/// <summary>Buoyancy applied to a body standing in this liquid.</summary>
+	/// <inheritdoc />
 	public float Buoyancy { get; set; } = 0.6f;
 
-	/// <summary>Drag applied to a body moving through this liquid.</summary>
+	/// <inheritdoc />
 	public float Drag { get; set; } = 0.915f;
 
-	/// <summary>Whether the liquid sets the body's in-water flag (native push/slip handling).</summary>
+	/// <inheritdoc />
 	public bool PushBodies { get; set; } = true;
 
-	/// <summary>Wetness added per second while touching the liquid.</summary>
+	/// <inheritdoc />
 	public float WetnessPerSecond { get; set; } = 20f;
 
-	/// <summary>Temperature delta per second while touching the liquid.</summary>
+	/// <inheritdoc />
 	public float TemperaturePerSecond { get; set; }
 
-	/// <summary>Sickness added per second while touching the liquid.</summary>
+	/// <inheritdoc />
 	public float SicknessPerSecond { get; set; }
 
-	/// <summary>Dirtiness added per second while touching the liquid.</summary>
+	/// <inheritdoc />
 	public float DirtynessPerSecond { get; set; }
 
-	/// <summary>Limb disinfection time given per second while touching the liquid.</summary>
+	/// <inheritdoc />
 	public float DisinfectPerSecond { get; set; }
 
-	/// <summary>Slip time added per second while touching the liquid (0..1 clamp).</summary>
+	/// <inheritdoc />
 	public float SlipPerSecond { get; set; }
 
-	/// <summary>Ragdoll-bar drain per second while touching the liquid (0..1 clamp).</summary>
+	/// <inheritdoc />
 	public float RagdollBarDrainPerSecond { get; set; }
 
-	/// <summary>Visual projection mode. Only tint/base-byte rendering is implemented in the current CUO seam.</summary>
+	/// <inheritdoc />
 	public ModLiquidTileVisualMode VisualMode { get; set; } = ModLiquidTileVisualMode.ExistingLiquidPlusTint;
 
-	/// <summary>
-	/// Vanilla world-fluid byte used as the visual base (1 = water, 2 = algae,
-	/// 3 = oil, 4 = sap, 5 = dirty water, 6 = magma). Custom tiles are rendered
-	/// with that base particle prefab and their own tint.
-	/// </summary>
+	/// <inheritdoc />
 	public int VisualLiquidByte { get; set; } = 1;
 
-	/// <summary>Liquid-tile tint red component (0..1).</summary>
+	/// <inheritdoc />
 	public float TintR { get; set; } = 1f;
 
-	/// <summary>Liquid-tile tint green component (0..1).</summary>
+	/// <inheritdoc />
 	public float TintG { get; set; } = 1f;
 
-	/// <summary>Liquid-tile tint blue component (0..1).</summary>
+	/// <inheritdoc />
 	public float TintB { get; set; } = 1f;
 
-	/// <summary>Liquid-tile tint alpha component (0..1).</summary>
+	/// <inheritdoc />
 	public float TintA { get; set; } = 1f;
 
-	/// <summary>
-	/// Optional resource path to a custom liquid visual asset. This is the
-	/// stable future seam for mod-local asset injection; it is not interpreted
-	/// by the current CUO core (the provider logs and falls back to tint).
-	/// </summary>
+	/// <inheritdoc />
 	public string VisualAssetPath { get; set; } = "";
 
-	/// <summary>
-	/// Copper-relative world-generation multiplier. Zero disables automatic
-	/// spawning.
-	/// </summary>
+	/// <inheritdoc />
 	public float SpawnAmount { get; set; }
 
-	/// <summary>
-	/// Bitmask of allowed world layers for automatic spawning. -1 means every
-	/// layer; 0 disables automatic spawning. Layer N is bit N-1 (N starts at 1).
-	/// </summary>
+	/// <inheritdoc />
 	public int SpawnLayers { get; set; } = AllSpawnLayers;
 
-	/// <summary>Maximum number of cells one flood-fill seed may fill during world generation.</summary>
+	/// <inheritdoc />
 	public int MaxFloodFill { get; set; } = 128;
 
-	/// <summary>Whether drinking a custom liquid cell consumes it.</summary>
+	/// <inheritdoc />
 	public bool ConsumeOnDrink { get; set; } = true;
 
-	/// <summary>Whether filling a container from the custom liquid cell consumes it.</summary>
+	/// <inheritdoc />
 	public bool ConsumeOnFill { get; set; } = true;
 
-	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
+	/// <inheritdoc />
 	public Dictionary<string, string> CustomData
 	{
 		get;
 		set => field = value ?? [];
 	} = [];
 
-	/// <summary>Bitmask that allows spawning on every world layer.</summary>
-	public const int AllSpawnLayers = -1;
+	/// <summary>Bitmask that allows spawning on every world layer; one home, see <see cref="ModLayerSpawnRule.AllSpawnLayers"/>.</summary>
+	public const int AllSpawnLayers = ModLayerSpawnRule.AllSpawnLayers;
 
 	/// <summary>Build a layer bitmask from one-based layer numbers.</summary>
 	public static int LayersToMask(params int[] layerNumbers)
@@ -173,25 +154,4 @@ public sealed class ModLiquidTileDefinition : IModContentDefinition
 
 		return mask;
 	}
-
-	/// <summary>
-	/// Whether this liquid tile is permitted to spawn automatically on a
-	/// zero-based biome depth. Depth 0 is layer 1.
-	/// </summary>
-	public bool CanSpawnInLayer(int biomeDepth)
-	{
-		if (SpawnLayers == 0 || biomeDepth < 0)
-		{
-			return false;
-		}
-
-		if (SpawnLayers == AllSpawnLayers)
-		{
-			return true;
-		}
-
-		var layerNumber = biomeDepth + 1;
-		return layerNumber > 0 && layerNumber <= 31 && (SpawnLayers & (1 << (layerNumber - 1))) != 0;
-	}
-
 }

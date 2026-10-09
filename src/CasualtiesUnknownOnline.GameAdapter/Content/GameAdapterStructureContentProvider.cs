@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModStructureDefinition"/> definitions from shared-content mods
+/// Binds <see cref="IModStructureDefinition"/> definitions from shared-content mods
 /// into a small, validated structure registry. The provider does not perform
 /// world-generation distribution; it compiles the authored grid into cells that
 /// the Game Adapter can place through the existing <c>SetBlock</c> path. No wire
@@ -23,7 +23,7 @@ public sealed class GameAdapterStructureContentProvider(
 	internal const int MaxCellCount = 4096;
 
 	private readonly ILogger<GameAdapterStructureContentProvider> _log = log;
-	private readonly Dictionary<string, ModStructureDefinition> _definitions = [];
+	private readonly Dictionary<string, IModStructureDefinition> _definitions = [];
 	private readonly Dictionary<string, CompiledStructure> _compiled = [];
 
 	/// <inheritdoc />
@@ -32,12 +32,12 @@ public sealed class GameAdapterStructureContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModStructureDefinition definition)
+		if (registration.Definition is not IModStructureDefinition definition)
 		{
 			_log.LogWarning(
-				"[StructureContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[StructureContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModStructureDefinition));
+				registration.Definition.GetType().Name, nameof(IModStructureDefinition));
 			return false;
 		}
 
@@ -97,7 +97,7 @@ public sealed class GameAdapterStructureContentProvider(
 		_compiled.TryGetValue(id, out structure);
 
 	/// <summary>Resolve the original typed definition (includes future worldgen spawn counts).</summary>
-	internal bool TryGetDefinition(string id, out ModStructureDefinition definition) =>
+	internal bool TryGetDefinition(string id, out IModStructureDefinition definition) =>
 		_definitions.TryGetValue(id, out definition!);
 
 	/// <summary>
@@ -109,7 +109,7 @@ public sealed class GameAdapterStructureContentProvider(
 	internal IReadOnlyList<KeyValuePair<string, CompiledStructure>> GetCompiledForWorldGen() =>
 		[.. _compiled.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
 
-	private bool TryCompile(string id, ModStructureDefinition definition, out CompiledStructure compiled)
+	private bool TryCompile(string id, IModStructureDefinition definition, out CompiledStructure compiled)
 	{
 		compiled = default;
 
@@ -135,7 +135,7 @@ public sealed class GameAdapterStructureContentProvider(
 			return false;
 		}
 
-		var rows = definition.Rows;
+		var rows = ModDeclarationCollections.OrEmpty(definition.Rows);
 		if (rows.Count != definition.Height)
 		{
 			_log.LogWarning(
@@ -144,9 +144,10 @@ public sealed class GameAdapterStructureContentProvider(
 			return false;
 		}
 
-		var vanillaBlocks = definition.VanillaBlocks;
-		var tileIds = definition.TileIds;
-		if (!TryValidateMarkerMaps(id, vanillaBlocks, tileIds, definition.SpawnCounts))
+		var vanillaBlocks = ModDeclarationCollections.OrEmpty(definition.VanillaBlocks);
+		var tileIds = ModDeclarationCollections.OrEmpty(definition.TileIds);
+		var spawnCounts = ModDeclarationCollections.OrEmpty(definition.SpawnCounts);
+		if (!TryValidateMarkerMaps(id, vanillaBlocks, tileIds, spawnCounts))
 		{
 			return false;
 		}

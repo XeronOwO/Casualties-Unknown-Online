@@ -3,51 +3,54 @@ using System.Collections.Generic;
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
-/// The mod-authored definition of one recipe content definition. It is a plain
-/// DTO in Abstractions: no game assembly, no Unity type, no Runtime dependency.
-/// The Game Adapter recipe provider reads it and materializes the corresponding
-/// vanilla <c>Recipe</c> object once the game's recipe table is ready.
+/// The framework's ready-made <see cref="IModRecipeDefinition"/>: a plain data
+/// object in Abstractions with no game assembly, no Unity type and no Runtime
+/// dependency, which is also why it cannot compute a member. Use it when every
+/// value is a constant; implement the interface when one is computed.
+///
+/// It stays constructible with no arguments and every member stays settable on
+/// purpose: the framework reads the interface, and a future data-driven loader
+/// would deserialize into this concrete type.
 /// </summary>
-public sealed class ModRecipeDefinition : IModContentDefinition
+public sealed class ModRecipeDefinition : IModRecipeDefinition
 {
-	/// <summary>The mod-scoped content id: a canonical lower-case path segment, unique within the registering mod.</summary>
+	/// <inheritdoc />
 	public string Id { get; set; } = "";
 
-	/// <summary>The content kind this definition registers under - fixed by its type, never chosen by a caller.</summary>
+	/// <inheritdoc />
 	public string Kind => ModContentKind.Recipe;
 
-	/// <summary>The mod-owned content schema version the framework stores verbatim (default 1).</summary>
+	/// <inheritdoc />
 	public int SchemaVersion { get; set; } = 1;
 
-	/// <summary>The item/liquid id produced by the recipe.</summary>
+	/// <inheritdoc />
 	public string ResultItemId { get; set; } = "";
 
-	/// <summary>True when the result is a liquid (not an item prefab).</summary>
+	/// <inheritdoc />
 	public bool ResultIsLiquid { get; set; }
 
-	/// <summary>Result stack amount (defaults to 1).</summary>
+	/// <inheritdoc />
 	public int ResultAmount { get; set; } = 1;
 
-	/// <summary>Result condition/amount fraction applied at spawn time.</summary>
+	/// <inheritdoc />
 	public float ResultCondition { get; set; } = 1f;
 
-	/// <summary>True when the result should keep its container-liquid contents.</summary>
+	/// <inheritdoc />
 	public bool DontDrainResultLiquid { get; set; }
 
-	/// <summary>The intelligence requirement for this recipe (0 makes it visible early).</summary>
+	/// <inheritdoc />
 	public int Intelligence { get; set; }
 
-	/// <summary>The recipe category (see <see cref="ModRecipeCategory"/>).</summary>
+	/// <inheritdoc />
 	public string Category { get; set; } = ModRecipeCategory.Materials;
 
-	/// <summary>True when this is a repair recipe (the result id is allowed as an ingredient).</summary>
+	/// <inheritdoc />
 	public bool IsRepair { get; set; }
 
-	/// <summary>The ordered ingredient requirements.</summary>
+	/// <inheritdoc />
 	public List<ModRecipeIngredient> Ingredients
 	{
 		get;
 		set => field = value ?? [];
 	} = [];
-
 }

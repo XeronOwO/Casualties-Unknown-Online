@@ -32,7 +32,7 @@ CUO cannot copy that model:
 - CUO's kernel is typed, dependency-free, and does not know mod schemas.
 
 CUO already has the static half:
-`ModStatusDefinition` + `ModStatusScope` + `GameAdapterStatusContentProvider`.
+`IModStatusDefinition` + `ModStatusScope` + `GameAdapterStatusContentProvider`.
 The dynamic half still needs a host-authoritative runtime boundary.
 
 ## 2. Constraints
@@ -195,8 +195,8 @@ routing on absence or exception.
 
 | Surface | Role |
 |---|---|
-| `ModContentKind.Status` / `ModStatusDefinition` | Static descriptor: id, scope, save metadata, moodle link. |
-| `ModContentKind.Moodle` / `ModMoodleDefinition` | Static presentation descriptor. |
+| `ModContentKind.Status` / `IModStatusDefinition` | Static descriptor: id, scope, save metadata, moodle link. |
+| `ModContentKind.Moodle` / `IModMoodleDefinition` | Static presentation descriptor. |
 | `IModData` | Generic per-mod runtime value store; not a per-player/per-limb semantic status bag. |
 | `IModState` | Host-persistent durable mod state. |
 | `IModNetwork` / `IModCommands` | Existing transport/authority surfaces: typed status frames ride `IModNetwork`; guest change requests remain host-command semantics via `IModCommands`. |
@@ -248,7 +248,7 @@ routing on absence or exception.
    - Vanilla moodle-row slice adds `ModStatusMoodleProjection` plus
      `MoodleManager.AddAllMoodles` prefix/postfix patches. It reads active
      status presences for the local player, resolves linked static
-     `ModMoodleDefinition`s, and feeds important moodles into the main row and
+     `IModMoodleDefinition`s, and feeds important moodles into the main row and
      non-important moodles into the side row. Limb-scoped statuses can opt into
      one row per affected limb through `ShowPerLimbMoodles`, route a specific
      limb to its own moodle descriptor through `LimbMoodles`, and format the

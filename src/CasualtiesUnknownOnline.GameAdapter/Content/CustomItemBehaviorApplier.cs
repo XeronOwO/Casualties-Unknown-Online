@@ -9,7 +9,7 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Applies the advanced behavior DTOs of a <see cref="ModItemDefinition"/> to a
+/// Applies the advanced behavior DTOs of a <see cref="IModItemDefinition"/> to a
 /// CUO custom item runtime template. Container/battery/gun are vanilla game
 /// components configured directly; light uses a reflection seam because the URP
 /// <c>Light2D</c> type is not in the Game Adapter reference graph. The template
@@ -20,7 +20,7 @@ internal static class CustomItemBehaviorApplier
 {
 	private static Type? _light2DType;
 
-	internal static void Apply(GameObject template, ModItemDefinition definition, ILogger log)
+	internal static void Apply(GameObject template, IModItemDefinition definition, ILogger log)
 	{
 		if (template == null) // Unity object — ==
 		{

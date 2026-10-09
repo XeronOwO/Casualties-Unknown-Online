@@ -11,7 +11,7 @@ using Random = UnityEngine.Random;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModTileDefinition"/> definitions from shared-content mods into
+/// Binds <see cref="IModTileDefinition"/> definitions from shared-content mods into
 /// the vanilla world palette. Each definition receives a deterministic custom
 /// block index (never a vanilla index), gets a Unity <see cref="Tile"/> built by
 /// <see cref="CustomTileFactory"/>, and is served through the
@@ -26,7 +26,7 @@ public sealed class GameAdapterTileContentProvider(
 	private const int CustomTileIndexCount = ushort.MaxValue - FirstCustomTileIndex + 1;
 
 	private readonly ILogger<GameAdapterTileContentProvider> _log = log;
-	private readonly Dictionary<string, ModTileDefinition> _definitions = [];
+	private readonly Dictionary<string, IModTileDefinition> _definitions = [];
 	private readonly Dictionary<string, ushort> _indicesById = [];
 	private readonly Dictionary<ushort, string> _idsByIndex = [];
 	private readonly HashSet<string> _injectedIds = [];
@@ -40,12 +40,12 @@ public sealed class GameAdapterTileContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModTileDefinition definition)
+		if (registration.Definition is not IModTileDefinition definition)
 		{
 			_log.LogWarning(
-				"[TileContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[TileContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModTileDefinition));
+				registration.Definition.GetType().Name, nameof(IModTileDefinition));
 			return false;
 		}
 
@@ -164,11 +164,11 @@ public sealed class GameAdapterTileContentProvider(
 		_indicesById.TryGetValue(id, out index);
 
 	/// <summary>Resolve the original typed definition by stable content id.</summary>
-	internal bool TryGetDefinition(string id, out ModTileDefinition definition) =>
+	internal bool TryGetDefinition(string id, out IModTileDefinition definition) =>
 		_definitions.TryGetValue(id, out definition!);
 
 	/// <summary>Resolve a bound definition by its allocated custom block index.</summary>
-	internal bool TryGetDefinitionByIndex(ushort block, out ModTileDefinition definition)
+	internal bool TryGetDefinitionByIndex(ushort block, out IModTileDefinition definition)
 	{
 		definition = null!;
 		return _idsByIndex.TryGetValue(block, out var id) && _definitions.TryGetValue(id, out definition!);
@@ -179,7 +179,7 @@ public sealed class GameAdapterTileContentProvider(
 	/// world-generation distribution. Both sides must iterate the same set in the
 	/// same order when consuming the shared generation random stream.
 	/// </summary>
-	internal IReadOnlyList<KeyValuePair<string, ModTileDefinition>> GetDefinitionsForWorldGen() =>
+	internal IReadOnlyList<KeyValuePair<string, IModTileDefinition>> GetDefinitionsForWorldGen() =>
 		[.. _definitions.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
 
 	/// <summary>
@@ -200,14 +200,15 @@ public sealed class GameAdapterTileContentProvider(
 			return false;
 		}
 
-		if (definition.Drops.Count == 0)
+		var drops = ModDeclarationCollections.OrEmpty(definition.Drops);
+		if (drops.Count == 0)
 		{
 			return false;
 		}
 
 		var worldPosition = world.BlockToWorldPos(cell);
 		var spawned = 0;
-		foreach (var drop in definition.Drops)
+		foreach (var drop in drops)
 		{
 			if (drop is null || string.IsNullOrWhiteSpace(drop.ItemId))
 			{
@@ -278,7 +279,7 @@ public sealed class GameAdapterTileContentProvider(
 		return _injectedIds.Contains(id) && _indicesById.TryGetValue(id, out index);
 	}
 
-	private void EnsureInjected(string id, ModTileDefinition definition, WorldGeneration world)
+	private void EnsureInjected(string id, IModTileDefinition definition, WorldGeneration world)
 	{
 		if (_injectedIds.Contains(id) || _failedIds.Contains(id))
 		{
@@ -345,7 +346,7 @@ public sealed class GameAdapterTileContentProvider(
 		return false;
 	}
 
-	private bool TryValidateDefinition(string id, ModTileDefinition definition)
+	private bool TryValidateDefinition(string id, IModTileDefinition definition)
 	{
 		if (float.IsNaN(definition.SpawnAmount) || float.IsInfinity(definition.SpawnAmount) || definition.SpawnAmount < 0f)
 		{
@@ -353,7 +354,7 @@ public sealed class GameAdapterTileContentProvider(
 			return false;
 		}
 
-		foreach (var drop in definition.Drops)
+		foreach (var drop in ModDeclarationCollections.OrEmpty(definition.Drops))
 		{
 			if (drop is null || string.IsNullOrWhiteSpace(drop.ItemId))
 			{
@@ -383,7 +384,7 @@ public sealed class GameAdapterTileContentProvider(
 		return true;
 	}
 
-	private static BlockInfo BuildBlockInfo(string id, ModTileDefinition definition)
+	private static BlockInfo BuildBlockInfo(string id, IModTileDefinition definition)
 	{
 		return new BlockInfo
 		{
@@ -399,7 +400,7 @@ public sealed class GameAdapterTileContentProvider(
 		};
 	}
 
-	private static void ApplyLocale(string id, ModTileDefinition definition)
+	private static void ApplyLocale(string id, IModTileDefinition definition)
 	{
 		if (Locale.currentLang is null)
 		{

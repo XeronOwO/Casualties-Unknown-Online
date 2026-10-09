@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// Binds <see cref="ModStatusDefinition"/> definitions from shared-content mods
+/// Binds <see cref="IModStatusDefinition"/> definitions from shared-content mods
 /// into a small, validated static status-descriptor registry. This provider
 /// intentionally does not create per-player or per-limb runtime status bags:
 /// dynamic status state belongs to a future typed mod-data domain. It gives
@@ -18,7 +18,7 @@ public sealed class GameAdapterStatusContentProvider(
 	ILogger<GameAdapterStatusContentProvider> log) : IContentBindingProvider, ICuoService
 {
 	private readonly ILogger<GameAdapterStatusContentProvider> _log = log;
-	private readonly Dictionary<string, ModStatusDefinition> _definitions = [];
+	private readonly Dictionary<string, IModStatusDefinition> _definitions = [];
 
 	/// <inheritdoc />
 	public string Kind => ModContentKind.Status;
@@ -26,12 +26,12 @@ public sealed class GameAdapterStatusContentProvider(
 	/// <inheritdoc />
 	public bool TryBind(ModContentRegistration registration)
 	{
-		if (registration.Definition is not ModStatusDefinition definition)
+		if (registration.Definition is not IModStatusDefinition definition)
 		{
 			_log.LogWarning(
-				"[StatusContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not a {Expected} — refused.",
+				"[StatusContent] {ModId}/{Id} claims kind {Kind} but is a {Type}, not an {Expected} — refused.",
 				registration.ModId, registration.Definition.Id, registration.Definition.Kind,
-				registration.Definition.GetType().Name, nameof(ModStatusDefinition));
+				registration.Definition.GetType().Name, nameof(IModStatusDefinition));
 			return false;
 		}
 
@@ -78,7 +78,7 @@ public sealed class GameAdapterStatusContentProvider(
 		return true;
 	}
 
-	private bool ValidateLimbMoodleRouting(string modId, string id, ModStatusDefinition definition)
+	private bool ValidateLimbMoodleRouting(string modId, string id, IModStatusDefinition definition)
 	{
 		if (definition.ShowPerLimbMoodles && definition.Scope != ModStatusScope.Limb)
 		{
@@ -88,7 +88,8 @@ public sealed class GameAdapterStatusContentProvider(
 			return false;
 		}
 
-		if (definition.LimbMoodles.Count == 0)
+		var limbMoodles = ModDeclarationCollections.OrEmpty(definition.LimbMoodles);
+		if (limbMoodles.Count == 0)
 		{
 			return true;
 		}
@@ -102,7 +103,7 @@ public sealed class GameAdapterStatusContentProvider(
 		}
 
 		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-		foreach (var binding in definition.LimbMoodles)
+		foreach (var binding in limbMoodles)
 		{
 			if (binding is null
 				|| string.IsNullOrWhiteSpace(binding.LimbName)
@@ -149,6 +150,6 @@ public sealed class GameAdapterStatusContentProvider(
 	}
 
 	/// <summary>Resolve a bound static status descriptor.</summary>
-	internal bool TryGetDefinition(string id, out ModStatusDefinition definition) =>
+	internal bool TryGetDefinition(string id, out IModStatusDefinition definition) =>
 		_definitions.TryGetValue(id, out definition!);
 }

@@ -55,6 +55,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [No opaque payloads in the mod API](todo/mod-api-no-opaque-envelopes.md) — **Critical** — a typed data model where the shape is the mod's own.
 - [Typed seams, not object handles](todo/mod-api-typed-seams.md) — **Critical** — no untyped handle or string-keyed call in the contract.
 - [Content declarations by attribute](todo/mod-content-attribute-declarations.md) — **High** — a scanned declaration instead of a Bind list.
+- [Random rolls in a cross-player item use](todo/cross-player-item-use-random-determinism.md) — **High** — one deterministic window?
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.

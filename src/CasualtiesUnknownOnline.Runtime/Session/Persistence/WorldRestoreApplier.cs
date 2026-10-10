@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 
@@ -37,6 +38,7 @@ internal sealed class WorldRestoreApplier(
 	ItemKernelAuthority kernel,
 	ICharacterDataControl characters,
 	IWorldFactSource worldFacts,
+	IModContentFingerprints contentFingerprints,
 	INativeWorldFacts? nativeWorldFacts,
 	WorldCharacterBinder binder,
 	IRestoredWorldItemSource? items,
@@ -159,8 +161,16 @@ internal sealed class WorldRestoreApplier(
 		}
 
 		// The restore is about to APPLY the payload, so it verifies the manifest's
-		// digests — a listing would not (WorldLoadOptions).
-		var options = new WorldLoadOptions { VerifyChecksums = true, RepairMode = true };
+		// digests — a listing would not (WorldLoadOptions). The content fingerprint is
+		// what THIS process materialized: the reader compares it with the cut's own and
+		// reports a difference, which is the one content drift the per-entry salvage
+		// cannot see (§6.1).
+		var options = new WorldLoadOptions
+		{
+			VerifyChecksums = true,
+			RepairMode = true,
+			ExpectedContentFingerprint = contentFingerprints.Fingerprint,
+		};
 
 		// The world folder has ONE writer, and a restore is a write path (§5's lease):
 		// another CUO instance playing this world must be named HERE, before a checkpoint

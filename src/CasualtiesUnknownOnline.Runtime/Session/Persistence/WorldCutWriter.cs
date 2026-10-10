@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 
@@ -30,6 +31,7 @@ internal sealed class WorldCutWriter(
 	WorldSnapshotEncoder encoder,
 	IWorldFactSource worldFacts,
 	INativeWorldFacts? nativeWorldFacts,
+	IModContentFingerprints contentFingerprints,
 	ILogger<WorldCutWriter> log,
 	string gameBuild,
 	Func<DateTime> utcNow)
@@ -39,6 +41,7 @@ internal sealed class WorldCutWriter(
 	private readonly WorldSnapshotEncoder _encoder = encoder;
 	private readonly IWorldFactSource _worldFacts = worldFacts;
 	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
+	private readonly IModContentFingerprints _contentFingerprints = contentFingerprints;
 	private readonly ILogger<WorldCutWriter> _log = log;
 	private readonly string _gameBuild = string.IsNullOrWhiteSpace(gameBuild) ? "unknown" : gameBuild!;
 	private readonly Func<DateTime> _utcNow = utcNow;
@@ -93,7 +96,6 @@ internal sealed class WorldCutWriter(
 				request.CutPhase,
 				_gameBuild,
 				CuoBuild,
-				ContentFingerprint: string.Empty,
 				facts.Blocks,
 				facts.Transients,
 				request.Kind,
@@ -304,10 +306,11 @@ internal sealed class WorldCutWriter(
 			GameBuild = _gameBuild,
 			CuoBuild = CuoBuild,
 			ProtocolVersion = ProtocolVersion.Current,
-			// The content-set fingerprint belongs to the world-determinism layer,
-			// which has no producer in this build; an empty value is "unknown",
-			// never a guessed one (§6.1).
-			ContentFingerprint = string.Empty,
+			// What this process materialized, as ONE fingerprint: the manifest records the
+			// content set the world was cut under, so a load can tell the set changed even
+			// when every stored content id still resolves — the case the per-entry salvage
+			// cannot see. An empty value is "unknown" (§6.1), and the live value never is.
+			ContentFingerprint = _contentFingerprints.Fingerprint,
 			RunEpoch = checkpoint.RunEpoch.Value.ToString(CultureInfo.InvariantCulture),
 			// The manifest stores the revision as a signed 64-bit number (§3.2); a
 			// counter that outgrew it would silently wrap, so the cut is refused

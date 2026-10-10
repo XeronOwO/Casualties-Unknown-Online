@@ -98,6 +98,7 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 			}
 
 			NoteProtocolMismatch(manifest, damage);
+			NoteContentMismatch(manifest, options, damage);
 			var files = ReadManifestFiles(liveDirectory, manifest, options, damage);
 			if (files.Count > 0 || manifest.Files.Count == 0)
 			{
@@ -182,7 +183,7 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 	}
 
 	/// <summary>
-	/// §6.1: a protocol that differs from this build opens in repair mode with a
+	/// §6.2: a protocol that differs from this build opens in repair mode with a
 	/// loud warning — never silently, and never a refusal. The world still loads;
 	/// entities a newer protocol created may not restore.
 	/// </summary>
@@ -197,6 +198,32 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 			$"the snapshot was cut by protocol {manifest.ProtocolVersion}, this build speaks {RuntimeProtocolVersion.Current}"));
 		_log.LogWarning("Snapshot of world {WorldId} was cut by protocol {FileProtocol}; this build speaks {BuildProtocol} — repair mode, entries may not restore.",
 			manifest.WorldId, manifest.ProtocolVersion, RuntimeProtocolVersion.Current);
+	}
+
+	/// <summary>
+	/// §6.2's rule for a build difference, applied to the CONTENT set: what this process
+	/// materialized is compared with what the manifest recorded, and a difference is
+	/// REPORTED rather than refused — the world still opens, and the per-entry salvage
+	/// names whatever no longer resolves. This is the drift the salvage cannot see: a
+	/// content set that changed while every stored content id still resolves. "Unknown"
+	/// on either side (the empty string — an absent manifest field, or a caller that
+	/// passes none) is never compared, so a snapshot cut without a content registry
+	/// opens exactly as it did before.
+	/// </summary>
+	private void NoteContentMismatch(SaveManifest manifest, WorldLoadOptions options, List<DamageReport.Entry> damage)
+	{
+		if (manifest.ContentFingerprint.Length == 0
+			|| options.ExpectedContentFingerprint.Length == 0
+			|| string.Equals(manifest.ContentFingerprint, options.ExpectedContentFingerprint, StringComparison.Ordinal))
+		{
+			return;
+		}
+
+		damage.Add(RepositoryEntry(DamageReport.EntryReason.ContentMismatch, manifest.WorldId,
+			$"the snapshot was cut with content fingerprint {manifest.ContentFingerprint}, this build materializes {options.ExpectedContentFingerprint}"));
+		_log.LogWarning(
+			"Snapshot of world {WorldId} was cut with content {FileContent}; this build materializes {BuildContent} — repair mode, and a stored entry whose content is gone is salvaged per entry.",
+			manifest.WorldId, manifest.ContentFingerprint, options.ExpectedContentFingerprint);
 	}
 
 	private void CollectRecoveryDamage(WorldFolderRecovery.RecoveryResult recovery, List<DamageReport.Entry> damage)
@@ -417,6 +444,7 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 			}
 
 			NoteProtocolMismatch(manifest, damage);
+			NoteContentMismatch(manifest, options, damage);
 			var byPath = entries.ToDictionary(entry => entry.Path, entry => entry, StringComparer.Ordinal);
 			var files = new List<SnapshotFile>(manifest.Files.Count);
 			foreach (var file in manifest.Files)

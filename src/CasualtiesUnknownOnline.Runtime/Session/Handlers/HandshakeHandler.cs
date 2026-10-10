@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans, ISteamService steam, IKernelProtocolControl kernelProtocol) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans, ISteamService steam, IKernelProtocolControl kernelProtocol, IModContentFingerprints contentFingerprints) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
@@ -25,6 +25,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	private readonly IHostBanService _hostBans = hostBans;
 	private readonly ISteamService _steam = steam;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
+	private readonly IModContentFingerprints _contentFingerprints = contentFingerprints;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
@@ -236,7 +237,9 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	/// refusal (the guest's 1 s handshake retry is then checked properly).
 	/// The declared native binding is judged separately, per mod id, by the
 	/// host's parity policy (<see cref="CheckNativeBindingParity"/>) — it is
-	/// never part of the NetworkMode contract.
+	/// never part of the NetworkMode contract. What a mod MATERIALIZED is
+	/// compared too, and reported without a verdict
+	/// (<see cref="NoteContentParity"/>).
 	/// </summary>
 	private bool CheckModConsistency(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
@@ -277,6 +280,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 
 		// Host has, member lacks or version-unequal: the state-bearing modes
 		// reject; local-surface modes pass (HostOnly is host-side only).
+		var hostContent = _contentFingerprints.ByMod;
 		foreach (var hostMod in host)
 		{
 			var guestInfo = guest.FirstOrDefault(g => g.Id == hostMod.Id);
@@ -319,6 +323,12 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 				}
 			}
 
+			// What the declaration PRODUCED, not only what it declared: an equal id and
+			// version says nothing about the entries a mod materialized, because a
+			// definition may compute its values (decision 251). REPORTED, never refused —
+			// see the method.
+			NoteContentParity(sender, hostMod, guestInfo, hostContent);
+
 			// The declared native binding is judged apart from the network
 			// contract: it is a declared fact, and only an explicit require policy
 			// turns a difference into a refusal (see the method).
@@ -342,6 +352,40 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// The materialized content of a mod BOTH sides list, compared as one fingerprint per
+	/// side: a definition may COMPUTE its members (decision 251), so two copies of the same
+	/// mod version can materialize different content, and nothing else in this check would
+	/// notice — id, version, mode and permissions can all be equal.
+	///
+	/// A difference is REPORTED and the member is admitted, never refused (user ruling
+	/// 2026-10-10). The comparison cannot be complete — it covers the ADDRESS of every entry
+	/// (the mod id, the content id, the kind, the schema version) and never a computed value,
+	/// so a benign difference such as a local configuration is indistinguishable from a
+	/// harmful one — and a check that cannot be complete must not gate entry: refused by
+	/// default it would lock players out over a cosmetic difference, silent it would be
+	/// worth nothing. The line names the mod, both fingerprints and the mode, which is what
+	/// makes a divergence diagnosable after the fact.
+	///
+	/// Null means "this mod registered no content" on either side and is compared as such —
+	/// never as "unknown" — so two content-less copies match, a mod that has content on one
+	/// side only is a difference like any other, and a peer too old to report fingerprints
+	/// reads as "none" (pre-release every client comes from this tree; decision 241).
+	/// </summary>
+	private void NoteContentParity(ulong sender, ModManifest hostMod, ModInfoMsg guestInfo, IReadOnlyDictionary<string, string> hostContent)
+	{
+		var hostFingerprint = hostContent.TryGetValue(hostMod.Id, out var fingerprint) ? fingerprint : null;
+		var guestFingerprint = guestInfo.ContentFingerprint;
+		if (string.Equals(hostFingerprint, guestFingerprint, StringComparison.Ordinal))
+		{
+			return;
+		}
+
+		_log.LogWarning(
+			"Handshake from {Peer}: {Id} ({Mode}) materializes different content than the host's copy ({Member} vs {Host}) — admitted; the comparison covers the address of every entry, never a computed member's value.",
+			sender, hostMod.Id, hostMod.NetworkMode, Declared(guestFingerprint), Declared(hostFingerprint));
 	}
 
 	/// <summary>
@@ -382,6 +426,9 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	}
 
 	private static string DeclaredBinding(string? binding) => binding ?? "none";
+
+	/// <summary>A fingerprint that is absent reads as "this mod registered no content", never as an unknown value.</summary>
+	private static string Declared(string? fingerprint) => fingerprint ?? "none";
 
 	private static bool IsStateBearing(NetworkMode mode) =>
 		mode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative;

@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -93,6 +94,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 		ITransportIdentity transport,
 		WorldSnapshotEncoder encoder,
 		IWorldFactSource worldFacts,
+		IModContentFingerprints contentFingerprints,
 		ILoggerFactory loggerFactory,
 		ILogger<WorldSaveService> log,
 		string? gameBuild = null,
@@ -120,6 +122,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 			kernel,
 			characters,
 			worldFacts,
+			contentFingerprints,
 			nativeWorldFacts,
 			binder,
 			items,
@@ -140,6 +143,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 				encoder,
 				worldFacts,
 				nativeWorldFacts,
+				contentFingerprints,
 				loggerFactory.CreateLogger<WorldCutWriter>(),
 				gameBuild ?? string.Empty,
 				clock);

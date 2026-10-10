@@ -79,7 +79,7 @@ baseline; the new tickets that carry what this one does not.
 - **"One assembly, one mod"** — superseded by nesting plus the single-mod-assembly rule, with the reason
   and the two real shapes above.
 - **The optional per-kind base classes** — not built, for the compiler's reason measured in §2.3.
-- **The content fingerprint** — moved with its acceptance row to `todo/mod-content-fingerprint.md`.
+- **The content fingerprint** — moved with its acceptance row to `review/mod-content-fingerprint.md` (landed 2026-10-10, decision 254).
 - **The nested member contracts** (`IModItemTool` and its thirteen siblings) — moved with the acceptance
   row that names them to `review/mod-content-nested-member-contracts.md`; the kind contracts still type
   those members as the framework's classes and the collection members as `List<ModT>`.

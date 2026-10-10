@@ -71,6 +71,50 @@ public class ModContentTests
 	}
 
 	[Fact]
+	public void HandshakeList_CarriesTheFingerprintOfEachModsOwnContent()
+	{
+		// The session's handshake list is what fills HandshakeMsg.Mods, and it is a leaf that
+		// composes discovery with the content registry: the wiring the peer comparison rests
+		// on is pinned HERE, over the real mod stack, rather than assumed from the two halves'
+		// own tests — a list that never carried the fingerprint would leave every peer
+		// comparison reading "no content" on both sides.
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var fingerprints = host.Services.GetRequiredService<IModContentFingerprints>();
+
+		var infos = host.Services.GetRequiredService<IModListProvider>().CurrentModInfos();
+		var contentMod = infos.Single(info => info.Id == "test.content");
+
+		Assert.Equal(fingerprints.ByMod["test.content"], contentMod.ContentFingerprint);
+		Assert.NotNull(contentMod.ContentFingerprint);
+
+		// A mod that registered nothing reports "none", never an unknown value: the host reads
+		// it as the empty content set, which is what the mod actually materializes.
+		Assert.Null(infos.Single(info => info.Id == "test.echo").ContentFingerprint);
+	}
+
+	[Fact]
+	public void AModThatFailsToLoad_LeavesNoContentBehind()
+	{
+		// A mod registers its content BEFORE it can fail (a code registration happens inside
+		// `Bind`, and the attribute scan runs even earlier), so the entries outlive the mod
+		// unless the failed load withdraws them. They must not outlive it: the framework-wide
+		// view is what the console, the ownership query and the content fingerprints read, and
+		// a digest claiming content this process never materialized would make the handshake
+		// refuse a peer over what is really a local load failure — one-sidedly, since only the
+		// failing peer's set carries the ghost entry.
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var mods = host.Services.GetRequiredService<ModService>();
+
+		Assert.DoesNotContain(mods.LoadedMods, mod => mod is TestBindFailingMod);
+		Assert.DoesNotContain(
+			host.Services.GetRequiredService<IModContentControl>().Entries,
+			entry => entry.ModId == TestBindFailingMod.Id);
+		Assert.DoesNotContain(
+			TestBindFailingMod.Id,
+			host.Services.GetRequiredService<IModContentFingerprints>().ByMod.Keys);
+	}
+
+	[Fact]
 	public void ContentCatalog_ReadsRealModStack()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);

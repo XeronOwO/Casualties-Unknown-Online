@@ -252,6 +252,11 @@ public sealed class WorldLibraryService(
 		// bytes no longer match it, must be refused while the working snapshot is still in live/:
 		// promoting it first would destroy a good snapshot to install a broken one, and the player
 		// would only find out at the next Continue.
+		//
+		// No expected content fingerprint is passed, deliberately: this pass VALIDATES a package
+		// and applies nothing, and its only consumer is the refusal it may return — the content
+		// comparison belongs to the load that applies the payload (§6.2), which reports the
+		// difference to the player. A note recorded here would reach no surface.
 		var opened = worlds.LoadBackup(worldId, backup, new WorldLoadOptions { VerifyChecksums = true });
 		if (opened.Failed)
 		{

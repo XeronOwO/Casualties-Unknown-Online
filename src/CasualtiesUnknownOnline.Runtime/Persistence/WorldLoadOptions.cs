@@ -20,4 +20,14 @@ public sealed class WorldLoadOptions
 
 	/// <summary>The schema version this caller understands; defaults to <see cref="SaveManifest.CurrentSchemaVersion"/>.</summary>
 	public int ReaderSchemaVersion { get; init; } = SaveManifest.CurrentSchemaVersion;
+
+	/// <summary>
+	/// The content fingerprint THIS process materialized, compared with the one the
+	/// manifest recorded (§3.2). The empty string — the default, and what a manifest
+	/// cut by a build without a content registry carries — is "unknown": it is never
+	/// compared, so a snapshot that does not state its content set is opened exactly
+	/// as before. A difference is REPORTED, never refused (§6.2's rule for a build
+	/// fingerprint), because the per-entry salvage already decides the entries.
+	/// </summary>
+	public string ExpectedContentFingerprint { get; init; } = string.Empty;
 }

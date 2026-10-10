@@ -2,6 +2,7 @@ using System;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -26,6 +27,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		FakeCharacterDataControl characters,
 		FakeSessionControl session,
 		FakeWorldFactSource worldFacts,
+		ModContentStore content,
 		WorldRestoreAudit? audit,
 		IRestoredWorldItemSource? items,
 		MutableOptionsMonitor<SaveOptions> options,
@@ -37,6 +39,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		Characters = characters;
 		Session = session;
 		WorldFacts = worldFacts;
+		Content = content;
 		Audit = audit;
 		Items = items;
 		Options = options;
@@ -55,6 +58,9 @@ internal sealed class WorldSaveFixture : IDisposable
 
 	/// <summary>The world-fact tables this fixture's service reads and rewrites.</summary>
 	internal FakeWorldFactSource WorldFacts { get; }
+
+	/// <summary>The content registry the cut records a fingerprint of — a suite files entries into it to move that fingerprint.</summary>
+	internal ModContentStore Content { get; }
 
 	/// <summary>The restore account this fixture's service reports its live-world halves to, when the suite supplied one.</summary>
 	internal WorldRestoreAudit? Audit { get; }
@@ -101,6 +107,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		ulong hostId = 1001UL,
 		SaveTestRepository? repository = null,
 		FakeNativeWorldFacts? nativeWorldFacts = null,
+		ModContentStore? content = null,
 		IWorldCutTransientProbe? transients = null,
 		IRestoredWorldEntitySource? worldEntities = null,
 		WorldRestoreAudit? audit = null,
@@ -111,6 +118,7 @@ internal sealed class WorldSaveFixture : IDisposable
 	{
 		repository ??= SaveTestRepository.Create(label);
 		loggerFactory ??= NullLoggerFactory.Instance;
+		content ??= new ModContentStore();
 		var kernel = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
 		var characters = new FakeCharacterDataControl();
 		var session = new FakeSessionControl { LocalSteamId = hostId, HostSteamId = hostId };
@@ -125,6 +133,7 @@ internal sealed class WorldSaveFixture : IDisposable
 			transport,
 			new WorldSnapshotEncoder(NullLogger<WorldSnapshotEncoder>.Instance),
 			worldFacts,
+			content,
 			loggerFactory,
 			loggerFactory.CreateLogger<WorldSaveService>(),
 			gameBuild: "test",
@@ -136,12 +145,12 @@ internal sealed class WorldSaveFixture : IDisposable
 			items: items,
 			options: monitor);
 
-		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts, audit, items, monitor, loggerFactory);
+		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts, content, audit, items, monitor, loggerFactory);
 	}
 
 	/// <summary>A second service over the SAME world repository with a fresh kernel — a host restart. The restore account and the item port are the caller's to supply: a restart is a NEW service, and sharing a stand-in silently would hide that (the suites that pin them compose through <see cref="Create"/>).</summary>
-	internal WorldSaveFixture Restart(string label, bool ipDirect = false, string displayName = "Host") =>
-		Create(label, ipDirect, displayName, hostId: Session.LocalSteamId, repository: Repository, loggerFactory: LoggerFactory);
+	internal WorldSaveFixture Restart(string label, bool ipDirect = false, string displayName = "Host", ModContentStore? content = null) =>
+		Create(label, ipDirect, displayName, hostId: Session.LocalSteamId, repository: Repository, content: content, loggerFactory: LoggerFactory);
 
 	public void Dispose() => Service.Dispose();
 }

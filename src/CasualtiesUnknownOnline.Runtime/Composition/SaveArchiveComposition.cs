@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,6 +59,10 @@ internal static class SaveArchiveComposition
 			p.GetRequiredService<ITransportIdentity>(),
 			p.GetRequiredService<WorldSnapshotEncoder>(),
 			p.GetRequiredService<IWorldFactSource>(),
+			// What the mod domain materialized: a cut records it in the manifest and a
+			// Continue compares it with the live set (the content registry is a leaf, so
+			// this does not reach ModService, which depends on the session).
+			p.GetRequiredService<IModContentFingerprints>(),
 			p.GetRequiredService<ILoggerFactory>(),
 			p.GetRequiredService<ILogger<WorldSaveService>>(),
 			gameBuild,

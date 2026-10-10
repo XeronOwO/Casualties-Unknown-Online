@@ -10,7 +10,10 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// policy (RequiresAllPlayers/Synchronized/Authoritative missing or version-
 /// unequal → reject; ClientOnly/Cosmetic differences and host-only mods → pass).
 /// The declared native binding rides the same entry and is judged separately by
-/// the host's parity policy — it never joins the NetworkMode contract.
+/// the host's parity policy — it never joins the NetworkMode contract. The
+/// fingerprint of what the mod materialized rides it too, and is REPORTED rather
+/// than judged: the host records a difference, names the mod and admits the member
+/// (a comparison over addresses cannot be complete enough to gate entry).
 /// The enum serializes as its underlying int; Unspecified (0) is an invalid
 /// wire value — the host's shape check rejects it.
 /// </summary>
@@ -47,4 +50,18 @@ public sealed class ModInfoMsg
 	/// </summary>
 	[ProtoMember(5)]
 	public string? NativeBinding { get; set; }
+
+	/// <summary>
+	/// The fingerprint of the content THIS mod registered: the address of every entry
+	/// it materialized — the owning mod id, the entry's canonical id, its kind and its
+	/// schema version — rendered as one canonical text and hashed. Null = the mod
+	/// registered NO content, never "unknown", so both peers read a content-less mod
+	/// the same way. The host compares it with its own copy for a mod BOTH sides list,
+	/// because id and version equality does not say what a declaration produced: a
+	/// definition may COMPUTE its members (decision 251), so two copies of one mod
+	/// version can materialize different content, and before this field nothing
+	/// noticed (decision 254). A difference is REPORTED, never a refusal.
+	/// </summary>
+	[ProtoMember(6)]
+	public string? ContentFingerprint { get; set; }
 }

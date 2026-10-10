@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -77,6 +78,7 @@ public class WorldSaveDegradationTests
 			new FakeTransportIdentity { LocalPeerId = HostId, LocalDisplayName = "Host" },
 			new WorldSnapshotEncoder(NullLogger<WorldSnapshotEncoder>.Instance),
 			new FakeWorldFactSource(),
+			new ModContentStore(),
 			NullLoggerFactory.Instance,
 			NullLogger<WorldSaveService>.Instance,
 			utcNow: () => Noon);

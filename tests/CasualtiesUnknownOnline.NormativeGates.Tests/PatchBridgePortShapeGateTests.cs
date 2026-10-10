@@ -223,6 +223,10 @@ public class PatchBridgePortShapeGateTests
 			"IsWorldItemRegistered",
 			"ReportStandingItemGestureRefused",
 		]),
+		("IWearablePatchPort", AdapterDir + "IWearablePatchPort.cs", false,
+		[
+			"ReportWearPlacementRefused",
+		]),
 	];
 
 	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
@@ -246,6 +250,7 @@ public class PatchBridgePortShapeGateTests
 		"ModContent",
 		"SessionSurface",
 		"Unbind",
+		"Wearable",
 		"_bound",
 	];
 
@@ -275,6 +280,7 @@ public class PatchBridgePortShapeGateTests
 		"IFluidPatchPort",
 		"ILayerAdvancePatchPort",
 		"IItemCategoryPatchPort",
+		"IWearablePatchPort",
 	];
 
 	public static IEnumerable<object[]> SeamCensus() =>

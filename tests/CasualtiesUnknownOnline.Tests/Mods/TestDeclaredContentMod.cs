@@ -90,7 +90,7 @@ public sealed class TestDeclaredContentMod : ICuoMod
 
 		public bool UsableWithLmb => false;
 
-		public bool Wearable => false;
+		public IModItemWearable? Wearable => null;
 
 		public bool DestroyAtZeroCondition => false;
 
@@ -179,7 +179,7 @@ public sealed class TestDeclaredContentMod : ICuoMod
 
 		public bool UsableWithLmb => false;
 
-		public bool Wearable => false;
+		public IModItemWearable? Wearable => null;
 
 		public bool DestroyAtZeroCondition => false;
 

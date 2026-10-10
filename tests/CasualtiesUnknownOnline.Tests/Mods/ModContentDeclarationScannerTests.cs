@@ -545,7 +545,7 @@ public class ModContentDeclarationScannerTests
 
 		public virtual bool UsableWithLmb => false;
 
-		public virtual bool Wearable => false;
+		public virtual IModItemWearable? Wearable => null;
 
 		public virtual bool DestroyAtZeroCondition => false;
 

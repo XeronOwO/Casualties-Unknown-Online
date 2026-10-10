@@ -127,6 +127,18 @@ public sealed class GameAdapterItemContentProvider(
 				"[ItemContent] {ModId}/{Id} declares Usable/UsableWithLmb without a Tool or Gun behaviour — the mod API cannot author a use action, so using the item will do nothing.",
 				registration.ModId, id);
 		}
+
+		// A wearable declaration the game's own placement cannot resolve is registered
+		// WITHOUT the wearable flag: Body.WearWearable resolves the declared limb name
+		// with Body.LimbByName (Body.cs:1493) and dereferences the result on the next
+		// line, so the flag alone would throw inside the game instead of putting the
+		// garment on a body part.
+		if (definition.Wearable is { } declaredWearable && !WearableDeclaration.HasPlacement(declaredWearable))
+		{
+			_log.LogWarning(
+				"[ItemContent] {ModId}/{Id} declares Wearable without a limb name and a wear slot — the item is registered but cannot be worn: the game's own wear flow resolves the declared limb and has nothing to resolve here.",
+				registration.ModId, id);
+		}
 		return true;
 	}
 

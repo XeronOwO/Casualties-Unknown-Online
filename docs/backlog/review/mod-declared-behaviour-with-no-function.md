@@ -209,5 +209,12 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself �
 ## Non-goals
 
 - Not the mod-authored effect-function surface (the parent ticket's Stage 3).
-- Not the other Part 3.A field gaps (`useLimbAction`, the wearable set, the miscellaneous reads) — none of
-  them is a crash, and each keeps its own consumer rule.
+- Not the other Part 3.A field gaps (`useLimbAction`, the wearable set, the miscellaneous reads) — each keeps
+  its own consumer rule. **The wearable half of that sentence was WRONG and is corrected 2026-10-11**: it is
+  a crash, not a silent gap. `Body.WearWearable` resolves the limb name `ItemInfo.desiredWearLimb` carries
+  with `Body.LimbByName` and dereferences the result on the next line (`Body.cs:1493-1494`), and nothing
+  filled that field for a mod item — so a definition declaring `Wearable` threw inside the game's own wear
+  flow the moment a player put it on. It is `docs/backlog/review/mod-item-wearable-declaration.md` now, with
+  the same native-evidence shape this ticket used, and its own finding was made while auditing this family.
+  The `useLimbAction` half stays a non-goal for a different reason: its consumer IS a delegate, and
+  `Abstractions` cannot carry one — that is `docs/backlog/todo/mod-authored-effects.md`.

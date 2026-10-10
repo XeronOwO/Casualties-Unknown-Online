@@ -1,27 +1,24 @@
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
-/// The per-mod content registry: a small definition list scoped by
-/// construction to one mod id. Registration failures are logged and refused
-/// (missing permission, null definition, invalid id/kind/schema version,
-/// duplicate id, count cap). The registry keeps the definition object the mod
-/// handed over — it takes no copy — so a mod registers a definition it does not
-/// mutate afterwards.
+/// One mod's write guard over its own slice of the framework-wide content
+/// registry: the permission gate, the id/kind/schema rails and the count cap are
+/// decided here, the definitions themselves live in <see cref="ModContentStore"/>
+/// (their one owner, so the readers outside this domain see the same set), and the
+/// object a mod hands over is kept as it is — no copy — so a mod registers a
+/// definition it does not mutate afterwards.
 /// </summary>
-internal sealed class ModContentAdapter(ModManifest manifest, ILogger log) : IModContent
+internal sealed class ModContentAdapter(ModManifest manifest, ModContentStore store, ILogger log) : IModContent
 {
-	private readonly List<IModContentDefinition> _definitions = [];
-
 	public bool CanRegister => ModPermissionGate.HasPermission(manifest, ModPermission.RegisterContent);
 
-	public int Count => _definitions.Count;
+	public int Count => store.CountOf(manifest.Id);
 
-	public IReadOnlyCollection<IModContentDefinition> Definitions => [.. _definitions];
+	public IReadOnlyCollection<IModContentDefinition> Definitions => store.DefinitionsOf(manifest.Id);
 
 	public bool TryRegister(IModContentDefinition definition)
 	{
@@ -58,37 +55,27 @@ internal sealed class ModContentAdapter(ModManifest manifest, ILogger log) : IMo
 			return false;
 		}
 
-		if (_definitions.Any(d => d.Id == id))
+		if (store.IsRegistered(manifest.Id, id))
 		{
 			log.LogWarning("[Mods] {ModId}/{Id} is already registered as content — the duplicate is refused.",
 				manifest.Id, id);
 			return false;
 		}
 
-		if (!ModContentPolicy.CanAdd(_definitions.Count))
+		if (!ModContentPolicy.CanAdd(store.CountOf(manifest.Id)))
 		{
 			log.LogWarning("[Mods] {ModId} reached the {Cap}-definition content cap — {Id} refused.",
 				manifest.Id, ModContentPolicy.MaxDefinitionsPerMod, id);
 			return false;
 		}
 
-		_definitions.Add(definition);
+		store.Add(manifest.Id, manifest.Namespace, definition);
 		log.LogInformation("[Mods] {ModId} registered content {Id} ({Kind}, schema {SchemaVersion}, {DefinitionType}).",
 			manifest.Id, id, definition.Kind, definition.SchemaVersion, definition.GetType().Name);
 		return true;
 	}
 
-	public bool TryUnregister(string id)
-	{
-		var index = _definitions.FindIndex(d => d.Id == id);
-		if (index < 0)
-		{
-			return false;
-		}
+	public bool TryUnregister(string id) => store.Remove(manifest.Id, id);
 
-		_definitions.RemoveAt(index);
-		return true;
-	}
-
-	public bool IsRegistered(string id) => _definitions.Any(d => d.Id == id);
+	public bool IsRegistered(string id) => store.IsRegistered(manifest.Id, id);
 }

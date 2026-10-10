@@ -71,6 +71,7 @@ content id | 内容 id | 内容 id（content id） | 内容编号，资源 id | 
 namespace | 命名空间 | 命名空间（namespace） | 前缀，域 | the mod-declared first half of a content id; context separates it from the C# keyword
 content kind | 内容类别 | 内容类别（content kind） | 内容类型 | the `kind` string a definition is registered under, such as `item` or `recipe`
 schema version | 结构版本 | 结构版本（schema version） | 架构版本，格式版本号 | the mod-owned version declared on its state, runtime value or content definition; the framework never migrates it
+content fingerprint | 内容指纹 | 内容指纹（content fingerprint） | 内容哈希，指纹值 | the digest of the ADDRESS of every content entry a mod registered (mod id, content id, kind, schema version); what two peers compare at the handshake and what a cut records in its manifest
 mod state | 模组状态 | 模组状态（mod state） | 模组存档，模组数据 | the host-persistent per-mod key/value table behind `IModState`
 rollback | 回滚 | 回滚（rollback） | 撤销，退回 | undoing a locally applied action after arbitration refuses the claim
 tombstone | 墓碑 | 墓碑（tombstone） | 标记，记号 | a recorded refusal that stops a later repeat of the same creation

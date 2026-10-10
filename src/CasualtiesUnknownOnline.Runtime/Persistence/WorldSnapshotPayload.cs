@@ -24,7 +24,6 @@ public sealed record WorldSnapshotPayload(
 	string CutPhase,
 	string GameBuild = "",
 	string CuoBuild = "",
-	string ContentFingerprint = "",
 	IReadOnlyList<SaveWorldBlockRow>? WorldBlocks = null,
 	IReadOnlyList<SaveWorldTransientRow>? WorldTransients = null,
 	WorldCutKind Kind = WorldCutKind.LayerEnd,

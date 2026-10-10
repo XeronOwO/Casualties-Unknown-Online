@@ -42,8 +42,8 @@ public class ModHandshakeTests
 	private static ModManifest Manifest(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None, string? binding = null) =>
 		new(ModId, "Matrix Mod", version, mode, null, permissions, nativeBinding: binding);
 
-	private static ModInfoMsg Info(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None, string? binding = null) =>
-		new() { Id = ModId, Version = version, NetworkMode = mode, Permissions = permissions, NativeBinding = binding };
+	private static ModInfoMsg Info(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None, string? binding = null, string? content = null) =>
+		new() { Id = ModId, Version = version, NetworkMode = mode, Permissions = permissions, NativeBinding = binding, ContentFingerprint = content };
 
 	/// <summary>A mod the host does not list at all — the parity rule has no counterpart to compare.</summary>
 	private static ModInfoMsg InfoFor(string id, NetworkMode mode, string? binding = null) =>
@@ -51,7 +51,8 @@ public class ModHandshakeTests
 
 	private static (TestNode Host, TestNode Guest) CreatePair(
 		List<ModManifest> hostMods, List<ModInfoMsg> guestInfos, bool hostComplete = true,
-		NativeBindingParity parity = NativeBindingParity.Warn, RecordingLoggerFactory? recorder = null)
+		NativeBindingParity parity = NativeBindingParity.Warn, RecordingLoggerFactory? recorder = null,
+		Action<TestNode>? arrangeHost = null)
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
@@ -80,8 +81,23 @@ public class ModHandshakeTests
 			});
 		host.Steam.FireLobbyCreated(LobbyId);
 		host.Steam.LobbyMembers = [HostId, GuestId];
+		// The host's own content has to be in place BEFORE the member's join is judged: the
+		// handshake compares two fingerprints, and one of them is the host's.
+		arrangeHost?.Invoke(host);
 		guest.Steam.FireLobbyEntered(LobbyId);
 		return (host, guest);
+	}
+
+	/// <summary>Files one item definition into the host's own content registry, under the matrix mod's id.</summary>
+	private static void RegisterHostContent(TestNode host, string itemId) =>
+		host.Services.GetRequiredService<ModContentStore>().Add(ModId, null, new ModItemDefinition { Id = itemId });
+
+	/// <summary>The digest the host computes for a content set of its own — the guest side of an equal pair.</summary>
+	private static string HostDigestOf(string itemId)
+	{
+		var store = new ModContentStore();
+		store.Add(ModId, null, new ModItemDefinition { Id = itemId });
+		return store.ByMod[ModId];
 	}
 
 	private static bool GuestHandshaken(TestNode host) =>
@@ -399,6 +415,93 @@ public class ModHandshakeTests
 			parity: NativeBindingParity.Require);
 
 		Assert.True(GuestHandshaken(host), "parity compares the declarations of one mod id; a mod the host does not list has no counterpart");
+	}
+
+	// ---- What a declaration PRODUCED (the content fingerprint) ----
+
+	[Fact]
+	public void StateBearingModWithDifferentContent_Admitted_AndTheLogNamesTheModAndBothFingerprints()
+	{
+		// Id, version, mode and permissions can all agree while the two copies materialize
+		// different content — a definition may compute its members (decision 251). The
+		// difference is REPORTED, never a refusal (user ruling: the comparison covers
+		// addresses, so a benign local difference is indistinguishable from a harmful one and
+		// must not gate entry). The line names the mod and BOTH fingerprints, which is what
+		// makes the divergence diagnosable afterwards.
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers)],
+			[Info(NetworkMode.RequiresAllPlayers, content: "member-content")],
+			recorder: recorder,
+			arrangeHost: node => RegisterHostContent(node, "host.item"));
+
+		Assert.True(GuestHandshaken(host), "a content difference is reported, never a refusal");
+		var named = Assert.Single(recorder.Messages(LogLevel.Warning, "HandshakeHandler"));
+		Assert.Contains(ModId, named, StringComparison.Ordinal);
+		Assert.Contains("different content", named, StringComparison.Ordinal);
+		Assert.Contains("member-content", named, StringComparison.Ordinal);
+		Assert.Contains(HostDigestOf("host.item"), named, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void StateBearingModWithEqualContent_Accepted_AndNothingIsRecorded()
+	{
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers)],
+			[Info(NetworkMode.RequiresAllPlayers, content: HostDigestOf("shared.item"))],
+			recorder: recorder,
+			arrangeHost: node => RegisterHostContent(node, "shared.item"));
+
+		Assert.True(GuestHandshaken(host));
+		Assert.Empty(recorder.Messages(LogLevel.Warning, "HandshakeHandler"));
+	}
+
+	[Fact]
+	public void StateBearingModWhoseContentOnlyTheMemberHas_IsReportedAndAdmitted()
+	{
+		// "No content" on one side against content on the other is a difference like any
+		// other — not an unknown value to skip — and it takes the same verdict.
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.RequiresAllPlayers)],
+			[Info(NetworkMode.RequiresAllPlayers, content: "member-only-content")],
+			recorder: recorder);
+
+		Assert.True(GuestHandshaken(host));
+		Assert.Contains(recorder.Messages(LogLevel.Warning, "HandshakeHandler"), line =>
+			line.Contains(ModId, StringComparison.Ordinal)
+			&& line.Contains("none", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void LocalSurfaceModWithDifferentContent_TakesTheSameVerdict()
+	{
+		// The mode does not decide this row: the comparison can be wrong for a benign reason
+		// under any mode, so every difference is reported and every member is admitted.
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.ClientOnly)],
+			[Info(NetworkMode.ClientOnly, content: "member-content")],
+			recorder: recorder,
+			arrangeHost: node => RegisterHostContent(node, "host.item"));
+
+		Assert.True(GuestHandshaken(host));
+		Assert.Contains(recorder.Messages(LogLevel.Warning, "HandshakeHandler"), line =>
+			line.Contains(ModId, StringComparison.Ordinal)
+			&& line.Contains("ClientOnly", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void ModWithNoContentOnEitherSide_IsNotReported()
+	{
+		// Both sides report nothing for the mod: two equal "no content" values, never a
+		// skipped comparison — and nothing to report.
+		var recorder = new RecordingLoggerFactory();
+		var (host, _) = CreatePair([Manifest(NetworkMode.RequiresAllPlayers)], [Info(NetworkMode.RequiresAllPlayers)], recorder: recorder);
+
+		Assert.True(GuestHandshaken(host));
+		Assert.Empty(recorder.Messages(LogLevel.Warning, "HandshakeHandler"));
 	}
 
 	// ---- The malformed-list shape checks ----

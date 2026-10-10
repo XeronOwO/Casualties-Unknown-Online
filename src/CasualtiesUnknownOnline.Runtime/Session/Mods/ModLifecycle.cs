@@ -41,6 +41,7 @@ internal sealed class ModLifecycle(
 	IModLiquidPlacer liquidPlacer,
 	IModNativeApiProvider nativeApiProvider,
 	IModContentControl contentControl,
+	ModContentStore contentStore,
 	ModResourceCompletionStore resourceCompletionStages) : ISessionReset
 {
 	private readonly ModCatalog _catalog = catalog;
@@ -66,6 +67,7 @@ internal sealed class ModLifecycle(
 	private readonly IModLiquidPlacer _liquidPlacer = liquidPlacer;
 	private readonly IModNativeApiProvider _nativeApiProvider = nativeApiProvider;
 	private readonly IModContentControl _contentControl = contentControl;
+	private readonly ModContentStore _contentStore = contentStore;
 	private readonly ModResourceCompletionStore _resourceCompletionStages = resourceCompletionStages;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private bool _discovered;
@@ -137,8 +139,8 @@ internal sealed class ModLifecycle(
 	internal IReadOnlyList<ModUiWindow> Windows =>
 		[.. _catalog.Mods.SelectMany(m => m.Context.UiWindows)];
 
-	internal IReadOnlyList<ModContentRegistration> Entries =>
-		[.. _catalog.Mods.SelectMany(m => m.Context.ContentRegistrations)];
+	/// <summary>The framework-wide content view: the store owns the entries, so this is the same set every other reader sees.</summary>
+	internal IReadOnlyList<ModContentRegistration> Entries => _contentStore.Entries;
 
 	internal ISessionInfo BuildSessionSnapshot() => ModSessionSnapshot.Capture(_session);
 
@@ -186,6 +188,7 @@ internal sealed class ModLifecycle(
 					_liquidPlacer,
 					_nativeApiProvider,
 					_contentControl,
+					_contentStore,
 					_resourceCompletionStages);
 				RegisterDeclarations(d, context);
 				instance.Bind(context);
@@ -197,6 +200,17 @@ internal sealed class ModLifecycle(
 			}
 			catch (Exception e)
 			{
+				// A failed load takes its content with it: the entries were filed into the
+				// framework-wide store BEFORE this throw (the declaration scan runs first, and a
+				// code registration happens inside Bind), and a mod that never loaded must not
+				// appear in the view the console, the ownership query and the content
+				// fingerprints read.
+				var withdrawn = _contentStore.RemoveMod(d.Manifest.Id);
+				if (withdrawn > 0)
+				{
+					_log.LogDebug("[Mods] {Id} failed to load; {Count} content entry(ies) it had registered were withdrawn.", d.Manifest.Id, withdrawn);
+				}
+
 				_log.LogError(e, "[Mods] {Id} failed to load — skipped, the other mods continue.", d.Manifest.Id);
 			}
 		}

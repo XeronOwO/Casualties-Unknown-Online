@@ -895,7 +895,25 @@ member is created:
 | — | claims `RequiresAllPlayers` / `Synchronized` / `Authoritative` the host lacks | **reject** |
 | — | malformed list (empty or duplicated id, invalid mode/permissions, unparseable state-bearing version) | **reject** |
 | discovery not yet run | anything | **"pending" refusal** — the guest's 1 s retry re-runs the check |
+| any mode | same mod id and version, but a **different content set** | **report** — the member is admitted and the host records the difference, naming the mod and both [content fingerprints](glossary.md); never a refusal (the comparison cannot be complete enough to gate entry) |
 | any mode | same mod id, a **different declared native binding** (a declaration against none included) | **allow / warn / reject** by the host's `NativeBindingParity` rule: allow is silent, warn (the default) admits the member and records the mismatch, require rejects — naming the mod and both declarations |
+
+**Content parity** is reported, never judged, and that is a ruling rather than a gap. Each `ModInfoMsg` carries
+the [content fingerprint](glossary.md) of the content its mod registered — the mod id, the content id, the
+content kind and the schema version of every entry, hashed as one canonical text — and the host compares it
+with its own, **per mod id**, for a mod both sides list; a difference is recorded with the mod, both
+fingerprints and the mode, and the member is admitted. Equal id and version does not imply an equal
+fingerprint: a declaration may compute its members, so two copies of one mod version can register different
+content — an entry whose id depends on the machine, or a set that follows local configuration — and before
+this comparison nothing noticed. Two things it deliberately does **not** cover, both of which a mod author has
+to know. A computed member's own VALUE is never hashed (it is not stable enough to hash, and hashing it would
+report differences that are not differences), so a definition whose values differ under an equal address set
+is admitted silently, and the change has to declare itself: the mod version, or the entry's schema version, is
+the only place it can be stated. And the comparison is taken AT THE HANDSHAKE, so content a mod registers
+later (a `TryRegister` from `Update`) is recorded by the next save and compared with nobody. The absent value
+is "this mod registered no content" on both sides, never an unknown one — so two content-less copies match,
+content on one side only is a difference like any other, and a peer too old to report fingerprints reads as
+"none" (pre-release every client in a session comes from this tree).
 
 **Native-binding parity** is judged apart from those rows because it is a declared fact, not a network
 contract. Each `ModInfoMsg` carries the mod's `NativeBinding`; the host compares it with its own

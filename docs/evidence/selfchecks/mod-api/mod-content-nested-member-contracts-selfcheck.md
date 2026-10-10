@@ -96,8 +96,8 @@ loose phrase "the nine kind contracts" for a total that includes `IModItemVisual
   DTOs already do.
 - **No clone or snapshot.** The framework still stores the declaration and its nested objects exactly as
   handed over, which is what lets a computed nested value be re-read.
-- **No fingerprint work.** `SaveManifest.ContentFingerprint` and the two-peers comparison remain
-  `docs/backlog/todo/mod-content-fingerprint.md`.
+- **No fingerprint work.** `SaveManifest.ContentFingerprint` and the two-peers comparison were left to
+  `docs/backlog/review/mod-content-fingerprint.md` (landed 2026-10-10, decision 254).
 - **No `ModContentContract` change.** The one home of "which contract means which kind" is untouched: these
   contracts are read through the kind contract that owns them, and the scan's member sweep already reads
   them without knowing their types.

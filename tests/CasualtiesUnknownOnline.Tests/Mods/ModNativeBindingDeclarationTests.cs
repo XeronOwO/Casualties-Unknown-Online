@@ -128,13 +128,14 @@ public class ModNativeBindingDeclarationTests
 		// Stage 1 was deliberately wire-free; the parity ticket carries the
 		// declaration onto the handshake (HandshakeMsg.Mods) with its own protocol
 		// bump. The shape stays pinned here so the next change to ModInfoMsg is a
-		// deliberate one.
+		// deliberate one — the content-fingerprint ticket is that next change, and it
+		// added exactly one member.
 		var properties = typeof(ModInfoMsg).GetProperties()
 			.Select(p => p.Name)
 			.OrderBy(name => name, StringComparer.Ordinal)
 			.ToArray();
 
-		string[] expected = ["Id", "NativeBinding", "NetworkMode", "Permissions", "Version"];
+		string[] expected = ["ContentFingerprint", "Id", "NativeBinding", "NetworkMode", "Permissions", "Version"];
 		Assert.Equal(expected, properties);
 	}
 

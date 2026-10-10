@@ -148,6 +148,61 @@ public class SaveArchiveDamageTests
 	}
 
 	[Fact]
+	public void ContentMismatch_OpensInRepairModeWithAWarning()
+	{
+		// §6.1's rule for a build difference, applied to the CONTENT set: the world still
+		// opens and the difference is REPORTED. What this adds over the per-entry salvage is
+		// a content set that changed while every stored id still resolves.
+		var workspace = SaveTestWorkspace.Create("content-mismatch");
+		var worldId = workspace.NewWorldId();
+		var directory = workspace.WorldDirectory(worldId);
+		var writer = new SaveArchiveWriter(NullLogger<SaveArchiveWriter>.Instance);
+		var reader = new SaveArchiveReader(NullLogger<SaveArchiveReader>.Instance);
+		var meta = new SaveManifestMeta { DisplayName = "Cut Elsewhere", ContentFingerprint = "cut-content" };
+		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, meta, SaveTestData.RunPayload("content"))).Success);
+
+		var load = reader.LoadSnapshot(directory, new WorldLoadOptions { VerifyChecksums = true, RepairMode = true, ExpectedContentFingerprint = "live-content" });
+
+		Assert.True(load.Loaded, load.Summary);
+		Assert.Equal(WorldLoadState.Current, load.State);
+		Assert.Contains(load.Report.Entries, entry =>
+			entry.Reason == DamageReport.EntryReason.ContentMismatch
+			&& entry.Detail.Contains("cut-content", StringComparison.Ordinal)
+			&& entry.Detail.Contains("live-content", StringComparison.Ordinal));
+		Assert.Contains("ContentMismatch", load.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void EqualOrUnknownContentFingerprints_AreNotDifferences()
+	{
+		// Equal values are not a difference, and the empty string is "unknown" on EITHER
+		// side: a caller that does not know what it materialized, and a snapshot cut by a
+		// build with no content registry, both open quietly — which is why the manifest was
+		// allowed to carry an empty value in the first place.
+		var workspace = SaveTestWorkspace.Create("content-unknown");
+		var worldId = workspace.NewWorldId();
+		var directory = workspace.WorldDirectory(worldId);
+		var writer = new SaveArchiveWriter(NullLogger<SaveArchiveWriter>.Instance);
+		var reader = new SaveArchiveReader(NullLogger<SaveArchiveReader>.Instance);
+		var meta = new SaveManifestMeta { DisplayName = "Cut Here", ContentFingerprint = "cut-content" };
+		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, meta, SaveTestData.RunPayload("content"))).Success);
+
+		Assert.DoesNotContain(
+			reader.LoadSnapshot(directory, new WorldLoadOptions { ExpectedContentFingerprint = "cut-content" }).Report.Entries,
+			entry => entry.Reason == DamageReport.EntryReason.ContentMismatch);
+		Assert.DoesNotContain(
+			reader.LoadSnapshot(directory, new WorldLoadOptions()).Report.Entries,
+			entry => entry.Reason == DamageReport.EntryReason.ContentMismatch);
+
+		var unknown = new SaveManifestMeta { DisplayName = "Older Cut" };
+		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, unknown, SaveTestData.RunPayload("older"))).Success);
+
+		Assert.DoesNotContain(
+			reader.LoadSnapshot(directory, new WorldLoadOptions { ExpectedContentFingerprint = "live-content" }).Report.Entries,
+			entry => entry.Reason == DamageReport.EntryReason.ContentMismatch);
+	}
+
+	[Fact]
 	public void NewerManifestSchema_IsRefusedInsteadOfGuessed()
 	{
 		var workspace = SaveTestWorkspace.Create("newer-schema");

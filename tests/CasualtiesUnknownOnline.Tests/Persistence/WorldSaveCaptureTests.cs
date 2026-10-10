@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -234,6 +236,7 @@ public class WorldSaveCaptureTests
 			new FakeTransportIdentity(),
 			new WorldSnapshotEncoder(NullLogger<WorldSnapshotEncoder>.Instance),
 			new FakeWorldFactSource(),
+			new ModContentStore(),
 			NullLoggerFactory.Instance,
 			NullLogger<WorldSaveService>.Instance);
 
@@ -266,6 +269,30 @@ public class WorldSaveCaptureTests
 		Assert.Equal(2, Directory.GetFiles(characters).Length);
 		Assert.True(File.Exists(Path.Combine(characters, "steam-1001.json")));
 		Assert.True(File.Exists(Path.Combine(characters, "steam-2002.json")));
+	}
+
+	[Fact]
+	public void Cut_RecordsTheContentSetThisProcessMaterialized()
+	{
+		// §3.2's `contentFingerprint` had no producer: every cut wrote the empty string
+		// ("unknown"), so nothing could tell that two saves — or two peers — materialize
+		// different content under one id and one mod version. The cut records what the mod
+		// domain holds, which is what lets a load compare it.
+		using var fixture = WorldSaveFixture.Create("save-capture-content");
+		fixture.Content.Add("test.contentmod", "testns", new ModItemDefinition { Id = "kept.item" });
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
+
+		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 1), out _, out _));
+
+		var recorded = LiveManifest(fixture).GetProperty("contentFingerprint").GetString();
+		Assert.Equal(fixture.Content.Fingerprint, recorded);
+		Assert.NotEmpty(recorded!);
+
+		// The value follows the ENTRIES: a content set that changed is a different value,
+		// which is the whole point of recording it.
+		fixture.Content.Add("test.contentmod", "testns", new ModItemDefinition { Id = "added.later" });
+		Assert.NotEqual(recorded, fixture.Content.Fingerprint);
 	}
 
 	// ---- fixture ----

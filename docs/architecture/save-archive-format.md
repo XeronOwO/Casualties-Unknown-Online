@@ -86,8 +86,11 @@ The manifest is the **only hard gate** in the whole format (see §6). It carries
 
 - Schema identity: `schemaVersion`, `format` (constant `cuo-world-archive`).
 - Provenance: `gameBuild`, `cuoBuild`, `protocolVersion`, `contentFingerprint`
-  (the content-set fingerprint already used by world determinism; it is what lets a loader
-  decide that a stored entry's content no longer exists).
+  (the fingerprint of the content set the cut was taken under: the address of every content entry the
+  writing process had registered, hashed. A load compares it with the set IT materializes and reports a
+  difference (§6.2) — which is what tells a loader that the world was written under content it does not
+  have even when every stored content id still resolves. An empty value is "unknown", never a guessed
+  one: a snapshot cut by a build with no content registry is not compared at all).
 - Cut identity: `worldId`, `displayName`, `kind` (`layer-end` | `mid-run` | `auto`),
   `runEpoch`, `globalRevision`, `layerIndex`, `biomeDepth`, `cutPhase`, `savedAtUtc`.
 - Integrity: `files: [{ path, sha256, bytes }]` for every file in the snapshot, and
@@ -564,6 +567,11 @@ verified in-game — an adapter-level reflection host can read the real game lis
 - `protocolVersion` mismatch: the world is still opened in repair mode, with a loud warning that
   entities created by a newer protocol may not restore.
 - `gameBuild` mismatch: repair mode with a warning.
+- `contentFingerprint` mismatch: repair mode with a warning, the same rule as the two above — a content
+  set that changed is a mod update, not a corrupted snapshot, so the world still opens. The per-entry
+  salvage still decides the entries; what the fingerprint adds is the drift that salvage cannot see, a
+  content set that changed while every stored content id still resolves. Either side reading the empty
+  string ("unknown") is not compared.
 - `schemaVersion` newer than the reader: the per-file/domain payload is skipped (unreadable file)
   rather than guessed; `schemaVersion` older than the reader needs an explicit reader-side
   mapping, never a silent assumption.

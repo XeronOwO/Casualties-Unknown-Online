@@ -32,9 +32,10 @@ Nothing that needs them:
   cross-player consistency comes from both peers having the mod and the handshake comparing mod id / version /
   permissions, so each client materialises its own copy of the content.
 - **They are not stored.** The save keeps content **ids** and a `SaveManifest.ContentFingerprint` string; an id
-  the current content set no longer has is salvaged per entry (`DamageReport.EntryReason.ContentMissing`). The
-  fingerprint field is currently written as `string.Empty` everywhere it is produced (`WorldCutWriter`), so not
-  even that reads the payload.
+  the current content set no longer has is salvaged per entry (`DamageReport.EntryReason.ContentMissing`).
+  **Superseded 2026-10-10** (decision 254, `review/mod-content-fingerprint.md`): the
+  `contentFingerprint` field is no longer written as `string.Empty` — a cut records the digest of the
+  registered content set and a load compares it with the live one.
 - **They are not compared.** Nothing hashes or diffs a definition's bytes.
 
 The opaque payload is the right shape where data really crosses a boundary, and the repository already uses it

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using Xunit;
 
@@ -133,6 +135,29 @@ public class WorldRestoreReportTests
 			reports.ConvertAll(report => report.Result));
 		Assert.Contains("no run baseline", reports[1].Summary, StringComparison.Ordinal);
 		Assert.Equal(restarted.WorldId, reports[1].WorldId);
+	}
+
+	[Fact]
+	public void AContinueUnderADifferentContentSet_ReportsTheMismatchWithoutRefusing()
+	{
+		// The one drift the per-entry salvage cannot see: the content set changed while every
+		// stored content id still resolves. A mod update is not a refusal — the world opens —
+		// and the account NAMES the difference, because a Continue that silently mixed two
+		// content sets is exactly the "silently accepted" this rule ends.
+		using var fixture = WorldSaveFixture.Create("restore-report-content");
+		fixture.Content.Add("test.contentmod", "testns", new ModItemDefinition { Id = "kept.item" });
+		CutLayerEnd(fixture);
+
+		var changed = new ModContentStore();
+		changed.Add("test.contentmod", "testns", new ModItemDefinition { Id = "changed.item" });
+		using var restarted = fixture.Restart("restore-report-content-restart", content: changed);
+		var reports = Subscribe(restarted);
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		var report = Assert.Single(reports);
+		Assert.Equal(WorldRestoreReport.Disposition.Applied, report.Result);
+		Assert.False(report.Clean);
+		Assert.Contains(report.Details, line => line.Contains(nameof(DamageReport.EntryReason.ContentMismatch), StringComparison.Ordinal));
 	}
 
 	// ---- helpers ----

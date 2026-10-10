@@ -80,6 +80,7 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Namespace** — the mod-declared first half of a content id; it is what keeps two mods' ids apart.
 - **Content kind** — the kind a definition is registered under, such as `item`, `recipe` or `tile`.
 - **Schema version** — the version a mod declares on its own state, runtime value or content definition; the framework carries it and never migrates it.
+- **Content fingerprint** — the digest of the address of every content entry a mod registered: the mod id, the content id, the content kind and the schema version. The handshake carries ONE per mod, which is what the host compares and reports when it differs; a cut records one for the whole content set in its manifest. A definition's other members may compute their values, so they are never part of it.
 - **Tombstone** — a recorded refusal that stops the same creation being retried.
 - **Declared packet** — a mod-owned message id with its own sender and delivery policy and its own handler chain; the framework routes and relays it.
 - **Packet chain** — the ordered validate/apply/observe handlers one declared packet runs.

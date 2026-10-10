@@ -148,6 +148,9 @@ public sealed record DamageReport(IReadOnlyList<DamageReport.Entry> Entries)
 
 		/// <summary>The snapshot was written by a different protocol version; it opens, but entities may not restore (§6.1).</summary>
 		ProtocolMismatch,
+
+		/// <summary>The snapshot was cut under a different content set than this build materializes; it opens, and per-entry salvage still decides the entries (§6.2).</summary>
+		ContentMismatch,
 	}
 
 	/// <summary>One reported item.</summary>

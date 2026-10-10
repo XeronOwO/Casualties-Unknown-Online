@@ -41,6 +41,7 @@ internal sealed class ModContext(
 	IModLiquidPlacer liquidPlacer,
 	IModNativeApiProvider nativeApiProvider,
 	IModContentControl contentControl,
+	ModContentStore contentStore,
 	ModResourceCompletionStore resourceCompletionStore) : IModContext
 {
 	private readonly ModManifest _manifest = manifest;
@@ -57,7 +58,7 @@ internal sealed class ModContext(
 	private readonly IModBuildingRuntime _buildingRuntime = new ModBuildingRuntimeAdapter(buildingRuntime, manifest, frameworkLog);
 	private ModStatusTransport? _statusTransport;
 	private readonly ModUiAdapter _ui = new(manifest, frameworkLog);
-	private readonly ModContentAdapter _content = new(manifest, frameworkLog);
+	private readonly ModContentAdapter _content = new(manifest, contentStore, frameworkLog);
 	private readonly ModGameStateAdapter _gameState = new(manifest, sessionService, remoteVitals, remoteInventory, frameworkLog);
 	private readonly ModEntitySpawnAdapter _entitySpawn = new(manifest, sessionService, entitySpawner, frameworkLog);
 	private readonly ModItemSpawnAdapter _itemSpawn = new(manifest, sessionService, itemSpawner, frameworkLog);
@@ -124,9 +125,6 @@ internal sealed class ModContext(
 
 	internal IReadOnlyList<ModUiWindow> UiWindows =>
 		[.. _ui.Windows.Select(w => new ModUiWindow(_manifest.Id, w.Id, w.Title, w.Draw))];
-
-	internal IReadOnlyList<ModContentRegistration> ContentRegistrations =>
-		[.. _content.Definitions.Select(d => new ModContentRegistration(_manifest.Id, d, _manifest.Namespace))];
 
 	// Events are only +=/-=-able from outside the declaring type — the
 	// lifecycle fires through these.

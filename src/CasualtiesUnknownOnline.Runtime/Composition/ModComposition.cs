@@ -20,13 +20,20 @@ internal static class ModComposition
 	{
 		// Discovery registry (pure), the message channel and the coordinator (an
 		// ICuoService — registered after the session it reads; the session's
-		// IModListProvider resolves the registry lazily, so this order is safe).
+		// IModListProvider is a LEAF of its own, the handshake list, which composes the
+		// registry with the content store below, so this order stays safe).
 		// The mod-state disk store is a persistence mechanism only (no pump); a
 		// null path keeps it in-memory (the test composition default).
 		services.AddSingleton(p => new ModStateFileStore(
 			modStateFile, p.GetRequiredService<ILogger<ModStateFileStore>>()));
 		services.AddSingleton<ModRegistry>();
-		services.AddSingleton<IModListProvider>(p => p.GetRequiredService<ModRegistry>());
+		// The framework-wide content registry is a leaf of its own: the handshake list
+		// and the save layer read it without resolving ModService (which depends on the
+		// session), and it owns the entries every mod's adapter files into it.
+		services.AddSingleton<ModContentStore>();
+		services.AddSingleton<IModContentFingerprints>(p => p.GetRequiredService<ModContentStore>());
+		services.AddSingleton<ModHandshakeListProvider>();
+		services.AddSingleton<IModListProvider>(p => p.GetRequiredService<ModHandshakeListProvider>());
 		services.AddSingleton<ModChannel>();
 		// The mod status store is the Game Adapter's only ModService dependency
 		// (the vanilla body/limb status projection reads it). Registering the

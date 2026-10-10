@@ -144,7 +144,7 @@ internal static class AdapterCapabilityCatalog
 			"Body, limb, carry and character presentation",
 			AdapterCapabilityKind.Required,
 			[
-				typeof(BodyPatches), typeof(BodyUpdatePatch), typeof(BodyNapPatch), typeof(BodyWorkoutPatch),
+				typeof(BodyPatches), typeof(WearableQueryPatches), typeof(BodyUpdatePatch), typeof(BodyNapPatch), typeof(BodyWorkoutPatch),
 				typeof(CarryEncumbrancePatch), typeof(FacialExpressionHeadPatch), typeof(PantSoundPatches),
 				typeof(TalkerPatch), typeof(SoundPlayPatch), typeof(SoundPlayAudioClipPatch), typeof(BurpSoundPatches),
 				typeof(MedicalSoundPatches), typeof(WorldDrinkSoundPatches), typeof(InventoryGestureSoundPatches),

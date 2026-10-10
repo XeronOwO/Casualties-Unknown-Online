@@ -31,6 +31,8 @@ public class PatchBridgePortContractTests
 
 	private static readonly Type ItemCategoryPort = Adapter("CasualtiesUnknownOnline.GameAdapter.IItemCategoryPatchPort");
 
+	private static readonly Type WearablePort = Adapter("CasualtiesUnknownOnline.GameAdapter.IWearablePatchPort");
+
 	private static readonly Type BridgeImpl = Adapter("CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge");
 
 	private static readonly Type Seam = Adapter("CasualtiesUnknownOnline.GameAdapter.PatchBridge");
@@ -89,6 +91,32 @@ public class PatchBridgePortContractTests
 		Assert.Empty(missing);
 	}
 
+	/// <summary>The wear placement port's whole surface: the report for the wear the game's own placement would dereference a missing limb in.</summary>
+	private static readonly string[] WearableMembers =
+	[
+		"ReportWearPlacementRefused",
+	];
+
+	[Fact]
+	public void WearablePort_DeclaresExactlyItsMembers() =>
+		Assert.Equal(Census(WearableMembers), Census(DeclaredMembers(WearablePort)));
+
+	[Fact]
+	public void Aggregate_DoesNotDeclareAnyWearableMember() =>
+		Assert.Empty(WearableMembers.Intersect(DeclaredMembers(Bridge), StringComparer.Ordinal));
+
+	[Fact]
+	public void Bridge_ImplementsTheWearablePortAndDeclaresEveryMember()
+	{
+		Assert.True(WearablePort.IsAssignableFrom(BridgeImpl), "GameAdapterBridge does not implement IWearablePatchPort");
+
+		var missing = WearableMembers
+			.Where(member => BridgeImpl.GetMethod(member, Any) is null)
+			.ToArray();
+
+		Assert.Empty(missing);
+	}
+
 	[Fact]
 	public void Aggregate_NoLongerDeclaresAnyFluidMember() =>
 		Assert.Empty(FluidMembers.Intersect(DeclaredMembers(Bridge), StringComparer.Ordinal));
@@ -130,6 +158,7 @@ public class PatchBridgePortContractTests
 		Assert.Equal(Port, SeamType("Fluid"));
 		Assert.Equal(LayerPort, SeamType("LayerAdvance"));
 		Assert.Equal(ItemCategoryPort, SeamType("ItemCategory"));
+		Assert.Equal(WearablePort, SeamType("Wearable"));
 	}
 
 	private static Type SeamType(string property) =>

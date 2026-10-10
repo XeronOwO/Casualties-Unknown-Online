@@ -209,7 +209,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Usable|pro
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.UsableWithLmb|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Value|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Visual|property|-> IModItemVisual? { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Wearable|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Wearable|property|-> IModItemWearable? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Weight|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.WorldSpawnPerChunk|property|-> float? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.AmmoType|property|-> ModGunAmmoType? { get; }
@@ -273,6 +273,13 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpriteOffs
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpriteOffsetY|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpritePath|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpriteSortingOrder|property|-> int? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemWearable.Armor|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemWearable.CanBeHeld|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemWearable.HitDurabilityLossMultiplier|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemWearable.Isolation|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemWearable.Limb|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemWearable.SlotId|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemWearable.VisualOffset|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLimbMoodleBinding.LimbName|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLimbMoodleBinding.MoodleId|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.ColorA|property|-> float { get; }
@@ -633,7 +640,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Usable|prop
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.UsableWithLmb|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Value|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Visual|property|-> IModItemVisual? { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Wearable|property|-> bool { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Wearable|property|-> IModItemWearable? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Weight|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.WorldSpawnPerChunk|property|-> float? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDropSource.All|enumvalue|= Corpse | MedicalCrate | FoodCrate | ContainerCrate | AllTraders | DropCapsule | CapsuleContainer
@@ -707,6 +714,13 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpriteOffse
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpriteOffsetY|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpritePath|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpriteSortingOrder|property|-> int? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemWearable.Armor|property|-> float { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemWearable.CanBeHeld|property|-> bool { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemWearable.HitDurabilityLossMultiplier|property|-> float { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemWearable.Isolation|property|-> float { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemWearable.Limb|property|-> string { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemWearable.SlotId|property|-> string { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemWearable.VisualOffset|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLayerSpawnRule.AllSpawnLayers|const field|-> int = -1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLayerSpawnRule.CanSpawnInLayer(IModBuildingDefinition definition, int biomeDepth)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLayerSpawnRule.CanSpawnInLayer(IModLiquidTileDefinition definition, int biomeDepth)|method|-> bool
@@ -1041,6 +1055,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpawn|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpriteAnimation|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemWearable|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModLimbMoodleBinding|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition|interface|IModContentDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidPlacement|interface|-
@@ -1101,6 +1116,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemLimbWornSprite|sealed cl
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemSpriteAnimation|sealed class|IModItemSpriteAnimation
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemTool|sealed class|IModItemTool
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual|sealed class|IModItemVisual
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemWearable|sealed class|IModItemWearable
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLayerSpawnRule|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLightType|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbMoodleBinding|sealed class|IModLimbMoodleBinding

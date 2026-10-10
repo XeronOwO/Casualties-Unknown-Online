@@ -83,11 +83,13 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [The version shows the build's commit](todo/version-string-build-suffix.md) — **Low** — in the log and the UI.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
+- [The root README as a language pair](todo/readme-language-pair.md) — **Low-Medium** — English first, a Chinese twin, and the current model named.
 
 ### In progress
 
 ### Review
 - [A declared behaviour with no function](review/mod-declared-behaviour-with-no-function.md) — **High** — a declared use or effect reports instead of throwing.
+- [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
 - [Limb-tool protections weaker than recorded](review/limb-tool-family-protection-gaps.md) — **High** — the affected side refuses a limb it cannot serve.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [A null collection in a content payload must mean "none"](review/mod-payload-null-collection-tolerance.md) — **Medium** — both ends answer for it.

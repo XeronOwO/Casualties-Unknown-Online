@@ -24,7 +24,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// casting the bound bridge, so this declaration is what makes it reachable.
 /// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort
 {
 	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
@@ -404,6 +404,11 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void ReportStandingItemGestureRefused(Item item, string source) =>
 		domains.Log.LogWarning("[StandingItem] {Type} (id {ItemId}) refused by {Source} — a standing item object is another member's carried item and is never reachable by a local gesture.",
 			item.id, item.GetComponent<ItemInstanceId>()?.Id ?? 0, source);
+
+	/// <summary>The wear placement port's one report: a read of or gesture on a wearable whose declared limb this body does not carry was refused — the null the game's own wear family dereferences (<c>Body.cs:1493-1494</c>, <c>:1541</c>, <c>:1558</c>, <c>:1575</c>).</summary>
+	public void ReportWearPlacementRefused(string itemId, string limbName) =>
+		domains.Log.LogWarning("[Wear] refused: item {Item} declares wear limb '{Limb}', which no limb of this body carries — the game's own placement would dereference the missing limb (Body.cs:1493-1494, :1541, :1558, :1575).",
+			itemId, limbName);
 
 	public bool TryGetCustomLiquidColor(byte worldByte, out Color color) =>
 		domains.LiquidTileContent.TryGetDisplayColor(worldByte, out color);

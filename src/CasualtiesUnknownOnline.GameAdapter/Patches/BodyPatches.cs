@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 using UnityEngine;
@@ -308,17 +309,67 @@ internal static class BodyPatches
 		// captured in the PREFIX, before the wear re-parents the item (after
 		// SetParent(limb) the IsWorldItem chain read false), together with the
 		// ground position for the id-less generation-time binding.
-		private static void Prefix(Item item, out bool __state)
+		//
+		// The placement guard runs FIRST, before anything is reported: native
+		// WearWearable resolves the declared limb name (LimbByName, Body.cs:1493)
+		// and dereferences the result on the next line (:1494), so a garment whose
+		// limb this body does not carry is a NullReferenceException inside the game.
+		// What the call did travels in __state, because Harmony runs the postfix
+		// even when a prefix skipped the original: a refused wear must not send the
+		// "inventory changed" snapshot the postfix owes a wear that landed.
+		private static bool Prefix(Body __instance, Item item, out WearOutcome __state)
 		{
-			__state = ItemWorldSync.IsWorldItem(item);
-			if (__state)
+			__state = WearOutcome.Refused;
+			if (CannotBePlaced(__instance, item, out var refusedLimb))
+			{
+				PatchBridge.Wearable?.ReportWearPlacementRefused(item.id, refusedLimb);
+				return false;
+			}
+
+			__state = ItemWorldSync.IsWorldItem(item) ? WearOutcome.WorldItem : WearOutcome.CarriedItem;
+			if (__state == WearOutcome.WorldItem)
 			{
 				PatchBridge.Impl?.OnItemPickupStart(item); // the ground position, before the wear re-parents the item
 			}
+
+			return true;
 		}
 
-		private static void Postfix(Item item, bool __state)
+		/// <summary>What the wear call did, carried from the prefix to the postfix.</summary>
+		private enum WearOutcome
 		{
+			/// <summary>The placement guard took the call: nothing was worn and nothing is reported.</summary>
+			Refused,
+
+			/// <summary>A world item went on a body part: the pickup report owns it.</summary>
+			WorldItem,
+
+			/// <summary>An item of the body's own inventory went on a body part: the slot-move report owns it.</summary>
+			CarriedItem
+		}
+
+		/// <summary>
+		/// The placement guard's own rule: true when the native call must not run
+		/// because the garment declares a limb this body does not carry. The answer
+		/// comes from <see cref="GameWearPlacement"/>, the same rule that places the
+		/// cross-player chain's wears, so there is one predicate rather than two.
+		/// </summary>
+		private static bool CannotBePlaced(Body body, Item item, out string limbName)
+		{
+			limbName = "";
+			return item != null // Unity object — ==
+				&& GameWearPlacement.Refuses(body, item.Stats, out limbName);
+		}
+
+		private static void Postfix(Item item, WearOutcome __state)
+		{
+			if (__state == WearOutcome.Refused)
+			{
+				// The placement guard refused the wear: the item never left where it
+				// was, so there is nothing local to re-report and no snapshot to send.
+				return;
+			}
+
 			if (RemoteDragProxyQuery.IsProxy(item))
 			{
 				// The release window took the call (R10's wear, PlayerCamera.cs:1642):
@@ -346,7 +397,7 @@ internal static class BodyPatches
 			if (CallContext.Current != CallContext.Origin.Craft
 				&& item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
 			{
-				if (__state)
+				if (__state == WearOutcome.WorldItem)
 				{
 					PatchBridge.Impl?.OnItemPickedUp(item);
 				}

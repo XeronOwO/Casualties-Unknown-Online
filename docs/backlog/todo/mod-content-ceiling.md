@@ -123,15 +123,17 @@ Consequences:
 - Every cross-player chain answers from the game's own data now, so the ceiling they imposed is gone:
   a vanilla item the deleted tables never carried (or a game update moved a number inside) reaches
   another player with the game's own code. What mod content can still not declare is the SURFACE: the
-  DTOs below cannot express a limb action, a wearable set or a liquid's effect delegate, so a mod item
-  cannot ask for those chains to carry it.
+  DTOs below cannot express a limb action or a liquid's effect delegate (the WEARABLE set landed
+  2026-10-11 — see the Part 3.A entry below), so a mod item cannot ask for those chains to carry it.
 - The ceiling of the mod platform is therefore our maintenance speed, not the game's own capability.
 - The transcribed constants are a patch-stack debt against the root-cause rule in `AGENTS.md`: a game
   update that changes a formula moves the game and leaves our copy behind, silently. The five
   cross-player chains have paid that debt off: the injection, topical, drink, wear and limb-tool
   catalogs are deleted.
 - The content DTOs still cannot declare what those chains would need: `ModItemDefinition` has no
-  limb-use behaviour and no wearable set, and `ModLiquidDefinition` has no drink/health delegates.
+  limb-use behaviour (the wearable half landed 2026-10-11,
+  `docs/backlog/review/mod-item-wearable-declaration.md`), and `ModLiquidDefinition` has no drink/health
+  delegates.
   (Qualities are no longer in this list — item and liquid qualities landed 2026-10-07 with stage 1,
   `review/mod-crafting-quality-labels.md`.)
 
@@ -193,8 +195,14 @@ Item side (`ItemInfo` versus `ModItemDefinition` and its behaviour DTOs):
   chain reads the game's own data for every vanilla limb action now, but the DTO still cannot declare
   one: a mod item has no limb-use behaviour, so it is carried, dropped and saved and never applied.
 - **the wearable set** — `wearableArmor`, `wearableIsolation`, `wearableHitDurabilityLossMultiplier`,
-  `desiredWearLimb`, `wearSlotId`, `wearableCanBeHeld`, `wearableVisualOffset`; the last two appear in
-  `src/` only as reads.
+  `desiredWearLimb`, `wearSlotId`, `wearableCanBeHeld`, `wearableVisualOffset`; the last two appeared in
+  `src/` only as reads when this entry was written. **Cut and landed 2026-10-11 as
+  `docs/backlog/review/mod-item-wearable-declaration.md`**, and the cut found the entry is not a gap but a
+  defect: the declared `Wearable` flag alone reached `Body.WearWearable`, which resolves the limb name
+  `desiredWearLimb` carries and dereferences the result
+  (<c>Body.cs:1493-1494</c>) — so a mod item marked wearable threw inside the game's own wear flow, and the
+  successor ticket carries the fix, the surface, the guard family over the four dereference sites and the
+  correction to the sibling ticket's non-goal below.
 - **miscellaneous** — `rec` (recognition), `onlyHoldInHands`, `combineable`, `ignoreDepression`,
   `scaleWeightWithCondition` (read-only in `CarriedEncumbranceCalculator`), `jumpHeightMultChange`,
   `slotRotation` (read-only in the clone renderer), `usableOnLimb`.

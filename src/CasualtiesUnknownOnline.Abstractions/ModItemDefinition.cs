@@ -45,9 +45,6 @@ public sealed class ModItemDefinition : IModItemDefinition
 	public bool UsableWithLmb { get; set; }
 
 	/// <inheritdoc />
-	public bool Wearable { get; set; }
-
-	/// <inheritdoc />
 	public bool DestroyAtZeroCondition { get; set; }
 
 	/// <inheritdoc />
@@ -93,6 +90,9 @@ public sealed class ModItemDefinition : IModItemDefinition
 
 	/// <inheritdoc />
 	public IModItemGun? Gun { get; set; }
+
+	/// <inheritdoc />
+	public IModItemWearable? Wearable { get; set; }
 
 	/// <inheritdoc />
 	public float DecayMinutes { get; set; }

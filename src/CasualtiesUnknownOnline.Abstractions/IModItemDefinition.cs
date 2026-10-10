@@ -38,9 +38,6 @@ public interface IModItemDefinition : IModContentDefinition
 	/// <summary>Whether the item can be used with the left mouse button.</summary>
 	bool UsableWithLmb { get; }
 
-	/// <summary>Whether the item can be worn on a body.</summary>
-	bool Wearable { get; }
-
 	/// <summary>Whether the item is destroyed when its condition reaches zero.</summary>
 	bool DestroyAtZeroCondition { get; }
 
@@ -98,6 +95,16 @@ public interface IModItemDefinition : IModContentDefinition
 
 	/// <summary>Optional firearm behavior applied to the runtime item template and static use action.</summary>
 	IModItemGun? Gun { get; }
+
+	/// <summary>
+	/// Optional wearable behavior: where the item is worn and what the game's own
+	/// wear flow reads once it is there. Null — and equally a declaration naming no
+	/// limb or no slot — means the item is not worn: the game's placement resolves
+	/// the limb NAME the declaration carries and dereferences the result, so a flag
+	/// without a resolvable limb would throw inside the game's own flow. An
+	/// incomplete declaration is registered without the flag and reported at load.
+	/// </summary>
+	IModItemWearable? Wearable { get; }
 
 	/// <summary>
 	/// Vanilla decay time in in-game minutes. Zero disables time-based decay;

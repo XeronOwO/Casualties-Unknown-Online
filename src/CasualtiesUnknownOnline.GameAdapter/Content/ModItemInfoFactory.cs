@@ -37,7 +37,6 @@ internal static class ModItemInfoFactory
 			value = definition.Value,
 			usable = definition.Usable,
 			usableWithLMB = definition.UsableWithLmb,
-			wearable = definition.Wearable,
 			destroyAtZeroCondition = definition.DestroyAtZeroCondition,
 			tags = definition.Tags ?? string.Empty
 		};
@@ -52,6 +51,24 @@ internal static class ModItemInfoFactory
 		if (qualities.Count > 0)
 		{
 			info.qualities = CraftingQualityDeclarations.ToGameQualities(qualities);
+		}
+
+		// The wearable flag and the placement the game's own wear flow reads are one
+		// declaration: Body.WearWearable resolves the declared limb name with
+		// Body.LimbByName (Body.cs:1493) and dereferences the result on the next line,
+		// so a flag installed without one is a NullReferenceException inside the game.
+		// An incomplete declaration is therefore NOT installed as a wearable; the
+		// provider reports it by name at load.
+		if (definition.Wearable is { } wearable && WearableDeclaration.HasPlacement(wearable))
+		{
+			info.wearable = true;
+			info.desiredWearLimb = wearable.Limb;
+			info.wearSlotId = wearable.SlotId;
+			info.wearableCanBeHeld = wearable.CanBeHeld;
+			info.wearableArmor = wearable.Armor;
+			info.wearableIsolation = wearable.Isolation;
+			info.wearableHitDurabilityLossMultiplier = wearable.HitDurabilityLossMultiplier;
+			info.wearableVisualOffset = wearable.VisualOffset;
 		}
 
 		if (definition.Tool is { } tool)

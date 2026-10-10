@@ -376,7 +376,7 @@ public class ItemAdvancedBehaviorProviderTests
 
 		public bool UsableWithLmb => false;
 
-		public bool Wearable => false;
+		public IModItemWearable? Wearable => null;
 
 		public bool DestroyAtZeroCondition => false;
 

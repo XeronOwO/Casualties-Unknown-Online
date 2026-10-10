@@ -45,6 +45,11 @@ internal static class CustomItemBehaviorValidator
 			valid &= ValidateGun(modId, id, gun, log);
 		}
 
+		if (definition.Wearable is { } wearable)
+		{
+			valid &= ValidateWearable(modId, id, wearable, log);
+		}
+
 		if (definition.Visual is { } visual)
 		{
 			valid &= ValidateVisual(modId, id, visual, log);
@@ -175,6 +180,31 @@ internal static class CustomItemBehaviorValidator
 		{
 			log.LogWarning(
 				"[ItemContent] {ModId}/{Id} has an invalid Gun numeric value — refused.",
+				modId, id);
+			return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// The wearable slice's authored numbers. Its PLACEMENT (the limb name and the
+	/// slot id) is not validated here: a declaration the game cannot place is not
+	/// refused — the mapping installs no wearable flag for it and the provider
+	/// reports it, because the item itself is still a valid item.
+	/// </summary>
+	private static bool ValidateWearable(
+		string modId,
+		string id,
+		IModItemWearable wearable,
+		ILogger log)
+	{
+		if (IsInvalidNonNegative(wearable.Armor)
+			|| IsInvalidNonNegative(wearable.Isolation)
+			|| IsInvalidNonNegative(wearable.HitDurabilityLossMultiplier))
+		{
+			log.LogWarning(
+				"[ItemContent] {ModId}/{Id} has an invalid Wearable numeric value — refused.",
 				modId, id);
 			return false;
 		}

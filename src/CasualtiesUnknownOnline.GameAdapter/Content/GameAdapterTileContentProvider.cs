@@ -233,7 +233,9 @@ public sealed class GameAdapterTileContentProvider(
 				var item = created.GetComponent<Item>();
 				if (item != null) // Unity object — ==
 				{
-					item.condition = drop.RollCondition(Random.Range(0f, 1f));
+					var min = Mathf.Clamp01(drop.MinCondition);
+					var max = Mathf.Max(min, Mathf.Clamp01(drop.MaxCondition));
+					item.condition = Mathf.Clamp(Random.Range(0f, 1f), min, max);
 				}
 
 				spawned++;

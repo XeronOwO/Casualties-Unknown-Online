@@ -98,5 +98,5 @@ public interface IModTileDefinition : IModContentDefinition
 	ModTileGenerationStyle GenerationStyle { get; }
 
 	/// <summary>Optional item drops spawned when the tile breaks.</summary>
-	List<ModTileDrop> Drops { get; }
+	List<IModTileDrop> Drops { get; }
 }

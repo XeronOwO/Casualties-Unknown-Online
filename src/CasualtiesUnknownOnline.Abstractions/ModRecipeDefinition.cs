@@ -48,7 +48,7 @@ public sealed class ModRecipeDefinition : IModRecipeDefinition
 	public bool IsRepair { get; set; }
 
 	/// <inheritdoc />
-	public List<ModRecipeIngredient> Ingredients
+	public List<IModRecipeIngredient> Ingredients
 	{
 		get;
 		set => field = value ?? [];

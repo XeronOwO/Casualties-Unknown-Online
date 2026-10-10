@@ -138,8 +138,8 @@ public class ModContentDeclarationScannerTests
 
 		var registered = scanner.Register(typeof(ScanFixtureMod), content);
 
-		Assert.Equal(2, registered);
-		Assert.Equal(2, content.Count);
+		Assert.Equal(3, registered);
+		Assert.Equal(3, content.Count);
 
 		// The declaration the mod wrote is what the registry holds — not a
 		// framework DTO built from it — and its computed member is the mod's.
@@ -150,6 +150,37 @@ public class ModContentDeclarationScannerTests
 		Assert.Equal("Scan Item (schema 1)", item.DisplayName);
 		Assert.IsType<ScanFixtureMod.DeclaredRecipe>(
 			content.Definitions.Single(definition => definition.Id == ScanFixtureMod.RecipeId));
+		Assert.IsType<ScanFixtureMod.NestedToolItem>(
+			content.Definitions.Single(definition => definition.Id == ScanFixtureMod.NestedToolItem.NestedItemId));
+	}
+
+	[Fact]
+	public void Register_ReadsANestedMemberWhoseImplementationIsTheModsOwn()
+	{
+		var log = CreateLog();
+		var content = new RecordingContent();
+
+		var registered = new ModContentDeclarationScanner(log).Register(typeof(ScanFixtureMod), content);
+
+		// The scan accepted every declaration the fixture mod owns — including the
+		// one whose member the contract declares as IModItemTool while the object
+		// behind it is the mod's own nested type, because reading a member is what
+		// the scan does and the contract, not the framework's class, is its seam.
+		// The declaration was not refused: the fixture assembly's own census reports
+		// its unrelated ownerless declaration (see the plan cases above), so the log is
+		// not empty — what matters is that it carries no line naming THIS declaration.
+		Assert.Equal(3, registered);
+		Assert.DoesNotContain(log.Entries, entry => entry.Message.Contains(nameof(ScanFixtureMod.NestedToolItem), StringComparison.Ordinal));
+
+		var item = Assert.IsAssignableFrom<IModItemDefinition>(
+			content.Definitions.Single(definition => definition.Id == ScanFixtureMod.NestedToolItem.NestedItemId));
+
+		// The framework stores the declaration as it was handed over, so the nested
+		// implementation is the object the provider will read, not a data class
+		// rebuilt from it.
+		var tool = Assert.IsAssignableFrom<IModItemTool>(item.Tool);
+		Assert.IsType<ScanFixtureMod.NestedTool>(tool);
+		Assert.Equal(40f, tool.Damage);
 	}
 
 	[Fact]
@@ -190,7 +221,7 @@ public class ModContentDeclarationScannerTests
 
 		var registered = new ModContentDeclarationScanner(log).Register(typeof(ScanFixtureMod), content);
 
-		Assert.Equal(2, registered);
+		Assert.Equal(3, registered);
 		Assert.False(content.IsRegistered("scan.throwing"));
 		Assert.Contains(log.Entries, entry =>
 			entry.Level == LogLevel.Warning
@@ -300,7 +331,64 @@ public class ModContentDeclarationScannerTests
 
 			public bool IsRepair => false;
 
-			public List<ModRecipeIngredient> Ingredients => [];
+			public List<IModRecipeIngredient> Ingredients => [];
+		}
+
+		/// <summary>
+		/// The declaration whose nested member is the mod's OWN implementation of the
+		/// nested contract, not the framework's data class: registering this class is
+		/// reading a member whose declared type is <see cref="IModItemTool"/> while the
+		/// object behind it is <see cref="NestedTool"/>.
+		/// </summary>
+		[ModContent]
+		public sealed class NestedToolItem : ItemStub
+		{
+			internal const string NestedItemId = "scan.nested.tool";
+
+			public override string Id => NestedItemId;
+
+			public override string DisplayName => "Scan Item with a mod-authored tool";
+
+			public override IModItemTool? Tool { get; } = new NestedTool();
+		}
+
+		/// <summary>
+		/// The mod-authored nested implementation: it computes its damage from its own
+		/// field rather than handing back a filled framework default.
+		/// </summary>
+		public sealed class NestedTool : IModItemTool
+		{
+			public float Damage => 40f;
+
+			public float StructuralDamage => 25f;
+
+			public float AttackCooldownMultiplier => 0.66f;
+
+			public float Distance => 2.5f;
+
+			public float KnockBack => 270f;
+
+			public float Cooldown => 0.35f;
+
+			public string AttackAnimation => "SwingAnim";
+
+			public float StaminaUse => 0.5f;
+
+			public bool Piercing => false;
+
+			public List<string> SwingSounds => [];
+
+			public float Volume => 0.5f;
+
+			public float RotateAmount => 15.5f;
+
+			public bool PhysicalSwing => true;
+
+			public bool DoAttackAnimation => true;
+
+			public bool MetalMoreDamage => false;
+
+			public float ConditionLossOnHit => 0.02f;
 		}
 
 		/// <summary>Refused: the kind is never guessed, and this one reaches two contracts.</summary>
@@ -323,7 +411,7 @@ public class ModContentDeclarationScannerTests
 
 			public bool IsRepair => false;
 
-			public List<ModRecipeIngredient> Ingredients => [];
+			public List<IModRecipeIngredient> Ingredients => [];
 		}
 
 		/// <summary>Refused: the contract fixes the kind, and this member disagrees with it.</summary>
@@ -475,21 +563,21 @@ public class ModContentDeclarationScannerTests
 
 		public virtual ModItemDropSource? DropSources => null;
 
-		public virtual ModItemContainer? Container => null;
+		public virtual IModItemContainer? Container => null;
 
-		public virtual ModItemBattery? Battery => null;
+		public virtual IModItemBattery? Battery => null;
 
-		public virtual ModItemLight? Light => null;
+		public virtual IModItemLight? Light => null;
 
-		public virtual ModItemTool? Tool => null;
+		public virtual IModItemTool? Tool => null;
 
-		public virtual ModItemGun? Gun => null;
+		public virtual IModItemGun? Gun => null;
 
 		public virtual float DecayMinutes => 0f;
 
-		public virtual ModItemVisual? Visual => null;
+		public virtual IModItemVisual? Visual => null;
 
-		public virtual List<ModCraftingQuality> Qualities => [];
+		public virtual List<IModCraftingQuality> Qualities => [];
 	}
 
 	/// <summary>

@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// <c>AttackInfo</c> and installs the <c>ItemInfo.useAction</c> delegate at item
 /// registration time, so mods never pass game delegates.
 /// </summary>
-public sealed class ModItemTool
+public sealed class ModItemTool : IModItemTool
 {
 	/// <summary>Damage dealt to enemies and traders.</summary>
 	public float Damage { get; set; } = 25f;

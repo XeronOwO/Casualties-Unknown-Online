@@ -56,7 +56,7 @@ public interface IModMoodleDefinition : IModContentDefinition
 	/// Adapter registers the first frame as the static icon and drives the
 	/// vanilla moodle UI image from the ordered resource-path frames.
 	/// </summary>
-	ModMoodleAnimation? IconAnimation { get; }
+	IModMoodleAnimation? IconAnimation { get; }
 
 	/// <summary>
 	/// Optional limb-name template. Only used when the status feeds one row per

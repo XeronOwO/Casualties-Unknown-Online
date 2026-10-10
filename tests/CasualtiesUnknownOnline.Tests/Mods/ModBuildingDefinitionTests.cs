@@ -80,13 +80,4 @@ public class ModBuildingDefinitionTests
 		Assert.False(new ModBuildingDefinition { SpawnLayers = ModBuildingDefinition.LayersToMask(2) }.CanSpawnInLayer(0));
 		Assert.False(new ModBuildingDefinition { SpawnLayers = 0 }.CanSpawnInLayer(0));
 	}
-
-	[Fact]
-	public void ModBuildingDrop_RollCondition_ClampsIntoSegment()
-	{
-		var drop = new ModBuildingDrop { MinCondition = 0.2f, MaxCondition = 0.8f };
-		Assert.Equal(0.2f, drop.RollCondition(0f));
-		Assert.Equal(0.5f, drop.RollCondition(0.5f));
-		Assert.Equal(0.8f, drop.RollCondition(1f));
-	}
 }

@@ -85,19 +85,19 @@ public interface IModItemDefinition : IModContentDefinition
 	ModItemDropSource? DropSources { get; }
 
 	/// <summary>Optional container behavior applied to the runtime item template.</summary>
-	ModItemContainer? Container { get; }
+	IModItemContainer? Container { get; }
 
 	/// <summary>Optional battery behavior applied to the runtime item template.</summary>
-	ModItemBattery? Battery { get; }
+	IModItemBattery? Battery { get; }
 
 	/// <summary>Optional light behavior applied to the runtime item template.</summary>
-	ModItemLight? Light { get; }
+	IModItemLight? Light { get; }
 
 	/// <summary>Optional melee/tool behavior applied to the item's static use action.</summary>
-	ModItemTool? Tool { get; }
+	IModItemTool? Tool { get; }
 
 	/// <summary>Optional firearm behavior applied to the runtime item template and static use action.</summary>
-	ModItemGun? Gun { get; }
+	IModItemGun? Gun { get; }
 
 	/// <summary>
 	/// Vanilla decay time in in-game minutes. Zero disables time-based decay;
@@ -108,7 +108,7 @@ public interface IModItemDefinition : IModContentDefinition
 	float DecayMinutes { get; }
 
 	/// <summary>Optional visual presentation (worn sprite and liquid mask).</summary>
-	ModItemVisual? Visual { get; }
+	IModItemVisual? Visual { get; }
 
 	/// <summary>
 	/// Crafting-quality labels the item provides, written into the vanilla
@@ -117,5 +117,5 @@ public interface IModItemDefinition : IModContentDefinition
 	/// <c>1</c>, like the liquid side, because the matcher asks for at least the
 	/// amount a recipe requires.
 	/// </summary>
-	List<ModCraftingQuality> Qualities { get; }
+	List<IModCraftingQuality> Qualities { get; }
 }

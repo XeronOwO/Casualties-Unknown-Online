@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// the Game Adapter resolves it against the local body at presentation time
 /// without exposing <c>Limb</c> or any Unity type through Abstractions.
 /// </summary>
-public sealed class ModLimbMoodleBinding
+public sealed class ModLimbMoodleBinding : IModLimbMoodleBinding
 {
 	/// <summary>Stable vanilla limb name, case-insensitive (e.g. <c>Head</c>, <c>LeftArm</c>).</summary>
 	public string LimbName { get; set; } = "";

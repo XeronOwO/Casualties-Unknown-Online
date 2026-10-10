@@ -6,7 +6,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// body-part name and the sprite path is a resource path that the Game Adapter
 /// resolves at runtime-template build time.
 /// </summary>
-public sealed class ModItemLimbWornSprite
+public sealed class ModItemLimbWornSprite : IModItemLimbWornSprite
 {
 	/// <summary>Vanilla limb name that receives the additive sprite while the item is worn.</summary>
 	public string LimbName { get; set; } = "";

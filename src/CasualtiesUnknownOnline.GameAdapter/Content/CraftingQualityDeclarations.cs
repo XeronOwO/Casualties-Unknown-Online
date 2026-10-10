@@ -43,7 +43,7 @@ internal sealed class CraftingQualityDeclarations
 	/// an empty id, because a mod can put a null entry in the list and the
 	/// injection path would otherwise dereference it.
 	/// </summary>
-	internal static bool IsValid(List<ModCraftingQuality> qualities, out string rejectedId)
+	internal static bool IsValid(List<IModCraftingQuality> qualities, out string rejectedId)
 	{
 		foreach (var quality in qualities)
 		{
@@ -67,7 +67,7 @@ internal sealed class CraftingQualityDeclarations
 	/// reachable amount and the recipe side normalises its own requirement to at
 	/// least 1.
 	/// </summary>
-	internal static List<CraftingQuality> ToGameQualities(List<ModCraftingQuality> qualities) =>
+	internal static List<CraftingQuality> ToGameQualities(List<IModCraftingQuality> qualities) =>
 		[.. qualities.Select(quality => new CraftingQuality(quality.Id, ReachableAmount(quality.Amount)))];
 
 	/// <summary>
@@ -75,7 +75,7 @@ internal sealed class CraftingQualityDeclarations
 	/// twice keeps its larger amount, which is what a consumer comparing amounts
 	/// has to assume.
 	/// </summary>
-	internal void Accept(List<ModCraftingQuality> qualities)
+	internal void Accept(List<IModCraftingQuality> qualities)
 	{
 		foreach (var quality in qualities)
 		{

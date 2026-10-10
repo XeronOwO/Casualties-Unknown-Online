@@ -117,7 +117,7 @@ internal static class ModItemInfoFactory
 		field.SetValue(info, (info.tags ?? string.Empty).Split(','));
 	}
 
-	private static void UseTool(Body? body, Item? item, ModItemTool tool)
+	private static void UseTool(Body? body, Item? item, IModItemTool tool)
 	{
 		if (body == null || item == null) // Unity objects — ==
 		{
@@ -137,7 +137,7 @@ internal static class ModItemInfoFactory
 				: Resources.Load<GameObject>(tool.AttackAnimation),
 			staminaUse = tool.StaminaUse,
 			piercing = tool.Piercing,
-			swingSounds = [.. tool.SwingSounds],
+			swingSounds = [.. ModDeclarationCollections.OrEmpty(tool.SwingSounds)],
 			volume = tool.Volume,
 			physicalSwing = tool.PhysicalSwing,
 			rotateAmount = tool.RotateAmount,

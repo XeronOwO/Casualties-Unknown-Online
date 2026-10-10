@@ -51,7 +51,7 @@ active, so no wire message and no new NetMsg are needed.
 | DTO round-trip | New drop lists, enums, density, and layer fields survive `ToPayload`/`FromPayload` | `ModBuildingDefinitionTests.RoundTrip_PreservesCoreFields` |
 | Null optionals | New optional density/placement fields remain null after round-trip | `ModBuildingDefinitionTests.RoundTrip_PreservesNullOptionalOverrides` |
 | Layer helper | `LayersToMask` / `AllLayersExcept` / `CanSpawnInLayer` follow the tile worldgen convention | `ModBuildingDefinitionTests.LayerMaskHelpers_AreConsistent` |
-| Drop roll helper | `ModBuildingDrop.RollCondition` clamps into the authored segment | `ModBuildingDefinitionTests.ModBuildingDrop_RollCondition_ClampsIntoSegment` |
+| Drop roll helper | `ModBuildingDrop.RollCondition` clamped into the authored segment — **DELETED 2026-10-09** (decision 253): the drop contracts are pure data now and the tile provider, its only caller, clamps inline; the building side never called it | `GameAdapterTileContentProvider` (the call site); the unit test is deleted with the method |
 | Stable iteration | Enabled worldgen definitions enumerate in ordinal id order and exclude disabled/None styles | `BuildingWorldGenProviderTests.GetDefinitionsForWorldGen_ReturnsStableIdOrderAndFiltersDisabled` |
 | Validation | NaN/Infinity/negative density, min>max, negative offset, invalid drops are refused | `BuildingWorldGenProviderTests.TryBind_AcceptsValidWorldGenAndRejectsInvalidDensity` / `TryBind_RejectsInvalidDrops` |
 | No wire/protocol regression | Static content and deterministic generation still use existing seams; no NetMsg added | `docs/api/mod-api.md` §4f, full suite green |

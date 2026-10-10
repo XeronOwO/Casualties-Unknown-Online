@@ -67,14 +67,14 @@ public interface IModBuildingDefinition : IModContentDefinition
 	/// authored chance drops; the vanilla building's own drop table still applies
 	/// when the base prefab carries one.
 	/// </summary>
-	List<ModBuildingDrop> DropOnDestroy { get; }
+	List<IModBuildingDrop> DropOnDestroy { get; }
 
 	/// <summary>
 	/// Drops always spawned when the building is destroyed, regardless of chance.
 	/// These are rolled after chance-based drops and are not multiplied by
 	/// <see cref="DropChanceMultiplier"/>.
 	/// </summary>
-	List<ModBuildingDrop> AlwaysDrop { get; }
+	List<IModBuildingDrop> AlwaysDrop { get; }
 
 	/// <summary>
 	/// Additional vanilla item-loot categories included in the building's

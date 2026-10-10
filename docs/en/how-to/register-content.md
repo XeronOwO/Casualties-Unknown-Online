@@ -76,7 +76,7 @@ public sealed class ExampleMod : ICuoMod
 		public int Intelligence => 0;
 		public string Category => ModRecipeCategory.Medicine;
 		public bool IsRepair => false;
-		public List<ModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
+		public List<IModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
 	}
 }
 ```
@@ -157,6 +157,45 @@ Most of these contracts also carry a `CustomData` dictionary for the fields a we
 yet — `IModRecipeDefinition` and `IModLiquidDefinition` do not — and the framework keeps the object you
 registered rather than a copy of it, and never writes to it: register a definition you do not mutate
 afterwards.
+
+One level down the contracts repeat, so the nested values a declaration carries can be computed too. The
+behaviour slices (`Tool`, `Gun`, `Container`, `Battery`, `Light`, `Visual` and the frame animations inside
+it) are interfaces, and so are the entries of a collection (`Qualities`, `Ingredients`, `DropOnDestroy`,
+`AlwaysDrop`, `Drops`, `MultiWornSprites`, `LimbMoodles`); each ships its ready-made data class:
+
+```csharp
+/// <summary>A tool whose numbers come from this mod's own tuning, not from a filled-in default.</summary>
+private sealed class TunedTool(float damageScale) : IModItemTool
+{
+	public float Damage => 25f * damageScale;
+	public float StructuralDamage => 25f * damageScale;
+	public float AttackCooldownMultiplier => 0.66f;
+	public float Distance => 2.5f;
+	public float KnockBack => 270f;
+	public float Cooldown => 0.35f;
+	public string AttackAnimation => "SwingAnim";
+	public float StaminaUse => 0.5f;
+	public bool Piercing => false;
+	public List<string> SwingSounds => ["BSSwing1"];
+	public float Volume => 0.5f;
+	public float RotateAmount => 15.5f;
+	public bool PhysicalSwing => true;
+	public bool DoAttackAnimation => true;
+	public bool MetalMoreDamage => false;
+	public float ConditionLossOnHit => 0.02f;
+}
+
+[ModContent]
+public sealed class TunedHammer : IModItemDefinition
+{
+	public IModItemTool? Tool { get; } = new TunedTool(1.4f);
+
+	// ...the rest of the item's members
+}
+```
+
+The provider reads `Tool` as `IModItemTool`, so nothing about the binding depends on which shape you hand
+over — and the same is true for every member of every nested contract.
 
 That table is the whole list. The nine kinds in it are the ones `ModContentKind` names and a CUO
 provider materializes; a kind outside it is still a legal registration — implement `IModContentDefinition`

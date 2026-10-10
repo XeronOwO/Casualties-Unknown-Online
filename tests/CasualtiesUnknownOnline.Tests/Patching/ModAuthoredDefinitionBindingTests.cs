@@ -125,6 +125,14 @@ public class ModAuthoredDefinitionBindingTests
 
 		// A member this fixture delegates still comes from the composed default.
 		Assert.Equal(defaults.Description, bound.Description);
+
+		// One level down the seam is the same: the fixture hands back an object
+		// implementing the nested contract, not the framework's data class.
+		var tool = Assert.IsAssignableFrom<IModItemTool>(bound.Tool);
+		Assert.Same(fixture.Tool, tool);
+		Assert.Equal(32.5f, tool.Damage);
+		Assert.Equal(defaults.Tool!.Piercing, tool.Piercing);
+		Assert.NotEqual(defaults.Tool.Damage, tool.Damage);
 	}
 
 	private static ModContentRegistration Registration(IModContentDefinition definition) =>
@@ -182,7 +190,8 @@ public class ModAuthoredDefinitionBindingTests
 		Id = id,
 		DisplayName = "Authored item",
 		Description = "Composed default description",
-		Weight = 4f
+		Weight = 4f,
+		Tool = new ModItemTool { Damage = 25f, Piercing = true }
 	};
 
 	private static ModRecipeDefinition FilledRecipe(string id) => new()
@@ -316,7 +325,8 @@ public class ModAuthoredDefinitionBindingTests
 
 	/// <summary>
 	/// The mod-authored item: it implements the kind interface itself, computes
-	/// <see cref="DisplayName"/> and <see cref="Weight"/> from its own fields, and
+	/// <see cref="DisplayName"/> and <see cref="Weight"/> from its own fields, hands
+	/// an implementation of the NESTED tool contract for <see cref="Tool"/>, and
 	/// hands every other member back from the filled framework default it composes.
 	/// </summary>
 	private sealed class ModAuthoredItem(ModItemDefinition defaults, string nameSuffix, float extraWeight)
@@ -360,21 +370,63 @@ public class ModAuthoredDefinitionBindingTests
 
 		public ModItemDropSource? DropSources => defaults.DropSources;
 
-		public ModItemContainer? Container => defaults.Container;
+		public IModItemContainer? Container => defaults.Container;
 
-		public ModItemBattery? Battery => defaults.Battery;
+		public IModItemBattery? Battery => defaults.Battery;
 
-		public ModItemLight? Light => defaults.Light;
+		public IModItemLight? Light => defaults.Light;
 
-		public ModItemTool? Tool => defaults.Tool;
+		public IModItemTool? Tool { get; } = new ModAuthoredTool(defaults.Tool!);
 
-		public ModItemGun? Gun => defaults.Gun;
+		public IModItemGun? Gun => defaults.Gun;
 
 		public float DecayMinutes => defaults.DecayMinutes;
 
-		public ModItemVisual? Visual => defaults.Visual;
+		public IModItemVisual? Visual => defaults.Visual;
 
-		public List<ModCraftingQuality> Qualities => defaults.Qualities;
+		public List<IModCraftingQuality> Qualities => defaults.Qualities;
+	}
+
+	/// <summary>
+	/// The mod-authored TOOL: one level down, the same shape as the item above —
+	/// it implements the nested contract itself, computes <see cref="Damage"/> from
+	/// its own field, and hands every other member back from the filled framework
+	/// default it composes. <see cref="Piercing"/> is deliberately the composed
+	/// value while <see cref="Damage"/> is not, so a case can tell the two apart.
+	/// </summary>
+	private sealed class ModAuthoredTool(IModItemTool defaults) : IModItemTool
+	{
+		public float Damage => defaults.Damage / 2f + 20f;
+
+		public float StructuralDamage => defaults.StructuralDamage;
+
+		public float AttackCooldownMultiplier => defaults.AttackCooldownMultiplier;
+
+		public float Distance => defaults.Distance;
+
+		public float KnockBack => defaults.KnockBack;
+
+		public float Cooldown => defaults.Cooldown;
+
+		public string AttackAnimation => defaults.AttackAnimation;
+
+		public float StaminaUse => defaults.StaminaUse;
+
+		public bool Piercing => defaults.Piercing;
+
+		public List<string> SwingSounds => defaults.SwingSounds;
+
+		public float Volume => defaults.Volume;
+
+		public float RotateAmount => defaults.RotateAmount;
+
+		public bool PhysicalSwing => defaults.PhysicalSwing;
+
+		public bool DoAttackAnimation => defaults.DoAttackAnimation;
+
+		public bool MetalMoreDamage => defaults.MetalMoreDamage;
+
+		public float ConditionLossOnHit => defaults.ConditionLossOnHit;
 	}
 
 	/// <summary>The mod-authored recipe: it computes <see cref="ResultAmount"/> from its own batch size.</summary>
@@ -402,7 +454,7 @@ public class ModAuthoredDefinitionBindingTests
 
 		public bool IsRepair => defaults.IsRepair;
 
-		public List<ModRecipeIngredient> Ingredients => defaults.Ingredients;
+		public List<IModRecipeIngredient> Ingredients => defaults.Ingredients;
 	}
 
 	/// <summary>The mod-authored liquid: it computes <see cref="ValuePerLiter"/> from its own purity factor.</summary>
@@ -436,7 +488,7 @@ public class ModAuthoredDefinitionBindingTests
 
 		public bool LocaleFromItem => defaults.LocaleFromItem;
 
-		public List<ModCraftingQuality> Qualities => defaults.Qualities;
+		public List<IModCraftingQuality> Qualities => defaults.Qualities;
 	}
 
 	/// <summary>The mod-authored liquid tile: it computes <see cref="Buoyancy"/> from its own scale factor.</summary>
@@ -556,7 +608,7 @@ public class ModAuthoredDefinitionBindingTests
 
 		public ModTileGenerationStyle GenerationStyle => defaults.GenerationStyle;
 
-		public List<ModTileDrop> Drops => defaults.Drops;
+		public List<IModTileDrop> Drops => defaults.Drops;
 	}
 
 	/// <summary>The mod-authored building: it computes <see cref="Health"/> from its own reinforcement factor.</summary>
@@ -594,9 +646,9 @@ public class ModAuthoredDefinitionBindingTests
 
 		public Dictionary<string, string> CustomData => defaults.CustomData;
 
-		public List<ModBuildingDrop> DropOnDestroy => defaults.DropOnDestroy;
+		public List<IModBuildingDrop> DropOnDestroy => defaults.DropOnDestroy;
 
-		public List<ModBuildingDrop> AlwaysDrop => defaults.AlwaysDrop;
+		public List<IModBuildingDrop> AlwaysDrop => defaults.AlwaysDrop;
 
 		public List<string> ItemCategoriesToAdd => defaults.ItemCategoriesToAdd;
 
@@ -668,7 +720,7 @@ public class ModAuthoredDefinitionBindingTests
 
 		public bool ShowPerLimbMoodles => defaults.ShowPerLimbMoodles;
 
-		public List<ModLimbMoodleBinding> LimbMoodles => defaults.LimbMoodles;
+		public List<IModLimbMoodleBinding> LimbMoodles => defaults.LimbMoodles;
 	}
 
 	/// <summary>The mod-authored moodle: it computes <see cref="HoldSeconds"/> from its own hold factor.</summary>
@@ -698,7 +750,7 @@ public class ModAuthoredDefinitionBindingTests
 
 		public Dictionary<string, string> CustomData => defaults.CustomData;
 
-		public ModMoodleAnimation? IconAnimation => defaults.IconAnimation;
+		public IModMoodleAnimation? IconAnimation => defaults.IconAnimation;
 
 		public string LimbDisplayNameFormat => defaults.LimbDisplayNameFormat;
 

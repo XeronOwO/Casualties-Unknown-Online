@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// vanilla <c>GunScript</c> component and installs the trigger
 /// <c>ItemInfo.useAction</c> at item registration time.
 /// </summary>
-public sealed class ModItemGun
+public sealed class ModItemGun : IModItemGun
 {
 	/// <summary>Optional ammo type.</summary>
 	public ModGunAmmoType? AmmoType { get; set; }

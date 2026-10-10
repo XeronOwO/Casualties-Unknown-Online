@@ -56,5 +56,5 @@ public interface IModStatusDefinition : IModContentDefinition
 	/// limb-scoped; a limb without a matching entry falls back to
 	/// <see cref="MoodleId"/>.
 	/// </summary>
-	List<ModLimbMoodleBinding> LimbMoodles { get; }
+	List<IModLimbMoodleBinding> LimbMoodles { get; }
 }

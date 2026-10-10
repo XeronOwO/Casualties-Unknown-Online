@@ -270,9 +270,9 @@ internal sealed class ModStatusMoodleProjection(
 		return moodle.FormatLimbDescription(limbName);
 	}
 
-	private Sprite[] LoadAnimationFrames(string moodleId, ModMoodleAnimation animation)
+	private Sprite[] LoadAnimationFrames(string moodleId, IModMoodleAnimation animation)
 	{
-		var framePaths = animation.FramePaths;
+		var framePaths = ModDeclarationCollections.OrEmpty(animation.FramePaths);
 		if (framePaths.Count == 0)
 		{
 			return [];

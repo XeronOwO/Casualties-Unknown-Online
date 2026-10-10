@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// drives the vanilla moodle UI image. No Unity or game type crosses
 /// Abstractions.
 /// </summary>
-public sealed class ModMoodleAnimation
+public sealed class ModMoodleAnimation : IModMoodleAnimation
 {
 	/// <summary>
 	/// Ordered Unity resource paths of the animation frames. The first valid

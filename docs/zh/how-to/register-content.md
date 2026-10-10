@@ -59,7 +59,7 @@ public sealed class ExampleMod : ICuoMod
 		public int Intelligence => 0;
 		public string Category => ModRecipeCategory.Medicine;
 		public bool IsRepair => false;
-		public List<ModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
+		public List<IModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
 	}
 }
 ```
@@ -119,6 +119,41 @@ if (context.Content.CanRegister)
 | `status`、`moodle` | `IModStatusDefinition`、`IModMoodleDefinition`（`ModStatusDefinition`、`ModMoodleDefinition`） | 存下投影要读的静态描述 |
 
 这些契约大多另带一个 `CustomData` 字典，用来放已知类别还没命名的字段（`IModRecipeDefinition` 和 `IModLiquidDefinition` 没有）；而框架留下的是你注册的那个对象本身，不是它的副本，也从不改写它 —— 注册之后就不要再改它。
+
+再往下嵌一层，契约同样成立：声明所携带的嵌套值也能是算出来的。行为切片（`Tool`、`Gun`、`Container`、`Battery`、`Light`、`Visual` 以及它里面的逐帧动画）是接口，集合里的条目（`Qualities`、`Ingredients`、`DropOnDestroy`、`AlwaysDrop`、`Drops`、`MultiWornSprites`、`LimbMoodles`）也是接口，每一个都带自己的自带数据类：
+
+```csharp
+/// <summary>数值来自这个模组自己的调参，而不是填一份默认值。</summary>
+private sealed class TunedTool(float damageScale) : IModItemTool
+{
+	public float Damage => 25f * damageScale;
+	public float StructuralDamage => 25f * damageScale;
+	public float AttackCooldownMultiplier => 0.66f;
+	public float Distance => 2.5f;
+	public float KnockBack => 270f;
+	public float Cooldown => 0.35f;
+	public string AttackAnimation => "SwingAnim";
+	public float StaminaUse => 0.5f;
+	public bool Piercing => false;
+	public List<string> SwingSounds => ["BSSwing1"];
+	public float Volume => 0.5f;
+	public float RotateAmount => 15.5f;
+	public bool PhysicalSwing => true;
+	public bool DoAttackAnimation => true;
+	public bool MetalMoreDamage => false;
+	public float ConditionLossOnHit => 0.02f;
+}
+
+[ModContent]
+public sealed class TunedHammer : IModItemDefinition
+{
+	public IModItemTool? Tool { get; } = new TunedTool(1.4f);
+
+	// ……物品其余成员
+}
+```
+
+提供者读 `Tool` 时读的是 `IModItemTool`，所以你交哪种形状都不影响绑定 —— 嵌套契约的每一个成员都是如此。
 
 上面这张表就是全部。表里的九个类别正是 `ModContentKind` 列出的、有 CUO 提供者去实体化的类别；表外的类别照样可以合法登记 —— 自己实现 `IModContentDefinition`，自报类别标签，数据也归你自己 —— 因为框架只校验类别的形状，从不校验它是否在表里 —— 但没有任何东西会绑它：它留在登记表里，控制台按规范 id 列出它，而它永远不会出现在世界里。绑定器会在加载时说一次，级别是警告，点名类别与你的定义 —— 那行日志就是「已登记」与「会存在」的分界，内容迟迟不见踪影时先看它。
 

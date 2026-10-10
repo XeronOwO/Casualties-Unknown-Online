@@ -1,5 +1,7 @@
 # Casualties Unknown: Online (CUO)
 
+**English** | [中文](README.zh.md)
+
 A multiplayer mod framework for [*Casualties: Unknown*](https://store.steampowered.com/app/4576510) (currently in Demo), built on [BepInEx](https://github.com/BepInEx/BepInEx).
 
 The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** co-op (LAN / friends) by injecting a new multiplayer runtime and reorganizing the local-only game state into a **host-authoritative simulation with guest input/state sync** — in the spirit of Minecraft Forge, but starting with a solid multiplayer core rather than a full mod ecosystem.
@@ -47,7 +49,9 @@ All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment in
 
 The project is developed with AI assistance:
 
-- All project code has been written primarily with **DeepSeek V4 Flash/Pro**; a small amount of architecture design was contributed by **GPT 5.6 Sol**.
+- All project code has been written primarily with **DeepSeek V4 Flash/Pro**; **DeepSeek V4.1 Flash** is
+  the model development runs on now; a small amount of architecture design was contributed by **GPT 5.6
+  Sol**.
 - Before **DeepSeek Harness** existed, development used **Claude Code**. After DeepSeek Harness became available, the project has been developed entirely with **DeepSeek Harness**.
 
 ## Acknowledgements

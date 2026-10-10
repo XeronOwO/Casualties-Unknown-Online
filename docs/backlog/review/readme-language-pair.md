@@ -1,10 +1,11 @@
 # The root README as a language pair, and English first in the documentation entry
 
-- Status: Todo — **raised 2026-10-11 by the user**, in their own words: "根目录的 README.md 也做成中英双语的
-  两份文档，可以通过超链接切换语言。docs/README.md 改成先英语后中文，考虑到对国外友人更友好点，因此英语
-  优先。根目录 README.md 中，我使用过的模型新增 DeepSeek V4.1 Flash，这个是目前的主要开发使用的模型了".
-  The user offered it either as this ticket or as a side task of the cycle running when they asked; it is filed
-  here and worked as its own documentation cycle, so the code cycle it interrupted keeps its own commit.
+- Status: Review — **raised and landed 2026-10-11 by the user**, in their own words: "根目录的 README.md 也做
+  成中英双语的两份文档，可以通过超链接切换语言。docs/README.md 改成先英语后中文，考虑到对国外友人更友好点，
+  因此英语优先。根目录 README.md 中，我使用过的模型新增 DeepSeek V4.1 Flash，这个是目前的主要开发使用的模型
+  了". The user offered it either as this ticket or as a side task of the cycle running when they asked; it was
+  filed while that cycle finished, then worked as its own documentation cycle with its own commit, so the code
+  cycle kept its own. What landed is below.
 - Priority: Low-Medium
 - Category: Documentation / project metadata
 - Related: `docs/README.md` (the switcher page whose order this changes),
@@ -39,6 +40,27 @@ The change is small but it touches a rule rather than a page: the repository cur
 language-switch surface (`docs/README.md`), and a second one at the root means deciding what governs it —
 which registry, which gate, and whether the root pair is part of the human documentation block or beside it.
 That decision outlives the edit, so it is recorded with it.
+
+## What landed (2026-10-11)
+
+- **The root README is a pair**: `README.md` (English, what a visitor and GitHub's default land on) and
+  `README.zh.md` (Chinese, written for Chinese readers rather than sentence by sentence), each opening with
+  the switch line `**English** | [中文](README.zh.md)` / `**中文** | [English](README.md)`.
+- **`docs/README.md` is English first**: its title, its prose and its two sections now lead with English,
+  because the page's job is to route a stranger who does not read Chinese.
+- **The model list names the current model**: both READMEs carry "*All project code has been written
+  primarily with DeepSeek V4 Flash/Pro; DeepSeek V4.1 Flash is the model development runs on now; a small
+  amount of architecture design was contributed by GPT 5.6 Sol*" (Chinese: the same facts), with the
+  Claude-Code-to-Harness history unchanged.
+- **The registration decision, recorded rather than left implicit**: the root pair is NOT added to
+  `docs/standard/alignment.txt`. That registry's gate binds the `docs/en` ↔ `docs/zh` block pair — it derives
+  its required rows from those two trees and checks each row's two hashes — and the root README is outside
+  the human documentation block by construction (`docs/AGENTS.md` §1 defines the blocks; the root README is
+  the repository's front page). Registering it would put a page the gate cannot reach into a record whose
+  whole value is that a gate reports its drift, so the pair's consistency is kept by the same rule the
+  registry exists for — both sides edited in one change — and by the two pages pointing at each other.
+- **The two versions say the same things**: the same sections in the same order, the same links (all 14
+  local targets resolve), the same acknowledgements and the same disclaimer.
 
 ## Non-goals
 

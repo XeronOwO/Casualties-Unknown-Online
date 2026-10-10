@@ -53,7 +53,7 @@ internal static class CustomItemBehaviorApplier
 		}
 	}
 
-	private static void ApplyVisual(GameObject template, ModItemVisual visual, ILogger log)
+	private static void ApplyVisual(GameObject template, IModItemVisual visual, ILogger log)
 	{
 		var state = template.GetComponent<CustomItemVisualState>();
 		if (state == null) // Unity object — ==
@@ -91,7 +91,7 @@ internal static class CustomItemBehaviorApplier
 			state.WornSortingOrder = sortingOrder;
 		}
 
-		foreach (var multi in visual.MultiWornSprites)
+		foreach (var multi in ModDeclarationCollections.OrEmpty(visual.MultiWornSprites))
 		{
 			if (multi is null
 				|| string.IsNullOrWhiteSpace(multi.LimbName)
@@ -171,11 +171,11 @@ internal static class CustomItemBehaviorApplier
 
 	private static Sprite[] LoadAnimationFrames(
 		GameObject template,
-		ModItemSpriteAnimation animation,
+		IModItemSpriteAnimation animation,
 		ILogger log,
 		string kind)
 	{
-		var framePaths = animation.FramePaths;
+		var framePaths = ModDeclarationCollections.OrEmpty(animation.FramePaths);
 		if (framePaths.Count == 0)
 		{
 			return [];
@@ -218,7 +218,7 @@ internal static class CustomItemBehaviorApplier
 		return wearable;
 	}
 
-	private static void ApplyContainer(GameObject template, ModItemContainer container)
+	private static void ApplyContainer(GameObject template, IModItemContainer container)
 	{
 		var cont = template.GetComponent<Container>();
 		if (cont == null) // Unity object — ==
@@ -230,10 +230,10 @@ internal static class CustomItemBehaviorApplier
 		cont.maxWeightPerItem = container.MaxWeightPerItem;
 		cont.encumberanceMult = container.EncumbranceReduction;
 		cont.itemsVisible = container.ItemsVisible;
-		cont.tagRestriction = [.. container.TagRestriction];
+		cont.tagRestriction = [.. ModDeclarationCollections.OrEmpty(container.TagRestriction)];
 	}
 
-	private static void ApplyBattery(GameObject template, ModItemBattery battery)
+	private static void ApplyBattery(GameObject template, IModItemBattery battery)
 	{
 		var item = template.GetComponent<Item>();
 		var bat = template.GetComponent<BatteryItem>();
@@ -273,7 +273,7 @@ internal static class CustomItemBehaviorApplier
 		item.condition = Mathf.Clamp01(startCharge / Mathf.Max(1f, maxCharge));
 	}
 
-	private static void ApplyGun(GameObject template, ModItemGun gun)
+	private static void ApplyGun(GameObject template, IModItemGun gun)
 	{
 		var gunScript = template.GetComponent<GunScript>();
 		if (gunScript == null) // Unity object — ==
@@ -344,7 +344,7 @@ internal static class CustomItemBehaviorApplier
 		ApplyGunSpriteFallbacks(template, gunScript);
 	}
 
-	private static void ApplyLight(GameObject template, ModItemLight light, ILogger log)
+	private static void ApplyLight(GameObject template, IModItemLight light, ILogger log)
 	{
 		LightItem? lightItem = null;
 		if (light.AddLightItem)
@@ -461,7 +461,7 @@ internal static class CustomItemBehaviorApplier
 		}
 	}
 
-	private static void MarkLightForUpdate(Component component, ModItemLight light)
+	private static void MarkLightForUpdate(Component component, IModItemLight light)
 	{
 		if (light.LightType != ModLightType.Point
 			|| (light.InnerAngle >= 360f && light.OuterAngle >= 360f))

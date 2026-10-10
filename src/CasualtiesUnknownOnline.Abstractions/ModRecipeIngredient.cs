@@ -5,7 +5,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// <c>ItemId</c> is a specific item id when non-empty; otherwise the recipe
 /// matches by <c>Quality</c> against the item's crafting qualities.
 /// </summary>
-public sealed class ModRecipeIngredient
+public sealed class ModRecipeIngredient : IModRecipeIngredient
 {
 	/// <summary>The specific item/liquid id required. Empty when matching by quality.</summary>
 	public string ItemId { get; set; } = "";

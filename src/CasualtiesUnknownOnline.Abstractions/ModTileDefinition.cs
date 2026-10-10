@@ -98,7 +98,7 @@ public sealed class ModTileDefinition : IModTileDefinition
 	public ModTileGenerationStyle GenerationStyle { get; set; } = ModTileGenerationStyle.Vein;
 
 	/// <inheritdoc />
-	public List<ModTileDrop> Drops
+	public List<IModTileDrop> Drops
 	{
 		get;
 		set => field = value ?? [];

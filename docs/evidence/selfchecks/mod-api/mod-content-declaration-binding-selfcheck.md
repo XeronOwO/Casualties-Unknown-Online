@@ -42,6 +42,10 @@ Five measurements drove this change, each taken over the frozen tree rather than
    refused and does not take effect" was unbuildable without taking the example and the whole test-mod
    architecture down. The declared half of the ticket's purpose (an unambiguous owner for a declaration)
    is served instead by nesting, and the ambiguous case is refused by name with the mods still loading.
+   The nested member contracts handed to `docs/backlog/review/mod-content-nested-member-contracts.md` landed
+   in the next cycle: every nested value type a kind contract names is an interface now, member types
+   included, and decision 253 records the two calls that took (the collection members follow, and
+   `RollCondition` left the mod surface rather than joining it).
 3. **The base classes the ticket asked for cannot exist in that shape.** The first implementation attempt
    (nine `abstract` classes implementing only `Id`/`Kind`/`SchemaVersion`) failed the build with 148
    CS0535 errors — one per unimplemented interface member — because C# requires an abstract class to
@@ -77,7 +81,7 @@ baseline; the new tickets that carry what this one does not.
 - **The optional per-kind base classes** — not built, for the compiler's reason measured in §2.3.
 - **The content fingerprint** — moved with its acceptance row to `todo/mod-content-fingerprint.md`.
 - **The nested member contracts** (`IModItemTool` and its thirteen siblings) — moved with the acceptance
-  row that names them to `todo/mod-content-nested-member-contracts.md`; the kind contracts still type
+  row that names them to `review/mod-content-nested-member-contracts.md`; the kind contracts still type
   those members as the framework's classes and the collection members as `List<ModT>`.
 
 ## §4 Verification

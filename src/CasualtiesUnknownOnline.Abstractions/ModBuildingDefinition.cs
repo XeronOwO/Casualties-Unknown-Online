@@ -75,14 +75,14 @@ public sealed class ModBuildingDefinition : IModBuildingDefinition
 	} = [];
 
 	/// <inheritdoc />
-	public List<ModBuildingDrop> DropOnDestroy
+	public List<IModBuildingDrop> DropOnDestroy
 	{
 		get;
 		set => field = value ?? [];
 	} = [];
 
 	/// <inheritdoc />
-	public List<ModBuildingDrop> AlwaysDrop
+	public List<IModBuildingDrop> AlwaysDrop
 	{
 		get;
 		set => field = value ?? [];

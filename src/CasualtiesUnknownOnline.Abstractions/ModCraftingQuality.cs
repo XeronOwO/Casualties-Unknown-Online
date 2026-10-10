@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// used verbatim.
 /// </para>
 /// </summary>
-public sealed class ModCraftingQuality
+public sealed class ModCraftingQuality : IModCraftingQuality
 {
 	/// <summary>The crafting-quality id.</summary>
 	public string Id { get; set; } = "";

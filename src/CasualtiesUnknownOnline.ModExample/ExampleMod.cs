@@ -223,22 +223,22 @@ public sealed class ExampleMod : ICuoMod
 
 		public ModItemDropSource? DropSources => null;
 
-		public ModItemContainer? Container => null;
+		public IModItemContainer? Container => null;
 
-		public ModItemBattery? Battery => null;
+		public IModItemBattery? Battery => null;
 
-		public ModItemLight? Light => null;
+		public IModItemLight? Light => null;
 
-		public ModItemTool? Tool => null;
+		public IModItemTool? Tool => null;
 
-		public ModItemGun? Gun => null;
+		public IModItemGun? Gun => null;
 
 		public float DecayMinutes => 0f;
 
-		public ModItemVisual? Visual => null;
+		public IModItemVisual? Visual => null;
 
 		/// <summary>The vanilla label the dressing provides, so a vanilla recipe that asks for a dressing matches this item.</summary>
-		public List<ModCraftingQuality> Qualities => [new() { Id = "dressing" }];
+		public List<IModCraftingQuality> Qualities => [new ModCraftingQuality { Id = "dressing" }];
 	}
 
 	/// <summary>
@@ -272,6 +272,6 @@ public sealed class ExampleMod : ICuoMod
 		public bool IsRepair => false;
 
 		/// <summary>Any condition is accepted: what the player finds is not this declaration's business.</summary>
-		public List<ModRecipeIngredient> Ingredients => [new() { ItemId = "rippeddressing", MinimumCondition = 0f }];
+		public List<IModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "rippeddressing", MinimumCondition = 0f }];
 	}
 }

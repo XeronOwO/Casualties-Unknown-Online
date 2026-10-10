@@ -109,7 +109,7 @@ internal static class CustomBuildingTemplateFactory
 		return template;
 	}
 
-	private static ItemDrop[] ToItemDrops(IEnumerable<ModBuildingDrop> drops)
+	private static ItemDrop[] ToItemDrops(IEnumerable<IModBuildingDrop> drops)
 	{
 		var result = new List<ItemDrop>();
 		foreach (var drop in drops)

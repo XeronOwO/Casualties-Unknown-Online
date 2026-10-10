@@ -80,28 +80,28 @@ public sealed class ModItemDefinition : IModItemDefinition
 	public ModItemDropSource? DropSources { get; set; }
 
 	/// <inheritdoc />
-	public ModItemContainer? Container { get; set; }
+	public IModItemContainer? Container { get; set; }
 
 	/// <inheritdoc />
-	public ModItemBattery? Battery { get; set; }
+	public IModItemBattery? Battery { get; set; }
 
 	/// <inheritdoc />
-	public ModItemLight? Light { get; set; }
+	public IModItemLight? Light { get; set; }
 
 	/// <inheritdoc />
-	public ModItemTool? Tool { get; set; }
+	public IModItemTool? Tool { get; set; }
 
 	/// <inheritdoc />
-	public ModItemGun? Gun { get; set; }
+	public IModItemGun? Gun { get; set; }
 
 	/// <inheritdoc />
 	public float DecayMinutes { get; set; }
 
 	/// <inheritdoc />
-	public ModItemVisual? Visual { get; set; }
+	public IModItemVisual? Visual { get; set; }
 
 	/// <inheritdoc />
-	public List<ModCraftingQuality> Qualities
+	public List<IModCraftingQuality> Qualities
 	{
 		get;
 		set => field = value ?? [];

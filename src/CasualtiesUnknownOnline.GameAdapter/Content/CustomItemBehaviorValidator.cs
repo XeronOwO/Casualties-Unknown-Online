@@ -56,7 +56,7 @@ internal static class CustomItemBehaviorValidator
 	private static bool ValidateContainer(
 		string modId,
 		string id,
-		ModItemContainer container,
+		IModItemContainer container,
 		ILogger log)
 	{
 		if (IsInvalidNonNegative(container.Capacity)
@@ -75,7 +75,7 @@ internal static class CustomItemBehaviorValidator
 	private static bool ValidateBattery(
 		string modId,
 		string id,
-		ModItemBattery battery,
+		IModItemBattery battery,
 		ILogger log)
 	{
 		if (float.IsNaN(battery.StartCharge)
@@ -94,7 +94,7 @@ internal static class CustomItemBehaviorValidator
 	private static bool ValidateLight(
 		string modId,
 		string id,
-		ModItemLight light,
+		IModItemLight light,
 		ILogger log)
 	{
 		if (IsInvalidNonNegative(light.Intensity)
@@ -120,7 +120,7 @@ internal static class CustomItemBehaviorValidator
 	private static bool ValidateTool(
 		string modId,
 		string id,
-		ModItemTool tool,
+		IModItemTool tool,
 		ILogger log)
 	{
 		if (IsInvalidNonNegative(tool.Damage)
@@ -146,7 +146,7 @@ internal static class CustomItemBehaviorValidator
 	private static bool ValidateGun(
 		string modId,
 		string id,
-		ModItemGun gun,
+		IModItemGun gun,
 		ILogger log)
 	{
 		if (gun.MagCapacity is < 0)
@@ -185,7 +185,7 @@ internal static class CustomItemBehaviorValidator
 	private static bool ValidateVisual(
 		string modId,
 		string id,
-		ModItemVisual visual,
+		IModItemVisual visual,
 		ILogger log)
 	{
 		if (IsInvalidFinite(visual.WornSpriteOffsetX)
@@ -197,7 +197,7 @@ internal static class CustomItemBehaviorValidator
 			return false;
 		}
 
-		foreach (var multi in visual.MultiWornSprites)
+		foreach (var multi in ModDeclarationCollections.OrEmpty(visual.MultiWornSprites))
 		{
 			if (multi is null
 				|| IsInvalidFinite(multi.OffsetX)
@@ -224,7 +224,7 @@ internal static class CustomItemBehaviorValidator
 		string modId,
 		string id,
 		string kind,
-		ModItemSpriteAnimation? animation,
+		IModItemSpriteAnimation? animation,
 		ILogger log)
 	{
 		if (animation is null)
@@ -232,7 +232,8 @@ internal static class CustomItemBehaviorValidator
 			return true;
 		}
 
-		if (animation.FramePaths.Count == 0
+		var framePaths = ModDeclarationCollections.OrEmpty(animation.FramePaths);
+		if (framePaths.Count == 0
 			|| float.IsNaN(animation.FramesPerSecond)
 			|| float.IsInfinity(animation.FramesPerSecond)
 			|| animation.FramesPerSecond <= 0f)
@@ -244,7 +245,7 @@ internal static class CustomItemBehaviorValidator
 		}
 
 		var hasFrame = false;
-		foreach (var path in animation.FramePaths)
+		foreach (var path in framePaths)
 		{
 			if (!string.IsNullOrWhiteSpace(path))
 			{

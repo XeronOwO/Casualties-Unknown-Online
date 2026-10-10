@@ -5,7 +5,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// Abstractions; the Game Adapter materializes a vanilla <c>Light2D</c> child
 /// and, when requested, a <c>LightItem</c> helper on the runtime item template.
 /// </summary>
-public sealed class ModItemLight
+public sealed class ModItemLight : IModItemLight
 {
 	/// <summary>Light intensity.</summary>
 	public float Intensity { get; set; } = 0.75f;

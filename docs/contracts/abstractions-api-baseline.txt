@@ -63,14 +63,14 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ICuoService.Initialize()|meth
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICuoService.Start()|method|-> void
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICuoService.Stop()|method|-> void
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICuoService.Update()|method|-> void
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.AlwaysDrop|property|-> List<ModBuildingDrop> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.AlwaysDrop|property|-> List<IModBuildingDrop> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.Animal|property|-> bool? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.CantHit|property|-> bool? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.CustomData|property|-> Dictionary<string, string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.Description|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.DisplayName|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.DropChanceMultiplier|property|-> float? { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.DropOnDestroy|property|-> List<ModBuildingDrop> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.DropOnDestroy|property|-> List<IModBuildingDrop> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.GenerationStyle|property|-> ModBuildingGenerationStyle { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.GuaranteedDropAmount|property|-> int? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.Health|property|-> float? { get; }
@@ -87,6 +87,10 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.SpawnM
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.SpawnMinPerChunk|property|-> float? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.SurfaceOffset|property|-> float? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition.TemplateId|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDrop.Chance|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDrop.ItemId|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDrop.MaxCondition|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDrop.MinCondition|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingRuntime.HasInstanceHook(string buildingId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingRuntime.HasPrefabHook(string buildingId)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingRuntime.InstanceHookBuildingIds|property|-> IReadOnlyCollection<string> { get; }
@@ -155,6 +159,8 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.StatusTransport|p
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.StructurePlacement|property|-> IModStructurePlacement { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.TilePlacement|property|-> IModTilePlacement { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Ui|property|-> IModUi { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModCraftingQuality.Amount|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModCraftingQuality.Id|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.Count|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.Keys|property|-> IReadOnlyCollection<string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModData.TryApplyShared(string key, ModValue value, ulong senderSteamId)|method|-> bool
@@ -174,32 +180,101 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry.Favourited
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry.InstanceId|property|-> ulong { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry.ItemId|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry.SlotIndex|property|-> int { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Battery|property|-> ModItemBattery? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemBattery.Preset|property|-> ModBatteryPreset { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemBattery.SpawnWithBattery|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemBattery.StartCharge|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemContainer.Capacity|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemContainer.EncumbranceReduction|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemContainer.ItemsVisible|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemContainer.MaxWeightPerItem|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemContainer.TagRestriction|property|-> List<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Battery|property|-> IModItemBattery? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Category|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Container|property|-> ModItemContainer? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Container|property|-> IModItemContainer? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.CustomData|property|-> Dictionary<string, string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.DecayMinutes|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Description|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.DestroyAtZeroCondition|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.DisplayName|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.DropSources|property|-> ModItemDropSource? { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Gun|property|-> ModItemGun? { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Light|property|-> ModItemLight? { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Qualities|property|-> List<ModCraftingQuality> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Gun|property|-> IModItemGun? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Light|property|-> IModItemLight? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Qualities|property|-> List<IModCraftingQuality> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.SpawnComponents|property|-> List<string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.SpawnFrequency|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Tags|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.TemplateId|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Tool|property|-> ModItemTool? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Tool|property|-> IModItemTool? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Usable|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.UsableWithLmb|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Value|property|-> int { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Visual|property|-> ModItemVisual? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Visual|property|-> IModItemVisual? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Wearable|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Weight|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.WorldSpawnPerChunk|property|-> float? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.AmmoType|property|-> ModGunAmmoType? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.AnimalDamage|property|-> float? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.ConditionLossPerShot|property|-> float? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.DesiredGasTime|property|-> float? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.FeedType|property|-> ModGunFeedType? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.FiringMode|property|-> ModGunFiringMode? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.KnockBack|property|-> float? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.Loudness|property|-> float? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.MagCapacity|property|-> int? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.ShotsPerFire|property|-> int? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.StructureDamage|property|-> float? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun.VerticalSpread|property|-> float? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.AddLightItem|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.ColorA|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.ColorB|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.ColorG|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.ColorR|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.FalloffIntensity|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.InnerAngle|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.InnerRadius|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.Intensity|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.LightType|property|-> ModLightType { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.OffsetX|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.OffsetY|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.OuterAngle|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.OuterRadius|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight.Rotation|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLimbWornSprite.LimbName|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLimbWornSprite.OffsetX|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLimbWornSprite.OffsetY|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLimbWornSprite.SpritePath|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpawn.CanSpawn|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpawn.TrySpawn(string itemId, float x, float y, float rotation)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpriteAnimation.FramePaths|property|-> List<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpriteAnimation.FramesPerSecond|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpriteAnimation.Loop|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.AttackAnimation|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.AttackCooldownMultiplier|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.ConditionLossOnHit|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.Cooldown|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.Damage|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.Distance|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.DoAttackAnimation|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.KnockBack|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.MetalMoreDamage|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.PhysicalSwing|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.Piercing|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.RotateAmount|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.StaminaUse|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.StructuralDamage|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.SwingSounds|property|-> List<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool.Volume|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.BaseSpriteAnimation|property|-> IModItemSpriteAnimation? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.LiquidMaskAnimation|property|-> IModItemSpriteAnimation? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.LiquidMaskPath|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.MultiWornSprites|property|-> List<IModItemLimbWornSprite> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpriteAnimation|property|-> IModItemSpriteAnimation? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpriteOffsetX|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpriteOffsetY|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpritePath|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual.WornSpriteSortingOrder|property|-> int? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModLimbMoodleBinding.LimbName|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModLimbMoodleBinding.MoodleId|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.ColorA|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.ColorB|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.ColorG|property|-> float { get; }
@@ -210,7 +285,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.HealthUs
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.Injectable|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.InjectionSickness|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.LocaleFromItem|property|-> bool { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.Qualities|property|-> List<ModCraftingQuality> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.Qualities|property|-> List<IModCraftingQuality> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition.ValuePerLiter|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidPlacement.CanPlace|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidPlacement.TryFloodFill(string liquidTileId, int startX, int startY, int maxFill)|method|-> bool
@@ -242,13 +317,16 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition.Visu
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition.VisualLiquidByte|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition.VisualMode|property|-> ModLiquidTileVisualMode { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition.WetnessPerSecond|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleAnimation.FramePaths|property|-> List<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleAnimation.FramesPerSecond|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleAnimation.Loop|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.ChippedOnly|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.Critical|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.CustomData|property|-> Dictionary<string, string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.Description|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.DisplayName|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.HoldSeconds|property|-> float { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.IconAnimation|property|-> ModMoodleAnimation? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.IconAnimation|property|-> IModMoodleAnimation? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.IconId|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.Important|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition.Intensity|property|-> int { get; }
@@ -308,13 +386,19 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals.Temperature|
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals.Thirst|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.Category|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.DontDrainResultLiquid|property|-> bool { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.Ingredients|property|-> List<ModRecipeIngredient> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.Ingredients|property|-> List<IModRecipeIngredient> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.Intelligence|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.IsRepair|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.ResultAmount|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.ResultCondition|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.ResultIsLiquid|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition.ResultItemId|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeIngredient.DestroyItem|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeIngredient.IsLiquid|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeIngredient.ItemId|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeIngredient.MinimumCondition|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeIngredient.Quality|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeIngredient.QualityAmount|property|-> float { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion.IsMatchStageRegistered(string id)|method|-> bool
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion.MatchStageCount|property|-> int { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion.MatchStageIds|property|-> IReadOnlyCollection<string> { get; }
@@ -332,7 +416,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModState.TrySetSchemaVersion
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition.CustomData|property|-> Dictionary<string, string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition.Description|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition.DisplayName|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition.LimbMoodles|property|-> List<ModLimbMoodleBinding> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition.LimbMoodles|property|-> List<IModLimbMoodleBinding> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition.MoodleId|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition.SaveEnabled|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition.Scope|property|-> ModStatusScope { get; }
@@ -377,7 +461,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.ColorR|pro
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.CustomData|property|-> Dictionary<string, string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.Description|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.DisplayName|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.Drops|property|-> List<ModTileDrop> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.Drops|property|-> List<IModTileDrop> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.GenerationStyle|property|-> ModTileGenerationStyle { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.Health|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.HitSound|property|-> string { get; }
@@ -392,6 +476,10 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.StepSound|
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.TemplateTileIndex|property|-> int? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.TileName|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition.Toxicity|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDrop.Chance|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDrop.ItemId|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDrop.MaxCondition|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDrop.MinCondition|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTilePlacement.CanPlace|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModTilePlacement.TryPlaceBlock(string tileId, int x, int y)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModUi.IsRegistered(string id)|method|-> bool
@@ -431,14 +519,14 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.Tota
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection.TryFromValue(ModValue? value, out ModBodyFormulaProjection projection)|static method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.AllLayersExcept(params int[] excludedLayerNumbers)|static method|-> int
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.AllSpawnLayers|const field|-> int = AllSpawnLayers
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.AlwaysDrop|property|-> List<ModBuildingDrop> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.AlwaysDrop|property|-> List<IModBuildingDrop> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.Animal|property|-> bool? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.CantHit|property|-> bool? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.CustomData|property|-> Dictionary<string, string> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.Description|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.DisplayName|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.DropChanceMultiplier|property|-> float? { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.DropOnDestroy|property|-> List<ModBuildingDrop> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.DropOnDestroy|property|-> List<IModBuildingDrop> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.GenerationStyle|property|-> ModBuildingGenerationStyle { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.GuaranteedDropAmount|property|-> int? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition.Health|property|-> float? { get; set; }
@@ -463,7 +551,6 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDrop.Chance|proper
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDrop.ItemId|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDrop.MaxCondition|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDrop.MinCondition|property|-> float { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDrop.RollCondition(float value)|method|-> float
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingGenerationStyle.DropPod|enumvalue|= 2
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingGenerationStyle.None|enumvalue|= 0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingGenerationStyle.Standard|enumvalue|= 1
@@ -522,30 +609,30 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemContainer.EncumbranceR
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemContainer.ItemsVisible|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemContainer.MaxWeightPerItem|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemContainer.TagRestriction|property|-> List<string> { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Battery|property|-> ModItemBattery? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Battery|property|-> IModItemBattery? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Category|property|-> string { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Container|property|-> ModItemContainer? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Container|property|-> IModItemContainer? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.CustomData|property|-> Dictionary<string, string> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.DecayMinutes|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Description|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.DestroyAtZeroCondition|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.DisplayName|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.DropSources|property|-> ModItemDropSource? { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Gun|property|-> ModItemGun? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Gun|property|-> IModItemGun? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Id|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Kind|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Light|property|-> ModItemLight? { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Qualities|property|-> List<ModCraftingQuality> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Light|property|-> IModItemLight? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Qualities|property|-> List<IModCraftingQuality> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.SchemaVersion|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.SpawnComponents|property|-> List<string> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.SpawnFrequency|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Tags|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.TemplateId|property|-> string { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Tool|property|-> ModItemTool? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Tool|property|-> IModItemTool? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Usable|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.UsableWithLmb|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Value|property|-> int { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Visual|property|-> ModItemVisual? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Visual|property|-> IModItemVisual? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Wearable|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Weight|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.WorldSpawnPerChunk|property|-> float? { get; set; }
@@ -611,11 +698,11 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemTool.StaminaUse|proper
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemTool.StructuralDamage|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemTool.SwingSounds|property|-> List<string> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemTool.Volume|property|-> float { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.BaseSpriteAnimation|property|-> ModItemSpriteAnimation? { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.LiquidMaskAnimation|property|-> ModItemSpriteAnimation? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.BaseSpriteAnimation|property|-> IModItemSpriteAnimation? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.LiquidMaskAnimation|property|-> IModItemSpriteAnimation? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.LiquidMaskPath|property|-> string { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.MultiWornSprites|property|-> List<ModItemLimbWornSprite> { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpriteAnimation|property|-> ModItemSpriteAnimation? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.MultiWornSprites|property|-> List<IModItemLimbWornSprite> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpriteAnimation|property|-> IModItemSpriteAnimation? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpriteOffsetX|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpriteOffsetY|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual.WornSpritePath|property|-> string { get; set; }
@@ -653,7 +740,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.Injectabl
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.InjectionSickness|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.Kind|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.LocaleFromItem|property|-> bool { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.Qualities|property|-> List<ModCraftingQuality> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.Qualities|property|-> List<IModCraftingQuality> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.SchemaVersion|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition.ValuePerLiter|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidTileDefinition.AllLayersExcept(params int[] excludedLayerNumbers)|static method|-> int
@@ -712,7 +799,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.CustomDat
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.Description|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.DisplayName|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.HoldSeconds|property|-> float { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.IconAnimation|property|-> ModMoodleAnimation? { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.IconAnimation|property|-> IModMoodleAnimation? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.IconId|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.Id|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition.Important|property|-> bool { get; set; }
@@ -757,7 +844,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeCategory.Utilities|c
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition.Category|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition.DontDrainResultLiquid|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition.Id|property|-> string { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition.Ingredients|property|-> List<ModRecipeIngredient> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition.Ingredients|property|-> List<IModRecipeIngredient> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition.Intelligence|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition.IsRepair|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition.Kind|property|-> string { get; }
@@ -777,7 +864,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.Descripti
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.DisplayName|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.Id|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.Kind|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.LimbMoodles|property|-> List<ModLimbMoodleBinding> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.LimbMoodles|property|-> List<IModLimbMoodleBinding> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.MoodleId|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.SaveEnabled|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.SchemaVersion|property|-> int { get; set; }
@@ -845,7 +932,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.ColorR|prop
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.CustomData|property|-> Dictionary<string, string> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.Description|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.DisplayName|property|-> string { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.Drops|property|-> List<ModTileDrop> { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.Drops|property|-> List<IModTileDrop> { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.GenerationStyle|property|-> ModTileGenerationStyle { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.Health|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.HitSound|property|-> string { get; set; }
@@ -868,7 +955,6 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop.Chance|property|-
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop.ItemId|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop.MaxCondition|property|-> float { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop.MinCondition|property|-> float { get; set; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop.RollCondition(float value)|method|-> float
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileGenerationStyle.HeavyVeins|enumvalue|= 1 << 1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileGenerationStyle.Inner|enumvalue|= 1 << 4
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModTileGenerationStyle.None|enumvalue|= 0
@@ -929,6 +1015,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute|sealed class|At
 type|Stable|CasualtiesUnknownOnline.Abstractions.ICuoMod|interface|ICuoService
 type|Stable|CasualtiesUnknownOnline.Abstractions.ICuoService|interface|IDisposable
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition|interface|IModContentDefinition
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDrop|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingRuntime|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModCommandContext|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModCommandResult|interface|-
@@ -939,15 +1026,26 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModContent|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModContentDefinition|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModContentOwnerQuery|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModContext|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModCraftingQuality|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModData|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModEntitySpawn|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModGameState|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemBattery|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemContainer|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition|interface|IModContentDefinition
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemGun|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLight|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemLimbWornSprite|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpawn|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemSpriteAnimation|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemTool|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemVisual|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModLimbMoodleBinding|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidDefinition|interface|IModContentDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidPlacement|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition|interface|IModContentDefinition
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleAnimation|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition|interface|IModContentDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleRuntime|interface|-
 type|Advanced|CasualtiesUnknownOnline.Abstractions.IModNativeApi|interface|-
@@ -959,6 +1057,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerInventory|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerState|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModPlayerVitals|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeDefinition|interface|IModContentDefinition
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModRecipeIngredient|interface|-
 type|Experimental|CasualtiesUnknownOnline.Abstractions.IModResourceCompletion|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModState|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusDefinition|interface|IModContentDefinition
@@ -967,6 +1066,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModStatusTransport|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModStructureDefinition|interface|IModContentDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModStructurePlacement|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDefinition|interface|IModContentDefinition
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModTileDrop|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModTilePlacement|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModUi|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModUiWindow|interface|-
@@ -975,7 +1075,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ISessionInfo|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBatteryPreset|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBodyFormulaProjection|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDefinition|sealed class|IModBuildingDefinition
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDrop|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingDrop|sealed class|IModBuildingDrop
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingGenerationStyle|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingInstanceRequest|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingPlacement|enum|-
@@ -985,31 +1085,31 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand|sealed class|
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentAttribute|sealed class|Attribute
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentContract|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind|static class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModCraftingQuality|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModCraftingQuality|sealed class|IModCraftingQuality
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModDataScope|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModDeclarationCollections|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModGunAmmoType|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModGunFeedType|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModGunFiringMode|enum|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemBattery|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemContainer|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemBattery|sealed class|IModItemBattery
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemContainer|sealed class|IModItemContainer
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition|sealed class|IModItemDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDropSource|enum|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemGun|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemLight|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemLimbWornSprite|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemSpriteAnimation|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemTool|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemGun|sealed class|IModItemGun
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemLight|sealed class|IModItemLight
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemLimbWornSprite|sealed class|IModItemLimbWornSprite
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemSpriteAnimation|sealed class|IModItemSpriteAnimation
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemTool|sealed class|IModItemTool
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemVisual|sealed class|IModItemVisual
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLayerSpawnRule|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLightType|enum|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbMoodleBinding|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbMoodleBinding|sealed class|IModLimbMoodleBinding
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidDefinition|sealed class|IModLiquidDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidTileDefinition|sealed class|IModLiquidTileDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModLiquidTileVisualMode|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModManifest|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleAnimation|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleAnimation|sealed class|IModMoodleAnimation
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModMoodleDefinition|sealed class|IModMoodleDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModNativeApiOperations|static class|-
 type|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacket|sealed class|-
@@ -1020,7 +1120,7 @@ type|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketStage|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeCategory|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeDefinition|sealed class|IModRecipeDefinition
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeIngredient|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModRecipeIngredient|sealed class|IModRecipeIngredient
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition|sealed class|IModStatusDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusMoodleRequest|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModStatusPresentation|static class|-
@@ -1031,7 +1131,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModStructureDefinition|sealed c
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModStructureDistribution|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileColliderType|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDefinition|sealed class|IModTileDefinition
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileDrop|sealed class|IModTileDrop
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileGenerationStyle|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModTileSleepQuality|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModValue|sealed class|IEquatable<ModValue>

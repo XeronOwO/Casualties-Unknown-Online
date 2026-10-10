@@ -39,5 +39,5 @@ public interface IModRecipeDefinition : IModContentDefinition
 	bool IsRepair { get; }
 
 	/// <summary>The ordered ingredient requirements.</summary>
-	List<ModRecipeIngredient> Ingredients { get; }
+	List<IModRecipeIngredient> Ingredients { get; }
 }

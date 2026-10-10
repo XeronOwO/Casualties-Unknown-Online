@@ -93,14 +93,15 @@ public sealed class GameAdapterMoodleContentProvider(
 		return true;
 	}
 
-	private bool ValidateAnimation(string modId, string id, ModMoodleAnimation? animation)
+	private bool ValidateAnimation(string modId, string id, IModMoodleAnimation? animation)
 	{
 		if (animation is null)
 		{
 			return true;
 		}
 
-		if (animation.FramePaths.Count == 0
+		var framePaths = ModDeclarationCollections.OrEmpty(animation.FramePaths);
+		if (framePaths.Count == 0
 			|| float.IsNaN(animation.FramesPerSecond)
 			|| float.IsInfinity(animation.FramesPerSecond)
 			|| animation.FramesPerSecond <= 0f)
@@ -112,7 +113,7 @@ public sealed class GameAdapterMoodleContentProvider(
 		}
 
 		var hasFrame = false;
-		foreach (var path in animation.FramePaths)
+		foreach (var path in framePaths)
 		{
 			if (!string.IsNullOrWhiteSpace(path))
 			{

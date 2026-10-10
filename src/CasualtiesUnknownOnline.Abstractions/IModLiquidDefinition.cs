@@ -47,5 +47,5 @@ public interface IModLiquidDefinition : IModContentDefinition
 	bool LocaleFromItem { get; }
 
 	/// <summary>Crafting-quality labels the liquid provides, matched by quality-based recipes.</summary>
-	List<ModCraftingQuality> Qualities { get; }
+	List<IModCraftingQuality> Qualities { get; }
 }

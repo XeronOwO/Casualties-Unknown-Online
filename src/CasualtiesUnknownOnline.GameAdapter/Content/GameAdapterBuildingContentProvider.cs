@@ -196,7 +196,7 @@ public sealed class GameAdapterBuildingContentProvider(
 		return true;
 	}
 
-	private static bool IsValidDrop(ModBuildingDrop? drop)
+	private static bool IsValidDrop(IModBuildingDrop? drop)
 	{
 		if (drop is null || string.IsNullOrWhiteSpace(drop.ItemId))
 		{

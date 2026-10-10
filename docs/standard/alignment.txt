@@ -17,7 +17,7 @@ docs/en/how-to/decide-which-side-judges-an-action.md | e0ab441854218be7b7686134b
 docs/en/how-to/declare-permissions-and-commands.md | 3fcbb61e34b8da01f3e1de084362ed83869c2de8 | docs/zh/how-to/declare-permissions-and-commands.md | 88cdd1f381dd3f7d992b1a59130d38ef5cbfa914
 docs/en/how-to/read-game-state.md | 4856f6006d71ca1c1195d0de31f0796c72bb734a | docs/zh/how-to/read-game-state.md | 78ab0438e2ed357a2d8d628746d65e0c4ab666ae
 docs/en/how-to/README.md | 74cb8989b9e1bce21aaf51697d28acf525cbc9d4 | docs/zh/how-to/README.md | 9ec03770de1102c7a0780d81b4b83cc9b8e916c8
-docs/en/how-to/register-content.md | 295dc0171418c7d1b275227e3ddf5ffbd0d9443b | docs/zh/how-to/register-content.md | 76ceea35eca14ee249b950b577417f8b328a6d38
+docs/en/how-to/register-content.md | 3491fbce3ff090795355818251a82cd8987d6581 | docs/zh/how-to/register-content.md | ef754889e99b9ec478bd7209078ad733f850099b
 docs/en/how-to/save-mod-data-across-sessions.md | 73f5b3bc81abf6391b1e759b25cca55f74acc232 | docs/zh/how-to/save-mod-data-across-sessions.md | 29021ecce64d871e5cf07f432bb2df23559e6dbe
 docs/en/how-to/send-a-network-message.md | d199a20ac1034d973f0111de53c698270a395d18 | docs/zh/how-to/send-a-network-message.md | 64faef4ff3e378306011710be5265415b8b5350a
 docs/en/internals/adapter-and-updates.md | ba92d18b9d36f40fed24300e7aefb74d20ce40b6 | docs/zh/internals/adapter-and-updates.md | 827d912906cea37a8cfe457785cb3bc506f4dcc5
@@ -36,7 +36,7 @@ docs/en/reference/configuration.md | d4d4e0708638645e476720bfa78aee5f5093b134 | 
 docs/en/reference/feature-matrices.md | 3546f411e3a4f4f78f02c971bb14edc9bf486e05 | docs/zh/reference/feature-matrices.md | 6a942efc0bb693925c3321ad957df26a89ef08a6
 docs/en/reference/glossary.md | 61a14d1ef8c545f00fe00b2433b9b165ff609f26 | docs/zh/reference/glossary.md | efa8216ff0738ef86e2249777a77eb743de082c2
 docs/en/reference/logs.md | d3da963784a8a6d094377f91cf8f23af91a4eac7 | docs/zh/reference/logs.md | 12fe2563846c7bd752c107b7b1c274fd7a15bbe5
-docs/en/reference/mod-api.md | 89400738d8d76a9dd3b55466b44948931b9e0e39 | docs/zh/reference/mod-api.md | f3f3eb1ca6319c4b7ab6037224e5d321aacc6b96
+docs/en/reference/mod-api.md | 9817362303a4a9cfc17c44907b10e90ef22be8b9 | docs/zh/reference/mod-api.md | 2efe2b49a484e845570be188b7d7aa8e1aa316cc
 docs/en/reference/modification-policy.md | c2e265fa0bacd85fa3e276ae3ed1d987b5146a57 | docs/zh/reference/modification-policy.md | c6a24980373ea338faeb47c68090f2d5e305ce2c
 docs/en/reference/protocol-messages.md | b4b778c2bdcc6a304485dd6caa3775a58984de74 | docs/zh/reference/protocol-messages.md | 5e1375dba718e78027bed70cc7a8846bca5f9cd0
 docs/en/reference/README.md | 746bac1e857e688d5e17a0627cc724668371f40d | docs/zh/reference/README.md | 5f6930e1bb4f0285c9640b4f1f074f6056655cec

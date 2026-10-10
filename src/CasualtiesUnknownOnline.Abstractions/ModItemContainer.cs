@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// Adapter maps them onto the vanilla <c>Container</c> component when it builds
 /// the runtime item template.
 /// </summary>
-public sealed class ModItemContainer
+public sealed class ModItemContainer : IModItemContainer
 {
 	/// <summary>Maximum total weight the container can hold.</summary>
 	public float Capacity { get; set; } = 10f;

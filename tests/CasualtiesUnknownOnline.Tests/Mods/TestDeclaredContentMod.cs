@@ -108,21 +108,21 @@ public sealed class TestDeclaredContentMod : ICuoMod
 
 		public ModItemDropSource? DropSources => null;
 
-		public ModItemContainer? Container => null;
+		public IModItemContainer? Container => null;
 
-		public ModItemBattery? Battery => null;
+		public IModItemBattery? Battery => null;
 
-		public ModItemLight? Light => null;
+		public IModItemLight? Light => null;
 
-		public ModItemTool? Tool => null;
+		public IModItemTool? Tool => null;
 
-		public ModItemGun? Gun => null;
+		public IModItemGun? Gun => null;
 
 		public float DecayMinutes => 0f;
 
-		public ModItemVisual? Visual => null;
+		public IModItemVisual? Visual => null;
 
-		public List<ModCraftingQuality> Qualities => [];
+		public List<IModCraftingQuality> Qualities => [];
 	}
 
 	/// <summary>A mod-authored recipe beside the item, same path.</summary>
@@ -151,7 +151,7 @@ public sealed class TestDeclaredContentMod : ICuoMod
 
 		public bool IsRepair => false;
 
-		public List<ModRecipeIngredient> Ingredients => [new() { ItemId = "cloth" }];
+		public List<IModRecipeIngredient> Ingredients => [new ModRecipeIngredient { ItemId = "cloth" }];
 	}
 
 	/// <summary>The declaration the scan refuses by name: reading its members throws, and its sibling above still binds.</summary>
@@ -197,20 +197,20 @@ public sealed class TestDeclaredContentMod : ICuoMod
 
 		public ModItemDropSource? DropSources => null;
 
-		public ModItemContainer? Container => null;
+		public IModItemContainer? Container => null;
 
-		public ModItemBattery? Battery => null;
+		public IModItemBattery? Battery => null;
 
-		public ModItemLight? Light => null;
+		public IModItemLight? Light => null;
 
-		public ModItemTool? Tool => null;
+		public IModItemTool? Tool => null;
 
-		public ModItemGun? Gun => null;
+		public IModItemGun? Gun => null;
 
 		public float DecayMinutes => 0f;
 
-		public ModItemVisual? Visual => null;
+		public IModItemVisual? Visual => null;
 
-		public List<ModCraftingQuality> Qualities => [];
+		public List<IModCraftingQuality> Qualities => [];
 	}
 }

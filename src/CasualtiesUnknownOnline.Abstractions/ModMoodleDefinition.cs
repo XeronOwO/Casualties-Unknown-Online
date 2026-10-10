@@ -56,7 +56,7 @@ public sealed class ModMoodleDefinition : IModMoodleDefinition
 	} = [];
 
 	/// <inheritdoc />
-	public ModMoodleAnimation? IconAnimation { get; set; }
+	public IModMoodleAnimation? IconAnimation { get; set; }
 
 	/// <inheritdoc />
 	public string LimbDisplayNameFormat { get; set; } = "";

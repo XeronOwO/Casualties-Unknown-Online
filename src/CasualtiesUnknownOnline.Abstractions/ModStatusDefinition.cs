@@ -50,7 +50,7 @@ public sealed class ModStatusDefinition : IModStatusDefinition
 	public bool ShowPerLimbMoodles { get; set; }
 
 	/// <inheritdoc />
-	public List<ModLimbMoodleBinding> LimbMoodles
+	public List<IModLimbMoodleBinding> LimbMoodles
 	{
 		get;
 		set => field = value ?? [];

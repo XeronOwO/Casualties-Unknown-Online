@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// sprites and drives the renderer. No Unity or game type crosses
 /// Abstractions.
 /// </summary>
-public sealed class ModItemSpriteAnimation
+public sealed class ModItemSpriteAnimation : IModItemSpriteAnimation
 {
 	/// <summary>
 	/// Ordered Unity resource paths of the animation frames. The first valid

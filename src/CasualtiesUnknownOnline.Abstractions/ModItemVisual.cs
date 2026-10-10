@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// to the vanilla <c>SpriteRenderer</c> / <c>WaterContainerItem</c> surfaces
 /// through its own component state, so mods never need to touch Unity.
 /// </summary>
-public sealed class ModItemVisual
+public sealed class ModItemVisual : IModItemVisual
 {
 	/// <summary>
 	/// Resource path of the sprite shown while the item is worn on a body.
@@ -41,7 +41,7 @@ public sealed class ModItemVisual
 	/// of the primary item sprite. The Game Adapter filters entries whose limb
 	/// does not exist on the target body at wear time.
 	/// </summary>
-	public List<ModItemLimbWornSprite> MultiWornSprites
+	public List<IModItemLimbWornSprite> MultiWornSprites
 	{
 		get;
 		set => field = value ?? [];
@@ -52,14 +52,14 @@ public sealed class ModItemVisual
 	/// is not wearing a dedicated worn sprite. The first frame is also used as
 	/// the static fallback icon.
 	/// </summary>
-	public ModItemSpriteAnimation? BaseSpriteAnimation { get; set; }
+	public IModItemSpriteAnimation? BaseSpriteAnimation { get; set; }
 
 	/// <summary>
 	/// Optional frame animation for the worn sprite. When present it supersedes
 	/// the static worn sprite at runtime; the first frame is used as the fallback
 	/// worn sprite when no separate <see cref="WornSpritePath"/> is authored.
 	/// </summary>
-	public ModItemSpriteAnimation? WornSpriteAnimation { get; set; }
+	public IModItemSpriteAnimation? WornSpriteAnimation { get; set; }
 
 	/// <summary>
 	/// Optional frame animation for the contained-liquid fill mask. When present
@@ -67,5 +67,5 @@ public sealed class ModItemVisual
 	/// fallback liquid fill sprite when no separate <see cref="LiquidMaskPath"/>
 	/// is authored.
 	/// </summary>
-	public ModItemSpriteAnimation? LiquidMaskAnimation { get; set; }
+	public IModItemSpriteAnimation? LiquidMaskAnimation { get; set; }
 }

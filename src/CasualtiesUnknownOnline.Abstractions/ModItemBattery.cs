@@ -5,7 +5,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// Abstractions; the Game Adapter configures the vanilla <c>BatteryItem</c>
 /// component when it builds the runtime item template.
 /// </summary>
-public sealed class ModItemBattery
+public sealed class ModItemBattery : IModItemBattery
 {
 	/// <summary>Battery size preset; determines capacity and inserted battery type.</summary>
 	public ModBatteryPreset Preset { get; set; } = ModBatteryPreset.Medium;

@@ -57,7 +57,7 @@ public sealed class ModLiquidDefinition : IModLiquidDefinition
 	public bool LocaleFromItem { get; set; }
 
 	/// <inheritdoc />
-	public List<ModCraftingQuality> Qualities
+	public List<IModCraftingQuality> Qualities
 	{
 		get;
 		set => field = value ?? [];

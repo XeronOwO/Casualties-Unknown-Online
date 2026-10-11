@@ -14,12 +14,16 @@
   the derived draw (`skin 4.024037 bleed 0.9653509 pain 15.61053`, seed `-790031595`), the line
   `both sides derived the same values`, and its commit of exactly those numbers — against the operator's
   screen reporting `4.024 / 0.965 / 15.611` for the same slip. **Row 1 is PARTIAL, and its open half is
-  ANSWERED**: the patient's body reading unchanged was `review/medical-state-names-no-kind.md` — the
+  ANSWERED**: the patient's body reading unchanged was `todo/medical-state-names-no-kind.md` — the
   session's non-terminal state messages named no operation kind, so every receiving client took the
   injection branch and dropped the authority's write in silence (the terminal named it, which is why the
   run saw one update line and a limb that never moved). That defect is fixed, gated and deployed, so row 1
-  now closes by re-running this scenario rather than by investigating it. **Rows 2, 3, 4, 5 and 8 are
-  unjudged**. Each verdict carries its evidence in
+  now closes by re-running this scenario rather than by investigating it — **and batch `20261011-b` did:
+  row 1 PASSES**, with the patient's own limb taking the committed `skin -5.783163 bleed +0.9278045`
+  (`94.217 / 0.928` read back on that client), the authority's stored copy still holding it many report
+  intervals later, and the third client's displayed limb showing the same values 8.7 s before the session's
+  terminal (`docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-b.md`). **Rows 2,
+  3, 4, 5 and 8 are unjudged**. Each verdict carries its evidence in
   `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`, which also records
   what the driver had to learn first (a native panel opened, both clients in sight, and the ack that
   assigns the operation id arriving a call later).

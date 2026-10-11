@@ -1,6 +1,15 @@
 # A medical operation state that names no kind is read as an injection
 
-- Status: Review — **found 2026-10-11 by the acceptance run of batch `20261011-a`**, as the open half of
+- Status: Todo — Rejected (row 4: a Stage-3 action's outcome never lands on the target's own body — see
+  `docs/backlog/todo/medical-removal-limb-component-not-applied.md`). **Rows 1-3 PASSED in batch
+  `20261011-b`** on a live three-client session: the patient's OWN limb takes the authority's write
+  (94.217 / 0.928 against a committed `skin -5.783163 bleed +0.9278045`), the authority's stored copy still
+  holds it one report interval later, and a third client's displayed limb advanced to the same values
+  BEFORE the session's terminal line. The failing row is a different, pre-existing defect in the same
+  family, which that row's own drive exposed; this ticket's fix is verified in
+  `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` and returns to `done/` once the
+  removal defect is fixed and row 4 re-runs. **Found 2026-10-11 by the acceptance run of batch
+  `20261011-a`**, as the open half of
   `review/cross-player-item-use-random-determinism.md`'s row 1: the authority committed a grip slip's
   damage and the operator's screen agreed, while the PATIENT's own body still read its pre-slip values.
   The run recorded two candidates ("either that update addresses a different object than the local body,
@@ -24,6 +33,8 @@
   `docs/backlog/review/remote-medical-treatment-operations.md`,
   `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`.
 - Source: the agent's own two-client run, batch `20261011-a`.
+- Acceptance record: `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` — rows 1-3 pass,
+  row 4 fails; the failing half and the ticket that now owns it are named there.
 
 ## What the run showed
 

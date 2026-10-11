@@ -1,7 +1,8 @@
 // recipe: grip-slip-drive
 // args: mode=s limb=n target=s piece=n
 // serves: cross-player-item-use-random-determinism
-// returns: ok, mode, error, detail (plus per-mode fields below)
+// returns: ok, mode, error, detail, step, exception, message (plus per-mode fields below) —
+//          a sequence step that threw answers error=step-failed and names the seam it was in
 //
 // Drives ONE bare-handed shrapnel grip slip on the operator's client, which is the only way the
 // cross-player grip-slip rows can be judged: the game reaches `ShrapnelMinigame.BreakGrasp` from its own
@@ -239,33 +240,69 @@
 		updateType.GetProperty("OwnershipChange").SetValue(grab, true, null);
 		var reportMethod = handlerType.GetMethod("ReportShrapnelUpdate", flags);
 		if (reportMethod == null) { return "{\"ok\":false,\"error\":\"no-report-method\"}"; }
-		reportMethod.Invoke(null, new object[] { grab });
-		heldField.SetValue(minigame, objects[pieceIndex]);
 		var before = display.limbs[limbIndex];
 		var skinBefore = before.skinHealth;
 		var bleedBefore = before.bleedAmount;
 		var painBefore = before.pain;
-		// Probe the patch's own entry point with the very argument the patch would pass, so a null return
-		// names ITS cause rather than leaving "the patch ran but said nothing" as the answer.
-		var tryBeginMethod = handlerType.GetMethod("TryBeginGripSlip", flags);
+		// Every step below is named, and the whole sequence reports WHICH one threw: an exception inside
+		// the native call or inside the plugin's own seams used to leave the eval with a bare internal
+		// error and no seam named, which is the one thing this recipe exists to avoid.
 		var tryBeginText = "no-method";
-		if (tryBeginMethod != null) {
-			var probeSlip = tryBeginMethod.Invoke(null, new object[] { minigame });
-			tryBeginText = probeSlip == null ? "null" : "slip";
-			if (probeSlip != null) {
-				var closeMethod = probeSlip.GetType().GetMethod("Close", flags);
-				if (closeMethod != null) { closeMethod.Invoke(probeSlip, null); }
+		var step = "start";
+		try {
+			step = "grab-report";
+			reportMethod.Invoke(null, new object[] { grab });
+			step = "hold-piece";
+			heldField.SetValue(minigame, objects[pieceIndex]);
+			// Probe the patch's own entry point with the very argument the patch would pass, so a null
+			// return names ITS cause rather than leaving "the patch ran but said nothing" as the answer.
+			step = "try-begin-probe";
+			var tryBeginMethod = handlerType.GetMethod("TryBeginGripSlip", flags);
+			if (tryBeginMethod != null) {
+				var probeSlip = tryBeginMethod.Invoke(null, new object[] { minigame });
+				tryBeginText = probeSlip == null ? "null" : "slip";
+				if (probeSlip != null) {
+					var closeMethod = probeSlip.GetType().GetMethod("Close", flags);
+					if (closeMethod != null) { closeMethod.Invoke(probeSlip, null); }
+				}
 			}
+			step = "break-grasp";
+			minigame.BreakGrasp();
+			// DIAGNOSTIC: report the slip the way the patch would have. If the authority's own line
+			// appears after this, the patch did not run and the authority's chain is fine; if it does
+			// not, the refusal is downstream. The authority's message names which it was.
+			step = "slip-report";
+			var slipReport = System.Activator.CreateInstance(updateType);
+			updateType.GetProperty("PieceIndex").SetValue(slipReport, pieceIndex, null);
+			updateType.GetProperty("BreakGrasp").SetValue(slipReport, true, null);
+			updateType.GetProperty("OwnershipChange").SetValue(slipReport, true, null);
+			reportMethod.Invoke(null, new object[] { slipReport });
+		} catch (System.Exception stepError) {
+			var inner = stepError;
+			if (stepError is System.Reflection.TargetInvocationException && stepError.InnerException != null) { inner = stepError.InnerException; }
+			// The scene at the failure, read through the same fields the native call dereferences: a
+			// minigame holding a limb whose display body has since been rebuilt is the difference between
+			// "the native call is broken" and "this drive started the session against a body that was
+			// replaced under it", and the two must not be reported as the same thing.
+			var limbField = typeof(ShrapnelMinigame).GetField("limb", flags);
+			var minigameLimb = limbField != null ? limbField.GetValue(minigame) as Limb : null;
+			var displayNow = viewType.GetProperty("DisplayBody", flags) != null ? viewType.GetProperty("DisplayBody", flags).GetValue(null, null) as Body : null;
+			var sameLimb = false;
+			if (minigameLimb != null && displayNow != null && limbIndex >= 0 && limbIndex < displayNow.limbs.Length) {
+				sameLimb = System.Object.ReferenceEquals(minigameLimb, displayNow.limbs[limbIndex]);
+			}
+			var limbName = "null";
+			try { if (minigameLimb != null) { limbName = minigameLimb.name; } } catch { limbName = "destroyed"; }
+			return "{\"ok\":false,\"error\":\"step-failed\",\"step\":\"" + step + "\",\"exception\":\"" + inner.GetType().FullName
+				+ "\",\"message\":\"" + inner.Message.Replace("\\", "/").Replace("\"", "'").Replace("\r", " ").Replace("\n", " ") + "\""
+				+ ",\"tryBegin\":\"" + tryBeginText + "\""
+				+ ",\"minigameLimbNull\":" + (minigameLimb == null ? "true" : "false")
+				+ ",\"minigameLimbName\":\"" + limbName + "\""
+				+ ",\"limbBodyNull\":" + (minigameLimb == null || minigameLimb.body == null ? "true" : "false")
+				+ ",\"displayBodyNull\":" + (displayNow == null ? "true" : "false")
+				+ ",\"minigameLimbIsDisplayLimb\":" + (sameLimb ? "true" : "false")
+				+ ",\"currentlyHeldNull\":" + (heldField.GetValue(minigame) == null ? "true" : "false") + "}";
 		}
-		minigame.BreakGrasp();
-		// DIAGNOSTIC: report the slip the way the patch would have. If the authority's own line appears
-		// after this, the patch did not run and the authority's chain is fine; if it does not, the refusal
-		// is downstream. The authority's message names which it was.
-		var slipReport = System.Activator.CreateInstance(updateType);
-		updateType.GetProperty("PieceIndex").SetValue(slipReport, pieceIndex, null);
-		updateType.GetProperty("BreakGrasp").SetValue(slipReport, true, null);
-		updateType.GetProperty("OwnershipChange").SetValue(slipReport, true, null);
-		reportMethod.Invoke(null, new object[] { slipReport });
 		var after = display.limbs[limbIndex];
 		var num = new System.Func<float, string>((value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
 		// The send side's own state, so a silent no-op names its cause: the static handler keeps the

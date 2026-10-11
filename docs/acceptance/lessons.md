@@ -2556,3 +2556,58 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - Change: for a row whose evidence is a picture of the world, the record names the observer's state and the
   census window; and a rejection costs the same edit as an acceptance — the folder, the status field, the
   index row and every reference move in one change, which is exactly what the batch did.
+
+## 2026-10-11 — Batch `20261011-b`: a minigame created in the same call as the panel open holds a limb the renderer replaces
+
+- Symptom: the driven grip slip failed twice with a bare `internal runtimeException`, and the recipe's own
+  step report then named it: `step=break-grasp`, `System.NullReferenceException`, from inside the native
+  `ShrapnelMinigame.BreakGrasp`. The same recipe and the same drive shape had worked in batch `20261011-a`.
+- Cause: `grip-slip-drive mode=start` opened the remote medical view AND started the session in one call, and
+  the renderer created a fresh display body for that peer 76 ms after the minigame was built — the minigame's
+  `limb` field then pointed at the replaced body's limb, so `TryBeginGripSlip` returned null (no window) and
+  the native call dereferenced a dead limb.
+- Change: open the view in its own call and start the session in the NEXT one (the display body has settled by
+  then); the recipe's break path now names the step that threw and reports the scene at the failure
+  (`minigameLimbNull`, `limbBodyNull`, `minigameLimbIsDisplayLimb`), because "the eval threw" is not a
+  diagnosis. A drive that builds a native object against a display body needs one call between the focus and
+  the action.
+
+## 2026-10-11 — Batch `20261011-b`: a host-side removal is undone by the target's next report, and a flag row would never have seen it
+
+- Symptom: a driven splint removal on a guest logged the whole operation on the host (`started SplintRemoval
+  operation 4`, `awarded removed splint … slot 0`, `terminal Completed`) and the target's own client logged
+  `local target body updated (terminal=True)` — yet the splint was still on that limb afterwards, the
+  authority's copy regained it at the next report, and driving the same removal again awarded a SECOND splint.
+- Cause: the removal is host-side only. `OtherMedicalRemovalApplier` clears the component in the host's
+  stored character data; the target is reached through `CharacterDataSync.ApplyHealState`, which maps the limb
+  FIELDS (so `Splinted=false` really lands) and then calls `LimbComponentStateCodec.Apply` — which is
+  additive-only and never removes a component the message omits. The local component survives, and a guest
+  body is report-driven, so the target's own report put it back.
+- Change: a removal row reads the COMPONENT, not the flag — a flag-only reading passes while nothing was
+  removed — and reads it on the target's own client AND in the authority's copy one report interval later.
+  The defect is `docs/backlog/todo/medical-removal-limb-component-not-applied.md`.
+
+## 2026-10-11 — Batch `20261011-b`: a display clone that instantiates the game's own component runs the game's own `Start`, every frame
+
+- Symptom: the moment a peer's limb carried a splint, the client with the remote medical panel open on that
+  peer threw `NullReferenceException` every frame — 5487 exceptions in one window — with the stack
+  `OnLimbWound.Update` → `SplintLimb.Start`'s icon predicate → `GetComponent`; closing the panel stopped it
+  instantly and reopening it resumed it.
+- Cause: the display path applies the peer's limb state to a body CUO only renders
+  (`RemoteMedicalCoordinator` → `LimbComponentStateCodec.Apply`), and that codec adds the GAME's own
+  component. Its `Start` registers a wound-view icon whose removal predicate dereferences a limb; when the
+  display body is rebuilt under the focus the icon's limb is gone and the panel's own `Update` throws.
+- Change: when a display path carries component state, ask what the game's own component does on `Start` and
+  `Update` before instantiating it — the state, not the behaviour, is what a clone needs, and a per-frame
+  exception storm can hide behind an unrelated symptom (this one first looked like a broken shrapnel drive).
+  The defect is `docs/backlog/todo/display-clone-limb-component-runs-native-start.md`.
+
+## 2026-10-11 — Batch `20261011-b`: extract a client's log before you restart it
+
+- Symptom: the run had to restart all three clients to get a clean world, and the evidence for the
+  exception storm lived only in the host's rolling log, which BepInEx rotates on the next start.
+- Cause: the rolling log is per-run; a restart renames it away, and a record that cites "the log" afterwards
+  cites a file the next reader cannot open.
+- Change: before quitting or restarting a client, copy the window that carries a finding into the batch's
+  artifact directory as its own file (`host-splint-icon-nre-storm.log.txt` here) and cite that file in the
+  record. The same applies to a mark/read pair whose offsets belong to the old file.

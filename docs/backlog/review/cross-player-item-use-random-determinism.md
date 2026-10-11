@@ -10,10 +10,15 @@
   chain — **does not exist**, and §2's census and §3 carry the evidence that says why. What remains is the
   two-client run: acceptance rows 1-8 below. The user set the target for it on 2026-10-09: remove the
   divergence WITHOUT waiting for the authority — random-state control, not a local guess and not a delay.
-  **Batch `20261011-a` built that environment end to end and left every behavioural row `blocked`: one grip
-  slip cannot be driven yet.** The record names the four seams a driver would need and keeps the ticket
-  open rather than closing it on a weaker check
-  (`docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`).
+  **Batch `20261011-a` ran that acceptance in the game: rows 6 and 7 PASS**, on the authority's own log —
+  the derived draw (`skin 4.024037 bleed 0.9653509 pain 15.61053`, seed `-790031595`), the line
+  `both sides derived the same values`, and its commit of exactly those numbers — against the operator's
+  screen reporting `4.024 / 0.965 / 15.611` for the same slip. **Row 1 is PARTIAL** (the patient's own
+  body still reads unchanged, which is a new question the run opened) and **rows 2, 3, 4, 5 and 8 are
+  unjudged**. Each verdict carries its evidence in
+  `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`, which also records
+  what the driver had to learn first (a native panel opened, both clients in sight, and the ack that
+  assigns the operation id arriving a call later).
 - Priority: High — **raise to Critical if the investigation shows the divergence reaches authoritative state**
   (a body value, a limb fact, an item amount). Presentation-only divergence stays High.
 - Category: Players / cross-player semantics

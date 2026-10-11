@@ -230,9 +230,11 @@ judged on the machine read — every `Renderer` and every `Light2D` in every sta
 the check the row's own sentence names. The measurements, all from that run: the parked spot is inside solid
 rock (columns x=0…6 read block 14 solid from y=30 down); the terrain tilemap that covers it draws at sorting
 order **1000** while an unheld item's sprite carries order **0**, so nothing unheld is drawn over the rock
-whatever its own renderer says; two window captures taken back to back with no state change differ over 44% of
-the frame's pixels; and both controls the run tried — a real item moved onto the spot, and all seven renderers
-plus both lights forced on — landed inside that noise floor. The machine half was already the row's own intent,
+whatever its own renderer says; two window captures taken back to back with no state change differ over
+284,218 of 637,332 pixels; and the two controls the run tried came out inside the world's own change rather
+than at the spot — the real item moved onto the spot differs over 279,603 pixels (below that floor) and all
+seven renderers plus both lights forced on differ over 297,052 (4.5% above it, spread over the whole frame).
+The machine half was already the row's own intent,
 and the census is read long after creation, so a component that builds its own renderer inside `Start` would
 show up as a larger renderer count. A future design that parks the copies where a camera can see them brings
 the frame half back, and this paragraph is what it starts from.

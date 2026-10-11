@@ -2915,8 +2915,10 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 
 - Symptom: a visual row was planned as an A/B — capture a frame, change one thing (a real item moved onto the
   spot; then the standing objects' own renderers and lights forced on), capture again, read the difference. Both
-  attempts failed: the forced-on frame and the restored frame differed over 297,052 pixels, against a **control**
-  of two captures taken back to back with NO state change in between differing over 284,218 of 637,332 pixels.
+  attempts failed, and the numbers say why: against a **control** of two captures taken back to back with NO
+  state change in between differing over 284,218 of 637,332 pixels, the item control differs over 279,603 (below
+  the floor) and the forced-on control over 297,052 — 4.5% above it, and spread over the whole frame rather than
+  at the spot, i.e. the world's own change instead of the objects'.
 - Cause: the scene is live. This run's own probes read 26 particle renderers, `Rain`, `Fog` and a moving player
   at the point under test, the host was freezing in an ice biome (a per-frame state the frame carries), and the
   world area's mean brightness moved from 4.2 to 125.8 across the session — so the frame-to-frame difference

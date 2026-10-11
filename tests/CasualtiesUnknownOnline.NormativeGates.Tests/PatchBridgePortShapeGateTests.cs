@@ -173,7 +173,6 @@ public class PatchBridgePortShapeGateTests
 			"ReportProxyNotOperable",
 			"ReportRemoteDragUnresolved",
 			"ReportRemoteGestureNotCarried",
-			"ReportStaleFavouriteMark",
 		]),
 		("IRemoteMedicalPatchBridge", AdapterDir + "IRemoteMedicalPatchBridge.cs", true,
 		[

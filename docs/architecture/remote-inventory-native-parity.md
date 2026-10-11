@@ -263,10 +263,15 @@ that path makes:
    respawn and a continue, and is replaced — never merged — whenever it arrives, so a mark made in one
    world can never be applied in another. A mark whose item later becomes the local player's own stops
    being a mark: the item's own `favourited` flag is set and the entry is spent, so there is no double
-   state. A mark whose instance id now names a different owner or a different definition is DROPPED
-   with one line instead of lighting up on whatever inherited the id. The owner's own favourite state
-   is never what this view shows: a display proxy's `favourited` field has exactly one writer
-   (`FavouriteMarkOverlay`), and the owner's value is not among the projection's source values
+   state. A mark whose instance id now carries an item of another DEFINITION is DROPPED with one line
+   instead of lighting up on whatever inherited the id; the owner it recorded is context the mark
+   FOLLOWS, so an item handed from one player to another keeps this player's star and still carries it
+   when it reaches them. An item that has left an inventory altogether keeps showing the flag IT carries,
+   which is what the game itself does — the static `PlayerCamera.ItemHoverDescription` appends the
+   favourite sprite for whatever item the cursor is over (`PlayerCamera.cs:1313-1316`), while
+   `InvButton`'s tint is the inventory's own (`InvButton.cs:150`). The owner's own favourite state is
+   never what this view shows for the owner's INVENTORY: a display proxy's `favourited` field has exactly
+   one writer (`FavouriteMarkOverlay`), and the owner's value is not among the projection's source values
    (`FavouriteMarkWriterGateTests` fails if either half comes back).
 
 ### 3.3 The intent vocabulary (wire)

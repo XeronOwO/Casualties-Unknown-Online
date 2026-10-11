@@ -515,12 +515,21 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 
 		marker.Id = instanceId;
 		marker.OwnerSteamId = ownerSteamId;
-		FavouriteMarkOverlay.Apply(item, instanceId, ownerSteamId, out var staleDrop);
-		if (staleDrop is not null)
+		var marked = FavouriteMarkOverlay.Apply(item, instanceId, ownerSteamId, out var note);
+		if (note is not null)
 		{
-			// A mark the world has moved on from: dropped, never applied to whatever
-			// inherited the id, and never silent.
-			_log.LogWarning("[FavouriteMark] dropped a stale mark: {Reason}.", staleDrop);
+			// The world moved on from what the mark recorded, and which way it moved
+			// decides the line: the item changed hands (the mark followed it, and the
+			// player keeps their star) or the id now names an item of another definition
+			// (the mark is dropped, never applied to whatever inherited the id).
+			if (marked)
+			{
+				_log.LogInformation("[FavouriteMark] {Note}.", note);
+			}
+			else
+			{
+				_log.LogWarning("[FavouriteMark] dropped a stale mark: {Reason}.", note);
+			}
 		}
 	}
 

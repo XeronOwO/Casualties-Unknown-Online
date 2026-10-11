@@ -15,14 +15,14 @@ internal static class FavouriteMarkOverlay
 {
 	/// <summary>
 	/// Write the local mark onto a display proxy and answer what is now in force.
-	/// A mark whose instance id now names a DIFFERENT item is DROPPED rather than
-	/// applied, and its reason comes back through
-	/// <paramref name="staleDrop"/> for the caller to report through its own seam
-	/// — the write is this class's business, the log line is the caller's.
+	/// <paramref name="note"/> carries the one thing the ledger cannot report itself: the
+	/// item it followed to a new owner (with a true answer) or the stale mark it dropped
+	/// because the id now names an item of another definition (with a false one). The
+	/// write is this class's business, the log line is the caller's.
 	/// </summary>
-	internal static bool Apply(Item item, ulong instanceId, ulong ownerSteamId, out string? staleDrop)
+	internal static bool Apply(Item item, ulong instanceId, ulong ownerSteamId, out string? note)
 	{
-		var marked = LocalFavouriteMarkStore.Current.IsMarked(instanceId, ownerSteamId, item.id, out staleDrop);
+		var marked = LocalFavouriteMarkStore.Current.IsMarked(instanceId, ownerSteamId, item.id, out note);
 		item.favourited = marked;
 		return marked;
 	}

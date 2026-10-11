@@ -31,42 +31,55 @@ internal sealed class LocalFavouriteMarks
 
 	/// <summary>
 	/// The view's one question: does this live item wear the local player's mark?
-	/// The answer is yes only when the id is marked AND the live item carries the
-	/// marked owner and definition; a mark whose id now names a DIFFERENT item is
-	/// DROPPED here and named in <paramref name="staleDrop"/>, so a key the world
-	/// has moved on from can never light up on whatever inherited its id.
+	/// The mark is on the ITEM, so the answer follows the item: the recorded owner is
+	/// context and is refreshed whenever the item is seen with a new one (an item handed
+	/// from one player to another is still the item this player starred, and it has to
+	/// still be marked when it finally reaches this player — <see cref="TrySpend"/>).
+	/// What DID change is the definition: a mark whose id now names an item of another
+	/// definition is DROPPED, so a key the world has moved on from cannot light up on
+	/// whatever inherited its id.
 	/// <para>
-	/// The owner is part of that guard on purpose, and the price is deliberate: an item
-	/// the mark names that moves to a THIRD player drops the mark, and the local player
-	/// has to mark it again. The trade is the acceptance matrix's row 7 against a mark
-	/// that follows the id onto a stranger's item. The item that comes to THIS player is
-	/// not affected at all — <see cref="TrySpend"/> matches on the definition, so
-	/// requirement 3 holds across the hand-off.
+	/// <paramref name="note"/> carries the one thing the caller cannot see for itself:
+	/// with a TRUE answer it is the hand-off this call followed (the item moved to
+	/// another owner), and with a false one it is the stale mark this call dropped.
+	/// One channel, because both are the same event — the world moved on from what the
+	/// mark recorded — and the caller reports the one it got.
 	/// </para>
 	/// </summary>
-	internal bool IsMarked(ulong itemInstanceId, ulong ownerSteamId, string itemId, out string? staleDrop)
+	internal bool IsMarked(ulong itemInstanceId, ulong ownerSteamId, string itemId, out string? note)
 	{
-		staleDrop = null;
+		note = null;
 		if (itemInstanceId == 0 || !_marks.TryGetValue(itemInstanceId, out var mark))
 		{
 			return false;
 		}
 
-		if (mark.OwnerSteamId == ownerSteamId && mark.ItemId == itemId)
+		if (mark.ItemId != itemId)
 		{
-			return true;
+			_marks.Remove(itemInstanceId);
+			note = $"mark on item {itemInstanceId} names a {mark.ItemId}, but the id now carries a {itemId}";
+			return false;
 		}
 
-		_marks.Remove(itemInstanceId);
-		staleDrop = $"mark on item {itemInstanceId} names {mark.ItemId} of {mark.OwnerSteamId}, but the id now carries {itemId} of {ownerSteamId}";
-		return false;
+		if (mark.OwnerSteamId != ownerSteamId)
+		{
+			note = $"mark on item {itemInstanceId} followed it from {mark.OwnerSteamId} to {ownerSteamId}";
+			mark.OwnerSteamId = ownerSteamId;
+		}
+
+		return true;
 	}
 
 	/// <summary>
-	/// The gesture: flip the mark this item carries. Returns the value now in
-	/// force — the value the marker's own view shows from this frame on. Only the
-	/// local player's own view is affected; nothing about the item or its owner
-	/// changes anywhere.
+	/// The gesture: flip the mark this item carries. Returns the value now in force —
+	/// the value the marker's own view shows from this frame on. Only the local player's
+	/// own view is affected; nothing about the item or its owner changes anywhere.
+	/// <para>
+	/// The flip is decided by the same question the view asks (<see cref="IsMarked"/>),
+	/// not by whether an entry happens to exist: an entry that records a DIFFERENT item
+	/// under this id is not "this item is marked", so pressing the key marks the item
+	/// the player is actually looking at instead of silently clearing a stale row.
+	/// </para>
 	/// </summary>
 	internal bool Toggle(ulong itemInstanceId, ulong ownerSteamId, string itemId)
 	{
@@ -75,8 +88,9 @@ internal sealed class LocalFavouriteMarks
 			return false;
 		}
 
-		if (_marks.Remove(itemInstanceId))
+		if (IsMarked(itemInstanceId, ownerSteamId, itemId, out _))
 		{
+			_marks.Remove(itemInstanceId);
 			return false;
 		}
 

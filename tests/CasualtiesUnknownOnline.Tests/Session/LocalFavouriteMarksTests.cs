@@ -64,21 +64,55 @@ public class LocalFavouriteMarksTests
 	}
 
 	[Fact]
-	public void AMarkWhoseIdNowNamesAnotherItem_IsDroppedInsteadOfApplied()
+	public void AMarkFollowsTheItemToItsNewOwner()
+	{
+		// The mark is on the ITEM (the user's own words: "等物品转移到我身上时,依然是我的收藏").
+		// An item handed from one player to another is still the item this player
+		// starred, so the mark follows it and says so once — otherwise an item that
+		// passed through a third player's hands would arrive unmarked.
+		var marks = new LocalFavouriteMarks();
+		marks.Toggle(Item, Owner, Scrap);
+
+		Assert.True(marks.IsMarked(Item, OtherOwner, Scrap, out var followed),
+			"the item changed hands; the mark did not.");
+		Assert.NotNull(followed);
+		Assert.Equal(1, marks.Count);
+
+		// And the followed owner is what the record now carries, so the NEXT sighting
+		// under that owner is not a hand-off again.
+		Assert.True(marks.IsMarked(Item, OtherOwner, Scrap, out var quiet));
+		Assert.Null(quiet);
+
+		// The item reaching THIS player is the rule's own case: the mark is still there
+		// to become the item's flag.
+		Assert.True(marks.TrySpend(Item, Scrap));
+		Assert.Equal(0, marks.Count);
+	}
+
+	[Fact]
+	public void AMarkWhoseIdNowNamesAnotherDefinition_IsDroppedInsteadOfApplied()
 	{
 		var marks = new LocalFavouriteMarks();
 		marks.Toggle(Item, Owner, Scrap);
 
-		Assert.False(marks.IsMarked(Item, OtherOwner, Scrap, out var otherOwner),
-			"an id that now belongs to another player is not the marked item.");
-		Assert.NotNull(otherOwner);
-		Assert.Equal(0, marks.Count);
-
-		marks.Toggle(Item, Owner, Scrap);
 		Assert.False(marks.IsMarked(Item, Owner, "climbingrope", out var otherDefinition),
 			"an id that now carries another definition is not the marked item.");
 		Assert.NotNull(otherDefinition);
 		Assert.Equal(0, marks.Count);
+	}
+
+	[Fact]
+	public void TheGestureMarksTheItemUnderTheCursor_EvenOverAStaleRow()
+	{
+		// The flip is decided by the same question the view asks: a row recording a
+		// different item under this id is not "this item is marked", so one press marks
+		// the item the player is looking at instead of silently clearing the row.
+		var marks = new LocalFavouriteMarks();
+		marks.Toggle(Item, Owner, Scrap);
+
+		Assert.True(marks.Toggle(Item, Owner, "climbingrope"));
+		Assert.True(marks.IsMarked(Item, Owner, "climbingrope", out _));
+		Assert.Equal(1, marks.Count);
 	}
 
 	[Fact]

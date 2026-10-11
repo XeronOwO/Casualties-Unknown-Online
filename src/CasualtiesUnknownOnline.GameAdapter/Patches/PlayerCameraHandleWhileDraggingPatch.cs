@@ -145,12 +145,11 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 
 			var owner = RemoteDragProxyQuery.OwnerSteamId(item);
 			var marked = LocalFavouriteMarkStore.Current.Toggle(itemId, owner, item.id);
-			FavouriteMarkOverlay.Apply(item, itemId, owner, out var staleDrop);
-			if (staleDrop is not null)
-			{
-				PatchBridge.Impl?.ReportStaleFavouriteMark(staleDrop);
-			}
-
+			// The overlay writes the answer back onto the proxy (the star flips in this
+			// frame) and can carry no note here: the toggle just decided this item's mark
+			// from the same question the overlay asks, so there is nothing to follow and
+			// nothing stale to drop.
+			FavouriteMarkOverlay.Apply(item, itemId, owner, out _);
 			PatchBridge.Impl?.ReportLocalFavouriteMark(item, owner, marked);
 		}
 	}

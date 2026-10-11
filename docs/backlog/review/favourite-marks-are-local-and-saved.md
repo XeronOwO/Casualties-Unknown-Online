@@ -68,18 +68,19 @@
   was rejected for the second half: ids restart with the process, so a different world can hand the same
   id, owner and definition to a different item, and a stale key must never be applied.
 - **What happens to a mark whose item is destroyed, dropped or leaves the world?** It is never applied to
-  another item; it is dropped when the id is observed to name a different item, or when the item becomes
-  this player's own. It deliberately survives a drop-and-repickup, because the item keeps its id and
-  requirement 3 then applies. Pruning on mere absence is refused on purpose: a character snapshot losing
-  an id cannot tell "destroyed" from "put into a container on the ground".
-  - Two consequences of that guard, both deliberate and both recorded rather than discovered later: a
-    mark does NOT follow an item that changes hands to a THIRD player (the owner is part of the guard, so
-    the mark is dropped and the player marks it again — the safe side of the trade, and the item that
-    comes to THIS player is unaffected because the adoption matches on the definition), and "no other
-    item inherits it" is only as strong as the instance id itself: if an id is ever re-issued to a
-    different item with the SAME owner and the SAME definition, the guard cannot tell them apart. The
-    id-reuse path is `todo/item-id-counter-is-not-resumed-by-a-restore.md`, which this ticket depends on
-    and does not fix.
+  another item; it is dropped when the id is observed to carry an item of another DEFINITION, or when the
+  item becomes this player's own. It deliberately survives a drop-and-repickup, because the item keeps its
+  id and requirement 3 then applies.
+  - **The mark is on the ITEM, so it follows the item.** An item handed from one player to another is
+    still the item this player starred, so the recorded owner is context the mark refreshes rather than a
+    second identity check; the alternative (dropping on an owner change) would unmark an item that passed
+    through a third player's hands and then reached this player, which contradicts requirement 3. The
+    reading is logged once per hand-off.
+  - **Pruning on mere absence is refused on purpose**: a character snapshot losing an id cannot tell
+    "destroyed" from "put into a container on the ground".
+  - **"No other item inherits it" is only as strong as the instance id itself**: if an id is ever re-issued
+    to a different item of the SAME definition, the guard cannot tell them apart. The id-reuse path is
+    `todo/item-id-counter-is-not-resumed-by-a-restore.md`, which this ticket depends on and does not fix.
 - **The third peer's view changes in no way** — nothing about the owner's item changes on any client.
 
 ## Acceptance matrix
@@ -89,27 +90,25 @@
 | 1 | Operator marks an item in the owner's backpack | The operator's own view shows the mark; the OWNER's own item is unchanged on the owner's client and on the third peer, and no intent for it reaches the owner | code fact; real-machine judgement pending |
 | 2 | The same mark, after the operator leaves and rejoins the same world | Still there, without pressing the key again | code fact (the record is handed back with the character, and `LocalFavouriteMarks.Seed` replaces the set from it); real-machine judgement pending |
 | 3 | The same mark, after a save and a load of that world | Still there | covered by `WorldCharacterFavouriteMarkTests.LayerEndCutThenContinue_RoundTripsTheLocalCharactersFavouriteMarks` (the archive round trip); the rejoin/continue on the real machine is still pending |
-| 4 | The marked item is later picked up / transferred to the operator | The item is favourited as the operator's own from that moment, and the local mark entry is gone (no double state) | code fact; real-machine judgement pending |
+| 4 | The marked item is later picked up / transferred to the operator | The item is favourited as the operator's own from that moment, and the local mark entry is gone (no double state) | code fact (the adoption matches the definition, so a mark that followed the item through another player's hands still lands); real-machine judgement pending |
 | 5 | An item in the owner's backpack that the operator never marked, where the OWNER has favourited it | No mark is shown in the operator's view (the mark is personal) | code fact for the inventory view (`RemoteItemPresentation.ApplySourceValues` no longer carries the owner's value at all); the world-item case is the scope limit below; real-machine judgement pending |
 | 6 | The favourite key on the operator's OWN inventory | Unchanged native behaviour | code fact; real-machine judgement pending |
 | 7 | A mark whose item is destroyed, or belongs to a different world | Dropped, and no other item inherits it | code fact; real-machine judgement pending |
 
 ## Limits recorded with the landing
 
-- **Requirement 4's SCOPE, stated because the ruling does not decide it.** The rule as landed — and as the
-  acceptance rows judge it — governs what this client shows for items in ANOTHER PLAYER'S INVENTORY, which
-  is the clone display path the batch finding came from. An item that has left an inventory (dropped on
-  the ground, or inside a container lying in the world) still shows the flag the ITEM carries, whoever set
-  it: `RemoteItemSceneOps` / `ItemReconcile` / `ItemStateCodec.RestoreContents` write `favourited` from the
-  authoritative item state, and the game's own hover text (`PlayerCamera.cs:1313`) and inventory buttons
-  (`InvButton.cs:150`) draw it. So a player who drops an item they favourited still shows that star to
-  whoever hovers it, and a mark this player made stops being shown once its item leaves the inventory it
-  was made in (the mark itself survives; see the hand-off consequence above). Extending the ruling to "no
-  flag any other player set is ever drawn for me" is a behaviour change on a surface the user has not
-  ruled on, and it is left as an OPEN QUESTION rather than silently decided here.
+- **An item that has left an inventory shows the flag the ITEM carries, which is what the game itself
+  does.** The native tooltip builder draws the favourite sprite for whatever item the cursor is over —
+  `PlayerCamera.ItemHoverDescription` is static and appends `<sprite index=22>` on `item.favourited`
+  (`PlayerCamera.cs:1313-1316`) — while the inventory button's tint is the inventory's own
+  (`InvButton.cs:150`). CUO therefore keeps syncing a world item's own `favourited` with the rest of its
+  state (`RemoteItemSceneOps`, `ItemReconcile`, `ItemStateCodec.RestoreContents`) and keeps drawing it,
+  exactly as the native game does; the ruling changed who OWNS a mark and what the backpack view shows,
+  not what an item says about itself. Nothing here conflicts with requirement 3: the mark this player made
+  is still theirs when the item reaches them, and from then on it IS the item's own flag.
 - **The mark's identity rests on the item instance id**, which the archive stores and the restore
   re-stamps. The allocator's counter is not resumed by a restore, which is the sibling ticket named above;
-  the guard cannot separate two items that share an id, an owner and a definition.
+  the guard cannot separate two items that share an id and a definition.
 - The item's own sound and the operating feel of the gesture remain the family's open acceptance items
   (`docs/architecture/remote-inventory-native-parity.md` §6); this ticket changes none of them.
 - The mark set is bounded by what the player marks by hand; it is not pruned by age. A mark whose item

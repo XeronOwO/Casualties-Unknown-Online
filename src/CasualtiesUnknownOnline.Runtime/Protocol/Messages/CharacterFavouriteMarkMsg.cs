@@ -13,19 +13,19 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// and the peers carry it as they carry any character snapshot; neither reads this
 /// list, and the marked item's owner is told nothing about it.)
 /// <para>
-/// The item is named by CUO's authoritative instance id, the identity every
-/// other seam already keys by, plus the two facts that make a stale id
-/// detectable: the owner the item had when it was marked, and its definition. A
-/// mark whose id later names a different owner or a different definition is
-/// dropped instead of applied to whatever now holds that id; the consequence is
-/// that a mark does NOT follow an item that changes hands to a third player, which
-/// is the safe side of that trade (see <c>LocalFavouriteMarks.IsMarked</c>).
+/// The item is named by CUO's authoritative instance id, the identity every other
+/// seam already keys by, plus the two facts that make a stale id detectable: the
+/// owner the item was last seen with, and its definition. The DEFINITION is the
+/// guard — a mark whose id now carries an item of another definition is dropped
+/// instead of applied to whatever inherited that id — while the owner is context the
+/// mark follows: an item handed from one player to another is still the item this
+/// player starred, and it has to still be marked when it reaches this player.
 /// </para>
 /// </summary>
 [ProtoContract]
 public sealed class CharacterFavouriteMarkMsg
 {
-	/// <summary>The SteamId of the player who owned the marked item when the mark was made.</summary>
+	/// <summary>The SteamId of the player the marked item was last seen with — context the mark follows, refreshed whenever the item changes hands.</summary>
 	[ProtoMember(1)]
 	public ulong OwnerSteamId { get; set; }
 

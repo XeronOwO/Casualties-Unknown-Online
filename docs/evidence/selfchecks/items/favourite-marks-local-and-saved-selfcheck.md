@@ -26,7 +26,7 @@ compatibility boundary.
 |---|---|---|
 | What identifies a marked item across a save? | CUO's authoritative instance id, plus the owner and the definition the item carried when it was marked. The id survives because the archive stores it (`CharacterItemMsg.InstanceId` in `characters/<playerKey>.json`, `items.json` rows) and the restore re-stamps it onto the rebuilt object (`ItemStateCodec.RestoreItem`, `WearableRestorer`, `RemoteItemSceneOps`) — the same property every id-keyed seam in CUO already rests on (the container window's re-bind, the intent operands, the position follow). Acceptance batch `20261001-o` read it back on three clients ("every client's local tree held its own marker with the **same instance id**"). The owner and the definition are the guard: a mark whose id now names another item is DROPPED. | `docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261001-o.md`; `LocalFavouriteMarksTests.AMarkWhoseIdNowNamesAnotherItem_IsDroppedInsteadOfApplied` |
 | Where do the marks live so they are saved? | On the marking player's OWN character record. Named consumer: that player's own client — the overlay reads it and the restore seeds the live set from it; the host stores it exactly as it stores the rest of the character record and interprets none of it. The alternative (a client-local file beside the plugin) was rejected because it cannot tell two worlds apart, which is precisely what requirement 7 forbids: ids are `(counter << 32) \| SteamId` and the counter restarts with the process, so a different world can hand the same id, the same owner and the same definition to a different item. | `docs/architecture/save-archive-format.md` §3.4 ("`characters/<playerKey>.json` holds one player character per file … the ONLY persistent copy of a character"); `LocalFavouriteMarksTests.SeedReplacesTheWholeSet` |
-| What happens to a mark whose item is destroyed, dropped or leaves the world? | It stays inert and is never applied to another item; it is dropped when the id is observed to name a different item (owner or definition differ) or when the item becomes this player's own. It deliberately survives a drop-and-repickup: the same id comes back with the item, and the mark is then spent by the adoption, which is requirement 3. Pruning on mere absence is refused on purpose — a character snapshot losing an id cannot tell "destroyed" from "put into a container lying on the ground". | `docs/architecture/remote-inventory-native-parity.md` §3.2.9; `LocalFavouriteMarksTests.AnIdThatNowCarriesAnotherItem_IsNotAdopted` |
+| What happens to a mark whose item is destroyed, dropped or leaves the world? | It is never applied to another item; it is dropped when the id is observed to carry an item of another DEFINITION, or when the item becomes this player's own. The mark is on the ITEM, so it FOLLOWS the item: a hand-off to another player refreshes the recorded owner (logged once) instead of dropping the mark, which is what keeps requirement 3 true for an item that passed through a third player's hands. It deliberately survives a drop-and-repickup. Pruning on mere absence is refused on purpose — a character snapshot losing an id cannot tell "destroyed" from "put into a container lying on the ground". | `docs/architecture/remote-inventory-native-parity.md` §3.2.9; `LocalFavouriteMarksTests.AMarkFollowsTheItemToItsNewOwner`, `...AMarkWhoseIdNowNamesAnotherDefinition_IsDroppedInsteadOfApplied` |
 | The third peer's view | Nothing about the owner's item changes on any client: the gesture writes one local set, sends nothing, and the owner's own `favourited` is not applied to any proxy. | `FavouriteMarkWriterGateTests.OnlyTheNamedWriters_TouchAFavouriteFieldInTheDisplayDomain`; acceptance row 1 |
 
 ## Red-then-green record
@@ -48,17 +48,16 @@ have been a compile error rather than a red.
   `CharacterDataSync`, which no test host can materialize. The ticket's seven acceptance rows are the
   judgement, run by the agent's batch on the real machine; nothing here claims them. The archive half of
   row 3 is machine-covered (`WorldCharacterFavouriteMarkTests`), the rejoin half of row 2 is not.
-- **Requirement 4's scope.** The landed rule governs what this client shows for items in another
-  player's INVENTORY (the clone display path the batch finding came from). Items that have left an
-  inventory — dropped, or inside a container lying in the world — still carry and draw their own
-  `favourited` flag (`RemoteItemSceneOps`, `ItemReconcile`, `ItemStateCodec.RestoreContents` write it
-  from the authoritative state, and the game's own hover text / `InvButton` draw it), so the owner's
-  answer is still visible on a dropped item and a local mark stops being shown once its item leaves the
-  inventory. Extending the ruling there is a behaviour change on a surface the user has not ruled on; it
-  is recorded as the ticket's open question instead of being decided here.
+- **An item that has left an inventory shows what the game itself shows.** The native tooltip builder
+  draws the favourite sprite for whatever item the cursor is over — `PlayerCamera.ItemHoverDescription`
+  is static and appends `<sprite index=22>` on `item.favourited` (`PlayerCamera.cs:1313-1316`), while
+  `InvButton`'s tint is the inventory's own (`InvButton.cs:150`). So a world item keeps carrying and
+  drawing its own flag exactly as the native game does; the ruling changed who owns a MARK and what the
+  backpack view shows, not what an item says about itself, and there is no conflict with requirement 3
+  (the mark is still this player's when the item reaches them, and from then on it IS the item's flag).
 - The mark's identity rests on the item instance id. "No other item inherits it" is therefore only as
-  strong as the id: the guard is (owner, definition) and it cannot separate two items that share an id,
-  an owner and a definition. The id-reuse path is filed as
+  strong as the id: the guard is the item's DEFINITION (the owner follows the item), and it cannot
+  separate two items that share an id and a definition. The id-reuse path is filed as
   `docs/backlog/todo/item-id-counter-is-not-resumed-by-a-restore.md` rather than fixed here.
 - The `.favourited` writer census reads the display domain directory; a display path built OUTSIDE
   `src/CasualtiesUnknownOnline.GameAdapter/Character` would land beside the rule rather than inside it.

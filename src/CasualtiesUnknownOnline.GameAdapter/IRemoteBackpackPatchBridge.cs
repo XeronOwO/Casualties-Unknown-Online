@@ -58,12 +58,4 @@ internal interface IRemoteBackpackPatchBridge
 	/// is a low-frequency user action.
 	/// </summary>
 	void ReportLocalFavouriteMark(Item item, ulong ownerSteamId, bool marked);
-
-	/// <summary>
-	/// A local favourite mark named an instance id that now carries a different item:
-	/// the mark was DROPPED instead of applied, and the reason is printed as it was
-	/// resolved. The alternative — applying it — would light this client's star on
-	/// whatever inherited the id.
-	/// </summary>
-	void ReportStaleFavouriteMark(string reason);
 }

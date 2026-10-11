@@ -18,8 +18,6 @@ internal sealed class OtherMedicalRemovalApplier(
 	ISessionControl session,
 	ILogger log)
 {
-	private const ulong AwardedItemHighBit = 1UL << 63;
-
 	private readonly PlayerCharacterAccess _access = access;
 	private readonly IItemControl _items = items;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
@@ -120,11 +118,11 @@ internal sealed class OtherMedicalRemovalApplier(
 			itemId, awarded.InstanceId, session.Operator, slot);
 	}
 
-	// Reserved high-bit namespace for host-synthesized removed components.
-	// Normal item ids use (counter, account-low) and never set bit 63, so this
-	// cannot collide with guest/host-generated items in this session.
+	// The id comes from the format's synthesized namespace (<see cref="ItemInstanceIds.AwardedHighBit"/>):
+	// normal item ids are (counter, account-low) and never set bit 63, so this namespace cannot collide
+	// with guest/host-generated items in this session.
 	private ulong NextAwardedItemId() =>
-		AwardedItemHighBit | (_nextAwardedItemId++ << 32) | ((uint)_session.LocalSteamId & 0xFFFFFFFF);
+		ItemInstanceIds.AwardedHighBit | (_nextAwardedItemId++ << 32) | ItemInstanceIds.SpaceOf(_session.LocalSteamId);
 
 	private void SyncOperatorAwardedItem(ulong operatorId, CharacterItemMsg item)
 	{

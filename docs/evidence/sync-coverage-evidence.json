@@ -1226,7 +1226,7 @@
       "cluster": "items",
       "row": "I8",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs",
-      "quote": "var watermark = _watermarks.TryGetValue(steamId, out var w) ? w : 0;"
+      "quote": "var watermark = _watermarks.TryGetValue(ItemInstanceIds.SpaceOf(steamId), out var w) ? w : 0;"
     },
     {
       "cluster": "items",

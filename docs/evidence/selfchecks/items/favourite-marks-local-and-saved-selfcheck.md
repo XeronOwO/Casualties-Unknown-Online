@@ -58,7 +58,7 @@ have been a compile error rather than a red.
 - The mark's identity rests on the item instance id. "No other item inherits it" is therefore only as
   strong as the id: the guard is the item's DEFINITION (the owner follows the item), and it cannot
   separate two items that share an id and a definition. The id-reuse path is filed as
-  `docs/backlog/todo/item-id-counter-is-not-resumed-by-a-restore.md` rather than fixed here.
+  `docs/backlog/review/item-id-counter-is-not-resumed-by-a-restore.md` rather than fixed here.
 - The `.favourited` writer census reads the display domain directory; a display path built OUTSIDE
   `src/CasualtiesUnknownOnline.GameAdapter/Character` would land beside the rule rather than inside it.
   The gate's own doc says so.

@@ -2896,5 +2896,21 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   change) before touching the pointer. Nothing under `tools/` gained a cursor or a keyboard call, and
   `docs/acceptance/AGENTS.local.md` carries no licence for the next batch.
 
+## 2026-10-11 — A development probe on a CONTINUED world: the first driven act lands inside the restore's own wipe window
+
+- Symptom: `continue-run` answered `inWorld: true`, and the `item-provide mode=create` driven right after it
+  answered `ok` with `instanceId: "0"` — the created item was gone from the local tree a moment later. Driven
+  again after the restore had settled, the same recipe answered a real id and the item stayed.
+- Cause: a continue's landing is multi-seam, and `inWorld` is not its end. The restore's halves arrive after
+  the click — the world-fact replay at the world-entry seam, the generation reconcile one frame after the
+  generation-finished edge — and the local character restore is queued on the two-frame path, whose FIRST pass
+  wipes the body. An act driven inside that window is wiped by the restore, and no id can be allocated while
+  the world is still generating (`ItemIdAllocator.EnsureId` returns 0 there by design).
+- Change: before driving anything against a continued world, wait for the restore's own completion line
+  (`[GenItems] restored cut: N of N restored item(s) landed …`, or `CUO restore of world …: the live world took
+  every restored fact`) instead of trusting `inWorld`; the first driven act is then the probe's own, not the
+  restore's casualty.
+
+
 
 

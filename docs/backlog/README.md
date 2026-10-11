@@ -56,7 +56,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
-- [An item id can be re-issued after a restore](todo/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — a continued world starts its counter over.
+- [The id resume reads one source](todo/id-resume-sources-still-unseeded.md) — **Medium** — the synthesized counter and the character rows.
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 - [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — the push direction; the take half is landed.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
@@ -85,6 +85,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
 - [Mod-authored effects](review/mod-authored-effects.md) — **High** — the code registration face and the named operations it writes through.
 - [A declared behaviour with no function](review/mod-declared-behaviour-with-no-function.md) — **High** — a declared use or effect reports instead of throwing.

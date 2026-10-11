@@ -66,7 +66,7 @@
   onto the rebuilt object, which is the property every id-keyed seam in CUO already rests on. A mark
   whose id now names another owner or another definition is DROPPED with one line. (The counter that
   mints ids is NOT resumed by a restore — a pre-existing property this ticket depends on and does not
-  change; it is filed as `todo/item-id-counter-is-not-resumed-by-a-restore.md`.)
+  change; it is filed as `review/item-id-counter-is-not-resumed-by-a-restore.md`.)
 - **Where do the marks live so they are saved?** On the marking player's own character record. That is
   the only store CUO keeps per world (`characters/<playerKey>.json`), so it is what makes the marks come
   back with the player and what keeps another world's marks out. A client-local file beside the plugin
@@ -85,7 +85,7 @@
     "destroyed" from "put into a container on the ground".
   - **"No other item inherits it" is only as strong as the instance id itself**: if an id is ever re-issued
     to a different item of the SAME definition, the guard cannot tell them apart. The id-reuse path is
-    `todo/item-id-counter-is-not-resumed-by-a-restore.md`, which this ticket depends on and does not fix.
+    `review/item-id-counter-is-not-resumed-by-a-restore.md`, which this ticket depends on and does not fix.
 - **The third peer's view changes in no way** — nothing about the owner's item changes on any client.
 
 ## Acceptance matrix

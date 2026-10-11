@@ -6,7 +6,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
 /// Instance-id allocation for the item domain: ids are (counter, account id) —
-/// globally unique per session without host allocation. EnsureId stamps an
+/// globally unique per session without host allocation (the format itself lives in
+/// <see cref="ItemInstanceIds"/>). EnsureId stamps an
 /// ItemInstanceId component on the object, returning 0 when the item is not
 /// eligible (still generating — the world-gen determinism covers those). Every
 /// allocation advances the counter and reports the high-water mark to the host
@@ -14,6 +15,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// rejoined guest's counter restarts from zero and would otherwise reuse ids
 /// the host's tables still hold. Split out of ItemWorldSync (gate-driven — the
 /// report-side class keeps growing with every pickup/drop path fix).
+///
+/// The counter is per PROCESS, so the same restart happens on this side when a
+/// world is CONTINUED: the archive's ids are stamped back onto the objects the
+/// restore rebuilds while this process's counter still starts at zero, and the
+/// restore answers with the resume point (<see cref="SetWatermark"/> — delivered
+/// through the same watermark the host's grant arrives on, because it is the same
+/// fact: the counter this side may resume from).
 /// </summary>
 internal sealed class ItemIdAllocator(ISessionControl session, IItemControl items, ILogger<ItemIdAllocator> log)
 {
@@ -26,7 +34,7 @@ internal sealed class ItemIdAllocator(ISessionControl session, IItemControl item
 
 	private ulong Next()
 	{
-		var id = (_nextItemId++ << 32) | (uint)_session.LocalSteamId;
+		var id = ItemInstanceIds.Compose(_nextItemId++, _session.LocalSteamId);
 		// The counter advanced — report the high-water mark (guest side; the
 		// host's own allocations need no report — it IS the watermark
 		// authority). SendItemIdWatermark guards on role + session active.
@@ -34,9 +42,11 @@ internal sealed class ItemIdAllocator(ISessionControl session, IItemControl item
 		return id;
 	}
 
-	/// <summary>Resume the counter from the host's grant (join/reconnect): the
-	/// crashed-and-rejoined counter must not reuse ids the host still holds.
-	/// Only ever raises — a late duplicate grant must not move it back.</summary>
+	/// <summary>Resume the counter from a watermark (the host's grant on
+	/// join/reconnect, or the restored world's own high-water mark): neither a
+	/// crashed-and-rejoined counter nor a continued world's may reuse ids the
+	/// tables still hold. Only ever raises — a late duplicate grant must not move
+	/// it back.</summary>
 	internal void SetWatermark(ulong counter)
 	{
 		if (counter >= _nextItemId)

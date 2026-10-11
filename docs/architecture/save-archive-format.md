@@ -492,6 +492,18 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   and a completed restore must not be re-reported. The generation a restore drives is
   also the one generation whose layer-boundary table reset is skipped: the restored set IS that
   layer's world table, and the suppressed publish would not rebuild it.
+- **The restored ids resume every id space's counter.** An item instance id is
+  `(counter << 32) | account-low` and the counter is per PROCESS, so a world continued in a new process
+  would allocate from zero again while the restored scene already holds the archive's ids — the first
+  allocation then re-issues a live id (the kernel refuses the duplicate spawn, and one id ends up on two
+  scene objects). The archive's own item rows state the resume point: each names an id, i.e. the counter
+  its space had reached. `ItemKernelProjectionWiring` hands them to `ItemIdCoordinator` at the kernel
+  restore — before the generation that can allocate — and that seeds the same per-id-space watermarks the
+  handshake edge already grants from: the LOCAL space is resumed on the spot (there is no grant to
+  itself on the wire) and a member in the session is granted the raised value there and then, because the
+  restored character it is about to receive carries those ids. The marks are facts about the world, not
+  about the session, so they outlive a lobby (a host may continue the same world in a new one). The ids
+  of the synthesized-item namespace are skipped: their counter is a different counter.
 - **Restored world-entity facts land at the same seam — for a cut that describes the layer being
   restored.** The kernel's per-entity facts (consumed traps, the durable trap-state machine, opened
   lockables, building health) have two landing moments, and ROLE decides which one: a guest restores

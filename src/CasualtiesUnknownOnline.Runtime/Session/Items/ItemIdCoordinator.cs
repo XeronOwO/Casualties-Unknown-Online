@@ -18,8 +18,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// <see cref="CarriedInventoryReportSchedule"/> — sync-coverage row I8: one
 /// frame lost in the lazy-P2P swallow window must heal without a reconnect, and
 /// ids the guest self-assigns later (a crafted product) must converge too. Ids
-/// are (counter &lt;&lt; 32) | SteamId — the space is per-SteamId, so a
-/// per-guest watermark is all the coordination needed.
+/// are (counter &lt;&lt; 32) | account-low — the space is per ACCOUNT
+/// (<see cref="ItemInstanceIds"/>: the owner half is the account id's low 32 bits,
+/// so it never equals the full SteamId), and so a per-space watermark is all the
+/// coordination needed. A RESTORED world is the second source of those marks:
+/// its item rows name the ids the previous process handed out, so a restore
+/// seeds this table from them (<see cref="ResumeRestoredIds"/>) — the local side
+/// included, whose own counter restarts with the process exactly like a
+/// rejoining guest's.
 /// Split out of ItemService when the 600-line gate demanded it.
 /// </summary>
 public sealed class ItemIdCoordinator : IDisposable, ISessionReset
@@ -39,10 +45,16 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 	/// <summary>Whether the inert-capture warning was already written for the current window.</summary>
 	private bool _emptyCaptureWarned;
 
-	/// <summary>Host side: each guest's item-id counter high-water mark (guest → host reports). Granted back on handshake completion — the guest resumes from watermark + 1.</summary>
+	/// <summary>Host side: each ID SPACE's counter high-water mark (guest → host reports), keyed by
+	/// <see cref="ItemInstanceIds.SpaceOf"/> — the value the ids themselves carry, never the full SteamId:
+	/// a restored row knows only its id's owner half, and a table keyed by the 17-digit account id could
+	/// not be addressed from it. Granted back on handshake completion — the member resumes from watermark + 1.</summary>
 	private readonly Dictionary<ulong, ulong> _watermarks = [];
 
-	/// <summary>Guest side: the host granted the id counter high-water mark (join/reconnect) — the adapter resumes the allocator from counter + 1.</summary>
+	/// <summary>This side's own resume point: the counter its allocator must resume from.
+	/// Raised by the host's grant on join/reconnect (guest side) and by a restore that
+	/// re-issued the archive's ids for the local SteamId — the same fact, so the adapter
+	/// has one consumer for it (<c>ItemIdAllocator.SetWatermark</c>, raise-only).</summary>
 	public event Action<ulong>? ItemIdWatermarkReceived;
 
 	public ItemIdCoordinator(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger log)
@@ -62,7 +74,7 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 	{
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
-			var watermark = _watermarks.TryGetValue(steamId, out var w) ? w : 0;
+			var watermark = _watermarks.TryGetValue(ItemInstanceIds.SpaceOf(steamId), out var w) ? w : 0;
 			GrantItemIdWatermark(steamId, watermark);
 		}
 	}
@@ -93,14 +105,16 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 		_log.LogInformation("[IdWatermark] granted {Counter} to {Peer}.", counter, targetSteamId);
 	}
 
-	/// <summary>The id counter high-water mark arrived: host records it (the reconnect grant point), guest applies it (resume from counter + 1).</summary>
+	/// <summary>The id counter high-water mark arrived: host records it in the reporter's id space (the reconnect
+	/// grant point), guest applies it (resume from counter + 1).</summary>
 	public void FireItemIdWatermarkReceived(ulong sender, ulong counter)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			if (!_watermarks.TryGetValue(sender, out var w) || counter > w)
+			var space = ItemInstanceIds.SpaceOf(sender);
+			if (!_watermarks.TryGetValue(space, out var w) || counter > w)
 			{
-				_watermarks[sender] = counter;
+				_watermarks[space] = counter;
 			}
 
 			return;
@@ -109,10 +123,103 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 		ItemIdWatermarkReceived?.Invoke(counter);
 	}
 
-	/// <summary>Session ended: id watermarks and the registration window are session-scoped — a new lobby's host records fresh grants from the new handshakes, and the guest's next world opens its own window.</summary>
+	/// <summary>
+	/// Host/solo: a restore re-issued the archive's ids. Every restored row names its
+	/// own instance id, and an id is (counter, id space) — so the archive states, per
+	/// id space, how far the PREVIOUS process's counter had run, while this process's
+	/// allocator starts at zero (the local one included: the counter is per process).
+	/// Seeding the watermarks from those ids is the rule the handshake edge already
+	/// implements, applied to the restore edge, so both directions resume from one
+	/// fact instead of two: the local side gets its resume point now (there is no
+	/// grant to itself on the wire), a member in the session is granted the raised
+	/// value on the spot — the restored character it is about to receive carries
+	/// those ids — and an absent member keeps it for its next handshake.
+	/// <para>
+	/// Raise-only, like every other writer of these counters: an id below a watermark
+	/// that is already recorded changes nothing, and the local event is idempotent
+	/// because the allocator's own resume only ever raises.
+	/// </para>
+	/// </summary>
+	internal void ResumeRestoredIds(IEnumerable<ulong> instanceIds)
+	{
+		var restored = new Dictionary<ulong, ulong>(); // id space → the highest counter the archive handed it
+		foreach (var instanceId in instanceIds)
+		{
+			if (instanceId == 0)
+			{
+				continue; // an unbound item carries no id — the world-gen determinism covers it
+			}
+
+			if (ItemInstanceIds.IsAwarded(instanceId))
+			{
+				// The synthesized namespace has a counter of its own: reading it as this one
+				// would resume the plain allocator inside that namespace.
+				continue;
+			}
+
+			var owner = ItemInstanceIds.OwnerOf(instanceId);
+			var counter = ItemInstanceIds.CounterOf(instanceId);
+			if (!restored.TryGetValue(owner, out var highest) || counter > highest)
+			{
+				restored[owner] = counter;
+			}
+		}
+
+		foreach (var entry in restored)
+		{
+			var owner = entry.Key;
+			var counter = entry.Value;
+			if (owner == ItemInstanceIds.SpaceOf(_session.LocalSteamId))
+			{
+				// This side's own allocator: the counter it must resume from. Counter 0 is
+				// a real resume point (the archive's first id), never "nothing to resume".
+				_log.LogInformation("[IdWatermark] the restored world already handed this side ids up to counter {Counter}; resuming the local allocator above them.", counter);
+				ItemIdWatermarkReceived?.Invoke(counter);
+				continue;
+			}
+
+			var recorded = _watermarks.TryGetValue(owner, out var w) ? w : 0;
+			if (counter <= recorded)
+			{
+				continue; // this member's own reports already reached higher — nothing to resume
+			}
+
+			_watermarks[owner] = counter;
+			if (_session.Role == SessionRole.Host && _session.SessionActive && HandshakenMemberIn(owner) is { } member)
+			{
+				GrantItemIdWatermark(member, counter);
+			}
+		}
+	}
+
+	/// <summary>The member whose allocations live in this id space, when it is in the session right now — the target a raised watermark has to reach without waiting for a handshake that will not come.</summary>
+	private ulong? HandshakenMemberIn(ulong space)
+	{
+		foreach (var member in _session.Members)
+		{
+			if (member.Handshaken && ItemInstanceIds.SpaceOf(member.SteamId) == space)
+			{
+				return member.SteamId;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Session ended: the registration window is session-scoped — a new lobby's host records fresh grants
+	/// from the new handshakes, and the guest's next world opens its own window.
+	/// <para>
+	/// The watermarks STAY. They are not a session fact: an id space's high-water mark belongs to the WORLD
+	/// the ids live in, and that world outlives a lobby — a host may continue the same world in a new one.
+	/// Forgetting them there is how an id gets re-issued: a member whose process restarted (its counter is
+	/// back at zero) would be granted 0 and hand out ids the kernel and the scene already hold. Keeping a
+	/// mark that is too high costs nothing (the resume is raise-only and the counter is 64 bits wide), so
+	/// the table only ever grows within a process.
+	/// </para>
+	/// </summary>
 	public void ResetSessionState()
 	{
-		_watermarks.Clear();
 		_carriedRegistration.Reset();
 		_registeredItems = 0;
 		_emptyCaptureWarned = false;

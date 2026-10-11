@@ -74,6 +74,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			_snapshots,
 			projectionHealth,
 			_restoredWorldItems,
+			_idCoordinator,
 			_arbitration,
 			_kernelProtocol,
 			FireItemMoveReceived);

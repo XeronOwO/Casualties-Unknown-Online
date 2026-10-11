@@ -1,10 +1,11 @@
 # Cross-player solid food from the game's own data
 
-- Status: Todo — Rejected (batch `20261008-a`: row 5's visual half is `unproven` — the run's only frame was
-  taken while the player was unconscious and under attack, so it proves nothing about the parked objects, and
-  the parked spot is inside solid rock at the map corner; every other row of the fifteen passes, and the
-  record names what closing this one needs)
-- Acceptance record: `docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md`
+- Status: Done — accepted by batch `20261011-i`: all fifteen rows pass, row 5's visual half on the machine
+  read after that run measured that a frame cannot carry it at the parked spot (*Row 5's visual half,
+  re-worded* below). Batch `20261008-a` had moved it back with that row `unproven` (its only frame was
+  taken while the player was unconscious and under attack).
+- Acceptance record: `docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261011-i.md`
+  (the first run: `…-20261008-a.md`)
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture
 - Parent: `docs/backlog/review/mod-cross-player-native-semantics.md` (Part B)
@@ -212,7 +213,8 @@ This table is the **census**, not a first pass: every call site in the adapters 
 - the presentation judgement: nothing visible, no dust or collision sound, **no item-side audio at all** (the
   Geiger counter's clicks and a gun's trigger/rack sounds are the ones a restored flag would start), no hover
   tooltip, no alt-hover label, **no light** (`LightItem` and the `Light2D` itself), no watch chatter
-  (`WatchScript`) — this is the check that the disabled components and the collider/renderer switches really took;
+  (`WatchScript`) — this is the check that the disabled components and the collider/renderer switches really took
+  (batch `20261011-i` judged its frame half on the machine read: see *Row 5's visual half, re-worded* below);
 - the local-effect judgement: the fluid table at the parked spot and at the map edge is unchanged (`WaterContainerItem`'s clamped read — measured with a **damaged** bottle, since a pristine one does not drink), no entity or explosion appears at the parked spot, and the parked objects' condition tracks the data rather than a locally pinned 0 (`BatteryItem`);
 - the prefab facts that are asset data rather than C#: which layer an item collider sits on, trigger vs solid (`reversing/` holds no prefab data);
 - whether a standing object's local decay actually reaches the zero-condition destroy between two data refreshes;
@@ -221,6 +223,19 @@ This table is the **census**, not a first pass: every call site in the adapters 
   component state onto a live copy is exactly how a script whose dependencies only exist on the owner's machine
   starts throwing, and an NRE storm is a per-frame log line nothing else in this list would notice (the window is
   short — one snapshot of divergence is enough — so a quiet run is not a proof unless the run covered each family).
+
+**Row 5's visual half, re-worded (batch `20261011-i`).** The row above asks for a frame-level "nothing
+visible" judgement at the parked spot. That batch measured that a frame cannot carry it there, so the half is
+judged on the machine read — every `Renderer` and every `Light2D` in every standing subtree disabled, which is
+the check the row's own sentence names. The measurements, all from that run: the parked spot is inside solid
+rock (columns x=0…6 read block 14 solid from y=30 down); the terrain tilemap that covers it draws at sorting
+order **1000** while an unheld item's sprite carries order **0**, so nothing unheld is drawn over the rock
+whatever its own renderer says; two window captures taken back to back with no state change differ over 44% of
+the frame's pixels; and both controls the run tried — a real item moved onto the spot, and all seven renderers
+plus both lights forced on — landed inside that noise floor. The machine half was already the row's own intent,
+and the census is read long after creation, so a component that builds its own renderer inside `Start` would
+show up as a larger renderer count. A future design that parks the copies where a camera can see them brings
+the frame half back, and this paragraph is what it starts from.
 
 ## The category, landed (step 1 of §6)
 

@@ -2911,6 +2911,66 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   every restored fact`) instead of trusting `inWorld`; the first driven act is then the probe's own, not the
   restore's casualty.
 
+## 2026-10-11 — Batch `20261011-i`: two window captures seconds apart are not an A/B
+
+- Symptom: a visual row was planned as an A/B — capture a frame, change one thing (a real item moved onto the
+  spot; then the standing objects' own renderers and lights forced on), capture again, read the difference. Both
+  attempts failed: the forced-on frame and the restored frame differed over 297,052 pixels, against a **control**
+  of two captures taken back to back with NO state change in between differing over 284,218 of 637,332 pixels.
+- Cause: the scene is live. This run's own probes read 26 particle renderers, `Rain`, `Fog` and a moving player
+  at the point under test, the host was freezing in an ice biome (a per-frame state the frame carries), and the
+  world area's mean brightness moved from 4.2 to 125.8 across the session — so the frame-to-frame difference
+  floor is larger than a small object's contribution, and no one-switch change can be isolated by subtraction.
+- Change: budget a visual row as ONE frame read against a machine read, never as a two-frame comparison. Measure
+  the noise floor first when a comparison still looks like the only way (two captures, no change between them),
+  and write the number into the record; `.acceptance/20261011-i/n1-noise-a.png` / `n2-noise-b.png` are that
+  measurement for this machine.
+
+## 2026-10-11 — Batch `20261011-i`: the terrain's sorting order decides whether a frame can carry a visual row at all
+
+- Symptom: row 5 of `mod-cross-player-solid-food-semantics` ("nothing visible at the parked spot") had been left
+  `unproven` because its only frame was taken with the player unconscious. This run fixed the player's state (the
+  vitals read at the capture said `consciousness 96.2`, `brainHealth 100`) and captured the spot with the camera
+  on it — and the row still could not be carried by a frame.
+- Cause: the spot is inside solid rock (the columns read block 14 solid from y=30 down) and the terrain tilemap
+  that covers it draws at sorting order **1000**, while an unheld item's sprite carries order **0** — so an item
+  standing there is behind the rock whatever its own renderer says, and a frame cannot distinguish "the switches
+  took" from "the rock covers it". The run's own control (a real item moved onto the spot, renderer and light
+  enabled) was invisible for the same reason.
+- Change: a "nothing visible" row is planned against the draw stack, not against a camera position. The new
+  committed recipe `tools/acceptance/recipes/draw-at.cs` answers it in one eval — every enabled renderer whose
+  bounds contain a world point, with its sorting layer and order — and a spot whose covering tilemap outranks the
+  object's own order is judged on the machine read, with the ticket re-worded to say so (the ticket carries the
+  measurement, and the frame half returns if a future design parks the objects where a camera can see them).
+
+## 2026-10-11 — Batch `20261011-i`: a mod-API ticket waits for a mod that exercises what it added
+
+- Symptom: two tickets in `review/` whose end-to-end rows need a live session (`mod-authored-effects`,
+  `mod-item-authored-actions`) could not be batched although both clients were up and the API surface was
+  deployed: the sample mod in this tree declares no item content beyond the dressing, and the dressing declares
+  neither `Usable` nor `UsableOnLimb` — so placing the built DLL would have exercised the registration rails and
+  nothing else.
+- Cause: the dependency table has no row for "a mod that calls the API under acceptance". Deploying a DLL that
+  registers nothing is not a capability; the tickets' own Limits say the end-to-end half needs a mod that
+  registers an action, and nobody builds one inside a batch (a batch changes no product code).
+- Change: recorded as this batch's capability finding. A batch that judges a mod-API ticket names the mod it
+  loads and what that mod registers BEFORE the session; when no existing sample registers it, the row stays
+  `unproven` and the gap is a fixture to build in a development cycle, not something to approximate with a
+  fixture that registers nothing.
+
+## 2026-10-11 — Batch `20261011-i`: a probe helper invoked through `powershell -File` binds no array arguments
+
+- Symptom: a probe template with two placeholders failed three different ways in a row — `-Arg` "specified more
+  than once", then the second value binding to `-TimeoutMs` (`cannot convert "y=4" to Int32`), then a
+  comma-joined value substituting only the first placeholder.
+- Cause: `powershell -File script.ps1 -Arg a b` cannot bind a `[string[]]` parameter — the nested interpreter
+  takes `a` for `-Arg` and `b` positionally — and `-Arg a,b` is parsed as the array only when the comma survives
+  the outer parse, which it does not when the outer call already splatted its own array.
+- Change: call the local helper script IN-PROCESS (`& .acceptance/<batch>/probe.ps1 -Url … -Arg $array`), where
+  array binding is ordinary PowerShell; keep `powershell -File` for scripts whose contract is "ASCII, no
+  dependent modules" (`preflight.ps1`, `session-environment.ps1`), which is what those files are written for.
+
+
 
 
 

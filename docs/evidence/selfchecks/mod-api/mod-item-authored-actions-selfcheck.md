@@ -117,7 +117,7 @@ change to carry a mod item).
   reads `Item.GlobalItems`; a case would need the game's table.
 - **A mod-authored use action is not claimed by the cross-player solid-food chain.** That chain decides
   membership by reading the item's own delegate BODY for a call to `Body.Eat` / `Body.Drink`
-  (`docs/backlog/todo/mod-cross-player-solid-food-semantics.md`, step 3), and an installed invoker delegate
+  (`docs/backlog/done/mod-cross-player-solid-food-semantics.md`, step 3), and an installed invoker delegate
   contains no such call. A mod item that feeds a body is used locally. Named in the ticket's Limits rather
   than papered over with a weaker membership test.
 - **The `decayMultiplier`/kinematics tail of the census is reachable only through the hatch**, where a mod

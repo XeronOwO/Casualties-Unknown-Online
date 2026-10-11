@@ -164,7 +164,7 @@ accessors or goes to the hatch.
   acceptance row.
 - **A mod-authored use action is not claimed by the cross-player solid-food chain.** That chain decides
   membership by reading the item's own delegate BODY for a call to `Body.Eat` / `Body.Drink`
-  (`docs/backlog/todo/mod-cross-player-solid-food-semantics.md` step 3), and an installed invoker delegate
+  (`docs/backlog/done/mod-cross-player-solid-food-semantics.md` step 3), and an installed invoker delegate
   has no such call in it. A mod item that feeds a body is therefore used locally; making it feedable across
   players needs its own decision about how a registration declares that intent.
 - **The named-operation surface is not the whole census.** The rule stated above leaves movement,

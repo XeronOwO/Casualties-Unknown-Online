@@ -41,6 +41,31 @@ Unresolved detail, stated rather than papered over: why the SAME stale DLL regis
 failed on the other is not explained. The observable fact is "the stale build breaks the handshake", not a
 mechanism. `tools/deploy.ps1` does not deploy the example mod at all, which is how it drifted — residual 2.
 
+## Second attempt (same batch): the driver landed, and it found where the chain stops
+
+`tools/acceptance/recipes/grip-slip-drive.cs` (commit `11567fa0`) now drives the slip through the plugin's
+own seams by reflection, in separate modes so a failure names the seam: `probe` (the bridge, its domain
+field and the session's member list), `open`, `start`, `break`, and `auto` for the last three in one call.
+What it established on a live pair:
+
+- the reflection path resolves — `GameAdapterBridge` → its `<domains>P` field → `SessionService` →
+  `Members`, whose `SteamId` is a FIELD rather than a property — and the peer id comes out as
+  `<guest>` against a local `<host>`;
+- `RemoteMedicalView.Open` followed by `TryStartRemoteShrapnelSpecial` starts the shared session: the host
+  logs `[Shrapnel] session 2 created for <guest> limb 1 (3 pieces)` and `operator ... joined session 2`;
+- the minigame's held slot plus its public `BreakGrasp()` really does run the native effect on the
+  DISPLAYED limb: the driven slip moved it by `5.621` skin / `0.555` bleed / `11.353` pain, all inside the
+  native `4-6` / `0.4-1` / `9-16` ranges, which is the first half of row 6 (what the operator's screen
+  holds).
+
+**Where it stops.** The session does not survive the call that starts it: the host log shows
+`operator ... left session 2 (Cancelled)` in the SAME millisecond as `session 2 created`, so by the time
+`BreakGrasp` runs the minigame is already gone and the patch's `IsActiveShrapnelMinigame` guard refuses.
+The authority therefore never drew, and rows 1, 6 and 7 are still unjudged. Whether the cancel comes from
+this driver opening and starting inside one call, or from something in the chain a real mouse gesture would
+not hit, is NOT established — finding it is the next step, and it may be a real defect rather than a
+driver artefact.
+
 ## Row verdicts
 
 Every behavioural row is `blocked`, and the blocking condition is ONE missing capability rather than a

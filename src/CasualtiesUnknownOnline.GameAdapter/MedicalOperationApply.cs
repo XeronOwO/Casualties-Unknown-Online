@@ -83,6 +83,19 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 		CharacterItemMsg? awardedItem,
 		bool terminal)
 	{
+		// A message that names no kind is an omission, never an injection. The two branches below ARE
+		// the difference between "this client runs the effect" and "this client replays the authority's
+		// snapshot", and the generic one is the safe half, so an unnamed kind takes it — loudly. That
+		// omission is what made the shared shrapnel session's limb write vanish on 2026-10-11: the
+		// state read as an injection, carried no dose, and did nothing at all, silently.
+		if (kind == MedicalOperationKind.None)
+		{
+			domains.Log.LogWarning(
+				"[MedicalOps] operation {OperationId} ({Message}) names no operation kind — replaying the authoritative snapshot; the sender omitted the field.",
+				operationId,
+				terminal ? "end" : "state");
+		}
+
 		if (terminal)
 		{
 			RemoteMedicalOperationHandler.OnHostTerminal(operationId);

@@ -51,9 +51,13 @@ public sealed class MedicalOperationEndCommittedMsg
 	[ProtoMember(11)]
 	public List<LiquidStackMsg> AppliedDose { get; set; } = [];
 
-	/// <summary>The operation category; non-injection/shrapnel clients use it to route active local minigame cleanup/apply.</summary>
+	/// <summary>
+	/// The operation category. The receiving client ROUTES on it — the target's own body write and
+	/// the display/fact-table update are two separate branches — so every builder names its own kind
+	/// and the default is <see cref="MedicalOperationKind.None"/> rather than a plausible injection.
+	/// </summary>
 	[ProtoMember(13)]
-	public MedicalOperationKind Kind { get; set; } = MedicalOperationKind.Injection;
+	public MedicalOperationKind Kind { get; set; }
 
 	/// <summary>Generic final action progress for Stage 3 actions (bandage consumed fraction, amputation cut).</summary>
 	[ProtoMember(14)]

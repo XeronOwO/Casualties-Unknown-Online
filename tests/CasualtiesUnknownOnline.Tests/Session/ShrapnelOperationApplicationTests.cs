@@ -51,6 +51,43 @@ public class ShrapnelOperationApplicationTests
 	}
 
 	[Fact]
+	public void ShrapnelStateAndTerminal_CarryTheShrapnelKind()
+	{
+		var w = CreateThreeNode();
+		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		MarkInWorld(w.Host);
+		MarkInWorld(w.Guest1);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var g1Ops = Ops(w.Guest1);
+		g1Ops.StartAckReceived += m => ack = m;
+		g1Ops.SendShrapnelStartRequest(HostId, 0, 1);
+		Assert.NotNull(ack);
+
+		var states = new List<MedicalOperationStateMsg>();
+		var ends = new List<MedicalOperationEndCommittedMsg>();
+		var hostOps = Ops(w.Host);
+		hostOps.StateReceived += states.Add;
+		hostOps.EndCommittedReceived += ends.Add;
+
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
+		g1Ops.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, BreakGrasp = true, GripSlipNonce = 1 });
+		g1Ops.SendShrapnelEndRequest(ack.OperationId);
+
+		// The receiving client ROUTES on this field: a state that does not name Shrapnel takes the
+		// injection branch, and a shrapnel state carries no AppliedDose, so the authority's own limb
+		// write is dropped in silence — the target's own body keeps the values its next 1 Hz report
+		// carries straight back over the authority's copy. Every message of the session must name its
+		// kind, not just the terminal (which always did, and is why the loss is invisible until then).
+		var shrapnelStates = states.Where(m => m.ShrapnelPieces.Count > 0).ToList();
+		Assert.NotEmpty(shrapnelStates);
+		Assert.All(shrapnelStates, m => Assert.Equal(MedicalOperationKind.Shrapnel, m.Kind));
+		Assert.Equal(MedicalOperationKind.Shrapnel, Assert.Single(ends).Kind);
+	}
+
+	[Fact]
 	public void BreakGrasp_AppliesLimbDamageAndReleasesPiece()
 	{
 		var w = CreateThreeNode();

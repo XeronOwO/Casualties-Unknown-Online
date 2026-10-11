@@ -20,6 +20,7 @@ public sealed class MedicalOperationStartRequestMsg
 	[ProtoMember(3)]
 	public int LimbIndex { get; set; } = -1;
 
+	/// <summary>The operation category; the builder always names it (the default is <see cref="MedicalOperationKind.None"/>).</summary>
 	[ProtoMember(4)]
-	public MedicalOperationKind Kind { get; set; } = MedicalOperationKind.Injection;
+	public MedicalOperationKind Kind { get; set; }
 }

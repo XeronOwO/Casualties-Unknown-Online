@@ -140,14 +140,19 @@ internal sealed class OtherMedicalOperationSessionService(
 			return;
 		}
 
-		if (!IsStage3Kind(msg.Kind))
+		var target = msg.TargetSteamId;
+		if (sender == target || sender == 0 || target == 0)
 		{
 			return;
 		}
 
-		var target = msg.TargetSteamId;
-		if (sender == target || sender == 0 || target == 0)
+		if (!IsStage3Kind(msg.Kind))
 		{
+			// Answered, not dropped. This family is the facade's fallback for every kind that is neither
+			// an injection nor a fragment pull, so an unnamed or unknown kind lands HERE — and it used to
+			// return in silence: no log, no ack, and an operator waiting for one. That silence is also why
+			// the None sentinel alone could not make such a message audible (found in review, 2026-10-11).
+			RejectStart(sender, target, msg, "Unsupported operation.");
 			return;
 		}
 

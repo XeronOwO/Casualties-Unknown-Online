@@ -84,6 +84,10 @@ internal sealed class MedicalOperationInjectionApplier(
 			TargetSteamId = session.Target,
 			ItemInstanceId = session.ItemInstanceId,
 			LimbIndex = session.LimbIndex,
+			// Named rather than inherited from the message's default: an omission reads as Injection on
+			// the receiving client, which is right HERE and silently wrong for any other family
+			// (2026-10-11, the shrapnel state). The sentinel makes the two cases distinguishable.
+			Kind = MedicalOperationKind.Injection,
 			CommittedMl = session.CommittedMl,
 			Sequence = session.Sequence,
 			ItemAfter = PlayerCharacterAccess.CloneItem(newItem),
@@ -133,6 +137,7 @@ internal sealed class MedicalOperationInjectionApplier(
 			TargetSteamId = session.Target,
 			ItemInstanceId = session.ItemInstanceId,
 			LimbIndex = session.LimbIndex,
+			Kind = MedicalOperationKind.Injection,
 			CommittedMl = session.CommittedMl,
 			TerminalReason = reason,
 			ItemAfter = itemAfter,

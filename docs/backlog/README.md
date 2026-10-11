@@ -86,6 +86,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
+- [A state that names no kind reads as an injection](review/medical-state-names-no-kind.md) — **Critical** — the shrapnel limb write was dropped in silence.
 - [Mod-authored effects](review/mod-authored-effects.md) — **High** — the code registration face and the named operations it writes through.
 - [A declared behaviour with no function](review/mod-declared-behaviour-with-no-function.md) — **High** — a declared use or effect reports instead of throwing.
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.

@@ -165,6 +165,12 @@ internal sealed class ShrapnelSessionStateWriter(
 			TargetSteamId = shrapnel.Target,
 			ItemInstanceId = itemInstanceId,
 			LimbIndex = shrapnel.LimbIndex,
+			// Named, and not left to the default: the receiving client routes on the kind, and a state
+			// that does not name Shrapnel takes the injection branch — which a shrapnel state cannot
+			// satisfy (it carries no AppliedDose), so the write below would be dropped in silence while
+			// the target's next 1 Hz report carried its un-damaged limb straight back over the
+			// authority's own copy. Every message of this session names it, the terminal included.
+			Kind = MedicalOperationKind.Shrapnel,
 			Sequence = shrapnel.Sequence,
 			ShrapnelPieces = BuildPieces(shrapnel),
 			ItemAfter = itemAfter,

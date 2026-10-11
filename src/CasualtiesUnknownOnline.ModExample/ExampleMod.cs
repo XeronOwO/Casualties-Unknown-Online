@@ -238,7 +238,13 @@ public sealed class ExampleMod : ICuoMod
 
 		public int SpawnFrequency => 1;
 
-		public string TemplateId => "";
+		/// <summary>
+		/// A vanilla prefab base, so the adapter can materialize a runtime object for
+		/// this declaration: without one the dressing is static item info only, and no
+		/// acceptance row can read a live instance's own presentation (its hover text,
+		/// for example). It is also the shape a real content mod ships.
+		/// </summary>
+		public string TemplateId => "bandage";
 
 		public List<string> SpawnComponents => [];
 

@@ -90,6 +90,43 @@
 		return report + "],\"localSteamId\":\"" + (local != null ? local.ToString() : "?") + "\"}";
 	}
 
+	if (mode == "patches") {
+		// Decisive check: is the grip-slip patch actually attached to the native method? Every guard the
+		// patch asks reported true and the authority still logged nothing, so the question is whether the
+		// prefix/postfix run AT ALL.
+		var breakMethod = typeof(ShrapnelMinigame).GetMethod("BreakGrasp", flags);
+		if (breakMethod == null) { return "{\"ok\":false,\"error\":\"no-breakgrasp-method\"}"; }
+		var report = "{\"ok\":true,\"mode\":\"patches\",\"prefixes\":[";
+		var patchInfo = HarmonyLib.Harmony.GetPatchInfo(breakMethod);
+		var firstEntry = true;
+		if (patchInfo != null) {
+			foreach (var patch in patchInfo.Prefixes) {
+				if (!firstEntry) { report += ","; }
+				firstEntry = false;
+				report += "\"" + patch.owner + ":" + (patch.PatchMethod != null ? patch.PatchMethod.DeclaringType.Name + "." + patch.PatchMethod.Name : "?") + "\"";
+			}
+		}
+		report += "],\"postfixes\":[";
+		firstEntry = true;
+		if (patchInfo != null) {
+			foreach (var patch in patchInfo.Postfixes) {
+				if (!firstEntry) { report += ","; }
+				firstEntry = false;
+				report += "\"" + patch.owner + ":" + (patch.PatchMethod != null ? patch.PatchMethod.DeclaringType.Name + "." + patch.PatchMethod.Name : "?") + "\"";
+			}
+		}
+		report += "],\"finalizers\":[";
+		firstEntry = true;
+		if (patchInfo != null) {
+			foreach (var patch in patchInfo.Finalizers) {
+				if (!firstEntry) { report += ","; }
+				firstEntry = false;
+				report += "\"" + patch.owner + "\"";
+			}
+		}
+		return report + "]}";
+	}
+
 	var viewType = (System.Type)null;
 	for (var i = 0; i < assemblies.Length; i++) {
 		try { viewType = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.Character.RemoteMedicalView", false); } catch { viewType = null; }
@@ -181,6 +218,18 @@
 		var skinBefore = before.skinHealth;
 		var bleedBefore = before.bleedAmount;
 		var painBefore = before.pain;
+		// Probe the patch's own entry point with the very argument the patch would pass, so a null return
+		// names ITS cause rather than leaving "the patch ran but said nothing" as the answer.
+		var tryBeginMethod = handlerType.GetMethod("TryBeginGripSlip", flags);
+		var tryBeginText = "no-method";
+		if (tryBeginMethod != null) {
+			var probeSlip = tryBeginMethod.Invoke(null, new object[] { minigame });
+			tryBeginText = probeSlip == null ? "null" : "slip";
+			if (probeSlip != null) {
+				var closeMethod = probeSlip.GetType().GetMethod("Close", flags);
+				if (closeMethod != null) { closeMethod.Invoke(probeSlip, null); }
+			}
+		}
 		minigame.BreakGrasp();
 		// DIAGNOSTIC: report the slip the way the patch would have. If the authority's own line appears
 		// after this, the patch did not run and the authority's chain is fine; if it does not, the refusal
@@ -211,8 +260,13 @@
 				senderPresent = senderDelegate != null;
 				if (activeSession == null) { activeOpIdText = "no-active-session"; }
 				else {
+					// The CLIENT-side session type is RemoteShrapnelUseSession, whose OperationId is a
+					// PROPERTY; reading it as a field is what produced a false "no-opid-field" before.
+					var opIdProp = activeSession.GetType().GetProperty("OperationId", flags);
 					var opIdField = activeSession.GetType().GetField("OperationId", flags);
-					activeOpIdText = opIdField != null ? opIdField.GetValue(activeSession).ToString() : "no-opid-field";
+					if (opIdProp != null) { activeOpIdText = opIdProp.GetValue(activeSession, null).ToString(); }
+					else if (opIdField != null) { activeOpIdText = opIdField.GetValue(activeSession).ToString(); }
+					else { activeOpIdText = "no-opid:" + activeSession.GetType().Name; }
 				}
 			} else { activeOpIdText = "no-handler-type"; }
 		} catch (System.Exception diagError) { activeOpIdText = "diag:" + diagError.GetType().Name; }
@@ -225,6 +279,7 @@
 			+ ",\"minigameActive\":" + (minigameActive is bool ma && ma ? "true" : "false")
 			+ ",\"activeOpId\":\"" + activeOpIdText + "\""
 			+ ",\"senderPresent\":" + (senderPresent ? "true" : "false")
+			+ ",\"tryBegin\":\"" + tryBeginText + "\""
 			+ ",\"skinDelta\":" + num(skinBefore - after.skinHealth)
 			+ ",\"bleedDelta\":" + num(after.bleedAmount - bleedBefore)
 			+ ",\"painDelta\":" + num(after.pain - painBefore) + "}";

@@ -127,6 +127,28 @@ while the same handler answered `minigameActive: true` — i.e. the probe was re
 than the one the guard queries. **A reflection diagnostic has to prove it reached the same instance the
 production code uses**, or it reports its own mistake as a finding.
 
+## Sixth attempt: the patch runs, and the session has no operation id
+
+`mode=patches` settles the first question — `BreakGraspPatch.Prefix`, `.Postfix` and its finalizer ARE
+attached to the native `BreakGrasp`. Probing the patch's own entry point (`TryBeginGripSlip`, invoked with
+the very minigame the patch would pass) returns NULL, and the corrected send-side probe says why:
+
+```
+"viewOpen": true, "minigameActive": true, "activeOpId": "0", "senderPresent": true, "tryBegin": "null"
+```
+
+**The client's session never received the operation id the host allocates**, so `TryBeginGripSlip`'s first
+guard (`session.OperationId == 0`) returns before the window is ever opened — which is why the authority
+logs nothing at all: there is nothing to log. That is the root cause of the whole chain of "the report
+never arrives", and it is one probe away from an answer:
+`RemoteShrapnelOperationHandler.OnStartAckReceived` is what assigns `session.OperationId`, so either it
+does not run or its target/item guard rejects the ack it gets. **This one may be a real defect rather than
+a driver artefact**, and it is not yet known which.
+
+Note the diagnostic that misled a cycle: reading `OperationId` as a FIELD on the active session returned
+`no-opid-field`, because the client-side session type is `RemoteShrapnelUseSession`, whose `OperationId` is
+a PROPERTY. The probe now reads both and names the type when neither exists.
+
 ## Row verdicts
 
 Every behavioural row is `blocked`, and the blocking condition is ONE missing capability rather than a

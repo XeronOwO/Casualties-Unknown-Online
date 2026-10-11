@@ -12,7 +12,8 @@
 - Related: `docs/architecture/save-archive-format.md` §3.4 and §6.1 (what a cut carries and where a
   restore lands), `docs/evidence/sync-coverage-matrix.md` row I8,
   `review/save-multiplayer-restore-and-backups.md`, `review/save-mid-run-consistent-cut.md`,
-  `todo/id-resume-sources-still-unseeded.md` (the two sources this landing does not read).
+  `review/id-resume-sources-still-unseeded.md` (the two sources this landing did not read; both landed
+  2026-10-11, and that change is what moved the seed to `WorldRestoreApplier.TryApply`).
 
 ## The claim, reproduced before it was fixed
 
@@ -39,7 +40,10 @@ id the restored world already held:
 One live id, two live objects: the kernel refused the duplicate spawn, and the scene index resolved the
 id to whichever object registered last. The probe, its artifacts and the same claim as failing
 regression tests are recorded in the cycle's local artifact directory (`probe-prefix-red.md` in it); the
-four tests below failed on the unfixed tree and pass now.
+tests that failed on the unfixed tree pass now. (Those cases were driven through a synthetic
+`kernel.Restore` when this landing made them; `review/id-resume-sources-still-unseeded.md` moved the seed
+out of the kernel event, so they now play a world, cut it and continue it in a second process — the same
+claim through the seam the game uses.)
 
 ## What landed
 
@@ -47,11 +51,11 @@ four tests below failed on the unfixed tree and pass now.
 |---|---|---|
 | 1 | the id format in one place, including that the owner half is the account id's LOW 32 bits and that the synthesized-item namespace owns a high bit | `Runtime/Session/Items/ItemInstanceIds.cs` (`Compose`/`CounterOf`/`SpaceOf`/`OwnerOf`/`AwardedHighBit`/`IsAwarded`) |
 | 2 | the resume: per-id-space high-water marks seeded from the restored ids, the local allocator resumed on the spot, present members granted, absent members kept for their handshake | `ItemIdCoordinator.ResumeRestoredIds` |
-| 3 | the seam: the restored checkpoint's own rows, at the click, before any generation can allocate | `ItemKernelProjectionWiring.OnCheckpointRestored` (host/solo branch) |
+| 3 | the seam: the archive's ids, read at the click before any generation can allocate (this landing read the checkpoint's rows; `review/id-resume-sources-still-unseeded.md` moved the rule to the one seam that holds BOTH of the archive's id carriers) | `WorldRestoreApplier.TryApply` → `IRestoredItemIdSeed` → `ItemIdCoordinator.ResumeRestoredIds` |
 | 4 | one consumer on the adapter side — the watermark the host's grant already arrives on | `IItemControl.ItemIdWatermarkReceived` → `GameAdapterSessionBinding.OnItemIdWatermark` → `ItemIdAllocator.SetWatermark` (unchanged; raise-only) |
 | 5 | the marks surviving a session boundary, because they belong to the world the ids live in | `ItemIdCoordinator.ResetSessionState` no longer clears them |
-| 6 | every composer using the format owner, so encode and decode cannot drift | `ItemIdAllocator.Next`, `OtherMedicalRemovalApplier.NextAwardedItemId` |
-| 7 | the rule under tests that can see it (the fixture's account ids are account-sized) | `ItemIdCoordinatorTests` (4 cases) and `ItemSimWorld.Create`'s account-id parameters |
+| 6 | every composer using the format owner, so encode and decode cannot drift | `ItemIdAllocator.Next`, and — since `review/id-resume-sources-still-unseeded.md` — `ItemIdCoordinator.NextAwardedItemId` (the synthesized mint this landing's `OtherMedicalRemovalApplier.NextAwardedItemId` became) |
+| 7 | the rule under tests that can see it (the fixture's account ids are account-sized) | `ItemIdCoordinatorTests` — the restore half is five `AContinuedWorld_*` cases plus one foreign-space case, all driven through a real cut + continue (the suite's other two cases are wire-level and the format contract, which do not) — and `ItemSimWorld.Create`'s account-id and saves-root parameters |
 
 ## Sibling direction (the ticket's step 3)
 
@@ -80,13 +84,13 @@ adversarial review caught it, and the tests now use account-sized ids so the mis
   everything a mid-run cut holds — world, carried, contained and worn). The archive's second id carrier,
   `characters/<playerKey>.json`'s `CharacterItemMsg.InstanceId`, is not read: for the probe's own archive
   the character file's ids were a subset of the item table's, but that subset relation is not proved for
-  a guest id that reached the 1 Hz character report before its kernel registration — filed as
-  `todo/id-resume-sources-still-unseeded.md`, with the second gap below.
+  a guest id that reached the 1 Hz character report before its kernel registration — CLOSED by
+  `review/id-resume-sources-still-unseeded.md` (the seed now reads both carriers).
 - **The host's synthesized-item namespace has a counter of its own** (`OtherMedicalRemovalApplier`'s
   awarded splint/tourniquet ids, `AwardedHighBit | counter | space`). Those ids are skipped by the resume
   — reading their counter as the plain one would push the allocator into that namespace — and their own
-  counter is still per process, so a continued world can re-issue an awarded id. Same family, filed in
-  the same ticket.
+  counter was per process, so a continued world could re-issue an awarded id. CLOSED by the same sibling
+  ticket (the counter moved to `ItemIdCoordinator` and resumes from the archive's awarded ids).
 - **A member whose process restarted is bounded by what the host last recorded**, so a watermark report
   swallowed in the window before that crash still grants a stale value. The archive seeds a world
   continue; a mid-session crash does not.

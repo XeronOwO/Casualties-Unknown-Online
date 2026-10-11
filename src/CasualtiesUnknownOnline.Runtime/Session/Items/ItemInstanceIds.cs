@@ -9,22 +9,24 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// allocated, and the id space is therefore per account.
 ///
 /// The Game Adapter and the interaction services COMPOSE an id when they allocate
-/// (<c>ItemIdAllocator</c>, <c>OtherMedicalRemovalApplier</c>); the Runtime READS the
-/// halves when it must know whose counter an id came from — the per-space watermarks
-/// and the resume point a restore seeds from the archive's own rows
-/// (<see cref="ItemIdCoordinator"/>). Both directions live here so the encode and the
-/// decode cannot drift apart — and so that no caller compares an id's owner half
-/// against a full SteamId, which never matches: the account id is 17 digits, and its
-/// low 32 bits are one of <see cref="SpaceOf"/>'s values.
+/// (<c>ItemIdAllocator</c> for the plain counter, <c>ItemIdCoordinator.NextAwardedItemId</c>
+/// for the synthesized namespace); the Runtime READS the halves when it must know whose
+/// counter an id came from — the per-space watermarks, and the resume point a restore seeds
+/// from the ids an archive carries in BOTH of its carriers (<see cref="ItemIdCoordinator"/>,
+/// which the save layer feeds through <see cref="IRestoredItemIdSeed"/>). Both directions live
+/// here so the encode and the decode cannot drift apart — and so that no caller compares an
+/// id's owner half against a full SteamId, which never matches: the account id is 17 digits,
+/// and its low 32 bits are one of <see cref="SpaceOf"/>'s values.
 /// </summary>
 internal static class ItemInstanceIds
 {
 	/// <summary>
 	/// The high bit that separates the host's synthesized-item namespace from the plain
-	/// counter space (<c>OtherMedicalRemovalApplier</c> awards a removed splint or
-	/// tourniquet from its own counter). An id with this bit is NOT an ordinary
-	/// allocation: its counter is a different counter, so a resume point read out of an
-	/// archive must not feed it to the plain allocator.
+	/// counter space (a removed splint or tourniquet awarded to the operator:
+	/// <c>OtherMedicalRemovalApplier</c>, minted by <see cref="ItemIdCoordinator.NextAwardedItemId"/>).
+	/// An id with this bit is NOT an ordinary allocation: its counter is a different counter, so a
+	/// resume point read out of an archive must not feed it to the plain allocator — and its own
+	/// counter must be read with <see cref="AwardedCounterOf"/>.
 	/// </summary>
 	internal const ulong AwardedHighBit = 1UL << 63;
 
@@ -33,6 +35,15 @@ internal static class ItemInstanceIds
 
 	/// <summary>Which counter of its space the id was allocated from.</summary>
 	internal static ulong CounterOf(ulong instanceId) => instanceId >> 32;
+
+	/// <summary>
+	/// Which counter of its space a SYNTHESIZED id was allocated from: the same
+	/// halves as <see cref="CounterOf"/>, with the namespace bit masked off. An
+	/// awarded id's counter is its OWN counter, so reading it with
+	/// <see cref="CounterOf"/> would hand back a number (bit 63 included) that no
+	/// counter ever reached.
+	/// </summary>
+	internal static ulong AwardedCounterOf(ulong awardedInstanceId) => (awardedInstanceId & ~AwardedHighBit) >> 32;
 
 	/// <summary>
 	/// The id space an account's allocations live in: the low 32 bits of its account id.

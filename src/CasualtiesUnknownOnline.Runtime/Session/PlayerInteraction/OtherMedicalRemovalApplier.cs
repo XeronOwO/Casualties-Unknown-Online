@@ -15,15 +15,16 @@ internal sealed class OtherMedicalRemovalApplier(
 	PlayerCharacterAccess access,
 	IItemControl items,
 	ItemKernelAuthority kernelAuthority,
+	ItemIdCoordinator itemIds,
 	ISessionControl session,
 	ILogger log)
 {
 	private readonly PlayerCharacterAccess _access = access;
 	private readonly IItemControl _items = items;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
+	private readonly ItemIdCoordinator _itemIds = itemIds;
 	private readonly ISessionControl _session = session;
 	private readonly ILogger _log = log;
-	private ulong _nextAwardedItemId;
 
 	internal bool Remove(OtherMedicalOperationSession session)
 	{
@@ -105,7 +106,7 @@ internal sealed class OtherMedicalRemovalApplier(
 
 		var awarded = new CharacterItemMsg
 		{
-			InstanceId = NextAwardedItemId(),
+			InstanceId = _itemIds.NextAwardedItemId(),
 			ItemId = itemId,
 			Condition = condition,
 			SlotIndex = slot,
@@ -118,12 +119,10 @@ internal sealed class OtherMedicalRemovalApplier(
 			itemId, awarded.InstanceId, session.Operator, slot);
 	}
 
-	// The id comes from the format's synthesized namespace (<see cref="ItemInstanceIds.AwardedHighBit"/>):
-	// normal item ids are (counter, account-low) and never set bit 63, so this namespace cannot collide
-	// with guest/host-generated items in this session.
-	private ulong NextAwardedItemId() =>
-		ItemInstanceIds.AwardedHighBit | (_nextAwardedItemId++ << 32) | ItemInstanceIds.SpaceOf(_session.LocalSteamId);
-
+	// The id comes from the format's synthesized namespace (<see cref="ItemInstanceIds.AwardedHighBit"/>),
+	// minted by its owner (<see cref="ItemIdCoordinator.NextAwardedItemId"/>) so that the counter and the
+	// resume point a restore seeds stay one fact: normal item ids are (counter, account-low) and never
+	// set bit 63, so this namespace cannot collide with guest/host-generated items in this session.
 	private void SyncOperatorAwardedItem(ulong operatorId, CharacterItemMsg item)
 	{
 		if (operatorId == _session.LocalSteamId)

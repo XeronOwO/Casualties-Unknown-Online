@@ -492,18 +492,23 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   and a completed restore must not be re-reported. The generation a restore drives is
   also the one generation whose layer-boundary table reset is skipped: the restored set IS that
   layer's world table, and the suppressed publish would not rebuild it.
-- **The restored ids resume every id space's counter.** An item instance id is
+- **The restored ids resume every counter, in every namespace.** An item instance id is
   `(counter << 32) | account-low` and the counter is per PROCESS, so a world continued in a new process
   would allocate from zero again while the restored scene already holds the archive's ids — the first
   allocation then re-issues a live id (the kernel refuses the duplicate spawn, and one id ends up on two
-  scene objects). The archive's own item rows state the resume point: each names an id, i.e. the counter
-  its space had reached. `ItemKernelProjectionWiring` hands them to `ItemIdCoordinator` at the kernel
-  restore — before the generation that can allocate — and that seeds the same per-id-space watermarks the
-  handshake edge already grants from: the LOCAL space is resumed on the spot (there is no grant to
-  itself on the wire) and a member in the session is granted the raised value there and then, because the
-  restored character it is about to receive carries those ids. The marks are facts about the world, not
-  about the session, so they outlive a lobby (a host may continue the same world in a new one). The ids
-  of the synthesized-item namespace are skipped: their counter is a different counter.
+  scene objects). An archive states those resume points in TWO places, and the rule reads BOTH: the
+  checkpoint's item rows, and `characters/<playerKey>.json`'s carried ids (the live 1 Hz report writes
+  them while the kernel's separate carried-registration cadence has not caught up, so inside that window
+  the character file is an id's only carrier). `WorldRestoreApplier.TryApply` is the one seam that holds
+  both, so the seed runs there — after the kernel restore, before the generation that can allocate — and
+  hands the union to `ItemIdCoordinator` through `IRestoredItemIdSeed`: each id space resumes from its own
+  maximum (the LOCAL space on the spot, since there is no grant to itself on the wire; a member in the
+  session is granted the raised value there and then, because the restored character it is about to
+  receive carries those ids). The SYNTHESIZED namespace has a counter of its own (the removed
+  splint/tourniquet awards the host mints, `AwardedHighBit | counter | space`), so an awarded id is never
+  read as a plain allocation; its counter lives with the plain watermarks and resumes from the archive's
+  awarded ids of the local space. The marks are facts about the world, not about the session, so they
+  outlive a lobby (a host may continue the same world in a new one).
 - **Restored world-entity facts land at the same seam — for a cut that describes the layer being
   restored.** The kernel's per-entity facts (consumed traps, the durable trap-state machine, opened
   lockables, building health) have two landing moments, and ROLE decides which one: a guest restores

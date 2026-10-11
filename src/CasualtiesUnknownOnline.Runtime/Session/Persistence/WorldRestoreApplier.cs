@@ -46,7 +46,8 @@ internal sealed class WorldRestoreApplier(
 	Func<ulong> layerActor,
 	ILoggerFactory loggerFactory,
 	ILogger<WorldRestoreApplier> log,
-	IRestoredWorldEntitySource? worldEntities = null)
+	IRestoredWorldEntitySource? worldEntities = null,
+	IRestoredItemIdSeed? restoredIds = null)
 {
 	/// <summary>The world-fact half: which restored row goes back to which table, and what could not be put back.</summary>
 	private readonly WorldFactRestore _factRestore = new(worldFacts, nativeWorldFacts, loggerFactory.CreateLogger<WorldFactRestore>());
@@ -56,6 +57,16 @@ internal sealed class WorldRestoreApplier(
 
 	/// <summary>The world-entity half: the kernel's restored per-entity facts are written at the world-entry seam; a layer-end cut's rows are dropped here.</summary>
 	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
+
+	/// <summary>
+	/// The id half: the ids this restore re-issued, handed to their one owner at the click
+	/// (<see cref="IRestoredItemIdSeed"/>). It belongs HERE rather than at the checkpoint-restored
+	/// event because an archive's ids have TWO carriers and this method is the only place that
+	/// holds both: the kernel checkpoint it is about to restore, and the character rows it
+	/// decoded. Reading one and assuming the other is a subset is what left a guest's carried id
+	/// seeded for nobody.
+	/// </summary>
+	private readonly IRestoredItemIdSeed? _restoredIds = restoredIds;
 
 	/// <summary>
 	/// The retry a decode-level refusal gets (§6): its own object, because walking candidate
@@ -258,6 +269,20 @@ internal sealed class WorldRestoreApplier(
 			var refusal = $"the kernel rejected the checkpoint: {restored.Error}";
 			log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
 			return RefuseHolding(worldId, refusal, salvage);
+		}
+
+		// The ids this restore just re-issued, handed to their owner BEFORE anything can
+		// allocate: the archive's own rows state, per id space and per namespace, how far the
+		// previous process's counters had run, while this process's start at zero. Both carriers
+		// go in ONE call — the checkpoint's rows and the decoded characters — because the rule
+		// must never depend on one of them being a subset of the other (see IRestoredItemIdSeed).
+		if (_restoredIds is { } idSeed)
+		{
+			var (restoredIds, itemRowIds, carriedIds) = RestoredItemIds.Of(checkpoint, decode.UsableCharacters);
+			log.LogInformation(
+				"The archive of world {WorldId} re-issued {ItemRows} item-row id(s) and {CarriedIds} character-carried id(s); every id-space counter resumes above them.",
+				worldId, itemRowIds, carriedIds);
+			idSeed.SeedRestoredItemIds(restoredIds);
 		}
 
 		// The ATTEMPT's identity: the kernel restore just bumped it, and every arm this

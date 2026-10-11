@@ -28,6 +28,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	IPlayerInteractionVisibility visibility,
 	ITimeSource time,
 	ItemKernelAuthority kernelAuthority,
+	ItemIdCoordinator itemIds,
 	MedicalOperationClaims claims,
 	MedicalOperationIdAllocator operationIds,
 	MedicalTargetBodyGate bodyGate,
@@ -45,7 +46,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	private readonly MedicalOperationIdAllocator _operationIds = operationIds;
 	private readonly ILogger _log = log;
 	private readonly OtherMedicalOperationApplier _applier = new(access, items, kernelAuthority, session);
-	private readonly OtherMedicalRemovalApplier _removal = new(access, items, kernelAuthority, session, log);
+	private readonly OtherMedicalRemovalApplier _removal = new(access, items, kernelAuthority, itemIds, session, log);
 
 	private readonly Dictionary<ulong, OtherMedicalOperationSession> _sessions = [];
 	private bool _disposed;

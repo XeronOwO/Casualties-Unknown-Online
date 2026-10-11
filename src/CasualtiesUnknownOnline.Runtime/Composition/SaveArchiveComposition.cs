@@ -83,6 +83,10 @@ internal static class SaveArchiveComposition
 			// reconciled against the regenerated layer, so the restore path has to
 			// arm/cancel that expectation.
 			items: p.GetRequiredService<IItemControl>(),
+			// The id half of the same restore: the ids the archive re-issued, from BOTH of
+			// its carriers (the checkpoint's item rows and the character files). The save
+			// layer is the only holder of the complete set, so the resume rule is fed here.
+			restoredIds: p.GetRequiredService<IRestoredItemIdSeed>(),
 			// The world-entity domain's half: the kernel's restored per-entity facts
 			// are written at the same world-entry seam (and dropped for a layer-end
 			// cut). The save layer only arms/cancels the expectation; the projection

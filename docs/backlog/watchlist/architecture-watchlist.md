@@ -40,7 +40,9 @@ assembly), and its interface keeps growing with every feature (see
 ## Near the limit (watch)
 
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/OtherMedicalOperationSessionService.cs`
-  (~570 after the per-unit settlement landed on 2026-09-19) — the host registry/lifecycle of the
+  (576 measured 2026-10-11, after `id-resume-sources-still-unseeded` threaded the id coordinator
+  through it — 570 before, after the per-unit settlement landed on 2026-09-19) — the host
+  registry/lifecycle of the
   Stage-3 operations plus the unit settlement (`CompleteUnitOnTerminal`,
   `StopOtherOperatorsOnTheUnit`) and the terminal path. The settlement half is the seam to
   extract next (it is what pushed the file from 538 to 570): it needs only the appliers and the
@@ -124,9 +126,10 @@ assembly), and its interface keeps growing with every feature (see
   lambda chain that each service used to answer for the other two) moved into
   `MedicalOperationClaims`, one owner with one claim rule. Those split sizes were session
   measurements, not states the tree carries; what the tree carries now is
-  `MedicalOperationSessionService` 506, `ShrapnelOperationSessionService` 541 and
-  `OtherMedicalOperationSessionService` 570 (the near-limit entry above, after the per-unit
-  settlement landed on top of the split). The shrapnel family's
+  `MedicalOperationSessionService` 514 and `OtherMedicalOperationSessionService` 576 (measured
+  2026-10-11, after `id-resume-sources-still-unseeded` threaded the id coordinator through both; the
+  near-limit entry above carries the split the second one still owes, and these two read 506/570 as
+  measured at the 2026-09-19 split, beside `ShrapnelOperationSessionService` 541). The shrapnel family's
   start validation also left the service as the pure `ShrapnelStartValidator` (the pattern the
   stage-3 family already used), so the service holds the session lifecycle and the validator
   holds the rules.
@@ -147,5 +150,8 @@ assembly), and its interface keeps growing with every feature (see
 - `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldSaveService.cs` — the demanded split
   happened (2026-09-11): the restore half (`TryContinue` + the salvage/summary assembly + the local
   character's apply contract) moved into `WorldRestoreApplier`, and the service now only ADOPTS the
-  identity a restore produced as its write target. 513 lines, no longer near the gate; what remains
-  is the trigger lifecycle (armed request, deferral window, report) over `WorldCutWriter`.
+  identity a restore produced as its write target. That left it at 513; it reads 550 measured
+  2026-10-11 (each later domain half costs it a pass-through parameter, the id seed being the latest),
+  so it is back at the local planning threshold without having grown a new responsibility: the seam a
+  split would take next is the continue/restore ENTRY surface (the click, its account, the pending
+  characters, the abandonment) against the cut trigger lifecycle it owns today over `WorldCutWriter`.

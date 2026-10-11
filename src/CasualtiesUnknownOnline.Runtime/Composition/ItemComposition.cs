@@ -34,10 +34,19 @@ internal static class ItemComposition
 	/// <summary>Registers the item service and the item control/layer-reset ports it answers.</summary>
 	internal static void AddItemService(IServiceCollection services)
 	{
+		// The id coordination is its OWN registration, not an implementation detail of
+		// ItemService: the synthesized-namespace counter it owns is minted by the medical
+		// removal effect (OtherMedicalRemovalApplier), which must reach the same table the
+		// restore resumes — a second counter there would re-issue ids the world holds.
+		services.AddSingleton<ItemIdCoordinator>();
 		// Item domain: the authoritative world-item table + pickup arbitration
 		// (ItemService itself reacts to calls and messages — no pump).
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
+		// The id seed a restore hands the archive's own ids to (the item domain's half of
+		// the pair with IRestoredWorldItemSource): the save layer reaches the resume rule
+		// through this port, never through the handler surface behind it.
+		services.AddSingleton<IRestoredItemIdSeed>(p => p.GetRequiredService<ItemService>());
 		// The item domain's layer-boundary reset, driven by the world domain's
 		// per-layer reset bus (WorldService.ResetWorldLayerTables).
 		services.AddSingleton<IWorldItemLayerReset>(p => p.GetRequiredService<ItemService>());

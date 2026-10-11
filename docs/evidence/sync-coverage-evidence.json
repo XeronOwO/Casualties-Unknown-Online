@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1045,
+  "count": 1049,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -1323,6 +1323,30 @@
       "row": "I8",
       "file": "tests/CasualtiesUnknownOnline.NormativeGates.Tests/SourceShapeGateTests.cs",
       "quote": "public void CarriedInventoryCapture_DoesNotSkipItemsThatAlreadyCarryAnInstanceId()"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs",
+      "quote": "internal ulong NextAwardedItemId() =>"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/IRestoredItemIdSeed.cs",
+      "quote": "void SeedRestoredItemIds(IReadOnlyList<ulong> instanceIds);"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRestoreApplier.cs",
+      "quote": "idSeed.SeedRestoredItemIds(restoredIds);"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Persistence/RestoredItemIds.cs",
+      "quote": "carried += Collect(character.Character.Items, ids);"
     },
     {
       "cluster": "items",

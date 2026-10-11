@@ -49,6 +49,7 @@ internal sealed class TestNode : IDisposable
 	internal static TestNode Create(ulong steamId, FakeNetwork network, FakeSteamService steam,
 		FakeClock? clock = null, bool pumpFirstFrame = false,
 		string? modStateFile = null, string? hostBanFile = null,
+		string? savesRoot = null,
 		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var transport = new FakeTransport(steamId, network);
@@ -62,6 +63,10 @@ internal sealed class TestNode : IDisposable
 			logDirectory,
 			modStateFile: modStateFile,
 			hostBanFile: hostBanFile,
+			// The world archive is disabled by default (a test node plays without one);
+			// a suite that drives a real cut/continue hands in a root, and two nodes over
+			// ONE root are two processes over one world.
+			savesRoot: savesRoot,
 			extraRegistrations: s =>
 			{
 				s.Replace(ServiceDescriptor.Singleton<INetworkTransport>(transport));
@@ -92,6 +97,17 @@ internal sealed class TestNode : IDisposable
 				// production answer is the item's own use-action shape read from its
 				// compiled body (FakeSolidFoodSemantics).
 				s.Replace(ServiceDescriptor.Singleton<ISolidFoodSemantics>(FakeSolidFoodSemantics.Instance));
+				// Transport IDENTITY is its own seam and the save layer reads it (the world
+				// folder's display name, the key space a character is written in). The
+				// production identity is the network router, whose display name asks
+				// Steamworks for the persona — not loadable in a test host — so every node
+				// advertises its own id and a name of its own: a cut taken by two nodes that
+				// shared one identity would write one player's character under both.
+				s.Replace(ServiceDescriptor.Singleton<ITransportIdentity>(new FakeTransportIdentity
+				{
+					LocalPeerId = steamId,
+					LocalDisplayName = $"Player-{steamId}",
+				}));
 				TestLogging.RemoveFileSink(s); // before the test's overrides, so a test may still re-add a sink
 				extraRegistrations?.Invoke(s); // the test's overrides (e.g. stub mod control surfaces) — last, so they win
 			});

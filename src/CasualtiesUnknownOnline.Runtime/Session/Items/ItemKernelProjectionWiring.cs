@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -30,7 +29,6 @@ internal sealed class ItemKernelProjectionWiring : IDisposable
 	private readonly ItemSnapshotStreamReceiver _streamReceiver;
 	private readonly ProjectionHealthCoordinator _projectionHealth;
 	private readonly RestoredWorldItemSet _restoredWorldItems;
-	private readonly ItemIdCoordinator _idCoordinator;
 	private readonly ItemArbitration _arbitration;
 	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly Action<IReadOnlyList<WireItemMoveEntry>> _fireItemMoves;
@@ -43,7 +41,6 @@ internal sealed class ItemKernelProjectionWiring : IDisposable
 		ItemSnapshotService snapshots,
 		ProjectionHealthCoordinator projectionHealth,
 		RestoredWorldItemSet restoredWorldItems,
-		ItemIdCoordinator idCoordinator,
 		ItemArbitration arbitration,
 		IKernelProtocolControl kernelProtocol,
 		Action<IReadOnlyList<WireItemMoveEntry>> fireItemMoves)
@@ -53,7 +50,6 @@ internal sealed class ItemKernelProjectionWiring : IDisposable
 		_kernelBatchProjection = kernelBatchProjection;
 		_projectionHealth = projectionHealth;
 		_restoredWorldItems = restoredWorldItems;
-		_idCoordinator = idCoordinator;
 		_arbitration = arbitration;
 		_kernelProtocol = kernelProtocol;
 		_fireItemMoves = fireItemMoves;
@@ -130,14 +126,10 @@ internal sealed class ItemKernelProjectionWiring : IDisposable
 			// reconciles its objects against these ids (RestoredWorldItemSet). A
 			// layer-end cut never gets here: the restore applier cancels the expectation.
 			//
-			// The same rows are the restore's id fact: each names an instance id of the
-			// form (counter, SteamId), i.e. an id the PREVIOUS process handed out, while
-			// this process's allocator starts at zero. Resuming every SteamId's counter
-			// above what the archive re-issued happens HERE, before the generation below
-			// can allocate (its publish is suppressed for a restored cut, but the next
-			// layer's is not) and outside the projection-health scope: it is a session
-			// fact, not a projection of the kernel.
-			_idCoordinator.ResumeRestoredIds(checkpoint.Items.Select(item => item.Identity.InstanceId));
+			// The counters a restore resumes are NOT seeded here: a checkpoint is only one
+			// of the two places an archive writes instance ids (the character files are the
+			// other), so the rule runs where both are in hand — the restore applier, through
+			// IRestoredItemIdSeed, before the generation below can allocate.
 			_projectionHealth.Run("items", checkpoint.GlobalRevision, () => _restoredWorldItems.ArmForRestoredCut(checkpoint, _kernelBatchProjection));
 			return;
 		}

@@ -26,6 +26,17 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// seeds this table from them (<see cref="ResumeRestoredIds"/>) — the local side
 /// included, whose own counter restarts with the process exactly like a
 /// rejoining guest's.
+///
+/// <para>
+/// TWO counters live here, one per namespace, because a counter and its resume
+/// point are one fact: the per-space watermark table above (each side resumes
+/// its own allocator from it) and the SYNTHESIZED counter a host-side award
+/// mints from (<see cref="NextAwardedItemId"/>, <see cref="ItemInstanceIds.AwardedHighBit"/>).
+/// A restore resumes both from the same archive-derived ids — an awarded id is
+/// not a plain allocation, so the plain resume skips it and its own counter
+/// takes it — and neither is cleared at a session boundary: the ids belong to
+/// the world, not to a lobby.
+/// </para>
 /// Split out of ItemService when the 600-line gate demanded it.
 /// </summary>
 public sealed class ItemIdCoordinator : IDisposable, ISessionReset
@@ -34,7 +45,7 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 	private readonly PacketSender _sender;
 	private readonly ItemArbitration _arbitration;
 	private readonly ITimeSource _time;
-	private readonly ILogger _log;
+	private readonly ILogger<ItemIdCoordinator> _log;
 
 	/// <summary>Guest side: the carried-registration cadence (row I8) — the dense window that heals a swallowed registration, then the steady re-assertion.</summary>
 	private readonly CarriedInventoryReportSchedule _carriedRegistration = new();
@@ -51,13 +62,28 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 	/// not be addressed from it. Granted back on handshake completion — the member resumes from watermark + 1.</summary>
 	private readonly Dictionary<ulong, ulong> _watermarks = [];
 
+	/// <summary>
+	/// The SYNTHESIZED namespace's own counter (see <see cref="ItemInstanceIds.AwardedHighBit"/>):
+	/// the next id a host-side award mints. It lives here, beside the per-space watermarks,
+	/// because the counter and its resume point are ONE fact — a restore that resumed the plain
+	/// counter and left this one at zero would still re-issue a live id, and a counter kept by
+	/// its minter would need the resume delivered to it through wiring that can silently go
+	/// missing.
+	/// <para>
+	/// Per process like every other counter, and never reset: a world continued in a NEW process
+	/// resumes it from the archive (<see cref="ResumeRestoredIds"/>), and a session boundary says
+	/// nothing about it — the ids belong to the world, not to a lobby.
+	/// </para>
+	/// </summary>
+	private ulong _nextAwardedCounter;
+
 	/// <summary>This side's own resume point: the counter its allocator must resume from.
 	/// Raised by the host's grant on join/reconnect (guest side) and by a restore that
 	/// re-issued the archive's ids for the local SteamId — the same fact, so the adapter
 	/// has one consumer for it (<c>ItemIdAllocator.SetWatermark</c>, raise-only).</summary>
 	public event Action<ulong>? ItemIdWatermarkReceived;
 
-	public ItemIdCoordinator(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger log)
+	public ItemIdCoordinator(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemIdCoordinator> log)
 	{
 		_session = session;
 		_sender = sender;
@@ -124,25 +150,44 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 	}
 
 	/// <summary>
+	/// Host only: mint the next id of the SYNTHESIZED namespace — the id of an item the host
+	/// itself creates as an effect (a removed splint or tourniquet awarded to the operator:
+	/// <c>OtherMedicalRemovalApplier</c>). The high bit keeps that namespace out of the plain
+	/// counter's space, where the id could be confused with a generated item's, and the counter
+	/// is this side's own — resumed from the archive by <see cref="ResumeRestoredIds"/> so a
+	/// continued world never re-issues an awarded id it already holds.
+	/// </summary>
+	internal ulong NextAwardedItemId() =>
+		ItemInstanceIds.AwardedHighBit | (_nextAwardedCounter++ << 32) | ItemInstanceIds.SpaceOf(_session.LocalSteamId);
+
+	/// <summary>
 	/// Host/solo: a restore re-issued the archive's ids. Every restored row names its
-	/// own instance id, and an id is (counter, id space) — so the archive states, per
-	/// id space, how far the PREVIOUS process's counter had run, while this process's
-	/// allocator starts at zero (the local one included: the counter is per process).
-	/// Seeding the watermarks from those ids is the rule the handshake edge already
-	/// implements, applied to the restore edge, so both directions resume from one
-	/// fact instead of two: the local side gets its resume point now (there is no
-	/// grant to itself on the wire), a member in the session is granted the raised
-	/// value on the spot — the restored character it is about to receive carries
-	/// those ids — and an absent member keeps it for its next handshake.
+	/// own instance id, and an id is (namespace, counter, id space) — so the archive
+	/// states, per id space and per namespace, how far the PREVIOUS process's counters
+	/// had run, while this process's start at zero (the local ones included: the counters
+	/// are per process). Seeding the watermarks from those ids is the rule the handshake
+	/// edge already implements, applied to the restore edge, so both directions resume
+	/// from one fact instead of two: the local side gets its resume point now (there is
+	/// no grant to itself on the wire), the synthesized counter is raised here (there is
+	/// no second owner to deliver it to), a member in the session is granted the raised
+	/// value on the spot — the restored character it is about to receive carries those
+	/// ids — and an absent member keeps it for its next handshake.
 	/// <para>
-	/// Raise-only, like every other writer of these counters: an id below a watermark
-	/// that is already recorded changes nothing, and the local event is idempotent
-	/// because the allocator's own resume only ever raises.
+	/// The caller hands in EVERY id the archive carries, from both of its carriers (the
+	/// checkpoint's item rows and the character files: see <c>IRestoredItemIdSeed</c>),
+	/// because this rule's input is "what the archive re-issued", not "what one carrier
+	/// happened to hold".
+	/// </para>
+	/// <para>
+	/// Raise-only, like every other writer of these counters: an id below a counter that
+	/// is already recorded changes nothing, and the local event is idempotent because the
+	/// allocator's own resume only ever raises.
 	/// </para>
 	/// </summary>
 	internal void ResumeRestoredIds(IEnumerable<ulong> instanceIds)
 	{
 		var restored = new Dictionary<ulong, ulong>(); // id space → the highest counter the archive handed it
+		var restoredAwarded = new Dictionary<ulong, ulong>(); // id space → the same, in the synthesized namespace
 		foreach (var instanceId in instanceIds)
 		{
 			if (instanceId == 0)
@@ -150,14 +195,21 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 				continue; // an unbound item carries no id — the world-gen determinism covers it
 			}
 
+			var owner = ItemInstanceIds.OwnerOf(instanceId);
 			if (ItemInstanceIds.IsAwarded(instanceId))
 			{
-				// The synthesized namespace has a counter of its own: reading it as this one
-				// would resume the plain allocator inside that namespace.
+				// The synthesized namespace has a counter of its own: reading it as the plain one
+				// would resume the allocator inside that namespace — and its ids are skipped by the
+				// PLAIN resume, never by their own.
+				var awarded = ItemInstanceIds.AwardedCounterOf(instanceId);
+				if (!restoredAwarded.TryGetValue(owner, out var highestAwarded) || awarded > highestAwarded)
+				{
+					restoredAwarded[owner] = awarded;
+				}
+
 				continue;
 			}
 
-			var owner = ItemInstanceIds.OwnerOf(instanceId);
 			var counter = ItemInstanceIds.CounterOf(instanceId);
 			if (!restored.TryGetValue(owner, out var highest) || counter > highest)
 			{
@@ -165,6 +217,7 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 			}
 		}
 
+		ResumeAwardedIds(restoredAwarded);
 		foreach (var entry in restored)
 		{
 			var owner = entry.Key;
@@ -190,6 +243,32 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 				GrantItemIdWatermark(member, counter);
 			}
 		}
+	}
+
+	/// <summary>
+	/// The synthesized counter's half of the same rule, and the reason it is not per
+	/// MEMBER: an awarded id is minted by THIS host (the removal effect runs host-side),
+	/// so only the local id space's awarded ids describe a counter this process will
+	/// use. An awarded id of another space was minted by the host account that played
+	/// the world before this one, and a different space cannot collide with this side's
+	/// own awards — while resuming a counter that is not ours would be exactly the
+	/// mistake the plain half already pins (another space's maximum is not our resume
+	/// point).
+	/// </summary>
+	private void ResumeAwardedIds(Dictionary<ulong, ulong> restoredAwarded)
+	{
+		if (!restoredAwarded.TryGetValue(ItemInstanceIds.SpaceOf(_session.LocalSteamId), out var counter))
+		{
+			return;
+		}
+
+		if (counter < _nextAwardedCounter)
+		{
+			return; // this process's own awards already reached higher — nothing to resume
+		}
+
+		_nextAwardedCounter = counter + 1;
+		_log.LogInformation("[IdWatermark] the restored world already awarded this side synthesized ids up to counter {Counter}; resuming them at {Next}.", counter, _nextAwardedCounter);
 	}
 
 	/// <summary>The member whose allocations live in this id space, when it is in the session right now — the target a raised watermark has to reach without waiting for a handshake that will not come.</summary>

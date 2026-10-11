@@ -104,7 +104,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 		WorldRestoreAudit? audit = null,
 		IRestoredWorldItemSource? items = null,
 		IRestoredWorldEntitySource? worldEntities = null,
-		IOptionsMonitor<SaveOptions>? options = null)
+		IOptionsMonitor<SaveOptions>? options = null,
+		IRestoredItemIdSeed? restoredIds = null)
 	{
 		_repository = repository;
 		_session = session;
@@ -133,7 +134,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 			() => session.LocalSteamId,
 			loggerFactory,
 			loggerFactory.CreateLogger<WorldRestoreApplier>(),
-			worldEntities);
+			worldEntities,
+			// The archive's ids, handed over at the click: every id-space counter resumes above them.
+			restoredIds);
 		var clock = utcNow ?? (() => DateTime.UtcNow);
 		var writer = repository is null
 			? null

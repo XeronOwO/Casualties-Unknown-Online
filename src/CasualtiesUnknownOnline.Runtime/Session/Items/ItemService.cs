@@ -8,7 +8,6 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
-using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 using CasualtiesUnknownOnline.Application.Kernel;
 
@@ -21,7 +20,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// class is deliberately a facade over real top-level responsibilities rather
 /// than a partial-logical god object.
 /// </summary>
-public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldItemLayerReset, IDisposable, ISessionReset
+public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldItemLayerReset, IRestoredItemIdSeed, IDisposable, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly ILogger<ItemService> _log;
@@ -40,7 +39,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly ItemKernelProjectionWiring _kernelProjectionWiring;
 	private readonly RestoredWorldItemSet _restoredWorldItems;
 
-	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, WorldRestoreAudit? audit = null)
+	public ItemService(ISessionControl session, ItemArbitration arbitration, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, ItemIdCoordinator idCoordinator, WorldRestoreAudit? audit = null)
 	{
 		_session = session;
 		_log = log;
@@ -64,7 +63,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_carriedSync = new ItemCarriedSyncService();
 		_itemActionSync = new(session, this, _kernelProtocol);
 		_snapshots = new(session, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, _kernelProtocol, log);
-		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, time, log);
+		_idCoordinator = idCoordinator;
 		_blockDrops = new BlockDropSync(session, this);
 		_kernelProjectionWiring = new ItemKernelProjectionWiring(
 			session,
@@ -74,7 +73,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			_snapshots,
 			projectionHealth,
 			_restoredWorldItems,
-			_idCoordinator,
 			_arbitration,
 			_kernelProtocol,
 			FireItemMoveReceived);
@@ -110,6 +108,12 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	public void FireItemIdWatermarkReceived(ulong sender, ulong counter) => _idCoordinator.FireItemIdWatermarkReceived(sender, counter);
 
 	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.FireCarriedInventoryReceived(sender, items);
+
+	/// <summary>
+	/// The restore's id seed (<see cref="IRestoredItemIdSeed"/>): every id the applied archive
+	/// re-issued, handed to the one rule that resumes the counters above them.
+	/// </summary>
+	public void SeedRestoredItemIds(IReadOnlyList<ulong> instanceIds) => _idCoordinator.ResumeRestoredIds(instanceIds);
 
 	public event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived
 	{

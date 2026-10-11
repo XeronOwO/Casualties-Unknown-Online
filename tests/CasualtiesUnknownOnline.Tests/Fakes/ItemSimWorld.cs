@@ -105,16 +105,17 @@ internal sealed class ItemSimWorld : IDisposable
 		Action<IServiceCollection>? extraRegistrations = null,
 		ulong hostSteamId = HostId,
 		ulong guest1SteamId = G1Id,
-		ulong guest2SteamId = G2Id)
+		ulong guest2SteamId = G2Id,
+		string? savesRoot = null)
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
 		var hostSteam = new FakeSteamService(hostSteamId) { LobbyOwner = hostSteamId, LobbyMembers = [hostSteamId] };
 		var g1Steam = new FakeSteamService(guest1SteamId) { LobbyOwner = hostSteamId, LobbyMembers = [hostSteamId, guest1SteamId, guest2SteamId] };
 		var g2Steam = new FakeSteamService(guest2SteamId) { LobbyOwner = hostSteamId, LobbyMembers = [hostSteamId, guest1SteamId, guest2SteamId] };
-		var host = TestNode.Create(hostSteamId, network, hostSteam, clock, extraRegistrations: extraRegistrations);
-		var g1 = TestNode.Create(guest1SteamId, network, g1Steam, clock, extraRegistrations: extraRegistrations);
-		var g2 = TestNode.Create(guest2SteamId, network, g2Steam, clock, extraRegistrations: extraRegistrations);
+		var host = TestNode.Create(hostSteamId, network, hostSteam, clock, extraRegistrations: extraRegistrations, savesRoot: savesRoot);
+		var g1 = TestNode.Create(guest1SteamId, network, g1Steam, clock, extraRegistrations: extraRegistrations, savesRoot: savesRoot);
+		var g2 = TestNode.Create(guest2SteamId, network, g2Steam, clock, extraRegistrations: extraRegistrations, savesRoot: savesRoot);
 		host.Steam.FireLobbyCreated(LobbyId);
 		host.Steam.LobbyMembers = [hostSteamId, guest1SteamId, guest2SteamId];
 		g1.Steam.FireLobbyEntered(LobbyId);

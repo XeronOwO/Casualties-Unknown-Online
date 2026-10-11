@@ -148,6 +148,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.Gate.ResetSessionState();
 		domains.ItemPositionAuthority.ResetSessionState();
 		domains.StandingMaterializer.ResetSessionState(); // the carried rows' incarnations die with the session
+		domains.LimbItemTransform.ResetSessionState(); // a take-off in flight belongs to the world it started in
 		domains.FluidSync.ResetSessionState();
 		domains.TradeSync.ResetSessionState();
 		domains.Renderer.DestroyAllClones();

@@ -318,6 +318,91 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	}
 
 	/// <summary>
+	/// An item becomes the installed form of a limb component (the game's own
+	/// <c>useLimbAction</c> turned it into a <c>SplintLimb</c> /
+	/// <c>TourniquetScript</c>): a RELOCATION that keeps the instance id, which is
+	/// the whole point of the applied family. The host calls this for a cross-player
+	/// apply it committed from the affected side's outcome, and executes it from the
+	/// wire for the applying client's own limb.
+	/// </summary>
+	public bool TryApplyLimb(ulong actor, ulong itemId, ActorId owner, int limbIndex, CharacterItemMsg? item, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var current = _kernel.FindItem(itemId);
+		if (current is null)
+		{
+			rejection = Rejection.Of(RejectionReason.UnknownAggregate, $"item {itemId} does not exist");
+			batch = null;
+			return false;
+		}
+
+		var command = new ApplyLimbItemCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.OwnerPredictedHostValidated,
+			itemId,
+			owner,
+			limbIndex,
+			current.Value.Revision,
+			item is null ? null : ToKernelData(item));
+		return TryExecute(command, actor, "apply-limb", out batch, out rejection);
+	}
+
+	/// <summary>
+	/// The counterpart: the applied item comes off the limb it is installed on and is
+	/// CARRIED by <paramref name="newOwner"/> — usually the operator who removed it,
+	/// which is why the destination is its own operand. One relocation, one id: the
+	/// removal is a move, never a mint.
+	/// </summary>
+	public bool TryRemoveLimb(ulong actor, ulong itemId, ActorId appliedOwner, int limbIndex, ActorId newOwner, CharacterItemMsg? item, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var current = _kernel.FindItem(itemId);
+		if (current is null)
+		{
+			rejection = Rejection.Of(RejectionReason.UnknownAggregate, $"item {itemId} does not exist");
+			batch = null;
+			return false;
+		}
+
+		var command = new RemoveLimbItemCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.OwnerPredictedHostValidated,
+			itemId,
+			appliedOwner,
+			limbIndex,
+			newOwner,
+			current.Value.Revision,
+			item is null ? null : ToKernelData(item));
+		return TryExecute(command, actor, "remove-limb", out batch, out rejection);
+	}
+
+	/// <summary>
+	/// WHICH item the limb component is, asked the one way the model records it: the
+	/// item row installed on that limb whose definition is the component's own
+	/// template. The limb row says the component is there; this row says which item it
+	/// is — a limb component with no such row is the divergence the caller names
+	/// rather than guesses at, and the definition is what separates a splint from a
+	/// tourniquet on one limb.
+	/// </summary>
+	public ItemState? FindAppliedLimbItem(ActorId owner, int limbIndex, string definitionId)
+	{
+		foreach (var item in _kernel.QueryItems().Values)
+		{
+			if (item.Location.Kind == ItemLocationKind.Applied
+				&& item.Location.Owner == owner
+				&& item.Location.LimbIndex == limbIndex
+				&& item.Identity.DefinitionId == definitionId)
+			{
+				return item;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
 	/// ONE container report — the parent's own fact plus where every child sits
 	/// inside it — committed as ONE atomic batch. This is the same command the
 	/// guest's <c>ItemContainerSync</c> report maps to on the wire, so the owner's

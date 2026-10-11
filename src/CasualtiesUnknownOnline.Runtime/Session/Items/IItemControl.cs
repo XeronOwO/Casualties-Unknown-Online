@@ -58,6 +58,37 @@ public interface IItemControl : IRestoredWorldItemSource
 	void SendItemDestroyed(ulong itemId);
 
 	/// <summary>
+	/// The local body's own limb action turned a carried item into a limb component
+	/// (the game's own <c>useLimbAction</c> adding a <c>SplintLimb</c> /
+	/// <c>TourniquetScript</c> and destroying the object it was handed): the item
+	/// gains a location on that limb and KEEPS its instance id, so this is a
+	/// relocation rather than the destroy the generic <c>Item.OnDestroy</c> hook
+	/// would report. Host/solo records it through the kernel; a guest reports it as
+	/// the one command the host judges, and the committed batch brings the row back.
+	/// </summary>
+	void SendItemAppliedToLimb(ulong itemId, int limbIndex);
+
+	/// <summary>
+	/// The local body's limb component came off as an item again (the game's own
+	/// <c>TakeOff</c> instantiating the item from the component's template): the item
+	/// moves from the limb into the body's own hands and keeps the id it had while it
+	/// was installed. The caller names the item, because it is the one that resolved
+	/// the id from the applied row before the game created the object.
+	/// </summary>
+	void SendItemRemovedFromLimb(ulong itemId, int limbIndex);
+
+	/// <summary>
+	/// Read-only: the item the authoritative data records as INSTALLED on this limb —
+	/// the applied row whose definition is the component's own template, or 0 when the
+	/// data holds none. The native <c>TakeOff</c> is the only gesture that turns a limb
+	/// component back into an item, and it has to know WHICH item it is reviving; the
+	/// limb row says the component is there, and this answers which item row belongs to
+	/// it. 0 is the honest "this component was never an id CUO tracked", never a
+	/// licence to mint one.
+	/// </summary>
+	ulong FindAppliedLimbItem(ulong owner, int limbIndex, string definitionId);
+
+	/// <summary>
 	/// Host/solo: a Heater cooker converted a raw meat item into a steak
 	/// (Heater.OnCollisionEnter2D) — remove the source and register the cooked
 	/// item in the world table in ONE transition, then broadcast the complete
@@ -139,6 +170,14 @@ public interface IItemControl : IRestoredWorldItemSource
 
 	/// <summary>Host only: adopt a carried item into a guest's transfer table (a cross-player transfer result — the recipient now owns it for use/slot/drop arbitration and reconnect restore).</summary>
 	void AdoptTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item);
+
+	/// <summary>
+	/// Host only: record an item in a guest's transfer table when the kernel has ALREADY
+	/// placed it there — the removal family's hand-over (the applied row was relocated to
+	/// the operator, and the table row is the reconnect/arbitration record). Unlike
+	/// <see cref="AdoptTransferredItem"/> it issues no kernel command.
+	/// </summary>
+	void RegisterTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item);
 
 	/// <summary>Host only: remove a carried item from a guest's transfer table (a cross-player transfer result — the source no longer owns it).</summary>
 	void RemoveTransferredItem(ulong guest, ulong itemId);

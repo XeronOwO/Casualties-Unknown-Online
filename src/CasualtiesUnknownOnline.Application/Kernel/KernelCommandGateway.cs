@@ -93,6 +93,18 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, ILogger<KernelC
 				$"item {destroy.InstanceId} is neither a world item nor carried by the sender");
 		}
 
+		if (command is ApplyLimbItemCommand apply && !MayInstallOnOwnLimb(sender, apply))
+		{
+			return Ignore(sender, command, RejectionReason.NotAuthorized,
+				$"item {apply.InstanceId} is not carried by the sender, or the report installs it on somebody else's limb {apply.LimbIndex}");
+		}
+
+		if (command is RemoveLimbItemCommand remove && !MayTakeOffOwnLimb(sender, remove))
+		{
+			return Ignore(sender, command, RejectionReason.NotAuthorized,
+				$"item {remove.InstanceId} is not applied to limb {remove.LimbIndex} of the sender, or the removal hands it to somebody else");
+		}
+
 		return CommandAdmission.Admit();
 	}
 
@@ -121,6 +133,73 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, ILogger<KernelC
 		{
 			ItemLocationKind.Carried or ItemLocationKind.Applied => current.Value.Location.Owner.Value == sender,
 			_ => true,
+		};
+	}
+
+	/// <summary>
+	/// The applied family's own entry rule: a member may report that an item IT
+	/// carries became the installed form of one of ITS OWN limbs. Both halves are
+	/// checked against the item's recorded location rather than trusted from the
+	/// command, because the gesture itself cannot carry either fact — the applier
+	/// acts on the body it simulates — so a report that names somebody else's item
+	/// or somebody else's limb is the remote-clone shape this seam exists to drop.
+	/// A repeated observation of the same applied fact is admitted: it is a
+	/// re-assertion, and the domain advances the revision for it.
+	/// </summary>
+	private bool MayInstallOnOwnLimb(ulong sender, ApplyLimbItemCommand command)
+	{
+		if (command.Owner.Value != sender)
+		{
+			return false;
+		}
+
+		var current = _items.FindItem(command.InstanceId);
+		if (current is null)
+		{
+			// Defensive, as for the destroy rule above: the creation-before-operation
+			// invariant answers an unjudged id before this seam sees it.
+			return true;
+		}
+
+		return current.Value.Location.Kind switch
+		{
+			ItemLocationKind.Carried => current.Value.Location.Owner.Value == sender,
+			ItemLocationKind.Applied => current.Value.Location.Owner.Value == sender && current.Value.Location.LimbIndex == command.LimbIndex,
+			_ => false,
+		};
+	}
+
+	/// <summary>
+	/// The counterpart's rule: the limb is the SENDER's own, the destination is the
+	/// sender (the component came off this client's own body and into its own
+	/// hands), and the item really is installed on that limb. A removal that hands
+	/// the item to a third party is a cross-player removal, and that one is the
+	/// HOST's commit — it never travels as a member's report.
+	/// </summary>
+	private bool MayTakeOffOwnLimb(ulong sender, RemoveLimbItemCommand command)
+	{
+		if (command.AppliedOwner.Value != sender || command.NewOwner.Value != sender)
+		{
+			return false;
+		}
+
+		var current = _items.FindItem(command.InstanceId);
+		if (current is null)
+		{
+			return true;
+		}
+
+		return current.Value.Location.Kind switch
+		{
+			ItemLocationKind.Applied => current.Value.Location.Owner.Value == sender
+				&& current.Value.Location.LimbIndex == command.LimbIndex,
+			// The already-taken-off shape, admitted on purpose: this seam decides ELIGIBILITY, and
+			// the item is still the sender's own, so a RE-SENT report (the reconciliation window's
+			// repeat of one operation) must reach the kernel and be answered from its operation
+			// window instead of being dropped here. A plain carried item the sender really does
+			// carry is refused by the domain by name, which is where that verdict belongs.
+			ItemLocationKind.Carried => current.Value.Location.Owner.Value == sender,
+			_ => false,
 		};
 	}
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -154,6 +155,62 @@ public class MedicalToolApplicationTests
 		var guestItem = guestAuthority.FindItem(42);
 		Assert.NotNull(guestItem);
 		Assert.NotEqual(ItemLocationKind.Carried, guestItem!.Value.Location.Kind);
+	}
+
+	[Fact]
+	public void AffectedSideOutcome_ComponentToolThatBecameTheComponent_KeepsTheIdAndInstallsItOnTheLimb()
+	{
+		// The ruled answer: the splint's own delegate turned the item into the limb's
+		// component, so the item did not END — it keeps its instance id and gains a location
+		// on the limb the admission named. The owner's inventory loses it all the same (the
+		// native apply destroyed the carried object), which is why the use result still says
+		// consumed while the kernel row relocates.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var splint = Item(42, "splint", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, splint));
+		items.AdoptTransferredItem(GuestId, 42, splint);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, 1);
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemActionOutcome(42, 0f, consumed: true, becameLimbComponent: true);
+
+		var committed = UseResults(received)[1];
+		Assert.True(committed.ItemDestroyed, "the owner's own object is gone either way");
+		Assert.Null(committed.ItemAfter);
+		Assert.Empty(characters.GetSavedCharacter(GuestId)!.Items);
+		Assert.Empty(items.GetTransferredItems(GuestId));
+
+		var hostItem = host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42);
+		Assert.NotNull(hostItem);
+		Assert.Equal(ItemLocation.Applied(new ActorId(HostId), 1), hostItem!.Value.Location);
+		Assert.Equal("splint", hostItem.Value.Identity.DefinitionId);
+	}
+
+	[Fact]
+	public void AffectedSideOutcome_ClaimsALimbComponent_WithoutAnAdmittedLimb_IsRefused()
+	{
+		// Only a limb-tool use has a limb to install the row on: a report that claims the
+		// transform without one is refused rather than landed on a limb nobody named.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var bread = Item(42, "bread", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, bread));
+		items.AdoptTransferredItem(GuestId, 42, bread);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, -1);
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemActionOutcome(42, 0f, consumed: true, becameLimbComponent: true);
+
+		Assert.Single(UseResults(received));
+		Assert.NotNull(characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42));
+		Assert.Equal(ItemLocationKind.Carried, host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42)!.Value.Location.Kind);
 	}
 
 	[Fact]

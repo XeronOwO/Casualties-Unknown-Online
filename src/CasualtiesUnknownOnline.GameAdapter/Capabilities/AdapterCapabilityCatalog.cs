@@ -104,6 +104,15 @@ internal static class AdapterCapabilityCatalog
 				// interaction surface rather than to the medical one the two limb diverts
 				// sit in, because drinking is not a medical treatment.
 				typeof(RemoteDrinkPatches),
+				// The two native LIMB-ITEM transforms an item goes through on the body the
+				// item is used on: the wound-view limb action turning a carried item into the
+				// limb's component (PlayerCamera.ApplyWoundItem), and the component's own
+				// TakeOff instantiating the item again. They belong to the item surface rather
+				// than to the medical one: what they carry is the ITEM's identity across the
+				// transform (the id survives both directions), not a treatment.
+				typeof(LimbItemTransformPatches.LimbApplyWoundItemPatch),
+				typeof(LimbItemTransformPatches.SplintTakeOffPatch),
+				typeof(LimbItemTransformPatches.TourniquetTakeOffPatch),
 			],
 			[],
 			[],

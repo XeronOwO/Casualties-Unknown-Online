@@ -349,6 +349,27 @@ public sealed class ItemArbitration(
 		RemoveTransferred(guest, itemId);
 
 	/// <summary>
+	/// Host only: record an item in a guest's transfer table when the KERNEL has already
+	/// put it there — the removal family's hand-over, whose relocation IS the kernel fact
+	/// (applied → carried by the operator) and whose table row is the reconnect/arbitration
+	/// record. Deliberately not <see cref="AdoptTransferredItem"/>: that one issues its own
+	/// transfer for an id the kernel does not carry yet, and re-transferring a row the
+	/// kernel has just moved to the same owner would be a second relocation for one
+	/// gesture.
+	/// </summary>
+	public void RegisterTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item)
+	{
+		if (!_transferred.TryGetValue(guest, out var owned))
+		{
+			_transferred[guest] = owned = [];
+		}
+
+		item.InstanceId = itemId;
+		owned[itemId] = new WorldItem(itemId, item, default, default, 0, 0f, false);
+		_log.LogInformation("Item {ItemId} recorded in {Guest}'s transfer table (host-side hand-over; the kernel already carries it).", itemId, guest);
+	}
+
+	/// <summary>
 	/// Host only: replace a carried item's authoritative state in a guest's
 	/// transfer table (a cross-player heal consumed part of the item's
 	/// condition). The reconnect restore merges the transfer table over the

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -138,6 +140,29 @@ public sealed class MedicalOperationOtherActionsSessionTests
 	private static IMedicalOperationControl Ops(TestNode node) =>
 		node.Services.GetRequiredService<IPlayerInteractionControl>().MedicalOperations;
 
+	/// <summary>
+	/// The item row that IS the limb component a removal is about — the two carriers of the
+	/// ruled model: the kernel says WHICH item is installed on that limb (it keeps its id and
+	/// gains the location), and the character snapshot says the component is there. Every
+	/// production apply writes both, so a case that seeds only the component is seeding the
+	/// divergence the removal refuses by name (pinned below by
+	/// <see cref="SplintRemoval_WithNoAppliedRow_IsRefusedAndTheComponentStays"/>).
+	/// </summary>
+	private static ulong InstallOnLimb(TestNode node, ulong owner, int limbIndex, string definitionId, float condition)
+	{
+		var kernel = node.Services.GetRequiredService<ItemKernelAuthority>();
+		var instanceId = ItemInstanceIds.Compose(counter: 41, accountId: owner);
+		Assert.True(kernel.TrySpawnCarried(
+			owner,
+			instanceId,
+			definitionId,
+			Item(instanceId, definitionId, condition),
+			out _,
+			out _));
+		Assert.True(kernel.TryApplyLimb(owner, instanceId, new ActorId(owner), limbIndex, null, out _, out _));
+		return instanceId;
+	}
+
 	[Fact]
 	public void Bandage_WrapsApplyProgressivelyAndConsumeItem()
 	{
@@ -217,6 +242,7 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
 		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, true, Limb(0), Limb(1, components: [SplintComponent(0.75f)], connected: [2], distance: 2), Limb(2, distance: 4)));
 		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, true));
+		var installed = InstallOnLimb(host, HostId, 1, "splint", 0.75f);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 
@@ -238,7 +264,46 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		Assert.NotNull(end!.AwardedItem);
 		Assert.Equal("splint", end.AwardedItem!.ItemId);
 		Assert.True(Math.Abs(end.AwardedItem.Condition - 0.75f) < 0.001f);
-		Assert.Contains(characters.GetSavedCharacter(Guest1Id)!.Items, i => i.ItemId == "splint");
+
+		// The id the operator receives is the one the item had while it was installed, and the
+		// kernel row moved with it: the removal is a relocation, never a mint.
+		Assert.Equal(installed, end.AwardedItem.InstanceId);
+		Assert.Equal(installed, Assert.Single(characters.GetSavedCharacter(Guest1Id)!.Items, i => i.ItemId == "splint").InstanceId);
+		Assert.Equal(
+			ItemLocation.Carried(new ActorId(Guest1Id)),
+			host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(installed)!.Value.Location);
+	}
+
+	[Fact]
+	public void SplintRemoval_WithNoAppliedRow_IsRefusedAndTheComponentStays()
+	{
+		var (host, guest) = CreatePair();
+		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+
+		// The opposite divergence: the limb says the component is there, the kernel holds no row
+		// naming it. The item's id is unknown, and the removal's whole rule is that the item keeps
+		// the id it had — so the gesture is refused rather than answered with an invented one, and
+		// NOTHING moves: the component, the limb flag and the operator's hands are as they were.
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, true, Limb(0), Limb(1, components: [SplintComponent(0.75f)], connected: [2], distance: 2), Limb(2, distance: 4)));
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, true));
+		MarkInWorld(host);
+		MarkInWorld(guest);
+
+		MedicalOperationStartAckMsg? ack = null;
+		MedicalOperationEndCommittedMsg? end = null;
+		var gOps = Ops(guest);
+		gOps.StartAckReceived += m => ack = m;
+		gOps.EndCommittedReceived += m => end = m;
+
+		gOps.SendOtherStartRequest(HostId, 0, 1, MedicalOperationKind.SplintRemoval);
+		Assert.True(ack is { Accepted: true });
+		gOps.SendOtherEndRequest(ack!.OperationId, 0f);
+
+		Assert.NotNull(end);
+		Assert.Null(end!.AwardedItem);
+		var hostLimb = characters.GetHostCharacterData()!.Limbs.Single(l => l.Index == 1);
+		Assert.Contains(hostLimb.Components, c => c.TypeName == "SplintLimb");
+		Assert.Empty(characters.GetSavedCharacter(Guest1Id)!.Items);
 	}
 
 	[Fact]
@@ -249,6 +314,7 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		characters.SaveHostCharacterData(Snapshot(HostId, true));
 		var guestBody = SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1, components: [SplintComponent(0.6f)]), Limb(2));
 		characters.SaveCharacterData(Guest1Id, guestBody);
+		var installed = InstallOnLimb(host, Guest1Id, 1, "splint", 0.6f);
 		PlayerInteractionTestSession.SeedOwnBody(guest, guestBody);
 		MarkInWorld(host);
 		MarkInWorld(guest);
@@ -265,8 +331,15 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		hostOps.SendOtherEndRequest(ack.OperationId, 0f);
 		var end = Assert.Single(ends);
 		Assert.NotNull(end.AwardedItem);
+		Assert.Equal(installed, end.AwardedItem!.InstanceId);
 		Assert.False(characters.GetSavedCharacter(Guest1Id)!.Limbs.Single(l => l.Index == 1).Splinted);
-		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.ItemId == "splint");
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.ItemId == "splint" && i.InstanceId == installed);
+
+		// The row crossed from the guest's limb into the host operator's hands, and the guest's
+		// transfer table no longer claims it: it is not carried by that guest any more.
+		Assert.Equal(
+			ItemLocation.Carried(new ActorId(HostId)),
+			host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(installed)!.Value.Location);
 	}
 
 	[Fact]
@@ -279,6 +352,7 @@ public sealed class MedicalOperationOtherActionsSessionTests
 			Limb(1, blocked: true, components: [TourniquetComponent(0.8f)], connected: [2], distance: 2),
 			Limb(2, blocked: true, distance: 4, connected: [1])));
 		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, true));
+		var installed = InstallOnLimb(host, HostId, 1, "tourniquet", 0.8f);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 
@@ -299,6 +373,7 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		Assert.False(hostLimbs.Single(l => l.Index == 2).BlockedBleeding);
 		Assert.DoesNotContain(hostLimbs.Single(l => l.Index == 1).Components, c => c.TypeName == "TourniquetScript");
 		Assert.Equal("tourniquet", end!.AwardedItem!.ItemId);
+		Assert.Equal(installed, end.AwardedItem.InstanceId);
 	}
 
 	[Fact]

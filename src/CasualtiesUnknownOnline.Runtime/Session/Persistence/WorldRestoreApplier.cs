@@ -75,6 +75,9 @@ internal sealed class WorldRestoreApplier(
 	/// </summary>
 	private readonly WorldRestoreRecovery _recovery = new(repository, loggerFactory, loggerFactory.CreateLogger<WorldRestoreRecovery>());
 
+	/// <summary>The applied family's two-carrier comparison, run at the one seam where both are known in full (see <see cref="RestoredAppliedItemAudit"/>).</summary>
+	private readonly RestoredAppliedItemAudit _appliedItems = new(kernel, loggerFactory.CreateLogger<RestoredAppliedItemAudit>());
+
 	/// <summary>
 	/// Reads the LOCAL peer a host-local kernel reset runs as (see
 	/// <see cref="DropReplacedLayerKernelTables"/>). A delegate rather than a captured
@@ -328,6 +331,12 @@ internal sealed class WorldRestoreApplier(
 		// and the table then holds exactly the archive's claims (decisions 162/178).
 		characters.ClearSavedCharacters();
 		var bound = binder.Apply(decode.UsableCharacters);
+
+		// The applied family's two carriers are both known HERE and nowhere else at once:
+		// the kernel was restored above (the archive's item rows) and the characters were
+		// just bound (the archive's limb components). The audit only NAMES a disagreement —
+		// either carrier could be the stale one, so nothing is moved or ended on its verdict.
+		_appliedItems.Audit(bound.BoundCharactersByPeer);
 		repository.SetLastOpenedWorld(worldId);
 
 		// The live-world half of this restore lands at the world-entry seam, after

@@ -49,8 +49,8 @@ internal sealed class PlayerItemActionOutcomeService(
 	/// <summary>The admitted uses whose outcome is still owed (one report per admission).</summary>
 	private readonly ItemActionGrants _uses = new();
 
-	/// <summary>The host admitted a cross-player use of this item by this actor — remember who owns it.</summary>
-	internal void Admit(ulong actor, ulong itemId, ulong owner) => _uses.Grant(actor, itemId, owner);
+	/// <summary>The host admitted a cross-player use of this item by this actor — remember who owns it, and the limb when the family is about one.</summary>
+	internal void Admit(ulong actor, ulong itemId, ulong owner, int limbIndex = -1) => _uses.Grant(actor, itemId, owner, limbIndex);
 
 	/// <summary>Session ended: an admission belongs to the session that issued it.</summary>
 	public void ResetSessionState()
@@ -72,7 +72,7 @@ internal sealed class PlayerItemActionOutcomeService(
 	/// </summary>
 	internal PlayerItemUseResultMsg? HandleOutcome(ulong sender, PlayerItemActionOutcomeMsg msg)
 	{
-		if (msg.ItemInstanceId == 0 || !_uses.TryTake(sender, msg.ItemInstanceId, out var owner))
+		if (msg.ItemInstanceId == 0 || !_uses.TryTake(sender, msg.ItemInstanceId, out var owner, out var appliedLimbIndex))
 		{
 			_log.LogWarning("[ItemUse] refused the affected-side outcome from {Actor} for item {ItemId}: no admitted cross-player use of that item is in flight.",
 				sender, msg.ItemInstanceId);
@@ -117,6 +117,35 @@ internal sealed class PlayerItemActionOutcomeService(
 
 		var newItem = PlayerCharacterAccess.CloneItem(originalItem);
 		newItem.Condition = msg.Condition;
+
+		if (msg.BecameLimbComponent)
+		{
+			// The one consumption that keeps the id. Only the limb-tool family can
+			// observe it, and only a limb-tool use has a limb to put the row on, so a
+			// report that claims it without an admitted limb is refused instead of being
+			// landed on a limb nobody named.
+			if (appliedLimbIndex < 0)
+			{
+				_log.LogWarning("[ItemUse] refused the affected-side outcome from {Actor} for item {ItemId}: it reports a limb component, but no limb-tool use of that item was admitted.",
+					sender, msg.ItemInstanceId);
+				return null;
+			}
+
+			_commit.CommitItemAppliedToLimb(owner, originalItem.InstanceId, sender, appliedLimbIndex, newItem);
+			_log.LogInformation("[ItemUse] {Actor} installed {ItemId} (id {InstanceId}) of {Owner} on limb {Limb} — the item keeps its id and now lives on that limb.",
+				sender, originalItem.ItemId, originalItem.InstanceId, owner, appliedLimbIndex);
+			return new PlayerItemUseResultMsg
+			{
+				UserSteamId = owner,
+				TargetSteamId = sender,
+				ItemInstanceId = originalItem.InstanceId,
+				// The owner's own object is gone either way: the native apply destroyed the
+				// carried item. What differs is where the ITEM went, and that is the kernel
+				// row's business rather than this message's.
+				ItemDestroyed = true,
+				ItemAfter = null,
+			};
+		}
 
 		_commit.CommitItemAfterUse(owner, originalItem.InstanceId, newItem, destroyed, movedToTheTarget: false);
 		_log.LogInformation("[ItemUse] {Actor} {Family} {ItemId} (id {InstanceId}) of {Owner}; condition {Condition:F2}{Consumed}.",

@@ -41,8 +41,10 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// The archive carries those ids in TWO places, and the rule reads both: the
 /// checkpoint's item rows (world, carried, contained and worn — what the kernel
 /// holds) and <c>characters/&lt;playerKey&gt;.json</c> (what the live 1 Hz report
-/// wrote, which the kernel may never have learned). The last two cases are the
-/// ones that pin the second carrier and the synthesized namespace.
+/// wrote, which the kernel may never have learned). The cases below pin both
+/// carriers, and the removal one pins the reason there is only ONE id namespace
+/// left: taking an applied item off a limb MOVES its row, so nothing host-side
+/// mints an id any more.
 /// </summary>
 [Trait("Category", "Integration")]
 public class ItemIdCoordinatorTests
@@ -103,14 +105,12 @@ public class ItemIdCoordinatorTests
 		var saves = NewSavesRoot();
 		using (var previous = Process(saves))
 		{
-			// The previous process handed the local id space counters 0 and 7, a guest's space
-			// its own 9, and the synthesized namespace a 12: the archive carries all four rows,
-			// and a restore re-stamps them onto the objects this process rebuilds while its own
-			// counters start at zero.
+			// The previous process handed the local id space counters 0 and 7, and a guest's
+			// space its own 9: the archive carries all three rows, and a restore re-stamps them
+			// onto the objects this process rebuilds while its own counters start at zero.
 			Assert.True(Spawn(previous, HostAccount, InstanceId(0, HostAccount), 5f));
 			Assert.True(Spawn(previous, HostAccount, InstanceId(7, HostAccount), 6f));
 			Assert.True(Spawn(previous, Guest1Account, InstanceId(9, Guest1Account), 7f));
-			Assert.True(Spawn(previous, HostAccount, AwardedId(12UL, HostAccount), 8f));
 			CutTheWorld(previous);
 		}
 
@@ -121,9 +121,8 @@ public class ItemIdCoordinatorTests
 		Assert.True(Save(restarted).TryContinue(out var outcome), outcome.Summary);
 
 		// The local resume point is the LOCAL space's high-water mark (7) — not the archive's
-		// overall maximum (9, another account's space), and not the synthesized namespace's 12:
-		// that is a different counter, and reading it as this one would push the allocator into
-		// the namespace whose ids carry the high bit.
+		// overall maximum (9, another account's space): another space's maximum is not this
+		// counter's resume point.
 		Assert.Equal([7UL], resumes);
 	}
 
@@ -191,24 +190,26 @@ public class ItemIdCoordinatorTests
 	}
 
 	[Fact]
-	public void AContinuedWorld_ResumesTheSynthesizedNamespace_AboveTheAwardedIdsTheArchiveReissued()
+	public void AContinuedWorld_HandsTheRemovedItemBack_WithTheIdItCarriedWhileInstalled()
 	{
 		var saves = NewSavesRoot();
-		var awarded = AwardedId(5UL, HostAccount);
+		var installed = InstanceId(5, HostAccount);
 		using (var previous = Process(saves))
 		{
-			// The previous process's last removal awarded the operator a splint. The awarded
-			// item is a real carried item, so the cut carries it in BOTH of its id carriers:
-			// the kernel's item rows and the operator's character file.
-			Characters(previous.Host).SaveHostCharacterData(SplintedBody(HostAccount, awarded));
+			// The host's body wears a splint the previous process recorded the way the ruled
+			// model records one: the item row says WHICH item is installed (it keeps its id and
+			// gains a location on that limb) and the character file says the component is there.
+			// The cut carries both, so the continued world holds the same pair.
+			Characters(previous.Host).SaveHostCharacterData(SplintedBody(HostAccount));
 			Characters(previous.Host).SaveCharacterData(Guest1Account, HealthyBody(Guest1Account));
-			Assert.True(Kernel(previous).TrySpawn(
+			Assert.True(Kernel(previous).TrySpawnCarried(
 				HostAccount,
-				new ItemIdentity(awarded, "splint"),
-				ItemLocation.Carried(new ActorId(HostAccount)),
-				new CharacterItemMsg { InstanceId = awarded, ItemId = "splint", Condition = 0.75f },
+				installed,
+				"splint",
+				new CharacterItemMsg { InstanceId = installed, ItemId = "splint", Condition = 0.75f },
 				out _,
 				out _));
+			Assert.True(Kernel(previous).TryApplyLimb(HostAccount, installed, new ActorId(HostAccount), 1, null, out _, out _));
 			CutTheWorld(previous);
 		}
 
@@ -217,50 +218,15 @@ public class ItemIdCoordinatorTests
 		MarkInWorld(restarted.Host);
 		MarkInWorld(restarted.G1);
 
-		// The restored world already holds that awarded id and the operator's restored body
-		// still wears the splint, so the next removal mints the next id of the synthesized
-		// namespace. That counter is per process exactly like the plain one, so without a
-		// resume the removal restarts it from `AwardedHighBit | 0 | space`: the archive's own
-		// awarded id is at counter 5, and 0 is not above it — which is the rule this case
-		// pins. (Whether the re-issued counter is ALSO a live id depends on what the archive
-		// holds; the real-machine probe of the parent ticket is the run that showed the
-		// collision itself, because that archive's lowest id was counter 0.)
+		// Taking it off is a MOVE of that row, not a mint: the operator who removed it holds the
+		// very id the restored world already carries, and no counter anywhere had to be resumed
+		// for that to hold. Before the ruled model this was the one place a host-side award minted
+		// an id of its own, which is what made a continued world able to re-issue one.
 		var end = RemoveTheSplint(restarted);
-		var minted = end.AwardedItem!.InstanceId;
-		Assert.True(ItemInstanceIds.IsAwarded(minted), $"the removal must mint from the synthesized namespace, got {minted}");
-		Assert.True(
-			minted != awarded,
-			"the continuation re-issued the awarded id the restored world already holds (one id, two objects)");
-		Assert.True(
-			AwardedCounterOf(minted) > AwardedCounterOf(awarded),
-			$"the resumed counter must be above the archive's own ({AwardedCounterOf(awarded)}), got {AwardedCounterOf(minted)} ({minted})");
-	}
-
-	[Fact]
-	public void AContinuedWorld_IgnoresAnotherAccountsAwardedIds_WhenResumingTheSynthesizedCounter()
-	{
-		var saves = NewSavesRoot();
-		using (var previous = Process(saves))
-		{
-			// The world was last played by ANOTHER host account, whose awards live in its own id
-			// space. This process mints in ITS space, so those ids can never collide with what it
-			// awards — and resuming from them would be the same mistake the plain half already
-			// pins, one namespace over: another space's maximum is not this counter's resume point.
-			Assert.True(Spawn(previous, Guest1Account, AwardedId(9UL, Guest1Account), 5f));
-			CutTheWorld(previous);
-		}
-
-		using var restarted = Process(saves);
-		Assert.True(Save(restarted).TryContinue(out var outcome), outcome.Summary);
-		MarkInWorld(restarted.Host);
-		MarkInWorld(restarted.G1);
-		Characters(restarted.Host).SaveHostCharacterData(SplintedBody(HostAccount, InstanceId(0, HostAccount)));
-		Characters(restarted.Host).SaveCharacterData(Guest1Account, HealthyBody(Guest1Account));
-
-		var minted = RemoveTheSplint(restarted).AwardedItem!.InstanceId;
-		Assert.True(ItemInstanceIds.IsAwarded(minted), $"the removal must mint from the synthesized namespace, got {minted}");
-		Assert.Equal(0UL, AwardedCounterOf(minted));
-		Assert.Equal(ItemInstanceIds.SpaceOf(HostAccount), ItemInstanceIds.OwnerOf(minted));
+		Assert.Equal(installed, end.AwardedItem!.InstanceId);
+		var moved = Kernel(restarted).FindItem(installed);
+		Assert.NotNull(moved);
+		Assert.Equal(ItemLocation.Carried(new ActorId(Guest1Account)), moved.Value.Location);
 	}
 
 	[Fact]
@@ -297,13 +263,12 @@ public class ItemIdCoordinatorTests
 	}
 
 	/// <summary>
-	/// The format's own contract, because two mechanisms now read it: the space key is the
+	/// The format's own contract, because two mechanisms read it: the space key is the
 	/// account id's low 32 bits (never the account id itself — that is the comparison a
-	/// resume gets wrong), an id hands that key back as its owner half, and the synthesized
-	/// namespace is marked so a plain resume can tell it apart.
+	/// resume gets wrong), and an id hands that key back as its owner half.
 	/// </summary>
 	[Fact]
-	public void TheIdSpaceKey_IsTheAccountIdsLowBits_AndTheSynthesizedNamespaceIsMarked()
+	public void TheIdSpaceKey_IsTheAccountIdsLowBits()
 	{
 		Assert.Equal(HostAccount & 0xFFFFFFFFUL, ItemInstanceIds.SpaceOf(HostAccount));
 		Assert.NotEqual(HostAccount, ItemInstanceIds.SpaceOf(HostAccount));
@@ -311,9 +276,6 @@ public class ItemIdCoordinatorTests
 		var id = ItemInstanceIds.Compose(7, HostAccount);
 		Assert.Equal(7UL, ItemInstanceIds.CounterOf(id));
 		Assert.Equal(ItemInstanceIds.SpaceOf(HostAccount), ItemInstanceIds.OwnerOf(id));
-		Assert.False(ItemInstanceIds.IsAwarded(id));
-
-		Assert.True(ItemInstanceIds.IsAwarded(ItemInstanceIds.AwardedHighBit | ItemInstanceIds.SpaceOf(HostAccount)));
 	}
 
 	// ---- the fixture: two processes over one world archive ----
@@ -370,9 +332,10 @@ public class ItemIdCoordinatorTests
 	private static CharacterItemMsg Shell() => new() { ItemId = "shell" };
 
 	/// <summary>
-	/// The synthesized namespace's last removal, driven through the operation the player
-	/// performs it with: the guest operates on the host's splinted limb and the removed
-	/// splint is awarded to the operator — the one production consumer of that counter.
+	/// The removal the player performs, driven through the operation it is made with: the guest
+	/// operates on the host's splinted limb and the item installed there is handed to the operator.
+	/// It is the CROSS-PLAYER half (the host commits it); the local half is the component's own
+	/// <c>TakeOff</c> and has no case that can run without a game process.
 	/// </summary>
 	private static MedicalOperationEndCommittedMsg RemoveTheSplint(ItemSimWorld world)
 	{
@@ -391,11 +354,15 @@ public class ItemIdCoordinatorTests
 		return end;
 	}
 
-	/// <summary>An operator body that can operate: alive, conscious, one splinted limb and whatever the case adds.</summary>
-	private static CharacterDataMsg SplintedBody(ulong owner, ulong awardedItemId) => new()
+	/// <summary>
+	/// A target body whose splint the removal is about: the leg carries the component, and
+	/// the item that IS that component is a kernel row rather than a carried item — which is
+	/// the pair the ruled model keeps, and the reason the operator who takes it off receives
+	/// the id it already had.
+	/// </summary>
+	private static CharacterDataMsg SplintedBody(ulong owner) => new()
 	{
 		OwnerSteamId = owner,
-		Items = [new CharacterItemMsg { InstanceId = awardedItemId, ItemId = "splint", Condition = 0.75f, SlotIndex = 0 }],
 		Health = new CharacterHealthMsg { Alive = true, Conscious = true, BrainHealth = 80f },
 		Limbs =
 		[
@@ -431,12 +398,6 @@ public class ItemIdCoordinatorTests
 		Items = [.. items],
 		Health = new CharacterHealthMsg { Alive = true, Conscious = true, BrainHealth = 80f },
 	};
-
-	/// <summary>The synthesized namespace's own counter, stated here independently of the production helper: the high bit is not part of it.</summary>
-	private static ulong AwardedCounterOf(ulong awardedInstanceId) => (awardedInstanceId & ~ItemInstanceIds.AwardedHighBit) >> 32;
-
-	private static ulong AwardedId(ulong counter, ulong accountId) =>
-		ItemInstanceIds.AwardedHighBit | (counter << 32) | ItemInstanceIds.SpaceOf(accountId);
 
 	/// <summary>The id format the claim is about, stated here independently of the production helper: (counter, account-low).</summary>
 	private static ulong InstanceId(ulong counter, ulong accountId) => (counter << 32) | (uint)accountId;

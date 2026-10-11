@@ -5,12 +5,15 @@
   **option 1** on 2026-10-11. **Stage 1 of the implementation landed 2026-10-12** (the model half: the
   kernel's `Applied` location family, the two limb-application commands and their decisions, the wire
   kind with its required limb, the archive rule and the consumer census, plus 35 cases — self-check:
-  `docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`). **No adapter path creates an
-  applied row yet, so nothing a running game does has changed.** Still owed: stage 2 — the adapter's
-  apply and removal commits (cross-player and local, the limb-component binding and the divergence
-  report at the restore seam) and the deletion of the synthesized id namespace with its documentation
-  and test surface; stage 3 — the mod-facing id-lifecycle rule and the by-id read. The draft below is
-  the frozen design it implements.
+  `docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`). **Stage 2 landed 2026-10-13**
+  (the adapter's apply and removal commits, cross-player and local, the limb-component binding, the
+  divergence report at the restore seam, and the deletion of the synthesized id namespace with its
+  documentation and test surface — self-check:
+  `docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md`; decision 259). Every apply and
+  removal path now commits one relocation and the item keeps its id, so the rule is true in a running
+  game. Still owed: **stage 3** — the mod-facing id-lifecycle rule and the by-id read on `IModGameState`
+  (the stage-2 self-check's §2.3 keeps that scoping decision). The draft below is the frozen design it
+  implements.
 - Priority: High
 - Category: Item identity / model contract / mod API / persistence
 - Source: handoff instruction (2026-10-11) after `review/id-resume-sources-still-unseeded.md` landed:
@@ -101,16 +104,18 @@ written lifecycle rule. The reasons and the evidence are in the stage-1 self-che
 
 ## Limits
 
-- No runtime evidence exists for any of this; every claim is source-level (the decompiled game plus our
-  own tree). The ticket carries no acceptance row because there is nothing to accept yet.
+- Runtime evidence: every claim is source-level plus the test suite. The stage-2 self-check's §5 names
+  what is still unproven, including the one race the local removal has (a take-off within one round trip
+  of the apply, before the applying client's own kernel holds the applied row).
 - The ice pack's spent charge is out of this rule's scope: branch 4 spends `item.condition` with no
   floor check and the item survives.
-- Two limits stage 1 named rather than fixed, both in the stage-1 self-check's §5: a wire checkpoint
-  whose applied row names no limb fails the WHOLE chunk set (the model every unknown location kind
-  already has on that path, while the archive skips the row by name), and a container report that was in
-  flight when the item became applied can still claim it back into the container
-  (`DecideSyncContainer` relocates any child id it names) — that class is stage 2's, with the divergence
-  rules.
+- Two limits stage 1 named, and what stage 2 did with each, both in the stage-1 self-check's §5: a wire
+  checkpoint whose applied row names no limb still fails the WHOLE chunk set (the model every unknown
+  location kind already has on that path, while the archive skips the row by name), and a container
+  report that was in flight when the item became applied can still claim it back into the container
+  (`DecideSyncContainer` relocates any child id it names). The divergence rules landed at the restore
+  seam and at both removal gestures; this in-flight claiming class stays open with
+  `todo/id-carriers-can-disagree-about-placement.md`.
 - `Limb.cs:135-138` (the severed limb's wearables are dropped first at `Limb.cs:104-107` and then
   destroyed; whether the destroy still reaches anything is not established by reading) is recorded as
   outside this rule, not as covered by it.

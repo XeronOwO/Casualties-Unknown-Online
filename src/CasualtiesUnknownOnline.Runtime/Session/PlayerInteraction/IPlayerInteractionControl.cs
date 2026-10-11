@@ -101,9 +101,12 @@ public interface IPlayerInteractionControl
 	/// the item's post-use state exists only here; the host matches the report against
 	/// the use it admitted. <paramref name="consumed"/> is the limb-tool family's own
 	/// observation that the run destroyed the item object itself; the eat passes false
-	/// and the host keeps its own verdict.
+	/// and the host keeps its own verdict. <paramref name="becameLimbComponent"/> is
+	/// the same family's narrower observation that the object did not merely end — it
+	/// became the limb's installed component, so the item keeps its id and gains a
+	/// location on that limb.
 	/// </summary>
-	void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed);
+	void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false);
 
 	/// <summary>Host only: an affected-side use's outcome arrived (from the wire or the host's own client).</summary>
 	void HandleItemActionOutcome(ulong sender, PlayerItemActionOutcomeMsg msg);

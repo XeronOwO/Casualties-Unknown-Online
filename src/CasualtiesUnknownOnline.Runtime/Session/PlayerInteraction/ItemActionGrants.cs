@@ -5,10 +5,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// <summary>
 /// The host's outstanding affected-side uses: one entry per (actor, item) the host
 /// admitted a cross-player use for on the family whose effect runs on the affected
-/// side's own client, naming the item's owner. It exists because the outcome
-/// arrives from the AFFECTED side while the item belongs to somebody else, and the
-/// item domain's own rule — a member may not report a change to another member's
-/// carried item — must keep holding.
+/// side's own client, naming the item's owner and — for the family that is about a
+/// limb — the limb the host authorized. It exists because the outcome arrives from
+/// the AFFECTED side while the item belongs to somebody else, and the item domain's
+/// own rule — a member may not report a change to another member's carried item —
+/// must keep holding.
 /// <para>
 /// So the admission IS the grant: the host validated the pair and the item when it
 /// admitted the use, and the one outcome report for that pair is the only write it
@@ -18,18 +19,29 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// Bounded by construction: one entry per admitted use in flight, cleared on the
 /// report that settles it.
 /// </para>
+/// <para>
+/// The LIMB rides the grant rather than the report because the host is where it came
+/// from: it is the number the host put in the use result, the affected side resolves
+/// exactly that number or refuses (<c>NativeLimbTarget.ResolveNamed</c>), and the
+/// applied row the outcome commits is therefore on the limb the host already
+/// authorized. Echoing it back would give one fact two carriers.
+/// </para>
 /// </summary>
 internal sealed class ItemActionGrants
 {
-	private readonly Dictionary<(ulong Actor, ulong ItemId), ulong> _grants = [];
+	/// <summary>Who owns the item, and which limb the use was authorized on (-1 for a family with no limb).</summary>
+	private readonly record struct Admission(ulong Owner, int LimbIndex);
+
+	private readonly Dictionary<(ulong Actor, ulong ItemId), Admission> _grants = [];
 
 	/// <summary>
 	/// The host admitted a cross-player use of this item by this actor — remember who
-	/// owns it. A pair that is already in flight keeps the FIRST admission: one
-	/// admission authorizes one report, and overwriting it would let a second
-	/// admission for the same pair extend the first one's life.
+	/// owns it and, when the family names one, the limb. A pair that is already in
+	/// flight keeps the FIRST admission: one admission authorizes one report, and
+	/// overwriting it would let a second admission for the same pair extend the first
+	/// one's life.
 	/// </summary>
-	internal void Grant(ulong actor, ulong itemId, ulong owner)
+	internal void Grant(ulong actor, ulong itemId, ulong owner, int limbIndex = -1)
 	{
 		if (actor == 0 || itemId == 0 || owner == 0)
 		{
@@ -39,7 +51,7 @@ internal sealed class ItemActionGrants
 		var key = (actor, itemId);
 		if (!_grants.ContainsKey(key))
 		{
-			_grants[key] = owner;
+			_grants[key] = new Admission(owner, limbIndex);
 		}
 	}
 
@@ -48,14 +60,18 @@ internal sealed class ItemActionGrants
 	/// for this pair: the report is refused rather than applied, because without the
 	/// admission it would be one member writing another member's item.
 	/// </summary>
-	internal bool TryTake(ulong actor, ulong itemId, out ulong owner)
+	internal bool TryTake(ulong actor, ulong itemId, out ulong owner, out int limbIndex)
 	{
-		if (!_grants.TryGetValue((actor, itemId), out owner))
+		if (!_grants.TryGetValue((actor, itemId), out var grant))
 		{
+			owner = 0;
+			limbIndex = -1;
 			return false;
 		}
 
 		_grants.Remove((actor, itemId));
+		owner = grant.Owner;
+		limbIndex = grant.LimbIndex;
 		return true;
 	}
 

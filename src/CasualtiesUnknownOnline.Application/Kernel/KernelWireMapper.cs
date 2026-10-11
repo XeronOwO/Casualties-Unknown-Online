@@ -414,6 +414,8 @@ public static class KernelWireMapper
 					_ => TerminalKind.Destroyed,
 				},
 				command.ExpectedRevision),
+			WireCommandKind.ItemApplyLimb => KernelLimbItemWireMapper.FromWireApplyLimbCommand(command, operation, actor, epoch, authority, identity.InstanceId),
+			WireCommandKind.ItemRemoveLimb => KernelLimbItemWireMapper.FromWireRemoveLimbCommand(command, operation, actor, epoch, authority, identity.InstanceId),
 			WireCommandKind.ItemUpdateState => new UpdateItemStateCommand(
 				operation,
 				actor,

@@ -86,6 +86,7 @@ internal sealed class GameAdapterDomains
 	internal readonly ItemApplication ItemApplication;
 	internal readonly ItemReconcile ItemReconcile;
 	internal readonly ItemWorldSync ItemWorldSync;
+	internal readonly LimbItemTransform LimbItemTransform;
 	internal readonly PickupSync PickupSync;
 	internal readonly ContainerItemSync ContainerSync;
 	internal readonly ItemUseSync ItemUseSync;
@@ -288,6 +289,7 @@ internal sealed class GameAdapterDomains
 		var blockBreakState = new BlockBreakPendingState();
 		TrapDrops = new TrapDropPendingState();
 		ItemWorldSync = new ItemWorldSync(session, items, DropGuard, itemDropState, blockBreakState, TrapDrops, OperationTrace, itemReports, ItemIds, loggerFactory.CreateLogger<ItemWorldSync>());
+		LimbItemTransform = new LimbItemTransform(session, items, loggerFactory.CreateLogger<LimbItemTransform>());
 		ItemSlotSync = new ItemSlotSync(items, session, itemDropState, ItemIds, OperationTrace, loggerFactory.CreateLogger<ItemSlotSync>());
 		PickupSync = new PickupSync(items, session, ItemApplication, itemDropState, ItemIds, OperationTrace, itemReports, ItemSlotSync);
 		ContainerSync = new ContainerItemSync(items, itemDropState, ItemIds, OperationTrace, itemReports, session, loggerFactory.CreateLogger<ContainerItemSync>());

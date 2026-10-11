@@ -23,6 +23,13 @@ internal static class ItemPatches
 	{
 		private static void Postfix(Item __instance)
 		{
+			// A limb component's own TakeOff instantiates the item it revives, and that object
+			// must wear the instance id the APPLIED ROW carries. Awake is the hook because it
+			// runs synchronously inside that Object.Instantiate — the one moment the object
+			// exists while the native call is still on the stack, and therefore the only place
+			// the id can be stamped before Item.Start would allocate a fresh one.
+			PatchBridge.Impl?.TryAdoptLimbRemovalItem(__instance);
+
 			// Awake runs synchronously inside Object.Instantiate, so the
 			// BuildingEntity.Update death-branch scope is still active here.
 			// The marker is consumed at Item.Start (next frame) by
@@ -46,7 +53,15 @@ internal static class ItemPatches
 			// destroy is silenced by the scope, and the END-OF-FRAME destroy
 			// (Unity defers Object.Destroy past the scope) is silenced by the
 			// coordinator's destroy-claim set — the fact rode the craft report.
-			if (CallContext.Current == CallContext.Origin.Craft || PatchBridge.Impl?.ShouldSuppressDestroy(__instance) == true)
+			//
+			// A LIMB APPLY's destroy is the same shape for the same reason: the item's own
+			// useLimbAction destroyed the object it was handed, but the item did not end — it
+			// is installed on that limb and keeps its id, and the apply seam has already
+			// reported the relocation. The marker is attached there, before this deferred
+			// destroy lands, so this hook stays silent without a claim to consume.
+			if (CallContext.Current == CallContext.Origin.Craft
+				|| PatchBridge.Impl?.ShouldSuppressDestroy(__instance) == true
+				|| __instance.GetComponent<LimbAppliedItemOrigin>() != null) // Unity object — ==
 			{
 				return;
 			}

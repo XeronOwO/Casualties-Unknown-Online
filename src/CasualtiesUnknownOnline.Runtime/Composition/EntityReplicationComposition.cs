@@ -46,6 +46,9 @@ internal static class EntityReplicationComposition
 		// character-data disk store as a second source of truth). No pump, not an
 		// ICuoService — it only reacts to reports and handshakes.
 		services.AddSingleton<PlayerKernelLimbProjection>();
+		// The applied item row's durability writer: the same 1 Hz character capture, read for the
+		// limb components whose item survives the transform (see the projection's own doc).
+		services.AddSingleton<AppliedItemConditionProjection>();
 		services.AddSingleton<PlayerKernelRestoreProjection>();
 		services.AddSingleton<CharacterDataStore>();
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());

@@ -71,6 +71,35 @@ internal sealed class ItemProjection(ItemKernelAuthority authority, WorldItemTab
 		return true;
 	}
 
+	/// <summary>
+	/// The host's own observation of the game's limb transform, in the family's two
+	/// directions. Neither writes the world projection beyond removing a stale world
+	/// row: an applied item is in no inventory position and no world position, so the
+	/// kernel row IS the projection, and the peers rebuild from the committed batch.
+	/// </summary>
+	public bool ApplyLimbItem(ulong actor, ulong itemId, ActorId owner, int limbIndex, CharacterItemMsg? item)
+	{
+		if (!_authority.TryApplyLimb(actor, itemId, owner, limbIndex, item, out _, out _))
+		{
+			return false;
+		}
+
+		_worldTable.Remove(itemId);
+		return true;
+	}
+
+	/// <summary>An applied item comes off the limb and is carried by the operator; the id is unchanged.</summary>
+	public bool ApplyLimbItemRemoval(ulong actor, ulong itemId, ActorId appliedOwner, int limbIndex, ActorId newOwner, CharacterItemMsg? item)
+	{
+		if (!_authority.TryRemoveLimb(actor, itemId, appliedOwner, limbIndex, newOwner, item, out _, out _))
+		{
+			return false;
+		}
+
+		_worldTable.Remove(itemId);
+		return true;
+	}
+
 	public bool ApplyCooked(ulong actor, ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity)
 	{
 		// The source may not be in the kernel yet (a host cooker report is a

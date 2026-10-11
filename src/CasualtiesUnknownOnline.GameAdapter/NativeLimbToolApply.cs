@@ -91,10 +91,23 @@ internal static class NativeLimbToolApply
 
 		var limbIndex = Array.IndexOf(body.limbs, limb);
 		var definitionId = item.id;
+
+		// The form this run is about to install, read BEFORE the delegate runs: the two
+		// types are the family the game itself defines — the only limb components that
+		// declare OnDismember (Limb.cs dispatches it by SendMessage) and the only ones
+		// whose own TakeOff instantiates an item again — so "the limb carries one now and
+		// did not before" is this run's own doing and the boundary this report is about.
+		// Per type, not "any": one limb legally carries a splint and a tourniquet at once.
+		var hadSplint = limb.GetComponent<SplintLimb>() != null; // Unity object — ==
+		var hadTourniquet = limb.GetComponent<TourniquetScript>() != null; // Unity object — ==
+
 		using (CallContext.Enter(CallContext.Origin.CharacterMedicalUse))
 		{
 			info.useLimbAction(limb, item);
 		}
+
+		var becameComponent = (limb.GetComponent<SplintLimb>() != null && !hadSplint) // Unity object — ==
+			|| (limb.GetComponent<TourniquetScript>() != null && !hadTourniquet); // Unity object — ==
 
 		// The condition the run left is read NOW, because the destroy a delegate may have
 		// made lands later: Unity's Object.Destroy is deferred to the end of the frame, so
@@ -108,7 +121,7 @@ internal static class NativeLimbToolApply
 		// 1489/1515 for the two splints), which is a fact about the object's fate rather
 		// than something the item's own data or the field it left could say. Reporting
 		// inside this frame would report every one of them as surviving.
-		body.StartCoroutine(ReportAfterTheDestroyLands(item, itemInstanceId, definitionId, limbIndex, condition, domains));
+		body.StartCoroutine(ReportAfterTheDestroyLands(item, itemInstanceId, definitionId, limbIndex, condition, becameComponent, domains));
 		return true;
 	}
 
@@ -117,6 +130,11 @@ internal static class NativeLimbToolApply
 	/// <c>== null</c> answers whether the run consumed the object. A consumed object
 	/// reports condition 0 because nothing readable is left of it — the limb component
 	/// that took it carries the value it held instead.
+	/// <para>
+	/// <paramref name="becameComponent"/> is reported only with a consumed object,
+	/// because the two are one fact: an item that survives its own limb action is spent
+	/// or unchanged, never installed, and the host reads the pair as such.
+	/// </para>
 	/// </summary>
 	private static IEnumerator ReportAfterTheDestroyLands(
 		Item item,
@@ -124,20 +142,34 @@ internal static class NativeLimbToolApply
 		string definitionId,
 		int limbIndex,
 		float condition,
+		bool becameComponent,
 		GameAdapterDomains domains)
 	{
 		yield return null;
 
 		if (item == null) // Unity object — ==
 		{
-			domains.PlayerInteraction.SendItemActionOutcome(itemInstanceId, 0f, consumed: true);
+			domains.PlayerInteraction.SendItemActionOutcome(itemInstanceId, 0f, consumed: true, becameLimbComponent: becameComponent);
 			domains.Log.LogInformation(
-				"[ItemUse] ran the game's own limb action of {Type} (id {ItemId}) on the local limb {Limb}; the item was consumed into the limb.",
+				becameComponent
+					? "[ItemUse] ran the game's own limb action of {Type} (id {ItemId}) on the local limb {Limb}; the item became that limb's component and kept its id."
+					: "[ItemUse] ran the game's own limb action of {Type} (id {ItemId}) on the local limb {Limb}; the item was consumed into the limb.",
 				definitionId, itemInstanceId, limbIndex);
 			yield break;
 		}
 
-		domains.PlayerInteraction.SendItemActionOutcome(itemInstanceId, condition, consumed: false);
+		if (becameComponent)
+		{
+			// The limb gained the component while the item survived: the ice pack's branch
+			// is the family's own example (ChilledLimb, the item keeps existing), and it is
+			// deliberately outside the "the game turns it back into an item" rule. Named,
+			// never reported as an install — the item is still its owner's.
+			domains.Log.LogWarning(
+				"[ItemUse] the limb action of {Type} (id {ItemId}) left a limb component behind AND kept the item (condition {Condition:F2}): the item is reported as surviving, so the component carries no id — this pairing is outside the applied family.",
+				definitionId, itemInstanceId, condition);
+		}
+
+		domains.PlayerInteraction.SendItemActionOutcome(itemInstanceId, condition, consumed: false, becameLimbComponent: false);
 		domains.Log.LogInformation(
 			"[ItemUse] ran the game's own limb action of {Type} (id {ItemId}) on the local limb {Limb}; item condition left at {Condition:F2}.",
 			definitionId, itemInstanceId, limbIndex, condition);

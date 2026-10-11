@@ -210,6 +210,92 @@ internal sealed class ItemMessageFlowService(
 			ParentItemId = parentItemId,
 		};
 
+	/// <summary>
+	/// The applied family's two reports, host and guest alike: the local body's own
+	/// limb action turned a carried item into the limb's component, or brought the
+	/// component back as an item. Both are RELOCATIONS that keep the instance id, so
+	/// neither is the destroy/spawn pair the generic hooks would report — which is
+	/// exactly why they are reported from the seam that observed the native call
+	/// rather than from <c>Item.OnDestroy</c> / <c>Item.Start</c>.
+	/// </summary>
+	public void SendItemAppliedToLimb(ulong itemId, int limbIndex)
+	{
+		_pendingCreations.SettleBeforeOperation();
+		if (itemId == 0 || limbIndex < 0)
+		{
+			return;
+		}
+
+		if (_session.Role != SessionRole.Guest)
+		{
+			_projection.ApplyLimbItem(_session.LocalSteamId, itemId, new ActorId(_session.LocalSteamId), limbIndex, null);
+		}
+
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Guest)
+		{
+			_kernelProtocol.SendCommand(new WireCommand
+			{
+				Kind = WireCommandKind.ItemApplyLimb,
+				Identity = WireIdentity(itemId, ""),
+				Location = AppliedLocation(_session.LocalSteamId, limbIndex),
+				ExpectedRevision = 0,
+			}, WirePayloadType.ItemApplyLimbCommand);
+		}
+
+		// Host broadcasts are unnecessary: the accepted kernel batch is already
+		// broadcast by KernelProtocolService.
+	}
+
+	public void SendItemRemovedFromLimb(ulong itemId, int limbIndex)
+	{
+		_pendingCreations.SettleBeforeOperation();
+		if (itemId == 0 || limbIndex < 0)
+		{
+			return;
+		}
+
+		if (_session.Role != SessionRole.Guest)
+		{
+			_projection.ApplyLimbItemRemoval(
+				_session.LocalSteamId,
+				itemId,
+				new ActorId(_session.LocalSteamId),
+				limbIndex,
+				new ActorId(_session.LocalSteamId),
+				null);
+		}
+
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Guest)
+		{
+			_kernelProtocol.SendCommand(new WireCommand
+			{
+				Kind = WireCommandKind.ItemRemoveLimb,
+				Identity = WireIdentity(itemId, ""),
+				Location = AppliedLocation(_session.LocalSteamId, limbIndex),
+				NewOwner = _session.LocalSteamId,
+				ExpectedRevision = 0,
+			}, WirePayloadType.ItemRemoveLimbCommand);
+		}
+	}
+
+	private static WireItemLocation AppliedLocation(ulong owner, int limbIndex) =>
+		new()
+		{
+			Kind = WireItemLocationKind.Applied,
+			Owner = owner,
+			LimbIndex = limbIndex,
+		};
+
 	private static WireItemData ToWireItemData(CharacterItemMsg item) =>
 		KernelWireMapper.ToWireData(ItemKernelAuthority.ToKernelData(item));
 

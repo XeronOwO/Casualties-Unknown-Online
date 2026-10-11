@@ -104,6 +104,51 @@ internal sealed class PlayerItemUseCommit(
 	}
 
 	/// <summary>
+	/// The form-preserving half of the limb-tool family: the affected side ran a limb
+	/// action that turned the offered item into the limb's installed component. The item
+	/// LEAVES its owner's inventory exactly as a consumed one does — the native apply
+	/// destroyed the carried object — but its kernel row RELOCATES onto the limb instead
+	/// of going terminal, which is the ruling this family implements: one id, one item,
+	/// now on a limb.
+	/// </summary>
+	internal void CommitItemAppliedToLimb(ulong owner, ulong itemInstanceId, ulong appliedOwner, int limbIndex, CharacterItemMsg newItem)
+	{
+		SaveOwnerSnapshot(owner, itemInstanceId, newItem, destroyed: true);
+		SyncItemRecordAsApplied(owner, itemInstanceId, appliedOwner, limbIndex, newItem);
+	}
+
+	/// <summary>
+	/// The item's own record for an apply, on the same two halves as every other
+	/// commit: the owner's transfer-table row goes (the item is not carried any more,
+	/// and the absolute carried registration must not resurrect it as carried), and the
+	/// kernel relocates. An id the kernel never judged is named rather than relocated —
+	/// there is no row to move, and inventing one is what the applied family's own
+	/// spawn refusal exists to prevent.
+	/// </summary>
+	private void SyncItemRecordAsApplied(ulong owner, ulong itemInstanceId, ulong appliedOwner, int limbIndex, CharacterItemMsg newItem)
+	{
+		if (owner != _session.LocalSteamId)
+		{
+			_items.RemoveTransferredItem(owner, itemInstanceId);
+		}
+
+		if (_kernelAuthority.FindItem(itemInstanceId) is null)
+		{
+			_log.LogWarning(
+				"[ItemUse] item {ItemId} was applied to limb {Limb} of {Target}, but the kernel never judged that id — no row was relocated; the limb component and the item row now disagree.",
+				itemInstanceId, limbIndex, appliedOwner);
+			return;
+		}
+
+		if (!_kernelAuthority.TryApplyLimb(_session.LocalSteamId, itemInstanceId, new ActorId(appliedOwner), limbIndex, newItem, out _, out var rejection))
+		{
+			_log.LogWarning(
+				"[ItemUse] the kernel refused to apply item {ItemId} to limb {Limb} of {Target}: {Reason} ({Message}).",
+				itemInstanceId, limbIndex, appliedOwner, rejection?.Reason, rejection?.Message);
+		}
+	}
+
+	/// <summary>
 	/// Make the kernel own a wearable that crossed to the host target. Guest
 	/// targets go through the transfer-table adopt path; the host has no
 	/// transfer-table row, so this keeps the item kernel authoritative when the

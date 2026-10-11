@@ -63,4 +63,17 @@ public sealed class PlayerItemActionOutcomeMsg
 	/// </summary>
 	[ProtoMember(3)]
 	public bool Consumed { get; set; }
+
+	/// <summary>
+	/// The limb-tool family's own observation that the item did not simply END: the
+	/// delegate turned it into the limb's installed component (<c>SplintLimb</c> /
+	/// <c>TourniquetScript</c>), which is the ONE consumption that keeps the item's
+	/// instance id and gains a location instead of a tombstone. Only the client that
+	/// ran the delegate can answer it — the component is added inside the delegate's
+	/// own body — which is why it is reported rather than derived from the item's
+	/// definition on the host. The host commits an APPLIED relocation when it is set
+	/// and the family's ordinary consumed end when it is not.
+	/// </summary>
+	[ProtoMember(4)]
+	public bool BecameLimbComponent { get; set; }
 }

@@ -24,7 +24,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// <param name="LocalCharacter">The snapshot bound to this process's own peer, or null when the archive carries none this player claims.</param>
 /// <param name="BoundPlayerKeys">The archive keys bound to a present peer (the local player's included) — the set a restore report may describe.</param>
 /// <param name="ClaimRefusals">One line per stored character this restore refused to hand over, with its reason; empty = every stored character was either bound or belonged to an absent player.</param>
+/// <param name="BoundCharactersByPeer">The same bound set keyed by the PEER each character went to, whose <c>OwnerSteamId</c> the store may not have stamped: the restore's applied-item audit needs the owner to ask the kernel about, and only this binder knows it.</param>
 internal readonly record struct WorldCharacterBindResult(
 	CharacterDataMsg? LocalCharacter,
 	IReadOnlyList<string> BoundPlayerKeys,
-	IReadOnlyList<string> ClaimRefusals);
+	IReadOnlyList<string> ClaimRefusals,
+	IReadOnlyDictionary<ulong, CharacterDataMsg> BoundCharactersByPeer);

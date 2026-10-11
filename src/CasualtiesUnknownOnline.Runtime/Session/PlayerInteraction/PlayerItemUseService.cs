@@ -416,7 +416,7 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			// The deleted RemoteLimbToolCatalog's transcribed numbers (condition cost,
 			// per-tool body deltas, the component fields, the timed ramp) are what this
 			// branch no longer carries.
-			_outcomes.Admit(target, originalItem.InstanceId, user);
+			_outcomes.Admit(target, originalItem.InstanceId, user, limbIndex);
 			_log.LogInformation("[ItemUse] {User} uses {ItemId} (id {InstanceId}) on {Target} — the item's own limb action runs on the affected side.",
 				user, originalItem.ItemId, originalItem.InstanceId, target);
 			PublishUse(new PlayerItemUseResultMsg
@@ -504,8 +504,11 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 	/// came from its own request path). <paramref name="consumed"/> is the limb-tool
 	/// family's observation that the run destroyed the item object; the eat reports
 	/// false because its report is issued from inside the use call.
+	/// <paramref name="becameLimbComponent"/> narrows that further: the object did not
+	/// merely end, it became the limb's installed component, so the host relocates the
+	/// row onto the limb the admission named instead of ending it.
 	/// </summary>
-	public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed)
+	public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false)
 	{
 		if (!_session.SessionActive || itemInstanceId == 0)
 		{
@@ -517,6 +520,7 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			ItemInstanceId = itemInstanceId,
 			Condition = condition,
 			Consumed = consumed,
+			BecameLimbComponent = becameLimbComponent,
 		};
 
 		if (_session.Role == SessionRole.Host)

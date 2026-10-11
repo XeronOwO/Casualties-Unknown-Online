@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -141,6 +142,21 @@ public sealed class MedicalOperationConcurrencyTests
 	private static CharacterLimbMsg VictimLimb(ICharacterDataControl characters, int index) =>
 		characters.GetSavedCharacter(Guest1Id)!.Limbs.Single(l => l.Index == index);
 
+	/// <summary>
+	/// The item row that IS the limb component a removal is about: the kernel says WHICH item
+	/// is installed on that limb (the ruled model keeps its id and gains the location), while
+	/// the character snapshot says the component is there. Every production apply writes both,
+	/// and the removal is a MOVE of that row rather than a mint.
+	/// </summary>
+	private static ulong InstallOnLimb(TestNode node, ulong owner, int limbIndex, string definitionId, float condition)
+	{
+		var kernel = node.Services.GetRequiredService<ItemKernelAuthority>();
+		var instanceId = ItemInstanceIds.Compose(counter: 41, accountId: owner);
+		Assert.True(kernel.TrySpawnCarried(owner, instanceId, definitionId, Item(instanceId, definitionId, condition), out _, out _));
+		Assert.True(kernel.TryApplyLimb(owner, instanceId, new ActorId(owner), limbIndex, null, out _, out _));
+		return instanceId;
+	}
+
 	[Fact]
 	public void SameLimb_DifferentKinds_BothRunAndBothEffectsApply()
 	{
@@ -279,6 +295,7 @@ public sealed class MedicalOperationConcurrencyTests
 	public void SplintRemoval_TwoOperators_TheItemIsAwardedOnce()
 	{
 		var (w, characters, _) = CreateVictimWorld(Limb(0), Limb(1, components: [SplintComponent(0.75f)]), Limb(2));
+		var installed = InstallOnLimb(w.Host, Guest1Id, 1, "splint", 0.75f);
 
 		MedicalOperationStartAckMsg? firstAck = null;
 		MedicalOperationStartAckMsg? secondAck = null;
@@ -305,7 +322,10 @@ public sealed class MedicalOperationConcurrencyTests
 		var limb = VictimLimb(characters, 1);
 		Assert.False(limb.Splinted);
 		Assert.DoesNotContain(limb.Components, c => c.TypeName == "SplintLimb");
-		Assert.Single(characters.GetHostCharacterData()!.Items, i => i.ItemId == "splint");
+
+		// One removal, one hand-over: the operator that finished holds the installed id, and the
+		// operator whose session was stopped holds nothing — the row moved exactly once.
+		Assert.Equal(installed, Assert.Single(characters.GetHostCharacterData()!.Items, i => i.ItemId == "splint").InstanceId);
 		Assert.DoesNotContain(characters.GetSavedCharacter(Guest2Id)!.Items, i => i.ItemId == "splint");
 	}
 

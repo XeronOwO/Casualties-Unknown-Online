@@ -349,6 +349,15 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnItemDestroyed(Item item) => domains.ItemWorldSync.OnItemDestroyed(item);
 
+	public void OnItemAppliedToLimb(Item item, Limb limb) => domains.LimbItemTransform.OnItemAppliedToLimb(item, limb);
+
+	public void OnLimbComponentTakeOffBegin(GameObject limbObject, string definitionId) =>
+		domains.LimbItemTransform.OnLimbComponentTakeOffBegin(limbObject, definitionId);
+
+	public void OnLimbComponentTakeOffEnd(bool nativeRan) => domains.LimbItemTransform.OnLimbComponentTakeOffEnd(nativeRan);
+
+	public void TryAdoptLimbRemovalItem(Item item) => domains.LimbItemTransform.TryAdoptLimbRemovalItem(item);
+
 	public void OnItemPickupStart(Item item) => domains.PickupSync.OnPickupStart(item);
 
 	public void OnItemPickedUp(Item item) => domains.PickupSync.OnPickedUp(item);

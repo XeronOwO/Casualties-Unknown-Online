@@ -150,6 +150,114 @@ public class KernelCommandGatewayTests
 	}
 
 	[Fact]
+	public void InstallOfTheSendersOwnCarriedItemOnItsOwnLimb_IsAdmitted()
+	{
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, Member);
+
+		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, Apply(42, owner: Member, limbIndex: 3)).IsAdmitted,
+			"the applier acts on the body it simulates, so its own carried item on its own limb is the normal report");
+	}
+
+	[Fact]
+	public void InstallOfAnotherMembersCarriedItem_IsIgnored()
+	{
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, OtherMember);
+
+		var decision = Gateway(facts).AdmitMemberSubmission(Member, Apply(42, owner: Member, limbIndex: 3));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+	}
+
+	[Fact]
+	public void InstallOnSomebodyElsesLimb_IsIgnored()
+	{
+		// The limb is the OTHER half of the same rule: an item may not be reported onto a
+		// body this member does not simulate, however it came by the item.
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, Member);
+
+		var decision = Gateway(facts).AdmitMemberSubmission(Member, Apply(42, owner: OtherMember, limbIndex: 3));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+	}
+
+	[Fact]
+	public void InstallReportedTwice_IsAdmitted()
+	{
+		// A repeated observation of the same applied fact is a re-assertion, not a
+		// divergence: the kernel advances the revision and leaves the item on that limb.
+		var facts = new FakeItemFacts();
+		facts.AppliedTo(42, Member, limbIndex: 3);
+
+		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, Apply(42, owner: Member, limbIndex: 3)).IsAdmitted);
+	}
+
+	[Fact]
+	public void InstallOfAnItemAlreadyAppliedToAnotherLimb_IsIgnored()
+	{
+		// The family's one way in is a relocation FROM a live location: an id already
+		// installed elsewhere is not this report's to move, and reading it as a re-assertion
+		// would silently move the row off the limb its component is really on.
+		var facts = new FakeItemFacts();
+		facts.AppliedTo(42, Member, limbIndex: 3);
+
+		var decision = Gateway(facts).AdmitMemberSubmission(Member, Apply(42, owner: Member, limbIndex: 5));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+	}
+
+	[Fact]
+	public void TakeOffOfTheSendersOwnLimbComponent_IsAdmitted()
+	{
+		var facts = new FakeItemFacts();
+		facts.AppliedTo(42, Member, limbIndex: 3);
+
+		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, Remove(42, appliedOwner: Member, limbIndex: 3, newOwner: Member)).IsAdmitted,
+			"the component comes off the sender's own body and into the sender's own hands");
+	}
+
+	[Fact]
+	public void TakeOffHandingTheItemToAThirdParty_IsIgnored()
+	{
+		// A cross-player removal is the HOST's commit, never a member's report.
+		var facts = new FakeItemFacts();
+		facts.AppliedTo(42, Member, limbIndex: 3);
+
+		var decision = Gateway(facts).AdmitMemberSubmission(Member, Remove(42, appliedOwner: Member, limbIndex: 3, newOwner: OtherMember));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+	}
+
+	[Fact]
+	public void TakeOffNamingAnotherLimb_IsIgnored()
+	{
+		var facts = new FakeItemFacts();
+		facts.AppliedTo(42, Member, limbIndex: 3);
+
+		var decision = Gateway(facts).AdmitMemberSubmission(Member, Remove(42, appliedOwner: Member, limbIndex: 5, newOwner: Member));
+
+		Assert.True(
+			decision.Kind == CommandAdmissionKind.Ignored,
+			"the removal names the limb it is the counterpart of, and the recorded location must agree");
+	}
+
+	[Fact]
+	public void TakeOffOfSomebodyElsesLimbComponent_IsIgnored()
+	{
+		var facts = new FakeItemFacts();
+		facts.AppliedTo(42, OtherMember, limbIndex: 3);
+
+		var decision = Gateway(facts).AdmitMemberSubmission(Member, Remove(42, appliedOwner: Member, limbIndex: 3, newOwner: Member));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+	}
+
+	[Fact]
 	public void Refusal_IsAuditedOnceWithTheCommandActorSenderAndReason()
 	{
 		var logger = new RecordingLogger<KernelCommandGateway>();
@@ -203,6 +311,12 @@ public class KernelCommandGatewayTests
 
 	private static DestroyItemCommand Destroy(ulong instanceId, ulong actor, AuthorityKind authority) =>
 		new(new OperationId(1), new ActorId(actor), new RunEpoch(1), authority, instanceId, TerminalKind.Consumed, 0);
+
+	private static ApplyLimbItemCommand Apply(ulong instanceId, ulong owner, int limbIndex) =>
+		new(new OperationId(1), new ActorId(Member), new RunEpoch(1), AuthorityKind.OwnerPredictedHostValidated, instanceId, new ActorId(owner), limbIndex, 0);
+
+	private static RemoveLimbItemCommand Remove(ulong instanceId, ulong appliedOwner, int limbIndex, ulong newOwner) =>
+		new(new OperationId(1), new ActorId(Member), new RunEpoch(1), AuthorityKind.OwnerPredictedHostValidated, instanceId, new ActorId(appliedOwner), limbIndex, new ActorId(newOwner), 0);
 
 	/// <summary>The kernel's item read model, faked: the gateway only ever reads a location.</summary>
 	private sealed class FakeItemFacts : IKernelItemFacts

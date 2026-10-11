@@ -518,6 +518,15 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	/// has no sender-side emission in this tree (the validator, the wire mapper and the
 	/// host's guard name it, no guest path sends it), so there is no report of it to
 	/// re-send.
+	/// <para>
+	/// The two LIMB-ITEM reports ARE re-reported, and for the strongest form of the same
+	/// reason: nothing else carries the fact. The character snapshot shows the limb's
+	/// COMPONENT and the kernel row shows WHICH item it is, and only this report pairs
+	/// them — a swallowed apply leaves the item carried in the world's records while its
+	/// object is gone and its component stands on a limb, and a swallowed removal leaves
+	/// it applied while the body already holds it. A repeat is idempotent: the frame is
+	/// the same operation, so the host's window answers it from the first verdict.
+	/// </para>
 	/// </summary>
 	private static bool IsReReported(WirePayloadType payloadType) => payloadType switch
 	{
@@ -525,6 +534,8 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 		WirePayloadType.ItemPickupCommand => true,
 		WirePayloadType.ItemDropCommand => true,
 		WirePayloadType.ItemDestroyCommand => true,
+		WirePayloadType.ItemApplyLimbCommand => true,
+		WirePayloadType.ItemRemoveLimbCommand => true,
 		_ => false,
 	};
 

@@ -357,6 +357,38 @@ internal interface IPatchBridge
 
 	void OnItemDestroyed(Item item);
 
+	/// <summary>
+	/// The local body's own limb action installed <paramref name="item"/> as the component
+	/// of <paramref name="limb"/>: the game's own <c>useLimbAction</c> added the
+	/// <c>SplintLimb</c> / <c>TourniquetScript</c> and destroyed the object it was handed.
+	/// The item does not end — it keeps its instance id and gains a location on that limb —
+	/// so the seam reports a relocation and marks the object, which is what keeps the
+	/// deferred <c>Item.OnDestroy</c> from reporting an end that never happened.
+	/// </summary>
+	void OnItemAppliedToLimb(Item item, Limb limb);
+
+	/// <summary>
+	/// A limb component's own <c>TakeOff</c> is about to run and will instantiate the item it
+	/// revives: resolve which item that is (the applied row on <paramref name="limbObject"/>,
+	/// whose definition is <paramref name="definitionId"/>) so the object can wear that id.
+	/// </summary>
+	void OnLimbComponentTakeOffBegin(GameObject limbObject, string definitionId);
+
+	/// <summary>
+	/// The take-off returned. <paramref name="nativeRan"/> is <c>__runOriginal</c>: a prefix that
+	/// skipped the native call still leaves this postfix running, and then the armed record has to
+	/// be DROPPED rather than reported as a removal that never happened.
+	/// </summary>
+	void OnLimbComponentTakeOffEnd(bool nativeRan);
+
+	/// <summary>
+	/// <c>Item.Awake</c>, which runs synchronously inside the <c>Object.Instantiate</c> a
+	/// take-off makes — the only moment the revived object exists inside the native call, and
+	/// therefore the only place the applied id can be stamped before <c>Item.Start</c> would
+	/// allocate a fresh one. Hot path: every item instantiation reaches it.
+	/// </summary>
+	void TryAdoptLimbRemovalItem(Item item);
+
 	/// <summary>True while this side may run the Heater cooker's native conversion (host/solo, or a guest without an active session). A guest in a live session returns false — its world items are layer-isolated and the host's ItemCook broadcast owns the conversion.</summary>
 	bool IsHeaterCookAuthority { get; }
 

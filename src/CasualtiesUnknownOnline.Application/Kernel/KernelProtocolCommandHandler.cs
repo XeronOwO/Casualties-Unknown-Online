@@ -195,6 +195,8 @@ internal sealed class KernelProtocolCommandHandler(
 		WireCommandKind.ItemTransfer => true,
 		WireCommandKind.ItemDestroy => true,
 		WireCommandKind.ItemUpdateState => true,
+		WireCommandKind.ItemApplyLimb => true,
+		WireCommandKind.ItemRemoveLimb => true,
 		_ => false,
 	};
 
@@ -322,6 +324,26 @@ internal sealed class KernelProtocolCommandHandler(
 					break;
 				}
 			case TransferItemCommand c:
+				{
+					var current = FindRevision(c.InstanceId);
+					if (current is not null)
+					{
+						return c with { ExpectedRevision = current.Value.Revision };
+					}
+
+					break;
+				}
+			case ApplyLimbItemCommand c:
+				{
+					var current = FindRevision(c.InstanceId);
+					if (current is not null)
+					{
+						return c with { ExpectedRevision = current.Value.Revision };
+					}
+
+					break;
+				}
+			case RemoveLimbItemCommand c:
 				{
 					var current = FindRevision(c.InstanceId);
 					if (current is not null)

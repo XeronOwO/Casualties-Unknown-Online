@@ -1328,7 +1328,7 @@
       "cluster": "items",
       "row": "I8",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs",
-      "quote": "internal ulong NextAwardedItemId() =>"
+      "quote": "internal void ResumeRestoredIds(IEnumerable<ulong> instanceIds)"
     },
     {
       "cluster": "items",

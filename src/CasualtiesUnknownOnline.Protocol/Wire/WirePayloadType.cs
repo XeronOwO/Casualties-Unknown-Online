@@ -31,6 +31,8 @@ public enum WirePayloadType
 	RecordEnemyLungeCommand = 24,
 	RecordEnemyEffectCommand = 25,
 	RecordTrapStateCommand = 26,
+	ItemApplyLimbCommand = 27,
+	ItemRemoveLimbCommand = 28,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,

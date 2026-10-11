@@ -116,14 +116,14 @@ internal sealed class WorldCharacterBinder(
 	{
 		if (stored.Count == 0)
 		{
-			return new WorldCharacterBindResult(null, [], []);
+			return new WorldCharacterBindResult(null, [], [], new Dictionary<ulong, CharacterDataMsg>());
 		}
 
 		var keys = stored.Select(character => character.PlayerKey).ToList();
 		if (!PlayerKeyResolution.TrySpaceOfSet(keys, out var space))
 		{
 			log.LogError("The snapshot's character files mix transport key spaces ({Keys}); no character was applied.", string.Join(", ", keys));
-			return new WorldCharacterBindResult(null, [], [$"the snapshot's character files mix transport key spaces ({string.Join(", ", keys)}), so not one of them was applied"]);
+			return new WorldCharacterBindResult(null, [], [$"the snapshot's character files mix transport key spaces ({string.Join(", ", keys)}), so not one of them was applied"], new Dictionary<ulong, CharacterDataMsg>());
 		}
 
 		var live = LiveKeySpace();
@@ -139,7 +139,7 @@ internal sealed class WorldCharacterBinder(
 			// character (decision 162), and the files stay for a later claim. It is a
 			// LOSS for this session, not a benign absence, so it is named as one.
 			log.LogWarning("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
-			return new WorldCharacterBindResult(null, [], [$"the snapshot was written in the {space} key space and this session runs {live}, so none of its {stored.Count} stored character(s) was claimed (decision 162)"]);
+			return new WorldCharacterBindResult(null, [], [$"the snapshot was written in the {space} key space and this session runs {live}, so none of its {stored.Count} stored character(s) was claimed (decision 162)"], new Dictionary<ulong, CharacterDataMsg>());
 		}
 
 		var peers = PresentPeers();
@@ -148,6 +148,7 @@ internal sealed class WorldCharacterBinder(
 		var unclaimed = 0;
 		CharacterDataMsg? local = null;
 		var boundKeys = new List<string>(stored.Count);
+		var boundCharacters = new Dictionary<ulong, CharacterDataMsg>();
 		var refusals = new List<string>();
 		foreach (var character in stored)
 		{
@@ -181,12 +182,13 @@ internal sealed class WorldCharacterBinder(
 			}
 
 			boundKeys.Add(character.PlayerKey);
+			boundCharacters[peerId] = character.Character;
 			applied++;
 		}
 
 		log.LogInformation("Restored characters: {Applied} bound to present peers, {Unclaimed} left unclaimed, {Refused} refused (key space {Space}).",
 			applied, unclaimed, refusals.Count, space);
-		return new WorldCharacterBindResult(local, boundKeys, refusals);
+		return new WorldCharacterBindResult(local, boundKeys, refusals, boundCharacters);
 	}
 
 	/// <summary>

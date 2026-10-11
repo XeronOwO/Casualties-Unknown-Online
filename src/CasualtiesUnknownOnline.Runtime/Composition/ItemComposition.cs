@@ -35,9 +35,12 @@ internal static class ItemComposition
 	internal static void AddItemService(IServiceCollection services)
 	{
 		// The id coordination is its OWN registration, not an implementation detail of
-		// ItemService: the synthesized-namespace counter it owns is minted by the medical
-		// removal effect (OtherMedicalRemovalApplier), which must reach the same table the
-		// restore resumes — a second counter there would re-issue ids the world holds.
+		// ItemService: the per-space watermarks it owns are the resume points a handshake grant
+		// and a restore both write, and the save layer reaches the same table through
+		// IRestoredItemIdSeed — a second counter anywhere would re-issue ids the world holds.
+		// There is ONE namespace: the synthesized one the medical removal effect used to mint
+		// from went with its only consumer, because an applied item keeps its id across the
+		// transform.
 		services.AddSingleton<ItemIdCoordinator>();
 		// Item domain: the authoritative world-item table + pickup arbitration
 		// (ItemService itself reacts to calls and messages — no pump).

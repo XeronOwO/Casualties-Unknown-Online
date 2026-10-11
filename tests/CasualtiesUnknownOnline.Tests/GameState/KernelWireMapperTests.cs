@@ -332,6 +332,113 @@ public class KernelWireMapperTests
 	}
 
 	[Fact]
+	public void WireCommand_ApplyLimbArrivesAsTheRelocationItIs()
+	{
+		var command = KernelWireMapper.FromWireCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemApplyLimb,
+				Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "splint" },
+				Location = new WireItemLocation { Kind = WireItemLocationKind.Applied, Owner = Guest.Value, LimbIndex = 3 },
+				ExpectedRevision = 7,
+			},
+			Header(Guest));
+
+		var apply = Assert.IsType<ApplyLimbItemCommand>(command);
+		Assert.Equal(42ul, apply.InstanceId);
+		Assert.Equal(Guest, apply.Actor);
+		Assert.Equal(Guest, apply.Owner);
+		Assert.Equal(3, apply.LimbIndex);
+		Assert.Equal(7ul, apply.ExpectedRevision);
+	}
+
+	[Fact]
+	public void WireCommand_RemoveLimbNamesTheAppliedLimbAndTheOperatorSeparately()
+	{
+		var command = KernelWireMapper.FromWireCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemRemoveLimb,
+				Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "splint" },
+				Location = new WireItemLocation { Kind = WireItemLocationKind.Applied, Owner = Guest.Value, LimbIndex = 3 },
+				NewOwner = Host.Value,
+				ExpectedRevision = 7,
+			},
+			Header(Host));
+
+		var remove = Assert.IsType<RemoveLimbItemCommand>(command);
+		Assert.Equal(42ul, remove.InstanceId);
+		Assert.Equal(Guest, remove.AppliedOwner);
+		Assert.Equal(3, remove.LimbIndex);
+		Assert.Equal(Host, remove.NewOwner);
+		Assert.Equal(7ul, remove.ExpectedRevision);
+	}
+
+	[Fact]
+	public void WireCommand_ALimbCommandWithoutALimb_IsRefused()
+	{
+		// Limb 0 is the head, so an absent limb read as 0 would install the item on a limb the
+		// sender never named — the same refusal the batch path applies to an applied row.
+		Assert.Throws<ArgumentOutOfRangeException>(() => KernelWireMapper.FromWireCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemApplyLimb,
+				Identity = new WireItemIdentity { InstanceId = 42 },
+				Location = new WireItemLocation { Kind = WireItemLocationKind.Applied, Owner = Guest.Value },
+			},
+			Header(Guest)));
+	}
+
+	[Fact]
+	public void WireCommand_ALimbCommandOnLimbZero_KeepsZeroDistinctFromNoLimb()
+	{
+		var apply = Assert.IsType<ApplyLimbItemCommand>(KernelWireMapper.FromWireCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemApplyLimb,
+				Identity = new WireItemIdentity { InstanceId = 42 },
+				Location = new WireItemLocation { Kind = WireItemLocationKind.Applied, Owner = Guest.Value, LimbIndex = 0 },
+			},
+			Header(Guest)));
+
+		Assert.Equal(0, apply.LimbIndex);
+	}
+
+	[Fact]
+	public void WireCommand_ALimbCommandNamingAnotherFamily_IsRefused()
+	{
+		Assert.Throws<InvalidOperationException>(() => KernelWireMapper.FromWireCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemRemoveLimb,
+				Identity = new WireItemIdentity { InstanceId = 42 },
+				Location = new WireItemLocation { Kind = WireItemLocationKind.Carried, Owner = Guest.Value },
+				NewOwner = Guest.Value,
+			},
+			Header(Guest)));
+	}
+
+	[Fact]
+	public void WireCommand_ALimbCommandWithNoLocationAtAll_IsRefused()
+	{
+		Assert.Throws<InvalidOperationException>(() => KernelWireMapper.FromWireCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemApplyLimb,
+				Identity = new WireItemIdentity { InstanceId = 42 },
+			},
+			Header(Guest)));
+	}
+
+	private static EnvelopeHeader Header(ActorId sender) => new()
+	{
+		ProtocolVersion = 1,
+		RunEpoch = Epoch.Value,
+		SenderId = sender.Value,
+		OperationId = 1,
+	};
+
+	[Fact]
 	public void AWireSpawnReportThatNamesALimb_ReachesTheKernelsRefusal()
 	{
 		// The spawn refusal is reachable from the WIRE and not only from a hand-built

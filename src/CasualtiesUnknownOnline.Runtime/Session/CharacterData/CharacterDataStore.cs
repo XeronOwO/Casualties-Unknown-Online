@@ -39,6 +39,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	private readonly ILogger<CharacterDataStore> _log;
 	private readonly IItemControl _items;
 	private readonly PlayerKernelLimbProjection _playerLimbKernel;
+
+	/// <summary>The applied item row's durability writer (see <see cref="AppliedItemConditionProjection"/>).</summary>
+	private readonly AppliedItemConditionProjection _appliedItems;
 	private readonly PlayerKernelRestoreProjection _playerKernelRestore;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
 	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
@@ -46,7 +49,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
 		ILogger<CharacterDataStore> log, IItemControl items,
 		PlayerKernelLimbProjection playerLimbKernel,
-		PlayerKernelRestoreProjection playerKernelRestore)
+		PlayerKernelRestoreProjection playerKernelRestore,
+		AppliedItemConditionProjection appliedItems)
 	{
 		_session = session;
 		_sender = sender;
@@ -54,6 +58,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		_items = items;
 		_playerLimbKernel = playerLimbKernel;
 		_playerKernelRestore = playerKernelRestore;
+		_appliedItems = appliedItems;
 		_savedCharacters = [];
 
 		// The table is SESSION-scoped and starts EMPTY, deliberately: the world archive is
@@ -89,6 +94,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	{
 		_savedCharacters[steamId] = msg;
 		_playerLimbKernel.SyncFromCharacterData(steamId, msg);
+		_appliedItems.SyncFromCharacterData(steamId, msg);
 	}
 
 	/// <summary>
@@ -216,6 +222,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	{
 		_hostData = msg;
 		_playerLimbKernel.SyncFromCharacterData(_session.LocalSteamId, msg);
+		_appliedItems.SyncFromCharacterData(_session.LocalSteamId, msg);
 		_log.LogInformation("Host character data updated ({Items} items).", msg.Items.Count);
 	}
 
@@ -229,6 +236,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 
 		_hostData = msg;
 		_playerLimbKernel.SyncFromCharacterData(_session.LocalSteamId, msg);
+		_appliedItems.SyncFromCharacterData(_session.LocalSteamId, msg);
 		_session.Broadcast(NetMsg.HostCharacterData, msg);
 	}
 

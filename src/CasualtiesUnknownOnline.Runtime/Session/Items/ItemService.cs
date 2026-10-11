@@ -209,6 +209,13 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public void SendItemDestroyed(ulong itemId) => _messageFlow.SendItemDestroyed(itemId);
 
+	public void SendItemAppliedToLimb(ulong itemId, int limbIndex) => _messageFlow.SendItemAppliedToLimb(itemId, limbIndex);
+
+	public void SendItemRemovedFromLimb(ulong itemId, int limbIndex) => _messageFlow.SendItemRemovedFromLimb(itemId, limbIndex);
+
+	public ulong FindAppliedLimbItem(ulong owner, int limbIndex, string definitionId) =>
+		_kernelAuthority.FindAppliedLimbItem(new ActorId(owner), limbIndex, definitionId)?.Identity.InstanceId ?? 0;
+
 	public void RegisterPendingCreationSource(IPendingItemCreationSource source) => _messageFlow.RegisterPendingCreationSource(source);
 
 	public void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops) => _messageFlow.RegisterBlockDrops(drops);
@@ -470,6 +477,9 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public void AdoptTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item) =>
 		_arbitration.AdoptTransferredItem(guest, itemId, item);
+
+	public void RegisterTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item) =>
+		_arbitration.RegisterTransferredItem(guest, itemId, item);
 
 	public void RemoveTransferredItem(ulong guest, ulong itemId) =>
 		_arbitration.RemoveTransferredItem(guest, itemId);

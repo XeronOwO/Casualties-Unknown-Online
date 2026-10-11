@@ -503,8 +503,13 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   (`KernelWireMapper.FromWireLocation`) instead of reading it as the head. A restored applied row is
   NOT a world object — `RestoredWorldItemSet` filters on `World`, so the world-item reconcile never
   sees it, and a peer's projection emits neither a world clone nor a carried fact for the apply (the
-  clone converges from the owner's 1 Hz character snapshot, exactly as a consumed item's does).
-- **The restored ids resume every counter, in every namespace.** An item instance id is
+  clone converges from the owner's 1 Hz character snapshot, exactly as a consumed item's does). The row's
+  DURABILITY after the apply is written by that same 1 Hz capture and by nothing else
+  (`AppliedItemConditionProjection`, the design's §6.1 seam): the component's own `condition` field is the
+  scene's live copy — the game's `Update` writes it every frame — and the capture is the one seam that
+  carries it to the durable row, so an applied item's stored condition trails the component by at most the
+  step the projection applies (0.01) instead of freezing at the value the apply wrote.
+- **The restored ids resume every counter there is.** An item instance id is
   `(counter << 32) | account-low` and the counter is per PROCESS, so a world continued in a new process
   would allocate from zero again while the restored scene already holds the archive's ids — the first
   allocation then re-issues a live id (the kernel refuses the duplicate spawn, and one id ends up on two
@@ -516,11 +521,21 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   hands the union to `ItemIdCoordinator` through `IRestoredItemIdSeed`: each id space resumes from its own
   maximum (the LOCAL space on the spot, since there is no grant to itself on the wire; a member in the
   session is granted the raised value there and then, because the restored character it is about to
-  receive carries those ids). The SYNTHESIZED namespace has a counter of its own (the removed
-  splint/tourniquet awards the host mints, `AwardedHighBit | counter | space`), so an awarded id is never
-  read as a plain allocation; its counter lives with the plain watermarks and resumes from the archive's
-  awarded ids of the local space. The marks are facts about the world, not about the session, so they
-  outlive a lobby (a host may continue the same world in a new one).
+  receive carries those ids). There is ONE namespace: a second, synthesized one used to exist for the ids
+  a host-side removal award minted, and it is gone with the award — an applied item keeps its id across the
+  round trip, so nothing host-side mints an id of its own. The marks are facts about the world, not about
+  the session, so they outlive a lobby (a host may continue the same world in a new one).
+- **A restore compares the applied family's two carriers and NAMES a disagreement.** Which item is
+  installed on a limb is the ITEM ROW's fact (`items.json`) and that the component is there is the LIMB
+  ROW's (`characters/<playerKey>.json`); the two are bound by `(owner, limb, definition)`, because one limb
+  legally carries a splint and a tourniquet at once. The restore is the only moment both are known in full,
+  so `RestoredAppliedItemAudit` runs there — after the kernel restore and after the characters are bound —
+  and it only ever REPORTS: a component with no row (an id nobody recorded, so taking it off will create a
+  new item) and a row with no component (an item the world says is installed on a limb that does not carry
+  it) each reach the log by name, and nothing is moved or ended, because either carrier could be the stale
+  one and picking a winner would rewrite a world the player saved. The same rule is enforced at the two
+  gestures that read both carriers: a removal refuses and names the divergence rather than minting an id for
+  a component no row names, and the take-off's own id lookup does the same.
 - **Restored world-entity facts land at the same seam — for a cut that describes the layer being
   restored.** The kernel's per-entity facts (consumed traps, the durable trap-state machine, opened
   lockables, building health) have two landing moments, and ROLE decides which one: a guest restores

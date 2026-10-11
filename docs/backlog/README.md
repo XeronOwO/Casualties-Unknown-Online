@@ -58,6 +58,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
 - [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 8 passes; row 7 waits on the local-mark ticket.
 - [An item id can be re-issued after a restore](todo/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — a continued world starts its counter over.
+- [A favourite mark is local and saved](todo/favourite-marks-are-local-and-saved.md) — **High** — the mark is mine, never their item; two rows await a mouse.
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 - [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — the push direction; the take half is landed.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
@@ -86,7 +87,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [A favourite mark is local and saved](review/favourite-marks-are-local-and-saved.md) — **High** — the mark is mine, never their item.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
 - [Mod-authored effects](review/mod-authored-effects.md) — **High** — the code registration face and the named operations it writes through.
 - [A declared behaviour with no function](review/mod-declared-behaviour-with-no-function.md) — **High** — a declared use or effect reports instead of throwing.

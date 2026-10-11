@@ -9,7 +9,7 @@
   `20261011-d` read the game's own store being refused by the proxy guard for the lack of a drag bracket.
   **Re-ruled the same day by the user**: the mark belongs to the LOCAL player, is never applied to a remote
   player's item, and must survive a save — so this row's criterion changes and its landing cycle is
-  `review/favourite-marks-are-local-and-saved.md`, not another acceptance attempt at the old one. **That
+  `todo/favourite-marks-are-local-and-saved.md`, not another acceptance attempt at the old one. **That
   cycle has LANDED (decision 258)**: the favourite half is now a CODE FACT (a local mark that rides the
   marking player's own character record, with the `ToggleFavourite` path deleted), so this ticket's row 7
   needs one acceptance pass over the new criterion rather than a development cycle.
@@ -324,7 +324,7 @@ release-cycle action.
 | 4 | Take that item back out | Comes out immediately and stays out |
 | 5 | Drop / edge-drop an owned item from the remote view | Native drop at the native position with the native sound |
 | 6 | Slot move / swap / switch hands | Native result on the owner's body |
-| 7 | Use / wear / combine / battery load-unload / favourite | Native result, native animation and native sound; the favourite mark is the LOCAL player's own and never an edit of the owner's item — re-ruled 2026-10-11 and LANDED as decision 258: the gesture toggles the marking player's own set, a mark survives a save and a rejoin, a marked item that becomes the player's own carries its own flag, and the owner's item is untouched on every client (`review/favourite-marks-are-local-and-saved.md`) |
+| 7 | Use / wear / combine / battery load-unload / favourite | Native result, native animation and native sound; the favourite mark is the LOCAL player's own and never an edit of the owner's item — re-ruled 2026-10-11 and LANDED as decision 258: the gesture toggles the marking player's own set, a mark survives a save and a rejoin, a marked item that becomes the player's own carries its own flag, and the owner's item is untouched on every client (`todo/favourite-marks-are-local-and-saved.md`) |
 | 8 | Held remote item, backpack closed, used from the medical panel | Works; the owner's item state and the requester's body effect are both correct |
 | 9 | A gesture the native rules refuse (full container, blocked slot) | Refused with native feedback and an observable log line, never a silent no-op |
 | 10 | A third peer watches the result | The same item state everywhere |
@@ -528,7 +528,7 @@ owner on the physical host and the operator in the first sandbox. Record:
 5. **Row 7's favourite half stays `unproven`**, and the run's reading is joined by a user ruling the same
    day that changes the row's criterion: the mark belongs to the LOCAL player, is never applied to a remote
    player's item, and must survive a save. That criterion has since LANDED as decision 258
-   (`review/favourite-marks-are-local-and-saved.md`), so the row is judged against it on the next pass
+   (`todo/favourite-marks-are-local-and-saved.md`), so the row is judged against it on the next pass
    rather than against the owner-authoritative reading the earlier texts carried (they are corrected in
    place). The record keeps the run's own finding: the native
    store fires only when the frame's UI casts contain an inventory button under the pointer, the run must

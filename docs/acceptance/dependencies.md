@@ -27,6 +27,13 @@ the exit code.
 | `logs` | the three log channels (BepInEx loader log, BepInEx runtime log, CUO's own log) | `machine` rows' evidence | the BepInEx log root resolves under the game install, and under the sandbox guest root when that fact is set; the per-run files appear once a client starts | `machine` rows that depend on a log line are `blocked` |
 | `artifacts` | a writable local directory for frames, recordings and probe dumps | keeping heavy evidence out of git | `acceptance-artifacts-dir` resolves; the run creates it when it is missing, and writability is proven by the first artifact written — the preflight stays read-only | run without capture artifacts: `visual` and `feel` rows are `blocked` |
 
+**The example mod is not a dependency, and it is not deployed.** `tools/deploy.ps1` deliberately ships no
+`CasualtiesUnknownOnline.ModExample.dll`, so a copy under `<game-dir>` is a leftover of a previous batch
+that nothing refreshes: every client loads it at startup, and a stale one breaks the session silently
+(batch `20261011-a` lost a cycle to exactly that). A normal run therefore keeps the install free of it. A
+batch whose rows judge mod content places the DLL from THIS tree's build output as its own setup step,
+names that placement in its scope, and removes it when the run closes.
+
 Two further report rows are inputs rather than capabilities: `facts` (the local facts file itself) and
 `fact` (one row per required key that `FACT-MISSING` names). Both are `missing` only when the facts file
 or a key is absent, and both are answered by asking the user for the value.

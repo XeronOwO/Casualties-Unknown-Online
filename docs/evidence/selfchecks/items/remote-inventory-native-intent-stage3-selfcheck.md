@@ -5,7 +5,7 @@
 > (user ruling 2026-10-11), so `ToggleFavourite`, its capture, its owner-side apply and the host's
 > validation arm are DELETED and the frame bracket now writes that local set instead of an intent. Read
 > §"Favourite store seam" below as history; the current state is
-> `docs/backlog/review/favourite-marks-are-local-and-saved.md` and design §3.2.9.
+> `docs/backlog/todo/favourite-marks-are-local-and-saved.md` and design §3.2.9.
 
 Ticket: `docs/backlog/todo/remote-inventory-native-parity-rework.md` (stage 3). Design record:
 `docs/architecture/remote-inventory-native-parity.md` (amended by stage 3). Decisions: 217 (stage 0),

@@ -2769,4 +2769,67 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   the combine whose result is a NUMBER (`AmmoScript.rounds`, the round destroyed by the call) — prefer it
   over the condition merge, which is a no-op when both items are at full condition.
 
+## 2026-10-11 — Batch `20261011-e`: the evaluator freezes the game's own frame loop
+
+- Symptom: a probe queued the game's own favourite key on the client's own window and then spun on
+  `Input.GetKeyDown` for 400 ms; it polled 12 million times, read `framesAdvanced=0` and
+  `timeAdvanced=0`, and never saw the key. A second probe spun 1.5 s with the same result.
+- Cause: an eval runs ON the main thread and blocks it — the game's frame loop does not advance while a
+  snippet is executing, so no message queued from inside one can be pumped by a frame the same snippet
+  sees. (This supersedes the 2026-10-01 note that an eval "runs on a worker thread"; the measurement
+  above is the direct one.)
+- Change: a row whose native gate is `Input.GetKeyDown` cannot be driven by "queue the key, then invoke
+  the mutation" inside one eval, and cannot be driven by two evals either unless the pair is timed onto
+  consecutive frames. The recorded shape for that attempt is
+  `.acceptance/20261011-e/two-evals.mjs` (one socket, two submissions, an optional spacing in ms) —
+  general enough to move into `tools/acceptance/` when a batch needs frame-timed pairs again. The
+  measured frame gaps were 1, 2, 3 and 5 frames for 0/16/33/50 ms of spacing.
+
+## 2026-10-11 — Batch `20261011-e`: a pointer outside the client window makes the UI raycast refuse everything
+
+- Symptom: the run staged the ring's own anchor (`RemoteBackpackView._smoothPosition`) AND the ring
+  transform so the target ring button sat exactly under the physical pointer — the button's own
+  `Overlaps` gate then read true — and the store still never ran. The player's own key press in the same
+  session (the user at the mouse, pointer inside the window) did fire it, and the run's accidental
+  reading of that press is the only `[FavouriteMark] marked` line the operator's log ever held.
+- Cause: `GraphicRaycaster` normalises the event position by the screen size and returns when it leaves
+  the unit square ("if it's outside the camera's viewport, do nothing"), so the frame's own cast list is
+  empty whenever the cursor is beyond the window — whatever the ring's position is. The committed
+  `hover`/`aim-ring` staging moves the ring to the pointer; it cannot move the pointer into the
+  viewport, and nothing else can either (`AcceptanceDriverGateTests` bans the cursor families).
+- Change: a row whose gesture is a real pointer hit needs the pointer inside that client's window; the
+  run's only legal levers are asking the user to place it (the batch scope's option 1) or a rule decision
+  about moving the window itself (option the scope names as not the tooling's to take). Staging the ring
+  remains necessary but is never sufficient while the pointer is outside.
+
+## 2026-10-11 — Batch `20261011-e`: the key channel answered `posted` and never reached the game
+
+- Symptom: `key-hold` (the committed way to hold one of the game's own keys) answered `posted: true` for
+  both the down and the read steps, and its own read-back then reported `heldAtStart/heldAtEnd: false`
+  on three consecutive calls — the game never saw the key. Batch `20261011-d` had read `heldAtEnd: true`
+  for the same recipe, the same bind and the same kind of client.
+- Cause: not established. The client is the same build, in the same sandbox; the window handle the recipe
+  posts to differs from the earlier session's. What IS established is that the message is queued on the
+  client's own window and the client's own input state never changes.
+- Change: a batch that builds a row on the key channel verifies the channel FIRST (one `down`, one `read`,
+  and the state in the read) before spending a session on the row; a `posted: true` is not evidence that
+  the game holds the key. The finding is recorded on the batch's record as a capability limit.
+
+## 2026-10-11 — Batch `20261011-e`: fixture items do not survive a cut, and a body that fell to death cannot pick anything up
+
+- Symptom: three items created on the owner's body by `item-provide mode=create` were gone from that body
+  after the cut + continue (the character came back carrying only its own starting item), and a later
+  drop of a fourth one was reported by the owner (`[ItemDropped] … at (1.1,473.1)`) but is visible to
+  neither client afterwards. The operator, meanwhile, could not pick anything up at all: the recipe's
+  native path answered `no-free-slot`.
+- Cause: two separate mechanisms. The fixture items' character-record round trip does not bring them back
+  (the archive carried the mark, which is a character-record field, but not those carried items); and the
+  operator's body had fallen ~57 world units earlier in the run — `body-force` revived it
+  (`brainHealth=100 consciousness=100`) but its LIMBS stayed at zero force, so the game's own
+  `InventorySlot.canPickUp` (`conscious && limb.totalForce >= 0.1`) refuses every slot.
+- Change: plan the rows that need a carried item AFTER every cut/continue cycle, or re-create the fixture
+  after it; and check `canPickUp` (six slots, one probe) before a row that needs this body to take
+  something. A fall inside the run's own staging costs the rows that need hands.
+
+
 

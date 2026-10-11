@@ -1,8 +1,9 @@
 # A favourite mark belongs to the local player, and it is saved
 
-- Status: Review — implemented, tested, documented and independently reviewed on 2026-10-11. The
-  seven acceptance rows below are judged by the agent-run batch on the real machine (three clients);
-  the code facts they rest on are named in the self-check.
+- Status: Todo — Rejected (batch `20261011-e`, 2026-10-11: row 1's **gesture** half, row 4 and row 6 are
+  `unproven` — the run could not actuate the gesture and could not get the marked item into the operator's
+  hands; the other rows pass, and the reasons plus the way out are in the acceptance record)
+- Acceptance record: `docs/evidence/acceptance/favourite-marks-are-local-and-saved-20261011-e.md`
 - Priority: High
 - Category: Remote inventory / local preference / persistence
 - Source: **User ruling, 2026-10-11** (in reply to the batch `20261011-d` finding that row 7's
@@ -87,13 +88,14 @@
 
 | # | Scenario | Expected | State |
 |---|---|---|---|
-| 1 | Operator marks an item in the owner's backpack | The operator's own view shows the mark; the OWNER's own item is unchanged on the owner's client and on the third peer, and no intent for it reaches the owner | code fact; real-machine judgement pending |
-| 2 | The same mark, after the operator leaves and rejoins the same world | Still there, without pressing the key again | code fact (the record is handed back with the character, and `LocalFavouriteMarks.Seed` replaces the set from it); real-machine judgement pending |
-| 3 | The same mark, after a save and a load of that world | Still there | covered by `WorldCharacterFavouriteMarkTests.LayerEndCutThenContinue_RoundTripsTheLocalCharactersFavouriteMarks` (the archive round trip); the rejoin/continue on the real machine is still pending |
-| 4 | The marked item is later picked up / transferred to the operator | The item is favourited as the operator's own from that moment, and the local mark entry is gone (no double state) | code fact (the adoption matches the definition, so a mark that followed the item through another player's hands still lands); real-machine judgement pending |
-| 5 | An item in the owner's backpack that the operator never marked, where the OWNER has favourited it | No mark is shown in the operator's view (the mark is personal) | code fact for the inventory view (`RemoteItemPresentation.ApplySourceValues` no longer carries the owner's value at all); the world-item case is the scope limit below; real-machine judgement pending |
-| 6 | The favourite key on the operator's OWN inventory | Unchanged native behaviour | code fact; real-machine judgement pending |
-| 7 | A mark whose item is destroyed, or belongs to a different world | Dropped, and no other item inherits it | code fact; real-machine judgement pending |
+| 1 | Operator marks an item in the owner's backpack | The operator's own view shows the mark; the OWNER's own item is unchanged on the owner's client and on the third peer, and no intent for it reaches the owner | the mark-exists halves **pass** (batch `20261011-e`, created by the declared fixture); the GESTURE half is `unproven` — the run could not actuate it, and the one real gesture reading in that run was the user's own key press (`[FavouriteMark] marked paincream …` 15:38:19, `unmarked` 15:38:48) |
+| 2 | The same mark, after the operator leaves and rejoins the same world | Still there, without pressing the key again | **pass** (batch `20261011-e`: `Character restore brought back 1 local favourite mark(s).` after `leave-world` → `home.leave` → `join-lobby`) |
+| 3 | The same mark, after a save and a load of that world | Still there | **pass** (batch `20261011-e`: the same restore line after the host's cut + continue, and the world's own `live/characters/<playerKey>.json` carries the mark) |
+| 4 | The marked item is later picked up / transferred to the operator | The item is favourited as the operator's own from that moment, and the local mark entry is gone (no double state) | `unproven` (batch `20261011-e`: the operator's limbs sat at zero force after a fall, so the game's own `canPickUp` guard refused every slot, and the owner's drop was reported but never materialised for either client) |
+| 5 | An item in the owner's backpack that the operator never marked, where the OWNER has favourited it | No mark is shown in the operator's view (the mark is personal) | **pass** (batch `20261011-e`: the owner's own census reads `favourited=true`, the operator's proxy of the same item reads `false`) — the owner's own half was staged as a declared substitution |
+| 6 | The favourite key on the operator's OWN inventory | Unchanged native behaviour | `unproven` (batch `20261011-e`: the same missing actuation as row 1's gesture half) |
+| 7 | A mark whose item is destroyed, or belongs to a different world | Dropped, and no other item inherits it | **pass** for both staged halves (batch `20261011-e`: `dropped a stale mark: mark on item … names a bandage, but the id now carries a paincream.` with the entry gone, and `mark on item … followed it from … to …` with the owner refreshed) — the hand-off is staged by its recorded owner, not by a real transfer |
+
 
 ## Limits recorded with the landing
 

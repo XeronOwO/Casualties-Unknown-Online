@@ -1,6 +1,6 @@
 # A favourite mark is local and saved — self-check (2026-10-11)
 
-Ticket: `docs/backlog/review/favourite-marks-are-local-and-saved.md`. Design record:
+Ticket: `docs/backlog/todo/favourite-marks-are-local-and-saved.md`. Design record:
 `docs/architecture/remote-inventory-native-parity.md` §3.2.7–§3.2.9, §3.3, §3.6, §6. Decision: 258
 (amending decision 220's favourite paragraph). Source: the user ruling of 2026-10-11, quoted verbatim
 in the ticket, which came out of acceptance batch `20261011-d` ("row 7's favourite half could not be

@@ -56,7 +56,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
-- [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 6's swap passes; rows 7-8 need fixtures.
+- [Remote inventory native parity rework](todo/remote-inventory-native-parity-rework.md) — **Critical** — row 8 passes; row 7 keeps only its favourite half.
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 - [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — the push direction; the take half is landed.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.

@@ -1,22 +1,26 @@
 // recipe: item-provide
 // args: type=s mode=s
-// serves: guest-container-contents-ghost-drops-on-host, carried-inventory-registration-re-report
-// returns: ok, mode, type, found, already, instanceId, slot, picked, parent, onBody, error, detail
+// serves: guest-container-contents-ghost-drops-on-host, carried-inventory-registration-re-report,
+//         remote-inventory-native-parity-rework (the fixture pass: a body has six slots, so a scene
+//         that needs a free one takes an unwanted item out through the game's own drop)
+// returns: ok, mode, type, found, already, instanceId, slot, picked, parent, onBody, dropped, error, detail
 //
 // Puts a scenario item into the local body through the game's own calls. mode=find
 // reports what the body already carries (the starting-supply grant); mode=create
 // reproduces the native grant (Utils.Create + Body.PickUpItem(force:true)) when the
 // run's startingsupplies setting did not hand the item out; mode=pickup takes the
-// nearest matching world item through the native pickup guards. A created item enters
-// AFTER the first registration report — the row-2 shape (an id added after the first
-// report) — and the run's record states it as the declared setup substitution.
+// nearest matching world item through the native pickup guards; mode=drop takes the
+// body's own item of that type out again through Body.DropItem(item), which is the
+// game's own drop and reports nothing CUO-side unless the carrier sees it. A created
+// item enters AFTER the first registration report — the row-2 shape (an id added after
+// the first report) — and the run's record states it as the declared setup substitution.
 // No inner lambda captures a local: the evaluator's Mono REPL refuses that shape.
 ((System.Func<string>)(() => {
 	const System.Reflection.BindingFlags instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var type = {{s:type}};
 	var mode = {{s:mode}};
-	if (mode != "find" && mode != "create" && mode != "pickup") {
-		return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be find, create or pickup\"}";
+	if (mode != "find" && mode != "create" && mode != "pickup" && mode != "drop") {
+		return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be find, create, pickup or drop\"}";
 	}
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-local-body\"}"; }
@@ -47,6 +51,22 @@
 		}
 		if (held == null) { return "{\"ok\":true,\"mode\":\"" + mode + "\",\"type\":\"" + type + "\",\"found\":false}"; }
 		already = true;
+	}
+	else if (mode == "drop") {
+		for (var i = 0; i < items.Count; i++) {
+			if (items[i].id == type) { held = items[i]; break; }
+		}
+		if (held == null) { return "{\"ok\":false,\"error\":\"not-carried\",\"detail\":\"the local body carries no " + type + "\"}"; }
+		var dropSlot = -1;
+		for (var i = 0; i < body.slots.Length; i++) {
+			if (body.GetItem(i) == held) { dropSlot = i; break; }
+		}
+		body.DropItem(held);
+		return "{\"ok\":true,\"mode\":\"drop\",\"type\":\"" + type + "\""
+			+ ",\"slot\":" + dropSlot.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"dropped\":" + (body.HoldingItem(held) ? "false" : "true")
+			+ ",\"onBody\":" + (held.GetComponentInParent<Body>() != null ? "true" : "false")
+			+ ",\"already\":false}";
 	}
 	else {
 		var targetSlot = -1;

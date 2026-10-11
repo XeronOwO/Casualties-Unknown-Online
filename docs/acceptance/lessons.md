@@ -2715,3 +2715,58 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   that only lives in the transcript is not evidence a later reader can open — and a row whose verdict leans
   on it should say so in its Limits rather than cite a file that is not there.
 
+## 2026-10-11 — Batch `20261011-d`: a store the FRAME makes needs the pointer where the frame looks
+
+- Symptom: row 7's favourite half kept reading nothing — no capture line, no owner replay — while the key
+  hold itself answered `posted: true, heldAtEnd: true`.
+- Cause: the native store is `Input.GetKeyDown(favourite)` on the first `InvButton` the frame's OWN UI
+  casts contain (`PlayerCamera.cs:1745`), and the capture is CUO's bracket over that same frame. Two things
+  therefore have to be true at once: the physical cursor over a ring button, and a display-proxy drag
+  staged so the bracket opens. A cursor anywhere else makes the store simply not happen — and with the
+  pointer outside the client window the ring is turned off within a frame (`radialOpen = false` once the
+  ring's x is more than `600 * uiScale` from the pointer's x), so `mode=open` reports `viewOpen: true` and
+  the very next call reads `radialOpen: False, buttonCount: 0`.
+- Change: for this family, read the geometry FIRST (`remote-gesture mode=list` now reports the pointer, the
+  ring, and each button's screen position with `pointerInside`), and know that a button can be brought under
+  the pointer only by moving the FOCUSED body — `mode=aim-ring` converts the needed screen shift into a
+  world delta through the game's own camera. No tooling may take the pointer (decision 237; the gate bans the
+  cursor and `SendMessage` families), so a run whose user is elsewhere cannot drive this row: record it
+  `unproven` with the geometry reading, and leave the one-attempt proof that the store path is live — batch
+  `20261011-d` read the game's own store being put back and refused for the missing drag bracket.
+
+## 2026-10-11 — Batch `20261011-d`: a staged proxy drag is LIVE between calls, and it will drop the fixture
+
+- Symptom: two of the owner's fixture items (`smallmagazine`, `aed`) vanished from its body mid-run, the
+  peers' clone fell to `host char data (3 items)`, and every later `mode=open` refused.
+- Cause: the drive stages `camera.dragItem` for a display proxy and leaves it across calls — the scene state
+  a real drag holds. Any release the game then sees (the user's own mouse, a lost focus, a stray press)
+  runs the whole native release path on it, and the ring's buttons stop matching the clone. The same batch
+  also lost the two items to a different path: the owner was teleported ~24 units away and fell ~45 units,
+  and the GAME dropped them (`[ItemTrace] op=65/66 … origin=OnItemDropped` with no CUO intent).
+- Change: stage a drag and press the key in adjacent calls, and CLEAR the drag when the step is over — the
+  clear-the-drag rule was already in the local run notes and this batch paid for skipping it. Keep the
+  fixture's host ON the surface: a teleport that leaves it falling empties the wardrobe the rows need, and
+  the loss is silent until a peer's clone count or a census is read.
+## 2026-10-11 — Batch `20261011-d`: `quit` is asynchronous, so a relaunch is a duplicate instance
+
+- Symptom: the operator's client was quit and relaunched in the same command block; the launch did nothing
+  (no process, no endpoint) and the user saw the duplicate-instance refusal.
+- Cause: the quit returns as soon as the request is sent; the process is still alive for seconds afterwards,
+  and Sandboxie refuses to start a second instance of the same program in the same box.
+- Change: after `quit`, read the process list until the client is gone, then launch. The guest's log ends
+  with `Steam API shut down` — that line, or the missing process, is the gate, not the quit call's answer.
+
+## 2026-10-11 — Batch `20261011-d`: the fixture vocabulary is the game's own item table and its own readouts
+
+- Symptom: "a combineable pair" and "a receiver with an empty battery slot" had been named as unbuilt
+  fixtures by four batches, because the deciding facts live in ASSET data (`ItemInfo.combineable`, the
+  `battery` tag, which prefab spawns with a battery) rather than in code.
+- Cause: the run had no way to ask the game what its items are.
+- Change: `recipes/item-census.cs` answers it from the game's own registry (`Item.GlobalItems`, filled by
+  `Item.SetupItems`): `mode=combineable` lists the ids that admit a pair, `mode=tag:<t>` the ids carrying a
+  native tag, `mode=info:<id>` one id's stats, and `mode=body` every carried item with the flags, tags,
+  battery slot, ammunition count and liquid total the native branches read. `9mmround` + `smallmagazine` is
+  the combine whose result is a NUMBER (`AmmoScript.rounds`, the round destroyed by the call) — prefer it
+  over the condition merge, which is a no-op when both items are at full condition.
+
+

@@ -1,6 +1,14 @@
 # Remote inventory operations: run the native path end to end
 
-- Status: Todo — Rejected (batch `20261006-g`, 2026-10-06: matrix row 6's OCCUPIED-destination half — the
+- Status: Todo — Rejected (batch `20261011-d`, 2026-10-11: **row 8 and row 7's combine, battery-LOAD and
+  worn-item halves now `pass`**; row 7's **favourite half stays `unproven`** — the native store reads
+  `Input.GetKeyDown(favourite)` on the first inventory button the frame's own UI casts contain, the remote
+  view's ring is anchored to the displayed clone, and the cursor sat outside the client window for every
+  attempt that had a drag staged, so the store frame could not be arranged (a person at the mouse settles
+  it in seconds; the tooling never takes the pointer). The store path itself is proven live: batch
+  `20261011-d` read the game's own store being refused by the proxy guard for the lack of a drag bracket.
+  Record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md`. Previous
+  rejection, batch `20261006-g`, 2026-10-06: matrix row 6's OCCUPIED-destination half — the
   swap the fix cycle below targets — now **passes** on every client of the deployed artifact, and its
   EMPTY-destination control still passes with zero divergence on either viewer. Rows 7 (battery-load,
   combine, favourite halves) and 8 (held remote item from the medical panel) stay `unproven`: this session
@@ -28,7 +36,9 @@
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
 - Related: `resolved/remote-backpack-native-interaction-parity.md` and `resolved/remote-backpack-item-projection-acceptance-issues.md` (the rejected deliveries this ticket replaces, absorbed here in stage 0), `review/unified-remote-display-projection-rework.md`, `review/global-projection-framework.md`, `review/tab-backpack-open-close-immediately.md`, `done/guest-container-contents-ghost-drops-on-host.md`
 - Design: `docs/architecture/remote-inventory-native-parity.md` (stage 0 record, decision 217)
-- Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md` (row 6's
+- Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md` (row 8
+  `pass`, row 7's combine / battery-LOAD / worn-item halves `pass`, its favourite half `unproven`),
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md` (row 6's
   occupied-destination half and its empty-destination control both `pass`, matrix row 2's transfer half
   `pass`; rows 7 and 8 `unproven`),
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md` (row 6's
@@ -484,6 +494,36 @@ alternate sandbox:
    <host> …)`, forwarded, and the custody fact moves on both sides (the operator's tree carries
    the item in slot 2, the owner's no longer carries it at all).
 5. Rows 7 and 8 stay `unproven` because this session staged no fixture for them, as the status line records.
+
+## Acceptance readings (batch `20261011-d`, 2026-10-11)
+
+The batch staged the fixtures every earlier batch had named as its limit and drove rows 7 and 8 with the
+owner on the physical host and the operator in the first sandbox. Record:
+`docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md`.
+
+1. **Row 7's combine half `pass`es in two native shapes.** Two `bandage`s of one id took the condition
+   merge (`CombineItems captured` → `replayed native CombineItems`), and a `smallmagazine` + `9mmround`
+   pair took the ammunition branch, whose result is a number: the owner's magazine reads
+   `rounds=0/17` before, `1/17` after, and the round item is destroyed by the native call
+   (`[ItemTrace] … origin=OnItemDestroyed … Committed(1)`). The combineable pair was FOUND, not guessed:
+   the game's own item table (`Item.GlobalItems`) answers it.
+2. **Row 7's battery-LOAD half `pass`es, twice.** The unload is the fixture that opens the aed's slot;
+   the mid-reading (`batt=True` with an EMPTY `batteryType`, the ejected `mediumbattery` in slot 4) is
+   filed, and the load then reports `the native load charged item aed from battery mediumbattery (the
+   battery item was consumed)` with the battery's own destruction and the aed charged again.
+3. **Row 7's worn-item half `pass`es**: the owner's worn `autopump` renders as its own ring button, is
+   dropped by `DropWearable` into the world, is picked back up natively and is re-worn through the ring's
+   CENTRE (`WearItem`, `[SlotMoved] … → slot -3 (Wear)`). Its button exists only on a ring that was
+   (re)activated — the game's own `UpdateWearables` timing, recorded as a limit.
+4. **Row 8 `pass`es**: with the ring closed and the operator's own wound view open, releasing the owner's
+   `paincream` proxy onto that limb ran the game's own `ApplyWoundItem` → `ApplyToLimb`, the operator
+   measured `10.000 ml` from the item's own limb action, the owner consumed it (`condition 1 → 0.9`,
+   `100 → 90 ml`) and the operator's body received the topical stack.
+5. **Row 7's favourite half stays `unproven`** and the reason is named in the record: the store fires only
+   when the frame's own UI casts contain an inventory button under the pointer; the remote view anchors
+   the ring to the displayed clone, and the run must not take the pointer. The run DID observe the
+   native store being refused by the proxy guard for the lack of a drag bracket, which proves the store
+   path is live and the guard works; it did not observe the complete chain.
 
 ## Non-goals
 

@@ -1,7 +1,11 @@
 // recipe: remote-gesture
-// args: mode=s item=s cast=n moved=n owner=s
+// args: mode=s item=s cast=n moved=n owner=s limb=n
 // serves: remote-inventory-native-parity-rework, remote-fentanyl-injection-and-medical-panel-desync
 // returns: ok, mode, item, itemId, itemOwner, itemType, itemHeld, itemParentContainer, castIndex, castKind, castTag, castSlot, moved, dragAfter, ringDistance, ringScaleBefore, ringScaleForced, calls, error, detail
+//          wound-view: viewOpen, opened, limbLookingAt, selectedLimbIndex, selectedIsLocal, displayBodyName
+//          aim-ring: castIndex, castItemId, buttonOffsetX/Y, mouseX/Y, ringX/Y, focusX/Y, deltaX/Y, targetX/Y
+//          while-dragging: castItem, castItemId, castItemProxy, favouritedBefore, favouritedAfter, overlaps, ringStagedDistance
+//          medical: limb, limbLookingAt, selectedLimbIndex, selectedIsLocal, woundViewOpen, castIsWoundViewLimb
 //          probe: leniency, uiScale, radialCircleTag, radialCircleRadius, radialMenuScale, pointerDistanceOverScale, centerButtonCount, centerButtonTag, centerButtonSlot, radialOpen, dragItem, buttonCount
 //          release pair: viewOpen, focusSet, focusedSteamId, castIsBody, castOverlaps, castItem, castItemId, castItemProxy, castItemOwner, castItemParent, castIsContainer, castContentsBefore, castContentsAfter, castPosX, castPosY, dragIsContainer, dragPosX, dragPosY, childCount, children, childInCast, childParentAfter
 //
@@ -30,11 +34,40 @@
 //  - mode=hover:   stage the drag (dragItem + radialOpen) and return, so the game's own frames
 //                  open the ring before the release; nothing is forced here.
 //  - mode=close:   the game's own CloseContainer plus the remote focus release.
+//  - mode=wound-view: the acting client's OWN wound view, opened through the game's own
+//                  ToggleWoundView, with the view's limb chosen by calling the game's own hit entry
+//                  (WoundViewLimb.OnPointerEnter, the method a real pointer-over runs) for limb=<n>.
+//                  The view's own Update writes PlayerCamera.selectedLimb from it, which is the fact
+//                  the medical release below reads; the answer reports both.
+//  - mode=aim-ring: where the FOCUSED body must move, in world space, for the cast-th ring button to sit
+//                  under the pointer. The ring is anchored to the focused clone's screen position
+//                  (CUO's own anchor) while the game turns the ring off when its x sits more than
+//                  600 * uiScale from the pointer's x, so the favourite hold needs the clone near the
+//                  pointer — and the run never moves the pointer. This mode reads the game's own camera
+//                  map for that move; it changes nothing.
+//  - mode=while-dragging: stages the drag and invokes the game's own private HandleWhileDragging with
+//                  ONE cast — the cast-th InvButton — because that method takes the frame's UI casts as
+//                  its argument and the run cannot move the OS pointer. This is the frame the
+//                  favourite store happens in (PlayerCamera.cs:1745); CUO's while-dragging window
+//                  brackets exactly this invocation, so the store the native body makes is captured as
+//                  an intent for the owner and never left on a proxy. A centre-class button's ring is
+//                  staged 200 * uiScale from the pointer, the distance its own Overlaps guard reads.
+//  - mode=medical: the wound-view release (R11). The dragged proxy is released onto the WoundViewLimb
+//                  object of the limb the view already points at, so the game's own
+//                  TryPerformSpecialUIAction -> ApplyWoundItem runs and CUO's release window captures
+//                  ApplyToLimb with the ml the item's own limb action computes. It refuses by name
+//                  unless the selected limb is this client's OWN body's limb and the view points at it,
+//                  so a drive cannot silently treat the wrong limb.
 //  - mode=release: dragItem = item ("<instanceId>" for a proxy, "local<slot>" for the
 //                  local body's own slot), clickPos moved (1) or not (0) relative to the
 //                  real pointer, uiCasts = the cast-th InvButton (-1 = an empty list, -2 = the
 //                  radial CENTRE target: the tag the guard reads, the ring staged under the
 //                  pointer, its scale forced to one only when the game has not opened it).
+//  - mode=hover:   stage the drag (dragItem + radialOpen) and return, so the game's own frames
+//                  open the ring before the release; nothing is forced here. With cast>=0 the ring is
+//                  moved so the cast-th InvButton sits under the pointer, which is what lets the
+//                  client's OWN frames cast that button — the favourite hold needs the frame's own
+//                  raycast, and the run never moves the pointer.
 ((System.Func<string>)(() => {
 	const System.Reflection.BindingFlags instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	const System.Reflection.BindingFlags staticFlags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
@@ -43,6 +76,7 @@
 	var castIndex = {{n:cast}};
 	var moved = {{n:moved}};
 	var ownerArg = {{s:owner}};
+	var limbIndex = (int){{n:limb}};
 	var camera = PlayerCamera.main;
 	if (camera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; }
 	var findType = new System.Func<string, System.Type>((fullName) => {
@@ -107,10 +141,21 @@
 				+ ",\"active\":" + (item.gameObject.activeInHierarchy ? "true" : "false") + "}");
 		}
 		var buttons = new System.Collections.Generic.List<string>();
+		var mouseForButtons = UnityEngine.Input.mousePosition;
+		var uiScaleForButtons = PlayerCamera.uiScale;
 		for (var i = 0; i < buttonList.Count; i++) {
 			var button = buttonList[i];
 			var held = button.GetItem();
 			var heldMarker = held == null ? null : markerOf(markerType, held);
+			// The frame's own UI cast reads the pointer, and `InvButton.Overlaps` reads the pointer's
+			// distance to the ring — so the geometry the favourite hold depends on is reported here:
+			// where the button sits on screen and whether the pointer is inside its rect.
+			var buttonRect = button.transform as UnityEngine.RectTransform;
+			var pointerInside = buttonRect != null && UnityEngine.RectTransformUtility.RectangleContainsScreenPoint(buttonRect, mouseForButtons, null);
+			var overlapDistance = -1f;
+			if (camera.radialMenu != null && uiScaleForButtons > 0f) {
+				overlapDistance = UnityEngine.Vector2.Distance(camera.radialMenu.position, mouseForButtons) / uiScaleForButtons;
+			}
 			buttons.Add("{\"i\":" + i
 				+ ",\"slot\":" + button.slot.ToString(System.Globalization.CultureInfo.InvariantCulture)
 				+ ",\"center\":" + (button.centerButtons ? "true" : "false")
@@ -119,6 +164,10 @@
 				+ ",\"itemId\":" + (heldMarker == null ? "0" : fieldOf(heldMarker, "Id").ToString(System.Globalization.CultureInfo.InvariantCulture))
 				+ ",\"itemOwner\":" + (heldMarker == null ? "0" : fieldOf(heldMarker, "OwnerSteamId").ToString(System.Globalization.CultureInfo.InvariantCulture))
 				+ ",\"proxy\":" + (held != null && isProxy(proxyType, held) ? "true" : "false")
+				+ ",\"x\":" + button.transform.position.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+				+ ",\"y\":" + button.transform.position.y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+				+ ",\"pointerInside\":" + (pointerInside ? "true" : "false")
+				+ ",\"overlapDistanceOverScale\":" + overlapDistance.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
 				+ ",\"active\":" + (button.gameObject.activeInHierarchy ? "true" : "false") + "}");
 		}
 		var members = new System.Collections.Generic.List<string>();
@@ -128,12 +177,36 @@
 					+ ",\"inWorld\":" + (member.InWorld ? "true" : "false") + "}");
 			}
 		}
+		var focusScreenX = -1f;
+		var focusScreenY = -1f;
+		if (viewType != null) {
+			var listFocusProperty = viewType.GetProperty("FocusedBody", staticFlags);
+			var listFocus = listFocusProperty != null ? listFocusProperty.GetValue(null) as Body : null;
+			if (listFocus != null && UnityEngine.Camera.main != null) { // Unity objects — ==
+				var focusScreen = (UnityEngine.Vector2)UnityEngine.Camera.main.WorldToScreenPoint(listFocus.transform.position);
+				focusScreenX = focusScreen.x;
+				focusScreenY = focusScreen.y;
+			}
+		}
+		var listMouse = UnityEngine.Input.mousePosition;
+		var listScale = PlayerCamera.uiScale;
+		var listRing = camera.radialMenu != null ? (UnityEngine.Vector2)camera.radialMenu.position : UnityEngine.Vector2.zero;
 		return "{\"ok\":true,\"mode\":\"list\""
 			+ ",\"localSteamId\":" + (session == null ? "0" : session.LocalSteamId.ToString(System.Globalization.CultureInfo.InvariantCulture))
 			+ ",\"members\":[" + string.Join(",", members) + "]"
 			+ ",\"radialOpen\":" + (camera.radialOpen ? "true" : "false")
 			+ ",\"viewOpen\":" + (viewOpen ? "true" : "false")
 			+ ",\"dragItem\":\"" + (camera.dragItem == null ? "none" : camera.dragItem.GetType().Name) + "\""
+			+ ",\"mouseX\":" + listMouse.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"mouseY\":" + listMouse.y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"uiScale\":" + listScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"ringX\":" + listRing.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"ringY\":" + listRing.y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"ringScale\":" + (camera.radialMenu != null ? camera.radialMenu.localScale.x : -1f).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"ringToPointerOverScale\":" + (listScale > 0f ? (UnityEngine.Vector2.Distance(listRing, listMouse) / listScale).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "-1")
+			+ ",\"ringClosesAboveScale\":600"
+			+ ",\"focusScreenX\":" + focusScreenX.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"focusScreenY\":" + focusScreenY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
 			+ ",\"proxyCount\":" + proxyList.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
 			+ ",\"proxies\":[" + string.Join(",", proxies) + "]"
 			+ ",\"buttonCount\":" + buttonList.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -199,9 +272,116 @@
 		if (!presentation.OpenRemoteBackpack(ownerId, "acceptance")) {
 			return "{\"ok\":false,\"error\":\"open-refused\",\"detail\":\"the remote backpack entry refused (line of sight or no render clone)\"}";
 		}
-		return "{\"ok\":true,\"mode\":\"open\",\"itemOwner\":" + ownerId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ",\"viewOpen\":true}";
+		// The geometry the game's own next frames decide on: the ring is anchored to the focused
+		// clone's SCREEN position, and `HandleWhileDragging` turns `radialOpen` off when the ring's x
+		// sits more than 600 * uiScale from the pointer's x — so the open reports both, at the instant
+		// of the open, instead of leaving the caller to guess where the clone is.
+		var openMouse = UnityEngine.Input.mousePosition;
+		var openRing = camera.radialMenu != null ? (UnityEngine.Vector2)camera.radialMenu.position : UnityEngine.Vector2.zero;
+		var openScale = PlayerCamera.uiScale;
+		var openFocusX = -1f;
+		var openFocusY = -1f;
+		if (viewType != null) {
+			var openFocusProperty = viewType.GetProperty("FocusedBody", staticFlags);
+			var openFocus = openFocusProperty != null ? openFocusProperty.GetValue(null) as Body : null;
+			if (openFocus != null && UnityEngine.Camera.main != null) { // Unity objects — ==
+				var openFocusScreen = (UnityEngine.Vector2)UnityEngine.Camera.main.WorldToScreenPoint(openFocus.transform.position);
+				openFocusX = openFocusScreen.x;
+				openFocusY = openFocusScreen.y;
+			}
+		}
+		return "{\"ok\":true,\"mode\":\"open\",\"itemOwner\":" + ownerId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ",\"viewOpen\":true"
+			+ ",\"radialOpen\":" + (camera.radialOpen ? "true" : "false")
+			+ ",\"mouseX\":" + openMouse.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"mouseY\":" + openMouse.y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"uiScale\":" + openScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"ringX\":" + openRing.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"ringY\":" + openRing.y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"focusScreenX\":" + openFocusX.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"focusScreenY\":" + openFocusY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"ringToPointerOverScale\":" + (openScale > 0f ? (UnityEngine.Vector2.Distance(openRing, openMouse) / openScale).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "-1") + "}";
 	}
-	if (mode != "release" && mode != "hover") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be list, open, close, probe, hover or release\"}"; }
+	if (mode == "wound-view") {
+		var viewObject = camera.woundView;
+		if (viewObject == null) { return "{\"ok\":false,\"error\":\"no-wound-view\"}"; } // Unity object — ==
+		var view = viewObject.GetComponent<WoundView>();
+		if (view == null) { return "{\"ok\":false,\"error\":\"no-wound-view-component\"}"; } // Unity object — ==
+		var opened = false;
+		if (!viewObject.activeSelf)
+		{
+			camera.ToggleWoundView(true);
+			opened = true;
+		}
+		// The limb the view points at is written by the game's OWN hit entry — the method a real
+		// pointer-over runs (WoundViewLimb.OnPointerEnter). The view's own Update then writes
+		// PlayerCamera.selectedLimb from it, so the answer reports both and the next call reads the
+		// selected limb as the view left it.
+		var limbObjects = UnityEngine.Object.FindObjectsOfType(typeof(WoundViewLimb));
+		WoundViewLimb hit = null;
+		for (var i = 0; i < limbObjects.Length; i++) {
+			var candidate = limbObjects[i] as WoundViewLimb;
+			if (candidate != null && candidate.woundview == view && candidate.limb == limbIndex) { hit = candidate; break; } // Unity object — ==
+		}
+		if (hit == null) { return "{\"ok\":false,\"error\":\"no-wound-view-limb\",\"detail\":\"no WoundViewLimb for limb " + limbIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + " belongs to this client's own wound view\"}"; }
+		hit.OnPointerEnter(null);
+		var selectedIndex = -1;
+		var selectedIsLocal = false;
+		if (camera.body != null && camera.selectedLimb != null) {
+			for (var i = 0; i < camera.body.limbs.Length; i++) {
+				if (System.Object.ReferenceEquals(camera.body.limbs[i], camera.selectedLimb)) { selectedIndex = i; break; }
+			}
+			selectedIsLocal = camera.selectedLimb.transform.IsChildOf(camera.body.transform);
+		}
+		return "{\"ok\":true,\"mode\":\"wound-view\""
+			+ ",\"limb\":" + limbIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"opened\":" + (opened ? "true" : "false")
+			+ ",\"viewOpen\":" + (viewObject.activeSelf ? "true" : "false")
+			+ ",\"limbLookingAt\":" + view.limbLookingAt.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"selectedLimbIndex\":" + selectedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"selectedIsLocal\":" + (selectedIsLocal ? "true" : "false") + "}";
+	}
+	if (mode == "aim-ring") {
+		// Where the FOCUSED body must move, in world space, for the cast-th ring button to sit under the
+		// pointer. The ring is anchored to the focused clone's screen position (CUO's own anchor), so a
+		// clone moved by this delta moves the ring by the same screen delta — and the map from that
+		// screen delta to world units is the game's own camera, never a scale this recipe guesses.
+		if (viewType == null) { return "{\"ok\":false,\"error\":\"no-view-type\"}"; }
+		var aimFocusProperty = viewType.GetProperty("FocusedBody", staticFlags);
+		var aimFocus = aimFocusProperty != null ? aimFocusProperty.GetValue(null) as Body : null;
+		if (aimFocus == null) { return "{\"ok\":false,\"error\":\"no-focus\",\"detail\":\"open the remote view first\"}"; }
+		if (camera.radialMenu == null) { return "{\"ok\":false,\"error\":\"no-ring\"}"; }
+		if (castIndex < 0 || castIndex >= buttonList.Count) { return "{\"ok\":false,\"error\":\"bad-cast\",\"detail\":\"cast " + castIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + " of " + buttonList.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " button(s)\"}"; }
+		var aimCamera = UnityEngine.Camera.main;
+		if (aimCamera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; } // Unity object — ==
+		var aimButton = buttonList[castIndex];
+		var aimMouse = UnityEngine.Input.mousePosition;
+		var aimRing = (UnityEngine.Vector2)camera.radialMenu.position;
+		var aimButtonPosition = (UnityEngine.Vector2)aimButton.transform.position;
+		var aimOffset = aimButtonPosition - aimRing;
+		var aimRingTarget = new UnityEngine.Vector2(aimMouse.x - aimOffset.x, aimMouse.y - aimOffset.y);
+		var aimFocusPosition = aimFocus.transform.position;
+		var aimDepth = aimCamera.WorldToScreenPoint(aimFocusPosition).z;
+		var aimWorldAtRing = aimCamera.ScreenToWorldPoint(new UnityEngine.Vector3(aimRing.x, aimRing.y, aimDepth));
+		var aimWorldAtTarget = aimCamera.ScreenToWorldPoint(new UnityEngine.Vector3(aimRingTarget.x, aimRingTarget.y, aimDepth));
+		var aimDelta = aimWorldAtTarget - aimWorldAtRing;
+		var aimInv = System.Globalization.CultureInfo.InvariantCulture;
+		return "{\"ok\":true,\"mode\":\"aim-ring\""
+			+ ",\"castIndex\":" + castIndex.ToString(aimInv)
+			+ ",\"castItemId\":" + (markerOf(markerType, aimButton.GetItem()) == null ? "0" : fieldOf(markerOf(markerType, aimButton.GetItem()), "Id").ToString(aimInv))
+			+ ",\"buttonOffsetX\":" + aimOffset.x.ToString("0.###", aimInv)
+			+ ",\"buttonOffsetY\":" + aimOffset.y.ToString("0.###", aimInv)
+			+ ",\"mouseX\":" + aimMouse.x.ToString("0.###", aimInv)
+			+ ",\"mouseY\":" + aimMouse.y.ToString("0.###", aimInv)
+			+ ",\"ringX\":" + aimRing.x.ToString("0.###", aimInv)
+			+ ",\"ringY\":" + aimRing.y.ToString("0.###", aimInv)
+			+ ",\"focusX\":" + aimFocusPosition.x.ToString("0.###", aimInv)
+			+ ",\"focusY\":" + aimFocusPosition.y.ToString("0.###", aimInv)
+			+ ",\"deltaX\":" + aimDelta.x.ToString("0.###", aimInv)
+			+ ",\"deltaY\":" + aimDelta.y.ToString("0.###", aimInv)
+			+ ",\"targetX\":" + (aimFocusPosition.x + aimDelta.x).ToString("0.###", aimInv)
+			+ ",\"targetY\":" + (aimFocusPosition.y + aimDelta.y).ToString("0.###", aimInv) + "}";
+	}
+	if (mode != "release" && mode != "hover" && mode != "while-dragging" && mode != "medical") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be list, open, close, probe, wound-view, aim-ring, hover, while-dragging, medical or release\"}"; }
 	Item target = null;
 	var targetId = 0UL;
 	if (itemArg.StartsWith("local", System.StringComparison.Ordinal)) {
@@ -228,6 +408,27 @@
 		if (camera.radialMenu != null) {
 			camera.radialMenu.position = new UnityEngine.Vector3(hoverMouse.x, hoverMouse.y, camera.radialMenu.position.z);
 		}
+		// With a cast the ring is moved on until THAT button sits under the pointer: the frames the
+		// client runs itself cast whatever the pointer is over, so this is how a run without pointer
+		// control puts an inventory button in front of the game's own while-dragging frame. The ring
+		// stays within the 600 * uiScale the game keeps it open at, because a button of the ring is
+		// one button-radius away from its centre.
+		var castUnderPointer = -1f;
+		var castTagUnderPointer = "none";
+		var overlapsUnderPointer = false;
+		if (castIndex >= 0 && castIndex < buttonList.Count && camera.radialMenu != null) {
+			var castButtonForHover = buttonList[castIndex];
+			var buttonScreen = castButtonForHover.transform.position;
+			var offset = new UnityEngine.Vector3(hoverMouse.x - buttonScreen.x, hoverMouse.y - buttonScreen.y, 0f);
+			camera.radialMenu.position = camera.radialMenu.position + offset;
+			castTagUnderPointer = castButtonForHover.gameObject.tag;
+			castUnderPointer = UnityEngine.Vector2.Distance(castButtonForHover.transform.position, hoverMouse);
+			var hoverCasts = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+			var hoverHit = new UnityEngine.EventSystems.RaycastResult();
+			hoverHit.gameObject = castButtonForHover.gameObject;
+			hoverCasts.Add(hoverHit);
+			overlapsUnderPointer = castButtonForHover.Overlaps(hoverCasts);
+		}
 		var hoverDistance = -1f;
 		if (camera.radialCircle != null && PlayerCamera.uiScale > 0f) {
 			hoverDistance = UnityEngine.Vector2.Distance(hoverMouse, camera.radialCircle.transform.position) / PlayerCamera.uiScale;
@@ -236,9 +437,108 @@
 			+ ",\"item\":\"" + itemArg + "\""
 			+ ",\"itemId\":" + targetId.ToString(System.Globalization.CultureInfo.InvariantCulture)
 			+ ",\"itemType\":\"" + target.GetType().Name + "\""
+			+ ",\"itemOwner\":" + (markerOf(markerType, target) == null ? "0" : fieldOf(markerOf(markerType, target), "OwnerSteamId").ToString(System.Globalization.CultureInfo.InvariantCulture))
 			+ ",\"radialOpen\":true"
+			+ ",\"castIndex\":" + castIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"castTag\":\"" + castTagUnderPointer + "\""
+			+ ",\"castUnderPointer\":" + castUnderPointer.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"castOverlaps\":" + (overlapsUnderPointer ? "true" : "false")
 			+ ",\"pointerDistanceOverScale\":" + hoverDistance.ToString(System.Globalization.CultureInfo.InvariantCulture)
 			+ ",\"radialMenuScale\":" + (camera.radialMenu != null ? camera.radialMenu.localScale.x : -1f).ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
+	}
+	if (mode == "while-dragging") {
+		// The game's own while-dragging frame, driven with the frame's UI casts as its argument. The
+		// native body is the same one every frame runs (PlayerCamera.cs:1713) and CUO brackets exactly
+		// this invocation, so the favourite store the body makes is captured as an intent on the owner.
+		if (castIndex < 0 || castIndex >= buttonList.Count) { return "{\"ok\":false,\"error\":\"bad-cast\",\"detail\":\"cast " + castIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + " of " + buttonList.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " button(s)\"}"; }
+		var frameButton = buttonList[castIndex];
+		var hoveredBefore = frameButton.GetItem();
+		var hoveredMarkerBefore = hoveredBefore == null ? null : markerOf(markerType, hoveredBefore);
+		var favouritedBefore = hoveredBefore != null && hoveredBefore.favourited;
+		camera.dragItem = target;
+		var ringStagedDistance = -1f;
+		if (frameButton.centerButtons && camera.radialMenu != null) {
+			var frameScale = PlayerCamera.uiScale;
+			var frameMouse = UnityEngine.Input.mousePosition;
+			camera.radialMenu.position = new UnityEngine.Vector3(frameMouse.x + 200f * frameScale, frameMouse.y, camera.radialMenu.position.z);
+			ringStagedDistance = UnityEngine.Vector2.Distance(camera.radialMenu.position, frameMouse) / frameScale;
+		}
+		var frameCasts = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+		var frameHit = new UnityEngine.EventSystems.RaycastResult();
+		frameHit.gameObject = frameButton.gameObject;
+		frameCasts.Add(frameHit);
+		var frameOverlaps = frameButton.Overlaps(frameCasts);
+		var whileDragging = typeof(PlayerCamera).GetMethod("HandleWhileDragging", instanceFlags);
+		if (whileDragging == null) { return "{\"ok\":false,\"error\":\"no-method\"}"; }
+		var frameFailure = "none";
+		try { whileDragging.Invoke(camera, new object[] { frameCasts }); } catch (System.Exception ex) { frameFailure = ex.GetType().Name + ": " + ex.Message; }
+		var hoveredAfter = frameButton.GetItem();
+		return "{\"ok\":true,\"mode\":\"while-dragging\""
+			+ ",\"item\":\"" + itemArg + "\""
+			+ ",\"itemId\":" + targetId.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"itemType\":\"" + target.GetType().Name + "\""
+			+ ",\"castIndex\":" + castIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"castTag\":\"" + frameButton.gameObject.tag + "\""
+			+ ",\"castSlot\":" + frameButton.slot.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"overlaps\":" + (frameOverlaps ? "true" : "false")
+			+ ",\"ringStagedDistance\":" + ringStagedDistance.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"castItem\":\"" + (hoveredBefore == null ? "none" : hoveredBefore.id) + "\""
+			+ ",\"castItemId\":" + (hoveredMarkerBefore == null ? "0" : fieldOf(hoveredMarkerBefore, "Id").ToString(System.Globalization.CultureInfo.InvariantCulture))
+			+ ",\"castItemProxy\":" + (hoveredBefore != null && isProxy(proxyType, hoveredBefore) ? "true" : "false")
+			+ ",\"castItemOwner\":" + (hoveredMarkerBefore == null ? "0" : fieldOf(hoveredMarkerBefore, "OwnerSteamId").ToString(System.Globalization.CultureInfo.InvariantCulture))
+			+ ",\"favouritedBefore\":" + (favouritedBefore ? "true" : "false")
+			+ ",\"favouritedAfter\":" + (hoveredAfter != null && hoveredAfter.favourited ? "true" : "false")
+			+ ",\"dragAfter\":\"" + (camera.dragItem == null ? "none" : camera.dragItem.GetType().Name) + "\""
+			+ ",\"calls\":\"" + frameFailure + "\"}";
+	}
+	if (mode == "medical") {
+		// The wound-view release (R11): the dragged proxy goes onto the limb the acting client's own
+		// wound view points at. Both coordinates are witnessed before the release: the view's own
+		// limbLookingAt (the value the capture reads) and PlayerCamera.selectedLimb, which must be this
+		// client's OWN body's limb — the native ApplyWoundItem treats the acting body.
+		var medicalViewObject = camera.woundView;
+		var medicalView = medicalViewObject != null ? medicalViewObject.GetComponent<WoundView>() : null; // Unity object — ==
+		if (medicalView == null) { return "{\"ok\":false,\"error\":\"no-wound-view\"}"; }
+		var lookingAt = medicalView.limbLookingAt;
+		if (lookingAt != limbIndex) { return "{\"ok\":false,\"error\":\"view-points-elsewhere\",\"detail\":\"the wound view points at limb " + lookingAt.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", not " + limbIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + " — run mode=wound-view for this limb first\"}"; }
+		var medicalSelected = camera.selectedLimb;
+		if (camera.body == null || medicalSelected == null || lookingAt < 0 || lookingAt >= camera.body.limbs.Length || !System.Object.ReferenceEquals(camera.body.limbs[lookingAt], medicalSelected)) {
+			return "{\"ok\":false,\"error\":\"selected-limb-is-not-this-client-s\",\"detail\":\"selectedLimb is not this client's own limb " + limbIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + " — the native ApplyWoundItem would treat another body\"}";
+		}
+		var medicalLimbs = UnityEngine.Object.FindObjectsOfType(typeof(WoundViewLimb));
+		WoundViewLimb medicalHit = null;
+		for (var i = 0; i < medicalLimbs.Length; i++) {
+			var candidate = medicalLimbs[i] as WoundViewLimb;
+			if (candidate != null && candidate.woundview == medicalView && candidate.limb == lookingAt) { medicalHit = candidate; break; } // Unity object — ==
+		}
+		if (medicalHit == null) { return "{\"ok\":false,\"error\":\"no-wound-view-limb\",\"detail\":\"no WoundViewLimb for limb " + lookingAt.ToString(System.Globalization.CultureInfo.InvariantCulture) + " belongs to this client's own wound view\"}"; }
+		var medicalCasts = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+		var medicalRaycast = new UnityEngine.EventSystems.RaycastResult();
+		medicalRaycast.gameObject = medicalHit.gameObject;
+		medicalCasts.Add(medicalRaycast);
+		camera.dragItem = target;
+		camera.clickPos = moved == 1
+			? new UnityEngine.Vector2(UnityEngine.Input.mousePosition.x + 60f, UnityEngine.Input.mousePosition.y)
+			: new UnityEngine.Vector2(UnityEngine.Input.mousePosition.x, UnityEngine.Input.mousePosition.y);
+		var medicalRelease = typeof(PlayerCamera).GetMethod("HandleReleaseDragging", instanceFlags);
+		if (medicalRelease == null) { return "{\"ok\":false,\"error\":\"no-method\"}"; }
+		var medicalFailure = "none";
+		try { medicalRelease.Invoke(camera, new object[] { medicalCasts }); } catch (System.Exception ex) { medicalFailure = ex.GetType().Name + ": " + ex.Message; }
+		var medicalMarker = markerOf(markerType, target);
+		return "{\"ok\":true,\"mode\":\"medical\""
+			+ ",\"item\":\"" + itemArg + "\""
+			+ ",\"itemId\":" + (medicalMarker == null ? targetId : fieldOf(medicalMarker, "Id")).ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"itemOwner\":" + (medicalMarker == null ? "0" : fieldOf(medicalMarker, "OwnerSteamId").ToString(System.Globalization.CultureInfo.InvariantCulture))
+			+ ",\"itemType\":\"" + target.GetType().Name + "\""
+			+ ",\"itemProxy\":" + (isProxy(proxyType, target) ? "true" : "false")
+			+ ",\"limb\":" + limbIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"limbLookingAt\":" + lookingAt.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"selectedLimbIndex\":" + lookingAt.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"selectedIsLocal\":true"
+			+ ",\"woundViewOpen\":" + (medicalViewObject.activeSelf ? "true" : "false")
+			+ ",\"castIsWoundViewLimb\":true"
+			+ ",\"dragAfter\":\"" + (camera.dragItem == null ? "none" : camera.dragItem.GetType().Name) + "\""
+			+ ",\"calls\":\"" + medicalFailure + "\"}";
 	}
 	var mouse = UnityEngine.Input.mousePosition;
 	var casts = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();

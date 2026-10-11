@@ -60,15 +60,20 @@ user set*.
 
 ### The missing capability, named exactly
 
-Driving one grip slip needs three things the driver's vocabulary does not have, and no weaker check
+Driving one grip slip needs four things the driver's vocabulary does not have, and no weaker check
 substitutes for them (they are the subject of the rows, not a convenience):
 
 1. opening the remote medical view — `RemoteMedicalView.Open(Body, ulong, string)` is an internal static,
    and the native path into it is `PlayerCamera.TryPerformSpecialUIAction`, which the patch intercepts and
    which no recipe drives;
-2. starting the shared shrapnel session on a target limb — `GameAdapterBridge.TryStartRemoteShrapnelSpecial`
-   / `TryStartRemoteShrapnelUse`, reached today only from the wound-view release gesture;
-3. putting the native `ShrapnelMinigame` into the held state and calling its public `BreakGrasp()`, because
+2. a peer's SteamId, which `Open` needs and which **no patch-bridge surface exposes**: `PatchBridge.Impl`
+   carries the LOCAL id (`LocalSteamId`) and `SessionSurface` carries two UI flags and nothing else. A
+   driver has to reach the session's member list — or the renderer's SteamId-to-body map — through the
+   assembly's internals as well;
+3. starting the shared shrapnel session on a target limb — `GameAdapterBridge.TryStartRemoteShrapnelSpecial`
+   / `TryStartRemoteShrapnelUse`, which read the target from `RemoteMedicalView.TargetSteamId` and are
+   reached today only from the wound-view release gesture;
+4. putting the native `ShrapnelMinigame` into the held state and calling its public `BreakGrasp()`, because
    the game reaches `BreakGrasp` from its own `Update` on mouse motion (`ShrapnelMinigame.cs:109-118`), and
    this project drives no OS-level input.
 

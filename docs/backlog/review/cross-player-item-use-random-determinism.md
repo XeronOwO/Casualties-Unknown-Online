@@ -13,8 +13,12 @@
   **Batch `20261011-a` ran that acceptance in the game: rows 6 and 7 PASS**, on the authority's own log —
   the derived draw (`skin 4.024037 bleed 0.9653509 pain 15.61053`, seed `-790031595`), the line
   `both sides derived the same values`, and its commit of exactly those numbers — against the operator's
-  screen reporting `4.024 / 0.965 / 15.611` for the same slip. **Row 1 is PARTIAL** (the patient's own
-  body still reads unchanged, which is a new question the run opened) and **rows 2, 3, 4, 5 and 8 are
+  screen reporting `4.024 / 0.965 / 15.611` for the same slip. **Row 1 is PARTIAL, and its open half is
+  ANSWERED**: the patient's body reading unchanged was `review/medical-state-names-no-kind.md` — the
+  session's non-terminal state messages named no operation kind, so every receiving client took the
+  injection branch and dropped the authority's write in silence (the terminal named it, which is why the
+  run saw one update line and a limb that never moved). That defect is fixed, gated and deployed, so row 1
+  now closes by re-running this scenario rather than by investigating it. **Rows 2, 3, 4, 5 and 8 are
   unjudged**. Each verdict carries its evidence in
   `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`, which also records
   what the driver had to learn first (a native panel opened, both clients in sight, and the ack that

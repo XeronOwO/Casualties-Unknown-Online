@@ -181,8 +181,11 @@ committed tree (recorded as a limit).
   `Abstractions` cannot carry one, so that surface belongs to `mod-authored-effects.md` — exposing the flag
   alone would add a second crash of this ticket's shape.
 - Not the miscellaneous Part 3.A reads (`rec`, `onlyHoldInHands`, `combineable`, `ignoreDepression`,
-  `scaleWeightWithCondition`, `jumpHeightMultChange`, `slotRotation`): each is its own entry with its own
-  consumer, and none is a defect of a promised surface.
+  `scaleWeightWithCondition`, `jumpHeightMultChange`, `slotRotation`, `autoAttack`, the three
+  `ItemInfo.DecayType` condition bits): they were cut as their own ticket, and
+  `docs/backlog/review/mod-item-declaration-parity.md` corrects the claim this line used to close with — the
+  recognition gate is a defect of a promised surface (a mod item asks for an INT the author never wrote and
+  the game prints it at the player), not a harmless capability.
 - Not a CUO-side limb enum: the vocabulary the API already publishes is the game's own limb name, and a
   second vocabulary would be a second thing to keep in step.
 - Not native's drop-the-occupant behaviour on a wear into an occupied slot: the cross-player chain records

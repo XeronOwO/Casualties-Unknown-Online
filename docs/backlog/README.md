@@ -84,6 +84,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [The item declaration reaches every field the game reads](review/mod-item-declaration-parity.md) — **High** — the recognition gate, and the fields beside it.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.

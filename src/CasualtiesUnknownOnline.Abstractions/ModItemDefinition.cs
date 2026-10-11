@@ -51,6 +51,30 @@ public sealed class ModItemDefinition : IModItemDefinition
 	public bool DestroyAtZeroCondition { get; set; }
 
 	/// <inheritdoc />
+	public int RecognitionMinimum { get; set; }
+
+	/// <inheritdoc />
+	public bool OnlyHoldInHands { get; set; }
+
+	/// <inheritdoc />
+	public bool Combineable { get; set; }
+
+	/// <inheritdoc />
+	public bool IgnoreDepression { get; set; }
+
+	/// <inheritdoc />
+	public bool ScaleWeightWithCondition { get; set; }
+
+	/// <inheritdoc />
+	public bool AutoAttack { get; set; }
+
+	/// <inheritdoc />
+	public float JumpHeightMultiplierChange { get; set; }
+
+	/// <inheritdoc />
+	public float SlotRotation { get; set; }
+
+	/// <inheritdoc />
 	public string Tags { get; set; } = "";
 
 	/// <inheritdoc />
@@ -99,6 +123,9 @@ public sealed class ModItemDefinition : IModItemDefinition
 
 	/// <inheritdoc />
 	public float DecayMinutes { get; set; }
+
+	/// <inheritdoc />
+	public ModItemDecayCondition DecayConditions { get; set; }
 
 	/// <inheritdoc />
 	public IModItemVisual? Visual { get; set; }

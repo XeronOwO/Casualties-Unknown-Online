@@ -147,6 +147,18 @@ public sealed class GameAdapterItemContentProvider(
 				"[ItemContent] {ModId}/{Id} declares Wearable without a limb name and a wear slot — the item is registered but cannot be worn: the game's own wear flow resolves the declared limb and has nothing to resolve here.",
 				registration.ModId, id);
 		}
+
+		// Conditions gate a decay that only a positive DecayMinutes starts, so declaring
+		// them without one is a declaration nothing can act on. The item is still a valid
+		// item, so it is registered and reported rather than refused — the same
+		// materialize-and-report shape the wearable half above uses.
+		if (definition.DecayConditions != ModItemDecayCondition.None && definition.DecayMinutes <= 0f)
+		{
+			_log.LogWarning(
+				"[ItemContent] {ModId}/{Id} declares DecayConditions {Conditions} with no positive DecayMinutes — the item is registered but never decays, so the conditions gate nothing.",
+				registration.ModId, id, definition.DecayConditions);
+		}
+
 		return true;
 	}
 

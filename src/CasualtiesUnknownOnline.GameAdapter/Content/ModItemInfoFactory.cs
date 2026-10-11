@@ -8,9 +8,18 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
-/// The mod definition → vanilla <c>ItemInfo</c> mapping: the fields every custom
-/// item carries, the behaviour slices a definition may author, and the two action
-/// delegates an item that declares usability or limb usability is given.
+/// The mod definition → vanilla <c>ItemInfo</c> mapping: every public field the
+/// game's own item type carries, the behaviour slices a definition may author,
+/// and the two action delegates an item that declares usability or limb
+/// usability is given.
+///
+/// <para>
+/// "Every public field" is a contract with a case behind it rather than a claim:
+/// <c>ItemDeclarationParityTests</c> drives this build site with a definition
+/// that declares each member and asserts that nothing the game reads is left
+/// undeclarable — so a game update that adds a field fails the suite instead of
+/// silently becoming a value every mod item inherits from the data class.
+/// </para>
 ///
 /// <para>
 /// Those two are a contract rather than a convenience: <c>Body.UseItem</c> /
@@ -41,8 +50,35 @@ internal static class ModItemInfoFactory
 			usable = definition.Usable,
 			usableWithLMB = definition.UsableWithLmb,
 			destroyAtZeroCondition = definition.DestroyAtZeroCondition,
-			tags = definition.Tags ?? string.Empty
+			tags = definition.Tags ?? string.Empty,
+
+			// The recognition gate is written from the DECLARATION rather than left to
+			// the type's own field initialiser (`public Recognition rec = new(2)`,
+			// ItemInfo.cs:181). That leftover asks for INT 2: 201 of the game's 218
+			// locally built item definitions overwrite it and 24 inherit it, and a mod
+			// author had no member either way — so an item whose author wrote only a name
+			// would be shown as "unknown object", with the tooltip naming an INT
+			// requirement nobody chose (PlayerCamera.ItemHoverDescription,
+			// PlayerCamera.cs:1043-1055).
+			rec = new Recognition(definition.RecognitionMinimum),
+			onlyHoldInHands = definition.OnlyHoldInHands,
+			combineable = definition.Combineable,
+			ignoreDepression = definition.IgnoreDepression,
+			scaleWeightWithCondition = definition.ScaleWeightWithCondition,
+			autoAttack = definition.AutoAttack,
+			jumpHeightMultChange = definition.JumpHeightMultiplierChange,
+			slotRotation = definition.SlotRotation
 		};
+
+		// The three condition bits of the item's decay byte are the declaration's own;
+		// their VALUES are the game's own flags (Item.HandleDecay masks bits 1, 2 and 4
+		// out of `decayInfo`, Item.cs:186-197), and the validator refuses a value that
+		// carries any other bit — the battery bit in particular, which belongs to the
+		// Battery slice below because the decay tick drains that component.
+		if (definition.DecayConditions != ModItemDecayCondition.None)
+		{
+			info.decayInfo |= (byte)definition.DecayConditions;
+		}
 
 		if (definition.DecayMinutes > 0f)
 		{

@@ -211,6 +211,29 @@ public sealed class ExampleMod : ICuoMod
 
 		public bool DestroyAtZeroCondition => false;
 
+		/// <summary>
+		/// Declared as zero on purpose: this is what a definition that wrote its own
+		/// name and description asks for, and the framework writes it into the game's
+		/// own recognition gate rather than leaving the data class's leftover 2 there.
+		/// </summary>
+		public int RecognitionMinimum => 0;
+
+		public bool OnlyHoldInHands => false;
+
+		public bool Combineable => false;
+
+		public bool IgnoreDepression => false;
+
+		public bool ScaleWeightWithCondition => false;
+
+		public bool AutoAttack => false;
+
+		public float JumpHeightMultiplierChange => 0f;
+
+		public float SlotRotation => 0f;
+
+		public ModItemDecayCondition DecayConditions => ModItemDecayCondition.None;
+
 		public string Tags => "dressing,medicine";
 
 		public int SpawnFrequency => 1;

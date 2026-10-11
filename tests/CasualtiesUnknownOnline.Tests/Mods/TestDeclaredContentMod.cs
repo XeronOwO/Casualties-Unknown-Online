@@ -96,6 +96,24 @@ public sealed class TestDeclaredContentMod : ICuoMod
 
 		public bool DestroyAtZeroCondition => false;
 
+		public int RecognitionMinimum => 0;
+
+		public bool OnlyHoldInHands => false;
+
+		public bool Combineable => false;
+
+		public bool IgnoreDepression => false;
+
+		public bool ScaleWeightWithCondition => false;
+
+		public bool AutoAttack => false;
+
+		public float JumpHeightMultiplierChange => 0f;
+
+		public float SlotRotation => 0f;
+
+		public ModItemDecayCondition DecayConditions => ModItemDecayCondition.None;
+
 		public string Tags => "";
 
 		public int SpawnFrequency => 1;
@@ -186,6 +204,24 @@ public sealed class TestDeclaredContentMod : ICuoMod
 		public IModItemWearable? Wearable => null;
 
 		public bool DestroyAtZeroCondition => false;
+
+		public int RecognitionMinimum => 0;
+
+		public bool OnlyHoldInHands => false;
+
+		public bool Combineable => false;
+
+		public bool IgnoreDepression => false;
+
+		public bool ScaleWeightWithCondition => false;
+
+		public bool AutoAttack => false;
+
+		public float JumpHeightMultiplierChange => 0f;
+
+		public float SlotRotation => 0f;
+
+		public ModItemDecayCondition DecayConditions => ModItemDecayCondition.None;
 
 		public string Tags => "";
 

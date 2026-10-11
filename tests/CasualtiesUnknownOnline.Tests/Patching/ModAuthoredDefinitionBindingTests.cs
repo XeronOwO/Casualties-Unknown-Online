@@ -355,6 +355,24 @@ public class ModAuthoredDefinitionBindingTests
 
 		public bool DestroyAtZeroCondition => defaults.DestroyAtZeroCondition;
 
+		public int RecognitionMinimum => defaults.RecognitionMinimum;
+
+		public bool OnlyHoldInHands => defaults.OnlyHoldInHands;
+
+		public bool Combineable => defaults.Combineable;
+
+		public bool IgnoreDepression => defaults.IgnoreDepression;
+
+		public bool ScaleWeightWithCondition => defaults.ScaleWeightWithCondition;
+
+		public bool AutoAttack => defaults.AutoAttack;
+
+		public float JumpHeightMultiplierChange => defaults.JumpHeightMultiplierChange;
+
+		public float SlotRotation => defaults.SlotRotation;
+
+		public ModItemDecayCondition DecayConditions => defaults.DecayConditions;
+
 		public string Tags => defaults.Tags;
 
 		public int SpawnFrequency => defaults.SpawnFrequency;

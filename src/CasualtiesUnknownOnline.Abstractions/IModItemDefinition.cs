@@ -53,6 +53,85 @@ public interface IModItemDefinition : IModContentDefinition
 	/// <summary>Whether the item is destroyed when its condition reaches zero.</summary>
 	bool DestroyAtZeroCondition { get; }
 
+	/// <summary>
+	/// The INT level a player needs before the game shows the item's own name —
+	/// the gate <c>Recognition.recognizable</c> answers with
+	/// <c>min &lt;= PlayerCamera.main.body.skills.INT</c> (<c>Recognition.cs:14-19</c>) and
+	/// which <c>PlayerCamera.ItemHoverDescription</c> (<c>PlayerCamera.cs:1043-1055</c>)
+	/// reads to replace the name with <c>unknownobject</c> (or <c>unknown&lt;category&gt;</c>),
+	/// replace the description with <c>unknownobjectdsc</c> and print this number in
+	/// the warning line it appends. The same gate names the item in the player's own
+	/// hands in the HUD (<c>PlayerCamera.cs:2126</c>, <c>:2139</c>), in a minigame's
+	/// item text (<c>MinigameBase.cs:223</c>) and in the two wear alerts
+	/// (<c>Body.cs:1487</c>, <c>:1496</c>).
+	///
+	/// <para>
+	/// Zero — the default — means every player recognizes the item, which is what a
+	/// definition that wrote its own name and description asked for. A positive value
+	/// opts into the game's own mechanic; the number the tooltip prints is this one.
+	/// A negative value is refused at registration.
+	/// </para>
+	/// </summary>
+	int RecognitionMinimum { get; }
+
+	/// <summary>
+	/// Whether every slot that is not a hand refuses the item —
+	/// <c>ItemInfo.onlyHoldInHands</c>, read by the slot pickup
+	/// (<c>Body.cs:1390</c>), the inventory drag (<c>PlayerCamera.cs:1172</c>) and the
+	/// slot button's own colour (<c>InvButton.cs:137</c>).
+	/// </summary>
+	bool OnlyHoldInHands { get; }
+
+	/// <summary>
+	/// Whether two of the item can be merged into one — <c>ItemInfo.combineable</c>,
+	/// read by <c>Body.CanCombine</c> (<c>Body.cs:1297</c>), whose rule requires BOTH
+	/// operands to set it.
+	/// </summary>
+	bool Combineable { get; }
+
+	/// <summary>
+	/// Whether the item stays usable while its holder is below the medical cutoff —
+	/// <c>ItemInfo.ignoreDepression</c>, read by the use gate
+	/// (<c>PlayerCamera.cs:745</c>) and by the inventory button's lock
+	/// (<c>InvButton.cs:85</c>).
+	/// </summary>
+	bool IgnoreDepression { get; }
+
+	/// <summary>
+	/// Whether the weight this item contributes to its carrier follows its remaining
+	/// condition — <c>ItemInfo.scaleWeightWithCondition</c>, which the framework's own
+	/// encumbrance calculation reads
+	/// (<c>CarriedEncumbranceCalculator</c>: <c>Mathf.Lerp(0.1f, weight, condition)</c>
+	/// when it is set, the flat weight when it is not).
+	/// </summary>
+	bool ScaleWeightWithCondition { get; }
+
+	/// <summary>
+	/// Whether holding the attack button repeats the item's use —
+	/// <c>ItemInfo.autoAttack</c>, read by the held-button loop
+	/// (<c>PlayerCamera.cs:1831</c>, <c>:1836</c>). Declaring <see cref="Tool"/> or
+	/// <see cref="Gun"/> sets it already; this member is how an item whose behaviour is
+	/// its own <see cref="IModItemActions"/> action asks for the same.
+	/// </summary>
+	bool AutoAttack { get; }
+
+	/// <summary>
+	/// The change a held item makes to its carrier's jump height —
+	/// <c>ItemInfo.jumpHeightMultChange</c>, applied as <c>height *= value + 1</c>
+	/// (<c>Body.cs:2120-2122</c>). Zero — the default — means no change, and the game's
+	/// own two users declare <c>0.44f</c> (a booster) and <c>-0.1f</c> (a penalty). A
+	/// value at or below <c>-1</c> is refused at registration: the factor would be zero
+	/// or negative.
+	/// </summary>
+	float JumpHeightMultiplierChange { get; }
+
+	/// <summary>
+	/// The rotation a held item is drawn at, in degrees — <c>ItemInfo.slotRotation</c>,
+	/// written onto the held object's <c>localEulerAngles.z</c> (<c>Body.cs:1403</c>) and
+	/// read by the framework's own clone renderer (<c>CloneInventoryRenderer</c>).
+	/// </summary>
+	float SlotRotation { get; }
+
 	/// <summary>Vanilla tag string, empty when none.</summary>
 	string Tags { get; }
 
@@ -125,6 +204,17 @@ public interface IModItemDefinition : IModContentDefinition
 	/// <see cref="Battery"/> is present).
 	/// </summary>
 	float DecayMinutes { get; }
+
+	/// <summary>
+	/// The conditions under which an item with a positive <see cref="DecayMinutes"/>
+	/// decays at all — the game's own decay flags (<c>Item.HandleDecay</c>,
+	/// <c>Item.cs:186-197</c>). <see cref="ModItemDecayCondition.None"/> — the
+	/// default — means it decays wherever it is, which is also what every item
+	/// declared before this member did. Conditions with no positive
+	/// <see cref="DecayMinutes"/> gate a decay that never starts: the declaration is
+	/// registered and reported at load rather than refused.
+	/// </summary>
+	ModItemDecayCondition DecayConditions { get; }
 
 	/// <summary>Optional visual presentation (worn sprite and liquid mask).</summary>
 	IModItemVisual? Visual { get; }

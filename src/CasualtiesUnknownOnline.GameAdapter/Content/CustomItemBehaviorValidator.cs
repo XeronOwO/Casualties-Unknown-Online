@@ -55,7 +55,58 @@ internal static class CustomItemBehaviorValidator
 			valid &= ValidateVisual(modId, id, visual, log);
 		}
 
+		valid &= ValidateItemFields(modId, id, definition, log);
+
 		return valid;
+	}
+
+	/// <summary>
+	/// The flat members a definition carries beside its behaviour slices: the two
+	/// authored numbers the game's own flow cannot survive, and the decay condition
+	/// bits, whose vocabulary is the game's own and excludes the bit the framework
+	/// owns.
+	/// </summary>
+	private static bool ValidateItemFields(
+		string modId,
+		string id,
+		IModItemDefinition definition,
+		ILogger log)
+	{
+		if (definition.RecognitionMinimum < 0)
+		{
+			log.LogWarning(
+				"[ItemContent] {ModId}/{Id} has a negative RecognitionMinimum {Minimum} — refused.",
+				modId, id, definition.RecognitionMinimum);
+			return false;
+		}
+
+		if (float.IsNaN(definition.SlotRotation) || float.IsInfinity(definition.SlotRotation))
+		{
+			log.LogWarning(
+				"[ItemContent] {ModId}/{Id} has a non-finite SlotRotation {Rotation} — refused.",
+				modId, id, definition.SlotRotation);
+			return false;
+		}
+
+		if (float.IsNaN(definition.JumpHeightMultiplierChange)
+			|| float.IsInfinity(definition.JumpHeightMultiplierChange)
+			|| definition.JumpHeightMultiplierChange <= -1f)
+		{
+			log.LogWarning(
+				"[ItemContent] {ModId}/{Id} has invalid JumpHeightMultiplierChange {Change} — refused (the game multiplies jump height by value + 1, so the factor is zero or negative at or below -1).",
+				modId, id, definition.JumpHeightMultiplierChange);
+			return false;
+		}
+
+		if ((definition.DecayConditions & ~ModItemDecayCondition.All) != 0)
+		{
+			log.LogWarning(
+				"[ItemContent] {ModId}/{Id} declares DecayConditions {Conditions} outside {Allowed} — refused (the battery bit belongs to the Battery slice, whose component the game's own decay tick drains at Item.cs:198-201).",
+				modId, id, definition.DecayConditions, ModItemDecayCondition.All);
+			return false;
+		}
+
+		return true;
 	}
 
 	private static bool ValidateContainer(

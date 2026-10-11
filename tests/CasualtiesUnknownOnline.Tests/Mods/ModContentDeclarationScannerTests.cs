@@ -551,6 +551,24 @@ public class ModContentDeclarationScannerTests
 
 		public virtual bool DestroyAtZeroCondition => false;
 
+		public virtual int RecognitionMinimum => 0;
+
+		public virtual bool OnlyHoldInHands => false;
+
+		public virtual bool Combineable => false;
+
+		public virtual bool IgnoreDepression => false;
+
+		public virtual bool ScaleWeightWithCondition => false;
+
+		public virtual bool AutoAttack => false;
+
+		public virtual float JumpHeightMultiplierChange => 0f;
+
+		public virtual float SlotRotation => 0f;
+
+		public virtual ModItemDecayCondition DecayConditions => ModItemDecayCondition.None;
+
 		public virtual string Tags => "";
 
 		public virtual int SpawnFrequency => 1;

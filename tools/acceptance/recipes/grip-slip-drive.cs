@@ -134,7 +134,7 @@
 	}
 	if (viewType == null) { return "{\"ok\":false,\"error\":\"no-medical-view-type\"}"; }
 
-	if (mode == "open" || mode == "start" || mode == "auto") {
+	if (mode == "open" || mode == "start") {
 		var rendererField = domains.GetType().GetField("Renderer", flags);
 		if (rendererField == null) { return "{\"ok\":false,\"error\":\"no-renderer-field\"}"; }
 		var renderer = rendererField.GetValue(domains);
@@ -166,6 +166,33 @@
 	// Read the display body in the SAME call that opened it: the view is torn down between driver
 	// calls (the native panel toggle and the focus's own lifecycle both close it), so a run cannot open
 	// it in one call and start a session in the next.
+	// mode=break runs in a LATER call than the start, because the ack that assigns the operation id is
+	// ASYNCHRONOUS: the host parks the start request and asks the target's client first, so the id lands
+	// some 200 ms later. It also must NOT call RemoteMedicalView.Open — that calls Close(), and Close
+	// cancels the very session this break belongs to. Restoring the focus means writing its two fields.
+	if (mode == "break") {
+		var breakCamera = PlayerCamera.main;
+		if (breakCamera == null) { return "{\"ok\":false,\"error\":\"no-player-camera\"}"; }
+		if (breakCamera.woundView == null) { return "{\"ok\":false,\"error\":\"no-wound-view-object\"}"; }
+		if (!breakCamera.woundView.activeSelf) { breakCamera.WoundViewButton(); }
+		if (!breakCamera.woundView.activeSelf) { return "{\"ok\":false,\"error\":\"native-wound-view-refused\"}"; }
+		var breakRendererField = domains.GetType().GetField("Renderer", flags);
+		if (breakRendererField == null) { return "{\"ok\":false,\"error\":\"no-renderer-field\"}"; }
+		var breakRenderer = breakRendererField.GetValue(domains);
+		var breakTryGet = breakRenderer.GetType().GetMethod("TryGetRemoteBody", flags);
+		if (breakTryGet == null) { return "{\"ok\":false,\"error\":\"no-try-get-remote-body\"}"; }
+		var breakArgs = new object[] { System.Convert.ToUInt64(targetText), null };
+		if (!(bool)breakTryGet.Invoke(breakRenderer, breakArgs)) { return "{\"ok\":false,\"error\":\"no-remote-body\"}"; }
+		var breakBody = breakArgs[1] as Body;
+		var focusBodyField = viewType.GetField("_displayBody", flags);
+		var focusTargetField = viewType.GetField("_targetSteamId", flags);
+		if (focusBodyField == null || focusTargetField == null) { return "{\"ok\":false,\"error\":\"no-focus-fields\"}"; }
+		focusBodyField.SetValue(null, breakBody);
+		focusTargetField.SetValue(null, System.Convert.ToUInt64(targetText));
+		var breakNativeView = WoundView.view;
+		if (breakNativeView != null) { breakNativeView.body = breakBody; }
+	}
+
 	var displayProp = viewType.GetProperty("DisplayBody", flags);
 	var display = displayProp != null ? displayProp.GetValue(null, null) as Body : null;
 	if (display == null) { return "{\"ok\":false,\"error\":\"no-display-body\",\"detail\":\"the remote medical view is not open\"}"; }
@@ -177,7 +204,7 @@
 		var startMethod = impl.GetType().GetMethod("TryStartRemoteShrapnelSpecial", flags);
 		if (startMethod == null) { return "{\"ok\":false,\"error\":\"no-start-method\"}"; }
 		var started = (bool)startMethod.Invoke(impl, new object[] { targetLimb });
-		if (mode == "start") {
+		if (mode == "start" || mode == "auto") {
 			return "{\"ok\":true,\"mode\":\"start\",\"started\":" + (started ? "true" : "false")
 				+ ",\"limb\":" + limbIndex + ",\"shrapnel\":" + targetLimb.shrapnel
 				+ ",\"hasShrapnel\":" + (targetLimb.hasShrapnel ? "true" : "false") + "}";

@@ -149,6 +149,40 @@ Note the diagnostic that misled a cycle: reading `OperationId` as a FIELD on the
 `no-opid-field`, because the client-side session type is `RemoteShrapnelUseSession`, whose `OperationId` is
 a PROPERTY. The probe now reads both and names the type when neither exists.
 
+## Seventh attempt: the mechanism is verified in the game
+
+Two things had to be true, and both are. **The ack is ASYNCHRONOUS** — the host parks the start request
+and asks the target's client first, so the operation id lands about 200 ms later, and a start and a break
+cannot share one call. And **`Open` must not be re-run for the break**: it calls `Close`, and `Close`
+cancels the very session the break belongs to, so the focus is restored by writing its two static fields.
+With the start and the break in separate calls, the run produced the ticket's own evidence:
+
+```
+[Shrapnel] session 5 grip slip 2 on piece 0 by <host> (head=False, seed -790031595): derived skin 4.024037 bleed 0.9653509 pain 15.61053 brain 0.
+[Shrapnel] session 5 grip slip 2 on piece 0: both sides derived the same values.
+[Shrapnel] session 5 break-grasp applied to <guest> limb 1: skin -4.024037 bleed +0.9653509 pain +15.61053 brain -0.
+```
+
+For that same slip the operator's own screen reported `skinDelta 4.024, bleedDelta 0.965, painDelta 15.611`
+— the three values the authority derived and committed, to the precision the driver prints. The operator
+did not wait for the authority, and the two agree.
+
+## Row verdicts after this run
+
+| # | Row | Verdict | Evidence |
+|---|---|---|---|
+| 1 | bare-hand pull: the affected client's values agree with what the host committed, and the operator's screen ends on the same values | **PARTIAL** | the authority committed exactly the derived values and the operator agrees (above). What is NOT shown is the PATIENT's own body: re-reading limb 1 on the patient's client still returns `skinHealth 100, bleedAmount 0, pain 0`. Whether the affected side is meant to receive them through the state message, and does not, is a NEW question this run opened and did not answer |
+| 2 | the same pull replayed for a late joiner | unjudged | needs a third client |
+| 3 | an injection whose liquid carries a per-call roll agrees on both screens | unjudged | the census already shows no measurement site rolls; driving one was not attempted |
+| 4 | a drink whose liquid carries a per-call roll agrees on both screens | unjudged | same |
+| 5 | an unrelated local roll is not perturbed | unjudged | needs a probe on both clients |
+| 6 | neither screen shows a number that later changes | **PASS** | the operator's screen and the authority hold the same three numbers for the slip; nothing is corrected afterwards |
+| 7 | the derived-value comparison stays empty | **PASS** | `both sides derived the same values`, and no `DISAGREE` line exists anywhere in the run |
+| 8 | neither action reads as a stall | unjudged | a feel row; needs the user's own judgement |
+
+The ticket therefore stays in `review/`: two of its eight rows pass on this run's evidence, one is partial
+and the rest are unjudged.
+
 ## Row verdicts
 
 Every behavioural row is `blocked`, and the blocking condition is ONE missing capability rather than a

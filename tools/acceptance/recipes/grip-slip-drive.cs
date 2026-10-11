@@ -192,6 +192,19 @@
 		reportMethod.Invoke(null, new object[] { slipReport });
 		var after = display.limbs[limbIndex];
 		var num = new System.Func<float, string>((value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
+		// The send side's own state, so a silent no-op names its cause: the static handler keeps the
+		// active session AND the sender delegate, and ReportShrapnelUpdate does nothing (and logs
+		// nothing) when either is unusable.
+		var opsType = (System.Type)null;
+		for (var i = 0; i < assemblies.Length; i++) {
+			try { opsType = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.RemoteShrapnelOperationHandler", false); } catch { opsType = null; }
+			if (opsType != null) { break; }
+		}
+		var activeField = opsType != null ? opsType.GetField("_activeShrapnel", flags) : null;
+		var senderField = opsType != null ? opsType.GetField("_shrapnelUpdateSender", flags) : null;
+		var activeSession = activeField != null ? activeField.GetValue(null) : null;
+		var senderDelegate = senderField != null ? senderField.GetValue(null) : null;
+		var activeOpId = activeSession != null ? activeSession.GetType().GetField("OperationId", flags).GetValue(activeSession) : null;
 		var isOpenNow = viewType.GetProperty("IsOpen", flags);
 		var viewOpen = isOpenNow != null ? isOpenNow.GetValue(null, null) : null;
 		var activeMethod = handlerType.GetMethod("IsActiveShrapnelMinigame", flags);
@@ -199,6 +212,8 @@
 		return "{\"ok\":true,\"mode\":\"break\",\"piece\":" + pieceIndex + ",\"limb\":" + limbIndex
 			+ ",\"viewOpen\":" + (viewOpen is bool vo && vo ? "true" : "false")
 			+ ",\"minigameActive\":" + (minigameActive is bool ma && ma ? "true" : "false")
+			+ ",\"activeOpId\":\"" + (activeOpId != null ? activeOpId.ToString() : "none") + "\""
+			+ ",\"senderPresent\":" + (senderDelegate != null ? "true" : "false")
 			+ ",\"skinDelta\":" + num(skinBefore - after.skinHealth)
 			+ ",\"bleedDelta\":" + num(after.bleedAmount - bleedBefore)
 			+ ",\"painDelta\":" + num(after.pain - painBefore) + "}";

@@ -86,6 +86,23 @@ the same seam does not set an owner either, which points at `SendUpdate`'s own g
 delegate rather than at the authority's rules. That single question is what stands between this batch and
 rows 1, 6 and 7.
 
+## Fourth attempt: a fourth gate, and this one is the game's own
+
+The drive now reports the send side's own state (`activeOpId`, `senderPresent`) so a silent no-op names
+its cause, and this attempt hit a DIFFERENT refusal before reaching that point:
+
+`[Shrapnel] refused locally: <host> cannot see <guest> on this client.` — the family's line-of-sight gate,
+which is a REAL precondition of the feature (the two clients must see each other in the world) and not a
+driver artefact. One attempt in this batch passed it and later ones did not, so the scenario needs the two
+clients placed within sight of each other before a slip can be driven at all.
+
+That makes FOUR independent gates this run has had to clear in order, three of them now understood:
+
+1. seeding a limb — solved by `seed-shrapnel`;
+2. keeping the shared session alive — solved by opening the NATIVE panel before setting the focus;
+3. line of sight — NOT yet solved; the clients start wherever the run places them;
+4. where a posted report goes after `RemoteMedicalOperationHandler.ReportShrapnelUpdate` — still open.
+
 ## Row verdicts
 
 Every behavioural row is `blocked`, and the blocking condition is ONE missing capability rather than a

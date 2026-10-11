@@ -10,12 +10,13 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
-/// The named-operation gate. A mod-authored liquid effect writes the game's body
-/// and limb state through an ENUM-KEYED operation surface
+/// The named-operation gate. A mod-authored effect or item action writes the game's
+/// body and limb state through an ENUM-KEYED operation surface
 /// (<c>ModBodyVital</c> / <c>ModLimbVital</c>), and the whole point of that shape is
-/// that the set is enumerable: every member names a game field the census found (see
-/// <c>docs/backlog/todo/mod-authored-effects.md</c>), and the one mapping table in
-/// the Game Adapter answers for every one of them.
+/// that the set is enumerable: every member names a game field a census found (the
+/// liquid census in <c>docs/backlog/review/mod-authored-effects.md</c>, the item
+/// census in <c>docs/backlog/review/mod-item-authored-actions.md</c>), and the one
+/// mapping table in the Game Adapter answers for every one of them.
 ///
 /// <para>
 /// Two holes are possible and neither is a compile error, which is why this is a
@@ -53,7 +54,7 @@ public class ModEffectOperationGateTests
 			"src/CasualtiesUnknownOnline.GameAdapter/ModEffects/ModEffectLimb.cs")
 	];
 
-	/// <summary>The two surfaces hold 32 and 7 members today; a scan that read fewer has broken.</summary>
+	/// <summary>The two surfaces hold 33 and 9 members today; a scan that read fewer has broken.</summary>
 	private const int MemberFloor = 39;
 
 	[Fact]

@@ -196,8 +196,13 @@ Item side (`ItemInfo` versus `ModItemDefinition` and its behaviour DTOs):
 
 - **item qualities** — the stage 1 item of Part 2, not repeated here.
 - **`useLimbAction`** — apply to a limb (bandage, splint, tourniquet, amputation). The cross-player
-  chain reads the game's own data for every vanilla limb action now, but the DTO still cannot declare
-  one: a mod item has no limb-use behaviour, so it is carried, dropped and saved and never applied.
+  chain reads the game's own data for every vanilla limb action now, but the DTO could not declare one
+  and no function was expressible: a mod item had no limb-use behaviour, so it was carried, dropped and
+  saved and never applied. **Cut and landed 2026-10-11 as
+  `docs/backlog/review/mod-item-authored-actions.md`**, together with the item half of the effect gap —
+  the entry is not a gap in the function surface alone but in the DECLARATION too: `ItemInfo.usableOnLimb`
+  had no DTO member at all, which is the flag the game's own wound view and CUO's cross-player limb-tool
+  chain both read.
 - **the wearable set** — `wearableArmor`, `wearableIsolation`, `wearableHitDurabilityLossMultiplier`,
   `desiredWearLimb`, `wearSlotId`, `wearableCanBeHeld`, `wearableVisualOffset`; the last two appeared in
   `src/` only as reads when this entry was written. **Cut and landed 2026-10-11 as
@@ -221,8 +226,10 @@ Liquid side (`LiquidType` versus `ModLiquidDefinition`):
   `UsableWithLmb` with no `useAction`. Both halves are that ticket's cycle, and **the delegate half is
   closed 2026-10-11**: a mod now authors both functions in code through `IModLiquidEffects`, keyed by the
   liquid's own content id, and the no-op reporting delegates are what an unregistered half falls back to
-  (`review/mod-authored-effects.md`). What stays open is the ITEM half — `useAction` and
-  `useLimbAction` — which is that ticket's declared follow-on.
+  (`review/mod-authored-effects.md`). The ITEM half — `useAction` and `useLimbAction` — is no longer open
+  either: **cut and landed 2026-10-11 as `docs/backlog/review/mod-item-authored-actions.md`**, on the same
+  code-registration shape, with the item's own reachability rail (both native calls sit behind a flag the
+  definition carries) and its own small named-operation surface (`IModEffectItem`).
 
 ### B. Declaration versus materialization
 

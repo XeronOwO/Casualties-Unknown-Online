@@ -2,11 +2,13 @@ namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
 /// The body vitals <see cref="IModEffectBody"/> reads and writes, one member per
-/// write the game's own shipped liquids perform (the census in
-/// <c>docs/backlog/todo/mod-authored-effects.md</c>). The names are CUO's; each
-/// member's documentation names the game's own field it stands for, because the
-/// level is <see cref="ApiStabilityLevel.Advanced"/> and the game is what the
-/// shape follows.
+/// write the game's own shipped content performs: the liquid census in
+/// <c>docs/backlog/review/mod-authored-effects.md</c>, plus the item census in
+/// <c>docs/backlog/review/mod-item-authored-actions.md</c> — whose one addition to
+/// this list is <see cref="Hemothorax"/>, everything else an item writes on a body
+/// already being here for the liquids. The names are CUO's; each member's
+/// documentation names the game's own field it stands for, because the level is
+/// <see cref="ApiStabilityLevel.Advanced"/> and the game is what the shape follows.
 ///
 /// <para>
 /// Values are the game's own units and ranges — the framework never clamps or
@@ -117,4 +119,12 @@ public enum ModBodyVital
 	/// write is truncated toward zero, and a read returns the integer as a float.
 	/// </summary>
 	OverdoseIndex,
+
+	/// <summary>
+	/// Blood in the chest cavity (<c>Body.hemothorax</c>) — the item half's one
+	/// addition to the liquid census, written by a chest-drain limb action
+	/// (<c>limb.body.hemothorax -= 35f</c>). It lowers blood oxygen and blood
+	/// pressure at the game's own read sites.
+	/// </summary>
+	Hemothorax,
 }

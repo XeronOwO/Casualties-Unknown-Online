@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -30,7 +31,11 @@ public class ItemAdvancedBehaviorProviderTests
 		var logger = loggerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
 			?? loggerType.GetField("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
 			?? throw new InvalidOperationException("NullLogger.Instance not found.");
-		return Activator.CreateInstance(ProviderType, [logger])!;
+
+		// The provider takes the item action registry and the session identity seam
+		// beside its logger (the two delegates it installs resolve a mod's registered
+		// action through them); the shared factory supplies them by parameter type.
+		return GameAdapterProviderFactory.Create(ProviderType, logger);
 	}
 
 	private static bool TryBind(object provider, IModContentDefinition definition)
@@ -375,6 +380,8 @@ public class ItemAdvancedBehaviorProviderTests
 		public bool Usable => false;
 
 		public bool UsableWithLmb => false;
+
+		public bool UsableOnLimb => false;
 
 		public IModItemWearable? Wearable => null;
 

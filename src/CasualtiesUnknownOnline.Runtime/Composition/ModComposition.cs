@@ -37,6 +37,10 @@ internal static class ModComposition
 		// liquid provider, which must not resolve ModService (that would close the
 		// ModService ↔ GameAdapter cycle the status store also exists to avoid).
 		services.AddSingleton<ModLiquidEffectStore>();
+		// The framework-wide mod-authored item action registry: the same leaf shape
+		// again, and for the same reason — its reader is the Game Adapter's ITEM
+		// provider, which must not resolve ModService either.
+		services.AddSingleton<ModItemEffectStore>();
 		services.AddSingleton<ModHandshakeListProvider>();
 		services.AddSingleton<IModListProvider>(p => p.GetRequiredService<ModHandshakeListProvider>());
 		services.AddSingleton<ModChannel>();

@@ -9,9 +9,17 @@ namespace CasualtiesUnknownOnline.GameAdapter.ModEffects;
 
 /// <summary>
 /// The named limb operations, implemented against the live game limb the native
-/// call named. Like <see cref="ModEffectBody"/> beside it, this is a mapping and
-/// nothing else: every member is the game's own field or the game's own method, and
-/// no rule of CUO's own sits between a mod and the write it asked for.
+/// call named. Like <see cref="ModEffectBody"/> and <see cref="ModEffectItem"/>
+/// beside it, this is a mapping and nothing else: every member is the game's own
+/// field or the game's own method, and no rule of CUO's own sits between a mod and
+/// the write it asked for.
+///
+/// <para>
+/// It is shared by both families for the same reason the body accessor is: a liquid's
+/// own <c>onHealthUse</c> and an item's own <c>useLimbAction</c> receive the same
+/// limb, and the members below are grown from what the game's own shipped topical
+/// liquids AND limb actions write on it.
+/// </para>
 /// </summary>
 internal sealed class ModEffectLimb : IModEffectLimb
 {
@@ -111,6 +119,8 @@ internal sealed class ModEffectLimb : IModEffectLimb
 		ModLimbVital.Infection => (() => _limb.infectionAmount, value => _limb.infectionAmount = value),
 		ModLimbVital.BandageSlow => (() => _limb.bandageSlowAmount, value => _limb.bandageSlowAmount = value),
 		ModLimbVital.Bleed => (() => _limb.bleedAmount, value => _limb.bleedAmount = value),
+		ModLimbVital.DislocationTimer => (() => _limb.dislocationTimer, value => _limb.dislocationTimer = value),
+		ModLimbVital.BoneHealTimer => (() => _limb.boneHealTimer, value => _limb.boneHealTimer = value),
 		_ => null,
 	};
 

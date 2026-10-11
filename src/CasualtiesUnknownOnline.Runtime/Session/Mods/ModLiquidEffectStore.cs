@@ -39,10 +39,10 @@ public sealed class ModLiquidEffectStore
 	private readonly Dictionary<string, ModLiquidEffectRegistration> _drink = [];
 	private readonly Dictionary<string, ModLiquidEffectRegistration> _limbUse = [];
 
-	/// <summary>How many registrations the store holds, both halves together (the binding gate's census floor).</summary>
+	/// <summary>How many registrations the store holds, both halves together — the registration cases' own census.</summary>
 	internal int Count => _drink.Count + _limbUse.Count;
 
-	/// <summary>Every registration, both halves, in no particular order (the diagnostics/console view).</summary>
+	/// <summary>Every registration, both halves, in no particular order — the registration cases' view; the Game Adapter resolves through the per-half lookups below.</summary>
 	internal IReadOnlyList<ModLiquidEffectRegistration> Registrations =>
 		[.. _drink.Values, .. _limbUse.Values];
 

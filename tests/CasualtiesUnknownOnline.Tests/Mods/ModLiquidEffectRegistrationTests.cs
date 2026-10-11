@@ -91,6 +91,43 @@ public class ModLiquidEffectRegistrationTests
 	}
 
 	[Fact]
+	public void LimbEffect_ForALiquidThatDeclaresNeitherLimbFlag_IsRefusedWhileTheDrinkHalfIsAccepted()
+	{
+		// The limb half's reachability rail: the game runs onHealthUse behind
+		// healthUsable (WaterContainerItem.cs:228-230) or injectable (:254-256), so a
+		// liquid declaring NEITHER reaches no limb call site and an effect registered
+		// for it would be dead code with a success line. The DRINK half has no such
+		// rule — WaterContainerItem.Drink calls onDrink behind no flag of the liquid's.
+		var contentStore = new ModContentStore();
+		contentStore.Add("mod.a", null, new ModLiquidDefinition { Id = LiquidId });
+		var (effects, entries) = AdapterFor("mod.a", AuthorEffects, registerLiquid: false, contentStore: contentStore);
+
+		Assert.True(effects.TryRegisterDrink(LiquidId, _ => { }));
+		Assert.False(effects.TryRegisterLimbUse(LiquidId, _ => { }));
+		Assert.Contains(entries, entry => entry.Level == LogLevel.Warning
+			&& entry.Message.Contains("Injectable", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void LimbEffect_ForALiquidThatDeclaresOneOfTheTwoFlags_IsAccepted()
+	{
+		// Either flag is enough, because either call site is a way in: ApplyToLimb's
+		// healthUsable and Inject's injectable are two entries to the SAME delegate.
+		foreach (var definition in new IModLiquidDefinition[]
+		{
+			new ModLiquidDefinition { Id = LiquidId, HealthUsable = true },
+			new ModLiquidDefinition { Id = LiquidId, Injectable = true },
+		})
+		{
+			var contentStore = new ModContentStore();
+			contentStore.Add("mod.a", null, definition);
+			var (effects, _) = AdapterFor("mod.a", AuthorEffects, registerLiquid: false, contentStore: contentStore);
+
+			Assert.True(effects.TryRegisterLimbUse(LiquidId, _ => { }));
+		}
+	}
+
+	[Fact]
 	public void Store_ResolvesTheHalfThatWasRegistered_AndNothingElse()
 	{
 		var store = new ModLiquidEffectStore();
@@ -146,6 +183,9 @@ public class ModLiquidEffectRegistrationTests
 
 	private const ModPermission AuthorEffects = ModPermission.AuthorEffects;
 
+	/// <summary>A liquid that declares BOTH limb flags, so a case about another rail is not stopped by the reachability one.</summary>
+	private static ModLiquidDefinition LimbUsableLiquid(string id) => new() { Id = id, HealthUsable = true, Injectable = true };
+
 	private static (ModLiquidEffectsAdapter Effects, List<(LogLevel Level, string Message)> Entries) AdapterFor(
 		string modId,
 		ModPermission permissions,
@@ -157,7 +197,7 @@ public class ModLiquidEffectRegistrationTests
 		contentStore ??= new ModContentStore();
 		if (registerLiquid)
 		{
-			contentStore.Add(modId, null, new ModLiquidDefinition { Id = liquidId });
+			contentStore.Add(modId, null, LimbUsableLiquid(liquidId));
 		}
 
 		var log = new RecordingLogger<ModLiquidEffectsAdapter>();

@@ -47,6 +47,7 @@ internal static class GameAdapterProviderFactory
 	/// <summary>The framework seams a provider takes beside its own arguments, or null when this factory knows none for the type.</summary>
 	private static object? ByParameterType(Type parameterType) =>
 		parameterType == typeof(ModLiquidEffectStore) ? new ModLiquidEffectStore()
+		: parameterType == typeof(ModItemEffectStore) ? new ModItemEffectStore()
 		: parameterType == typeof(ISessionControl) ? new FakeSessionControl()
 		: null;
 }

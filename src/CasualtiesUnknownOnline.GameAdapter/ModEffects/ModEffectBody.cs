@@ -9,10 +9,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.ModEffects;
 
 /// <summary>
 /// The named body operations, implemented against the live game body. This type and
-/// <see cref="ModEffectLimb"/> beside it are the ONLY place a mod-authored effect's
-/// reach turns into a game write, which is what keeps the contract free of game
-/// types and the write set enumerable.
+/// <see cref="ModEffectLimb"/> / <see cref="ModEffectItem"/> beside it are the ONLY
+/// place a mod-authored effect's or item action's reach turns into a game write,
+/// which is what keeps the contract free of game types and the write set
+/// enumerable.
 ///
+/// <para>
+/// The body accessor is shared by both families, because the body is the same one
+/// either way: the game's own <c>LiquidType.onDrink</c> / <c>onHealthUse</c> and its
+/// own <c>ItemInfo.useAction</c> / <c>useLimbAction</c> all receive the body (or the
+/// limb's body) the effect acts on, and the operations below are grown from what the
+/// game's own shipped liquids AND items write on it.
+/// </para>
 /// <para>
 /// Two implementation rules the census forced, both of them the game's own
 /// semantics rather than a CUO approximation. The timed body goes through the
@@ -160,6 +168,9 @@ internal sealed class ModEffectBody(string modId, Body body, ILogger log) : IMod
 	/// <inheritdoc />
 	public void PlaySound(string clipId) => Sound.Play(clipId, _body.transform.position, false, true, null, 1f, 1f, false, false);
 
+	/// <inheritdoc />
+	public GameObject? NativeObject => _body == null ? null : _body.gameObject; // Unity object — == (destroyed-object check)
+
 	/// <summary>
 	/// The accessor for one limb, shared with the wrapper the context hands out, so
 	/// a limb reached through <see cref="Limbs"/> and the same limb reached through
@@ -271,6 +282,7 @@ internal sealed class ModEffectBody(string modId, Body body, ILogger log) : IMod
 		ModBodyVital.StimulantMultiplier => (() => _body.stimulantMultiplier, value => _body.stimulantMultiplier = value),
 		ModBodyVital.ShakeIntensity => (() => _body.miscShakeIntensity, value => _body.miscShakeIntensity = value),
 		ModBodyVital.OverdoseIndex => (() => _body.overdoseIndex, value => _body.overdoseIndex = (int)value),
+		ModBodyVital.Hemothorax => (() => _body.hemothorax, value => _body.hemothorax = value),
 		_ => null,
 	};
 

@@ -52,6 +52,7 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 		ModBuildingRuntimeStore buildingRuntime,
 		ModContentStore contentStore,
 		ModLiquidEffectStore liquidEffectStore,
+		ModItemEffectStore itemEffectStore,
 		ModResourceCompletionStore resourceCompletionStages)
 	{
 		_catalog = new ModCatalog();
@@ -60,7 +61,7 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 		_statusStore = statusStore;
 		_buildingRuntime = buildingRuntime;
 		_commands = new ModCommandService(_catalog, session, sender, time, log);
-		_lifecycle = new ModLifecycle(_catalog, _commands, consoleCommands, _stateStore, _dataStore, _statusStore, _buildingRuntime, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, itemFacts, entitySpawner, itemSpawner, tilePlacer, structurePlacer, liquidPlacer, nativeApiProvider, this, contentStore, liquidEffectStore, resourceCompletionStages);
+		_lifecycle = new ModLifecycle(_catalog, _commands, consoleCommands, _stateStore, _dataStore, _statusStore, _buildingRuntime, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, itemFacts, entitySpawner, itemSpawner, tilePlacer, structurePlacer, liquidPlacer, nativeApiProvider, this, contentStore, liquidEffectStore, itemEffectStore, resourceCompletionStages);
 	}
 
 	public void Initialize()

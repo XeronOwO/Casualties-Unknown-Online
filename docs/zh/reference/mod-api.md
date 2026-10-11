@@ -51,7 +51,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `ReadGameState` | 只读的游戏状态投影（`IModGameState`） |
 | `SpawnEntity` | 世界实体生成（`IModEntitySpawn`）、世界物品生成（`IModItemSpawn`），以及地块／方块、结构与液体的放置接口面（`IModTilePlacement`、`IModStructurePlacement`、`IModLiquidPlacement`） |
 | `AccessNativeApi` | 经过筛选的原生／游戏私有操作[注册表](glossary.md)（`IModNativeApi`） |
-| `AuthorEffects` | 模组自写效果接口面（`IModLiquidEffects`）：通过 `IModEffectBody`／`IModEffectLimb` 的[命名操作](glossary.md)写一具**活着的**玩家身体 |
+| `AuthorEffects` | 模组自写效果与物品动作接口面（`IModLiquidEffects`、`IModItemActions`）：通过 `IModEffectBody`／`IModEffectLimb`／`IModEffectItem` 的[命名操作](glossary.md)写一具**活着的**玩家身体、肢体或物品 |
 
 **`Dependencies`** 列出的模组 id 会先于依赖方加载。**`NativeBinding`** 声明模组绑定的是游戏自己的哪些代码 —— 即[修改策略](modification-policy.md)里的 Tier 2。它是声明出来的**事实**，不是权限，也不是拒绝原因：`ModPermission` 才是 CUO 强制的部分，而这里 CUO 什么都不强制，所以未声明也无从探测，这条声明是「自愿坦白」，唯一的作用力来自同伴的对等规则。发现阶段会把空值（空串或纯空白）归一成「没有声明」，并写进 `[Mods] discovered …` 那行日志，于是主机的日志不用读任何模组源码就能回答「哪个模组绑了游戏自己的代码」。它买到的是可见性，绝不是稳定性：它点名的是游戏的东西，一次游戏更新就可能弄坏它，而 CUO 无从置喙。这条声明还会随[握手](glossary.md)一起走（每个 `ModInfoMsg` 都带着它），由主机的 `NativeBindingParity` 规则按模组 id 判定 —— 见[握手一致性](#握手一致性)。
 
@@ -371,11 +371,74 @@ public sealed class ChemistryMod : ICuoMod
 - **归属**：液体的内容必须**先**由这个模组按 `ModContentKind.Liquid` 登记 —— 液体不是这个模组登记的，效果就被拒；同一半登记第二个函数也会被拒（是拒收，不是替换，所以两处调用点不可能对「跑的是哪个」有分歧）。游戏自带的液体不可寻址：覆写游戏自己的内容是另一项能力。
 - **函数**：`ModLiquidEffect` —— `(IModLiquidEffectContext) → void`。它在主线程上跑，每次原生调用跑一次，跑在拥有受影响身体的那个客户端上；它不许抛异常：框架会捕获并按模组 id 记日志，动作随后不带这次效果地完成。让异常逃进游戏自己的 `WaterContainerItem` 调用帧，不是模组能有的选项。
 - **上下文**：`LiquidId`、`AmountMl`（游戏自己的毫升单位，不做任何缩放）、`OwnerSteamId`（本机玩家，调用当下现读 —— 本机身份尚未建立时是 0）、`Body`、`Limb`（效果落在的那条肢体，喝的那条路为 null），以及 `NativeObject`。这条肢体就是原生调用带过来的那一条，所以效果看到的信息与游戏自己的 `onHealthUse` 委托完全一样：注射那条入口的请求可以不点名肢体，CUO 的施加方随后按游戏自己的自动规则解析（是这具身体上真实且未断的肢体就用它，否则取伤最重的一条），而涂抹与肢体工具两条入口遇到这种请求是拒绝（决定 246）。没有任何标志告诉你属于哪一种，因为游戏自己的委托也没有。
-- **命名操作**是主路径。`context.Body`（`IModEffectBody`）带游戏自己的动作（`Drink`、`Eat`、`Vomit`、`Burp`、`Ragdoll`、`StartFibrillation`、`StartMindWipe`、`AddLimbVelocity`）、读取（`Alive`、`Standing`、`InCardiacArrest`、`Limbs`、`GetVital`）、覆盖 `ModBodyVital` 全部 32 个成员的一组加／设操作、组件剂量（`AddOpiate`、`AddOpiateAntagonist`、`AddOpiateTolerance`、`TakeAntidepressant`、`AddSleepingPill`）、持续效果（`StartTimedEffect`／`TimedEffectRemaining`／`TimedEffectHighest`）与 `PlaySound`。`context.Limb`（`IModEffectLimb`）带 `Index`、`Name`、分类标志、`Body`、`ConnectedLimbs`、覆盖 `ModLimbVital` 七个成员的一组加／设／读操作，以及 `Disinfect`。每一个成员都是游戏自带液体真正会做的一次写入 —— 清单背后的普查在 `docs/backlog/review/mod-authored-effects.md`。跑的是游戏自己的语义而不是近似：`Drink` 与 `Eat` 是游戏的方法，连它们的副作用一起；剂量走游戏自己的组件；持续效果立刻跑第一跳，之后每个游戏秒跑一跳，用的也是游戏自己的 `CoUtils` 时钟 —— 在同一个键还活着时再调一次是**延长**时长并保留最先登记的那一跳，游戏自己的液体正依赖这个行为。
+- **命名操作**是主路径。`context.Body`（`IModEffectBody`）带游戏自己的动作（`Drink`、`Eat`、`Vomit`、`Burp`、`Ragdoll`、`StartFibrillation`、`StartMindWipe`、`AddLimbVelocity`）、读取（`Alive`、`Standing`、`InCardiacArrest`、`Limbs`、`GetVital`）、覆盖 `ModBodyVital` 全部 33 个成员的一组加／设操作、组件剂量（`AddOpiate`、`AddOpiateAntagonist`、`AddOpiateTolerance`、`TakeAntidepressant`、`AddSleepingPill`）、持续效果（`StartTimedEffect`／`TimedEffectRemaining`／`TimedEffectHighest`）与 `PlaySound`。`context.Limb`（`IModEffectLimb`）带 `Index`、`Name`、分类标志、`Body`、`ConnectedLimbs`、覆盖 `ModLimbVital` 九个成员的一组加／设／读操作，以及 `Disinfect`。每一个成员都是游戏自带液体真正会做的一次写入 —— 清单背后的普查在 `docs/backlog/review/mod-authored-effects.md`。跑的是游戏自己的语义而不是近似：`Drink` 与 `Eat` 是游戏的方法，连它们的副作用一起；剂量走游戏自己的组件；持续效果立刻跑第一跳，之后每个游戏秒跑一跳，用的也是游戏自己的 `CoUtils` 时钟 —— 在同一个键还活着时再调一次是**延长**时长并保留最先登记的那一跳，游戏自己的液体正依赖这个行为。
 - **时间键由框架加命名空间**（`cuo:<模组 id>:<键>`），因为游戏的时钟是一张与游戏自带持续效果共用的平表，那里撞键是无声的。
 - **`NativeObject`** 是引擎类型出口：两条路上都是身体的 `GameObject`，而 `IModEffectLimb.NativeObject` 是肢体的。这个游戏里的身体与肢体都是 `MonoBehaviour`，所以一次转型或 `GetComponent` 就能拿回游戏自己的对象。代价写进了契约：它是**这个客户端自己拥有的**状态的物体，Unity 的空语义适用（用 `== null` 判），而用了它的模组就离开了 API 的承诺 —— 它要像任何原生绑定一样声明自己绑了什么（`NativeBinding`）。
 - **一致性**：登记是每个同伴自己那份模组的**本地**登记，也不新增任何线上消息。让两端一致的，是[握手](glossary.md) —— 双方都列出的模组之间 id、版本与权限必须对等（见[握手一致性](#握手一致性)）—— 以及受影响一方按自己的画面与时间线判定，永远不是发送方的。
-- **稳定性**：`IModLiquidEffects`、`ModLiquidEffect` 与 `IModLiquidEffectContext` 是**实验性**；`IModEffectBody`、`IModEffectLimb`、`ModBodyVital`、`ModLimbVital` 与两处 `NativeObject` 是**进阶**，因为它们跟着游戏自己的字段走，一次游戏更新挪动其中一个就可能连它们一起挪，不需要 CUO 做任何决定。
+- **稳定性**：`IModLiquidEffects`、`ModLiquidEffect` 与 `IModLiquidEffectContext` 是**实验性**；`IModEffectBody`、`IModEffectLimb`、`ModBodyVital`、`ModLimbVital` 与每一处 `NativeObject` 是**进阶**，因为它们跟着游戏自己的字段与物体走，一次游戏更新挪动其中一个就可能连它们一起挪，不需要 CUO 做任何决定。
+
+## 模组自写物品动作
+
+这是同一套接口面的**物品那一半**，理由也相同：内容载荷是**数据**，带不了函数，所以函数登记在**代码**里，用这个模组登记过的物品 id 做键。物品自己的声明带的是**标志**；模组在代码里写的那个[模组自写动作](glossary.md)，才是标志背后真正跑的东西。
+
+```csharp
+[CuoMod("field.medicine", Permissions = ModPermission.RegisterContent | ModPermission.AuthorEffects)]
+public sealed class MedicineMod : ICuoMod
+{
+    private IModContext _context = null!;
+
+    public void Bind(IModContext context) => _context = context;
+
+    public void Initialize()
+    {
+        // 物品的内容必须先登记 —— 只有它的归属者能写它的动作，
+        // 而下面这两个标志正是游戏自己的门读的那两个。
+        _context.Content.TryRegister(new ModItemDefinition
+        {
+            Id = "field_dressing",
+            DisplayName = "战地敷料",
+            Usable = true,
+            UsableOnLimb = true,
+        });
+
+        _context.ItemActions.TryRegisterUse("field_dressing", context =>
+        {
+            context.Item.AddCondition(-0.25f);
+            context.Body.AddVital(ModBodyVital.Happiness, 2f);
+        });
+
+        _context.ItemActions.TryRegisterLimbUse("field_dressing", context =>
+        {
+            if (context.Limb is not { } limb)
+            {
+                return; // 原生的肢体调用一定会给一条；这是编译器的空，不是游戏的
+            }
+
+            limb.AddVital(ModLimbVital.BandageSlow, 0.5f);
+            limb.SetVital(ModLimbVital.Bleed, 0f);
+            context.Item.AddCondition(-0.25f);
+        });
+    }
+
+    public void Start() { }
+    public void Update() { }
+}
+```
+
+- **登记**：`context.ItemActions`（`IModItemActions`），每个原生委托一个函数 —— `TryRegisterUse` 站在 `ItemInfo.useAction` 的位置（用它的身体加物品本身，由 `Body.UseItem`／`Body.UseItemInHand` 调用），`TryRegisterLimbUse` 站在 `ItemInfo.useLimbAction` 的位置（被处理的肢体加物品本身，由伤口视图调用）。只登记一半是支持的：另一半保留那个会点名上报的空操作，于是这次操作有明确定义，而不是把空委托递进游戏让它抛异常。
+- **权限**：与液体那一半共用 `ModPermission.AuthorEffects` —— 它是「这个模组自写行为」的能力位，不是按内容种类分的能力位。`CanRegister` 反映这份模组是否声明了它，每次登记调用还会再强制一次。
+- **归属**：物品的内容必须**先**由这个模组按 `ModContentKind.Item` 登记 —— 物品不是这个模组登记的，动作就被拒；同一半登记第二个函数也会被拒（是拒收，不是替换）。游戏自带的物品不可寻址：那是覆写内容，属于另一项能力。
+- **可达性**：两处原生调用都躲在定义自己的标志后面，所以游戏的门永远够不到的动作是**被拒**而不是被收下 —— 使用动作需要 `Usable`，这是游戏两处使用调用点**都**要求的那个标志（`Body.UseItem` 的 `if (item.Stats.usable)`、`Body.UseItemInHand` 的 `usable && usableWithLMB`），而 `UsableWithLmb` 只是多开一个左键入口；肢体动作需要 `UsableOnLimb`，后者同时也是游戏肯把物品摆到肢体上的那个标志。液体那一半在肢体侧有同一条规则 —— `healthUsable` 或 `injectable` 门控 `onHealthUse` —— 在喝的那一侧则没有，因为那处调用点不受液体的任何标志约束；两个家族真正的差别在**答复方式**：这边是拒绝，那边是加载期上报，因为这边不匹配的是登记本身。
+- **隔离**：定义自己带了 `Tool` 或 `Gun` 行为时，使用这一半被拒 —— 一件物品只有一个使用动作，决定它的是定义自己的数据，永远不是哪一次登记碰巧后跑。这条与「一个手势的入口彼此隔离」是同一条规矩。
+- **函数**：`ModItemAction` —— `(IModItemActionContext) → void`，两半共用同一个委托类型。它在主线程上跑，每次原生调用跑一次，跑在做出这个手势的那个客户端上；它不许抛异常：框架会捕获并按模组 id 记日志，手势随后不带这次动作地完成。
+- **上下文**：`ItemId`、`OwnerSteamId`（本机玩家，调用当下现读 —— 本机身份尚未建立时是 0）、`Item`（`IModEffectItem`）、`Body`（`IModEffectBody`，与液体效果拿到的是同一个访问器，因为游戏把同一具身体交给这两个家族）、`Limb`（原生调用点名的那条肢体，使用那条路为 null），以及 `NativeObject`。
+- **物品的命名操作**故意很小，原因在普查里：游戏自己的物品表里那 195 个委托，在**物品**上写过的字段只有 `Item.condition`（78 处使用动作、22 处肢体动作用到它；另有一件物品写 `decayMultiplier`，那是机制而不是效果）。所以 `context.Item` 只带 `Condition`、`AddCondition`（游戏自带物品用的那种朴素字段运算）与 `SetCondition`（走游戏自己的 `Item.SetCondition`，它会把液体容器的存量按比例一起调）。那些委托在物品上碰的其余东西 —— 换精灵、放声音、换成另一件物品、取组件 —— 都是引擎活儿，走 `context.NativeObject`。普查在 `docs/backlog/review/mod-item-authored-actions.md`。
+- **身体与肢体的写面与液体效果共用** —— 同样是 `IModEffectBody`／`IModEffectLimb`，它们是从游戏自带的液体**和**物品都会做的写入里长出来的，所以物品动作并不受限于另一份更小的清单。
+- **跨玩家使用跟着游戏自己的数据走。** 模组的肢体物品**不需要任何 id 表、也不需要改线上协议**就会进入 CUO 的跨玩家肢体工具链：那条链问的正好是这个接口面装上的那一对（`usableOnLimb` 与一个非空的 `useLimbAction`），并在被治疗玩家自己的客户端上跑那个委托。跨玩家的固体食物链问的是另一个问题 —— 它读物品自己委托的**函数体**里有没有调用 `Body.Eat`／`Body.Drink` —— 所以模组自写的使用动作不会被它认领：会把身体喂饱的模组物品只在本地使用。
+- **模组物品始终是一件普通的 `ItemInfo`。** 物品内容提供者从不构造 `LiquidItemInfo`，而喝、注射、涂抹三条链正是按这个类型选物品的 —— 这也正是模组物品不会走上 CUO 唯一那条**在操作者客户端上**对**别人的**身体跑 `useAction` 的路径（`RemoteDrinkUseHandler`，它的对象是液体容器）的原因，`OwnerSteamId` 因此在这个接口面上永远是本机玩家。模组的肢体动作若装上 `SplintLimb` 或 `TourniquetScript` 则是另一回事：那件物品就此成为[已装物品](glossary.md)，那一族由组件类型决定，并带上那一族的一切。
+- **`NativeObject`** 是引擎类型出口：物品的 `GameObject`，身体的在 `IModEffectBody.NativeObject`，肢体的在 `IModEffectLimb.NativeObject`。规则与液体那一半相同：它是**这个客户端自己拥有的**状态的物体，Unity 的空语义适用（用 `== null` 判），而用了它的模组要声明自己绑了什么（`NativeBinding`）。
+- **一致性**：登记是每个同伴自己那份模组的**本地**登记，也不新增任何线上消息 —— 让两端一致的，是[握手](glossary.md)里 id、版本与权限对等这条。
+- **稳定性**：`IModItemActions`、`ModItemAction` 与 `IModItemActionContext` 是**实验性**；`IModEffectItem` 与 `IModItemActionContext.NativeObject` 是**进阶**，因为它们跟着游戏自己的物品字段与物体走。
 
 ## 读取游戏状态
 

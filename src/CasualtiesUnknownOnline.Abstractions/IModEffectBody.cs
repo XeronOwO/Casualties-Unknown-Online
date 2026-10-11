@@ -168,4 +168,26 @@ public interface IModEffectBody
 	/// </summary>
 	/// <param name="clipId">The game's own clip id, e.g. <c>"pills"</c> or <c>"cream"</c>.</param>
 	void PlaySound(string clipId);
+
+	/// <summary>
+	/// The engine object of the body this accessor stands for — the escape hatch for
+	/// an author who wants the game's own objects, beside the item's
+	/// (<see cref="IModItemActionContext.NativeObject"/>) and the limb's
+	/// (<see cref="IModEffectLimb.NativeObject"/>). Every body and limb in this game
+	/// is a <c>MonoBehaviour</c>, so the cast or a <c>GetComponent</c> recovers them.
+	/// On a liquid effect it is the same object
+	/// <see cref="IModLiquidEffectContext.NativeObject"/> carries.
+	///
+	/// <para>
+	/// Its rules, which are the price of using it: it is the object of the state
+	/// THIS client owns (a fact about another player is never read here); Unity null
+	/// semantics apply, so test it with <c>== null</c>; and a mod that uses it is
+	/// outside this API's promise — it declares what it binds
+	/// (<see cref="CuoModAttribute.NativeBinding"/>) like any other native binding,
+	/// because what it names belongs to the game and a game update may move it with
+	/// no CUO decision.
+	/// </para>
+	/// </summary>
+	[ApiStability(ApiStabilityLevel.Advanced)]
+	GameObject? NativeObject { get; }
 }

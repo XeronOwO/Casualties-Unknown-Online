@@ -70,6 +70,10 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 ## Mods and the code
 
 - **Mod** — third-party content loaded through the mod API.
+- **Mod-authored action** — the code function a mod registers for content it owns, keyed by that
+  content's id: a liquid's drink or limb effect, or an item's use or limb action. A content payload
+  travels as data and cannot carry a function, so every peer looks the behaviour up by the id it was
+  registered under.
 - **Permission** — a capability a mod declares on its attribute; CUO grants nothing implicitly.
 - **Network mode** — a mod's contract with the session: which members must have it, and where it runs.
 - **Lifecycle** — the calls the framework makes on a mod, from bind to dispose.

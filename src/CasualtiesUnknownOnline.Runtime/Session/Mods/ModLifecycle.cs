@@ -45,6 +45,7 @@ internal sealed class ModLifecycle(
 	IModContentControl contentControl,
 	ModContentStore contentStore,
 	ModLiquidEffectStore liquidEffectStore,
+	ModItemEffectStore itemEffectStore,
 	ModResourceCompletionStore resourceCompletionStages) : ISessionReset
 {
 	private readonly ModCatalog _catalog = catalog;
@@ -73,6 +74,7 @@ internal sealed class ModLifecycle(
 	private readonly IModContentControl _contentControl = contentControl;
 	private readonly ModContentStore _contentStore = contentStore;
 	private readonly ModLiquidEffectStore _liquidEffectStore = liquidEffectStore;
+	private readonly ModItemEffectStore _itemEffectStore = itemEffectStore;
 	private readonly ModResourceCompletionStore _resourceCompletionStages = resourceCompletionStages;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private bool _discovered;
@@ -196,6 +198,7 @@ internal sealed class ModLifecycle(
 					_contentControl,
 					_contentStore,
 					_liquidEffectStore,
+					_itemEffectStore,
 					_resourceCompletionStages);
 				RegisterDeclarations(d, context);
 				instance.Bind(context);
@@ -225,6 +228,12 @@ internal sealed class ModLifecycle(
 				if (withdrawnEffects > 0)
 				{
 					_log.LogDebug("[Mods] {Id} failed to load; {Count} liquid effect registration(s) it had made were withdrawn.", d.Manifest.Id, withdrawnEffects);
+				}
+
+				var withdrawnActions = _itemEffectStore.RemoveMod(d.Manifest.Id);
+				if (withdrawnActions > 0)
+				{
+					_log.LogDebug("[Mods] {Id} failed to load; {Count} item action registration(s) it had made were withdrawn.", d.Manifest.Id, withdrawnActions);
 				}
 
 				_log.LogError(e, "[Mods] {Id} failed to load — skipped, the other mods continue.", d.Manifest.Id);

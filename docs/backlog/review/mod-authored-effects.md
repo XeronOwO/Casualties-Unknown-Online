@@ -264,6 +264,13 @@ than documented into the rule.
   tick guard and for the load-time "declared a flag with no function" report, whose decision now lives in
   a named store question (`HasLimbUse`, covered by a case) but whose CALL SITE reads `Liquids.Registry`
   and therefore needs the game.
+- **The liquid side's limb half gained a reachability rail on 2026-10-11** (in
+  `docs/backlog/review/mod-item-authored-actions.md`'s cycle, raised by that cycle's adversarial review):
+  `TryRegisterLimbUse` is now refused when the definition declares NEITHER `HealthUsable` nor
+  `Injectable`, because the game runs `onHealthUse` behind exactly those two flags
+  (`WaterContainerItem.cs:228-230` / `:254-256`, and CUO's own topical/injection appliers check the same
+  pair) — so a registration for such a liquid was dead code carrying a success line. The DRINK half keeps
+  no such rule: its call site is gated by no flag of the liquid's.
 - `IModEffectBody.Limbs` skips a limb the game has already destroyed, so the list can be shorter than
   `body.limbs` while the indices it reports are unchanged — stated on the member rather than left to be
   discovered.
@@ -276,4 +283,8 @@ than documented into the rule.
 - Not a new wire family: the liquid chains already carry what the effect needs. If a later stage needs one,
   it takes its own message and its own protocol decision.
 - Not the item half (`useAction`, `useLimbAction`) — the declared follow-on this stage's census was
-  explicitly allowed to cover only part of.
+  explicitly allowed to cover only part of. **It landed 2026-10-11 as
+  `docs/backlog/review/mod-item-authored-actions.md`**, on this ticket's own code-registration shape: the
+  item's own reachability rail (both native calls sit behind a flag the definition carries), its own small
+  named-operation accessor (`IModEffectItem`: `Condition` / `AddCondition` / `SetCondition`), and the same
+  `ModPermission.AuthorEffects` bit.

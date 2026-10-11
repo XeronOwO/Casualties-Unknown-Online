@@ -140,6 +140,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.ContentOwners|pro
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Data|property|-> IModData { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.EntitySpawn|property|-> IModEntitySpawn { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.GameState|property|-> IModGameState { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModContext.ItemActions|property|-> IModItemActions { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.ItemSpawn|property|-> IModItemSpawn { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModContext.LiquidEffects|property|-> IModLiquidEffects { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.LiquidPlacement|property|-> IModLiquidPlacement { get; }
@@ -184,6 +185,7 @@ member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.Eat(float hu
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.GetVital(ModBodyVital vital)|method|-> float
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.InCardiacArrest|property|-> bool { get; }
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.Limbs|property|-> IReadOnlyList<IModEffectLimb> { get; }
+member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.NativeObject|property|-> GameObject? { get; }
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.PlaySound(string clipId)|method|-> void
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.Ragdoll()|method|-> void
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.SetVital(ModBodyVital vital, float value)|method|-> void
@@ -195,6 +197,10 @@ member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.TakeAntidepr
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.TimedEffectHighest(string key)|method|-> float
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.TimedEffectRemaining(string key)|method|-> float
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody.Vomit()|method|-> void
+member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectItem.AddCondition(float amount)|method|-> void
+member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectItem.Condition|property|-> float { get; }
+member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectItem.NativeObject|property|-> GameObject? { get; }
+member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectItem.SetCondition(float value)|method|-> void
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectLimb.AddVital(ModLimbVital vital, float amount)|method|-> void
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectLimb.Body|property|-> IModEffectBody { get; }
 member|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectLimb.ConnectedLimbs|property|-> IReadOnlyList<IModEffectLimb> { get; }
@@ -219,6 +225,15 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry.Favourited
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry.InstanceId|property|-> ulong { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry.ItemId|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry.SlotIndex|property|-> int { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActionContext.Body|property|-> IModEffectBody { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActionContext.Item|property|-> IModEffectItem { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActionContext.ItemId|property|-> string { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActionContext.Limb|property|-> IModEffectLimb? { get; }
+member|Advanced|CasualtiesUnknownOnline.Abstractions.IModItemActionContext.NativeObject|property|-> GameObject? { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActionContext.OwnerSteamId|property|-> ulong { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActions.CanRegister|property|-> bool { get; }
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActions.TryRegisterLimbUse(string itemId, ModItemAction action)|method|-> bool
+member|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActions.TryRegisterUse(string itemId, ModItemAction action)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemBattery.Preset|property|-> ModBatteryPreset { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemBattery.SpawnWithBattery|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemBattery.StartCharge|property|-> float { get; }
@@ -245,6 +260,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Tags|prope
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.TemplateId|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Tool|property|-> IModItemTool? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Usable|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.UsableOnLimb|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.UsableWithLmb|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Value|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition.Visual|property|-> IModItemVisual? { get; }
@@ -597,6 +613,7 @@ member|Advanced|CasualtiesUnknownOnline.Abstractions.ModBodyVital.Energy|enumval
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModBodyVital.Fibrillation|enumvalue|implicit #26
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModBodyVital.Happiness|enumvalue|implicit #3
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModBodyVital.HeartRate|enumvalue|implicit #25
+member|Advanced|CasualtiesUnknownOnline.Abstractions.ModBodyVital.Hemothorax|enumvalue|implicit #32
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModBodyVital.Hunger|enumvalue|implicit #1
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModBodyVital.InternalBleeding|enumvalue|implicit #17
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModBodyVital.MedicineBloodPressure|enumvalue|implicit #27
@@ -727,6 +744,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Tags|proper
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.TemplateId|property|-> string { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Tool|property|-> IModItemTool? { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Usable|property|-> bool { get; set; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.UsableOnLimb|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.UsableWithLmb|property|-> bool { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Value|property|-> int { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition.Visual|property|-> IModItemVisual? { get; set; }
@@ -839,6 +857,8 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.ToValue()|m
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModLimbProjection.TryFromValue(ModValue? value, out ModLimbProjection projection)|static method|-> bool
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModLimbVital.BandageSlow|enumvalue|implicit #5
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModLimbVital.Bleed|enumvalue|implicit #6
+member|Advanced|CasualtiesUnknownOnline.Abstractions.ModLimbVital.BoneHealTimer|enumvalue|implicit #8
+member|Advanced|CasualtiesUnknownOnline.Abstractions.ModLimbVital.DislocationTimer|enumvalue|implicit #7
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModLimbVital.Infection|enumvalue|implicit #4
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModLimbVital.MuscleHealth|enumvalue|implicit #1
 member|Advanced|CasualtiesUnknownOnline.Abstractions.ModLimbVital.Pain|enumvalue|implicit #0
@@ -1146,10 +1166,13 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModContext|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModCraftingQuality|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModData|interface|-
 type|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectBody|interface|-
+type|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectItem|interface|-
 type|Advanced|CasualtiesUnknownOnline.Abstractions.IModEffectLimb|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModEntitySpawn|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModGameState|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModInventoryEntry|interface|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActionContext|interface|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.IModItemActions|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemBattery|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemContainer|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModItemDefinition|interface|IModContentDefinition
@@ -1215,6 +1238,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModDeclarationCollections|stati
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModGunAmmoType|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModGunFeedType|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModGunFiringMode|enum|-
+type|Experimental|CasualtiesUnknownOnline.Abstractions.ModItemAction|delegate|-> void(IModItemActionContext context)
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemBattery|sealed class|IModItemBattery
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemContainer|sealed class|IModItemContainer
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModItemDefinition|sealed class|IModItemDefinition

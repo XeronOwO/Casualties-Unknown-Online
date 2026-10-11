@@ -2,31 +2,34 @@ using System;
 using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
-using Microsoft.Extensions.Logging;
+using CasualtiesUnknownOnline.GameAdapter.ModEffects;
 using UnityEngine;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
 /// <summary>
 /// The mod definition → vanilla <c>ItemInfo</c> mapping: the fields every custom
-/// item carries, the behaviour slices a definition may author, and the no-effect
-/// use action an item that declares usability WITHOUT a Tool or Gun behaviour is
-/// given.
+/// item carries, the behaviour slices a definition may author, and the two action
+/// delegates an item that declares usability or limb usability is given.
 ///
 /// <para>
-/// That last one is a contract rather than a convenience: <c>Body.UseItem</c> and
+/// Those two are a contract rather than a convenience: <c>Body.UseItem</c> /
 /// <c>Body.UseItemInHand</c> run <c>ItemInfo.useAction</c> behind nothing but the
-/// item's own <c>usable</c> flag, so an installed item whose action is missing
-/// would throw inside the game's own use path. The action installed here names the
-/// content and changes nothing, because the mod API cannot carry a use-action
-/// function yet — a declared behaviour with no function is reported, never thrown.
+/// item's own <c>usable</c> flag, and the game's own wound view runs
+/// <c>ItemInfo.useLimbAction</c> behind <c>usableOnLimb</c>, and neither call site
+/// null-checks. The delegates installed here are <see cref="ItemActionInvoker"/>'s:
+/// they resolve, per call, the action the item's OWNER registered through
+/// <see cref="IModItemActions"/> — the surface that makes a mod-authored use or limb
+/// action expressible at all — and where none is registered the gesture still
+/// completes and says so. That is the inert outcome
+/// <c>mod-declared-behaviour-with-no-function.md</c> settled, now the "no action
+/// registered" path rather than the only path.
 /// </para>
 /// </summary>
 internal static class ModItemInfoFactory
 {
 	/// <summary>Build the vanilla <c>ItemInfo</c> one accepted definition describes.</summary>
-	internal static ItemInfo Build(string id, IModItemDefinition definition, ILogger log)
+	internal static ItemInfo Build(string id, IModItemDefinition definition, ItemActionInvoker actions)
 	{
 		var info = new ItemInfo
 		{
@@ -111,12 +114,30 @@ internal static class ModItemInfoFactory
 
 		// The game's own use paths run this delegate on the item's `usable` flag
 		// alone and never null-check it, so a declared-usable item carries one even
-		// when the definition authors no behaviour of its own.
+		// when the definition authors no behaviour of its own. It resolves the action
+		// its owner registered through IModItemActions, per call.
+		//
+		// `usableWithLMB` is checked TOGETHER with `usable` here although only
+		// `usable` makes the delegate reachable (both of the game's use call sites
+		// require it — see ModItemActionsAdapter.IsReachable): leaving no null
+		// delegate is a different promise from judging reachability, and a definition
+		// that declares the second flag without the first still gets a delegate that
+		// reports instead of a null the game would throw on if a later update grew a
+		// third call site. The registration rail is what refuses that shape.
 		if (info.useAction is null && (info.usable || info.usableWithLMB))
 		{
-			info.useAction = (body, item) => log.LogWarning(
-				"[ItemContent] {Id} was used with no effect — the mod API cannot author a use action, so only a Tool or Gun behaviour gives an item one.",
-				id);
+			info.useAction = actions.UseAction(id);
+		}
+
+		// The limb half on the same rule: the wound view runs it behind
+		// `usableOnLimb` and never null-checks it, so a definition that declares the
+		// flag carries a delegate either way. Installing one is also what puts a mod
+		// item into the cross-player limb-tool chain, which reads exactly this pair
+		// (`usableOnLimb` and a non-null `useLimbAction`).
+		if (definition.UsableOnLimb)
+		{
+			info.usableOnLimb = true;
+			info.useLimbAction = actions.LimbAction(id);
 		}
 
 		return info;

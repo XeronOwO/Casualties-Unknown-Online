@@ -5,7 +5,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
 /// One mod's write guard over its own slice of the framework-wide effect registry:
-/// the permission gate, the ownership rail and the duplicate rail are decided here,
+/// the permission gate, the ownership rail, the reachability rail and the duplicate
+/// rail are decided here,
 /// the functions themselves live in <see cref="ModLiquidEffectStore"/> (their one
 /// owner, so the Game Adapter's resolver sees the same set).
 ///
@@ -58,11 +59,16 @@ internal sealed class ModLiquidEffectsAdapter(
 			return false;
 		}
 
-		if (!contentStore.IsRegisteredAs(manifest.Id, liquidId, ModContentKind.Liquid))
+		if (contentStore.Find(manifest.Id, liquidId, ModContentKind.Liquid) is not IModLiquidDefinition definition)
 		{
 			log.LogWarning(
 				"[Mods] {ModId} tried to register a {Half} effect for {Id}, which it has not registered as liquid content — refused. Register the liquid first; only its owner may author its effect.",
 				manifest.Id, half, liquidId);
+			return false;
+		}
+
+		if (!IsReachable(definition, liquidId, half, limbUse))
+		{
 			return false;
 		}
 
@@ -76,5 +82,30 @@ internal sealed class ModLiquidEffectsAdapter(
 		log.LogInformation("[Mods] {ModId} registered the {Half} effect of liquid {Id}.",
 			manifest.Id, half, liquidId);
 		return true;
+	}
+
+	/// <summary>
+	/// Whether the game's own gate can reach this half of the definition at all. The
+	/// DRINK half always can: <c>WaterContainerItem.Drink</c> calls <c>onDrink</c> for
+	/// whatever liquid a container holds, behind no flag of the liquid's. The LIMB half
+	/// is gated twice over, on the two flags the definition carries —
+	/// <c>WaterContainerItem.ApplyToLimb</c> runs <c>onHealthUse</c> behind
+	/// <c>liquidType.healthUsable</c> (WaterContainerItem.cs:228-230) and
+	/// <c>WaterContainerItem.Inject</c> behind <c>injectable</c> (:254-256), which is
+	/// also the pair CUO's own topical and injection appliers check — so a liquid
+	/// declaring NEITHER flag reaches no call site at all, and an effect registered for
+	/// it would be dead code with a success line.
+	/// </summary>
+	private bool IsReachable(IModLiquidDefinition definition, string liquidId, string half, bool limbUse)
+	{
+		if (!limbUse || definition.HealthUsable || definition.Injectable)
+		{
+			return true;
+		}
+
+		log.LogWarning(
+			"[Mods] {ModId} registered a {Half} effect for {Id}, which declares neither HealthUsable nor Injectable — refused: the game runs onHealthUse behind those two flags, so nothing could ever run it.",
+			manifest.Id, half, liquidId);
+		return false;
 	}
 }

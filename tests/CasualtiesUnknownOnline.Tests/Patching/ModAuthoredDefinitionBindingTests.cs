@@ -349,6 +349,8 @@ public class ModAuthoredDefinitionBindingTests
 
 		public bool UsableWithLmb => defaults.UsableWithLmb;
 
+		public bool UsableOnLimb => defaults.UsableOnLimb;
+
 		public IModItemWearable? Wearable => defaults.Wearable;
 
 		public bool DestroyAtZeroCondition => defaults.DestroyAtZeroCondition;

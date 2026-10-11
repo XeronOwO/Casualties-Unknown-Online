@@ -219,8 +219,10 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself �
   filled that field for a mod item — so a definition declaring `Wearable` threw inside the game's own wear
   flow the moment a player put it on. It is `docs/backlog/review/mod-item-wearable-declaration.md` now, with
   the same native-evidence shape this ticket used, and its own finding was made while auditing this family.
-  The `useLimbAction` half is the last one still open, and the reason this ticket gave for it was half
-  right: its consumer IS a delegate, but `Abstractions` CAN carry one now — `review/mod-authored-effects.md`
-  landed the registration face that makes a mod-authored function expressible. What it does not have is the
-  ITEM half of that surface: the delivered cycle covers the liquid's `onDrink` / `onHealthUse`, and the
-  item's `useAction` / `useLimbAction` is the follow-on that ticket declares.
+  The `useLimbAction` half was the last one still open, and the reason this ticket gave for it was half
+  right: its consumer IS a delegate, but `Abstractions` CAN carry one now —
+  `review/mod-authored-effects.md` landed the registration face that makes a mod-authored function
+  expressible, and the ITEM half of that surface followed on 2026-10-11
+  (`review/mod-item-authored-actions.md`): `Usable` / `UsableWithLmb` / `UsableOnLimb` now have authorable
+  `useAction` / `useLimbAction` functions, so the reporting no-op this ticket installed is the "no action
+  registered" path rather than the only path.

@@ -17,8 +17,8 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// structure/liquid placement (<see cref="IModEntitySpawn"/>, <see cref="IModItemSpawn"/>,
 /// <see cref="IModTilePlacement"/>, <see cref="IModStructurePlacement"/>,
 /// <see cref="IModLiquidPlacement"/>), the native operation registry
-/// (<see cref="IModNativeApi"/>) and the mod-authored liquid effect face
-/// (<see cref="IModLiquidEffects"/>).
+/// (<see cref="IModNativeApi"/>) and the mod-authored effect and item-action faces
+/// (<see cref="IModLiquidEffects"/>, <see cref="IModItemActions"/>).
 /// </summary>
 [Flags]
 public enum ModPermission
@@ -52,12 +52,13 @@ public enum ModPermission
 
 	/// <summary>
 	/// Register a mod-authored effect for content this mod registered, through
-	/// <see cref="IModLiquidEffects"/> (enforced at registration). A separate
-	/// capability from <see cref="WriteGameState"/> on purpose: that one writes
-	/// host-persistent mod state, this one writes a LIVE player's body — the mod's
-	/// function runs where the game's own effect would, on the affected player's own
-	/// client, and what it may write is the named-operation surface of
-	/// <see cref="IModEffectBody"/> / <see cref="IModEffectLimb"/>.
+	/// <see cref="IModLiquidEffects"/> and <see cref="IModItemActions"/> (enforced at
+	/// registration). A separate capability from <see cref="WriteGameState"/> on
+	/// purpose: that one writes host-persistent mod state, this one writes a LIVE
+	/// player's body — the mod's function runs where the game's own effect would, on
+	/// the affected player's own client, and what it may write is the named-operation
+	/// surface of <see cref="IModEffectBody"/> / <see cref="IModEffectLimb"/> /
+	/// <see cref="IModEffectItem"/>.
 	///
 	/// <para>
 	/// It is deliberately NOT one of the host/state permissions a

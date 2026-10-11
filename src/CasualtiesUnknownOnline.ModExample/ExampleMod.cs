@@ -205,6 +205,8 @@ public sealed class ExampleMod : ICuoMod
 
 		public bool UsableWithLmb => false;
 
+		public bool UsableOnLimb => false;
+
 		public IModItemWearable? Wearable => null;
 
 		public bool DestroyAtZeroCondition => false;

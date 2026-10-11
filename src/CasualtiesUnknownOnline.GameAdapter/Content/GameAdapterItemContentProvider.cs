@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.GameAdapter.ModEffects;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -19,6 +21,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// served through <see cref="TryResolveTemplate"/>.
 ///
 /// <para>
+/// The two behaviour delegates the GAME calls are installed on every item built
+/// here, because it calls them with no null check at all: <c>Body.UseItem</c> runs
+/// <c>ItemInfo.useAction</c> behind the item's own <c>usable</c> flag, and the wound
+/// view runs <c>ItemInfo.useLimbAction</c> behind <c>usableOnLimb</c>. Both installed
+/// delegates are <see cref="ItemActionInvoker"/>: each resolves the action the item's
+/// OWNER registered through <see cref="IModItemActions"/> at call time, and where
+/// none is registered the gesture still completes and says so — the inert outcome
+/// <c>mod-declared-behaviour-with-no-function.md</c> settled, which is now the "no
+/// action registered" path rather than the only path.
+/// </para>
+///
+/// <para>
 /// It is also a <see cref="ICraftingQualitySource"/>: the crafting-quality labels
 /// its accepted definitions declare are written into the vanilla
 /// <c>ItemInfo.qualities</c> — the field the game's own recipe matcher reads —
@@ -27,9 +41,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// </para>
 /// </summary>
 public sealed class GameAdapterItemContentProvider(
-	ILogger<GameAdapterItemContentProvider> log) : IContentBindingProvider, ICuoService, ICraftingQualitySource
+	ILogger<GameAdapterItemContentProvider> log,
+	ModItemEffectStore itemEffectStore,
+	ISessionControl session) : IContentBindingProvider, ICuoService, ICraftingQualitySource
 {
 	private readonly ILogger<GameAdapterItemContentProvider> _log = log;
+	private readonly ModItemEffectStore _itemEffectStore = itemEffectStore;
+	private readonly ItemActionInvoker _actionInvoker = new(itemEffectStore, session, log);
 	private readonly Dictionary<string, IModItemDefinition> _definitions = [];
 	private readonly Dictionary<string, GameObject> _templates = [];
 	private readonly HashSet<string> _templateFailures = [];
@@ -118,16 +136,6 @@ public sealed class GameAdapterItemContentProvider(
 			"[ItemContent] accepted {ModId}/{Id} (schema {SchemaVersion}); injection waits for the vanilla item table.",
 			registration.ModId, id, registration.Definition.SchemaVersion);
 
-		// A definition that declares usability but authors no behaviour still reaches
-		// the game's own use path, which has no null check: the mapping installs a
-		// reporting no-op for it, and this line tells the author at load time.
-		if ((definition.Usable || definition.UsableWithLmb) && definition.Tool is null && definition.Gun is null)
-		{
-			_log.LogWarning(
-				"[ItemContent] {ModId}/{Id} declares Usable/UsableWithLmb without a Tool or Gun behaviour — the mod API cannot author a use action, so using the item will do nothing.",
-				registration.ModId, id);
-		}
-
 		// A wearable declaration the game's own placement cannot resolve is registered
 		// WITHOUT the wearable flag: Body.WearWearable resolves the declared limb name
 		// with Body.LimbByName (Body.cs:1493) and dereferences the result on the next
@@ -145,6 +153,40 @@ public sealed class GameAdapterItemContentProvider(
 	/// <inheritdoc />
 	public bool ProvidesQuality(string qualityId, float requiredAmount) =>
 		_qualities.Provides(qualityId, requiredAmount);
+
+	/// <summary>
+	/// Names a declared behaviour this mod copy has no function for, at the moment the
+	/// definition enters the game's own item table — the item side's counterpart of the
+	/// liquid provider's own report. The two halves are asked SEPARATELY on purpose: a
+	/// general "is this item registered" question would pass a definition that declares
+	/// usability while its mod registered only the limb half, and the player would use
+	/// an item that does nothing with no line saying so.
+	///
+	/// <para>
+	/// It runs here rather than in <see cref="TryBind"/> because a mod registers its
+	/// content first and its action second — the registration rail requires that order —
+	/// so only the injection frame is late enough to see both.
+	/// </para>
+	/// </summary>
+	private void ReportUnregisteredActions(string id, IModItemDefinition definition)
+	{
+		if ((definition.Usable || definition.UsableWithLmb)
+			&& definition.Tool is null
+			&& definition.Gun is null
+			&& !_itemEffectStore.HasUse(id))
+		{
+			_log.LogWarning(
+				"[ItemContent] {Id} declares Usable/UsableWithLmb and carries no Tool or Gun behaviour, and no mod registered a use action for it — using the item will do nothing. Register one through IModItemActions in Bind.",
+				id);
+		}
+
+		if (definition.UsableOnLimb && !_itemEffectStore.HasLimbUse(id))
+		{
+			_log.LogWarning(
+				"[ItemContent] {Id} declares UsableOnLimb and no mod registered a limb action for it — applying the item to a limb will do nothing. Register one through IModItemActions in Bind.",
+				id);
+		}
+	}
 
 	public void Initialize()
 	{
@@ -165,8 +207,9 @@ public sealed class GameAdapterItemContentProvider(
 		{
 			if (!Item.GlobalItems.ContainsKey(pair.Key))
 			{
-				Item.GlobalItems.Add(pair.Key, ModItemInfoFactory.Build(pair.Key, pair.Value, _log));
+				Item.GlobalItems.Add(pair.Key, ModItemInfoFactory.Build(pair.Key, pair.Value, _actionInvoker));
 				_injectedItemIds.Add(pair.Key);
+				ReportUnregisteredActions(pair.Key, pair.Value);
 				_log.LogInformation(
 					"[ItemContent] injected {Id} into Item.GlobalItems ({QualityCount} crafting qualities).",
 					pair.Key, ModDeclarationCollections.OrEmpty(pair.Value.Qualities).Count);

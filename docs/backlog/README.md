@@ -90,6 +90,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
 - [Mod-authored effects](review/mod-authored-effects.md) — **High** — the code registration face and the named operations it writes through.
+- [Mod-authored item actions](review/mod-item-authored-actions.md) — **High** — the item's use and limb functions, and the census behind them.
 - [A declared behaviour with no function](review/mod-declared-behaviour-with-no-function.md) — **High** — a declared use or effect reports instead of throwing.
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
 - [The root README as a language pair](review/readme-language-pair.md) — **Low-Medium** — English first, a Chinese twin, and the current model named.

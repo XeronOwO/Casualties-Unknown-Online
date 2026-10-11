@@ -5,6 +5,7 @@ using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -43,7 +44,7 @@ public class GameAdapterItemInjectionContractTests
 		itemType.GetField("GlobalItems", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!
 			.SetValue(null, table);
 
-		var provider = Activator.CreateInstance(providerType, CreateLogger(providerType))!;
+		var provider = GameAdapterProviderFactory.Create(providerType, CreateLogger(providerType));
 		var registration = new ModContentRegistration(
 			"mod.a", new ModItemDefinition { Id = "bandage", DisplayName = "Mod Bandage" });
 

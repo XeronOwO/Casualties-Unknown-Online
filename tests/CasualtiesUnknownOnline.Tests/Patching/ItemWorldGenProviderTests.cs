@@ -3,6 +3,7 @@ using System.Collections;
 using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using System.Collections.Generic;
@@ -31,7 +32,11 @@ public class ItemWorldGenProviderTests
 		var logger = loggerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
 			?? loggerType.GetField("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
 			?? throw new InvalidOperationException("NullLogger.Instance not found.");
-		return Activator.CreateInstance(ProviderType, [logger])!;
+
+		// The provider takes the item action registry and the session identity seam
+		// beside its logger (the delegates it installs resolve a mod's registered
+		// action through them); the shared factory supplies them by parameter type.
+		return GameAdapterProviderFactory.Create(ProviderType, logger);
 	}
 
 	private static bool TryBind(object provider, ModItemDefinition definition)

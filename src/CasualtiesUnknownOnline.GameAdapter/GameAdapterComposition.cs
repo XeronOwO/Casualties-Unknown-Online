@@ -116,7 +116,10 @@ public static class GameAdapterComposition
 		// Item content binding: the runtime binder routes ModContentKind.Item
 		// definitions to this Game Adapter provider. It runs after ModService in
 		// the ICuoService pump so the first-frame discovery has already loaded the
-		// mods and their content registrations.
+		// mods and their content registrations. The provider installs the two
+		// native delegates a mod item carries; they call its ItemActionInvoker,
+		// which resolves the action the item's OWNER registered through
+		// IModItemActions, on the client the gesture was performed on.
 		services.AddSingleton<GameAdapterItemContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterItemContentProvider>());

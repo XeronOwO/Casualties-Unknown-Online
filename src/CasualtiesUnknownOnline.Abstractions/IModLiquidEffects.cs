@@ -61,7 +61,13 @@ public interface IModLiquidEffects
 	/// Try to register the limb effect of one liquid this mod registered as
 	/// content — the delegate behind the topical apply AND the injection, exactly
 	/// as the game's own <c>onHealthUse</c> is. Refused on the same rails as
-	/// <see cref="TryRegisterDrink"/>, independently of it.
+	/// <see cref="TryRegisterDrink"/>, independently of it, with the limb half's own
+	/// reachability rule: the definition must declare
+	/// <see cref="IModLiquidDefinition.HealthUsable"/> or
+	/// <see cref="IModLiquidDefinition.Injectable"/>, because the game runs
+	/// <c>onHealthUse</c> behind exactly those two flags and a liquid declaring
+	/// neither reaches no call site at all. The drink half has no such rule — the
+	/// game's own drink site is gated by no flag of the liquid's.
 	/// </summary>
 	/// <param name="liquidId">The content id of the liquid this effect belongs to.</param>
 	/// <param name="effect">The function the game's own limb-use call sites run.</param>

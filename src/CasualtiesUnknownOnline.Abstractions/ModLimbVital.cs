@@ -2,9 +2,12 @@ namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
 /// The limb vitals <see cref="IModEffectLimb"/> reads and writes, one member per
-/// write the game's own shipped topical effects perform (the census in
-/// <c>docs/backlog/todo/mod-authored-effects.md</c>). The names are CUO's; each
-/// member's documentation names the game's own field it stands for.
+/// write the game's own shipped content performs: the topical liquid census in
+/// <c>docs/backlog/review/mod-authored-effects.md</c>, plus the item census in
+/// <c>docs/backlog/review/mod-item-authored-actions.md</c> — whose two additions to
+/// this list are the recovery timers a splint or a reduction writes
+/// (<see cref="DislocationTimer"/>, <see cref="BoneHealTimer"/>). The names are
+/// CUO's; each member's documentation names the game's own field it stands for.
 ///
 /// <para>
 /// Disinfection is deliberately NOT a member: the game's own
@@ -35,4 +38,19 @@ public enum ModLimbVital
 
 	/// <summary>Bleed amount (<c>Limb.bleedAmount</c>).</summary>
 	Bleed,
+
+	/// <summary>
+	/// Remaining dislocation recovery time (<c>Limb.dislocationTimer</c>) — the item
+	/// half's addition to the topical census, written by the limb actions that set or
+	/// reset a dislocation. The game counts it down against the limb's own
+	/// dislocation heal speed.
+	/// </summary>
+	DislocationTimer,
+
+	/// <summary>
+	/// Remaining bone recovery time (<c>Limb.boneHealTimer</c>) — written by the limb
+	/// actions that splint a fracture. The game counts it down against the limb's own
+	/// bone heal speed.
+	/// </summary>
+	BoneHealTimer,
 }

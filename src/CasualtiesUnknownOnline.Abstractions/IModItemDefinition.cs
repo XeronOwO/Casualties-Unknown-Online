@@ -38,6 +38,18 @@ public interface IModItemDefinition : IModContentDefinition
 	/// <summary>Whether the item can be used with the left mouse button.</summary>
 	bool UsableWithLmb { get; }
 
+	/// <summary>
+	/// Whether the item can be applied to a limb of the local player — the flag the
+	/// game's own wound view gates the item's limb action on
+	/// (<c>ItemInfo.usableOnLimb</c>, read through <c>ItemInfo.ActuallyUsableOnLimb</c>
+	/// for an item that is not a liquid container). A definition that declares it
+	/// without registering a limb action through <see cref="IModItemActions"/> is
+	/// well-defined rather than a crash — the framework installs a reporting no-op
+	/// for it, the same outcome the use half settled — and the game will offer the
+	/// item on a limb either way.
+	/// </summary>
+	bool UsableOnLimb { get; }
+
 	/// <summary>Whether the item is destroyed when its condition reaches zero.</summary>
 	bool DestroyAtZeroCondition { get; }
 

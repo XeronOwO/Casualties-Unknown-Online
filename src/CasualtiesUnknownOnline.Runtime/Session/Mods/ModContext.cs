@@ -45,6 +45,7 @@ internal sealed class ModContext(
 	IModContentControl contentControl,
 	ModContentStore contentStore,
 	ModLiquidEffectStore liquidEffectStore,
+	ModItemEffectStore itemEffectStore,
 	ModResourceCompletionStore resourceCompletionStore) : IModContext
 {
 	private readonly ModManifest _manifest = manifest;
@@ -63,6 +64,7 @@ internal sealed class ModContext(
 	private readonly ModUiAdapter _ui = new(manifest, frameworkLog);
 	private readonly ModContentAdapter _content = new(manifest, contentStore, frameworkLog);
 	private readonly IModLiquidEffects _liquidEffects = new ModLiquidEffectsAdapter(manifest, contentStore, liquidEffectStore, frameworkLog);
+	private readonly IModItemActions _itemActions = new ModItemActionsAdapter(manifest, contentStore, itemEffectStore, frameworkLog);
 	private readonly ModGameStateAdapter _gameState = new(manifest, sessionService, remoteVitals, remoteInventory, itemFacts, frameworkLog);
 	private readonly ModEntitySpawnAdapter _entitySpawn = new(manifest, sessionService, entitySpawner, frameworkLog);
 	private readonly ModItemSpawnAdapter _itemSpawn = new(manifest, sessionService, itemSpawner, frameworkLog);
@@ -101,6 +103,8 @@ internal sealed class ModContext(
 	public IModContent Content => _content;
 
 	public IModLiquidEffects LiquidEffects => _liquidEffects;
+
+	public IModItemActions ItemActions => _itemActions;
 
 	public IModContentOwnerQuery ContentOwners => _contentOwners;
 

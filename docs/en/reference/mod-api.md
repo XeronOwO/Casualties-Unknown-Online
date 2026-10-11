@@ -78,7 +78,7 @@ and their live enforcement points:
 | `ReadGameState` | the read-only game-state projection (`IModGameState`) |
 | `SpawnEntity` | world entity spawn (`IModEntitySpawn`), world item spawn (`IModItemSpawn`), and the tile/block, structure and liquid placement surfaces (`IModTilePlacement`, `IModStructurePlacement`, `IModLiquidPlacement`) |
 | `AccessNativeApi` | the curated native/game-private operation registry (`IModNativeApi`) |
-| `AuthorEffects` | the mod-authored liquid effect face (`IModLiquidEffects`): writing a LIVE player's body through the named operations of `IModEffectBody` / `IModEffectLimb` |
+| `AuthorEffects` | the mod-authored effect and item-action faces (`IModLiquidEffects`, `IModItemActions`): writing a LIVE player's body, limb or item through the named operations of `IModEffectBody` / `IModEffectLimb` / `IModEffectItem` |
 
 **`Dependencies`** are mod ids loaded before the dependent. **`NativeBinding`** names the game's own
 code a mod binds — the declared Tier 2 of [The modification policy](modification-policy.md). It is a
@@ -701,11 +701,11 @@ public sealed class ChemistryMod : ICuoMod
 - **The named operations** are the primary path. `context.Body` (`IModEffectBody`) carries the game's own
   actions (`Drink`, `Eat`, `Vomit`, `Burp`, `Ragdoll`, `StartFibrillation`, `StartMindWipe`,
   `AddLimbVelocity`), the reads (`Alive`, `Standing`, `InCardiacArrest`, `Limbs`, `GetVital`), one
-  add/set pair over `ModBodyVital`'s 32 members, the component doses (`AddOpiate`,
+  add/set pair over `ModBodyVital`'s 33 members, the component doses (`AddOpiate`,
   `AddOpiateAntagonist`, `AddOpiateTolerance`, `TakeAntidepressant`, `AddSleepingPill`), the timed body
   (`StartTimedEffect` / `TimedEffectRemaining` / `TimedEffectHighest`) and `PlaySound`.
   `context.Limb` (`IModEffectLimb`) carries `Index`, `Name`, the classification flags, `Body`,
-  `ConnectedLimbs`, an add/set/get pair over `ModLimbVital`'s seven members, and `Disinfect`. Every member
+  `ConnectedLimbs`, an add/set/get pair over `ModLimbVital`'s nine members, and `Disinfect`. Every member
   is one of the writes the game's own shipped liquids perform — the census behind the list is in
   `docs/backlog/review/mod-authored-effects.md`. The engine's own semantics run, not an approximation:
   `Drink` and `Eat` are the game's methods with their side effects, the doses go through the game's
@@ -724,9 +724,128 @@ public sealed class ChemistryMod : ICuoMod
   list ([Handshake consistency](#handshake-consistency)) — and the affected side judging on its own
   picture and timeline, never the sender's.
 - **Stability**: `IModLiquidEffects`, `ModLiquidEffect` and `IModLiquidEffectContext` are
-  **experimental**; `IModEffectBody`, `IModEffectLimb`, `ModBodyVital`, `ModLimbVital` and the two
-  `NativeObject` members are **advanced**, because they follow the game's own fields and a game update
-  that moves one may move them with no CUO decision involved.
+  **experimental**; `IModEffectBody`, `IModEffectLimb`, `ModBodyVital`, `ModLimbVital` and every
+  `NativeObject` member are **advanced**, because they follow the game's own fields and objects, and a
+  game update that moves one may move them with no CUO decision involved.
+
+## Mod-authored item actions
+
+The item half of the same surface, on the same reasoning: a content payload travels to every peer as DATA,
+so it cannot carry a function, and the function is registered in CODE, keyed by the id of an item this mod
+registered. What an item's own declaration carries is the flag; what a mod authors in code — a
+[mod-authored action](glossary.md) — is what runs behind it.
+
+```csharp
+[CuoMod("field.medicine", Permissions = ModPermission.RegisterContent | ModPermission.AuthorEffects)]
+public sealed class MedicineMod : ICuoMod
+{
+    private IModContext _context = null!;
+
+    public void Bind(IModContext context) => _context = context;
+
+    public void Initialize()
+    {
+        // The item's content goes first — only its owner may author its action, and
+        // the two flags are what the game's own gates read.
+        _context.Content.TryRegister(new ModItemDefinition
+        {
+            Id = "field_dressing",
+            DisplayName = "Field dressing",
+            Usable = true,
+            UsableOnLimb = true,
+        });
+
+        _context.ItemActions.TryRegisterUse("field_dressing", context =>
+        {
+            context.Item.AddCondition(-0.25f);
+            context.Body.AddVital(ModBodyVital.Happiness, 2f);
+        });
+
+        _context.ItemActions.TryRegisterLimbUse("field_dressing", context =>
+        {
+            if (context.Limb is not { } limb)
+            {
+                return; // the native limb call always names one; this is the compiler's null, not the game's
+            }
+
+            limb.AddVital(ModLimbVital.BandageSlow, 0.5f);
+            limb.SetVital(ModLimbVital.Bleed, 0f);
+            context.Item.AddCondition(-0.25f);
+        });
+    }
+
+    public void Start() { }
+    public void Update() { }
+}
+```
+
+- **Registration**: `context.ItemActions` (`IModItemActions`), one function per native delegate —
+  `TryRegisterUse` stands where `ItemInfo.useAction` stands (the using body and the item, run by
+  `Body.UseItem` / `Body.UseItemInHand`) and `TryRegisterLimbUse` where `ItemInfo.useLimbAction` stands (the
+  treated limb and the item, run by the wound view). Registering one and not the other is supported: the
+  other half keeps the reporting no-op, so the gesture is well-defined rather than a null the game would
+  throw on.
+- **Permission**: the same `ModPermission.AuthorEffects` the liquid half uses — it is the "this mod authors
+  behaviour" capability, not a per-content-kind one. `CanRegister` reflects whether this mod copy declares
+  it, and every registration call enforces it again.
+- **Ownership**: the item's content must be registered FIRST, by this mod, as `ModContentKind.Item` — an
+  action whose item this mod has not registered is refused, and so is a second function for a half already
+  registered (refused, never replaced). A vanilla item is not addressable: that is a content override, a
+  different capability.
+- **Reachability**: both native calls sit behind a flag on the definition, so an action the game's gate can
+  never reach is refused rather than filed — a use action needs `Usable`, the flag BOTH of the game's use
+  call sites require (`Body.UseItem` behind `if (item.Stats.usable)`, `Body.UseItemInHand` behind
+  `usable && usableWithLMB`), where `UsableWithLmb` only adds the left-mouse entry point; a limb action
+  needs `UsableOnLimb`, which is also the flag that makes the game offer the item on a limb at all. The
+  liquid half carries the same rule on its limb side — `healthUsable` or `injectable` gate `onHealthUse` —
+  and none on its drink side, whose call site no flag of the liquid's gates; what differs between the two
+  families is the ANSWER, a refusal here against a load-time report there, because here it is the
+  registration that mismatches the definition.
+- **Isolation**: the use half is refused when the definition already carries a `Tool` or `Gun` behaviour,
+  because one item has one use action and the definition's own data is what decides which one stands —
+  never which registration happened to run last.
+- **The function**: `ModItemAction` — `(IModItemActionContext) → void`, the same delegate for both halves.
+  It runs on the main thread, once per native call, on the client the gesture was performed on, and it must
+  not throw: the framework catches and logs with the mod id, and the gesture then completes without the
+  action.
+- **The context**: `ItemId`, `OwnerSteamId` (the local player, read live — 0 while the local identity is
+  not established yet), `Item` (`IModEffectItem`), `Body` (`IModEffectBody`, the very accessor a liquid
+  effect gets, because the game hands both families the same body), `Limb` (the limb the native call
+  named, null on the use path), and `NativeObject`.
+- **The item's named operations** are small on purpose, and the census is why: of the 195 delegates in the
+  game's own item registry, the only ITEM field they write is `Item.condition` (78 of the use actions and
+  22 of the limb actions; one item drives `decayMultiplier`, which is a mechanism rather than an effect).
+  So `context.Item` carries `Condition`, `AddCondition` (the plain field arithmetic the game's own items
+  perform) and `SetCondition` (through the game's own `Item.SetCondition`, which scales a liquid
+  container's contents to match). Everything else those delegates touch on the item — a sprite swap, a
+  sound, a replacement object, a component lookup — is engine work and is reached through
+  `context.NativeObject`. The census is in `docs/backlog/review/mod-item-authored-actions.md`.
+- **The body and limb write surface is shared with the liquid effects** — the same `IModEffectBody` /
+  `IModEffectLimb`, grown from what the game's own shipped liquids AND items write, so an item action is
+  not limited to a second, smaller list.
+- **Cross-player use follows the game's own data.** A mod limb item enters CUO's cross-player limb-tool
+  chain with no id table and no wire change, because that chain asks exactly the pair this surface
+  installs (`usableOnLimb` and a non-null `useLimbAction`) and runs the delegate on the treated player's
+  own client. The cross-player solid-food chain asks a different question — it reads the item's own
+  delegate BODY for a call to `Body.Eat` / `Body.Drink` — so a mod-authored use action is not claimed by
+  it; a mod item that feeds a body is used locally.
+- **A mod item stays a plain `ItemInfo`.** The item content provider never builds a `LiquidItemInfo`, and
+  that type is what the drink, injection and topical chains select by — which is also what keeps a mod item
+  off the one CUO path that runs an item's own `useAction` against ANOTHER player's body on the OPERATOR's
+  client (`RemoteDrinkUseHandler`, whose subject is a liquid container), and therefore what makes
+  `OwnerSteamId` always the local player on this surface. A mod limb action that installs a `SplintLimb` or
+  a `TourniquetScript` is a different matter: that item then becomes an
+  [applied item](glossary.md) — a family the framework decides by component type, with everything that
+  family carries.
+- **`NativeObject`** is the engine-typed escape hatch: the item's `GameObject`, with the body's on
+  `IModEffectBody.NativeObject` and the limb's on `IModEffectLimb.NativeObject`. Same rules as the liquid
+  half's: the object of the state THIS client owns, Unity null semantics (`== null`), and a mod that uses
+  it declares what it binds (`NativeBinding`).
+- **Consistency**: the registration is LOCAL to each peer's copy of the mod, and no wire message is added —
+  the handshake's id, version and permission parity is what makes "same content, same code" true.
+- **Stability**: `IModItemActions`, `ModItemAction` and `IModItemActionContext` are **experimental**;
+  `IModEffectItem` and `IModItemActionContext.NativeObject` are **advanced**, because they follow the
+  game's own item field and objects.
 
 ## Read game state
 

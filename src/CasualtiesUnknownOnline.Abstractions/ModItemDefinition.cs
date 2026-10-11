@@ -45,6 +45,9 @@ public sealed class ModItemDefinition : IModItemDefinition
 	public bool UsableWithLmb { get; set; }
 
 	/// <inheritdoc />
+	public bool UsableOnLimb { get; set; }
+
+	/// <inheritdoc />
 	public bool DestroyAtZeroCondition { get; set; }
 
 	/// <inheritdoc />

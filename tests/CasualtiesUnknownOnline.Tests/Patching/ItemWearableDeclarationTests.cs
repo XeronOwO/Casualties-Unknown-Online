@@ -153,7 +153,11 @@ public class ItemWearableDeclarationTests
 		entries = (List<(LogLevel Level, string Message)>)loggerType
 			.GetProperty("Entries", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!
 			.GetValue(logger)!;
-		return Activator.CreateInstance(ProviderType, [logger])!;
+
+		// The provider takes the item action registry and the session identity seam
+		// beside its logger (the delegates it installs resolve a mod's registered
+		// action through them); the shared factory supplies them by parameter type.
+		return GameAdapterProviderFactory.Create(ProviderType, logger);
 	}
 
 	private static bool TryBind(object provider, IModContentDefinition definition)

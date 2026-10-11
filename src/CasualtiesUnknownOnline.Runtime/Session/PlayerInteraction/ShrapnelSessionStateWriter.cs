@@ -79,7 +79,32 @@ internal sealed class ShrapnelSessionStateWriter(
 		}
 	}
 
-	internal void ApplyBreakGrasp(ShrapnelOperationSession shrapnel)
+	/// <summary>
+	/// Whether the session's treated limb is the target's head. It is the one fact the derived draw
+	/// needs from the authoritative body, because the native <c>BreakGrasp</c> draws the brain roll
+	/// only for a head limb.
+	/// </summary>
+	internal bool IsHeadLimb(ShrapnelOperationSession shrapnel)
+	{
+		var targetData = _access.GetCharacterData(shrapnel.Target);
+		return targetData is not null
+			&& shrapnel.LimbIndex >= 0
+			&& shrapnel.LimbIndex < targetData.Limbs.Count
+			&& targetData.Limbs[shrapnel.LimbIndex].IsHead;
+	}
+
+	/// <summary>
+	/// Writes one grip slip's values onto the authoritative limb. The values arrive already drawn (see
+	/// <see cref="ShrapnelGripSlipRoller"/>): this type owns the write, not the roll, so the authority's
+	/// numbers and the operator's screen come from ONE derivation instead of two.
+	/// <para>
+	/// The arithmetic mirrors the native <c>ShrapnelMinigame.BreakGrasp</c> read for read, including
+	/// its absence of clamping. A clamp here would commit a different number than the one both sides
+	/// drew whenever a limb field sits below the draw — which is exactly the divergence the derived
+	/// window exists to remove — and the native path itself writes those fields negative.
+	/// </para>
+	/// </summary>
+	internal void ApplyBreakGrasp(ShrapnelOperationSession shrapnel, ShrapnelGripSlipValues values)
 	{
 		var targetData = _access.GetCharacterData(shrapnel.Target);
 		if (targetData is null || shrapnel.LimbIndex < 0 || shrapnel.LimbIndex >= targetData.Limbs.Count)
@@ -89,17 +114,17 @@ internal sealed class ShrapnelSessionStateWriter(
 
 		var newData = PlayerCharacterAccess.CloneCharacter(targetData);
 		var limb = newData.Limbs[shrapnel.LimbIndex];
-		limb.SkinHealth = Math.Max(0f, limb.SkinHealth - RandomInRange(4f, 6f));
-		limb.BleedAmount = Math.Max(0f, limb.BleedAmount + RandomInRange(0.4f, 1f));
-		limb.Pain = Math.Max(0f, limb.Pain + RandomInRange(9f, 16f));
-		if (limb.IsHead && newData.Health is not null && RandomInRange(0f, 1f) < 0.8f)
+		limb.SkinHealth -= values.Skin;
+		limb.BleedAmount += values.Bleed;
+		limb.Pain += values.Pain;
+		if (values.BrainLoss > 0f && limb.IsHead && newData.Health is not null)
 		{
-			newData.Health.BrainHealth = Math.Max(0f, newData.Health.BrainHealth - RandomInRange(0f, 1f));
+			newData.Health.BrainHealth -= values.BrainLoss;
 		}
 
 		_access.SaveCharacterData(shrapnel.Target, newData);
-		_log.LogWarning("[Shrapnel] session {OperationId} break-grasp applied to {Target} limb {Limb}.",
-			shrapnel.OperationId, shrapnel.Target, shrapnel.LimbIndex);
+		_log.LogWarning("[Shrapnel] session {OperationId} break-grasp applied to {Target} limb {Limb}: skin -{Skin} bleed +{Bleed} pain +{Pain} brain -{Brain}.",
+			shrapnel.OperationId, shrapnel.Target, shrapnel.LimbIndex, values.Skin, values.Bleed, values.Pain, values.BrainLoss);
 	}
 
 	internal void UpdateAuthoritativeLimb(ShrapnelOperationSession shrapnel)
@@ -187,5 +212,4 @@ internal sealed class ShrapnelSessionStateWriter(
 		return index < 0 || index >= data.Items.Count ? null : PlayerCharacterAccess.CloneItem(data.Items[index]);
 	}
 
-	private static float RandomInRange(float min, float max) => (float)(new Random().NextDouble() * (max - min) + min);
 }

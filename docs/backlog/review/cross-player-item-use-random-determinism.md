@@ -1,15 +1,15 @@
 # Random rolls in a cross-player item use: can one temporary deterministic random window keep both sides in step?
 
-- Status: Todo — **reported 2026-10-08 by the user**, who asked for the ticket now and the investigation
+- Status: Review — **reported 2026-10-08 by the user**, who asked for the ticket now and the investigation
   later: "对于带随机性的效果来说，会导致不同步，能不能通过临时的、确定性的、统一的随机状态控制来消除这种
-  不同步性？". **Steps 1-3 are done (2026-10-09, code-only — see *Investigation*): the divergence does NOT
-  reach authoritative state** — every authoritative value of this family has exactly ONE roller — so the
-  priority stays High rather than rising to Critical. What is left: step 4 (the two-client reproduction)
-  and the two divergences on screen §3 names. **The user then set the target for those (2026-10-09): remove
-  the divergence WITHOUT waiting for the authority — random-state control, not a local guess and not a
-  delay.** *The target the user set* carries the per-site answer: the grip-slip window is safe and gives
-  immediate-plus-correct, and the measured-use site is done with a comparison that decides between the same
-  window and a side-effect-free local run. Ticket only this round, no implementation.
+  不同步性？". **Steps 1-4 are done.** The investigation (2026-10-09, code-only) found that the divergence
+  does NOT reach authoritative state — every authoritative value of this family has exactly ONE roller —
+  so the priority stays High rather than rising to Critical, and **the one on-screen divergence it named
+  is FIXED (2026-10-11 cycle: the shrapnel grip slip now derives both machines' rolls from one state; see
+  *Implementation*)**. The OTHER site §3 named at the time — the measured use action of the solid-food
+  chain — **does not exist**, and §2's census and §3 carry the evidence that says why. What remains is the
+  two-client run: acceptance rows 1-8 below. The user set the target for it on 2026-10-09: remove the
+  divergence WITHOUT waiting for the authority — random-state control, not a local guess and not a delay.
 - Priority: High — **raise to Critical if the investigation shows the divergence reaches authoritative state**
   (a body value, a limb fact, an item amount). Presentation-only divergence stays High.
 - Category: Players / cross-player semantics
@@ -88,9 +88,28 @@ tree is never edited), and the acceptance rows below are what a session has to c
   DISPLAY body it built for the session (`StartRemoteShrapnel` hands it `display.limbs[limbIndex]`), rolls
   skin/bleed/pain/brain there, and reports `BreakGrasp = true`; the host then rolls its own values for the
   same event on the target's real data.
-- The measured use action of the solid-food chain: the operator runs the item's own `useAction` on the same
-  display clone to measure it, so any roll inside that delegate (the `Item.cs` range above) is a second,
-  discarded roll.
+- ~~The measured use action of the solid-food chain: the operator runs the item's own `useAction` on the
+  same display clone to measure it, so any roll inside that delegate (the `Item.cs` range above) is a
+  second, discarded roll.~~ **RETRACTED 2026-10-11 — this site does not exist.** Three facts close it.
+  (1) The solid-food chain moved to the AFFECTED side on 2026-10-08 (`81855d0a`, "run the cross-player eat
+  on the side that eats it"), and `LocalUseItemEligibility.Family.SolidFood` now says it outright: "nothing
+  is measured and nothing runs here". (2) The operator's client runs a native item delegate at exactly
+  three measurement sites — `RemoteDrinkUseHandler.TryMeasure` (drink), `RemoteTopicalUseHandler.TryMeasure`
+  (topical) and `RemoteInjectionUseHandler` (injection) — and each one diverts the liquid call its delegate
+  makes, so no liquid body runs there either. (3) The census below shows none of those delegates reads a
+  random number at all.
+- **The census behind the retraction (2026-10-11).** Every `useAction` / `useLimbAction` delegate body in
+  the decompiled `Item.cs` was parsed and brace-matched: **195 delegates**, counted twice by two
+  independent methods (a brace-matching scan and a line match), and **exactly 6 of them read `Random`** —
+  `popfruit` (1 read), `bulbskin` (2), `foliage` (2), `browncap` (16), `funguschunk` (45), `dryfoliage` (2),
+  all of them `useAction`. Every delegate that reaches a liquid call reaches it with **zero** random reads:
+  all 30 `Drink(` bodies, all four `ApplyToLimb(` bodies (paincream, woundglue, disinfectant, spraybottle)
+  and all 15 `Inject(` bodies. And the two random-reading delegates that DO call `Drink` are not this
+  family's: `popfruit` and `bulbskin` call `Body.Drink(float)` — the body's own thirst, not
+  `WaterContainerItem.Drink` — and both are plain `new ItemInfo()`, not `LiquidItemInfo`, so
+  `HasDrawableContainer` cannot hold for them. `popfruit` reaches `body.Eat(...)` and is therefore solid
+  food (the eater's client runs it); `bulbskin` reaches no `Eat` and is `Family.None`, which the host
+  refuses by name. Neither can be measured, so neither can roll twice.
 
 **Presentation only, rolled per client and never carried:** clip variants (`Limb.cs:231`, `Body.cs:1912`,
 `:2105`, `:3466`, `Item.cs`'s own sound picks), gore and decal geometry (`WorldBloodReplay.cs:30-49`),
@@ -112,15 +131,14 @@ variant must agree: `FluidPresentationMsg` carries the roll's RESULT because the
   accepted-delta cadence rather than the operator's frame count (the limit quoted in *What the report
   says*). Every peer agrees on the result; what differs is the result a LOCAL use would have produced.
 - **A divergence on screen, and it is a divergence, not a wording problem: the one place that rolls
-  twice.** Two sites run the same effect twice, once per machine: `ShrapnelMinigame.BreakGrasp`
-  (`ShrapnelMinigame.cs:61-77`) runs on the operator's client against the display clone and the host rolls
-  the same event again in `ShrapnelSessionStateWriter.ApplyBreakGrasp`; and the measured use action of the
-  solid-food chain runs the item's own delegate on the operator's client while the eater runs it for real.
-  In both, the operator's screen holds a value for a moment that NO other peer ever holds — calling that
-  "presentation" describes where it lands, not how real it is: until the authoritative value arrives, that
-  screen is wrong. It is bounded (the host's state message follows the break-grasp report immediately, and
-  the display advances from the affected side's report) and it is not the state, but "short-lived" is not
-  "not a divergence", and the fix for it is mechanism C rather than mechanism A.
+  twice.** ONE site runs the same effect twice, once per machine: `ShrapnelMinigame.BreakGrasp`
+  (`ShrapnelMinigame.cs:61-77`) runs on the operator's client against the display clone, and the host rolls
+  the same event again in `ShrapnelSessionStateWriter.ApplyBreakGrasp`. The operator's screen then holds a
+  value for a moment that NO other peer ever holds — calling that "presentation" describes where it lands,
+  not how real it is: until the authoritative value arrives, that screen is wrong. It is bounded (the
+  host's state message follows the break-grasp report immediately) and it is not the state, but
+  "short-lived" is not "not a divergence". The 2026-10-09 line named a SECOND site — the measured use
+  action of the solid-food chain — and §2 carries the retraction together with the census that closes it.
 
 ### 4. What that means for the candidate mechanisms
 
@@ -134,7 +152,9 @@ variant must agree: `FluidPresentationMsg` carries the roll's RESULT because the
   plan, the state message, the healed health). It is the mechanism to reach for if a future roll ever
   decides something the current facts do not carry.
 - **C — no roll on the projecting side**: the only mechanism that addresses what §3 actually found.
-  It applies to exactly two sites (the display-side `BreakGrasp` and the measured use action) and would
+  ~~It applies to exactly two sites (the display-side `BreakGrasp` and the measured use action)~~ **It
+  applies to ONE site, the display-side `BreakGrasp`; the measured use action was withdrawn by the census
+  in §2** — and it would
   mean the display shows the authoritative value only.
 - **D — a CUO-owned action-scoped stream**: the reads are not behind one seam — `Liquids.cs`, `Item.cs`,
   `Limb.cs`, `Body.cs` and `ShrapnelMinigame.cs` call `UnityEngine.Random` directly — so D would have to
@@ -142,8 +162,54 @@ variant must agree: `FluidPresentationMsg` carries the roll's RESULT because the
 
 The state-preserving invariant worth keeping, now stated: **one roller per authoritative value**, decided
 by which side owns the body, with the roll's RESULT travelling as a fact. For the family at large that needs
-no window at all; the ONE place a window IS the answer is the pair of double-roll sites, and each of them is
-decided on its own in *The target the user set* below.
+no window at all; the ONE place a window IS the answer is the single double-roll site, decided in *The target
+the user set* below and implemented in *Implementation*.
+
+## Implementation (2026-10-11 cycle)
+
+Mechanism A, scoped to the one site, exactly as *The target the user set* decided: both machines derive the
+slip's engine state from a seed, draw the same values from it, and the operator's screen is right
+immediately while the authority still judges.
+
+**What the two sides share.** `ShrapnelGripSlipSeed.Of(operationId, pieceIndex, nonce)` is a pure function
+of facts both machines hold — the session's operation id (which the host allocates and the start ack
+carries), the piece the operator lost its grip on, and the slip's own nonce. The nonce has to travel, and
+this ticket's earlier line ("the report already carries one") was WRONG about where it comes from:
+`MedicalOperationUpdateMsg.Sequence` exists but no shrapnel path ever assigns it, and a host-side counter
+could not stand in for it anyway — several operators share one session, so the host counts the reports it
+accepts, not the slips a given client drew. It is a new wire field (`GripSlipNonce`), 1-based from the
+operator's own per-session counter; **0 means "this client held no window"**, which is what a build with no
+engine stream honestly reports.
+
+**The window.** `IShrapnelGripSlipRandom` and `IShrapnelGripSlipWindow` (Runtime) are the seam, defaulted by
+`NoShrapnelGripSlipRandom` in the base composition root and replaced by `EngineShrapnelGripSlipRandom` (Game
+Adapter), which is the engine's own `UnityEngine.Random` — saved, `InitState`d on the derived seed, and put
+back. The operator's half wraps the NATIVE `ShrapnelMinigame.BreakGrasp` call in that window, so the game
+itself draws inside it and the values land on the limb the screen shows; the authority's half reproduces the
+native READ ORDER and writes ITS OWN draw (`ShrapnelGripSlipRoller` → `ShrapnelSessionStateWriter`). The
+script is the part that needs care and it is written out with its call sites in the adapter type's own
+remarks: the gore clip pick inside `Body.DoGoreSound` and the pitch shift inside `Sound.Play` are two draws
+nobody keeps, and a script that skipped them would hand the authority the operator's skin and bleed but a
+different pain.
+
+**The authority keeps judging.** The operator reports the four values it read back off its own displayed
+limb; those are EVIDENCE, never the verdict. `ShrapnelGripSlipRoller` derives its own, compares, and logs a
+disagreement with both sets. That comparison is the mechanism's runtime proof: the two sides agree only
+while their draw sequences stay aligned, so a game update that inserts or removes a draw shows up as a
+logged disagreement instead of two screens silently parting again.
+
+**Two smaller decisions ride with it.** The authority's limb write drops the `Math.Max(0f, …)` clamps it
+used to carry, because the native `BreakGrasp` has none: with the clamps, a limb field below the draw would
+have the authority commit a different number than the one both sides drew, which is the very divergence the
+window exists to remove. And the operator's own client keeps a per-session slip counter
+(`RemoteShrapnelGripSlip.Nonce`), while the window it opens is closed by the patch's postfix on the normal
+path and by its Harmony finalizer when the native call throws — the postfix never runs then, and a stream
+left holding a derived state would corrupt every later consumer on that machine.
+
+**Two things this deliberately does NOT do.** It does not move the verdict: the authority never adopts the
+operator's numbers. And it does not generalise: the census above gives no second site, so there is no
+family-wide window, no CUO-owned action-scoped random stream, and no new seeding for the five migrated
+chains or the host-applied operations.
 
 ### Verified chain: a nausea-causing liquid given to another player (2026-10-09)
 
@@ -183,7 +249,7 @@ now carries the target and the way to reach it; nothing is implemented this roun
 
 **Why waiting is not actually required, and where it is.** The user asked why there must be any waiting at
 all: control the random state and both sides compute the same value, so the local side can show it at once.
-That is right, and it is mechanism A scoped to the two sites rather than to the family. What decides whether
+That is right, and it is mechanism A scoped to the one site rather than to the family. What decides whether
 it works is one question per site: **do both runs consume the same draws in the same order?** A window can
 only promise the same STREAM, not the same sequence of choices — so at a site whose draw sequence depends on
 state the two sides hold differently, a shared seed can produce a *wrong* value that looks authoritative,
@@ -191,14 +257,14 @@ which is worse than a late one.
 
 | Site | The draws | Verdict |
 |---|---|---|
-| shrapnel grip-slip — the native `ShrapnelMinigame.BreakGrasp` on the operator's client and CUO's own host-side mirror `ShrapnelSessionStateWriter.ApplyBreakGrasp` | unconditional, fixed order: skin `Random.Range(4f, 6f)`, bleed `Random.Range(0.4f, 1f)`, pain `Random.Range(9f, 16f)`, and for a head limb `Random.value < 0.8f` then `Random.value`. The only branch that steers them reads `isHead`, which both sides agree on | **SAFE, and it is exactly the shape the user asked for: immediate AND correct, no waiting, no divergence.** Both sides derive the stream from the operation id plus the slip's own sequence number (the report already carries one); the host's mirror stops drawing from `new Random()` — a defect in its own right, since it makes the authoritative value unreproducible by anyone, including a replay — and the operator's local run gets the state set and restored around the native call. The only other drawer inside that call is `DoGoreSound`'s clip pick, which then becomes deterministic on both sides and is relayed as such |
+| shrapnel grip-slip — the native `ShrapnelMinigame.BreakGrasp` on the operator's client and CUO's own host-side mirror `ShrapnelSessionStateWriter.ApplyBreakGrasp` | unconditional, fixed order: skin `Random.Range(4f, 6f)`, bleed `Random.Range(0.4f, 1f)`, pain `Random.Range(9f, 16f)`, and for a head limb `Random.value < 0.8f` then `Random.value`. The only branch that steers them reads `isHead`, which both sides agree on | **SAFE, and it is exactly the shape the user asked for: immediate AND correct, no waiting, no divergence.** Both sides derive the stream from the operation id plus the slip's own sequence number — **the one clause this table got wrong when it was written: the report did NOT already carry one**, so that nonce became a new wire field, and *Implementation* records why a host-side counter cannot stand in for it. The host's mirror stops drawing from `new Random()` — a defect in its own right, since it makes the authoritative value unreproducible by anyone, including a replay — and the operator's local run gets the state set and restored around the native call. The drawers inside that call are `DoGoreSound`'s clip pick **and the pitch shift inside `Sound.Play`** — this line named only the first when it was written — and both become deterministic on both sides |
 | measured cross-player use — the item's own `useAction` (solid food and the like) | inside a branch tree the GAME writes, keyed on the BODY's own state: `float num24 = Random.value * 100f;` then a chain of thresholds, with `body.Eat(...)`, hunger and `HoldingItem("filterstraw")` among the inputs (`Item.cs:3618-3887`) | **a shared seed cannot be trusted on its own here**: the operator runs that delegate against the target's DISPLAY clone (report-driven, up to one report old) while the eater runs it against the real body, so the two can take different branches, spend a different number of draws and land on different values — silently. Two ways forward, and the choice is a measurement rather than an opinion: (a) do it anyway WITH a comparison — the request carries the nonce the seed is derived from, each side derives its own numbers, the operator shows its value at once, and the authority's value is compared against it and a disagreement is logged. If that log stays empty across the acceptance run, the site keeps "immediate and correct"; (b) if it does not stay empty, this site's local run goes back to being side-effect-free (it measures the dose and writes no numbers) and the value arrives with the report |
 
 **What the change costs, either way.** A CUO-owned derived stream (the roll moves off `UnityEngine.Random`
 for that site, or the engine's state is set and restored around the call), the request carrying the nonce the
 seed is derived from — a wire change, free before release (decision 241) — and, per site, the statement that
-nothing else draws inside the window. The engine-global caveat is real but small here: the two sites are
-short, synchronous calls.
+nothing else draws inside the window. The engine-global caveat is real but small here: the site is a
+short, synchronous call.
 
 **Acceptance rows** — these replace "is the wait perceptible" with something factual:
 
@@ -214,7 +280,7 @@ two-client run.
 
 ## Establish first (investigation order)
 
-> **[1-3 done 2026-10-09 — see *Investigation*; 4 remains.]**
+> **[1-3 done 2026-10-09 — see *Investigation*; 4 is the acceptance batch this ticket now waits on.]**
 
 1. **Entry census with three columns.** For every entry of the cross-player item-use family (world drag =
    inventory use, wound-view drag = limb use, injection, drink, topical/apply, bandage/splint removal, CPR,
@@ -233,10 +299,10 @@ two-client run.
 
 ## Candidate mechanisms (evaluate, do not pick before step 3)
 
-> **[Answered 2026-10-09 by §Investigation 3-4.]** The classification is: no state divergence, the recorded
-> cadence limit, and ONE real divergence on screen (the two double-roll sites §3 names). So A and D are not
-> needed and B is already the family's shape; C is the only mechanism
-> the finding points at, and it has two named sites. The list below is kept as the evaluation it was.
+> **[Answered 2026-10-09 by §Investigation 3-4; re-scoped 2026-10-11 by the census in §2.]** The
+> classification is: no state divergence, the recorded cadence limit, and ONE real divergence on screen —
+> and it is ONE site, not the two §3 originally named. So D is not needed, B is already the family's shape,
+> and A is what that one site takes. The list below is kept as the evaluation it was.
 
 - **A — one temporary deterministic window (the user's proposal).** Both sides derive a seed from the action's
   own identity (the request/operation id already on the wire, the run epoch, the participants), set the
@@ -283,6 +349,50 @@ Each is judged on what BOTH clients show and hold, not on one screen.
 | 3 | An injection whose liquid carries a per-call roll (the `Liquids.cs` bodies above): the patient's own values and the operator's display agree once the report lands | both screens |
 | 4 | A drink whose liquid carries a per-call roll: same | both screens |
 | 5 | A control case outside the window: an unrelated local roll (a footstep or gore clip) on either client is not perturbed by any of the above | both clients' logs |
+
+**What the code half proves now (2026-10-11).** Rows 1-5 still need the game, but the facts they rest on
+are pinned by the suite, and the one that would otherwise decay silently is pinned at runtime:
+
+- the authority writes the values ITS OWN derived draw produced for `(operationId, pieceIndex, nonce)`, not
+  a fresh roll (`ShrapnelOperationApplicationTests.BreakGrasp_WritesTheDerivedValuesOntoTheAuthoritativeLimb`);
+- a build with no engine stream applies NO damage and says so instead of inventing a value, and the piece is
+  still released so the session does not wedge on it (`BreakGrasp_WithNoEngineStream_LeavesTheLimbAlone`);
+- every slip of a piece gets its own state, and the head flag reaches the draw
+  (`ShrapnelGripSlipRollerTests`);
+- the comparison stays quiet when both sides agree and fires when they do not, and a nonce of 0 is named for
+  what it is (`ShrapnelGripSlipRollerTests`);
+- the DRAW ORDER — the part a game update can break — is pinned offline by `ShrapnelGripSlipDrawOrderGateTests`
+  and compared on every live slip, which is what makes row 7's "the comparison stays empty" a reading
+  instead of an assumption.
+
+## Self-check table (as delivered)
+
+| Mechanism | Change | Evidence |
+|---|---|---|
+| the seed both sides derive from | `ShrapnelGripSlipSeed.Of` is a pure function of (operation id, piece index, nonce) | `Roll_DrawsFromTheSlipsOwnIdentity`, `Roll_GivesEverySlipOfTheSamePieceItsOwnState`; mutation-checked — dropping the nonce from the mix turns the second red |
+| the engine stream seam | `IShrapnelGripSlipRandom` / `IShrapnelGripSlipWindow`, defaulted by `NoShrapnelGripSlipRandom` and replaced by `EngineShrapnelGripSlipRandom` | build + the normative gates; the null path is pinned by `Roll_WithNoEngineStream_AppliesNothingAndSaysSo` and by its integration twin |
+| the operator's window | the native `BreakGrasp` call runs inside the derived window, and the slip is closed by the postfix or by the finalizer | not reachable at L0 — a live minigame is needed (acceptance row 6); the close is idempotent by construction |
+| the authority's draw | `ShrapnelGripSlipRoller` writes the values it derived ITSELF, never the operator's | `BreakGrasp_WritesTheDerivedValuesOntoTheAuthoritativeLimb` |
+| the draw order | `EngineShrapnelGripSlipRandom.DrawScript` reads the engine stream in the native order, the two unkept draws included | `ShrapnelGripSlipDrawOrderGateTests`; mutation-checked — deleting the gore clip pick turns it red. This is the one thing the fake-stream cases CANNOT see, because the fake carries a script of its own, and it is why the gate exists |
+| the comparison | both sets of raw values are logged on a disagreement | `Roll_WhenTheReportedValuesDiffer_WarnsWithBothSets`, `Roll_WhenBothSidesDrewTheSameValues_StaysQuiet`; mutation-checked — `Differs => false` turns the first red |
+| the wire | `GripSlipNonce` plus the four values on `MedicalOperationUpdateMsg`, carried through `ShrapnelPieceUpdate` | both integration cases run the real `SendShrapnelUpdate` path; `ProtocolVersion` stays at the frozen pre-release baseline (decision 241) |
+| the limb write | the clamps are gone, so the authority's arithmetic matches the native `BreakGrasp` | the integration case asserts the exact before/after values |
+
+**Limits.** The native half is NOT proven by the suite: L0 builds no `ShrapnelMinigame` and no living `Body`,
+so that the operator's screen really draws what the authority derives, that the gore clip pick and the pitch
+shift really are the only two extra draws inside that call, and what a third-party view shows once the state
+lands are all acceptance rows 6-8. The comparison line is the runtime check that stands behind the first two
+of those. One assumption is named rather than hidden: `Sound.Play` rolls its pitch only when the clip loaded,
+so the authority's script assumes the game's own `gore1`-`gore5` resources are present — if they ever are
+not, that shows up as a logged disagreement on every slip rather than as a silent split.
+
+One asymmetry is named rather than hidden: a nonce of 0 means the reporting client held no window, and the
+authority then applies its OWN derived damage and compares nothing — its warning line says the other screen
+drew from the free-running stream, so a divergence in that case is announced as a possibility rather than
+measured. The packaged build always registers the window, which is why that line is the
+missing-registration symptom and not a routine case. Also unproven by the suite: whether the fake engine
+stream and the production one agree — the gate above pins the production script's ORDER, and only a live
+session can confirm that the engine really yields the same values on both machines.
 
 ## Non-goals
 

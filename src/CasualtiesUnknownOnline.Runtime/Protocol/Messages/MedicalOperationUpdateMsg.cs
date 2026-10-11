@@ -65,4 +65,23 @@ public sealed class MedicalOperationUpdateMsg
 
 	[ProtoMember(15)]
 	public bool Flag1 { get; set; }
+
+	// Derived grip-slip window payload. Meaningful only for a shrapnel break-grasp
+	// report; every other update leaves them at their defaults. See
+	// ShrapnelPieceUpdate.GripSlipNonce for why the nonce travels and
+	// ShrapnelGripSlipRoller for what the four values are used for.
+	[ProtoMember(16)]
+	public int GripSlipNonce { get; set; }
+
+	[ProtoMember(17)]
+	public float GripSlipSkin { get; set; }
+
+	[ProtoMember(18)]
+	public float GripSlipBleed { get; set; }
+
+	[ProtoMember(19)]
+	public float GripSlipPain { get; set; }
+
+	[ProtoMember(20)]
+	public float GripSlipBrainLoss { get; set; }
 }

@@ -47,6 +47,12 @@ internal static class PlayerInteractionComposition
 		// own use-action shape, which only the game's own code can answer
 		// (mod-cross-player-solid-food-semantics, step 3).
 		services.AddSingleton<ISolidFoodSemantics>(new NoSolidFoodSemantics());
+		// The engine random stream a shrapnel grip slip derives its window from, defaulted and
+		// replaced the same way: with no engine there is no stream to derive, so the authority
+		// refuses the slip's damage with an error line instead of inventing values. The plugin
+		// replaces it with the Game Adapter's engine-backed window
+		// (cross-player-item-use-random-determinism).
+		services.AddSingleton<IShrapnelGripSlipRandom>(new NoShrapnelGripSlipRandom());
 		// Remote medical operation session domain: generic start/update/end/cancel
 		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
 		// it for real-time injection; later stages reuse the same session envelope.

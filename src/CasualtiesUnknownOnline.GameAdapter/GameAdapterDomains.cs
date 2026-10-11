@@ -70,6 +70,9 @@ internal sealed class GameAdapterDomains
 	/// <summary>The game's own content facts behind the SOLID-FOOD chain (the DI-registered <c>ISolidFoodSemantics</c>), shared by the gesture routing for the same reason.</summary>
 	internal readonly ISolidFoodSemantics SolidFoodSemantics;
 
+	/// <summary>The engine random stream a shrapnel grip slip's derived window is taken from (the DI-registered <c>IShrapnelGripSlipRandom</c>), reached by the minigame patch so the operator's own screen draws the values the authority derives.</summary>
+	internal readonly IShrapnelGripSlipRandom GripSlipRandom;
+
 	internal readonly ILogger<GameAdapter> Log;
 
 	internal readonly CloneFactTable FactTable;
@@ -178,6 +181,7 @@ internal sealed class GameAdapterDomains
 		IConsumeSemantics consumeSemantics,
 		IWearSemantics wearSemantics,
 		ISolidFoodSemantics solidFoodSemantics,
+		IShrapnelGripSlipRandom gripSlipRandom,
 		ILoggerFactory loggerFactory,
 		GameAdapterItemContentProvider itemContent,
 		GameAdapterBuildingContentProvider buildingContent,
@@ -196,6 +200,7 @@ internal sealed class GameAdapterDomains
 		ConsumeSemantics = consumeSemantics;
 		WearSemantics = wearSemantics;
 		SolidFoodSemantics = solidFoodSemantics;
+		GripSlipRandom = gripSlipRandom;
 		ItemContent = itemContent;
 		BuildingContent = buildingContent;
 		TileContent = tileContent;

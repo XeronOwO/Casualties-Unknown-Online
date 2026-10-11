@@ -24,6 +24,7 @@ internal sealed class RemoteShrapnelOperationHandler
 	private static Action<ulong>? _cancelRequestSender;
 	private static Action<ulong>? _shrapnelEndRequestSender;
 	private static Action<ulong, ShrapnelPieceUpdate>? _shrapnelUpdateSender;
+	private static IShrapnelGripSlipRandom? _gripSlipRandom;
 
 	private readonly GameAdapterDomains _domains;
 
@@ -33,6 +34,7 @@ internal sealed class RemoteShrapnelOperationHandler
 		_cancelRequestSender = id => domains.PlayerInteraction.MedicalOperations.SendCancelRequest(id);
 		_shrapnelEndRequestSender = id => domains.PlayerInteraction.MedicalOperations.SendShrapnelEndRequest(id);
 		_shrapnelUpdateSender = (id, update) => domains.PlayerInteraction.MedicalOperations.SendShrapnelUpdate(id, update);
+		_gripSlipRandom = domains.GripSlipRandom;
 		domains.PlayerInteraction.MedicalOperations.StartAckReceived += OnStartAckReceived;
 	}
 
@@ -320,6 +322,55 @@ internal sealed class RemoteShrapnelOperationHandler
 		}
 	}
 
+	/// <summary>
+	/// Opens the derived window for one grip slip this client's own minigame is about to draw, and
+	/// snapshots the displayed limb the native call will move. Null when this minigame is not a shared
+	/// remote session's own operator copy, when the held piece cannot be named, or when the slip does
+	/// not belong to a live session — the native call then runs unwrapped, exactly as it did before the
+	/// window existed.
+	/// <para>
+	/// The nonce is taken here rather than read from the minigame because it counts slips THIS CLIENT
+	/// drew, which is the only fact that distinguishes one slip of a piece from the next on both sides;
+	/// several operators share one session, so the host's own counters cannot stand in for it. A build
+	/// with no engine stream still gets a slip object, with a nonce of zero — see
+	/// <see cref="RemoteShrapnelGripSlip"/>.
+	/// </para>
+	/// </summary>
+	internal static RemoteShrapnelGripSlip? TryBeginGripSlip(ShrapnelMinigame minigame)
+	{
+		var session = _activeShrapnel;
+		if (session is null || session.OperationId == 0 || _gripSlipRandom is null)
+		{
+			return null;
+		}
+
+		var traverse = Traverse.Create(minigame);
+		var objects = traverse.Field("objects").GetValue<List<RectTransform>>();
+		var held = traverse.Field("currentlyHeld").GetValue<RectTransform>();
+		if (objects is null || held == null) // Unity object — ==
+		{
+			return null;
+		}
+
+		var pieceIndex = objects.IndexOf(held);
+		if (pieceIndex < 0)
+		{
+			return null;
+		}
+
+		var limb = traverse.Field("limb").GetValue<Limb>();
+		if (limb == null) // Unity object — ==
+		{
+			return null;
+		}
+
+		var nonce = ++session.NextGripSlipNonce;
+		var window = _gripSlipRandom.TryEnterWindow(ShrapnelGripSlipSeed.Of(session.OperationId, pieceIndex, nonce));
+		return window is null
+			? new RemoteShrapnelGripSlip(null, limb, pieceIndex, 0)
+			: new RemoteShrapnelGripSlip(window, limb, pieceIndex, nonce);
+	}
+
 	private static void ReportFinalHeldRemoval(RemoteShrapnelUseSession session)
 	{
 		var minigame = session.Minigame;
@@ -469,5 +520,8 @@ internal sealed class RemoteShrapnelOperationHandler
 		internal List<ShrapnelPieceMsg> AuthoritativePieces { get; set; } = [];
 		internal bool EngineEnded { get; set; }
 		internal bool CancelledBeforeAck { get; set; }
+
+		/// <summary>This client's own count of the grip slips it has drawn for this session; it is the nonce both sides derive the slip's random state from.</summary>
+		internal int NextGripSlipNonce { get; set; }
 	}
 }

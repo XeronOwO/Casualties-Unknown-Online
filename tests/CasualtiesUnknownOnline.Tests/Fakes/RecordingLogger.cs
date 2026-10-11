@@ -24,4 +24,8 @@ internal sealed class RecordingLogger<T> : ILogger<T>
 	/// <summary>True when an error-level entry contains the fragment.</summary>
 	internal bool HasError(string fragment) =>
 		Entries.Exists(entry => entry.Level == LogLevel.Error && entry.Message.Contains(fragment, StringComparison.Ordinal));
+
+	/// <summary>True when a warning-level entry contains the fragment.</summary>
+	internal bool HasWarning(string fragment) =>
+		Entries.Exists(entry => entry.Level == LogLevel.Warning && entry.Message.Contains(fragment, StringComparison.Ordinal));
 }

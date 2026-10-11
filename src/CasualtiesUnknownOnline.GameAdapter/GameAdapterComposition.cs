@@ -218,5 +218,10 @@ public static class GameAdapterComposition
 		services.AddSingleton<GameSolidFoodFacts>();
 		services.Replace(ServiceDescriptor.Singleton<ISolidFoodSemantics>(
 			p => p.GetRequiredService<GameSolidFoodFacts>()));
+		// The engine random stream a shrapnel grip slip's derived window is taken from. The engine's
+		// own stream is the only thing both machines can draw the same values from, and this adapter
+		// is the only layer that may touch it (cross-player-item-use-random-determinism).
+		services.Replace(ServiceDescriptor.Singleton<IShrapnelGripSlipRandom>(
+			new EngineShrapnelGripSlipRandom()));
 	}
 }

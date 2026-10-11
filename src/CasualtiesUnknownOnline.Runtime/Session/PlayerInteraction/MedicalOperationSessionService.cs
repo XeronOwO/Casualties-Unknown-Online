@@ -59,6 +59,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
 		AdaptiveStreamRateService adaptiveRates,
+		IShrapnelGripSlipRandom gripSlipRandom,
 		ILogger<MedicalOperationSessionService> log)
 	{
 		_session = session;
@@ -83,6 +84,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			adaptiveRates,
 			_operationIds,
 			_bodyGate,
+			gripSlipRandom,
 			log);
 		_other = new OtherMedicalOperationSessionService(
 			session,

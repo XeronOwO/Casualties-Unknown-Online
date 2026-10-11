@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -116,37 +117,53 @@ internal static class RemoteShrapnelMinigamePatch
 	[HarmonyPatch(typeof(ShrapnelMinigame), "BreakGrasp")]
 	internal static class BreakGraspPatch
 	{
-		private static void Prefix(ShrapnelMinigame __instance, out int __state)
+		/// <summary>
+		/// Opens the derived window around the native draw: the slip both machines derive their random
+		/// state from, plus the displayed limb fields the call is about to move. Null when this
+		/// minigame is not the shared session's own operator copy, in which case the native call runs
+		/// unwrapped.
+		/// </summary>
+		private static void Prefix(ShrapnelMinigame __instance, out RemoteShrapnelGripSlip? __state)
 		{
-			__state = -1;
+			__state = null;
 			if (!RemoteMedicalView.IsOpen || !RemoteMedicalOperationHandler.IsActiveShrapnelMinigame(__instance))
 			{
 				return;
 			}
 
-			var objects = Traverse.Create(__instance).Field("objects").GetValue<List<RectTransform>>();
-			var held = Traverse.Create(__instance).Field("currentlyHeld").GetValue<RectTransform>();
-			if (objects is not null && held != null)
-			{
-				__state = objects.IndexOf(held);
-			}
+			__state = RemoteMedicalOperationHandler.TryBeginGripSlip(__instance);
 		}
 
-		private static void Postfix(ShrapnelMinigame __instance, int __state)
+		private static void Postfix(RemoteShrapnelGripSlip? __state)
 		{
-			if (!RemoteMedicalView.IsOpen
-				|| __state < 0
-				|| !RemoteMedicalOperationHandler.IsActiveShrapnelMinigame(__instance))
+			if (__state is null)
 			{
 				return;
 			}
 
+			// Read the displayed limb BEFORE the window closes: the native call wrote these values
+			// there, and they are what this client's screen is showing.
+			var values = __state.ReadValues();
+			__state.Close();
 			RemoteMedicalOperationHandler.ReportShrapnelUpdate(new ShrapnelPieceUpdate
 			{
-				PieceIndex = __state,
+				PieceIndex = __state.PieceIndex,
 				BreakGrasp = true,
 				OwnershipChange = true,
+				GripSlipNonce = __state.Nonce,
+				GripSlipValues = values,
 			});
+		}
+
+		/// <summary>
+		/// The native call threw, so the postfix never ran and the slip is still holding the engine
+		/// stream. Put it back. The slip is NOT reported: half-applied damage is not a slip the
+		/// authority should commit, and the authority's own draw never ran either.
+		/// </summary>
+		private static Exception? Finalizer(Exception? __exception, RemoteShrapnelGripSlip? __state)
+		{
+			__state?.Close();
+			return __exception;
 		}
 	}
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static CasualtiesUnknownOnline.Tests.Session.ShrapnelSessionFixture;
@@ -75,6 +76,76 @@ public class ShrapnelOperationApplicationTests
 		var limb = characters.GetHostCharacterData()!.Limbs.Single(l => l.Index == 1);
 		Assert.True(limb.Pain > 0f);
 		Assert.True(limb.BleedAmount > 0f);
+	}
+
+	[Fact]
+	public void BreakGrasp_WritesTheDerivedValuesOntoTheAuthoritativeLimb()
+	{
+		var w = CreateThreeNode();
+		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		MarkInWorld(w.Host);
+		MarkInWorld(w.Guest1);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var g1Ops = Ops(w.Guest1);
+		g1Ops.StartAckReceived += m => ack = m;
+		g1Ops.SendShrapnelStartRequest(HostId, 0, 1);
+		Assert.NotNull(ack);
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
+
+		var before = characters.GetHostCharacterData()!.Limbs.Single(l => l.Index == 1);
+		var skinBefore = before.SkinHealth;
+		var bleedBefore = before.BleedAmount;
+		var painBefore = before.Pain;
+
+		g1Ops.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, BreakGrasp = true, GripSlipNonce = 1 });
+
+		// The authority writes the values its OWN derived draw produced for this slip — the same state
+		// the operator's screen was put on — and not a fresh roll of its own.
+		var expected = FakeShrapnelGripSlipRandom.Script(ShrapnelGripSlipSeed.Of(ack.OperationId, 0, 1), isHead: false);
+		var limb = characters.GetHostCharacterData()!.Limbs.Single(l => l.Index == 1);
+		Assert.Equal(skinBefore - expected.Skin, limb.SkinHealth, 3);
+		Assert.Equal(bleedBefore + expected.Bleed, limb.BleedAmount, 3);
+		Assert.Equal(painBefore + expected.Pain, limb.Pain, 3);
+		Assert.Equal([ShrapnelGripSlipSeed.Of(ack.OperationId, 0, 1)], w.HostGripSlips.DrawnSeeds);
+	}
+
+	[Fact]
+	public void BreakGrasp_WithNoEngineStream_LeavesTheLimbAlone()
+	{
+		var w = CreateThreeNode();
+		w.HostGripSlips.Available = false;
+		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		MarkInWorld(w.Host);
+		MarkInWorld(w.Guest1);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var g1Ops = Ops(w.Guest1);
+		g1Ops.StartAckReceived += m => ack = m;
+		g1Ops.SendShrapnelStartRequest(HostId, 0, 1);
+		Assert.NotNull(ack);
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
+
+		var before = characters.GetHostCharacterData()!.Limbs.Single(l => l.Index == 1);
+		var skinBefore = before.SkinHealth;
+		var bleedBefore = before.BleedAmount;
+		var painBefore = before.Pain;
+		var states = new List<MedicalOperationStateMsg>();
+		Ops(w.Host).StateReceived += states.Add;
+
+		g1Ops.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, BreakGrasp = true, GripSlipNonce = 1 });
+
+		// A build with no engine stream applies nothing rather than inventing a value: the slip is
+		// refused, and the piece is still released so the session does not wedge on it.
+		var limb = characters.GetHostCharacterData()!.Limbs.Single(l => l.Index == 1);
+		Assert.Equal(skinBefore, limb.SkinHealth, 3);
+		Assert.Equal(bleedBefore, limb.BleedAmount, 3);
+		Assert.Equal(painBefore, limb.Pain, 3);
+		Assert.Equal(0UL, states.Last(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0)).ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);
 	}
 
 	[Fact]

@@ -333,6 +333,9 @@ internal sealed class RemoteMedicalOperationHandler
 	internal static void ReportShrapnelUpdate(ShrapnelPieceUpdate update) =>
 		RemoteShrapnelOperationHandler.ReportShrapnelUpdate(update);
 
+	internal static RemoteShrapnelGripSlip? TryBeginGripSlip(ShrapnelMinigame minigame) =>
+		RemoteShrapnelOperationHandler.TryBeginGripSlip(minigame);
+
 	internal static bool IsActiveShrapnelMinigame(ShrapnelMinigame minigame) =>
 		RemoteShrapnelOperationHandler.IsActiveShrapnelMinigame(minigame);
 

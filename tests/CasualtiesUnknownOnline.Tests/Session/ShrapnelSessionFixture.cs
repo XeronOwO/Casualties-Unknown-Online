@@ -1,8 +1,10 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
 
@@ -19,8 +21,14 @@ internal static class ShrapnelSessionFixture
 
 	internal const ulong LobbyId = 9001;
 
-	internal sealed record World(TestNode Host, TestNode Guest1, TestNode Guest2);
+	internal sealed record World(TestNode Host, TestNode Guest1, TestNode Guest2, FakeShrapnelGripSlipRandom HostGripSlips);
 
+	/// <summary>
+	/// The handshaken three-node world. Each node gets its OWN stand-in engine stream, because the two
+	/// machines' streams are genuinely separate: the host's is the one <see cref="World.HostGripSlips"/>
+	/// exposes for a test to read or pin, and the guests' exist so a guest-side call that reaches for a
+	/// window finds one instead of the null default.
+	/// </summary>
 	internal static World CreateThreeNode()
 	{
 		var clock = new FakeClock();
@@ -28,9 +36,10 @@ internal static class ShrapnelSessionFixture
 		var hostSteam = new FakeSteamService(HostId) { LobbyOwner = HostId, LobbyMembers = [HostId] };
 		var g1Steam = new FakeSteamService(Guest1Id) { LobbyOwner = HostId, LobbyMembers = [HostId, Guest1Id, Guest2Id] };
 		var g2Steam = new FakeSteamService(Guest2Id) { LobbyOwner = HostId, LobbyMembers = [HostId, Guest1Id, Guest2Id] };
-		var host = TestNode.Create(HostId, network, hostSteam, clock, pumpFirstFrame: true);
-		var g1 = TestNode.Create(Guest1Id, network, g1Steam, clock, pumpFirstFrame: true);
-		var g2 = TestNode.Create(Guest2Id, network, g2Steam, clock, pumpFirstFrame: true);
+		var hostGripSlips = new FakeShrapnelGripSlipRandom();
+		var host = TestNode.Create(HostId, network, hostSteam, clock, pumpFirstFrame: true, extraRegistrations: WithGripSlips(hostGripSlips));
+		var g1 = TestNode.Create(Guest1Id, network, g1Steam, clock, pumpFirstFrame: true, extraRegistrations: WithGripSlips(new FakeShrapnelGripSlipRandom()));
+		var g2 = TestNode.Create(Guest2Id, network, g2Steam, clock, pumpFirstFrame: true, extraRegistrations: WithGripSlips(new FakeShrapnelGripSlipRandom()));
 		host.Steam.FireLobbyCreated(LobbyId);
 		host.Steam.LobbyMembers = [HostId, Guest1Id, Guest2Id];
 		g1.Steam.FireLobbyEntered(LobbyId);
@@ -38,8 +47,11 @@ internal static class ShrapnelSessionFixture
 		host.Update();
 		g1.Update();
 		g2.Update();
-		return new World(host, g1, g2);
+		return new World(host, g1, g2, hostGripSlips);
 	}
+
+	private static Action<IServiceCollection> WithGripSlips(FakeShrapnelGripSlipRandom gripSlips) =>
+		services => services.Replace(ServiceDescriptor.Singleton<IShrapnelGripSlipRandom>(gripSlips));
 
 	internal static CharacterDataMsg Snapshot(ulong owner, bool conscious, params CharacterItemMsg[] items) => new()
 	{

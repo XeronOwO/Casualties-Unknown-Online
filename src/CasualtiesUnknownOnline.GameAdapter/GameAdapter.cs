@@ -111,13 +111,14 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		WorldRestoreAudit restoreAudit,
 		IStartingSupplyPublisher startingSupplies,
 		ISolidFoodSemantics solidFoodSemantics,
+		IShrapnelGripSlipRandom gripSlipRandom,
 		ITimeSource time)
 	{
 		_patches = new PatchInstallLifecycle(log);
 		_onlineUiSurface = new OnlineUiSurfaceHost(log);
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
-			enemies, worldTime, layerAdvance, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel, time);
+			enemies, worldTime, layerAdvance, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, gripSlipRandom, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel, time);
 		// Composition seam: the adapter owns the DEFERRED creation reports (a drop's
 		// velocity, a destructive trap's building-death drops, a block break's drops)
 		// and the item domain settles them before it reports an operation, so the host

@@ -33,6 +33,7 @@ internal sealed class ShrapnelOperationSessionService(
 	AdaptiveStreamRateService adaptiveRates,
 	MedicalOperationIdAllocator operationIds,
 	MedicalTargetBodyGate bodyGate,
+	IShrapnelGripSlipRandom gripSlipRandom,
 	ILogger log)
 {
 	private const int MaxPieces = 5;
@@ -50,6 +51,7 @@ internal sealed class ShrapnelOperationSessionService(
 	private readonly ILogger _log = log;
 
 	private readonly ShrapnelSessionStateWriter _writer = new(access, items, kernelAuthority, session, log);
+	private readonly ShrapnelGripSlipRoller _gripSlips = new(gripSlipRandom, log);
 	private readonly ShrapnelPositionReportBuffer _positionReports = new(session, sender, adaptiveRates, time, log);
 	private readonly ShrapnelStatePublisher _statePublisher = new(session, sender, new(access, items, kernelAuthority, session, log));
 	private readonly Dictionary<(ulong Target, int Limb), ShrapnelOperationSession> _sessions = [];
@@ -112,6 +114,11 @@ internal sealed class ShrapnelOperationSessionService(
 				Grabbed = update.Grabbed,
 				Released = update.Released,
 				BreakGrasp = update.BreakGrasp,
+				GripSlipNonce = update.GripSlipNonce,
+				GripSlipSkin = update.GripSlipValues.Skin,
+				GripSlipBleed = update.GripSlipValues.Bleed,
+				GripSlipPain = update.GripSlipValues.Pain,
+				GripSlipBrainLoss = update.GripSlipValues.BrainLoss,
 				OwnershipChange = update.OwnershipChange,
 			});
 			return;
@@ -136,6 +143,11 @@ internal sealed class ShrapnelOperationSessionService(
 				Grabbed = update.Grabbed,
 				Released = update.Released,
 				BreakGrasp = update.BreakGrasp,
+				GripSlipNonce = update.GripSlipNonce,
+				GripSlipSkin = update.GripSlipValues.Skin,
+				GripSlipBleed = update.GripSlipValues.Bleed,
+				GripSlipPain = update.GripSlipValues.Pain,
+				GripSlipBrainLoss = update.GripSlipValues.BrainLoss,
 				OwnershipChange = update.OwnershipChange,
 			}, reliable: true);
 			return;
@@ -300,7 +312,9 @@ internal sealed class ShrapnelOperationSessionService(
 				return;
 			}
 
-			_writer.ApplyBreakGrasp(shrapnel);
+			// The authority derives its own values for the slip and writes those; the reporting
+			// client's numbers ride along as evidence and are compared, never adopted.
+			_writer.ApplyBreakGrasp(shrapnel, _gripSlips.Roll(shrapnel, sender, msg, _writer.IsHeadLimb(shrapnel)));
 			piece.Owner = 0;
 		}
 		else

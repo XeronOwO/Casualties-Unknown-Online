@@ -100,6 +100,35 @@ sentence repeats the rule to take away: "No measured latency, window guess or to
 verdict." An abandoned request becomes an explicit refusal the operator can retry, not a verdict about
 the target.
 
+## When both machines would roll the same dice
+
+One cross-player action is rolled TWICE by construction. Pulling shrapnel out with a bare hand can break
+the grasp, the game's own minigame rolls the damage on whatever limb it was handed — and the operator's
+client hands it the limb of the body it displays, while the host rolls the same event again on the real
+one. Two screens then hold different values for one event, and neither is lying about what it saw.
+
+Waiting for the authority is the obvious fix and the one the rule above rejects: the operator's own hand
+just slipped, and a correction arriving a round trip later is a number that visibly changes under the
+cursor. So both machines derive the same random STATE for that one slip and draw from it. The operator's
+screen is right immediately, and the authority draws its OWN values from the same state instead of adopting
+the operator's — **the verdict does not move, only the dice do.**
+
+Three things make that honest rather than a guess. The state comes from facts BOTH machines hold, so no
+extra round trip is needed to agree on it: the operation id, the piece, and a nonce the operator puts on its
+report because it counts its OWN slips — a host-side counter cannot stand in for it, since several operators
+share one session. The authority reproduces the native READ ORDER exactly, including two draws nobody keeps
+(a gore clip pick and a sound's pitch shift), because a script that skipped them would hand the authority
+the operator's first values and a different last one. And the AUTHORITY compares: the operator reports what
+its screen actually moved by, the authority derives its own, and a disagreement is logged with both sets.
+That comparison is the only thing that notices a game update inserting or removing a draw, which would
+otherwise re-split the screens silently.
+
+The window is the engine's one global stream, held for the length of a short synchronous call and put back
+before it returns. It is scoped to the one site that needs it: a census of the game's own item delegates
+found no second action where both machines roll, and a shared seed at a site whose two runs consume
+different numbers of draws is worse than no seed at all — it produces a wrong value that looks
+authoritative.
+
 ## What this deliberately does not do
 
 - **It is not anti-cheat.** A client that lies about its own reach or its own body is out of scope

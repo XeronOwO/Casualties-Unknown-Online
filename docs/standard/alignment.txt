@@ -44,4 +44,4 @@ docs/en/start/install-and-play.md | a4beae7cabb4ab4a9f37e1e2c0b3ff4ded7cea82 | d
 docs/en/start/README.md | ca30fc1d1b32f72c146cc78db12850a11130cd4e | docs/zh/start/README.md | 919c5b19dc81461a3e588e12aab37ce9b33e6017
 docs/en/start/set-up-dev-environment.md | 6ae9fa5c64de11d0dde274ffa01d4eae4eeb6ad6 | docs/zh/start/set-up-dev-environment.md | c19f77df8c0acd3e0a9dee2a7a89c77d94971d50
 docs/en/start/what-is-cuo.md | 062db17bb99dfd3bf1e5fec87cccfd081e90df66 | docs/zh/start/what-is-cuo.md | 12631eb9527265097d0943d0d4a431f1c72dba62
-docs/en/start/your-first-mod.md | ca6c5168bc1b044ddf42dfb1d388e66052cce32b | docs/zh/start/your-first-mod.md | ac24c37d4860d8fc41f8515ead6066984c80cbe7
+docs/en/start/your-first-mod.md | 6e274557ab4f9eaf62f9e0c9377457820d56cff1 | docs/zh/start/your-first-mod.md | 0a2f481da4c731d6b242c91bead9053f2a6f11a9

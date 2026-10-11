@@ -242,10 +242,29 @@ than documented into the rule.
 
 ## Limits (as delivered)
 
-- The end-to-end half needs a live session AND a mod that registers an effect: the sample mod
-  (`src/CasualtiesUnknownOnline.ModExample/`) declares no liquid content, and `ModEffectBody` /
-  `ModEffectLimb` hold a live `Body` / `Limb`, which the test host cannot build. So the acceptance row
-  needs a throwaway mod fixture for the batch. Named rather than replaced by a weaker check.
+- The end-to-end half needs a live session AND a mod that registers an effect: `ModEffectBody` /
+  `ModEffectLimb` hold a live `Body` / `Limb`, which the test host cannot build. That fixture now exists:
+  `ExampleMod` declares `example.tonic` (`HealthUsable` and `Injectable` — both flags the game gates
+  `onHealthUse` on) with the liquid tile `example.tonic.pool`, and registers ONLY the drink half
+  (`src/CasualtiesUnknownOnline.ModExample/ExampleMod.cs`, `RegisterAuthoredBehaviour`). The tile is what
+  makes the liquid reachable at all — a mod liquid has no container item of its own (the item content
+  provider never builds a `LiquidItemInfo`), so the world fluid grid is where a player meets it and CUO's
+  own custom-byte handler is the site that runs `onDrink`. Three reach facts the batch has to work with
+  rather than assume. (a) Nothing places the pool: `SpawnAmount` is 0 so the fixture stays out of world
+  generation (`LiquidTileWorldGenDistribution` skips a zero amount before it touches the RNG), and the run
+  writes the byte the way `tools/acceptance/recipes/world-drink.cs` does. (b) The limb half is reached
+  LOCALLY through a vanilla container — a `WaterContainerItem` standing in the fluid cell auto-fills from
+  `FluidManager.WorldFluidToLiquidID` (`WaterContainerItem.cs:289-304`, gated on `autoFill` — true by
+  default, `LiquidItemInfo.cs:11` — `condition < 1` and no `Container` parent, and it consumes the cell;
+  the tile provider writes the NORMALISED `FillLiquidId` there, which for this fixture is `LiquidId`
+  itself) — and the wound view then takes its container branch (`ItemInfo.ActuallyUsableOnLimb` on a
+  `healthUsable` stack) into `ApplyToLimb` → `onHealthUse` → this ticket's reporting delegate. (c)
+  CROSS-PLAYER the topical and injection chains select a container by `LiquidItemInfo { usableOnLimb:
+  true }` (`GameLimbUseFacts`), and no such container can auto-fill — every `usableOnLimb` liquid item in
+  `Item.cs` sets `autoFill = false` — so carrying the tonic to another player needs the game's own
+  combine/pour step first, which the batch drives or names as a limit. One side effect of any mod liquid,
+  recorded rather than discovered: the injection puts `example.tonic` into `Liquids.Registry`, whose pool
+  `NonDescriptCan` picks from (`Liquids.Registry.PickRandom`).
 - The two game helpers this file replaces are named in `ModEffectBody`'s own doc comment: the dose
   components are reached with Unity's `GetComponent` / `AddComponent` instead of Unity.VisualScripting's
   `ComponentHolderProtocol`, which is not one of the referenced assemblies. The equivalence argument is

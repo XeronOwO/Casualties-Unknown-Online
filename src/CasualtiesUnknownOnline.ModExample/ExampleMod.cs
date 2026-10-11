@@ -28,10 +28,21 @@ namespace CasualtiesUnknownOnline.ModExample;
 /// <c>exampleweight</c> moves the value the declared dressing COMPUTES its
 /// weight and description from, so a rebuilt item table carries the new number
 /// instead of the one the declaration started with.
+///
+/// It authors BEHAVIOUR too — the one thing a content payload cannot carry, and
+/// therefore the one thing registered in code: <c>example.dressing</c> gets a use
+/// action and a limb action through <see cref="IModItemActions"/>, and
+/// <c>example.tonic</c> a drink effect through <see cref="IModLiquidEffects"/>,
+/// each keyed by content this mod owns. Two shapes with NO function sit beside
+/// them on purpose, because they are supported rather than broken:
+/// <c>example.placebo</c> declares itself usable and registers nothing, and the
+/// tonic declares <c>HealthUsable</c> with only its drink half registered. Either
+/// way the gesture completes, nothing on the body changes, and the framework says
+/// which content asked for a function nobody supplied.
 /// </summary>
 [CuoMod("cuo.example", "CUO Example", "0.1.0", NetworkMode = NetworkMode.Synchronized,
 	Permissions = ModPermission.SendNetworkMessage | ModPermission.RegisterCommand | ModPermission.ExecuteHostAction
-		| ModPermission.RegisterContent)]
+		| ModPermission.RegisterContent | ModPermission.AuthorEffects)]
 public sealed class ExampleMod : ICuoMod
 {
 	/// <summary>The declared echo packet: whoever sends it, the other members run the chain.</summary>
@@ -59,6 +70,57 @@ public sealed class ExampleMod : ICuoMod
 			Description = "Content registered by the CUO example mod.",
 			Category = "nospawn",
 		});
+
+		// A declared flag with NO registered function, on purpose: the item says it is
+		// usable and this mod supplies no use action, which is a supported outcome rather
+		// than a broken one — the gesture completes, nothing on the body changes, and one
+		// line names the content that asked for a function nobody supplied. It is also
+		// what a mod sees while it is still writing the action.
+		context.Content.TryRegister(new ModItemDefinition
+		{
+			Id = "example.placebo",
+			DisplayName = "Example Placebo",
+			Description = "Declared usable with no action registered — the framework reports instead of throwing.",
+			Category = "nospawn",
+			TemplateId = "bandage",
+			Usable = true,
+		});
+
+		// The liquid half, in the shape that makes it reachable at all: content first (the
+		// registration rail asks the content store who owns the id), then a liquid TILE —
+		// a mod liquid has no container item of its own, so the world fluid grid is the
+		// one place a player can meet it. SpawnAmount stays 0: this liquid is placed by a
+		// run, and one that spawned would change world generation for every other scenario.
+		context.Content.TryRegister(new ModLiquidDefinition
+		{
+			Id = "example.tonic",
+			DisplayName = "Example Tonic",
+			Description = "Declared by the CUO example mod; drinking it runs the example's own effect.",
+			ColorR = 0.35f,
+			ColorG = 0.85f,
+			ColorB = 0.55f,
+			ValuePerLiter = 4f,
+			HealthUsable = true,
+
+			// Both flags the game gates `onHealthUse` on are declared, while only the drink
+			// half is registered below, so the topical apply AND the injection reach the
+			// framework's reporting delegate. Declaring `HealthUsable` alone would leave the
+			// injection call site gated off entirely — a flag the game never reads is not a
+			// fixture for a call site.
+			Injectable = true,
+		});
+		context.Content.TryRegister(new ModLiquidTileDefinition
+		{
+			Id = "example.tonic.pool",
+			DisplayName = "Example Tonic",
+			Description = "The world-fluid face of example.tonic.",
+			LiquidId = "example.tonic",
+			TintR = 0.35f,
+			TintG = 0.85f,
+			TintB = 0.55f,
+		});
+
+		RegisterAuthoredBehaviour(context);
 
 		// The anonymous tunnel: one callback for every value this mod receives,
 		// and the fan-out written by hand. The value is typed, so the echo wraps
@@ -114,6 +176,70 @@ public sealed class ExampleMod : ICuoMod
 		context.SessionEnded += () => context.Logger.LogInformation("[Example] session ended.");
 		context.Logger.LogInformation("[Example] bound (session active: {Active}, host: {Host}).",
 			context.Session.SessionActive, context.Session.HostSteamId);
+	}
+
+	/// <summary>
+	/// The three registered functions, each standing where a native delegate stands:
+	/// the dressing's use action (<c>Body.UseItem</c>), the dressing's limb action (the
+	/// game's own wound view on this client, and CUO's cross-player limb-tool chain on
+	/// the treated player's own client), and the tonic's drink effect. Each one logs the
+	/// state it moved, before and after, because what a fixture owes a run is a reading
+	/// somebody else can check.
+	///
+	/// Every registration answers with a verdict rather than throwing, so this method
+	/// reads each one instead of assuming it: a rail that does not hold (the definition
+	/// does not declare the flag the native call site is gated on, the content is not
+	/// this mod's, the half is already registered) refuses the function and logs why, and
+	/// a fixture that reported success while nothing was installed would be worse than one
+	/// that failed loudly.
+	/// </summary>
+	private static void RegisterAuthoredBehaviour(IModContext context)
+	{
+		var use = context.ItemActions.TryRegisterUse("example.dressing", action =>
+		{
+			var before = action.Item.Condition;
+			action.Item.AddCondition(-0.1f);
+			action.Body.AddVital(ModBodyVital.Happiness, 1f);
+			context.Logger.LogInformation("[Example] {Item} used: condition {Before:0.###} -> {After:0.###}.",
+				action.ItemId, before, action.Item.Condition);
+		});
+
+		var limb = context.ItemActions.TryRegisterLimbUse("example.dressing", action =>
+		{
+			if (action.Limb is not { } treated)
+			{
+				// The native limb call always names one; this is the compiler's null, not the
+				// game's. Reported rather than returned from in silence: a fixture is judged
+				// by the lines it wrote, and a branch that writes none is unreadable either way.
+				context.Logger.LogWarning("[Example] {Item} limb action ran with no limb — nothing was applied.",
+					action.ItemId);
+				return;
+			}
+
+			var bleedBefore = treated.GetVital(ModLimbVital.Bleed);
+			treated.SetVital(ModLimbVital.Bleed, 0f);
+			treated.AddVital(ModLimbVital.BandageSlow, 0.5f);
+			action.Item.AddCondition(-0.1f);
+			context.Logger.LogInformation(
+				"[Example] {Item} applied to {Limb} (#{Index}): bleed {BleedBefore:0.###} -> {BleedAfter:0.###}, condition {Condition:0.###}.",
+				action.ItemId, treated.Name, treated.Index, bleedBefore, treated.GetVital(ModLimbVital.Bleed),
+				action.Item.Condition);
+		});
+
+		// Only the DRINK half is registered: the tonic's own declaration carries
+		// HealthUsable, so applying or injecting it reaches the game's limb call site with
+		// no function behind it — the reporting path, exercised on purpose.
+		var drink = context.LiquidEffects.TryRegisterDrink("example.tonic", effect =>
+		{
+			var before = effect.Body.GetVital(ModBodyVital.Thirst);
+			effect.Body.AddVital(ModBodyVital.Thirst, -20f);
+			context.Logger.LogInformation("[Example] {Liquid} drunk ({Amount:0.#} ml): thirst {Before:0.#} -> {After:0.#}.",
+				effect.LiquidId, effect.AmountMl, before, effect.Body.GetVital(ModBodyVital.Thirst));
+		});
+
+		context.Logger.LogInformation(
+			"[Example] authored behaviour registered — dressing use={Use}, dressing limb={Limb}, tonic drink={Drink}.",
+			use, limb, drink);
 	}
 
 	public void Initialize() => _context?.Logger.LogInformation("[Example] initialized.");
@@ -201,11 +327,25 @@ public sealed class ExampleMod : ICuoMod
 
 		public int Value => 10;
 
-		public bool Usable => false;
+		/// <summary>
+		/// True because this mod authors a use action for it (see
+		/// <see cref="RegisterAuthoredBehaviour"/>): the flag is the gate BOTH of the
+		/// game's use call sites read, and the registration rail refuses an action the
+		/// gate could never reach. The declaration and the registration are one fact
+		/// stated twice, which is why the fixture carries both.
+		/// </summary>
+		public bool Usable => true;
 
 		public bool UsableWithLmb => false;
 
-		public bool UsableOnLimb => false;
+		/// <summary>
+		/// True for the same reason on the limb half, and it is also what makes the game
+		/// offer the dressing on a limb at all. That is what lets CUO's cross-player
+		/// limb-tool chain carry a mod item with no id table and no wire change: the
+		/// chain asks exactly this flag plus a non-null limb action, and runs it on the
+		/// treated player's own client.
+		/// </summary>
+		public bool UsableOnLimb => true;
 
 		public IModItemWearable? Wearable => null;
 

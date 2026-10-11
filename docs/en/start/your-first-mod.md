@@ -34,7 +34,7 @@ BepInEx. All logic lives there, and it references `CUO.Abstractions` only.
 ```csharp
 [CuoMod("cuo.example", "CUO Example", "0.1.0", NetworkMode = NetworkMode.Synchronized,
 	Permissions = ModPermission.SendNetworkMessage | ModPermission.RegisterCommand
-		| ModPermission.ExecuteHostAction | ModPermission.RegisterContent)]
+		| ModPermission.ExecuteHostAction | ModPermission.RegisterContent | ModPermission.AuthorEffects)]
 public sealed class ExampleMod : ICuoMod
 ```
 

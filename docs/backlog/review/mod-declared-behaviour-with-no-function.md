@@ -188,9 +188,16 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself â
 
 ## Limits
 
-- The end-to-end half needs a mod that declares these flags; the sample mod
-  (`src/CasualtiesUnknownOnline.ModExample/`) declares no item or liquid content, so the acceptance row
-  needs a throwaway mod fixture built for the batch. Named rather than replaced by a weaker check.
+- The end-to-end half needs a mod that declares these flags. Both halves of that fixture now exist in
+  `src/CasualtiesUnknownOnline.ModExample/`: `example.placebo` declares `Usable` and registers no action,
+  so the game's own use call site runs the invoker's reporting delegate, and `example.tonic` declares
+  `HealthUsable` + `Injectable` with only its drink half registered, so applying it through a container
+  that holds it reaches the liquid half's reporting delegate. The reach path is this ticket's own
+  mechanism row 6 (the mod's liquid tile, and a container it fills), and the setup a run owes is named on
+  `docs/backlog/review/mod-authored-effects.md`, which owns that registration: the pool is placed by the
+  run (`SpawnAmount` is 0, so nothing spawns it), and the placebo is obtained through the game's own item
+  creation (`Utils.Create`, which the console's `spawn` reaches) because it declares no recipe and no world
+  spawn.
 - A tier-3 plugin that writes into `Liquids.Registry` / `Item.GlobalItems` itself is outside the content
   API's promises; only CUO's own handler (#5) is guarded against it.
 - The tile handler's refusal and the three appliers' skip branches need live Unity objects (`FluidManager`,

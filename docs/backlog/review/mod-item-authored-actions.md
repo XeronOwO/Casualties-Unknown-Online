@@ -157,8 +157,13 @@ accessors or goes to the hatch.
 - **The end-to-end half needs a live session.** L0 builds no live `Item` or `Body`, so neither the guarded
   invocation nor the operation implementations are driven at the level a real use reaches: the evidence is
   the resolution cases above plus the source-level gate, and the acceptance row is what judges the rest.
-  A mod that registers an action is needed for the batch — the sample mod declares no item content of its
-  own beyond the dressing, which declares neither `Usable` nor `UsableOnLimb`.
+  The mod that registers an action — the fixture half that was missing — now exists: `example.dressing`
+  declares both `Usable` and `UsableOnLimb`, and `ExampleMod` registers both halves in `Bind`
+  (`src/CasualtiesUnknownOnline.ModExample/ExampleMod.cs`, `RegisterAuthoredBehaviour`), so the use half
+  is what the game's own `Body.UseItem` runs and the limb half is what the wound view runs — and, on a
+  two-client session, what CUO's cross-player limb-tool chain runs on the treated player's own client.
+  The declared-flag-with-no-function shape sits beside it as `example.placebo` (usable, nothing
+  registered), which is the sibling ticket's item row.
 - **No red was observed for the guard.** A throwing action costs the action and not the gesture, but the
   throw can only happen on the path L0 cannot reach, so the guard is source-verified here and rides the
   acceptance row.

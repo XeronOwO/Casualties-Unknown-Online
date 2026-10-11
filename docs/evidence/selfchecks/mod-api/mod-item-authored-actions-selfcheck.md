@@ -1,8 +1,8 @@
 # Mod-authored item actions — self-check (2026-10-11)
 
-Ticket: `docs/backlog/review/mod-item-authored-actions.md`, cut out of the ceiling ticket's Part 3.A on
+Ticket: `docs/backlog/done/mod-item-authored-actions.md`, cut out of the ceiling ticket's Part 3.A on
 2026-10-11 and landed the same day. The design record it follows is the liquid half's,
-`docs/backlog/review/mod-authored-effects.md` (decision 255 / 256): a function is not data, so it is
+`docs/backlog/done/mod-authored-effects.md` (decision 255 / 256): a function is not data, so it is
 registered in code keyed by the content id its owner registered. **Scope of this cycle: the ITEM half** —
 `ItemInfo.useAction` and `ItemInfo.useLimbAction` become authorable, the flag the limb half needs
 (`usableOnLimb`) becomes declarable, and the reachability rail is added — on the item's own two halves,

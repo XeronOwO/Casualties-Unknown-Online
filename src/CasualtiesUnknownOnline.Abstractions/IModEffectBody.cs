@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// the whole write surface the primary path offers: every member below is an
 /// operation CUO names, documents and keeps stable, and each one is grown from a
 /// write the game's own shipped liquids perform — the census in
-/// <c>docs/backlog/review/mod-authored-effects.md</c> is where the list comes from.
+/// <c>docs/backlog/done/mod-authored-effects.md</c> is where the list comes from.
 ///
 /// <para>
 /// The operations are the game's own semantics, not a reimplementation: the two

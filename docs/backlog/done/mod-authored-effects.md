@@ -1,19 +1,22 @@
 # Mod-authored effects: the code registration face and the operation surface it writes through
 
-- Status: Review — **promoted 2026-10-08 by the user's directive**, which supersedes the ceiling ticket's
+- Status: Done — **promoted 2026-10-08 by the user's directive**, which supersedes the ceiling ticket's
   Stage 3 gate. The gate said "only if stage 2 leaves a real need ... trigger is a second real consumer";
   the user's ruling is that a highly customisable effect surface is the point of the mod platform, so the
   consumer count is no longer the trigger. The old gate is recorded as SUPERSEDED (not deleted) in
   `mod-content-ceiling.md`'s Stage 3 paragraph, with this ticket as its successor. **Order:** it follows
   `mod-content-typed-registration.md`, which retypes the content contract this surface registers into.
   **Landed 2026-10-11** (see *What landed*): the census, the contract, the Runtime rails, the Game Adapter
-  implementation, the docs and the decisions are in, and what remains is the acceptance batch's own row —
-  a live session is the only thing that can judge whether the effect lands on the right body and the right
-  limb, and L0 builds no live `Body`.
+  implementation, the docs and the decisions are in. **Accepted 2026-10-11 in batch `20261011-k`**
+  (`docs/evidence/acceptance/mod-authored-effects-20261011-k.md`): every row passes with no residual — the
+  registered drink effect lands on the drinking player's own body through CUO's own custom-byte handler, the
+  load-time report names the half with no function, and both guards were driven with a run-planted throwing
+  effect (the fixture ships none). A live session judged them, which is what the ticket said only a session
+  could.
 - Priority: High (user-promoted)
 - Category: Mod platform / mod API
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2 Stage 3 and Part 3.A's effect gap)
-- Related: `docs/backlog/review/mod-declared-behaviour-with-no-function.md` (the cycle that makes a
+- Related: `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (the cycle that makes a
   declaration without a function non-fatal, and whose inert default is this ticket's no-effect-registered
   path), `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md` (the tiers and the
   promotion funnel), `docs/decisions/active.md` (184: the affected side judges on its own picture),
@@ -284,7 +287,7 @@ than documented into the rule.
   a named store question (`HasLimbUse`, covered by a case) but whose CALL SITE reads `Liquids.Registry`
   and therefore needs the game.
 - **The liquid side's limb half gained a reachability rail on 2026-10-11** (in
-  `docs/backlog/review/mod-item-authored-actions.md`'s cycle, raised by that cycle's adversarial review):
+  `docs/backlog/done/mod-item-authored-actions.md`'s cycle, raised by that cycle's adversarial review):
   `TryRegisterLimbUse` is now refused when the definition declares NEITHER `HealthUsable` nor
   `Injectable`, because the game runs `onHealthUse` behind exactly those two flags
   (`WaterContainerItem.cs:228-230` / `:254-256`, and CUO's own topical/injection appliers check the same
@@ -303,7 +306,7 @@ than documented into the rule.
   it takes its own message and its own protocol decision.
 - Not the item half (`useAction`, `useLimbAction`) — the declared follow-on this stage's census was
   explicitly allowed to cover only part of. **It landed 2026-10-11 as
-  `docs/backlog/review/mod-item-authored-actions.md`**, on this ticket's own code-registration shape: the
+  `docs/backlog/done/mod-item-authored-actions.md`**, on this ticket's own code-registration shape: the
   item's own reachability rail (both native calls sit behind a flag the definition carries), its own small
   named-operation accessor (`IModEffectItem`: `Condition` / `AddCondition` / `SetCondition`), and the same
   `ModPermission.AuthorEffects` bit.

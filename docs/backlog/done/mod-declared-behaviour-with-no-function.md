@@ -1,13 +1,16 @@
 # A declared behaviour with no function: a mod item's use and a mod liquid's effect
 
-- Status: Review — **cut 2026-10-08** out of `mod-content-ceiling.md` Part 3.A, which lists the liquid effect
+- Status: Done — **cut 2026-10-08** out of `mod-content-ceiling.md` Part 3.A, which lists the liquid effect
   delegates as a content-surface field gap and leaves one open question: whether the native path refuses a
   missing effect or throws. **It throws** (see *Current readings*), so that half is a defect of a surface the
   API already promises rather than a new capability. The family audit run while cutting it found the item
   twin (`Usable` / `UsableWithLmb` with no `useAction`), and Part 3.A's own rule — fix the family, not the
   reported case — puts both halves in this one cycle. Landed 2026-10-08 (see *What landed*): the code half is
-  complete, the shape was ruled by the user and the independent review raised no blocker or major, so what
-  remains is the acceptance batch's own row and nothing to develop.
+  complete and the independent review raised no blocker or major. **Accepted 2026-10-11 in batch
+  `20261011-k`** (`docs/evidence/acceptance/mod-declared-behaviour-with-no-function-20261011-k.md`): every
+  row passes with no residual — the declared item with no action and the declared liquid with no limb effect
+  both report instead of throwing, and CUO's own custom-byte drink handler refuses a registry entry that
+  carries no delegate at all.
 - Priority: High
 - Category: Mod platform / content binding
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A)
@@ -194,7 +197,7 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself �
   `HealthUsable` + `Injectable` with only its drink half registered, so applying it through a container
   that holds it reaches the liquid half's reporting delegate. The reach path is this ticket's own
   mechanism row 6 (the mod's liquid tile, and a container it fills), and the setup a run owes is named on
-  `docs/backlog/review/mod-authored-effects.md`, which owns that registration: the pool is placed by the
+  `docs/backlog/done/mod-authored-effects.md`, which owns that registration: the pool is placed by the
   run (`SpawnAmount` is 0, so nothing spawns it), and the placebo is obtained through the game's own item
   creation (`Utils.Create`, which the console's `spawn` reaches) because it declares no recipe and no world
   spawn.
@@ -216,7 +219,7 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself �
 ## Non-goals
 
 - Not the mod-authored effect-function surface (the parent ticket's Stage 3) — **which landed 2026-10-11**
-  as `docs/backlog/review/mod-authored-effects.md`: a mod authors a liquid's two native functions in code,
+  as `docs/backlog/done/mod-authored-effects.md`: a mod authors a liquid's two native functions in code,
   keyed by the liquid's content id, and the reporting no-op this ticket installed is what an unregistered
   half falls back to.
 - Not the other Part 3.A field gaps (`useLimbAction`, the wearable set, the miscellaneous reads) — each keeps
@@ -228,8 +231,8 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself �
   the same native-evidence shape this ticket used, and its own finding was made while auditing this family.
   The `useLimbAction` half was the last one still open, and the reason this ticket gave for it was half
   right: its consumer IS a delegate, but `Abstractions` CAN carry one now —
-  `review/mod-authored-effects.md` landed the registration face that makes a mod-authored function
+  `done/mod-authored-effects.md` landed the registration face that makes a mod-authored function
   expressible, and the ITEM half of that surface followed on 2026-10-11
-  (`review/mod-item-authored-actions.md`): `Usable` / `UsableWithLmb` / `UsableOnLimb` now have authorable
+  (`done/mod-item-authored-actions.md`): `Usable` / `UsableWithLmb` / `UsableOnLimb` now have authorable
   `useAction` / `useLimbAction` functions, so the reporting no-op this ticket installed is the "no action
   registered" path rather than the only path.

@@ -111,7 +111,7 @@ reusable half.
   are declared writes, but the deviation from the declared setup belongs in the record rather than in a
   reader's inference.
 - **A capability finding this batch did not act on: no mod in this tree exercises the mod API.**
-  `docs/backlog/review/mod-authored-effects.md` and `docs/backlog/review/mod-item-authored-actions.md` both
+  `docs/backlog/done/mod-authored-effects.md` and `docs/backlog/done/mod-item-authored-actions.md` both
   need a live session for their end-to-end rows, and both clients were up and running the deployed surface —
   but the sample mod declares no item content beyond the dressing, and the dressing declares neither `Usable`
   nor `UsableOnLimb`, so placing the built DLL would have exercised the registration rails and nothing else.

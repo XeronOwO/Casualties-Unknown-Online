@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 ///
 /// <para>
 /// Every member is grown from a write the game's own shipped liquids perform on a
-/// limb (the census in <c>docs/backlog/review/mod-authored-effects.md</c>), and the
+/// limb (the census in <c>docs/backlog/done/mod-authored-effects.md</c>), and the
 /// game's own semantics are what runs: <see cref="Disinfect"/> is the game's own
 /// <c>Limb.SetDisinfect</c>, not a field write, and the vitals are the fields the
 /// game's own formulas touch. Two of them are reached from the drink path as well

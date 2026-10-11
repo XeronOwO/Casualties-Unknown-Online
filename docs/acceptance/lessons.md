@@ -3009,6 +3009,84 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   such line per client as this channel's known baseline. Word such a row about the mechanism under test ("no
   item-provider refusal, and the provider's own lines are all Info") rather than about every error in the file.
 
+## 2026-10-11 — The game derives a field once, for its own table; an injected definition owns it after that
+
+- Symptom: batch `20261011-k`'s fixture item — `example.placebo`, the example mod's "declared usable, no
+  action registered" shape — threw `ArgumentNullException: Value cannot be null. Parameter name: source`
+  from `ItemInfo.HasTag`, once per item on BOTH clients at creation and once per frame while it sat in the
+  hand slot (2,174 `HasTag` frames in the session-1 census). The item still existed and was still usable, so
+  nothing in the row the run was judging said the fixture was broken.
+- Cause: the game's own item-table pass ends by writing three derived members per entry (`fullName`,
+  `description`, and `SetTags()` → the private `actualTags` array). CUO injects its definitions AFTER that
+  pass, so it never runs for them, and `ModItemInfoFactory` populates `actualTags` only when the definition
+  declares a non-blank `Tags`. `Tags` defaults to `""`, so the array keeps its CLR default and the game's own
+  `HasTag` (an `Enumerable.Contains` over it) throws wherever it is asked.
+- Change: filed as `docs/backlog/todo/mod-item-with-no-declared-tags-throws.md` with this run's numbers (a
+  batch validates and does not change code). The rule a fix must carry: a derived member the game's own table
+  pass writes is the injected definition's to write, and a collection must exist even when it is empty.
+
+## 2026-10-11 — One throwing frame can brick the process: the call-context depth guard latches
+
+- Symptom: the same batch's first session went from one exception to a 136,445-line / 15,706,048-byte host
+  log (re-derived 2026-10-11 from the rotated log and landed as the batch's
+  `f3-host-session1-storm-census.txt`), 19,973 of those lines
+  `InvalidOperationException: CallContext.Enter depth 16 exceeded — an Enter was never disposed (leaked
+  scope)`, i.e. every scope-entering patched path in that client throwing on its own account over 92
+  seconds. Nothing recovered it; that session could only be ended.
+- Cause: the guard's own message names the mechanism — an `Enter` was never disposed. The window it happened
+  in is the one where a game-side throw fired per frame, and the frame that entered the scope is NOT in the
+  captured stacks: what fits the source is `Body.HandleVisuals`, which CUO wraps in a `CallContext` scope
+  (`Patches/BurpSoundPatches.cs`) and which asks `HasTag("gun")` on the per-frame path — NOT the two frames
+  this entry first named (`PlayerCamera.HandleGunMenu` has no CUO patch, and `Item.Start`'s patch is a
+  postfix with no scope). A batch's own review caught the mis-naming, which is the lesson inside the lesson:
+  a mechanism sentence must be built from the artifact, not from the frame the log happens to print first.
+- Change: the run's own discipline — a fixture known to throw is driven LAST in its session, and a client in
+  this state is restarted rather than fought (this batch's second session did exactly that and judged its
+  remaining rows cleanly). The amplifier is the second half of the same ticket, so one fix decides whether
+  scope disposal survives a throwing original.
+
+## 2026-10-11 — A parameterized recipe cannot put a placeholder inside a lambda
+
+- Symptom: the guard rows needed a mod function that throws, which no fixture ships, and the first attempt to
+  promote the probe as an ordinary recipe could not be written: the delegate body has to read the timed key,
+  the duration and the threshold, and an evaluator lambda refuses a captured local.
+- Cause: two limits meet — the evaluator's Mono REPL refuses a lambda that captures a non-const local, and a
+  recipe's placeholder may appear exactly once, so `{{s:key}}` cannot be repeated inside the delegate that
+  reads it back.
+- Change: the promoted recipe (`tools/acceptance/recipes/plant-throwing-effect.cs`) declares `// args: none`
+  and writes its keys and thresholds as LITERALS inside the lambdas, and its header says why a parameterized
+  version of that shape cannot exist. A run that needs other values writes its own batch-local probe the
+  same way.
+
+## 2026-10-11 — Write probes as files on this channel, not as inline snippets
+
+- Symptom: a brace-heavy probe sent through the local eval client's inline `--code` form answered
+  `eval_error … Unexpected symbol '{'` while the same snippet as a file ran first time; an earlier snippet in
+  the same batch answered `ok` with NO value at all — the silent void the evaluator returns when a
+  submission's shape trips it.
+- Cause: the inline form has to survive the shell, the argument quoting and the client's own parser at once,
+  where the file form has none of that and also leaves the probe in the batch directory where a record can
+  cite it.
+- Change: every probe a record cites lives as its own file under the batch's artifact directory, and the
+  reusable ones are promoted into `tools/acceptance/recipes/` before the batch closes (this round:
+  `remote-medical-release.cs` — the cross-player release no committed recipe covered — and
+  `plant-throwing-effect.cs`). `ok` without a value is a failed probe, never a passing one.
+
+## 2026-10-11 — The remote half of the wound-view release had no committed drive at all
+
+- Symptom: the cross-player limb-tool row of `mod-item-authored-actions` — "the treated player's own client
+  runs the item's own limb action" — had no recipe to reach it. `remote-gesture mode=medical` refuses by
+  design unless the selected limb is the acting client's OWN, and the medical view's remote half routes
+  through a patch (`RemoteMedicalBlockSpecialActionPatch`) that only fires when the display body's view is
+  open.
+- Cause: the two halves of one native gesture were built as two entries and only the local one was committed;
+  the remote entry needs the display focus open (`remote-wound-special mode=open`), the view pointed at the
+  treated limb, and a local item dragged onto that limb's `WoundViewLimb` — which is exactly what
+  `remote-gesture`'s own guard forbids.
+- Change: `tools/acceptance/recipes/remote-medical-release.cs` (args `item`, `limb`) is the remote half, and
+  the batch's record names it. A future cross-player topical/injection/limb-tool row starts from it instead of
+  rediscovering that the local recipe refuses.
+
 
 
 

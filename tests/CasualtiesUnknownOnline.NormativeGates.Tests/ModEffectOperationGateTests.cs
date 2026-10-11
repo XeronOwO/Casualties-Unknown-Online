@@ -14,8 +14,8 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// body and limb state through an ENUM-KEYED operation surface
 /// (<c>ModBodyVital</c> / <c>ModLimbVital</c>), and the whole point of that shape is
 /// that the set is enumerable: every member names a game field a census found (the
-/// liquid census in <c>docs/backlog/review/mod-authored-effects.md</c>, the item
-/// census in <c>docs/backlog/review/mod-item-authored-actions.md</c>), and the one
+/// liquid census in <c>docs/backlog/done/mod-authored-effects.md</c>, the item
+/// census in <c>docs/backlog/done/mod-item-authored-actions.md</c>), and the one
 /// mapping table in the Game Adapter answers for every one of them.
 ///
 /// <para>

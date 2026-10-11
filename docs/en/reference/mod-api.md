@@ -729,7 +729,7 @@ public sealed class ChemistryMod : ICuoMod
   `context.Limb` (`IModEffectLimb`) carries `Index`, `Name`, the classification flags, `Body`,
   `ConnectedLimbs`, an add/set/get pair over `ModLimbVital`'s nine members, and `Disinfect`. Every member
   is one of the writes the game's own shipped liquids perform — the census behind the list is in
-  `docs/backlog/review/mod-authored-effects.md`. The engine's own semantics run, not an approximation:
+  `docs/backlog/done/mod-authored-effects.md`. The engine's own semantics run, not an approximation:
   `Drink` and `Eat` are the game's methods with their side effects, the doses go through the game's
   components, and a timed body ticks once immediately and then once per game second through the game's own
   `CoUtils` clock — where calling it again under a live key EXTENDS the duration and keeps the tick
@@ -841,7 +841,7 @@ public sealed class MedicineMod : ICuoMod
   perform) and `SetCondition` (through the game's own `Item.SetCondition`, which scales a liquid
   container's contents to match). Everything else those delegates touch on the item — a sprite swap, a
   sound, a replacement object, a component lookup — is engine work and is reached through
-  `context.NativeObject`. The census is in `docs/backlog/review/mod-item-authored-actions.md`.
+  `context.NativeObject`. The census is in `docs/backlog/done/mod-item-authored-actions.md`.
 - **The body and limb write surface is shared with the liquid effects** — the same `IModEffectBody` /
   `IModEffectLimb`, grown from what the game's own shipped liquids AND items write, so an item action is
   not limited to a second, smaller list.

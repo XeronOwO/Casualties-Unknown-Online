@@ -5,9 +5,9 @@
   starts, and the inventory stays the source of truth.
 - Priority: High
 - Category: Mod platform / architecture
-- Related: `docs/backlog/review/mod-authored-effects.md` (Stage 3, cut out on 2026-10-08 with the user's
+- Related: `docs/backlog/done/mod-authored-effects.md` (Stage 3, cut out on 2026-10-08 with the user's
   ruling that supersedes its consumer gate),
-  `docs/backlog/review/mod-declared-behaviour-with-no-function.md` (Part 3.A's declared-behaviour gap,
+  `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (Part 3.A's declared-behaviour gap,
   cut out on 2026-10-08 with its item twin), `docs/backlog/review/mod-defined-wire-packets.md` (Part 3's
   custom replication domains, promoted on its own),
   `docs/backlog/review/mod-cross-player-native-semantics.md` (Part 2 stage 2, cut out on 2026-10-08),
@@ -134,7 +134,7 @@ Consequences:
   limb-use behaviour (the wearable half landed 2026-10-11,
   `docs/backlog/review/mod-item-wearable-declaration.md`), and the liquid effect delegates are not DTO
   members at all — they landed 2026-10-11 as a CODE registration keyed by the liquid's content id
-  (`docs/backlog/review/mod-authored-effects.md`), because a payload travels to every peer as data and
+  (`docs/backlog/done/mod-authored-effects.md`), because a payload travels to every peer as data and
   cannot carry a function.
   (Qualities are no longer in this list — item and liquid qualities landed 2026-10-07 with stage 1,
   `review/mod-crafting-quality-labels.md`.)
@@ -170,7 +170,7 @@ delete the constant table and every existing acceptance case of that chain stays
 **Stage 3 — mod-registered semantics.** A registration surface for semantics the game's own data cannot
 express (a mod-authored effect or medical interaction, for example). It needs a permission and consistency
 rules, and a wire face only where the existing chains do not already carry what the effect needs. **Cut
-2026-10-08 as `review/mod-authored-effects.md`, landed 2026-10-11.** The paragraph's old trigger — "only if
+2026-10-08 as `done/mod-authored-effects.md`, landed 2026-10-11.** The paragraph's old trigger — "only if
 stage 2 leaves a real need ... trigger is a second real consumer" — is **SUPERSEDED** by the user's
 2026-10-08 ruling that a highly customisable effect surface is the point of the platform, so the consumer
 count is no longer the gate; the successor ticket carries the supersession with the ruling in the user's
@@ -199,7 +199,7 @@ Item side (`ItemInfo` versus `ModItemDefinition` and its behaviour DTOs):
   chain reads the game's own data for every vanilla limb action now, but the DTO could not declare one
   and no function was expressible: a mod item had no limb-use behaviour, so it was carried, dropped and
   saved and never applied. **Cut and landed 2026-10-11 as
-  `docs/backlog/review/mod-item-authored-actions.md`**, together with the item half of the effect gap —
+  `docs/backlog/done/mod-item-authored-actions.md`**, together with the item half of the effect gap —
   the entry is not a gap in the function surface alone but in the DECLARATION too: `ItemInfo.usableOnLimb`
   had no DTO member at all, which is the flag the game's own wound view and CUO's cross-player limb-tool
   chain both read.
@@ -229,14 +229,14 @@ Liquid side (`LiquidType` versus `ModLiquidDefinition`):
 
 - **`onDrink` / `onHealthUse`** — the effect delegates. `GameAdapterLiquidContentProvider` maps only the
   static fields, so a mod liquid can declare `HealthUsable` while no effect function exists. **Cut
-  2026-10-08 as `review/mod-declared-behaviour-with-no-function.md`**: the native path does not null-check, so
+  2026-10-08 as `done/mod-declared-behaviour-with-no-function.md`**: the native path does not null-check, so
   the gap is a crash rather than a missing feature (the open question below is answered there), and the
   family audit that cut it found the same shape on the item side — `ModItemDefinition.Usable` /
   `UsableWithLmb` with no `useAction`. Both halves are that ticket's cycle, and **the delegate half is
   closed 2026-10-11**: a mod now authors both functions in code through `IModLiquidEffects`, keyed by the
   liquid's own content id, and the no-op reporting delegates are what an unregistered half falls back to
-  (`review/mod-authored-effects.md`). The ITEM half — `useAction` and `useLimbAction` — is no longer open
-  either: **cut and landed 2026-10-11 as `docs/backlog/review/mod-item-authored-actions.md`**, on the same
+  (`done/mod-authored-effects.md`). The ITEM half — `useAction` and `useLimbAction` — is no longer open
+  either: **cut and landed 2026-10-11 as `docs/backlog/done/mod-item-authored-actions.md`**, on the same
   code-registration shape, with the item's own reachability rail (both native calls sit behind a flag the
   definition carries) and its own small named-operation surface (`IModEffectItem`).
 
@@ -298,7 +298,7 @@ their own tickets are cut. Both are now cut: `review/mod-crafting-quality-labels
   native path null-check or throw? **Answered 2026-10-08: it throws.** `WaterContainerItem.ApplyToLimb`,
   `WaterContainerItem.Inject` and `WaterContainerItem.Drink` all call their delegate with no null check, and
   CUO's own custom-byte drink handler did the same, so that half is a defect fix — cut with its item twin as
-  `review/mod-declared-behaviour-with-no-function.md`.
+  `done/mod-declared-behaviour-with-no-function.md`.
 - Stage 3 with mixed-mod sessions: does the existing handshake consistency (mod id, version, permissions,
   `NativeBinding` parity) cover "same content, different semantics"?
 - Part 3's kind-versus-provider mapping — **answered 2026-10-07** by

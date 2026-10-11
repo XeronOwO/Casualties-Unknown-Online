@@ -15,10 +15,10 @@
 - Category: Mod platform / content binding
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A)
 - Related: `docs/backlog/review/mod-item-wearable-declaration.md` (the same build site, the same audit shape,
-  and the claim this ticket corrects), `docs/backlog/review/mod-item-authored-actions.md` (the action half of
+  and the claim this ticket corrects), `docs/backlog/done/mod-item-authored-actions.md` (the action half of
   the same surface, landed), `docs/backlog/review/mod-crafting-quality-labels.md` (Part 2 stage 1, whose
   "content surface parity" is the shape this ticket completes for the item kind),
-  `docs/backlog/review/mod-declared-behaviour-with-no-function.md`,
+  `docs/backlog/done/mod-declared-behaviour-with-no-function.md`,
   `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`
 - Source: the 2026-09-25 mod-ceiling inventory (Part 3.A's miscellaneous list), promoted 2026-10-07 by the
   user's directive that open-ended content customisation is the point of the platform; cut 2026-10-11.

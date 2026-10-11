@@ -7,9 +7,9 @@
 - Priority: Critical
 - Category: Mod platform / mod API
 - Related: `docs/backlog/review/mod-api-no-opaque-envelopes.md` (step 2 of the same ruling: the surfaces where a
-  payload does cross a boundary), `docs/backlog/review/mod-authored-effects.md` (the code-registration surface
+  payload does cross a boundary), `docs/backlog/done/mod-authored-effects.md` (the code-registration surface
   this one must precede — it is an API over the same contract),
-  `docs/backlog/review/mod-declared-behaviour-with-no-function.md`,
+  `docs/backlog/done/mod-declared-behaviour-with-no-function.md`,
   `docs/backlog/review/mod-payload-null-collection-tolerance.md` (the rule that exists because of the payload
   step), `docs/backlog/review/mod-content-kind-with-no-provider.md`,
   `docs/en/reference/modification-policy.md` (the `Abstractions` baseline is a reviewed change)

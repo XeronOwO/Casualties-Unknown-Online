@@ -3,8 +3,8 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// <summary>
 /// The body vitals <see cref="IModEffectBody"/> reads and writes, one member per
 /// write the game's own shipped content performs: the liquid census in
-/// <c>docs/backlog/review/mod-authored-effects.md</c>, plus the item census in
-/// <c>docs/backlog/review/mod-item-authored-actions.md</c> — whose one addition to
+/// <c>docs/backlog/done/mod-authored-effects.md</c>, plus the item census in
+/// <c>docs/backlog/done/mod-item-authored-actions.md</c> — whose one addition to
 /// this list is <see cref="Hemothorax"/>, everything else an item writes on a body
 /// already being here for the liquids. The names are CUO's; each member's
 /// documentation names the game's own field it stands for, because the level is

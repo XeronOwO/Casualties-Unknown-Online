@@ -1,16 +1,22 @@
 # Mod-authored item actions: the use and limb functions, and what the item census left to the hatch
 
-- Status: Review — **cut out of `mod-content-ceiling.md` Part 3.A on 2026-10-11** and landed in the same
+- Status: Done — **cut out of `mod-content-ceiling.md` Part 3.A on 2026-10-11** and landed in the same
   cycle (see *What landed*). It closes the follow-on two tickets declared: `mod-authored-effects.md` built
   the registration face and the named-operation surface for the LIQUID half only, and
   `mod-declared-behaviour-with-no-function.md` recorded the item half as "the follow-on that ticket
-  declares" while noting that `Abstractions` CAN carry a function now.
+  declares" while noting that `Abstractions` CAN carry a function now. **Accepted 2026-10-11 in batch
+  `20261011-k`** (`docs/evidence/acceptance/mod-item-authored-actions-20261011-k.md`): every row passes with
+  no residual — the use action runs through the game's own `Body.UseItem`, the limb action through the wound
+  view, and CUO's cross-player limb-tool chain runs the item's own delegate on the TREATED player's own
+  client. The run also turned up one defect in the same build site that this ticket does not own (a mod item
+  declaring no `Tags` throws in the game's own frames); it is filed as
+  `docs/backlog/todo/mod-item-with-no-declared-tags-throws.md` with the run's measurements.
 - Priority: High
 - Category: Mod platform / mod API
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A: `useLimbAction`, and the item half of the
   effect gap)
-- Related: `docs/backlog/review/mod-authored-effects.md` (the liquid half — the same design, the surface
-  this one extends), `docs/backlog/review/mod-declared-behaviour-with-no-function.md` (the cycle that made
+- Related: `docs/backlog/done/mod-authored-effects.md` (the liquid half — the same design, the surface
+  this one extends), `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (the cycle that made
   a declaration without a function non-fatal, and whose item report this one turns into "no action
   registered"), `docs/backlog/review/mod-item-wearable-declaration.md` (the sibling the same family audit
   found), `docs/backlog/review/mod-cross-player-native-semantics.md` (the cross-player limb-tool chain,

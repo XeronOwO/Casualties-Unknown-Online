@@ -171,7 +171,7 @@ did not wait for the authority, and the two agree.
 
 | # | Row | Verdict | Evidence |
 |---|---|---|---|
-| 1 | bare-hand pull: the affected client's values agree with what the host committed, and the operator's screen ends on the same values | **PARTIAL** | the authority committed exactly the derived values and the operator agrees (above). What is NOT shown is the PATIENT's own body: re-reading limb 1 on the patient's client still returns `skinHealth 100, bleedAmount 0, pain 0`. Whether the affected side is meant to receive them through the state message, and does not, is a NEW question this run opened and did not answer |
+| 1 | bare-hand pull: the affected client's values agree with what the host committed, and the operator's screen ends on the same values | **PARTIAL** | the authority committed exactly the derived values and the operator agrees (above). The PATIENT's own body is the open half: its log does show `[MedicalOps] local target body updated (terminal=True)` — 15 s after the slip, when the session terminated — yet re-reading limb 1 on that client still returns `skinHealth 100, bleedAmount 0, pain 0`. So either that update addresses a different object than the local body, or the value is overwritten afterwards. Both are NEW questions this run opened and did not answer |
 | 2 | the same pull replayed for a late joiner | unjudged | needs a third client |
 | 3 | an injection whose liquid carries a per-call roll agrees on both screens | unjudged | the census already shows no measurement site rolls; driving one was not attempted |
 | 4 | a drink whose liquid carries a per-call roll agrees on both screens | unjudged | same |

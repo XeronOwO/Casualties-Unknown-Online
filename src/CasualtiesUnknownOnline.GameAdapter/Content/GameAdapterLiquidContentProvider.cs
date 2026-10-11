@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.GameAdapter.ModEffects;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -11,18 +13,22 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// Binds <see cref="IModLiquidDefinition"/> definitions from shared-content mods
 /// into the vanilla liquid registry. Static fields (color, value, health/
 /// injection flags, qualities and locale display text) are mapped into
-/// <c>LiquidType</c>; behavior callbacks are intentionally not part of this
-/// DTO because mods must not pass game delegates through Abstractions.
+/// <c>LiquidType</c>; the two behaviour callbacks are NOT part of this DTO because
+/// mods must not pass game delegates through Abstractions — they are registered in
+/// code instead (see below), keyed by the same content id.
 ///
 /// <para>
-/// The delegates the GAME calls are still installed, because it calls them with
-/// no null check at all: <c>WaterContainerItem.Drink</c> runs <c>onDrink</c> for
-/// whatever liquid a container holds (no flag gates it), and
+/// The delegates the GAME calls are installed on every liquid built here, because
+/// it calls them with no null check at all: <c>WaterContainerItem.Drink</c> runs
+/// <c>onDrink</c> for whatever liquid a container holds (no flag gates it), and
 /// <c>WaterContainerItem.ApplyToLimb</c> / <c>Inject</c> run <c>onHealthUse</c>
-/// behind the liquid's own <c>healthUsable</c> / <c>injectable</c> flag. Every
-/// liquid built here therefore carries both, and the effect the API cannot author
-/// yet is a no-op that names the content instead of a null the game would throw
-/// on.
+/// behind the liquid's own <c>healthUsable</c> / <c>injectable</c> flag. Both
+/// installed delegates are <see cref="LiquidEffectInvoker"/>: it resolves the
+/// effect the liquid's OWNER registered through
+/// <see cref="IModLiquidEffects"/> at call
+/// time, and where none is registered the action still completes and says so —
+/// the inert outcome <c>mod-declared-behaviour-with-no-function.md</c> settled,
+/// which is now the "no effect registered" path rather than the only path.
 /// </para>
 ///
 /// <para>
@@ -32,9 +38,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// </para>
 /// </summary>
 public sealed class GameAdapterLiquidContentProvider(
-	ILogger<GameAdapterLiquidContentProvider> log) : IContentBindingProvider, ICuoService, ICraftingQualitySource
+	ILogger<GameAdapterLiquidContentProvider> log,
+	ModLiquidEffectStore effectStore,
+	ISessionControl session) : IContentBindingProvider, ICuoService, ICraftingQualitySource
 {
 	private readonly ILogger<GameAdapterLiquidContentProvider> _log = log;
+	private readonly ModLiquidEffectStore _effectStore = effectStore;
+	private readonly LiquidEffectInvoker _effectInvoker = new(effectStore, session, log);
 	private readonly Dictionary<string, IModLiquidDefinition> _definitions = [];
 	private readonly HashSet<string> _injectedIds = [];
 	private readonly CraftingQualityDeclarations _qualities = new();
@@ -91,16 +101,6 @@ public sealed class GameAdapterLiquidContentProvider(
 		_log.LogInformation(
 			"[LiquidContent] accepted {ModId}/{Id} (schema {SchemaVersion}); injection waits for the vanilla liquid registry.",
 			registration.ModId, id, registration.Definition.SchemaVersion);
-
-		// The two flags below are the only gates the native limb paths have before
-		// they run the effect delegate, so a definition that sets one declares an
-		// effect this API cannot carry yet. Said at load time, where the author reads.
-		if (definition.HealthUsable || definition.Injectable)
-		{
-			_log.LogWarning(
-				"[LiquidContent] {ModId}/{Id} declares HealthUsable/Injectable — the mod API cannot author an effect function, so applying or injecting this liquid consumes it with no effect.",
-				registration.ModId, id);
-		}
 
 		return true;
 	}
@@ -163,6 +163,21 @@ public sealed class GameAdapterLiquidContentProvider(
 			_log.LogInformation(
 				"[LiquidContent] injected {Id} (value {Value:F1}, qualities {QualityCount}) into Liquids.Registry.",
 				pair.Key, pair.Value.ValuePerLiter, qualities.Count);
+
+			// The two native limb paths run their delegate behind one of these flags, so a
+			// definition that sets one declares an effect the action will try to run.
+			// Whether anything authored THAT half is knowable HERE and only here — the mods
+			// have all registered by the frame the registry appears — so this is where the
+			// author is told, next to the definition it is about. The question is the
+			// limb-use half and not "is this liquid registered": a mod that registered only
+			// the drink function would otherwise pass it, and the player would apply or
+			// inject a liquid that does nothing in silence.
+			if ((pair.Value.HealthUsable || pair.Value.Injectable) && !_effectStore.HasLimbUse(pair.Key))
+			{
+				_log.LogWarning(
+					"[LiquidContent] {Id} declares HealthUsable/Injectable but no mod registered a limb-use effect for it — applying or injecting this liquid consumes it with no effect.",
+					pair.Key);
+			}
 		}
 	}
 
@@ -190,12 +205,8 @@ public sealed class GameAdapterLiquidContentProvider(
 			injectionSickness = definition.InjectionSickness,
 			localeFromItem = definition.LocaleFromItem,
 			qualities = CraftingQualityDeclarations.ToGameQualities(ModDeclarationCollections.OrEmpty(definition.Qualities)),
-			onDrink = (ml, body) => _log.LogWarning(
-				"[LiquidContent] {Id} was drunk ({Ml:F1} ml) with no effect — the mod API cannot author a drink effect.",
-				id, ml),
-			onHealthUse = (ml, limb) => _log.LogWarning(
-				"[LiquidContent] {Id} was used on a limb ({Ml:F1} ml) with no effect — the mod API cannot author an effect function.",
-				id, ml)
+			onDrink = (ml, body) => _effectInvoker.Drink(id, ml, body),
+			onHealthUse = (ml, limb) => _effectInvoker.ApplyToLimb(id, ml, limb)
 		};
 	}
 

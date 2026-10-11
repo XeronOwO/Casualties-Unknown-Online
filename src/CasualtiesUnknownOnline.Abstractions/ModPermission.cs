@@ -16,8 +16,9 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// projection (<see cref="IModGameState"/>), entity/item spawn and tile/
 /// structure/liquid placement (<see cref="IModEntitySpawn"/>, <see cref="IModItemSpawn"/>,
 /// <see cref="IModTilePlacement"/>, <see cref="IModStructurePlacement"/>,
-/// <see cref="IModLiquidPlacement"/>) and the native operation registry
-/// (<see cref="IModNativeApi"/>).
+/// <see cref="IModLiquidPlacement"/>), the native operation registry
+/// (<see cref="IModNativeApi"/>) and the mod-authored liquid effect face
+/// (<see cref="IModLiquidEffects"/>).
 /// </summary>
 [Flags]
 public enum ModPermission
@@ -49,7 +50,29 @@ public enum ModPermission
 	/// <summary>Access native/game-private operations through <see cref="IModNativeApi"/> (enforced at the registry surface).</summary>
 	AccessNativeApi = 1 << 7,
 
+	/// <summary>
+	/// Register a mod-authored effect for content this mod registered, through
+	/// <see cref="IModLiquidEffects"/> (enforced at registration). A separate
+	/// capability from <see cref="WriteGameState"/> on purpose: that one writes
+	/// host-persistent mod state, this one writes a LIVE player's body — the mod's
+	/// function runs where the game's own effect would, on the affected player's own
+	/// client, and what it may write is the named-operation surface of
+	/// <see cref="IModEffectBody"/> / <see cref="IModEffectLimb"/>.
+	///
+	/// <para>
+	/// It is deliberately NOT one of the host/state permissions a
+	/// <see cref="NetworkMode.ClientOnly"/> or <see cref="NetworkMode.Cosmetic"/> mod
+	/// is refused for: it grants nothing on its own, because every registration is
+	/// keyed by content of this mod's own and registering content already requires
+	/// <see cref="RegisterContent"/>, which those modes ARE refused for. Such a mod
+	/// may therefore declare this bit and register nothing — a declaration that
+	/// cannot be reached rather than a capability it is denied.
+	/// </para>
+	/// </summary>
+	AuthorEffects = 1 << 8,
+
 	/// <summary>The defined bit mask — used to reject unknown bits.</summary>
 	All = ReadGameState | WriteGameState | SpawnEntity | SendNetworkMessage
-		| RegisterContent | RegisterCommand | ExecuteHostAction | AccessNativeApi,
+		| RegisterContent | RegisterCommand | ExecuteHostAction | AccessNativeApi
+		| AuthorEffects,
 }

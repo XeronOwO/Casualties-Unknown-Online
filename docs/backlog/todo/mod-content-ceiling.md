@@ -5,7 +5,7 @@
   starts, and the inventory stays the source of truth.
 - Priority: High
 - Category: Mod platform / architecture
-- Related: `docs/backlog/todo/mod-authored-effects.md` (Stage 3, cut out on 2026-10-08 with the user's
+- Related: `docs/backlog/review/mod-authored-effects.md` (Stage 3, cut out on 2026-10-08 with the user's
   ruling that supersedes its consumer gate),
   `docs/backlog/review/mod-declared-behaviour-with-no-function.md` (Part 3.A's declared-behaviour gap,
   cut out on 2026-10-08 with its item twin), `docs/backlog/review/mod-defined-wire-packets.md` (Part 3's
@@ -132,8 +132,10 @@ Consequences:
   catalogs are deleted.
 - The content DTOs still cannot declare what those chains would need: `ModItemDefinition` has no
   limb-use behaviour (the wearable half landed 2026-10-11,
-  `docs/backlog/review/mod-item-wearable-declaration.md`), and `ModLiquidDefinition` has no drink/health
-  delegates.
+  `docs/backlog/review/mod-item-wearable-declaration.md`), and the liquid effect delegates are not DTO
+  members at all — they landed 2026-10-11 as a CODE registration keyed by the liquid's content id
+  (`docs/backlog/review/mod-authored-effects.md`), because a payload travels to every peer as data and
+  cannot carry a function.
   (Qualities are no longer in this list — item and liquid qualities landed 2026-10-07 with stage 1,
   `review/mod-crafting-quality-labels.md`.)
 
@@ -168,11 +170,13 @@ delete the constant table and every existing acceptance case of that chain stays
 **Stage 3 — mod-registered semantics.** A registration surface for semantics the game's own data cannot
 express (a mod-authored effect or medical interaction, for example). It needs a permission and consistency
 rules, and a wire face only where the existing chains do not already carry what the effect needs. **Cut
-2026-10-08 as `todo/mod-authored-effects.md`.** The paragraph's old trigger — "only if stage 2 leaves a real
-need ... trigger is a second real consumer" — is **SUPERSEDED** by the user's 2026-10-08 ruling that a
-highly customisable effect surface is the point of the platform, so the consumer count is no longer the
-gate; the stage's own content is unchanged, and the successor ticket carries the supersession with the
-ruling in the user's words.
+2026-10-08 as `review/mod-authored-effects.md`, landed 2026-10-11.** The paragraph's old trigger — "only if
+stage 2 leaves a real need ... trigger is a second real consumer" — is **SUPERSEDED** by the user's
+2026-10-08 ruling that a highly customisable effect surface is the point of the platform, so the consumer
+count is no longer the gate; the successor ticket carries the supersession with the ruling in the user's
+words, and the delivered surface is the LIQUID half — the item half (`useAction`, `useLimbAction`) stays the
+declared follow-on. No wire face was needed: the cross-player chains already send the liquid id and the
+amount, and the affected side runs the game's own delegate.
 
 ### Red lines that do not change
 
@@ -214,7 +218,11 @@ Liquid side (`LiquidType` versus `ModLiquidDefinition`):
   2026-10-08 as `review/mod-declared-behaviour-with-no-function.md`**: the native path does not null-check, so
   the gap is a crash rather than a missing feature (the open question below is answered there), and the
   family audit that cut it found the same shape on the item side — `ModItemDefinition.Usable` /
-  `UsableWithLmb` with no `useAction`. Both halves are that ticket's cycle.
+  `UsableWithLmb` with no `useAction`. Both halves are that ticket's cycle, and **the delegate half is
+  closed 2026-10-11**: a mod now authors both functions in code through `IModLiquidEffects`, keyed by the
+  liquid's own content id, and the no-op reporting delegates are what an unregistered half falls back to
+  (`review/mod-authored-effects.md`). What stays open is the ITEM half — `useAction` and
+  `useLimbAction` — which is that ticket's declared follow-on.
 
 ### B. Declaration versus materialization
 

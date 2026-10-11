@@ -16,7 +16,7 @@
   follows: a declaration the framework cannot materialize is inert and reported, never fatal),
   `docs/backlog/review/mod-cross-player-native-semantics.md` (the wear chain whose predicate already asks
   the item's own data and refuses what it cannot place), `docs/backlog/review/mod-content-typed-registration.md`
-  (the typed content contract this one extends), `docs/backlog/todo/mod-authored-effects.md` (the
+  (the typed content contract this one extends), `docs/backlog/review/mod-authored-effects.md` (the
   code-registration surface — the wear fields are DATA, not functions, so this ticket does not wait for it),
   `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
   `docs/decisions/active.md` (184: the affected side judges on its own picture)

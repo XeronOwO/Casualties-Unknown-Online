@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -54,10 +55,7 @@ public class CraftingQualityLabelTests
 		var logger = loggerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
 			?? loggerType.GetField("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
 			?? throw new InvalidOperationException("NullLogger.Instance not found.");
-		var arguments = new object[extraArguments.Length + 1];
-		arguments[0] = logger;
-		Array.Copy(extraArguments, 0, arguments, 1, extraArguments.Length);
-		return Activator.CreateInstance(providerType, arguments)!;
+		return GameAdapterProviderFactory.Create(providerType, logger, extraArguments);
 	}
 
 	private static bool TryBind(object provider, IModContentDefinition definition)

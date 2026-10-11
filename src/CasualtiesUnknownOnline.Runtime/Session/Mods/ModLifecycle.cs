@@ -42,6 +42,7 @@ internal sealed class ModLifecycle(
 	IModNativeApiProvider nativeApiProvider,
 	IModContentControl contentControl,
 	ModContentStore contentStore,
+	ModLiquidEffectStore liquidEffectStore,
 	ModResourceCompletionStore resourceCompletionStages) : ISessionReset
 {
 	private readonly ModCatalog _catalog = catalog;
@@ -68,6 +69,7 @@ internal sealed class ModLifecycle(
 	private readonly IModNativeApiProvider _nativeApiProvider = nativeApiProvider;
 	private readonly IModContentControl _contentControl = contentControl;
 	private readonly ModContentStore _contentStore = contentStore;
+	private readonly ModLiquidEffectStore _liquidEffectStore = liquidEffectStore;
 	private readonly ModResourceCompletionStore _resourceCompletionStages = resourceCompletionStages;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private bool _discovered;
@@ -189,6 +191,7 @@ internal sealed class ModLifecycle(
 					_nativeApiProvider,
 					_contentControl,
 					_contentStore,
+					_liquidEffectStore,
 					_resourceCompletionStages);
 				RegisterDeclarations(d, context);
 				instance.Bind(context);
@@ -209,6 +212,15 @@ internal sealed class ModLifecycle(
 				if (withdrawn > 0)
 				{
 					_log.LogDebug("[Mods] {Id} failed to load; {Count} content entry(ies) it had registered were withdrawn.", d.Manifest.Id, withdrawn);
+				}
+
+				// The effect registrations go with them, and for the same reason: the Game
+				// Adapter's resolver reads this store, so one left behind would run the code
+				// of a mod the process never loaded.
+				var withdrawnEffects = _liquidEffectStore.RemoveMod(d.Manifest.Id);
+				if (withdrawnEffects > 0)
+				{
+					_log.LogDebug("[Mods] {Id} failed to load; {Count} liquid effect registration(s) it had made were withdrawn.", d.Manifest.Id, withdrawnEffects);
 				}
 
 				_log.LogError(e, "[Mods] {Id} failed to load — skipped, the other mods continue.", d.Manifest.Id);

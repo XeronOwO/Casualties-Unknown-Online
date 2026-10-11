@@ -208,7 +208,10 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself �
 
 ## Non-goals
 
-- Not the mod-authored effect-function surface (the parent ticket's Stage 3).
+- Not the mod-authored effect-function surface (the parent ticket's Stage 3) — **which landed 2026-10-11**
+  as `docs/backlog/review/mod-authored-effects.md`: a mod authors a liquid's two native functions in code,
+  keyed by the liquid's content id, and the reporting no-op this ticket installed is what an unregistered
+  half falls back to.
 - Not the other Part 3.A field gaps (`useLimbAction`, the wearable set, the miscellaneous reads) — each keeps
   its own consumer rule. **The wearable half of that sentence was WRONG and is corrected 2026-10-11**: it is
   a crash, not a silent gap. `Body.WearWearable` resolves the limb name `ItemInfo.desiredWearLimb` carries
@@ -216,5 +219,8 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself �
   filled that field for a mod item — so a definition declaring `Wearable` threw inside the game's own wear
   flow the moment a player put it on. It is `docs/backlog/review/mod-item-wearable-declaration.md` now, with
   the same native-evidence shape this ticket used, and its own finding was made while auditing this family.
-  The `useLimbAction` half stays a non-goal for a different reason: its consumer IS a delegate, and
-  `Abstractions` cannot carry one — that is `docs/backlog/todo/mod-authored-effects.md`.
+  The `useLimbAction` half is the last one still open, and the reason this ticket gave for it was half
+  right: its consumer IS a delegate, but `Abstractions` CAN carry one now — `review/mod-authored-effects.md`
+  landed the registration face that makes a mod-authored function expressible. What it does not have is the
+  ITEM half of that surface: the delivered cycle covers the liquid's `onDrink` / `onHealthUse`, and the
+  item's `useAction` / `useLimbAction` is the follow-on that ticket declares.

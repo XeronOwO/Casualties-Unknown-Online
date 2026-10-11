@@ -32,6 +32,11 @@ internal static class ModComposition
 		// session), and it owns the entries every mod's adapter files into it.
 		services.AddSingleton<ModContentStore>();
 		services.AddSingleton<IModContentFingerprints>(p => p.GetRequiredService<ModContentStore>());
+		// The framework-wide mod-authored liquid effect registry: the same leaf shape
+		// as the content store beside it, because its reader is the Game Adapter's
+		// liquid provider, which must not resolve ModService (that would close the
+		// ModService ↔ GameAdapter cycle the status store also exists to avoid).
+		services.AddSingleton<ModLiquidEffectStore>();
 		services.AddSingleton<ModHandshakeListProvider>();
 		services.AddSingleton<IModListProvider>(p => p.GetRequiredService<ModHandshakeListProvider>());
 		services.AddSingleton<ModChannel>();

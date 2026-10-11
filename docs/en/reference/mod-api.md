@@ -65,7 +65,7 @@ propagates to the dependent). A declared `Namespace` adds three more: an invalid
 built-in namespace `cu`, or a namespace another loaded mod already declared. One rejected mod never
 blocks the scan: per-mod fail-closed.
 
-**`Permissions`** are never implicit — the default is `ModPermission.None`. The eight declared flags
+**`Permissions`** are never implicit — the default is `ModPermission.None`. The nine declared flags
 and their live enforcement points:
 
 | Flag | What it gates |
@@ -78,6 +78,7 @@ and their live enforcement points:
 | `ReadGameState` | the read-only game-state projection (`IModGameState`) |
 | `SpawnEntity` | world entity spawn (`IModEntitySpawn`), world item spawn (`IModItemSpawn`), and the tile/block, structure and liquid placement surfaces (`IModTilePlacement`, `IModStructurePlacement`, `IModLiquidPlacement`) |
 | `AccessNativeApi` | the curated native/game-private operation registry (`IModNativeApi`) |
+| `AuthorEffects` | the mod-authored liquid effect face (`IModLiquidEffects`): writing a LIVE player's body through the named operations of `IModEffectBody` / `IModEffectLimb` |
 
 **`Dependencies`** are mod ids loaded before the dependent. **`NativeBinding`** names the game's own
 code a mod binds — the declared Tier 2 of [The modification policy](modification-policy.md). It is a
@@ -110,6 +111,7 @@ thread, every stage exception-isolated. `IModContext` is what `Bind` receives:
 | `BuildingRuntime` | per-mod building prefab/instance hooks. |
 | `Ui` | local immediate-mode mod UI windows. |
 | `Content` | mod content registration. |
+| `LiquidEffects` | mod-authored effect functions for the liquid content this mod registered (**experimental**). |
 | `ContentOwners` | framework-wide content-ownership lookup. |
 | `ResourceCompletion` | per-mod resource-completion stages. |
 | `GameState` | read-only player-state projection. |
@@ -580,20 +582,23 @@ label's amount is not checked, because its amounts scale with the volume in a co
 whose id collides with an entry already in the game table is never injected at all, so a label only it
 declares leaves its recipes uncraftable — that collision is reported when the definition is skipped.
 
-**A declared behaviour with no function.** Two declarations reach a game delegate this API cannot carry
-yet, and the framework answers for both of them instead of letting the game call a null one.
-`IModItemDefinition.Usable` / `UsableWithLmb` reach `ItemInfo.useAction`, which the game's own
-`Body.UseItem` and `Body.UseItemInHand` run behind the item's `usable` flag (`usableWithLMB` too, for the
-hand): a definition that
-declares usability without a `Tool` or `Gun` behaviour is registered with a use action that names the
-content and changes nothing, and the declaration is reported at load. `IModLiquidDefinition.HealthUsable`
-/ `Injectable` reach the liquid's `onHealthUse` (`WaterContainerItem.ApplyToLimb` and `Inject`), and EVERY
+**A declared behaviour with no function.** Two declarations reach a game delegate, and the framework
+answers for both of them instead of letting the game call a null one. `IModItemDefinition.Usable` /
+`UsableWithLmb` reach `ItemInfo.useAction`, which the game's own `Body.UseItem` and `Body.UseItemInHand`
+run behind the item's `usable` flag (`usableWithLMB` too, for the hand): a definition that declares
+usability without a `Tool` or `Gun` behaviour is registered with a use action that names the content and
+changes nothing, and the declaration is reported at load. `IModLiquidDefinition.HealthUsable` /
+`Injectable` reach the liquid's `onHealthUse` (`WaterContainerItem.ApplyToLimb` and `Inject`), and EVERY
 mod liquid's `onDrink` is reachable through `WaterContainerItem.Drink`, which no flag gates at all: every
-liquid the provider builds therefore carries both delegates, each of which names the liquid and applies no
-effect, and a declared effect flag is reported at load. So a mod liquid is drunk, applied and injected
-normally and consumes what it would have consumed — the effect half of those flags is what does not exist
-yet. Authoring that function is a separate capability, and an effect always runs on the client that owns
-the state.
+liquid the provider builds carries both delegates. So a mod liquid is drunk, applied and injected normally
+and consumes what it would have consumed — and what its delegates RUN is either the function the liquid's
+owner registered in code ([Mod-authored liquid effects](#mod-authored-liquid-effects)) or, when none is
+registered, a no-op that names the content and changes nothing. A declared effect flag with no registered
+function is reported when the liquid is injected into the game's registry, and an effect always runs on the
+client that owns the state.
+
+**Authoring that function** is a capability of its own with its own permission, its own contract and its
+own operation surface — the next section.
 
 **A wearable needs a placement.** `IModItemDefinition.Wearable` is the whole declaration, not a flag:
 `Limb` is the vanilla limb NAME the game's own `Body.WearWearable` resolves with `Body.LimbByName`, and
@@ -621,6 +626,107 @@ and a mod-authored component owns its own initialization.
 
 No content bytes and no new `NetMsg` travel for any of these: the Game Adapter binds them locally on
 every side that has the mod.
+
+## Mod-authored liquid effects
+
+A content payload travels to every peer as DATA, so it cannot carry a function. The function is therefore
+registered in CODE, keyed by the content id it belongs to: what travels stays the liquid's data (id,
+colour, value, flags, qualities), and the behaviour is code each peer already has, looked up by the id it
+was registered under. That is also why the cross-player drink, topical and injection chains need no new
+message — they already send the liquid id and the amount, and the affected player's own client runs the
+liquid's own delegate, which is where the registered effect lands.
+
+```csharp
+[CuoMod("field.chemistry", Permissions = ModPermission.RegisterContent | ModPermission.AuthorEffects)]
+public sealed class ChemistryMod : ICuoMod
+{
+    private IModContext _context = null!;
+
+    public void Bind(IModContext context) => _context = context;
+
+    public void Initialize()
+    {
+        // The liquid's content goes first — only its owner may author its effect.
+        _context.Content.TryRegister(new ModLiquidDefinition { Id = "solvent", HealthUsable = true });
+
+        _context.LiquidEffects.TryRegisterDrink("solvent", context =>
+        {
+            var ml = context.AmountMl / 100f;
+            context.Body.AddVital(ModBodyVital.Sickness, 30f * ml);
+            context.Body.AddVital(ModBodyVital.Happiness, -4f * ml);
+            context.Body.PlaySound("pills");
+        });
+
+        _context.LiquidEffects.TryRegisterLimbUse("solvent", context =>
+        {
+            if (context.Limb is not { } limb)
+            {
+                return; // the native limb call always names one; this is the compiler's null, not the game's
+            }
+
+            limb.Disinfect(200f);
+            limb.AddVital(ModLimbVital.Pain, 10f);
+        });
+    }
+
+    public void Start() { }
+    public void Update() { }
+}
+```
+
+- **Registration**: `context.LiquidEffects` (`IModLiquidEffects`), one function per native delegate —
+  `TryRegisterDrink` stands where `LiquidType.onDrink` stands (a body and a volume) and
+  `TryRegisterLimbUse` where `LiquidType.onHealthUse` stands (a limb and a volume, for the topical apply
+  AND the injection). Registering one and not the other is supported: the other half keeps the reporting
+  no-op, so the action is well-defined rather than a null the game would throw on.
+- **Permission**: registration requires `ModPermission.AuthorEffects`. `CanRegister` reflects whether this
+  mod copy declares it, and every registration call enforces it again.
+- **Ownership**: the liquid's content must be registered FIRST, by this mod, as
+  `ModContentKind.Liquid` — an effect whose liquid this mod has not registered is refused, and so is a
+  second function for a half already registered (refused, never replaced, so two call sites cannot
+  disagree about which one runs). A vanilla liquid is not addressable: authoring over the game's own
+  content is a different capability.
+- **The function**: `ModLiquidEffect` — `(IModLiquidEffectContext) → void`. It runs on the main thread,
+  once per native call, on the client that owns the affected body, and it must not throw: the framework
+  catches and logs with the mod id, and the action then completes without the effect. An exception
+  escaping into the game's own `WaterContainerItem` frame is not an option a mod gets.
+- **The context**: `LiquidId`, `AmountMl` (the game's own millilitre unit, unscaled), `OwnerSteamId` (the
+  local player, read live — 0 while the local identity is not established yet), `Body`, `Limb` (the limb
+  the effect landed on, or null on the drink path), and `NativeObject`. The limb is what the native call
+  carried, so the effect sees exactly what the game's own `onHealthUse` delegate sees: the injection
+  entry's request may name no limb, and CUO's applier then resolves it with the game's own auto-select rule
+  (the operator's pick when it is a real attached limb of this body, otherwise the most injured one), while
+  the topical and limb-tool entries refuse such a request instead (decision 246). No flag says which case
+  it was, because the game's own delegate carries none either.
+- **The named operations** are the primary path. `context.Body` (`IModEffectBody`) carries the game's own
+  actions (`Drink`, `Eat`, `Vomit`, `Burp`, `Ragdoll`, `StartFibrillation`, `StartMindWipe`,
+  `AddLimbVelocity`), the reads (`Alive`, `Standing`, `InCardiacArrest`, `Limbs`, `GetVital`), one
+  add/set pair over `ModBodyVital`'s 32 members, the component doses (`AddOpiate`,
+  `AddOpiateAntagonist`, `AddOpiateTolerance`, `TakeAntidepressant`, `AddSleepingPill`), the timed body
+  (`StartTimedEffect` / `TimedEffectRemaining` / `TimedEffectHighest`) and `PlaySound`.
+  `context.Limb` (`IModEffectLimb`) carries `Index`, `Name`, the classification flags, `Body`,
+  `ConnectedLimbs`, an add/set/get pair over `ModLimbVital`'s seven members, and `Disinfect`. Every member
+  is one of the writes the game's own shipped liquids perform — the census behind the list is in
+  `docs/backlog/review/mod-authored-effects.md`. The engine's own semantics run, not an approximation:
+  `Drink` and `Eat` are the game's methods with their side effects, the doses go through the game's
+  components, and a timed body ticks once immediately and then once per game second through the game's own
+  `CoUtils` clock — where calling it again under a live key EXTENDS the duration and keeps the tick
+  registered first, exactly as the game's own liquids rely on.
+- **Time keys are namespaced by the framework** (`cuo:<mod id>:<key>`), because the game's clock is one
+  flat table shared with vanilla's own timed bodies and a collision there is silent.
+- **`NativeObject`** is the engine-typed escape hatch: the body's `GameObject` on both paths, and
+  `IModEffectLimb.NativeObject` the limb's. Every body and limb in this game is a `MonoBehaviour`, so a
+  cast or a `GetComponent` recovers the game's own objects. Its price is stated in the contract: it is the
+  object of the state THIS client owns, Unity null semantics apply (`== null`), and a mod that uses it is
+  outside the API's promise — it declares what it binds (`NativeBinding`) like any other native binding.
+- **Consistency**: the registration is LOCAL to each peer's copy of the mod, and no wire message is added.
+  What makes two peers agree is the handshake — id, version and permission parity for a mod both sides
+  list ([Handshake consistency](#handshake-consistency)) — and the affected side judging on its own
+  picture and timeline, never the sender's.
+- **Stability**: `IModLiquidEffects`, `ModLiquidEffect` and `IModLiquidEffectContext` are
+  **experimental**; `IModEffectBody`, `IModEffectLimb`, `ModBodyVital`, `ModLimbVital` and the two
+  `NativeObject` members are **advanced**, because they follow the game's own fields and a game update
+  that moves one may move them with no CUO decision involved.
 
 ## Read game state
 

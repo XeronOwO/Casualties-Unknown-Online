@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -125,7 +126,13 @@ public class DeclaredBehaviourContentTests
 	{
 		var providerType = GameAssemblyHost.Adapter.GetType(typeName, throwOnError: true)!;
 		var logger = CreateLogger(typeName, out entries);
-		return Activator.CreateInstance(providerType, [logger])!;
+
+		// The liquid provider takes the effect registry and the session's identity seam
+		// beside its logger (the delegates it installs resolve a mod's registered effect
+		// through them); the item provider takes the logger alone. The shared factory
+		// supplies the framework seams by parameter type, so neither build site needs a
+		// branch here.
+		return GameAdapterProviderFactory.Create(providerType, logger);
 	}
 
 	private static object CreateLogger(string categoryTypeName, out List<(LogLevel Level, string Message)> entries)

@@ -115,6 +115,16 @@ public interface IModContext
 	IModContent Content { get; }
 
 	/// <summary>
+	/// The mod-authored liquid effect registration face: the function behind a
+	/// liquid's own drink and limb-use delegates, registered in code and keyed by
+	/// the id of a liquid THIS mod registered as content. Registration requires
+	/// <see cref="ModPermission.AuthorEffects"/> — see
+	/// <see cref="IModLiquidEffects"/> for the full contract.
+	/// </summary>
+	[ApiStability(ApiStabilityLevel.Experimental)]
+	IModLiquidEffects LiquidEffects { get; }
+
+	/// <summary>
 	/// Read-only framework-wide content ownership lookup. It resolves which mod
 	/// registered a given content kind + id, without exposing Runtime internals
 	/// or interpreting a definition. See <see cref="IModContentOwnerQuery"/>.

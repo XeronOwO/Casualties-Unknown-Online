@@ -60,6 +60,18 @@ public sealed class ModContentStore : IModContentFingerprints
 		_entries.Any(entry => string.Equals(entry.ModId, modId, StringComparison.Ordinal)
 			&& string.Equals(entry.Definition.Id, id, StringComparison.Ordinal));
 
+	/// <summary>
+	/// Whether one mod registered an entry under this id AND this kind — the rail the
+	/// mod-authored effect registration reads, because an effect is keyed by a content
+	/// id and only the definition's own owner may author its behaviour. Kind is part
+	/// of the question on purpose: a liquid-tile definition sharing an id with a liquid
+	/// is not the liquid, and a registration that read only the id would accept it.
+	/// </summary>
+	internal bool IsRegisteredAs(string modId, string id, string kind) =>
+		_entries.Any(entry => string.Equals(entry.ModId, modId, StringComparison.Ordinal)
+			&& string.Equals(entry.Definition.Id, id, StringComparison.Ordinal)
+			&& string.Equals(entry.Definition.Kind, kind, StringComparison.Ordinal));
+
 	/// <summary>Files one accepted definition under its owner. The rails that decide acceptance stay in the mod's own adapter.</summary>
 	internal void Add(string modId, string? @namespace, IModContentDefinition definition) =>
 		_entries.Add(new ModContentRegistration(modId, definition, @namespace));

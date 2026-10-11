@@ -137,6 +137,9 @@ public static class GameAdapterComposition
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterRecipeContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterRecipeContentProvider>());
 		// Liquid content binding: typed static liquid DTOs into Liquids.Registry.
+		// The provider installs the two native delegates a mod liquid carries; they
+		// call its LiquidEffectInvoker, which resolves the effect the liquid's OWNER
+		// registered through IModLiquidEffects, on the affected player's own client.
 		services.AddSingleton<GameAdapterLiquidContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterLiquidContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterLiquidContentProvider>());

@@ -95,9 +95,11 @@ Deliberately not:
 - **No repair of a bad limb name.** A case-mismatched or misspelled name is refused and logged, never
   rewritten to a limb that "looks close": the item's own declaration is the only authority for where it goes,
   and a fallback here would be the fallback defect the entry-mapping rule names.
-- **Not the limb action** (`usableOnLimb` / `useLimbAction`) — its consumer is a delegate `Abstractions`
-  cannot carry, so exposing the flag alone would add a second crash of this shape; that surface is
-  `docs/backlog/todo/mod-authored-effects.md`.
+- **Not the limb action** (`usableOnLimb` / `useLimbAction`) — its consumer is a delegate. This document
+  said `Abstractions` "cannot carry one" and that is **corrected 2026-10-11**: the registration face landed
+  (`docs/backlog/review/mod-authored-effects.md`), so a mod-authored function IS expressible now; what the
+  limb action still lacks is that surface's ITEM half, because the delivered cycle covers the liquid's
+  `onDrink` / `onHealthUse` and the item half is its declared follow-on.
 - **Not the miscellaneous Part 3.A reads**, and **not native's drop-the-occupant behaviour** on a wear into
   an occupied slot (the cross-player chain records that limit; it needs a world-drop fact this path does not
   have).

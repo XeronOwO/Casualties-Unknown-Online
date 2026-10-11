@@ -118,3 +118,6 @@ residual | 残余项 | 残余项（residual） | 残留项，遗留项，剩余�
 dependency preflight | 依赖体检 | 依赖体检（dependency preflight） | 环境检查，依赖检测 | the read-only check reporting present, missing, unknown or pending per acceptance dependency
 crafting-quality label | 制作品质标签 | 制作品质标签（crafting-quality label） | 品质名，标签，品质词条 | a crafting-quality id: a vanilla one is a bare token (`rippable`), a mod-authored one is namespaced (`mymod:material`), and the game compares them ordinally
 entry mapping | 入口对照 | 入口对照（entry mapping） | 入口映射，映射表，入口表 | the game's own call site each CUO gesture is the counterpart of, one line per entry, decided before any design that crosses players or mirrors a native action
+mod-authored effect | 模组自写效果 | 模组自写效果（mod-authored effect） | 自定义效果，模组特效 | the code function a mod registers for content it owns, keyed by that content's id — distinguished from the 效果 an outer layer derives from a committed batch
+named operation | 命名操作 | 命名操作（named operation） | 操作接口，原子操作 | one operation CUO names, documents and keeps stable, over a game field or method the mod-authored effect may write
+engine-typed hatch | 引擎类型出口 | 引擎类型出口（engine-typed hatch） | 后门，原生指针，逃生舱 | the one place a mod-visible contract carries an engine's own type so an author can reach the game's objects; using it leaves the API's promise

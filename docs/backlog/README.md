@@ -66,7 +66,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
 - [Cross-player solid food from the game's own data](todo/mod-cross-player-solid-food-semantics.md) — **High** — the eat runs on the eater's client.
-- [Mod-authored effects](todo/mod-authored-effects.md) — **High** — a code registration face and the operation surface it writes through.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — give, spawn and a property editor.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
@@ -87,6 +86,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [Mod-authored effects](review/mod-authored-effects.md) — **High** — the code registration face and the named operations it writes through.
 - [A declared behaviour with no function](review/mod-declared-behaviour-with-no-function.md) — **High** — a declared use or effect reports instead of throwing.
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
 - [The root README as a language pair](review/readme-language-pair.md) — **Low-Medium** — English first, a Chinese twin, and the current model named.

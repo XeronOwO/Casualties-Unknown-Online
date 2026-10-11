@@ -299,11 +299,8 @@ public class ModContentNullCollectionBindingTests
 			var providerType = GameAssemblyHost.Adapter.GetType(typeName, throwOnError: true)!;
 			var sink = new List<(LogLevel Level, string Message)>();
 			var logger = Activator.CreateInstance(typeof(ProviderLogSink<>).MakeGenericType(providerType), [sink])!;
-			var arguments = new object[extraArguments.Length + 1];
-			arguments[0] = logger;
-			Array.Copy(extraArguments, 0, arguments, 1, extraArguments.Length);
 
-			var provider = (IContentBindingProvider)Activator.CreateInstance(providerType, arguments)!;
+			var provider = (IContentBindingProvider)GameAdapterProviderFactory.Create(providerType, logger, extraArguments);
 			providers.Add(provider);
 			providerLogs[provider.Kind] = sink;
 		}

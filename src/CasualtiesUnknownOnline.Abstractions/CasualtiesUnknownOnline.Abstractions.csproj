@@ -15,13 +15,32 @@
   <!--
     CUO Abstractions: the ONLY assembly mods may reference (architecture.md §5.5).
     Holds the framework's public API surface (ICuoService today; Mod API later).
-    Microsoft.Extensions.{DependencyInjection,Logging}.Abstractions + Options only —
-    must NEVER reference BepInEx, Steamworks, or game assemblies.
+    Microsoft.Extensions.{DependencyInjection,Logging}.Abstractions + Options, plus the one
+    engine module declared below — must NEVER reference BepInEx, Steamworks, or the game's
+    own Assembly-CSharp.
   -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <!--
+    The one ENGINE reference this contract carries, and it is deliberate: it names
+    the two engine types the mod-authored effect surface exposes — the GameObject
+    the effect landed on (IModLiquidEffectContext.NativeObject /
+    IModEffectLimb.NativeObject) and the Vector2 one of the body operations takes
+    (IModEffectBody.AddLimbVelocity). Both are the engine's own types so they say
+    what they are; CoreModule is the minimum module that names either, and no game
+    type is involved. The game's own Assembly-CSharp stays reserved for the Game
+    Adapter (GameAssemblyReferenceGateTests allows engine modules and gates only the
+    game's own code). Private=False because the game ships this assembly.
+  -->
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\references\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">

@@ -6,7 +6,7 @@
   authority's stored copy still holds it ~17 s later, and a third client's displayed limb advanced to the
   same values 8.7 s BEFORE the session's terminal. Row 4 — the Stage-3 family regression — failed on a
   different, pre-existing defect in the same family that its own drive exposed
-  (`docs/backlog/todo/medical-removal-limb-component-not-applied.md`); this ticket's fix is verified in
+  (`docs/backlog/review/medical-removal-limb-component-not-applied.md`); this ticket's fix is verified in
   `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` and returns to `done/` once that
   defect is fixed and row 4 re-runs. The defect was found 2026-10-11 by the acceptance run of batch
   `20261011-a`, as the open half of

@@ -539,7 +539,7 @@ internal sealed class CharacterDataSync(
 			}
 
 			_mapper.Map(limbData, body.limbs[limbData.Index]);
-			LimbComponentStateCodec.Apply(body.limbs[limbData.Index], limbData.Components);
+			LimbComponentStateCodec.ApplyAuthoritative(body.limbs[limbData.Index], limbData.Components);
 		}
 	}
 

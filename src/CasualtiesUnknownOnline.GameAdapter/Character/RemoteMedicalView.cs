@@ -106,6 +106,12 @@ internal static class RemoteMedicalView
 			PlayerCamera.main.ToggleWoundView(false);
 		}
 
+		// The wound-view icons CUO drew for the display body's limb components belong to that body, and this
+		// is the one place that destroys it: an icon left behind is a panel child holding a limb that no
+		// longer exists. Only a close that HAD a focus clears them — an open that found nothing open runs
+		// this method first and must not drop the icons the body it is about to publish already has.
+		RemoteMedicalDisplayIcons.Clear();
+
 		if (display != null) // Unity object — ==
 		{
 			Object.Destroy(display.gameObject);

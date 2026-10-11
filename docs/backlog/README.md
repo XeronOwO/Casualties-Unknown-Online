@@ -53,8 +53,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [A state that names no kind reads as an injection](todo/medical-state-names-no-kind.md) — **Critical** — the shrapnel limb write was dropped in silence.
-- [A removed limb component stays on the body](todo/medical-removal-limb-component-not-applied.md) — **Critical** — undone by the target's next report.
-- [A display clone runs the game's own limb component](todo/display-clone-limb-component-runs-native-start.md) — **High** — the panel floods per frame.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
@@ -88,6 +86,8 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [A removed limb component stays on the body](review/medical-removal-limb-component-not-applied.md) — **Critical** — the receiving half exists.
+- [A live body under the medical focus runs native components](review/display-clone-limb-component-runs-native-start.md) — **High** — fixed.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
 - [Mod-authored effects](review/mod-authored-effects.md) — **High** — the code registration face and the named operations it writes through.
 - [A declared behaviour with no function](review/mod-declared-behaviour-with-no-function.md) — **High** — a declared use or effect reports instead of throwing.

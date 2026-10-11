@@ -195,7 +195,8 @@ internal sealed class RemoteMedicalCoordinator(
 			}
 
 			_mapper.Map(limbData, limb);
-			LimbComponentStateCodec.Apply(limb, limbData.Components);
+			LimbComponentStateCodec.ApplyDisplay(limb, limbData.Components);
+			RemoteMedicalDisplayIcons.Sync(display, limb);
 		}
 
 		display.averagePain = ComputeAveragePain(display);
@@ -216,6 +217,10 @@ internal sealed class RemoteMedicalCoordinator(
 
 		var go = Object.Instantiate(template);
 		go.name = $"MedicalDisplay_{steamId:X}";
+		// Marks the copy as CUO's own display-only body: the limb-component codec's display half refuses a
+		// body without it, which is what keeps the game's own components from running on a LIVE body the
+		// focus was pointed at by mistake (batch 20261011-b's driver did that, one storm later).
+		go.AddComponent<RemoteMedicalDisplayBody>();
 		go.SetActive(false);
 
 		var body = go.GetComponentInChildren<Body>();
@@ -279,7 +284,8 @@ internal sealed class RemoteMedicalCoordinator(
 			}
 
 			_mapper.Map(limbData, limb);
-			LimbComponentStateCodec.Apply(limb, limbData.Components);
+			LimbComponentStateCodec.ApplyDisplay(limb, limbData.Components);
+			RemoteMedicalDisplayIcons.Sync(body, limb);
 		}
 
 		// WoundView reads these two fields directly; they are normally produced

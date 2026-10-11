@@ -51,24 +51,26 @@ touches neither file, nor `CharacterDataSync.ApplyHealState`, nor `MedicalTarget
 the `None` sentinel and the receiver's warning, the five message defaults, two injection builders,
 `ShrapnelSessionStateWriter` and the Stage-3 start guard.
 
-The defect is now its own ticket (`docs/backlog/todo/medical-removal-limb-component-not-applied.md`), and
+The defect is now its own ticket (`docs/backlog/review/medical-removal-limb-component-not-applied.md`), and
 this ticket returns to `done/` when that defect is fixed and row 4 re-runs.
 
 ## Findings this run opened
 
 1. **A removed limb component is never taken off the target's own body** — row 4's failure, twice
    reproduced in the run, with a second awarded item as its consequence:
-   `docs/backlog/todo/medical-removal-limb-component-not-applied.md`.
-2. **A peer's limb component on a display clone runs the game's own `Start` and throws every frame** — the
-   operator's client flooded with `NullReferenceException` (stack: `OnLimbWound.Update` →
-   `SplintLimb.Start`'s icon predicate → `GetComponent`) as soon as a splinted peer existed while its
-   medical panel was open. In the first client lifetime: 4473 lines before the panel was closed (last
-   12:28:07.530), **0 while it was closed**, 1592 after it was reopened (first 12:28:19.544) —
-   `host-splint-icon-nre-storm-archive.log.txt`, recovered from the rotated archive
+   `docs/backlog/review/medical-removal-limb-component-not-applied.md`.
+2. **A peer's limb component on a live body under the focus runs the game's own `Start` and throws every
+   frame** — the operator's client flooded with `NullReferenceException` (stack: `OnLimbWound.Update` →
+   `SplintLimb.Start`'s icon predicate → `GetComponent`) as soon as the focus pointed at the peer's live
+   render clone, which this run's own open recipe did by hand. In the first client lifetime: 4473 lines
+   before the panel was closed (last 12:28:07.530), **0 while it was closed**, 1592 after it was reopened
+   (first 12:28:19.544) — `host-splint-icon-nre-storm-archive.log.txt`, recovered from the rotated archive
    `2026-10-11-8.log.gz`; and 391 lines in a 25-second window during the real removal drive —
    `host-splint-removal-and-storm.log.txt`. The two sandbox clients logged **zero** in the same runs
-   (`guest-alt-exception-census.txt`). Ticket:
-   `docs/backlog/todo/display-clone-limb-component-runs-native-start.md`.
+   (`guest-alt-exception-census.txt`). **Mechanism corrected 2026-10-11 by batch `20261011-c`**: production
+   opens the view through `RemoteMedicalCoordinator.Open`, which builds a separate PARKED display copy, and
+   the recipe's hand-built focus is what put a live body there — see the ticket and the lessons entries.
+   Ticket: `docs/backlog/review/display-clone-limb-component-runs-native-start.md`.
 
 ## What the run had to learn first (the drive's own gates)
 
@@ -112,11 +114,15 @@ None: every row above is judged from this run's own readings, and the two findin
 - **The two sandbox clients cannot be compared to the host's exception storm from the same probe**: the
   census in `guest-alt-exception-census.txt` covers their current logs plus their own rotated archives, in
   which the window is present, and both read zero.
-- **An unreconciled contradiction inside the artifacts**: the host's own member probe reports
-  `inWorld: false` for both peers (`run2-host-probe-members.json`) while each client's `state` reports
-  `inWorld: true` and the host's item keyframe line counts "2 in-world member(s)". The run did not resolve
-  which of the two the field means; nothing in this batch's rows depends on it, and it is named here so the
-  next reader does not take the probe's flag for the session's state.
+- **Resolved 2026-10-11 by batch `20261011-c` — the contradiction was the probe's own bug**: the host's
+  member probe reported `inWorld: false` for both peers (`run2-host-probe-members.json`) because
+  `MemberPresenceTable.MemberPresence.InWorld` is a public FIELD and the probe read it with
+  `GetProperty("InWorld")` — null for a field, printed as `false` for every member in every session. Production's
+  own predicate (`SessionService.IsRemoteInWorld`) read true throughout, which this batch's accepted medical
+  operations prove (their guards read the same field). The probe recipe now reads the field or the property
+  and reports production's predicate beside it; `docs/acceptance/lessons.md` carries the lesson. This entry
+  replaces the run's own wording ("an unreconciled contradiction inside the artifacts"), which is what the
+  run knew at the time.
 - **One unrelated startup exception**: the host logged a single `TypeLoadException` at 12:24:43.821
   (`System.ComponentModel.DataAnnotations.RequiredAttribute` in `System.ComponentModel.Annotations,
   Version=5.0.0.0`) before any of this batch's work. It is not the storm (which is 6065

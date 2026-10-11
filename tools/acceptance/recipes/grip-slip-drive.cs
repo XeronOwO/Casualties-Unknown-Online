@@ -16,16 +16,28 @@
 //   mode=probe           report the reflection path itself: the patch bridge, the domain field that holds
 //                        the session, and the session's member list (steamId + inWorld per member)
 //   mode=open  target=<steamid>
-//                        open the remote medical view on that member's displayed body
+//                        open the remote medical view through PRODUCTION's own entry and report what its
+//                        guards saw
 //   mode=start limb=<n>  start the shared shrapnel special session on that limb of the displayed body
 //   mode=break piece=<n> put the native minigame into the held state on that piece and call its public
 //                        `BreakGrasp()`, which is what the patch's window wraps
 //
+// WHY THE VIEW IS OPENED BY THE PRODUCTION ENTRY: the first cut of this recipe built the focus by hand —
+// `RemoteMedicalView.Open(<the peer's LIVE render clone>)` — because the run's member probe read the
+// member's `InWorld` as a PROPERTY while `MemberPresenceTable.MemberPresence.InWorld` is a FIELD, so the
+// probe reported `false` for every peer and the shortcut looked necessary. It was not, and it cost a
+// batch's worth of misdiagnosis (2026-10-11, batch `20261011-b`): the focus then pointed at a body the
+// game is running, CUO's limb-component codec added the game's OWN `SplintLimb` to it, the game's own
+// `Start` registered a wound-view icon whose predicate dereferences the limb, and the focus's own
+// teardown destroyed that clone — a `NullReferenceException` every frame while the panel stayed open.
+// The view is therefore opened only through `RemoteMedicalCoordinator.Open`, and a refusal is reported
+// with the guard readings that produced it.
+//
 // WHY REFLECTION: everything below is `internal` to the plugin and reached today only from a real mouse
 // gesture. `PatchBridge.Impl` is the one static seam, and it exposes the LOCAL id (`LocalSteamId`) but no
 // peer's — `SessionSurface` carries two UI flags and nothing else — so the peer identity comes from the
-// session's member list, reached through the bridge's own domain object. Nothing here writes a game or
-// plugin field except the minigame's held slot, which is the state a real drag would have produced.
+// session's member list, reached through the bridge's own domain object. The one game field this writes is
+// the minigame's held slot (`mode=break`, the state a real drag would have produced).
 ((System.Func<string>)(() => {
 	var mode = {{s:mode}};
 	var limbIndex = (int){{n:limb}};
@@ -59,39 +71,41 @@
 	var session = sessionField.GetValue(domains);
 	if (session == null) { return "{\"ok\":false,\"error\":\"no-session\"}"; }
 
+	// `InWorld` is a FIELD on the member record; reading it as a property reported `false` for every peer
+	// and sent this recipe down a shortcut that produced a false defect. Both shapes are read here, and the
+	// production predicate is reported beside it so a reader never has to re-derive the rule.
+	var isRemoteInWorld = session.GetType().GetMethod("IsRemoteInWorld", flags);
+
 	if (mode == "probe") {
 		var membersProp = session.GetType().GetProperty("Members", flags);
 		var report = "{\"ok\":true,\"mode\":\"probe\",\"bridge\":\"" + impl.GetType().Name + "\",\"domainsField\":\"" + domainsField.Name
 			+ "\",\"session\":\"" + session.GetType().Name + "\",\"members\":[";
 		var memberTypeName = "?";
-		var memberShape = "";
 		var members = membersProp != null ? membersProp.GetValue(session, null) as System.Collections.IEnumerable : null;
 		var first = true;
 		if (members != null) {
 			foreach (var member in members) {
-				if (memberTypeName == "?") {
-					memberTypeName = member.GetType().FullName;
-					var parts = "";
-					var props = member.GetType().GetProperties(flags);
-					for (var i = 0; i < props.Length; i++) { parts += props[i].Name + " "; }
-					var fields = member.GetType().GetFields(flags);
-					for (var i = 0; i < fields.Length; i++) { parts += fields[i].Name + " "; }
-					memberShape = parts;
-				}
+				if (memberTypeName == "?") { memberTypeName = member.GetType().FullName; }
 				var idProp = member.GetType().GetProperty("SteamId", flags);
 				if (idProp == null) { idProp = member.GetType().GetProperty("Id", flags); }
 				var idField = idProp == null ? member.GetType().GetField("SteamId", flags) : null;
 				var id = idProp != null ? idProp.GetValue(member, null) : (idField != null ? idField.GetValue(member) : null);
 				var inWorldProp = member.GetType().GetProperty("InWorld", flags);
-				var inWorld = inWorldProp != null ? inWorldProp.GetValue(member, null) : null;
+				var inWorldField = member.GetType().GetField("InWorld", flags);
+				var inWorld = inWorldProp != null ? inWorldProp.GetValue(member, null) : (inWorldField != null ? inWorldField.GetValue(member) : null);
+				var production = false;
+				if (isRemoteInWorld != null && id != null) {
+					try { production = (bool)isRemoteInWorld.Invoke(session, new object[] { System.Convert.ToUInt64(id.ToString()) }); } catch { production = false; }
+				}
 				if (!first) { report += ","; }
 				first = false;
-				report += "{\"steamId\":\"" + (id != null ? id.ToString() : "?") + "\",\"inWorld\":" + (inWorld is bool b && b ? "true" : "false") + "}";
+				report += "{\"steamId\":\"" + (id != null ? id.ToString() : "?") + "\",\"inWorld\":" + (inWorld is bool b && b ? "true" : "false")
+					+ ",\"isRemoteInWorld\":" + (production ? "true" : "false") + "}";
 			}
 		}
 		var localProp = impl.GetType().GetProperty("LocalSteamId", flags);
 		var local = localProp != null ? localProp.GetValue(impl, null) : null;
-		return report + "],\"localSteamId\":\"" + (local != null ? local.ToString() : "?") + "\"}";
+		return report + "],\"memberType\":\"" + memberTypeName + "\",\"localSteamId\":\"" + (local != null ? local.ToString() : "?") + "\"}";
 	}
 
 	if (mode == "patches") {
@@ -137,86 +151,80 @@
 		if (viewType != null) { break; }
 	}
 	if (viewType == null) { return "{\"ok\":false,\"error\":\"no-medical-view-type\"}"; }
-
-	if (mode == "open" || mode == "start") {
-		var rendererField = domains.GetType().GetField("Renderer", flags);
-		if (rendererField == null) { return "{\"ok\":false,\"error\":\"no-renderer-field\"}"; }
-		var renderer = rendererField.GetValue(domains);
-		var tryGet = renderer.GetType().GetMethod("TryGetRemoteBody", flags);
-		if (tryGet == null) { return "{\"ok\":false,\"error\":\"no-try-get-remote-body\"}"; }
-		var args = new object[] { System.Convert.ToUInt64(targetText), null };
-		var found = (bool)tryGet.Invoke(renderer, args);
-		var body = args[1] as Body;
-		if (!found || body == null) { return "{\"ok\":false,\"error\":\"no-remote-body\",\"detail\":\"steamId " + targetText + "\"}"; }
-		// The NATIVE panel must be open before the focus is set. Setting the focus alone is not enough:
-		// the coordinator's pump tears a remote focus down whenever the native panel is closed, and that
-		// teardown cancels an in-flight shrapnel session — which is exactly what a driver that only set
-		// the static focus produced (session created and cancelled in the same millisecond).
-		var camera = PlayerCamera.main;
-		if (camera == null) { return "{\"ok\":false,\"error\":\"no-player-camera\"}"; }
-		if (camera.woundView == null) { return "{\"ok\":false,\"error\":\"no-wound-view-object\"}"; }
-		if (!camera.woundView.activeSelf) { camera.WoundViewButton(); }
-		if (!camera.woundView.activeSelf) { return "{\"ok\":false,\"error\":\"native-wound-view-refused\",\"detail\":\"the local body is not alive or available\"}"; }
-		var nativeView = WoundView.view;
-		if (nativeView != null) { nativeView.body = body; }
-		var openMethod = viewType.GetMethod("Open", flags);
-		if (openMethod == null) { return "{\"ok\":false,\"error\":\"no-open-method\"}"; }
-		openMethod.Invoke(null, new object[] { body, System.Convert.ToUInt64(targetText), "target" });
-		var isOpenProp = viewType.GetProperty("IsOpen", flags);
-		var isOpen = isOpenProp != null ? isOpenProp.GetValue(null, null) : null;
-		if (mode == "open") { return "{\"ok\":true,\"mode\":\"open\",\"isOpen\":" + (isOpen is bool o && o ? "true" : "false") + ",\"target\":\"" + targetText + "\"}"; }
-	}
-
-	// Read the display body in the SAME call that opened it: the view is torn down between driver
-	// calls (the native panel toggle and the focus's own lifecycle both close it), so a run cannot open
-	// it in one call and start a session in the next.
-	// mode=break runs in a LATER call than the start, because the ack that assigns the operation id is
-	// ASYNCHRONOUS: the host parks the start request and asks the target's client first, so the id lands
-	// some 200 ms later. It also must NOT call RemoteMedicalView.Open — that calls Close(), and Close
-	// cancels the very session this break belongs to. Restoring the focus means writing its two fields.
-	if (mode == "break") {
-		var breakCamera = PlayerCamera.main;
-		if (breakCamera == null) { return "{\"ok\":false,\"error\":\"no-player-camera\"}"; }
-		if (breakCamera.woundView == null) { return "{\"ok\":false,\"error\":\"no-wound-view-object\"}"; }
-		if (!breakCamera.woundView.activeSelf) { breakCamera.WoundViewButton(); }
-		if (!breakCamera.woundView.activeSelf) { return "{\"ok\":false,\"error\":\"native-wound-view-refused\"}"; }
-		var breakRendererField = domains.GetType().GetField("Renderer", flags);
-		if (breakRendererField == null) { return "{\"ok\":false,\"error\":\"no-renderer-field\"}"; }
-		var breakRenderer = breakRendererField.GetValue(domains);
-		var breakTryGet = breakRenderer.GetType().GetMethod("TryGetRemoteBody", flags);
-		if (breakTryGet == null) { return "{\"ok\":false,\"error\":\"no-try-get-remote-body\"}"; }
-		var breakArgs = new object[] { System.Convert.ToUInt64(targetText), null };
-		if (!(bool)breakTryGet.Invoke(breakRenderer, breakArgs)) { return "{\"ok\":false,\"error\":\"no-remote-body\"}"; }
-		var breakBody = breakArgs[1] as Body;
-		var focusBodyField = viewType.GetField("_displayBody", flags);
-		var focusTargetField = viewType.GetField("_targetSteamId", flags);
-		if (focusBodyField == null || focusTargetField == null) { return "{\"ok\":false,\"error\":\"no-focus-fields\"}"; }
-		focusBodyField.SetValue(null, breakBody);
-		focusTargetField.SetValue(null, System.Convert.ToUInt64(targetText));
-		var breakNativeView = WoundView.view;
-		if (breakNativeView != null) { breakNativeView.body = breakBody; }
-	}
-
 	var displayProp = viewType.GetProperty("DisplayBody", flags);
-	var display = displayProp != null ? displayProp.GetValue(null, null) as Body : null;
-	if (display == null) { return "{\"ok\":false,\"error\":\"no-display-body\",\"detail\":\"the remote medical view is not open\"}"; }
-	if (limbIndex < 0 || limbIndex >= display.limbs.Length) { return "{\"ok\":false,\"error\":\"limb-out-of-range\",\"detail\":\"limb " + limbIndex + " of " + display.limbs.Length + "\"}"; }
-	var targetLimb = display.limbs[limbIndex];
-	if (targetLimb == null) { return "{\"ok\":false,\"error\":\"no-such-limb\",\"detail\":\"limb " + limbIndex + "\"}"; }
+	var isOpenProp = viewType.GetProperty("IsOpen", flags);
 
-	if (mode == "start" || mode == "auto") {
+	if (mode == "open") {
+		var remoteMedicalField = domains.GetType().GetField("RemoteMedical", flags);
+		if (remoteMedicalField == null) { return "{\"ok\":false,\"error\":\"no-remote-medical-field\"}"; }
+		var remoteMedical = remoteMedicalField.GetValue(domains);
+		var openMethod = remoteMedical.GetType().GetMethod("Open", flags);
+		if (openMethod == null) { return "{\"ok\":false,\"error\":\"no-open-method\"}"; }
+
+		// The production guards, read BEFORE the call so a refusal names itself instead of being reported as
+		// a bare `false`: they are the coordinator's own conditions.
+		var localInWorldProp = session.GetType().GetProperty("LocalInWorld", flags);
+		var sessionActiveProp = session.GetType().GetProperty("SessionActive", flags);
+		var remoteInWorld = false;
+		if (isRemoteInWorld != null) {
+			try { remoteInWorld = (bool)isRemoteInWorld.Invoke(session, new object[] { System.Convert.ToUInt64(targetText) }); } catch { remoteInWorld = false; }
+		}
+		var characterDataField = domains.GetType().GetField("CharacterDataSync", flags);
+		var hasSnapshot = false;
+		var hasHealth = false;
+		if (characterDataField != null) {
+			var characterData = characterDataField.GetValue(domains);
+			var cloneDataProp = characterData != null ? characterData.GetType().GetProperty("CloneData", flags) : null;
+			var cloneData = cloneDataProp != null ? cloneDataProp.GetValue(characterData, null) as System.Collections.IDictionary : null;
+			var key = System.Convert.ToUInt64(targetText);
+			if (cloneData != null && cloneData.Contains(key)) {
+				hasSnapshot = true;
+				var snapshot = cloneData[key];
+				var healthProp = snapshot != null ? snapshot.GetType().GetProperty("Health", flags) : null;
+				hasHealth = healthProp != null && healthProp.GetValue(snapshot, null) != null;
+			}
+		}
+
+		var opened = (bool)openMethod.Invoke(remoteMedical, new object[] { System.Convert.ToUInt64(targetText), "target" });
+		var isOpen = isOpenProp != null ? isOpenProp.GetValue(null, null) : null;
+		var display = displayProp != null ? displayProp.GetValue(null, null) as Body : null;
+		var displayName = display != null ? display.name : "null";
+		return "{\"ok\":true,\"mode\":\"open\",\"opened\":" + (opened ? "true" : "false")
+			+ ",\"isOpen\":" + (isOpen is bool o && o ? "true" : "false")
+			+ ",\"target\":\"" + targetText + "\""
+			+ ",\"displayBodyName\":\"" + displayName + "\""
+			+ ",\"sessionActive\":" + (sessionActiveProp != null && sessionActiveProp.GetValue(session, null) is bool sa && sa ? "true" : "false")
+			+ ",\"localInWorld\":" + (localInWorldProp != null && localInWorldProp.GetValue(session, null) is bool lw && lw ? "true" : "false")
+			+ ",\"isRemoteInWorld\":" + (remoteInWorld ? "true" : "false")
+			+ ",\"hasSnapshot\":" + (hasSnapshot ? "true" : "false")
+			+ ",\"hasHealth\":" + (hasHealth ? "true" : "false") + "}";
+	}
+
+	// The focus must ALREADY be open, and it must be the display copy the previous call opened: calling
+	// `Open` here would run `Close` first (cancelling the very session this step belongs to). A missing
+	// view is a refusal with its own name, never a hand-built focus.
+	var displayBody = displayProp != null ? displayProp.GetValue(null, null) as Body : null;
+	if (displayBody == null) { return "{\"ok\":false,\"error\":\"no-display-body\",\"detail\":\"the remote medical view is not open on this client — run mode=open in its own call first\"}"; }
+	if (limbIndex < 0 || limbIndex >= displayBody.limbs.Length) { return "{\"ok\":false,\"error\":\"limb-out-of-range\",\"detail\":\"limb " + limbIndex + " of " + displayBody.limbs.Length + "\"}"; }
+	var targetLimb = displayBody.limbs[limbIndex];
+	if (targetLimb == null) { return "{\"ok\":false,\"error\":\"no-such-limb\",\"detail\":\"limb " + limbIndex + "\"}"; }
+	if (displayBody.name.StartsWith("MedicalDisplay_", System.StringComparison.Ordinal) == false) {
+		// The name is the cheap witness that the focus is CUO's own display copy and not a live body: the
+		// distinction the storm of batch 20261011-b turned on.
+		return "{\"ok\":false,\"error\":\"focus-is-not-a-display-copy\",\"detail\":\"display body is \\\"" + displayBody.name + "\\\", not a MedicalDisplay_ copy\"}";
+	}
+
+	if (mode == "start") {
 		var startMethod = impl.GetType().GetMethod("TryStartRemoteShrapnelSpecial", flags);
 		if (startMethod == null) { return "{\"ok\":false,\"error\":\"no-start-method\"}"; }
 		var started = (bool)startMethod.Invoke(impl, new object[] { targetLimb });
-		if (mode == "start" || mode == "auto") {
-			return "{\"ok\":true,\"mode\":\"start\",\"started\":" + (started ? "true" : "false")
-				+ ",\"limb\":" + limbIndex + ",\"shrapnel\":" + targetLimb.shrapnel
-				+ ",\"hasShrapnel\":" + (targetLimb.hasShrapnel ? "true" : "false") + "}";
-		}
-		if (!started) { return "{\"ok\":false,\"error\":\"start-refused\"}"; }
+		return "{\"ok\":true,\"mode\":\"start\",\"started\":" + (started ? "true" : "false")
+			+ ",\"limb\":" + limbIndex + ",\"displayBodyName\":\"" + displayBody.name + "\""
+			+ ",\"shrapnel\":" + targetLimb.shrapnel
+			+ ",\"hasShrapnel\":" + (targetLimb.hasShrapnel ? "true" : "false") + "}";
 	}
 
-	if (mode == "break" || mode == "auto") {
+	if (mode == "break") {
 		var minigameBase = MinigameBase.main;
 		if (minigameBase == null) { return "{\"ok\":false,\"error\":\"no-minigame-base\"}"; }
 		var minigame = minigameBase.currentMinigame as ShrapnelMinigame;
@@ -243,7 +251,7 @@
 		updateType.GetProperty("OwnershipChange").SetValue(grab, true, null);
 		var reportMethod = handlerType.GetMethod("ReportShrapnelUpdate", flags);
 		if (reportMethod == null) { return "{\"ok\":false,\"error\":\"no-report-method\"}"; }
-		var before = display.limbs[limbIndex];
+		var before = displayBody.limbs[limbIndex];
 		var skinBefore = before.skinHealth;
 		var bleedBefore = before.bleedAmount;
 		var painBefore = before.pain;
@@ -289,7 +297,7 @@
 			// replaced under it", and the two must not be reported as the same thing.
 			var limbField = typeof(ShrapnelMinigame).GetField("limb", flags);
 			var minigameLimb = limbField != null ? limbField.GetValue(minigame) as Limb : null;
-			var displayNow = viewType.GetProperty("DisplayBody", flags) != null ? viewType.GetProperty("DisplayBody", flags).GetValue(null, null) as Body : null;
+			var displayNow = displayProp != null ? displayProp.GetValue(null, null) as Body : null;
 			var sameLimb = false;
 			if (minigameLimb != null && displayNow != null && limbIndex >= 0 && limbIndex < displayNow.limbs.Length) {
 				sameLimb = System.Object.ReferenceEquals(minigameLimb, displayNow.limbs[limbIndex]);
@@ -306,7 +314,7 @@
 				+ ",\"minigameLimbIsDisplayLimb\":" + (sameLimb ? "true" : "false")
 				+ ",\"currentlyHeldNull\":" + (heldField.GetValue(minigame) == null ? "true" : "false") + "}";
 		}
-		var after = display.limbs[limbIndex];
+		var after = displayBody.limbs[limbIndex];
 		var num = new System.Func<float, string>((value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
 		// The send side's own state, so a silent no-op names its cause: the static handler keeps the
 		// active session AND the sender delegate, and ReportShrapnelUpdate does nothing (and logs
@@ -337,11 +345,11 @@
 				}
 			} else { activeOpIdText = "no-handler-type"; }
 		} catch (System.Exception diagError) { activeOpIdText = "diag:" + diagError.GetType().Name; }
-		var isOpenNow = viewType.GetProperty("IsOpen", flags);
-		var viewOpen = isOpenNow != null ? isOpenNow.GetValue(null, null) : null;
+		var viewOpen = isOpenProp != null ? isOpenProp.GetValue(null, null) : null;
 		var activeMethod = handlerType.GetMethod("IsActiveShrapnelMinigame", flags);
 		var minigameActive = activeMethod != null ? activeMethod.Invoke(null, new object[] { minigame }) : null;
 		return "{\"ok\":true,\"mode\":\"break\",\"piece\":" + pieceIndex + ",\"limb\":" + limbIndex
+			+ ",\"displayBodyName\":\"" + displayBody.name + "\""
 			+ ",\"viewOpen\":" + (viewOpen is bool vo && vo ? "true" : "false")
 			+ ",\"minigameActive\":" + (minigameActive is bool ma && ma ? "true" : "false")
 			+ ",\"activeOpId\":\"" + activeOpIdText + "\""

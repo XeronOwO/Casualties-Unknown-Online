@@ -2587,7 +2587,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   body is report-driven, so the target's own report put it back.
 - Change: a removal row reads the COMPONENT, not the flag — a flag-only reading passes while nothing was
   removed — and reads it on the target's own client AND in the authority's copy one report interval later.
-  The defect is `docs/backlog/todo/medical-removal-limb-component-not-applied.md`.
+  The defect is `docs/backlog/review/medical-removal-limb-component-not-applied.md`.
 
 ## 2026-10-11 — Batch `20261011-b`: a display clone that instantiates the game's own component runs the game's own `Start`, every frame
 
@@ -2602,7 +2602,8 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - Change: when a display path carries component state, ask what the game's own component does on `Start` and
   `Update` before instantiating it — the state, not the behaviour, is what a clone needs, and a per-frame
   exception storm can hide behind an unrelated symptom (this one first looked like a broken shrapnel drive).
-  The defect is `docs/backlog/todo/display-clone-limb-component-runs-native-start.md`.
+  The defect is `docs/backlog/review/display-clone-limb-component-runs-native-start.md` (mechanism corrected
+  by batch `20261011-c` — see the entries at the end of this file).
 
 ## 2026-10-11 — Batch `20261011-b`: extract a client's log before you restart it
 
@@ -2617,3 +2618,52 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   storm), so a window that was missed can still be recovered from the archive with a `GZipStream` — this
   batch's storm digest and its close/reopen counts were rebuilt that way after a review pointed out that the
   first digest promised two timestamps it never printed.
+
+## 2026-10-11 — Batch `20261011-c`: a drive that builds the surface by hand invents the defect it drives
+
+- Symptom: batch `20261011-b` filed a per-frame `NullReferenceException` storm on the client whose medical
+  panel was open on a splinted peer, and recorded it as a defect of the display path — "a display clone runs
+  the game's own limb component".
+- Cause: the two open recipes built the focus by hand — `RemoteMedicalView.Open(<the peer's LIVE render
+  clone>)` from `RemotePlayerRenderer.TryGetRemoteBody` — because the run's member probe reported
+  `inWorld: false` for every peer. Production opens the same view through `RemoteMedicalCoordinator.Open`,
+  which builds a separate PARKED `MedicalDisplay_*` copy, created inactive. With a live body under the focus,
+  the per-frame snapshot apply added the game's own `SplintLimb` where the game's own `Start` runs, the icon
+  it registered was parented to the panel, and the focus's own teardown then destroyed the clone — the icon's
+  limb was gone and the panel's `Update` threw every frame. The probe's reading was itself the bug (next
+  entry), so the shortcut was never necessary.
+- Change: a recipe that needs a user-reachable surface opens it through PRODUCTION's own entry and reports the
+  guard readings beside the result, so a refusal names itself instead of being worked around; and where the
+  surface must be a specific kind of object (a display-only copy, a clone, a proxy), the drive reports the
+  witness for it — here `displayBodyName`, with a `MedicalDisplay_*` name required — so a drive cannot
+  silently exercise a different object than the one the row is about. The same rule caught the second half:
+  the earlier recipe's own comment ("the view is torn down between driver calls") described a teardown its own
+  shortcut had caused.
+
+## 2026-10-11 — Batch `20261011-c`: a probe that reads a field as a property reports `false` for ever
+
+- Symptom: batch `20261011-b`'s member probe reported `inWorld: false` for both peers while each client's own
+  `state` reported `true` and the host accepted medical operations whose guards read that same fact. The run
+  recorded the contradiction as a limit it did not resolve, and worked around it.
+- Cause: `MemberPresenceTable.MemberPresence.InWorld` is a public FIELD. The probe read
+  `member.GetType().GetProperty("InWorld")`, which returns null for a field, and its serializer then printed
+  `false` — for every member, in every session, without an error.
+- Change: a probe reports a production PREDICATE's own answer (`SessionService.IsRemoteInWorld`) rather than
+  re-deriving the rule from a member shape, and where it must read the member it accepts a field or a
+  property. The reading a probe invents is worse than no reading: this one sent a whole batch down a
+  workaround that manufactured the defect the batch then filed.
+
+## 2026-10-11 — Batch `20261011-c`: a frame-deferred destruction is not a removal
+
+- Symptom: the fix that adds a component-removal half to the receiving path could still lose the removal: the
+  receiver re-reports its character snapshot IN THE SAME CALL that applies the authority's message
+  (`MedicalOperationApply.ApplyProgress` ends with `ReportInventoryChanged`), and a capture in that frame
+  still finds a component that `Object.Destroy` has only scheduled.
+- Cause: Unity destroys at the end of the frame; the report that carries the client's own state back to the
+  authority is built inside the apply.
+- Change: a removal whose result must be visible to a same-frame reader uses `Object.DestroyImmediate`, after
+  checking that the component has no `OnDestroy` of its own. The one-client probe
+  (`tools/acceptance/recipes/limb-component-apply.cs`) is what proves the whole half without a session: it
+  captures the caller's own body, edits ONE limb row to the authority's removal shape, applies it through
+  `CharacterDataSync.ApplyHealState` and reads the limb back — the flag landing while the component survives
+  IS the defect, in one call, on the unfixed build.

@@ -2,8 +2,11 @@
 
 Ticket: `docs/backlog/todo/item-identity-across-transforms.md`. Cycle scope: research only — no file
 under `src/`, `tests/` or `tools/` is touched by this cycle. The record states what the native game
-does, what CUO commits today, the three answers CUO could give, and what each costs. **Nothing here is
-decided**: the ticket carries the decision draft and the user rules on it.
+does, what CUO commits today, the three answers CUO could give, and what each costs.
+**RULED 2026-10-11: option 1** (§5) — the applied item keeps its instance id and gains a location on
+the limb. The record is kept exactly as the ruling found it, because it is the evidence the ruling
+rests on; §8's open points are the implementing cycle's to settle, and §6's answers now describe what
+the code must become rather than a proposal.
 
 Citations: `reversing/` paths carry line numbers (that tree is never edited); our own `src/` and `docs/`
 are cited by path plus quoted text.
@@ -147,7 +150,7 @@ still on the table (§5, option 2).
 
 ## 5. The three answers CUO could give
 
-### Option 1 — the applied item keeps its id and gains a location (recommended)
+### Option 1 — the applied item keeps its id and gains a location (RULED 2026-10-11)
 
 An item applied to a limb stops being carried and becomes **located on that limb**. Its id is unchanged,
 so the mod that recorded it can still follow it, the favourite mark still resolves, and a removal is a
@@ -170,7 +173,7 @@ so the mod that recorded it can still follow it, the favourite mark still resolv
 - The cross-player apply and the local apply converge on ONE commit, which also removes the `Consumed`
   / `Destroyed` split of §3.
 
-### Option 2 — a lineage field on the created item
+### Option 2 — a lineage field on the created item (not taken)
 
 The item still dies; the item the transform creates carries `derivedFrom = <the id it came from>`.
 
@@ -186,7 +189,7 @@ The item still dies; the item the transform creates carries `derivedFrom = <the 
   "an item can be somewhere other than the inventory" — that is the whole of §7's cost table minus the
   capture/restore column, which it still owes.
 
-### Option 3 — document the status quo
+### Option 3 — document the status quo (not taken)
 
 Write the rule down as it behaves: an id names one incarnation; a transform that ends the incarnation
 ends the id; a transform that produces an item produces a new id; a terminal id is never reused.
@@ -198,9 +201,9 @@ ends the id; a transform that produces an item produces a new id; a terminal id 
 
 ## 6. The ticket's eight questions
 
-The answers below are read off the tree and written in the present tense of the RECOMMENDED model, not
-of the code: they describe what option 1 would make true, and none of them is decided until the user
-rules.
+The answers below are read off the tree and written in the present tense of the RULED model (option 1),
+not of the code: they describe what the implementing cycle must make true. The ruling is the user's
+(2026-10-11); nothing in this section is implemented yet.
 
 **1. State ownership.** Split by who writes the value. `condition` is the item's durability — the game
 copies it in both directions and the player reads it as the splint's remaining life — so the item row

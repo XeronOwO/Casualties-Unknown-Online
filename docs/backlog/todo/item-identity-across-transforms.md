@@ -1,8 +1,9 @@
 # An item's identity across a transform: is a worn splint still the item it was made from?
 
 - Status: Todo — the RESEARCH cycle landed (design record:
-  `docs/evidence/selfchecks/items/item-identity-across-transforms-design.md`). The decision draft below
-  is not ruled yet and no code moves until it is.
+  `docs/evidence/selfchecks/items/item-identity-across-transforms-design.md`) and the user ruled
+  **option 1** on 2026-10-11; the implementation is the remaining work, and the draft below is now the
+  frozen design it implements.
 - Priority: High
 - Category: Item identity / model contract / mod API / persistence
 - Source: handoff instruction (2026-10-11) after `review/id-resume-sources-still-unseeded.md` landed:
@@ -57,9 +58,10 @@ The full evidence is in the design record; the load-bearing findings are:
    question is not whether a body position can be expressed — it is whether an applied component gets
    one.
 
-## The decision draft (one ruling)
+## The decision draft (RULED 2026-10-11: option 1)
 
-**What should CUO tell a mod author about an item that is applied to a limb?**
+**What should CUO tell a mod author about an item that is applied to a limb?** The user ruled
+**option 1** — an applied item keeps its instance id and gains a location on that limb.
 
 | # | The answer | What a player and a mod author see |
 |---|---|---|
@@ -67,7 +69,7 @@ The full evidence is in the design record; the load-bearing findings are:
 | 2 | **The item dies; the item that comes back carries a `derivedFrom` pointer** | A mod sees "that id is gone, here is its child". Needs the same component-carries-the-id step as option 1 (there is nothing to derive from otherwise), then saves the kernel/wire half — and buys a weaker answer. Chains and a dead parent need their own rules. |
 | 3 | **Document the status quo: an id names one incarnation, and a transform ends it** | Nothing changes in code; one page states the rule. A mod (and the favourite ledger) cannot follow an item across the most common transform a player performs on somebody else's body. |
 
-**The recommendation is option 1**, for three reasons:
+**The recommendation was option 1**, for three reasons:
 
 - The user's stated leaning is positional, and the tree already agrees with it: the wear encoding
   already gives "an item on a body" a position and keeps its id, so option 1 extends a rule that exists
@@ -83,7 +85,9 @@ The full evidence is in the design record; the load-bearing findings are:
 
 **What option 1 does not decide, and the implementing cycle still has to:** whether the applied location
 is a fifth `ItemLocationKind` or reuses the wear slot encoding, and whether `IModInventoryEntry` shows an
-applied item (and through which surface). Both are recorded in the design record's §8.
+applied item (and through which surface). Both are architecture and contract shape, so the implementing
+cycle settles them from the evidence rather than asking again; both are recorded in the design record's
+§8.
 
 ## Limits
 

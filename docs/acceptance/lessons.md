@@ -2972,6 +2972,43 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   array binding is ordinary PowerShell; keep `powershell -File` for scripts whose contract is "ASCII, no
   dependent modules" (`preflight.ps1`, `session-environment.ps1`), which is what those files are written for.
 
+## 2026-10-11 — Batch `20261011-j`: the fixture a row reads must be materializable, and placing it is not the deploy's job
+
+- Symptom: a row that reads a live instance of mod content (its hover text) had nothing to read. The in-repo
+  example mod's only item declared no `TemplateId`, so the adapter could not build a runtime object for it at
+  all — and `deploy.ps1` does not deploy mods, so the plugins tree carried the framework and the pinyin mod but
+  not the example.
+- Cause: two halves of one fixture gap. A definition that is static item info only is invisible to every
+  instance-reading probe, and a mod DLL is placed by hand, directly in `BepInEx\plugins\` (where the in-repo
+  pinyin mod sits), never by the plugin deployment.
+- Change: give the declaration a vanilla prefab base in a DEVELOPMENT commit before the run — the batch then
+  runs against that commit and the DLL is an artifact under test, not a code change inside the batch — place the
+  built DLL in the plugins tree for the session, and remove it at the close. Ask "can this declaration produce
+  an instance" BEFORE writing a row that reads one.
+
+## 2026-10-11 — Batch `20261011-j`: a row about a DEFAULT must be read below the old default
+
+- Symptom: the first reading of the mod item's recognition gate proved nothing. The host body's own INT was 7,
+  which satisfies the data class's inherited gate (2) as well, so the fixed and the unfixed code answer the same
+  there, and only a change to the field itself was visible.
+- Cause: a change that alters a default is only observable in the states the OLD default rejects. Reading it in
+  a state both defaults accept is a reading about the field, not about the change.
+- Change: force the reading body below the inherited gate (`body-force intelligence=0`, read back in the same
+  step as the gate), and carry a POSITIVE CONTROL in that same state — a vanilla item whose own gate is 1 — so
+  the run shows the game's branch flipping and printing the requirement, instead of asserting that it would.
+
+## 2026-10-11 — Batch `20261011-j`: HotRepl logs one error-level line per client at startup, and it is not the product's
+
+- Symptom: both clients' logs carry exactly one error-level line — a `TypeLoadException` for
+  `System.ComponentModel.DataAnnotations.RequiredAttribute` — which turns a naively worded "zero `[ERR]`" row red
+  on a run whose product paths are clean.
+- Cause: `HotRepl.Control.Schema.SchemaCache` builds a JSON schema for a probed type, and NJsonSchema resolves
+  `RequiredAttribute` through Newtonsoft on Mono, where that .NET Standard facade has no type forward. It fires
+  before the world loads and names no CUO path.
+- Change: attribute an error-level line from its own stack before calling it a product finding, and treat one
+  such line per client as this channel's known baseline. Word such a row about the mechanism under test ("no
+  item-provider refusal, and the provider's own lines are all Info") rather than about every error in the file.
+
 
 
 

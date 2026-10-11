@@ -215,7 +215,7 @@ Item side (`ItemInfo` versus `ModItemDefinition` and its behaviour DTOs):
 - **miscellaneous** — `rec` (recognition), `onlyHoldInHands`, `combineable`, `ignoreDepression`,
   `scaleWeightWithCondition` (read-only in `CarriedEncumbranceCalculator`), `jumpHeightMultChange`,
   `slotRotation` (read-only in the clone renderer), `usableOnLimb`. **Cut and landed 2026-10-11 as
-  `docs/backlog/review/mod-item-declaration-parity.md`**, and the audit that cut it CORRECTS the entry in both
+  `docs/backlog/done/mod-item-declaration-parity.md`**, and the audit that cut it CORRECTS the entry in both
   directions: it names `usableOnLimb`, which the item-action ticket had already made declarable, and it omits
   `autoAttack` and the three `ItemInfo.DecayType` condition bits (`Item.HandleDecay` masks bits 1, 2 and 4),
   which are the same shape. It is also not harmless, because the recognition gate is player-visible:

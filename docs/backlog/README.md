@@ -84,7 +84,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [The item declaration reaches every field the game reads](review/mod-item-declaration-parity.md) — **High** — the recognition gate, and the fields beside it.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
@@ -203,6 +202,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [The item declaration reaches every field the game reads](done/mod-item-declaration-parity.md) — **High** — accepted; the gate judged on both peers.
 - [Cross-player solid food from the game's own data](done/mod-cross-player-solid-food-semantics.md) — **High** — accepted; row 5 judged on the machine read.
 - [Remote inventory native parity rework](done/remote-inventory-native-parity-rework.md) — **Critical** — accepted; row 7's favourite half judged.
 - [A favourite mark is local and saved](done/favourite-marks-are-local-and-saved.md) — **High** — accepted; the gesture half included.

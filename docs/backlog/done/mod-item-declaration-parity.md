@@ -1,9 +1,10 @@
 # The mod item's declaration reaches every field the game's own items carry
 
-- Status: Review — **cut and landed 2026-10-11** out of `docs/backlog/todo/mod-content-ceiling.md` Part 3.A,
-  whose only remaining entry is its "miscellaneous" list. The code is complete and the independent FULL-tier
-  review's findings are fixed in the same commit (see *Review round*), so what is left is the acceptance
-  batch's own two rows and nothing to develop. The umbrella's promotion rule puts "a defect of a surface the
+- Status: Done — **cut and landed 2026-10-11** out of `docs/backlog/todo/mod-content-ceiling.md` Part 3.A,
+  whose only remaining entry is its "miscellaneous" list, and **accepted 2026-10-11 in batch `20261011-j`**
+  (`docs/evidence/acceptance/mod-item-declaration-parity-20261011-j.md`): all seven rows pass, no residual. The
+  code was complete and the independent FULL-tier review's findings were fixed in the same commit before the
+  batch ran (see *Review round*). The umbrella's promotion rule puts "a defect of a surface the
   API already promises" ahead of the capability entries, and the family audit that cut this ticket found one:
   `ItemInfo.rec` decides whether the game shows the item's own name at all, and a mod item inherits a gate its
   author never declared and cannot change. The sibling
@@ -188,8 +189,8 @@ here is a gesture, so nothing here mirrors a native call site, and the one field
 | 2 | Every public field of the game's own item type is reachable from a declaration, and a game update that adds one fails the suite instead of becoming an inherited value | `...Item_DeclaringEveryField_ReachesEveryPublicFieldTheGameReads` (32/32, floor 30) | verified 2026-10-11 (L1) |
 | 3 | Every flag the game's decay enum declares is reachable — the three condition bits from `DecayConditions`, the battery bit from `Battery` — and a value outside the vocabulary is refused | `...TheDecayVocabulary_ReachesEveryFlagTheGameReads`, `...Item_DeclaringADecayBitOutsideTheVocabulary_IsRefused` | verified 2026-10-11 (L1) |
 | 4 | A declaration the game's own flow cannot survive is refused at load with a reason: a negative recognition gate, a non-finite slot rotation, a jump factor at or below −1 | `...Item_DeclaringANegativeRecognitionMinimum_IsRefused`, `...Item_DeclaringAJumpHeightChange_IsRefusedWhenTheFactorIsNotPositive`, `...Item_DeclaringADecayBitOutsideTheVocabulary_IsRefused` | verified 2026-10-11 (L1) |
-| 5 | A live session's game table carries the declared gate on BOTH peers, and the hover text for the item names it rather than `unknownobject` | acceptance batch: an eval reading `Item.GlobalItems["example.dressing"].rec.min` and `PlayerCamera.ItemHoverDescription` on the host and on the guest, with the reading body's INT recorded beside them | pending the batch |
-| 6 | The declaration survives a real two-client session with no item-provider error in either log window | acceptance batch: both `[ERR]` windows read by byte offset | pending the batch |
+| 5 | A live session's game table carries the declared gate on BOTH peers, and the hover text for the item names it rather than `unknownobject` | acceptance batch `20261011-j` — `Item.GlobalItems["example.dressing"].rec.min` and `PlayerCamera.ItemHoverDescription` read on both clients, with the reading body's INT forced to 0 and read back beside them, plus a vanilla-item control whose gate is 1 | **pass** 2026-10-11 |
+| 6 | The declaration survives a real two-client session with no item-provider error in either log window | acceptance batch `20261011-j` — the item provider's own lines and its refusal count read from each client's run log after the session | **pass** 2026-10-11 |
 | 7 | A declaration that combines `Battery` with a decay condition builds the shape the game's own content declares (`decayInfo` 17 — the battery bit AND a condition bit, as `gravbag` does) | `...Item_DeclaringBatteryAndACondition_BuildsTheShapeTheGamesOwnContentDeclares` | verified 2026-10-11 (L1) |
 
 ## Limits

@@ -114,7 +114,7 @@ thread, every stage exception-isolated. `IModContext` is what `Bind` receives:
 | `LiquidEffects` | mod-authored effect functions for the liquid content this mod registered (**experimental**). |
 | `ContentOwners` | framework-wide content-ownership lookup. |
 | `ResourceCompletion` | per-mod resource-completion stages. |
-| `GameState` | read-only player-state projection. |
+| `GameState` | read-only projection: player state, and any item by its [instance id](glossary.md). |
 | `EntitySpawn` / `ItemSpawn` | world entity spawn / world item spawn. |
 | `TilePlacement` / `StructurePlacement` / `LiquidPlacement` | world tile-block / multi-block structure / liquid-tile placement. |
 | `NativeApi` | curated native/game-private operation registry. |
@@ -738,25 +738,74 @@ if (context.GameState.CanRead)
         var hp = player.Vitals?.BrainHealth;
         var items = player.Inventory?.Items;
     }
+
+    if (context.GameState.TryGetItem(itemId, out var item))
+    {
+        var where = item.Location;   // World, Carried, Contained, Applied or Terminal
+        var limb = item.LimbIndex;   // the limb, when the location is Applied
+    }
 }
 ```
 
-- **Scope**: a read-only projection of the latest framework-held **player character state** already
-  arriving on the 1 Hz character stream — the same data source the built-in Online UI uses. A mod never
-  sees Unity objects or game-assembly types.
+- **Scope**: a read-only projection of the latest framework-held state, from the sources the built-in
+  Online UI already draws on — the 1 Hz character stream for a player, and the framework's own item
+  facts for an item read by id. A mod never sees Unity objects or game-assembly types.
 - **Permission**: reading requires `ModPermission.ReadGameState`. `CanRead` reflects whether this mod
-  copy declared the flag, and every `TryGetPlayer` call also enforces it (false with a log otherwise).
+  copy declared the flag, and every `TryGetPlayer` and `TryGetItem` call also enforces it (false with a
+  log otherwise).
 - **Exposed shape**: `IModPlayerState` carries `SteamId`, `InWorld`, `Vitals` (`BrainHealth`, `Hunger`,
   `Thirst`, `Stamina`, `Energy`, `Temperature`, `Alive`, `Conscious`) and `Inventory` (a recursive
   `IModInventoryEntry` tree: instance id, item id, slot/wear index, condition, favourite flag,
   container contents). A missing half is null until its snapshot arrives.
+- **An item by id**: `TryGetItem(instanceId, out item)` answers "what is this item, and where is it
+  now" for an id the mod already holds, wherever that item has moved since — including somewhere no
+  inventory projection reaches. `IModItemState` carries the instance id, the item id, `Location`, the
+  condition and the item's own favourite flag, plus the facts its location uses: `OwnerSteamId` and
+  `LimbIndex` for an [applied item](glossary.md), `OwnerSteamId` for a carried or contained one, `X`/`Y`
+  for a world item, and `ParentItemId` whenever the item belongs to a container — a contained item is
+  inside it, and a world item can sit in one too, so a non-zero parent is not the same fact as being
+  contained. Every other member carries its neutral value — `0`, or `-1` for the limb — so `Location` is
+  what tells a caller which of them mean something.
 - **Live read, immutable snapshot**: each call returns the latest cached facts at that moment; the
   returned objects are copies and can be held safely. A remote leaving the world or the session ending
-  clears the cache.
+  clears the player cache.
 - **Not in this slice**: the local player's own character state is not exposed here; it is available
-  through the native API's read-only local-player projection. World/item/block/entity global state is
-  not exposed yet.
+  through the native API's read-only local-player projection. Block and entity tables are not exposed,
+  and the only world fact the by-id read carries is a known item's position.
 - **No wire change**: this surface only projects data that already arrives.
+
+### What an item's id means across a transform
+
+**An instance id names one item for its whole life, and is never issued again.** Where that item is can
+change any number of times, and the id goes with it:
+
+| What happens to the item | What the id does |
+|---|---|
+| picked up, dropped, worn, moved into a container, handed to another player | unchanged; `Location` says where it went |
+| applied to a limb as a splint, a carcass splint or a tourniquet | unchanged; `Location` is `Applied` on that player's limb, and the item is **not** an inventory entry — the player does not carry it |
+| taken back off that limb | unchanged; `Location` is `Carried` by whoever took it off |
+| consumed, destroyed, cooked or crafted away | `Location` becomes `Terminal`, and the id is finished |
+
+- **Only those three definitions keep the id across a transform** — the items `splint`, `carcasssplint`
+  and `tourniquet` — because the game decides it: they are the components the game turns back into an
+  item.
+- **The other limb tools do not turn the item into anything.** No component holds it and no path turns it
+  back into an item, so it never becomes applied: it stays where it is and only its condition is spent —
+  the ice pack, the bandage, the analgesic gauze and the suture all behave this way. "Not form-preserving"
+  is the absence of a path back, not the item's death.
+- **Cooking and crafting are the transforms that really end the source row**, and what comes out gets a
+  **new** id: the raw steak's id is not the cooked steak's, and nothing links the two.
+- **`Terminal` is not "unknown".** The row stays readable so that "that id ended" and "that id never
+  existed" stay apart: `TryGetItem` answers `true` for the first and `false` for the second. Because an
+  id is never re-issued, a terminal id can never be mistaken for a later item.
+- **`0` is not an item, and a `false` means "this client holds no such fact".** `0` is the "not yet
+  allocated" value `IModInventoryEntry.InstanceId` reports before the framework has stamped one, so
+  `TryGetItem(0, …)` is `false`. A guest that has not yet received the join checkpoint holds no item
+  facts at all, so every id answers `false` until it does — which is a second reason a `false` is never
+  the same answer as `Terminal`.
+- **An applied item's condition is the framework's record of it**, kept in step with the limb component
+  the game decays, so it can trail what is on screen by at most a step. What taking it off hands over is
+  the component itself, untouched by that lag.
 
 ## Spawn and placement
 

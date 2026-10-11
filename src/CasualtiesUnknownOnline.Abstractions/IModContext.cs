@@ -141,9 +141,10 @@ public interface IModContext
 	IModResourceCompletion ResourceCompletion { get; }
 
 	/// <summary>
-	/// The read-only game-state projection (currently the latest known player
-	/// character state). Reading requires <see cref="ModPermission.ReadGameState"/>
-	/// — see <see cref="IModGameState"/> for the full contract.
+	/// The read-only game-state projection: the latest known player character
+	/// state, and any item by its instance id. Reading requires
+	/// <see cref="ModPermission.ReadGameState"/> — see <see cref="IModGameState"/>
+	/// for the full contract.
 	/// </summary>
 	IModGameState GameState { get; }
 

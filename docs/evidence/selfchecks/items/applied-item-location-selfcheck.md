@@ -1,6 +1,6 @@
 # An applied item keeps its id — stage 1 self-check (2026-10-12)
 
-Ticket: `docs/backlog/todo/item-identity-across-transforms.md`. Design record (the evidence the ruling
+Ticket: `docs/backlog/review/item-identity-across-transforms.md`. Design record (the evidence the ruling
 rests on): `docs/evidence/selfchecks/items/item-identity-across-transforms-design.md`. **Scope of this
 cycle: stage 1 of the ruled option 1 — the model half.** The item row, the wire, the archive and the
 projections now carry "an item is applied to a limb" and round-trip it; the PRODUCTION call sites that

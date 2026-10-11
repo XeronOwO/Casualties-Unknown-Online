@@ -6,7 +6,7 @@ delivered state is commit `467f20f9`; the trees the passes read were `984ffa18` 
 `151fd56f` (pass 2, before its own findings were fixed) and `056865b3` (pass 3, the state that became the
 commit). The change's own record is
 `docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`; the ticket is
-`docs/backlog/todo/item-identity-across-transforms.md`.
+`docs/backlog/review/item-identity-across-transforms.md`.
 
 Tier: FULL for passes 1 and 2 (shared wire, save format, kernel model), NARROWED for pass 3 (the fix
 delta). **No pass found a blocker.** Every finding below was fixed in the same commit that was reviewed,

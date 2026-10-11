@@ -26,4 +26,24 @@ public interface IModGameState
 	/// or when no character-data snapshot has arrived for that player yet.
 	/// </summary>
 	bool TryGetPlayer(ulong steamId, out IModPlayerState player);
+
+	/// <summary>
+	/// Try to read the framework's own fact for one item instance id: what the
+	/// item is and where it is now, wherever it has moved since it was created.
+	/// This is the read a mod that recorded an id follows that item with, and it
+	/// is the only read that reaches an item applied to a limb — such an item is
+	/// NOT an inventory entry, because the player does not carry it.
+	///
+	/// <para>
+	/// Returns false when the mod lacks <see cref="ModPermission.ReadGameState"/>
+	/// or when this client's kernel holds no fact for that id — which includes id 0
+	/// ("not yet allocated"), and, on a client that has not yet received the join
+	/// checkpoint, every id. An item whose life ENDED is not a false: its row stays
+	/// readable at <see cref="ModItemLocation.Terminal"/>, so "this id ended"
+	/// stays distinguishable from "this id never existed". An id names one item
+	/// for its whole life and is never issued again.
+	/// </para>
+	/// </summary>
+	[ApiStability(ApiStabilityLevel.Experimental)]
+	bool TryGetItem(ulong instanceId, out IModItemState item);
 }

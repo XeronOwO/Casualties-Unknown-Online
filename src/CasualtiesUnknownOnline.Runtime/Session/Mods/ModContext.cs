@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using Microsoft.Extensions.Logging;
@@ -34,6 +35,7 @@ internal sealed class ModContext(
 	ConsoleCommandRegistry consoleCommands,
 	RemoteVitalsService remoteVitals,
 	RemoteInventoryService remoteInventory,
+	IKernelItemFacts itemFacts,
 	IModEntitySpawner entitySpawner,
 	IModItemSpawner itemSpawner,
 	IModTilePlacer tilePlacer,
@@ -61,7 +63,7 @@ internal sealed class ModContext(
 	private readonly ModUiAdapter _ui = new(manifest, frameworkLog);
 	private readonly ModContentAdapter _content = new(manifest, contentStore, frameworkLog);
 	private readonly IModLiquidEffects _liquidEffects = new ModLiquidEffectsAdapter(manifest, contentStore, liquidEffectStore, frameworkLog);
-	private readonly ModGameStateAdapter _gameState = new(manifest, sessionService, remoteVitals, remoteInventory, frameworkLog);
+	private readonly ModGameStateAdapter _gameState = new(manifest, sessionService, remoteVitals, remoteInventory, itemFacts, frameworkLog);
 	private readonly ModEntitySpawnAdapter _entitySpawn = new(manifest, sessionService, entitySpawner, frameworkLog);
 	private readonly ModItemSpawnAdapter _itemSpawn = new(manifest, sessionService, itemSpawner, frameworkLog);
 	private readonly ModTilePlacementAdapter _tilePlacement = new(manifest, sessionService, tilePlacer, frameworkLog);

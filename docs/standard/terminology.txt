@@ -121,3 +121,5 @@ entry mapping | 入口对照 | 入口对照（entry mapping） | 入口映射，
 mod-authored effect | 模组自写效果 | 模组自写效果（mod-authored effect） | 自定义效果，模组特效 | the code function a mod registers for content it owns, keyed by that content's id — distinguished from the 效果 an outer layer derives from a committed batch
 named operation | 命名操作 | 命名操作（named operation） | 操作接口，原子操作 | one operation CUO names, documents and keeps stable, over a game field or method the mod-authored effect may write
 engine-typed hatch | 引擎类型出口 | 引擎类型出口（engine-typed hatch） | 后门，原生指针，逃生舱 | the one place a mod-visible contract carries an engine's own type so an author can reach the game's objects; using it leaves the API's promise
+instance id | 实例编号 | 实例编号（instance id） | 物品 id，唯一编号 | the framework's identity for one item: it names that item for its whole life and is never re-issued
+applied item | 已装物品 | 已装物品（applied item） | 装备物品，附着物品 | an item that IS a limb component (a splint, a carcass splint or a tourniquet installed on somebody's limb); it keeps its instance id, is in no inventory, and comes back off as the same item

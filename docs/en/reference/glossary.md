@@ -56,6 +56,11 @@ its first use in a page. The exact Chinese rendering of each term is registered 
   one.
 - **Payload** — the bytes one frame carries on the wire. A mod never sees them: it hands the framework a
   value, and the framework encodes it.
+- **Item instance id** — the framework's identity for one item. It names that item for its whole life and
+  is never issued again; `0` means "not yet allocated".
+- **Applied item** — an item that IS a limb component: a splint, a carcass splint or a tourniquet installed
+  on somebody's limb. It keeps its instance id, no inventory lists it, and taking it off hands back the
+  same item.
 
 ## Joining and versions
 

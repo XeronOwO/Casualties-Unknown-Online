@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -34,6 +35,7 @@ internal sealed class ModLifecycle(
 	ILogger log,
 	RemoteVitalsService remoteVitals,
 	RemoteInventoryService remoteInventory,
+	IKernelItemFacts itemFacts,
 	IModEntitySpawner entitySpawner,
 	IModItemSpawner itemSpawner,
 	IModTilePlacer tilePlacer,
@@ -61,6 +63,7 @@ internal sealed class ModLifecycle(
 	private readonly ILogger _log = log;
 	private readonly RemoteVitalsService _remoteVitals = remoteVitals;
 	private readonly RemoteInventoryService _remoteInventory = remoteInventory;
+	private readonly IKernelItemFacts _itemFacts = itemFacts;
 	private readonly IModEntitySpawner _entitySpawner = entitySpawner;
 	private readonly IModTilePlacer _tilePlacer = tilePlacer;
 	private readonly IModItemSpawner _itemSpawner = itemSpawner;
@@ -183,6 +186,7 @@ internal sealed class ModLifecycle(
 					_consoleCommands,
 					_remoteVitals,
 					_remoteInventory,
+					_itemFacts,
 					_entitySpawner,
 					_itemSpawner,
 					_tilePlacer,

@@ -1,7 +1,7 @@
 # An applied item keeps its id — stage 2 review record (2026-10-13)
 
 The independent adversarial review of stage 2 (`docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md`,
-ticket `docs/backlog/todo/item-identity-across-transforms.md`), run in a fresh context against the FROZEN
+ticket `docs/backlog/review/item-identity-across-transforms.md`), run in a fresh context against the FROZEN
 uncommitted tree at HEAD `3cf42be3` with the prompt template in `docs/development/review-prompt.md`
 (risk tier FULL: this change touches the protocol, the save format and player-visible behaviour). **The
 reviewer modified nothing.** Findings are listed with their disposition; every one was fixed in the same

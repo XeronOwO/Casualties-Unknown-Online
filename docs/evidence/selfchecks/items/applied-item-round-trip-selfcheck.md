@@ -1,6 +1,6 @@
 # An applied item keeps its id — stage 2 self-check (2026-10-13)
 
-Ticket: `docs/backlog/todo/item-identity-across-transforms.md`. Stage 1's page is
+Ticket: `docs/backlog/review/item-identity-across-transforms.md`. Stage 1's page is
 `docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`; the design record the ruling rests on
 is `docs/evidence/selfchecks/items/item-identity-across-transforms-design.md`. **Scope of this cycle:
 stage 2 of the ruled option 1** — the PRODUCTION call sites that create and end the applied fact (the

@@ -77,7 +77,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `LiquidEffects` | 为这个模组自己注册的液体内容登记自写效果函数，实验性。 |
 | `ContentOwners` | 框架范围内的内容归属查询。 |
 | `ResourceCompletion` | 逐模组的资源补全阶段。 |
-| `GameState` | 只读的玩家状态投影。 |
+| `GameState` | 只读投影：玩家状态，以及按[实例编号](glossary.md)读取任意一件物品。 |
 | `EntitySpawn` / `ItemSpawn` | 世界实体生成／世界物品生成。 |
 | `TilePlacement` / `StructurePlacement` / `LiquidPlacement` | 地块方块／多格结构／液体地块放置。 |
 | `NativeApi` | 经过筛选的原生／游戏私有操作注册表。 |
@@ -387,15 +387,40 @@ if (context.GameState.CanRead)
         var hp = player.Vitals?.BrainHealth;
         var items = player.Inventory?.Items;
     }
+
+    if (context.GameState.TryGetItem(itemId, out var item))
+    {
+        var where = item.Location;   // World、Carried、Contained、Applied 或 Terminal
+        var limb = item.LimbIndex;   // 位置是 Applied 时，就是那条肢体
+    }
 }
 ```
 
-- **作用域**：框架手里最新那份**玩家角色状态**的只读投影，数据来自本来就在跑的 1 Hz 角色流 —— 与内置联机界面同源。模组不会看到 Unity 对象或游戏程序集的类型。
-- **权限**：读取需要 `ModPermission.ReadGameState`。`CanRead` 反映这份模组拷贝有没有声明该标志，每次 `TryGetPlayer` 也会再强制一次（否则返回 false 并留日志）。
-- **暴露的形状**：`IModPlayerState` 带 `SteamId`、`InWorld`、`Vitals`（`BrainHealth`、`Hunger`、`Thirst`、`Stamina`、`Energy`、`Temperature`、`Alive`、`Conscious`）与 `Inventory`（递归的 `IModInventoryEntry` 树：实例 id、物品 id、槽位／穿戴索引、状况、收藏标志、容器内容）。缺的那一半在对应快照到达之前是 null。
-- **实时读取、不可变快照**：每次调用返回那一刻最新的缓存事实；返回的对象是副本，可以安全持有。远端离开世界或会话结束会清空缓存。
-- **不在这一片里**：本机玩家自己的角色状态不从这里暴露，它在原生操作的只读本机玩家投影里。世界／物品／方块／实体的全局状态尚未暴露。
+- **作用域**：框架手里最新状态的只读投影，来源与内置联机界面完全相同 —— 玩家那一半走本来就在跑的 1 Hz 角色流，按编号读的物品那一半走框架自己的物品事实。模组不会看到 Unity 对象或游戏程序集的类型。
+- **权限**：读取需要 `ModPermission.ReadGameState`。`CanRead` 反映这份模组拷贝有没有声明该标志，每次 `TryGetPlayer` 与 `TryGetItem` 也会再强制一次（否则返回 false 并留日志）。
+- **暴露的形状**：`IModPlayerState` 带 `SteamId`、`InWorld`、`Vitals`（`BrainHealth`、`Hunger`、`Thirst`、`Stamina`、`Energy`、`Temperature`、`Alive`、`Conscious`）与 `Inventory`（递归的 `IModInventoryEntry` 树：实例编号、物品 id、槽位／穿戴索引、状况、收藏标志、容器内容）。缺的那一半在对应快照到达之前是 null。
+- **按编号读物品**：`TryGetItem(instanceId, out item)` 回答「这件东西是什么、现在在哪」，用的是模组自己已经记下的编号，无论它此后搬到了哪里 —— 包括任何背包投影都到不了的地方。`IModItemState` 带实例编号、物品 id、`Location`、状况，以及物品自己的收藏标志，再加上该位置用得上的那些事实：作为[已装物品](glossary.md)（applied item）装在身上时是 `OwnerSteamId` 与 `LimbIndex`，随身或装在容器里时是 `OwnerSteamId`，掉在世界里则是 `X`／`Y`；只要这件东西属于某个容器就有 `ParentItemId` —— 装在容器里的物品是在它**里面**，而一件掉在世界里的物品也可能挂在容器上（世界容器的内容物就是记成挂在容器上的世界物品），所以父编号非 0 与「装在容器里」并不是同一件事。其余成员一律取中性值（`0`，肢体那条是 `-1`），所以「哪些成员有意义」由 `Location` 决定。
+- **实时读取、不可变快照**：每次调用返回那一刻最新的缓存事实；返回的对象是副本，可以安全持有。远端离开世界或会话结束会清空玩家那一半的缓存。
+- **不在这一片里**：本机玩家自己的角色状态不从这里暴露，它在原生操作的只读本机玩家投影里。方块与实体表同样不从这里暴露，按编号读里唯一的世界事实是一件已知物品的位置。
 - **不改线上格式**：这个接口面只投影本来就会到达的数据。
+
+### 一件物品的编号跨过变换之后还算不算同一件
+
+**一个实例编号只指一件物品，从出生到结束，而且永不复用。** 这件东西可以搬很多次，编号跟着它走：
+
+| 这件东西经历了什么 | 编号会怎样 |
+|---|---|
+| 被捡起、被丢下、被穿戴、被放进容器、被交给别人 | 不变；`Location` 说明它去了哪 |
+| 作为夹板、尸骸夹板或止血带装到某条肢体上 | 不变；`Location` 是 `Applied`，带那名玩家与那条肢体，而且它**不是**背包条目 —— 玩家并没有随身带着它 |
+| 从那条肢体上取下来 | 不变；`Location` 变成取下它那个人的 `Carried` |
+| 被消耗、被毁、被烹饪或被制作掉 | `Location` 变成 `Terminal`，这个编号就此结束 |
+
+- **只有那三个定义能跨变换保住编号**，也就是 `splint`、`carcasssplint` 与 `tourniquet` 这三件东西，因为这由游戏决定：只有它们会被游戏重新变回一件物品。
+- **其余肢体工具根本不会把这件东西变成别的什么。** 没有任何组件持有它，也没有任何路径把它变回物品，所以它永远不会变成已装物品：它留在原处，只是被扣掉一些状况 —— 冰袋、绷带、止痛纱布与缝合线都是如此。「不能保持形态」说的是没有回去的路，不是这件东西死了。
+- **真正会结束原来那一行的是烹饪与制作**，出来的东西拿一个**新**编号：生肉的编号不是熟肉的编号，两者之间没有任何联系。
+- **`Terminal` 不等于「没见过」。** 那一行仍然可读，好让「这个编号结束了」与「这个编号从未存在」分得开：前者 `TryGetItem` 返回 `true`，后者返回 `false`。编号永不复用，所以一个已经结束的编号不可能被后来的物品冒认。
+- **`0` 不是物品，而 `false` 的意思是「这台客户端手里没有这份事实」。** `0` 是框架盖章之前 `IModInventoryEntry.InstanceId` 报的「还没分配」，所以 `TryGetItem(0, …)` 是 `false`；刚加入、还没收到加入检查点的客机手里一条物品事实都没有，于是那段时间里任何编号都返回 `false` —— 这也是 `false` 永远不等同于 `Terminal` 的第二个理由。
+- **已装物品的状况是框架自己那份记录**，由身体自己的采集与画面上那条肢体组件保持同步，所以最多落后一步。取下来时交出去的是组件本身，不受这一步影响。
 
 ## 生成与放置
 

@@ -1,19 +1,22 @@
 # An item's identity across a transform: is a worn splint still the item it was made from?
 
-- Status: Todo — the RESEARCH cycle landed (design record:
+- Status: Review — the RESEARCH cycle landed (design record:
   `docs/evidence/selfchecks/items/item-identity-across-transforms-design.md`) and the user ruled
-  **option 1** on 2026-10-11. **Stage 1 of the implementation landed 2026-10-12** (the model half: the
-  kernel's `Applied` location family, the two limb-application commands and their decisions, the wire
-  kind with its required limb, the archive rule and the consumer census, plus 35 cases — self-check:
-  `docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`). **Stage 2 landed 2026-10-13**
-  (the adapter's apply and removal commits, cross-player and local, the limb-component binding, the
-  divergence report at the restore seam, and the deletion of the synthesized id namespace with its
-  documentation and test surface — self-check:
-  `docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md`; decision 259). Every apply and
-  removal path now commits one relocation and the item keeps its id, so the rule is true in a running
-  game. Still owed: **stage 3** — the mod-facing id-lifecycle rule and the by-id read on `IModGameState`
-  (the stage-2 self-check's §2.3 keeps that scoping decision). The draft below is the frozen design it
-  implements.
+  **option 1** on 2026-10-11. All three stages are implemented. **Stage 1** (2026-10-12) is the model
+  half: the kernel's `Applied` location family, the two limb-application commands and their decisions,
+  the wire kind with its required limb, the archive rule and the consumer census, plus 35 cases
+  (self-check: `docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`). **Stage 2**
+  (2026-10-13) is the adapter half: the apply and removal commits, cross-player and local, the
+  limb-component binding, the divergence report at the restore seam, and the deletion of the
+  synthesized id namespace with its documentation and test surface (self-check:
+  `docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md`). **Stage 3** (2026-10-14) is
+  the mod-facing half: the lifecycle rule written into `docs/en/reference/mod-api.md` and its Chinese
+  twin, and the by-id read `IModGameState.TryGetItem` with its reviewed baseline entry and 8 cases
+  (self-check: `docs/evidence/selfchecks/items/applied-item-mod-surface-selfcheck.md`). Decision 259.
+  The rule is true in a running game and a mod author has an official way to read it. What remains is
+  acceptance, not code: no two-client run has observed the round trip, and the adapter's Unity-facing
+  decision code (`LimbItemTransform`) has no case that runs without the game. The draft below is the
+  frozen design it implements.
 - Priority: High
 - Category: Item identity / model contract / mod API / persistence
 - Source: handoff instruction (2026-10-11) after `review/id-resume-sources-still-unseeded.md` landed:

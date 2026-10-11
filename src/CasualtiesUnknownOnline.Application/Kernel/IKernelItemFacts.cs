@@ -3,9 +3,11 @@ using CasualtiesUnknownOnline.GameState.Domains.Items;
 namespace CasualtiesUnknownOnline.Application.Kernel;
 
 /// <summary>
-/// The item read model the admission seam needs: an item's judged location
-/// decides whether a member may report its destruction at all. The host's kernel
-/// authority implements this; the gateway only reads through it and never writes.
+/// The narrow item read model: one item's judged fact, by instance id. Two
+/// consumers read it and neither writes — the admission seam, where an item's
+/// judged location decides whether a member may report its destruction at all,
+/// and the mod-facing game-state projection, which answers a mod's by-id query
+/// with the same row. The host's kernel authority implements it.
 /// </summary>
 public interface IKernelItemFacts
 {

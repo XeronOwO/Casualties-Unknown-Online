@@ -1,6 +1,6 @@
 # Item identity across a transform — design record (2026-10-11)
 
-Ticket: `docs/backlog/todo/item-identity-across-transforms.md`. Cycle scope: research only — no file
+Ticket: `docs/backlog/review/item-identity-across-transforms.md`. Cycle scope: research only — no file
 under `src/`, `tests/` or `tools/` is touched by this cycle. The record states what the native game
 does, what CUO commits today, the three answers CUO could give, and what each costs.
 **RULED 2026-10-11: option 1** (§5) — the applied item keeps its instance id and gains a location on

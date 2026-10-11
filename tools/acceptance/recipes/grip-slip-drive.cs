@@ -107,6 +107,17 @@
 		var found = (bool)tryGet.Invoke(renderer, args);
 		var body = args[1] as Body;
 		if (!found || body == null) { return "{\"ok\":false,\"error\":\"no-remote-body\",\"detail\":\"steamId " + targetText + "\"}"; }
+		// The NATIVE panel must be open before the focus is set. Setting the focus alone is not enough:
+		// the coordinator's pump tears a remote focus down whenever the native panel is closed, and that
+		// teardown cancels an in-flight shrapnel session — which is exactly what a driver that only set
+		// the static focus produced (session created and cancelled in the same millisecond).
+		var camera = PlayerCamera.main;
+		if (camera == null) { return "{\"ok\":false,\"error\":\"no-player-camera\"}"; }
+		if (camera.woundView == null) { return "{\"ok\":false,\"error\":\"no-wound-view-object\"}"; }
+		if (!camera.woundView.activeSelf) { camera.WoundViewButton(); }
+		if (!camera.woundView.activeSelf) { return "{\"ok\":false,\"error\":\"native-wound-view-refused\",\"detail\":\"the local body is not alive or available\"}"; }
+		var nativeView = WoundView.view;
+		if (nativeView != null) { nativeView.body = body; }
 		var openMethod = viewType.GetMethod("Open", flags);
 		if (openMethod == null) { return "{\"ok\":false,\"error\":\"no-open-method\"}"; }
 		openMethod.Invoke(null, new object[] { body, System.Convert.ToUInt64(targetText), "target" });
@@ -147,15 +158,47 @@
 		if (objectsField == null || heldField == null) { return "{\"ok\":false,\"error\":\"no-minigame-fields\"}"; }
 		var objects = objectsField.GetValue(minigame) as System.Collections.Generic.List<UnityEngine.RectTransform>;
 		if (objects == null || pieceIndex < 0 || pieceIndex >= objects.Count) { return "{\"ok\":false,\"error\":\"piece-out-of-range\",\"detail\":\"piece " + pieceIndex + "\"}"; }
+		// A break-grasp is only accepted from the piece's OWNER, and ownership is set by a grab report.
+		// A real slip always follows a grab — the patch posts one every frame a piece is held — but a
+		// driver that sets the held slot and breaks inside the same call would post none.
+		var updateType = (System.Type)null;
+		var handlerType = (System.Type)null;
+		for (var i = 0; i < assemblies.Length; i++) {
+			if (updateType == null) { try { updateType = assemblies[i].GetType("CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.ShrapnelPieceUpdate", false); } catch { updateType = null; } }
+			if (handlerType == null) { try { handlerType = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.RemoteMedicalOperationHandler", false); } catch { handlerType = null; } }
+			if (updateType != null && handlerType != null) { break; }
+		}
+		if (updateType == null || handlerType == null) { return "{\"ok\":false,\"error\":\"no-report-types\"}"; }
+		var grab = System.Activator.CreateInstance(updateType);
+		updateType.GetProperty("PieceIndex").SetValue(grab, pieceIndex, null);
+		updateType.GetProperty("Grabbed").SetValue(grab, true, null);
+		updateType.GetProperty("OwnershipChange").SetValue(grab, true, null);
+		var reportMethod = handlerType.GetMethod("ReportShrapnelUpdate", flags);
+		if (reportMethod == null) { return "{\"ok\":false,\"error\":\"no-report-method\"}"; }
+		reportMethod.Invoke(null, new object[] { grab });
 		heldField.SetValue(minigame, objects[pieceIndex]);
 		var before = display.limbs[limbIndex];
 		var skinBefore = before.skinHealth;
 		var bleedBefore = before.bleedAmount;
 		var painBefore = before.pain;
 		minigame.BreakGrasp();
+		// DIAGNOSTIC: report the slip the way the patch would have. If the authority's own line appears
+		// after this, the patch did not run and the authority's chain is fine; if it does not, the refusal
+		// is downstream. The authority's message names which it was.
+		var slipReport = System.Activator.CreateInstance(updateType);
+		updateType.GetProperty("PieceIndex").SetValue(slipReport, pieceIndex, null);
+		updateType.GetProperty("BreakGrasp").SetValue(slipReport, true, null);
+		updateType.GetProperty("OwnershipChange").SetValue(slipReport, true, null);
+		reportMethod.Invoke(null, new object[] { slipReport });
 		var after = display.limbs[limbIndex];
 		var num = new System.Func<float, string>((value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
+		var isOpenNow = viewType.GetProperty("IsOpen", flags);
+		var viewOpen = isOpenNow != null ? isOpenNow.GetValue(null, null) : null;
+		var activeMethod = handlerType.GetMethod("IsActiveShrapnelMinigame", flags);
+		var minigameActive = activeMethod != null ? activeMethod.Invoke(null, new object[] { minigame }) : null;
 		return "{\"ok\":true,\"mode\":\"break\",\"piece\":" + pieceIndex + ",\"limb\":" + limbIndex
+			+ ",\"viewOpen\":" + (viewOpen is bool vo && vo ? "true" : "false")
+			+ ",\"minigameActive\":" + (minigameActive is bool ma && ma ? "true" : "false")
 			+ ",\"skinDelta\":" + num(skinBefore - after.skinHealth)
 			+ ",\"bleedDelta\":" + num(after.bleedAmount - bleedBefore)
 			+ ",\"painDelta\":" + num(after.pain - painBefore) + "}";

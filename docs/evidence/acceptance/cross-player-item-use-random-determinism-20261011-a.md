@@ -66,6 +66,26 @@ this driver opening and starting inside one call, or from something in the chain
 not hit, is NOT established — finding it is the next step, and it may be a real defect rather than a
 driver artefact.
 
+## Third attempt (same batch): the session survives, the report does not arrive
+
+Opening the NATIVE panel first is what the earlier attempt missed. The coordinator's pump tears a remote
+focus down while the native WoundView is closed, and that teardown cancels the in-flight session — hence
+`session created` and `left session (Cancelled)` in one millisecond. With the panel opened first
+(`PlayerCamera.WoundViewButton()` plus `WoundView.view.body = displayBody`, then the focus), the session
+SURVIVES: the host logs `session 4 created` and `operator ... joined session 4` with no cancel line.
+
+A driven slip then satisfies BOTH of the patch's guards — the recipe reports `viewOpen: true` and
+`minigameActive: true` at the instant `BreakGrasp` runs, and the native effect lands on the displayed limb
+(`4.555` / `0.623` / `9.062`, all in range) — and the authority still logs nothing for it.
+
+**The blocker is now narrow and named.** Nothing appears between
+`RemoteMedicalOperationHandler.ReportShrapnelUpdate` and `ShrapnelOperationSessionService.HandleUpdate`,
+and `HandleUpdate`'s refusals (`unknown/wrong session`, `non-owner move`, `piece removed`) all log at
+Warn/Information — so it is not being reached at all, rather than rejecting. A GRAB report posted through
+the same seam does not set an owner either, which points at `SendUpdate`'s own guard or at the sender
+delegate rather than at the authority's rules. That single question is what stands between this batch and
+rows 1, 6 and 7.
+
 ## Row verdicts
 
 Every behavioural row is `blocked`, and the blocking condition is ONE missing capability rather than a

@@ -287,7 +287,6 @@ internal sealed class PlayerRemoteInventoryIntentService(
 			case RemoteInventoryIntentKind.UseItem:
 			case RemoteInventoryIntentKind.WearItem:
 			case RemoteInventoryIntentKind.UnloadBattery:
-			case RemoteInventoryIntentKind.ToggleFavourite:
 				// One item operand, and the ownership fact above already named it: the
 				// native call reads nothing else the host could check.
 				refusal = string.Empty;

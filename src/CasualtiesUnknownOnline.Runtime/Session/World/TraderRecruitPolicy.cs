@@ -218,6 +218,10 @@ internal static class TraderRecruitPolicy
 			// carry none — and a restore of it would silently continue with the
 			// game's defaults (S3.4b).
 			NativeFields = source.NativeFields,
+			// The local favourite marks ride along for the same reason: a death →
+			// revive cycle is not a new world, so the items this player starred in
+			// somebody else's backpack have to survive it.
+			FavouriteMarks = source.FavouriteMarks,
 		};
 	}
 

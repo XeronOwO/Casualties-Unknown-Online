@@ -59,6 +59,7 @@ All files under `docs/evidence/selfchecks/` are historical/per-delivery evidence
 | enemies/enemy-combat-replay-split-selfcheck.md | Enemies/World | current | candidate current evidence; verify before citing |
 | enemies/enemy-effects-selfcheck.md | Enemies/World | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | items/enemy-item-hit-sync-selfcheck.md | Items | current | candidate current evidence; verify before citing |
+| items/favourite-marks-local-and-saved-selfcheck.md | Items | current | the local favourite mark: the set, the character record it rides, the one writer of a proxy's star, the adoption and the deleted `ToggleFavourite` path; the seven real-machine rows are the next batch's judgement |
 | enemies/enemy-stun-presentation-selfcheck.md | Enemies/World | current | candidate current evidence; verify before citing |
 | enemies/enemy-targeting-selfcheck.md | Enemies/World | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | fluids/fluid-presentation-selfcheck.md | Fluids | current | candidate current evidence; verify before citing |

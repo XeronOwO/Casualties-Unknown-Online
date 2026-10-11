@@ -22,11 +22,16 @@ internal static class RemoteInventoryIntentFrequency
 
 		/// <summary>
 		/// True for the kinds the while-dragging frame produces: the continuous drain
-		/// tick and the <c>favourited</c> field store, which the native code writes on
-		/// the hovered item inside <c>HandleWhileDragging</c> and nowhere else. Every
-		/// other member comes from a release branch.
+		/// tick, which the native code runs inside <c>HandleWhileDragging</c> and
+		/// nowhere else. Every other member comes from a release branch, so this is also
+		/// what the release-only filter keeps. It reads the same today as
+		/// <see cref="IsContinuousGesture"/> and stays separate on purpose: the two
+		/// answer different questions (a per-frame gesture vs a frame-produced kind), and
+		/// the drain is both by accident of the vocabulary — if a discrete frame kind
+		/// ever arrives, only these two lists disagree. The frame's other mutation, the
+		/// <c>favourited</c> store on the hovered item, is not an intent at all: the mark
+		/// is the local player's own (user ruling 2026-10-11).
 		/// </summary>
-		public bool IsWhileDraggingGesture() =>
-			kind is RemoteInventoryIntentKind.Drain or RemoteInventoryIntentKind.ToggleFavourite;
+		public bool IsWhileDraggingGesture() => kind == RemoteInventoryIntentKind.Drain;
 	}
 }

@@ -50,4 +50,20 @@ internal interface IRemoteBackpackPatchBridge
 	/// proxy write; the caller rate-limits it per dragged proxy.
 	/// </summary>
 	void ReportProxyNotOperable(Item item, string what);
+
+	/// <summary>
+	/// The local player starred an item in somebody else's inventory, or cleared the
+	/// mark (user ruling 2026-10-11: the mark is this player's own, so nothing else
+	/// records it — not the wire, not the owner's client). One line per gesture, which
+	/// is a low-frequency user action.
+	/// </summary>
+	void ReportLocalFavouriteMark(Item item, ulong ownerSteamId, bool marked);
+
+	/// <summary>
+	/// A local favourite mark named an instance id that now carries a different item:
+	/// the mark was DROPPED instead of applied, and the reason is printed as it was
+	/// resolved. The alternative — applying it — would light this client's star on
+	/// whatever inherited the id.
+	/// </summary>
+	void ReportStaleFavouriteMark(string reason);
 }

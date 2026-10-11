@@ -22,7 +22,7 @@ public interface IModInventoryEntry
 	/// <summary>The item condition (charge/durability/consumable amount).</summary>
 	float Condition { get; }
 
-	/// <summary>The item's favourite flag.</summary>
+	/// <summary>The item's OWN favourite flag — the flag the item carries, whoever set it. A local favourite mark (user ruling 2026-10-11) is a different thing and is not projected here.</summary>
 	bool Favourited { get; }
 
 	/// <summary>The direct contents of this item when it is a container.</summary>

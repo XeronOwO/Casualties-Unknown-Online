@@ -109,9 +109,6 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 				case RemoteInventoryIntentKind.UnloadBattery:
 					ApplyUnloadBattery(item);
 					break;
-				case RemoteInventoryIntentKind.ToggleFavourite:
-					ApplyToggleFavourite(item);
-					break;
 				case RemoteInventoryIntentKind.GiveToTrader:
 					ApplyGiveToTrader(item, msg.TargetTraderPosition);
 					break;
@@ -510,19 +507,6 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 		}
 
 		_log.LogInformation("[RemoteIntent] the native unload ejected item {Item}'s battery onto the owner's body.", item.id);
-	}
-
-	/// <summary>
-	/// The while-dragging <c>favourited</c> store (<c>PlayerCamera.cs:1747</c>): the
-	/// owner flips its OWN item's field — the toggle is the native gesture, and both
-	/// values are named so the line says what the gesture did even though the field has
-	/// no event of its own.
-	/// </summary>
-	private void ApplyToggleFavourite(Item item)
-	{
-		var before = item.favourited;
-		item.favourited = !before;
-		_log.LogInformation("[RemoteIntent] favourite of item {Item} is now {Now} (was {Before}).", item.id, item.favourited, before);
 	}
 
 	/// <summary>

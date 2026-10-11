@@ -1730,7 +1730,7 @@
       "cluster": "players",
       "row": "P3",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs",
-      "quote": "ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody, out var nativeFailure, _nativeSystem), throttled: false, nativeFailure);"
+      "quote": "ReportCharacterData(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: false, nativeFailure);"
     },
     {
       "cluster": "players",
@@ -4112,7 +4112,7 @@
       "cluster": "inline",
       "row": "P3",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs",
-      "quote": "_characterData.ReportCharacterData(CharacterDataCapture.Capture(_mapper, prevBody, out _, _nativeSystem));"
+      "quote": "_characterData.ReportCharacterData(_favouriteMarks.Capture(prevBody, out _));"
     },
     {
       "cluster": "inline",

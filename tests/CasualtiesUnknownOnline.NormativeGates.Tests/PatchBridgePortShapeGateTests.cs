@@ -168,10 +168,12 @@ public class PatchBridgePortShapeGateTests
 			"EmitRemoteDragIntents",
 			"EmitRemoteWhileDraggingFrame",
 			"LocalSteamId",
+			"ReportLocalFavouriteMark",
 			"ReportLocalReleaseOntoProxy",
 			"ReportProxyNotOperable",
 			"ReportRemoteDragUnresolved",
 			"ReportRemoteGestureNotCarried",
+			"ReportStaleFavouriteMark",
 		]),
 		("IRemoteMedicalPatchBridge", AdapterDir + "IRemoteMedicalPatchBridge.cs", true,
 		[

@@ -58,7 +58,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 	/// game's own children (bones/decorations) and clear only our previous
 	/// renders (RemoteCloneRender-marked).
 	/// </summary>
-	private static void RenderItemInto(Transform parent, CharacterItemMsg? wanted, int sortOrder, Limb? wearLimb, ulong ownerSteamId)
+	private void RenderItemInto(Transform parent, CharacterItemMsg? wanted, int sortOrder, Limb? wearLimb, ulong ownerSteamId)
 	{
 		// A matching render stays — the 1 Hz rebuild used to recreate every clone
 		// every second: a freshly Instantiated clone starts at the prefab's
@@ -292,7 +292,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 	/// contents must materialise those children on the display clone; they are
 	/// marked as remote render proxies (no authority, no physics).
 	/// </summary>
-	private static void RestoreRemoteContents(Item containerItem, List<CharacterItemMsg> contents, ulong ownerSteamId)
+	private void RestoreRemoteContents(Item containerItem, List<CharacterItemMsg> contents, ulong ownerSteamId)
 	{
 		if (containerItem == null) // Unity object — ==
 		{
@@ -409,7 +409,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		return null;
 	}
 
-	private static void UpdateRemoteContent(Item item, CharacterItemMsg data, ulong ownerSteamId)
+	private void UpdateRemoteContent(Item item, CharacterItemMsg data, ulong ownerSteamId)
 	{
 		SetRemoteInventoryItemId(item, data.InstanceId, ownerSteamId);
 		RemoteItemPresentation.ApplySourceValues(item, data);
@@ -439,7 +439,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		RemoteBackpackView.RequestOpenContainerRefresh();
 	}
 
-	private static void RestoreRemoteContent(Item containerItem, Container container, CharacterItemMsg childData, ulong ownerSteamId)
+	private void RestoreRemoteContent(Item containerItem, Container container, CharacterItemMsg childData, ulong ownerSteamId)
 	{
 		var prefab = ItemPrefabResolver.Load(childData.ItemId);
 		if (prefab == null) // Unity object — ==
@@ -491,7 +491,16 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		container.LoadItem(child);
 	}
 
-	private static void SetRemoteInventoryItemId(Item item, ulong instanceId, ulong ownerSteamId)
+	/// <summary>
+	/// Give a freshly rendered proxy the authoritative identity its seams key by —
+	/// and with it the ONLY thing this client's view shows a star for: the local
+	/// player's own mark on that item. The owner's own <c>favourited</c> is
+	/// deliberately not a display source value
+	/// (<see cref="RemoteItemPresentation.ApplySourceValues"/>), so this write is
+	/// what decides the star, and every path that materialises a proxy comes
+	/// through here.
+	/// </summary>
+	private void SetRemoteInventoryItemId(Item item, ulong instanceId, ulong ownerSteamId)
 	{
 		if (instanceId == 0)
 		{
@@ -506,6 +515,13 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 
 		marker.Id = instanceId;
 		marker.OwnerSteamId = ownerSteamId;
+		FavouriteMarkOverlay.Apply(item, instanceId, ownerSteamId, out var staleDrop);
+		if (staleDrop is not null)
+		{
+			// A mark the world has moved on from: dropped, never applied to whatever
+			// inherited the id, and never silent.
+			_log.LogWarning("[FavouriteMark] dropped a stale mark: {Reason}.", staleDrop);
+		}
 	}
 
 	private static void MarkRemoteCloneTree(Item root)

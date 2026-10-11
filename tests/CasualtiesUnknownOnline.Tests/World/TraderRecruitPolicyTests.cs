@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Xunit;
@@ -124,6 +125,27 @@ public class TraderRecruitPolicyTests
 		Assert.Equal([0.25f, 0.5f], fields.LastHappiness);
 		Assert.Equal(4100, fields.CaloriesConsumed);
 		Assert.Equal([171, 24, 8123, 3], fields.CharacterInfo);
+	}
+
+	[Fact]
+	public void PrepareRevive_CarriesTheLocalFavouriteMarks()
+	{
+		// Same family, same hazard as the native fields above: this type builds a fresh
+		// message field by field, and a revive is not a new world — so the items this
+		// player starred in somebody else's backpack have to survive a death → revive
+		// cycle too, or the next snapshot drops them from the record the archive keeps.
+		var source = DeadSnapshot();
+		source.FavouriteMarks =
+		[
+			new CharacterFavouriteMarkMsg { OwnerSteamId = 9002, ItemInstanceId = 41, ItemId = "scrapmetal" },
+		];
+
+		var revived = TraderRecruitPolicy.PrepareRevive(source);
+
+		var mark = Assert.Single(Assert.IsType<List<CharacterFavouriteMarkMsg>>(revived.FavouriteMarks));
+		Assert.Equal(9002UL, mark.OwnerSteamId);
+		Assert.Equal(41UL, mark.ItemInstanceId);
+		Assert.Equal("scrapmetal", mark.ItemId);
 	}
 
 	[Fact]

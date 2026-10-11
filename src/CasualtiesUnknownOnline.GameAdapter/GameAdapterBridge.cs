@@ -285,6 +285,13 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void ReportProxyNotOperable(Item item, string what) => _remoteDragIntents.ReportProxyNotOperable(item, what);
 
+	public void ReportLocalFavouriteMark(Item item, ulong ownerSteamId, bool marked) =>
+		domains.Log.LogInformation("[FavouriteMark] {Action} {Item} in {Owner}'s inventory — the mark is local to this client; the owner's own item is untouched.",
+			marked ? "marked" : "unmarked", item.id, ownerSteamId);
+
+	public void ReportStaleFavouriteMark(string reason) =>
+		domains.Log.LogWarning("[FavouriteMark] dropped a stale mark: {Reason}.", reason);
+
 	public void OnPickUpResult(string itemId, int slot, string home, Vector2 position) =>
 		domains.Log.LogInformation("[PickUpResult] {Item} → {Home} (slot {Slot}) at ({X:F1},{Y:F1}).", itemId, home, slot, position.x, position.y);
 

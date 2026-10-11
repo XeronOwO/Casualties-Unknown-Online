@@ -72,4 +72,15 @@ public sealed class CharacterDataMsg
 	/// </summary>
 	[ProtoMember(9)]
 	public CharacterNativeFieldsMsg? NativeFields { get; set; }
+
+	/// <summary>
+	/// The favourite marks THIS player made on other players' items — the local,
+	/// personal act of user ruling 2026-10-11, carried here because this record is
+	/// the only store scoped to the world the mark was made in. Null for an old
+	/// sender, which the restore reads as "this character brought no marks" (see
+	/// <see cref="LocalFavouriteMarks.Seed"/>). See
+	/// <see cref="CharacterFavouriteMarkMsg"/>.
+	/// </summary>
+	[ProtoMember(10)]
+	public List<CharacterFavouriteMarkMsg>? FavouriteMarks { get; set; }
 }

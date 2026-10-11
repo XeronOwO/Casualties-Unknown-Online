@@ -24,8 +24,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// toggle is the one mutation the game expresses as a FIELD write with no call
 /// behind it (<c>PlayerCamera.cs:1747</c>), so this patch reads the frame's own
 /// candidate buttons before the native body and compares them after: the native
-/// condition still decides whether the store happens, and CUO only turns the store
-/// it observes into an intent for the owner.
+/// condition still decides whether a store happens, and CUO turns the store it
+/// observes into the LOCAL player's own mark on that item (user ruling
+/// 2026-10-11) instead of an action on the owner's item.
 /// </summary>
 [HarmonyPatch(typeof(PlayerCamera), "HandleWhileDragging")]
 internal static class PlayerCameraHandleWhileDraggingPatch
@@ -63,7 +64,7 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 	/// </summary>
 	private static void Finalizer(FavouriteFrameState __state)
 	{
-		CaptureFavouriteStores(__state);
+		ApplyFavouriteStores(__state);
 		if (__state.BracketOpened)
 		{
 			PatchBridge.Impl?.EmitRemoteWhileDraggingFrame(RemoteDragIntentWindow.Current.Close());
@@ -108,14 +109,18 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 	}
 
 	/// <summary>
-	/// The frame's favourite stores. A store on a display proxy becomes an intent for
-	/// the owner and the proxy's field goes back to the value the frame started with —
-	/// no path may mutate a proxy, and the projection carries the owner's authoritative
-	/// value back. A proxy no while-dragging bracket took is refused with one line,
-	/// exactly like the drain seam. A store on a LOCAL item is left alone: that is the
-	/// native local gesture, unchanged by the remote view being open.
+	/// The frame's favourite stores. On a display proxy the native store is the
+	/// LOCAL player's mark (user ruling 2026-10-11: the mark is this player's own,
+	/// so the owner's item is never what it changes): the proxy's field is put back
+	/// to the value the frame started with — no path may mutate a display proxy —
+	/// the mark is toggled in this client's own set, and the overlay writes that
+	/// value back onto the proxy, which is what makes the star flip in this frame.
+	/// A proxy without an authoritative instance id is refused with one line,
+	/// exactly like the drain seam: a mark is keyed by that id. A store on a LOCAL
+	/// item is left alone — that is the native local gesture, unchanged by the
+	/// remote view being open.
 	/// </summary>
-	private static void CaptureFavouriteStores(FavouriteFrameState state)
+	private static void ApplyFavouriteStores(FavouriteFrameState state)
 	{
 		foreach (var candidate in state.Candidates)
 		{
@@ -132,13 +137,21 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 
 			item.favourited = candidate.Favourited;
 			var itemId = RemoteDragProxyQuery.InstanceId(item);
-			if (itemId == 0 || !RemoteDragIntentWindow.Current.IsOpen)
+			if (itemId == 0)
 			{
 				PatchBridge.Impl?.ReportProxyNotOperable(item, "the favourite toggle");
 				continue;
 			}
 
-			RemoteDragIntentWindow.Current.CaptureFavourite(itemId, RemoteDragProxyQuery.OwnerSteamId(item));
+			var owner = RemoteDragProxyQuery.OwnerSteamId(item);
+			var marked = LocalFavouriteMarkStore.Current.Toggle(itemId, owner, item.id);
+			FavouriteMarkOverlay.Apply(item, itemId, owner, out var staleDrop);
+			if (staleDrop is not null)
+			{
+				PatchBridge.Impl?.ReportStaleFavouriteMark(staleDrop);
+			}
+
+			PatchBridge.Impl?.ReportLocalFavouriteMark(item, owner, marked);
 		}
 	}
 

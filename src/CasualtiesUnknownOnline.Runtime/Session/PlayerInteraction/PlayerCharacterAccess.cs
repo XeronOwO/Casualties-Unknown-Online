@@ -73,6 +73,11 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		// application all end in one), so a dropped field would silently degrade the
 		// next cut, the next reconnect restore and the next continue (S3.4b).
 		NativeFields = source.NativeFields,
+		// The local favourite marks ride along for the same reason and with the same
+		// consequence: this clone is SAVED over the stored character snapshot, so a
+		// dropped list would silently unmark every item this player starred in a
+		// world they are still playing in.
+		FavouriteMarks = source.FavouriteMarks,
 	};
 
 	public static CharacterItemMsg CloneItem(CharacterItemMsg item) => new()

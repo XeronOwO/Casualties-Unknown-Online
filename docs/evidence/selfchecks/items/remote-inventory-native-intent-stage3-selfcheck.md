@@ -1,5 +1,12 @@
 # Remote inventory native parity — stage 3 item-interaction self-check (2026-09-25)
 
+> **Amended 2026-10-11 (decision 258).** Everything below is this stage's record as it stood. One of its
+> seven kinds no longer exists: the while-dragging `favourited` store became the LOCAL player's own mark
+> (user ruling 2026-10-11), so `ToggleFavourite`, its capture, its owner-side apply and the host's
+> validation arm are DELETED and the frame bracket now writes that local set instead of an intent. Read
+> §"Favourite store seam" below as history; the current state is
+> `docs/backlog/review/favourite-marks-are-local-and-saved.md` and design §3.2.9.
+
 Ticket: `docs/backlog/todo/remote-inventory-native-parity-rework.md` (stage 3). Design record:
 `docs/architecture/remote-inventory-native-parity.md` (amended by stage 3). Decisions: 217 (stage 0),
 218 (the window's shape, stage 1), 219 (the container family and the while-dragging body), 220 (the

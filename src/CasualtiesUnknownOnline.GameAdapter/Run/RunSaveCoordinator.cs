@@ -78,6 +78,16 @@ internal sealed class RunSaveCoordinator(
 		// the rule "supplied once per process" for a body a scene reload happened to reuse.
 		_startingSupplies.Clear();
 
+		// The local favourite marks are per-run state of the same shape as the two
+		// above: they are scoped to the world they were made in, so a new run's marks
+		// are void and a Continue's come back with this player's OWN character record
+		// (CharacterDataSync seeds the live set from the restore). They are cleared
+		// HERE rather than beside the host's ClearSavedCharacters because this half runs
+		// for every role: a guest that stays connected while the host starts a new world
+		// never sees a session end, and it kept the previous world's marks and reported
+		// them into the new one.
+		LocalFavouriteMarkStore.Current.Reset();
+
 		if (_session.Role == SessionRole.Guest)
 		{
 			return;

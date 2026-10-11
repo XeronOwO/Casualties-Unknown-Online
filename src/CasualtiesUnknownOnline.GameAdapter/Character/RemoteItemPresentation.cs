@@ -22,17 +22,21 @@ internal static class RemoteItemPresentation
 {
 	internal readonly record struct SourceValues(
 		float Condition,
-		bool Favourited,
 		IReadOnlyList<LiquidStackMsg> Liquids)
 	{
 		internal static SourceValues From(CharacterItemMsg data) =>
-			new(data.Condition, data.Favourited, data.Liquids);
+			new(data.Condition, data.Liquids);
 	}
 
+	/// <summary>
+	/// The source values a display proxy shows. The owner's own <c>favourited</c>
+	/// is deliberately NOT among them: the star on another player's item is the
+	/// LOCAL player's own mark, so its only writer is
+	/// <see cref="FavouriteMarkOverlay"/> (user ruling 2026-10-11).
+	/// </summary>
 	internal static void ApplySourceValues(Item item, CharacterItemMsg data)
 	{
 		item.condition = data.Condition;
-		item.favourited = data.Favourited;
 		ItemStateCodec.RestoreLiquids(item, data.Liquids);
 	}
 

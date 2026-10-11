@@ -6,12 +6,14 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
 /// Behavior family: the item-interaction half of the drag-window state machine —
-/// R10's radial-centre use/wear, R6's combine, R2/R3's battery calls, the
-/// while-dragging <c>favourited</c> store and R12's trader hand-in. The window is
-/// pure (no scene), so the operand pairing, the cross-item refusals and the way a
-/// field store sits beside the frame's drain tick are locked here; the patch layer
-/// only resolves ids, compares the field across the frame and skips the original
-/// call when the window took it.
+/// R10's radial-centre use/wear, R6's combine, R2/R3's battery calls and R12's
+/// trader hand-in. The window is pure (no scene), so the operand pairing, the
+/// cross-item refusals and the way the frame's continuous drain tick sits beside
+/// them are locked here; the patch layer only resolves ids and skips the original
+/// call when the window took it. The while-dragging <c>favourited</c> store is NOT
+/// in this family any more: it is the local player's own mark on somebody else's
+/// item and never becomes an intent (user ruling 2026-10-11,
+/// <see cref="LocalFavouriteMarks"/>).
 /// </summary>
 public class RemoteItemInteractionCaptureTests
 {
@@ -146,58 +148,17 @@ public class RemoteItemInteractionCaptureTests
 	}
 
 	[Fact]
-	public void Favourite_IsOneToggleIntentForTheHoveredItem()
+	public void AWhileDraggingFramesDrainTick_SurvivesTheClose()
 	{
+		// The release-only rule must drop release calls, never the frame's own kind.
 		var window = OpenFrame();
-		window.CaptureFavourite(HitItem, Owner);
+		window.CaptureDrain(Item, 0.25f);
 
 		var outcome = window.Close();
 
 		var intent = Assert.Single(outcome.Intents);
-		Assert.Equal(RemoteInventoryIntentKind.ToggleFavourite, intent.Kind);
-		Assert.Equal(HitItem, intent.ItemInstanceId);
-		Assert.Equal(RemoteDragWindowKind.WhileDragging, outcome.Kind);
-	}
-
-	[Fact]
-	public void AFramesDrainAndItsFavouriteStore_BothSurviveTheClose()
-	{
-		// The release-only rule must drop release calls, never the frame's own kinds:
-		// one frame can carry the continuous tick AND the field store.
-		var window = OpenFrame();
-		window.CaptureDrain(Item, 0.25f);
-		window.CaptureFavourite(HitItem, Owner);
-
-		var outcome = window.Close();
-
-		Assert.Equal(2, outcome.Intents.Count);
-		Assert.Equal(RemoteInventoryIntentKind.Drain, outcome.Intents[0].Kind);
-		Assert.Equal(RemoteInventoryIntentKind.ToggleFavourite, outcome.Intents[1].Kind);
+		Assert.Equal(RemoteInventoryIntentKind.Drain, intent.Kind);
 		Assert.Empty(outcome.Refusals);
-	}
-
-	[Fact]
-	public void Favourite_OnAnotherOwnersItem_IsRefused()
-	{
-		var window = OpenFrame();
-		window.CaptureFavourite(HitItem, OtherOwner);
-
-		var outcome = window.Close();
-
-		Assert.Empty(outcome.Intents);
-		Assert.Single(outcome.Refusals);
-	}
-
-	[Fact]
-	public void Favourite_OutsideAWhileDraggingFrame_IsRefused()
-	{
-		var window = Open();
-		window.CaptureFavourite(HitItem, Owner);
-
-		var outcome = window.Close();
-
-		Assert.Empty(outcome.Intents);
-		Assert.Single(outcome.Refusals);
 	}
 
 	[Fact]

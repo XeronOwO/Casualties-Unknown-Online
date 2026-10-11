@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Xunit;
@@ -33,6 +34,29 @@ public sealed class PlayerCharacterAccessTests
 		Assert.Equal([0.1f, 0.2f], fields.LastHappiness);
 		Assert.Equal(4100, fields.CaloriesConsumed);
 		Assert.Equal([171, 24, 8123, 3], fields.CharacterInfo);
+	}
+
+	[Fact]
+	public void CloneCharacter_CarriesTheLocalFavouriteMarks()
+	{
+		// Same hazard as the native fields above, and the same consequence: these
+		// interaction services SAVE the clone over the stored character, so a dropped
+		// list would silently unmark every item this player starred in somebody else's
+		// backpack — while they are still playing in that world.
+		var source = new CharacterDataMsg
+		{
+			FavouriteMarks =
+			[
+				new CharacterFavouriteMarkMsg { OwnerSteamId = 9002, ItemInstanceId = 41, ItemId = "scrapmetal" },
+			],
+		};
+
+		var clone = PlayerCharacterAccess.CloneCharacter(source);
+
+		var mark = Assert.Single(Assert.IsType<List<CharacterFavouriteMarkMsg>>(clone.FavouriteMarks));
+		Assert.Equal(9002UL, mark.OwnerSteamId);
+		Assert.Equal(41UL, mark.ItemInstanceId);
+		Assert.Equal("scrapmetal", mark.ItemId);
 	}
 
 	[Fact]

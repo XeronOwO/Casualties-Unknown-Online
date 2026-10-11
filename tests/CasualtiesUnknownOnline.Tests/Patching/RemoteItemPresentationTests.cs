@@ -173,7 +173,7 @@ public class RemoteItemPresentationTests
 	}
 
 	[Fact]
-	public void SourceValues_IncludeConditionFavouriteLiquids()
+	public void SourceValues_CarryConditionAndLiquidsButNeverTheOwnersFavourite()
 	{
 		var method = Presentation.GetMethod("SourceValuesFrom",
 			BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
@@ -189,7 +189,6 @@ public class RemoteItemPresentationTests
 		Assert.NotNull(result);
 		var type = result.GetType();
 		var condition = (float)type.GetProperty("Condition")!.GetValue(result)!;
-		var favourited = (bool)type.GetProperty("Favourited")!.GetValue(result)!;
 		var liquids = (IEnumerable)type.GetProperty("Liquids")!.GetValue(result)!;
 		var count = 0;
 		foreach (var _ in liquids)
@@ -198,8 +197,13 @@ public class RemoteItemPresentationTests
 		}
 
 		Assert.Equal(0.75f, condition, 3);
-		Assert.True(favourited);
 		Assert.Equal(1, count);
+
+		// The owner's own favourite is deliberately NOT among the clone's source
+		// values: the star this client shows on somebody else's item is the LOCAL
+		// player's own mark (user ruling 2026-10-11), and a shape that could carry the
+		// owner's value here is what would bring the old behaviour back.
+		Assert.Null(type.GetProperty("Favourited"));
 	}
 
 	[Fact]

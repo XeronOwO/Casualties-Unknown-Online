@@ -15,12 +15,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// gesture CUO has never seen is observable instead of a silent no-op. A
 /// WHILE-DRAGGING window spans one <c>PlayerCamera.HandleWhileDragging</c> frame,
 /// which carries the continuous actions rather than a release branch — the liquid
-/// drain tick runs every frame, so every frame is its own intent — plus the one
-/// mutation with no native call behind it: the <c>favourited</c> field store on the
-/// hovered item, which the Game Adapter reports here after comparing that field
-/// across the bracket (<see cref="CaptureFavourite"/>). The item-interaction half of
-/// the vocabulary — R10's use and wear, R6's combine, R2/R3's battery calls, the
-/// favourite store and R12's trader hand-in — lives on the same state, in
+/// drain tick runs every frame, so every frame is its own intent. The frame's other
+/// mutation, the <c>favourited</c> field store on the hovered item, is deliberately
+/// NOT here: it is the local player's own mark on somebody else's item (user ruling
+/// 2026-10-11), so it never becomes an intent and never reaches the owner — the Game
+/// Adapter keeps it in <c>LocalFavouriteMarks</c>. The item-interaction half of the
+/// vocabulary — R10's use and wear, R6's combine, R2/R3's battery calls and R12's
+/// trader hand-in — lives on the same state, in
 /// <c>RemoteDragIntentCapture.ItemInteractions.cs</c>.
 ///
 /// It holds no Unity types on purpose: the decision logic is testable without a
@@ -300,11 +301,10 @@ internal sealed partial class RemoteDragIntentCapture
 	}
 
 	/// <summary>
-	/// A while-dragging frame carries the continuous native calls and the field-store
-	/// seam, and nothing else. A release-only capture reaching it would be a gesture
-	/// that frame cannot produce, so it is refused and its intent is dropped rather
-	/// than sent as something the native body never did — while the frame's OWN kinds
-	/// (the drain tick, the favourite store) are kept.
+	/// A while-dragging frame carries the continuous native calls and nothing else. A
+	/// release-only capture reaching it would be a gesture that frame cannot produce, so
+	/// it is refused and its intent is dropped rather than sent as something the native
+	/// body never did — while the frame's OWN kind (the drain tick) is kept.
 	/// </summary>
 	private void RefuseReleaseCallsInAWhileDraggingFrame()
 	{

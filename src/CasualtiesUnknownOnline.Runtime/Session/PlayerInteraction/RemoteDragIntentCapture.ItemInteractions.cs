@@ -4,13 +4,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
 /// The item-interaction half of the drag-window state machine: R10's radial-centre
-/// use and wear, R6's combine, R2/R3's battery calls, the while-dragging
-/// <c>favourited</c> store and R12's trader hand-in. They share the window's one
-/// rule — the call the game's own branch made is named by its native identity and its
-/// operands, and anything it cannot name is refused instead of run on a display proxy
-/// — and they share its state (<see cref="DraggedItemId"/>, the owner, the bracket
-/// kind), which is why they live on the same type in a second file rather than on a
-/// second state machine that could disagree with the first.
+/// use and wear, R6's combine, R2/R3's battery calls and R12's trader hand-in. They
+/// share the window's one rule — the call the game's own branch made is named by its
+/// native identity and its operands, and anything it cannot name is refused instead
+/// of run on a display proxy — and they share its state
+/// (<see cref="DraggedItemId"/>, the owner, the bracket kind), which is why they live
+/// on the same type in a second file rather than on a second state machine that could
+/// disagree with the first. The while-dragging <c>favourited</c> store is NOT among
+/// them: it never leaves the client that made it (user ruling 2026-10-11, see
+/// <c>RemoteDragIntentCapture</c>).
 /// </summary>
 internal sealed partial class RemoteDragIntentCapture
 {
@@ -98,30 +100,6 @@ internal sealed partial class RemoteDragIntentCapture
 		}
 
 		Add(RemoteInventoryIntentKind.UnloadBattery, targetItemInstanceId, 0, -1, 0, -1);
-	}
-
-	/// <summary>
-	/// The while-dragging <c>favourited</c> store (<c>PlayerCamera.cs:1747</c>). The
-	/// native code writes the FIELD of the HOVERED item — not the dragged one — and
-	/// has no call to intercept, so the Game Adapter compares each candidate button's
-	/// field across the frame bracket and reports a flip here. The flipped item must
-	/// belong to the bracket's owner: the ring shows that owner's body, and a write
-	/// that reached another owner's proxy would name an item the intent may not touch.
-	/// </summary>
-	internal void CaptureFavourite(ulong itemInstanceId, ulong itemOwnerSteamId)
-	{
-		if (_kind != RemoteDragWindowKind.WhileDragging)
-		{
-			Refuse($"favourite toggle of item {itemInstanceId} outside a while-dragging frame");
-			return;
-		}
-
-		if (!IsOwnedTarget(itemInstanceId, itemOwnerSteamId, "favourite toggle"))
-		{
-			return;
-		}
-
-		Add(RemoteInventoryIntentKind.ToggleFavourite, itemInstanceId, 0, -1, 0, -1);
 	}
 
 	/// <summary>

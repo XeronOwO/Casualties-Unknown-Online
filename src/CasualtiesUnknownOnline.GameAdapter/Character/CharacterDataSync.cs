@@ -36,8 +36,10 @@ internal sealed class CharacterDataSync(
 	private readonly CloneFactTable _factTable = factTable;
 	private readonly CharacterRestoreApplier _restoreApplier = restoreApplier;
 	private readonly WearableRestorer _wearables = wearables;
-	private readonly ICharacterNativeSystem _nativeSystem = nativeSystem;
 	private readonly ILogger<CharacterDataSync> _log = log;
+
+	/// <summary>The local favourite marks this client's own character record carries (its own responsibility, split out when this coordinator reached the architecture line's watchlist).</summary>
+	private readonly LocalFavouriteMarkSync _favouriteMarks = new(mapper, nativeSystem, log);
 
 	/// <summary>A clone's snapshot cache updated (SteamId) — the renderer re-renders that clone's carried items. Without this, the clone only rendered once at creation ("after the starting supplies, the peer never sees carried-item updates").</summary>
 	public event Action<ulong>? CloneSnapshotUpdated
@@ -242,7 +244,7 @@ internal sealed class CharacterDataSync(
 		}
 
 		_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);
-		ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody, out var nativeFailure, _nativeSystem), throttled: true, nativeFailure);
+		ReportCharacterData(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: true, nativeFailure);
 	}
 
 	/// <summary>An inventory-internal move finished (SwapSlots/SwitchHands) — re-report right away (the 1 Hz throttle alone reads as a 1-2 s delay on the peer's clone).</summary>
@@ -251,7 +253,7 @@ internal sealed class CharacterDataSync(
 		if (localBody != null && _session.SessionActive && !_restore.HasPending && !_restore.WipePending) // Unity object — ==
 		{
 			_log.LogInformation("[CloneRender] inventory changed — immediate re-report.");
-			ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody, out var nativeFailure, _nativeSystem), throttled: false, nativeFailure);
+			ReportCharacterData(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: false, nativeFailure);
 		}
 	}
 
@@ -299,7 +301,7 @@ internal sealed class CharacterDataSync(
 	/// <summary>Capture the LOCAL body's character snapshot right now — the save system's cut needs the state at the instant the host leaves the world, not the last 1 Hz report.</summary>
 	internal CharacterDataMsg CaptureLocal(Body body)
 	{
-		var captured = CharacterDataCapture.Capture(_mapper, body, out var nativeFailure, _nativeSystem);
+		var captured = _favouriteMarks.Capture(body, out var nativeFailure);
 		if (nativeFailure is not null)
 		{
 			// The cut's own snapshot: this is the one a later continue restores, so its
@@ -310,19 +312,26 @@ internal sealed class CharacterDataSync(
 		return captured;
 	}
 
-	/// <summary>Host side: a NEW run started (the host clicked start) — the previous run's saved characters are void (see ICharacterDataControl.ClearSavedCharacters).</summary>
-	internal void ClearSavedCharacters() => _characterData.ClearSavedCharacters();
+	/// <summary>Host side: a NEW run started (the host clicked start) — the previous run's saved characters are void (see ICharacterDataControl.ClearSavedCharacters), and so are the local favourite marks they carried: the marks are world-scoped, and the next world's character record is what seeds the next set.</summary>
+	internal void ClearSavedCharacters()
+	{
+		_characterData.ClearSavedCharacters();
+		_favouriteMarks.Reset();
+	}
 
 	/// <summary>
 	/// Session ended: a pending restore belongs to the dead session and must
 	/// never apply to the next lobby's body; the clone fact table is likewise
 	/// session-scoped. The position gate resets when the current body leaves
-	/// (death/menu), so it is not touched here.
+	/// (death/menu), so it is not touched here. The local favourite marks go with
+	/// the session for the same reason: they are that world's, and the next world
+	/// hands this player its own character record back.
 	/// </summary>
 	internal void ResetSessionState()
 	{
 		_restore.Clear();
 		_factTable.Clear();
+		_favouriteMarks.Reset();
 	}
 
 	/// <summary>Leaving the world (death, menu) — push a final snapshot so the host's save carries the state at the moment of leaving, not the last 1 Hz report (a death → re-enter cycle would otherwise restore the pre-death state).</summary>
@@ -339,7 +348,7 @@ internal sealed class CharacterDataSync(
 		}
 		else if (!_restore.HasPending)
 		{
-			_characterData.ReportCharacterData(CharacterDataCapture.Capture(_mapper, prevBody, out _, _nativeSystem));
+			_characterData.ReportCharacterData(_favouriteMarks.Capture(prevBody, out _));
 		}
 
 		// The body left the world — the next body's restore position applies
@@ -385,6 +394,10 @@ internal sealed class CharacterDataSync(
 			// defaults the fresh body was created with and the player would never be
 			// told (§6/§6.1).
 			ReportNativeFields(pending, _restoreApplier.ApplyNativeFields(body, pending));
+
+			// The character's local favourite marks come back with it, on the same pass
+			// the native fields land on.
+			_favouriteMarks.SeedFrom(pending);
 
 			_restore.Clear();
 			return;

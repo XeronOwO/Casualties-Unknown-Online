@@ -1,11 +1,14 @@
 # Remote Inventory Operations: Native Parity Design
 
-Status: **stage 4 landed** — the native intent path (stage 1, decision 218), the container family
-and the while-dragging body (stage 2, decision 219), the item interactions (stage 3, decision 220) and
-the family audit with the acceptance preparation (stage 4, decision 221): R10's radial-centre use and
-wear, combine, the battery load/unload pair, the while-dragging favourite store and the trader hand-in,
-each of them an intent the owner replays on its real items, with the acceptance matrix audited row by
-row. The audit changed no behaviour; its verdicts, the two re-evaluated projection tickets and the
+Status: **stage 4 landed, amended 2026-10-11** — the native intent path (stage 1, decision 218), the
+container family and the while-dragging body (stage 2, decision 219), the item interactions (stage 3,
+decision 220) and the family audit with the acceptance preparation (stage 4, decision 221): R10's
+radial-centre use and wear, combine, the battery load/unload pair and the trader hand-in, each of them
+an intent the owner replays on its real items, with the acceptance matrix audited row by row.
+**Decision 258 amends stage 3's own count**: the while-dragging favourite store is not a remote
+operation — the mark belongs to the player who made it, is saved with that player's character record,
+and never reaches the owner's item (§3.2.9, ticket `favourite-marks-are-local-and-saved`). The audit
+changed no behaviour; its verdicts, the two re-evaluated projection tickets and the
 three limits the run has to judge are in
 `docs/evidence/selfchecks/items/remote-inventory-native-intent-stage4-audit.md`, and the run itself —
 both directions, a third peer, worn items, containers and the craft screen on the real machine — is the
@@ -75,8 +78,10 @@ actions:
 | Drag a water container over the drain object while the target block has no liquid and `body.DoPickupCheck(item, true)` passes | `WaterContainerItem.Drain(CalculateDrain(0.2f * Time.deltaTime * Capacity))` — every frame, not once | `PlayerCamera.cs:1729` |
 | Hold the favourite bind while hovering an inventory button | `invButton.GetItem().favourited = !...` — the *hovered* item, not the dragged one | `PlayerCamera.cs:1745` |
 
-Consequence for the design: a "pour" and a "favourite" intent are produced by these while-dragging
-sites, and a design that only inspects the release loses both.
+Consequence for the design: the "pour" is produced by a while-dragging site and a design that only
+inspects the release loses it. The favourite store is a while-dragging site too, and it is the one
+gesture of this list that is NOT an operation on the owner's item at all — it is the local player's
+own mark (§3.2.9).
 
 ### 2.3 Release — `HandleReleaseDragging` (`PlayerCamera.cs:1456`)
 
@@ -172,8 +177,10 @@ that path makes:
    dispatch itself makes — `Container.LoadItem` / `Container.UnloadItem`, `Body.PickUpItem` /
    `Body.SwapSlots` / `Body.DropItem` / `Body.DropWearable` / `Body.UseItem` / `Body.WearWearable` /
    `Body.CombineItems`, `BatteryItem.LoadBattery` / `BatteryItem.UnloadBattery`,
-   `WaterContainerItem.Drain`, the `favourited` write, `ApplyWoundItem`, `Trader.GiveItem`. The call
+   `WaterContainerItem.Drain`, `ApplyWoundItem`, `Trader.GiveItem`. The call
    is recorded as an intent and its original is skipped; its internals never run on a proxy.
+   (`favourited` belongs to this list only as a REFUSED write: the frame bracket observes it and
+   writes the LOCAL player's own mark, §3.2.9 — it never becomes an intent.)
    Intercepting at this level — not at the dispatch — is what makes the classification the game's
    own: the ordering in §2.3, its predicates and its early exits are all executed by the game, so
    CUO owns no ordering table at all.
@@ -225,8 +232,9 @@ that path makes:
    each frame, the pickup check is answered for the dragged proxy exactly as in a release bracket, and
    the frame's mutations are captured instead of running on a proxy. The favourite toggle was the one
    exception in stage 2 — a direct `favourited` field write on the HOVERED item, which no call seam
-   takes, so that frame was skipped with one logged line — and **stage 3 builds the seam that observes
-   it instead (§3.2.8)**, so no frame is skipped for it any more.
+   takes, so that frame was skipped with one logged line — and **stage 3 built the seam that observes
+   it instead (§3.2.8)**. **That seam no longer produces an intent at all (§3.2.9): the mark is the
+   local player's own.**
    The drain tick is the frame's other mutation and it is captured with the AMOUNT the frame removed,
    never the per-stack list the viewer computed from its proxy: the owner re-derives the distribution
    from the stack its own item has, so a stale proxy stack cannot leak into the owner's item. A proxy
@@ -234,21 +242,32 @@ that path makes:
    item) keeps the native body running for its own feedback while the seam refuses its drain call and
    reports it once per dragged proxy — no path may mutate a display proxy, and the release path fails
    closed for the same shape.
-8. **The one mutation with no call behind it is observed across the frame bracket (implementation
-   amendment, stage 3).** The favourite store has no seam Harmony can take without rewriting the
-   method's IL, and the stage-2 answer — skip the frame — cost that frame's drain tick and produced no
-   intent. The frame bracket is the seam instead: the while-dragging patch reads the `favourited` value
-   of every inventory button the frame's own raycasts reach before the native body runs and compares it
-   afterwards, so the native condition (`GetKeyDown(favourite)` on the first overlapping button,
-   `PlayerCamera.cs:1736-1747`) still decides whether a store happens and CUO only turns the store it
-   observes into `ToggleFavourite` (§3.2.3's rule that the classification is the game's own holds: no
-   CUO replica of that condition exists). The observed proxy's field is put back to the value the frame
-   started with — no path may mutate a display proxy — and the projection already carries `favourited`
-   as a source value (`RemoteItemPresentation.SourceValues`), so the operator's star lights up from the
-   owner's own answer rather than from a predicted one. A flipped proxy the bracket did not take (no
-   authoritative identity, or no open bracket) is put back and reported once, exactly like the drain
-   seam, and a flipped LOCAL item is left alone — that store is the local gesture, unchanged by the
-   remote view being open.
+8. **The one mutation with no call behind it is observed across the frame bracket, and it stays on the
+   client that made it (implementation amendment, stage 3; re-ruled 2026-10-11 in §3.2.9).** The
+   favourite store has no seam Harmony can take without rewriting the method's IL, and the stage-2
+   answer — skip the frame — cost that frame's drain tick. The frame bracket is the seam instead: the
+   while-dragging patch reads the `favourited` value of every inventory button the frame's own
+   raycasts reach before the native body runs and compares it afterwards, so the native condition
+   (`GetKeyDown(favourite)` on the first overlapping button, `PlayerCamera.cs:1736-1747`) still
+   decides whether a store happens and CUO owns no replica of that condition. The observed proxy's
+   field is put back to the value the frame started with — no path may mutate a display proxy — and
+   the store becomes the LOCAL player's mark below.
+9. **A favourite mark is the local player's own, and it is saved (user ruling 2026-10-11, ticket
+   `favourite-marks-are-local-and-saved`).** The gesture is a keystroke in somebody else's backpack,
+   so it never changes an item that player owns: the store the frame bracket observes toggles an entry
+   in the local player's own mark set, the proxy shows that entry, and nothing about the item travels.
+   The `ToggleFavourite` intent, the owner-side apply and the host-forwarding entry for it are
+   DELETED rather than kept beside the mark. The mark set rides the marking player's OWN character
+   record (`CharacterDataMsg.FavouriteMarks`), which is what makes it survive: that record is stored
+   per world in `characters/<playerKey>.json`, comes back with the player on a reconnect hand-over, a
+   respawn and a continue, and is replaced — never merged — whenever it arrives, so a mark made in one
+   world can never be applied in another. A mark whose item later becomes the local player's own stops
+   being a mark: the item's own `favourited` flag is set and the entry is spent, so there is no double
+   state. A mark whose instance id now names a different owner or a different definition is DROPPED
+   with one line instead of lighting up on whatever inherited the id. The owner's own favourite state
+   is never what this view shows: a display proxy's `favourited` field has exactly one writer
+   (`FavouriteMarkOverlay`), and the owner's value is not among the projection's source values
+   (`FavouriteMarkWriterGateTests` fails if either half comes back).
 
 ### 3.3 The intent vocabulary (wire)
 
@@ -269,7 +288,6 @@ never a CUO semantic taxonomy, and never a mirrored result.
 | `CombineItems` | `body.CombineItems(target, item)` (R6) | item, target item (the FIRST argument — the receiver) |
 | `LoadBattery` | `target.battery.LoadBattery(item)` (R3) | item (the battery), target item |
 | `UnloadBattery` | `target.battery.UnloadBattery(false)` (R2) | target item |
-| `ToggleFavourite` | the `favourited` write (§2.2) | item (the HOVERED one) |
 | `Drain` | `WaterContainerItem.Drain(amount)` (§2.2) | item, amount |
 | `ApplyToLimb` | `ApplyWoundItem` → `useLimbAction` / `ApplyToLimb` (R11) | item, limb |
 | `GiveToTrader` | `currentTrader.GiveItem(item)` (R12) | item, trader position |
@@ -288,12 +306,14 @@ already keys its messages by (`TraderSwingMsg.Position`, `TradeStateSync.FindTra
 `MoveIntoContainer`, `SwapSlots`, `PickUpToSlot`, `TransferToBody` and `ApplyToLimb` — because they
 are what the release branch can produce once the suppressions of §3.6 come off. **Stage 2 adds
 `MoveContainerChildren`** (R5, with the container-expansion gesture) **and `Drain`** (the
-while-dragging drain tick, with the restored while-dragging body). **Stage 3 adds the seven
-item-interaction members** — `UseItem`, `WearItem`, `CombineItems`, `LoadBattery`, `UnloadBattery`,
-`ToggleFavourite` and `GiveToTrader` — together with the message's second item operand
-(`TargetItemInstanceId`) and its trader operand, and `ProtocolVersion.Current` is bumped in the same
-change (37 → 38, the handshake stays the compatibility boundary). No member of the vocabulary is
-refused any more: every gesture §2.2 and §2.3 list now becomes an intent the owner replays.
+while-dragging drain tick, with the restored while-dragging body). **Stage 3 adds six of the seven
+item-interaction members** — `UseItem`, `WearItem`, `CombineItems`, `LoadBattery`, `UnloadBattery` and
+`GiveToTrader` — together with the message's second item operand
+(`TargetItemInstanceId`) and its trader operand. **The seventh was dropped instead of added**: the
+while-dragging `favourited` store is not a remote operation at all (user ruling 2026-10-11, §3.2.9),
+so `ToggleFavourite` — carried from stage 3 until the ruling landed — is deleted with its whole path
+and the enum keeps the hole at 16. No member of the vocabulary is refused any more: every gesture
+§2.2 and §2.3 list that IS an operation on the owner's item becomes an intent the owner replays.
 
 A slot intent's **body operand comes from the hit itself**, not from a CUO rule. An inventory button
 of the owner's *projected* body resolves to the owner — the item stays the owner's and changes slot
@@ -384,7 +404,8 @@ boundary; no dual shape is kept.
   **Stage 3 widened both halves**: the interception now covers `Body.UseItem` / `Body.WearWearable`
   (R10), `Body.CombineItems` (R6), `BatteryItem.LoadBattery` / `UnloadBattery` (R2/R3) and
   `TraderScript.GiveItem` (R12), the while-dragging patch observes the `favourited` store across its
-  frame bracket, and the executor replays all seven kinds on the owner's real items. The report-hook
+  frame bracket (§3.2.9 — the store stays on this client and never becomes an intent), and the
+  executor replays all six remote kinds on the owner's real items. The report-hook
   audit that came with it found two hooks that would have reported a call the window took:
   `UseItemPatches`' `OnItemUsed` (which would have stated a use of an item the operator never touched,
   and stamped an instance id on a proxy doing it) and `WearWearablePatch`'s unconditional
@@ -407,7 +428,8 @@ boundary; no dual shape is kept.
   logged (§3.2.7) until the item-interaction stage built that seam; **stage 3 removed the third and
   replaced it with the radial probe** (`Patches/PlayerCameraRadialActionProbePatch.cs`, which only
   records the native branch's own no-op answer for §3.2.5) **and replaced the favourite refusal with
-  the frame-bracket observation of §3.2.8**, so no gesture of §2.2/§2.3 is suppressed any more.
+  the frame-bracket observation of §3.2.8** — an observation that has since stopped producing an
+  intent at all (§3.2.9) — so no gesture of §2.2/§2.3 is suppressed any more.
 
 ## 4. Stage plan
 
@@ -416,7 +438,7 @@ boundary; no dual shape is kept.
 | 0 | This record: mechanism inventory, intent vocabulary, ticket adjudication, decision record | design frozen before code |
 | 1 | Inventory and slot family: move, swap, transfer to the requester, drop, take-out; window + capture seam; owner-side executor; host validate/arbitrate/record; clone-edit path deleted; protocol bumped | **landed** (decision 218): the reported drop and slot rows no longer route through a host mirror edit; the window, the replay and the host half are covered by intent, window-state and host-contract tests |
 | 2 | The container-expansion gesture (R5), nested containers and the trash bag, the while-dragging drain tick and the container-window refresh; the vanish case is a regression test here | **landed** (decision 219): R5 is one `MoveContainerChildren` intent the owner evaluates on its own children, the while-dragging body runs again with each frame's drain tick as one `Drain` intent carrying the amount, and the vanish case is pinned by a regression on the host's copy of the owner's inventory; matrix rows 3-5 are code facts here — the operating feel is a residual of the acceptance run |
-| 3 | Item interactions: use, wear, combine, battery, favourite, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | **landed** (decision 220): the seven item-interaction kinds ride the stage-1 seam with the message's second item operand and its trader operand (`ProtocolVersion.Current` 37 → 38), R10's use/wear branch runs again, the favourite store is observed across the frame bracket, and matrix rows 6-8 are code facts here — the operating feel, the item sounds the operator does not hear (§3.4) and the medical chain's real-machine behaviour are residuals of the acceptance run |
+| 3 | Item interactions: use, wear, combine, battery, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | **landed** (decision 220): the item-interaction kinds ride the stage-1 seam with the message's second item operand and its trader operand (`ProtocolVersion.Current` 37 → 38), R10's use/wear branch runs again, the `favourited` store is observed across the frame bracket, and matrix rows 6-8 are code facts here — the operating feel, the item sounds the operator does not hear (§3.4) and the medical chain's real-machine behaviour are residuals of the acceptance run. **Amended 2026-10-11 (decision 258):** the observed favourite store no longer becomes a `ToggleFavourite` intent — the mark is the local player's own — so the stage's own count is six remote kinds, and the seventh is deleted with its whole path |
 | 4 | Family audit and acceptance: both directions, a third peer, worn items, containers and the craft screen; the display rows carried over from the absorbed tickets | **landed** (decision 221): every matrix row is traced to its mechanism and its test, the craft screen is proved unable to reach a display proxy, the container-window re-bind and the owner-side worn-item resolution are confirmed, the two directions are shown to share one validation path, and the three remaining limits are named as the acceptance run's judgement items — no behaviour changed, and the run itself is the agent's |
 
 ## 5. Adjudicated tickets
@@ -506,7 +528,9 @@ boundary; no dual shape is kept.
       proxy. The window cannot take it: the native branch writes the `favourited` FIELD of the hovered
       item, so there is no call to intercept, and the frame that would write it is skipped instead.
       The intent and its store-level seam arrive with the item-interaction stage. **Stage 3 built that
-      seam (§3.2.8): the frame runs, and the store it observes becomes `ToggleFavourite`.**
+      seam (§3.2.8): the frame runs, and the store it observes becomes `ToggleFavourite`. Stage 3
+      built that seam; the 2026-10-11 ruling then took the intent away again — the frame still runs,
+      and the store it observes becomes the LOCAL player's mark (§3.2.9).**
     - The children of an expansion batch are enumerated on the OWNER. The requester's projection
       decides only whether the native loop runs at all (its own `CanHoldItem` reads the clones), and
       the owner's guard then decides per child which items actually move — the native partial outcome,
@@ -527,7 +551,9 @@ boundary; no dual shape is kept.
       frame's drain tick is skipped with it, and the refusal line names that cost. One frame per key
       press; the frame bracket still never merges ticks across frames. **Stage 3 removed that cost:
       the frame runs natively and only the field store it observes becomes an intent (§3.2.8), so the
-      frame's drain tick survives a favourite key press.**
+      frame's drain tick survives a favourite key press. The 2026-10-11 ruling keeps that frame
+      running as well: the store it observes is now the local mark, so the cost the stage-2 answer
+      paid is still gone (§3.2.9).**
     - A continuous intent refreshes the item's first-writer-wins lease for as long as the gesture runs
       (the operator holds the item, which is the lease's purpose), and a competing continuous intent's
       refusal logs at Debug: the lease's original rationale — the owner's next report normally arrives

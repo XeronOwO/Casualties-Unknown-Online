@@ -102,15 +102,6 @@ public enum RemoteInventoryIntentKind
 	UnloadBattery = 15,
 
 	/// <summary>
-	/// The <c>favourited</c> field store on the HOVERED item (while-dragging,
-	/// <c>PlayerCamera.cs:1747</c>). The native code has no call behind it, so the
-	/// viewer detects the store by comparing the field across the frame bracket and
-	/// sends a toggle; the owner flips its own real item and the projection carries
-	/// the authoritative value back.
-	/// </summary>
-	ToggleFavourite = 16,
-
-	/// <summary>
 	/// <c>TraderScript.GiveItem(item)</c> (R12, <c>PlayerCamera.cs:1663</c>): the
 	/// dragged item is handed to the trader the requester has open. The trader is an
 	/// operand because the owner's client has no <c>PlayerCamera.currentTrader</c>

@@ -103,6 +103,30 @@ That makes FOUR independent gates this run has had to clear in order, three of t
 3. line of sight — NOT yet solved; the clients start wherever the run places them;
 4. where a posted report goes after `RemoteMedicalOperationHandler.ReportShrapnelUpdate` — still open.
 
+## Fifth attempt: all four gates pass, and the patch still does not run
+
+Placing BOTH clients at the same point clears the line-of-sight gate (the refusal disappears from the
+log), and a driven slip then reports everything the patch's own guards ask for:
+
+```
+"viewOpen": true, "minigameActive": true, "senderPresent": true,
+"skinDelta": 5.743, "bleedDelta": 0.695, "painDelta": 12.16
+```
+
+The native effect lands on the displayed limb with every value in range — and the authority logs
+NOTHING: no `grip slip`, no `DISAGREE`, and none of `HandleUpdate`'s own refusals
+(`unknown/wrong session`, `non-owner move`, `piece removed`), which all log at Warn/Information. The
+report therefore never leaves the operator's client, and since both of the patch's guards report true at
+the instant `BreakGrasp` runs, the working hypothesis is now that
+`RemoteShrapnelMinigamePatch.BreakGraspPatch` does not execute at all for this call path — the next thing
+to confirm is whether its Prefix/Postfix run and what they see.
+
+One diagnostic defect of this batch's own making is worth recording, because it cost a cycle: the recipe's
+`activeOpId` probe reads `_activeShrapnel` off a type it resolves by name, and reported `no-opid-field`
+while the same handler answered `minigameActive: true` — i.e. the probe was reading a different object
+than the one the guard queries. **A reflection diagnostic has to prove it reached the same instance the
+production code uses**, or it reports its own mistake as a finding.
+
 ## Row verdicts
 
 Every behavioural row is `blocked`, and the blocking condition is ONE missing capability rather than a

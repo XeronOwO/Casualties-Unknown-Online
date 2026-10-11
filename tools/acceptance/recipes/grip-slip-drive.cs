@@ -1,8 +1,11 @@
 // recipe: grip-slip-drive
 // args: mode=s limb=n target=s piece=n
 // serves: cross-player-item-use-random-determinism
-// returns: ok, mode, error, detail, step, exception, message (plus per-mode fields below) —
-//          a sequence step that threw answers error=step-failed and names the seam it was in
+// returns: ok, mode, error, detail, step, exception, message, minigameLimbNull, minigameLimbName,
+//          limbBodyNull, displayBodyNull, minigameLimbIsDisplayLimb, currentlyHeldNull (plus the per-mode
+//          fields below) — a sequence step that threw answers error=step-failed and names the seam it was in.
+//          The step-failed answer carries no `mode`/`detail`, and the scene fields beside the step name were
+//          added after the failures that motivated them, so they are a diagnosis aid, not evidence.
 //
 // Drives ONE bare-handed shrapnel grip slip on the operator's client, which is the only way the
 // cross-player grip-slip rows can be judged: the game reaches `ShrapnelMinigame.BreakGrasp` from its own

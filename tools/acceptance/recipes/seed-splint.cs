@@ -15,6 +15,11 @@
 //
 // It only PLACES a splint. Clearing one is refused by name rather than faked — the removal under test is
 // the peer-facing operation, not a local component delete.
+//
+// The `splinted` field it reports is Unity's own timing, not a failed write: `SplintLimb.Start` is what sets
+// `limb.splinted = true`, and `Start` has not run in the frame the component was added — so a SUCCESSFUL
+// seed answers `added:true, splinted:false, components:"SplintLimb"`, and `components` is the recipe's own
+// statement of what it added rather than a read-back.
 ((System.Func<string>)(() => {
 	var limbIndex = (int){{n:limb}};
 	var num = new System.Func<float, string>((value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));

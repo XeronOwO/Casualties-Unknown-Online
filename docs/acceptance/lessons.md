@@ -2563,14 +2563,16 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   step report then named it: `step=break-grasp`, `System.NullReferenceException`, from inside the native
   `ShrapnelMinigame.BreakGrasp`. The same recipe and the same drive shape had worked in batch `20261011-a`.
 - Cause: `grip-slip-drive mode=start` opened the remote medical view AND started the session in one call, and
-  the renderer created a fresh display body for that peer 76 ms after the minigame was built — the minigame's
+  the renderer created a fresh display body for that peer 85 ms after the minigame was built — the minigame's
   `limb` field then pointed at the replaced body's limb, so `TryBeginGripSlip` returned null (no window) and
   the native call dereferenced a dead limb.
 - Change: open the view in its own call and start the session in the NEXT one (the display body has settled by
-  then); the recipe's break path now names the step that threw and reports the scene at the failure
-  (`minigameLimbNull`, `limbBodyNull`, `minigameLimbIsDisplayLimb`), because "the eval threw" is not a
-  diagnosis. A drive that builds a native object against a display body needs one call between the focus and
-  the action.
+  then), and make the break path name the step that threw — `step=break-grasp` plus the host log's
+  `Remote body created` line, one frame after the minigame started, is what located this one. The catch also
+  reports the scene at the failure (`minigameLimbNull`, `limbBodyNull`, `minigameLimbIsDisplayLimb`, …); those
+  fields were written AFTER this run's failures and no failing drive has exercised them yet, so they are a
+  diagnosis aid rather than evidence. A drive that builds a native object against a display body needs one
+  call between the focus and the action.
 
 ## 2026-10-11 — Batch `20261011-b`: a host-side removal is undone by the target's next report, and a flag row would never have seen it
 
@@ -2610,4 +2612,8 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   cites a file the next reader cannot open.
 - Change: before quitting or restarting a client, copy the window that carries a finding into the batch's
   artifact directory as its own file (`host-splint-icon-nre-storm.log.txt` here) and cite that file in the
-  record. The same applies to a mark/read pair whose offsets belong to the old file.
+  record. The same applies to a mark/read pair whose offsets belong to the old file. A client RESTART also
+  rotates the rolling log into a gzipped archive beside it (`2026-10-11-8.log.gz` held this batch's first
+  storm), so a window that was missed can still be recovered from the archive with a `GZipStream` — this
+  batch's storm digest and its close/reopen counts were rebuilt that way after a review pointed out that the
+  first digest promised two timestamps it never printed.

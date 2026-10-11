@@ -23,10 +23,10 @@
   (`94.217 / 0.928` read back on that client), the authority's stored copy still holding it many report
   intervals later, and the third client's displayed limb showing the same values 8.7 s before the session's
   terminal (`docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-b.md`). **Rows 2,
-  3, 4, 5 and 8 are unjudged**. Each verdict carries its evidence in
+  3, 4, 5 and 8 are unjudged**. The `20261011-a` verdicts carry their evidence in
   `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`, which also records
   what the driver had to learn first (a native panel opened, both clients in sight, and the ack that
-  assigns the operation id arriving a call later).
+  assigns the operation id arriving a call later); the `20261011-b` verdict is in the record named above.
 - Priority: High — **raise to Critical if the investigation shows the divergence reaches authoritative state**
   (a body value, a limb fact, an item amount). Presentation-only divergence stays High.
 - Category: Players / cross-player semantics

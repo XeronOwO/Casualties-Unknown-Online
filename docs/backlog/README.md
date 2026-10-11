@@ -52,9 +52,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [A state that names no kind reads as an injection](todo/medical-state-names-no-kind.md) — **Critical** — rows 1-3 verified; row 4 failed.
-- [A removal never leaves the target's body](todo/medical-removal-limb-component-not-applied.md) — **Critical** — undone by the next report.
-- [A display clone runs the game's own limb component](todo/display-clone-limb-component-runs-native-start.md) — **High** — a per-frame exception storm.
+- [A state that names no kind reads as an injection](todo/medical-state-names-no-kind.md) — **Critical** — the shrapnel limb write was dropped in silence.
+- [A removed limb component stays on the body](todo/medical-removal-limb-component-not-applied.md) — **Critical** — undone by the target's next report.
+- [A display clone runs the game's own limb component](todo/display-clone-limb-component-runs-native-start.md) — **High** — the panel floods per frame.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.

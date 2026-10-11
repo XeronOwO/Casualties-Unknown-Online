@@ -104,7 +104,9 @@
 		var opened = (bool)openMethod.Invoke(remoteMedical, new object[] { System.Convert.ToUInt64(targetText), "target" });
 		var isOpen = isOpenProp != null ? isOpenProp.GetValue(null, null) : null;
 		var openedBody = displayProp != null ? displayProp.GetValue(null, null) as Body : null;
-		var openedName = openedBody != null ? openedBody.name : "null";
+		// The ROOT's name, not the Body's: the coordinator names the cloned root `MedicalDisplay_<steamid>`
+		// while the Body component sits on a child called `Body`.
+		var openedName = openedBody != null ? openedBody.transform.root.name : "null";
 		return "{\"ok\":true,\"mode\":\"open\",\"target\":\"" + targetText + "\""
 			+ ",\"opened\":" + (opened ? "true" : "false")
 			+ ",\"viewOpen\":" + (isOpen is bool vo && vo ? "true" : "false")
@@ -126,8 +128,18 @@
 	if (limbIndex < 0 || limbIndex >= display.limbs.Length) { return "{\"ok\":false,\"error\":\"limb-out-of-range\",\"detail\":\"limb " + limbIndex + " of " + display.limbs.Length + "\"}"; }
 	var limb = display.limbs[limbIndex];
 	if (limb == null) { return "{\"ok\":false,\"error\":\"no-such-limb\",\"detail\":\"limb " + limbIndex + "\"}"; }
-	if (!display.name.StartsWith("MedicalDisplay_", System.StringComparison.Ordinal)) {
-		return "{\"ok\":false,\"error\":\"focus-is-not-a-display-copy\",\"detail\":\"display body is \\\"" + display.name + "\\\", not a MedicalDisplay_ copy\"}";
+	// The witness that the focus is PRODUCTION's own display copy and not a live body: the
+	// `RemoteMedicalDisplayBody` marker the coordinator puts on the copy's ROOT — the same fact the codec's
+	// own display guard reads. The type is internal to the plugin, so it is reached by name; a missing type
+	// answers "not a display copy" rather than passing by accident. (The Body sits on a child of the cloned
+	// root, which is why the marker is read from the root and not from the body's own name.)
+	var markerType = (System.Type)null;
+	for (var i = 0; i < assemblies.Length; i++) {
+		try { markerType = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.Character.RemoteMedicalDisplayBody", false); } catch { markerType = null; }
+		if (markerType != null) { break; }
+	}
+	if (markerType == null || display.transform.root.GetComponent(markerType) == null) {
+		return "{\"ok\":false,\"error\":\"focus-is-not-a-display-copy\",\"detail\":\"display body root is \\\"" + display.transform.root.name + "\\\" and carries no RemoteMedicalDisplayBody marker\"}";
 	}
 
 	var startMethod = impl.GetType().GetMethod("TryStartRemoteWoundSpecial", flags);
@@ -141,7 +153,7 @@
 	return "{\"ok\":true,\"mode\":\"special\",\"target\":\"" + targetText + "\",\"limb\":" + limbIndex
 		+ ",\"started\":" + (started ? "true" : "false")
 		+ ",\"viewOpen\":" + (viewOpen is bool open && open ? "true" : "false")
-		+ ",\"displayBodyName\":\"" + display.name + "\""
+		+ ",\"displayBodyName\":\"" + display.transform.root.name + "\""
 		+ ",\"shrapnel\":" + limb.shrapnel
 		+ ",\"hasShrapnel\":" + (limb.hasShrapnel ? "true" : "false")
 		+ ",\"splinted\":" + (limb.splinted ? "true" : "false")

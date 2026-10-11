@@ -1,12 +1,15 @@
 # A medical operation state that names no kind is read as an injection
 
-- Status: Todo — Rejected (row 4: a Stage-3 action's outcome never lands on the target's own body).
+- Status: Done — the fix is verified: batch `20261011-b` accepted rows 1-3, and batch `20261011-c` accepted
+  row 4 after the same-family defect that had failed it was fixed
+  (`docs/evidence/acceptance/medical-state-names-no-kind-20261011-c.md`; the first run's record is
+  `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md`).
   **Acceptance, batch `20261011-b`, three clients: rows 1-3 PASS and row 4 FAILS.** The patient's OWN limb
   takes the authority's write (94.217 / 0.928 against a committed `skin -5.783163 bleed +0.9278045`), the
   authority's stored copy still holds it ~17 s later, and a third client's displayed limb advanced to the
   same values 8.7 s BEFORE the session's terminal. Row 4 — the Stage-3 family regression — failed on a
   different, pre-existing defect in the same family that its own drive exposed
-  (`docs/backlog/review/medical-removal-limb-component-not-applied.md`); this ticket's fix is verified in
+  (`docs/backlog/done/medical-removal-limb-component-not-applied.md`); this ticket's fix is verified in
   `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` and returns to `done/` once that
   defect is fixed and row 4 re-runs. The defect was found 2026-10-11 by the acceptance run of batch
   `20261011-a`, as the open half of

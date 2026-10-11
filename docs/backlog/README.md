@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [A state that names no kind reads as an injection](todo/medical-state-names-no-kind.md) — **Critical** — the shrapnel limb write was dropped in silence.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
@@ -86,8 +85,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [A removed limb component stays on the body](review/medical-removal-limb-component-not-applied.md) — **Critical** — the receiving half exists.
-- [A live body under the medical focus runs native components](review/display-clone-limb-component-runs-native-start.md) — **High** — fixed.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
 - [Mod-authored effects](review/mod-authored-effects.md) — **High** — the code registration face and the named operations it writes through.
 - [A declared behaviour with no function](review/mod-declared-behaviour-with-no-function.md) — **High** — a declared use or effect reports instead of throwing.
@@ -202,6 +199,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [A removed limb component stays on the body](done/medical-removal-limb-component-not-applied.md) — **Critical** — accepted; rows 1-6.
+- [A live body under the medical focus runs native components](done/display-clone-limb-component-runs-native-start.md) — **High** — accepted.
+- [A state that names no kind reads as an injection](done/medical-state-names-no-kind.md) — **Critical** — accepted; row 4 re-ran green.
 - [Layer changes drop members and storm the log](done/layer-change-member-dropout.md) — **Medium** — both members held when both are parked.
 - [A member out of the world warns once per clone per frame](done/remote-clone-warning-storm-on-member-dropout.md) — **Medium** — bounded per subject.
 - [Container moves reach the viewer as a snapshot](done/container-move-snapshot-only-sync.md) — **Medium** — classifies on the departure; control now read.

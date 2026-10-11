@@ -2587,7 +2587,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   body is report-driven, so the target's own report put it back.
 - Change: a removal row reads the COMPONENT, not the flag — a flag-only reading passes while nothing was
   removed — and reads it on the target's own client AND in the authority's copy one report interval later.
-  The defect is `docs/backlog/review/medical-removal-limb-component-not-applied.md`.
+  The defect is `docs/backlog/done/medical-removal-limb-component-not-applied.md`.
 
 ## 2026-10-11 — Batch `20261011-b`: a display clone that instantiates the game's own component runs the game's own `Start`, every frame
 
@@ -2602,7 +2602,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - Change: when a display path carries component state, ask what the game's own component does on `Start` and
   `Update` before instantiating it — the state, not the behaviour, is what a clone needs, and a per-frame
   exception storm can hide behind an unrelated symptom (this one first looked like a broken shrapnel drive).
-  The defect is `docs/backlog/review/display-clone-limb-component-runs-native-start.md` (mechanism corrected
+  The defect is `docs/backlog/done/display-clone-limb-component-runs-native-start.md` (mechanism corrected
   by batch `20261011-c` — see the entries at the end of this file).
 
 ## 2026-10-11 — Batch `20261011-b`: extract a client's log before you restart it
@@ -2667,3 +2667,51 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   captures the caller's own body, edits ONE limb row to the authority's removal shape, applies it through
   `CharacterDataSync.ApplyHealState` and reads the limb back — the flag landing while the component survives
   IS the defect, in one call, on the unfixed build.
+
+## 2026-10-11 — Batch `20261011-c`: a drive's witness must be production's own fact, not a naming convention
+
+- Symptom: the batch's scope page declared that every open must report a `displayBodyName` starting
+  `MedicalDisplay_`, and the first production open answered `displayBodyName: "Body"` — the drive's own
+  witness would have refused a focus that was exactly right.
+- Cause: the coordinator names the cloned ROOT `MedicalDisplay_<steamid>` and the `Body` component sits on a
+  CHILD; the recipe read the body's own name. The convention was a guess about a shape the code states
+  differently.
+- Change: the witness is the fact production itself acts on — the `RemoteMedicalDisplayBody` marker the
+  coordinator puts on the copy's root, which is also what the codec's display guard reads — with the root's
+  name reported beside it as information. A drive that has to say "this object is the kind the row is about"
+  should read the mechanism's own marker; a name it can compare is at best a second-best and at worst wrong
+  about which object in the hierarchy carries it.
+
+## 2026-10-11 — Batch `20261011-c`: an icon row is judged by removing the state, not by recognising a sprite
+
+- Symptom: the display rows asked whether the panel still draws a teammate's splint and tourniquet. A frame
+  alone leaves the identification resting on "that looks like the game's icon".
+- Cause: the icons are the game's own sprites and a reader has only the picture.
+- Change: the run judged the row as a pair — the icon present while the state is, and GONE after the state
+  is removed by a driven action — which turns "this looks like a splint icon" into "this icon's lifetime is
+  that state's". The same pair doubles as the row's evidence for the removal's display half, and it is why
+  the peer's limbs are seeded with one component each: three icons, three states, one removal.
+
+## 2026-10-11 — Batch `20261011-c`: a per-peer exception census must name the known startup exception
+
+- Symptom: each sandbox client logged exactly one `[Unity:Exception]` in the run, which would read as "the
+  peers were not clean" beside the operator's zero.
+- Cause: `TypeLoadException` about `System.ComponentModel.DataAnnotations.RequiredAttribute` is thrown once
+  per client at plugin startup, before any session — the same line every client has logged since batch
+  `20261011-b` filed it as unrelated.
+- Change: the census counts exceptions per peer AND names the one known startup line with its timestamp, so
+  the record separates "the session was quiet" from "the client logged its usual startup line". A census
+  that only counts leaves the next reader to re-derive which line is which.
+
+## 2026-10-11 — Batch `20261011-c`: check that the artifact exists before citing it
+
+- Symptom: one reading — the authority's stored copy after the tourniquet removal — was taken in the run and
+  returned the expected value, but the driver's `-JsonPath` file for that one call was never written (the
+  same call shape wrote fifteen others). It was noticed after the clients had quit, so it could not be
+  re-read, and the row had to be recorded with one of its two surfaces unfiled.
+- Cause: not established; what IS established is that the record was written from the transcript rather than
+  from a file, and nothing in the run noticed until the citation was checked.
+- Change: list the batch directory and check each cited artifact exists BEFORE writing the record. A reading
+  that only lives in the transcript is not evidence a later reader can open — and a row whose verdict leans
+  on it should say so in its Limits rather than cite a file that is not there.
+

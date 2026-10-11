@@ -27,6 +27,13 @@
 //                      leave it ENABLED — the control for the pair below
 //   mode=add-disabled  add the same component with `enabled = false` — the inert-state shape a
 //                      display-only body needs if the panel must still read the component
+//   mode=seed-tourniquet / mode=seed-chilled
+//                      place the OTHER two components the codec owns, in the game's own application
+//                      shape: `TourniquetScript` the way `Item.cs`'s tourniquet `useLimbAction` writes it
+//                      (the item's condition onto a fresh component), `ChilledLimb` the way the icepack
+//                      does (`timeLeft = maxTime = 150f` via `GetOrAddComponent`). Both are DECLARED setup
+//                      substitutions, the same standing `seed-splint` has: the action under test — the
+//                      removal, or the panel's display — is the native one.
 //   mode=message-clear the authority's own removal shape: the limb row carries NO components and
 //                      `Splinted=false`, exactly what `OtherMedicalRemovalApplier` leaves in its stored
 //                      copy. Applied through `ApplyHealState`. A limb that still carries the component
@@ -120,6 +127,42 @@
 			+ ",\"startRanBefore\":false,\"startRanAfter\":false"
 			+ ",\"conditionBefore\":0,\"conditionAfter\":0"
 			+ ",\"enabled\":\"n/a\",\"messageComponents\":-1}";
+	}
+
+	if (mode == "seed-tourniquet") {
+		var tourniquetSeed = limb.GetComponent<TourniquetScript>();
+		var addedTourniquet = false;
+		if (tourniquetSeed == null) {
+			tourniquetSeed = limb.gameObject.AddComponent<TourniquetScript>();
+			// `Item.cs`'s tourniquet `useLimbAction`: `item.condition -= 0.125f` then
+			// `AddComponent<TourniquetScript>(limb).condition = item.condition`. The item's condition is on
+			// the same 0..100 scale a splint's is, and a non-zero value keeps the component alive.
+			tourniquetSeed.condition = 100f;
+			tourniquetSeed.timeApplied = 0f;
+			addedTourniquet = true;
+		}
+		return "{\"ok\":true,\"mode\":\"seed-tourniquet\",\"limb\":" + limbIndex
+			+ ",\"added\":" + (addedTourniquet ? "true" : "false")
+			+ ",\"componentsAfter\":\"TourniquetScript\",\"condition\":" + num(tourniquetSeed.condition)
+			+ ",\"note\":\"read this limb with mode=status in a later call: Start has not run in this frame\"}";
+	}
+
+	if (mode == "seed-chilled") {
+		var chilledSeed = limb.GetComponent<ChilledLimb>();
+		var addedChilled = false;
+		if (chilledSeed == null) {
+			chilledSeed = limb.gameObject.AddComponent<ChilledLimb>();
+			addedChilled = true;
+		}
+		// The icepack's own write: `GetOrAddComponent<ChilledLimb>(limb.gameObject)` with
+		// `timeLeft = maxTime = 150f` (and the body temperature it also drops, which is body state this
+		// probe leaves alone).
+		chilledSeed.timeLeft = 150f;
+		chilledSeed.maxTime = 150f;
+		return "{\"ok\":true,\"mode\":\"seed-chilled\",\"limb\":" + limbIndex
+			+ ",\"added\":" + (addedChilled ? "true" : "false")
+			+ ",\"componentsAfter\":\"ChilledLimb\",\"condition\":" + num(chilledSeed.timeLeft)
+			+ ",\"note\":\"read this limb with mode=status in a later call: Awake/Start have not run in this frame\"}";
 	}
 
 	if (mode != "message-clear") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"" + mode + "\"}"; }

@@ -1,7 +1,8 @@
 # A removed limb component is never taken off the target's own body
 
-- Status: Review — fixed 2026-10-11; waiting for the acceptance run of batch `20261011-c` (rows below).
-  **Found 2026-10-11 by the acceptance run of batch `20261011-b`**, as `todo/medical-state-names-no-kind.md`'s
+- Status: Done — fixed 2026-10-11 (`7c5646bd`), accepted by batch `20261011-c`: rows 1-6 pass
+  (`docs/evidence/acceptance/medical-removal-limb-component-not-applied-20261011-c.md`).
+  **Found 2026-10-11 by the acceptance run of batch `20261011-b`**, as `done/medical-state-names-no-kind.md`'s
   row 4 (the Stage-3 family regression that ticket was checking). The run drove a real splint removal on a
   guest's limb and read the outcome on all three surfaces: the limb's own flag was written, **the component
   was not**, and the target's next report carried it straight back into the authority's copy — so the removal
@@ -11,9 +12,9 @@
   INCONSISTENT (`Splinted=false` beside a live `SplintLimb`), and the same limb could be "removed" again and
   again: the run drove it twice and the operator received two `splint` items for one splint.
 - Category: Players / cross-player semantics (remote medical, Stage 3 removals)
-- Related: `review/display-clone-limb-component-runs-native-start.md` (the display half of the same
+- Related: `done/display-clone-limb-component-runs-native-start.md` (the display half of the same
   component-state plumbing), `review/remote-medical-stage-3-other-actions.md` (the family design),
-  `todo/medical-state-names-no-kind.md` (the ticket whose row 4 found it),
+  `done/medical-state-names-no-kind.md` (the ticket whose row 4 found it),
   `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` (the run that found it).
 - Source: the agent's own three-client run, batch `20261011-b`; reproduced in one client by the probe of
   batch `20261011-c` (below).
@@ -152,8 +153,10 @@ by construction.
   initializes empty, so a hypothetical future producer that fills a limb row without a capture would look
   exactly like a removal. The audit above is what bounds it today; a producer-side guard (a named "the list is
   complete" fact) would close it, and no such fact exists yet.
-- The run proved the splint kind end to end in `20261011-b`; the tourniquet and chilled kinds are the same
-  codec and the same applier shape but were not driven (row 5).
-- The one-client probe proves the RECEIVING half in isolation. Row 2's authoritative half — that no later
-  report wins the race — needs the three-client run, because it is a race between the removal and the
-  target's own 1 Hz report.
+- The run proved the splint and tourniquet kinds end to end (rows 1-5, batch `20261011-c`); the chilled
+  kind has no removal path in the game (an icepack's component expires on its own), so it is covered by the
+  sibling ticket's display rows only.
+- The one-client probe proves the RECEIVING half in isolation, red and green
+  (`red-message-clear-limb3.json` before the fix, `c-green-message-clear-limb2.json` after it). Row 2's
+  authoritative half — that no later report wins the race — is the three-client run's own reading, and it
+  passed: the authority's copy held `components=""` after the target's reports.

@@ -208,10 +208,18 @@
 	if (limbIndex < 0 || limbIndex >= displayBody.limbs.Length) { return "{\"ok\":false,\"error\":\"limb-out-of-range\",\"detail\":\"limb " + limbIndex + " of " + displayBody.limbs.Length + "\"}"; }
 	var targetLimb = displayBody.limbs[limbIndex];
 	if (targetLimb == null) { return "{\"ok\":false,\"error\":\"no-such-limb\",\"detail\":\"limb " + limbIndex + "\"}"; }
-	if (displayBody.name.StartsWith("MedicalDisplay_", System.StringComparison.Ordinal) == false) {
-		// The name is the cheap witness that the focus is CUO's own display copy and not a live body: the
-		// distinction the storm of batch 20261011-b turned on.
-		return "{\"ok\":false,\"error\":\"focus-is-not-a-display-copy\",\"detail\":\"display body is \\\"" + displayBody.name + "\\\", not a MedicalDisplay_ copy\"}";
+	// The witness that the focus is PRODUCTION's own display copy and not a live body: the
+	// `RemoteMedicalDisplayBody` marker the coordinator puts on the copy's ROOT — the same fact the codec's
+	// own display guard reads. The type is internal to the plugin, so it is reached by name; a missing type
+	// answers "not a display copy" rather than passing by accident. (The Body sits on a child of the cloned
+	// root, which is why the marker is read from the root rather than from the body's own name.)
+	var markerType = (System.Type)null;
+	for (var i = 0; i < assemblies.Length; i++) {
+		try { markerType = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.Character.RemoteMedicalDisplayBody", false); } catch { markerType = null; }
+		if (markerType != null) { break; }
+	}
+	if (markerType == null || displayBody.transform.root.GetComponent(markerType) == null) {
+		return "{\"ok\":false,\"error\":\"focus-is-not-a-display-copy\",\"detail\":\"display body root is \\\"" + displayBody.transform.root.name + "\\\" and carries no RemoteMedicalDisplayBody marker\"}";
 	}
 
 	if (mode == "start") {
@@ -219,7 +227,7 @@
 		if (startMethod == null) { return "{\"ok\":false,\"error\":\"no-start-method\"}"; }
 		var started = (bool)startMethod.Invoke(impl, new object[] { targetLimb });
 		return "{\"ok\":true,\"mode\":\"start\",\"started\":" + (started ? "true" : "false")
-			+ ",\"limb\":" + limbIndex + ",\"displayBodyName\":\"" + displayBody.name + "\""
+			+ ",\"limb\":" + limbIndex + ",\"displayBodyName\":\"" + displayBody.transform.root.name + "\""
 			+ ",\"shrapnel\":" + targetLimb.shrapnel
 			+ ",\"hasShrapnel\":" + (targetLimb.hasShrapnel ? "true" : "false") + "}";
 	}
@@ -349,7 +357,7 @@
 		var activeMethod = handlerType.GetMethod("IsActiveShrapnelMinigame", flags);
 		var minigameActive = activeMethod != null ? activeMethod.Invoke(null, new object[] { minigame }) : null;
 		return "{\"ok\":true,\"mode\":\"break\",\"piece\":" + pieceIndex + ",\"limb\":" + limbIndex
-			+ ",\"displayBodyName\":\"" + displayBody.name + "\""
+			+ ",\"displayBodyName\":\"" + displayBody.transform.root.name + "\""
 			+ ",\"viewOpen\":" + (viewOpen is bool vo && vo ? "true" : "false")
 			+ ",\"minigameActive\":" + (minigameActive is bool ma && ma ? "true" : "false")
 			+ ",\"activeOpId\":\"" + activeOpIdText + "\""

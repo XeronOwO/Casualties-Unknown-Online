@@ -51,14 +51,14 @@ touches neither file, nor `CharacterDataSync.ApplyHealState`, nor `MedicalTarget
 the `None` sentinel and the receiver's warning, the five message defaults, two injection builders,
 `ShrapnelSessionStateWriter` and the Stage-3 start guard.
 
-The defect is now its own ticket (`docs/backlog/review/medical-removal-limb-component-not-applied.md`), and
+The defect is now its own ticket (`docs/backlog/done/medical-removal-limb-component-not-applied.md`), and
 this ticket returns to `done/` when that defect is fixed and row 4 re-runs.
 
 ## Findings this run opened
 
 1. **A removed limb component is never taken off the target's own body** — row 4's failure, twice
    reproduced in the run, with a second awarded item as its consequence:
-   `docs/backlog/review/medical-removal-limb-component-not-applied.md`.
+   `docs/backlog/done/medical-removal-limb-component-not-applied.md`.
 2. **A peer's limb component on a live body under the focus runs the game's own `Start` and throws every
    frame** — the operator's client flooded with `NullReferenceException` (stack: `OnLimbWound.Update` →
    `SplintLimb.Start`'s icon predicate → `GetComponent`) as soon as the focus pointed at the peer's live
@@ -70,7 +70,7 @@ this ticket returns to `done/` when that defect is fixed and row 4 re-runs.
    (`guest-alt-exception-census.txt`). **Mechanism corrected 2026-10-11 by batch `20261011-c`**: production
    opens the view through `RemoteMedicalCoordinator.Open`, which builds a separate PARKED display copy, and
    the recipe's hand-built focus is what put a live body there — see the ticket and the lessons entries.
-   Ticket: `docs/backlog/review/display-clone-limb-component-runs-native-start.md`.
+   Ticket: `docs/backlog/done/display-clone-limb-component-runs-native-start.md`.
 
 ## What the run had to learn first (the drive's own gates)
 

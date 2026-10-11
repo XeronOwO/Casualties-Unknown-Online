@@ -1,6 +1,8 @@
 # A live body put under the remote medical focus runs the game's own limb component
 
-- Status: Review — fixed 2026-10-11; waiting for the acceptance run of batch `20261011-c` (rows below).
+- Status: Done — fixed 2026-10-11 (`7c5646bd`), accepted by batch `20261011-c`: rows 1-6 pass
+  (`docs/evidence/acceptance/display-clone-limb-component-runs-native-start-20261011-c.md`); the run also
+  drove production's own open path for the first time in any retained log.
   **Found 2026-10-11 by the acceptance run of batch `20261011-b`**, while it set up the Stage-3 removal
   scenario: the moment a peer's limb carried a splint, the client that had the remote medical panel open on
   that peer threw a NullReferenceException **every frame** until the panel was closed.
@@ -9,7 +11,7 @@
   below narrows WHERE it can happen, but the call that produced it is one call away from any body CUO does
   not own.
 - Category: Remote medical / display-only body / native component behaviour
-- Related: `review/medical-removal-limb-component-not-applied.md` (the same component-state plumbing, opposite
+- Related: `done/medical-removal-limb-component-not-applied.md` (the same component-state plumbing, opposite
   direction: what a removal must take OFF a body), `review/remote-medical-stage-3-other-actions.md`,
   `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` (the run that found it).
 - Source: the agent's own three-client run, batch `20261011-b`; corrected and reproduced from the code by
@@ -117,10 +119,13 @@ assumed:
 | 3 | the same holds for a tourniquet (`TourniquetScript`) | the sibling component floods, or its icon is missing |
 | 4 | the same holds for a chilled limb (`ChilledLimb`), whose own `Update` acts on the limb it is attached to | the third component of the codec's set floods or mutates a display limb |
 | 5 | leaving and re-entering the focus on that peer (the display copy is rebuilt) stays quiet | the storm returns on the rebuild |
-| 6 | the production open path is the one the run drives, and its guards report the readings that let it through | the run falls back to a hand-built focus, or a refusal is reported without its guard readings |
+| 6 | the production open path is the one the run drives, its guards report the readings that let it through, and every drive refuses a focus that is not production's own copy | the run falls back to a hand-built focus, a refusal is reported without its guard readings, or a drive cannot tell a display copy from a live body |
 
 Rows 1-5 are the rows the earlier cut of this ticket carried; row 2 now names what the fix actually owns (the
-icon is CUO's), and row 6 pins the drive shape whose absence hid the real cause for a whole batch.
+icon is CUO's), and row 6 pins the drive shape whose absence hid the real cause for a whole batch. The drive
+witness the run used is the `RemoteMedicalDisplayBody` marker on the copy's root — a focus that is not
+production's own copy fails it — and the copy's root name is reported beside it (`MedicalDisplay_<steamid>`;
+the Body itself sits on a child, which the scope page's first wording got wrong and the record notes).
 
 ## Limits
 

@@ -7,6 +7,9 @@
   attempt that had a drag staged, so the store frame could not be arranged (a person at the mouse settles
   it in seconds; the tooling never takes the pointer). The store path itself is proven live: batch
   `20261011-d` read the game's own store being refused by the proxy guard for the lack of a drag bracket.
+  **Re-ruled the same day by the user**: the mark belongs to the LOCAL player, is never applied to a remote
+  player's item, and must survive a save — so this row's criterion changes and its landing cycle is
+  `todo/favourite-marks-are-local-and-saved.md`, not another acceptance attempt at the old one.
   Record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md`. Previous
   rejection, batch `20261006-g`, 2026-10-06: matrix row 6's OCCUPIED-destination half — the
   swap the fix cycle below targets — now **passes** on every client of the deployed artifact, and its
@@ -318,7 +321,7 @@ release-cycle action.
 | 4 | Take that item back out | Comes out immediately and stays out |
 | 5 | Drop / edge-drop an owned item from the remote view | Native drop at the native position with the native sound |
 | 6 | Slot move / swap / switch hands | Native result on the owner's body |
-| 7 | Use / wear / combine / battery load-unload / favourite | Native result, native animation and native sound |
+| 7 | Use / wear / combine / battery load-unload / favourite | Native result, native animation and native sound; the favourite mark is the LOCAL player's own and never an edit of the owner's item — re-ruled 2026-10-11, the landing cycle is `todo/favourite-marks-are-local-and-saved.md` |
 | 8 | Held remote item, backpack closed, used from the medical panel | Works; the owner's item state and the requester's body effect are both correct |
 | 9 | A gesture the native rules refuse (full container, blocked slot) | Refused with native feedback and an observable log line, never a silent no-op |
 | 10 | A third peer watches the result | The same item state everywhere |
@@ -519,11 +522,13 @@ owner on the physical host and the operator in the first sandbox. Record:
    `paincream` proxy onto that limb ran the game's own `ApplyWoundItem` → `ApplyToLimb`, the operator
    measured `10.000 ml` from the item's own limb action, the owner consumed it (`condition 1 → 0.9`,
    `100 → 90 ml`) and the operator's body received the topical stack.
-5. **Row 7's favourite half stays `unproven`** and the reason is named in the record: the store fires only
-   when the frame's own UI casts contain an inventory button under the pointer; the remote view anchors
-   the ring to the displayed clone, and the run must not take the pointer. The run DID observe the
-   native store being refused by the proxy guard for the lack of a drag bracket, which proves the store
-   path is live and the guard works; it did not observe the complete chain.
+5. **Row 7's favourite half stays `unproven`**, and the run's reading is joined by a user ruling the same
+   day that changes the row's criterion: the mark belongs to the LOCAL player, is never applied to a remote
+   player's item, and must survive a save. The row is therefore judged against that criterion after
+   `todo/favourite-marks-are-local-and-saved.md` lands, not against the owner-authoritative reading the
+   earlier texts carried (they are corrected in place). The record keeps the run's own finding: the native
+   store fires only when the frame's UI casts contain an inventory button under the pointer, the run must
+   not take the pointer, and the proxy guard's refusal line proves the store path is live.
 
 ## Non-goals
 

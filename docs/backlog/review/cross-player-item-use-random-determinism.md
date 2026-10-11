@@ -10,6 +10,10 @@
   chain — **does not exist**, and §2's census and §3 carry the evidence that says why. What remains is the
   two-client run: acceptance rows 1-8 below. The user set the target for it on 2026-10-09: remove the
   divergence WITHOUT waiting for the authority — random-state control, not a local guess and not a delay.
+  **Batch `20261011-a` built that environment end to end and left every behavioural row `blocked`: one grip
+  slip cannot be driven yet.** The record names the three seams a driver would need and keeps the ticket
+  open rather than closing it on a weaker check
+  (`docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`).
 - Priority: High — **raise to Critical if the investigation shows the divergence reaches authoritative state**
   (a body value, a limb fact, an item amount). Presentation-only divergence stays High.
 - Category: Players / cross-player semantics

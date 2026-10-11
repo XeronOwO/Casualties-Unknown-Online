@@ -7,7 +7,7 @@
 
 ## Superseded (2026-09-21, stage 0 of the rework)
 
-This ticket is absorbed into `docs/backlog/todo/remote-inventory-native-parity-rework.md` and is kept
+This ticket is absorbed into `docs/backlog/done/remote-inventory-native-parity-rework.md` and is kept
 as the record of the rejected delivery. Its operation map below describes the CUO routing table and
 the mirror-edit path that the rework deletes; its acceptance matrix is carried into that ticket's
 matrix. The design that replaces it is `docs/architecture/remote-inventory-native-parity.md`
@@ -23,7 +23,7 @@ to be replaced rather than patched again, and operating another player's items m
 indistinguishable from operating one's own (function, animation, UI, sound).
 
 This ticket is moved back to `todo/`. The rework that replaces it — with the root-cause analysis of
-the two execution worlds and the staged plan — is `todo/remote-inventory-native-parity-rework.md`;
+the two execution worlds and the staged plan — is `done/remote-inventory-native-parity-rework.md`;
 the acceptance matrix below stays as that rework's input.
 
 ## Acceptance findings (2026-09-06)

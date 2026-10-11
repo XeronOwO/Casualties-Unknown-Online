@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
-- Related: `todo/remote-inventory-native-parity-rework.md` (the rework this extends), `todo/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3.
+- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `todo/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3.
 
 ## What exists today (both directions of one hand-over, only one carried)
 
@@ -73,7 +73,7 @@ A three-client run (operator = the giver, owner = the receiver, third peer = a w
 ## Non-goals now
 
 - Not part of the rework's current acceptance matrix: this is a new capability, not a defect, and no row of
-  `todo/remote-inventory-native-parity-rework.md` depends on it.
+  `done/remote-inventory-native-parity-rework.md` depends on it.
 - Not a change to the receiver-initiated take (`TransferToBody`), which stays as it is.
 - Not the access policy itself: the three-way host rule that must gate this gesture is
   `todo/remote-backpack-access-policy.md`, and it lands separately (this ticket obeys whatever that rule says).

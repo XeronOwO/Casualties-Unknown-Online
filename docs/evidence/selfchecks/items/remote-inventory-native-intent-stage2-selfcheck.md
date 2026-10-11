@@ -1,6 +1,6 @@
 # Remote inventory native parity — stage 2 container family self-check (2026-09-25)
 
-Ticket: `docs/backlog/todo/remote-inventory-native-parity-rework.md` (stage 2). Design record:
+Ticket: `docs/backlog/done/remote-inventory-native-parity-rework.md` (stage 2). Design record:
 `docs/architecture/remote-inventory-native-parity.md` (amended by stage 2). Decisions: 217 (stage 0),
 218 (the window's shape, stage 1), 219 (the container family and the while-dragging body). Cycle
 scope: the container-expansion gesture (R5), the nested-container and trash-bag paths, the restored

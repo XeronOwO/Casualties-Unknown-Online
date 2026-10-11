@@ -9,7 +9,7 @@
 - Source: User message (2026-10-06), raised while the remote-inventory rework's rows were being read: "check
   whether operations on another player's backpack all have a switch — e.g. a dropdown in the multiplayer
   config with allow / unconscious-only / deny".
-- Related: `todo/remote-inventory-native-parity-rework.md` (the operation surface this gates),
+- Related: `done/remote-inventory-native-parity-rework.md` (the operation surface this gates),
   `todo/give-item-to-another-player.md` (the new push gesture must obey the same policy),
   `src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRulesService.cs`, decisions 154 (cross-player
   take/heal/use are host-validated), 218 (the native-intent window), `review/remote-interaction-local-gating.md`

@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Remote inventory / item projection / container sync
 - Parent: `docs/backlog/resolved/remote-backpack-native-interaction-parity.md`
-- Superseded by: `todo/remote-inventory-native-parity-rework.md` (absorbed 2026-09-21, stage 0)
+- Superseded by: `done/remote-inventory-native-parity-rework.md` (absorbed 2026-09-21, stage 0)
 - Source: User acceptance findings (2026-09-06) on the remote-backpack review ticket.
 
 ## Why this record is closed without further code
@@ -23,7 +23,7 @@ The unified acceptance pass reproduces this ticket's findings on the deployed bu
 out of a remote container disappears shortly afterwards, and the remote-backpack items cannot be
 operated. The user ruled that the remote item surface is to be replaced by an end-to-end native
 path rather than patched further; this ticket is moved back to `todo/` and its findings feed
-`todo/remote-inventory-native-parity-rework.md`.
+`done/remote-inventory-native-parity-rework.md`.
 
 ## Context
 

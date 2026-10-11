@@ -19,7 +19,7 @@
 - Source: agent acceptance batch `20261005-c` (2026-10-05) — the monitor warned on every remote
   container move that run drove; raised to work by the user's 2026-10-06 ruling that a defect the
   repository's own history introduced is fixed or ticketed.
-- Related: `todo/remote-inventory-native-parity-rework` (the path that produced the warnings),
+- Related: `done/remote-inventory-native-parity-rework` (the path that produced the warnings),
   `done/carried-inventory-registration-re-report.md`, `docs/architecture/remote-inventory-native-parity.md`
 - Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`
   (rejected on row A1g); `…-20261006-a.md` (accepted except the then-blocked row); `…-20261005-e.md`
@@ -216,7 +216,7 @@ keep their immediate re-report inside the same window, so the polarity is visibl
 peer's own world read returns every dropped id, both owner directions. Record:
 `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md`.
 
-Rows 3, 4 and 14 of `todo/remote-inventory-native-parity-rework` are still the ones this change's own
+Rows 3, 4 and 14 of `done/remote-inventory-native-parity-rework` are still the ones this change's own
 evidence must be read beside, because their verdicts came from owner-side probes.
 - **The drop row needs a PEER-side world read, in both owner directions.** A dropped item must be found
   in the world by a client that is neither the owner nor the operator (the third peer), for a host owner

@@ -2831,5 +2831,70 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   after it; and check `canPickUp` (six slots, one probe) before a row that needs this body to take
   something. A fall inside the run's own staging costs the rows that need hands.
 
+## 2026-10-11 — Batch `20261011-f`: a remote ring button reaches the pointer by moving the CAMERA, and the pointer must be inside the window first
+
+- Symptom: five batches could not put a remote inventory button under the physical pointer, so the
+  favourite gesture could never be arranged; batch `20261011-e` had already proved the frame's raycast
+  refuses a pointer outside the viewport.
+- Cause: the remote ring is anchored to the FOCUSED clone's screen position (CUO's own anchor) and its
+  buttons sit around that anchor, so where a button lands is decided by the clone's position relative to
+  the camera — never by the pointer. `remote-gesture mode=aim-ring cast=<n>` is the tool that converts the
+  screen shift the row needs into the world shift that produces it. The LOCAL ring behaves the other way:
+  with the bag open it stays fixed on screen (moving the pointer did not move it), so its buttons are
+  addressed by putting the pointer on the coordinates `mode=list` reports.
+- Change: the order that works — (1) bring the client's window to the foreground and put the pointer inside
+  its client area, (2) `mode=aim-ring cast=<n>` for the world delta, (3) move the LOCAL body by the NEGATIVE
+  of that delta (`body-place` takes integers; half a world unit is about eight logical units), (4)
+  `mode=list` until the target button reads `pointerInside: true`, (5) `mode=hover cast=<n>` to stage the
+  drag (it answers `castUnderPointer: 0` when the button is under the pointer), (6) the press. The ring
+  stays open while it sits within `600 * uiScale` of the pointer, which the same read reports.
+
+## 2026-10-11 — Batch `20261011-f`: a real key press needs the FOREGROUND window, and the user said so first
+
+- Symptom: the batch planned to ask the user for one press; the user answered that the game and the chat are
+  two windows and only one can hold the focus — so "leave the pointer there and press the key" cannot be
+  done while reading the instruction on screen.
+- Cause: Windows delivers a key to the foreground window only, and clicking a title bar to raise a window
+  moves the pointer, which is the other half of what the gesture needs.
+- Change: raise the window from inside the run instead of asking for a click — `AttachThreadInput` to the
+  foreground thread plus `SetForegroundWindow` (a click on the title bar is refused while another window
+  covers that point) — then read the client's own `focused` and `inside` before the press, and press without
+  switching windows. A batch that needs the user's hand asks for the press alone, never for a window switch
+  between two instructions.
+
+## 2026-10-11 — Batch `20261011-f`: a transferred item's adoption lands one beat after the pickup
+
+- Symptom: the census taken in the same call as the pickup read the item `favourited=False` while the local
+  mark entry was already gone; the same census eight seconds later read `True`.
+- Cause: the adoption rides the character-data path, so the item's own flag is written after the transfer
+  call has returned.
+- Change: judge a "the mark became the item's own" row on a re-read and on the adoption's own log line, not
+  on the first census after the transfer. The transfer itself was reliable this time as an owner drop plus
+  `item-provide mode=pickup`; batch `20261011-e` failed to move the item only because that operator's limbs
+  sat at zero force, so check `canPickUp` before a row that needs hands.
+
+## 2026-10-11 — Batch `20261011-f`: `item-world-read` did not see a just-materialized world item
+
+- Symptom: after the owner's drop the operator's own log showed `[ItemSpawn] materializing paincream
+  (id …) at (3.0,505.1)` and the pickup then found that item, while `item-world-read x=0,y=507,radius=30` on
+  the same client answered `count: 0`.
+- Cause: not established. The reading echoes the pair it was given as `cellX`/`cellY`, so the position used
+  may not have named the item's own cell.
+- Change: judge "the item is in the world" on the spawn line plus the pickup that consumes it, and treat
+  `item-world-read` as an unproven witness for a just-dropped item until its coordinate contract is pinned.
+
+## 2026-10-11 — Batch `20261011-f`: a one-batch actuator authorisation is recorded as such, and the rule it bends is not changed by it
+
+- Symptom: the gesture the batch needed exists only as a real pointer hit plus a real key press, and the
+  standing rule forbids the tooling from taking either. The user, present at the machine, authorised the run
+  to drive both — for this batch only.
+- Cause: the rule's purpose is that the tooling never takes the machine's input on its own initiative. A
+  recorded, user-granted, single-batch authorisation does not violate that; a silent exception would, and so
+  would a permanent change nobody asked for.
+- Change: the authorisation is stated in the batch scope and in the record, the actuator lives only in the
+  batch artifact directory, and the run asked the user which of the two they meant (this once, or a rule
+  change) before touching the pointer. Nothing under `tools/` gained a cursor or a keyboard call, and
+  `docs/acceptance/AGENTS.local.md` carries no licence for the next batch.
+
 
 

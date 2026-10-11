@@ -1,6 +1,6 @@
 # Remote inventory native parity — stage 0 design self-check (2026-09-21)
 
-Ticket: `docs/backlog/todo/remote-inventory-native-parity-rework.md` (stage 0, decision 217). Cycle
+Ticket: `docs/backlog/done/remote-inventory-native-parity-rework.md` (stage 0, decision 217). Cycle
 scope: freeze the design that replaces the clone-edit remote-inventory path — the native gesture
 inventory, the wire intent vocabulary, the ticket adjudication. **No behaviour changed in this
 stage**: no `src/` or `tests/` file was touched.

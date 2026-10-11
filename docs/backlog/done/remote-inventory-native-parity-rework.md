@@ -1,6 +1,9 @@
 # Remote inventory operations: run the native path end to end
 
-- Status: Todo — Rejected (batch `20261011-d`, 2026-10-11: **row 8 and row 7's combine, battery-LOAD and
+- Status: Done — batch `20261011-f` judged matrix row 7's **favourite half** against the criterion decision
+  258 landed, and it was the ticket's last row without a verdict; the table in
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md` names the batch behind
+  every other row. Previous state, batch `20261011-d`, 2026-10-11: **row 8 and row 7's combine, battery-LOAD and
   worn-item halves now `pass`**; row 7's **favourite half stays `unproven`** — the native store reads
   `Input.GetKeyDown(favourite)` on the first inventory button the frame's own UI casts contain, the remote
   view's ring is anchored to the displayed clone, and the cursor sat outside the client window for every
@@ -9,7 +12,7 @@
   `20261011-d` read the game's own store being refused by the proxy guard for the lack of a drag bracket.
   **Re-ruled the same day by the user**: the mark belongs to the LOCAL player, is never applied to a remote
   player's item, and must survive a save — so this row's criterion changes and its landing cycle is
-  `todo/favourite-marks-are-local-and-saved.md`, not another acceptance attempt at the old one. **That
+  `done/favourite-marks-are-local-and-saved.md`, not another acceptance attempt at the old one. **That
   cycle has LANDED (decision 258)**: the favourite half is now a CODE FACT (a local mark that rides the
   marking player's own character record, with the `ToggleFavourite` path deleted), so this ticket's row 7
   needs one acceptance pass over the new criterion rather than a development cycle.
@@ -42,7 +45,9 @@
 - Source: User acceptance findings (2026-09-21) plus the same day's ruling: operating another player's items must feel exactly like operating one's own — the same functions, the same item animations, the same UI feedback and the same sounds. The current implementation is rejected as a whole and is to be replaced, not patched again.
 - Related: `resolved/remote-backpack-native-interaction-parity.md` and `resolved/remote-backpack-item-projection-acceptance-issues.md` (the rejected deliveries this ticket replaces, absorbed here in stage 0), `review/unified-remote-display-projection-rework.md`, `review/global-projection-framework.md`, `review/tab-backpack-open-close-immediately.md`, `done/guest-container-contents-ghost-drops-on-host.md`
 - Design: `docs/architecture/remote-inventory-native-parity.md` (stage 0 record, decision 217)
-- Acceptance record: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md` (row 8
+- Acceptance records: `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md` (row
+  7's favourite half `pass`, and the batch behind every other row named), and
+  `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md` (row 8
   `pass`, row 7's combine / battery-LOAD / worn-item halves `pass`, its favourite half `unproven`),
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md` (row 6's
   occupied-destination half and its empty-destination control both `pass`, matrix row 2's transfer half
@@ -324,7 +329,7 @@ release-cycle action.
 | 4 | Take that item back out | Comes out immediately and stays out |
 | 5 | Drop / edge-drop an owned item from the remote view | Native drop at the native position with the native sound |
 | 6 | Slot move / swap / switch hands | Native result on the owner's body |
-| 7 | Use / wear / combine / battery load-unload / favourite | Native result, native animation and native sound; the favourite mark is the LOCAL player's own and never an edit of the owner's item — re-ruled 2026-10-11 and LANDED as decision 258: the gesture toggles the marking player's own set, a mark survives a save and a rejoin, a marked item that becomes the player's own carries its own flag, and the owner's item is untouched on every client (`todo/favourite-marks-are-local-and-saved.md`) |
+| 7 | Use / wear / combine / battery load-unload / favourite | Native result, native animation and native sound; the favourite mark is the LOCAL player's own and never an edit of the owner's item — re-ruled 2026-10-11 and LANDED as decision 258: the gesture toggles the marking player's own set, a mark survives a save and a rejoin, a marked item that becomes the player's own carries its own flag, and the owner's item is untouched on every client (`done/favourite-marks-are-local-and-saved.md`) |
 | 8 | Held remote item, backpack closed, used from the medical panel | Works; the owner's item state and the requester's body effect are both correct |
 | 9 | A gesture the native rules refuse (full container, blocked slot) | Refused with native feedback and an observable log line, never a silent no-op |
 | 10 | A third peer watches the result | The same item state everywhere |
@@ -528,11 +533,33 @@ owner on the physical host and the operator in the first sandbox. Record:
 5. **Row 7's favourite half stays `unproven`**, and the run's reading is joined by a user ruling the same
    day that changes the row's criterion: the mark belongs to the LOCAL player, is never applied to a remote
    player's item, and must survive a save. That criterion has since LANDED as decision 258
-   (`todo/favourite-marks-are-local-and-saved.md`), so the row is judged against it on the next pass
+   (`done/favourite-marks-are-local-and-saved.md`), so the row is judged against it on the next pass
    rather than against the owner-authoritative reading the earlier texts carried (they are corrected in
    place). The record keeps the run's own finding: the native
    store fires only when the frame's UI casts contain an inventory button under the pointer, the run must
    not take the pointer, and the proxy guard's refusal line proves the store path is live.
+
+## Acceptance readings (batch `20261011-f`, 2026-10-11)
+
+Row 7's favourite half was the ticket's last row without a verdict; it is judged here against the criterion
+the user re-ruled it onto (decision 258; `done/favourite-marks-are-local-and-saved.md`). Record:
+`docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md`.
+
+1. **Row 7's favourite half `pass`es, as a native gesture that is nobody else's edit.** The operator's press
+   over the owner's `paincream` proxy — with the ring button read under the pointer first
+   (`remote-gesture mode=hover cast=2` → `castUnderPointer: 0`, `castOverlaps: true`) — produced
+   `[FavouriteMark] marked paincream in <owner>'s inventory — the mark is local to this client; the owner's
+   own item is untouched.` The operator's own census then reads that proxy `favourited=true`, the OWNER's
+   own item reads `favourited=false`, the third peer reads the same instance id `favourited=false`, and the
+   owner's log carries no intent for it.
+2. **The gesture itself is what batch `20261011-e` could not produce**, and this record names how it was
+   produced: the user's on-the-spot authorisation for this batch only, the actuator kept as a batch
+   artifact, and the standing rule that acceptance tooling never takes the pointer unchanged.
+3. **Every other row carries the verdict of the batch that judged it**, one line each in the record's
+   table: rows 3, 5, 6, 9, 10, 11, 13, 14 and 15 in batches `20261005-c` and `20261005-d`, rows 4 and row
+   7's battery-unload half in `20261005-e`, row 6's swap half and row 2's transfer half in `20261006-g`,
+   row 7's combine, battery-load and worn-item halves and row 8 in `20261011-d`. Row 12 remains the user's
+   residual — the feel half — exactly as the batch that judged it recorded.
 
 ## Non-goals
 

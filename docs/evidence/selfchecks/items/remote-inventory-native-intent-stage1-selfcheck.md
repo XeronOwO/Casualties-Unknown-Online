@@ -1,6 +1,6 @@
 # Remote inventory native parity — stage 1 intent path self-check (2026-09-21)
 
-Ticket: `docs/backlog/todo/remote-inventory-native-parity-rework.md` (stage 1). Design record:
+Ticket: `docs/backlog/done/remote-inventory-native-parity-rework.md` (stage 1). Design record:
 `docs/architecture/remote-inventory-native-parity.md` (amended by stage 1). Decisions: 217 (stage 0),
 218 (the window's shape). Cycle scope: the game's own drag release runs on the viewer, CUO captures the
 native mutation call it makes, the host validates and forwards, and the owner replays that call on the

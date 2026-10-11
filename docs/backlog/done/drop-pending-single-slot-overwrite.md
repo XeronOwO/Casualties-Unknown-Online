@@ -113,7 +113,7 @@ there: the swapped items are direct slot occupants, so the `container.UnloadItem
 `[PickUpResult]` lines (the `PickupFlowDiagnosticsPatch` postfix, which has no scope gate and states no fact —
 it is a diagnostic, not a report) and two `[SlotMoved] … (Swap)` lines, with no `[ItemDropped]`, no
 `[ItemTrace]` and no `[ItemSpawn]` on either viewer. The expectation that this shape is this ticket's producer
-is withdrawn; that route's correctness is `todo/remote-inventory-native-parity-rework.md`'s row, not this one's.
+is withdrawn; that route's correctness is `done/remote-inventory-native-parity-rework.md`'s row, not this one's.
 
 **2. The `PickUpToSlot` route commits one departure and cancels one, and `Plan`'s two-drop list needs a
 disagreement a gesture cannot create.** The `else` arm at `PlayerCamera.cs:1614` is reached when
@@ -262,7 +262,7 @@ third peer = the alternate sandbox). What it read, in the order it matters to th
    answers from the clone while the method body still indexes the LOCAL body's slot transform, so an empty
    local slot makes `Transform.GetChild(0)` throw (`UnityException … Transform child out of bounds`) and the
    release is lost whole — no intent, no refusal, `dragAfter` still set. The seam asymmetry was fixed by
-   decision 239 (`todo/remote-inventory-native-parity-rework.md`), and point 1 above is what the repaired
+   decision 239 (`done/remote-inventory-native-parity-rework.md`), and point 1 above is what the repaired
    route does with the ticket's premise.
 2. **The reachable two-departure shape behaves the way the landed machine intends.** Releasing the owner's own
    container child onto an occupied ring slot replays `PickUpToSlot` with the destination slot held on the

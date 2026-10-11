@@ -34,6 +34,15 @@ that nothing refreshes: every client loads it at startup, and a stale one breaks
 batch whose rows judge mod content places the DLL from THIS tree's build output as its own setup step,
 names that placement in its scope, and removes it when the run closes.
 
+**A gesture that needs the physical pointer and the key is not a dependency row.** The boundary above is
+the rule, and a batch that needs such a gesture has exactly two ways to get one: the user's own hand at the
+machine, or a user authorisation for THAT BATCH to drive the pointer and the key itself. Batch `20261011-f`
+took the second once — the authorisation is stated in its scope and its record, its actuator lives in the
+batch artifact directory, and nothing under `tools/` gained a cursor or keyboard call; the rule is
+unchanged, so the next batch asks again rather than inheriting it. A run on either path reads the client's
+own `focused` and the pointer's `inside` state BEFORE the press: a key reaches the foreground window only,
+and a pointer outside the client window makes the frame's raycast cast nothing at all.
+
 Two further report rows are inputs rather than capabilities: `facts` (the local facts file itself) and
 `fact` (one row per required key that `FACT-MISSING` names). Both are `missing` only when the facts file
 or a key is absent, and both are answered by asking the user for the value.

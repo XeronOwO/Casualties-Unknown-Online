@@ -33,7 +33,7 @@
   to the LOCAL player: it is never an action applied to a remote player's item, and it must survive a save.
   That changes row 7d's criterion — the criterion this run judged against ("the favourite star follows the
   owner's own value") is superseded, and the landing cycle is
-  `docs/backlog/todo/favourite-marks-are-local-and-saved.md`. What this record contributes to that cycle is
+  `docs/backlog/done/favourite-marks-are-local-and-saved.md`. What this record contributes to that cycle is
   the mechanism reading below: where the native store is, why the run could not arrange its frame, and the
   proof that the store path itself fires.
 - **Row 7d was not driven to its outcome, and the reason is a run capability, not a code doubt.** The

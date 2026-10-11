@@ -1,9 +1,13 @@
 # A favourite mark belongs to the local player, and it is saved
 
-- Status: Todo — Rejected (batch `20261011-e`, 2026-10-11: row 1's **gesture** half, row 4 and row 6 are
-  `unproven` — the run could not actuate the gesture and could not get the marked item into the operator's
-  hands; the other rows pass, and the reasons plus the way out are in the acceptance record)
-- Acceptance record: `docs/evidence/acceptance/favourite-marks-are-local-and-saved-20261011-e.md`
+- Status: Done — batch `20261011-f` accepted the three rows batch `20261011-e` left `unproven` (row 1's
+  **gesture** half, row 4 and row 6): the mark was made by a real press over the owner's item, it became
+  the item's own flag once the item changed hands, and the same key over the player's OWN inventory kept
+  the game's own behaviour. Every row of the matrix now carries a verdict.
+- Acceptance records: `docs/evidence/acceptance/favourite-marks-are-local-and-saved-20261011-f.md` (row 1's
+  gesture half, row 4 and row 6) and
+  `docs/evidence/acceptance/favourite-marks-are-local-and-saved-20261011-e.md` (row 1's mark-exists halves,
+  rows 2, 3, 5 and 7).
 - Priority: High
 - Category: Remote inventory / local preference / persistence
 - Source: **User ruling, 2026-10-11** (in reply to the batch `20261011-d` finding that row 7's
@@ -14,10 +18,10 @@
 - Supersedes: decision 220's favourite paragraph — "CUO only turns the store it observes into
   `ToggleFavourite` … so the operator's star lights up from the owner's answer"
   (`docs/decisions/active.md`), now amended in place — and the two places that judged the old
-  behaviour: `docs/backlog/todo/remote-inventory-native-parity-rework.md` matrix row 7 and
+  behaviour: `docs/backlog/done/remote-inventory-native-parity-rework.md` matrix row 7 and
   `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §3 row 7.
   The numbered decision entry for the new rule is 258.
-- Related: `todo/remote-inventory-native-parity-rework.md` (the family this sits in, and the batch that
+- Related: `done/remote-inventory-native-parity-rework.md` (the family this sits in, and the batch that
   produced the finding), `docs/architecture/remote-inventory-native-parity.md` §3.2.7–§3.2.9 (the
   while-dragging frame and the new rule), `docs/evidence/selfchecks/items/favourite-marks-local-and-saved-selfcheck.md`
   (the cycle's own record), `review/save-native-character-field-parity.md` and
@@ -88,12 +92,12 @@
 
 | # | Scenario | Expected | State |
 |---|---|---|---|
-| 1 | Operator marks an item in the owner's backpack | The operator's own view shows the mark; the OWNER's own item is unchanged on the owner's client and on the third peer, and no intent for it reaches the owner | the mark-exists halves **pass** (batch `20261011-e`, created by the declared fixture); the GESTURE half is `unproven` — the run could not actuate it, and the one real gesture reading in that run was the user's own key press (`[FavouriteMark] marked paincream …` 15:38:19, `unmarked` 15:38:48) |
+| 1 | Operator marks an item in the owner's backpack | The operator's own view shows the mark; the OWNER's own item is unchanged on the owner's client and on the third peer, and no intent for it reaches the owner | the **gesture** half by batch `20261011-f` — a real press with the owner's item button read under the pointer, `[FavouriteMark] marked paincream in <owner>'s inventory` at 16:13:36 — and the mark-exists halves by batch `20261011-e` (created by the declared fixture there) |
 | 2 | The same mark, after the operator leaves and rejoins the same world | Still there, without pressing the key again | **pass** (batch `20261011-e`: `Character restore brought back 1 local favourite mark(s).` after `leave-world` → `home.leave` → `join-lobby`) |
 | 3 | The same mark, after a save and a load of that world | Still there | **pass** (batch `20261011-e`: the same restore line after the host's cut + continue, and the world's own `live/characters/<playerKey>.json` carries the mark) |
-| 4 | The marked item is later picked up / transferred to the operator | The item is favourited as the operator's own from that moment, and the local mark entry is gone (no double state) | `unproven` (batch `20261011-e`: the operator's limbs sat at zero force after a fall, so the game's own `canPickUp` guard refused every slot, and the owner's drop was reported but never materialised for either client) |
+| 4 | The marked item is later picked up / transferred to the operator | The item is favourited as the operator's own from that moment, and the local mark entry is gone (no double state) | **pass** (batch `20261011-f`: the operator took the item through the game's own pickup with the item's instance id kept, the item's own flag then read `favourited=true` and the local entry was gone) — batch `20261011-e` could not move it, because that operator's limbs sat at zero force |
 | 5 | An item in the owner's backpack that the operator never marked, where the OWNER has favourited it | No mark is shown in the operator's view (the mark is personal) | **pass** (batch `20261011-e`: the owner's own census reads `favourited=true`, the operator's proxy of the same item reads `false`) — the owner's own half was staged as a declared substitution |
-| 6 | The favourite key on the operator's OWN inventory | Unchanged native behaviour | `unproven` (batch `20261011-e`: the same missing actuation as row 1's gesture half) |
+| 6 | The favourite key on the operator's OWN inventory | Unchanged native behaviour | **pass** (batch `20261011-f`: with the pointer over the operator's own item button the press flipped that item's own native flag, and the session's whole mark log holds no line for it) |
 | 7 | A mark whose item is destroyed, or belongs to a different world | Dropped, and no other item inherits it | **pass** for both staged halves (batch `20261011-e`: `dropped a stale mark: mark on item … names a bandage, but the id now carries a paincream.` with the entry gone, and `mark on item … followed it from … to …` with the owner refreshed) — the hand-off is staged by its recorded owner, not by a real transfer |
 
 

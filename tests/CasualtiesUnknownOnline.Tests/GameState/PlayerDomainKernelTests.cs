@@ -369,6 +369,47 @@ public class PlayerDomainKernelTests
 	}
 
 	[Fact]
+	public void AppliedItemWithUnknownOwner_IsRejectedByPlayerInvariant()
+	{
+		// The applied family names an owning player too (the limb's owner), so the
+		// same broken reference must be caught by the same rule.
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
+
+		var spawn = kernel.Execute(
+			new SpawnItemCommand(
+				new OperationId(2),
+				Host,
+				Epoch,
+				AuthorityKind.OwnerPredictedHostValidated,
+				new ItemIdentity(42, "splint"),
+				ItemLocation.Carried(new ActorId(2001)),
+				0,
+				null),
+			new CommandContext(Epoch, Host));
+		Assert.True(spawn.IsAccepted);
+
+		var apply = kernel.Execute(
+			new ApplyLimbItemCommand(
+				new OperationId(3),
+				Host,
+				Epoch,
+				AuthorityKind.OwnerPredictedHostValidated,
+				42,
+				new ActorId(9999),
+				3,
+				1),
+			new CommandContext(Epoch, Host));
+		Assert.True(apply.IsAccepted);
+		Assert.Equal(ItemLocationKind.Applied, kernel.FindItem(42)!.Value.Location.Kind);
+
+		var decision = Update(kernel, 4, new PlayerState(2002, true, true));
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.InvariantViolation, decision.Rejection!.Reason);
+	}
+
+	[Fact]
 	public void DeadStatusUpdate_PreservesCarriedItems()
 	{
 		var kernel = new GameStateKernel(Epoch);

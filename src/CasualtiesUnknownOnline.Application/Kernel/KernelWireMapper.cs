@@ -57,11 +57,13 @@ public static class KernelWireMapper
 				ItemLocationKind.World => WireItemLocationKind.World,
 				ItemLocationKind.Carried => WireItemLocationKind.Carried,
 				ItemLocationKind.Contained => WireItemLocationKind.Contained,
+				ItemLocationKind.Applied => WireItemLocationKind.Applied,
 				ItemLocationKind.Terminal => WireItemLocationKind.Terminal,
 				_ => throw new ArgumentOutOfRangeException(nameof(location), location.Kind, "unknown item location kind"),
 			},
 			Owner = location.Owner.Value,
 			ParentItemId = location.ParentItemId,
+			LimbIndex = location.Kind == ItemLocationKind.Applied ? location.LimbIndex : null,
 			X = location.X,
 			Y = location.Y,
 		};
@@ -260,9 +262,21 @@ public static class KernelWireMapper
 			WireItemLocationKind.World => ItemLocation.World(location.X, location.Y, location.ParentItemId),
 			WireItemLocationKind.Carried => ItemLocation.Carried(new ActorId(location.Owner)),
 			WireItemLocationKind.Contained => ItemLocation.Contained(new ActorId(location.Owner), location.ParentItemId),
+			WireItemLocationKind.Applied => ItemLocation.Applied(new ActorId(location.Owner), RequireLimbIndex(location)),
 			WireItemLocationKind.Terminal => ItemLocation.Terminal(),
 			_ => throw new ArgumentOutOfRangeException(nameof(location), location.Kind, "unknown wire item location kind"),
 		};
+
+	/// <summary>
+	/// An applied location states WHICH limb, and the wire cannot default it: limb
+	/// 0 is the head, so an absent limb read as 0 would silently place the item on
+	/// a limb the sender never named. A row that omits it is refused here, which
+	/// the archive's per-entry salvage turns into a NAMED skip of that one row
+	/// instead of an item that appears on the wrong limb.
+	/// </summary>
+	private static int RequireLimbIndex(WireItemLocation location) =>
+		location.LimbIndex
+		?? throw new ArgumentOutOfRangeException(nameof(location), "an applied item location must name the limb the item is installed on");
 
 	public static ItemData FromWireData(WireItemData data) =>
 		new(

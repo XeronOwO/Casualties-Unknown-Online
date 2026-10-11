@@ -24,8 +24,11 @@ public static class ItemLocationChain
 	/// Whether the item's location chain is rooted in the WORLD — the item lies
 	/// on the ground, or inside a container that ultimately lies on the ground.
 	/// A carried item (and its contents) is NOT world-rooted: it travels with the
-	/// player. A terminal item is not world-rooted either — its chain has ended,
-	/// and a terminal record is never resurrected or dropped.
+	/// player. An applied item is not world-rooted either — it is held by a limb,
+	/// which a layer boundary does not take away, so an installed splint survives
+	/// the cut exactly as a carried item does. A terminal item is not world-rooted
+	/// either — its chain has ended, and a terminal record is never resurrected or
+	/// dropped.
 	/// </summary>
 	public static bool IsWorldRooted(ItemState item, Func<ulong, ItemState?> find)
 	{

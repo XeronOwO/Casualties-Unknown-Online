@@ -111,6 +111,32 @@ public class KernelCommandGatewayTests
 	}
 
 	[Fact]
+	public void DestroyOfAnotherMembersAppliedItem_IsIgnoredWithoutAnAnswer()
+	{
+		// An applied item is the second family whose end only its body's owner can
+		// observe (the component decays to zero on that client), so it is judged
+		// exactly like a carried item: a viewer's clone may not end it.
+		var facts = new FakeItemFacts();
+		facts.AppliedTo(42, OtherMember, limbIndex: 3);
+
+		var decision = Gateway(facts).AdmitMemberSubmission(Member,
+			Destroy(instanceId: 42, actor: Member, AuthorityKind.OwnerPredictedHostValidated));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+	}
+
+	[Fact]
+	public void DestroyOfAnItemAppliedToTheSendersOwnLimb_IsAdmitted()
+	{
+		var facts = new FakeItemFacts();
+		facts.AppliedTo(42, Member, limbIndex: 3);
+
+		Assert.True(Gateway(facts).AdmitMemberSubmission(Member,
+			Destroy(instanceId: 42, actor: Member, AuthorityKind.OwnerPredictedHostValidated)).IsAdmitted);
+	}
+
+	[Fact]
 	public void DestroyOfAnIdThisHostNeverJudged_IsNotTheSeamsToAnswer()
 	{
 		// A conservative guard, not the production path: on the real path the
@@ -190,5 +216,8 @@ public class KernelCommandGatewayTests
 
 		internal void InWorld(ulong instanceId) =>
 			_items[instanceId] = new ItemState(new ItemIdentity(instanceId, "test_item"), 1, ItemLocation.World(1f, 2f));
+
+		internal void AppliedTo(ulong instanceId, ulong owner, int limbIndex) =>
+			_items[instanceId] = new ItemState(new ItemIdentity(instanceId, "test_item"), 1, ItemLocation.Applied(new ActorId(owner), limbIndex));
 	}
 }

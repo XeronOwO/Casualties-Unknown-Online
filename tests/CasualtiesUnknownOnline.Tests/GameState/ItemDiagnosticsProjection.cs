@@ -66,6 +66,7 @@ public static class ItemDiagnosticsProjection
 			&& a.LocationKind == b.LocationKind
 			&& a.Owner == b.Owner
 			&& a.ParentItemId == b.ParentItemId
+			&& a.LimbIndex == b.LimbIndex
 			&& ApproxEqual(a.X, b.X)
 			&& ApproxEqual(a.Y, b.Y)
 			&& (!includeRevision || a.Revision == b.Revision);
@@ -73,5 +74,5 @@ public static class ItemDiagnosticsProjection
 	private static bool ApproxEqual(float a, float b) => Math.Abs(a - b) < 0.001f;
 
 	private static string Format(ItemTerminalFact fact) =>
-		$"{fact.LocationKind} owner={fact.Owner} parent={fact.ParentItemId} ({fact.X:0.###},{fact.Y:0.###}) rev={fact.Revision}";
+		$"{fact.LocationKind} owner={fact.Owner} parent={fact.ParentItemId} limb={fact.LimbIndex} ({fact.X:0.###},{fact.Y:0.###}) rev={fact.Revision}";
 }

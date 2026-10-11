@@ -28,6 +28,7 @@ public class ItemDiagnosticsProjectionTests
 		Assert.False(facts.ContainsKey(10));
 		Assert.Equal(ItemLocationKind.Carried, facts[11].LocationKind);
 		Assert.Equal(Guest.Value, facts[11].Owner);
+		Assert.Equal(ItemLocation.NoLimb, facts[11].LimbIndex);
 	}
 
 	[Fact]
@@ -35,12 +36,12 @@ public class ItemDiagnosticsProjectionTests
 	{
 		var expected = new Dictionary<ulong, ItemTerminalFact>
 		{
-			[10] = new(10, "water", ItemLocationKind.World, 0, 0, 1, 2, 1),
+			[10] = new(10, "water", ItemLocationKind.World, 0, 0, ItemLocation.NoLimb, 1, 2, 1),
 		};
 		var actual = new Dictionary<ulong, ItemTerminalFact>
 		{
-			[10] = new(10, "water", ItemLocationKind.Carried, Guest.Value, 0, 0, 0, 2),
-			[11] = new(11, "bread", ItemLocationKind.World, 0, 0, 3, 4, 1),
+			[10] = new(10, "water", ItemLocationKind.Carried, Guest.Value, 0, ItemLocation.NoLimb, 0, 0, 2),
+			[11] = new(11, "bread", ItemLocationKind.World, 0, 0, ItemLocation.NoLimb, 3, 4, 1),
 		};
 
 		var diff = ItemDiagnosticsProjection.Compare(expected, actual);
@@ -54,12 +55,33 @@ public class ItemDiagnosticsProjectionTests
 	{
 		var facts = new Dictionary<ulong, ItemTerminalFact>
 		{
-			[10] = new(10, "water", ItemLocationKind.World, 0, 0, 1, 2, 1),
+			[10] = new(10, "water", ItemLocationKind.World, 0, 0, ItemLocation.NoLimb, 1, 2, 1),
 		};
 
 		var diff = ItemDiagnosticsProjection.Compare(facts, facts);
 
 		Assert.False(diff.HasDifferences);
+	}
+
+	[Fact]
+	public void Compare_TellsTwoAppliedItemsOnDifferentLimbsApart()
+	{
+		// Two items installed on two limbs of one body agree on every other member
+		// of the fact (same family, same owner, no container, no anchor), so the
+		// limb is what makes the comparison able to see the difference at all.
+		var expected = new Dictionary<ulong, ItemTerminalFact>
+		{
+			[10] = new(10, "splint", ItemLocationKind.Applied, Guest.Value, 0, 3, 0, 0, 2),
+		};
+		var actual = new Dictionary<ulong, ItemTerminalFact>
+		{
+			[10] = new(10, "splint", ItemLocationKind.Applied, Guest.Value, 0, 5, 0, 0, 2),
+		};
+
+		var diff = ItemDiagnosticsProjection.Compare(expected, actual);
+
+		Assert.True(diff.HasDifferences);
+		Assert.Contains("limb=5", Assert.Single(diff.Differences));
 	}
 
 	private static Decision Spawn(GameStateKernel kernel, ulong op, ulong id, string definition, ItemLocation location) =>

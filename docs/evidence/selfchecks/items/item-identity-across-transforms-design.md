@@ -306,6 +306,12 @@ projection and the reconcile). It buys a weaker answer for it.
 
 ## 8. What this record does not settle
 
+**Settled by the implementing cycle (2026-10-12, stage 1), recorded in
+`items/applied-item-location-selfcheck.md` §2:** the applied location is a fifth `ItemLocationKind` —
+the wear slot encoding is a position INSIDE the inventory (§6.2's own reason: a worn item is still
+carried) — and the ITEM ROW is the authority for which item is applied, so the `ComponentStateMsg`
+carrier guessed at in §7's cost table is NOT taken. Everything below still stands as written.
+
 - **No runtime evidence exists for any of it.** Every claim above is source-level: the decompiled game
   for §2, our own tree for §3–§7. A cycle that implements option 1 must observe the round trip in a
   two-client run, and the ticket names no acceptance row because there is nothing to accept yet.

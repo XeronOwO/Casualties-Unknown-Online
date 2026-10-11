@@ -98,11 +98,13 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, ILogger<KernelC
 
 	/// <summary>
 	/// The moved entry-point rule: a member may report a destroy for a world item
-	/// (it saw the item leave the world) or for its own carried item (it consumed
-	/// it). A carried item owned by someone else is refused — that shape is the
-	/// remote-clone display proxy reporting the owner's real instance id, and
-	/// accepting it emptied a real owner's bag from a viewer's side
-	/// (<c>ItemDestroyAuthorityTests</c> pins it).
+	/// (it saw the item leave the world), for its own carried item (it consumed
+	/// it), or for an item APPLIED to one of its own limbs — the component decays
+	/// to zero inside the body's own client, so that client is the only one that
+	/// can observe the item's end. A carried or applied item owned by someone else
+	/// is refused — that shape is the remote-clone display proxy reporting the
+	/// owner's real instance id, and accepting it emptied a real owner's bag from
+	/// a viewer's side (<c>ItemDestroyAuthorityTests</c> pins it).
 	/// </summary>
 	private bool MayReportDestroyed(ulong sender, ulong itemId)
 	{
@@ -115,8 +117,11 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, ILogger<KernelC
 			return true;
 		}
 
-		return current.Value.Location.Kind != ItemLocationKind.Carried
-			|| current.Value.Location.Owner.Value == sender;
+		return current.Value.Location.Kind switch
+		{
+			ItemLocationKind.Carried or ItemLocationKind.Applied => current.Value.Location.Owner.Value == sender,
+			_ => true,
+		};
 	}
 
 	private CommandAdmission Refuse(ulong sender, GameCommand command, RejectionReason reason, string detail)

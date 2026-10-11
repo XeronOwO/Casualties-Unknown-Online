@@ -259,6 +259,7 @@ internal sealed class ItemSimWorld : IDisposable
 				ItemLocationKind.World,
 				0,
 				worldItem.ParentItemId,
+				ItemLocation.NoLimb,
 				worldItem.Pos.X,
 				worldItem.Pos.Y,
 				0);
@@ -274,6 +275,7 @@ internal sealed class ItemSimWorld : IDisposable
 					ItemLocationKind.Carried,
 					guest.SteamId,
 					0,
+					ItemLocation.NoLimb,
 					0,
 					0,
 					0);

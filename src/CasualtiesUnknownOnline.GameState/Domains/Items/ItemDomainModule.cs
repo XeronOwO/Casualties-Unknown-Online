@@ -9,6 +9,9 @@ namespace CasualtiesUnknownOnline.GameState.Domains.Items;
 /// Items domain module. Phase A covered Spawn/PickUp/Drop/Destroy with unique
 /// location and no Terminal resurrection; Phase B adds the saved-data payload,
 /// state-update commands, carried transfers, and container-parent invariants.
+/// The APPLIED family — an item that is the installed form of a limb component —
+/// is decided by <see cref="LimbItemLocationRules"/> and reduced through the same
+/// relocation event as every other move.
 /// Reducers are deterministic and never touch ambient state.
 /// </summary>
 internal sealed class ItemDomainModule : IDomainModule
@@ -17,6 +20,7 @@ internal sealed class ItemDomainModule : IDomainModule
 	{
 		SpawnItemCommand or PickUpItemCommand or DropItemCommand or DestroyItemCommand
 			or UpdateItemStateCommand or TransferItemCommand or CookItemCommand
+			or ApplyLimbItemCommand or RemoveLimbItemCommand
 			or SyncContainerItemsCommand or ResetWorldItemsCommand => true,
 		_ => false,
 	};
@@ -32,6 +36,8 @@ internal sealed class ItemDomainModule : IDomainModule
 			DestroyItemCommand destroy => DecideDestroy(destroy, state),
 			UpdateItemStateCommand update => DecideUpdate(update, state),
 			TransferItemCommand transfer => DecideTransfer(transfer, state),
+			ApplyLimbItemCommand apply => LimbItemLocationRules.DecideApply(apply, state),
+			RemoveLimbItemCommand remove => LimbItemLocationRules.DecideRemove(remove, state),
 			CookItemCommand cook => DecideCook(cook, state),
 			SyncContainerItemsCommand sync => DecideSyncContainer(sync, state),
 			ResetWorldItemsCommand => DomainDecision.Accept(new WorldItemsResetEvent()),
@@ -81,6 +87,10 @@ internal sealed class ItemDomainModule : IDomainModule
 			{
 				case ItemLocationKind.Carried when item.Location.Owner.Value == 0:
 					throw new InvalidOperationException($"carried item {item.Identity.InstanceId} has no owner");
+				case ItemLocationKind.Applied when item.Location.Owner.Value == 0:
+					throw new InvalidOperationException($"applied item {item.Identity.InstanceId} has no limb owner");
+				case ItemLocationKind.Applied when item.Location.LimbIndex < 0:
+					throw new InvalidOperationException($"applied item {item.Identity.InstanceId} names no limb");
 				case ItemLocationKind.Contained when item.Location.ParentItemId == 0:
 					throw new InvalidOperationException($"contained item {item.Identity.InstanceId} has no parent");
 				case ItemLocationKind.Contained:
@@ -120,6 +130,11 @@ internal sealed class ItemDomainModule : IDomainModule
 		if (command.Location.Kind == ItemLocationKind.Terminal)
 		{
 			return DomainDecision.Reject(RejectionReason.InvalidTransition, "an item cannot spawn directly into Terminal");
+		}
+
+		if (LimbItemLocationRules.RefuseAppliedCreation(command.Location) is { } refusal)
+		{
+			return refusal;
 		}
 
 		if (state.FindItem(command.Identity.InstanceId) is not null)
@@ -176,6 +191,11 @@ internal sealed class ItemDomainModule : IDomainModule
 			return DomainDecision.Reject(RejectionReason.Conflict, $"item {command.InstanceId} is already carried");
 		}
 
+		if (LimbItemLocationRules.RefuseInventoryGesture(command.InstanceId, item.Value.Location, "picked up") is { } refusal)
+		{
+			return refusal;
+		}
+
 		if (item.Value.Revision != command.ExpectedRevision)
 		{
 			return DomainDecision.Reject(RejectionReason.WrongRevision,
@@ -201,6 +221,11 @@ internal sealed class ItemDomainModule : IDomainModule
 		if (item.Value.Location.Kind == ItemLocationKind.Terminal)
 		{
 			return DomainDecision.Reject(RejectionReason.InvalidTransition, $"terminal item {command.InstanceId} cannot be dropped");
+		}
+
+		if (LimbItemLocationRules.RefuseInventoryGesture(command.InstanceId, item.Value.Location, "dropped") is { } refusal)
+		{
+			return refusal;
 		}
 
 		if (item.Value.Location.Kind == ItemLocationKind.Carried && item.Value.Location.Owner != command.Actor)
@@ -455,6 +480,11 @@ internal sealed class ItemDomainModule : IDomainModule
 					1,
 					command.CookedLocation,
 					command.CookedData ?? ItemData.Empty));
+		}
+
+		if (LimbItemLocationRules.RefuseInventoryGesture(command.SourceIdentity.InstanceId, source.Value.Location, "cooked") is { } refusal)
+		{
+			return refusal;
 		}
 
 		if (source.Value.Revision != command.ExpectedSourceRevision)

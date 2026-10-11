@@ -118,12 +118,22 @@ internal sealed class PlayerDomainModule : IDomainModule
 
 		foreach (var item in state.Items.Values)
 		{
-			if (item.Location.Kind == ItemLocationKind.Carried
+			// The two families that name an owning player. An applied item is held
+			// by a limb of its owner, so the same broken reference is possible and
+			// the same rule catches it.
+			var family = item.Location.Kind switch
+			{
+				ItemLocationKind.Carried => "carried",
+				ItemLocationKind.Applied => "applied",
+				_ => null,
+			};
+
+			if (family is not null
 				&& item.Location.Owner.Value != 0
 				&& !byId.ContainsKey(item.Location.Owner.Value))
 			{
 				throw new InvalidOperationException(
-					$"carried item {item.Identity.InstanceId} references unknown player {item.Location.Owner.Value}");
+					$"{family} item {item.Identity.InstanceId} references unknown player {item.Location.Owner.Value}");
 			}
 		}
 	}

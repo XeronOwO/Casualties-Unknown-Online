@@ -9,4 +9,5 @@ public enum WireItemLocationKind
 	Carried = 2,
 	Contained = 3,
 	Terminal = 4,
+	Applied = 5,
 }

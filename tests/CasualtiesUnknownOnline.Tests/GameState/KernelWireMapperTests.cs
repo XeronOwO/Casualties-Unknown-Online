@@ -12,6 +12,7 @@ public class KernelWireMapperTests
 {
 	private static readonly RunEpoch Epoch = new(1);
 	private static readonly ActorId Host = new(1001);
+	private static readonly ActorId Guest = new(2001);
 
 	[Fact]
 	public void BatchRoundTrip_PreservesItemEventAndRevisions()
@@ -249,5 +250,116 @@ public class KernelWireMapperTests
 		Assert.Equal(42ul, pickup.InstanceId);
 		Assert.Equal(3001ul, pickup.NewOwner.Value);
 		Assert.Equal(3ul, pickup.ExpectedRevision);
+	}
+
+	[Fact]
+	public void AppliedLocation_RoundTripsThroughTheWireWithItsOwnerAndLimb()
+	{
+		var wire = KernelWireMapper.ToWireLocation(ItemLocation.Applied(Host, 3));
+
+		Assert.Equal(WireItemLocationKind.Applied, wire.Kind);
+		Assert.Equal(Host.Value, wire.Owner);
+		Assert.Equal(3, wire.LimbIndex);
+
+		Assert.Equal(ItemLocation.Applied(Host, 3), KernelWireMapper.FromWireLocation(wire));
+	}
+
+	[Fact]
+	public void AppliedLocation_OnTheFirstLimb_KeepsLimbZeroDistinctFromNoLimb()
+	{
+		// Limb 0 is the head, so "limb 0" and "no limb recorded" must not be the
+		// same wire value: the field is nullable for exactly this.
+		var wire = KernelWireMapper.ToWireLocation(ItemLocation.Applied(Host, 0));
+
+		Assert.Equal(0, wire.LimbIndex);
+		Assert.Equal(0, KernelWireMapper.FromWireLocation(wire).LimbIndex);
+	}
+
+	[Fact]
+	public void LocationOfAnotherFamily_CarriesNoLimbOnTheWire()
+	{
+		// Every other family leaves the field absent, so the batch path this
+		// message rides every peer's copy of grows by nothing for them.
+		Assert.Null(KernelWireMapper.ToWireLocation(ItemLocation.World(1f, 2f)).LimbIndex);
+		Assert.Null(KernelWireMapper.ToWireLocation(ItemLocation.World(1f, 2f, 9)).LimbIndex);
+		Assert.Null(KernelWireMapper.ToWireLocation(ItemLocation.Carried(Host)).LimbIndex);
+		Assert.Null(KernelWireMapper.ToWireLocation(ItemLocation.Contained(Host, 9)).LimbIndex);
+		Assert.Null(KernelWireMapper.ToWireLocation(ItemLocation.Terminal()).LimbIndex);
+	}
+
+	[Fact]
+	public void AppliedWireLocationWithoutALimb_IsRefusedInsteadOfReadAsTheHead()
+	{
+		var wire = new WireItemLocation { Kind = WireItemLocationKind.Applied, Owner = Host.Value };
+
+		Assert.Throws<ArgumentOutOfRangeException>(() => KernelWireMapper.FromWireLocation(wire));
+	}
+
+	[Fact]
+	public void UnknownWireLocationKind_IsStillRefused()
+	{
+		var wire = new WireItemLocation { Kind = (WireItemLocationKind)99, Owner = Host.Value, LimbIndex = 1 };
+
+		Assert.Throws<ArgumentOutOfRangeException>(() => KernelWireMapper.FromWireLocation(wire));
+	}
+
+	[Fact]
+	public void BatchRoundTrip_PreservesAnAppliedItemLocation()
+	{
+		var source = new GameStateKernel(Epoch);
+		Assert.True(source.Execute(
+			new SpawnItemCommand(
+				new OperationId(1),
+				Host,
+				Epoch,
+				AuthorityKind.HostOnly,
+				new ItemIdentity(42, "splint"),
+				ItemLocation.Carried(Host),
+				0,
+				new ItemData(0.75f, false, -1, [], [])),
+			new CommandContext(Epoch, Host)).IsAccepted);
+		var applied = source.Execute(
+			new ApplyLimbItemCommand(new OperationId(2), Host, Epoch, AuthorityKind.OwnerPredictedHostValidated, 42, Host, 6, 1),
+			new CommandContext(Epoch, Host));
+		Assert.True(applied.IsAccepted, applied.Rejection?.Message);
+
+		var wire = KernelWireMapper.ToWireBatch(applied.Batch!);
+		var restored = KernelWireMapper.FromWireBatch(wire, Epoch);
+
+		var relocated = Assert.IsType<ItemRelocatedEvent>(Assert.Single(restored.Events));
+		Assert.Equal(ItemLocation.Carried(Host), relocated.OldLocation);
+		Assert.Equal(ItemLocation.Applied(Host, 6), relocated.NewLocation);
+	}
+
+	[Fact]
+	public void AWireSpawnReportThatNamesALimb_ReachesTheKernelsRefusal()
+	{
+		// The spawn refusal is reachable from the WIRE and not only from a hand-built
+		// command: the spawn report carries its OWN location, which is the shape a
+		// forged report takes. Without the refusal the kernel would accept a row for an
+		// item that exists only as another body's limb component — and only that body's
+		// owner may ever report its end.
+		var header = new EnvelopeHeader
+		{
+			ProtocolVersion = 1,
+			RunEpoch = Epoch.Value,
+			SenderId = Guest.Value,
+			OperationId = 9,
+		};
+		var command = KernelWireMapper.FromWireCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemSpawn,
+				Identity = new WireItemIdentity { InstanceId = 10, DefinitionId = "splint" },
+				Location = new WireItemLocation { Kind = WireItemLocationKind.Applied, Owner = Guest.Value, LimbIndex = 3 },
+			},
+			header);
+		var kernel = new GameStateKernel(Epoch);
+
+		var decision = kernel.Execute(command, new CommandContext(Epoch, Guest));
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.InvalidTransition, decision.Rejection!.Reason);
+		Assert.Null(kernel.FindItem(10));
 	}
 }

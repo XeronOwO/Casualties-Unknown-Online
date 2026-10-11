@@ -492,6 +492,18 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   and a completed restore must not be re-reported. The generation a restore drives is
   also the one generation whose layer-boundary table reset is skipped: the restored set IS that
   layer's world table, and the suppressed publish would not rebuild it.
+- **An APPLIED item's row crosses a cut, and its limb is part of the row.** An item the game turned
+  into a limb component (a splint, a carcass splint, a tourniquet) is in no inventory and on no ground:
+  its kernel location is `Applied`, naming the owner of the limb and that limb's index
+  (`ItemLocation.Applied`). It travels in `items.json` like every other item row — the wire form gains
+  `WireItemLocationKind.Applied` with `WireItemLocation.limbIndex` — and a layer-end cut writes it,
+  because `ItemLocationChain.IsWorldRooted` answers false for it: the item crosses the boundary with
+  the body exactly as a carried one does. The limb is REQUIRED, not defaulted: limb 0 is the head, so a
+  row whose `location.limbIndex` is absent is malformed and the decoder SKIPS it by name
+  (`KernelWireMapper.FromWireLocation`) instead of reading it as the head. A restored applied row is
+  NOT a world object — `RestoredWorldItemSet` filters on `World`, so the world-item reconcile never
+  sees it, and a peer's projection emits neither a world clone nor a carried fact for the apply (the
+  clone converges from the owner's 1 Hz character snapshot, exactly as a consumed item's does).
 - **The restored ids resume every counter, in every namespace.** An item instance id is
   `(counter << 32) | account-low` and the counter is per PROCESS, so a world continued in a new process
   would allocate from zero again while the restored scene already holds the archive's ids — the first

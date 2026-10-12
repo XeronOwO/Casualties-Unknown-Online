@@ -17,6 +17,38 @@ public class RepositoryGateTests
 	private static readonly Regex DriveLetterBackslash = new(@"[A-Za-z]:\\");
 	private static readonly Regex DriveLetterForwardSlash = new(@"[A-Za-z]:/[^/]");
 	private static readonly Regex UnixRootPath = new(@"(^|[^:/])/(home|Users|tmp|var|opt|mnt|etc|usr|root)/");
+
+	// The local-environment matchers of `NoLocalEnvironmentNames_InProductionCode`, kept as SHAPES rather
+	// than as the values they were written for. The correction has a reason: the first version spelled the
+	// values out — the proxy's address, the acceptance harness's own ports, the Sandboxie instance names —
+	// and so published inside this repository exactly the facts the rule exists to keep out, while only
+	// ever catching THIS machine's numbers: a gate shaped around one machine's data rather than around the
+	// rule. A shape cannot reach everything the rule covers, and the limits are named rather than papered
+	// over: a bare port literal in the middle of a string is indistinguishable from any other port
+	// constant, and an instance name or a proxy's product name is only recognisable by the name itself —
+	// a list of product names would put this machine's own back into the repository, which is the fact the
+	// rule exists to keep out. Those belong to the pre-commit check
+	// (`docs/en/contributing/review-and-delivery.md`), which is where the user's ruling of 2026-10-12 put
+	// them. What is left is the reach a gate really has: a shipped string that tells the reader about a
+	// listener or a host on the network the product was built on.
+	// A listener on the machine that wrote the message: `localhost`, the loopback literal or its IPv6
+	// form, followed by the port it listens on. The guard is `[^\w.]` rather than `\b`, because `\b` is
+	// false between a space and `[` — the `[::1]` spelling never matched with it, which is what the
+	// matcher's own pin caught.
+	private static readonly Regex LoopbackEndpoint = new(@"(?:^|[^\w.])(?:localhost|127\.0\.0\.1|\[::1\]):\d{2,5}\b");
+
+	// A private-network address is the same fact one hop out: it names the builder's own network rather
+	// than the operator's. Each branch carries the octet count its own prefix implies, so all four parts
+	// are required in every case and an assembly version cannot red it — the first draft shared one tail
+	// between the branches and so demanded a fifth octet of the two that already carry two.
+	private static readonly Regex PrivateNetworkAddress = new(@"\b(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})\b");
+
+	private static readonly (string What, Regex Matcher)[] LocalEnvironmentPatterns =
+	[
+		("a loopback endpoint carrying a port", LoopbackEndpoint),
+		("a private-network address", PrivateNetworkAddress),
+	];
+
 	private static readonly Regex EntityEventKindMember = new(@"^\s*([A-Za-z_]\w*)\s*=\s*\d+,", RegexOptions.Multiline);
 	private static readonly Regex EntityEventKindReference = new(@"EntityEventKind\.(\w+)");
 
@@ -72,25 +104,15 @@ public class RepositoryGateTests
 	public void NoLocalEnvironmentNames_InProductionCode()
 	{
 		// The sibling of the absolute-path gate above, for the class of machine fact that is not a path: the
-		// proxy this machine runs, the acceptance harness's own ports and the Sandboxie instance names the
-		// second client runs as. Each is a fingerprint of the author's environment, so the shipped product
-		// cannot name it, not even as a diagnostic hint — an operator's proxy is theirs, and a message that
-		// names the author's is both useless to them and a leak (the user's red line, 2026-10-12, after
-		// `SteamSendFailureClassifier` was found naming one in a player-facing remediation string).
+		// shipped product must not name the environment it happens to be built in. An operator's proxy is
+		// theirs, so a message that names this author's is both useless to them and a fingerprint of the
+		// machine it was written on — the user's red line, 2026-10-12, after `SteamSendFailureClassifier`
+		// was found naming one in a player-facing remediation string. The matchers and what they can reach
+		// are argued where they are declared.
+		//
 		// Scope is `src/` deliberately: tests seed fixtures and the repository's own records cite values as
 		// evidence, so a scan over either would red on legitimate content and teach people to ignore it. A
 		// production literal is what this rule can actually reach, and the pre-commit check covers the rest.
-		var patterns = new (string What, Regex Matcher)[]
-		{
-			// Capitalised, because the lowercase word is ordinary English: a first draft matched
-			// case-insensitively and red on "a namespace clash" in a mod-scanning comment — a false
-			// positive is what teaches people to ignore a gate, so the pattern is the proper noun.
-			("a named local proxy", new Regex(@"(^|[^A-Za-z])<proxy>\b")),
-			("the local proxy's address", new Regex(@"localhost:<proxy-port>|127\.0\.0\.1:<proxy-port>")),
-			("an acceptance-harness port", new Regex(@"\b<port-range>\b")),
-			("a Sandboxie instance name", new Regex(@"\b<sandbox-label>\b")),
-		};
-
 		var failures = new List<string>();
 		var scanned = 0;
 
@@ -112,7 +134,7 @@ public class RepositoryGateTests
 			var lines = File.ReadAllLines(fullPath);
 			for (var i = 0; i < lines.Length; i++)
 			{
-				foreach (var (what, matcher) in patterns)
+				foreach (var (what, matcher) in LocalEnvironmentPatterns)
 				{
 					if (matcher.IsMatch(lines[i]))
 					{
@@ -124,6 +146,22 @@ public class RepositoryGateTests
 
 		Assert.True(scanned > 0, "no production file was scanned; the scan surface is not src/");
 		Assert.True(failures.Count == 0, $"Local environment names in production code ({scanned} src files scanned)" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	[Theory]
+	[InlineData("if the proxy refuses the connection, retry the send", false)]
+	[InlineData("a namespace clash in the mod scan", false)]
+	[InlineData("an http://127.0.0.1/health probe carries no port", false)]
+	[InlineData("the assembly version is 4.0.0.0", false)]
+	[InlineData("connect to ws://127.0.0.1:28090 instead", true)]
+	[InlineData("the evaluator listens on localhost:8080", true)]
+	[InlineData("reach the other box at 192.168.1.20", true)]
+	[InlineData("the host sits at 10.4.0.7", true)]
+	[InlineData("the relay answered from [::1]:9000", true)]
+	public void TheLocalEnvironmentMatchers_ReadShapesAndNotOrdinaryEnglish(string line, bool expected)
+	{
+		var matched = LocalEnvironmentPatterns.Any(pattern => pattern.Matcher.IsMatch(line));
+		Assert.Equal(expected, matched);
 	}
 
 	[Fact]

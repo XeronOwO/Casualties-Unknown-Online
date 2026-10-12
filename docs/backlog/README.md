@@ -80,7 +80,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [The version shows the build's commit](todo/version-string-build-suffix.md) — **Low** — in the log and the UI.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
-- [The records carry the machine's real Steam ids](todo/acceptance-records-carry-real-steam-ids.md) — **Medium** — 117 hits; the history call is the user's.
 - [The history carries machine identifiers](todo/purge-machine-identifiers-from-history.md) — **High** — rewrite and force-push; a process check, not a gate.
 - [A game-side throw latches CallContext off](todo/call-context-scope-leak.md) — **High** — one leak kills every later scope.
 
@@ -203,6 +202,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [The records carry the machine's real Steam ids](done/acceptance-records-carry-real-steam-ids.md) — **Medium** — swept; its gate refused (261).
 - [Mod-authored effects](done/mod-authored-effects.md) — **High** — accepted; the drink effect lands on the drinker and both guards were driven.
 - [Mod-authored item actions](done/mod-item-authored-actions.md) — **High** — accepted; the cross-player limb chain runs it on the treated client.
 - [A declared behaviour with no function](done/mod-declared-behaviour-with-no-function.md) — **High** — accepted; both reporting paths and the tile refusal.

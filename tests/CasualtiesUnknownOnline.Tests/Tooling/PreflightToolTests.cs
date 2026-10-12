@@ -133,15 +133,19 @@ public class PreflightToolTests
 	[Fact]
 	public void AlternateSandbox_WithItsOwnDistinctPort_IsPresent()
 	{
+		// The endpoints and the box name below are the fixture's own, deliberately not this machine's
+		// acceptance values (those live in `docs/acceptance/AGENTS.local.md`): a suite that mirrors the
+		// machine's numbers writes them back into the repository they were purged from, and the row only
+		// needs three distinct ports and a box name to exercise.
 		using var fixture = Fixture.Create("4576510");
-		fixture.WithHotReplUrls("ws://127.0.0.1:<port-host>", "ws://127.0.0.1:<port-guest>")
-			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "<sandbox-alt>", "ws://127.0.0.1:<port-alt>", <port-alt>);
+		fixture.WithHotReplUrls("ws://127.0.0.1:28090", "ws://127.0.0.1:28091")
+			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "alt-box", "ws://127.0.0.1:28092", 28092);
 
 		var result = Run(fixture);
 		var row = ReadRow(result.Output, "sandbox-alt");
 
 		Assert.Equal("present", row.State);
-		Assert.Contains("<port-alt>", row.Detail);
+		Assert.Contains("28092", row.Detail);
 		Assert.Contains("distinct", row.Detail);
 		Assert.DoesNotContain("sandbox-alt", BlockingIds(result.Output));
 	}
@@ -150,8 +154,8 @@ public class PreflightToolTests
 	public void AlternateSandbox_WithACollidingPort_IsMissingAndNotBlocking()
 	{
 		using var fixture = Fixture.Create("4576510");
-		fixture.WithHotReplUrls("ws://127.0.0.1:<port-host>", "ws://127.0.0.1:<port-guest>")
-			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "<sandbox-alt>", "ws://127.0.0.1:<port-guest>", <port-guest>);
+		fixture.WithHotReplUrls("ws://127.0.0.1:28090", "ws://127.0.0.1:28091")
+			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "alt-box", "ws://127.0.0.1:28091", 28091);
 
 		var result = Run(fixture);
 		var row = ReadRow(result.Output, "sandbox-alt");
@@ -165,8 +169,8 @@ public class PreflightToolTests
 	public void AlternateSandbox_WithoutItsOwnConfig_IsMissingAndNotBlocking()
 	{
 		using var fixture = Fixture.Create("4576510");
-		fixture.WithHotReplUrls("ws://127.0.0.1:<port-host>", "ws://127.0.0.1:<port-guest>")
-			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "<sandbox-alt>", "ws://127.0.0.1:<port-alt>", null);
+		fixture.WithHotReplUrls("ws://127.0.0.1:28090", "ws://127.0.0.1:28091")
+			.WithSandboxAlt(Path.Combine(fixture.Root, "alt-sandbox"), "alt-box", "ws://127.0.0.1:28092", null);
 
 		var result = Run(fixture);
 		var row = ReadRow(result.Output, "sandbox-alt");

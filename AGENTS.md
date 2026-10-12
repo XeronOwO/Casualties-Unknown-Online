@@ -104,7 +104,12 @@ not the goal.
    drive-letter path, UNC path or Unix-style path rooted at home, user, temp, var or opt. Local paths
    belong only in gitignored local files — `AGENTS.local.md` or the `.agent-local/` area — or in
    placeholders such as `<game-dir>`, `<sandbox-root>`. Enforced by
-   `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`.
+   `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`. The same rule covers the classes that are
+   not paths — host names, network addresses, ports and other run readings, sandbox instance and account
+   names, real account ids, credentials — and the two positions a file-level gate cannot see, the commit
+   message and the history behind it. What a matcher cannot reach is a pre-commit check rather than a
+   gate (`docs/en/contributing/review-and-delivery.md`), by the user's ruling of 2026-10-12
+   (decision 261).
 5. `[RULE]` Self-learning: record reusable, generalizable knowledge in this file, `docs/`, or memory; be
    selective.
 6. `[RULE]` Patch hooks report only verified writes: a Prefix that swallows a write must not let the same

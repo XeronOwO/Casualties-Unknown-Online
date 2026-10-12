@@ -31,7 +31,7 @@ if ([string]::IsNullOrWhiteSpace($GameDir)) {
     exit 1
 }
 
-# Sandboxie paths (e.g. <sandbox-root>\<sandbox-guest>\drive\...) are a redirection layer —
+# Sandboxie paths (e.g. a sandbox redirection root such as <sandbox-root>) are a redirection layer —
 # the sandbox instance reads through to the host's game directory, so deploying
 # there is both redundant and a way to corrupt the sandbox copy. This guard is
 # the hard gate: deploy to the real game directory only.

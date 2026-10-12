@@ -149,6 +149,34 @@ while any required box is unchecked.
 - When a release cycle lands, reset the checklist by unchecking every box so the next cycle starts
   clean.
 
+## The pre-commit identifier check
+
+This repository is public and written for strangers to deploy, so a commit must not carry a fact about
+the machine it was written on or the person who wrote it. Three positions count, and the third is the
+one that gets forgotten: the file contents, the commit message, and the history behind them — deleting
+the file fixes only the first.
+
+- **What to look for.** A machine path (`<game-dir>`, `<sandbox-root>` and their real spellings), a host
+  name, a public or private network address, a port or process reading taken off a local run, a sandbox
+  instance name, an account or login name, a real Steam id, a credential or key, and the name of the
+  proxy or tool the author happens to run. A committed page, record or commit message carries
+  placeholders only ([acceptance rules](../../acceptance/AGENTS.md), rule 7).
+- **How hard to look.** Scale it to the change. A change that crosses domains, or that touches anything
+  near credentials, identity or machine facts, gets an independent scan of the diff by a subagent in a
+  fresh context, asked for evidence rather than reassurance. A small single-domain change is scanned in
+  the working session by reading `git diff --cached` before the commit.
+- **This is a check, not a gate — and the limit is stated, not hidden.** Two shapes are gate-enforced and
+  reproducible from the tests: an absolute path (`RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`)
+  and a local endpoint or private-network address named in shipped copy
+  (`NoLocalEnvironmentNames_InProductionCode`). Everything else here is a shape a matcher cannot
+  enumerate — a name is only recognisable by the name itself, a bare port literal is indistinguishable
+  from any other constant — and the user's ruling of 2026-10-12 refused a gate that pretends otherwise: a
+  scan that cannot equal its reach teaches false confidence and costs a burden that never converges.
+- **A finding stops the commit.** Replace the value with a placeholder and keep the sentence's shape,
+  then ask whether it already entered history: `git log --all -S'<suspicious string>'`. A value that is
+  already there is not removed by a new commit — it takes a rewrite and a force-push, which is why the
+  check runs before the value lands rather than after somebody notices it.
+
 ## Commit messages
 
 - Conventional Commits for every commit: `type(scope): summary`.

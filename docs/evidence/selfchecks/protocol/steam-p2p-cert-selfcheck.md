@@ -30,7 +30,7 @@ This cycle fixes the transport flag and adds the diagnostic classifier.
 | 5 | Steamworks distinguishes `Remote_BadCert`, `Misc_P2P_Rendezvous`, `Local_ManyRelayConnectivity`, and timeout/connect/no-connection results | Steamworks.NET `ESteamNetConnectionEnd` / `EResult` |
 | 6 | The host warm-up pump already backs off failed sends (1 s → 10 s cap) and resets on success | PeerWarmupBackoff.cs:35-58 |
 | 7 | The guest handshake deliberately retries every 1 s | HandshakeHandler.cs:109-133, HandshakeAckAckHandler.cs |
-| 8 | Local-machine history: <proxy> on `localhost:<proxy-port>` has produced `4003 Bad cert` / `5008 rendezvous timeout` probabilistically | AGENTS.local.md network/notification notes; backlog #118 diagnostic order |
+| 8 | Local-machine history: the operator's own local proxy has produced `4003 Bad cert` / `5008 rendezvous timeout` probabilistically | AGENTS.local.md network/notification notes; backlog #118 diagnostic order |
 
 ## 2. Design
 

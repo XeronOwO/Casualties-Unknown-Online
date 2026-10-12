@@ -1,10 +1,14 @@
 # The repository's history carries machine and personal identifiers
 
-- Status: Todo — **opened 2026-10-12 by the user's directive**, after the acceptance-records ticket
+- Status: Done — **opened 2026-10-12 by the user's directive**, after the acceptance-records ticket
   (`docs/backlog/done/acceptance-records-carry-real-steam-ids.md`) raised the history question and the user
   ruled on it: the history is rewritten and force-pushed, and the durable half is a PRE-COMMIT CHECK rather
-  than a gate. The originating ticket keeps the worktree sweep and the real Steam ids; this one owns the
-  history, the rest of the identifier surface, and the process.
+  than a gate. The originating ticket kept the worktree sweep and the real Steam ids; this one owned the
+  history, the rest of the identifier surface, and the process — all landed in the same day's cycle (see
+  *What landed*), with one residual the user asked for: the local backup branch.
+  Two premises of this ticket were corrected by its own census, and the corrections are the reason it ran
+  long: the commit MESSAGES are a real position on `master` (not only off it), and the replacement
+  vocabulary is per CLASS (`<host>`/`<guest>`/`<third-client>`), not the four names the ticket guessed.
 - Priority: High — `AGENTS.md` states the machine-identifier rule as a red line and it covers three places:
   file contents, commit messages and history. A worktree sweep leaves the third one carrying every value that
   ever entered, and this repository is public and written for strangers to deploy.
@@ -105,26 +109,81 @@ placeholder for the library root) was not worth a vocabulary entry nothing else 
    before the push), equivalence proven per commit against the backup, and the force-push done with
    `--force-with-lease=<ref>:<old-sha>`. The 2026-10-03 purge is the working precedent, including its trap:
    the rewrite checks the working tree out at the rewritten commit, so any file the rewrite removes must be
-   restored from its backup blob byte for byte and kept out of the index.
+   restored from its backup blob byte for byte and kept out of the index. — **Done, with one deliberate
+   deviation on the signing step** (see *What landed*): re-signing was folded into the rewrite pass
+   (`--commit-filter 'git commit-tree -S "$@"'`) instead of a following `git rebase --gpg-sign`, because
+   `git rebase` re-stamps every committer date while `filter-branch` passes the original through; `%G?` all
+   `G` is met either way, and the dates are preserved as a bonus the rebase route cannot give.
 4. **Write the pre-commit check into the process pages**, both language blocks in the same change: the rule
    in `docs/en/contributing/review-and-delivery.md` (with the Chinese block's page beside it, whose pair hash
    is then re-recorded in `docs/standard/alignment.txt`), naming what to look for, the delegation rule
    (many domains or an identity/credential surface → an independent subagent; a small change → the working
-   session), and the honest limit ("this is a check, not a gate; it cannot enumerate every shape").
+   session), and the honest limit ("this is a check, not a gate; it cannot enumerate every shape"). — **Done**
+   (the new section in both blocks, hashes re-recorded).
 5. **Record the decision** where the next reader looks for it, so the question is not re-opened: the ruling,
-   its date, and the two rejected options with their reasons.
+   its date, and the two rejected options with their reasons. — **Done** (decision 261).
 6. **Verify** with the same scans that produced the censuses: zero hits outside the gitignored local files,
    in the current tree AND in the history AND in the commit messages, with the synthetic fixtures still
-   present and still unflagged.
+   present and still unflagged. — **Done for everything that is published**; the local backup branch the user
+   asked to keep is the one named exception (see *What landed*).
+
+## What landed (2026-10-12)
+
+The cycle's commits: `0a4359c4` (the sweep, the gate's shapes, the process pages, decision 261) became
+`055f4f00` in the rewrite below, and the record you are reading landed on top of it.
+
+**The rewrite, and what proves it.** `master` was rewritten in one `git filter-branch` pass over all 1,474
+commits — an `--index-filter` swapping each dirty blob for its pre-computed twin (572-entry map), a
+`--msg-filter` running the same rule table over every commit message, and `--commit-filter` re-signing each
+commit. Evidence, all reproducible from `.agent-local/rewrite-20261012/`:
+
+- **Every commit's identity is preserved**: 1,474/1,474 checked by `equivalence-check.mjs` — author,
+  committer (names, addresses and DATES), parents mapped through the old→new mapping, and the message equal
+  to the rule table's output — **zero findings**.
+- **Every commit's content is exactly the old content with the rules applied**: the same run compares the
+  whole tree, path and mode included, and requires every blob outside the map to be byte-identical —
+  again zero findings.
+- **The tip did not move**: `master^{tree}` is `bad3a1a2…`, byte-identical to the tree of `0a4359c4` before
+  the rewrite. That single hash is what rules out an empty or truncated index filter.
+- **Every rewritten commit is signed**: `git log --format='%G?' master` is `G` 1,474 times (the branch also
+  had 140 unsigned commits before; they are signed now).
+- **The values are gone from everything published**: `verify-scan.mjs --rev master` answers 0 content
+  commits, 0 paths and 0 message commits (it answered 1,468 / 195 / 2 before). The two rewritten messages are
+  the ones the census predicted, and only those two: `189f266c` ("sandbox moved to
+  `<sandbox-root>`+`<sandbox-alt>`") and `cbeebf23` (the local proxy's product name).
+- **The off-`master` message leak is deleted, not rewritten**: `15bf9e41` was reachable only from the stale
+  refs the user approved deleting; after `git reflog expire --expire=now --all` + `git gc --prune=now` the
+  object is gone (`git cat-file -t` answers "could not get object info") and `git fsck` is silent.
+- **The dangling set is gone too**: the 4 unreachable dirty blobs — including two pasted build-log paths
+  under a user profile — were pruned by the same `gc`; the census now reports **0 dangling dirty blobs**.
+- **The remote**: `origin` carried only `master` (the two backup branches the 2026-10-11 report saw were
+  already gone; their stale tracking refs were pruned locally), and the rewritten `master` was force-pushed
+  with `--force-with-lease=<ref>:6a389f5a…`.
+
+**The residual, and it is deliberate.** The user asked to keep ONE local backup branch, so
+`backup/pre-identifier-purge-20261012` (`0a4359c4`) still holds the pre-purge history on this machine — the
+only copy of it that exists anywhere. It is not pushed, and it is why the whole-database census still finds
+557 dirty blobs after the rewrite (they are that branch's history and nothing else). Deleting it, expiring
+the reflog and running `gc --prune=now` is what makes even this machine clean, and that is the user's call
+once they are satisfied with what the remote shows.
+
+**Two mistakes this cycle made and fixed, recorded because they cost the most time.** The first loose-object
+writer omitted git's `blob <size>\0` header, so 572 objects git could not unpack were written. Worse, the
+cleanup then deleted object files by path on the assumption that a file at a map value's name could only be
+one this cycle wrote — false, because a rewritten blob is often byte-identical to a blob the repository
+already had, and **109 reachable objects were lost** (`git rev-list --objects --all` answered
+`fatal: missing blob`). They were restored by regenerating each from its map key, requiring the result to
+hash back to the expected object name: 572 pairs, zero mismatches, `git fsck` clean again. Both lessons are
+in `.agent-local/git-history.md`.
 
 ## Acceptance rows
 
-| # | Row | Class |
-|---|---|---|
-| 1 | A repeat of the history-wide scans answers zero for every real value, over the current tree, the full commit contents and the commit messages | `machine` |
-| 2 | The synthetic fixtures under `src/` and `tests/` are still present and were never flagged, and the code and its tests still read unchanged | `machine` |
-| 3 | The remote's history no longer carries any of the values, and every rewritten commit is signed | `machine` |
-| 4 | The process pages carry the check in both language blocks, and a reader who has never seen this ticket can tell what to scan for and when to delegate it | `record` |
+| # | Row | Class | Verdict |
+|---|---|---|---|
+| 1 | A repeat of the history-wide scans answers zero for every real value, over the current tree, the full commit contents and the commit messages | `machine` | **pass for everything published, with the kept backup branch as the named exception**: `sweep-tree.mjs --check` = 0 of 3,775 files; `verify-scan.mjs --rev master` = 0 content commits, 0 paths, 0 message commits; the whole-database census still finds 557 dirty blobs and every one of them is `backup/pre-identifier-purge-20261012`'s history, which the user instructed this cycle to keep as the safety net |
+| 2 | The synthetic fixtures under `src/` and `tests/` are still present and were never flagged, and the code and its tests still read unchanged | `machine` | **pass** — the fixture ids are untouched (`git diff 0a4359c4 055f4f00 -- src tests` shows no test-fixture change beyond the hand-rewritten preflight fixture, which uses its own ports now), the rule table has no pattern that can match them, and the suite is green at 5,068 behaviour cases and 625 gates |
+| 3 | The remote's history no longer carries any of the values, and every rewritten commit is signed | `machine` | **pass** — `git log --format='%G?' master` is `G` × 1,474, the force-push used `--force-with-lease=<ref>:6a389f5a…`, and the scans were re-run against the ref fetched back from `origin` |
+| 4 | The process pages carry the check in both language blocks, and a reader who has never seen this ticket can tell what to scan for and when to delegate it | `record` | **pass** — the new section in `docs/en|zh/contributing/review-and-delivery.md` names what to look for, the delegation rule, the two shapes the gates do reach, and the limit; `docs/standard/alignment.txt` records the new pair hashes |
 
 ## Non-goals
 

@@ -129,11 +129,12 @@ placeholder for the library root) was not worth a vocabulary entry nothing else 
 
 ## What landed (2026-10-12)
 
-The cycle's commits: `0a4359c4` (the sweep, the gate's shapes, the process pages, decision 261) became
-`055f4f00` in the rewrite below, and the record you are reading landed on top of it.
+The cycle's commits: `0a4359c4` (the sweep, the gate's shapes, the process pages, decision 261) was rewritten
+to `402db461`, and the record you are reading landed on top of it as `d909ae33` — the pushed `master`.
 
-**The rewrite, and what proves it.** `master` was rewritten in one `git filter-branch` pass over all 1,474
-commits — an `--index-filter` swapping each dirty blob for its pre-computed twin (572-entry map), a
+**The rewrite, and what proves it.** `master` was rewritten with `git filter-branch` over `9565fd53..master`
+(1,473 commits; the root is preserved, see below) — the pass applied an `--index-filter` swapping each dirty
+blob for its pre-computed twin (572-entry map), a
 `--msg-filter` running the same rule table over every commit message, and `--commit-filter` re-signing each
 commit. Evidence, all reproducible from `.agent-local/rewrite-20261012/`:
 
@@ -143,12 +144,14 @@ commit. Evidence, all reproducible from `.agent-local/rewrite-20261012/`:
 - **Every commit's content is exactly the old content with the rules applied**: the same run compares the
   whole tree, path and mode included, and requires every blob outside the map to be byte-identical —
   again zero findings.
-- **The tip did not move**: `master^{tree}` is `bad3a1a2…`, byte-identical to the tree of `0a4359c4` before
+- **The tip did not move**: `402db461^{tree}` is `bad3a1a2…`, byte-identical to the tree of `0a4359c4` before
   the rewrite. That single hash is what rules out an empty or truncated index filter.
-- **Every rewritten commit is signed**: `git log --format='%G?' master` is `G` 1,474 times (the branch also
-  had 140 unsigned commits before; they are signed now).
-- **The values are gone from everything published**: `verify-scan.mjs --rev master` answers 0 content
-  commits, 0 paths and 0 message commits (it answered 1,468 / 195 / 2 before). The two rewritten messages are
+- **The history is signed**: `git log --format='%G?' master` is `G` × 1,474 and `U` × 1 — the exception is
+  the root commit, preserved deliberately (see below): it carries GitHub's own web-flow signature.
+  The 140 commits that were unsigned before are signed now.
+- **The values are gone from everything published**: `verify-scan.mjs --rev master`, and the same scan over
+  the fetched `origin/master`, each answer 0 content commits, 0 paths and 0 message commits (they answered
+  1,468 / 195 / 2 before). The two rewritten messages are
   the ones the census predicted, and only those two: `189f266c` ("sandbox moved to
   `<sandbox-root>`+`<sandbox-alt>`") and `cbeebf23` (the local proxy's product name).
 - **The off-`master` message leak is deleted, not rewritten**: `15bf9e41` was reachable only from the stale
@@ -156,9 +159,18 @@ commit. Evidence, all reproducible from `.agent-local/rewrite-20261012/`:
   object is gone (`git cat-file -t` answers "could not get object info") and `git fsck` is silent.
 - **The dangling set is gone too**: the 4 unreachable dirty blobs — including two pasted build-log paths
   under a user profile — were pruned by the same `gc`; the census now reports **0 dangling dirty blobs**.
-- **The remote**: `origin` carried only `master` (the two backup branches the 2026-10-11 report saw were
-  already gone; their stale tracking refs were pruned locally), and the rewritten `master` was force-pushed
-  with `--force-with-lease=<ref>:6a389f5a…`.
+- **The remote**: `origin` carries exactly one branch, `master` = `d909ae33`; the force-push used
+  `--force-with-lease=refs/heads/master:6a389f5a…`, and the scans were re-run against the ref fetched back
+  from it rather than against the local one.
+
+**The push was rejected once, and the fix is worth keeping.** The first pass re-signed every commit,
+including the root, and GitHub's repository rule ("Commits must have verified signatures") refused it: the
+root commit's COMMITTER is `GitHub <noreply@github.com>` — the web UI created it — so a signature made with
+this machine's key cannot verify against that identity. The fix is not a bypass: the root commit is one of
+the five clean commits of the census, so it is **preserved verbatim** (GitHub's own signature, exactly as the
+remote had already verified it) and only `9565fd53..master` was rewritten — 1,473 commits. GitHub's
+web-flow public key was then imported locally, where the root reports `U` rather than `G` because the key
+arrives without local trust.
 
 **The residual, and it is deliberate.** The user asked to keep ONE local backup branch, so
 `backup/pre-identifier-purge-20261012` (`0a4359c4`) still holds the pre-purge history on this machine — the

@@ -50,14 +50,17 @@ not "does this string look like a SteamID".
    appear in the gate, so the check is "a 17-digit `7656119…` literal in a tracked documentation file is a
    violation unless it is one of the recorded synthetic fixtures" — an allowlist of the test ids, held in the
    test.
-3. **The history half, which is the user's call**: the ids entered history on 2026-09-27 and live in every
-   later record. A worktree sweep does not remove them; only a history rewrite plus a force-push does, which
-   is what this repository did once before (2026-10-06). Ask the user whether the records' history is
-   rewritten (with a local backup branch first, and the ids' commits listed) or whether the owner's own
-   account ids are accepted as published. Nothing else in this ticket depends on that answer.
+3. **The history half — ANSWERED by the user on 2026-10-12, and now owned elsewhere**: rewrite the history and
+   force-push; the worktree sweep stays here, while the rewrite, the rest of the identifier surface (machine
+   paths in file contents AND in commit messages) and the pre-commit check live in
+   `docs/backlog/todo/purge-machine-identifiers-from-history.md`, whose census supersedes this ticket's
+   earlier 37-file figure. The same ruling refused a gate for the scan and made it a pre-commit check instead
+   (a full subagent scan for a change that crosses domains, the working session for a small one). What this
+   ticket still owns: the ids that entered history on 2026-09-27 and now sit in 61 tracked files.
 4. **The discipline that let it in**: the acceptance record template and `workflow.md` §7 should say
    "placeholders only" where they already say "no machine values", and a batch's own pre-commit scan should
-   check the ids it knows (its own run's accounts), which is how this was found.
+   check the ids it knows (its own run's accounts), which is how this was found — that last half is now the
+   pre-commit check the purge ticket writes into the process pages.
 
 ## Acceptance rows
 

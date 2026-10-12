@@ -152,6 +152,7 @@ syntax tree rather than textual scanning. The gate:
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/TestIsolationGateTests.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/DocumentationTreeGateTests.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/AgentInstructionBudgetGateTests.cs`
+- `tests/CasualtiesUnknownOnline.NormativeGates.Tests/CallContextFrameBoundaryGateTests.cs` (the adapter's per-frame pump closes the `CallContext` frame exactly once)
 - `tests/CasualtiesUnknownOnline.Tests/World/EntityFeaturesDocConsistencyTests.cs`
 - [`test-parallelization.md`](test-parallelization.md)
 - `docs/evidence/delivery-checklist.md`

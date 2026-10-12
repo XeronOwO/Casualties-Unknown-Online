@@ -80,12 +80,11 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [The version shows the build's commit](todo/version-string-build-suffix.md) — **Low** — in the log and the UI.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
-- [A game-side throw latches CallContext off](todo/call-context-scope-leak.md) — **High** — one leak kills every later scope.
-
 ### In progress
 
 ### Review
 - [A mod item that declares no tags throws in the game's own frames](review/mod-item-with-no-declared-tags-throws.md) — **High** — stage 1 fixed; stage 2 split.
+- [A game-side throw inside a scope-entering patched frame latches CallContext off](review/call-context-scope-leak.md) — **High** — release at the frame end.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.

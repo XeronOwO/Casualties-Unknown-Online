@@ -293,6 +293,17 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		}
 
 		_latency.Flush();
+
+		// The call-identity guard's frame boundary (CallContext.EndFrame): a scope still open here was leaked
+		// by a frame that threw between its Prefix and its Postfix, and one line per leak episode is what an
+		// operator reads — never one per frame.
+		var recovery = CallContext.EndFrame();
+		if (recovery is not null)
+		{
+			_domains.Log.LogError(
+				"[CallContext] frame boundary: {Recovery} — a game-side throw inside a patched original skips the postfix that owns the release.",
+				recovery);
+		}
 	}
 
 	/// <summary>

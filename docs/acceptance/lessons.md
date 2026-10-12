@@ -3043,7 +3043,10 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - Change: the run's own discipline — a fixture known to throw is driven LAST in its session, and a client in
   this state is restarted rather than fought (this batch's second session did exactly that and judged its
   remaining rows cleanly). The amplifier is the second half of the same ticket, so one fix decides whether
-  scope disposal survives a throwing original.
+  scope disposal survives a throwing original — decided 2026-10-12 in batch `20261012-a`: the guard owns the
+  release deadline (the frame boundary releases what a frame leaked, reported once per episode) and the frame
+  that leaked was MEASURED there (`Body.HandleVisuals`, `CharacterBurp ×16` on the stuck stack), which is the
+  reading this batch's artifacts could not give.
 
 ## 2026-10-11 — A parameterized recipe cannot put a placeholder inside a lambda
 

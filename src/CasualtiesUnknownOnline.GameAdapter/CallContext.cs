@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -23,9 +24,25 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// reorder, a craft or the game's own damage roll has to stay "within
 /// <see cref="Origin.RemoteApply"/> for every guard that keeps a replay from
 /// being reported as the local player's action) — Dispose restores the previous
-/// origin, and using compiles to try/finally so exception paths release too. An
-/// unbalanced Enter (a scope that outlives its mutation) is a programming
-/// error — fail loudly.
+/// origin, and using compiles to try/finally so exception paths release too.
+/// <para>
+/// A SCOPE'S RELEASE DEADLINE IS THE FRAME BOUNDARY, and this class owns it
+/// rather than trusting every owner to release on every exit path. The patches
+/// that wrap a native call open their scope in a Prefix and release it in the
+/// Postfix, and Harmony SKIPS every postfix when the wrapped original throws —
+/// measured in batch `20261012-a`: a tagless item definition made the game's own
+/// <c>Body.HandleVisuals</c> throw once per frame inside the CharacterBurp scope,
+/// sixteen skipped postfixes filled this stack, and the seventeenth Enter turned
+/// every scope-entering patch in that process into a throw of its own (11,608
+/// refusals in 34.8 s; the client had to be restarted, and it stayed broken for
+/// 4,458 of them AFTER the throwing definition was repaired — nothing else can
+/// release an entry whose owner already returned). <see cref="EndFrame"/> is that
+/// deadline: the adapter calls it once per frame, every scope a frame left open
+/// is released there, and the operator gets ONE line naming the origins it
+/// recovered (repeated leak frames in the same episode stay silent). Reaching
+/// <see cref="MaxDepth"/> inside a single frame — real nesting is 2-3 levels —
+/// is refused rather than thrown, so a guard can never end a session again.
+/// </para>
 /// </summary>
 internal static class CallContext
 {
@@ -158,6 +175,18 @@ internal static class CallContext
 	private static readonly Origin[] Stack = new Origin[MaxDepth];
 	private static int _depth;
 
+	/// <summary>Bumped by every recovery: a scope opened before it no longer owns a stack entry, so its later Dispose must not pop somebody else's.</summary>
+	private static int _epoch;
+
+	/// <summary>True once the current leak episode has been reported — one operator line per episode, never one per frame.</summary>
+	private static bool _episodeReported;
+
+	/// <summary>Enters the bound refused in the episode being reported.</summary>
+	private static int _refused;
+
+	/// <summary>The origins those refusals asked for, in order (bounded by the same stack bound).</summary>
+	private static readonly Origin[] Refused = new Origin[MaxDepth];
+
 	/// <summary>The innermost active origin — the scope CLASSIFICATION query; LocalAction when no scope is open (plain game-code calls, the default). Use <see cref="IsWithin"/> for mutation attribution.</summary>
 	internal static Origin Current => _depth > 0 ? Stack[_depth - 1] : Origin.LocalAction;
 
@@ -210,22 +239,139 @@ internal static class CallContext
 	/// </summary>
 	internal static bool IsReplayedRemoteFact => IsWithin(Origin.RemoteApply) && !IsWithin(Origin.RemoteIntentApply);
 
-	/// <summary>Opens a scope; Dispose restores the previous origin. using-scoped — try/finally guarantees release on exception paths.</summary>
+	/// <summary>
+	/// Opens a scope; Dispose restores the previous origin. using-scoped — try/finally guarantees release on
+	/// exception paths — and a scope whose owner never reaches its release is released at the frame boundary
+	/// (<see cref="EndFrame"/>) instead of latching this stack off for the rest of the session.
+	/// </summary>
 	internal static IDisposable Enter(Origin origin)
 	{
 		if (_depth >= MaxDepth)
 		{
-			throw new InvalidOperationException($"CallContext.Enter depth {MaxDepth} exceeded — an Enter was never disposed (leaked scope).");
+			// Every entry here belongs to THIS frame (the boundary releases whatever an earlier frame left),
+			// so this is a depth the design does not describe — real nesting is 2-3 levels. Refuse the scope
+			// and report it: throwing here is what turned one game-side exception into an unusable client,
+			// because from then on every scope-entering patch in the process threw on its own account.
+			if (_refused < Refused.Length)
+			{
+				Refused[_refused] = origin;
+			}
+
+			_refused++;
+			return NoScope.Instance;
 		}
 
 		Stack[_depth++] = origin;
-		return new Scope();
+		return new Scope(_epoch);
 	}
 
-	/// <summary>Nested disposable returned by Enter — restores the stack depth on Dispose.</summary>
+	/// <summary>
+	/// Closes the frame for this guard: releases every scope the frame left open and answers the one line an
+	/// operator reads, or null when the frame ended clean. The adapter calls this once per frame, and it is
+	/// the release deadline every scope has whether or not its owner reached its own release. Reporting is
+	/// per leak EPISODE, not per frame: while frames keep leaking (the shape batch <c>20261012-a</c>
+	/// measured) the release stays silent, and one clean frame re-arms the report.
+	/// </summary>
+	internal static string? EndFrame()
+	{
+		if (_depth == 0 && _refused == 0)
+		{
+			_episodeReported = false;
+			return null;
+		}
+
+		var summary = _episodeReported ? null : Describe();
+		_episodeReported = true;
+		if (_depth > 0)
+		{
+			_depth = 0;
+			_epoch++;
+		}
+
+		_refused = 0;
+		return summary;
+	}
+
+	/// <summary>What the episode released and refused, grouped by origin — "CharacterBurp x16, Craft x1".</summary>
+	private static string Describe()
+	{
+		var builder = new StringBuilder();
+		if (_depth > 0)
+		{
+			builder.Append(_depth).Append(" leaked scope(s) released: ").Append(Grouped(Stack, _depth));
+		}
+
+		if (_refused > 0)
+		{
+			if (builder.Length > 0)
+			{
+				builder.Append("; ");
+			}
+
+			var listed = _refused < Refused.Length ? _refused : Refused.Length;
+			builder.Append(_refused).Append(" Enter(s) refused at the ").Append(MaxDepth).Append("-scope bound: ");
+			if (listed < _refused)
+			{
+				builder.Append("first ").Append(listed).Append(" — ");
+			}
+
+			builder.Append(Grouped(Refused, listed));
+		}
+
+		return builder.ToString();
+	}
+
+	private static string Grouped(Origin[] origins, int count)
+	{
+		var builder = new StringBuilder();
+		var distinct = 0;
+		for (var i = 0; i < count; i++)
+		{
+			var alreadyListed = false;
+			for (var j = 0; j < i; j++)
+			{
+				if (origins[j] == origins[i])
+				{
+					alreadyListed = true;
+					break;
+				}
+			}
+
+			if (alreadyListed)
+			{
+				continue;
+			}
+
+			var total = 0;
+			for (var j = i; j < count; j++)
+			{
+				if (origins[j] == origins[i])
+				{
+					total++;
+				}
+			}
+
+			if (distinct++ > 0)
+			{
+				builder.Append(", ");
+			}
+
+			builder.Append(origins[i]).Append(" x").Append(total);
+		}
+
+		return builder.ToString();
+	}
+
+	/// <summary>Nested disposable returned by Enter — restores the stack depth on Dispose, unless the frame boundary already released the entry (then its owner's late release must not pop somebody else's).</summary>
 	private sealed class Scope : IDisposable
 	{
+		private readonly int _openedEpoch;
 		private bool _disposed;
+
+		internal Scope(int openedEpoch)
+		{
+			_openedEpoch = openedEpoch;
+		}
 
 		public void Dispose()
 		{
@@ -235,10 +381,25 @@ internal static class CallContext
 			}
 
 			_disposed = true;
+			if (_openedEpoch != _epoch)
+			{
+				return;
+			}
+
 			if (_depth > 0)
 			{
 				_depth--;
 			}
+		}
+	}
+
+	/// <summary>The disposable a refused Enter answers with: it owns no entry, so releasing it is a no-op.</summary>
+	private sealed class NoScope : IDisposable
+	{
+		internal static readonly NoScope Instance = new();
+
+		public void Dispose()
+		{
 		}
 	}
 }

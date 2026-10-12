@@ -2,7 +2,7 @@
 
 - Status: Review — stage 1 (the content defect) landed in `22ae381c`, cased with its red observed first,
   family-audited and independently reviewed; the code side is done and what remains for it is an acceptance
-  run's rows. Stage 2 (the amplifier) is its own ticket, `docs/backlog/todo/call-context-scope-leak.md`.
+  run's rows. Stage 2 (the amplifier) is its own ticket, `docs/backlog/review/call-context-scope-leak.md`.
   Found 2026-10-11 by acceptance batch
   `20261011-k` while driving the mod-item rows of `docs/backlog/done/mod-item-authored-actions.md`; recorded
   with this run's evidence and left for its own cycle, because an acceptance batch validates and does not change
@@ -118,9 +118,9 @@ acceptance record).
    supported value, and now it is.
 2. **A game-side throw inside a scope-entering patched frame leaks CUO's `CallContext` scope, and sixteen
    leaks latch every later `CallContext.Enter` in the process into refusal** — the amplifier, split out on
-   2026-10-12 into `docs/backlog/todo/call-context-scope-leak.md`, which carries the mechanism, the missing
-   artifact and the work. It is a product robustness question rather than a content one, and this ticket no
-   longer owns it.
+   2026-10-12 into `docs/backlog/review/call-context-scope-leak.md`, which carries the mechanism, the missing
+   artifact and the work. That ticket's fix landed on 2026-10-12 (the guard owns the release deadline). It is a
+   product robustness question rather than a content one, and this ticket no longer owns it.
 
 ## Required work
 
@@ -166,16 +166,15 @@ acceptance record).
   method or non-private field would still pass). The reviewer's one process finding against this cycle is
   recorded in the delivery checklist: a ticket file created for a separate directive AFTER the freeze turned
   `BacklogIntegrityGateTests` red until it was indexed, and that is a frozen-tree violation, not a detail.
-- **Stage 2 — the amplifier, still TODO and still unmeasured**: the `CallContext` scope half. A game-side
-  throw inside a scope-entering patched frame leaves the `CallContext` scope open (`BurpSoundPatches`'
-  `Body.HandleVisuals` pair is the fitting shape: a `Prefix` that enters, a `Postfix` that disposes, and no
-  postfix when the original throws), sixteen leaks latch `Enter` into permanent refusal, and every later
-  scope-entering path in that process throws — 19,973 lines and 92 seconds in batch `20261011-k`. The
-  mechanism is READ, not observed: no captured stack names the entering frame, so the first step of this stage
-  is producing that stack (a probe that throws inside each candidate frame, one at a time) rather than
-  choosing a fix for a frame nobody has shown. It is its own cycle because it touches call-identity
-  architecture, not content binding, and because a wrong recovery rule there can mis-classify mutations
-  process-wide.
+- **Stage 2 — the amplifier, fixed and measured (2026-10-12)**: the `CallContext` scope half. A game-side
+  throw inside a scope-entering patched frame left the `CallContext` scope open (`BurpSoundPatches`'
+  `Body.HandleVisuals` pair was the fitting shape: a `Prefix` that enters, a `Postfix` that disposes, and no
+  postfix when the original throws), sixteen leaks latched `Enter` into permanent refusal, and every later
+  scope-entering path in that process threw — 19,973 lines and 92 seconds in batch `20261011-k`. The
+  mechanism is now OBSERVED rather than read, and fixed, in `docs/backlog/review/call-context-scope-leak.md`:
+  the guard owns the release deadline (the frame boundary releases what a frame leaked, once reported per
+  episode) and the bound refuses instead of throwing. That ticket carries the measured artifact, the family
+  sweep and its own rows.
 
 ## Acceptance rows
 

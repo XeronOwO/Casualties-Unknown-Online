@@ -7,9 +7,9 @@ namespace CasualtiesUnknownOnline.Runtime.Networking;
 /// <see cref="EResult"/> / <see cref="ESteamNetConnectionEnd"/> pair onto the
 /// compact <see cref="SteamSendFailureKind"/> families the transport logs.
 /// No transport/Steam state is touched here, so the mapping is L0-testable.
-/// The remediation strings deliberately name the known local trigger first
-/// (<proxy> on localhost:<proxy-port> has produced BadCert / rendezvous timeouts on
-/// this machine) rather than burying it in a generic retry message.
+/// The remediation strings name the generic local trigger first — a proxy on
+/// the machine — because it is the first thing worth checking and it is the
+/// operator's own environment, which a shipped message cannot know by name.
 /// </summary>
 public static class SteamSendFailureClassifier
 {
@@ -47,7 +47,7 @@ public static class SteamSendFailureClassifier
 	public static string Remediation(SteamSendFailureKind kind) => kind switch
 	{
 		SteamSendFailureKind.BadCert =>
-			"check the local proxy/network first (<proxy> on localhost:<proxy-port> has triggered BadCert), then the Steam client state, then the Steamworks.NET wrapper",
+			"check the local proxy/network first (a local proxy has triggered BadCert), then the Steam client state, then the Steamworks.NET wrapper",
 		SteamSendFailureKind.Rendezvous =>
 			"check the local proxy/Steam Datagram Relay status (local proxy is the first known trigger for rendezvous timeouts), then Steam client state",
 		SteamSendFailureKind.ConnectFailed =>

@@ -69,6 +69,64 @@ public class RepositoryGateTests
 	}
 
 	[Fact]
+	public void NoLocalEnvironmentNames_InProductionCode()
+	{
+		// The sibling of the absolute-path gate above, for the class of machine fact that is not a path: the
+		// proxy this machine runs, the acceptance harness's own ports and the Sandboxie instance names the
+		// second client runs as. Each is a fingerprint of the author's environment, so the shipped product
+		// cannot name it, not even as a diagnostic hint — an operator's proxy is theirs, and a message that
+		// names the author's is both useless to them and a leak (the user's red line, 2026-10-12, after
+		// `SteamSendFailureClassifier` was found naming one in a player-facing remediation string).
+		// Scope is `src/` deliberately: tests seed fixtures and the repository's own records cite values as
+		// evidence, so a scan over either would red on legitimate content and teach people to ignore it. A
+		// production literal is what this rule can actually reach, and the pre-commit check covers the rest.
+		var patterns = new (string What, Regex Matcher)[]
+		{
+			// Capitalised, because the lowercase word is ordinary English: a first draft matched
+			// case-insensitively and red on "a namespace clash" in a mod-scanning comment — a false
+			// positive is what teaches people to ignore a gate, so the pattern is the proper noun.
+			("a named local proxy", new Regex(@"(^|[^A-Za-z])<proxy>\b")),
+			("the local proxy's address", new Regex(@"localhost:<proxy-port>|127\.0\.0\.1:<proxy-port>")),
+			("an acceptance-harness port", new Regex(@"\b<port-range>\b")),
+			("a Sandboxie instance name", new Regex(@"\b<sandbox-label>\b")),
+		};
+
+		var failures = new List<string>();
+		var scanned = 0;
+
+		foreach (var file in EnumerateScannedFiles().Where(file =>
+			file.StartsWith("src/", StringComparison.Ordinal) || file.StartsWith("src\\", StringComparison.Ordinal)))
+		{
+			if (Path.GetExtension(file).Equals(".dll", StringComparison.OrdinalIgnoreCase))
+			{
+				continue;
+			}
+
+			var fullPath = RepositoryPaths.File(file);
+			if (!File.Exists(fullPath))
+			{
+				continue;
+			}
+
+			scanned++;
+			var lines = File.ReadAllLines(fullPath);
+			for (var i = 0; i < lines.Length; i++)
+			{
+				foreach (var (what, matcher) in patterns)
+				{
+					if (matcher.IsMatch(lines[i]))
+					{
+						failures.Add($"{file}:{i + 1}: {what} — {lines[i].Trim()}");
+					}
+				}
+			}
+		}
+
+		Assert.True(scanned > 0, "no production file was scanned; the scan surface is not src/");
+		Assert.True(failures.Count == 0, $"Local environment names in production code ({scanned} src files scanned)" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	[Fact]
 	public void EventReplayMatrix_Completeness()
 	{
 		var path = RepositoryPaths.File("docs/contracts/event-replay-matrix.csv");

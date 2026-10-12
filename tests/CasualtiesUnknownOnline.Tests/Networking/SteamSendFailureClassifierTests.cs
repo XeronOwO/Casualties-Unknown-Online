@@ -76,12 +76,20 @@ public class SteamSendFailureClassifierTests
 			SteamSendFailureClassifier.Classify(EResult.k_EResultOK, ESteamNetConnectionEnd.k_ESteamNetConnectionEnd_Invalid));
 	}
 
-	[Fact]
-	public void BadCertRemediation_NamesTheKnownLocalProxyFirst()
+	[Theory]
+	[InlineData(SteamSendFailureKind.BadCert)]
+	[InlineData(SteamSendFailureKind.Rendezvous)]
+	public void ProxyRemediations_NameTheLocalProxyGenericallyNeverThisMachines(SteamSendFailureKind kind)
 	{
-		var remediation = SteamSendFailureClassifier.Remediation(SteamSendFailureKind.BadCert);
-		Assert.Contains("<proxy>", remediation);
-		Assert.Contains("localhost:<proxy-port>", remediation);
+		// The remediation is a player-facing hint, and what it may name is the GENERIC condition: the
+		// operator's own proxy. A shipped message cannot know theirs, and naming the author's machine's
+		// proxy (its product and its port) leaks this repository's environment into a public product
+		// (user red line, 2026-10-12). Both families that name the proxy are pinned here — a future edit
+		// that reaches for a concrete name fails on either, and `RepositoryGateTests` scans `src/` for
+		// the same class so the leak cannot come back through a third string.
+		var remediation = SteamSendFailureClassifier.Remediation(kind);
+
+		Assert.Contains("local proxy", remediation);
 		Assert.Contains("Steam", remediation);
 	}
 

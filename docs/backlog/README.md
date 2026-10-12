@@ -80,13 +80,14 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [The version shows the build's commit](todo/version-string-build-suffix.md) — **Low** — in the log and the UI.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
-- [A mod item that declares no tags throws in the game's own frames](todo/mod-item-with-no-declared-tags-throws.md) — **High** — found by batch 20261011-k.
 - [The records carry the machine's real Steam ids](todo/acceptance-records-carry-real-steam-ids.md) — **Medium** — 117 hits; the history call is the user's.
 - [The history carries machine identifiers](todo/purge-machine-identifiers-from-history.md) — **High** — rewrite and force-push; a process check, not a gate.
+- [A game-side throw latches CallContext off](todo/call-context-scope-leak.md) — **High** — one leak kills every later scope.
 
 ### In progress
 
 ### Review
+- [A mod item that declares no tags throws in the game's own frames](review/mod-item-with-no-declared-tags-throws.md) — **High** — stage 1 fixed; stage 2 split.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.

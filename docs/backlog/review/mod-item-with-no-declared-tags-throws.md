@@ -1,8 +1,9 @@
 # A mod item that declares no tags throws inside the game's own frames
 
-- Status: Todo — **stage 1 (the content defect) is FIXED 2026-10-12** and its cases were observed red first;
-  the ticket stays open, and stays in `todo/`, because stage 2 (the amplifier) is still unbuilt and, before it
-  can be built, still unmeasured. Found 2026-10-11 by acceptance batch
+- Status: Review — stage 1 (the content defect) landed in `22ae381c`, cased with its red observed first,
+  family-audited and independently reviewed; the code side is done and what remains for it is an acceptance
+  run's rows. Stage 2 (the amplifier) is its own ticket, `docs/backlog/todo/call-context-scope-leak.md`.
+  Found 2026-10-11 by acceptance batch
   `20261011-k` while driving the mod-item rows of `docs/backlog/done/mod-item-authored-actions.md`; recorded
   with this run's evidence and left for its own cycle, because an acceptance batch validates and does not change
   code (`docs/evidence/acceptance/mod-item-authored-actions-20261011-k.md`). Attribution checked against this
@@ -110,20 +111,16 @@ acceptance record).
 
 ## The two halves, and why the second is its own question
 
-1. **`actualTags` is never populated for a tagless definition** — the defect this ticket fixes. The shape is
+1. **`actualTags` is never populated for a tagless definition** — the defect this ticket fixed. The shape is
    the one `mod-item-declaration-parity` established: an injected definition must carry every field the
    game's own table pass would have given it, and a derived collection must exist even when it is empty.
-   The `Tags` documentation and the `mod-api.md` DTO row say what a mod gets; today "no tags" is not a
-   supported value.
+   The `Tags` documentation and the `mod-api.md` DTO row said what a mod gets; "no tags" was not a
+   supported value, and now it is.
 2. **A game-side throw inside a scope-entering patched frame leaks CUO's `CallContext` scope, and sixteen
-   leaks brick every later `CallContext.Enter` in the process** — the amplifier, and a product robustness
-   question rather than a content one. The depth guard's own message is the evidence that a scope was entered
-   and never disposed; the mechanism that FITS (a throwing original body skips the postfix that owns the
-   disposal) is a reading of `CallContext`'s design plus the frame that carries a scope on this path
-   (`Body.HandleVisuals`), NOT an artifact: no captured stack shows the entering frame, so whoever takes this
-   half starts by producing that stack (a probe that throws inside each candidate frame, one at a time). The
-   fix direction (disposal that survives the original's exception, or a guard that recovers the depth rather
-   than latching) is this ticket's to decide, with its own cases.
+   leaks latch every later `CallContext.Enter` in the process into refusal** — the amplifier, split out on
+   2026-10-12 into `docs/backlog/todo/call-context-scope-leak.md`, which carries the mechanism, the missing
+   artifact and the work. It is a product robustness question rather than a content one, and this ticket no
+   longer owns it.
 
 ## Required work
 

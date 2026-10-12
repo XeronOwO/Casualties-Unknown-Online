@@ -3021,7 +3021,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   pass, so it never runs for them, and `ModItemInfoFactory` populates `actualTags` only when the definition
   declares a non-blank `Tags`. `Tags` defaults to `""`, so the array keeps its CLR default and the game's own
   `HasTag` (an `Enumerable.Contains` over it) throws wherever it is asked.
-- Change: filed as `docs/backlog/todo/mod-item-with-no-declared-tags-throws.md` with this run's numbers (a
+- Change: filed as `docs/backlog/review/mod-item-with-no-declared-tags-throws.md` with this run's numbers (a
   batch validates and does not change code). The rule a fix must carry: a derived member the game's own table
   pass writes is the injected definition's to write, and a collection must exist even when it is empty.
 

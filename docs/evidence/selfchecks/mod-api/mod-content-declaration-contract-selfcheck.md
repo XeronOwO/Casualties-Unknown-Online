@@ -136,7 +136,7 @@ promised) stands, and the fix covers both members it named.
   dated records that name the data classes as they were when written; those statements stay true of the
   classes. The four self-checks whose text names a MOVED member carry a bracketed amendment in
   `docs/evidence/selfchecks/MANIFEST.md` instead of being rewritten, and the dated review ticket that
-  repeats one of those sentences (`docs/backlog/review/mod-payload-null-collection-tolerance.md`) is left
+  repeats one of those sentences (`docs/backlog/done/mod-payload-null-collection-tolerance.md`) is left
   as the record of the cycle it judged.
 - **A class that implements two kind interfaces is not refused on the code path.** `TryRegister` routes by
   `Kind`, so exactly one provider sees such an object; the named refusal the ticket asks for belongs to the

@@ -1,6 +1,6 @@
 # Self-check — typed seams (the last two `object` shapes on the mod-visible contract)
 
-Cycle: 2026-10-09. Ticket: `docs/backlog/review/mod-api-typed-seams.md`. Decision: 250.
+Cycle: 2026-10-09. Ticket: `docs/backlog/done/mod-api-typed-seams.md`. Decision: 250.
 
 Scope landed: `IModNativeApi`'s untyped invoke path (deleted rather than retyped), the Runtime → Game
 Adapter native-API seam, `ModNativeApiPolicy`, and `IStartingSupplyBehaviour`'s move off the mod-visible

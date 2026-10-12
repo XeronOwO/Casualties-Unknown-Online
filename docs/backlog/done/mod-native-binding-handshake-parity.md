@@ -1,6 +1,7 @@
 # Native-binding parity in the session handshake
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-native-binding-handshake-parity-20261012-c.md`): every row passes — the parity cases, the wire round-trip and the documented matrix row hold; the Online UI row stays a residual for the user.
 - Priority: Medium
 - Category: Protocol / Mod API
 - Depends on: [Native-binding mods declare it instead of hiding](../done/mod-native-binding-declaration.md)

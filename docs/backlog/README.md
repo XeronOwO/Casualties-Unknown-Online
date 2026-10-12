@@ -88,32 +88,24 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
-- [The root README as a language pair](review/readme-language-pair.md) — **Low-Medium** — English first, a Chinese twin, and the current model named.
 - [Limb-tool protections weaker than recorded](review/limb-tool-family-protection-gaps.md) — **High** — the affected side refuses a limb it cannot serve.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
-- [A null collection in a content payload must mean "none"](review/mod-payload-null-collection-tolerance.md) — **Medium** — both ends answer for it.
-- [Content kinds with no provider](review/mod-content-kind-with-no-provider.md) — **Medium-High** — the vocabulary names what binds, the binder the rest.
-- [Content registration carries its type](review/mod-content-typed-registration.md) — **Critical** — a typed definition instead of an opaque payload; landed.
 - [Content declarations by attribute](review/mod-content-attribute-declarations.md) — **High** — stage B landed; the scan replaces the Bind list.
 - [A declaration's nested member types are not contracts](review/mod-content-nested-member-contracts.md) — **Medium** — landed; a mod implements its own `Tool`.
 - [Two peers that materialize different content are never compared](review/mod-content-fingerprint.md) — **Medium** — landed; what a peer's content IS is named.
 - [No opaque payloads in the mod API](review/mod-api-no-opaque-envelopes.md) — **Critical** — a typed data model where the shape is the mod's own; landed.
-- [Typed seams, not object handles](review/mod-api-typed-seams.md) — **Critical** — one typed projection per operation; a framework seam left.
 - [Mod-defined wire packets](review/mod-defined-wire-packets.md) — **High** — a mod owns its packet id and chain; two-client rows need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — geometry.
 - [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — rebuilt on uGUI; all six stages landed.
-- [Crafting-quality labels for mod content](review/mod-crafting-quality-labels.md) — **High** — the item surface plus a load-time reference check.
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
-- [World-entry trap layout staleness](review/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — the send path re-derives the live table.
 - [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.
 - [Sync cadence review](review/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
 - [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
-- [Session control convergence](review/session-control-convergence.md) — **Medium** — the bounded scene re-report window and the re-ack loop.
 - [Remote interaction gates are judged by the host](review/remote-interaction-local-gating.md) — **Medium-High** — the two clients judge their own side.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
@@ -123,15 +115,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4.2 — The restore account surface](review/save-restore-account-surface.md) — **High** — one console line per save event.
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
-- [Namespaced ID system](review/id-system-namespaced-ids.md) — **Medium** — the `ContentId` vocabulary.
-- [Global unified projection framework](review/global-projection-framework.md) — **High** — the rebuildable-domain contract.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical panel acceptance issues](review/remote-medical-panel-acceptance-issues.md) — **High** — opiate ramp, breathing and ECG.
-- [Adaptive report rate — roadmap](review/global-adaptive-report-rate-flow-control.md) — **Medium** — stages 1-4 are in review.
-- [Adaptive report rate — Stage 4](review/global-adaptive-report-rate-stage-4-high-frequency-domains.md) — **Medium** — item/fluid/trader cadence.
-- [Adaptive report rate — Stage 3](review/global-adaptive-report-rate-stage-3-cumulative-streams.md) — **Medium** — cumulative coalescing.
-- [Adaptive report rate — Stage 1](review/global-adaptive-report-rate-stage-1-global-governor.md) — **Medium** — taxonomy and the shared governor.
-- [Adaptive report rate — Stage 2](review/global-adaptive-report-rate-stage-2-traffic-bandwidth.md) — **Medium** — traffic and bandwidth estimates.
 - [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — the operation session.
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
@@ -141,7 +126,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Entity drop loses fresh state on the guest](review/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — full drop state is preserved.
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — **High** — the overlay with live suggestions.
 - [Command console ESC interception](review/command-console-esc-not-intercepted.md) — **High** — one-frame modal suppression.
-- [Guest frame rate lower than host](review/guest-frame-rate-lower-than-host.md) — **Medium** — telemetry and allocation removal.
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
 - [Remote player medical panel](review/remote-player-medical-panel.md) — **Medium** — native WoundView reuse.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — **Medium** — limb drag routes through the heal path.
@@ -155,14 +139,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
 - [Middle-click location marker](review/middle-click-location-marker.md) — **Medium** — the one-shot location ping.
-- [CUCoreLib migration support](review/cucorelib-migration-support.md) — **Medium** — the typed KrokMP content seams.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
-- [Trap-layout snapshot recovery](review/trap-layout-snapshot-recovery.md) — **Medium** — the 60 s repair re-derives and re-sends the layout.
 - [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
-- [Dropped mod command requests](review/mod-command-request-timeout.md) — **Low** — the request deadline and the bounded pending map.
 - [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
-- [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 - [Bilingual human documentation](review/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
 
@@ -198,6 +178,26 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Crafting-quality labels for mod content](done/mod-crafting-quality-labels.md) — **High** — accepted; the item surface plus a load-time reference check.
+- [A null collection in a content payload must mean "none"](done/mod-payload-null-collection-tolerance.md) — **Medium** — accepted; both ends answer for it.
+- [Content kinds with no provider](done/mod-content-kind-with-no-provider.md) — **Medium-High** — accepted; the vocabulary names what binds.
+- [Native-binding session parity](done/mod-native-binding-handshake-parity.md) — **Medium** — accepted; the host can require parity.
+- [Typed seams, not object handles](done/mod-api-typed-seams.md) — **Critical** — accepted; one typed projection per operation; a framework seam left.
+- [Content registration carries its type](done/mod-content-typed-registration.md) — **Critical** — accepted; a typed definition instead of an opaque payload.
+- [Dropped mod command requests](done/mod-command-request-timeout.md) — **Low** — accepted; the request deadline and the bounded pending map.
+- [Session control convergence](done/session-control-convergence.md) — **Medium** — accepted; the bounded scene re-report window and the re-ack loop.
+- [World-entry trap layout staleness](done/trap-layout-entry-snapshot-staleness.md) — **Low-Medium** — accepted; the send path re-derives the live table.
+- [Trap-layout snapshot recovery](done/trap-layout-snapshot-recovery.md) — **Medium** — accepted; the 60 s repair re-derives and re-sends the layout.
+- [Namespaced ID system](done/id-system-namespaced-ids.md) — **Medium** — accepted; the `ContentId` vocabulary.
+- [CUCoreLib migration support](done/cucorelib-migration-support.md) — **Medium** — accepted; the typed KrokMP content seams.
+- [Adaptive report rate — roadmap](done/global-adaptive-report-rate-flow-control.md) — **Medium** — accepted; stages 1-4 landed.
+- [Adaptive report rate — Stage 1](done/global-adaptive-report-rate-stage-1-global-governor.md) — **Medium** — accepted; taxonomy and the shared governor.
+- [Adaptive report rate — Stage 2](done/global-adaptive-report-rate-stage-2-traffic-bandwidth.md) — **Medium** — accepted; traffic and bandwidth estimates.
+- [Adaptive report rate — Stage 3](done/global-adaptive-report-rate-stage-3-cumulative-streams.md) — **Medium** — accepted; cumulative coalescing.
+- [Adaptive report rate — Stage 4](done/global-adaptive-report-rate-stage-4-high-frequency-domains.md) — **Medium** — accepted; item/fluid/trader cadence.
+- [Global unified projection framework](done/global-projection-framework.md) — **High** — accepted; the rebuildable-domain contract.
+- [Guest frame rate lower than host](done/guest-frame-rate-lower-than-host.md) — **Medium** — accepted; telemetry and allocation removal.
+- [The root README as a language pair](done/readme-language-pair.md) — **Low-Medium** — accepted; English first, a Chinese twin, and the current model named.
 - [A game-side throw inside a scope-entering patched frame latches CallContext off](done/call-context-scope-leak.md) — **High** — accepted; one line per leak.
 - [A mod item that declares no tags throws inside the game's own frames](done/mod-item-with-no-declared-tags-throws.md) — **High** — accepted on both peers.
 - [The history carries machine identifiers](done/purge-machine-identifiers-from-history.md) — **High** — rewritten and force-pushed; a check, not a gate.

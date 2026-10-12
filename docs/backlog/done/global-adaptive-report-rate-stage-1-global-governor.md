@@ -1,6 +1,7 @@
 # Global adaptive report-rate flow control — Stage 1: stream taxonomy + health-driven overwrite governor
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/global-adaptive-report-rate-stage-1-global-governor-20261012-c.md`): every row passes — the governor's six rows are green in this run.
 - Priority: Medium
 - Category: Network / adaptive sync / flow control
 - Parent: `global-adaptive-report-rate-flow-control.md`

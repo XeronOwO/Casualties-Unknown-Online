@@ -1,0 +1,37 @@
+# Acceptance record — Session control convergence: lost readiness/control messages have no re-report
+
+- Ticket: `session-control-convergence` — verdict: **moved to `done/`**
+- Batch: `20261012-c` — offline batch; scope and plan: `docs/evidence/acceptance/20261012-c-scope.md`
+- Commit: `3bacc6fc` — the tree's HEAD; this batch changes no `src/`, `tests/` or `tools/` file
+- Deployed artifact: `CasualtiesUnknownOnline.dll` `0.1.0+3bacc6fcd5574b3a0b9137b11c8efb5e91163d91` — deployed and hash-verified in this run (`tools/verify-deploy.ps1` exit 0, "Deployment matches this tree's build output"); no runtime row is exercised
+- Run: 2026-10-12 — preflight and session-environment captured before the build; build, gate suite, behavioural suite, format, deploy and deploy verification after; no client was started, so host/guest do not apply
+- Dependencies: `dotnet` — build 0 warnings / 0 errors in 12.4 s (`build.log`), gate suite `CasualtiesUnknownOnline.NormativeGates.Tests` 626 passed / 0 failed / 0 skipped (`gates.log`), behavioural suite `CasualtiesUnknownOnline.Tests` 5072 passed / 0 failed / 0 skipped (`full.log`), and `dotnet format CasualtiesUnknownOnline.slnx` (`format.log`, the tree byte-identical before and after); `tools/deploy.ps1` (`deploy.log`) and `tools/verify-deploy.ps1` (`verify-deploy.log`); `tools/acceptance/preflight.ps1` (11 present, exit 0) and `tools/acceptance/session-environment.ps1 -Mode status` (CUO tree active, `game-running=false`), both captured before the build; no game client
+- Artifacts: none — the run's logs and TRX results are under the directory named by `acceptance-artifacts-dir`
+
+| # | Row | Class | Verdict | Evidence |
+|---|---|---|---|---|
+| 1 | `HandshakeAckAck` dropped — the host re-acks on its 1 Hz warm-up pump, the member is Handshaken within about a second and the start gate's filter includes it | machine | pass | `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.HandshakeAckAckDropped_TheHostReAcksUntilTheMemberIsConfirmed` — `Passed` in this run's behavioural suite |
+| 2 | `HandshakeAck` dropped — unchanged: the guest's existing 1 Hz handshake retry heals it (regression) | machine | pass | `CasualtiesUnknownOnline.Tests.Session.HandshakeTests.Handshake_FirstMessageSwallowed_RetriesAfterInterval` — `Passed` in this run's behavioural suite |
+| 3 | `SceneState` (InWorld) dropped — the host converges without the 60 s timeout and the entry fan-out fires exactly once | machine | pass | `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.InWorldReportDropped_TheWindowHealsItAndTheEntryGroupFiresOnce` — `Passed` in this run's behavioural suite |
+| 4 | `PlayerJoin` dropped — host and guest converge through the in-session repair group carrying the same entity id, and a repeat is absorbed without a second join | machine | pass | `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.RosterDropped_ConvergesThroughTheRepairGroupWithoutADuplicateJoin` — `Passed` in this run's behavioural suite |
+| 5 | `WorldReady` dropped — the guest converges on the next re-report and repeated answers never release the gate twice | machine | pass | `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.WorldReadyDropped_TheRepeatReportIsAnsweredWithTheGateState` — `Passed` in this run's behavioural suite |
+| 6 | Third-party member — unaffected: the repeat answer is targeted at its member and no duplicate fan-out reaches the other guest | machine | pass | `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.ThirdMember_ReceivesNothingFromAnotherMembersConvergence` — `Passed` in this run's behavioural suite |
+| 7 | Reconnect while in world — unchanged: the handshake path still fans out on `member.InWorld`, which the stored-ack item only added a field to | machine | pass | `CasualtiesUnknownOnline.Tests.World.ReconnectWorldSnapshotTests.GuestReconnects_WhileStillInWorld_ReceivesAllSevenWorldSnapshotsAgain` — `Passed` in this run's behavioural suite; the case drives the real handshake restore of `member.InWorld` and the whole snapshot group re-fans out |
+| 8 | `WorldSnapshotComplete` — consumed: it is the readiness window's entry-group acknowledgement, not an inert wire id | machine | pass | `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.LostMarker_KeepsTheWindowOpenAndClosesItWhenItArrives` — `Passed` in this run's behavioural suite, with its sibling `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.SpentWindow_StopsReReportingInsteadOfTrickling` also `Passed` (the spent budget ends the repeats instead of trickling) |
+| 9 | Scene exit (`InMenu`) dropped — the host stops holding the member in world within one window, and the repeats then stop at their bound | machine | pass | `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.ExitReportDropped_IsReAssertedInBoundedWindows` — `Passed` in this run's behavioural suite |
+| 10 | Gate armed longer than the first windows and then released with the release lost — still converges inside the guest's 60 s valve, because the window outlives the gate it heals | machine | pass | `CasualtiesUnknownOnline.Tests.Session.SessionControlConvergenceTests.GateArmedPastTheFirstWindows_StillConvergesWhenItReleases` — `Passed` in this run's behavioural suite |
+
+## Residuals for the user
+
+None. Every row of this ticket's acceptance matrix is a `machine` row and this run judged it from the behavioural suite's own per-case outcomes; no row asks for a person's judgment.
+
+## Limits
+
+- No client was started in this batch, so there is no rendering, frame, live log or in-process probe for any row: the rows are decided by this run's test output (the behavioural suite's per-case `Passed` lines, read through the batch's anchor index) and by inspection of the committed tree. The commit under test is unchanged from the tree's HEAD, so the cases ran against the tree these rows describe.
+- The Game Adapter's half of the mechanism is not exercised by these cases — the ticket states this itself (`WaitingForReady` gate phase, the 60 s give-up valve, the real `WorldReady`/`WorldSnapshotComplete` presentation path) — and this batch does not claim it.
+- The ticket's own declared dual-client acceptance (two real processes: a mid-join guest ends in world with its roster row and the gate released, a guest that misses the entry report converges without returning to the menu, a guest back in the menu stops being simulated by the host) is not one of its ten matrix rows, and no client was started here; it remains the user's release-cycle action exactly as the ticket records it.
+- The historical numbers the ticket carries (9/9 focused, 56/56 gates, 3388 passed on the implementation-complete tree, the coverage matrix's anchor and verdict counts) were **not re-measured**. The durable outcome recorded here is that the suite and the named cases still exist and pass in this run: 5072 passed / 0 failed in the behavioural suite and 626 passed / 0 failed in the gate suite.
+- The historical protocol statement ("the protocol version stays 31") is **superseded** and was not re-derived:
+  decision 241 (2026-10-07) froze the number at a named pre-release baseline, which `ProtocolVersion.Current`
+  IS, so 31 is that cycle's own statement rather than a live value. Nothing in this batch changed a wire shape,
+  and the batch changes no source file at all.

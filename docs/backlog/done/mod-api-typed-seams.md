@@ -1,13 +1,14 @@
 # Typed seams: no `object` handle and no string-keyed call in the mod contract
 
-- Status: Review — implementation landed 2026-10-09 (decision 250, see *What landed*) and an independent
+- Status: Done — implementation landed 2026-10-09 (decision 250, see *What landed*) and an independent
   adversarial review ran in the same cycle; the acceptance batch is pending. It was **cut 2026-10-08** by
   the user's demand for a full sweep of the abstraction layer ("全量排查，抽象层还有没有其他地方使用了这种
   明显的…模式，这种东西就压根不应该存在"). The sweep found the byte envelopes (two tickets) and exactly two
   `object`-shaped holes plus one string-keyed call, all listed below.
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-api-typed-seams-20261012-c.md`): every row passes — the typed members, the policy rail and the five tombstones hold.
 - Priority: Critical
 - Category: Mod platform / mod API
-- Related: `docs/backlog/review/mod-content-typed-registration.md` and
+- Related: `docs/backlog/done/mod-content-typed-registration.md` and
   `docs/backlog/review/mod-api-no-opaque-envelopes.md` (the same sweep), `docs/backlog/done/mod-authored-effects.md`
   (its effect context needs the same answer: an engine-typed handle and named operations, never `object`),
   `docs/en/reference/modification-policy.md` (the visibility rule: only a designed capability becomes a

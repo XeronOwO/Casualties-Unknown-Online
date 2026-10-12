@@ -3137,6 +3137,52 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   way to get the complete set is to run the gate's own scan rather than a `git grep`. The sweep is worth
   doing rather than exempting: the page that failed here is the only place that batch's finding is recorded.
 
+## 2026-10-12 — A moved ticket drags three gate families behind it, and an edited page PAIR drags a fourth
+
+- Symptom: after 20 tickets moved from `review/` to `done/` and the index rows moved with them, the gate
+  suite went red twice on the same change: 46 prose references across 19 gated documents did not resolve to
+  a ticket, and `EveryPair_IsRecordedAtItsCurrentContents` reported both sides of
+  `docs/en|zh/reference/modification-policy.md` as "edited without re-recording the pair".
+- Cause: the folder IS the status, so every path that names a ticket is a pointer that has to travel with
+  it — and this batch's own reference sweep necessarily edited BOTH sides of one registered page pair
+  (re-pointing two ticket paths in the policy page), while the pair registry records each page's content
+  blob hash. Re-pointing a path inside a registered pair therefore invalidates the record by construction,
+  not by mistake.
+- Change: the move pass re-points every reference the gate names in one sweep (`review/<slug>.md` →
+  `done/<slug>.md`: 74 references across 19 files, the evidence matrix and `docs/decisions/active.md` the
+  heaviest) and re-records the edited pair's two blob hashes in `docs/standard/alignment.txt` in the same
+  change. `git grep` cannot see the gitignored local pages, so those are swept by name — the previous
+  entry's rule, unchanged.
+
+## 2026-10-12 — An offline batch decides a ticket only from the rows its own acceptance section carries
+
+- Symptom: `review/` held tickets whose cycle verification list was a status checklist (build 0 warnings,
+  N tests, deployed hashes) and could be decided with no client at all, next to tickets whose list carried
+  one live observation and could not — and a ticket naming a surface a PERSON verifies on the machine (the
+  Online UI's parity row, a host/guest frame-rate comparison) had to leave that surface open while its own
+  rows passed.
+- Cause: the ROW is the unit of acceptance. A ticket's prose limits are not rows, and a historical count
+  ("2417 tests passed") is a state of the cycle that wrote the ticket, which no later run can re-measure —
+  only its durable outcome can be checked.
+- Change: the batch writes the row table itself for a ticket that has none, judges every row against this
+  run's own per-case outcomes (the TRX outcome index) or against a file it read, judges a historical-count
+  row by its durable outcome (the suite, gate, case or self-check record the row names still exists and
+  passes in this run, with the historical number named as un-remeasured in `Limits`), and reports a
+  person's surface as a residual for the user rather than as a row the run pretends to judge.
+
+## 2026-10-12 — The anchor check is a tool, and the tool lies in two familiar ways
+
+- Symptom: of 148 evidence anchors a drafting pass proposed, four test names looked absent from the run's
+  outcome index and three file quotes looked absent from their files.
+- Cause: two checking artefacts, neither a record defect. An xunit theory's display name carries its
+  arguments (`...RejectsMalformedInput(text: "")`), so an exact-name lookup misses the family; and
+  PowerShell's `-like` treats `[` and `*` as pattern syntax, so a quote beginning with `[AdaptiveSync]`
+  can never match a pattern-based containment test.
+- Change: the anchor check resolves a test anchor by name prefix against the outcome index and checks a
+  quote with literal containment (`Contains`, or `-SimpleMatch` in `Select-String`) — the same trap
+  `AGENTS.local.md` records for `-like` on a pattern containing `[`. A "missing" anchor is re-derived with
+  the literal tool before a row is called unsupported.
+
 
 
 

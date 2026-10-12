@@ -8,7 +8,7 @@
 - Priority: Medium
 - Category: Mod platform / mod API
 - Related: `docs/backlog/review/mod-content-attribute-declarations.md` (the kind-level contract this completes
-  one level down), `docs/backlog/review/mod-content-typed-registration.md` (the typed definition this hangs
+  one level down), `docs/backlog/done/mod-content-typed-registration.md` (the typed definition this hangs
   off), `docs/en/reference/modification-policy.md` (every added surface is a reviewed baseline change),
   decision 253 (the two calls this ticket left open).
 

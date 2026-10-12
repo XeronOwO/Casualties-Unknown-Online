@@ -1,17 +1,18 @@
 # Content registration carries its type: a typed definition instead of an opaque payload
 
-- Status: Review — implementation landed 2026-10-08 (see *What landed*) and was independently reviewed the same day; the acceptance batch is pending. It was **raised 2026-10-08 by the user**, who rejected the current shape in one line: "不能接受，你做
+- Status: Done — implementation landed 2026-10-08 (see *What landed*) and was independently reviewed the same day; the acceptance batch is pending. It was **raised 2026-10-08 by the user**, who rejected the current shape in one line: "不能接受，你做
   接口抽象为的是什么？你搞这种鬼玩意，不是反模式吗？". The objection is the type erasure itself, and it holds
   at this position: the mod hands a typed contract OVER and the contract turns it into bytes, so every consumer
   re-derives the type at run time instead of the compiler checking it.
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-content-typed-registration-20261012-c.md`): every row passes — the typed registration, the provider cast refusal and the tombstoned serialization surface hold.
 - Priority: Critical
 - Category: Mod platform / mod API
 - Related: `docs/backlog/review/mod-api-no-opaque-envelopes.md` (step 2 of the same ruling: the surfaces where a
   payload does cross a boundary), `docs/backlog/done/mod-authored-effects.md` (the code-registration surface
   this one must precede — it is an API over the same contract),
   `docs/backlog/done/mod-declared-behaviour-with-no-function.md`,
-  `docs/backlog/review/mod-payload-null-collection-tolerance.md` (the rule that exists because of the payload
-  step), `docs/backlog/review/mod-content-kind-with-no-provider.md`,
+  `docs/backlog/done/mod-payload-null-collection-tolerance.md` (the rule that exists because of the payload
+  step), `docs/backlog/done/mod-content-kind-with-no-provider.md`,
   `docs/en/reference/modification-policy.md` (the `Abstractions` baseline is a reviewed change)
 - Source: the user's 2026-10-08 ruling, quoted above.
 

@@ -9,7 +9,7 @@
 - Related: `todo/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
   `review/in-game-command-console-interactive.md` (the console the verbs land in),
-  `review/id-system-namespaced-ids.md` (how a mod-authored item id is addressed),
+  `done/id-system-namespaced-ids.md` (how a mod-authored item id is addressed),
   `done/runtime-entity-creation-rejection.md`, `done/runtime-entity-spawn-backfill.md` (the admission path a
   spawned entity must go through), `docs/en/reference/mod-api.md`
 

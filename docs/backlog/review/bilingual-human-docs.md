@@ -200,7 +200,7 @@ Owner ruling 2026-09-21: both files are temporary working notes rather than docu
 checked for content that exists nowhere else, and there is none:
 
 - `docs/handoff/session-control-convergence-review-findings.md` — its findings are already in
-  `docs/backlog/review/session-control-convergence.md`: MAJOR-1 and MINOR-3 by name, MAJOR-2 and
+  `docs/backlog/done/session-control-convergence.md`: MAJOR-1 and MINOR-3 by name, MAJOR-2 and
   MINOR-1 in substance (the budget correction and the honest row-4 reading).
 - `docs/handoff/medical-minigame-concurrency-audit.md` — its conclusion and per-kind evidence
   table are already the `Native per-kind semantics` table of

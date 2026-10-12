@@ -1,10 +1,11 @@
 # Trap-layout snapshot has no in-session recovery
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/trap-layout-snapshot-recovery-20261012-c.md`): every row passes — six cases pass and the prefab-skip row is read from the committed adapter branch.
 - Priority: Medium
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W6, after the independent adversarial review reclassified it from OK)
-- Related: `done/runtime-entity-spawn-backfill.md`, `review/sync-cadence-review.md`, `review/trap-layout-entry-snapshot-staleness.md`
+- Related: `done/runtime-entity-spawn-backfill.md`, `review/sync-cadence-review.md`, `done/trap-layout-entry-snapshot-staleness.md`
 
 ## Problem (evidence)
 
@@ -71,7 +72,7 @@ re-derived from the live host scene first:
   entry group and the cycle's subset were owned in two different places.
 - The repair re-derives the table from the LIVE scene before sending: the host scan
   (`TrapLayoutScanner.RefreshLayout` when this landed — SUPERSEDED 2026-09-19 by
-  `review/trap-layout-entry-snapshot-staleness.md`: the re-derive now belongs to the send path
+  `done/trap-layout-entry-snapshot-staleness.md`: the re-derive now belongs to the send path
   itself, through the `ILiveTrapLayoutSource` port, and that method is gone) →
   `IWorldControl.ReplaceTrapLayout` → `TrapLayoutRegistry.Replace`. A generation-time record
   can therefore no longer resurrect a trap the world has since removed (a self-destructed
@@ -106,7 +107,7 @@ this landed; `LiveTrapLayoutSource` since 2026-09-19) are Unity-typed
 wiring is code-reviewed and belongs to the unified dual-client acceptance pass.
 
 **Residuals.** (1) CLOSED 2026-09-19 by the successor ticket
-`review/trap-layout-entry-snapshot-staleness.md`: the world-entry fanout sent the table as last
+`done/trap-layout-entry-snapshot-staleness.md`: the world-entry fanout sent the table as last
 derived, so a member entering between two repairs could materialize an entity the host had
 since removed (transient — the next repair made the guest destroy the surplus). The re-derive
 now happens inside BOTH group sends, through the `ILiveTrapLayoutSource` port, and is skipped

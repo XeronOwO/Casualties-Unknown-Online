@@ -15,7 +15,7 @@ Landed the second console completion slice:
   *(Superseded: the phase-18 `cuo:` placeholder vocabulary and its static
   catalog were replaced by the canonical content-id vocabulary — `cu:player`,
   `cu:<item id>`, `<mod namespace>:<id>` — see
-  [Namespaced ID system](../review/id-system-namespaced-ids.md) and
+  [Namespaced ID system](../done/id-system-namespaced-ids.md) and
   `docs/evidence/selfchecks/tooling/content-id-selfcheck.md`.)*
 - Extended selector resolution with bracketed filters: `type`, `name`,
   `distance` (including ranges), `limit`, and `sort` (nearest/furthest/random/

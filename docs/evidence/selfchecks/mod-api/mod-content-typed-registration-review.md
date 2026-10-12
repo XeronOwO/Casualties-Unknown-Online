@@ -5,7 +5,7 @@ tree at `3c1590ad` (branch `master`). Read-only: the only file this review write
 change's own claims were attacked, never the evidence for them; every claim below was re-opened in the
 tree, and the suites that can run without the game were run.
 
-Ticket: `docs/backlog/review/mod-content-typed-registration.md` (moved out of `todo/` at cycle close).
+Ticket: `docs/backlog/done/mod-content-typed-registration.md` (moved out of `todo/` at cycle close).
 Decision: entry 247, with 244 narrowed.
 
 ## 1. Verdict
@@ -22,7 +22,7 @@ cast refusal is exercised for **one** of nine providers, not family-wide).
   ("Delivery gate failed (2 issue(s), 6 boxes checked)" naming only *Build + dotnet format + dotnet test
   normative gates pass* and *Structure review done*) and
   `BacklogReferenceGateTests.EveryBacklogReference_ResolvesToATicket`, whose single dangling reference is
-  `docs\decisions\active.md: docs/backlog/review/mod-content-typed-registration.md`. No third gate is red,
+  `docs\decisions\active.md: docs/backlog/done/mod-content-typed-registration.md`. No third gate is red,
   so `ApiSurfaceGateTests`, `ContentKindProviderCoverageGateTests`, `SelfcheckManifestGateTests` and
   `DocumentationTreeGateTests` are green on this tree.
 - `dotnet test tests/CasualtiesUnknownOnline.Tests` → **4818 passed / 4818** (net48), matching the freeze.
@@ -119,8 +119,8 @@ judgement this review would put back to the author is the declared stability lev
 
 Verified by scanning every `XTests.Y` reference under `docs/` against the 4,247 test methods declared under
 `tests/`, then checking each hit's MANIFEST status. The change flipped 13 sibling rows to `historical` and
-updated the same stale anchors in `docs/backlog/review/mod-crafting-quality-labels.md` and
-`docs/backlog/review/mod-payload-null-collection-tolerance.md`, so this is an inconsistency inside the
+updated the same stale anchors in `docs/backlog/done/mod-crafting-quality-labels.md` and
+`docs/backlog/done/mod-payload-null-collection-tolerance.md`, so this is an inconsistency inside the
 change's own migration rather than a pre-existing drift (the deleted tests are deleted BY this change).
 Both rows are one line each; either update the anchor or flip the row.
 
@@ -197,7 +197,7 @@ with `||`), and `SelfcheckManifestGateTests` parses only the file token, so noth
   tree now has three `FromPayload` roots, one payload member (three shapes) and 27 mod-built members (null
   write). Its MANIFEST row was annotated "[Narrowed 2026-10-08]", which is the mitigation, but the page body
   a reader lands on still contradicts the annotation.
-- `docs/backlog/review/mod-payload-null-collection-tolerance.md`: "27 members across the payload-contract
+- `docs/backlog/done/mod-payload-null-collection-tolerance.md`: "27 members across the payload-contract
   graph (26 `[DataContract]` types, of which 12 own a `ToPayload`/`FromPayload` pair)". The change updated
   this ticket's two test-name anchors but not its counts.
 

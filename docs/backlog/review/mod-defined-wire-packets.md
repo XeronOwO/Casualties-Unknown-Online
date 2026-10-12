@@ -10,7 +10,7 @@
   built-in messages. This promotes the "custom replication domains" entry of
   `todo/mod-content-ceiling.md` (Part 3, section C) out of the memo.
 - Related: `todo/mod-content-ceiling.md` (the entry this promotes and the platform direction it sits in),
-  `review/mod-crafting-quality-labels.md` (the sibling stage-1 cycle of the same promotion funnel),
+  `done/mod-crafting-quality-labels.md` (the sibling stage-1 cycle of the same promotion funnel),
   `future/wire-surface-baseline.md` (the wire surface is recorded beside the protocol version),
   `docs/en/reference/protocol-messages.md`, `docs/decisions/active.md` (decision 243 — this cycle's design
   record — and decision 241 for the protocol-number policy)

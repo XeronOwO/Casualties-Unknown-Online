@@ -11,8 +11,8 @@
 - Category: Mod platform / remote medical / architecture
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2, stage 2)
 - Related: `docs/backlog/review/remote-medical-stage-1-injection-session.md` (the session this ticket's
-  Part A changes the effect half of), `docs/backlog/review/mod-crafting-quality-labels.md`,
-  `docs/backlog/review/mod-content-kind-with-no-provider.md`, `docs/en/reference/mod-api.md`,
+  Part A changes the effect half of), `docs/backlog/done/mod-crafting-quality-labels.md`,
+  `docs/backlog/done/mod-content-kind-with-no-provider.md`, `docs/en/reference/mod-api.md`,
   `docs/en/reference/modification-policy.md`, `docs/decisions/active.md` (184: the affected side judges
   on its own picture)
 - Source: the 2026-09-25 mod-ceiling inventory (Part 2), promoted 2026-10-07; this stage was cut on

@@ -1,8 +1,8 @@
 # Content kinds with no provider — mechanism inventory and self-check
 
-Owner cycle: `review/mod-content-kind-with-no-provider.md` (2026-10-07), cut from
+Owner cycle: `done/mod-content-kind-with-no-provider.md` (2026-10-07), cut from
 `todo/mod-content-ceiling.md` Part 3 B — the second of its two first-in-line entries, after
-`review/mod-crafting-quality-labels.md`.
+`done/mod-crafting-quality-labels.md`.
 
 Decision (entry 245): the framework's content-kind vocabulary names EXACTLY the kinds a CUO provider
 binds, and a registration nothing can bind is answered at load time by the runtime binder. Both halves
@@ -14,7 +14,7 @@ binder's warning answers a kind written as a literal or invented by a mod.
 | # | Mechanism | Evidence / decision |
 |---|---|---|
 | 1 | The two lists that had drifted | `src/CasualtiesUnknownOnline.Abstractions/ModContentKind.cs` declared twelve constants; `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterComposition.cs` registered nine `IContentBindingProvider`s, and each provider's `Kind` member was one of the other nine constants (checked provider by provider with a source scan). Nothing compared the two lists: no gate, no test, no table |
-| 2 | What the three provider-less names were | `Setting` and `Locale` appeared nowhere else under `src/` at all, and the capabilities behind them are ruled out of CUO core by `docs/backlog/review/cucorelib-migration-support.md` ("**Out of scope for CUO core.** Settings are local UX"; "**Out of scope / mod-local.** Localization is a normal mod packaging concern"). `Entity` had exactly one other consumer, `BuiltInResourceLocationSource`, which labels CUO's own `cu:player` selector id with it |
+| 2 | What the three provider-less names were | `Setting` and `Locale` appeared nowhere else under `src/` at all, and the capabilities behind them are ruled out of CUO core by `docs/backlog/done/cucorelib-migration-support.md` ("**Out of scope for CUO core.** Settings are local UX"; "**Out of scope / mod-local.** Localization is a normal mod packaging concern"). `Entity` had exactly one other consumer, `BuiltInResourceLocationSource`, which labels CUO's own `cu:player` selector id with it |
 | 3 | Why a registration under them succeeded | `ModContentPolicy.IsValidKind` is `!string.IsNullOrWhiteSpace(kind) && kind!.Length <= MaxKindLength` — the policy rails the id and the kind's SHAPE, never its membership, because kinds are documented as mod-defined tags. `ModContentAdapter.TryRegister` returns `true` and logs `"[Mods] {ModId} registered content {Id} ({Kind}, schema {SchemaVersion}, {Length} bytes)."` at Information |
 | 4 | The only word on a provider-less registration | `ModContentBinder`'s map miss was `log.LogDebug("[ModContentBinder] no provider for content kind {Kind}; {ModId}/{Id} stays opaque.")`, while both sibling branches in the same loop (a mod that is not a shared-content mode; a provider that refused the definition) are Warnings. At the default log level the mod author saw a success line and then nothing |
 | 5 | Where the provider set lives, and where registration happens | the binder builds its map from the DI-registered `IEnumerable<IContentBindingProvider>` in one method; the per-mod `ModContentAdapter` is constructed from a manifest and a logger and holds no provider knowledge. The map is therefore the only place that can judge a registration against what CUO can bind — which is why the fix is the binder's warning and not a registration-time refusal |
@@ -31,7 +31,7 @@ binder's warning answers a kind written as a literal or invented by a mod.
 | `ModContentDisplayName` | its switch over the vocabulary | reads eight of the nine kinds; `Recipe` deliberately falls back to the registered id, unchanged by this cycle |
 | `ModContentResourceLocationSource` | whether it should also skip a provider-less kind | it keeps listing it: the console vocabulary answers "what did the mod register", the binder answers "will it exist". The distinction is now stated on the mod API page instead of implied |
 | The nine providers | class ↔ registration statement ↔ constant, in both directions | all nine agree (the gate asserts it) |
-| Docs stating the old vocabulary | both blocks of `reference/mod-api.md` and `how-to/register-content.md`, the umbrella, and every other live document that printed the twelve-kind list | updated — including `review/cucorelib-migration-support.md`'s implemented-base list (the very ticket this cycle cites as its authority, found by the independent review after the first sweep missed it) and `todo/item-and-entity-data-commands.md`'s related-surface clause |
+| Docs stating the old vocabulary | both blocks of `reference/mod-api.md` and `how-to/register-content.md`, the umbrella, and every other live document that printed the twelve-kind list | updated — including `done/cucorelib-migration-support.md`'s implemented-base list (the very ticket this cycle cites as its authority, found by the independent review after the first sweep missed it) and `todo/item-and-entity-data-commands.md`'s related-surface clause |
 | Tests and tools naming a removed constant | a repository-wide scan | none; the change compiled with no test edits beyond the binder fact and the new built-in source fact |
 
 ## 3. Self-check table
@@ -81,7 +81,7 @@ Adversarial review in a fresh context against the frozen tree, read-only, FULL t
 `%TEMP%\cuo-review-mod-content-kind-coverage.md` (not committed). What it found and what changed:
 
 - **major — a live document the cycle itself cites still printed the old vocabulary.**
-  `review/cucorelib-migration-support.md`'s implemented-base list still named `setting` and `locale`; its
+  `done/cucorelib-migration-support.md`'s implemented-base list still named `setting` and `locale`; its
   list and this cycle's swept-docs row are corrected.
 - **minor — two quoted mutation messages did not occur.** The census floors sat exactly at the measured
   counts and were asserted before the semantic comparisons, so a count-reducing mutation reported only the

@@ -451,7 +451,7 @@ boundary; no dual shape is kept.
 | Ticket | Verdict | Reason |
 |---|---|---|
 | `docs/backlog/review/unified-remote-display-projection-rework.md` | **stays landed** (not reopened) | its seam (`RemoteCharacterDisplayProjection`, `RemoteItemPresentation.ApplySourceValues`) is exactly the display half this design keeps; nothing in this rework replaces it |
-| `docs/backlog/review/global-projection-framework.md` | **stays landed** (not reopened) | the projection contract is untouched: the viewer's backpack is still a rebuildable read model of the owner's facts |
+| `docs/backlog/done/global-projection-framework.md` | **stays landed** (not reopened) | the projection contract is untouched: the viewer's backpack is still a rebuildable read model of the owner's facts |
 | `docs/backlog/resolved/remote-backpack-native-interaction-parity.md` | **absorbed** into the rework ticket | it is the rejected delivery this ticket replaces; its operation map described the routing table that §3.2 deletes |
 | `docs/backlog/resolved/remote-backpack-item-projection-acceptance-issues.md` | **absorbed** into the rework ticket | its reported rows are the rework's acceptance input; the two rows that were about display only (durability source values, container content rendering) are the landed projection seam's, and its interactive rows are matrix rows 2-9 |
 

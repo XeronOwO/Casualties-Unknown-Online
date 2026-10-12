@@ -10,7 +10,7 @@
   latency and an unstable network.
 - Related: `docs/en/reference/mod-api.md` (the mod-facing surface a player like this could ship as),
   `review/pinyin-search-standalone-mod.md` (the precedent for a CUO-family mod that is not the core plugin),
-  `review/global-adaptive-report-rate-flow-control.md` (bandwidth is a governed resource in this project),
+  `done/global-adaptive-report-rate-flow-control.md` (bandwidth is a governed resource in this project),
   `review/mod-defined-wire-packets.md` (a mod-owned packet family, if the player ships as a mod)
 
 ## What is asked
@@ -21,7 +21,7 @@
   experience is not hostage to the slowest link's jitter.
 - The transfer must behave under bad networks: high latency, packet loss, a member joining mid-song, a member
   whose transfer stalls, and a member who leaves. It must also be bounded — this project treats bandwidth as a
-  governed resource (`review/global-adaptive-report-rate-flow-control.md`), so an unbounded push is not an
+  governed resource (`done/global-adaptive-report-rate-flow-control.md`), so an unbounded push is not an
   option.
 
 ## What is not known yet

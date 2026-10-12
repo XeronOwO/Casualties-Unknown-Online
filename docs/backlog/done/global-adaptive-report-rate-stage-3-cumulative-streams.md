@@ -1,6 +1,7 @@
 # Global adaptive report-rate flow control — Stage 3: cumulative stream coalescing
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/global-adaptive-report-rate-stage-3-cumulative-streams-20261012-c.md`): every row passes — the coalescing rows and the cycle's self-check record hold.
 - Priority: Medium
 - Category: Network / adaptive sync / flow control
 - Parent: `global-adaptive-report-rate-flow-control.md`

@@ -1,6 +1,7 @@
 # CUCoreLib migration support
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/cucorelib-migration-support-20261012-c.md`): every row passes — all twenty-four matrix rows are grounded in the seam each names.
 - Priority: Medium
 - Category: Mod ecosystem / migration
 - Source: External project — <https://github.com/jimmyking9999999/CUCoreLib> (based on KrokMP)
@@ -79,7 +80,7 @@ mods need:
 - `ModContentKind` in Abstractions — a stable base vocabulary for the content
   kinds CUO binds (item, recipe, liquid, liquidtile, tile, building, structure,
   status, moodle). `setting` and `locale` left that vocabulary on 2026-10-07
-  (`review/mod-content-kind-with-no-provider.md`, decision 245): this ticket
+  (`done/mod-content-kind-with-no-provider.md`, decision 245): this ticket
   rules both surfaces out of CUO core, and a kind no provider binds never
   materialized — the vocabulary now names only the kinds a provider binds.
 - `ModContentDefinition.SchemaVersion` and the

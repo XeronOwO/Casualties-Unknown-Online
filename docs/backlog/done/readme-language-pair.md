@@ -1,11 +1,12 @@
 # The root README as a language pair, and English first in the documentation entry
 
-- Status: Review — **raised and landed 2026-10-11 by the user**, in their own words: "根目录的 README.md 也做
+- Status: Done — **raised and landed 2026-10-11 by the user**, in their own words: "根目录的 README.md 也做
   成中英双语的两份文档，可以通过超链接切换语言。docs/README.md 改成先英语后中文，考虑到对国外友人更友好点，
   因此英语优先。根目录 README.md 中，我使用过的模型新增 DeepSeek V4.1 Flash，这个是目前的主要开发使用的模型
   了". The user offered it either as this ticket or as a side task of the cycle running when they asked; it was
   filed while that cycle finished, then worked as its own documentation cycle with its own commit, so the code
   cycle kept its own. What landed is below.
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/readme-language-pair-20261012-c.md`): every row passes — the paired pages, the registry decision and the link set hold.
 - Priority: Low-Medium
 - Category: Documentation / project metadata
 - Related: `docs/README.md` (the switcher page whose order this changes),

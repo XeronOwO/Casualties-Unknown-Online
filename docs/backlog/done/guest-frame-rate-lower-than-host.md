@@ -1,6 +1,7 @@
 # Guest frame rate lower than host with frame drops
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/guest-frame-rate-lower-than-host-20261012-c.md`): every row passes — the telemetry and allocation rows hold; the frame-rate comparison stays a residual for the user.
 - Priority: Medium
 - Category: Performance / guest-side runtime
 - Source: User report (2026-09-05) — the guest's frame rate is noticeably lower than the host's and the guest experiences frame drops.

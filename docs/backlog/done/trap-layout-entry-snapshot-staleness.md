@@ -1,10 +1,11 @@
 # The world-entry trap-layout fanout can carry an entity the host has removed
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/trap-layout-entry-snapshot-staleness-20261012-c.md`): every row passes — all five entry, reconnect, repair, fail-safe and third-party cases pass.
 - Priority: Low-Medium
 - Category: Network / sync coverage / world entities
-- Source: the W6 landing record (`review/trap-layout-snapshot-recovery.md`) — the in-session repair re-derives the table from the live scene, the entry fanout still sends it as last derived
-- Related: `review/trap-layout-snapshot-recovery.md`, `review/sync-cadence-review.md`, `docs/decisions/active.md` (191)
+- Source: the W6 landing record (`done/trap-layout-snapshot-recovery.md`) — the in-session repair re-derives the table from the live scene, the entry fanout still sends it as last derived
+- Related: `done/trap-layout-snapshot-recovery.md`, `review/sync-cadence-review.md`, `docs/decisions/active.md` (191)
 
 ## Problem (evidence)
 
@@ -61,7 +62,7 @@ entering or reconnecting member never materializes an entity the host has remove
 
 ## Non-goals
 
-- The in-session repair itself (landed as W6, `review/trap-layout-snapshot-recovery.md`).
+- The in-session repair itself (landed as W6, `done/trap-layout-snapshot-recovery.md`).
 - Removing entities from the layout for reasons other than an observed live-scene scan.
 
 ## Landing record (2026-09-19)

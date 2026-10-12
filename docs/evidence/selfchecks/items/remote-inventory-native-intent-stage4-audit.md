@@ -128,7 +128,7 @@ question for the user's run, which is why the acceptance checklist repeats them 
 | Ticket | Verdict | Why |
 |---|---|---|
 | `docs/backlog/review/unified-remote-display-projection-rework.md` | **stays landed, no reopening** | its seam is the display half this rework relies on: matrix rows 3, 4, 13 and 14 are read through `RemoteItemPresentation.ApplySourceValues` and `CloneInventoryRenderer`, and this audit found the interaction rework adds no display requirement the seam does not already carry. Its "remaining boundary" paragraph named the interactive remote-backpack rows as living in this ticket; those rows are now audited here, so the boundary closes without reopening the projection work. |
-| `docs/backlog/review/global-projection-framework.md` | **stays landed, no reopening** | this rework changes interaction, not the projection contract; the audit found no new projection domain, no new rebuild path and no change to the boundary the ticket records (the remote-character-presentation store is still not the adapter's sole display source). |
+| `docs/backlog/done/global-projection-framework.md` | **stays landed, no reopening** | this rework changes interaction, not the projection contract; the audit found no new projection domain, no new rebuild path and no change to the boundary the ticket records (the remote-character-presentation store is still not the adapter's sole display source). |
 
 ## 6. What only the real machine can settle
 

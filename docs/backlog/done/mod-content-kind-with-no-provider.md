@@ -1,17 +1,18 @@
 # Content kinds with no provider: the vocabulary names what binds, the binder answers for the rest
 
-- Status: Review — cut 2026-10-07 from `todo/mod-content-ceiling.md` Part 3 B (the second of its two
+- Status: Done — cut 2026-10-07 from `todo/mod-content-ceiling.md` Part 3 B (the second of its two
   first-in-line entries; the quality reference was the first, landed as
-  `review/mod-crafting-quality-labels.md`). The development half landed 2026-10-07 (see *What landed*);
+  `done/mod-crafting-quality-labels.md`). The development half landed 2026-10-07 (see *What landed*);
   every acceptance row is judged by this repository's own suite, because all of them are load-time and
   client-local. What a real client's log file shows is named in *Limits*, not claimed here.
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-content-kind-with-no-provider-20261012-c.md`): every row passes — the binder warning, the two coverage-gate cases, the three tombstones and the console-entry cases hold.
 - Priority: Medium-High — a defect of a surface the API already promises, so it is filed ahead of the
   umbrella's capability entries (Part 3 C), as that ticket's promotion rule requires.
 - Category: Mod platform / content surface
 - Related: `todo/mod-content-ceiling.md` (the inventory: this is Part 3 B's kind-versus-provider entry),
-  `review/mod-crafting-quality-labels.md` (the sibling entry and the shape it closed),
+  `done/mod-crafting-quality-labels.md` (the sibling entry and the shape it closed),
   `docs/en/reference/mod-api.md` + `docs/zh/reference/mod-api.md` (the user-facing rule),
-  `docs/backlog/review/cucorelib-migration-support.md` (which rules settings and locale out of CUO core),
+  `docs/backlog/done/cucorelib-migration-support.md` (which rules settings and locale out of CUO core),
   `docs/contracts/abstractions-api-baseline.txt` (the three removals are recorded there with tombstones)
 
 ## What was asked
@@ -32,7 +33,7 @@ The umbrella's Part 3 B measured one defect with two halves:
 | Fact | Evidence |
 |---|---|
 | The vocabulary is twelve constants; the adapter binds nine kinds | `src/CasualtiesUnknownOnline.Abstractions/ModContentKind.cs` declares `Item`, `Recipe`, `Liquid`, `LiquidTile`, `Tile`, `Building`, `Entity`, `Structure`, `Status`, `Moodle`, `Setting`, `Locale`; `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterComposition.cs` registers nine `IContentBindingProvider`s, and each provider's `Kind` is one of the other nine constants |
-| `Setting` and `Locale` appear nowhere else under `src/` | the only mentions of either name are the constants themselves; the capabilities behind them are ruled out of CUO core by the migration ticket — `docs/backlog/review/cucorelib-migration-support.md`: settings are "**Out of scope for CUO core.** Settings are local UX; a future `IModSettings` or settings-menu seam is acceptable only if demand appears", and localization is "**Out of scope / mod-local.** Localization is a normal mod packaging concern. CUO should not own locale …" |
+| `Setting` and `Locale` appear nowhere else under `src/` | the only mentions of either name are the constants themselves; the capabilities behind them are ruled out of CUO core by the migration ticket — `docs/backlog/done/cucorelib-migration-support.md`: settings are "**Out of scope for CUO core.** Settings are local UX; a future `IModSettings` or settings-menu seam is acceptable only if demand appears", and localization is "**Out of scope / mod-local.** Localization is a normal mod packaging concern. CUO should not own locale …" |
 | `Entity`'s only other use is a RESOURCE label, not a registration | `src/CasualtiesUnknownOnline.Runtime/Session/Content/BuiltInResourceLocationSource.cs` builds `new(PlayerId, ModContentKind.Entity, localization.T("content.cu_player"))` — the kind word of the built-in `cu:player` selector id |
 | A resource entry's kind is a display label with no in-repo consumer that routes on it | `ResourceLocationEntry.Kind` is documented as the source's own label; the only reader under `src/` renders it into the suggestion text (`CommandConsoleService` builds `$"{entry.Kind} · {entry.DisplayName}"`), and the entry itself is handed to a mod's own match stage (`IResourceLocationMatchStage`), which may read the word |
 | Registration accepts ANY kind | `ModContentPolicy.IsValidKind` is `!string.IsNullOrWhiteSpace(kind) && kind!.Length <= MaxKindLength` — membership of `ModContentKind` is not checked, because kinds are documented as mod-defined tags |
@@ -85,7 +86,7 @@ The umbrella's Part 3 B measured one defect with two halves:
   registry, the API baseline (three tombstones), the rule-to-gate map, the self-check MANIFEST, the
   umbrella's Part 3 B / layer table / promotion rule / open question, the cycle's self-check, and the
   other live documents that still printed the old vocabulary
-  (`review/cucorelib-migration-support.md`'s implemented-base list, `todo/item-and-entity-data-commands.md`'s
+  (`done/cucorelib-migration-support.md`'s implemented-base list, `todo/item-and-entity-data-commands.md`'s
   related-surface clause).
 - Decision 245 records the rule and the rejected alternative.
 

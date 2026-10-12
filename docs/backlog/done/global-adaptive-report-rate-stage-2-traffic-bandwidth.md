@@ -1,6 +1,7 @@
 # Global adaptive report-rate flow control — Stage 2: per-peer/per-stream traffic & bandwidth estimates
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/global-adaptive-report-rate-stage-2-traffic-bandwidth-20261012-c.md`): every row passes — the traffic and bandwidth rows are green in this run.
 - Priority: Medium
 - Category: Network / adaptive sync / flow control
 - Parent: `global-adaptive-report-rate-flow-control.md`

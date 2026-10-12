@@ -1,8 +1,9 @@
 # Crafting-quality labels: the item surface and the load-time reference check
 
-- Status: Review — the development half landed 2026-10-07 (see *What landed*); every acceptance row below is
+- Status: Done — the development half landed 2026-10-07 (see *What landed*); every acceptance row below is
   judged by this repository's own suite, because all of them are load-time and client-local. The rows that
   would need the game running are named in *Limits*.
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-crafting-quality-labels-20261012-c.md`): every row passes — the six label rows are the suite's own cases, green in this run.
 - Priority: High
 - Category: Mod platform / content surface
 - Source: cut from `todo/mod-content-ceiling.md` Part 2 **stage 1** ("content surface parity, small,
@@ -75,7 +76,7 @@ Two halves of one surface, both measured from the umbrella's own inventory:
    providers and the recipe provider normalise a null collection before use instead of failing the
    definition with a logged exception. [The rule now belongs to the contracts themselves — the member's
    setter plus the shared decode step — and the remaining sites were swept by
-   `review/mod-payload-null-collection-tolerance.md` (decision 244); this paragraph records what this cycle
+   `done/mod-payload-null-collection-tolerance.md` (decision 244); this paragraph records what this cycle
    landed.]
 6. **The probe is the game's own matcher.** Acceptance row 1 is judged by driving
    `Item.GetQualityThatMeetsCriteria` — the call `RecipeItem.GetMatchingItem` makes — with the built

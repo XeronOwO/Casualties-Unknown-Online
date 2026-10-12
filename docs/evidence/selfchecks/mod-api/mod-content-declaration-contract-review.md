@@ -144,7 +144,7 @@ Neither figure is load-bearing for the change; both are the kind a later record 
 
 - `docs/evidence/selfchecks/mod-api/mod-payload-null-collections-selfcheck.md` — *"`ModStatusDefinition.ResolveMoodleId`
   and `ModStructureDefinition.TryGetSpawnCount` losing their null clauses"*.
-- `docs/backlog/review/mod-payload-null-collection-tolerance.md` — *"`ModStatusDefinition.ResolveMoodleId` /
+- `docs/backlog/done/mod-payload-null-collection-tolerance.md` — *"`ModStatusDefinition.ResolveMoodleId` /
   `ModStructureDefinition.TryGetSpawnCount` losing their null clauses"*.
 
 Both names no longer exist on those classes, so a reader following either pointer finds nothing — the exact

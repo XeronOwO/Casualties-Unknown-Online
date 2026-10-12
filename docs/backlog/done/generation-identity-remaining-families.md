@@ -5,7 +5,7 @@
 - Priority: Medium
 - Category: Network / protocol / world generation (attribution of world reports)
 - Source: `done/world-layer-generation-identity.md` — the family audit of the cycle that stamped the block-report family; these two families were audited and could NOT be recorded safe, so they are carried here instead of being declared covered
-- Related: `done/world-layer-generation-identity.md`, `review/trap-layout-snapshot-recovery.md`, `done/runtime-entity-spawn-backfill.md`, `done/runtime-entity-creation-rejection.md`
+- Related: `done/world-layer-generation-identity.md`, `done/trap-layout-snapshot-recovery.md`, `done/runtime-entity-spawn-backfill.md`, `done/runtime-entity-creation-rejection.md`
 
 ## Problem (evidence)
 

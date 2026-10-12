@@ -12,7 +12,7 @@
   custom replication domains, promoted on its own),
   `docs/backlog/review/mod-cross-player-native-semantics.md` (Part 2 stage 2, cut out on 2026-10-08),
   `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
-  `docs/backlog/review/cucorelib-migration-support.md`, `docs/backlog/future/phase5-tooling-ecosystem.md`
+  `docs/backlog/done/cucorelib-migration-support.md`, `docs/backlog/future/phase5-tooling-ecosystem.md`
 - Source: The 2026-09-25 tag/quality inventory and mod-ceiling analysis — the whole session's finding; user
   decision 2026-09-25 — ONE ticket holding every item, nothing filed under `todo/`, and the implementation
   split into stages when it is promoted. The 2026-10-07 directive is that promotion.
@@ -137,7 +137,7 @@ Consequences:
   (`docs/backlog/done/mod-authored-effects.md`), because a payload travels to every peer as data and
   cannot carry a function.
   (Qualities are no longer in this list — item and liquid qualities landed 2026-10-07 with stage 1,
-  `review/mod-crafting-quality-labels.md`.)
+  `done/mod-crafting-quality-labels.md`.)
 
 ### Direction (staged — the stage split is mandatory)
 
@@ -145,7 +145,7 @@ Each stage is its own deliverable with its own verification, and stage 1 must no
 preparation for stage 2.
 
 **Stage 1 — content surface parity (small, self-contained; landed 2026-10-07 as
-`review/mod-crafting-quality-labels.md`).** `ModItemDefinition.Qualities` decoded
+`done/mod-crafting-quality-labels.md`).** `ModItemDefinition.Qualities` decoded
 into `ItemInfo.qualities`, so a mod item can satisfy a quality-based recipe (vanilla and mod-authored).
 Add the liquid effect delegates and the limb-use behaviour only behind a real consumer (see *Open
 questions*) — **the consumer gate is superseded 2026-10-08** (see Stage 3 below); what stays is the
@@ -249,13 +249,13 @@ quality-reference check closed for recipes in stage 1:
   provider** (the nine providers cover the other nine kinds). `Entity` appeared once in `src/`, as the
   console resource-location label of the built-in player entity; `Setting` and `Locale` did not appear at
   all. A registration for one of them was accepted and materialized nothing. **Cut and landed
-  2026-10-07 as `review/mod-content-kind-with-no-provider.md`**: the vocabulary now names only the kinds a
+  2026-10-07 as `done/mod-content-kind-with-no-provider.md`**: the vocabulary now names only the kinds a
   provider binds, the built-in resource entry carries its own kind word, the binder reports a
   provider-less registration at warning level, and a gate ties the vocabulary, the providers and the
   registration statements that name them into one list.
 - A `ModRecipeIngredient.Quality` that no provider can satisfy is now refused and reported at load time
   instead of becoming a recipe that can never be crafted — **landed 2026-10-07** with stage 1
-  (`review/mod-crafting-quality-labels.md`), which also records the two reach limits that stay open there
+  (`done/mod-crafting-quality-labels.md`), which also records the two reach limits that stay open there
   (a LIQUID label's amount, and a definition whose id collides with a vanilla entry).
 
 ### C. Capability the game itself does not have
@@ -263,7 +263,7 @@ quality-reference check closed for recipes in stage 1:
 These need new capability rather than a predicate, and none has a consumer. None of them has a
 `ModContentKind` constant either: the vocabulary names only the kinds a provider binds, so a
 capability's kind joins it in the same change as the provider that binds it
-(`review/mod-content-kind-with-no-provider.md`).
+(`done/mod-content-kind-with-no-provider.md`).
 
 - **recipe override** — change or delete the 132 hardcoded vanilla recipes; CUO can only append.
 - **new layer modifiers and biomes** — the vanilla `LayerModifier` family.
@@ -289,8 +289,8 @@ first one).
 Two entries are first in line, because they are defects of a surface the API already promises rather than new
 capability, so they carry a reachable failure path instead of a wish: **a content kind with no provider**, and
 **a quality reference with no provider**. Both are filed at a higher priority than the capability entries when
-their own tickets are cut. Both are now cut: `review/mod-crafting-quality-labels.md` (2026-10-07) and
-`review/mod-content-kind-with-no-provider.md` (2026-10-07).
+their own tickets are cut. Both are now cut: `done/mod-crafting-quality-labels.md` (2026-10-07) and
+`done/mod-content-kind-with-no-provider.md` (2026-10-07).
 
 ## Open questions
 
@@ -302,7 +302,7 @@ their own tickets are cut. Both are now cut: `review/mod-crafting-quality-labels
 - Stage 3 with mixed-mod sessions: does the existing handshake consistency (mod id, version, permissions,
   `NativeBinding` parity) cover "same content, different semantics"?
 - Part 3's kind-versus-provider mapping — **answered 2026-10-07** by
-  `review/mod-content-kind-with-no-provider.md`, and the answer is both halves taken together: the
+  `done/mod-content-kind-with-no-provider.md`, and the answer is both halves taken together: the
   unimplemented kinds leave `ModContentKind` (so a mod cannot write them through the API at all), and the
   binder warns for any registration no provider binds (so a literal, hand-written kind is still answered
   at load time rather than in silence). Neither half alone closes the failure path.

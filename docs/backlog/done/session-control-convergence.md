@@ -1,6 +1,7 @@
 # Session control convergence: lost readiness/control messages have no re-report
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/session-control-convergence-20261012-c.md`): every row passes — all ten convergence cases pass; the adapter's Unity half is named as a limit.
 - Priority: Medium
 - Category: Network / sync coverage / session control
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` rows R3, R4, W7 marker finding)

@@ -77,4 +77,4 @@ The same cycle also landed the global projection framework core
 (`IProjectionDomain`, `ProjectionDomain`,
 `ProjectionHealthCoordinator.Register(IProjectionDomain)`) and the architecture
 doc `docs/architecture/projection-framework.md`; the full domain migration is
-tracked in `docs/backlog/review/global-projection-framework.md`.
+tracked in `docs/backlog/done/global-projection-framework.md`.

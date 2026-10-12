@@ -34,6 +34,13 @@ A batch is bounded by the world it needs: tickets whose scenarios need different
 player counts are split into separate runs, and that split is part of the plan. Runs are serialised —
 only one two-client session exists on the machine at a time.
 
+An acceptance run is not a development cycle: it does not reset and does not fill
+`docs/evidence/delivery-checklist.md`, whose gate governs the development commit ("Deployment and
+multiplayer acceptance are the agent's actions, run after the commit per `docs/acceptance/` and outside
+this gate"), and it records that judgement in its own scope page (§7). What the run does owe the
+checklist is a verdict on every row it claims, which is the same evidence the checklist's own step 9
+names.
+
 ## 2. Dependency preflight — a gate, not a formality
 
 ```powershell

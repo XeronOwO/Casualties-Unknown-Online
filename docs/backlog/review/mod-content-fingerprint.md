@@ -6,7 +6,7 @@
   here: making a definition able to COMPUTE its values is what made the field load-bearing.
 - Priority: Medium
 - Category: Mod platform / save + handshake
-- Related: `docs/backlog/review/mod-content-typed-registration.md` (the typed contract; it already records
+- Related: `docs/backlog/done/mod-content-typed-registration.md` (the typed contract; it already records
   that the field is written as `string.Empty`), `docs/architecture/save-archive-format.md` (the manifest the
   field lives in), `docs/backlog/done/world-determinism-world-fingerprint.md` (the OTHER fingerprint — world
   block state, a local diagnostic; this ticket is about content).

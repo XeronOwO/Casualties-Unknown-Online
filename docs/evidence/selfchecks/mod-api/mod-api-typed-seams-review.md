@@ -11,7 +11,7 @@ set move together. Read-only: the only file this review writes is this report, `
 change's claims were attacked, never the evidence offered for them; every claim was re-opened in the tree and
 every suite that runs without the game was run.
 
-Ticket: `docs/backlog/review/mod-api-typed-seams.md`. Self-check:
+Ticket: `docs/backlog/done/mod-api-typed-seams.md`. Self-check:
 `docs/evidence/selfchecks/mod-api/mod-api-typed-seams-selfcheck.md`. Decision: entry 250.
 
 ## 1. Verdict
@@ -251,8 +251,8 @@ line naming the pair.
 
 The change amended the English policy page to:
 
-> "The three `Critical` tickets this rule produced (`review/mod-content-typed-registration.md`,
-> `review/mod-api-no-opaque-envelopes.md`, `review/mod-api-typed-seams.md`) have all landed, so the contract
+> "The three `Critical` tickets this rule produced (`done/mod-content-typed-registration.md`,
+> `review/mod-api-no-opaque-envelopes.md`, `done/mod-api-typed-seams.md`) have all landed, so the contract
 > carries none of the debt it was written for; what keeps it that way is this review and the baseline gate,
 > not a scan."
 
@@ -304,7 +304,7 @@ recorded in full form (as in §2) in both the ticket and the self-check.
 
 > "(`docs/backlog/todo/mod-api-typed-seams.md`, whose own table names that exact line)"
 
-The file it points at was deleted by this change (the ticket is now `docs/backlog/review/mod-api-typed-seams.md`),
+The file it points at was deleted by this change (the ticket is now `docs/backlog/done/mod-api-typed-seams.md`),
 so the path no longer resolves. This is the same class of check the immediately preceding cycle ran on its own
 move — that cycle's report records "no `todo/mod-api-no-opaque-envelopes` reference survives under `docs/`"
 as one of its tier-1 grep checks — so the sweep this change performs was incomplete, and claim 7's "the moved

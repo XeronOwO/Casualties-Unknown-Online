@@ -1,6 +1,7 @@
 # Global unified projection framework
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/global-projection-framework-20261012-c.md`): every row passes — the typed registration, the single snapshot surface and the contained rebuild hold.
 - Priority: High
 - Category: Architecture / projection framework
 - Source: User direction (2026-09-07) — the earlier unified remote display projection work was only one projection domain; a macro/global projection system is required so items, players, world entities, fluids, enemies and remote presentation all converge on the same contract.

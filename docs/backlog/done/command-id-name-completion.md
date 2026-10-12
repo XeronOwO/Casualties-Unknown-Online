@@ -3,7 +3,7 @@
 - Status: Done
 - Priority: Medium
 - Category: Tooling / Console / Mod API
-- Depends on: [Namespaced ID system](../review/id-system-namespaced-ids.md) — this ticket
+- Depends on: [Namespaced ID system](../done/id-system-namespaced-ids.md) — this ticket
   consumes its vocabulary and lands in the same cycle (bundled item).
 - Acceptance record: `docs/evidence/acceptance/command-id-name-completion-20260927.md`
 

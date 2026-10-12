@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Network / sync coverage / audit
 - Source: User request (2026-09-07) — "扫描所有涉及同步的游戏特性，是否都做了事件级同步与定时兜底同步？例如我印象中世界中的方块没做定时兜底同步，做一下整个项目的系统性排查"
-- Related: `done/world-determinism-world-fingerprint.md`, `review/global-adaptive-report-rate-flow-control.md`, `done/network-traffic-baseline.md`
+- Related: `done/world-determinism-world-fingerprint.md`, `done/global-adaptive-report-rate-flow-control.md`, `done/network-traffic-baseline.md`
 - Acceptance record: `docs/evidence/acceptance/sync-event-and-periodic-fallback-coverage-audit-20260927.md`
 
 ## Goal
@@ -96,7 +96,7 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   Partial block damage shares the asymmetry (row W2 — closed 2026-09-18 by
   `done/guest-partial-block-damage-re-report.md`).
 - **Gap tickets** (one ticket per gap, with W2 split from W1 and R3+R4 merged): `done/guest-partial-block-damage-re-report.md`,
-  `review/trap-layout-snapshot-recovery.md`,
+  `done/trap-layout-snapshot-recovery.md`,
   `done/enemy-snapshot-binding-recovery.md`, `review/enemy-hit-determination-local.md`,
   `done/guest-command-loss-reconciliation.md`, `review/recipe-unlock-fallback.md` (row I6 — closed
   2026-09-19: the absolute unlock set rides the world-entry and 60 s repair groups from the host and
@@ -104,14 +104,14 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
   `done/carried-inventory-registration-re-report.md` (row I8 — closed 2026-09-19: the guest
   re-reports its current carried set absolutely on a dense-then-steady cadence, and the host
   applies a report registration-only against the kernel's verdict),
-  `review/session-control-convergence.md` (rows R3+R4 — closed 2026-09-19: the guest's bounded
+  `done/session-control-convergence.md` (rows R3+R4 — closed 2026-09-19: the guest's bounded
   absolute scene re-report window, the host's idempotent repeat answer, the re-ack loop and the
   roster riding the in-session repair group; the completion marker is now that window's
   acknowledgement), `done/checkpoint-run-epoch-validation.md` (row K2 finding — closed
   2026-09-19: the world-join instruction announces the host's run epoch, the guest refuses a
   checkpoint set from another run before a chunk is buffered, and the pending set is keyed by
   its own epoch/revision/chunk count),
-  `review/mod-command-request-timeout.md`, `review/sync-cadence-review.md` (cadence findings
+  `done/mod-command-request-timeout.md`, `review/sync-cadence-review.md` (cadence findings
   raised at the user's request), and `review/guest-break-drops-recovery.md` (found while
   landing W1).
 - **Guard**: `tests/CasualtiesUnknownOnline.NormativeGates.Tests/SyncCoverageGateTests.cs` —

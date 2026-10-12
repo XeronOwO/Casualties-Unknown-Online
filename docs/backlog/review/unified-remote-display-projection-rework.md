@@ -70,7 +70,7 @@ not hidden under this umbrella.
 
 This ticket is the remote-character-display slice of the projection work, not
 the complete macro projection system. The global framework is tracked in
-`docs/backlog/review/global-projection-framework.md`: typed `IProjectionDomain` /
+`docs/backlog/done/global-projection-framework.md`: typed `IProjectionDomain` /
 `ProjectionDomain` core, the typed health-tracked domains, and the additional
 `run` / `players-carry` / `remote-character-presentation` / `mod-status`
 domains have landed; enemy/player continuous projection and remote-presentation

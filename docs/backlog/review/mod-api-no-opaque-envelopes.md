@@ -7,10 +7,10 @@
   mod-visible contract now carries no `byte[]` outside the model's own binary leaf.
 - Priority: Critical
 - Category: Mod platform / protocol / architecture
-- Related: `docs/backlog/review/mod-content-typed-registration.md` (step 1 of the same ruling),
+- Related: `docs/backlog/done/mod-content-typed-registration.md` (step 1 of the same ruling),
   `docs/backlog/done/mod-authored-effects.md` (follows this one, and would otherwise be built twice),
   `docs/backlog/review/mod-defined-wire-packets.md` (the packet surface),
-  `docs/backlog/review/mod-payload-null-collection-tolerance.md` (the rule that exists because of the payload
+  `docs/backlog/done/mod-payload-null-collection-tolerance.md` (the rule that exists because of the payload
   step), `docs/en/reference/mod-api.md`
 - Source: the user's 2026-10-08 ruling, quoted above.
 
@@ -190,7 +190,7 @@ Two facts worth carrying forward:
 - **The null-collection census shrank by a member for a real reason.** The runtime moodle request's
   `Payload` is a `ModValue` now, so it is not a collection member; the census is
   `ModNullCollectionRuleTests` with 26 rows, and the model's read-only `Items`/`Fields` views are a named
-  group rather than rows. `review/mod-payload-null-collection-tolerance.md` records the retirement.
+  group rather than rows. `done/mod-payload-null-collection-tolerance.md` records the retirement.
 
 ## What landed (2026-10-09, stage B)
 

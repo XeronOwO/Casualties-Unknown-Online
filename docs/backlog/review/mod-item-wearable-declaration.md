@@ -15,7 +15,7 @@
 - Related: `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (the sibling ruling this ticket
   follows: a declaration the framework cannot materialize is inert and reported, never fatal),
   `docs/backlog/review/mod-cross-player-native-semantics.md` (the wear chain whose predicate already asks
-  the item's own data and refuses what it cannot place), `docs/backlog/review/mod-content-typed-registration.md`
+  the item's own data and refuses what it cannot place), `docs/backlog/done/mod-content-typed-registration.md`
   (the typed content contract this one extends), `docs/backlog/done/mod-authored-effects.md` (the
   code-registration surface — the wear fields are DATA, not functions, so this ticket does not wait for it),
   `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,

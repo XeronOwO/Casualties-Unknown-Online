@@ -1,16 +1,17 @@
 # A null collection in a content payload must mean "none"
 
-- Status: Review — the development half landed 2026-10-07 (see *What landed*); every acceptance row below is
+- Status: Done — the development half landed 2026-10-07 (see *What landed*); every acceptance row below is
   judged by this repository's own suite, because all of them are load-time and client-local. The rows that
   would need the game running are named in *Limits*.
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-payload-null-collection-tolerance-20261012-c.md`): every row passes — the 26-member census, the binder suite and the retired decode row all hold.
 - Priority: Medium
 - Category: Mod platform / content surface
-- Source: found by the independent review of `review/mod-crafting-quality-labels.md` (2026-10-07), which
+- Source: found by the independent review of `done/mod-crafting-quality-labels.md` (2026-10-07), which
   asked why an explicitly-null `Qualities` list made the definition fail. The answer is a payload-wide
   pattern, not one field: `DataContractSerializer` runs no property initializer, so a mod that assigns null
   to a list round-trips an explicit nil, and every provider that dereferences such a list without a guard
   turns "I did not set this" into a failed definition.
-- Related: `review/mod-crafting-quality-labels.md` (fixed the two sites it touched and records the
+- Related: `done/mod-crafting-quality-labels.md` (fixed the two sites it touched and records the
   remaining sweep here), `docs/en/reference/mod-api.md` + `docs/zh/reference/mod-api.md` (the DTO tables
   and the rule), `docs/decisions/active.md` (entry 244),
   `docs/evidence/selfchecks/mod-api/mod-payload-null-collections-selfcheck.md`,

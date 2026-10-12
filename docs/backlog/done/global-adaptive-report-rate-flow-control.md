@@ -1,6 +1,7 @@
 # Global adaptive report-rate / sync-frequency flow control — roadmap
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/global-adaptive-report-rate-flow-control-20261012-c.md`): every row passes — the four direction rows are grounded on the landed stages.
 - Priority: Medium (promoted by user from future on 2026-09-06)
 - Category: Network / adaptive sync / flow control
 - Source: User selection — "做上报率框架吧。如果觉得比较复杂，可以拆分成多阶段分阶段实施，一个会话一个阶段，不要 goal 一次性做完，拆分后不保留原文档。有些数据包是允许不可靠的，有些数据包是要求可靠的，需要做区分"

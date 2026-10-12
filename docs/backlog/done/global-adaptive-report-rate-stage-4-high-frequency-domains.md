@@ -1,6 +1,7 @@
 # Global adaptive report-rate flow control — Stage 4: remaining high-frequency domain streams
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/global-adaptive-report-rate-stage-4-high-frequency-domains-20261012-c.md`): every row passes — the interval, fluid and trader rows and the self-check record hold; the ticket's two stale table cells are named in the record.
 - Priority: Medium
 - Category: Network / adaptive sync / flow control
 - Parent: `global-adaptive-report-rate-flow-control.md`

@@ -1,6 +1,7 @@
 # Dropped mod command requests settle on a deadline instead of waiting for the session to end
 
-- Status: Review — landed 2026-09-19 (decision 197). Awaiting the final unified acceptance pass.
+- Status: Done — landed 2026-09-19 (decision 197). Awaiting the final unified acceptance pass.
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-command-request-timeout-20261012-c.md`): every row passes — all five deadline and cap cases pass, with the carriers' loss-tolerance read from the page.
 - Priority: Low
 - Category: Network / sync coverage / mod API
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N8)

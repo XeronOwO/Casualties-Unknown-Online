@@ -1,6 +1,6 @@
 # Global adaptive report rate Stage 4 — remaining high-frequency domain streams self-check
 
-Owner cycle: backlog `docs/backlog/review/global-adaptive-report-rate-stage-4-high-frequency-domains.md`.
+Owner cycle: backlog `docs/backlog/done/global-adaptive-report-rate-stage-4-high-frequency-domains.md`.
 
 ## 1. Mechanism inventory
 

@@ -1,7 +1,7 @@
 # Null collections in a mod payload — mechanism inventory and self-check
 
-Owner cycle: `review/mod-payload-null-collection-tolerance.md` (2026-10-07), filed by the independent
-review of `review/mod-crafting-quality-labels.md`, which normalised the two sites it touched and recorded
+Owner cycle: `done/mod-payload-null-collection-tolerance.md` (2026-10-07), filed by the independent
+review of `done/mod-crafting-quality-labels.md`, which normalised the two sites it touched and recorded
 the remaining sweep here.
 
 Decision (entry 244): every collection member of every mod-authored contract in Abstractions means "none"

@@ -1,7 +1,7 @@
 # Namespaced content id + resource-location completion — self-check
 
 Delivery fact sheet for the bundled backlog pair
-`docs/backlog/review/id-system-namespaced-ids.md` +
+`docs/backlog/done/id-system-namespaced-ids.md` +
 `docs/backlog/review/command-id-name-completion.md`: CUO content identity is
 now one canonical `namespace:path` vocabulary (`cu` built-in, mod-declared
 namespaces), and the console's `ResourceLocation` argument completes by

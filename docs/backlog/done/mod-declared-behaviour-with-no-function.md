@@ -15,8 +15,8 @@
 - Category: Mod platform / content binding
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A)
 - Related: `docs/en/reference/mod-api.md` (the two DTO rows this ticket's surface promises),
-  `docs/backlog/review/mod-content-kind-with-no-provider.md` (the precedent: a declaration nothing
-  materializes), `docs/backlog/review/mod-crafting-quality-labels.md` (the other one: a reference nothing
+  `docs/backlog/done/mod-content-kind-with-no-provider.md` (the precedent: a declaration nothing
+  materializes), `docs/backlog/done/mod-crafting-quality-labels.md` (the other one: a reference nothing
   provides, refused at load), `docs/backlog/review/mod-cross-player-native-semantics.md` (the chains whose
   appliers already guard a delegate-less liquid), `docs/decisions/active.md` (184: the affected side judges
   on its own picture)

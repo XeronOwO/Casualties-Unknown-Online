@@ -3,7 +3,7 @@
 - Status: Done
 - Priority: Medium
 - Category: Mod API / Policy
-- Related: [Native-binding parity in the session handshake](../review/mod-native-binding-handshake-parity.md)
+- Related: [Native-binding parity in the session handshake](../done/mod-native-binding-handshake-parity.md)
   carries the declaration into the session.
 - Acceptance record: `docs/evidence/acceptance/mod-native-binding-declaration-20260927.md`
 
@@ -85,7 +85,7 @@ takes the narrowest tier that expresses its feature: the curated `IModNativeApi`
 
 ### Stage 2 — session parity
 
-Its own ticket: [Native-binding parity in the session handshake](../review/mod-native-binding-handshake-parity.md).
+Its own ticket: [Native-binding parity in the session handshake](../done/mod-native-binding-handshake-parity.md).
 
 ## Acceptance
 

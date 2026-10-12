@@ -1,6 +1,7 @@
 # Namespaced ID system
 
-- Status: Review
+- Status: Done
+  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/id-system-namespaced-ids-20261012-c.md`): every row passes — all eighteen grammar, discovery, resolution and completion cases pass.
 - Priority: Medium
 - Category: Architecture / Mod API / Content IDs
 - Source: User request (2026-09-07) — CUO IDs should use the `namespace:id` form,

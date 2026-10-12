@@ -16,7 +16,7 @@
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A)
 - Related: `docs/backlog/review/mod-item-wearable-declaration.md` (the same build site, the same audit shape,
   and the claim this ticket corrects), `docs/backlog/done/mod-item-authored-actions.md` (the action half of
-  the same surface, landed), `docs/backlog/review/mod-crafting-quality-labels.md` (Part 2 stage 1, whose
+  the same surface, landed), `docs/backlog/done/mod-crafting-quality-labels.md` (Part 2 stage 1, whose
   "content surface parity" is the shape this ticket completes for the item kind),
   `docs/backlog/done/mod-declared-behaviour-with-no-function.md`,
   `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`

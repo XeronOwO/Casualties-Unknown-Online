@@ -1,7 +1,7 @@
 # Native-binding parity in the session handshake
 
-- Status: Done
-  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-native-binding-handshake-parity-20261012-c.md`): every row passes — the parity cases, the wire round-trip and the documented matrix row hold; the Online UI row stays a residual for the user.
+- Status: Review
+  **Batch `20261012-c` (offline) judged the three rows above: all pass** (`docs/evidence/acceptance/mod-native-binding-handshake-parity-20261012-c.md`). **One row is still unjudged and keeps this ticket open**: the Online UI's native-binding-parity row. The offline run claimed it as a user residual and was wrong to: the machine is free and a two-client run decides it, so it is the next session batch's row, not a person's.
 - Priority: Medium
 - Category: Protocol / Mod API
 - Depends on: [Native-binding mods declare it instead of hiding](../done/mod-native-binding-declaration.md)

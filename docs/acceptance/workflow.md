@@ -148,6 +148,14 @@ Every row ends in exactly one of: `pass`, `fail`, `unproven`, `blocked`, `residu
 - `residual` is a row only a person can judge; it goes to the user's list, never to a self-issued
   pass.
 
+A row that needs a running client is **not** a residual: the run starts one. A ticket's own sentence that a
+surface is "verified by the user on the physical machine" describes what its writing cycle could not do, not
+what this run cannot do; whether the run can reach the row is what the preflight's
+`RESULT: OK - a full two-client run is possible` answers, and a run that can start clients must start them.
+Only a judgement no run can produce — a taste, a feel, a call only the owner can make — is a residual. A row
+the run genuinely cannot produce because a dependency is missing is `blocked`, with the question asked (§2) —
+never a residual, and never a pass.
+
 - A row whose expectation is an absence (zero `<warning>`) is read from the run mark through at least one
   full periodic cycle of the mechanism that can emit it; an entry-edge-only read is not evidence.
 

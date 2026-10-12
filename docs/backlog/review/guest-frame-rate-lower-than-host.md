@@ -1,7 +1,7 @@
 # Guest frame rate lower than host with frame drops
 
-- Status: Done
-  **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/guest-frame-rate-lower-than-host-20261012-c.md`): every row passes — the telemetry and allocation rows hold; the frame-rate comparison stays a residual for the user.
+- Status: Review
+  **Batch `20261012-c` (offline) judged the four rows above: all pass** (`docs/evidence/acceptance/guest-frame-rate-lower-than-host-20261012-c.md`). **One row is still unjudged and keeps this ticket open**: the host-vs-guest frame-rate comparison with the latency telemetry on. The offline run claimed it as a person's residual and was wrong to: both clients can be run and their `[Latency] Frame` lines compared, so it is the next session batch's row.
 - Priority: Medium
 - Category: Performance / guest-side runtime
 - Source: User report (2026-09-05) — the guest's frame rate is noticeably lower than the host's and the guest experiences frame drops.

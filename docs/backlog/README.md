@@ -83,6 +83,8 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
+- [Guest frame rate lower than host](review/guest-frame-rate-lower-than-host.md) — **Medium** — telemetry and allocation removal; a frame-rate row is open.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
@@ -181,7 +183,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Crafting-quality labels for mod content](done/mod-crafting-quality-labels.md) — **High** — accepted; the item surface plus a load-time reference check.
 - [A null collection in a content payload must mean "none"](done/mod-payload-null-collection-tolerance.md) — **Medium** — accepted; both ends answer for it.
 - [Content kinds with no provider](done/mod-content-kind-with-no-provider.md) — **Medium-High** — accepted; the vocabulary names what binds.
-- [Native-binding session parity](done/mod-native-binding-handshake-parity.md) — **Medium** — accepted; the host can require parity.
 - [Typed seams, not object handles](done/mod-api-typed-seams.md) — **Critical** — accepted; one typed projection per operation; a framework seam left.
 - [Content registration carries its type](done/mod-content-typed-registration.md) — **Critical** — accepted; a typed definition instead of an opaque payload.
 - [Dropped mod command requests](done/mod-command-request-timeout.md) — **Low** — accepted; the request deadline and the bounded pending map.
@@ -196,7 +197,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Adaptive report rate — Stage 3](done/global-adaptive-report-rate-stage-3-cumulative-streams.md) — **Medium** — accepted; cumulative coalescing.
 - [Adaptive report rate — Stage 4](done/global-adaptive-report-rate-stage-4-high-frequency-domains.md) — **Medium** — accepted; item/fluid/trader cadence.
 - [Global unified projection framework](done/global-projection-framework.md) — **High** — accepted; the rebuildable-domain contract.
-- [Guest frame rate lower than host](done/guest-frame-rate-lower-than-host.md) — **Medium** — accepted; telemetry and allocation removal.
 - [The root README as a language pair](done/readme-language-pair.md) — **Low-Medium** — accepted; English first, a Chinese twin, and the current model named.
 - [A game-side throw inside a scope-entering patched frame latches CallContext off](done/call-context-scope-leak.md) — **High** — accepted; one line per leak.
 - [A mod item that declares no tags throws inside the game's own frames](done/mod-item-with-no-declared-tags-throws.md) — **High** — accepted on both peers.

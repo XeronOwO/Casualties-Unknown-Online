@@ -1,6 +1,6 @@
 # Acceptance record — Native-binding parity in the session handshake
 
-- Ticket: `mod-native-binding-handshake-parity` — verdict: **moved to `done/`**
+- Ticket: `mod-native-binding-handshake-parity` — verdict: **stays in `review/`** — the ticket's three acceptance rows pass; one further row, the Online UI's parity row, is unjudged and belongs to the session batch (see *Residuals*)
 - Batch: 20261012-c — offline batch; scope and plan: docs/evidence/acceptance/20261012-c-scope.md
 - Commit: `3bacc6fc` — the tree's HEAD; this batch changes no `src/`, `tests/` or `tools/` file
 - Deployed artifact: CasualtiesUnknownOnline.dll 0.1.0+3bacc6fcd5574b3a0b9137b11c8efb5e91163d91 — deployed and hash-verified in this run (tools/verify-deploy.ps1 exit 0, "Deployment matches this tree's build output"); no runtime row is exercised
@@ -19,10 +19,14 @@ acceptance bullets, in their order, before judging them; the row text is the bul
 
 ## Residuals for the user
 
-The three rows above need no person. One surface stays yours, exactly as the ticket's own `Limits` place it:
-the parity rule's row on the Online UI's admin page (one row, three levels) and a hand-edited config value
-that does not parse. This offline batch started no client, so it neither exercised nor judged that surface —
-the ticket states it is verified on the physical machine, and this batch does not claim it.
+None: the row this record first put here is not a person's to judge. The ticket's `Limits` place the parity
+rule's row on the Online UI's admin page (one row, three levels) and a hand-edited config value with the user
+because the Plugin layer has no test host — but what decides both is a *live client*, and this offline batch
+started none. Calling them residuals was wrong: the acceptance machine is free, a two-client run reaches the
+same surface, and this run's own preflight said so (`RESULT: OK - a full two-client run is possible`). They are
+therefore **unjudged rows of the next session batch**, and the ticket stays in `review/` until that run reads
+them. The one half a suite does decide — that an unparseable config value falls back to `warn` — is row 3's
+`HostRulesPolicyTests.NativeBindingParityText_UnknownValue_FailsAndFallsBackToWarn`, green in this run.
 
 ## Limits
 

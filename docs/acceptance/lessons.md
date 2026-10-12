@@ -3183,6 +3183,27 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   `AGENTS.local.md` records for `-like` on a pattern containing `[`. A "missing" anchor is re-derived with
   the literal tool before a row is called unsupported.
 
+## 2026-10-12 — A row a run can produce is not a residual, and a ticket's "verified by the user" is not a licence to defer it
+
+- Symptom: the offline batch's scope page and two records put three rows on the user's residual list — the
+  Online UI's native-binding-parity row, a hand-edited config value, and the host-vs-guest frame-rate
+  comparison — while the same run's own preflight printed
+  `RESULT: OK - a full two-client run is possible` and the machine sat free. The user's answer was one line:
+  "you said you can edit the config and read the logs, so how is it unreadable?" They were right.
+- Cause: the tickets' own `Limits` say those surfaces are "verified by the user on the physical machine"
+  (the Plugin layer has no test host), and that sentence was read as a property of the ROW. It is not: it
+  describes what the WRITING cycle could not do, not what an acceptance run cannot do. A residual is a
+  judgement no run can produce — a taste, a feel, a call only the owner can make; every other row belongs to
+  the run, and a run that can start clients must start them.
+- Change: both tickets returned to `review/` with their index rows and their references (an unjudged row
+  keeps a ticket open, and `done/` claimed otherwise), their records name the open row and say why the
+  residual label was wrong, and `docs/acceptance/workflow.md` §6 now carries the rule: a row that needs a
+  client is a session row, never a residual.
+- Also: a reversal must reverse every sweep the batch ran. Re-running the one-direction `review/` → `done/`
+  reference sweep after the re-open silently put the two index rows and one decision entry back on `done/`;
+  the gate suite caught all four failures at once and the reverse pass was the fix. A sweep script carries a
+  DIRECTION, not just a rule — never re-run it after the world has moved the other way.
+
 
 
 

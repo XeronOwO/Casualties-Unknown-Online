@@ -1,6 +1,6 @@
 # Acceptance record — Guest frame rate lower than host with frame drops
 
-- Ticket: `guest-frame-rate-lower-than-host` — verdict: **moved to `done/`**
+- Ticket: `guest-frame-rate-lower-than-host` — verdict: **stays in `review/`** — the four rows of the ticket's landed work pass; one further row, the host-vs-guest frame-rate comparison with the telemetry on, is unjudged and belongs to the session batch (see *Residuals*)
 - Batch: `20261012-c` — offline batch; scope and plan: `docs/evidence/acceptance/20261012-c-scope.md`
 - Commit: `3bacc6fc` — the tree's HEAD; this batch changes no `src/`, `tests/` or `tools/` file
 - Deployed artifact: `CasualtiesUnknownOnline.dll` `0.1.0+3bacc6fcd5574b3a0b9137b11c8efb5e91163d91` — deployed and hash-verified in this run (`tools/verify-deploy.ps1` exit 0, "Deployment matches this tree's build output"); no runtime row is exercised
@@ -20,11 +20,14 @@ judges each against this run's own suite and gate output and the committed tree.
 
 ## Residuals for the user
 
-The ticket's own remaining evidence is a person's pass, and it stays theirs: with the telemetry enabled,
-compare a host and a guest log (frame calls, average, max, slow count; then the per-domain rows) and judge
-whether the guest's frame rate is still visibly lower. The self-check says exactly this — it deliberately
-"does not claim a measured FPS number from a manual dual-client acceptance". This offline batch reads no
-frame and no log, so it neither performs nor substitutes for that comparison.
+None: the row this record first put here is not a person's to judge. It is the comparison the ticket's own
+remaining evidence asks for — with `Diagnostics.LatencyInstrumentation` on, run a host and a guest, read each
+client's own `[Latency] Frame` lines (calls, average, max, slow count) and compare them. This offline batch
+started no client, so it produced neither log, and the self-check's own words ("does not claim a measured FPS
+number from a manual dual-client acceptance") describe a measurement a run makes, not a taste a person has.
+Calling it a residual was wrong: both clients can be started and their logs read, which is what this run's own
+preflight reported. It is therefore an **unjudged row of the next session batch**, and the ticket stays in
+`review/` until that run reads it.
 
 ## Limits
 

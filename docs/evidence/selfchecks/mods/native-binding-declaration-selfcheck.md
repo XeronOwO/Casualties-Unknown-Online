@@ -4,7 +4,7 @@ Date: 2026-09-21
 Scope: `[CuoMod]`'s `NativeBinding` — the manifest field, its discovery path, the discovery log
 line, the reviewed `Abstractions` baseline and the policy documents. Stage 2 (carrying the
 declaration onto the handshake behind a host policy) is its own ticket
-(`docs/backlog/done/mod-native-binding-handshake-parity.md`), so this stage is wire-free on purpose.
+(`docs/backlog/review/mod-native-binding-handshake-parity.md`), so this stage is wire-free on purpose.
 
 ## What landed
 

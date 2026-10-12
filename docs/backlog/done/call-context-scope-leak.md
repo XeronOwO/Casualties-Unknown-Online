@@ -1,16 +1,17 @@
 # A game-side throw inside a scope-entering patched frame latches CallContext off
 
-- Status: Review — the amplifier is fixed and verified at runtime against a deployed artifact (batch
-  `20261012-a`, the missing stack produced there); the code side is done and what remains for it is an
-  acceptance run's rows (row 4 needs both peers). Split out of
-  `docs/backlog/review/mod-item-with-no-declared-tags-throws.md` on 2026-10-12, when that ticket's content
+- Status: Done — **accepted 2026-10-12 in batch `20261012-b`**
+  (`docs/evidence/acceptance/call-context-scope-leak-20261012-b.md`): all four rows pass on both peers, no
+  residual. The amplifier was fixed and verified at runtime against a deployed artifact in batch `20261012-a`
+  (the missing stack produced there); this batch judged the rows that needed both peers. Split out of
+  `docs/backlog/done/mod-item-with-no-declared-tags-throws.md` on 2026-10-12, when that ticket's content
   defect (stage 1) landed in `22ae381c` and its own *Required work* left this half as a decision. It is its own
   cycle because it touches call-identity architecture rather than content binding.
 - Priority: High — a single game-side exception can end a client session. In batch `20261011-k` the client was
   unusable for 92 seconds and had to be restarted, and what kept breaking was not the game's own path but
   CUO's: every scope-entering patch in that process threw on its own account.
 - Category: Runtime robustness / call identity
-- Related: `docs/backlog/review/mod-item-with-no-declared-tags-throws.md` (stage 1, the content defect whose
+- Related: `docs/backlog/done/mod-item-with-no-declared-tags-throws.md` (stage 1, the content defect whose
   throw was the trigger), `src/CasualtiesUnknownOnline.GameAdapter/CallContext.cs` (the depth guard, the scope
   stack and now the release deadline), `src/CasualtiesUnknownOnline.GameAdapter/Patches/BurpSoundPatches.cs`
   (the measured leaking site), `docs/decisions/active.md` (the call-identity model this guard exists for)
@@ -131,7 +132,7 @@ synchronous native call, and `RemoteDragIntentWindow` (which does span frames) h
 | 1 | A probe makes a game-side frame throw while its CUO scope is open, and the process keeps working: later `CallContext.Enter` calls still succeed and no depth-exceeded line appears | `machine` | passed by run 2 (fixed tree, deployed and hash-matched): the same probe, 2,847 game-side throws (8.8 s of them inside the 17 s window), `depth = 0` throughout, **zero** `depth 16 exceeded` lines, and the game's own `PantSound.Bark` scope-entering path still ran afterwards |
 | 2 | The same probe names the frame that leaked the scope, so the fix is aimed at a measured site rather than a candidate | `machine` | passed by run 1: `CharacterBurp ×16` on the stuck stack, one entry site |
 | 3 | A legitimate deep stack (2-3 nested scopes) still classifies correctly — the recovery does not fire, and `Current` / `IsWithin` answer what they answered before | `machine` | `CallContextRecoveryTests.LegitimateNesting_IsUntouched` + `CallContextCompositionTests` and the two origin-contract cases |
-| 4 | After a recovered leak the client stays usable on both peers for the rest of the session, with the recovery reported once rather than per frame | `machine` | single-client half measured: ONE recovery line for the whole episode, the stack back to 0, the client usable on both probe modes afterwards; the "on both peers" half awaits an acceptance batch |
+| 4 | After a recovered leak the client stays usable on both peers for the rest of the session, with the recovery reported once rather than per frame | `machine` | **passed 2026-10-12 in batch `20261012-b`** (`docs/evidence/acceptance/call-context-scope-leak-20261012-b.md`): both clients injected the leak and recovered in one world, ONE recovery line per client for the whole run (whole-log census), `depth 0` after it, and the session carried a cross-peer item handover afterwards |
 
 ## Limits, stated rather than implied
 
@@ -151,8 +152,9 @@ synchronous native call, and `RemoteDragIntentWindow` (which does span frames) h
   resource with its own owner; named here rather than implied.
 - The guard does not name the patch CLASS, only the origin, and when more than 16 Enters were refused the
   report groups the first 16 (the total is printed). The origin-to-site map is the table above.
-- The probe is a single-client reproduction of the mechanism. Row 4's "on both peers" and the parent
-  ticket's own rows belong to an acceptance batch against the deployed artifact.
+- The probe was written as a single-client reproduction of the mechanism. Row 4's "on both peers" was judged
+  in batch `20261012-b`, where both clients injected and recovered inside one world, and the parent ticket's
+  own rows were judged in the same run.
 - The recipe restores the definition through the game's own `SetTags()`; it writes nothing else, and the
   broken state it creates is not a CUO input.
 

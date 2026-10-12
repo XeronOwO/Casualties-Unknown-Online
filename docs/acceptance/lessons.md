@@ -3021,7 +3021,7 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
   pass, so it never runs for them, and `ModItemInfoFactory` populates `actualTags` only when the definition
   declares a non-blank `Tags`. `Tags` defaults to `""`, so the array keeps its CLR default and the game's own
   `HasTag` (an `Enumerable.Contains` over it) throws wherever it is asked.
-- Change: filed as `docs/backlog/review/mod-item-with-no-declared-tags-throws.md` with this run's numbers (a
+- Change: filed as `docs/backlog/done/mod-item-with-no-declared-tags-throws.md` with this run's numbers (a
   batch validates and does not change code). The rule a fix must carry: a derived member the game's own table
   pass writes is the injected definition's to write, and a collection must exist even when it is empty.
 
@@ -3089,6 +3089,54 @@ its before/after tree, `c*` the same gesture as a control without the key, `k*` 
 - Change: `tools/acceptance/recipes/remote-medical-release.cs` (args `item`, `limb`) is the remote half, and
   the batch's record names it. A future cross-player topical/injection/limb-tool row starts from it instead of
   rediscovering that the local recipe refuses.
+
+## 2026-10-12 — A driver answer with non-ASCII text does not survive a plain `Get-Content`
+
+- Symptom: reading the final `state` answers with `Get-Content <json> -Raw | ConvertFrom-Json` threw
+  `传入的对象无效，应为“:”或“}”` on the guest's answer while the host's parsed — the guest's carried the
+  gate text `Starting…`, whose ellipsis had already been mangled on the way in.
+- Cause: Windows PowerShell 5.1 reads a UTF-8 file with no BOM through the system code page. The earlier
+  finding (2026-10-02, the delivery-checklist line count) was the same mechanism; this is the second shape it
+  takes, and it fails INSIDE the parse, where the message names a byte offset and nothing about encoding.
+- Change: every driver answer a run parses is read with `-Encoding UTF8`, and the batch's own helper does the
+  same for its log windows. A `ConvertFrom-Json` error on a file the driver just wrote is an encoding
+  symptom first, a protocol symptom second — re-read before suspecting the client.
+
+## 2026-10-12 — An exception census must not count the `[Unity:Exception]` prefix as its own dimension
+
+- Symptom: a batch window counted `ArgumentNullException` 267 and `[Unity:Exception]` 267 on the host, 384
+  and 384 on the guest — two "independent" columns that were the same lines.
+- Cause: Unity's own console listener writes the exception with the `[Unity:Exception]` marker as part of the
+  line, so a pattern for the marker matches every line the class-name pattern matches. Counting both reads
+  like corroboration and is one reading twice.
+- Change: an exception census counts the mechanism (the exception type or the message) and, if it wants a
+  second dimension, counts something disjoint — an unrelated family, or the frames the throw came from. When
+  two columns come out equal, that is the tell.
+
+## 2026-10-12 — The artifacts a record cites are written before the record, not after
+
+- Symptom: a record's row table named four window files (`d7-…`, `e7-…`, `g10-…`, `g11-…`) that did not exist
+  yet; they were generated afterwards, so the record was briefly citing evidence a reader could not open.
+- Cause: the writing order followed the narration (run → record → tidy the evidence), and the standing rule
+  ("list the batch directory and check every cited artifact exists", 2026-10-11) was applied as a final check
+  instead of as the order of work.
+- Change: the order is run → dump every window, count and probe answer the record will cite → then write the
+  record, whose table is filled FROM the listing. A record is not finished until every file it names exists,
+  which is cheap to verify and expensive to notice later.
+
+## 2026-10-12 — Moving a ticket also moves the references in gitignored local archives
+
+- Symptom: after both tickets moved to `done/`, `BacklogReferenceGateTests` failed on exactly ONE reference:
+  the line in `docs/acceptance/AGENTS.local-archive.md` for the batch that filed the tagless-item defect. A
+  sweep driven by `git grep` found nothing, because that file is gitignored — its name carries `.local.`.
+- Cause: the gate scans the markdown files on DISK under `docs/`, not the tracked set, so the area's own
+  local archives are inside its surface. A tracked-file search misses precisely those pages, and the failure
+  then looks like "a gate that is red only on this machine".
+- Change: a ticket move's reference sweep includes the local pages beside the area's `AGENTS.md`
+  (`docs/acceptance/AGENTS.local.md`, `AGENTS.local-archive.md`, the `.agent-local/` notes), and the cheap
+  way to get the complete set is to run the gate's own scan rather than a `git grep`. The sweep is worth
+  doing rather than exempting: the page that failed here is the only place that batch's finding is recorded.
+
 
 
 

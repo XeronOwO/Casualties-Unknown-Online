@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// The wiring the guard cannot check for itself: <c>CallContext.EndFrame()</c> releases the scopes a frame
-/// leaked (ticket <c>backlog/review/call-context-scope-leak.md</c>), and it only runs because the adapter's
+/// leaked (ticket <c>backlog/done/call-context-scope-leak.md</c>), and it only runs because the adapter's
 /// per-frame service pump calls it. Delete that one call and every behavioural case stays green while the
 /// latch comes back — batch <c>20261012-a</c> measured what that costs: sixteen leaks filled the stack in
 /// 0.2 s, 11,608 Enters were refused over 34.8 s, and 4,458 of them came after the throw that caused them had

@@ -6,7 +6,7 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
 /// <summary>
-/// The release deadline behind ticket <c>backlog/review/call-context-scope-leak.md</c>. A scope opened in a
+/// The release deadline behind ticket <c>backlog/done/call-context-scope-leak.md</c>. A scope opened in a
 /// Harmony Prefix and released in its Postfix is never released when the wrapped ORIGINAL throws — Harmony
 /// skips every postfix on that path — and before this contract the sixteenth such leak latched
 /// <c>Enter</c> into refusing for the rest of the process: batch <c>20261012-a</c> measured one game-side

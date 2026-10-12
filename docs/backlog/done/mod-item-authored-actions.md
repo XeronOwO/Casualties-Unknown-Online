@@ -10,7 +10,7 @@
   view, and CUO's cross-player limb-tool chain runs the item's own delegate on the TREATED player's own
   client. The run also turned up one defect in the same build site that this ticket does not own (a mod item
   declaring no `Tags` throws in the game's own frames); it is filed as
-  `docs/backlog/review/mod-item-with-no-declared-tags-throws.md` with the run's measurements.
+  `docs/backlog/done/mod-item-with-no-declared-tags-throws.md` with the run's measurements.
 - Priority: High
 - Category: Mod platform / mod API
 - Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A: `useLimbAction`, and the item half of the

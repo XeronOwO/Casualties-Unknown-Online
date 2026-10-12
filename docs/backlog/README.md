@@ -83,8 +83,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [A mod item that declares no tags throws in the game's own frames](review/mod-item-with-no-declared-tags-throws.md) — **High** — stage 1 fixed; stage 2 split.
-- [A game-side throw inside a scope-entering patched frame latches CallContext off](review/call-context-scope-leak.md) — **High** — release at the frame end.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
@@ -200,6 +198,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [A game-side throw inside a scope-entering patched frame latches CallContext off](done/call-context-scope-leak.md) — **High** — accepted; one line per leak.
+- [A mod item that declares no tags throws inside the game's own frames](done/mod-item-with-no-declared-tags-throws.md) — **High** — accepted on both peers.
 - [The history carries machine identifiers](done/purge-machine-identifiers-from-history.md) — **High** — rewritten and force-pushed; a check, not a gate.
 - [The records carry the machine's real Steam ids](done/acceptance-records-carry-real-steam-ids.md) — **Medium** — swept; its gate refused (261).
 - [Mod-authored effects](done/mod-authored-effects.md) — **High** — accepted; the drink effect lands on the drinker and both guards were driven.

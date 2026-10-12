@@ -1,9 +1,11 @@
 # A mod item that declares no tags throws inside the game's own frames
 
-- Status: Review — stage 1 (the content defect) landed in `22ae381c`, cased with its red observed first,
-  family-audited and independently reviewed; the code side is done and what remains for it is an acceptance
-  run's rows. Stage 2 (the amplifier) is its own ticket, `docs/backlog/review/call-context-scope-leak.md`.
-  Found 2026-10-11 by acceptance batch
+- Status: Done — **accepted 2026-10-12 in batch `20261012-b`**
+  (`docs/evidence/acceptance/mod-item-with-no-declared-tags-throws-20261012-b.md`): rows 1 and 2 pass on both
+  peers with no residual, and row 3 — the amplifier half — is judged by that same batch's sibling record.
+  Stage 1 (the content defect) landed in `22ae381c`, cased with its red observed first, family-audited and
+  independently reviewed. Stage 2 (the amplifier) is its own ticket,
+  `docs/backlog/done/call-context-scope-leak.md`. Found 2026-10-11 by acceptance batch
   `20261011-k` while driving the mod-item rows of `docs/backlog/done/mod-item-authored-actions.md`; recorded
   with this run's evidence and left for its own cycle, because an acceptance batch validates and does not change
   code (`docs/evidence/acceptance/mod-item-authored-actions-20261011-k.md`). Attribution checked against this
@@ -65,7 +67,10 @@ source`, and `HasTag` is asked all over the game's own item paths. What the RETA
 `PlayerCamera.HandleBlockPlaceGhost` in the storm census — a corrected attribution: an earlier draft of this
 ticket also listed `Body.HandleVisuals`, which the batch's artifacts never name (its `HasTag("gun")` is true
 of the SOURCE, `Body.cs`'s `HandleVisuals`, but the raw log was rotated away and no kept stack shows it), and
-the independent review of this cycle's fix caught that. The paths this ticket's family census read are
+the independent review of this cycle's fix caught that. A later batch kept what was missing there: batch
+`20261012-b`'s host window names `Body.DMD<Body::HandleVisuals>` both as the frame whose `HasTag` ask throws
+under the injected state and as the scope the frame boundary releases — the measured shape the corrected
+attribution above could only read from the source. The paths this ticket's family census read are
 the drag pair (`tool`, `battery`) and the placeable check. The list is NOT exhaustive — the game asks
 `HasTag` from other places as well (pickup tags, heaters, traders) — and nothing here needs it to be:
 the fix is that the array exists at all.
@@ -118,7 +123,7 @@ acceptance record).
    supported value, and now it is.
 2. **A game-side throw inside a scope-entering patched frame leaks CUO's `CallContext` scope, and sixteen
    leaks latch every later `CallContext.Enter` in the process into refusal** — the amplifier, split out on
-   2026-10-12 into `docs/backlog/review/call-context-scope-leak.md`, which carries the mechanism, the missing
+   2026-10-12 into `docs/backlog/done/call-context-scope-leak.md`, which carries the mechanism, the missing
    artifact and the work. That ticket's fix landed on 2026-10-12 (the guard owns the release deadline). It is a
    product robustness question rather than a content one, and this ticket no longer owns it.
 
@@ -171,33 +176,34 @@ acceptance record).
   `Body.HandleVisuals` pair was the fitting shape: a `Prefix` that enters, a `Postfix` that disposes, and no
   postfix when the original throws), sixteen leaks latched `Enter` into permanent refusal, and every later
   scope-entering path in that process threw — 19,973 lines and 92 seconds in batch `20261011-k`. The
-  mechanism is now OBSERVED rather than read, and fixed, in `docs/backlog/review/call-context-scope-leak.md`:
+  mechanism is now OBSERVED rather than read, and fixed, in `docs/backlog/done/call-context-scope-leak.md`:
   the guard owns the release deadline (the frame boundary releases what a frame leaked, once reported per
   episode) and the bound refuses instead of throwing. That ticket carries the measured artifact, the family
   sweep and its own rows.
 
 ## Acceptance rows
 
-| # | Row | Class |
-|---|---|---|
-| 1 | A mod item whose definition declares no tags is created, dropped, replicated to the peer and held in the hand slot with no `ArgumentNullException` in either client's log over the run | `machine` |
-| 2 | The same item's `Item.GlobalItems` entry answers `HasTag` for a tag it does not carry (false) and for one it does (true) — the derived array is present and correct | `machine` |
-| 3 | The amplifier half's own row, once decided | `machine` |
+| # | Row | Class | State |
+|---|---|---|---|
+| 1 | A mod item whose definition declares no tags is created, dropped, replicated to the peer and held in the hand slot with no `ArgumentNullException` from that definition's own path in either client's log over the run | `machine` | **passed 2026-10-12 in batch `20261012-b`** (`docs/evidence/acceptance/mod-item-with-no-declared-tags-throws-20261012-b.md`): created on the host, replicated to the guest, held on both peers and taken back, zero `ArgumentNullException` in either client's own window. The run carries other such lines — 267 host / 384 guest — and every one is the sibling probe's injection, attributed in that record |
+| 2 | The same item's `Item.GlobalItems` entry answers `HasTag` for a tag it does not carry (false) and for one it does (true) — the derived array is present and correct | `machine` | **passed in the same batch**: `arrayPresent true, arrayLength 1, tags "", hasCarried true, hasAbsent false` on both clients, with `example.dressing` as the declared-tag control |
+| 3 | The amplifier half's own row, once decided | `machine` | **passed in the same batch**: decided by `docs/backlog/done/call-context-scope-leak.md`'s four rows, all of them on both peers |
 
 ## Limits, stated rather than implied
 
-- Rows 1 and 2 are `machine` rows and stay unjudged here: what this cycle proves is the build site's own
-  behaviour over the real factory and the real game type (`ItemDeclarationParityTests`, 16 cases green, after
-  the tagless case was first OBSERVED FAILING with `Enumerable.Contains`'s `ArgumentNullException`). That the
-  same defect no longer throws on a live client — created, replicated, held in the hand slot, on both peers —
-  is an acceptance batch's row (`docs/acceptance/`), not a unit test's claim, and the batch that measured the
-  defect (`20261011-k`) measured it through the example mod's own fixture.
+- Rows 1 and 2 were judged in batch `20261012-b` (2026-10-12): a live client created, replicated and held the
+  tagless fixture on both peers with no exception on its own path, and the derived array answers `HasTag` on
+  both. What the development cycle itself proved is the build site's own behaviour over the real factory and
+  the real game type (`ItemDeclarationParityTests`, 16 cases green, after the tagless case was first OBSERVED
+  FAILING with `Enumerable.Contains`'s `ArgumentNullException`), and the batch that measured the defect
+  (`20261011-k`) measured it through the example mod's own fixture.
 - The example mod's `example.placebo` KEEPS its empty `Tags` deliberately: it is now the live regression
   fixture for this shape, and its own comment says so. Nothing in this cycle needed to change it, because the
   fix is on the framework's side of the boundary.
-- Stage 2 (the amplifier) is neither fixed nor measured. The candidate frame that enters the scope is a
-  reading of the source; the run's captured stacks keep two frames each and name no entering frame, so the
-  ticket above records a candidate, not a conclusion, and stage 2 starts by producing that stack.
+- Stage 2 (the amplifier) is fixed, measured and accepted — it is its own ticket,
+  `docs/backlog/done/call-context-scope-leak.md`: the entering frame was produced
+  (`Body.DMD<Body::HandleVisuals>`, one leak per frame), the guard now owns the release deadline, and all four
+  of its rows passed in batch `20261012-b`.
 - Nothing here is claimed about a game-side `HasTag` caller this repository has not read: the census in
   *Why this ticket exists* lists the paths that WERE read and says the list is not exhaustive — the fix makes
   the array exist for every caller rather than enumerating them.

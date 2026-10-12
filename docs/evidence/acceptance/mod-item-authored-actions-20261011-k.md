@@ -1,7 +1,7 @@
 # Acceptance record — Mod-authored item actions: the use and limb functions, and the cross-player chain
 
 - Ticket: `mod-item-authored-actions` — verdict: **moved to `done/`**, with one finding filed separately
-  (`docs/backlog/review/mod-item-with-no-declared-tags-throws.md`)
+  (`docs/backlog/done/mod-item-with-no-declared-tags-throws.md`)
 - Batch: `20261011-k` — tickets: `mod-authored-effects`, `mod-item-authored-actions`,
   `mod-declared-behaviour-with-no-function` (plan: `20261011-k-scope.md`)
 - Commit: `f9507771` · Deployed artifact: `CasualtiesUnknownOnline.dll`, ProductVersion
@@ -42,7 +42,7 @@ written by `a981a93d` (2026-09-03, the advanced item behaviour slice) in the ite
 `8de7f5ed` (2026-10-08, the declared-behaviour cycle) moved it verbatim into the new `ModItemInfoFactory`;
 this cycle's own commit never touched those lines, and the definition WITH tags (`example.dressing`, rows 4–6)
 threw in neither session. It is filed as
-`docs/backlog/review/mod-item-with-no-declared-tags-throws.md` with the run's own measurements, including the
+`docs/backlog/done/mod-item-with-no-declared-tags-throws.md` with the run's own measurements, including the
 `CallContext` scope leak that turns the per-frame half into a process-wide error storm.
 
 ## Residuals for the user

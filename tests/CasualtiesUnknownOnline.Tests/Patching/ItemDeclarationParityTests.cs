@@ -213,6 +213,108 @@ public class ItemDeclarationParityTests
 	}
 
 	[Fact]
+	public void TheDerivedTagArray_IsTheOnlyFieldTheTypeKeepsPrivate_AndTheFactoryFillsIt()
+	{
+		// The durable half of the defect this class's two tag cases pin. The parity
+		// case above enumerates PUBLIC fields, and the derived tag array is not one:
+		// `private string[] actualTags` sits behind `GetTags` / `HasTag`, so a
+		// tagless definition left it null with every public-field assertion green —
+		// and the game's own `HasTag` then threw once per frame on the hand slot.
+		// The census keeps the surface honest WITHIN ITS OWN REACH: it counts private
+		// FIELDS, so a game update that adds a second one fails here and that field
+		// gets its own rule instead of silently joining the class of fields nothing
+		// populates. A new private PROPERTY or METHOD, or a non-private field, is
+		// outside this assertion — the class of fields is what this type keeps to
+		// itself, and the count below is what makes the claim equal to the check.
+		var declared = GameAssemblyHost.ResolveType("ItemInfo")!
+			.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+			.Where(field => field.IsPrivate)
+			.Select(field => field.Name)
+			.ToArray();
+
+		Assert.Equal(["actualTags"], declared);
+
+		var provider = CreateProvider(out _);
+		Assert.True(TryBind(provider, new ModItemDefinition
+		{
+			Id = "custom_derived_tags",
+			Tags = "tool,medicine"
+		}));
+		Assert.True(TryBind(provider, new ModItemDefinition { Id = "custom_derived_tags_bare" }));
+
+		PrepareGameTables();
+		InvokeUpdate(provider);
+
+		// Read through the game's own accessor rather than the field: an array that
+		// exists but was filled from the wrong source would pass a null check.
+		Assert.Equal(["tool", "medicine"], GetTags(GetItemInfo("custom_derived_tags")));
+		Assert.Equal([""], GetTags(GetItemInfo("custom_derived_tags_bare")));
+	}
+
+	[Fact]
+	public void Item_DeclaringTags_AnswersTheGamesOwnHasTag()
+	{
+		var provider = CreateProvider(out _);
+
+		Assert.True(TryBind(provider, new ModItemDefinition
+		{
+			Id = "custom_labelled",
+			Tags = "tool,medicine"
+		}));
+
+		PrepareGameTables();
+		InvokeUpdate(provider);
+
+		var info = GetItemInfo("custom_labelled");
+		Assert.True(HasTag(info, "tool"));
+		Assert.True(HasTag(info, "medicine"));
+		Assert.False(HasTag(info, "gun"));
+	}
+
+	[Fact]
+	public void Item_DeclaringNoTags_StillAnswersTheGamesOwnHasTag()
+	{
+		var provider = CreateProvider(out _);
+
+		// The definition the batch's fixture carried: a declared flag with no
+		// function, and no `Tags` at all — the common case, and the data class's own
+		// default. The game's table pass derives `actualTags` for every entry it
+		// ships (`Item.cs`'s `SetTags()` over `Item.GlobalItems`), and CUO injects
+		// after it, so the array has to exist even when it is empty: `SetTags()`
+		// splits the empty string into `[""]`, and `Enumerable.Contains` over THAT
+		// answers false. Left at its CLR default it is null, and the game's own
+		// `HasTag` throws `ArgumentNullException` — once on creation through
+		// `Item.Start`, and once per frame through `PlayerCamera.HandleGunMenu`
+		// while the item sits in the hand slot (batch `20261011-k` measured both).
+		Assert.True(TryBind(provider, new ModItemDefinition
+		{
+			Id = "custom_untagged",
+			DisplayName = "Placebo"
+		}));
+
+		PrepareGameTables();
+		InvokeUpdate(provider);
+
+		var info = GetItemInfo("custom_untagged");
+		Assert.False(HasTag(info, "gun"));
+		Assert.False(HasTag(info, "medicine"));
+
+		// What the game's own builder leaves behind for a tagless entry, recorded from
+		// the SOURCE rather than observed in an execution: `SetTags` is
+		// `tags.Split(',', 0)` (`ItemInfo.cs:72`, the netstandard2.1
+		// `Split(char, StringSplitOptions.None)` overload), and a split that finds no
+		// separator returns the whole string as one element — so the empty string
+		// yields ONE empty element, the array is present, and `HasTag("")` answers
+		// true, exactly as it does for a vanilla item that declares no tags. The
+		// game's own `SetTags` never runs in this suite — `PrepareGameTables` builds a
+		// fresh `Item.GlobalItems`, so the only writer exercised here is CUO's — which
+		// is why the equivalence is a reading of that source line and not a result.
+		// Nothing in the game asks for the empty tag; a case asserting the opposite
+		// would be describing a shape this build site does not produce.
+		Assert.True(HasTag(info, ""));
+	}
+
+	[Fact]
 	public void Item_DeclaringANegativeRecognitionMinimum_IsRefused()
 	{
 		var provider = CreateProvider(out var entries);
@@ -388,6 +490,20 @@ public class ItemDeclarationParityTests
 			"GlobalItems", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
 		return dict[id]!;
 	}
+
+	/// <summary>The derived array itself, read through the game's own accessor — null when nothing filled it, which is the state the game then throws over.</summary>
+	private static string[]? GetTags(object info) =>
+		(string[]?)info.GetType().GetMethod("GetTags")!.Invoke(info, null);
+
+	/// <summary>
+	/// The game's own tag query, run against a built entry. It is the call the game's
+	/// item paths make (<c>Item.Start</c>, <c>Body.HandleVisuals</c>,
+	/// <c>PlayerCamera.HandleGunMenu</c>), and it reads the derived array the table
+	/// pass fills — so asking it is the only way to prove the array exists:
+	/// <c>Enumerable.Contains</c> throws on a null source instead of answering.
+	/// </summary>
+	private static bool HasTag(object info, string tag) =>
+		(bool)info.GetType().GetMethod("HasTag")!.Invoke(info, [tag])!;
 
 	/// <summary>The gate the game's own hover and HUD read: <c>Recognition.recognizable</c> is <c>min &lt;= INT</c>; null when the item carries no gate at all.</summary>
 	private static int? RecognitionMinimum(object info) =>

@@ -82,6 +82,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [A mod item that declares no tags throws in the game's own frames](todo/mod-item-with-no-declared-tags-throws.md) — **High** — found by batch 20261011-k.
 - [The records carry the machine's real Steam ids](todo/acceptance-records-carry-real-steam-ids.md) — **Medium** — 117 hits; the history call is the user's.
+- [The history carries machine identifiers](todo/purge-machine-identifiers-from-history.md) — **High** — rewrite and force-push; a process check, not a gate.
 
 ### In progress
 

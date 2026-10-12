@@ -76,6 +76,12 @@ public sealed class ExampleMod : ICuoMod
 		// than a broken one — the gesture completes, nothing on the body changes, and one
 		// line names the content that asked for a function nobody supplied. It is also
 		// what a mod sees while it is still writing the action.
+		//
+		// It also declares NO tags, which is the second supported shape and stays that
+		// way: this definition is the regression fixture for a tagless declaration (the
+		// `Tags` default), the shape that used to throw inside the game's own
+		// `ItemInfo.HasTag`. Adding a tag here would retire the only live case that
+		// proves the empty declaration is legal.
 		context.Content.TryRegister(new ModItemDefinition
 		{
 			Id = "example.placebo",

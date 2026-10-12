@@ -132,7 +132,18 @@ public interface IModItemDefinition : IModContentDefinition
 	/// </summary>
 	float SlotRotation { get; }
 
-	/// <summary>Vanilla tag string, empty when none.</summary>
+	/// <summary>
+	/// The item's vanilla tags, comma-separated — the string the game's own
+	/// <c>ItemInfo.SetTags</c> splits into the array <c>ItemInfo.HasTag</c> queries.
+	/// Empty — the default — is a legal declaration meaning "carries no tag": the
+	/// derived array still exists (holding the one empty entry the split of an empty
+	/// string produces), so the game's own <c>HasTag</c> answers <c>false</c> for
+	/// every tag a caller asks for instead of throwing on a null array. Batch
+	/// <c>20261011-k</c> measured the alternative: a tagless declaration used to
+	/// throw <c>ArgumentNullException</c> inside the game's <c>Item.Start</c> once per
+	/// item, and once per frame through <c>PlayerCamera.HandleGunMenu</c> while the
+	/// item sat in the hand slot.
+	/// </summary>
 	string Tags { get; }
 
 	/// <summary>Relative spawn/trader/loot weighting.</summary>

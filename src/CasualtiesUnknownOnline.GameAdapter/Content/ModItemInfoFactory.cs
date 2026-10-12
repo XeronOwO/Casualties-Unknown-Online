@@ -143,10 +143,19 @@ internal static class ModItemInfoFactory
 			info.decayInfo |= (byte)ItemInfo.DecayType.BatteryDecay;
 		}
 
-		if (!string.IsNullOrWhiteSpace(info.tags))
-		{
-			ApplyTags(info);
-		}
+		// The derived tag array is written for EVERY definition, empty or not: the
+		// game's own table pass derives it for each entry it ships (`Item.cs`'s
+		// `SetTags()` over `Item.GlobalItems`, after the `fullName` / `description`
+		// writes), and CUO injects its definitions AFTER that pass, so those writes
+		// are this factory's. A definition that declares no tags — the data class's
+		// own default, and the common case — leaves `actualTags` at its CLR default
+		// when this is skipped, and `ItemInfo.HasTag` then throws
+		// `ArgumentNullException` out of `Enumerable.Contains` on a null source:
+		// once per item through `Item.Start`, and once per FRAME through
+		// `PlayerCamera.HandleGunMenu` while the item sits in the hand slot (batch
+		// `20261011-k` measured both). Empty is a legal declaration meaning "carries
+		// no tag": `SetTags` splits it into `[""]`, over which `HasTag` answers false.
+		ApplyTags(info);
 
 		// The game's own use paths run this delegate on the item's `usable` flag
 		// alone and never null-check it, so a declared-usable item carries one even
@@ -179,6 +188,12 @@ internal static class ModItemInfoFactory
 		return info;
 	}
 
+	/// <summary>
+	/// Fill the game's derived tag array from the tag string — the write the game's
+	/// table pass makes for its own entries, and the one CUO has to make for an
+	/// injected definition. Called for every build: an empty string is a declaration
+	/// that the item carries no tag, not a reason to leave the array null.
+	/// </summary>
 	private static void ApplyTags(ItemInfo info)
 	{
 		var field = typeof(ItemInfo).GetField("actualTags", BindingFlags.Instance | BindingFlags.NonPublic);

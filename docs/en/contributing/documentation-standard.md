@@ -113,6 +113,14 @@ natural, or whether a claim is true; that stays a review duty, checked against t
 - Keep distilled conclusions — decisions, rule-to-gate maps, checklists, self-checks. Delete a process
   log once its conclusions are absorbed and its inbound links re-pointed: delete, do not archive, git
   keeps the history and an archive invites stale reading.
+- **Name the reader before you land the file.** Who opens it, and when: an agent at a decision point (then
+  it has to be a file that is loaded or routed at that moment), or a reader arriving from an index. A file
+  that answers neither is not landed — its conclusion goes into the page that reader already opens. An
+  append-only log, a ledger that only grows, or a checklist nobody consults is a liability: distil it,
+  delete it, and let git keep the history. "It records what happened" is not a reason to land a file.
+- **A gate proves shape; a reader is a review duty.** Ask it of every page a change adds, and of every page
+  a change keeps: which moment opens this? A page that fails the question is a review finding, with the page
+  it should be merged into named ([review prompt](../../development/review-prompt.md), check G).
 
 ## How you know it worked
 

@@ -70,6 +70,14 @@ Adversarially verify:
   binary value an explicit leaf rather than the envelope? A member that fails one is a finding. So is a
   claim that a SCAN enforces this: the judgement lives in the review, and a spelling check would flag a
   legitimate binary leaf while an envelope spelled as JSON passed it.
+- **G. Does every document the change lands — or keeps — have a reader?** For each page, section, record or
+  file it adds, name who opens it and when: an agent at a specific decision point (then it must be a file that
+  is loaded or routed at that moment), or a reader arriving from an index. A file that only records what the
+  cycle did, an append-only log, a ledger that grows by appending, or a restatement of a rule already carried
+  elsewhere is a finding: say which page should carry the conclusion, and whether the file should be deleted or
+  rewritten. Existing offenders belong to the corpus audit
+  (`docs/backlog/todo/document-corpus-audit.md`); the same question is asked of the documents a change touches
+  but does not add.
 
 Report findings by severity (blocker / major / minor / nit), each with a path or `file:line`, the
 quoted text, and how you verified it. Then state explicitly what you could NOT falsify and what you

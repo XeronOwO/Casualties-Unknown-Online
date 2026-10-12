@@ -68,3 +68,7 @@ detail lives in `how-to/` or `internals/`, linked, never duplicated.
 - Keep distilled conclusions (decisions, rule-to-gate maps, checklists, self-checks). Delete process logs
   once absorbed and their inbound links re-pointed — delete, do not archive: git keeps the history and an
   archive invites stale reading.
+- **A page earns its place by having a reader.** Before landing one, answer who opens it and when: the agent
+  at a named decision point, or a reader arriving from an index. A document that only records what a cycle
+  did is not landed — its conclusion goes into the page that reader already opens — and an append-only log is
+  deleted rather than archived. The review prompt asks this of every page a change adds or keeps.

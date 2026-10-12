@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [The document corpus audit: every page earns its place](todo/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [The delivery-checklist gate reads no census](todo/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passes.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.

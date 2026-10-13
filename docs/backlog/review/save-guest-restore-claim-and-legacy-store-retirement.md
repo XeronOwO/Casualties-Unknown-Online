@@ -1,6 +1,7 @@
 # S4.1 — Collision-safe restore claim + retirement of the legacy reconnect store
 
 - Status: Review (landed 2026-09-14; awaiting the final unified acceptance pass)
+- Acceptance (20261001-o): rows 4–9 pass; rows 1–3 unproven — the IP-direct scenarios were not staged. Record: `docs/evidence/acceptance/save-guest-restore-claim-and-legacy-store-retirement-20261001-o.md`
 - Priority: High
 - Category: Persistence / save system
 - Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scopes 1 and 6

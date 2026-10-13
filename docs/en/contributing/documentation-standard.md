@@ -121,6 +121,12 @@ natural, or whether a claim is true; that stays a review duty, checked against t
 - **A gate proves shape; a reader is a review duty.** Ask it of every page a change adds, and of every page
   a change keeps: which moment opens this? A page that fails the question is a review finding, with the page
   it should be merged into named ([review prompt](../../development/review-prompt.md), check G).
+- **Every tracked document carries a census row** in
+  [`standard/document-census.txt`](../../standard/document-census.txt), and the row names what reaches it: a
+  citation for a record, a section index for a human page, the loader for an instruction file. A page
+  therefore lands only after the page that sends readers to it exists; `DocumentCensusGateTests` fails on a
+  document with no row, on a row naming a document that is not there, and on a kept document nothing names
+  back.
 
 ## How you know it worked
 

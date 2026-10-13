@@ -5,7 +5,7 @@
   re-worded* below). Batch `20261008-a` had moved it back with that row `unproven` (its only frame was
   taken while the player was unconscious and under attack).
 - Acceptance record: `docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261011-i.md`
-  (the first run: `…-20261008-a.md`)
+  (the first run: `docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md`)
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture
 - Parent: `docs/backlog/review/mod-cross-player-native-semantics.md` (Part B)

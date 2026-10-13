@@ -16,7 +16,7 @@
 | 5 | Host escalation | machine + residual | **unproven** | none of the three live injections below produced a ≥ 30 s continuous refusal episode; the policy half stays unit-pinned and the session half integration-tested |
 | 6 | Guest convergence | machine | **pass**, re-observed | the guest's own log carries `No frame from the host <host-id> for 15031 ms — ending the session locally.` 15 s after the pump-stop injection, and the guest's session then read `active: false` while the host's stayed active |
 
-Rows 1–4 and 7 were judged in the ticket's first record (`…-20261001-r.md`) and are not re-run here;
+Rows 1–4 and 7 were judged in the ticket's first record (`docs/evidence/acceptance/steam-transport-send-limit-runaway-20261001-r.md`) and are not re-run here;
 this run's pre-injection phase again showed zero refusals on an ordinary session.
 
 ## What this run tried — load first, then three reversible injections

@@ -22,6 +22,48 @@ The consequence was measured too: in the cycle that was supposed to follow it, t
 `lessons.md`'s 3,211 lines** (the reader itself truncated), used five of them, and never opened the tail. A
 document whose only access path is "read all of it" is not a document; it is a landfill with a title.
 
+## What has landed
+
+**The census and its gate (2026-10-12).**
+
+- [`../../standard/document-census.txt`](../../standard/document-census.txt) carries one row per tracked
+  markdown document — 968 rows, the count re-derived against `git ls-files` in the same run — as
+  `<path> | <disposition> | <reader> | <reach>`. `reader` is the moment the document is opened (a loader
+  file, a section index, a citation followed during an audit, the backlog index for attribution), `reach`
+  is the document that opens it. It is a machine table the gate reads, so the size budget below is on the
+  documents, not on it.
+- `DocumentCensusGateTests` holds it with eleven facts: a document with no row, a row naming a document that
+  is not there, a kept document the named document never names back, a `rework` row with no ticket behind
+  it, and a document over the 112 KiB budget that is not on the rework list all fail; three facts pin the
+  matcher with synthetic samples. A new page therefore lands only after the page that sends readers to it.
+  Its scan surface is the working tree with the build output, the vendored tree and the gitignored local
+  areas skipped — not `git` itself, so a tracked document inside a skipped directory and an untracked
+  document in the tree are the two shapes it cannot see.
+- Measured state: **964 keep, 4 rework, 0 delete**.
+- Nine rows started out as deletion candidates: no citation from outside the evidence tree. What the pass
+  actually did with them is the useful record, because two of the nine were nearly lost:
+  - **Three were deleted** — `guest-block-mutation-re-report-20261002-k`,
+    `item-creation-registration-first-20261002-k` and `source-shape-gate-modifier-blindness-20260927`, each
+    an acceptance record of a ticket in `done/` that cites a later record of the same family instead.
+  - **Two were restored by the adversarial review**:
+    `remote-inventory-native-parity-rework-20261005-c` and `-20261005-e` are the row-by-row evidence for
+    rows 2, 4, 5, 10, 11, 12, 14 and 15 of the umbrella ticket, cited by the live record
+    `remote-inventory-native-parity-rework-20261011-f.md` as `…-20261005-c.md` — an ellipsis that ate the
+    *family prefix*, leaving a batch suffix no name or stem search can resolve.
+  - **One was kept** for the same reason in its milder form: `drop-pending-single-slot-overwrite-20261006-c`
+    is cited by a self-check as `…-drop-pending-…`, an ellipsis that ate the directory.
+  - **Three live tickets carried an unreachable record** because the ticket never folded the verdict back
+    onto its face: `save-guest-restore-claim-and-legacy-store-retirement`, `save-restore-account-surface`
+    and `save-multiplayer-restore-and-backups` now carry an `- Acceptance (20261001-o …)` line naming the
+    record. One of the three records was reachable only through a sibling record, which is why it looked
+    unreachable.
+- Method, and its limit — this is the cycle's real lesson. `reach` is derived from a citation graph over
+  every tracked text file, resolved with markdown's own relative-link rule, and every deletion candidate was
+  then searched for by file name and by stem. **Both checks missed an ellipsis that swallowed the family
+  prefix**, and only a reader going through the citing record found it. A deletion therefore needs the
+  independent search *and* a reading of the records that belong to the same family; the search alone is not
+  evidence.
+
 ## The test every document has to pass
 
 Name, before it lands, **who opens it and when** — the shape that serves each answer:
@@ -37,18 +79,32 @@ opens, and the file is not created.
 
 ## Required work
 
-1. **A census with one disposition per file.** Every tracked document under `docs/` (plus the root `.md`
-   files) gets exactly one line: `keep` (and the index that reaches it), `rework` (into which page or ledger),
-   or `delete` (with the inbound references that move). No file may end the census as "unclassified".
+1. **A census with one disposition per file.** — **Landed** (966 rows; see *What has landed*).
 2. **The append-only logs go first**: the lessons ledger, the decisions log, the coverage matrix, the
-   self-check manifest, and any ticket whose body has become a cycle narrative rather than a decision.
-3. **A ledger shape for what stays a list.** An entry is bounded, says what its reader does with it, and names
-   the page that carries its conclusion; an entry whose conclusion has landed elsewhere is deleted in the same
-   change.
-4. **Gates so it cannot grow back**: a shape check for the ledgers, a size budget for the log-shaped files, and
-   an index-coverage check (every surviving human page is reachable from its section index).
-5. **References move with the files**: every citation is re-pointed, the pair registry is re-recorded where the
-   two blocks change, and the gate suite is green at the end.
+   self-check manifest, and any ticket whose body has become a cycle narrative rather than a decision. —
+   **Open.** The four logs are on the rework list by measurement: `docs/decisions/active.md` 268,673 bytes,
+   `docs/acceptance/lessons.md` 258,374, `docs/evidence/sync-coverage-matrix.md` 244,792,
+   `docs/evidence/selfchecks/MANIFEST.md` 111,705. The largest ticket body,
+   `docs/backlog/review/save-mid-run-consistent-cut.md` at 107,575 bytes, is the first candidate of the
+   cycle-narrative class and has not been judged yet.
+3. **A ledger shape for what stays a list.** — **Open.** An entry is bounded, says what its reader does with
+   it, and names the page that carries its conclusion; an entry whose conclusion has landed elsewhere is
+   deleted in the same change.
+4. **Gates so it cannot grow back.** — **Partly landed**: the census gate proves completeness in both
+   directions, resolvability of every `reach`, the reader vocabulary, the work queue behind `rework` and a
+   112 KiB size budget measured into the gap between the four logs (111,705 bytes and up) and the largest
+   document that is not one (107,575 bytes). Still open: the ledger shape check of item 3, and a dangling
+   reference sweep over *every* document — today only the human blocks are swept
+   (`DocumentationTreeGateTests.EveryRelativeLink_PointsAtAFileThatExists`).
+5. **References move with the files**: every citation is re-pointed, the pair registry is re-recorded where
+   the two blocks change, and the gate suite is green at the end. — **Partly landed**: the three deletions
+   had no inbound citation to move, the three ticket repairs moved evidence back into reach, and the
+   twenty-two ellipsis-shortened citations in five documents were expanded to the full path each one means
+   (the shorthand is ambiguous wherever two families share a batch suffix, which is how a live record's
+   reference to a deleted sibling went unnoticed). **Measured for the rework ahead**: the four logs are the
+   `reach` of 36 rows today (22 `decisions/active.md`, 13 `acceptance/lessons.md`, 1
+   `sync-coverage-matrix.md`), so distilling a log has to re-point those rows in the same change or the
+   census gate fails — which is the gate doing its job.
 
 ## Acceptance
 

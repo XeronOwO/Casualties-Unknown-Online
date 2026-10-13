@@ -22,8 +22,8 @@
 - Related: `done/remote-inventory-native-parity-rework` (the path that produced the warnings),
   `done/carried-inventory-registration-re-report.md`, `docs/architecture/remote-inventory-native-parity.md`
 - Acceptance record: `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-b.md`
-  (rejected on row A1g); `…-20261006-a.md` (accepted except the then-blocked row); `…-20261005-e.md`
-  (rejected) and `…-20261005-d.md` stand as history
+  (rejected on row A1g); `docs/evidence/acceptance/container-move-snapshot-only-sync-20261006-a.md` (accepted except the then-blocked row); `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-e.md`
+  (rejected) and `docs/evidence/acceptance/container-move-snapshot-only-sync-20261005-d.md` stand as history
 
 ## Read by batch `20261006-d` (2026-10-06)
 

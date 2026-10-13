@@ -11,7 +11,7 @@ file names, same page set. Inside a block: `start/` (first run, read in order), 
 page), `internals/` (why it works this way), `reference/` (lookup: API, protocol, configuration,
 matrices, glossary), `contributing/` (build, gates, review, this standard).
 
-- `standard/` — document-system registries (terminology, alignment record); `contracts/` — machine
+- `standard/` — document-system registries (terminology, alignment record, census); `contracts/` — machine
   baselines and tables that code and gates read. `backlog/`, `evidence/`, `decisions/` — process records:
   never translated, outside the human navigation.
 - `architecture/`, `development/`, `acceptance/` — specs and agent-facing pages: English only. An
@@ -72,3 +72,7 @@ detail lives in `how-to/` or `internals/`, linked, never duplicated.
   at a named decision point, or a reader arriving from an index. A document that only records what a cycle
   did is not landed — its conclusion goes into the page that reader already opens — and an append-only log is
   deleted rather than archived. The review prompt asks this of every page a change adds or keeps.
+- **Every tracked document carries a row** in [`standard/document-census.txt`](standard/document-census.txt)
+  naming what reaches it, so the page that sends readers to a page lands first:
+  `DocumentCensusGateTests` fails on a document with no row, a row naming a document that is not there, and a
+  kept document nothing names back.

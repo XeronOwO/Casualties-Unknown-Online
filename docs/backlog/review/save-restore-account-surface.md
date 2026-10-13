@@ -1,6 +1,7 @@
 # S4.2 — The restore account becomes player-visible, and every save event gets one log line
 
 - Status: Review (landed 2026-09-14; awaiting the final unified acceptance pass)
+- Acceptance (20261001-o): every row passes except row 2, unproven — the claim-refused multi-client scenario needs an IP-direct roster and was not staged. Record: `docs/evidence/acceptance/save-restore-account-surface-20261001-o.md`
 - Priority: High
 - Category: Persistence / save system
 - Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scopes 2 and 3

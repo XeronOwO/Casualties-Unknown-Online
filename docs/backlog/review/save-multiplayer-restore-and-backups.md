@@ -1,6 +1,7 @@
 # S4 — Multiplayer restore, validation/recovery, scheduled backups
 
 - Status: Review (all four stages landed 2026-09-14; awaiting the final unified acceptance pass)
+- Acceptance (20261001-o, 20261001-p): rows 4–6 pass in batch `20261001-p`; rows 1–2 and 7 were judged in batch `20261001-o` with row 2 unproven (no IP-direct session staged); row 3's fix is open in `done/save-new-player-starting-supplies.md`. Records: `docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261001-o.md`, `docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261001-p.md`
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 4 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (the backup half is the user's Q3/Q6 answer: "可配置的定时备份")

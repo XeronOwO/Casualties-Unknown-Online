@@ -7,6 +7,7 @@ them; they are not a section of the documentation itself.
 |---|---|---|
 | `terminology.txt` | an English term → the only Chinese rendering, its first-use spelling and the forms never to use | anyone writing a Chinese page; the review checks wording against it |
 | `alignment.txt` | each English/Chinese page pair with the hashes confirmed at the last sync | the drift check; anyone editing one side |
+| `document-census.txt` | every tracked markdown document → what reaches it and who opens it | the census gate on every build; anyone landing a document |
 
 The rules that use these files are [`../AGENTS.md`](../AGENTS.md). Readers meet the words through
 [`../en/reference/glossary.md`](../en/reference/glossary.md) and

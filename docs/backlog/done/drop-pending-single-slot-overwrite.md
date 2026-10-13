@@ -8,8 +8,8 @@
   for any of the four children and no `InvalidTransition` anywhere in the session, and the operator's and the
   third peer's clone-fact monitor stays at zero across the gesture and a quiet cycle. History: batch
   `20261006-h` read the machine half passing and the world half failing 2/2, and that failure was attributed
-  and fixed in `done/second-drop-report-loses-its-world-object.md`; before it, `…-20261006-f.md` rejected the
-  previous row shape and `…-20261006-c.md` read the unit half. The drop-pending machine itself is unchanged and
+  and fixed in `done/second-drop-report-loses-its-world-object.md`; before it, `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-f.md` rejected the
+  previous row shape and `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-c.md` read the unit half. The drop-pending machine itself is unchanged and
   its unit pins stay green. Record
   `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261007-b.md`.)
 - Priority: Medium

@@ -1,8 +1,8 @@
 # Building Support-Loss Drop Sync — quantity + fresh presentation self-check
 
 Delivery-cycle fact sheet for the re-opened
-`docs/backlog/todo/trap-destruction-drop-quantity-desync.md` and
-`docs/backlog/todo/entity-destruction-drop-guest-fresh-state-loss.md`.
+`docs/backlog/done/trap-destruction-drop-quantity-desync.md` and
+`docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md`.
 
 ## 1. Root cause
 

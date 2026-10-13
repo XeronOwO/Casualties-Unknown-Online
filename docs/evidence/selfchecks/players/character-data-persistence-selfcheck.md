@@ -1,6 +1,6 @@
 # Character-data disk persistence — delivery fact sheet
 
-> **SUPERSEDED (2026-09-14, S4.1 — decision 178).** The disk store this sheet delivered
+> **HISTORICAL** — superseded 2026-09-14 by S4.1 (decision 178). The disk store this sheet delivered
 > (`CharacterDataFileStore` + `CharacterDataFile`, `CasualtiesUnknownOnline.character-data.bin`) is
 > DELETED: the CUO world archive is the only persistent copy of a character, and the in-memory
 > `CharacterDataStore` is filled by the live 1 Hz reports plus a restore's claim. This sheet is kept

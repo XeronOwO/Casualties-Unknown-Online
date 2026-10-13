@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// The document census — <c>docs/standard/document-census.txt</c> — carries exactly one row per markdown
 /// document git tracks, and every row names the document that reaches it: a citation for a record, a
 /// section index for a human page, the loader for an instruction file. A row that can name nothing is the
-/// defect the audit exists to find (<c>docs/backlog/todo/document-corpus-audit.md</c>), so a new document
+/// defect the audit exists to find (<c>docs/backlog/review/document-corpus-audit.md</c>), so a new document
 /// cannot land without being referenced by one that already exists. The rule is <c>docs/AGENTS.md</c> §6.
 /// A green run proves every document has an access path; it cannot judge whether a page teaches.
 /// </summary>

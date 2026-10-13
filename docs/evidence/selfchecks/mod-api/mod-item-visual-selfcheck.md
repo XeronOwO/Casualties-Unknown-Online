@@ -1,5 +1,9 @@
 # Mod item visual — mechanism inventory and self-check
 
+> **HISTORICAL** — superseded by decision 247 (typed content registration, 2026-10-08): the opaque payload this sheet describes, and the `ToPayload`/`FromPayload` round-trip tests it cites, are deleted. This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 Owner cycle: CUCoreLib migration support — the worn-sprite, multi-limb
 additive-sprite, liquid-mask and frame-animation visual slice on top of the
 typed custom item behavior seam.

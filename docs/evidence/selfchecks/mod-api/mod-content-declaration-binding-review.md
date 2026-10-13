@@ -142,11 +142,11 @@ none).
 This cycle re-pointed `docs/backlog/README.md`, the sibling ticket, decision 251's row, the code comment in
 `tests/CasualtiesUnknownOnline.Tests/Patching/ModAuthoredDefinitionBindingTests.cs` and the MANIFEST row of
 `mod-content-declaration-contract-selfcheck.md` — and left two records whose MANIFEST rows are still `current`
-naming `docs/backlog/todo/mod-content-attribute-declarations.md`, which no longer exists:
+naming `docs/backlog/review/mod-content-attribute-declarations.md`, which no longer exists:
 
 - `docs/evidence/selfchecks/mod-api/mod-content-declaration-contract-review.md` — *"Change reviewed:
-  `docs/backlog/todo/mod-content-attribute-declarations.md` stage A, decision 251"*.
-- `docs/evidence/selfchecks/mod-api/mod-api-typed-seams-review.md` — *"`docs/backlog/todo/mod-content-attribute-declarations.md` re-points"*.
+  `docs/backlog/review/mod-content-attribute-declarations.md` stage A, decision 251"*.
+- `docs/evidence/selfchecks/mod-api/mod-api-typed-seams-review.md` — *"`docs/backlog/review/mod-content-attribute-declarations.md` re-points"*.
 
 `BacklogReferenceGateTests` exempts `evidence/selfchecks/` by design
 (`RecordPrefixes = ["backlog/done/", "backlog/resolved/", "evidence/selfchecks/"]`), which is why the gates stay

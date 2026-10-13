@@ -1,5 +1,9 @@
 # check-architecture.ps1 performance — self-check (2026-09-01)
 
+> **HISTORICAL** — the PowerShell script it measures was removed once the architecture gate became C# tests. This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 Backlog item `check-architecture.ps1 performance`: the mandatory architecture
 gate took ~90s in an earlier full-gate run. This cycle measures the current
 bottleneck, removes the dominant cost, and verifies the gate still catches the

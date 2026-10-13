@@ -1,7 +1,7 @@
 # Game Adapter: capability ports
 
 Date: 2026-09-21
-Scope: ticket `docs/backlog/review/adapter-capability-ports.md` — the Game Adapter boundary
+Scope: ticket `docs/backlog/done/adapter-capability-ports.md` — the Game Adapter boundary
 (`src/CasualtiesUnknownOnline.Runtime/GameAdapter/IGameAdapter.cs`) split from one 21-member interface
 into ten capability ports with a frozen, member-free composition. Decision 212 records the ruling.
 Independent adversarial review of this cycle: `%TEMP%\cuo-review-adapter-capability-ports.md`

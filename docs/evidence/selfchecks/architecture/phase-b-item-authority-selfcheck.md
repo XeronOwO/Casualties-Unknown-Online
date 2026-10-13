@@ -1,5 +1,9 @@
 # Phase B item authority self-check (2026-08-28)
 
+> **HISTORICAL** — Phase B is an intermediate architecture slice; the live path it led to is recorded by `docs/architecture/evolution/phase-b-items-authority.md`. This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 This fact sheet records the Phase B authority switch: the typed deterministic
 kernel now owns the persistent item facts, the legacy tables are projections,
 the native-operation and capability surfaces are introduced, and the item

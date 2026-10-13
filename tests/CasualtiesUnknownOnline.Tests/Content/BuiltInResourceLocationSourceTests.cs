@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Content;
 /// <see cref="ModContentKind"/> constant — the vocabulary names the kinds a
 /// content provider binds, CUO has no entity provider, and a resource entry's
 /// kind is display text the completion row renders (ticket
-/// <c>docs/backlog/review/mod-content-kind-with-no-provider.md</c>).
+/// <c>docs/backlog/done/mod-content-kind-with-no-provider.md</c>).
 /// </summary>
 public class BuiltInResourceLocationSourceTests
 {

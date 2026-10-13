@@ -1,7 +1,7 @@
 # Remote Clone Facing Auto-Flip — Guest Remote Pose/Head-Orientation Desync Self-Check
 
 Delivery-cycle fact sheet for the re-opened
-`docs/backlog/todo/guest-remote-pose-head-orientation-desync.md` item
+`docs/backlog/review/guest-remote-pose-head-orientation-desync.md` item
 (moved to `docs/backlog/review/` after this cycle).
 
 ## 1. Mechanism inventory

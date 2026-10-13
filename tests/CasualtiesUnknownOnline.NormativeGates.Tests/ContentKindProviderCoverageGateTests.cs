@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// The content-kind coverage gate (ticket
-/// <c>docs/backlog/review/mod-content-kind-with-no-provider.md</c>): the
+/// <c>docs/backlog/done/mod-content-kind-with-no-provider.md</c>): the
 /// vocabulary <c>ModContentKind</c> publishes, the kinds the content-binding
 /// providers declare and the providers a DI registration statement names under
 /// <c>src/</c> are ONE list.

@@ -1,6 +1,6 @@
 # The Remote-Clone Failure Warning Storm — Self-Check (2026-10-07)
 
-Delivery fact sheet for `docs/backlog/review/remote-clone-warning-storm-on-member-dropout.md`, filed by
+Delivery fact sheet for `docs/backlog/done/remote-clone-warning-storm-on-member-dropout.md`, filed by
 acceptance batch `20261007-a`: while a member was out of the world, one client's rolling log grew 8.796 MB in
 about 90 seconds, **58,148** of its 58,960 lines the same clone-creation warning
 (`docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md`, row 2). The cycle bounds that producer

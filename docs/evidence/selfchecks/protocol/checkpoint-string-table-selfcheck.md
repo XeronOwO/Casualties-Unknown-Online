@@ -1,7 +1,7 @@
 # Checkpoint Item-Definition String Table — Self-Check
 
 Owner cycle: autonomous backlog selection. Chosen item:
-`docs/backlog/todo/snapshot-size-reduction.md`.
+`docs/backlog/done/snapshot-size-reduction.md`.
 
 ## 1. Problem evidence
 

@@ -5,7 +5,7 @@
 > host-side white border/fresh-drop presentation; the guest also initially sees
 > fewer drops than the host. This file is retained as historical evidence; the
 > ticket is re-opened as
-> `docs/backlog/todo/entity-destruction-drop-guest-fresh-state-loss.md`.
+> `docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md`.
 
 Closes backlog item "Entity destruction drops lose fresh-drop
 presentation/initial motion on the guest view". The block-break chain already

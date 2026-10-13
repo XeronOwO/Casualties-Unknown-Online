@@ -1,5 +1,9 @@
 # Online UI scoped passthrough + transport exclusivity — self-check
 
+> **HISTORICAL** — superseded by S5 of the Online UI overhaul: the scoped UGUI blocker it describes retired with the two IMGUI panels that were its only consumers. This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 Date: 2026-08-26
 Scope: the quick panel and right-click context menu are IMGUI surfaces that
 were not covered by the existing full-screen modal input guard, so clicks inside

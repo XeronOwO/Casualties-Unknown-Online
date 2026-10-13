@@ -87,7 +87,7 @@ What did fall:
   file is unchanged — which is exactly the drift M2 names.
 - Index budget: the moved ticket's row is **142** characters against `BacklogIntegrityGateTests`'
   `IndexLineBudget = 160`, and it sits under `### Review` with the ticket in `review/`.
-- Reference integrity: `docs/backlog/todo/mod-api-typed-seams.md` is gone, `docs/backlog/review/…` exists,
+- Reference integrity: the ticket's original `todo/` location is gone and it has since reached `done/`,
   the README row moved Todo → Review, `docs/backlog/review/mod-content-attribute-declarations.md` re-points
   (that path moved from `todo/` when stage B of that ticket landed),
   and the dated done-ticket's location claim is updated. One stale `todo/` pointer survives (m2).
@@ -302,7 +302,7 @@ recorded in full form (as in §2) in both the ticket and the self-check.
 
 `docs/evidence/selfchecks/mod-api/mod-value-model-stage-b-review.md`:
 
-> "(`docs/backlog/todo/mod-api-typed-seams.md`, whose own table names that exact line)"
+> "(`docs/backlog/done/mod-api-typed-seams.md`, whose own table names that exact line)"
 
 The file it points at was deleted by this change (the ticket is now `docs/backlog/done/mod-api-typed-seams.md`),
 so the path no longer resolves. This is the same class of check the immediately preceding cycle ran on its own

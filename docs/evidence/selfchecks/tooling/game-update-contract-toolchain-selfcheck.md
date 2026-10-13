@@ -1,6 +1,6 @@
 # Game-update contract toolchain — Self-Check (2026-09-20)
 
-Delivery fact sheet for `docs/backlog/review/game-update-contract-toolchain.md` (High, the first
+Delivery fact sheet for `docs/backlog/done/game-update-contract-toolchain.md` (High, the first
 ticket of the 2026-09-20 review batch). The answer to "what did the game change?" used to be
 assembled by chasing compile errors and whichever of the patch classes failed verification first;
 this cycle lands a read-only toolchain that snapshots a game build, CLASSIFIES the differences

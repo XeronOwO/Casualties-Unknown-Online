@@ -1,13 +1,13 @@
 # Remote medical panel acceptance projection self-check
 
-> **Superseded**: `RemoteMedicalDisplayProjection` and
+> **HISTORICAL** — superseded: `RemoteMedicalDisplayProjection` and
 > `RemoteMedicalCoordinator.ApplyDisplayDerived` have been absorbed into
 > `RemoteCharacterDisplayProjection` by the unified remote display projection
 > rework. See
 > `../presentation/unified-remote-display-projection-selfcheck.md` for the
 > current seam.
 
-Owner cycle: `docs/backlog/todo/remote-medical-panel-acceptance-issues.md`.
+Owner cycle: `docs/backlog/review/remote-medical-panel-acceptance-issues.md`.
 
 ## 1. Problem
 

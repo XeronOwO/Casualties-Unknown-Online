@@ -1,6 +1,6 @@
 # Self-check — the typed value model (stage A: the mod's own data over the wire)
 
-Cycle: 2026-10-09. Ticket: `docs/backlog/todo/mod-api-no-opaque-envelopes.md` (step 1 of the user's
+Cycle: 2026-10-09. Ticket: `docs/backlog/review/mod-api-no-opaque-envelopes.md` (step 1 of the user's
 2026-10-08 ruling landed earlier in `done/mod-content-typed-registration.md`; this cycle is the second
 half). Scope landed: **stage A — the mod's own data over the wire** (the model, its encoder, `IModNetwork`,
 `IModPackets`, `IModPacketContext`, the status frame and the status value, the two projections). Stage B —

@@ -1,5 +1,9 @@
 # Pinyin search (stage 1: the crafting search box and the switch)
 
+> **HISTORICAL** — the CUO-resident matcher, patch and `Search.PinyinSearch` switch it describes (decision 199) were deleted when the feature moved into the satellite pinyin mod (decision 209). This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 Date: 2026-09-20
 Scope: pinyin search on the game's own crafting search box — the matcher core, the pure scope
 decision, the native-surface patch, and the opt-in switch whose default follows the system language

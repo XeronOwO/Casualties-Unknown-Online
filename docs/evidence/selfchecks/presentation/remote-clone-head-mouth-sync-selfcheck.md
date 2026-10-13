@@ -6,7 +6,7 @@
 > `unified-remote-display-projection-selfcheck.md` for the current seam.
 
 Delivery-cycle fact sheet for the re-opened
-`docs/backlog/todo/host-fall-injury-mouth-expression-desync.md` item
+`docs/backlog/done/host-fall-injury-mouth-expression-desync.md` item
 (moved to `docs/backlog/review/` after this cycle).
 
 ## 1. Mechanism inventory (evidence-first)

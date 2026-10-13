@@ -17,7 +17,7 @@
 #
 # Scope: every markdown file git tracks. Machine tables 鈥?alignment.txt, terminology.txt, the contracts 鈥?are
 # not documents and are out of scope; their own gates read them. The rule is docs/AGENTS.md 搂6; the audit that
-# produced this census is docs/backlog/todo/document-corpus-audit.md.
+# produced this census is docs/backlog/review/document-corpus-audit.md.
 AGENTS.md | keep | loaded | -
 CLAUDE.md | keep | loaded | -
 docs/acceptance/AGENTS.md | keep | loaded | -
@@ -281,7 +281,7 @@ docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlo
 docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/document-corpus-audit.md | keep | index | docs/backlog/README.md
+docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-item-to-another-player.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/heal-command-limb-and-hollow-restore.md | keep | index | docs/backlog/README.md
@@ -313,7 +313,7 @@ docs/decisions/archive.md | keep | spec | docs/backlog/todo/mod-content-ceiling.
 docs/decisions/index.md | keep | spec | docs/evidence/selfchecks/mod-api/mod-content-fingerprint-review.md
 docs/development/agent-reference.md | keep | spec | docs/backlog/review/bilingual-human-docs.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md
-docs/development/review-prompt.md | keep | spec | docs/backlog/todo/document-corpus-audit.md
+docs/development/review-prompt.md | keep | spec | docs/backlog/review/document-corpus-audit.md
 docs/en/AGENTS.md | keep | loaded | -
 docs/en/contributing/build-and-test.md | keep | index | docs/en/contributing/README.md
 docs/en/contributing/documentation-standard.md | keep | index | docs/en/contributing/README.md
@@ -503,7 +503,7 @@ docs/evidence/acceptance/mod-content-typed-registration-20261012-c.md | keep | c
 docs/evidence/acceptance/mod-crafting-quality-labels-20261012-c.md | keep | claim | docs/backlog/done/mod-crafting-quality-labels.md
 docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md | keep | claim | docs/evidence/acceptance/20261008-a-scope.md
 docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261011-i.md | keep | claim | docs/evidence/acceptance/20261011-i-scope.md
-docs/evidence/acceptance/mod-data-sync-model-20260927.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
+docs/evidence/acceptance/mod-data-sync-model-20260927.md | keep | claim | docs/backlog/done/mod-data-sync-model.md
 docs/evidence/acceptance/mod-declared-behaviour-with-no-function-20261011-k.md | keep | claim | docs/evidence/acceptance/mod-authored-effects-20261011-k.md
 docs/evidence/acceptance/mod-item-authored-actions-20261011-k.md | keep | claim | docs/backlog/done/mod-item-authored-actions.md
 docs/evidence/acceptance/mod-item-declaration-parity-20261011-j.md | keep | claim | docs/evidence/acceptance/20261011-j-scope.md
@@ -534,7 +534,7 @@ docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-e.md | k
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md | keep | claim | docs/backlog/todo/container-content-event-gap-on-repick.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md | keep | claim | docs/backlog/review/enemy-generation-pairing-late-join.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md | keep | claim | docs/evidence/acceptance/20261011-e-scope.md
-docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md | keep | claim | docs/backlog/todo/document-corpus-audit.md
+docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md | keep | claim | docs/backlog/review/document-corpus-audit.md
 docs/evidence/acceptance/remove-legacy-view-items-remote-inventory-detail-20260927.md | keep | claim | docs/backlog/done/remove-legacy-view-items-remote-inventory-detail.md
 docs/evidence/acceptance/remove-the-online-ui-console-page-20261001.md | keep | claim | docs/backlog/done/remove-the-online-ui-console-page.md
 docs/evidence/acceptance/restore-account-arm-release-20261001-o.md | keep | claim | docs/backlog/done/restore-account-arm-release.md
@@ -691,7 +691,7 @@ docs/evidence/selfchecks/items/remote-world-item-same-id-dedup-selfcheck.md | ke
 docs/evidence/selfchecks/items/retired-display-proxy-adopt-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/trader-recruit-gift-items-selfcheck.md | keep | claim | docs/evidence/selfchecks/enemies/trader-recruit-selfcheck.md
 docs/evidence/selfchecks/items/world-item-service-partial-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/MANIFEST.md | rework | none | docs/backlog/todo/document-corpus-audit.md
+docs/evidence/selfchecks/MANIFEST.md | keep | claim | docs/evidence/selfchecks/README.md
 docs/evidence/selfchecks/mod-api/mod-api-typed-seams-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-api-typed-seams-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-building-drop-worldgen-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

@@ -1,6 +1,6 @@
 # Dead-player right-click context menu title — self-check
 
-Owner cycle: `docs/backlog/todo/dead-player-right-click-name-suffix.md`
+Owner cycle: `docs/backlog/review/dead-player-right-click-name-suffix.md`
 (now `review/`). The in-world right-click context menu showed only the
 raw display name for a dead remote player; the dead state was already
 available on `OnlineUiMemberRow.IsDead` but was not projected into the

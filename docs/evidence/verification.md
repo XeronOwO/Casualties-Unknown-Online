@@ -84,14 +84,17 @@ For a mechanism, prefer this order:
 2. **Behavior test** — a test name in `dotnet test` proving the runtime behavior.
 3. **Replay/simulation** — a `.replay` trace or network-simulation test proving
    convergence under delay/reorder/loss.
-4. **Self-check fact sheet** — a `docs/selfchecks/<topic>-selfcheck.md` recording
-   the delivery cycle, verification design, and evidence.
+4. **Self-check fact sheet** — a `docs/evidence/selfchecks/<topic>-selfcheck.md`
+   recording the delivery cycle, verification design, and evidence.
 
 ## Self-checks
 
-`docs/selfchecks/` contains per-delivery fact sheets. They are historical audit
-[records, not open-work status. Use `docs/evidence/selfchecks/MANIFEST.md`](selfchecks/MANIFEST.md)
-to separate current from historical before citing. Key architecture-evolution self-checks:
+[`selfchecks/`](selfchecks/README.md) holds the per-delivery fact sheets. They are
+audit records, not open-work status: [`MANIFEST.md`](selfchecks/MANIFEST.md) is the
+register that goes with them, and a sheet whose row is `historical` — the sheet itself
+carries the `HISTORICAL` banner — is not current evidence. A `current` row only means
+nothing has superseded the sheet, so read it before citing it. Key
+architecture-evolution self-checks:
 
 - Phase A–C: historical phase evidence, superseded by later phases:
   `phase-a-kernel-foundation-selfcheck.md`,
@@ -100,9 +103,10 @@ to separate current from historical before citing. Key architecture-evolution se
 - Phase D: `phase-d-full-domain-migration-selfcheck.md`
 - Phase E: `phase-e-legacy-inventory-selfcheck.md`
 
-### Current high-value selfchecks
+### Self-checks worth opening first
 
-These are the current-evidence seeds most useful for verifying active mechanisms:
+These are the seeds most useful for verifying active mechanisms; the register above says
+which of them something has since superseded.
 
 | Selfcheck | Domain |
 |---|---|

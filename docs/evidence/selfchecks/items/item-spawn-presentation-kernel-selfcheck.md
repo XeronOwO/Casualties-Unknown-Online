@@ -1,7 +1,7 @@
 # Item spawn presentation through the kernel — self-check
 
 Delivery-cycle fact sheet for the still-open
-`docs/backlog/todo/entity-destruction-drop-guest-fresh-state-loss.md` family:
+`docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md` family:
 building/entity destruction drops must carry the same fresh-drop highlight,
 initial velocity, rotation and angular velocity to every peer, not only to the
 destroying side.

@@ -1,5 +1,9 @@
 # Mod item advanced behavior — mechanism inventory and self-check
 
+> **HISTORICAL** — superseded by decision 247 (typed content registration, 2026-10-08): the opaque payload this sheet describes, and the `ToPayload`/`FromPayload` round-trip tests it cites, are deleted. This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 Owner cycle: CUCoreLib migration support — the minimal usable container,
 battery, light, tool and gun behavior slice on top of the typed item content
 seam.

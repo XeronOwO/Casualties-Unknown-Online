@@ -6,7 +6,7 @@
 > `unified-remote-display-projection-selfcheck.md` for the current seam.
 
 Delivery-cycle fact sheet for
-`docs/backlog/todo/host-severe-sleepiness-posture-desync.md`
+`docs/backlog/done/host-severe-sleepiness-posture-desync.md`
 (moved to `docs/backlog/review/` after this cycle).
 
 ## 1. Mechanism inventory (evidence-first)

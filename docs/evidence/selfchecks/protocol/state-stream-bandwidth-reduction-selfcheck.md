@@ -1,8 +1,8 @@
 # State-stream bandwidth reduction — recipient-local player echo removal
 
-Owner cycle: backlog `docs/backlog/todo/state-stream-bandwidth-reduction.md`
+Owner cycle: backlog `docs/backlog/done/state-stream-bandwidth-reduction.md`
 (moved to Review after this cycle). The network traffic baseline
-(`docs/backlog/review/network-traffic-baseline.md`) measured the high-frequency
+(`docs/backlog/done/network-traffic-baseline.md`) measured the high-frequency
 `PlayerStateStream` as a per-payload family on every host→guest frame. This
 cycle removes one provable redundant part of that stream: the host was echoing
 a guest's own player entry back to that same guest on every 20 Hz broadcast.

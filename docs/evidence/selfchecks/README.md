@@ -6,8 +6,10 @@ design. They are **audit evidence**, not the current open-work view — see
 [`../../decisions/active.md`](../../decisions/active.md), and
 [`../verification.md`](../verification.md).
 
-- **[`MANIFEST.md`](MANIFEST.md)** is the complete per-file index: domain, current
-  vs historical, and note. Use it before citing any selfcheck as current evidence.
+- **[`MANIFEST.md`](MANIFEST.md)** is the register that goes with this index: one row
+  per file, and a row says `historical` only when the mechanism the sheet delivered is
+  no longer the active path. `current` records no supersession — it is not a verdict
+  that the sheet matches today's code, so read the sheet before citing it.
 - Each file corresponds to one delivery cycle or architecture phase.
 - The canonical feature sync status lives in
   [`../../en/reference/feature-matrices.md`](../../en/reference/feature-matrices.md)
@@ -33,8 +35,9 @@ design. They are **audit evidence**, not the current open-work view — see
 
 ## Domain/feature self-checks
 
-Per-domain or per-mechanism fact sheets are named by topic. Prefer current-evidence
-sheets; use MANIFEST before citing historical ones.
+Per-domain or per-mechanism fact sheets are named by topic. A sheet bannered
+`HISTORICAL` is not current evidence; anything else still has to be read before it is
+cited, because the register records supersessions rather than re-checking sheets.
 
 Current examples:
 
@@ -61,4 +64,5 @@ Historical/superseded examples (bannered as HISTORICAL):
   `items/world-item-service-partial-split-selfcheck.md`
 
 Use `Get-ChildItem docs/evidence/selfchecks -Filter *selfcheck.md -Recurse` for the
-complete list and [`MANIFEST.md`](MANIFEST.md) for status.
+complete list and [`MANIFEST.md`](MANIFEST.md) for what is known to have superseded a
+sheet.

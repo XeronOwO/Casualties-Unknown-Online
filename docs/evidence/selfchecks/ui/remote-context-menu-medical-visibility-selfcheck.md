@@ -1,6 +1,6 @@
 # Remote context menu Medical visibility — self-check
 
-Owner cycle: `docs/backlog/todo/remote-context-menu-medical-visible-when-target-not-visible.md`
+Owner cycle: `docs/backlog/review/remote-context-menu-medical-visible-when-target-not-visible.md`
 (now `review/`). The user rejected the previous behavior because the in-world
 right-click menu showed only the Medical action for a remote player that was not
 visible; every other remote-player action was gated by the existing

@@ -1,7 +1,7 @@
 # Application layer: first slice (command admission seam)
 
 Date: 2026-09-21
-Scope: ticket `docs/backlog/review/application-layer-first-slice.md` stages 1-3 — the
+Scope: ticket `docs/backlog/done/application-layer-first-slice.md` stages 1-3 — the
 `CasualtiesUnknownOnline.Application` project, the declared project-direction gate, the kernel
 command admission seam, and the kernel-replication move (stage 3: the ports plus the eight types that
 could move — see the stage 3 section below). Decisions 210 (the seam) and 211 (the move) record the

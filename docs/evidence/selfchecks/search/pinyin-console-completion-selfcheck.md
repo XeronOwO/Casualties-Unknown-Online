@@ -1,5 +1,9 @@
 # Pinyin search (stage 2: the console's resource-id completion)
 
+> **HISTORICAL** — the CUO-resident console stage it describes (decision 200) was deleted when the feature moved into the satellite pinyin mod (decision 209); the seam it introduced is unchanged. This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 Date: 2026-09-20
 Scope: pinyin search on the in-game console's completion for resource arguments — the pluggable
 extra match stage behind `IResourceLocationCatalog`, the switch path, and the tests. The crafting

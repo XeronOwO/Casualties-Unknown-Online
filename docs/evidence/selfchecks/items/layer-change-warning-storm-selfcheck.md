@@ -1,6 +1,6 @@
 # The Layer-Change Warning Storm — Self-Check (2026-10-06)
 
-Delivery fact sheet for `docs/backlog/todo/layer-change-member-dropout.md`, whose evidence batch `20261005-b`
+Delivery fact sheet for `docs/backlog/done/layer-change-member-dropout.md`, whose evidence batch `20261005-b`
 lost a session to: after a layer change the two members were out of the world and the guest's rolling log grew
 from 0.8 MB to 33.4 MB in about four minutes (`docs/evidence/acceptance/guest-command-loss-reconciliation-20261005-b.md`,
 Limits). The cycle bounds the diagnostics that produced that growth; the member-recovery half is filed

@@ -1,5 +1,9 @@
 # Remote backpack held-item / Tab-transfer self-check
 
+> **HISTORICAL** — superseded by the stage 0 native-intent design (decision 217): the Tab-transfer and held-item kinds it describes are replaced by native intents (`TransferToBody`). This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 > Development-period evidence for the remote-backpack acceptance cycle that
 > landed `TransferToRequester`, `UseOnSelf`, drain-object pour/edge-drop,
 > non-destructive same-owner apply, and main-hand slot routing. Real dual-client

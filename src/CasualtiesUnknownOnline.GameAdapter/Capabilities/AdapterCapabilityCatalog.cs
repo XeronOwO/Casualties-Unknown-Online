@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Capabilities;
 /// The adapter capability catalog: which gameplay system each patch belongs to,
 /// and whether that system is one the vanilla game itself has (Required) or an
 /// addition of ours (Optional). The split follows the user ruling recorded in
-/// <c>docs/backlog/todo/adapter-capability-catalog.md</c> — the yardstick is
+/// <c>docs/backlog/review/adapter-capability-catalog.md</c> — the yardstick is
 /// whether the game has the feature, never how hard a capability is to fix.
 ///
 /// The catalog is a declaration, not an installation path: stage 1 uses it to

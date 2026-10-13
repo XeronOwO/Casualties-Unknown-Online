@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// The acceptance lessons ledger — <c>docs/acceptance/lessons.md</c> — is a list of pitfalls, not a
 /// journal: every entry is a dated headline and ONE line naming what its reader can open or act on, and
 /// the file stays inside its own budget so it cannot grow back into the append-only log the document
-/// audit rewrote (<c>docs/backlog/todo/document-corpus-audit.md</c>, required work item 3: "an entry is
+/// audit rewrote (<c>docs/backlog/review/document-corpus-audit.md</c>, required work item 3: "an entry is
 /// bounded, says what its reader does with it, and names the page that carries its conclusion"). The
 /// rule behind it is <c>docs/AGENTS.md</c> §6 — keep the distilled conclusion, delete the log — and the
 /// page's own header states the same contract for whoever adds the next entry. A green run proves the

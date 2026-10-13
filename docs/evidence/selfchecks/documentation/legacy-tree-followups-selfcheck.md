@@ -36,10 +36,8 @@ there is nothing to deploy and no real-client claim is made.
   both `reference/feature-matrices.md` pages, in order, so a renamed, added or dropped column fails
   until the CSV and both pages agree. The entity page's own "10 columns" figure had drifted from its
   9-column table and was corrected with it, in both blocks.
-- **The ticket moved.** `docs/backlog/todo/feature-matrix-tool-path-gate.md` became
-  `docs/backlog/review/feature-matrix-tool-path-gate.md` with its `## What landed` record, and the
-  backlog index row moved from the Todo section to Review. `docs/backlog/todo/` now holds only its
-  `.gitkeep`.
+- **The ticket moved.** `feature-matrix-tool-path-gate.md` travelled `todo/` → `review/` → `done/` with
+  its `## What landed` record, and the backlog index row moved with it.
 
 ## Mechanism inventory
 
@@ -53,7 +51,7 @@ there is nothing to deploy and no real-client claim is made.
 | Matrix tool literals | A gate reads the tools' `Join-Path $scriptDir` literals out of `tools/*.ps1` and pairs each matrix with the tool that owns it | `FeatureMatrixToolPathGateTests.EveryScriptRelativeLiteral_NamesAFileThatExistsAndResolvesItsOwnMatrix` |
 | Matrix feature columns | Each CSV header, the English page and the Chinese page are compared as one ordered list (item 12, entity 9) | `FeatureMatrixToolPathGateTests.TheMatrixHeaders_EqualTheFeatureColumnListsTheReferencePagesPublish` |
 | Entity column-count drift | The reference pages' stated entity column count now equals their own table and the CSV | `docs/en/reference/feature-matrices.md`, `docs/zh/reference/feature-matrices.md`; the gate above |
-| Ticket lifecycle | The finished ticket left `todo/` and the index section follows it | `docs/backlog/review/feature-matrix-tool-path-gate.md`, `docs/backlog/README.md` |
+| Ticket lifecycle | The finished ticket left `todo/` and the index section follows it | `docs/backlog/done/feature-matrix-tool-path-gate.md`, `docs/backlog/README.md` |
 
 ## Verification
 

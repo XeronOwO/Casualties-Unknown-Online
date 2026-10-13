@@ -2,7 +2,7 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
 /// The Required/Optional class of one adapter capability (user ruling
-/// 2026-09-20, <c>docs/backlog/todo/adapter-capability-catalog.md</c>). The
+/// 2026-09-20, <c>docs/backlog/review/adapter-capability-catalog.md</c>). The
 /// yardstick is whether the vanilla game itself has the feature, never how hard
 /// the capability is to fix:
 /// <list type="bullet">

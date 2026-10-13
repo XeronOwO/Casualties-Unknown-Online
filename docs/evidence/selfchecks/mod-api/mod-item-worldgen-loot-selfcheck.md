@@ -1,5 +1,9 @@
 # Mod item world-spawn / category loot pool — mechanism inventory and self-check
 
+> **HISTORICAL** — superseded by decision 247 (typed content registration, 2026-10-08): the opaque payload this sheet describes, and the `ToPayload`/`FromPayload` round-trip tests it cites, are deleted. This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 Owner cycle: CUCoreLib migration support — custom item world spawn
 distribution and the missing vanilla category loot-pool injection.
 

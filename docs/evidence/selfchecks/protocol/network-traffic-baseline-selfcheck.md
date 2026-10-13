@@ -1,7 +1,7 @@
 # Network traffic baseline — per-payload percentiles and regression gate
 
-Owner cycle: backlog `docs/backlog/todo/network-traffic-baseline.md` (moved to
-Review after this cycle). The existing whole-protocol monitor already counted
+Owner cycle: backlog `docs/backlog/done/network-traffic-baseline.md` (it travelled
+`todo/` → `review/` → `done/` after this cycle). The existing whole-protocol monitor already counted
 actual frames/bytes by `NetMsg` and peer; this cycle adds the missing semantic
 dimension (`WirePayloadType`) and a regression scenario that measures the
 frame-size distributions the optimization tickets asked for before optimizing.

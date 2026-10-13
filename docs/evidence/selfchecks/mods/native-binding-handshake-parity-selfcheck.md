@@ -4,7 +4,7 @@ Date: 2026-09-21
 Scope: the declared native binding's journey onto the wire and the host's parity policy — the
 `ModInfoMsg` field, the shared normalization rule, the three-level `HostRules.NativeBindingParity`
 rule, the handshake judgement, the config/UI surfaces and the documents. Depends on the declaration
-ticket (`docs/backlog/review/mod-native-binding-declaration.md`, decision 206) and completes the
+ticket (`docs/backlog/done/mod-native-binding-declaration.md`, decision 206) and completes the
 Tier 2 promise of `docs/api/advanced-modification-policy.md` §1.1.
 
 ## What landed

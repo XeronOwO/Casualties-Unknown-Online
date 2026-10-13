@@ -1,6 +1,6 @@
 # Two censuses, now gates — self-check (2026-09-26)
 
-Ticket: `docs/backlog/review/catalogue-and-manifest-census-drift.md`. Cycle scope: the catalogue's
+Ticket: `docs/backlog/done/catalogue-and-manifest-census-drift.md`. Cycle scope: the catalogue's
 declared-and-unread keys, the self-check MANIFEST's incompleteness and its intro's retired path, and the
 two census gates that keep both honest (decision 229).
 

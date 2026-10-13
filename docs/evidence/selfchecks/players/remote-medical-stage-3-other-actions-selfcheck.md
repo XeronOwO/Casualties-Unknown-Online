@@ -1,5 +1,9 @@
 # Remote medical Stage 3: remaining native medical minigames/actions self-check
 
+> **HISTORICAL** — stage 3's exclusive-limb lease was superseded 2026-09-19 by per-unit settlement (`players/medical-operation-concurrency-selfcheck.md`). This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 Owner cycle: backlog `review/remote-medical-stage-3-other-actions.md`.
 
 ## 1. Mechanism inventory

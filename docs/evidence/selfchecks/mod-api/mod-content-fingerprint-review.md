@@ -38,7 +38,7 @@ guestFingerprint, StringComparison.Ordinal)) { return true; }`). That is an **"a
 thing the decision is named after: a definition's other members may COMPUTE their values (decision 251), so
 two peers with the same four-tuple and a different computed value are admitted in silence. This is not a
 hypothetical shape — it is the ticket's own motivating example, quoted from the entry this cycle deleted
-(`docs/backlog/todo/mod-content-fingerprint.md`, deleted): "With code-driven definitions two copies of the
+(`docs/backlog/review/mod-content-fingerprint.md`, deleted): "With code-driven definitions two copies of the
 same mod version can materialize different content — **a local config changes a weight** — and nothing
 notices." A weight is a member value, not an address field. See MAJOR 2.
 A second, narrower fallback: `null` on the wire is read as "this mod registered no content" (`ModInfoMsg.cs`,
@@ -161,7 +161,7 @@ including every user-visible behaviour change it introduces: a parent ticket's f
 work order or an existing implementation are never that approval").
 
 The move itself removed the only sentence that could be read as authorizing it. The deleted
-`docs/backlog/todo/mod-content-fingerprint.md` carried, under "What this ticket owes":
+`docs/backlog/review/mod-content-fingerprint.md` carried, under "What this ticket owes":
 
 > It has to be decidable what a peer can honestly assert about another peer's content: ids, kinds and schema
 > versions are stable, while a computed member's value is not hashable in general — the ticket starts by

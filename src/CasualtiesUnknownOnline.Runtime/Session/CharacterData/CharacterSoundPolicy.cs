@@ -49,7 +49,7 @@ public static class CharacterSoundPolicy
 		/// item-use path). It also wraps every other item use (medical, tools,
 		/// gestures); those sounds are not classified here, and the ones that
 		/// need their own carrier are recorded in
-		/// <c>docs/backlog/review/host-eating-sound-not-heard-on-guest.md</c>.</summary>
+		/// <c>docs/backlog/done/host-eating-sound-not-heard-on-guest.md</c>.</summary>
 		ItemUse = 12,
 
 		/// <summary>Inside <c>Body.HandleVisuals</c>, whose meal-end burp timer

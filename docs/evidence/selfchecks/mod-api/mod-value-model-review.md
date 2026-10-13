@@ -8,7 +8,7 @@ this review writes is this report. The change's own claims were attacked, never 
 every claim below was re-opened in the tree, and the suites and probes that can run without the game were
 run.
 
-Ticket: `docs/backlog/todo/mod-api-no-opaque-envelopes.md` (*Frozen shape (2026-10-09)* and *What landed*).
+Ticket: `docs/backlog/review/mod-api-no-opaque-envelopes.md` (*Frozen shape (2026-10-09)* and *What landed*).
 Self-check: `docs/evidence/selfchecks/mod-api/mod-value-model-selfcheck.md`. Decision: entry 248.
 
 ## 1. Verdict
@@ -398,7 +398,7 @@ the second asserting the transport saw the frame the way its sibling does with `
 
 ### N3 (nit) — The frozen shape's accessor list names a `Count` that does not exist, and its exception rule is one type off
 
-- `docs/backlog/todo/mod-api-no-opaque-envelopes.md`: "Accessors: `Kind`, `TryGetBoolean`, `TryGetInteger`,
+- `docs/backlog/review/mod-api-no-opaque-envelopes.md`: "Accessors: `Kind`, `TryGetBoolean`, `TryGetInteger`,
   `TryGetNumber` (accepts `Integer` as a widening), `TryGetText`, `TryGetBinary`, `Items`/`Fields` …,
   `TryGetField(string name, out ModValue value)`, `Count`." The baseline records 22 `ModValue` members and
   none of them is a `Count`; `ModValue.cs` has no such member (the word appears once in a doc sentence).

@@ -1,6 +1,6 @@
 # The document corpus audit: every page earns its place
 
-- Status: Todo
+- Status: Review
 - Priority: Critical
 - Category: Documentation / process
 - Source: the user's 2026-10-12 directive, in their own words: "压根不会去读的文档,你写它有什么意义?…必须有意义,
@@ -227,6 +227,64 @@ after: **91,745 bytes, the same 66 rows, average 1,150 characters and largest 1,
   `docs/architecture/README.md`. **Measured now: 968 keep, 1 rework, 0 delete**, the one `rework` being
   `docs/evidence/selfchecks/MANIFEST.md`.
 
+## The self-check register's row audit (2026-10-13)
+
+`docs/evidence/selfchecks/MANIFEST.md` was audited row by row before it was rewritten, the way the
+register, the ledger and the matrix were. Measured before: **111,705 bytes**, 329 rows (the 328 records
+plus the directory's own `README.md`), the largest note 2,707 characters, **145 rows carrying one
+placeholder sentence** ("candidate current evidence; verify before citing") and 32 the same old-wire
+sentence. Measured after: **70,650 bytes**, the same 329 rows, the largest note 1,193 characters.
+
+- **The reader is named, not assumed.** `README.md` beside it and `docs/evidence/verification.md`
+  §Self-checks both route a reader here *before citing a selfcheck*, and 52 of the 56 records that carry
+  a `HISTORICAL` banner name it too. So this page was never a log without a reader; its defect was
+  that 44% of its rows answered that reader's actual question — may I cite this? — with a shrug. The
+  intro now states the register's contract once: it records what is known to have **superseded** a
+  sheet, and `current` means *no supersession of the sheet as a whole is recorded*, NOT that the sheet
+  matches today's code — twelve `current` rows still record that part of a sheet moved, and each says
+  which part.
+- **The judgement rule is the register's own**: a row carries the status and a note bounded to 1,200
+  characters — one clause wherever a clause carries it — naming where the sheet's normative facts live.
+  The 145 placeholder rows become a dash (the sheet's own text is the whole record of it), the 32
+  old-wire rows name the live path for their family, and the 25 rows over the ceiling were cut to a
+  clause plus the decision or ticket that carries the detail.
+- **A supersession is one fact in two places now, and the gate keeps them in step.** Measured before:
+  24 rows said `historical` for a record whose own text did not say it, and the markers were spelled
+  three ways (`SUPERSEDED`, `Superseded`, `Status: Rejected`) — which is exactly why no gate could
+  check them. Those 24 records carry the uniform `> **HISTORICAL**` banner with their reason now, and
+  the measurement is 56 rows ↔ 56 bannered records, with no row disagreeing in either direction.
+- **The citation family was swept, and the sweep was itself the trap.** 40 occurrences inside
+  `docs/evidence/selfchecks/` — a tree the backlog-reference gate exempts BY NAME as a point-in-time
+  record, which is why nothing had ever failed on them — plus 7 files outside it that the same gate's
+  `docs/`-only scan surface cannot reach. Both sweeps answer zero now. Two lessons are the useful part:
+  a citation may be written as a bare `todo/<x>.md` fragment that no prefixed matcher sees (12 more in
+  the register's own notes were found and made full paths only because the first sweep missed two of
+  them), and **a scripted re-point must not touch a path inside a sentence that describes the move** —
+  doing so produced three sentences that said a ticket "became itself" or that a live path "is gone",
+  all three repaired by hand in this change.
+- **The shape is enforceable now**: `SelfcheckManifestGateTests` gained
+  `EveryRow_CarriesARecordedStatusAndABoundedNote`, `EveryHistoricalRow_AgreesWithTheRecordItNames` and
+  `EveryHistoricalRow_NamesWhereToReadInstead`, each pinned by a synthetic sample — an over-long note,
+  an unknown status, an empty note, a row and a record that disagree, and a superseded row that names
+  nothing or names what is gone. Decision 229's row and `docs/evidence/normative-gates.md` record it.
+- The census moved twice. `docs/evidence/selfchecks/MANIFEST.md` left `rework` for `keep` with
+  `docs/evidence/selfchecks/README.md` as its reach, the document that routes readers to it. And the
+  census gate caught a **false reach** the rewrite exposed:
+  `docs/evidence/acceptance/mod-data-sync-model-20260927.md` was reached by a passing mention inside
+  one of the narrative notes, so its row now names the `done/` ticket that cites it for real.
+  **Measured now: 969 keep, 0 rework, 0 delete.**
+
+Two limits are measured rather than assumed. **145 rows carry a dash**, which is the honest answer: the
+2026-08-30 triage never judged those sheets and this cycle did not pretend to either, because a
+re-judgement needs each one read against the code and a wrong verdict is worse than a stated blank. And
+**215 census rows name this register as their `reach`** — that is the rows whose reach cell is exactly
+`docs/evidence/selfchecks/MANIFEST.md`, the register's own row excluded — of which **140** have no other
+access path at all, measured by looking for each sheet's file name across the 639 tracked markdown
+documents outside `selfchecks/`. Carrying both a supersession ledger and the completeness index is a
+deliberate duplication rather than an oversight: completeness is what
+`EverySelfcheckFile_HasExactlyOneManifestRow` requires, and a register listing only superseded sheets
+would leave those 140 with no way in until the census can express a directory index as a reach.
+
 ## The test every document has to pass
 
 Name, before it lands, **who opens it and when** — the shape that serves each answer:
@@ -253,21 +311,30 @@ opens, and the file is not created.
    `docs/backlog/review/save-mid-run-consistent-cut.md` at 107,575 bytes, is the first candidate of the
    cycle-narrative class and has not been judged yet. — **Three of the four are rewritten and off the rework
    list: the coverage matrix followed the register and the ledger (see *The coverage matrix's row audit*
-   below), which leaves `docs/evidence/selfchecks/MANIFEST.md` as the last log in the queue.**
+   below), which leaves `docs/evidence/selfchecks/MANIFEST.md` as the last log in the queue.** — **All four
+   are rewritten and off the rework list**: the self-check register followed the other three (see *The
+   self-check register's row audit* above) and the census now carries **969 keep, 0 rework, 0 delete**. What
+   the queue still holds is the cycle-narrative class rather than a log: the largest ticket body,
+   `docs/backlog/review/save-mid-run-consistent-cut.md` at 107,575 bytes, has not been judged yet.
 3. **A ledger shape for what stays a list.** — **Landed for the lessons ledger, open for the register.**
    An entry is bounded, names what its reader can open, and an entry whose conclusion has landed
    elsewhere is deleted in the same change — `AcceptanceLessonsGateTests` now fails on a two-line entry,
    on an entry naming no carrier, on a narrative shape and on a file over its budget, and the register's
    rows were rewritten to the same rule by hand. What the register still lacks is the cap itself: its
    largest row is 1,615 characters, and a ceiling there has to wait until the clauses that make those
-   rows long have a carrier page of their own.
+   rows long have a carrier page of their own. — **The self-check register's rows are bounded to the same
+   1,200 characters now**, gated by `SelfcheckManifestGateTests`; **what stays open is this register's own
+   cap** (item 3's first half): its largest row is 1,615 characters.
 4. **Gates so it cannot grow back.** — **Partly landed**: the census gate proves completeness in both
    directions, resolvability of every `reach`, the reader vocabulary, the work queue behind `rework` and a
    112 KiB size budget measured into the gap between the four logs (111,705 bytes and up) and the largest
    document that is not one (107,575 bytes); the ledger shape check of item 3 is now executable for
    `docs/acceptance/lessons.md`. Still open: the register's own cap (item 3), and a dangling reference
    sweep over *every* document — today only the human blocks are swept
-   (`DocumentationTreeGateTests.EveryRelativeLink_PointsAtAFileThatExists`).
+   (`DocumentationTreeGateTests.EveryRelativeLink_PointsAtAFileThatExists`). — **The self-check register's
+   row shape is executable too** (the three facts above), and the dangling-reference sweep found and
+   re-pointed **40 stale ticket links inside `docs/evidence/selfchecks/`**; a sweep over *every* document is
+   still what item 4 leaves open.
 5. **References move with the files**: every citation is re-pointed, the pair registry is re-recorded where
    the two blocks change, and the gate suite is green at the end. — **Partly landed**: the three deletions
    had no inbound citation to move, the three ticket repairs moved evidence back into reach, and the
@@ -276,7 +343,10 @@ opens, and the file is not created.
    reference to a deleted sibling went unnoticed). **Measured for the rework ahead**: the four logs are the
    `reach` of 36 rows today (22 `decisions/active.md`, 13 `acceptance/lessons.md`, 1
    `sync-coverage-matrix.md`), so distilling a log has to re-point those rows in the same change or the
-   census gate fails — which is the gate doing its job.
+   census gate fails — which is the gate doing its job. — **The register's rewrite re-pointed 40 more**: every
+   backlog path the self-check sheets cite was resolved against the backlog tree, and the census gate
+   caught one **false reach** the rewrite exposed (`mod-data-sync-model-20260927.md` was reached by a
+   passing mention inside a narrative note, not by a citation).
 
 ## Acceptance
 

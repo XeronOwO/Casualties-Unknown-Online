@@ -1,5 +1,9 @@
 # Remote backpack native interaction parity — self-check
 
+> **HISTORICAL** — superseded by the stage 0 native-intent design (decision 217): the CUO routing table and the host mirror-edit path it describes are deleted; its container findings stay the rework's acceptance input. This sheet is kept as the historical
+> delivery record of a mechanism that is no longer the active path; check its
+> `MANIFEST.md` row before citing it.
+
 > **Status: Critical; code-complete and deployed, awaiting final user
 > dual-client acceptance.** The historical implementation evidence below plus
 > the 2026-09-06 autonomous re-fix cycle address the rejected container/trash-bag

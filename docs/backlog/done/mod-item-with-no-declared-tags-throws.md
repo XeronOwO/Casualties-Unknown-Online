@@ -19,7 +19,7 @@
 - Related: `docs/backlog/done/mod-item-authored-actions.md` (the cycle whose fixture carried the missing tag
   declaration), `docs/backlog/done/mod-item-declaration-parity.md` (the same factory, the "every field the
   game reads" rule this ticket completes),
-  `docs/acceptance/lessons.md` (the run's own lesson),
+  `docs/evidence/acceptance/mod-item-authored-actions-20261011-k.md` (the run's own lesson),
   `docs/en/reference/mod-api.md` (the `Tags` row this ticket makes honest)
 - Source: acceptance batch `20261011-k`'s fixture, the example mod's `example.placebo` — the definition the
   same cycle added to exercise "a declared flag with no function". It declares `Usable` and no `Tags`, and

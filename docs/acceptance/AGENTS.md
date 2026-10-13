@@ -52,9 +52,10 @@ use placeholders such as `<game-dir>`.
    `- Status: Todo — Rejected (…)` (the field repeats the folder's label), name the failing row and its evidence, and fix it through the normal development
    cycle. Tickets whose rows all pass, or whose only remaining rows are residuals for the user, move to
    `done/`; the index rows move in the same change.
-9. `[RULE]` **Every run leaves this area better.** Fold what it taught: a reusable lesson into
-   [lessons.md](lessons.md), a machine value or local gotcha into `AGENTS.local.md`, a rule the run showed
-   to be wrong or missing into this file — and into `docs/AGENTS.md` or `AGENTS.md` when it binds the
+9. `[RULE]` **Every run leaves this area better.** Fold what it taught: a reusable lesson that no page,
+   tool or recipe can carry into [lessons.md](lessons.md), a machine value or local gotcha into
+   `AGENTS.local.md`, a rule the run showed to be wrong or missing into this file — and into
+   `docs/AGENTS.md` or `AGENTS.md` when it binds the
    whole repository. The closing of an acceptance conversation runs this harvest on its own — experience, pitfalls and reusable scripts — without being asked.
 
 ## Related

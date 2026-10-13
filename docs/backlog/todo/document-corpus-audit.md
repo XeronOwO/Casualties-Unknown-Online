@@ -135,6 +135,53 @@ them yet. What stands is measured — 131 entries, the largest 1,615 characters,
 census budget, and one definition of "bounded" still to be made enforceable by the ledger-shape gate in
 item 3.
 
+## The lessons ledger's entry audit (2026-10-13)
+
+`docs/acceptance/lessons.md` was audited entry by entry before it was rewritten, the way the register was.
+Measured before: **3,211 lines, 220 entries, 258,374 bytes as the working copy held it** (255,163 as git
+stores it; the 222 in this ticket's opening paragraph counted the two structural headings — "How to add an
+entry" and the template inside its fenced block). Measured after: **117 entries, 59,861 bytes as the
+working copy holds it**, in the original chronology (the page's own contract is "newest last"), the largest
+entry line 940 characters.
+
+- The judgement rule is the ledger's own: an entry whose conclusion has a carrier — a page, a tool, a
+  recipe, a committed test, a self-check or a ticket — is **deleted**, because that carrier is where the
+  next reader already looks; a pitfall of running a batch that has no other home is **kept** as one line
+  naming what its reader can open. **117 entries survive — 85 of them under their own headline, 32 under a
+  headline rewritten or merged from two or three old entries that had recorded one pitfall from different
+  batches — and the rest were deleted on that rule.**
+- Deleted in bulk: the product-mechanism discoveries whose fix, test or self-check now states them; the
+  scenario recipes' own setup rules (the recipe header carries them); the machine gotchas that live in
+  `AGENTS.local.md`; the judgment rules already in `workflow.md` §6/§7; and the batch-specific
+  observations the batch's own record holds. Kept and bounded: the preflight's code-page contract, the
+  evaluator's frame loop and its REPL's refusals, the park and blackout windows against the 15-second
+  watchdog, the release-time staging rule, the key channel's verification step, and the reading rules for
+  a zero-warning row, a divergence warning, a capped extract and an observer's own state at capture.
+- Nine census rows moved: the evidence records reached only through this page now name a document that
+  actually cites them — four acceptance records under `docs/evidence/acceptance/` and three `done/`
+  tickets. Decision 237's carrier left the page for `docs/acceptance/dependencies.md`'s `input` row, and
+  one `done/` ticket's `Related:` line now names the record carrying the lesson it cited.
+- The shape is enforceable now: `AcceptanceLessonsGateTests` holds the page to a dated headline plus ONE
+  line (ceiling 1,200 characters), requires that line to name a backticked carrier, refuses the
+  Symptom/Cause narrative, keeps an entry floor and holds the file under a 64 KiB budget — the ledger
+  shape item 3 asks for, defined and pinned by a failing sample rather than described.
+
+Not reached: the 40 KB aspiration withdrawn for the register is withdrawn here too. The kept rules are
+dense, and the next cut would move normative clauses onto pages that do not carry them yet. Measured now:
+the page is 59,861 bytes — 52% of the census's 112 KiB ceiling, 91% of the gate's own 64 KiB budget, and
+the census carries **967 keep, 2 rework, 0 delete**.
+
+The adversarial review of this rewrite left two residuals worth carrying. **Five deleted rules now live
+only in a point-in-time batch record**, one hop further from a next batch than a page: the
+triage-delegation contract, the "a current value that arrives as an absolute base is judged by a live
+comparison at both ends" rule, the crop-coordinate rule, the `[BlockSync] answered` attribution rule and
+the asserted-held-count reading. They were kept from the deleted state because their record is what the
+run cites, but a page that owns those topics should absorb them the next time it is edited. And the
+**first assembly of this ledger was written through a code-page round trip** — Windows PowerShell 5.1
+reading UTF-8 files without a BOM through the system code page — which left the installed page full of
+mojibake and split its header; the review caught it, the page was rebuilt from its clean sources and the
+general rule is the ledger's own 2026-09-27 entry, which the gate's own header now repeats.
+
 ## The test every document has to pass
 
 Name, before it lands, **who opens it and when** — the shape that serves each answer:
@@ -153,21 +200,26 @@ opens, and the file is not created.
 1. **A census with one disposition per file.** — **Landed** (966 rows; see *What has landed*).
 2. **The append-only logs go first**: the lessons ledger, the decisions log, the coverage matrix, the
    self-check manifest, and any ticket whose body has become a cycle narrative rather than a decision. —
-   **Open.** The four logs are on the rework list by measurement: `docs/decisions/active.md` 268,673 bytes,
-   `docs/acceptance/lessons.md` 258,374, `docs/evidence/sync-coverage-matrix.md` 244,792,
-   `docs/evidence/selfchecks/MANIFEST.md` 111,705. The largest ticket body,
+   **Partly landed: two of the four are rewritten and off the rework list.** `docs/decisions/active.md`
+   268,673 → 102,335 bytes and `docs/acceptance/lessons.md` 258,374 → 59,656, both audited entry by entry
+   first (the sections above). The queue that is left is measured, not guessed:
+   `docs/evidence/sync-coverage-matrix.md` 244,792 bytes and `docs/evidence/selfchecks/MANIFEST.md`
+   111,705, the two largest documents in the tree that are still logs. The largest ticket body,
    `docs/backlog/review/save-mid-run-consistent-cut.md` at 107,575 bytes, is the first candidate of the
-   cycle-narrative class and has not been judged yet. The register itself is now audited row by row —
-   **12 keep, 70 shrink, 49 move first**, with the rewrite ordered by carrier — in *The decision register's
-   row audit* above.
-3. **A ledger shape for what stays a list.** — **Open.** An entry is bounded, says what its reader does with
-   it, and names the page that carries its conclusion; an entry whose conclusion has landed elsewhere is
-   deleted in the same change.
+   cycle-narrative class and has not been judged yet.
+3. **A ledger shape for what stays a list.** — **Landed for the lessons ledger, open for the register.**
+   An entry is bounded, names what its reader can open, and an entry whose conclusion has landed
+   elsewhere is deleted in the same change — `AcceptanceLessonsGateTests` now fails on a two-line entry,
+   on an entry naming no carrier, on a narrative shape and on a file over its budget, and the register's
+   rows were rewritten to the same rule by hand. What the register still lacks is the cap itself: its
+   largest row is 1,615 characters, and a ceiling there has to wait until the clauses that make those
+   rows long have a carrier page of their own.
 4. **Gates so it cannot grow back.** — **Partly landed**: the census gate proves completeness in both
    directions, resolvability of every `reach`, the reader vocabulary, the work queue behind `rework` and a
    112 KiB size budget measured into the gap between the four logs (111,705 bytes and up) and the largest
-   document that is not one (107,575 bytes). Still open: the ledger shape check of item 3, and a dangling
-   reference sweep over *every* document — today only the human blocks are swept
+   document that is not one (107,575 bytes); the ledger shape check of item 3 is now executable for
+   `docs/acceptance/lessons.md`. Still open: the register's own cap (item 3), and a dangling reference
+   sweep over *every* document — today only the human blocks are swept
    (`DocumentationTreeGateTests.EveryRelativeLink_PointsAtAFileThatExists`).
 5. **References move with the files**: every citation is re-pointed, the pair registry is re-recorded where
    the two blocks change, and the gate suite is green at the end. — **Partly landed**: the three deletions

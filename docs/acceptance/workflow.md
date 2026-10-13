@@ -209,8 +209,11 @@ returns that ticket to `todo/` with the same rejection marking as a failed row.
 
 Before the run closes, fold what it taught ([AGENTS.md](AGENTS.md) rule 9): reusable lessons into
 [lessons.md](lessons.md), machine values and local gotchas into `AGENTS.local.md`, and anything the run
-proved wrong or missing about this page into this page. A batch that ends without a lessons pass is not
-finished — the next batch pays for whatever this one noticed and did not write down.
+proved wrong or missing about this page into this page. That ledger holds only what has no other home —
+an entry is ONE bounded line naming the carrier its reader opens, a rule a page, a recipe or a tool can
+hold goes there instead, and an entry whose conclusion has landed elsewhere is deleted rather than
+repeated (`AcceptanceLessonsGateTests` refuses the narrative shape). A batch that ends without a lessons
+pass is not finished — the next batch pays for whatever this one noticed and did not write down.
 
 An acceptance conversation runs the same pass on its own before it ends, unasked: the agent summarizes
 what the run taught — what worked, what it stepped on, and the scripts or snippets it wrote. A helper

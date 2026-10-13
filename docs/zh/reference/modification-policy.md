@@ -43,6 +43,8 @@
 | `Advanced` | 按文档支持，但形状跟着**游戏**走、而不是跟着 CUO 自己的模型走，所以一次游戏更新可以在没有任何 CUO 接口决定的情况下挪动它。原生逃生口就是典型例子：`IModNativeApi`（精挑的原生操作注册表，可用操作跟着适配器的注册走）与 `IModNativeLocalPlayerState`（游戏自己的身体字段的投影）。 |
 | `Obsolete` | 仍然能用，新模组不许再采用，等没人用了就可以删掉。 |
 
+**分级是为了守住已经给出的承诺，不是为了显得谨慎。** 一个**替换掉**原有稳定形状的接口面 —— 它的实现本来就已经是 `Stable` —— 应当记成 `Stable` 而不是 `Experimental`：分级说的是作者可以依赖什么，降级等于收回被替换的那份契约已经给过的承诺。`IModContentDefinition` 就是立下这条规矩的那一例：它替换了一个稳定形状而不是新增一项能力，九个实现本来就已经是 `Stable`。
+
 ## 公开接口面基线
 
 `docs/contracts/abstractions-api-baseline.txt` 是 `Abstractions` 公开接口面经过复核的记录：每一个公开类型、它的基类列表，以及每个公开成员连同它的签名与分级。`ApiSurfaceGateTests` 从项目源码重新推导这份接口面并逐行比对：

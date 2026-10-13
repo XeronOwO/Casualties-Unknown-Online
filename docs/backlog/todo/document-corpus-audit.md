@@ -68,7 +68,8 @@ document whose only access path is "read all of it" is not a document; it is a l
 
 The register was audited row by row before it is rewritten: each of its **131 rows** was read in full and
 judged against the page its own cell names, and that page was opened too — a row's claim that "the detail
-lives in X" is not evidence that X carries it. Measured: 268,673 bytes, median row 2,160 bytes, largest
+lives in X" is not evidence that X carries it. Measured then: 268,673 bytes as the working tree held it
+(268,445 as git stores it), median row 2,160 bytes, largest
 6,068.
 
 - **12 rows are already bounded** and their pages carry them.
@@ -83,7 +84,7 @@ With the sizes came defects the rewrite has to fix, not shrink around:
 - **Pages stating a superseded rule**: the protocol-bump policy in
   `docs/architecture/remote-inventory-native-parity.md` §3.5 and the rows around it (decision 241 froze the
   pre-release number); the pinyin self-check's implementation; the capability catalogue pinned at 14
-  capabilities and 205 attributed patches where the tree carries 13 and 203; the carry-rider limb-anchor
+  capability ids where the source declares 13; the carry-rider limb-anchor
   self-check's Debug-only line (decision 233 made it default-visible); decision 244's retired decode half;
   decision 247's deleted `ToPayload` surface; decision 249's native-value clause (superseded by 250);
   decision 251's "next stage" clause (superseded by 252).
@@ -106,8 +107,33 @@ With the sizes came defects the rewrite has to fix, not shrink around:
 The rewrite is ordered by CARRIER rather than by decision number, so that one page is opened and changed
 once: `docs/en/reference/mod-api.md` and its pair (about 18 rows), `docs/architecture/save-archive-format.md`
 and its cells (about 18), the architecture pages (about 20), the instruction files (7, whose moves must not
-land in `AGENTS.md`), the ticket carriers (about 45) and the self-check carriers (the rest). Target: every
-row bounded, the register under 40 KB, and off the rework list.
+land in `AGENTS.md`), the ticket carriers (about 45) and the self-check carriers (the rest).
+
+**What landed (2026-10-13).** The register is rewritten: **268,673 bytes as the working tree held it
+(268,445 as git stores it) → 102,335**, 228 lines → 161 (the blank runs that had broken its tables are
+gone), all **131** numbers kept in place, and every row is now a ruling plus at most two pointers. The
+facts that existed only inside a row landed on the page that owns the topic first — the star topology with
+its reliability criterion and the fail-closed `NetMsg` direction registry
+(`docs/architecture/protocol.md`), the adapter's narrow control interfaces, the partial-aware line budget
+with its debt ledger and the ruling that a cue naming its target must agree with the rule that resolves
+the gesture (`docs/development/agent-reference.md`), the handler-context narrowing
+(`docs/architecture/current.md`), the kernel identity floor (`docs/architecture/domains.md`), the
+world-lease answers beyond the refusal (`docs/architecture/save-archive-format.md` §5), the
+`Stable`-by-intent rule for a contract that replaces a stable shape
+(`docs/en/reference/modification-policy.md` and its pair), the host's own half of an attack with the
+announcement's own field list (both sides of `docs/en/internals/enemy-sync.md`), and decision 257's
+shrapnel-seam detail (both sides of `docs/en/internals/judgment-ownership.md`); every other moved fact
+already sat in a record the row's own cell names, so its pointer now names that record. The stale
+protocol-bump text the audit flagged in `docs/architecture/remote-inventory-native-parity.md` §3.5 was
+rewritten to point at decision 241. Seven evidence records the bounded rows stopped citing were re-pointed
+at the document that actually names them, and the pair registry was re-recorded for the three pairs this
+change touched.
+
+The 40 KB aspiration above was **not** reached and is withdrawn: the long rows turned out to be dense
+rules rather than narrative, and the next cut would move normative clauses onto pages that do not carry
+them yet. What stands is measured — 131 entries, the largest 1,615 characters, the file at 89% of the
+census budget, and one definition of "bounded" still to be made enforceable by the ledger-shape gate in
+item 3.
 
 ## The test every document has to pass
 

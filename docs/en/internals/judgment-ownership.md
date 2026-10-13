@@ -103,9 +103,10 @@ the target.
 ## When both machines would roll the same dice
 
 One cross-player action is rolled TWICE by construction. Pulling shrapnel out with a bare hand can break
-the grasp, the game's own minigame rolls the damage on whatever limb it was handed — and the operator's
-client hands it the limb of the body it displays, while the host rolls the same event again on the real
-one. Two screens then hold different values for one event, and neither is lying about what it saw.
+the grasp, the game's own `ShrapnelMinigame.BreakGrasp` rolls the damage on whatever limb it was handed —
+and the operator's client hands it the limb of the body it displays, while the host runs CUO's own
+break-grasp write against the authoritative limb. Two screens then hold different values for one event,
+and neither is lying about what it saw.
 
 Waiting for the authority is the obvious fix and the one the rule above rejects: the operator's own hand
 just slipped, and a correction arriving a round trip later is a number that visibly changes under the
@@ -114,20 +115,29 @@ screen is right immediately, and the authority draws its OWN values from the sam
 the operator's — **the verdict does not move, only the dice do.**
 
 Three things make that honest rather than a guess. The state comes from facts BOTH machines hold, so no
-extra round trip is needed to agree on it: the operation id, the piece, and a nonce the operator puts on its
-report because it counts its OWN slips — a host-side counter cannot stand in for it, since several operators
-share one session. The authority reproduces the native READ ORDER exactly, including two draws nobody keeps
-(a gore clip pick and a sound's pitch shift), because a script that skipped them would hand the authority
-the operator's first values and a different last one. And the AUTHORITY compares: the operator reports what
-its screen actually moved by, the authority derives its own, and a disagreement is logged with both sets.
-That comparison is the only thing that notices a game update inserting or removing a draw, which would
-otherwise re-split the screens silently.
+extra round trip is needed to agree on it — `ShrapnelGripSlipSeed.Of(operationId, pieceIndex, nonce)`
+derives it from the operation id, the piece, and a nonce the operator puts on its report because it counts
+its OWN slips. That nonce is a field the report did not have before: it is 1-based from the operator's own
+per-session count, and 0 means this client held no window at all. `MedicalOperationUpdateMsg.Sequence` is
+not it — no shrapnel path assigns that field — and a host-side counter could not stand in either, since
+several operators share one session. The authority reproduces the native READ ORDER exactly, including two
+draws nobody keeps (a gore clip pick and a sound's pitch shift), because a script that skipped them would
+hand the authority the operator's first values and a different last one; its limb write also carries no
+`Math.Max(0f, …)` clamp, since the native call has none and a clamp would commit a number neither machine
+drew. And the AUTHORITY compares: the operator reports what its screen actually moved by, the authority
+derives its own, and a disagreement is logged with both sets. That comparison is the only thing that
+notices a game update inserting or removing a draw, which would otherwise re-split the screens silently.
 
 The window is the engine's one global stream, held for the length of a short synchronous call and put back
-before it returns. It is scoped to the one site that needs it: a census of the game's own item delegates
-found no second action where both machines roll, and a shared seed at a site whose two runs consume
-different numbers of draws is worse than no seed at all — it produces a wrong value that looks
-authoritative.
+before it returns: the patch's postfix closes it on the normal path and its Harmony finalizer closes it
+when the native call throws, because a stream left holding a derived state would corrupt every later
+consumer on that machine. The seam is `IShrapnelGripSlipRandom`, with `IShrapnelGripSlipWindow` as the held
+window it hands back (`src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/`): the Game Adapter
+answers with `EngineShrapnelGripSlipRandom`, and the base root answers with `NoShrapnelGripSlipRandom`, an
+honest null where no stream means no damage and a named error, never an invented value. It is scoped to the
+one site that needs it: a census of the game's own item delegates found no second action where both
+machines roll, and a shared seed at a site whose two runs consume different numbers of draws is worse than
+no seed at all — it produces a wrong value that looks authoritative.
 
 ## What this deliberately does not do
 

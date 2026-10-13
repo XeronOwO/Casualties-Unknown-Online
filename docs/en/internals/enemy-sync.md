@@ -59,15 +59,20 @@ position and fail the whole set.
 
 The host cannot apply an attack to a remote body directly: another player's clone has its colliders
 disabled, so no collision callback on the host's machine ever fires for it. The old answer was for the
-host to decide who was hit and send the result. The current answer is that the host does not decide.
+host to decide who was hit and send the result. The current answer is that the host does not decide: it
+keeps its own half — the enemy's action (its AI, its aim, its own bite retreat and cooldown) and the native
+collision path for the host's own body — and it announces without waiting on its own collider, so an attack
+that reaches nobody is a legal outcome.
 
 - The host publishes the enemy's action — which enemy, which kind of attack, and a per-enemy sequence
-  number — to every member in the world, over the attack announcement message
-  ([Protocol messages](../reference/protocol-messages.md)).
+  number — to every member in the world, over the attack announcement message `EnemyAttackMsg`
+  ([Protocol messages](../reference/protocol-messages.md)). Those three are the whole message — `EnemyId`,
+  `Kind`, `AttackSeq` — and it names no victim and no limb, because the host picks neither.
 - Each client judges that announcement on its own screen: has this attack actually reached my body? A
-  spider bite needs a real collider contact plus the game's own facing gate; a crystal lunge runs the
-  game's own ray, where the first body wins and the ground stops it. The limb is chosen on that client
-  too, because that is the machine that knows what it is rendering.
+  spider bite needs a real collider contact plus the game's own facing gate
+  (`SpiderHandler.CheckForLimbDamage`); a crystal lunge runs the game's own ray (`CrystalEnemy.Lunge`),
+  where the first body wins and the ground stops it. The limb is chosen on that client too, because that
+  is the machine that knows what it is rendering.
 - The client applies the game's own damage locally and reports the terminal state, which lands in the
   kernel as a combat result event.
 

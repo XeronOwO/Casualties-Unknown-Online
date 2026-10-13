@@ -388,9 +388,10 @@ remote for every player, so it is recorded as a limit (§6) instead of being inv
 ### 3.5 Protocol
 
 The intent vocabulary replaces the current remote-inventory operation enum and its request/apply
-messages, so the wire changes and `ProtocolVersion.Current` is bumped in the same change (stage 1),
-per the numbering policy in `docs/decisions/active.md`. The handshake check is the compatibility
-boundary; no dual shape is kept.
+messages, so the wire changed at stage 1. How the protocol number moves is decision 241's policy —
+before the first official release `ProtocolVersion.Current` is a FROZEN baseline that no wire change
+moves, and the value itself lives in the constant's own doc comment, never restated here. The handshake
+check is the compatibility boundary; no dual shape is kept.
 
 ### 3.6 What is deleted, and where the new code lives
 
@@ -443,7 +444,7 @@ boundary; no dual shape is kept.
 | 0 | This record: mechanism inventory, intent vocabulary, ticket adjudication, decision record | design frozen before code |
 | 1 | Inventory and slot family: move, swap, transfer to the requester, drop, take-out; window + capture seam; owner-side executor; host validate/arbitrate/record; clone-edit path deleted; protocol bumped | **landed** (decision 218): the reported drop and slot rows no longer route through a host mirror edit; the window, the replay and the host half are covered by intent, window-state and host-contract tests |
 | 2 | The container-expansion gesture (R5), nested containers and the trash bag, the while-dragging drain tick and the container-window refresh; the vanish case is a regression test here | **landed** (decision 219): R5 is one `MoveContainerChildren` intent the owner evaluates on its own children, the while-dragging body runs again with each frame's drain tick as one `Drain` intent carrying the amount, and the vanish case is pinned by a regression on the host's copy of the owner's inventory; matrix rows 3-5 are code facts here — the operating feel is a residual of the acceptance run |
-| 3 | Item interactions: use, wear, combine, battery, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | **landed** (decision 220): the item-interaction kinds ride the stage-1 seam with the message's second item operand and its trader operand (`ProtocolVersion.Current` 37 → 38), R10's use/wear branch runs again, the `favourited` store is observed across the frame bracket, and matrix rows 6-8 are code facts here — the operating feel, the item sounds the operator does not hear (§3.4) and the medical chain's real-machine behaviour are residuals of the acceptance run. **Amended 2026-10-11 (decision 258):** the observed favourite store no longer becomes a `ToggleFavourite` intent — the mark is the local player's own — so the stage's own count is six remote kinds, and the seventh is deleted with its whole path |
+| 3 | Item interactions: use, wear, combine, battery, the trader gesture and the held-remote-item chain (close the backpack, use the held item from the medical panel) | **landed** (decision 220): the item-interaction kinds ride the stage-1 seam with the message's second item operand and its trader operand, R10's use/wear branch runs again, the `favourited` store is observed across the frame bracket, and matrix rows 6-8 are code facts here — the operating feel, the item sounds the operator does not hear (§3.4) and the medical chain's real-machine behaviour are residuals of the acceptance run. **Amended 2026-10-11 (decision 258):** the observed favourite store no longer becomes a `ToggleFavourite` intent — the mark is the local player's own — so the stage's own count is six remote kinds, and the seventh is deleted with its whole path |
 | 4 | Family audit and acceptance: both directions, a third peer, worn items, containers and the craft screen; the display rows carried over from the absorbed tickets | **landed** (decision 221): every matrix row is traced to its mechanism and its test, the craft screen is proved unable to reach a display proxy, the container-window re-bind and the owner-side worn-item resolution are confirmed, the two directions are shown to share one validation path, and the three remaining limits are named as the acceptance run's judgement items — no behaviour changed, and the run itself is the agent's |
 
 ## 5. Adjudicated tickets

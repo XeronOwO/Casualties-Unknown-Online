@@ -64,6 +64,12 @@ someone made, never a default that merely happened.
 | `Advanced` | Supported as documented, but its shape follows the **game** rather than CUO's own model, so a game update may move it with no CUO API decision. The native escape hatch is the canonical case: `IModNativeApi` (a curated operation registry whose available operations follow the adapter's registration) and `IModNativeLocalPlayerState` (a projection of the game's own body fields). |
 | `Obsolete` | Still works, must not be adopted by a new mod, and may be removed once nothing uses it. |
 
+**A level is chosen to keep a promise, not to sound cautious.** A surface that REPLACES a stable shape —
+and whose implementations are already `Stable` — is recorded `Stable` rather than `Experimental`, because
+the level states what an author may rely on and dropping it would retract a promise the replaced contract
+already carried. `IModContentDefinition` is the case that set this rule: it replaced a stable shape rather
+than adding a capability, and its nine implementations were already `Stable`.
+
 ## The public-surface baseline
 
 `docs/contracts/abstractions-api-baseline.txt` is the reviewed record of the `Abstractions` public

@@ -334,6 +334,14 @@ commit:  rename <worldId>/live → <worldId>/.previous/ → rename .staging → 
   world for the rest of the window. The window is three times the DEFAULT autosave interval (ten minutes),
   so a host running the defaults refreshes its lease long before it could look stale; a longer configured
   interval can outlast it, which is why liveness — not the heartbeat alone — decides a takeover.
+- The lease has four answers beyond the refusal, and each one exists because the alternative would
+  refuse a legitimate writer: a lease **this process already holds is refreshed**, never refused (a menu
+  return and the later Continue are the same writer by construction); a lease file that cannot be READ
+  names no live writer, so it counts as stale; a lease file that cannot be WRITTEN is not a refusal at
+  all — the folder being unwritable is the write transaction's own failure, reported under its own step
+  name; and a clean shutdown releases the lease it owns, never one another process has taken over. The
+  rule protects the FOLDER, so it covers the same machine twice, a copied folder and a folder over a
+  share, and the refusal reaches the player through the cut report the console already renders.
 - A save directory that cannot be used is an ANSWER, not an exception: a read-only folder, a drive
   that went away and a file where the root should be all leave the session playable with the failure
   logged (`WorldCreateResult.Failed` / `SaveWriteResult.Failure.StageFailed`), because these paths run

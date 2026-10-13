@@ -70,6 +70,12 @@ plug-in or in its own mod, apply the four-layer rule in
   exists to catch. Either the deciding fact is known (a creation judged before any operation
   on it, a tombstone for a refused creation) or the judgment belongs to the client that can
   see it.
+- `[CRITICAL]` **A cue that names its target is part of the ruling (user ruling 2026-10-06, decision
+  184)**: a cross-player gesture whose target can overlap — two players under one cursor — must NAME the
+  player it is about to act on in the cue shown BEFORE the commit, and the rule that resolves the gesture
+  always picks the player the cue named. The two halves are one contract: a cue that names one target
+  while the resolution picks another is the defect this rule exists to catch, and it binds every
+  cross-player gesture whose target can overlap, not only the drag family it was ruled on.
 - `[CRITICAL]` **Accept-first sync arbitration — only for state the host can represent**:
   adopt and relay a guest's report first; correct only on an obvious conflict; a correction
   never blocks the player. Strict validation/anti-cheat are low priority until the feature set
@@ -103,6 +109,10 @@ plug-in or in its own mod, apply the four-layer rule in
 
 **Structure and boundaries:**
 
+- `[RULE]` **The adapter reaches the Runtime through narrow control interfaces** — `ISessionControl`,
+  `IWorldControl`, `IItemControl`, `IEntitySyncControl`, `ICharacterDataControl` — never through a
+  concrete session service. A capability that starts crossing that boundary gets a port of its own
+  rather than an accessor onto the service.
 - `[RULE]` **Strict single responsibility**: separate control plane from data plane; a class
   that both holds state and does wire I/O is a smell; split before it grows.
 - `[RULE]` **One top-level type per file**; file name matches type name. Nested helper types
@@ -140,11 +150,13 @@ plug-in or in its own mod, apply the four-layer rule in
   line-count or architecture gate. Extract a single-responsibility type, preserve behavior, and
   keep tests/gates green.
 - `[CRITICAL]` **Hard thresholds are enforced at build time**, not by self-discipline: a
-  top-level type exceeding 600 aggregate lines, more than 5 boolean state fields in one type,
-  or multiple top-level types in one file must be resolved before the change, not after.
+  top-level type exceeding 600 aggregate lines (**summed per logical type across its partial files**),
+  more than 5 boolean state fields in one type, or multiple top-level types in one file must be resolved
+  before the change, not after.
   Enforced by `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits`
   (C# port of the former `tools/check-architecture.ps1`, which no longer exists); over-limit
-  exceptions are recorded in `docs/architecture-debt.json`. Run the three structure questions
+  exceptions are recorded in `docs/architecture-debt.json`; an exception that is not recorded there, or
+  growth past a recorded one, is a hard failure rather than a discussion. Run the three structure questions
   before every change: which domain does this belong to? who owns the state? will the target
   type exceed a limit?
 - `[RULE]` **Architecture-first, ask before risky work**: for risky or architecture-affecting

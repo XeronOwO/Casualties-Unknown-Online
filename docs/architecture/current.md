@@ -128,7 +128,10 @@ domain-mapper companions), together with the pure kernel <-> wire vocabulary
 reads the Runtime through declared ports (`IKernelSessionFacts`, `IKernelFrameSender`,
 `IKernelCommandExecution`, `IKernelCheckpointSource`, `IKernelBatchApplication`,
 `IKernelPendingCommands`, `IKernelItemDataNormalizer`), each answered by the
-service that owns the capability, so a Runtime detail does not leak back into the layer. Two types
+service that owns the capability, so a Runtime detail does not leak back into the layer. The handler
+layer narrows the same way: each handler declares only the narrow capability interface of
+`HandlerContext` it actually uses, while `HandlerContext` implements them all and stays the composition
+root's single instance, so no handler can reach a capability it has no business holding. Two types
 stay in the Runtime, each with its blocker recorded in
 `done/legacy-wire-dto-slice.md`: `KernelBatchItemProjection` (a materialization projection whose
 contract and every output path carry the legacy item DTOs) and

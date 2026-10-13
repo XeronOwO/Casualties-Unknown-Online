@@ -46,6 +46,11 @@ session reset.
 
 ## Normal data flow
 
+CUO is a **pure star**: every frame travels between a guest and the host, no guest ever talks to another
+guest, and the host is the authority for the world it simulates. Reliability follows one question —
+**can the loss self-heal?** A stream, report or fact whose next tick, checkpoint or re-report repairs it
+rides the unreliable path; the one that has no self-healing path is the one that pays for delivery.
+
 ### Guest → Host: command
 
 A guest sends a `CommandEnvelope` for a gameplay intent (spawn, pickup, drop,
@@ -157,6 +162,7 @@ discriminator), and `src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.c
 | Wrong epoch | drop; old run must not pollute new run — commands, batches and state streams by the envelope/batch epoch, and a checkpoint chunk set by the run identity the host announced with its world-join instruction (`WorldJoinMsg.RunEpoch`), which is refused BEFORE a chunk is buffered |
 | Unknown critical payload | drop the frame and log (`ProtocolFrameValidator.TryValidate` at `KernelProtocolService.HandleFrame`); no automatic disconnect is implemented |
 | Projection exception | the domain is marked dirty and rebuilt from the kernel read model by the main-thread pump (`ProjectionHealthCoordinator`); the committed batch is not rolled back |
+| Unknown or wrong-direction `NetMsg` id | the direction registry is fail-closed: `NetMessageRegistry` carries one `NetMessageDirection` per `[PacketHandler]`, an unregistered id is refused before it is encoded, and a registered id arriving in the wrong direction is refused on receive |
 
 ## Command rejection
 

@@ -64,6 +64,51 @@ document whose only access path is "read all of it" is not a document; it is a l
   independent search *and* a reading of the records that belong to the same family; the search alone is not
   evidence.
 
+## The decision register's row audit (2026-10-13)
+
+The register was audited row by row before it is rewritten: each of its **131 rows** was read in full and
+judged against the page its own cell names, and that page was opened too — a row's claim that "the detail
+lives in X" is not evidence that X carries it. Measured: 268,673 bytes, median row 2,160 bytes, largest
+6,068.
+
+- **12 rows are already bounded** and their pages carry them.
+- **70 rows shrink** to the ruling plus a pointer, losing nothing: the page they name already states every
+  normative fact they state.
+- **49 rows must move first.** Most carry their facts in a record the row's own cell already names (a
+  `done/` or `review/` ticket, or a self-check), so the fix is a second pointer rather than new prose; a
+  minority have no page at all.
+
+With the sizes came defects the rewrite has to fix, not shrink around:
+
+- **Pages stating a superseded rule**: the protocol-bump policy in
+  `docs/architecture/remote-inventory-native-parity.md` §3.5 and the rows around it (decision 241 froze the
+  pre-release number); the pinyin self-check's implementation; the capability catalogue pinned at 14
+  capabilities and 205 attributed patches where the tree carries 13 and 203; the carry-rider limb-anchor
+  self-check's Debug-only line (decision 233 made it default-visible); decision 244's retired decode half;
+  decision 247's deleted `ToPayload` surface; decision 249's native-value clause (superseded by 250);
+  decision 251's "next stage" clause (superseded by 252).
+- **Rows wrong as written**: decision 241's closing clause says a mismatched save manifest is refused, while
+  `docs/architecture/save-archive-format.md` §6.2 and `SaveArchiveReader.NoteProtocolMismatch` open it in
+  repair mode with a warning and a damage entry; decision 227's `Ragdoll()`/`standing` clause is garbled
+  against its page; decision 229's file count matches no measurement.
+- **A claim the artifact does not support**: decision 253 states that
+  `docs/contracts/abstractions-api-baseline.txt` records two `RollCondition` method removals; the file
+  carries neither the lines nor a tombstone for them.
+- **Cells naming no carrier**: 13 rows carry no canonical-doc cell at all, and others name a directory, a
+  test method, or a record that states the pre-fix state (decision 235 names the rejected acceptance run,
+  not the fix that followed it).
+- **Rules with no live page anywhere**: decisions 63 (the fail-closed NetMsg direction registry), 75 (the
+  adapter's narrow control interfaces) and 181 (the world-lease rules beyond the one-writer rule) live only
+  in an evidence self-check and in source doc comments.
+- **A coupling**: decision 237's carrier is `docs/acceptance/lessons.md`, so distilling that log re-points
+  this row in the same change.
+
+The rewrite is ordered by CARRIER rather than by decision number, so that one page is opened and changed
+once: `docs/en/reference/mod-api.md` and its pair (about 18 rows), `docs/architecture/save-archive-format.md`
+and its cells (about 18), the architecture pages (about 20), the instruction files (7, whose moves must not
+land in `AGENTS.md`), the ticket carriers (about 45) and the self-check carriers (the rest). Target: every
+row bounded, the register under 40 KB, and off the rework list.
+
 ## The test every document has to pass
 
 Name, before it lands, **who opens it and when** — the shape that serves each answer:
@@ -86,7 +131,9 @@ opens, and the file is not created.
    `docs/acceptance/lessons.md` 258,374, `docs/evidence/sync-coverage-matrix.md` 244,792,
    `docs/evidence/selfchecks/MANIFEST.md` 111,705. The largest ticket body,
    `docs/backlog/review/save-mid-run-consistent-cut.md` at 107,575 bytes, is the first candidate of the
-   cycle-narrative class and has not been judged yet.
+   cycle-narrative class and has not been judged yet. The register itself is now audited row by row —
+   **12 keep, 70 shrink, 49 move first**, with the rewrite ordered by carrier — in *The decision register's
+   row audit* above.
 3. **A ledger shape for what stays a list.** — **Open.** An entry is bounded, says what its reader does with
    it, and names the page that carries its conclusion; an entry whose conclusion has landed elsewhere is
    deleted in the same change.

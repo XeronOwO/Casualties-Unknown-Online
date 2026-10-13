@@ -29,7 +29,7 @@
 | 明明可以用 `using` 或别名，却写全限定类型名 | `FullyQualifiedNameGateTests`（Roslyn） |
 | `Abstractions` 的公开成员被新增、改动或悄悄删掉，而受复核的基线（baseline）还写着旧样子 | `ApiSurfaceGateTests.AbstractionsPublicSurface_MatchesTheReviewedBaseline`（附普查下限与匹配器契约用例） |
 | git 会带走的任何文件里出现本机绝对路径 | `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths` |
-| 交付清单里有必勾项没勾，或勾了 FORBIDDEN 那一行 | `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes` |
+| 交付清单里有必勾项没勾、勾了 FORBIDDEN 那一行，或清单里已经少了某个必勾项 | `DeliveryChecklistGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`、`DeliveryChecklistGateTests.DeliveryChecklist_DeclaresEveryRequiredBox` |
 | 某个 wire 判别值没进同步覆盖矩阵、某行没有结论或证据、证据引文和源文件已经不一致 | `SyncCoverageGateTests.SyncCoverageMatrix_…`、`…SyncCoverageEvidence_EveryQuoteMatchesItsSourceLine` |
 | 测试类在 `GameAssembly` 集合之外改动进程级静态量 | `TestIsolationGateTests.StaticGameStateMutations_JoinTheGameAssemblyCollection` |
 | 单个测试类超过 40 个真实用例或数据行 | `TestClassSizeGateTests.NoTestClass_ExceedsTheCaseLimit` |

@@ -133,8 +133,9 @@ Tests and gates passing is not the finish line. Before the change moves on:
 ## The delivery checklist
 
 Every development cycle runs through [delivery-checklist.md](../../evidence/delivery-checklist.md);
-`RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes` refuses the cycle's final commit
-while any required box is unchecked.
+`DeliveryChecklistGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes` refuses the cycle's final commit
+while any required box is unchecked, and `DeliveryChecklistGateTests.…DeclaresEveryRequiredBox` refuses a
+checklist that no longer declares a box the process requires — the checklist's own census.
 
 - Boxes are checked ONE LINE AT A TIME with an editor as each step completes; bulk checking with a
   script or a single catch-up pass is forbidden, because it fabricates the process record.

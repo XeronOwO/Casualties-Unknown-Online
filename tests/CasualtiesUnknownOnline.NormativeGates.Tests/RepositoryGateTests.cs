@@ -236,14 +236,54 @@ public class RepositoryGateTests
 			}
 		}
 
+		// The matrix documents the kind set the runtime declares — a row per EntityEventKind and no row for
+		// a kind the enum does not carry. This is the census the per-row rules cannot give: a table reduced
+		// to its header satisfies every one of them by having no rows left to fail on.
+		failures.AddRange(MatrixKindFailures(EntityEventKinds(), seen));
+
 		Assert.True(failures.Count == 0, "Event-replay gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	[Fact]
+	public void TheMatrixKindCensus_FlagsAMissingRowAndARowForAKindTheEnumDoesNotDeclare()
+	{
+		var failures = MatrixKindFailures(["MineExploded", "TurretFired"], ["MineExploded", "RetiredKind"]);
+		Assert.Contains(failures, failure => failure.Contains("TurretFired", StringComparison.Ordinal));
+		Assert.Contains(failures, failure => failure.Contains("RetiredKind", StringComparison.Ordinal));
+		Assert.Empty(MatrixKindFailures(["MineExploded"], ["MineExploded"]));
+	}
+
+	/// <summary>The runtime's entity-event kinds, parsed from the enum that declares them — the source of
+	/// truth the matrix census and the dispatch census both read.</summary>
+	private static HashSet<string> EntityEventKinds()
+	{
+		var enumFile = RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Protocol/EntityEventKind.cs");
+		Assert.True(File.Exists(enumFile), "EntityEventKind.cs missing");
+		return EntityEventKindMember.Matches(File.ReadAllText(enumFile))
+			.Select(m => m.Groups[1].Value)
+			.ToHashSet(StringComparer.Ordinal);
+	}
+
+	/// <summary>One matrix row per declared kind, and no row for a kind that is not declared. A floor over
+	/// the row count would catch a truncated table; naming the kind catches it AND says which documentation
+	/// a new kind still owes.</summary>
+	private static string[] MatrixKindFailures(IEnumerable<string> declaredKinds, IEnumerable<string> rowKinds)
+	{
+		var declared = declaredKinds.ToHashSet(StringComparer.Ordinal);
+		var rows = rowKinds.ToHashSet(StringComparer.Ordinal);
+		var failures = declared
+			.Where(kind => !rows.Contains(kind))
+			.Select(kind => $"no matrix row documents EntityEventKind.{kind}")
+			.ToList();
+		failures.AddRange(rows
+			.Where(kind => !declared.Contains(kind))
+			.Select(kind => $"the matrix documents `{kind}`, which EntityEventKind does not declare"));
+		return [.. failures];
 	}
 
 	[Fact]
 	public void EntityEventDispatch_AllKindsCoveredInEveryTable()
 	{
-		var root = RepositoryPaths.Root;
-		var enumFile = RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Protocol/EntityEventKind.cs");
 		string[] dispatchFiles =
 		[
 			"src/CasualtiesUnknownOnline.GameAdapter/World/TrapEntityScan.cs",
@@ -251,10 +291,7 @@ public class RepositoryGateTests
 			"src/CasualtiesUnknownOnline.GameAdapter/World/TrapVisualReplay.cs"
 		];
 
-		Assert.True(File.Exists(enumFile), "EntityEventKind.cs missing");
-		var enumMembers = EntityEventKindMember.Matches(File.ReadAllText(enumFile))
-			.Select(m => m.Groups[1].Value)
-			.ToHashSet(StringComparer.Ordinal);
+		var enumMembers = EntityEventKinds();
 		Assert.True(enumMembers.Count > 0, "no enum members parsed from EntityEventKind.cs");
 
 		var failures = new List<string>();
@@ -289,40 +326,6 @@ public class RepositoryGateTests
 		}
 
 		Assert.True(failures.Count == 0, "Entity-event dispatch gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
-	}
-
-	[Fact]
-	public void DeliveryChecklist_NoIncompleteRequiredBoxes()
-	{
-		var path = RepositoryPaths.File("docs/evidence/delivery-checklist.md");
-		Assert.True(File.Exists(path), "delivery checklist missing");
-		var lines = File.ReadAllLines(path);
-
-		var failures = new List<string>();
-		var checkedCount = 0;
-
-		foreach (var line in lines)
-		{
-			if (line.StartsWith("- [ ]", StringComparison.Ordinal) || line.TrimStart().StartsWith("- [ ]", StringComparison.Ordinal))
-			{
-				if (line.Contains("FORBIDDEN", StringComparison.Ordinal) || line.Contains("Release-cycle deployment/acceptance", StringComparison.Ordinal))
-				{
-					continue;
-				}
-
-				failures.Add(line.Trim());
-			}
-			else if (line.TrimStart().StartsWith("- [x]", StringComparison.Ordinal))
-			{
-				checkedCount++;
-				if (line.Contains("FORBIDDEN", StringComparison.Ordinal))
-				{
-					failures.Add($"FORBIDDEN box checked: {line.Trim()}");
-				}
-			}
-		}
-
-		Assert.True(failures.Count == 0, $"Delivery gate failed ({failures.Count} issue(s), {checkedCount} boxes checked)" + Environment.NewLine + string.Join(Environment.NewLine, failures));
 	}
 
 	[Fact]

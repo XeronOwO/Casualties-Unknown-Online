@@ -237,9 +237,10 @@ Detail: `docs/en/contributing/review-and-delivery.md`.
   directions, participants and third-party views; was the exact reproduction covered by a test or runtime
   trace against the latest deployed DLLs; can `docs/acceptance/` judge every remaining row, with the
   residuals named. Passing tests and gates is necessary, not sufficient.
-- `[GATE]` Follow `docs/evidence/delivery-checklist.md` (integrity checked by
-  `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`): check its boxes one line at a time
-  with evidence on the same line; bulk checking is forbidden.
+- `[GATE]` Follow `docs/evidence/delivery-checklist.md`: its integrity is checked by
+  `DeliveryChecklistGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`, the census of the required
+  boxes it declares by `DeliveryChecklistGateTests.DeliveryChecklist_DeclaresEveryRequiredBox`. Check its
+  boxes one line at a time with evidence on the same line; bulk checking is forbidden.
 
 **Definition of Done:** the Quality & Delivery bullets above plus the executable checklist in `docs/evidence/delivery-checklist.md`.
 

@@ -280,7 +280,7 @@ docs/backlog/todo/container-content-event-gap-on-repick.md | keep | index | docs
 docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/dead-player-spectating.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
+docs/backlog/review/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-item-to-another-player.md | keep | index | docs/backlog/README.md
@@ -602,7 +602,7 @@ docs/evidence/acceptance/world-layer-generation-identity-20261003-b.md | keep | 
 docs/evidence/acceptance/world-state-message-service-split-20260927.md | keep | claim | docs/backlog/done/world-state-message-service-split.md
 docs/evidence/acceptance/world-time-local-initiation-20261001-u.md | keep | claim | docs/backlog/done/world-time-local-initiation.md
 docs/evidence/acceptance/world-time-local-initiation-20261001-v.md | keep | claim | docs/backlog/done/world-time-local-initiation.md
-docs/evidence/delivery-checklist.md | keep | claim | docs/backlog/todo/delivery-checklist-gate-census.md
+docs/evidence/delivery-checklist.md | keep | claim | docs/backlog/review/delivery-checklist-gate-census.md
 docs/evidence/normative-gates.md | keep | claim | docs/backlog/review/bilingual-human-docs.md
 docs/evidence/selfchecks/architecture/adapter-capability-ports-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/architecture/application-layer-first-slice-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

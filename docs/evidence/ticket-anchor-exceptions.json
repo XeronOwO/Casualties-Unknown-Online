@@ -10,6 +10,16 @@
       "Ticket": "docs/evidence/acceptance/mod-data-sync-model-20260927.md",
       "Anchor": "ModDataTests.ValueCaps_AreEnforcedWithoutSilentTruncation",
       "Reason": "Same dated record and same rename: the 2026-10-09 cycle renamed the case to ValueCaps_AreEnforcedByTheEncoderWithoutSilentTruncation, since the cap is now the value's encoded size and the encoder is its one validator. The row's judgement (a value over the cap is refused, never truncated) still holds for the renamed case."
+    },
+    {
+      "Ticket": "docs/evidence/acceptance/network-traffic-baseline-20260927.md",
+      "Anchor": "RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes",
+      "Reason": "Dated acceptance record of the network-traffic baseline (2026-09-27). The 2026-10-13 census cycle moved this gate out of RepositoryGateTests into DeliveryChecklistGateTests: that cycle's first pass pushed the file from 415 lines to 609, past the 600-line discipline the checklist's own structure box holds, and the split left it at 418. The case the record names is still declared and still green; the same change gave it a census sibling. Per BacklogIntegrityGateTests's own rule, a move afterwards must not force a dated record to be rewritten: that run named the earlier class."
+    },
+    {
+      "Ticket": "docs/evidence/acceptance/normative-style-unit-test-gates-20260927.md",
+      "Anchor": "RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes",
+      "Reason": "The same dated record family and the same move: the checklist gate now lives in DeliveryChecklistGateTests, a class this record's own run could not name."
     }
   ]
 }

@@ -8,7 +8,7 @@
   的文档,要么直接干掉,要么完全推翻重新整理" — and the rule it produced (`~/.dsh/AGENTS.md`, the landing
   threshold; `docs/AGENTS.md` §6; the review prompt's check G).
 - Related: `docs/AGENTS.md`, `docs/en/contributing/documentation-standard.md` (+ its Chinese pair),
-  `docs/development/review-prompt.md`, `todo/delivery-checklist-gate-census.md` (the same rot in a gate)
+  `docs/development/review-prompt.md`, `review/delivery-checklist-gate-census.md` (the same rot in a gate)
 
 ## Why this ticket exists
 

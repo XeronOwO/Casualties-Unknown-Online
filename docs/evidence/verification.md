@@ -156,7 +156,9 @@ user-observable semantics.
 ## Delivery checklist
 
 `docs/evidence/delivery-checklist.md` is the project's delivery-quality gate;
-its integrity is checked by `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`.
+its integrity is checked by `DeliveryChecklistGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`,
+and its census — a checklist that no longer declares one of the required boxes — by
+`DeliveryChecklistGateTests.DeliveryChecklist_DeclaresEveryRequiredBox`.
 Follow it for each delivery cycle; check boxes one at a time.
 
 ## Related pages

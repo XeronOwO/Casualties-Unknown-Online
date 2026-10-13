@@ -182,6 +182,51 @@ reading UTF-8 files without a BOM through the system code page — which left th
 mojibake and split its header; the review caught it, the page was rebuilt from its clean sources and the
 general rule is the ledger's own 2026-09-27 entry, which the gate's own header now repeats.
 
+## The coverage matrix's row audit (2026-10-13)
+
+`docs/evidence/sync-coverage-matrix.md` was audited row by row before it was rewritten, the way the register
+and the ledger were. Measured before: **244,427 bytes as the working tree held it** (244,792 as the ticket
+opened it), 66 matrix rows whose average length was 3,100 characters and whose largest was 8,169. Measured
+after: **91,745 bytes, the same 66 rows, average 1,150 characters and largest 1,196** — 20% of the census's
+112 KiB ceiling and 80% under the budget the census gate enforces.
+
+- The judgement rule is the page's own: a row states the POLICY — the surface and its owner, the direction
+  and roles, the event carrier with its reliability, the periodic fallback with its cadence and apply
+  semantics, the backfill path, and what a loss costs — plus one pointer to the record that carries the
+  closing detail. Everything else was a second home for a fact that already has one: `file:line` citations
+  (which `docs/AGENTS.md` §5 forbids for our own code, and which drift), the source paths whose quotes are
+  gate-verified in `docs/evidence/sync-coverage-evidence.json`, and the cycle narrative ("landed
+  2026-09-19", "the review found …") that made a policy table read as a batch log.
+- **Two tables were one table twice.** The nine `Transient-by-design` rows each appeared a second time in an
+  `Accepted losses` table, and every gap appeared a third time in a 10 KB `Gap list` whose entries carried
+  the whole closing story of a ticket that also states it. Both tables are gone: the reason lives in its own
+  row's loss cell, the closing record in its last cell, and the gap list is now a single statement that the
+  queue is empty with a pointer to the convention that refills it.
+- **Stale claims were fixed rather than compressed**: W2's "protocol 32" (no protocol number is current
+  pre-release — decision 241 froze the baseline), I1's "there is no guest-side re-report" (the kernel tracks
+  and re-sends every unacknowledged command, which is what made I5 `OK`), R3's "SceneState is reported only
+  on two edges" (it re-asserts on a bounded 5 s window), R4's "no recovery while both peers are online" (a
+  1 Hz warm-up pump and a 2 s member check exist), N4's self-contradiction about its own fallback cap (15 s,
+  per the catalog), three broken citations (`KernelProtocolService.cs/472`, `…/407`, a truncated quote) and
+  nine `docs/`-relative pointers that were not repo-relative paths at all.
+- **Five rows carry the audit's own scope limits**, recorded so the next reader does not mistake a carried
+  statement for a re-verified one: E1 and E2 admit a lost guest report that nothing reconciles while their
+  verdict stays `OK` (the same shape that made W2/W6/I5 gaps), and the rows for P8's three timed-medicine
+  chains and P11's adaptive base cadence keep the previous text compressed rather than re-measured.
+  `docs/backlog/review/sync-cadence-review.md` itself is still `Review` while the matrix's gap list had
+  called its gaps closed — the row now states the policy and names the record without claiming a status.
+- The shape is enforceable now: `SyncCoverageGateTests.SyncCoverageMatrix_EveryRowIsBounded` fails on a row
+  over 1,200 characters, on a source path outside the closing-record cell and on a line number anywhere, and
+  `BoundedRowValidation_FlagsAnOverlongRowAPathAndALineNumber` pins the matcher with a synthetic overlong
+  row, a path and a line number — including the false positive the first matcher produced, an ordinary word
+  (`coordinates`) that carries `tests/` inside it.
+- Nine census rows moved with the rewrite. `docs/evidence/sync-coverage-matrix.md` itself left `rework` for
+  `keep` with `docs/evidence/normative-gates.md` as its reach (the rule-to-gate map names it and its rows),
+  and `docs/architecture/glossary.md` was re-pointed from the matrix — which only ever mentioned "glossary"
+  in passing, while the census gate's reach check accepts a bare stem — to its own section index,
+  `docs/architecture/README.md`. **Measured now: 968 keep, 1 rework, 0 delete**, the one `rework` being
+  `docs/evidence/selfchecks/MANIFEST.md`.
+
 ## The test every document has to pass
 
 Name, before it lands, **who opens it and when** — the shape that serves each answer:
@@ -206,7 +251,9 @@ opens, and the file is not created.
    `docs/evidence/sync-coverage-matrix.md` 244,792 bytes and `docs/evidence/selfchecks/MANIFEST.md`
    111,705, the two largest documents in the tree that are still logs. The largest ticket body,
    `docs/backlog/review/save-mid-run-consistent-cut.md` at 107,575 bytes, is the first candidate of the
-   cycle-narrative class and has not been judged yet.
+   cycle-narrative class and has not been judged yet. — **Three of the four are rewritten and off the rework
+   list: the coverage matrix followed the register and the ledger (see *The coverage matrix's row audit*
+   below), which leaves `docs/evidence/selfchecks/MANIFEST.md` as the last log in the queue.**
 3. **A ledger shape for what stays a list.** — **Landed for the lessons ledger, open for the register.**
    An entry is bounded, names what its reader can open, and an entry whose conclusion has landed
    elsewhere is deleted in the same change — `AcceptanceLessonsGateTests` now fails on a two-line entry,

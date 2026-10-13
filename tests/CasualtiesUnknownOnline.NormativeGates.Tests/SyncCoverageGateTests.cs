@@ -47,6 +47,19 @@ public class SyncCoverageGateTests
 	/// <summary>A matrix row must NOT carry evidence text: the quote lives in the evidence file only, so a row that repeats a <c>path 'quote'</c> pair is exactly the double maintenance this contract removed.</summary>
 	private static readonly Regex ForbiddenInlineEvidence = new(@"(?:src|tests|docs)/[A-Za-z0-9_\-./]+\.(?:cs|md)\s+'[^']*'");
 
+	/// <summary>
+	/// A row states a policy, not a narrative: the bounded shape keeps a row inside one line a reader can
+	/// scan, and keeps the page's own budget (the census's 112 KiB document budget, which the rewritten page
+	/// sits far under) out of reach of a row-by-row append. The cap is measured against the rewritten page,
+	/// whose longest row is 1,149 characters; a row that needs more has a claim to move onto the page that
+	/// owns its topic.
+	/// </summary>
+	private const int MaximumRowCharacters = 1200;
+
+	/// <summary>A row carries no source path, and no line number anywhere: the quoted evidence lives only in the evidence file, one text with one home. The allowed shapes are the roots the tree really uses (<c>src/…</c>, <c>tests/…</c>, <c>tools/…</c> and <c>docs/…</c>), so an ordinary word that ends in one of those letters — "coordinates" carries <c>tests/</c> inside it — is not read as a path.</summary>
+	private static readonly Regex ForbiddenSourcePath = new(@"(?<![\w./-])(?:(?<![A-Za-z])(?:src|tests|tools)/|(?<![\w./-])docs/(?=[\w-]+/))[A-Za-z0-9_\-./]+");
+	private static readonly Regex ForbiddenLineNumber = new(@"\.(?:cs|md|json|txt|ps1|csproj):\d+|\.(?:cs|md|json|txt|ps1|csproj)/\d+");
+
 	private static readonly Regex MatrixRowId = new(@"^[A-Z]{1,2}\d+[a-z]?$");
 	private static readonly Regex TicketReference = new(@"todo/[A-Za-z0-9_\-]+\.md");
 	private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -78,8 +91,17 @@ public class SyncCoverageGateTests
 	public void SyncCoverageMatrix_EveryRowHasAVerdictAndEvidence()
 	{
 		var matrix = ParseMatrix();
-		var failures = ValidateRows(matrix.Rows, MinimumMatrixRows);
+		var failures = ValidateRows(matrix.Rows, MinimumMatrixRows, _ => true);
 		Assert.True(failures.Count == 0, "Sync-coverage matrix gate failed" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	[Fact]
+	public void SyncCoverageMatrix_EveryRowIsBounded()
+	{
+		var matrix = ParseMatrix();
+		var output = ValidateBoundedRows(File.ReadAllText(RepositoryPaths.File(MatrixPath)), matrix.Rows);
+
+		Assert.True(output.Count == 0, "Sync-coverage bounded-row gate failed" + Environment.NewLine + string.Join(Environment.NewLine, output));
 	}
 
 	[Fact]
@@ -156,7 +178,7 @@ public class SyncCoverageGateTests
 			new("W5", ["W5", "feature", "direction", "event src/one.cs 'a quote'", "fallback", "backfill", "loss", "OK", "1", "ticket"])
 		};
 
-		var failures = ValidateRows(rows, minimumRows: 1);
+		var failures = ValidateRows(rows, minimumRows: 1, _ => true);
 
 		Assert.Contains(failures, f => f.Contains("W5: row repeats evidence text", StringComparison.Ordinal));
 		Assert.Contains(failures, f => f.Contains("duplicate matrix row id: W1", StringComparison.Ordinal));
@@ -170,8 +192,27 @@ public class SyncCoverageGateTests
 	[Fact]
 	public void RowValidation_FlagsATruncatedMatrix()
 	{
-		var failures = ValidateRows([new MatrixRow("K1", Row("K1", "OK", "1"))], minimumRows: 64);
+		var failures = ValidateRows([new MatrixRow("K1", Row("K1", "OK", "1"))], minimumRows: 64, _ => true);
 		Assert.Contains(failures, f => f.Contains("expected at least 64 rows", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void BoundedRowValidation_FlagsAnOverlongRowAPathAndALineNumber()
+	{
+		var filler = new string('x', MaximumRowCharacters);
+		var text = string.Join(
+			"\n",
+			"| W1 | feature | direction | event " + filler + " | fallback | backfill | loss | OK | 1 | |",
+			"| W2 | feature | direction | event src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs | fallback | backfill | loss | OK | 1 | |",
+			"| W3 | feature | direction | event (NetMsg.cs/472) | fallback | backfill | loss | OK | 1 | |",
+			"| W4 | feature | direction | event absolute upsert keyed by chunk coordinates | fallback | backfill | loss | OK | 1 | `docs/backlog/done/a-record.md` |");
+
+		var failures = ValidateBoundedRows(text, [new MatrixRow("W4", ["W4", "feature", "direction", "event", "fallback", "backfill", "loss", "OK", "1", ""])]);
+
+		Assert.Contains(failures, f => f.Contains("W1: the row is", StringComparison.Ordinal) && f.Contains($"under {MaximumRowCharacters}", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W2: cell 4 names a source path", StringComparison.Ordinal));
+		Assert.Contains(failures, f => f.Contains("W3: cell 4 carries a line number", StringComparison.Ordinal));
+		Assert.DoesNotContain(failures, f => f.StartsWith("W4:", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -284,7 +325,7 @@ public class SyncCoverageGateTests
 	private static bool TryParseAnchorCount(string cell, out int count) =>
 		int.TryParse(cell.Trim().Trim('`'), out count);
 
-	private static List<string> ValidateRows(IReadOnlyList<MatrixRow> rows, int minimumRows)
+	private static List<string> ValidateRows(IReadOnlyList<MatrixRow> rows, int minimumRows, Func<MatrixRow, bool> include)
 	{
 		var failures = new List<string>();
 		if (rows.Count < minimumRows)
@@ -293,7 +334,7 @@ public class SyncCoverageGateTests
 		}
 
 		var seenIds = new HashSet<string>(StringComparer.Ordinal);
-		foreach (var row in rows)
+		foreach (var row in rows.Where(include))
 		{
 			if (!seenIds.Add(row.Id))
 			{
@@ -328,6 +369,53 @@ public class SyncCoverageGateTests
 					failures.Add($"{row.Id}: gap row has no existing todo ticket (cell: '{row.Cells[TicketCellIndex]}')");
 				}
 			}
+		}
+
+		return failures;
+	}
+
+	/// <summary>
+	/// The bounded shape of a row. A row that grows past the length cap, or that starts carrying a source
+	/// path or a line number, is the append-only narrative this page was rewritten out of: the quote and its
+	/// file belong to the evidence file, and a claim that does not fit the cap belongs on the page that owns
+	/// its topic. The gate reads the row as the file holds it, so a wrapped row is caught too.
+	/// </summary>
+	private static List<string> ValidateBoundedRows(string matrixText, IReadOnlyList<MatrixRow> rows)
+	{
+		var failures = new List<string>();
+		foreach (var line in matrixText.Split('\n'))
+		{
+			var raw = line.Split('|');
+			var cells = raw.Skip(1).Take(raw.Length - 2).Select(cell => cell.Trim()).ToArray();
+			if (cells.Length != MatrixRowCellCount || !MatrixRowId.IsMatch(cells[0]))
+			{
+				continue;
+			}
+
+			if (line.TrimEnd().Length > MaximumRowCharacters)
+			{
+				failures.Add($"{cells[0]}: the row is {line.TrimEnd().Length} characters; a row states a policy and stays under {MaximumRowCharacters} (the quote belongs in {EvidencePath})");
+			}
+
+			foreach (var (cell, index) in cells.Select((cell, index) => (cell, index)))
+			{
+				// The closing-record cell is the row's one pointer and may name a backlog record; every other
+				// cell states a policy, so a source path there is the double maintenance this shape removed.
+				if (index != TicketCellIndex && ForbiddenSourcePath.IsMatch(cell))
+				{
+					failures.Add($"{cells[0]}: cell {index + 1} names a source path ({ForbiddenSourcePath.Match(cell).Value}) - the path belongs to {EvidencePath}");
+				}
+
+				if (ForbiddenLineNumber.IsMatch(cell))
+				{
+					failures.Add($"{cells[0]}: cell {index + 1} carries a line number ({ForbiddenLineNumber.Match(cell).Value}) - a line number drifts and is never evidence");
+				}
+			}
+		}
+
+		if (rows.Count == 0)
+		{
+			failures.Add($"no matrix rows parsed from {MatrixPath}");
 		}
 
 		return failures;

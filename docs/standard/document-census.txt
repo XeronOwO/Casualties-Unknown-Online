@@ -227,6 +227,7 @@ docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md | keep | i
 docs/backlog/review/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
 docs/backlog/review/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-data-read-commands.md | keep | index | docs/backlog/README.md
+docs/backlog/review/item-data-write-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-id-counter-is-not-resumed-by-a-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-identity-across-transforms.md | keep | index | docs/backlog/README.md
 docs/backlog/review/layer-complete-choice-for-members.md | keep | index | docs/backlog/README.md

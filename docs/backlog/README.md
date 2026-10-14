@@ -86,6 +86,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state, read from the kernel row.
+- [The item data write verb](review/item-data-write-commands.md) — **Medium-High** — `/data set` writes the item this client holds.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
 - [Guest frame rate lower than host](review/guest-frame-rate-lower-than-host.md) — **Medium** — telemetry and allocation removal; a frame-rate row is open.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.

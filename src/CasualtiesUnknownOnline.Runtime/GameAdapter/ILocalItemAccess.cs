@@ -1,0 +1,47 @@
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+
+namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
+
+/// <summary>
+/// The local scene as the item-data write family sees it: the item THIS client
+/// really holds under an instance id, and one save-shaped state written into it.
+/// The read half of the family reads the kernel record — the host's authority, a
+/// member's replay of the committed batches — and a write cannot go that way: a
+/// carried item's state is its HOLDER's own report, so the write lands on the local
+/// object first and the record follows the report, which is the order a native use
+/// already takes (<c>ItemUseSync</c>).
+///
+/// <para>
+/// The port is deliberately small and holds no item vocabulary: WHICH property the
+/// operator named, whether the value is legal, which route the row's report takes
+/// and what the operator reads back are the console's business (control plane).
+/// This answers what the local scene holds and applies one top-level state to it.
+/// </para>
+///
+/// <para>
+/// A build without the Game Adapter — a test host, a headless one — registers
+/// <see cref="UnavailableLocalItemAccess"/> instead, so the verb answers "this
+/// build cannot reach the local scene" rather than reading as a client that holds
+/// nothing.
+/// </para>
+/// </summary>
+public interface ILocalItemAccess
+{
+	/// <summary>
+	/// The local state of the item this client holds under that id, in the same
+	/// save-shaped form the wire and the save use — or null when this client holds
+	/// no such item: another player's carried item (its local form is a render
+	/// proxy, never the fact), an item this client never loaded, or an id the scene
+	/// has no object for. The answer is a SNAPSHOT: the caller may edit it and hand
+	/// it back as the desired state.
+	/// </summary>
+	CharacterItemMsg? ReadLocalItem(ulong instanceId);
+
+	/// <summary>
+	/// Apply one save-shaped top-level state to the local item: condition,
+	/// favourited, the liquid stacks and the component fields. Contents and location
+	/// are not touched — the state a console write computes is the item's own
+	/// save-shaped properties, and where the item sits is not one of them.
+	/// </summary>
+	LocalItemWriteResult WriteLocalItem(ulong instanceId, CharacterItemMsg desired);
+}

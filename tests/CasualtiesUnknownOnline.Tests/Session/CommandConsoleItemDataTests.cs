@@ -1,10 +1,15 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 using static CasualtiesUnknownOnline.Tests.Session.CommandConsoleTestSession;
 
@@ -181,13 +186,320 @@ public class CommandConsoleItemDataTests
 	}
 
 	[Fact]
-	public void Data_WithAWriteVerb_SaysWhichHalfLanded()
+	public void Data_WithAWriteVerbThatHasNotLanded_SaysWhichOneDid()
 	{
 		var (host, _) = CreateSession();
 
-		var answer = Run(host, "/data set id 4101 condition 0.5");
+		var answer = Run(host, "/data merge id 4101 condition 0.5");
 
-		Assert.Contains("/data set is not implemented yet", answer);
+		Assert.Contains("/data merge is not implemented yet", answer);
+		Assert.Contains("/data set", answer);
+	}
+
+	// ===== Write =====
+
+	/// <summary>
+	/// The whole write, end to end through the real console, the real kernel and the
+	/// adapter port's own seam: the value lands in the local scene AND the record
+	/// follows it, because the report the command makes is the one a native use makes —
+	/// and the report's ROUTE is observable, not inferred from the row changing (both
+	/// routes update it): a carried item goes out as this client's carried fact.
+	/// </summary>
+	[Fact]
+	public void Set_OnAnItemThisClientHolds_WritesTheSceneAndTheRecordFollows()
+	{
+		var (host, _, local) = CreateSceneSession();
+		var item = Item(Backpack, "backpack", slot: 1, condition: 0.5f);
+		Hold(host, local, item);
+		var reports = RecordReports(host);
+
+		var answer = Run(host, "/data set @s slot 1 condition 0.25");
+
+		Assert.Contains("#4101 backpack: condition 0.5 -> 0.25", answer);
+		Assert.Equal(0.25f, local.Held(Backpack)!.Condition);
+		Assert.Equal(0.25f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+		Assert.Contains(reports.Carried, carried => carried.InstanceId == Backpack && carried.Condition == 0.25f);
+		Assert.Empty(reports.Corrected);
+	}
+
+	/// <summary>
+	/// The value is computed against the item's LOCAL capture, not against the record:
+	/// the two can disagree for a frame (a native change the holder has not reported
+	/// yet), and the write is the local truth the record then follows — which is why the
+	/// answer's "before" is the local one.
+	/// </summary>
+	[Fact]
+	public void Set_ComputesTheValueAgainstTheLocalCapture_NotTheRecord()
+	{
+		var (host, _, local) = CreateSceneSession();
+		local.Hold(Item(Backpack, "backpack", slot: 1, condition: 0.4f));
+		SeedCarried(host, HostId, Item(Backpack, "backpack", slot: 1, condition: 0.9f));
+
+		var answer = Run(host, "/data set id 4101 condition 0.2");
+
+		Assert.Contains("condition 0.4 -> 0.2", answer);
+		Assert.Equal(0.2f, local.Held(Backpack)!.Condition);
+		Assert.Equal(0.2f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+	}
+
+	[Fact]
+	public void Set_ByInstanceId_ReachesAnItemWhereverItSits()
+	{
+		var (host, _, local) = CreateSceneSession();
+		Hold(host, local, Item(Backpack, "backpack", slot: 2));
+
+		var answer = Run(host, $"/data set id {Backpack} favourited yes");
+
+		Assert.Contains("favourited no -> yes", answer);
+		Assert.True(Kernel(host).FindItem(Backpack)!.Value.Data.Favourited);
+	}
+
+	/// <summary>A component field is written as the kind the item's own capture carries, so the value is parsed against that item rather than against a global table.</summary>
+	[Fact]
+	public void Set_AComponentField_ParsesTheValueAgainstTheItemsOwnKind()
+	{
+		var (host, _, local) = CreateSceneSession();
+		var item = Item(Backpack, "backpack", slot: 2, withState: true);
+		Hold(host, local, item);
+
+		var answer = Run(host, $"/data set id {Backpack} component BatteryItem charge 0.9");
+
+		Assert.Contains("component BatteryItem charge 0.75 -> 0.9", answer);
+		var field = Kernel(host).FindItem(Backpack)!.Value.Data.Components
+			.Single(component => component.TypeName == "BatteryItem")
+			.Fields.Single(candidate => candidate.Name == "charge");
+		Assert.Equal(0.9f, field.FloatValue);
+	}
+
+	[Fact]
+	public void Set_ALiquidStack_ReachesTheRecordInMillilitres()
+	{
+		var (host, _, local) = CreateSceneSession();
+		Hold(host, local, Item(Backpack, "backpack", slot: 2, withState: true));
+
+		var answer = Run(host, $"/data set id {Backpack} liquid water 500");
+
+		Assert.Contains("liquid water 250 ml -> 500 ml", answer);
+		Assert.Equal(500f, Kernel(host).FindItem(Backpack)!.Value.Data.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
+	}
+
+	/// <summary>
+	/// A write is the HOLDER's act: the record may name an item this client does not
+	/// hold (another member's carried item, an id it never loaded), and the refusal
+	/// says where the row puts it rather than silently doing nothing.
+	/// </summary>
+	[Fact]
+	public void Set_ForAnItemThisClientDoesNotHold_IsRefusedByName()
+	{
+		var (host, _, _) = CreateSceneSession();
+		SeedCarried(host, HostId, Item(Backpack, "backpack", slot: 1));
+
+		var answer = Run(host, $"/data set id {Backpack} condition 0.5");
+
+		Assert.Contains("is recorded as carried by 1001, slot 1 but this client does not hold it", answer);
+	}
+
+	[Fact]
+	public void Set_ForAnUnrecordedInstanceId_IsRefusedByName()
+	{
+		var (host, _, _) = CreateSceneSession();
+
+		Assert.Contains("No item #999999 is recorded in this session.", Run(host, "/data set id 999999 condition 0.5"));
+	}
+
+	/// <summary>
+	/// The one-item rule the read half's ruling established, at the write: a target
+	/// that names no single item is refused by name, with what to write instead.
+	/// </summary>
+	[Fact]
+	public void Set_WithoutNamingOneItem_IsRefusedByName()
+	{
+		var (host, _, _) = CreateSceneSession();
+
+		Assert.Contains("a write names ONE item", Run(host, "/data set @s condition 0.5"));
+	}
+
+	[Fact]
+	public void Set_ForASlotTheRecordDoesNotNameYet_IsRefusedByName()
+	{
+		var (host, _, _) = CreateSceneSession();
+
+		Assert.Contains("No item is recorded for 1001 in slot 7 yet", Run(host, "/data set slot 7 condition 0.5"));
+	}
+
+	[Fact]
+	public void Set_ForAnotherMembersItem_IsRefusedByName()
+	{
+		var (host, _, _) = CreateSceneSession();
+		SeedHostEntities(host, GuestId, 5f);
+		SeedCarried(host, GuestId, Item(GuestsBandage, "bandage", slot: 2));
+
+		var answer = Run(host, "/data set @a slot 2 condition 0.5");
+
+		Assert.Contains("is carried by 2001", answer);
+		Assert.Contains("holder's own act", answer);
+	}
+
+	[Fact]
+	public void Set_ForASelectorMatchingSeveralBodies_IsRefusedByName()
+	{
+		var (host, _, _) = CreateSceneSession();
+		SeedHostEntities(host, GuestId, 5f);
+		AddSecondRemote(host);
+		SeedCarried(host, GuestId, Item(GuestsBandage, "bandage", slot: 0));
+
+		var answer = Run(host, "/data set @a slot 0 condition 0.5");
+
+		Assert.Contains("matched 2 bodies", answer);
+		Assert.Contains("[limit=1]", answer);
+	}
+
+	/// <summary>A member's console has no write to offer yet: the family's host rule and a member's own report route are the stage that opens it.</summary>
+	[Fact]
+	public void Set_OnAMembersConsole_IsRefusedByName()
+	{
+		var (_, guest, _) = CreateSceneSession();
+
+		var answer = Run(guest, "/data set @s slot 0 condition 0.5");
+
+		Assert.Contains("Only the host can write item state today", answer);
+	}
+
+	[Fact]
+	public void Set_ForAPropertyTheItemDoesNotCarry_IsRefusedByName()
+	{
+		var (host, _, local) = CreateSceneSession();
+		Hold(host, local, Item(Backpack, "backpack", slot: 2, withState: true));
+
+		var answer = Run(host, $"/data set id {Backpack} component Radio gain 1");
+
+		Assert.Contains("has no component 'Radio'", answer);
+		Assert.Contains("BatteryItem", answer);
+	}
+
+	/// <summary>The scene's own refusal reaches the operator as its own sentence — the seam cannot turn "not yours to write" into "done".</summary>
+	[Fact]
+	public void Set_WhenTheLocalSceneRefuses_IsAnsweredWithThatReason()
+	{
+		var (host, _, local) = CreateSceneSession();
+		Hold(host, local, Item(Backpack, "backpack", slot: 2));
+		local.NextResult = LocalItemWriteResult.NotWritable;
+
+		var answer = Run(host, $"/data set id {Backpack} condition 0.5");
+
+		Assert.Contains("not this client's fact to write", answer);
+		Assert.Equal(1f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+	}
+
+	[Fact]
+	public void Set_LiquidOnAnItemWhoseCaptureCarriesNone_IsRefusedByName()
+	{
+		var (host, _, local) = CreateSceneSession();
+		Hold(host, local, Item(Backpack, "backpack", slot: 2));
+
+		var answer = Run(host, $"/data set id {Backpack} liquid water 500");
+
+		Assert.Contains("carries no 'water'", answer);
+		Assert.Equal(1f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+	}
+
+	/// <summary>
+	/// A WORLD-rooted item's local copy is the fact and every other member's copy adopts
+	/// it (the ground-canister correction), so a write there takes the correction route
+	/// rather than the carried-fact broadcast — both routes update the row, so the route
+	/// is asserted through the events they raise.
+	/// </summary>
+	[Fact]
+	public void Set_OnAWorldRow_TakesTheWorldCorrectionRoute()
+	{
+		var (host, _, local) = CreateSceneSession();
+		var item = Item(Backpack, "backpack", slot: 0, condition: 0.5f);
+		local.Hold(item);
+		SeedWorld(host, HostId, item);
+		var reports = RecordReports(host);
+
+		var answer = Run(host, $"/data set id {Backpack} condition 0.2");
+
+		Assert.Contains("condition 0.5 -> 0.2", answer);
+		Assert.Equal(0.2f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+		Assert.Contains(reports.Corrected, corrected => corrected.InstanceId == Backpack && corrected.Condition == 0.2f);
+		Assert.Empty(reports.Carried);
+	}
+
+	/// <summary>
+	/// A child of a WORLD container is world-rooted even though its own row says
+	/// "contained": the route is the kernel's own container walk, so a dropped
+	/// backpack's contents take the correction the native path gives them rather than a
+	/// carried fact the receivers cannot place.
+	/// </summary>
+	[Fact]
+	public void Set_OnAContainedChildOfAWorldContainer_TakesTheWorldCorrectionRoute()
+	{
+		var (host, _, local) = CreateSceneSession();
+		var child = Item(GuestsBandage, "bandage", slot: 0, condition: 0.5f);
+		local.Hold(child);
+		SeedWorld(host, HostId, Item(Backpack, "backpack", slot: 0));
+		var parent = Item(Backpack, "backpack", slot: 0);
+		parent.Contents.Add(child);
+		Assert.True(Kernel(host).TrySyncContainerFacts(HostId, parent, out _, out _));
+		var reports = RecordReports(host);
+
+		var answer = Run(host, $"/data set id {GuestsBandage} condition 0.2");
+
+		Assert.Contains("condition 0.5 -> 0.2", answer);
+		Assert.Contains(reports.Corrected, corrected => corrected.InstanceId == GuestsBandage);
+		Assert.Empty(reports.Carried);
+	}
+
+	/// <summary>
+	/// Without an active session the report the write ends with is dropped by its own
+	/// guard, so the verb refuses instead of changing the local object and calling that
+	/// "reported" — the answer names the missing session.
+	/// </summary>
+	[Fact]
+	public void Set_OutsideAnActiveSession_IsRefusedByName()
+	{
+		var clock = new FakeClock();
+		var network = new FakeNetwork(clock: clock);
+		using var node = TestNode.Create(HostId, network, new FakeSteamService(HostId), clock, pumpFirstFrame: true);
+
+		var answer = Run(node, "/data set id 4101 condition 0.5");
+
+		Assert.Contains("No active session", answer);
+	}
+
+	/// <summary>Every console test runs against a scene of its own, so nothing a test writes leaks into another.</summary>
+	private static (TestNode Host, TestNode Guest, FakeLocalItemAccess Local) CreateSceneSession()
+	{
+		var local = new FakeLocalItemAccess();
+		var (host, guest) = CreateSession(services => services.Replace(ServiceDescriptor.Singleton<ILocalItemAccess>(local)));
+		return (host, guest, local);
+	}
+
+	/// <summary>Puts one item on BOTH halves of the write's world: the record (the kernel row) and the local scene (the object this client holds).</summary>
+	private static void Hold(TestNode host, FakeLocalItemAccess local, CharacterItemMsg item)
+	{
+		local.Hold(item);
+		SeedCarried(host, HostId, item);
+	}
+
+	/// <summary>Puts one item into the record as a WORLD row — the row a dropped or ground item has.</summary>
+	private static void SeedWorld(TestNode node, ulong owner, CharacterItemMsg item, float x = 3f, float y = 4f) =>
+		Assert.True(Kernel(node).TrySpawn(owner, new ItemIdentity(item.InstanceId, item.ItemId), ItemLocation.World(x, y), item, out _, out _));
+
+	/// <summary>
+	/// The two report routes are told apart by what they RAISE, not by the row changing:
+	/// the carried-fact route publishes the owner's own fact, the world route corrects
+	/// every other copy.
+	/// </summary>
+	private static (List<CharacterItemMsg> Carried, List<CharacterItemMsg> Corrected) RecordReports(TestNode host)
+	{
+		var carried = new List<CharacterItemMsg>();
+		var corrected = new List<CharacterItemMsg>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		items.ItemCarriedSyncReceived += (_, item, _) => carried.Add(item);
+		items.ItemCorrectionReceived += corrected.Add;
+		return (carried, corrected);
 	}
 
 	[Fact]
@@ -265,6 +577,19 @@ public class CommandConsoleItemDataTests
 		int slot,
 		float condition = 1f,
 		bool favourited = false,
+		bool withState = false) =>
+		SeedCarried(node, owner, Item(instanceId, definition, slot, condition, favourited, withState));
+
+	/// <summary>The same row, as the local scene's own capture — the write's two halves must agree on what the item is before it is written.</summary>
+	private static void SeedCarried(TestNode node, ulong owner, CharacterItemMsg item) =>
+		Assert.True(Kernel(node).TrySpawnCarried(owner, item.InstanceId, item.ItemId, item, out _, out _));
+
+	private static CharacterItemMsg Item(
+		ulong instanceId,
+		string definition,
+		int slot,
+		float condition = 1f,
+		bool favourited = false,
 		bool withState = false)
 	{
 		var item = new CharacterItemMsg
@@ -289,7 +614,7 @@ public class CommandConsoleItemDataTests
 			];
 		}
 
-		Assert.True(Kernel(node).TrySpawnCarried(owner, instanceId, definition, item, out _, out _));
+		return item;
 	}
 
 	/// <summary>Runs one console line and answers with the line it printed.</summary>

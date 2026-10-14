@@ -17,6 +17,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// A target is parsed, never guessed: a token that is neither a keyword nor a
 /// selector is refused with the usage line instead of being read as an id, so a
 /// typo cannot silently read somebody else's item.
+///
+/// <para>
+/// One grammar serves both verbs: the read verb's target is the whole line
+/// (<see cref="TryParse"/>), the write verb's is the line's first half
+/// (<see cref="TryParseTarget"/>), so a new target shape cannot reach one verb and
+/// miss the other.
+/// </para>
 /// </summary>
 internal static class ItemDataQueryParser
 {
@@ -26,42 +33,63 @@ internal static class ItemDataQueryParser
 
 	private const string SlotKeyword = "slot";
 
-	/// <summary>Parses the tokens that follow the verb, or reports why they are not a target.</summary>
+	/// <summary>Parses the tokens that follow the verb, or reports why they are not a target. The whole list must be the target.</summary>
 	internal static bool TryParse(IReadOnlyList<string> target, out ItemDataQuery query, out string? error)
 	{
-		query = new ItemDataQuery(ItemDataQueryKind.Bodies, null, -1, 0);
-		error = null;
-
-		if (target.Count == 0)
+		if (!TryParseTarget(target, 0, out query, out var next, out error))
 		{
-			return true;
+			return false;
 		}
 
-		var first = target[0];
+		return next == target.Count
+			|| Refuse($"Usage: {Usage}", out query, out next, out error);
+	}
+
+	/// <summary>
+	/// Parses ONE target starting at <paramref name="start"/> and reports the index
+	/// of the first token after it in <paramref name="next"/> — the write verb's
+	/// property follows the target on the same line.
+	/// </summary>
+	internal static bool TryParseTarget(IReadOnlyList<string> tokens, int start, out ItemDataQuery query, out int next, out string? error)
+	{
+		query = new ItemDataQuery(ItemDataQueryKind.Bodies, null, -1, 0);
+		next = start;
+		error = null;
+
+		var remaining = tokens.Count - start;
+		if (remaining <= 0)
+		{
+			return true; // nothing names the caller's own body
+		}
+
+		var first = tokens[start];
 		if (IsKeyword(first, IdKeyword))
 		{
-			return TryParseInstanceId(target, out query, out error);
+			return remaining >= 2 && TryParseInstanceId(tokens[start + 1], out var instanceId)
+				? Accept(new ItemDataQuery(ItemDataQueryKind.InstanceId, null, -1, instanceId), start + 2, out query, out next, out error)
+				: Refuse($"Usage: {Usage}", out query, out next, out error);
 		}
 
 		if (IsKeyword(first, SlotKeyword))
 		{
-			return target.Count == 2 && TryParseSlot(target[1], out var slot)
-				? Accept(new ItemDataQuery(ItemDataQueryKind.Slot, null, slot, 0), out query, out error)
-				: Refuse($"Usage: {Usage}", out query, out error);
+			return remaining >= 2 && TryParseSlot(tokens[start + 1], out var slot)
+				? Accept(new ItemDataQuery(ItemDataQueryKind.Slot, null, slot, 0), start + 2, out query, out next, out error)
+				: Refuse($"Usage: {Usage}", out query, out next, out error);
 		}
 
 		if (first.Length < 2 || !first.StartsWith("@", StringComparison.Ordinal))
 		{
-			return Refuse($"'{first}' is not a target — a player selector is '@' plus a type, e.g. @a or @s. Usage: {Usage}", out query, out error);
+			return Refuse($"'{first}' is not a target — a player selector is '@' plus a type, e.g. @a or @s. Usage: {Usage}", out query, out next, out error);
 		}
 
-		return target.Count switch
+		if (remaining >= 2 && IsKeyword(tokens[start + 1], SlotKeyword))
 		{
-			1 => Accept(new ItemDataQuery(ItemDataQueryKind.Bodies, first, -1, 0), out query, out error),
-			3 when IsKeyword(target[1], SlotKeyword) && TryParseSlot(target[2], out var slot) =>
-				Accept(new ItemDataQuery(ItemDataQueryKind.Slot, first, slot, 0), out query, out error),
-			_ => Refuse($"Usage: {Usage}", out query, out error),
-		};
+			return remaining >= 3 && TryParseSlot(tokens[start + 2], out var selectedSlot)
+				? Accept(new ItemDataQuery(ItemDataQueryKind.Slot, first, selectedSlot, 0), start + 3, out query, out next, out error)
+				: Refuse($"Usage: {Usage}", out query, out next, out error);
+		}
+
+		return Accept(new ItemDataQuery(ItemDataQueryKind.Bodies, first, -1, 0), start + 1, out query, out next, out error);
 	}
 
 	/// <summary>
@@ -73,30 +101,24 @@ internal static class ItemDataQueryParser
 	private static bool TryParseSlot(string text, out int slot) =>
 		int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out slot) && slot >= 0;
 
-	private static bool TryParseInstanceId(IReadOnlyList<string> target, out ItemDataQuery query, out string? error)
-	{
-		if (target.Count == 2
-			&& ulong.TryParse(target[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var instanceId))
-		{
-			return Accept(new ItemDataQuery(ItemDataQueryKind.InstanceId, null, -1, instanceId), out query, out error);
-		}
-
-		return Refuse($"Usage: {Usage}", out query, out error);
-	}
+	private static bool TryParseInstanceId(string text, out ulong instanceId) =>
+		ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out instanceId);
 
 	private static bool IsKeyword(string token, string keyword) =>
 		string.Equals(token, keyword, StringComparison.OrdinalIgnoreCase);
 
-	private static bool Accept(ItemDataQuery parsed, out ItemDataQuery query, out string? error)
+	private static bool Accept(ItemDataQuery parsed, int next, out ItemDataQuery query, out int consumed, out string? error)
 	{
 		query = parsed;
+		consumed = next;
 		error = null;
 		return true;
 	}
 
-	private static bool Refuse(string message, out ItemDataQuery query, out string? error)
+	private static bool Refuse(string message, out ItemDataQuery query, out int next, out string? error)
 	{
 		query = new ItemDataQuery(ItemDataQueryKind.Bodies, null, -1, 0);
+		next = 0;
 		error = message;
 		return false;
 	}

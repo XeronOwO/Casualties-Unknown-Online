@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Content;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -194,6 +195,15 @@ public static class GameAdapterComposition
 		services.AddSingleton<LocalCharacterCapture>();
 		services.Replace(ServiceDescriptor.Singleton<ILocalCharacterCapture>(
 			p => p.GetRequiredService<LocalCharacterCapture>()));
+		// The local scene behind the console's item-data WRITE verb: the one object an
+		// instance id names on this client, its captured state, and one write into it.
+		// The Runtime registers the unavailable one and this replaces it, so a build
+		// without an adapter answers "not held" instead of pretending an empty scene.
+		// Standalone rather than a port on the aggregate: it needs nothing the domain
+		// graph owns (the id index, the codec and the standing classifier are statics).
+		services.AddSingleton<LocalItemAccess>();
+		services.Replace(ServiceDescriptor.Singleton<ILocalItemAccess>(
+			p => p.GetRequiredService<LocalItemAccess>()));
 		// The game's own content facts behind the cross-player limb-use chains
 		// (mod-cross-player-native-semantics): the item and liquid registries answer
 		// what the injection chain may draw from, instead of a CUO id table. Same

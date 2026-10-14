@@ -5,10 +5,12 @@ using System.Linq;
 using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Time;
@@ -60,7 +62,9 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IResourceLocationCatalog resourceLocations,
 		IWorldSaveControl worldSaves,
 		WorldRestoreAudit restoreAudit,
-		IStartingSupplyControl startingSupplies)
+		IStartingSupplyControl startingSupplies,
+		ILocalItemAccess localItems,
+		IItemControl itemControl)
 	{
 		_chat = chat;
 		_session = session;
@@ -91,7 +95,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
-		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, entities, log));
+		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, entities, localItems, itemControl, log));
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 

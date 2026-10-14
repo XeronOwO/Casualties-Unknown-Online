@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +18,11 @@ internal static class ConsoleComposition
 	internal static void AddConsole(IServiceCollection services)
 	{
 		services.AddSingleton<ConsoleCommandRegistry>();
+		// The local scene the item-data write verb reads and writes. The Game Adapter
+		// REPLACES this with the real one where an adapter is loaded; without it the
+		// verb answers "this client holds no such item" instead of pretending the
+		// scene is empty, which is the same shape ILocalCharacterCapture uses.
+		services.AddSingleton<ILocalItemAccess>(new UnavailableLocalItemAccess());
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());

@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
@@ -48,7 +50,7 @@ internal static class ItemDataRenderer
 		var builder = new StringBuilder();
 		builder.Append('#').Append(item.Identity.InstanceId)
 			.Append(' ').Append(item.Identity.DefinitionId)
-			.Append(" [").Append(Location(item)).Append(']')
+			.Append(" [").Append(LocationOf(item)).Append(']')
 			.Append(" revision ").Append(item.Revision)
 			.Append("\n  condition ").Append(Number(item.Data.Condition))
 			.Append("\n  favourited ").Append(item.Data.Favourited ? "yes" : "no");
@@ -98,11 +100,11 @@ internal static class ItemDataRenderer
 		ItemLocationKind.Carried when item.Data.SlotIndex >= 0 => $"slot {item.Data.SlotIndex}",
 		ItemLocationKind.Carried => "carried",
 		ItemLocationKind.Applied => $"limb {item.Location.LimbIndex}",
-		_ => Location(item),
+		_ => LocationOf(item),
 	};
 
 	/// <summary>The full form for one item: where it is, and whose it is when somebody owns it.</summary>
-	private static string Location(ItemState item) => item.Location.Kind switch
+	internal static string LocationOf(ItemState item) => item.Location.Kind switch
 	{
 		ItemLocationKind.Carried when item.Data.SlotIndex >= 0 =>
 			$"carried by {item.Location.Owner.Value}, slot {item.Data.SlotIndex}",
@@ -153,6 +155,52 @@ internal static class ItemDataRenderer
 		ItemComponentFieldKind.Bool => field.BoolValue ? "true" : "false",
 		ItemComponentFieldKind.String => '"' + field.StringValue + '"',
 		ItemComponentFieldKind.StringList => "[" + string.Join(", ", field.StringList) + "]",
+		_ => "?",
+	};
+
+	/// <summary>
+	/// One write's answer: the item it landed on, the property, and the value the
+	/// property moved from and to — the two values formatted by the SAME helpers the
+	/// read half prints its rows with, so what an operator wrote reads back in the
+	/// words they read it in. A condition written to zero carries the one consequence
+	/// the operator has to know about: the item's OWN rule destroys what reaches zero,
+	/// so the item may be gone a moment after this line (the verb does not refuse the
+	/// value — zero is a state the game itself produces).
+	/// </summary>
+	internal static string Wrote(CharacterItemMsg item, ItemDataWrite write, string before, string after) =>
+		$"#{item.InstanceId} {item.ItemId}: {Property(write)} {before} -> {after} — written and reported as this client's own item state."
+		+ (write.Property == ItemDataProperty.Condition && write.Number == 0f
+			? " At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now."
+			: "");
+
+	/// <summary>A number, in the form every line of this verb prints one.</summary>
+	internal static string NumberValue(float value) => Number(value);
+
+	/// <summary>The item's own favourite flag in this verb's words for it (the read half's "yes"/"no").</summary>
+	internal static string YesNoValue(bool value) => value ? "yes" : "no";
+
+	/// <summary>
+	/// One CAPTURED component field's value, by the kind the capture tagged it with
+	/// (<c>SaveableFieldKind</c>): the write half reads and writes the local capture's
+	/// own shape, so its values are formatted here beside the kernel row's.
+	/// </summary>
+	internal static string FieldValue(ComponentFieldMsg field) => Captured(field);
+
+	private static string Property(ItemDataWrite write) => write.Property switch
+	{
+		ItemDataProperty.Condition => "condition",
+		ItemDataProperty.Favourited => "favourited",
+		ItemDataProperty.Liquid => $"liquid {write.Name}",
+		_ => $"component {write.Component} {write.Name}",
+	};
+
+	private static string Captured(ComponentFieldMsg field) => field.Kind switch
+	{
+		SaveableFieldKind.Float => Number(field.FloatValue),
+		SaveableFieldKind.Int or SaveableFieldKind.Enum => field.IntValue.ToString(CultureInfo.InvariantCulture),
+		SaveableFieldKind.Bool => field.BoolValue ? "true" : "false",
+		SaveableFieldKind.String => '"' + field.StringValue + '"',
+		SaveableFieldKind.StringList => "[" + string.Join(", ", field.StringList) + "]",
 		_ => "?",
 	};
 

@@ -1,13 +1,15 @@
 # Item and entity data commands: give, spawn and a property editor
 
-- Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`; the stages below are
-  what remains.
+- Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
+  verb (`/data set`, with the local-scene port) the same day as `review/item-data-write-commands.md`; the
+  stages below are what remains.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
 - Source: the user's 2026-10-07 backlog request — a Minecraft-style command family for CUO: item-specific
   properties (battery charge, liquid and millilitres, condition/durability and the rest) must be gettable,
   settable, mergeable and removable, and the family also covers handing an item out and creating an entity.
 - Related: `review/item-data-read-commands.md` (the landed read half, and the survey these stages build on),
+  `review/item-data-write-commands.md` (the landed first write verb and the local-scene port),
   `todo/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
   `review/in-game-command-console-interactive.md` (the console the verbs land in),
@@ -81,6 +83,15 @@ accepted-creation path unchanged or needs its own admission, including what a la
    Acceptance: a set value survives the next snapshot, a save/restore and a rejoin on both peers, and a
    refused write is answered by name. The CURSOR target the user asked for lands in the same stage, on the same
    new capability port.
+   **Landed 2026-10-14:** `/data set` over condition, favourited, one liquid stack and one component field, on
+   the item THIS client holds, plus the port (`ILocalItemAccess`) and the report route that makes the row the
+   game's own — `review/item-data-write-commands.md` carries its rows and its limits.
+   **Still open in this stage:** `merge` and `remove`; the cursor target (which owns the id-less
+   generation-time ground item question); and the first gap above — the host's own untouched carried items
+   still have no id and no row, so no verb can name them until the host registers its carried inventory at the
+   generation-finished edge the way a member's client does (a cross-player change: those ids ride the 1 Hz
+   character snapshot, so the members' clones, their remote inventory view and the divergence monitor all begin
+   to see addressable rows for the host's items — its own verification run, not a ride on a verb).
 2. **Stage C — `give`**: put an item into another player's inventory with its properties already set. The
    missing half is materialization on the receiving side — today an item reaches another player only by the
    receiver taking it or by dropping it for a pickup — so this stage owns that carrier, and it shares the

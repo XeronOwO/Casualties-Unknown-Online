@@ -5,35 +5,58 @@ using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
-/// The item-data command group (<c>/data</c>): an operator's read of what CUO
-/// records about one item — condition, favourited, liquid stacks, the typed
+/// The item-data command group (<c>/data</c>): an operator's read AND write of what
+/// CUO records about one item — condition, favourited, liquid stacks, the typed
 /// component fields and the container contents — addressed by a player selector,
 /// a body slot or a CUO instance id.
 ///
-/// It reads the KERNEL fact, not the local scene: the kernel row is the same on
-/// every peer (the host's authority, a guest's replay of the committed batches),
-/// it is what replication, the save archive and a rejoin all carry, and it is
-/// therefore the row a later write has to change. Reading the local scene would
-/// answer a different question — what THIS client rendered — which the remote
-/// inventory already shows.
+/// The READ reads the KERNEL fact, not the local scene: the kernel row is the same on
+/// every peer (the host's authority, a guest's replay of the committed batches), it
+/// is what replication, the save archive and a rejoin all carry, and it is therefore
+/// the row a write has to change. Reading the local scene would answer a different
+/// question — what THIS client rendered — which the remote inventory already shows.
 ///
-/// Permission is <see cref="CommandPermission.Anyone"/> because the verb only
-/// reads: another player's carried items are already visible in the remote
-/// inventory view. Writes are the group's later stages and are the host's call.
+/// The WRITE takes the other order on purpose: a carried item's state is its
+/// holder's own report, so the command computes the property against the item's
+/// LOCAL capture (<see cref="ILocalItemAccess"/>), writes it there, and reports the
+/// result through the same two calls a native use's host branch reports with — the
+/// row a command writes is the row the game would have written. A write is therefore
+/// the holder's own act: an item this client does not hold, and an item the record
+/// does not name yet, are both refused by name rather than written somewhere else.
+///
+/// Permission is <see cref="CommandPermission.Anyone"/> because the READ is open —
+/// another player's carried items are already visible in the remote inventory view —
+/// while the WRITE is refused to everyone but the host in the handler. The permission
+/// is per COMMAND and the two verbs share one, so the member's console does list the
+/// write grammar in <c>/help</c> and refuses the write by name when it is typed; the
+/// family's host rule and a member's own report route are the stage that opens it,
+/// and until that exists a member's console must not offer what no host-side gate can
+/// back.
 /// </summary>
 internal sealed class ItemDataCommands(
 	IKernelItemFacts items,
 	ISessionControl session,
 	IEntitySyncControl entities,
+	ILocalItemAccess localItems,
+	IItemControl itemControl,
 	ILogger log)
 {
 	private const string GetVerb = "get";
+
+	private const string SetVerb = "set";
+
+	private const string MergeVerb = "merge";
+
+	private const string RemoveVerb = "remove";
 
 	/// <summary>The body-slot ordering key: carried items by slot, then limb-installed ones by limb.</summary>
 	private const int AppliedOrderBase = 1000;
@@ -41,30 +64,35 @@ internal sealed class ItemDataCommands(
 	private readonly IKernelItemFacts _items = items;
 	private readonly ISessionControl _session = session;
 	private readonly IEntitySyncControl _entities = entities;
+	private readonly ILocalItemAccess _localItems = localItems;
+	private readonly IItemControl _itemControl = itemControl;
 	private readonly ILogger _log = log;
 
-	[ConsoleCommand("data", "Read one item's recorded state: condition, liquids, component fields and contents.", CommandPermission.Anyone, ItemDataQueryParser.Usage, CommandArgumentKind.Text)]
+	[ConsoleCommand("data", "Read or write one item's recorded state: condition, liquids, component fields and contents.", CommandPermission.Anyone, ItemDataQueryParser.Usage + " | " + ItemDataWriteParser.Usage, CommandArgumentKind.Text)]
 	internal string Data(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
 		{
-			return $"Usage: {ItemDataQueryParser.Usage}";
+			return $"Usage: {ItemDataQueryParser.Usage} | {ItemDataWriteParser.Usage}";
+		}
+
+		var verb = args[1].ToLowerInvariant();
+		if (verb == SetVerb)
+		{
+			return Write(Tail(args, 2));
+		}
+
+		if (verb is MergeVerb or RemoveVerb)
+		{
+			return $"/data {verb} is not implemented yet — /data set is the write verb that landed. Usage: {ItemDataWriteParser.Usage}";
 		}
 
 		if (!string.Equals(args[1], GetVerb, StringComparison.OrdinalIgnoreCase))
 		{
-			var verb = args[1].ToLowerInvariant();
-			return verb is "set" or "merge" or "remove"
-				? $"/data {verb} is not implemented yet — this family landed its read half first. Usage: {ItemDataQueryParser.Usage}"
-				: $"Unknown /data verb '{args[1]}'. Usage: {ItemDataQueryParser.Usage}";
+			return $"Unknown /data verb '{args[1]}'. Usage: {ItemDataQueryParser.Usage} | {ItemDataWriteParser.Usage}";
 		}
 
-		var tail = new List<string>(Math.Max(args.Count - 2, 0));
-		for (var i = 2; i < args.Count; i++)
-		{
-			tail.Add(args[i]);
-		}
-
+		var tail = Tail(args, 2);
 		if (!ItemDataQueryParser.TryParse(tail, out var query, out var error))
 		{
 			return error!;
@@ -78,6 +106,17 @@ internal sealed class ItemDataCommands(
 			ItemDataQueryKind.Slot => ReadSlot(all, query),
 			_ => ReadBodies(all, query),
 		};
+	}
+
+	private static List<string> Tail(IReadOnlyList<string> args, int start)
+	{
+		var tail = new List<string>(Math.Max(args.Count - start, 0));
+		for (var i = start; i < args.Count; i++)
+		{
+			tail.Add(args[i]);
+		}
+
+		return tail;
 	}
 
 	private string ReadOne(IReadOnlyDictionary<ulong, ItemState> rows, ulong instanceId)
@@ -156,6 +195,174 @@ internal sealed class ItemDataCommands(
 		_log.LogInformation("[Command] /data get slot {Slot} named {Bodies} body/bodies and read {Items} item(s).",
 			query.Slot, owners.Count, listed);
 		return builder.ToString();
+	}
+
+	// ===== Write =====
+
+	/// <summary>
+	/// One write, end to end: parse, resolve ONE item, check the value against the
+	/// item's own local state, write it there, report it as this client's own fact,
+	/// and answer with the two values. Every branch that refuses does so by name —
+	/// a write that silently did nothing would leave the operator believing a value
+	/// had landed.
+	/// </summary>
+	private string Write(IReadOnlyList<string> tail)
+	{
+		if (_session.Role == SessionRole.Guest)
+		{
+			_log.LogWarning("[Command] /data write refused: this client is a {Role}, and a write is the holder's own report.", _session.Role);
+			return "Only the host can write item state today: a write is the holder's own report, and a member's write needs its own permission rule and a report route the host can gate (the family's later stage).";
+		}
+
+		if (!_session.SessionActive)
+		{
+			// The report the write ends with is session-scoped (both routes are guarded on
+			// an active session), so without one the local object would change and the
+			// record would not — a silent divergence the answer must not call "reported".
+			_log.LogWarning("[Command] /data write refused: no active session ({Role}).", _session.Role);
+			return "No active session — a write reports into the session's record, so it needs one (a solo world keeps no item record for this verb to change).";
+		}
+
+		if (!ItemDataWriteParser.TryParse(tail, out var write, out var error))
+		{
+			return error!;
+		}
+
+		var all = new List<ItemState>(_items.QueryItems().Values);
+		if (!TryResolveWriteTarget(write.Target, all, out var instanceId, out var refusal))
+		{
+			_log.LogWarning("[Command] /data set refused: {Reason}", refusal);
+			return refusal!;
+		}
+
+		var local = _localItems.ReadLocalItem(instanceId);
+		if (local is null)
+		{
+			return RefuseNotHeld(instanceId);
+		}
+
+		if (!ItemDataWriteValues.TryApply(local, write, out var before, out var after, out var valueError))
+		{
+			_log.LogWarning("[Command] /data set {Property} on #{InstanceId} refused: {Reason}", write.Property, instanceId, valueError);
+			return valueError!;
+		}
+
+		var result = _localItems.WriteLocalItem(instanceId, local);
+		if (result != LocalItemWriteResult.Applied)
+		{
+			_log.LogWarning("[Command] /data set {Property} on #{InstanceId} refused by the local scene: {Result}.", write.Property, instanceId, result);
+			return RefuseWrite(result, instanceId);
+		}
+
+		Report(instanceId, local);
+		_log.LogInformation("[Command] /data set {Property} wrote #{InstanceId} ({Definition}): {Before} -> {After}; reported as this client's own item state.",
+			write.Property, instanceId, local.ItemId, before, after);
+		return ItemDataRenderer.Wrote(local, write, before, after);
+	}
+
+	/// <summary>
+	/// The ONE item a write names. The read half's grammar is admitted unchanged —
+	/// the verdict is taken here, on the resolved set (user ruling 2026-10-14) — but
+	/// the listing shape has no meaning for a write, and a body that is not the
+	/// caller's own has no local object to write into.
+	/// </summary>
+	private bool TryResolveWriteTarget(ItemDataQuery target, IReadOnlyList<ItemState> all, out ulong instanceId, out string? refusal)
+	{
+		instanceId = 0;
+		refusal = null;
+		switch (target.Kind)
+		{
+			case ItemDataQueryKind.InstanceId:
+				if (_items.FindItem(target.InstanceId) is null)
+				{
+					refusal = $"No item #{target.InstanceId} is recorded in this session.";
+					return false;
+				}
+
+				instanceId = target.InstanceId;
+				return true;
+
+			case ItemDataQueryKind.Slot:
+				var owners = ResolveOwners(target.Selector, out refusal);
+				if (refusal is not null)
+				{
+					return false;
+				}
+
+				if (owners.Count > 1)
+				{
+					refusal = $"That selector matched {owners.Count} bodies ({Owners(owners)}) — a write names ONE item, so name one body: @p, a selector with [limit=1], or the item's own id.";
+					return false;
+				}
+
+				if (owners[0] != _session.LocalSteamId)
+				{
+					refusal = $"That item is carried by {owners[0]} — a write is the holder's own act, and no route edits another player's carried item yet.";
+					return false;
+				}
+
+				var item = SlotItem(all, owners[0], target.Slot);
+				if (item is null)
+				{
+					refusal = $"No item is recorded for {owners[0]} in slot {target.Slot} yet — a carried item joins the record on the holding client's first report of it (a use, a move or a drop).";
+					return false;
+				}
+
+				instanceId = item.Value.Identity.InstanceId;
+				return true;
+
+			default:
+				refusal = $"That target names every item the body carries — a write names ONE item: add 'slot <n>', or use 'id <n>'. Usage: {ItemDataWriteParser.Usage}";
+				return false;
+		}
+	}
+
+	/// <summary>
+	/// The record names an item the local scene does not hold: another player's
+	/// carried item (whose local form here is a render proxy), or an id this client
+	/// never loaded. Both are answered with WHERE the row says it is, because "not
+	/// yours" and "not loaded here" are different facts to the operator.
+	/// </summary>
+	private string RefuseNotHeld(ulong instanceId)
+	{
+		var row = _items.FindItem(instanceId);
+		if (row is null)
+		{
+			return $"No item #{instanceId} is recorded in this session.";
+		}
+
+		_log.LogWarning("[Command] /data write refused: #{InstanceId} is recorded as {Location} but this client does not hold it.", instanceId, row.Value.Location.Kind);
+		return $"#{instanceId} is recorded as {ItemDataRenderer.LocationOf(row.Value)} but this client does not hold it — a write is the holder's own act, and the holder is the client whose copy of the item is the fact.";
+	}
+
+	/// <summary>The local scene refused the write: each reason has its own sentence, because each has a different remedy.</summary>
+	private string RefuseWrite(LocalItemWriteResult result, ulong instanceId) => result switch
+	{
+		LocalItemWriteResult.NotHeld => $"This client does not hold #{instanceId}.",
+		_ => $"#{instanceId} is not this client's fact to write (a render proxy, or another member's item incarnated here).",
+	};
+
+	/// <summary>
+	/// The report route a native change of this item would take, chosen the way the
+	/// native path chooses it: by whether the item's location chain is rooted in the
+	/// WORLD — the kernel's own container walk (<see cref="ItemLocationChain"/>), which
+	/// the layer reset and the archive read the same way. A child inside a dropped
+	/// backpack is therefore a world item's content (1) even though its own row says
+	/// "contained", and a child inside a carried one is not. World: the local copy is
+	/// the fact and every other member's copy adopts it (the #194 correction). Anything
+	/// else: this client's carried fact, which is the call <c>ItemUseSync</c>'s host
+	/// branch makes for a native use of the same item.
+	/// </summary>
+	private void Report(ulong instanceId, CharacterItemMsg state)
+	{
+		var row = _items.FindItem(instanceId);
+		if (row is not null && ItemLocationChain.IsWorldRooted(row.Value, _items.FindItem))
+		{
+			_itemControl.SendWorldItemCorrection(_session.LocalSteamId, state);
+			return;
+		}
+
+		_itemControl.SendItemCarriedSync(_session.LocalSteamId, state);
 	}
 
 	/// <summary>

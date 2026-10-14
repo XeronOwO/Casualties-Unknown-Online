@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -20,9 +21,9 @@ internal static class CommandConsoleTestSession
 
 	internal const ulong LobbyId = 9001;
 
-	internal static (TestNode Host, TestNode Guest) CreateSession()
+	internal static (TestNode Host, TestNode Guest) CreateSession(Action<IServiceCollection>? extraRegistrations = null)
 	{
-		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 		return (host, guest);

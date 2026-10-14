@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
@@ -132,6 +134,62 @@ public class ItemDataRendererTests
 		var child = Item(4201, ItemLocation.Contained(new ActorId(Owner), 4101));
 
 		Assert.Contains("content(s)", ItemDataRenderer.List(Owner, [parent], [parent, child]));
+	}
+
+	/// <summary>
+	/// The write's answer: the item, the property in the words the read half names it
+	/// with, and the value it moved from and to. The two values are formatted by the
+	/// read half's own helpers, so what an operator wrote reads back in the words
+	/// they read it in.
+	/// </summary>
+	[Fact]
+	public void Wrote_NamesTheItemThePropertyAndBothValues()
+	{
+		var item = new CharacterItemMsg { InstanceId = 4101, ItemId = "backpack" };
+		Assert.True(ItemDataWriteParser.TryParse(["slot", "1", "condition", "0.25"], out var write, out _));
+
+		var text = ItemDataRenderer.Wrote(item, write, "0.5", "0.25");
+
+		Assert.Equal("#4101 backpack: condition 0.5 -> 0.25 — written and reported as this client's own item state.", text);
+	}
+
+	[Theory]
+	[InlineData("condition 0.25", "condition")]
+	[InlineData("favourited yes", "favourited")]
+	[InlineData("liquid water 500", "liquid water")]
+	[InlineData("component BatteryItem charge 0.9", "component BatteryItem charge")]
+	public void Wrote_LabelsEachPropertyTheReadHalfPrintsItWith(string writeText, string label)
+	{
+		var item = new CharacterItemMsg { InstanceId = 4101, ItemId = "backpack" };
+		Assert.True(ItemDataWriteParser.TryParse($"id 4101 {writeText}".Split(' '), out var write, out _));
+
+		Assert.StartsWith($"#4101 backpack: {label} ", ItemDataRenderer.Wrote(item, write, "before", "after"));
+	}
+
+	/// <summary>The write half formats the LOCAL capture's own field shape — the kind the capture tagged the field with, which is what the write read the value as.</summary>
+	[Fact]
+	public void FieldValue_FormatsEveryCapturedKind()
+	{
+		Assert.Equal("0.5", ItemDataRenderer.FieldValue(new ComponentFieldMsg { Kind = SaveableFieldKind.Float, FloatValue = 0.5f }));
+		Assert.Equal("3", ItemDataRenderer.FieldValue(new ComponentFieldMsg { Kind = SaveableFieldKind.Int, IntValue = 3 }));
+		Assert.Equal("true", ItemDataRenderer.FieldValue(new ComponentFieldMsg { Kind = SaveableFieldKind.Bool, BoolValue = true }));
+		Assert.Equal("\"x\"", ItemDataRenderer.FieldValue(new ComponentFieldMsg { Kind = SaveableFieldKind.String, StringValue = "x" }));
+		Assert.Equal("[a, b]", ItemDataRenderer.FieldValue(new ComponentFieldMsg { Kind = SaveableFieldKind.StringList, StringList = ["a", "b"] }));
+		Assert.Equal("2", ItemDataRenderer.FieldValue(new ComponentFieldMsg { Kind = SaveableFieldKind.Enum, IntValue = 2 }));
+	}
+
+	/// <summary>
+	/// A condition written to zero is the one write whose consequence the operator has
+	/// to be told: the item's own rule destroys what reaches zero, so the answer says
+	/// the item may be gone — the value is still written as asked.
+	/// </summary>
+	[Fact]
+	public void Wrote_AtZeroCondition_SaysTheItemMayBeDestroyed()
+	{
+		var item = new CharacterItemMsg { InstanceId = 4101, ItemId = "backpack" };
+		Assert.True(ItemDataWriteParser.TryParse(["slot", "1", "condition", "0"], out var write, out _));
+
+		Assert.Contains("may destroy it", ItemDataRenderer.Wrote(item, write, "0.5", "0"));
 	}
 
 	private static ItemState Item(ulong instanceId, ItemLocation location, ItemData? data = null) =>

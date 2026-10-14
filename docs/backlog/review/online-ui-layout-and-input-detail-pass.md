@@ -1,7 +1,9 @@
 # The Online UI's layout and input detail pass
 
-- Status: Review — rows 2 and 3 are fixed (2026-10-15, see *What landed — the width a control is given* below);
-  waiting for the acceptance batch that re-judges them.
+- Status: Review — rows 2 and 3 **pass** in batch `20261015-a` (record
+  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`); rows 8–10 stay `unproven`
+  with the setups batch `20261001-k` named, and no code is left for them. The fix landed 2026-10-14; see
+  *What landed — the width a control is given* below.
   **Rejected 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md`): rows 2 and 3 of the table below fail on the Admin page in BOTH languages — each rule row's label is one character wide, stacks down the row's left edge and paints over the rows below it, and the rows are taller than the tab strip's own height. The page was never photographed by the earlier judgements, which stand for the pages they read.
 - Re-judged before that (batch 20261001-k: the control internals ARE laid out now;
   rows 3, 5, 6 and the window third of row 11 pass against the deployed build)
@@ -24,7 +26,7 @@
   layering problem and asked to be investigated first; the hex field does not show the hex of the colour the
   player has just picked, which it should, live; and the game's own windows have a white border, which the
   Online UI's window does not.
-- Related: `review/online-ui-art-and-controls-overhaul.md` (the migration this pass reviews),
+- Related: `done/online-ui-art-and-controls-overhaul.md` (the migration this pass reviews),
   `done/cuo-launcher-button-obscures-the-view.md` (the idle fade this pass found still too opaque),
   `done/online-ui-panels-request-alpha-blend-false.md`, `done/remove-the-online-ui-console-page.md`
 
@@ -298,7 +300,7 @@ reachable, and the frame rate unchanged at 160–166. Evidence: `.acceptance/bat
 for the runaway, `final-internals.json`, `final-values.json`, `final-census.txt`, `final-buttons.json`, and
 the page frames), and the record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001-k.md`.
 
-## Fourth pass (2026-10-15): the width a control is given
+## Fourth pass (2026-10-14): the width a control is given
 
 Batch `20261014-a` rejected rows 2 and 3 because every rule row on the Admin page drew its label one character
 per line. The cycle that fixed it read the live geometry first (batch `20261015-a`, probe in
@@ -350,7 +352,7 @@ per line. The cycle that fixed it read the live geometry first (batch `20261015-
   lives.
 - **The row's own prefab art is hidden too, found while the fix ran.** The game draws a grey frame around every
   row of its own full-width settings screen, and the element root kept it: on a page it read as a box around
-  every row, one per setting, which the user called out on 2026-10-15 ("the light grey box in the background is
+  every row, one per setting, which the user called out on 2026-10-14 ("the light grey box in the background is
   still there") after the width fix was on screen. A row of a page is a CONTAINER CUO arranges, not a control, so
   `OnlineUiRowGeometry.LayOutControlRow` hides the row's own drawing — the same treatment a control's children
   already had — and the page's fill shows through; the rect and the raycast stay (a click inside the window still

@@ -1,7 +1,8 @@
 # The Online UI's art and controls are placeholders
 
-- Status: Review — the rejected rows are fixed (2026-10-15, see *What landed — the colour block's fill and
-  width* below); waiting for the acceptance batch that re-judges them. All six stages remain landed.
+- Status: Done — **accepted in batch `20261015-a`**: all three rows batch `20261014-a` rejected pass (record
+  `docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261015-a.md`). The fix landed 2026-10-14; see
+  *What landed — the colour block's fill and width* below. All six stages remain landed.
   **Rejected 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261014-a.md`): the palette blocks render as the game's own button sprite tinted, so only the border takes the colour and the middle stays transparent, and each block measures 18.0 units wide against the 88 the drawer declares (`SwatchWidth`), with the `Auto` control below the row not visible at the host's window size.
 - Acceptance (20261001-j): row 1 residual, row 2 unproven, row 3 pass; the Preferences control internals are unlaid-out and are recorded on the sibling ticket's record — record `docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261001.md`
 - Priority: High
@@ -623,7 +624,7 @@ Self-check: `docs/evidence/selfchecks/ui/online-ui-world-overlay-selfcheck.md`.
 - **The S1 chrome reading is still pending**, so the readout's two colours are still the CUO theme's
   (`Muted`, `Positive`) rather than the game's own chrome colours.
 
-## What landed — the colour block's fill and width (2026-10-15)
+## What landed — the colour block's fill and width (2026-10-14)
 
 Batch `20261014-a` rejected the ticket on the colour picker: the blocks did not read as a palette and measured
 18.0 units against the 88 its drawer declares. Both halves were read before they were touched, in batch

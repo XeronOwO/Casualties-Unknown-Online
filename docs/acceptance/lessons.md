@@ -504,3 +504,7 @@ A local `probe.ps1` substitutes placeholders verbatim, so a template's `{{s:id}}
 ## 2026-10-14 — A page-agnostic UI row is only covered on the pages a batch photographs
 
 The UI tickets' rows read "Any page" and "an English page", while the batches that judged them photographed Home, Worlds and Preferences only: the Admin page collapses every rule row's label to one character per line and paints it over the rows below, in English and Chinese alike, which no earlier frame could have shown. A batch that touches a UI ticket photographs EVERY page it can open and captures the same page in both languages — the A/B is what separates a translation defect from a layout one (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md`).
+
+## 2026-10-14 — A measurement taken from the container of the thing measured reproduces itself
+
+A layout rule that asks a CONTAINER for the size of the control inside it is asking the box how wide the box is — the container's own preferred width is its children summed, so it contains the value the rule is about to write and grows by its own padding plus its neighbour every frame (a 984-unit page carried rows of 30537, labels squeezed to one character per line) — so when a rule needs a size, name the object that size describes and read it there, once, before anything writes it (`docs/backlog/review/online-ui-layout-and-input-detail-pass.md`, *Fourth pass (2026-10-14)*).

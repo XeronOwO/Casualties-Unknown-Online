@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Paired controls and page scroll](todo/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — a scrollbar, a readable slider, a row template.
 - [Host rules reach the members, and both sides check](todo/host-rules-replication.md) — **Medium-High** — rules a member acts on, announced and event-synced.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
@@ -86,8 +87,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the Admin page's rule rows are fixed.
-- [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — the blocks read and size as declared.
+- [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — rows 2 and 3 pass; rows 8–10 need a setup.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state, read from the kernel row.
@@ -187,6 +187,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Online UI art and controls are placeholders](done/online-ui-art-and-controls-overhaul.md) — **High** — accepted; the blocks read and size as declared.
 - [The item data write verb](done/item-data-write-commands.md) — **Medium-High** — `/data set` for the holder; a member's write is the host's rule.
 - [Crafting-quality labels for mod content](done/mod-crafting-quality-labels.md) — **High** — accepted; the item surface plus a load-time reference check.
 - [A null collection in a content payload must mean "none"](done/mod-payload-null-collection-tolerance.md) — **Medium** — accepted; both ends answer for it.

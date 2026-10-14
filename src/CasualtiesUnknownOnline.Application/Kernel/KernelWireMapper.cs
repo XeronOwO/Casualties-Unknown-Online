@@ -377,7 +377,7 @@ public static class KernelWireMapper
 		var operation = new OperationId(header.OperationId);
 		var actor = new ActorId(header.SenderId);
 		var epoch = new RunEpoch(header.RunEpoch);
-		var authority = AuthorityKind.OwnerPredictedHostValidated;
+		var authority = WireCommandAuthorityPolicy.Declared(command.Kind);
 		var identity = FromWireIdentity(command.Identity);
 
 		return command.Kind switch

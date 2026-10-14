@@ -391,16 +391,31 @@ declaration to a member's submission at all.
 A command a MEMBER submitted over the wire passes the admission seam in the Application
 layer (`KernelCommandGateway`): it binds the command's actor to the transport sender, refuses the
 authority kinds a member may not author (`HostOnly`, `PresentationOnly`), and applies the item
-destroy eligibility rule once — moved out of the kernel protocol command handler's entry point. It
+eligibility rules once each — the destroy rule moved out of the kernel protocol command handler's
+entry point, and one shared rule over the item a report NAMES: world content (or anything whose
+container chain is world-rooted), or the member's own carried, installed or contained item. That rule
+covers a destroy report, a state report and a container sync's parent, and the container sync has a
+second half of its own (a listed child may not be an item another member carries or wears, which is
+what stops a report pulling a peer's item into the reporter's own container). It
 decides ELIGIBILITY only (the 2026-09-18 ruling: never what happens to another player's body, reach
 or timing), the kernel still owns every domain verdict, and the seam occupies the position the old
 check held so an eligibility refusal cannot mask a domain one. Two things it deliberately does NOT
 cover: the handler's two protocol heals (a container-sync report and an update for an unknown carried
 id, which materialize the reporter's own carried parent — the host's own write, not a member-authored
-fact) and a guest's range request, which never becomes a command. One caveat is recorded in
-`future/strict-validation-anti-cheat.md`: the wire mapper stamps every member command
-`OwnerPredictedHostValidated`, so the authority half of the policy is currently a no-op and a
-member's submission of a host-only wire kind is not yet distinguished by it.
+fact) and a guest's range request, which never becomes a command.
+
+WHICH wire kind declares what is `WireCommandAuthorityPolicy`'s table, one entry per mapped kind,
+filled from the senders this tree actually has rather than from the blanket value the mapper used to
+stamp: the item reports and the limb-item relocations are member-authored owner-predicted, an item
+creation and the three enemy-combat results are member-authored trigger-observed (the native effect
+ran on the reporting member's own client first), and the run baseline, the world-entity facts, the
+player status, the carry relation, the enemy table, the fluid regions and the item transfer are
+`HostOnly` because the host's own simulation authors them and no member sender emits them. A member's
+submission of one of those is therefore refused by name at the seam instead of reaching its domain, and
+`WireCommandSenderAuthorityGateTests` keeps that table and the `SendCommand` call sites under `src/` one
+list in both directions, so neither drift can pass unnoticed. The remaining half of the ticket — a
+CONSOLE command's own identifiable wire path, so a host rule can admit or refuse it separately from a
+native item use — is still open (`todo/validation-and-source-checks.md`).
 
 ### 7.2 Guest prediction model (not implemented in current code)
 

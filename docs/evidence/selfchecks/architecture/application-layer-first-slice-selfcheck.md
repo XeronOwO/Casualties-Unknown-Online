@@ -9,6 +9,12 @@ rulings. Full-tier independent review of stages 1-2: `%TEMP%\cuo-review-applicat
 (0 blockers / 3 majors / 7 minors / 4 nits, all majors fixed in that cycle); the stage 3 review report
 is named in the cycle handoff.
 
+**Superseded in part on 2026-10-14.** This page records the seam as it landed on 2026-09-21. The
+per-kind authority declaration and the item-eligibility family were finished later
+(`docs/backlog/todo/validation-and-source-checks.md` S1a, `WireCommandAuthorityPolicy`): the authority
+half is no longer a no-op, the admission seam now also covers a container-sync report, and the
+statements below that said otherwise are marked where they stand.
+
 ## What landed
 
 - **The layer exists and is the only way down.** `src/CasualtiesUnknownOnline.Application/` is in
@@ -31,11 +37,11 @@ is named in the cycle handoff.
   the enum's own meaning, not a new rule); a destroy report must name a world item or the sender's
   own carried item. Every refusal is audited with one uniform line naming the command, the item it
   names, the actor, the sender and the reason; an admitted command is not audited.
-- **What is deliberately outside it.** The handler's two protocol heals (a container-sync report and
-  an update for an unknown carried id — they materialize the reporter's own carried parent, i.e. the
-  host's own write, and the second one stamps its own authority kind) and a guest's range request
-  (answered in `KernelProtocolService`, never a command). Those paths are pre-existing and unchanged;
-  the seam covers the mapped member-authored command.
+- **What is deliberately outside it.** The update for an unknown carried id (it materializes the
+  reporter's own carried parent — the host's own write — and stamps its own authority kind) and a
+  guest's range request (answered in `KernelProtocolService`, never a command). Those paths are
+  pre-existing and unchanged; the seam covers the mapped member-authored command, the container-sync
+  report included since 2026-10-14.
 - **The moved check keeps its silence.** The verdict is three-valued: `Admitted`, `Refused` (the
   sender is answered) and `Ignored` (no answer — the destroy shape that was always dropped in
   silence). The seam sits at the POSITION the old `CanDestroy` check held, after the protocol heals
@@ -149,6 +155,9 @@ is named in the cycle handoff.
   command kind `OwnerPredictedHostValidated`, so no production submission is refused by the authority
   rule; the mapping gap (a member's host-only wire kind is not distinguished) is inventory in
   `docs/backlog/future/strict-validation-anti-cheat.md`, not a fix in this cycle.
+  **Superseded 2026-10-14:** the mapper now stamps each kind from `WireCommandAuthorityPolicy`'s
+  table, the thirteen kinds no member sender emits are declared `HostOnly` and refused by name, and
+  `WireCommandSenderAuthorityGateTests` keeps that table and the senders one list.
 - **No behaviour change is claimed, and none is expected.** The moved destroy rule behaves exactly as
   before (same silence, same audit content plus the item id); the new refusals are unreachable while
   the authority is pinned, and the actor binding is already enforced by the frame validator. The
@@ -160,6 +169,10 @@ is named in the cycle handoff.
   `SyncContainerItemsCommand` the report maps to, decided in `ItemDomainModule.DecideSyncContainer`;
   the writer that first carried this sentence was deleted on 2026-10-06 and the destroy now logs its
   dropped ids), which is the host's own write and never reaches the seam.
+  **Superseded 2026-10-14:** a container-sync report for a parent the host already judged DOES pass
+  the seam now (that stale-child destroy is exactly the harm the parent rule closes), while the
+  MISSING-parent heal stays the domain's own accept-first creation; an update for an unknown carried
+  id and a guest's range request still never become seam-judged commands.
 - **Three of the nine named types did not move**, each with its blocker recorded and the remaining
   move filed as its own ticket (`todo/legacy-wire-dto-slice.md`): `KernelWireMapper` (its enemy-combat
   branches map the legacy protobuf messages the Game Adapter also references),

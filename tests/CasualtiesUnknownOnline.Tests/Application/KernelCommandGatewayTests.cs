@@ -1,7 +1,7 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -10,11 +10,19 @@ namespace CasualtiesUnknownOnline.Tests.Application;
 
 /// <summary>
 /// The admission seam (Application layer), in isolation: a member's submission
-/// is judged by the actor/sender binding, the declared authority policy and the
-/// item-destroy eligibility rule — and by nothing else. The end-to-end halves
-/// (the host's real command path and the guest's rollback) are pinned by
+/// is judged by the actor/sender binding, the per-kind authority declaration and
+/// the limb-item rules — and by nothing else. The end-to-end halves (the host's
+/// real command path and the guest's rollback) are pinned by
 /// <c>ItemDestroyAuthorityTests</c>, <c>KernelProtocolServiceTests</c> and the
 /// item simulations, which run the same production composition root.
+///
+/// <para>
+/// The item-REPORT eligibility family (the destroy report, the state report and
+/// the container sync) lives in <c>KernelItemReportEligibilityTests</c>, split out
+/// because one class may carry at most
+/// <c>TestClassSizeGateTests.MaxCasesPerClass</c> cases; the two suites share
+/// <see cref="FakeItemFacts"/>.
+/// </para>
 /// </summary>
 public class KernelCommandGatewayTests
 {
@@ -73,6 +81,46 @@ public class KernelCommandGatewayTests
 
 		Assert.True(Gateway().AdmitMemberSubmission(Member, command).IsAdmitted,
 			"the observing member submits and the host commits");
+	}
+
+	[Fact]
+	public void HostOnlyWireKindFromAMember_IsRefusedAndAnswered()
+	{
+		// The declaration the MAPPER stamps (not a hand-built authority) is what the
+		// seam judges: before the per-kind table this report read
+		// OwnerPredictedHostValidated — the same value as a member's item use — and
+		// a member could start a run, advance a layer or write another player's
+		// status straight into the kernel. The run baseline is the ticket's own
+		// example of the two readings having to differ.
+		var command = KernelWireMapper.FromWireCommand(
+			new WireCommand { Kind = WireCommandKind.RunStart, RunState = new WireRunState { RunId = 7 } },
+			Header(Member));
+
+		Assert.Equal(AuthorityKind.HostOnly, command.Authority);
+
+		var decision = Gateway().AdmitMemberSubmission(Member, command);
+
+		Assert.Equal(CommandAdmissionKind.Refused, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+		Assert.True(decision.AnswersSender, "a member that reports a host-only fact is told why");
+	}
+
+	[Fact]
+	public void MemberAuthoredWireKind_IsStillAdmitted()
+	{
+		// The other side of the same table: the report a member's own client really
+		// emits keeps its member-authorable declaration and reaches the kernel.
+		var command = KernelWireMapper.FromWireCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemUpdateState,
+				Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "test_item" },
+				Data = new WireItemData { Condition = 0.5f },
+			},
+			Header(Member));
+
+		Assert.Equal(AuthorityKind.OwnerPredictedHostValidated, command.Authority);
+		Assert.True(Gateway().AdmitMemberSubmission(Member, command).IsAdmitted);
 	}
 
 	[Fact]
@@ -318,22 +366,11 @@ public class KernelCommandGatewayTests
 	private static RemoveLimbItemCommand Remove(ulong instanceId, ulong appliedOwner, int limbIndex, ulong newOwner) =>
 		new(new OperationId(1), new ActorId(Member), new RunEpoch(1), AuthorityKind.OwnerPredictedHostValidated, instanceId, new ActorId(appliedOwner), limbIndex, new ActorId(newOwner), 0);
 
-	/// <summary>The kernel's item read model, faked: the gateway only ever reads a location.</summary>
-	private sealed class FakeItemFacts : IKernelItemFacts
+	private static EnvelopeHeader Header(ulong sender) => new()
 	{
-		private readonly Dictionary<ulong, ItemState> _items = [];
-
-		public ItemState? FindItem(ulong instanceId) => _items.TryGetValue(instanceId, out var item) ? item : null;
-
-		public IReadOnlyDictionary<ulong, ItemState> QueryItems() => _items;
-
-		internal void CarriedBy(ulong instanceId, ulong owner) =>
-			_items[instanceId] = new ItemState(new ItemIdentity(instanceId, "test_item"), 1, ItemLocation.Carried(new ActorId(owner)));
-
-		internal void InWorld(ulong instanceId) =>
-			_items[instanceId] = new ItemState(new ItemIdentity(instanceId, "test_item"), 1, ItemLocation.World(1f, 2f));
-
-		internal void AppliedTo(ulong instanceId, ulong owner, int limbIndex) =>
-			_items[instanceId] = new ItemState(new ItemIdentity(instanceId, "test_item"), 1, ItemLocation.Applied(new ActorId(owner), limbIndex));
-	}
+		ProtocolVersion = 1,
+		RunEpoch = 1,
+		SenderId = sender,
+		OperationId = 1,
+	};
 }

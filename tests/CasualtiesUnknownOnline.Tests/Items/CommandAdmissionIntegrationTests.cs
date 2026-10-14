@@ -1,6 +1,11 @@
 using System.Linq;
+using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Tests.Fakes;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
@@ -12,11 +17,21 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// refuses silently still produces no answer at all. These two facts are the
 /// "no refusal is masked, no new answer appears" half of the seam's contract;
 /// <c>KernelCommandGatewayTests</c> pins the seam itself.
+///
+/// <para>
+/// The three cases below are the seam's three verdict families end to end, each
+/// against the HOST's own kernel row: a host-only kind refused, another member's
+/// item state refused, and another member's container sync refused. Each also
+/// reads the seam's own audit line — for a "no answer" verdict that line is the
+/// only trace the dropped report leaves.
+/// </para>
 /// </summary>
 [Trait("Category", "Integration")]
 public class CommandAdmissionIntegrationTests
 {
 	private static CharacterItemMsg Item() => new() { ItemId = "test_item", Condition = 1f };
+
+	private static CharacterItemMsg Container() => new() { ItemId = "test_container", Condition = 0.8f };
 
 	[Fact]
 	public void NonOwnerDrop_IsStillRefusedByTheKernelWithItsOwnReason()
@@ -76,4 +91,117 @@ public class CommandAdmissionIntegrationTests
 		Assert.Equal(4242ul, reject.ItemId);
 		Assert.Equal(ItemRejectMsg.Reason.UnknownItem, reject.Rejection);
 	}
+
+	[Fact]
+	public void AHostOnlyReportFromAMember_NeverReachesItsDomain()
+	{
+		var gatewayLog = new RecordingLogger<KernelCommandGateway>();
+		using var w = ItemSimWorld.Create(services => services.AddSingleton<ILogger<KernelCommandGateway>>(gatewayLog));
+		var revisionBefore = KernelRevision(w);
+
+		// A world-entity health fact is the host's to record (matrix E7): a guest
+		// reports the underlying game event on its own message, never this command.
+		// The world-entity domain would ACCEPT this report, which is what makes the
+		// seam the only thing between a member and the fact — so the observable is
+		// that nothing committed. Before the per-kind declaration every mapped wire
+		// kind read OwnerPredictedHostValidated, and this report committed.
+		Report(w.G2, new WireCommand
+		{
+			Kind = WireCommandKind.RecordBuildingEntityHealth,
+			EntityPosition = new WireEntityPosition { X = 5, Y = 6 },
+			Health = 50f,
+		}, WirePayloadType.RecordBuildingEntityHealthCommand);
+		w.Driver.Tick(33);
+
+		// The sender is answered (the refusal rides its own kernel envelope), the
+		// refusal is the seam's own named line, and the host's kernel did not move.
+		Assert.Contains(w.Rejects(w.G2), reject => reject.Rejection == ItemRejectMsg.Reason.UnknownItem);
+		Assert.True(gatewayLog.HasWarning("a host-only fact is authored by the host's own simulation"),
+			"the refusal must be the SEAM's, not a domain verdict that happens to land the same way");
+		Assert.Equal(revisionBefore, KernelRevision(w));
+	}
+
+	[Fact]
+	public void AStateReportForAnotherMembersItem_ChangesNoRowAndIsNotAnswered()
+	{
+		var gatewayLog = new RecordingLogger<KernelCommandGateway>();
+		using var w = ItemSimWorld.Create(services => services.AddSingleton<ILogger<KernelCommandGateway>>(gatewayLog));
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G1, 42), "setup: G1 owns the item");
+
+		// The item domain's own update rule (ItemDomainModule.DecideUpdate) checks
+		// existence, a terminal row and the revision — and the handler re-stamps the
+		// revision from its own record, so that check cannot refuse this. Nothing
+		// below the admission seam is a gate here; the row is what the seam protects.
+		var before = KernelRow(w, 42).Data.Condition;
+		Report(w.G2, new WireCommand
+		{
+			Kind = WireCommandKind.ItemUpdateState,
+			Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "test_item" },
+			Data = new WireItemData { Condition = 0.01f },
+		}, WirePayloadType.ItemUpdateStateCommand);
+		w.Driver.Tick(33);
+
+		Assert.Equal(before, KernelRow(w, 42).Data.Condition);
+		Assert.True(gatewayLog.HasWarning("so its state is not the sender's to report"));
+		Assert.Empty(w.Rejects(w.G2));
+	}
+
+	[Fact]
+	public void AContainerSyncForAnotherMembersContainer_MovesNothingAndIsNotAnswered()
+	{
+		var gatewayLog = new RecordingLogger<KernelCommandGateway>();
+		using var w = ItemSimWorld.Create(services => services.AddSingleton<ILogger<KernelCommandGateway>>(gatewayLog));
+		w.Spawn(w.G1, 42, Container());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Container());
+		w.Driver.Tick(33);
+		w.Spawn(w.G1, 43, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 43, Item());
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G1, 42) && w.TransferredOf(w.G1, 43), "setup: G1 owns the container and its child");
+
+		// The container kind is the family's worst member: it reached the kernel
+		// WITHOUT passing the admission seam, and DecideSyncContainer rewrites the
+		// parent's data, moves every listed child into the reporter's own container
+		// and destroys the descendants the report leaves out. So this one report
+		// would rewrite G1's container and take G1's item — nothing below the seam
+		// refuses either half.
+		var parentBefore = KernelRow(w, 42).Data.Condition;
+		Report(w.G2, new WireCommand
+		{
+			Kind = WireCommandKind.ItemContainerSync,
+			Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "test_container" },
+			Data = new WireItemData { Condition = 0.5f },
+			ContainerChildren = [new WireContainerChild
+			{
+				Identity = new WireItemIdentity { InstanceId = 43, DefinitionId = "test_item" },
+				ParentItemId = 42,
+				Data = new WireItemData { Condition = 0.2f },
+			}],
+		}, WirePayloadType.ItemContainerSyncCommand);
+		w.Driver.Tick(33);
+
+		Assert.Equal(parentBefore, KernelRow(w, 42).Data.Condition);
+		Assert.Equal(ItemLocationKind.Carried, KernelRow(w, 43).Location.Kind);
+		Assert.Equal(w.G1.SteamId, KernelRow(w, 43).Location.Owner.Value);
+		Assert.True(gatewayLog.HasWarning("so its contents are not the sender's to rewrite"));
+		Assert.Empty(w.Rejects(w.G2));
+	}
+
+	/// <summary>One raw kernel command, framed the way a member's own client frames it — the shape a modified client has, and the only way a test can report a kind no CUO gesture emits.</summary>
+	private static void Report(TestNode node, WireCommand command, WirePayloadType payloadType) =>
+		node.Services.GetRequiredService<IKernelProtocolControl>().SendCommand(command, payloadType);
+
+	/// <summary>The host's committed revision — the observable a report must not move.</summary>
+	private static ulong KernelRevision(ItemSimWorld world) =>
+		world.Host.Services.GetRequiredService<IKernelCheckpointSource>().CurrentGlobalRevision;
+
+	/// <summary>The host's own kernel row for one item (the record a member's report writes through).</summary>
+	private static ItemState KernelRow(ItemSimWorld world, ulong itemId) =>
+		world.Host.Services.GetRequiredService<IKernelItemFacts>().FindItem(itemId)!.Value;
 }

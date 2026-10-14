@@ -225,11 +225,32 @@ internal sealed class KernelProtocolCommandHandler(
 		}
 	}
 
+	/// <summary>
+	/// The container sync's host half, and it runs through the SAME admission seam as
+	/// every other member command. For a parent this host already judged, the
+	/// kernel's <c>DecideSyncContainer</c> rewrites that parent's data, moves the
+	/// listed children in and destroys the descendants the report left out — so the
+	/// parent must be one the sender may report on and no listed child may be an item
+	/// the record puts in another member's hands. The MISSING parent is the heal the
+	/// entry point describes: nothing names it yet, so the seam admits it and the
+	/// domain creates it as the reporter's own carried item.
+	/// </summary>
 	private void HandleItemContainerSync(ulong sender, CommandEnvelope envelope)
 	{
 		var command = envelope.Command;
 		var parentId = command.Identity.InstanceId;
 		var sync = KernelWireMapper.FromWireCommand(command, envelope.Header);
+		var admission = _gateway.AdmitMemberSubmission(sender, sync);
+		if (!admission.IsAdmitted)
+		{
+			if (admission.AnswersSender && admission.Reason is { } reason)
+			{
+				SendCommandRejected(sender, envelope.Command, reason);
+			}
+
+			return;
+		}
+
 		if (!_execution.TryExecuteCommand(sync, sender, out _, out var rejection))
 		{
 			_log.LogWarning("Container sync for {ItemId} from {Sender} rejected: {Reason} ({Message}).",

@@ -1,9 +1,19 @@
 # The Online UI's layout and input detail pass
 
-- Status: Review — rows 2 and 3 **pass** in batch `20261015-a` (record
-  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`); rows 8–10 stay `unproven`
-  with the setups batch `20261001-k` named, and no code is left for them. The fix landed 2026-10-14; see
-  *What landed — the width a control is given* below.
+- Status: Todo — Rejected (row 11's no-regression half fails in the ENGLISH UI: the tab strip is 1038.7 units
+  wide on a 984-unit page, because a tab takes its caption plus four times the font size — 138.6 / 172.1 / 173.8
+  / 143.6 / 159.5 / 231.2 units in English against 130 each in Chinese, which fits). Rows 2 and 3 **pass** in
+  batch `20261015-a` (record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`);
+  rows 8–10 stay `unproven` with the setups batch `20261001-k` named. What is left is code: the strip needs a
+  distribution rule of its own (the tab row is a plain `HorizontalLayoutGroup` with `childForceExpandWidth =
+  false`, so it neither shrinks nor wraps — it overflows the window).
+  **Found 2026-10-14 by the user, after the batch**: this cycle routed the tabs through the width rule so the
+  model's `TabWidth` floor would not go unread (the review's own finding), and the floor is not what decides a
+  tab's width — the caption is, with the rule's padding counted twice. The live reading of the English page is
+  `Tabs rect=1038.7x36.0` against the page's 984 (`.acceptance/20261015-a/f1-admin-en-dump.txt`), and the frames
+  that batch captured in English show the last tab ending past the window's right edge. The verdict recorded for
+  row 3 in that batch's record ("`Preferences` fits inside its tab") is true and stays; what the run did not read
+  is that the STRIP no longer fits the window, which is row 11's half.
   **Rejected 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md`): rows 2 and 3 of the table below fail on the Admin page in BOTH languages — each rule row's label is one character wide, stacks down the row's left edge and paints over the rows below it, and the rows are taller than the tab strip's own height. The page was never photographed by the earlier judgements, which stand for the pages they read.
 - Re-judged before that (batch 20261001-k: the control internals ARE laid out now;
   rows 3, 5, 6 and the window third of row 11 pass against the deployed build)

@@ -10,7 +10,7 @@
   paired control in general: "this kind of paired control could be made into a template: the name on the first
   line, the slider and the value on the second; squeezing it onto one line is not pretty, and when the names
   differ in length it looks ragged".
-- Related: `review/online-ui-layout-and-input-detail-pass.md` (the pass this follows: the row's geometry, the
+- Related: `todo/online-ui-layout-and-input-detail-pass.md` (the pass this follows: the row's geometry, the
   one compact control height and the row's own prefab art are its work), `done/online-ui-art-and-controls-overhaul.md`
   (the surface these controls are built on), `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`
   (the frames that show the two shapes the asks are about)

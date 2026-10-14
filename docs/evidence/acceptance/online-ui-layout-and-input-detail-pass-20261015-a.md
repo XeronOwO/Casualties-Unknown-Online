@@ -1,7 +1,8 @@
 # Acceptance record — the Online UI layout and input detail pass (the Admin page's rows)
 
-- Ticket: `online-ui-layout-and-input-detail-pass` — verdict: **stays in `review/`** (rows 2 and 3 pass; rows 8–10
-  remain `unproven` from batch `20261001-k`, and no code is left for them)
+- Ticket: `online-ui-layout-and-input-detail-pass` — verdict: **back to `todo/`** (rows 2 and 3 pass; row 11's
+  no-regression half fails in the English UI, recorded below as it was found AFTER this run, and rows 8–10 remain
+  `unproven` from batch `20261001-k`)
 - Batch: `20261015-a` — tickets `online-ui-art-and-controls-overhaul`, `online-ui-layout-and-input-detail-pass`
 - Commit: `5279880b` · Deployed artifact: `CasualtiesUnknownOnline.dll`, ProductVersion
   `0.1.0+5279880bf8523f916897b606439b446d26a4781e`
@@ -20,6 +21,15 @@ re-judges the same two rows, in both languages, against the fix.
 |---|---|---|---|---|
 | 2 | Any page: every control is one height and nothing reads as a leftover of the game's own screen | visual | **pass** | `a3-host-admin-zh.png` (Chinese) and `b6-host-admin-en-top.png` (English, page at the top): twelve rule rows, each one line of label at the left and its own control at the right; every row is the tab strip's own 36 units tall, and nothing is drawn under the tabs. The live tree agrees: `a2-admin-zh-dump.txt` reads each row `rect=984.0x36.0` with its label `931.2` and its checkbox `32.8` — the width the game authored for it |
 | 3 | A long hint, an English page: wrapped text keeps its own height and never paints over the row below; `Preferences` fits inside its tab; no value is cut mid-word | visual | **pass** | The same two frames: in the English Admin page every label is on one line (`Auto continue`, `Allow remote inventory take`, `Allow member item data write`, `Widen co-op run settings`), nothing overlaps, and the six tabs are as wide as their own captions (`Preferences` included); the two-line hints the page does carry are their own rows and keep their own height |
+
+## The failing row, found after this run
+
+The user read the English frames of this batch and asked whether the tab buttons' widths add up to more than the
+window's. They do, and this run did not see it:
+
+| # | Row | Class | Verdict | Evidence |
+|---|---|---|---|---|
+| 11 | No regression: the shell, the pages and the window's chrome behave as before | machine + visual | **fail** (the English tab strip) | The live reading of the English Admin page, taken the same evening (`.acceptance/20261015-a/f1-admin-en-dump.txt`): `Tabs rect=1038.7x36.0` while the page band beside it is `984.0x600.0`, with the six tabs 138.6 / 172.1 / 173.8 / 143.6 / 159.5 / 231.2 units — the last one ends 55 units past the page's right edge. In Chinese the same six tabs are 130 units each and fit (800 of 984). The cause is this cycle's own change: routing the tabs through the width rule (the review's finding) applied a rule whose button branch is the caption plus FOUR times the font size, and the tab row neither shrinks nor wraps. `b6-host-admin-en-top.png`, the frame this batch judged row 3 from, shows it; the run read the tab captions there and not the strip's own width |
 
 ## Rows this run did not re-judge
 

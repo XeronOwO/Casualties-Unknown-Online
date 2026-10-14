@@ -645,11 +645,11 @@ Batch `20261014-a` rejected the ticket on the colour picker: the blocks did not 
   the raycast (the row itself answers the click; a block with no id reports nothing).
 - **An element that is its own control declares its width.** `OnlineUiRowGeometry.LayOutRow` writes the model's
   width onto the element when there is no control inside it, so a block is 88 units wide and the preview 64, as
-  the drawer declares. Every button-like element takes that floor with it — a page button, the `Auto` control,
-  and the window's tab row, which now routes its tabs through the same rule (`OnlineUiWindowView.ApplyTabs`)
-  instead of leaving the model's `TabWidth` floor unread: six tabs of 112 units fit the 984-unit strip (four in
-  an English UI take 562), and the strip's shape can no longer disagree with the floor the wrap is asked with.
-  The review of the same cycle found the tab clause and the code disagreeing, which is what that line fixes.
+  the drawer declares. Every button-like element takes that rule with it — a page button, the `Auto` control, and
+  the window's tab row, which now routes its tabs through it (`OnlineUiWindowView.ApplyTabs`) instead of leaving
+  the model's `TabWidth` floor unread. The review of the same cycle found the tab clause and the code
+  disagreeing, and that fix is what the layout ticket's own finding below is about: the strip fits in Chinese and
+  overflows in English, and the ticket now carries that as its failing row.
 - **The third rejected row, and the picker's own frame.** The row that failed was "the picker fits the page it
   is drawn on": the earlier capture caught the palette row at the page's bottom edge with `Auto` below the fold.
   With the declared widths the picker reads as one block — the preview, the hex field, the eight blocks and

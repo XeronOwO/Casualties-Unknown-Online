@@ -128,6 +128,23 @@ One two-client session, host and guest both in a world:
   inventory view, and the verb only reads. The host's call over the family belongs to the write stages, which
   the umbrella ticket carries.
 
+## Independent review (fresh context, against the frozen tree, before the commit)
+
+One blocker, two majors and six minors. Every one is dispositioned here, because a finding and its answer belong
+where the next reader meets them rather than in a report nothing opens:
+
+| Finding | Disposition |
+|---|---|
+| **Blocker — the own-body claim was false.** The verb claimed to list "what its own body holds"; the host's untouched carried items are not in the record at all and have no instance id, because a member's client registers its carried inventory while the host's supplies wait for their first domain entry (`CarriedInventoryReporter` is guest-side for exactly that reason). The integration cases could not see it: they seed the kernel directly. | The claim is corrected everywhere it appeared — the grammar table, the answer's own wording (a new case pins the reason an empty own-body answer is empty), and acceptance rows 1 and 2, which now read a guest's registered inventory and a host item that HAS entered the domain. The gap itself is carried as stage B's first question in the umbrella ticket, with the code evidence. |
+| **Major — the read model's reader list was understated**: the protocol command handler reads the same rows by id. | The interface's own documentation now names every consumer. |
+| **Major — the delivery checklist carried the PREVIOUS cycle's evidence** on the two boxes this cycle had reset. | Both boxes were rewritten with this cycle's measured numbers before the commit. |
+| **Minor — the audit line counted the whole kernel**, not the rows the answer listed. | It counts the rows the answer listed. |
+| **Minor — the line counts used a non-blank-line measure** the architecture gate does not use. | The gate's own measure (every line) is used: 584 → 571, and the watchlist entry for the class is refreshed. |
+| **Minor — the case counts were wrong** (15 where the classes run 16), and the obvious test filter also matches unrelated classes. | The counts are per class and measured: 25 parser, 10 renderer, 16 integration. |
+| **Minor — the verb offers no console completion**, which the "one selector vocabulary" wording implied. | Recorded as a limit: the grammar mixes keywords with a selector, so per-argument completion is its own change. |
+| **Minor — `/data SET` was refused as an unknown verb** while `/data GET` worked. | The reserved-verb check is case-insensitive now. |
+| **Nits — a trailing space, an LF-only ticket, the survey restated in two tickets.** | Removed, normalized to the tree's line endings, and the umbrella ticket now points at this survey instead of repeating it. |
+
 ## Non-goals
 
 - Not the write verbs, `give` or `spawn` — each is its own stage in `todo/item-and-entity-data-commands.md`.

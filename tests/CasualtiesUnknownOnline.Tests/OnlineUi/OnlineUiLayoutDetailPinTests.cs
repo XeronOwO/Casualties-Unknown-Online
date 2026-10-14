@@ -8,20 +8,21 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 
 /// <summary>
 /// The Online UI's layout and pointer detail (ticket online-ui-layout-and-input-detail-pass): the shell's
-/// bands come from the Runtime's own arithmetic, every control of a page is the same compact height and as
-/// wide as its own content needs, a label is as tall as its wrapped text, the frame keeps the game's border,
-/// the inside of one of the game's rows is CUO's geometry, an open dropdown's list rides the window's own
-/// popup layer, and a control the game's prefab left unclickable is given a pointer surface and REPORTED.
+/// bands come from the Runtime's own arithmetic, every control of a page is the same compact height, a label is
+/// as tall as its wrapped text, the frame keeps the game's border, the inside of one of the game's rows is CUO's
+/// geometry, an open dropdown's list rides the window's own popup layer, and a control the game's prefab left
+/// unclickable is given a pointer surface and REPORTED.
 ///
 /// <para>
 /// These are the user's acceptance findings of 2026-09-27 written as pins, each with a mutation of the real
-/// source as its negative sample, so none of them can pass vacuously, plus the cycle of 2026-10-15 that
-/// answered batch `20261014-a`: the width a row's control is GIVEN comes from the control the game authored
-/// (<see cref="AControlOfARowIsAsWideAsTheGameAuthoredIt"/>), an element that is its own control declares its
-/// width (<see cref="AnElementThatIsItsOwnControlDeclaresItsWidth"/>), and a row's own prefab art does not
-/// draw (<see cref="TheRowsOwnPrefabArtDoesNotDraw"/>). What they cannot see is a rendering: whether the
-/// game's prefabs behave under CUO's geometry, whether a popup lands where the player expects and whether the
-/// result reads as this game are the acceptance run's.
+/// source as its negative sample, so none of them can pass vacuously, plus the parts of the cycle of
+/// 2026-10-14 that belong to THIS family: a row's own prefab art does not draw
+/// (<see cref="TheRowsOwnPrefabArtDoesNotDraw"/>), and the surfaces build their parts in one place
+/// (<see cref="TheSurfacesBuildTheirPartsInOnePlace"/>). How WIDE an element is — the rule, the control's
+/// authored size and the element that is its own control — is <see cref="OnlineUiControlWidthPinTests"/>, one
+/// family per class. What these pins cannot see is a rendering: whether the game's prefabs behave under CUO's
+/// geometry, whether a popup lands where the player expects and whether the result reads as this game are the
+/// acceptance run's.
 /// </para>
 /// </summary>
 public sealed class OnlineUiLayoutDetailPinTests
@@ -37,15 +38,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 		Assert.True(
 			OneControlHeight(Adapter("OnlineUiControlView.cs")),
 			"a page must read as one column of controls: every control that is not a label takes the layout's own compact height instead of the game's row prefab's much taller authored height");
-
-	[Fact]
-	public void AControlTakesWhateverItsOwnContentNeeds() =>
-		Assert.True(
-			WidthsFollowTheContent(
-				Adapter("OnlineUiControlView.cs"),
-				Adapter("OnlineUiControlSizing.cs"),
-				Adapter("OnlineUiWindowView.cs")),
-			"the model's width is a floor, not a ceiling: the caption measured at the game's own font decides the width and the wrap is asked with what the control actually takes, or an English label is cut inside a box sized for Chinese");
 
 	[Fact]
 	public void ALabelIsAsTallAsItsWrappedText() =>
@@ -64,18 +56,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 		Assert.True(
 			TheRowInsideIsLaidOutByCuo(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiRowGeometry.cs")),
 			"the game places its rows' children by hand for its own screen: a row instantiated into this window must have its label and its control laid out by CUO, and a control's own insides stretched onto the box CUO sizes");
-
-	[Fact]
-	public void AControlOfARowIsAsWideAsTheGameAuthoredIt() =>
-		Assert.True(
-			TheControlTakesTheGamesAuthoredWidth(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiControlSizing.cs")),
-			"a row's control takes the width the GAME authored for that control, read off the control itself when the view is built: the element root's own preferred width CONTAINS the control's declared width (the row's group sums its children), so asking the root is asking the box how wide it is — the Admin page's rule rows grew 7282 → 30537 units inside a 984-unit page while their flexible label, whose minimum is zero, was squeezed to one character per line (batch `20261015-a`)");
-
-	[Fact]
-	public void AnElementThatIsItsOwnControlDeclaresItsWidth() =>
-		Assert.True(
-			TheOwnControlKeepsItsDeclaredWidth(Adapter("OnlineUiRowGeometry.cs")),
-			"a tab, a page button and a colour block ARE one of the game's rows, so no control is laid out inside them and the width their model declared is written on the element itself: without that write a colour block is as wide as its own caption group's padding, which is the rejected row of batch `20261014-a` (88 declared, 18 rendered)");
 
 	[Fact]
 	public void TheRowsOwnPrefabArtDoesNotDraw() =>
@@ -122,10 +102,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(ThePageStartsBelowTheTabStrip), "adapter/OnlineUiWindowView.cs", "shell.spacing = OnlineUiWindowLayout.TabGap;", "shell.spacing = 0f;", "bands stacked with no gap between them" },
 		{ nameof(ThePageStartsBelowTheTabStrip), "adapter/OnlineUiWindowView.cs", "DeclareBandHeight(tabRow, TabHeight);", "// the tab strip declares no height of its own", "a tab strip the engine cannot size" },
 		{ nameof(EveryControlOfAPageIsTheSameCompactHeight), "adapter/OnlineUiControlView.cs", "_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", "_layout.preferredHeight = _rect.sizeDelta.y;", "a control that takes the game's own authored height" },
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidthOrZero(caption) + (2f * typographySize))", "element.Width;", "a button sized by the model's hint alone, which is what cut the English captions and ran `Preferences` into its border" },
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "internal static float PrefabWidth(RectTransform rect)", "internal static float PrefabWidth(string unused)", "a prefab width nobody can read" },
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "widths[index] = view.EffectiveWidth(elements[index]);", "widths[index] = elements[index].Width;", "a wrap asked with the model's hints instead of the declared widths" },
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "view.LayOutRow(view.EffectiveWidth(element));", "// the tab keeps the width its own group measured,", "a tab strip whose declared floor is never read, which is the disagreement the cycle's own review found" },
 		{ nameof(ALabelIsAsTallAsItsWrappedText), "adapter/OnlineUiControlView.cs", "_layout.preferredHeight = -1f;", "_layout.preferredHeight = _typography.Size + OnlineUiControlFactory.LabelHeightPadding;", "a label pinned to one line while its text wraps" },
 		{ nameof(TheFrameKeepsTheGamesOwnBorder), "adapter/OnlineUiControlFactory.cs", "border.color = Color.white;", "border.color = fill;", "a frame that tints the game's border away" },
 		{ nameof(TheFrameKeepsTheGamesOwnBorder), "adapter/OnlineUiWindowView.cs", "OnlineUiControlFactory.MakeFrame(root, sprite, imageType, pixelsPerUnit, PanelTint);", "// the frame is tinted by hand", "a frame that never lays the fill inside the border" },
@@ -139,10 +115,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiSurfaceParts.cs", "text.font = typography.Font;", "// the game's own font is not applied", "a label construction that leaves the game's own font unapplied" },
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiWindowView.cs", "private static void DeclareBandHeight(RectTransform band, float height)", "private static void Stretch(RectTransform rect, float left, float right, float top, float bottom) { } private static void DeclareBandHeight(RectTransform band, float height)", "a surface that grows its own copy of a shared part again, which is how the window and the panels drifted apart" },
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiWorldOverlayView.cs", "var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", "var text = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();", "a label built by hand beside the one construction the surfaces share" },
-		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlView.cs", "OnlineUiControlSizing.AuthoredChildWidth(controlRect)", "OnlineUiControlSizing.PrefabWidth(_rect)", "a control sized from the element root that contains it — the width the row's own group just wrote" },
-		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlSizing.cs", "internal static float AuthoredChildWidth(RectTransform? child)", "internal static float AuthoredChildWidth(string unused)", "a prefab whose authored child width nobody can read" },
-		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.EffectiveWidth(element.Width, authoredControlWidth)", "OnlineUiControlBox.EffectiveWidth(element.Width, 0f)", "a toggle left at the model's floor with the size the game authored for it ignored" },
-		{ nameof(AnElementThatIsItsOwnControlDeclaresItsWidth), "adapter/OnlineUiRowGeometry.cs", "layout.preferredWidth = controlWidth;", "// the element keeps the width its own group measured,", "a colour block as wide as its own padding — 88 declared, 18 rendered" },
 		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiWindowView.cs", "var popup = OnlineUiDropdownPopup.Create(rect, OnlineUiSurfaceHost.SortingOrder);", "var popup = null!;", "a window with no popup layer for its dropdowns" },
 		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiDropdownPopup.cs", "template.SetParent(_layer, worldPositionStays: false);", "// the template stays inside the page", "a list instantiated inside the page's mask again" },
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiControlView.cs", "pointerFixed = OnlineUiRowGeometry.EnsurePointerSurface(control.gameObject);", "pointerFixed = false;", "a field left without a pointer surface" },
@@ -176,10 +148,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 		// file, so the pin's own matcher is its matcher.
 		nameof(ThePageStartsBelowTheTabStrip) => TheShellUsesTheRuntimeLayout,
 		nameof(EveryControlOfAPageIsTheSameCompactHeight) => OneControlHeight,
-		nameof(AControlTakesWhateverItsOwnContentNeeds) => broken => WidthsFollowTheContent(
-			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
-			Is(broken, "internal static class OnlineUiControlSizing") ? broken : Adapter("OnlineUiControlSizing.cs"),
-			Is(broken, "internal sealed class OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs")),
 		nameof(ALabelIsAsTallAsItsWrappedText) => LabelsGrowWithTheirText,
 		nameof(TheFrameKeepsTheGamesOwnBorder) => broken => TheFrameShowsTheGamesBorder(
 			Is(broken, "internal static Image MakeFrame") ? Adapter("OnlineUiWindowView.cs") : broken,
@@ -188,16 +156,12 @@ public sealed class OnlineUiLayoutDetailPinTests
 		nameof(TheRowsInsideIsCuosGeometry) => broken => TheRowInsideIsLaidOutByCuo(
 			Is(broken, "internal static class OnlineUiRowGeometry") ? Adapter("OnlineUiControlView.cs") : broken,
 			Is(broken, "internal static class OnlineUiRowGeometry") ? broken : Adapter("OnlineUiRowGeometry.cs")),
-		nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt) => broken => TheControlTakesTheGamesAuthoredWidth(
-			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
-			Is(broken, "internal static class OnlineUiControlSizing") ? broken : Adapter("OnlineUiControlSizing.cs")),
 		nameof(TheRowsOwnPrefabArtDoesNotDraw) => TheRowsOwnArtIsHidden,
 		nameof(TheSurfacesBuildTheirPartsInOnePlace) => broken => TheSurfacePartsHaveOneOwner(
 			Is(broken, "internal static class OnlineUiSurfaceParts") ? broken : Adapter("OnlineUiSurfaceParts.cs"),
 			Is(broken, "internal sealed class OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs"),
 			Is(broken, "internal sealed class OnlineUiPanelView") ? broken : Adapter("OnlineUiPanelView.cs"),
 			Is(broken, "internal sealed class OnlineUiWorldOverlayView") ? broken : Adapter("OnlineUiWorldOverlayView.cs")),
-		nameof(AnElementThatIsItsOwnControlDeclaresItsWidth) => TheOwnControlKeepsItsDeclaredWidth,
 		nameof(AnOpenDropdownListRidesTheWindowsPopupLayer) => broken => ThePopupLayerCarriesTheLists(
 			Is(broken, "internal sealed class OnlineUiDropdownPopup") ? Adapter("OnlineUiWindowView.cs") : broken,
 			Is(broken, "internal sealed class OnlineUiDropdownPopup") ? broken : Adapter("OnlineUiDropdownPopup.cs"),
@@ -244,59 +208,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 		return flat.Contains("if (!_layout.preferredHeight.Equals(OnlineUiWindowLayout.ControlHeight))", StringComparison.Ordinal)
 			&& flat.Contains("_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", StringComparison.Ordinal)
 			&& flat.Contains("_layout.minHeight = OnlineUiWindowLayout.ControlHeight;", StringComparison.Ordinal);
-	}
-
-	/// <summary>The width a control takes is DECLARED — the model's hint under the caption's own measured text —
-	/// and the window's wrap is asked with exactly that, so nothing measures content that stretches inside the
-	/// box it was just given. The rule lives with every other width of this surface.</summary>
-	private static bool WidthsFollowTheContent(string controlSource, string sizingSource, string windowSource)
-	{
-		var flat = Flatten(controlSource);
-		var sizing = Flatten(sizingSource);
-
-		return flat.Contains("internal float EffectiveWidth(OnlineUiElementModel element) =>", StringComparison.Ordinal)
-			&& flat.Contains("OnlineUiControlSizing.EffectiveWidth(element, _caption, _typography.Size, _controlAuthoredWidth);", StringComparison.Ordinal)
-			&& !flat.Contains("LayoutUtility.GetPreferredSize(_rect", StringComparison.Ordinal)
-			&& !flat.Contains("PrefabWidth(_rect", StringComparison.Ordinal)
-			&& sizing.Contains("internal static float EffectiveWidth(", StringComparison.Ordinal)
-			&& sizing.Contains("float authoredControlWidth) => element.Kind switch", StringComparison.Ordinal)
-			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidthOrZero(caption) + (2f * typographySize))", StringComparison.Ordinal)
-			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f)", StringComparison.Ordinal)
-			&& sizing.Contains("internal static float PrefabWidth(RectTransform rect)", StringComparison.Ordinal)
-			&& sizing.Contains("internal static float CaptionWidth(TMP_Text caption)", StringComparison.Ordinal)
-			&& Flatten(windowSource).Contains("widths[index] = view.EffectiveWidth(elements[index]);", StringComparison.Ordinal)
-			&& Flatten(windowSource).Contains("view.LayOutRow(view.EffectiveWidth(element));", StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// The width one of a row's controls takes is the width the GAME authored for that control, read off the
-	/// control (never off the element root that contains it) at the moment the view is built — the one moment
-	/// the prefab's own rect is still intact, since the row's layout group writes it from the first pass on.
-	/// </summary>
-	private static bool TheControlTakesTheGamesAuthoredWidth(string controlSource, string sizingSource)
-	{
-		var flat = Flatten(controlSource);
-		var sizing = Flatten(sizingSource);
-
-		return flat.Contains("OnlineUiControlSizing.AuthoredChildWidth(controlRect)", StringComparison.Ordinal)
-			&& flat.Contains("private readonly float _controlAuthoredWidth;", StringComparison.Ordinal)
-			&& flat.Contains("OnlineUiControlSizing.EffectiveWidth(element, _caption, _typography.Size, _controlAuthoredWidth);", StringComparison.Ordinal)
-			&& !flat.Contains("PrefabWidth(_rect)", StringComparison.Ordinal)
-			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(element.Width, authoredControlWidth)", StringComparison.Ordinal)
-			&& sizing.Contains("internal static float AuthoredChildWidth(RectTransform? child)", StringComparison.Ordinal);
-	}
-
-	/// <summary>An element that IS its own control — a tab, a page button, a colour block — carries the width
-	/// its model declared: nothing lays a control out inside it, so the write is what makes the model's floor
-	/// true for the wrap AND for the line the element lands on.</summary>
-	private static bool TheOwnControlKeepsItsDeclaredWidth(string geometrySource)
-	{
-		var flat = Flatten(geometrySource);
-
-		return flat.Contains("internal static void LayOutRow(", StringComparison.Ordinal)
-			&& flat.Contains("if (controlWidth > 0f)", StringComparison.Ordinal)
-			&& flat.Contains("layout.minWidth = controlWidth;", StringComparison.Ordinal)
-			&& flat.Contains("layout.preferredWidth = controlWidth;", StringComparison.Ordinal);
 	}
 
 	/// <summary>A label leaves its own height to TMP (the layout element that knows the wrapped text) and

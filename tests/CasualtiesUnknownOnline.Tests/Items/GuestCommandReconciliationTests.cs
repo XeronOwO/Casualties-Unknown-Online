@@ -1,13 +1,16 @@
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Wire;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
@@ -93,6 +96,94 @@ public class GuestCommandReconciliationTests
 		w.Spawn(w.G1, itemId, Item());
 		w.Driver.Tick(100);
 		Assert.True(w.HostTable(itemId), "setup: the host must hold the reported item");
+	}
+
+	/// <summary>One wire report about an item, as the window stores it (the frame is only ever re-sent, so an empty one serves a direct drive of the window).</summary>
+	private static WireCommand Report(WireCommandKind kind, ulong itemId) =>
+		new() { Kind = kind, Identity = new WireItemIdentity { InstanceId = itemId, DefinitionId = "test_item" } };
+
+	private static ProtocolFrame Frame() => new() { Kind = EnvelopeKind.Command };
+
+	/// <summary>The host's own kernel row for one item — the record a member's report writes through.</summary>
+	private static float HostCondition(ItemSimWorld w, ulong itemId) =>
+		w.Host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(itemId)!.Value.Data.Condition;
+
+	[Fact]
+	public void RefusalClosesOnlyTheKindItNames()
+	{
+		// The window's own rule, driven directly rather than through a network arrangement:
+		// a refusal answers ONE kind, so it closes the newest entry OF THAT KIND and leaves
+		// every other report outstanding. The reports of one item are not interchangeable —
+		// the item-scoped pop this replaces spent whichever report happened to be newest,
+		// which is how a swallowed pickup's budget could be paid for a refused console write.
+		using var w = ItemSimWorld.Create();
+		var window = Window(w.G1);
+		var epoch = RunEpochOf(w.G1);
+		window.Track(Report(WireCommandKind.ItemPickup, 42), operationId: 1, Frame(), WirePayloadType.ItemPickupCommand, epoch);
+		window.Track(Report(WireCommandKind.ItemDataWrite, 42), operationId: 2, Frame(), WirePayloadType.ItemDataWriteCommand, epoch);
+
+		window.ClearRejected(WireCommandKind.ItemDataWrite, 42);
+
+		Assert.Equal([WireCommandKind.ItemPickup], window.PendingKindsFor(42));
+
+		window.ClearRejected(WireCommandKind.ItemDestroy, 42);
+
+		Assert.Equal([WireCommandKind.ItemPickup], window.PendingKindsFor(42)); // a verdict for a kind this client never queued closes nothing
+	}
+
+	[Fact]
+	public void SwallowedConsoleWrite_IsReReportedAndTheHostCommitsIt()
+	{
+		// A console write is queued like every other member action whose local half has
+		// already happened, and it has to be: nothing else carries the value — the host's
+		// own absolute item facts carry ITS state, so a lost write is overwritten rather
+		// than corrected and the operator's act vanishes without a trace. This is the ONE
+		// re-reportable kind whose loss an operator feels rather than sees healed.
+		var rules = new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowMemberItemDataWrite = true });
+		using var w = ItemSimWorld.Create(services => services.Replace(
+			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules)));
+		SpawnWorldItem(w, 42);
+
+		SwallowKernelChannel(w, w.G1, w.Host);
+		w.G1.Services.GetRequiredService<IItemControl>().SendItemDataWrite(42, Item(condition: 0.25f));
+		w.Driver.Tick(200);
+
+		Assert.Equal([WireCommandKind.ItemDataWrite], Window(w.G1).PendingKindsFor(42));
+
+		HealKernelChannel(w, w.G1, w.Host);
+		w.Driver.TickUntil(() => HostCondition(w, 42) == 0.25f, maxMs: 30_000);
+
+		Assert.Equal(0, Window(w.G1).PendingCount);
+		Assert.Empty(w.Rejects(w.G1)); // the console write settles as its own family, never as a pickup/block-drop rejection
+	}
+
+	[Fact]
+	public void ConsoleWriteRefusal_LeavesAReportOfAnotherKindInTheWindow()
+	{
+		// The refusal names the KIND it answered (WireCommand.RefusedKind), and the window
+		// closes by that name. Before it, the refusal was item-scoped on the wire and the
+		// window popped the item's NEWEST entry whatever it was — so a refused console write
+		// spent a swallowed PICKUP's budget, the pickup was never re-reported, and the host
+		// kept the item in its world while the member had it in hand. That is the divergence
+		// this window exists to remove, arriving through the window itself.
+		using var w = ItemSimWorld.Create();
+		SpawnWorldItem(w, 42);
+
+		SwallowKernelChannel(w, w.G1, w.Host);
+		w.Pickup(w.G1, 42, Item()); // queued, swallowed
+		HealKernelChannel(w, w.G1, w.Host);
+		w.G1.Services.GetRequiredService<IItemControl>().SendItemDataWrite(42, Item()); // delivered; the host's rule (closed by default) refuses it
+		w.Driver.Tick(200);
+
+		// The console write settles as its own family — never as the pickup/block-drop
+		// rejection — and only its own entry left the window.
+		Assert.Empty(w.Rejects(w.G1));
+		Assert.Equal([WireCommandKind.ItemPickup], Window(w.G1).PendingKindsFor(42));
+
+		w.Driver.TickUntil(() => w.TransferredOf(w.G1, 42), maxMs: 30_000);
+
+		Assert.True(w.TransferredOf(w.G1, 42), "the swallowed pickup must still converge after the unrelated refusal");
+		Assert.Equal(0, Window(w.G1).PendingCount);
 	}
 
 	[Fact]

@@ -36,7 +36,7 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(42, Member);
 
-		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, State(42, actor: Member)).IsAdmitted,
+		Assert.True(Gateway(facts).Admit(Member, State(42, actor: Member)).IsAdmitted,
 			"a held item's state is its holder's own report — the native use and the slot move both ride it");
 	}
 
@@ -52,7 +52,7 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(42, OtherMember);
 
-		var decision = Gateway(facts).AdmitMemberSubmission(Member, State(42, actor: Member));
+		var decision = Gateway(facts).Admit(Member, State(42, actor: Member));
 
 		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
 		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
@@ -66,7 +66,29 @@ public class KernelItemReportEligibilityTests
 		facts.AppliedTo(42, OtherMember, limbIndex: 3);
 
 		Assert.Equal(CommandAdmissionKind.Ignored,
-			Gateway(facts).AdmitMemberSubmission(Member, State(42, actor: Member)).Kind);
+			Gateway(facts).Admit(Member, State(42, actor: Member)).Kind);
+	}
+
+	/// <summary>
+	/// The same ineligible item, reached by the CONSOLE verb: answered instead of
+	/// ignored, and the difference is the sender's own copy. A native report of
+	/// another member's item is the remote-clone display proxy, so answering it would
+	/// start a rollback on a copy that is not the item's fact; a console write has
+	/// already changed the writer's local object, so a verdict it never sees would
+	/// leave that object changed for good.
+	/// </summary>
+	[Fact]
+	public void ConsoleWriteForAnotherMembersItem_IsAnsweredRatherThanIgnored()
+	{
+		var rules = new FakeMemberCommandRules { AllowItemDataWrite = true };
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, OtherMember);
+
+		var decision = Gateway(facts, rules).AdmitConsoleWrite(Member, State(42, actor: Member));
+
+		Assert.Equal(CommandAdmissionKind.Refused, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+		Assert.True(decision.AnswersSender, "the writer's own local object already carries the value it reported");
 	}
 
 	[Fact]
@@ -75,7 +97,7 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.AppliedTo(42, Member, limbIndex: 3);
 
-		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, State(42, actor: Member)).IsAdmitted);
+		Assert.True(Gateway(facts).Admit(Member, State(42, actor: Member)).IsAdmitted);
 	}
 
 	[Fact]
@@ -87,7 +109,7 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.InWorld(42);
 
-		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, State(42, actor: Member)).IsAdmitted);
+		Assert.True(Gateway(facts).Admit(Member, State(42, actor: Member)).IsAdmitted);
 	}
 
 	[Fact]
@@ -96,7 +118,7 @@ public class KernelItemReportEligibilityTests
 		// Defensive, as for the destroy rule: the handler's creation-before-operation
 		// invariant answers an unjudged id above this seam, and a missing-carried
 		// report is adopted by the handler's own heal before reaching here.
-		Assert.True(Gateway().AdmitMemberSubmission(Member, State(42, actor: Member)).IsAdmitted,
+		Assert.True(Gateway().Admit(Member, State(42, actor: Member)).IsAdmitted,
 			"the seam holds no judgement for an unjudged id, so it must not produce one");
 	}
 
@@ -109,7 +131,7 @@ public class KernelItemReportEligibilityTests
 		facts.ContainedIn(42, OtherMember, parentId: 77);
 
 		Assert.Equal(CommandAdmissionKind.Ignored,
-			Gateway(facts).AdmitMemberSubmission(Member, State(42, actor: Member)).Kind);
+			Gateway(facts).Admit(Member, State(42, actor: Member)).Kind);
 	}
 
 	[Fact]
@@ -118,7 +140,7 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.ContainedIn(42, Member, parentId: 77);
 
-		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, State(42, actor: Member)).IsAdmitted);
+		Assert.True(Gateway(facts).Admit(Member, State(42, actor: Member)).IsAdmitted);
 	}
 
 	[Fact]
@@ -131,7 +153,7 @@ public class KernelItemReportEligibilityTests
 		facts.InWorld(77);
 		facts.ContainedIn(42, OtherMember, parentId: 77);
 
-		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, State(42, actor: Member)).IsAdmitted);
+		Assert.True(Gateway(facts).Admit(Member, State(42, actor: Member)).IsAdmitted);
 	}
 
 	[Fact]
@@ -143,7 +165,7 @@ public class KernelItemReportEligibilityTests
 		facts.ContainedIn(42, OtherMember, parentId: 77);
 
 		Assert.Equal(CommandAdmissionKind.Ignored,
-			Gateway(facts).AdmitMemberSubmission(Member,
+			Gateway(facts).Admit(Member,
 				Destroy(instanceId: 42, actor: Member)).Kind);
 	}
 
@@ -154,7 +176,7 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(4242, OtherMember);
 
-		Gateway(facts, logger).AdmitMemberSubmission(Member, State(4242, actor: Member));
+		Gateway(facts, logger).Admit(Member, State(4242, actor: Member));
 
 		var entry = Assert.Single(logger.Entries);
 		Assert.Equal(LogLevel.Warning, entry.Level);
@@ -172,7 +194,7 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(42, OtherMember);
 
-		var decision = Gateway(facts).AdmitMemberSubmission(Member, Sync(parentId: 42, children: []));
+		var decision = Gateway(facts).Admit(Member, Sync(parentId: 42, children: []));
 
 		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
 		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
@@ -185,14 +207,14 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(42, Member);
 
-		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, Sync(parentId: 42, children: [43])).IsAdmitted);
+		Assert.True(Gateway(facts).Admit(Member, Sync(parentId: 42, children: [43])).IsAdmitted);
 	}
 
 	[Fact]
 	public void ContainerSyncOfAContainerTheHostNeverJudged_IsAdmitted() =>
 		// The carry-registration heal: the domain creates that parent as the
 		// reporter's own carried item, so the seam has nothing to refuse.
-		Assert.True(Gateway().AdmitMemberSubmission(Member, Sync(parentId: 42, children: [43])).IsAdmitted);
+		Assert.True(Gateway().Admit(Member, Sync(parentId: 42, children: [43])).IsAdmitted);
 
 	[Fact]
 	public void ContainerSyncListingAnotherMembersCarriedItem_IsIgnored()
@@ -204,7 +226,7 @@ public class KernelItemReportEligibilityTests
 		facts.CarriedBy(43, OtherMember);
 
 		Assert.Equal(CommandAdmissionKind.Ignored,
-			Gateway(facts).AdmitMemberSubmission(Member, Sync(parentId: 42, children: [43])).Kind);
+			Gateway(facts).Admit(Member, Sync(parentId: 42, children: [43])).Kind);
 	}
 
 	[Fact]
@@ -215,7 +237,7 @@ public class KernelItemReportEligibilityTests
 		facts.AppliedTo(43, OtherMember, limbIndex: 3);
 
 		Assert.Equal(CommandAdmissionKind.Ignored,
-			Gateway(facts).AdmitMemberSubmission(Member, Sync(parentId: 42, children: [43])).Kind);
+			Gateway(facts).Admit(Member, Sync(parentId: 42, children: [43])).Kind);
 	}
 
 	[Fact]
@@ -228,7 +250,7 @@ public class KernelItemReportEligibilityTests
 		facts.CarriedBy(42, Member);
 		facts.ContainedIn(43, OtherMember, parentId: 77);
 
-		Assert.True(Gateway(facts).AdmitMemberSubmission(Member, Sync(parentId: 42, children: [43])).IsAdmitted);
+		Assert.True(Gateway(facts).Admit(Member, Sync(parentId: 42, children: [43])).IsAdmitted);
 	}
 
 	[Fact]
@@ -238,7 +260,7 @@ public class KernelItemReportEligibilityTests
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(4242, OtherMember);
 
-		Gateway(facts, logger).AdmitMemberSubmission(Member, Sync(parentId: 4242, children: []));
+		Gateway(facts, logger).Admit(Member, Sync(parentId: 4242, children: []));
 
 		var entry = Assert.Single(logger.Entries);
 		Assert.Contains("SyncContainerItemsCommand", entry.Message);
@@ -246,11 +268,14 @@ public class KernelItemReportEligibilityTests
 		Assert.Contains(nameof(RejectionReason.NotAuthorized), entry.Message);
 	}
 
-	private static KernelCommandGateway Gateway() => new(new FakeItemFacts(), new RecordingLogger<KernelCommandGateway>());
+	private static KernelCommandGateway Gateway() => new(new FakeItemFacts(), new FakeMemberCommandRules(), new RecordingLogger<KernelCommandGateway>());
 
-	private static KernelCommandGateway Gateway(FakeItemFacts facts) => new(facts, new RecordingLogger<KernelCommandGateway>());
+	private static KernelCommandGateway Gateway(FakeItemFacts facts) => new(facts, new FakeMemberCommandRules(), new RecordingLogger<KernelCommandGateway>());
 
-	private static KernelCommandGateway Gateway(FakeItemFacts facts, RecordingLogger<KernelCommandGateway> logger) => new(facts, logger);
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, RecordingLogger<KernelCommandGateway> logger) => new(facts, new FakeMemberCommandRules(), logger);
+
+	/// <summary>The seam with the host's rule OPEN, for the console-verb cases: the rule is judged before any item rule, so the cases below need it open to reach the rule they pin.</summary>
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, FakeMemberCommandRules rules) => new(facts, rules, new RecordingLogger<KernelCommandGateway>());
 
 	private static DestroyItemCommand Destroy(ulong instanceId, ulong actor) =>
 		new(new OperationId(1), new ActorId(actor), new RunEpoch(1), AuthorityKind.OwnerPredictedHostValidated, instanceId, TerminalKind.Consumed, 0);

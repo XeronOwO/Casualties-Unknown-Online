@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Host rules reach the members, and both sides check](todo/host-rules-replication.md) — **Medium-High** — rules a member acts on, announced and event-synced.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
@@ -65,7 +66,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — the write verbs, give and spawn; the read half landed.
 - [Health on every client, reconciled to the host](todo/health-simulation-and-host-authority.md) — **Medium-High** — everyone simulates; the host wins at once.
-- [Source, permission and data checks](todo/validation-and-source-checks.md) — **Medium-High** — drop tables, command permission, ownership.
+- [Source, permission and data checks](todo/validation-and-source-checks.md) — **Medium-High** — report validation and the host's rule for a member's write.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
@@ -88,7 +89,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state, read from the kernel row.
-- [The item data write verb](review/item-data-write-commands.md) — **Medium-High** — `/data set` writes the item this client holds.
+- [The item data write verb](review/item-data-write-commands.md) — **Medium-High** — `/data set` for the holder; a member's write needs the host's rule.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
 - [Guest frame rate lower than host](review/guest-frame-rate-lower-than-host.md) — **Medium** — telemetry and allocation removal; a frame-rate row is open.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.

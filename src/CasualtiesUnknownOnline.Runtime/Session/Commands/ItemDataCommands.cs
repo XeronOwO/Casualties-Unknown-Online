@@ -35,12 +35,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 ///
 /// Permission is <see cref="CommandPermission.Anyone"/> because the READ is open —
 /// another player's carried items are already visible in the remote inventory view —
-/// while the WRITE is refused to everyone but the host in the handler. The permission
-/// is per COMMAND and the two verbs share one, so the member's console does list the
-/// write grammar in <c>/help</c> and refuses the write by name when it is typed; the
-/// family's host rule and a member's own report route are the stage that opens it,
-/// and until that exists a member's console must not offer what no host-side gate can
-/// back.
+/// and the WRITE is judged by the HOST rather than by the console: a write is the
+/// holder's own report, so every client may type it, and the host's own rule decides
+/// whether a member's write lands (<c>HostRulesOptions.AllowMemberItemDataWrite</c>,
+/// off by default). The verdict does not block the command: the value is applied
+/// locally and reported first, and a refusal arrives as its own answer which puts the
+/// recorded state back and says so in the console — a member's console cannot be the
+/// gate, because only the host knows its own rule.
 /// </summary>
 internal sealed class ItemDataCommands(
 	IKernelItemFacts items,
@@ -208,12 +209,6 @@ internal sealed class ItemDataCommands(
 	/// </summary>
 	private string Write(IReadOnlyList<string> tail)
 	{
-		if (_session.Role == SessionRole.Guest)
-		{
-			_log.LogWarning("[Command] /data write refused: this client is a {Role}, and a write is the holder's own report.", _session.Role);
-			return "Only the host can write item state today: a write is the holder's own report, and a member's write needs its own permission rule and a report route the host can gate (the family's later stage).";
-		}
-
 		if (!_session.SessionActive)
 		{
 			// The report the write ends with is session-scoped (both routes are guarded on
@@ -252,6 +247,20 @@ internal sealed class ItemDataCommands(
 		{
 			_log.LogWarning("[Command] /data set {Property} on #{InstanceId} refused by the local scene: {Result}.", write.Property, instanceId, result);
 			return RefuseWrite(result, instanceId);
+		}
+
+		if (_session.Role == SessionRole.Guest)
+		{
+			// A MEMBER's write is the same act with one difference: the host judges it
+			// as a console write under its own rule, so the report travels under its own
+			// kind and the answer is provisional. The value is applied here either way —
+			// a member's console cannot be the gate, and the host is the only side that
+			// knows its rule — so a refusal arrives later, puts the recorded state back
+			// and prints its own line (ItemDataWriteSettlement, ItemDataWriteRefusal).
+			_itemControl.SendItemDataWrite(instanceId, local);
+			_log.LogInformation("[Command] /data set {Property} wrote #{InstanceId} ({Definition}): {Before} -> {After}; reported as a console write for the host's rule to judge.",
+				write.Property, instanceId, local.ItemId, before, after);
+			return ItemDataRenderer.WroteAwaitingHost(local, write, before, after);
 		}
 
 		Report(instanceId, local);

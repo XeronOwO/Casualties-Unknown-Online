@@ -55,6 +55,7 @@
 | `AutoContinue` | `false` | | 为自动进入下一层预留的主机规则面；尚未接线。 |
 | `AllowLateJoin` | `true` | | true = 全新玩家可以加入主机已经开了的世界。 |
 | `AllowRemoteInventoryTake` | `true` | | true = 其他玩家可以从远端玩家的背包里拿随身物品（昏迷／死亡后的拾取仍是默认规则；false 彻底关掉跨玩家背包取物）。 |
+| `AllowMemberItemDataWrite` | `false` | | 仅主机：true = 成员可以对自己随身、已装或容器内的物品，以及世界里的物品（放在地上的那些）执行物品数据写入（`/data set` 及其后续动词）——也就是原生「使用」本来就能上报的那些物品；主机照常准入，把它记成一条普通的物品事实。false = 这次写入被拒绝并报出理由，成员客户端会把自己已经改过的值放回去。 |
 | `WidenRunSettings` | `true` | | 仅主机：在联机时放宽游戏自带的自定义开局设置滑块，好让这一局按真实大厅人数调整。数值仍然走既有的世界初始参数。 |
 | `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | 仅主机：背负关系生效期间，被背一方全部负重加到背负者身上的比例。`0` 关闭这项移动惩罚。 |
 | `NativeBindingParity` | `warn` | `allow`、`warn`、`require` | 仅主机：当双方都列出的某个模组，客机声明的[原生绑定](glossary.md)与主机自己的不同时怎么判。`allow` = 不检查；`warn` = 准入并把不一致记进主机的日志；`require` = 拒绝该成员。 |

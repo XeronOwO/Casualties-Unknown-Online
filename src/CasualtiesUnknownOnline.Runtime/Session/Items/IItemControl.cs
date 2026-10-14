@@ -48,6 +48,17 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>Guest only: an item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync. The digest evidence rides along (the host broadcasts it as the carried-fact event when it has no transfer-table entry — a starting-supply item).</summary>
 	void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item);
 
+	/// <summary>
+	/// Guest only: a CONSOLE command wrote one item's state (<c>/data set</c>) — the
+	/// holder's own report of a value an operator typed. It travels under its own
+	/// kind, so the host judges it against the host's own rule for the verb instead
+	/// of reading it as a native use; the row it writes is the same either way. A
+	/// host refusal comes back as its own verdict and this client settles the value
+	/// it already applied
+	/// (<see cref="ItemDataWriteSettlement"/>).
+	/// </summary>
+	void SendItemDataWrite(ulong itemId, CharacterItemMsg item);
+
 	/// <summary>Guest only: a carried container's full fact changed internally (a nested-content move) — report the parent container so the host records it and relays it as the carried-fact event (one operation = one message).</summary>
 	void SendItemContainerContent(ulong itemId, CharacterItemMsg item);
 

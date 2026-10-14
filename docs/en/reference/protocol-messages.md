@@ -155,6 +155,11 @@ that message is gone: the answer travels in the envelope that carried the questi
 (`src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs`,
 `IKernelProtocolControl.cs`).
 
+The answer also names the report it judged (`WireCommand.RefusedKind`), because one member can have several
+reports in flight for the same item and they settle differently on its side — a refused pickup rolls back, a
+refused console item-data write puts the item's recorded state back. A consumer must switch on it rather than
+assume the item id identifies the report.
+
 ## Messages outside the envelopes
 
 Not every frame is one of the four. Session and control traffic, world mutation and presentation,

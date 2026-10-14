@@ -99,4 +99,16 @@ public sealed class WireCommand
 
 	[ProtoMember(30)]
 	public float AngularVelocity { get; set; }
+
+	/// <summary>
+	/// On a <see cref="WireCommandKind.CommandRejected"/> only: the kind of the
+	/// command the host refused, so the sender knows WHICH of its reports the
+	/// verdict answers. One member can have several reports in flight for the same
+	/// item — a native use and a console write are two — and they settle
+	/// differently on this side (a refused console write puts the local value
+	/// back), so the answer names the report rather than leaving the sender to
+	/// guess from the item id.
+	/// </summary>
+	[ProtoMember(31)]
+	public WireCommandKind RefusedKind { get; set; }
 }

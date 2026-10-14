@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Application.Kernel;
@@ -48,6 +49,11 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// <see cref="WireCommandAuthorityPolicy"/>'s table, filled from the senders this
 /// tree actually has — so a member's <c>RunStart</c> is refused here while its
 /// item use is not;</item>
+/// <item>a verb the HOST'S OWN RULE owns must be open: the console item-data write
+/// is member-authorable by kind, and whether this host lets a member run it is the
+/// session's decision rather than the build's (<see cref="IMemberCommandRules"/>).
+/// The rule is read per submission, so a host that closes it mid-session refuses
+/// the next write and leaves the ones already committed alone;</item>
 /// <item>the item a report NAMES must be one this member may speak for — the
 /// shared rule (<see cref="MayReportOn"/>) behind a destroy report, a state
 /// report and a container sync's parent: world content (the item lies on the
@@ -73,9 +79,10 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// </list>
 /// </para>
 /// </summary>
-public sealed class KernelCommandGateway(IKernelItemFacts items, ILogger<KernelCommandGateway> log)
+public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandRules memberCommandRules, ILogger<KernelCommandGateway> log)
 {
 	private readonly IKernelItemFacts _items = items;
+	private readonly IMemberCommandRules _memberCommandRules = memberCommandRules;
 	private readonly ILogger<KernelCommandGateway> _log = log;
 
 	/// <summary>
@@ -83,7 +90,14 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, ILogger<KernelC
 	/// every refusal with one uniform line naming the command, the item it names
 	/// (when it names one), the actor, the sender and the reason.
 	/// </summary>
-	public CommandAdmission AdmitMemberSubmission(ulong sender, GameCommand command)
+	/// <param name="sender">The member that submitted the frame.</param>
+	/// <param name="kind">
+	/// The WIRE kind it submitted. The mapped command cannot carry this: a console
+	/// write and a native use are the same kernel fact by design, and the host's
+	/// own rule for the verb is a property of the kind rather than of the fact.
+	/// </param>
+	/// <param name="command">The mapped kernel command.</param>
+	public CommandAdmission AdmitMemberSubmission(ulong sender, WireCommandKind kind, GameCommand command)
 	{
 		if (command.Actor.Value != sender)
 		{
@@ -101,6 +115,17 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, ILogger<KernelC
 					"a presentation-only command is never a kernel fact");
 		}
 
+		if (kind == WireCommandKind.ItemDataWrite && !_memberCommandRules.AllowsItemDataWrite)
+		{
+			// Answered on purpose: this report is the one shape whose sender has
+			// ALREADY applied the value to its own local object (the console writes
+			// the item, then reports it), so a refusal the sender never sees would
+			// leave its picture changed for good. The member settles it back on
+			// receipt (ItemDataWriteSettlement).
+			return Refuse(sender, command, RejectionReason.HostRuleDenied,
+				"the host's rule does not open the item-data write verbs to members");
+		}
+
 		if (command is DestroyItemCommand destroy && !MayReportOn(sender, destroy.InstanceId))
 		{
 			// The item id rides the detail: for this verdict the sender is NOT
@@ -112,11 +137,17 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, ILogger<KernelC
 
 		if (command is UpdateItemStateCommand state && !MayReportOn(sender, state.InstanceId))
 		{
-			// Dropped in silence for the reason the destroy rule gives above: this shape
-			// is the remote-clone display proxy, and answering it would start a guest
+			// The ONE kind this branch answers, and it has to: a console write is
+			// applied to the member's own local object before it is reported, so a
+			// verdict the sender never sees would leave that object changed for an
+			// item the host refuses to let it speak for. Every other shape is dropped
+			// in silence for the reason the destroy rule gives above: the
+			// remote-clone display proxy, where answering would start a guest
 			// rollback on a copy that is not the item's fact.
-			return Ignore(sender, command, RejectionReason.NotAuthorized,
-				$"item {state.InstanceId} is another member's (carried, installed or contained), so its state is not the sender's to report");
+			var detail = $"item {state.InstanceId} is another member's (carried, installed or contained), so its state is not the sender's to report";
+			return kind == WireCommandKind.ItemDataWrite
+				? Refuse(sender, command, RejectionReason.NotAuthorized, detail)
+				: Ignore(sender, command, RejectionReason.NotAuthorized, detail);
 		}
 
 		if (command is SyncContainerItemsCommand sync && ContainerSyncRefusal(sender, sync) is { } containerDetail)

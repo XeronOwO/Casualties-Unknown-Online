@@ -118,6 +118,15 @@ internal sealed class ItemMessageFlowService(
 		_itemActionSync.SendItemUse(itemId, item);
 	}
 
+	/// <summary>
+	/// A console command wrote one item's state. Deliberately NOT settled against the
+	/// pending creations first, unlike the native operations beside it: the verb
+	/// resolves its target from the kernel record, and a row in that record IS this
+	/// host's judgement of the item, so a console write can never be the first report
+	/// of an id (an unrecorded target is refused by the verb by name).
+	/// </summary>
+	public void SendItemDataWrite(ulong itemId, CharacterItemMsg item) => _itemActionSync.SendItemDataWrite(itemId, item);
+
 	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item)
 	{
 		_pendingCreations.SettleBeforeOperation();

@@ -33,6 +33,7 @@ public class WireCommandAuthorityPolicyTests
 		[WireCommandKind.ItemContainerSync] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemApplyLimb] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemRemoveLimb] = AuthorityKind.OwnerPredictedHostValidated,
+		[WireCommandKind.ItemDataWrite] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemSpawn] = AuthorityKind.TriggerObservedHostCommitted,
 		[WireCommandKind.RecordEnemyBite] = AuthorityKind.TriggerObservedHostCommitted,
 		[WireCommandKind.RecordEnemyLunge] = AuthorityKind.TriggerObservedHostCommitted,

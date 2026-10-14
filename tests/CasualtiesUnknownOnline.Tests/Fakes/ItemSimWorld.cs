@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Tests.GameState;
 using CasualtiesUnknownOnline.GameState.Projections;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -232,6 +233,22 @@ internal sealed class ItemSimWorld : IDisposable
 
 	/// <summary>How many frames of one message type the node has received so far (cumulative).</summary>
 	internal int ReceivedCount(TestNode node, NetMsg msg) => Received(node).Count(r => r.Msg == msg);
+
+	/// <summary>
+	/// How many kernel CommandRejected frames the node has received so far
+	/// (cumulative). It is the surface for a refusal the item events deliberately do
+	/// NOT report: a refused console write settles as its own family rather than
+	/// through the pickup/block-drop rejection the guests' <c>ItemRejected</c> event
+	/// carries.
+	/// </summary>
+	internal int CommandRejectedFrames(TestNode node) =>
+		Received(node).Count(r => r.Msg == NetMsg.KernelEnvelope && IsCommandRejected(r.Frame));
+
+	private static bool IsCommandRejected(byte[] frame)
+	{
+		var protocol = NetPacket.DecodePayload<ProtocolFrame>(frame);
+		return protocol.Command?.Header?.PayloadType == WirePayloadType.CommandRejected;
+	}
 
 	/// <summary>How many frames of ANY message type the node has received so far
 	/// (cumulative) — the SimTrace "Committed(n)" message-count surface.</summary>

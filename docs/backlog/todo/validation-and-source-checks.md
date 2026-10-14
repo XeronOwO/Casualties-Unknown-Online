@@ -45,15 +45,36 @@
    fix: the host-only report committed an entity-health fact, the forged state report moved another member's
    row, and the forged container sync rewrote the peer's container and moved the peer's item.
 
-   **S1b — still open, and it is the half the write verb waits for.** A console command still has no wire path
-   of its own: a member's `/data set` would ride `ItemUpdateState`, byte-for-byte a native item use, so the host
-   has nothing to grant or refuse separately. What keeps it open is not the wire shape but the way BACK: the
-   member's write lands on its own local object before the host sees it, so a host-side refusal has to settle a
-   row the client already changed — the missing half S3 names ("what the client does locally when the host says
-   that did not happen"). Landing the path without that half would leave the two sides' pictures different,
-   which this ticket's own rules forbid, and a path no sender uses is a mechanism with no consumer. So S1b
-   lands with the host rule (`HostRulesOptions`, following the existing flags and defaulting OFF — the family's
-   "not a cheating surface by default") and the member route together.
+   **S1b — landed 2026-10-14, and it is the half the write verb was waiting for.** The console write has a wire
+   path of its own: `WireCommandKind.ItemDataWrite` (its payload the same save-shaped state a native use
+   carries, and the mapper deliberately produces the same `UpdateItemStateCommand`, because the row it writes is
+   the row the game would have written), so the host can judge the VERB where it could only judge the state
+   before. Whether a member may run that verb is the host's own rule — `HostRulesOptions.AllowMemberItemDataWrite`,
+   following the existing flags and defaulting OFF (the family's "not a cheating surface by default") — reaching
+   the Application layer's admission seam through the port `IMemberCommandRules`, because the seam may not
+   reference Runtime configuration. The seam therefore takes the submission's wire kind beside the mapped
+   command (the command alone cannot say which verb it was), and it ANSWERS this kind's refusals, unlike the
+   item-eligibility verdicts beside it. The way BACK landed with it, which is the half S3 names: the writer's
+   console has already applied the value to its own object and reported it, so a host refusal settles that
+   object back to the state this session records (`ItemDataWriteSettlement`) and the operator reads the refusal
+   where they typed the command. `WireCommand.RefusedKind` is what makes the answer exact — one member can have
+   several reports in flight for the same item, and a refused console write settles differently from a refused
+   native use, so a verdict keyed on the item id alone could settle the wrong one.
+
+   Evidence: the per-kind census gained the kind (`WireCommandAuthorityPolicyTests`, 25 rows), the sender gate's
+   member-authored floor moved 11 → 12, the seam's console-verb pair and the answered-eligibility case are in
+   `KernelCommandGatewayTests` / `KernelItemReportEligibilityTests`, two rows run through the production
+   composition root in `CommandAdmissionIntegrationTests`, and the new `CommandConsoleMemberItemDataTests`
+   family (four cases: admitted, refused and settled, refused-without-becoming-a-pickup-rollback, and an id the
+   host never judged). Each of the three mechanisms was observed RED with that mechanism alone turned off: the
+   member's write committed with the rule check gone, the member's local value stayed at the written one with
+   the settle skipped, and an ineligible console write fell back to the silent verdict the native shape gets.
+   The independent review then found the half this stage had left in the re-report window, and it is fixed in
+   the same commit: the console write is now one of the kinds that window re-reports (a swallowed write used to
+   vanish with no trace, while the row claimed it was covered), and a refusal closes the newest report OF THE
+   KIND it names — the wire field this stage added made that expressible, and it removes a divergence the
+   window itself could cause, where a refused console write spent a pending pickup's budget. Both halves have
+   their own RED in `GuestCommandReconciliationTests`.
 
    Self-check for S1a (mechanism × change × evidence):
 
@@ -64,8 +85,12 @@
    | The seam's item-report eligibility (`MayReportOn`) | ONE rule for the destroy report, the state report and a container sync's parent | `AStateReportForAnotherMembersItem_ChangesNoRowAndIsNotAnswered` — RED before (another member's row moved), green after; the destroy and nested cases in `KernelCommandGatewayTests`; the world-rooted escape is what keeps a ground container's own contents reportable |
    | The container sync's reach (`KernelProtocolCommandHandler.HandleItemContainerSync`) | the kind now passes the seam, which it never did | `AContainerSyncForAnotherMembersContainer_MovesNothingAndIsNotAnswered` — RED before (the peer's container row was rewritten and the peer's item moved into the reporter's container), green after |
    | The container sync's children (`MayEnterOwnContainer`) | a listed child may not be an item another member carries or wears | the four container cases in `KernelCommandGatewayTests`, including the admitted `Contained` row a container that changed hands leaves behind |
+   | The console write's own kind (S1b: `WireCommandKind.ItemDataWrite`, sent by `ItemActionSync.SendItemDataWrite`) | a member's write is distinguishable from a native use while mapping to the same kernel fact | `WireCommandAuthorityPolicyTests` (25 declared rows), `WireCommandSenderAuthorityGateTests` (member-authored floor 11 → 12, the new send site is what satisfies it), `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_IsReportedAndTheHostRecordsIt` — the HOST's own kernel row moves |
+   | The host's rule for the verb (S1b: `IMemberCommandRules` ← `HostRulesOptions.AllowMemberItemDataWrite`) | the seam judges the VERB, and the wire kind is what tells it which | `KernelCommandGatewayTests.ConsoleVerbWithTheHostRuleClosed_IsRefusedAndAnswered` / `.ConsoleVerbWithTheHostRuleOpen_IsAdmitted` in isolation, the end-to-end pair in `CommandAdmissionIntegrationTests`; RED with the rule check disabled alone (the member's write committed) |
+   | The way back from a refusal (S1b: `ItemDataWriteSettlement` + `WireCommand.RefusedKind`) | a refusal settles the value the writer already applied, and the answer names the report it judged | `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_WhenTheHostRuleIsClosed_IsRefusedAndTheValueGoesBack` — RED with the settle skipped (local 0.25, expected 0.5); `.WhenRefused_NeverBecameAPickupRollback`; `.ForAnIdTheHostNeverJudged_IsRefusedAndSettled` |
+   | What S1b did NOT change | a console write's DOMAIN verdict is the native use's own (`UpdateItemStateCommand`), the host's own console never passes the seam, and the read verb stays open to everyone | `KernelWireMapper`'s two arms; `ItemDataCommands`' host branch; `CommandConsoleItemDataTests` green |
    | What did NOT change | the domain's own rules and the handler's revision re-stamp | `ItemDomainModule.DecideUpdate` checks existence, a terminal row and the revision only, and `ResolveCommandRevision` re-stamps the revision from the host's own record; `DecideSyncContainer` was left as it is, because the seam is where eligibility belongs |
-   | Not covered | a console command's own wire path and the host rule that admits it (S1b), the drop table (S2), the state preconditions (S3), and a `CommandRejected` frame arriving as a command kind (pre-existing: the mapper's default arm threw the same way) | the stages above; `review/item-data-write-commands.md` still refuses a member's `/data set` by name |
+   | Not covered | the drop table (S2), the state preconditions (S3), and a `CommandRejected` frame arriving as a command KIND (pre-existing: the mapper's default arm threw the same way; `KernelProtocolService` answers it only on the guest's own payload-type branch) | the stages above; the write verb's own rows and limits are `review/item-data-write-commands.md` |
 2. **S2 — the drop table.** A block or entity destruction report carries its drops; today the host registers
    them first-writer-wins and never checks them against the block's own table. The host re-derives the allowed
    set (kinds, counts, and for a random roll the probability window) and refuses what is outside it — the
@@ -105,15 +130,19 @@ A two-client session where one client is modified by hand or by a test harness t
 | 5 | A report arriving before its creation | Accepted in the documented order, not refused |
 | 6 | An ordinary session, unmodified clients | Nothing changes: no new refusals, no new logs at Warn |
 
-Where the rows stand after S1a: row 4 is answered — the eligibility rule reads a carried, installed OR
-contained row, and the container sync's own parent and children — and row 3 is answered for the host-only
-half, a member's report of a kind only the host authors being refused by name; row 3's console-command half
-waits for S1b, rows 1–2 for S2, and row 5 is the creation-before-operation invariant that already runs above
-the seam. Row 6 is the batch, and it has TWO halves to read rather than one: the authority half refuses only
-kinds no member sender emits (kept true by `WireCommandSenderAuthorityGateTests`), and the eligibility half
-refuses only report shapes a member's own client cannot produce — each sender of those kinds sits behind a
-proxy guard (`ItemUseSync`'s standing-item branch, `ItemSlotSync`'s `RemoteCloneRender` check, `GunStateSync`,
-`ContainerItemSync`), so an unmodified client meets no new refusal while a modified one does.
+Where the rows stand after S1a and S1b: row 3 is answered on both halves — a kind only the host authors is
+refused by name, and a member's console write is refused unless the host's `AllowMemberItemDataWrite` rule
+grants the verb, with the refusal answered and the writer settling its own local value back. Row 4 is answered
+by the eligibility rule, which reads a carried, installed OR contained row, and by the container sync's own
+parent and children. Rows 1–2 wait for S2, and row 5 is the creation-before-operation invariant that already
+runs above the seam. Row 6 is the batch, and it has TWO halves to read rather than one: the authority half
+refuses only kinds no member sender emits (kept true by `WireCommandSenderAuthorityGateTests`), and the
+eligibility half refuses only report shapes a member's own client cannot produce — each sender of those kinds
+sits behind a proxy guard (`ItemUseSync`'s standing-item branch, `ItemSlotSync`'s `RemoteCloneRender` check,
+`GunStateSync`, `ContainerItemSync`), so an unmodified client meets no new refusal while a modified one does.
+S1b adds a third half to that read: with the host's rule closed, a member's `/data set` IS refused, so the
+batch must read it as the family intends — a refused write that says so and settles back, never a silent
+divergence — and the row asserts it on the operator's own console and on the host's own kernel row.
 
 ## Non-goals
 

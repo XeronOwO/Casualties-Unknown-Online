@@ -85,6 +85,8 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
 		var allowRemoteInventoryTake = config.Bind("HostRules", "AllowRemoteInventoryTake", true,
 			new ConfigDescription("True = other players may take carried items from a remote player's inventory (unconscious/dead loot remains the default rule; false disables cross-player inventory take entirely)."));
+		var allowMemberItemDataWrite = config.Bind("HostRules", "AllowMemberItemDataWrite", false,
+			new ConfigDescription("Host-only: true = a member may run the item-data write verbs (/data set) on an item it may report on — its own carried/installed/contained item, or world content. The host admits the report and records it like any other item fact. False (default) = the write is refused by name, the reason is named back to the member, and the member's client puts back the value it had already applied."));
 		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
 			new ConfigDescription("Host-only: widen the native custom run-settings sliders in co-op so the run can be tuned for the actual lobby size. Values still ride the existing world-start params."));
 		var piggybackWeight = config.Bind("HostRules", "PiggybackWeightMultiplier", 0.8,
@@ -104,12 +106,14 @@ internal static class PluginDependencyRegistrar
 					AutoContinue = autoContinue.Value,
 					AllowLateJoin = allowLateJoin.Value,
 					AllowRemoteInventoryTake = allowRemoteInventoryTake.Value,
+					AllowMemberItemDataWrite = allowMemberItemDataWrite.Value,
 					WidenRunSettings = widenRunSettings.Value,
 					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
 					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value),
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
 				allowRemoteInventoryTake.Definition,
+				allowMemberItemDataWrite.Definition,
 				widenRunSettings.Definition, piggybackWeight.Definition,
 				nativeBindingParity.Definition)));
 
@@ -172,6 +176,7 @@ internal static class PluginDependencyRegistrar
 			autoContinue,
 			allowLateJoin,
 			allowRemoteInventoryTake,
+			allowMemberItemDataWrite,
 			widenRunSettings,
 			piggybackWeight,
 			nativeBindingParity,

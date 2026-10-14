@@ -1,6 +1,8 @@
 # The item data write verb: set one property on the item this client holds
 
 - Status: Review — code-complete 2026-10-14, waiting for the agent's acceptance batch (`docs/acceptance/`).
+  Extended the same day with the member route and the host's rule for it (S1b of
+  `todo/validation-and-source-checks.md`), which is what opened the verb to a member's console.
 - Priority: Medium-High
 - Category: Command surface / item state
 - Source: Stage B of `todo/item-and-entity-data-commands.md`, cut off 2026-10-14 — the first write verb
@@ -9,7 +11,9 @@
   each with its own verification.
 - Related: `review/item-data-read-commands.md` (the read half, and the property survey this verb writes
   through), `todo/item-and-entity-data-commands.md` (the family's remaining stages),
-  `review/in-game-command-console-interactive.md` (the console the verb lands in),
+  `todo/validation-and-source-checks.md` (S1b: the console write's own wire kind, the host's rule and the
+  refusal's way back), `todo/host-rules-replication.md` (what would let a member's console know the rule
+  before it writes), `review/in-game-command-console-interactive.md` (the console the verb lands in),
   `docs/architecture/domains.md` (the item kernel domain), `docs/contracts/item-features-matrix.csv`
 
 ## What landed
@@ -66,12 +70,17 @@ row kind: a child of a dropped backpack is world-rooted even though its row says
 correction the native path gives it, while a child of a carried container takes the carried-fact broadcast,
 whose receiver merges nested facts by id (the tested nested-container case).
 
-**Who may write.** Only the host's console, enforced in the handler. A member's write of its own item would
-ride `ItemUpdateState` — byte-for-byte what a native use sends, and the host accepts a member's own-item
-state by design (the pre-release trust model) — so a host rule that opens the verb to members would promise a
-gate the wire cannot back. The honest order is: the write becomes a distinguishable command the host can
-admit or refuse FIRST, and the rule follows it. That is the family's own stage, recorded in the umbrella
-ticket.
+**Who may write.** Every client, and the HOST decides. A write is the holder's own report, so the verb is
+open to every console and the host's own rule judges a member's write: `HostRules`'
+`AllowMemberItemDataWrite` (off by default, the family's "not a cheating surface by default") is read at the
+admission seam, so the host may open it, close it, or close it mid-session. What made this possible is the
+member's write having a wire kind of its own (`ItemDataWrite`, the same `UpdateItemStateCommand` a native use
+maps to — the row it writes is the row the game would have written): before it, a member's write was
+byte-identical to a native use and the host had nothing to grant or refuse separately. The two halves of a
+refusal are in place with it — the seam ANSWERS this kind (the writer already applied the value to its own
+object), the answer names the report it judged (`WireCommand.RefusedKind`), and the member's client puts the
+session's recorded state back and prints the refusal where the operator typed the command. A host whose rule
+is closed therefore refuses a member's write by name and both sides keep agreeing.
 
 **What a write cannot reach.** An item this client does not hold is refused by name, and the refusal says
 where the row puts it. That is the model, not a shortcut: another member's carried item's local form is a
@@ -113,7 +122,7 @@ is boxed back in.
 | A property the item does not have | the component/field/liquid it DOES have is listed |
 | A value that is not that field's kind | `'fast' is not a float for BatteryItem.charge.` |
 | The scene refuses the write | its own reason (a proxy or a standing incarnation, or nothing held) |
-| A member's console | `Only the host can write item state today: …` |
+| A member's write, with the host's rule closed | the verb's own line first (`… written here and reported to the host, which judges a member's write by its own rule; a refusal puts the old value back and says so in this console`), then the host's answer as its own console line: `The host refused the write to #<id> <definition> (this host's rule does not open the item-data write verbs to members) — the recorded value is back on this client.` |
 | No active session | `No active session — a write reports into the session's record, so it needs one …` |
 
 ## Self-check (mechanism × change × evidence)
@@ -126,6 +135,11 @@ is boxed back in.
 | The report route | two existing `IItemControl` calls, chosen by the kernel's own world-rooted walk | the two `Set_On…` route cases assert the EVENTS each route raises (a carried fact vs a correction) and that the other route stayed silent — the row changes on both, so the row is not the discriminator — plus `Set_OnAContainedChildOfAWorldContainer_TakesTheWorldCorrectionRoute` for the chain walk |
 | The value's source | computed against the local capture | `Set_ComputesTheValueAgainstTheLocalCapture_NotTheRecord` seeds a local value the row disagrees with and asserts the answer's "before" is the local one |
 | The target grammar | the read parser exposes a prefix form; the read verb's own behaviour is unchanged | `ItemDataQueryParserTests` (25 cases) still green, and the write parser's target cases run through the same function |
+| A member's write route | the report travels under `WireCommandKind.ItemDataWrite` so the host judges the VERB, not the state (S1b) | `ItemActionSyncTests`; end to end `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_IsReportedAndTheHostRecordsIt` (the host's own kernel row moves) |
+| The host's rule for the verb | new flag `HostRulesOptions.AllowMemberItemDataWrite` (off), read at the admission seam through the Application-declared `IMemberCommandRules` port | `KernelCommandGatewayTests.ConsoleVerbWithTheHostRuleClosed_IsRefusedAndAnswered` (RED with the rule check disabled; its open-rule control stayed green, which is what makes the rule the difference) / `.ConsoleVerbWithTheHostRuleOpen_IsAdmitted`; the end-to-end pair `CommandAdmissionIntegrationTests.AConsoleWriteFromAMember_IsRefusedByTheHostRuleAndAnswered` (RED with the rule check disabled) / `.CommitsWhenTheHostRuleIsOpen` |
+| The way back from a refusal | the seam answers this kind and `WireCommand.RefusedKind` names the judged report; the member's client settles the recorded state back (`ItemDataWriteSettlement`) and the console prints it | `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_WhenTheHostRuleIsClosed_IsRefusedAndTheValueGoesBack` (RED with the settle disabled: the local value stayed at the written one) and `KernelItemReportEligibilityTests.ConsoleWriteForAnotherMembersItem_IsAnsweredRatherThanIgnored` (RED with the answer narrowed to the native shape) |
+| The refusal keeps its own family | a refused console write never becomes the pickup/block-drop rejection the adapter rolls back | `Set_OnAMembersConsole_WhenRefused_NeverBecameAPickupRollback` asserts the item control's rejection event stayed silent, and the member's local value went back rather than the item leaving its hands |
+| The re-report window (found by the independent review, fixed in the same commit) | the console write is re-reported like the other member actions whose local half already happened, and a refusal closes the newest report OF THE KIND it names | `GuestCommandReconciliationTests.SwallowedConsoleWrite_IsReReportedAndTheHostCommitsIt` (RED with the kind absent from the re-reportable set: an empty window where `[ItemDataWrite]` was expected) and `.RefusalClosesOnlyTheKindItNames` (RED with the item-scoped pop restored: an empty window where `[ItemPickup]` was expected) |
 
 ## Acceptance (the rows a run must read)
 
@@ -136,7 +150,8 @@ One two-client session, host and guest both in a world:
 | 1 | The host holds an item it has used or moved once, and runs `/data set id <id> condition 0.5` | The answer names the item and `condition <old> -> 0.5`; `/data get id <id>` on BOTH peers reads 0.5 after the next snapshot |
 | 2 | The host writes a component field (a battery's charge) and a liquid stack (`liquid water 500`) | Both peers' `/data get id <id>` print the written values; the container's fill follows on the guest's clone |
 | 3 | The host writes a WORLD item (a dropped container it holds) | The guest's copy adopts the value (the correction route), and `/data get` on both peers agrees |
-| 4 | `/data set …` on the guest's console | One line: `Only the host can write item state today…`, and nothing changes on either peer |
+| 4 | `/data set …` on the guest's console, with the host's rule closed (its default) | The verb's own line, then the host's refusal line naming the rule, and the item reads back at its recorded value on both peers |
+| 4b | The same write with a host whose rule is open | The host records the value, `/data get id <id>` on both peers reads it after the next snapshot, and no refusal line appears |
 | 5 | The host runs `/data set @s slot <n> …` for a carried item the record has no row for (a fresh world's starting supplies) | One line naming why: the item joins the record on its first report — the record gap this stage did NOT close (see Limits) |
 | 6 | `/data set id 999999 …`, `/data set @a slot 0 …` (two remote members), `/data set @s …` (no slot), `/data set id <id> component Radio gain 1` | One explicit line each: no such item, the body count with what to write instead, "a write names ONE item", the component it does have |
 | 7 | `/save`, continue (restore) and a rejoin after row 1's write | The written value is still what both peers read |
@@ -167,10 +182,29 @@ One two-client session, host and guest both in a world:
   the data model. A negative condition is refused.
 - **A slot MOVE is not a property write.** `slot` names an item in the target; moving one item to another
   body slot is a native gesture with its own report chain (`ItemSlotSync`), not a value this verb writes.
-- **Permission is the host's console only**, for the reason in the write path above; the host rule and the
-  member-facing route are the family's own stage. The permission is per COMMAND and the read verb's `Anyone`
-  is what keeps a member's `/data get` open, so a member's `/help` does list the write grammar and typing it
-  is refused by name — the refusal is the offer's only gate on the member's side.
+- **The rule gates the VERB, not the state.** A modified client can report the same item state under the
+  native `ItemUpdateState` kind, which the host admits for a member's own item by design (the pre-release
+  trust model; the validation ticket's acceptance row 6 says the same) — what `AllowMemberItemDataWrite`
+  decides is whether an operator's verb runs, never whether a member can put a number into the record. Stating
+  it here because the opposite reading is the natural one: the rule is a host's call over its own console
+  surface, not a boundary a determined client meets. Questioning the STATE is S3
+  (`todo/validation-and-source-checks.md`) — an item use must name an item the host records in a state that
+  permits that use — and the client-side half that stage needs is the same one this stage built: something a
+  client can do locally when the host says "that did not happen".
+- **A member's write is applied before the host judges it, so a closed host rule is visible for one round
+  trip.** The verb refuses nothing locally — only the host knows its own rule — so a member's `/data set`
+  writes the value, reports it, and a refusal puts the recorded value back a moment later (S1b). The two
+  console lines say both halves; the value never stays wrong. What that costs is the flicker: on a host
+  whose rule is closed, the item briefly reads the value the member typed. The alternative (the member's
+  console refusing what the host would accept, or promising what it may refuse) would put a rule this side
+  does not hold in front of the operator. Removing it the honest way means telling the member the rule —
+  `todo/host-rules-replication.md`, recorded at the user's direction when this stage closed, which also owns
+  the mid-session change (an event, not just a world-entry fact) and the both-sides check the user asked for.
+- **Permission is a HOST rule for the verb family**, `HostRules`' `AllowMemberItemDataWrite`, off by
+  default; the host's own console is unaffected by it (its own writes never pass the admission seam). The
+  permission is per COMMAND and the read verb's `Anyone` is what keeps a member's `/data get` open, so a
+  member's `/help` does list the write grammar and typing it is refused by name when the host has not
+  opened it — the refusal is the offer's only gate on the member's side.
 - **A write needs an ACTIVE session.** Both report routes are guarded on one (`ItemService`), so without a
   session the local object would change and the record would not; the verb refuses by name instead
   (`No active session …`). A solo or offline world therefore has no item record for this verb to change, which

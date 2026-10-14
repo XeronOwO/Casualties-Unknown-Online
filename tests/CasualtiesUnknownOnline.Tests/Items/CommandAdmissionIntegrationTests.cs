@@ -2,10 +2,13 @@ using System.Linq;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
@@ -191,6 +194,67 @@ public class CommandAdmissionIntegrationTests
 		Assert.Equal(w.G1.SteamId, KernelRow(w, 43).Location.Owner.Value);
 		Assert.True(gatewayLog.HasWarning("so its contents are not the sender's to rewrite"));
 		Assert.Empty(w.Rejects(w.G2));
+	}
+
+	/// <summary>
+	/// The host's own rule for the console write, through the production composition
+	/// root: the same report the seam admits for a native use reaches the host under
+	/// the console kind, and the host's rule — closed, which is the default a host
+	/// ships with — is what refuses it. The refusal is ANSWERED (the member's own
+	/// local object already carries the value it reported), and the row the report
+	/// would have written is untouched.
+	/// </summary>
+	[Fact]
+	public void AConsoleWriteFromAMember_IsRefusedByTheHostRuleAndAnswered()
+	{
+		var gatewayLog = new RecordingLogger<KernelCommandGateway>();
+		using var w = ItemSimWorld.Create(services => services.AddSingleton<ILogger<KernelCommandGateway>>(gatewayLog));
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G1, 42), "setup: G1 owns the item");
+
+		var before = KernelRow(w, 42).Data.Condition;
+		Report(w.G1, new WireCommand
+		{
+			Kind = WireCommandKind.ItemDataWrite,
+			Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "test_item" },
+			Data = new WireItemData { Condition = 0.01f },
+		}, WirePayloadType.ItemDataWriteCommand);
+		w.Driver.Tick(33);
+
+		Assert.Equal(before, KernelRow(w, 42).Data.Condition);
+		Assert.True(gatewayLog.HasWarning("the host's rule does not open the item-data write verbs"));
+		Assert.Equal(1, w.CommandRejectedFrames(w.G1));
+	}
+
+	/// <summary>
+	/// The other side: a host whose rule is open commits exactly what the member
+	/// reported — the row a console write leaves is the row a native use leaves, which
+	/// is why the kind exists only for the rule's sake.
+	/// </summary>
+	[Fact]
+	public void AConsoleWriteFromAMember_CommitsWhenTheHostRuleIsOpen()
+	{
+		var rules = new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowMemberItemDataWrite = true });
+		using var w = ItemSimWorld.Create(services => services.Replace(
+			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules)));
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(33);
+
+		Report(w.G1, new WireCommand
+		{
+			Kind = WireCommandKind.ItemDataWrite,
+			Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "test_item" },
+			Data = new WireItemData { Condition = 0.25f },
+		}, WirePayloadType.ItemDataWriteCommand);
+		w.Driver.Tick(33);
+
+		Assert.Equal(0.25f, KernelRow(w, 42).Data.Condition);
+		Assert.Equal(0, w.CommandRejectedFrames(w.G1));
 	}
 
 	/// <summary>One raw kernel command, framed the way a member's own client frames it — the shape a modified client has, and the only way a test can report a kind no CUO gesture emits.</summary>

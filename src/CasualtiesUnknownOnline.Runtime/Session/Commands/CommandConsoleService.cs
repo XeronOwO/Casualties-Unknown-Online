@@ -47,6 +47,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IWorldSaveControl _saves;
 	private readonly WorldRestoreAudit _restoreAudit;
 	private readonly IStartingSupplyControl _startingSupplies;
+	private readonly ItemDataWriteSettlement _itemDataWriteSettlement;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -64,7 +65,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		WorldRestoreAudit restoreAudit,
 		IStartingSupplyControl startingSupplies,
 		ILocalItemAccess localItems,
-		IItemControl itemControl)
+		IItemControl itemControl,
+		ItemDataWriteSettlement itemDataWriteSettlement)
 	{
 		_chat = chat;
 		_session = session;
@@ -78,6 +80,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_saves = worldSaves;
 		_restoreAudit = restoreAudit;
 		_startingSupplies = startingSupplies;
+		_itemDataWriteSettlement = itemDataWriteSettlement;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += ResetSessionState;
 		// The console is the player's surface for the save system's three answers: the
@@ -92,6 +95,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// a world the world has no character for was handed (decision 179's rule — one
 		// notification, the account behind it).
 		_startingSupplies.Reported += OnStartingSuppliesReported;
+		// ...and the write verb's own answer, which cannot be the command's return
+		// value: the host judges a member's console write after the fact, so the
+		// verdict reaches the operator here, where they typed the command.
+		_itemDataWriteSettlement.Refused += OnItemDataWriteRefused;
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
@@ -220,6 +227,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_saves.RestoreReported -= OnRestoreReported;
 		_restoreAudit.Reported -= OnRestoreLiveWrite;
 		_startingSupplies.Reported -= OnStartingSuppliesReported;
+		_itemDataWriteSettlement.Refused -= OnItemDataWriteRefused;
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
@@ -266,6 +274,17 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// <summary>The live-world half of a restore: the world-entry seam wrote — or could not write — the restored facts.</summary>
 	private void OnRestoreLiveWrite(WorldRestoreLiveWriteReport report) =>
 		AddLine($"CUO restore of world {report.WorldId}: {report.Summary}", report.Complete ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+
+	/// <summary>
+	/// The host refused a console item-data write this client had already typed. The
+	/// answer arrives after the verb's own line — the write is applied locally and
+	/// reported, so the verdict is a round trip behind it — and it belongs in the
+	/// console because that is where the operator is reading: the value they wrote is
+	/// no longer there, and this is the only line that says so. Always an error line:
+	/// the write did not land, whichever ground the host refused it on.
+	/// </summary>
+	private void OnItemDataWriteRefused(ItemDataWriteRefusal refusal) =>
+		AddLine(refusal.Describe(), ConsoleLineKind.Error);
 
 	/// <summary>
 	/// The starting-supplies grant of a player this world had no character for (S4.3):

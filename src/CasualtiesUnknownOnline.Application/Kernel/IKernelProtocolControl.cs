@@ -53,6 +53,13 @@ public interface IKernelProtocolControl
 
 	event Action<ulong, WirePayloadType, WireStateStream>? EntityStateStreamReceived;
 
-	event Action<ulong, RejectionReason>? CommandRejected;
+	/// <summary>
+	/// The host refused one of this member's reports. The first argument is the
+	/// KIND of the report it answered (<c>WireCommand.RefusedKind</c>): a member can
+	/// have more than one report in flight for the same item, and each family
+	/// settles its refusal in its own way, so a consumer switches on the kind
+	/// instead of assuming the item id identifies the report.
+	/// </summary>
+	event Action<WireCommandKind, ulong, RejectionReason>? CommandRejected;
 
 }

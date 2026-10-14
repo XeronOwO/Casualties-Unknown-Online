@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -33,6 +34,13 @@ internal static class SessionComposition
 		// HandshakeHandler can inject it for the late-join gate.
 		services.AddSingleton<HostRulesService>();
 		services.AddSingleton<IHostRules>(p => p.GetRequiredService<HostRulesService>());
+		// The admission seam's own question about a member's submission (which verb
+		// this host opens to members) is answered from those rules through the
+		// Application layer's port: the seam may not reference Runtime configuration
+		// types, so the port is what crosses. It has no default implementation on
+		// purpose — an unanswered rule must fail at construction rather than read as
+		// consent, which is the family's default-OFF rule.
+		services.AddSingleton<IMemberCommandRules, HostRulesMemberCommandRules>();
 		// The host-rule write seam defaults to unavailable; the plugin replaces
 		// it with the BepInEx ConfigEntry-backed editor in extraRegistrations.
 		services.AddSingleton<IHostRulesEditor>(new DisabledHostRulesEditor());

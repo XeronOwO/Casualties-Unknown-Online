@@ -41,7 +41,15 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public event Action<ulong, WirePayloadType, WireStateStream>? EntityStateStreamReceived;
 
-	public event Action<ulong, RejectionReason>? CommandRejected;
+	/// <summary>
+	/// The host judged one of this member's reports and refused it. The FIRST
+	/// argument is the kind of the report the verdict answers
+	/// (<c>WireCommand.RefusedKind</c>), because one member can have several reports
+	/// in flight for the same item and they settle differently on this side: a
+	/// refused pickup rolls back, a refused console write puts the item's recorded
+	/// state back. Consumers must switch on it rather than assume.
+	/// </summary>
+	public event Action<WireCommandKind, ulong, RejectionReason>? CommandRejected;
 
 	public KernelProtocolService(
 		IKernelSessionFacts session,
@@ -291,12 +299,14 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	{
 		var itemId = envelope.Command.Identity.InstanceId;
 		var reason = (RejectionReason)envelope.Command.RejectionReason;
+		var refusedKind = envelope.Command.RefusedKind;
 		// The host judged this item's operation and refused it (audit row I5): the
 		// re-report window for the item closes; the refusal itself reaches the item
 		// domain's rollback path below exactly as it always did.
-		_pendingCommands.ClearRejected(itemId);
-		_log.LogWarning("Kernel command rejected by host for item {ItemId}: {Reason}.", itemId, reason);
-		CommandRejected?.Invoke(itemId, reason);
+		_pendingCommands.ClearRejected(refusedKind, itemId);
+		_log.LogWarning("Kernel command rejected by host for item {ItemId}: {RefusedKind} refused ({Reason}).",
+			itemId, refusedKind, reason);
+		CommandRejected?.Invoke(refusedKind, itemId, reason);
 	}
 
 	private void HandleStateStream(ulong sender, StateStreamEnvelope envelope)

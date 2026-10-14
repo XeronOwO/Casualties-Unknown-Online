@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 ///
 /// <para>
 /// Why this is a gate rather than a unit test: the two facts live in two places
-/// nothing ties together — a table in the Application layer and fifteen
+/// nothing ties together — a table in the Application layer and the framed
 /// <c>SendCommand(new WireCommand { … })</c> call sites scattered from the item
 /// flow to the enemy-combat submitter. The table's whole justification is that it
 /// is filled from the senders this tree HAS, and no runtime test can enumerate
@@ -47,8 +47,8 @@ public class WireCommandSenderAuthorityGateTests
 	/// <summary>The tree the sender census reads, derived from the repository layout rather than listed.</summary>
 	internal const string SourceRoot = "src";
 
-	/// <summary>Census floors: the counts measured at 2026-10-14 — eleven member-authored kinds across fifteen send call sites and thirteen host-only kinds. A scan emptied alongside its source must fail here rather than pass by finding nothing.</summary>
-	internal const int MemberAuthoredFloor = 11;
+	/// <summary>Census floors: the counts measured at 2026-10-14 — twelve member-authored kinds and thirteen host-only kinds (the console write added the twelfth member-authored kind). A scan emptied alongside its source must fail here rather than pass by finding nothing.</summary>
+	internal const int MemberAuthoredFloor = 12;
 
 	internal const int HostOnlyFloor = 13;
 

@@ -173,6 +173,20 @@ internal static class ItemDataRenderer
 			? " At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now."
 			: "");
 
+	/// <summary>
+	/// A MEMBER's write answer: the same line, plus the one thing the operator has to
+	/// know about it. The value IS written and IS reported — that half is identical to
+	/// the host's own write above — but the host judges the report as a console write
+	/// and its rule may refuse it, so the answer says the verdict is still out and
+	/// where the refusal will appear. Without that sentence a member would read
+	/// "written" and take it for a fact the host had accepted.
+	/// </summary>
+	internal static string WroteAwaitingHost(CharacterItemMsg item, ItemDataWrite write, string before, string after) =>
+		$"#{item.InstanceId} {item.ItemId}: {Property(write)} {before} -> {after} — written here and reported to the host, which judges a member's write by its own rule; a refusal puts the old value back and says so in this console."
+		+ (write.Property == ItemDataProperty.Condition && write.Number == 0f
+			? " At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now."
+			: "");
+
 	/// <summary>A number, in the form every line of this verb prints one.</summary>
 	internal static string NumberValue(float value) => Number(value);
 

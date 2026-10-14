@@ -42,6 +42,16 @@ public enum WireCommandKind
 	ItemApplyLimb = 27,
 	ItemRemoveLimb = 28,
 
+	/// <summary>
+	/// A CONSOLE command wrote one item's state (<c>/data set</c>). The payload is
+	/// the same save-shaped state an <see cref="ItemUpdateState"/> report carries —
+	/// the row it writes is the row the game would have written — and the kind
+	/// exists so the host can tell a console write from a native use before it
+	/// judges the report: a native use is a gesture the player performed, a console
+	/// write is an operator verb the host's own rule admits or refuses.
+	/// </summary>
+	ItemDataWrite = 29,
+
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,
 	CommandRejected = 101,

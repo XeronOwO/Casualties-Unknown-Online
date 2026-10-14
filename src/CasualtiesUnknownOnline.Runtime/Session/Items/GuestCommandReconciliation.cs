@@ -36,8 +36,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// original decision for a known <c>OperationId</c>, and the host re-broadcasts
 /// that same committed batch). A report leaves the window on either verdict the
 /// wire already carries: its own id in a committed batch
-/// (<see cref="ClearCommitted"/>) or a refusal naming the item
-/// (<see cref="ClearRejected"/>).
+/// (<see cref="ClearCommitted"/>) or a refusal naming the item AND the kind it
+/// answered (<see cref="ClearRejected"/>, <c>WireCommand.RefusedKind</c>).
 /// </para>
 ///
 /// <para>
@@ -222,7 +222,7 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 
 	void IKernelPendingCommands.ClearCommitted(ulong operationId) => ClearCommitted(operationId);
 
-	void IKernelPendingCommands.ClearRejected(ulong itemId) => ClearRejected(itemId);
+	void IKernelPendingCommands.ClearRejected(WireCommandKind kind, ulong itemId) => ClearRejected(kind, itemId);
 
 	/// <summary>
 	/// A command frame is about to leave this client: queue it (with the exact frame,
@@ -313,23 +313,33 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	}
 
 	/// <summary>
-	/// The host refused a report about this item: the refusal is item-scoped on the
-	/// wire (it carries the item id and the reason, never the operation id), so the
-	/// NEWEST outstanding report for the item leaves the window — that is the one the
-	/// host most likely judged — while the older reports keep their place, so the host
-	/// still converges to the state the refusal left behind. This side's local result
-	/// is the adapter's own to settle (the rejection reaches the item domain's
-	/// rollback path as it always did).
+	/// The host refused a report about this item. The verdict names the KIND it answered
+	/// (<c>WireCommand.RefusedKind</c>), so the entry that leaves the window is the NEWEST
+	/// outstanding report OF THAT KIND — the one the host most likely judged — while an
+	/// older report of the same kind keeps its place, so the host still converges to the
+	/// state the refusal left behind. A report of another kind is deliberately left alone:
+	/// closing the item's newest entry whatever it was would spend the budget of a report
+	/// the host never answered (a refused console write used to be able to consume a
+	/// pending pickup's window that way). This side's local result is the adapter's own to
+	/// settle (the rejection reaches the item domain's rollback path as it always did).
 	/// </summary>
-	internal void ClearRejected(ulong itemId)
+	internal void ClearRejected(WireCommandKind kind, ulong itemId)
 	{
 		if (!_pending.TryGetValue(itemId, out var queue) || queue.Count == 0)
 		{
 			return;
 		}
 
-		var refused = queue[queue.Count - 1];
-		queue.RemoveAt(queue.Count - 1);
+		var index = queue.FindLastIndex(pending => pending.Kind == kind);
+		if (index < 0)
+		{
+			_log.LogDebug("[ItemCommand] the host refused a {Kind} report about item {ItemId}, and this client has none of that kind outstanding — nothing leaves the window ({Queued} other report(s) stay).",
+				kind, itemId, queue.Count);
+			return;
+		}
+
+		var refused = queue[index];
+		queue.RemoveAt(index);
 		if (queue.Count == 0)
 		{
 			_pending.Remove(itemId);
@@ -527,6 +537,18 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	/// it applied while the body already holds it. A repeat is idempotent: the frame is
 	/// the same operation, so the host's window answers it from the first verdict.
 	/// </para>
+	/// <para>
+	/// The CONSOLE write (<c>ItemDataWriteCommand</c>) is re-reported too, and it is the one
+	/// kind whose absence an OPERATOR would feel: the verb is an explicit act whose value
+	/// this client has already applied, and a swallowed frame does not heal toward the
+	/// written value — the host's own absolute item facts (row I7) carry ITS state, so the
+	/// write is overwritten and lost rather than corrected. It is not the
+	/// <c>ItemUpdateState</c> shape that stays out above: the console resolves its target
+	/// from the kernel record, so a console write always names a row this host has judged
+	/// and can never trigger the missing-carried heal that would evict a creation report.
+	/// A repeat is idempotent for the same reason as the rest: the frame is the same
+	/// operation, answered from the host's window.
+	/// </para>
 	/// </summary>
 	private static bool IsReReported(WirePayloadType payloadType) => payloadType switch
 	{
@@ -536,6 +558,7 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 		WirePayloadType.ItemDestroyCommand => true,
 		WirePayloadType.ItemApplyLimbCommand => true,
 		WirePayloadType.ItemRemoveLimbCommand => true,
+		WirePayloadType.ItemDataWriteCommand => true,
 		_ => false,
 	};
 

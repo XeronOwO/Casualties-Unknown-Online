@@ -57,6 +57,36 @@ internal sealed class ItemActionSync(
 			WirePayloadType.ItemUpdateStateCommand);
 	}
 
+	/// <summary>
+	/// Guest only: a CONSOLE command wrote this item's state (<c>/data set</c>) — the
+	/// holder's own report of a value an operator typed, sent under its own kind.
+	///
+	/// <para>
+	/// The payload is the state the command computed, exactly as a native use reports
+	/// its post-use digest, and the ROW it writes is therefore the row the game would
+	/// have written. The kind is the one difference, and it exists for the host's own
+	/// rule: a native use is a gesture the player performed, a console write is a verb
+	/// the host admits or refuses by name, and the two are indistinguishable on the
+	/// wire without it. One command write = one report, the family's own rule.
+	/// </para>
+	/// </summary>
+	public void SendItemDataWrite(ulong itemId, CharacterItemMsg item)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_kernelProtocol.SendCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemDataWrite,
+				Identity = ToIdentity(itemId, item),
+				Data = ToWireData(item),
+			},
+			WirePayloadType.ItemDataWriteCommand);
+	}
+
 	/// <summary>Guest only: a carried container's FULL fact changed internally (a
 	/// nested-content move — an item shifted inside a backpack or held container).
 	/// The parent container is the fact source for its owner's own body, so the

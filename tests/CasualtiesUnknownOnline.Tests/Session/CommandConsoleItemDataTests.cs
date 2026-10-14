@@ -354,17 +354,6 @@ public class CommandConsoleItemDataTests
 		Assert.Contains("[limit=1]", answer);
 	}
 
-	/// <summary>A member's console has no write to offer yet: the family's host rule and a member's own report route are the stage that opens it.</summary>
-	[Fact]
-	public void Set_OnAMembersConsole_IsRefusedByName()
-	{
-		var (_, guest, _) = CreateSceneSession();
-
-		var answer = Run(guest, "/data set @s slot 0 condition 0.5");
-
-		Assert.Contains("Only the host can write item state today", answer);
-	}
-
 	[Fact]
 	public void Set_ForAPropertyTheItemDoesNotCarry_IsRefusedByName()
 	{

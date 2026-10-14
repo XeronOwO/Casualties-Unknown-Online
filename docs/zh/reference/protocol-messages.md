@@ -108,6 +108,8 @@ Host: start normal Batch/Stream
 
 被拒的指令以 `CommandEnvelope` 回来，带 `WirePayloadType.CommandRejected`（以及 `WireCommandKind.CommandRejected`），不再是独立帧类型。这替掉了旧的专用 `NetMsg.ItemReject` 帧；比如破坏方块时的掉落拒绝，现在用 `RejectionReason.BlockAlreadyBroken`。如果某个消息族以前有自己的拒绝消息，那条消息已经没了：答案跟着问题走，搭在同一个信封里（`src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolCommandHandler.cs`、`IKernelProtocolControl.cs`）。
 
+答案还会点名它判的是哪一份报告（`WireCommand.RefusedKind`）：同一名成员可能同时有好几份针对同一个物品的报告在飞，而它们在发送方那侧的善后方式各不相同 —— 被拒的拾取要回滚，被拒的控制台物品数据写入则要把物品记录里的状态放回去。所以读它的一方必须按这个字段分支，不能假设物品编号就认得出是哪一份报告。
+
 ## 信封之外的消息
 
 不是每一帧都是那四种。会话与控制、世界变更与表现、角色表现、敌人快照与攻击、交易与聊天、模组接口，以及玩家交互请求，仍然各有自己的直连 `NetMsg` 帧。它们是现役的单路径协议，不是「权威状态还存了第二份」：需要其他玩家达成一致的玩法事实属于已提交批次，只有单个接收方会据以行动的东西才可以直连。

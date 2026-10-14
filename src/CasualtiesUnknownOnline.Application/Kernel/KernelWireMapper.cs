@@ -424,6 +424,19 @@ public static class KernelWireMapper
 				identity.InstanceId,
 				command.Data is null ? ItemData.Empty : FromWireData(command.Data),
 				command.ExpectedRevision),
+			// A console write is the SAME kernel fact as a native use of the item —
+			// the row it writes is the row the game would have written — so it maps
+			// to the same command. What differs is who may author it: the host's own
+			// rule for the verb, judged by the admission seam on the wire kind
+			// (KernelCommandGateway), before any of this reaches the domain.
+			WireCommandKind.ItemDataWrite => new UpdateItemStateCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				identity.InstanceId,
+				command.Data is null ? ItemData.Empty : FromWireData(command.Data),
+				command.ExpectedRevision),
 			WireCommandKind.ItemTransfer => new TransferItemCommand(
 				operation,
 				actor,

@@ -15,6 +15,11 @@ public interface IKernelPendingCommands
 	/// <summary>The host committed this operation — the command is answered.</summary>
 	void ClearCommitted(ulong operationId);
 
-	/// <summary>The host refused this item's command — the pending entry is answered.</summary>
-	void ClearRejected(ulong itemId);
+	/// <summary>
+	/// The host refused a report about this item, and the verdict names the KIND it answered
+	/// (<c>WireCommand.RefusedKind</c>): the entry that leaves the window is the newest one
+	/// OF THAT KIND. A verdict that closed the item's newest entry whatever it was would
+	/// spend the budget of a report the host never judged.
+	/// </summary>
+	void ClearRejected(WireCommandKind kind, ulong itemId);
 }

@@ -101,7 +101,14 @@ accepted-creation path unchanged or needs its own admission, including what a la
 4. **The permission story, inside every stage.** Reads are `Anyone` today (the read half's own reasoning is in
    its ticket). Writes are the host's call, and the family expresses that as a host rule following the
    existing `HostRulesOptions` flags — enforced on the HOST side, because a member's write reaches the kernel
-   as a wire command and the member's own console cannot be the gate.
+   as a wire command and the member's own console cannot be the gate. **Landed for `/data set` 2026-10-14
+   (S1b of `todo/validation-and-source-checks.md`):** `HostRules.AllowMemberItemDataWrite`, off by default,
+   judged at the admission seam on the write's own wire kind (`ItemDataWrite`); a refusal is answered, and the
+   member's client puts the value it had already applied back onto the session's record
+   (`review/item-data-write-commands.md`). Every later write verb rides the same kind and the same rule — a
+   new verb does not need a new gate, and it must not grow one. What the rule still cannot do is reach the
+   member BEFORE the write, so a closed rule is a value that appears and goes back; letting a member's console
+   know the rule is `todo/host-rules-replication.md`.
 
 ## Non-goals
 

@@ -54,6 +54,30 @@ public sealed class HostRulesOptions
 	public float PiggybackWeightMultiplier { get; set; } = 0.8f;
 
 	/// <summary>
+	/// Host-only: whether a member may run the item-data write verbs
+	/// (<c>/data set</c> and the verbs that follow it). OFF by default, because the verb
+	/// edits recorded item state directly and the family is deliberately "not a cheating
+	/// surface by default" (<c>todo/item-and-entity-data-commands.md</c>).
+	/// <para>
+	/// The grant follows what a member may REPORT on at all rather than what it happens to
+	/// hold: its own carried, installed or contained item, or world content — the same item
+	/// set a native use may report, because a console write is that same kind of fact (see
+	/// <c>KernelCommandGateway.MayReportOn</c>). It is a rule over the VERB, never a check
+	/// on the value: the pre-release model still trusts a member's report of its own item's
+	/// state, and questioning the state itself is S3's stage
+	/// (<c>todo/validation-and-source-checks.md</c>).
+	/// </para>
+	/// <para>
+	/// The rule is enforced on the HOST, at the admission seam: a member's write reaches it
+	/// as a wire command of its own kind and the member's own console cannot be the gate. A
+	/// refused write is answered by name, and the member's client puts its already-changed
+	/// local value back — with this off, a member's <c>/data set</c> therefore reads the
+	/// value it wrote, then reads the refusal and the restored value in the same console.
+	/// </para>
+	/// </summary>
+	public bool AllowMemberItemDataWrite { get; set; }
+
+	/// <summary>
 	/// Host-only: how a member's declared native binding is judged when it differs
 	/// from the host's own for a mod both sides list (allow / warn / require).
 	/// Warn is the default on purpose: the declaration is new, so a host that

@@ -95,7 +95,7 @@ internal sealed class KernelProtocolCommandHandler(
 		// creation-before-operation invariant above still refuse first, and an id
 		// this host never judged still goes to the kernel for its own verdict.
 		var command = KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header);
-		var admission = _gateway.AdmitMemberSubmission(sender, command);
+		var admission = _gateway.AdmitMemberSubmission(sender, envelope.Command.Kind, command);
 		if (!admission.IsAdmitted)
 		{
 			if (admission.AnswersSender && admission.Reason is { } reason)
@@ -187,6 +187,10 @@ internal sealed class KernelProtocolCommandHandler(
 	/// carry-registration heal instead, which the host answers by materializing the
 	/// reporter's own carried parent (see Handle), and a refused creation there is
 	/// still answered precisely by <see cref="TryRefuseRefusedCreation"/>.
+	/// <c>ItemDataWrite</c> IS one, and it takes no heal: the console resolves its
+	/// target from the kernel record, so a legitimate console write always names an
+	/// item this host has already judged, and an unjudged id under this kind is a
+	/// report the sender cannot have made.
 	/// </summary>
 	private static bool IsItemOperation(WireCommandKind kind) => kind switch
 	{
@@ -195,6 +199,7 @@ internal sealed class KernelProtocolCommandHandler(
 		WireCommandKind.ItemTransfer => true,
 		WireCommandKind.ItemDestroy => true,
 		WireCommandKind.ItemUpdateState => true,
+		WireCommandKind.ItemDataWrite => true,
 		WireCommandKind.ItemApplyLimb => true,
 		WireCommandKind.ItemRemoveLimb => true,
 		_ => false,
@@ -240,7 +245,7 @@ internal sealed class KernelProtocolCommandHandler(
 		var command = envelope.Command;
 		var parentId = command.Identity.InstanceId;
 		var sync = KernelWireMapper.FromWireCommand(command, envelope.Header);
-		var admission = _gateway.AdmitMemberSubmission(sender, sync);
+		var admission = _gateway.AdmitMemberSubmission(sender, command.Kind, sync);
 		if (!admission.IsAdmitted)
 		{
 			if (admission.AnswersSender && admission.Reason is { } reason)
@@ -262,10 +267,16 @@ internal sealed class KernelProtocolCommandHandler(
 			parentId, sender, command.ContainerChildren.Count);
 	}
 
+	/// <summary>
+	/// The three-argument form its Runtime callers use when no wire command is in
+	/// hand: the only caller is a refused item CREATION (the block-drop family
+	/// remembers the tombstone and answers later operations with it), so the answer
+	/// names <see cref="WireCommandKind.ItemSpawn"/> as the report it judged.
+	/// </summary>
 	internal void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason) =>
 		SendCommandRejected(targetSteamId, new WireCommand
 		{
-			Kind = WireCommandKind.CommandRejected,
+			Kind = WireCommandKind.ItemSpawn,
 			Identity = new WireItemIdentity { InstanceId = itemId },
 		}, reason);
 
@@ -294,6 +305,12 @@ internal sealed class KernelProtocolCommandHandler(
 					Kind = WireCommandKind.CommandRejected,
 					Identity = new WireItemIdentity { InstanceId = original.Identity.InstanceId },
 					RejectionReason = (int)reason,
+					// WHICH report the verdict answers: several of one member's
+					// reports can name the same item, and they settle differently on
+					// its side (a refused console write puts the local value back), so
+					// the answer names the kind rather than leaving the sender to
+					// guess from the item id.
+					RefusedKind = original.Kind,
 				},
 			},
 		};

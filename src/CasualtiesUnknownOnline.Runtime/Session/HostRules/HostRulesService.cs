@@ -27,6 +27,8 @@ public sealed class HostRulesService(
 
 	public bool AllowRemoteInventoryTake => _hostRules.CurrentValue.AllowRemoteInventoryTake;
 
+	public bool AllowMemberItemDataWrite => _hostRules.CurrentValue.AllowMemberItemDataWrite;
+
 	public bool WidenRunSettings => _hostRules.CurrentValue.WidenRunSettings;
 
 	public float PiggybackWeightMultiplier => _hostRules.CurrentValue.PiggybackWeightMultiplier;

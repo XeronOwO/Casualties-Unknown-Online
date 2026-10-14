@@ -38,14 +38,16 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly ItemKernelProjectionWiring _kernelProjectionWiring;
 	private readonly RestoredWorldItemSet _restoredWorldItems;
+	private readonly ItemDataWriteSettlement _itemDataWriteSettlement;
 
-	public ItemService(ISessionControl session, ItemArbitration arbitration, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, ItemIdCoordinator idCoordinator, WorldRestoreAudit? audit = null)
+	public ItemService(ISessionControl session, ItemArbitration arbitration, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, ItemIdCoordinator idCoordinator, ItemDataWriteSettlement itemDataWriteSettlement, WorldRestoreAudit? audit = null)
 	{
 		_session = session;
 		_log = log;
 		_arbitration = arbitration;
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
+		_itemDataWriteSettlement = itemDataWriteSettlement;
 		_restoredWorldItems = new RestoredWorldItemSet(kernelAuthority, audit, log);
 		_kernelProtocol.CommandRejected += OnCommandRejected;
 		_projection = new ItemProjection(kernelAuthority, _worldTable);
@@ -201,6 +203,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	public void SendItemUse(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemUse(itemId, item);
 
 	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item) => _messageFlow.SendItemSlot(itemId, slotIndex, item);
+
+	public void SendItemDataWrite(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemDataWrite(itemId, item);
 
 	public void SendItemContainerContent(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemContainerContent(itemId, item);
 
@@ -523,10 +527,22 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	// ===== Kernel rejection surfacing =====
 
-	private void OnCommandRejected(ulong itemId, RejectionReason reason)
+	private void OnCommandRejected(WireCommandKind kind, ulong itemId, RejectionReason reason)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
+			return;
+		}
+
+		if (kind == WireCommandKind.ItemDataWrite)
+		{
+			// The console-write family settles its OWN refusals, and it has to: this
+			// client applied that value to its local object before reporting it, so
+			// the answer puts the session's recorded state back
+			// (ItemDataWriteSettlement). Falling through to the pickup/block-drop
+			// mapping below would roll back the wrong thing — an item this client is
+			// holding would be dropped as if a pickup had lost a race.
+			_itemDataWriteSettlement.Settle(itemId, reason);
 			return;
 		}
 

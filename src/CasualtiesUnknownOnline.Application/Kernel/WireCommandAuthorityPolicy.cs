@@ -60,6 +60,16 @@ public static class WireCommandAuthorityPolicy
 		WireCommandKind.ItemApplyLimb => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemRemoveLimb => AuthorityKind.OwnerPredictedHostValidated,
 
+		// A console write: the member's own client applies the value locally and
+		// reports the resulting state, exactly as a native use does (the sender is
+		// ItemActionSync's console-write report), so its authority is the same one.
+		// What the authority does NOT express is the host's own RULE for the verb:
+		// that is a per-session decision rather than a property of the kind
+		// (<c>IMemberCommandRules</c>, read by <see cref="KernelCommandGateway"/>),
+		// because the same report is a refusal on a host whose rule is off and an
+		// ordinary state fact on one whose rule is on.
+		WireCommandKind.ItemDataWrite => AuthorityKind.OwnerPredictedHostValidated,
+
 		// ===== Member-authored, trigger observed: the native effect already ran on
 		// the reporting member's own client — it has no way to intercept it first —
 		// and the host commits the resulting fact.

@@ -24,7 +24,9 @@ honest by `WireCommandSenderAuthorityGateTests` in both directions, so a member'
 host-only kind is refused by name at the seam; and the seam gained the item-report eligibility family the
 same ticket names (a member may report on a world item or on its own carried/installed/contained item,
 never on one the record puts in another member's hands — a destroy report, a state report and a
-container sync alike).
+container sync alike). S1b landed the same day: the console item-data write has a wire kind of its own,
+the host's `HostRules.AllowMemberItemDataWrite` (off) is the seam's verdict on it, and a refusal settles
+the value the writer had already applied back onto the session's record.
 
-What is still deferred, and lives in the ticket's own stages: a CONSOLE command's own identifiable wire
-path with the host rule that admits it (S1b), the drop-table check (S2) and the state preconditions (S3).
+What is still deferred, and lives in the ticket's own stages: the drop-table check (S2) and the state
+preconditions (S3).

@@ -63,8 +63,14 @@ handler itself:
 - **The admission seam.** A command that reached the kernel through the wire passes
   `src/CasualtiesUnknownOnline.Application/Kernel/KernelCommandGateway.cs`, which owns "who may submit
   this" for the mapped path. It checks, in a fixed order, that the command's actor is the submitting
-  member, that the declared authority kind is one a member may author, and that a destroy report names
-  an item that member may report destroyed.
+  member, that the declared authority kind is one a member may author (`WireCommandAuthorityPolicy` is
+  that per-kind table), that a verb the host's own rule owns is open — the console item-data write
+  (`/data set`), which `HostRules`' `AllowMemberItemDataWrite` leaves closed until the host opens it —
+  and that an item report names an item the member may speak for: a world item, or the member's own
+  carried, installed or contained one. That item rule covers a destroy report, a state report and a
+  container sync's parent and children alike. A refused console write is the one verdict that must reach
+  its sender: the writer applied the value to its own object before reporting it, so the client puts the
+  recorded value back and prints the refusal where the operator typed the command.
 
 The seam's scope is part of its contract: it "decides ELIGIBILITY only (who may submit), never what
 happens to another player's body, reach or timing… the kernel still owns every domain verdict". The
@@ -98,10 +104,17 @@ box.
 ## What CUO does not defend against
 
 - **A modified client.** Anti-cheat is explicitly deferred — `docs/backlog/future/strict-validation-anti-cheat.md`
-  is a low-priority future item, and it records the current honest limit: the authority kind a member's
-  command declares carries no member-versus-host information yet. The accepted limitation is stated on
-  the judgment side too: a client that lies about its own reach or its own body can reach the host
-  ungated, and closing that is a later hardening pass.
+  is a low-priority future item whose basic checks are being landed stage by stage
+  (`docs/backlog/todo/validation-and-source-checks.md`). What IS in place bounds what a member's reports may
+  reach: the authority kind a member's command declares is a per-kind table
+  (`WireCommandAuthorityPolicy`), so a member cannot author a fact only the host's simulation owns, and the
+  item a report names must be one the member may speak for. What is NOT in place is any check on the STATE a
+  member reports — a member's own item's state is trusted by design, so a rule over a verb (the console
+  write's `AllowMemberItemDataWrite`) decides whether the verb runs and never whether a number can be written
+  into the record, and a rule over a report's SOURCE (the drop table) and over a use's PRECONDITIONS (S2 and
+  S3) are the stages still open. The accepted limitation is stated on the judgment side too: a client that
+  lies about its own reach or its own body can reach the host ungated, and closing that is a later hardening
+  pass.
 - **Save contents.** There is no anti-cheat on what a world archive holds.
 - **A mod that misbehaves inside the surface it was granted.** Once a mod has `SendNetworkMessage`, the
   channel checks size and rate, not meaning — the value's shape is validated, and its MEANING stays the mod's own.

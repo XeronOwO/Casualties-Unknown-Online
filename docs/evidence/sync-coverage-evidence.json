@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1049,
+  "count": 1052,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -1028,13 +1028,13 @@
       "cluster": "items",
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
-      "quote": "internal void ClearRejected(ulong itemId)"
+      "quote": "internal void ClearRejected(WireCommandKind kind, ulong itemId)"
     },
     {
       "cluster": "items",
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/GuestCommandReconciliation.cs",
-      "quote": "var refused = queue[queue.Count - 1];"
+      "quote": "var index = queue.FindLastIndex(pending => pending.Kind == kind);"
     },
     {
       "cluster": "items",
@@ -1076,7 +1076,7 @@
       "cluster": "items",
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
-      "quote": "_pendingCommands.ClearRejected(itemId);"
+      "quote": "_pendingCommands.ClearRejected(refusedKind, itemId);"
     },
     {
       "cluster": "items",
@@ -6297,6 +6297,24 @@
       "row": "P9",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerItemActionOutcome, msg);"
+    },
+    {
+      "cluster": "items",
+      "row": "I10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemActionSync.cs",
+      "quote": "Kind = WireCommandKind.ItemDataWrite,"
+    },
+    {
+      "cluster": "items",
+      "row": "I10",
+      "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelCommandGateway.cs",
+      "quote": "\"the host's rule does not open the item-data write verbs to members\");"
+    },
+    {
+      "cluster": "items",
+      "row": "I10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemDataWriteSettlement.cs",
+      "quote": "var restore = _localItems.WriteLocalItem(instanceId, recorded);"
     }
   ]
 }

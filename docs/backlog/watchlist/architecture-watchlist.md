@@ -70,9 +70,11 @@ assembly), and its interface keeps growing with every feature (see
   once the file crossed the gate at 606 lines. What is left to extract next is the APPLY half
   (`TryApplyCharacterRestore` / `ApplyRestoredStatsAndWipe` / `ApplyRestoredItems` / `RestoreWearable`
   ≈ 190 lines, with `PlayerInteractionApply` as the second caller of the last one).
-- `src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs` (~510) — command
-  groups register as their own owners (`HostAdminCommands`, `WorldSaveCommands`); a new command
-  family must not grow this class.
+- `src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs` (571 after the item-data
+  read verb on 2026-10-14, from 584) — command groups register as their own owners (`HostAdminCommands`,
+  `WorldSaveCommands`, `ItemDataCommands`); a new command family must not grow this class, and the last
+  change is what that rule looks like: the family landed as its own owner plus a shared selector helper, and
+  this class SHRANK by the duplicate it gave up.
 - `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (574 after the patch-bridge port
   change on 2026-09-22, from 569) — the one implementation of the frozen `IPatchBridge` aggregate plus
   the per-domain patch ports the aggregate does not carry (`IFluidPatchPort` today). Every member is a

@@ -1,0 +1,138 @@
+# The item data read verb: what CUO records about one item
+
+- Status: Review — code-complete 2026-10-14, waiting for the agent's acceptance batch (`docs/acceptance/`).
+- Priority: Medium-High
+- Category: Command surface / item state
+- Source: Stage A of `todo/item-and-entity-data-commands.md` (the user's 2026-10-07 request for a
+  Minecraft-style command family), cut out on 2026-10-14. That ticket's own rule is that each stage is its own
+  deliverable with its own verification, and its first required job was the attribute: write down what is
+  addressable today before designing a verb that writes it.
+- Related: `todo/item-and-entity-data-commands.md` (the family's remaining stages),
+  `review/in-game-command-console-interactive.md` (the console these verbs land in),
+  `done/in-game-command-console.md` (the console itself), `done/id-system-namespaced-ids.md` (the instance id a
+  target names), `docs/architecture/domains.md` (the item kernel domain), `docs/contracts/item-features-matrix.csv`
+
+## What landed
+
+`/data get` reads the KERNEL row for one item — the host's authority on the host, a guest's replay of the
+committed batches elsewhere — and prints every save-shaped property it holds. It is the first verb of the
+family the user asked for, and it is deliberately the read half: it answers "what does the session think this
+item is" without touching who may write what.
+
+| File | What it is |
+|---|---|
+| `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataCommands.cs` | The command group: target resolution, the kernel query, the refusals, the audit lines |
+| `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataQueryParser.cs` | The target grammar, parsed with no session so the vocabulary is pinned by unit tests |
+| `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataQuery.cs` + `ItemDataQueryKind.cs` | One parsed target (bodies, a slot of those bodies, or one instance id) |
+| `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataRenderer.cs` | The wording: one line per item when listing, one property per line when reading |
+| `src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandPlayerTargets.cs` | The one selector expansion both selector-consuming command groups now share |
+| `src/CasualtiesUnknownOnline.Application/Kernel/IKernelItemFacts.cs` | The read model gained `QueryItems()` — the same rows `FindItem` answers one at a time, for a listing |
+
+## The property surface it reads (the attribute, answered)
+
+An item's persistent state is one kernel payload, `ItemData`: condition, favourited flag, the owner-local slot
+index, the liquid stacks and the typed component fields. Its own doc says what it is for — "the save-shaped
+item facts that must travel with identity and location". What gets INTO it, and what therefore crosses players,
+is decided by one capture path and one restore path:
+
+| Property | Decided by | What a mod or a game update can change under it |
+|---|---|---|
+| condition, favourited | the game's `SavedItem` fields, read at capture (`ItemStateCodec.CaptureItem`) | nothing — two floats/bools with no vocabulary |
+| slot | the owner's own body, read at capture (`ItemStateCodec.SlotOf`) | nothing — the owner's local fact, which the host adopts |
+| liquids | `WaterContainerItem.stack`, read and rebuilt whole (`CaptureLiquids` / `RestoreLiquids`) | the liquid ids and amounts; the stack is replaced, not merged |
+| component fields | every `[Saveable]` component's simple-typed fields, plus two whitelists: `CustomItemBehaviour` and `GrapplingHook`'s fired/latched/pulling | a new `[Saveable]` field joins by itself; anything else needs a whitelist entry |
+| `CustomItemBehaviour.data` | two explicit wire faces (the liquidcentrifuge cooldown, the dynamite fuse) | a new payload in that array needs its own face — it is `object[]`, not a saveable field |
+| container contents | separate item rows joined by a `Contained` location, never nested copies | nothing — nesting is the model |
+
+Two properties the family will want are NOT here, and the survey says why: the item's definition data
+(`ItemInfo`'s static table) is content, not per-instance state, and anything the codecs do not whitelist (a
+Unity-reference component field) never leaves the process that holds it.
+
+**Where a write would go.** The same kernel row is what a write has to change, and the path exists:
+`ItemKernelAuthority.TryUpdateState` is the host's own entry (owner-predicted, host-validated), and a guest's
+report of its own item rides `ItemActionSync` as one `ItemUpdateState` wire command — the exact path a native
+item use already takes. What does NOT exist is a host-side edit of another player's CARRIED item: a carried
+item's state is its owner's own report, and the correction machinery resolves world items only
+(`ItemApplication` looks the instance up in the world table and ignores what it cannot find). That is why the
+write stages cannot promise remote edits without a new mechanism, and it is recorded in the umbrella ticket.
+
+## The target grammar
+
+```text
+/data get                                  the items CUO records for the caller's own body
+/data get <selector>                        the items of the bodies that selector names
+/data get slot <n>                          the caller's own item in body slot n
+/data get <selector> slot <n>               that body's item in slot n
+/data get id <instanceId>                   one item wherever it is, world rows included
+```
+
+`<selector>` is CUO's existing Minecraft-style player vocabulary (`@s`, `@a`, `@p`, `@r`, and the bracketed
+`name`/`type`/`distance`/`limit`/`sort` filters), expanding over the same entity table `/heal` uses. Every
+other shape is refused with the usage line, including a bare number: reading `4101` as an instance id would let
+a typo address an item the player never named.
+
+Answering one item prints its id, definition, location, revision and each property; answering a body prints one
+line per item in slot order, so the listing reads like the inventory it describes. A target that matches nobody
+is refused by name ("no players match selector", "no item is carried by X in slot N"), so an empty answer is
+never mistaken for a silent one. A body that answers empty is the one place the reason matters, and the
+caller's own body gets it in the answer: an item joins this record on the holding client's first report of it,
+which is also when it gets the instance id a target can name.
+
+## Self-check (mechanism × change × evidence)
+
+| Mechanism | Change | Evidence |
+|---|---|---|
+| The kernel item read model | `IKernelItemFacts.QueryItems()` added; the authority already implemented it, so no behaviour moved | the interface's implementors: the authority resolves it, the admission seam's test fake gained the member in the same change |
+| The console's selector expansion | one expansion extracted (`CommandPlayerTargets`); `/heal` now calls it instead of its own copy | the parse/resolve path is unchanged for `/heal` — the family's existing selector cases stay green |
+| The target grammar | a pure parser: 5 accepted shapes, 15 refused ones | `ItemDataQueryParserTests` — 15 refusal cases plus the accepted shapes |
+| The wording | a pure renderer: every property, every component field kind, every location family | `ItemDataRendererTests` — including the container-contents case and the enum/string/string-list field kinds |
+| The wiring | console → kernel → render, plus every refusal | `CommandConsoleItemDataTests` — 16 integration cases through the real console and the real kernel |
+
+## Acceptance (the rows a run must read)
+
+One two-client session, host and guest both in a world:
+
+| # | Scenario | Expected |
+|---|---|---|
+| 1 | The guest runs `/data get` once the world is entered | Its carried items, starting supplies included, one line each in slot order with instance id, definition, slot and condition — a member's client registers its carried inventory at the generation-finished edge |
+| 2 | The host picks an item up (or moves one in its inventory) and then runs `/data get` | That item is listed; an item the host has never touched is absent, and the empty answer names why — the host registers a carried item on its first domain entry |
+| 3 | The host runs `/data get id <id>` on an item whose state it knows (a partly used container with liquid, or an item with a charge field) | Every property printed matches the item: condition, favourited, each liquid stack with its millilitres, each component field with its kind, and the contents by id |
+| 4 | The guest runs `/data get id <the same id>` for an item the host registered | The same rows the host's own read printed — the replay kernel agrees with the authority |
+| 5 | `/data get id 999999`, `/data get slot <empty>`, `/data get @x`, `/data get 4101`, `/data set ...` | One explicit line each — "no item is recorded", "no item is carried by … in slot …", "no players match selector", the usage line, and the not-implemented answer for the write verb — with no silent no-op anywhere |
+| 6 | An item that IS recorded and then applied to a limb (a splint or tourniquet) | Listed by the body form as `limb N`, and read by its id as `applied to <owner>, limb N` |
+
+## Limits, recorded rather than hidden
+
+- **Reads only.** `set`, `merge` and `remove` answer "not implemented yet" — they are stages B and C of the
+  umbrella ticket, and their authority model is the finding above, not a detail to be improvised.
+- **`slot` is a body slot.** The negative encodings the wire uses for worn items are a transport detail and are
+  not accepted; a limb-installed item is reached through the body listing and read by its id.
+- **No cursor target yet.** The user asked for a Minecraft-style selector including "the item nearest the
+  mouse"; that needs a new GameAdapter capability port (the console reads the kernel, which has no cursor), and
+  it lands with the write half, which needs local-scene access anyway.
+- **Reads the session's record, not the local scene — and having no record is a real answer.** The verb
+  answers what CUO records, and the record is filled by the holding client's report. A member's client registers
+  its carried inventory (starting supplies and worn items included) at the generation-finished edge, so a guest's
+  own body reads completely; the HOST's own untouched items have no row and no instance id at all — the host's
+  supplies are its local authority and "their ids are assigned lazily on first domain entry", which
+  `CarriedInventoryReporter` states as its own reason for being guest-side. The verb therefore lists what the
+  session knows, and says so when the answer is empty; closing that gap (a host-side registration path, or a
+  local-scene read that can name an id-less item) is stage B's first question, recorded in the umbrella ticket.
+  A row is also the client's own last report, so a value the scene changed a frame ago appears when its report
+  lands.
+- **No console completion for this verb.** It declares one free-text argument, and the console's suggestion
+  sources are keyed by argument kind, so `/data get @<Tab>` suggests nothing; the selector vocabulary itself is
+  the one `/heal` completes. A grammar that mixes keywords with a selector needs a per-argument completion
+  source, which is its own change rather than a fix here.
+- **Permission is `Anyone` for this verb.** Another player's carried items are already visible in the remote
+  inventory view, and the verb only reads. The host's call over the family belongs to the write stages, which
+  the umbrella ticket carries.
+
+## Non-goals
+
+- Not the write verbs, `give` or `spawn` — each is its own stage in `todo/item-and-entity-data-commands.md`.
+- Not a raw property editor: only the properties the game's own data model carries are addressable, and a
+  property the codecs do not whitelist is out of reach by construction (the survey above says where).
+- Not a new player-facing documentation page: the reading surface for a console verb is the console's own
+  `/help`, which is generated from the command registration, so the page a player opens is already the one
+  that answers.

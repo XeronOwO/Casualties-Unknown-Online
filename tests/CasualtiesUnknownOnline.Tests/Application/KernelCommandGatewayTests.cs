@@ -325,6 +325,8 @@ public class KernelCommandGatewayTests
 
 		public ItemState? FindItem(ulong instanceId) => _items.TryGetValue(instanceId, out var item) ? item : null;
 
+		public IReadOnlyDictionary<ulong, ItemState> QueryItems() => _items;
+
 		internal void CarriedBy(ulong instanceId, ulong owner) =>
 			_items[instanceId] = new ItemState(new ItemIdentity(instanceId, "test_item"), 1, ItemLocation.Carried(new ActorId(owner)));
 

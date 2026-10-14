@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -51,6 +52,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IHostBanService hostBans,
 		IPlayerInteractionControl playerInteraction,
 		IEntitySyncControl entities,
+		IKernelItemFacts kernelItems,
 		IHostRulesEditor hostRulesEditor,
 		ITimeSource time,
 		ILogger<CommandConsoleService> log,
@@ -89,6 +91,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
+		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, entities, log));
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 
@@ -403,24 +406,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return $"Sent heal request to {targets.Count} player(s): {targetText}.";
 	}
 
-	private IReadOnlyList<ulong> ResolveSelector(string selector)
-	{
-		var targets = new List<CommandSelectorResolver.Target>
-		{
-			new(_entities.LocalPlayer.SteamId, true, _entities.LocalPlayer.Position, GetDisplayName(_entities.LocalPlayer.SteamId)),
-		};
-		var remotePlayers = _entities.RemotePlayers;
-		for (var i = 0; i < remotePlayers.Count; i++)
-		{
-			var remote = remotePlayers[i];
-			targets.Add(new(remote.SteamId, false, remote.Position, GetDisplayName(remote.SteamId)));
-		}
-
-		return CommandSelectorResolver.Resolve(selector, targets);
-	}
-
-	private string? GetDisplayName(ulong steamId) =>
-		_session.Members.FirstOrDefault(m => m.SteamId == steamId)?.DisplayName;
+	private IReadOnlyList<ulong> ResolveSelector(string selector) =>
+		CommandPlayerTargets.Resolve(_session, _entities, selector);
 
 	// The host-administration commands (/hostrules, /kick, /ban, /unban) live in
 	// HostAdminCommands, and the save commands (/save) in WorldSaveCommands: each

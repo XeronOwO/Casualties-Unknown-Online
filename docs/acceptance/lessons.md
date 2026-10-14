@@ -492,3 +492,15 @@ Resolve a test anchor by name PREFIX against the outcome index (an xunit theory'
 ## 2026-10-12 — A reversal must reverse every sweep the batch ran
 
 A sweep script carries a DIRECTION, not just a rule: re-running the one-direction `review/` → `done/` reference sweep after the tickets came back silently put the index rows and a decision entry on `done/` again, and only the gate suite saw all four failures at once.
+
+## 2026-10-14 — A missing sandbox dependency can come back without reinstalling anything
+
+`sandboxie` reported `SbieSvc and SbieDrv: found 1 of the 2 services` with every program file in place: the kernel driver's own service registration was gone (the System log showed the service stopping unexpectedly, then a reboot), and starting the service registered it back — the next preflight reported `RESULT: OK` with no reinstall and no reboot. When the preflight blames a program-plus-service pair, read WHICH half is missing and offer the start-it option before proposing a reinstall; the repair is the user's action (`docs/acceptance/dependencies.md`, "Asking the user").
+
+## 2026-10-14 — A batch-local probe harness takes the FULL placeholder name
+
+A local `probe.ps1` substitutes placeholders verbatim, so a template's `{{s:id}}` needs `-Arg s:id=7`; the committed driver's own `-RecipeArg id=7` spelling matches nothing, and the harness's leftover check cannot see the colon — the un-substituted file is SENT and the evaluator answers `ok:true` with no `value` field instead of raising a compile error. Pass the typed name, and read an answer with no `value` as "the code never ran" (`tools/acceptance/drive-in-process.ps1` is the driver whose spelling differs).
+
+## 2026-10-14 — A page-agnostic UI row is only covered on the pages a batch photographs
+
+The UI tickets' rows read "Any page" and "an English page", while the batches that judged them photographed Home, Worlds and Preferences only: the Admin page collapses every rule row's label to one character per line and paints it over the rows below, in English and Chinese alike, which no earlier frame could have shown. A batch that touches a UI ticket photographs EVERY page it can open and captures the same page in both languages — the A/B is what separates a translation defect from a layout one (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md`).

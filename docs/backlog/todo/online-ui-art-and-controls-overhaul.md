@@ -1,6 +1,9 @@
 # The Online UI's art and controls are placeholders
 
-- Status: Review (all six stages landed 2026-09-26; batch 20261001-j judged rows 1 and 3 and left row 2 unproven — the pointer and OS-key close paths have no executable setup yet)
+- Status: Todo — Rejected (the palette blocks do not read as a palette: the S3 colour picker's own recorded
+  residual was answered by the user's run on 2026-10-14). All six stages remain landed; what is open is how a
+  block reads and how wide it is drawn.
+  **Rejected 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261014-a.md`): the palette blocks render as the game's own button sprite tinted, so only the border takes the colour and the middle stays transparent, and each block measures 18.0 units wide against the 88 the drawer declares (`SwatchWidth`), with the `Auto` control below the row not visible at the host's window size.
 - Acceptance (20261001-j): row 1 residual, row 2 unproven, row 3 pass; the Preferences control internals are unlaid-out and are recorded on the sibling ticket's record — record `docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261001.md`
 - Priority: High
 - Category: Online UI / presentation and interaction

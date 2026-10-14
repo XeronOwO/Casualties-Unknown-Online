@@ -1,6 +1,8 @@
 # The Online UI's layout and input detail pass
 
-- Status: Review — code complete and re-judged (batch 20261001-k: the control internals ARE laid out now;
+- Status: Todo — Rejected (the Admin page's rule rows collapse their labels to one character per line).
+  **Rejected 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md`): rows 2 and 3 of the table below fail on the Admin page in BOTH languages — each rule row's label is one character wide, stacks down the row's left edge and paints over the rows below it, and the rows are taller than the tab strip's own height. The page was never photographed by the earlier judgements, which stand for the pages they read.
+- Re-judged before that (batch 20261001-k: the control internals ARE laid out now;
   rows 3, 5, 6 and the window third of row 11 pass against the deployed build)
 - Acceptance (20261001-k): rows 1, 2, 3, 4, 5, 6 and 7 pass; row 11 passes for the window half (the quick
   panel, the context menu and the overlays need a session) → the session half stays unproven; rows 8–10

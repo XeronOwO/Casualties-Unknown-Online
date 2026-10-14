@@ -144,6 +144,15 @@ S1b adds a third half to that read: with the host's rule closed, a member's `/da
 batch must read it as the family intends — a refused write that says so and settles back, never a silent
 divergence — and the row asserts it on the operator's own console and on the host's own kernel row.
 
+**Read on the real machine 2026-10-14, batch `20261014-a`**
+(`docs/evidence/acceptance/validation-and-source-checks-20261014-a.md`): rows 3 and 4 pass in full — a
+host-only kind forged from the member's own client was refused by name AND answered while the host's kernel
+stayed put; a forged state report for the host's item was refused by name with no answer and no row moved; a
+forged container sync was refused for its parent and, in a second report, for its CHILD (the guest's own
+container, the host's carried item as the child). Row 6's first half is read too: from world entry to the end
+of the session the host logged no admission refusal except the five the run itself provoked. Rows 1–2 still
+wait for S2 and row 5 was not exercised.
+
 ## Non-goals
 
 - No player-state simulation, no movement validation: the continuous-value half is

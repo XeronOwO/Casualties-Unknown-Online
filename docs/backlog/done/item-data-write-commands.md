@@ -1,8 +1,8 @@
 # The item data write verb: set one property on the item this client holds
 
-- Status: Review — code-complete 2026-10-14, waiting for the agent's acceptance batch (`docs/acceptance/`).
-  Extended the same day with the member route and the host's rule for it (S1b of
-  `todo/validation-and-source-checks.md`), which is what opened the verb to a member's console.
+- Status: Done — the verb, the member route and the host's rule for it landed 2026-10-14 (S1b of
+  `todo/validation-and-source-checks.md`).
+  **Accepted 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/item-data-write-commands-20261014-a.md`): every row passes — the host's own writes on a carried item, a component field, a liquid stack and a world item, both sides of the host's rule for a member's write (refused and settled back / admitted and recorded), the record-gap refusal, the four refused targets, and the written values surviving a save, a restore and a rejoin.
 - Priority: Medium-High
 - Category: Command surface / item state
 - Source: Stage B of `todo/item-and-entity-data-commands.md`, cut off 2026-10-14 — the first write verb

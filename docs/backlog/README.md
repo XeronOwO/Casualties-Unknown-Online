@@ -64,6 +64,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — the write verbs, give and spawn; the read half landed.
+- [Health on every client, reconciled to the host](todo/health-simulation-and-host-authority.md) — **Medium-High** — everyone simulates; the host wins at once.
+- [Source, permission and data checks](todo/validation-and-source-checks.md) — **Medium-High** — drop tables, command permission, ownership.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.

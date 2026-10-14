@@ -289,6 +289,8 @@ docs/backlog/todo/give-item-to-another-player.md | keep | index | docs/backlog/R
 docs/backlog/todo/heal-command-limb-and-hollow-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/id-carriers-can-disagree-about-placement.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/item-and-entity-data-commands.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/health-simulation-and-host-authority.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/validation-and-source-checks.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-change-member-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md

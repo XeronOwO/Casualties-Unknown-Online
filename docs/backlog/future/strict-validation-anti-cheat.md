@@ -1,6 +1,8 @@
 # Strict validation / anti-cheat hardening
 
-- Status: Future
+- Status: Future — **promoted in part on 2026-10-14**: the user put the basic checks on the work list, and
+  the stages live in `todo/validation-and-source-checks.md` (source/permission, the drop table, the state
+  preconditions). This file stays as the inventory behind that ticket, not as the work item.
 - Priority: Low
 - Category: Future / security
 

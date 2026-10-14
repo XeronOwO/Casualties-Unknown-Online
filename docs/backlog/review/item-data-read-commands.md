@@ -78,6 +78,14 @@ never mistaken for a silent one. A body that answers empty is the one place the 
 caller's own body gets it in the answer: an item joins this record on the holding client's first report of it,
 which is also when it gets the instance id a target can name.
 
+A verb that names ONE item needs one body to name it on. That verdict is taken AT EXECUTION, on the resolved
+set, and answered by name — `@a slot 0` says how many bodies matched and what to write instead (`@p`, a
+selector with `[limit=1]`, or the item's own id), and it takes THREE members in the session to see it, because
+`@a` names the remote bodies and never the caller's own. The grammar stays as wide as the selector vocabulary on
+purpose: the player writes whatever selector it likes, and the ambiguity is settled where it can be seen rather
+than by making a single-target parameter mandatory (user ruling 2026-10-14). The listing form is the other shape
+and stands: several bodies are answered separately, each block its own answer.
+
 ## Self-check (mechanism × change × evidence)
 
 | Mechanism | Change | Evidence |
@@ -86,7 +94,7 @@ which is also when it gets the instance id a target can name.
 | The console's selector expansion | one expansion extracted (`CommandPlayerTargets`); `/heal` now calls it instead of its own copy | the parse/resolve path is unchanged for `/heal` — the family's existing selector cases stay green |
 | The target grammar | a pure parser: 5 accepted shapes, 15 refused ones | `ItemDataQueryParserTests` — 15 refusal cases plus the accepted shapes |
 | The wording | a pure renderer: every property, every component field kind, every location family | `ItemDataRendererTests` — including the container-contents case and the enum/string/string-list field kinds |
-| The wiring | console → kernel → render, plus every refusal | `CommandConsoleItemDataTests` — 16 integration cases through the real console and the real kernel |
+| The wiring | console → kernel → render, plus every refusal | `CommandConsoleItemDataTests` — 19 integration cases through the real console and the real kernel |
 
 ## Acceptance (the rows a run must read)
 
@@ -98,7 +106,7 @@ One two-client session, host and guest both in a world:
 | 2 | The host picks an item up (or moves one in its inventory) and then runs `/data get` | That item is listed; an item the host has never touched is absent, and the empty answer names why — the host registers a carried item on its first domain entry |
 | 3 | The host runs `/data get id <id>` on an item whose state it knows (a partly used container with liquid, or an item with a charge field) | Every property printed matches the item: condition, favourited, each liquid stack with its millilitres, each component field with its kind, and the contents by id |
 | 4 | The guest runs `/data get id <the same id>` for an item the host registered | The same rows the host's own read printed — the replay kernel agrees with the authority |
-| 5 | `/data get id 999999`, `/data get slot <empty>`, `/data get @x`, `/data get 4101`, `/data set ...` | One explicit line each — "no item is recorded", "no item is carried by … in slot …", "no players match selector", the usage line, and the not-implemented answer for the write verb — with no silent no-op anywhere |
+| 5 | `/data get id 999999`, `/data get slot <empty>`, `/data get @a slot 0` in a session with two members BESIDES the caller, `/data get @x`, `/data get 4101`, `/data set ...` | One explicit line each — "no item is recorded", "no item is carried by … in slot …", the count of bodies the ambiguous selector matched together with what to write instead, "no players match selector", the usage line, and the not-implemented answer for the write verb — with no silent no-op anywhere |
 | 6 | An item that IS recorded and then applied to a limb (a splint or tourniquet) | Listed by the body form as `limb N`, and read by its id as `applied to <owner>, limb N` |
 
 ## Limits, recorded rather than hidden
@@ -140,10 +148,19 @@ where the next reader meets them rather than in a report nothing opens:
 | **Major — the delivery checklist carried the PREVIOUS cycle's evidence** on the two boxes this cycle had reset. | Both boxes were rewritten with this cycle's measured numbers before the commit. |
 | **Minor — the audit line counted the whole kernel**, not the rows the answer listed. | It counts the rows the answer listed. |
 | **Minor — the line counts used a non-blank-line measure** the architecture gate does not use. | The gate's own measure (every line) is used: 584 → 571, and the watchlist entry for the class is refreshed. |
-| **Minor — the case counts were wrong** (15 where the classes run 16), and the obvious test filter also matches unrelated classes. | The counts are per class and measured: 25 parser, 10 renderer, 16 integration. |
+| **Minor — the case counts were wrong** (15 where the classes run 16), and the obvious test filter also matches unrelated classes. | The counts are per class and measured: 25 parser, 10 renderer, 19 integration. |
 | **Minor — the verb offers no console completion**, which the "one selector vocabulary" wording implied. | Recorded as a limit: the grammar mixes keywords with a selector, so per-argument completion is its own change. |
 | **Minor — `/data SET` was refused as an unknown verb** while `/data GET` worked. | The reserved-verb check is case-insensitive now. |
 | **Nits — a trailing space, an LF-only ticket, the survey restated in two tickets.** | Removed, normalized to the tree's line endings, and the umbrella ticket now points at this survey instead of repeating it. |
+
+**After the commit — a user ruling and the delta it produced.** Asked whether a selector that matches several
+bodies breaks the one-target idea, the user ruled on 2026-10-14 that a target's uniqueness is decided when the
+command RUNS, not by narrowing the grammar or making a single-target parameter mandatory. `ReadSlot` therefore
+refuses a multi-body resolution by name, and the write stage inherits the rule (recorded in the umbrella
+ticket). A narrowed second review of that delta found the guard sound and four defects in its RECORDS — a
+two-member session leaves only ONE remote, so the acceptance row needed a third member; the checklist numbers
+had not actually been refreshed; the count in the table above was left at 16; and the refusal wrote no log line.
+Each is fixed before the delta's commit.
 
 ## Non-goals
 

@@ -1,6 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,8 @@ public class CommandConsoleItemDataTests
 	private const ulong Bandage = 4102;
 
 	private const ulong GuestsBandage = 4201;
+
+	private const ulong SecondGuest = 2002;
 
 	[Fact]
 	public void Get_WithoutATarget_ListsTheCallersOwnItemsInSlotOrder()
@@ -193,6 +196,62 @@ public class CommandConsoleItemDataTests
 		var (host, _) = CreateSession();
 
 		Assert.Contains("/data", Run(host, "/help"));
+	}
+
+	/// <summary>
+	/// A selector may name several bodies, but a verb that names ONE item needs one
+	/// body to name it on: the verdict is taken at execution, on the resolved set,
+	/// and answered by name (user ruling 2026-10-14) — the grammar stays as wide as
+	/// the selector vocabulary. Three members are needed to see it, because `@a`
+	/// names the remote bodies and never the caller's own.
+	/// </summary>
+	[Fact]
+	public void Get_ForASlotWithASelectorMatchingSeveralBodies_IsRefusedByName()
+	{
+		var (host, _) = CreateSession();
+		SeedHostEntities(host, GuestId, 5f);
+		AddSecondRemote(host);
+		SeedCarried(host, GuestId, GuestsBandage, "bandage", slot: 0);
+
+		var answer = Run(host, "/data get @a slot 0");
+
+		Assert.Contains("matched 2 bodies", answer);
+		Assert.Contains("[limit=1]", answer);
+
+		// The advice in that answer is itself checkable: one member's slot reads normally.
+		var narrowed = Run(host, "/data get @a[limit=1] slot 0");
+		Assert.DoesNotContain("matched", narrowed);
+		Assert.Contains("slot 0", narrowed);
+	}
+
+	/// <summary>The listing form is the other shape: several bodies are fine, because each body's block is its own answer.</summary>
+	[Fact]
+	public void Get_ListingSeveralBodies_IsAnsweredForEach()
+	{
+		var (host, _) = CreateSession();
+		SeedHostEntities(host, GuestId, 5f);
+		AddSecondRemote(host);
+		SeedCarried(host, GuestId, GuestsBandage, "bandage", slot: 0);
+		SeedCarried(host, SecondGuest, Backpack, "backpack", slot: 1);
+
+		var answer = Run(host, "/data get @a");
+
+		Assert.Contains("Items recorded for 2001 (1):", answer);
+		Assert.Contains("Items recorded for 2002 (1):", answer);
+	}
+
+	private static void AddSecondRemote(TestNode host)
+	{
+		var entities = host.Services.GetRequiredService<IEntitySyncControl>();
+		entities.ProcessPlayerJoin(new PlayerJoinMsg
+		{
+			HostSteamId = HostId,
+			GuestSteamId = SecondGuest,
+			HostPosition = new NetVector2Msg(0f, 0f),
+			GuestPosition = new NetVector2Msg(7f, 0f),
+		});
+
+		Assert.NotNull(entities.GetRemotePlayer(SecondGuest));
 	}
 
 	private static ItemKernelAuthority Kernel(TestNode node) =>

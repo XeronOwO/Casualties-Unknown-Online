@@ -75,7 +75,10 @@ accepted-creation path unchanged or needs its own admission, including what a la
 1. **Stage B — the write verbs** (`data set` / `merge` / `remove`) over the properties the survey lists, and the
    local-scene answer the two gaps above need. The write is the owner's own: apply it to the local item and
    report it exactly as a native use does, so the row a command writes is indistinguishable from a row the game
-   wrote. Acceptance: a set value survives the next snapshot, a save/restore and a rejoin on both peers, and a
+   wrote. Every write inherits the read half's one-item rule: a resolved selector that names more than one body
+   is refused at execution, by name, rather than by narrowing the grammar (user ruling 2026-10-14) — and for a
+   write that rule is what keeps one typo from editing a whole team's items.
+   Acceptance: a set value survives the next snapshot, a save/restore and a rejoin on both peers, and a
    refused write is answered by name. The CURSOR target the user asked for lands in the same stage, on the same
    new capability port.
 2. **Stage C — `give`**: put an item into another player's inventory with its properties already set. The

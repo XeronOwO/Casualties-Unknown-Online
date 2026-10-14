@@ -129,6 +129,13 @@ internal sealed class ItemDataCommands(
 			return refusal;
 		}
 
+		if (owners.Count > 1)
+		{
+			_log.LogWarning("[Command] /data get slot {Slot} refused: the selector '{Selector}' matched {Count} bodies ({Owners}).",
+				query.Slot, query.Selector, owners.Count, Owners(owners));
+			return RefuseAmbiguousBody(owners);
+		}
+
 		var builder = new StringBuilder();
 		var empty = new List<ulong>();
 		var listed = 0;
@@ -150,6 +157,22 @@ internal sealed class ItemDataCommands(
 			query.Slot, owners.Count, listed);
 		return builder.ToString();
 	}
+
+	/// <summary>
+	/// A verb that names ONE item needs one body to name it on, and the verdict is
+	/// taken HERE — on the resolved set, at execution — rather than by narrowing
+	/// the grammar: the player may write any selector, and the answer says how many
+	/// it matched and what to write instead (user ruling 2026-10-14: detect the
+	/// target's uniqueness when the command runs, do not make a single-target
+	/// parameter mandatory).
+	///
+	/// <para>
+	/// The write verbs inherit the rule: "apply this to everybody the selector
+	/// touched" is a fan-out nobody asked for, one typo wide.
+	/// </para>
+	/// </summary>
+	private static string RefuseAmbiguousBody(IReadOnlyList<ulong> owners) =>
+		$"That selector matched {owners.Count} bodies ({Owners(owners)}) — a slot read names ONE item, so name one body: @p, a selector with [limit=1], or the item's own id.";
 
 	/// <summary>
 	/// What an empty answer says. The caller's own body is the one case where an

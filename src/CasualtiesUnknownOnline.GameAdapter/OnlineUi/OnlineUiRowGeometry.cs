@@ -75,12 +75,50 @@ internal static class OnlineUiRowGeometry
 		OnlineUiWindowLayout.ControlFillA);
 
 	/// <summary>
+	/// Lays one element of a page out on the line the window wrapped it into. An element that IS one of the
+	/// game's own rows — a dropdown, a field, a slider, a toggle — has its label and its control placed inside
+	/// it by <see cref="LayOutControlRow"/>. An element that is its own control — a tab, a page button, a colour
+	/// block — has no inside to place and takes the width its model declared on ITSELF, because nothing else
+	/// writes it: the content group such an element carries measures a CAPTION, so a colour block, which has
+	/// none, was drawn as wide as that group's own padding (batch `20261014-a`: 88 declared by the drawer, 18
+	/// rendered). A label keeps its own rule — it takes what its line has left — which is why a width of zero
+	/// writes nothing.
+	///
+	/// <para>
+	/// The same branch carries the PLACEHOLDER of a kind whose game prefab could not be loaded: such an element
+	/// has no control child either, so it takes the width the model declared rather than the width its own text
+	/// measured, which is what a page shows when the game moves a prefab.
+	/// </para>
+	/// </summary>
+	internal static void LayOutRow(
+		GameObject root,
+		LayoutElement layout,
+		RectTransform? label,
+		RectTransform? control,
+		float controlWidth,
+		RectTransform? valueText)
+	{
+		if (control is null)
+		{
+			if (controlWidth > 0f)
+			{
+				layout.minWidth = controlWidth;
+				layout.preferredWidth = controlWidth;
+			}
+
+			return;
+		}
+
+		LayOutControlRow(root, label, control, controlWidth, OnlineUiWindowLayout.ControlHeight, valueText);
+	}
+
+	/// <summary>
 	/// Lays a row's own label and control out inside the rect the window's layout gives the row: one
 	/// horizontal group on the row, the label flexible, the control at the width its model declared, and a
 	/// slider's formatted value after it. The group REPLACES whatever placement the prefab authored, which is
 	/// the point — the prefab's own screen is not this window.
 	/// </summary>
-	internal static void LayOutControlRow(
+	private static void LayOutControlRow(
 		GameObject row,
 		RectTransform? label,
 		RectTransform? control,
@@ -108,6 +146,15 @@ internal static class OnlineUiRowGeometry
 		group.childControlHeight = true;
 		group.childForceExpandWidth = false;
 		group.childForceExpandHeight = false;
+
+		// The row's OWN art is the game's screen decoration: a grey frame it draws around every row of its own
+		// full-width settings screen, which reads on a page as a box around every row (the user's report of
+		// 2026-10-15: "the light grey box in the background is still there"). An element that is a row of a page
+		// is a CONTAINER CUO arranges, not a control, so its drawing goes and the page's own fill shows through;
+		// its rect and its raycast stay, because a click inside the window must still land on CUO's surface. The
+		// element that IS its own control never reaches this method, so a button, a tab, a colour block and the
+		// launcher keep the game's art.
+		HidePrefabBoxArt((RectTransform)row.transform);
 
 		if (label != null)
 		{
@@ -324,7 +371,8 @@ internal static class OnlineUiRowGeometry
 	/// Hides the box the game's own row draws for this child. The user's report of 2026-10-01 is that a control
 	/// showing two boxes — the prefab's own frame and CUO's — reads as a box inside a box with a margin nobody
 	/// chose; the child keeps its rect and its raycast, and only its DRAWING goes. A text is left alone: it is what
-	/// the player reads.
+	/// the player reads. The write is skipped when the graphic is already clear, because this runs once per frame
+	/// per child and a colour write marks the graphic dirty.
 	/// </summary>
 	private static void HidePrefabBoxArt(RectTransform child)
 	{
@@ -333,12 +381,12 @@ internal static class OnlineUiRowGeometry
 			return;
 		}
 
-		if (child.GetComponent<Image>() is { } image)
+		if (child.GetComponent<Image>() is { } image && image.color.a > 0f)
 		{
 			image.color = new Color(0f, 0f, 0f, 0f);
 		}
 
-		if (child.GetComponent<RawImage>() is { } raw)
+		if (child.GetComponent<RawImage>() is { } raw && raw.color.a > 0f)
 		{
 			raw.color = new Color(0f, 0f, 0f, 0f);
 		}

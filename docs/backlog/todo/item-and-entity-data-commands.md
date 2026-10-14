@@ -1,7 +1,7 @@
 # Item and entity data commands: give, spawn and a property editor
 
 - Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
-  verb (`/data set`, with the local-scene port) the same day as `review/item-data-write-commands.md`; the
+  verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; the
   stages below are what remains.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
@@ -9,7 +9,7 @@
   properties (battery charge, liquid and millilitres, condition/durability and the rest) must be gettable,
   settable, mergeable and removable, and the family also covers handing an item out and creating an entity.
 - Related: `review/item-data-read-commands.md` (the landed read half, and the survey these stages build on),
-  `review/item-data-write-commands.md` (the landed first write verb and the local-scene port),
+  `done/item-data-write-commands.md` (the landed first write verb and the local-scene port),
   `todo/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
   `review/in-game-command-console-interactive.md` (the console the verbs land in),
@@ -85,7 +85,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
    new capability port.
    **Landed 2026-10-14:** `/data set` over condition, favourited, one liquid stack and one component field, on
    the item THIS client holds, plus the port (`ILocalItemAccess`) and the report route that makes the row the
-   game's own — `review/item-data-write-commands.md` carries its rows and its limits.
+   game's own — `done/item-data-write-commands.md` carries its rows and its limits.
    **Still open in this stage:** `merge` and `remove`; the cursor target (which owns the id-less
    generation-time ground item question); and the first gap above — the host's own untouched carried items
    still have no id and no row, so no verb can name them until the host registers its carried inventory at the
@@ -105,7 +105,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
    (S1b of `todo/validation-and-source-checks.md`):** `HostRules.AllowMemberItemDataWrite`, off by default,
    judged at the admission seam on the write's own wire kind (`ItemDataWrite`); a refusal is answered, and the
    member's client puts the value it had already applied back onto the session's record
-   (`review/item-data-write-commands.md`). Every later write verb rides the same kind and the same rule — a
+   (`done/item-data-write-commands.md`). Every later write verb rides the same kind and the same rule — a
    new verb does not need a new gate, and it must not grow one. What the rule still cannot do is reach the
    member BEFORE the write, so a closed rule is a value that appears and goes back; letting a member's console
    know the rule is `todo/host-rules-replication.md`.

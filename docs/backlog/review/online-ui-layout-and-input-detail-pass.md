@@ -1,6 +1,7 @@
 # The Online UI's layout and input detail pass
 
-- Status: Todo — Rejected (the Admin page's rule rows collapse their labels to one character per line).
+- Status: Review — rows 2 and 3 are fixed (2026-10-15, see *What landed — the width a control is given* below);
+  waiting for the acceptance batch that re-judges them.
   **Rejected 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md`): rows 2 and 3 of the table below fail on the Admin page in BOTH languages — each rule row's label is one character wide, stacks down the row's left edge and paints over the rows below it, and the rows are taller than the tab strip's own height. The page was never photographed by the earlier judgements, which stand for the pages they read.
 - Re-judged before that (batch 20261001-k: the control internals ARE laid out now;
   rows 3, 5, 6 and the window third of row 11 pass against the deployed build)
@@ -296,6 +297,70 @@ captions (`Preferences` 169.2), `controls=4 worstControlWidth=200 zeroInteriors=
 reachable, and the frame rate unchanged at 160–166. Evidence: `.acceptance/batch-k/` (`baseline-internals.json`
 for the runaway, `final-internals.json`, `final-values.json`, `final-census.txt`, `final-buttons.json`, and
 the page frames), and the record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001-k.md`.
+
+## Fourth pass (2026-10-15): the width a control is given
+
+Batch `20261014-a` rejected rows 2 and 3 because every rule row on the Admin page drew its label one character
+per line. The cycle that fixed it read the live geometry first (batch `20261015-a`, probe in
+`.acceptance/20261015-a/`), and the reading is the defect:
+
+- **The rows had grown without bound.** Each rule row measured `7282.9 × 36` units, the last one `30537.1`
+  units, inside a page that is 984 wide; the page's own content reported a preferred width of 30787. The
+  label inside a row measured `0.0 × 36` while the toggle beside it held `7327.1` — the sum is what the row's
+  group reports, and the label, whose minimum is zero, got nothing.
+- **The cause is one reading of the wrong object.** `OnlineUiControlView.EffectiveWidth`'s fallback branch — the
+  one a TOGGLE and a SLIDER take — asked `PrefabWidth(_rect)`, and `_rect` is the element ROOT. A row's preferred
+  width is its own layout group summing its children, so it CONTAINS the control's declared width: every frame
+  wrote `W = W + RowPadding×2 + RowGap + label width` into the control and the row grew by that much again. The
+  widths on one frame were 7282.9 / 13587.1 / 19237.1 / 24887.1 / 30537.1 for labels of 44.2 / 100 / 150 / 200 /
+  250 units, and the step between the widths over the step between the labels is 112.98 — the recurrence above,
+  one step per frame. (The probe records no frame counter, so how many frames it ran for is derived from those
+  widths, not measured.)
+- **The width now comes from the control, read once.** `OnlineUiControlSizing.AuthoredChildWidth` reads the
+  width the game authored for the control off the CONTROL's own rect, at the one moment it is intact — the view
+  is built before the row's group writes it — and only when the game anchored that child at a point: the float
+  row's slider is stretched across the game's own row and therefore declares no width of its own, so the model's
+  floor answers for it. The game's own numbers, read from the prefabs in the same run: `Special/GameSettingBool`
+  is a label plus a `32.8 × 32.5` checkbox at the right edge, `GameSettingDropdown`'s box is 160 wide,
+  `GameSettingInt`'s field 223.1, `GameSettingFloat`'s value text 73.5 beside a stretched slider.
+- **Every width rule is one rule now.** `OnlineUiControlSizing.EffectiveWidth` takes the element, the caption,
+  the game's type size and the control's authored width and answers for all seven kinds — including the
+  button-like kinds' `CaptionWidthOrZero` — and the view passes what only it knows. The read that had no caller
+  left (`EffectiveWidth(element, contentWidth)`) is gone with it, and the row's own geometry entry point moved to
+  `OnlineUiRowGeometry.LayOutRow`, where the row-inside geometry already lived.
+- **The shared typography is a value of its own** (`OnlineUiControlTypography`): four surfaces build their text
+  from the one reading the factory takes off the game's row prefab.
+- **What the rule gives each kind, and what moved with it.** A toggle takes the size the game authored for its
+  checkbox (`32.8`) and nothing else; a slider keeps the layout's own minimum under the model's floor, because a
+  control the player drags cannot be zero wide (the rule gained that floor in this cycle — the only slider
+  declares `NumberRuleWidth = 120`, so nothing visible moves); a field and a dropdown are as they were; a button
+  or a colour block takes its caption plus the game's own room, or the model's floor when that is wider, and the
+  window's tab row now routes its tabs through the same rule instead of leaving `OnlineUiPageBuilder.TabWidth`
+  unread (recorded on the sibling ticket). An element whose game prefab could not be loaded has no control child
+  either, so it takes the declared width as well — the placeholder path is written down in
+  `OnlineUiRowGeometry.LayOutRow`'s doc rather than left implicit. The consequence on the surfaces no test can
+  render — every button-like element of every page and panel is now as wide as the rule declares instead of as
+  wide as its caption group measured — is recorded with its acceptance plan on the sibling ticket.
+- **The pins.** `AControlOfARowIsAsWideAsTheGameAuthoredIt` holds the capture and the rule (a mutation row
+  restores `PrefabWidth(_rect)`, another removes the authored width from the rule);
+  `AnElementThatIsItsOwnControlDeclaresItsWidth` holds the element's own width write;
+  `WidthsFollowTheContent` gained `!PrefabWidth(_rect`, which is the clause that let this defect live — the
+  earlier pin rejected `LayoutUtility.GetPreferredSize(_rect` as a literal and the code spelled the same
+  reading through the helper instead. `OnlineUiWindowSurfacePinTests`' width pin now reads the rule where it
+  lives.
+- **The row's own prefab art is hidden too, found while the fix ran.** The game draws a grey frame around every
+  row of its own full-width settings screen, and the element root kept it: on a page it read as a box around
+  every row, one per setting, which the user called out on 2026-10-15 ("the light grey box in the background is
+  still there") after the width fix was on screen. A row of a page is a CONTAINER CUO arranges, not a control, so
+  `OnlineUiRowGeometry.LayOutControlRow` hides the row's own drawing — the same treatment a control's children
+  already had — and the page's fill shows through; the rect and the raycast stay (a click inside the window still
+  lands on CUO's surface), while the control's own box and every element that IS a control keep the game's art.
+  The capture after it is `e1-prefs-noframe.png` / `e3-admin-noframe.png` in the batch's own directory, against
+  `d4-prefs-after.png` / `d2-admin-after.png` before it.
+- **Limits.** Whether `32.8` units of checkbox reads as the game's own checkbox at the player's canvas scale is
+  the acceptance run's judgement, and so is whether the rule rows now read as one column; the reading above is
+  one host's window at one resolution, and this pass is the width the layout gives a control, not a re-cut of
+  the Admin page's design.
 
 ## Non-goals
 

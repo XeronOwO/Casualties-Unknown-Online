@@ -112,7 +112,7 @@ One two-client session, host and guest both in a world:
 ## Limits, recorded rather than hidden
 
 - **Reads only, and the write half has since landed its first verb.** `set` is
-  `review/item-data-write-commands.md` now; `merge` and `remove` still answer "not implemented yet", and their
+  `done/item-data-write-commands.md` now; `merge` and `remove` still answer "not implemented yet", and their
   authority model is the finding above, not a detail to be improvised.
 - **`slot` is a body slot.** The negative encodings the wire uses for worn items are a transport detail and are
   not accepted; a limb-installed item is reached through the body listing and read by its id.

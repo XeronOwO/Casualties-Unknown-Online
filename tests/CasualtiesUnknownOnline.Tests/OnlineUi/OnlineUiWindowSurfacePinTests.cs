@@ -104,7 +104,10 @@ public sealed class OnlineUiWindowSurfacePinTests
 	[Fact]
 	public void AControlIsSizedByTheLayoutAndTheEngine() =>
 		Assert.True(
-			SizesComeFromTheLayoutAndTheEngine(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiControlFactory.cs")),
+			SizesComeFromTheLayoutAndTheEngine(
+				Adapter("OnlineUiControlView.cs"),
+				Adapter("OnlineUiControlSizing.cs"),
+				Adapter("OnlineUiControlFactory.cs")),
 			"a control must take the layout's height and the engine's measured width; the game's own authored sizeDelta belongs to the game's own screen");
 
 	[Fact]
@@ -136,7 +139,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(ThePluginDispatchesEveryIntentKind), "plugin/OnlineUiHost.cs", "case OnlineUiIntentKind.ControlEdited:", "case OnlineUiIntentKind.ControlInvoked:", "an intent kind the plugin silently drops" },
 		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlView.cs", "aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", "OnlineUiControlSizing.FillsTheRow(element)", "a control that takes the whole line even when it shares one" },
 		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlFactory.cs", "group.childForceExpandWidth = false;", "group.childForceExpandWidth = true;", "a content group that stretches its caption instead of measuring it" },
-		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlView.cs", "OnlineUiControlSizing.WithMinimum(element.Width)", "element.Width", "a field with no floor under it, which a model that declares no width would size at zero" },
+		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f)", "OnlineUiControlBox.EffectiveWidth(element.Width, 0f)", "a field with no floor under it, which a model that declares no width would size at zero" },
 		{ nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped), "plugin/OnlineUiOverlay.cs", "if (!_actions.TryGetValue(intent.ControlId, out var action))", "if (false)", "an intent applied without checking that its control still exists" },
 		{ nameof(TheCloseControlIsTheShellsAndItsMeaningIsThePlugins), "plugin/OnlineUiWindow.cs", "actions[OnlineUiControlIds.WindowClose] = _ => _state.Visible = false;", "actions[\"window.dismiss\"] = _ => _state.Visible = false;", "a close control whose two halves disagree about its id" },
 	};
@@ -180,6 +183,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		nameof(TheTitleBarDragsTheWindow) => broken => TheTitleBarDrags(Adapter("OnlineUiWindowView.cs"), broken),
 		nameof(AControlIsSizedByTheLayoutAndTheEngine) => broken => SizesComeFromTheLayoutAndTheEngine(
 			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
+			Is(broken, "internal static class OnlineUiControlSizing") ? broken : Adapter("OnlineUiControlSizing.cs"),
 			Is(broken, "internal static class OnlineUiControlFactory") ? broken : Adapter("OnlineUiControlFactory.cs")),
 		nameof(ThePluginDispatchesEveryIntentKind) => DispatchesEveryIntentKind,
 		nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped) => broken => DropsIntentsForGoneControls(broken, Plugin("OnlineUiHost.cs")),
@@ -322,16 +326,20 @@ public sealed class OnlineUiWindowSurfacePinTests
 
 	/// <summary>A control's height is the layout's own and its width is DECLARED — the model's hint under the
 	/// caption's own measured text — and never measured from the control's own content, which reports the box a
-	/// layout group just wrote (the feedback the acceptance pass of batch 20261001-k caught).</summary>
-	private static bool SizesComeFromTheLayoutAndTheEngine(string controlSource, string factorySource)
+	/// layout group just wrote (the feedback the acceptance pass of batch 20261001-k caught). The width rule
+	/// itself lives with every other width of this surface (<c>OnlineUiControlSizing</c>), so the wrap the window
+	/// asks and the width an element is laid out at are one answer.</summary>
+	private static bool SizesComeFromTheLayoutAndTheEngine(string controlSource, string sizingSource, string factorySource)
 	{
 		var flat = Flatten(controlSource);
+		var sizing = Flatten(sizingSource);
 		var factory = Flatten(factorySource);
 
 		return flat.Contains("_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", StringComparison.Ordinal)
-			&& flat.Contains("OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidth + (2f * _typography.Size))", StringComparison.Ordinal)
-			&& flat.Contains("OnlineUiControlSizing.WithMinimum(element.Width)", StringComparison.Ordinal)
 			&& flat.Contains("aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", StringComparison.Ordinal)
+			&& flat.Contains("OnlineUiControlSizing.EffectiveWidth(element, _caption, _typography.Size, _controlAuthoredWidth);", StringComparison.Ordinal)
+			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidthOrZero(caption) + (2f * typographySize))", StringComparison.Ordinal)
+			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f)", StringComparison.Ordinal)
 			&& factory.Contains("AddContentGroup(root, InnerPaddingOf(root, rect, prefab));", StringComparison.Ordinal)
 			&& factory.Contains("group.childForceExpandWidth = false;", StringComparison.Ordinal)
 			&& !flat.Contains("LayoutUtility.GetPreferredSize(_rect", StringComparison.Ordinal)

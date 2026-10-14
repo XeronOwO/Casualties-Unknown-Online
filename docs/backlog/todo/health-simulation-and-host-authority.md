@@ -12,7 +12,7 @@
   (this is a NARROW slice of it: one known family, one model), `docs/decisions/active.md` 184 (the design
   principle this must not break: experience judged locally, conflict arbitration on the host, latency is never
   a decision parameter), `docs/development/agent-reference.md` (the sync model), `docs/architecture/current.md`
-  §7.1 (the authority inventory), `review/item-data-write-commands.md` (the same "who may state what" question
+  §7.1 (the authority inventory), `done/item-data-write-commands.md` (the same "who may state what" question
   on the item side)
 
 ## What the user decided (2026-10-14)

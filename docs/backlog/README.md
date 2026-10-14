@@ -63,8 +63,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
-- [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — rejected: the Admin page's rows collapse their labels.
-- [Online UI art and controls are placeholders](todo/online-ui-art-and-controls-overhaul.md) — **High** — rejected: the blocks do not read as a palette.
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — the write verbs, give and spawn; the read half landed.
 - [Health on every client, reconciled to the host](todo/health-simulation-and-host-authority.md) — **Medium-High** — everyone simulates; the host wins at once.
@@ -88,6 +86,8 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the Admin page's rule rows are fixed.
+- [Online UI art and controls are placeholders](review/online-ui-art-and-controls-overhaul.md) — **High** — the blocks read and size as declared.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state, read from the kernel row.

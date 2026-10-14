@@ -1,8 +1,7 @@
 # The Online UI's art and controls are placeholders
 
-- Status: Todo — Rejected (the palette blocks do not read as a palette: the S3 colour picker's own recorded
-  residual was answered by the user's run on 2026-10-14). All six stages remain landed; what is open is how a
-  block reads and how wide it is drawn.
+- Status: Review — the rejected rows are fixed (2026-10-15, see *What landed — the colour block's fill and
+  width* below); waiting for the acceptance batch that re-judges them. All six stages remain landed.
   **Rejected 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261014-a.md`): the palette blocks render as the game's own button sprite tinted, so only the border takes the colour and the middle stays transparent, and each block measures 18.0 units wide against the 88 the drawer declares (`SwatchWidth`), with the `Auto` control below the row not visible at the host's window size.
 - Acceptance (20261001-j): row 1 residual, row 2 unproven, row 3 pass; the Preferences control internals are unlaid-out and are recorded on the sibling ticket's record — record `docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261001.md`
 - Priority: High
@@ -623,6 +622,50 @@ Self-check: `docs/evidence/selfchecks/ui/online-ui-world-overlay-selfcheck.md`.
   not for those two.
 - **The S1 chrome reading is still pending**, so the readout's two colours are still the CUO theme's
   (`Muted`, `Positive`) rather than the game's own chrome colours.
+
+## What landed — the colour block's fill and width (2026-10-15)
+
+Batch `20261014-a` rejected the ticket on the colour picker: the blocks did not read as a palette and measured
+18.0 units against the 88 its drawer declares. Both halves were read before they were touched, in batch
+`20261015-a` (probe in `.acceptance/20261015-a/`):
+
+- **The sprite carries no colour to show.** `uiBlockNano` is 16×16 with a border of `1,2,1,3` and a body of
+  `0,0,0,1` — opaque BLACK, sampled off the asset's own texture. Laying a colour over the row's graphic
+  therefore colours the light border and multiplies the black body by the colour, which stays black: the user's
+  reading of "only the button border colour, the middle transparent" is that body.
+- **The declared width never reached the element.** Every palette block measured `GameSettingLanguage(Clone)
+  rect = 18.0 × 36.0` with a `LayoutElement` of `w=-1/-1/0` — the drawer's `SwatchWidth = 88` (and the preview's
+  `PreviewWidth = 64`) was used for the wrap and for nothing else, because `LayOutRow` returned early for an
+  element that IS its own control, and the width such an element actually got came from the caption group the
+  factory puts over it: its own padding (9 + 9) plus a caption of zero — 18, to the decimal.
+- **The block is the game's own row with the colour laid INSIDE it.** `OnlineUiControlFactory.SwatchFillOn` keeps
+  the game's sprite untinted as the frame — the treatment the window's frame and the panels already use — and
+  lays a solid fill inside it, inset by `FrameBorder`, which is what the colour is written to and what refuses
+  the raycast (the row itself answers the click; a block with no id reports nothing).
+- **An element that is its own control declares its width.** `OnlineUiRowGeometry.LayOutRow` writes the model's
+  width onto the element when there is no control inside it, so a block is 88 units wide and the preview 64, as
+  the drawer declares. Every button-like element takes that floor with it — a page button, the `Auto` control,
+  and the window's tab row, which now routes its tabs through the same rule (`OnlineUiWindowView.ApplyTabs`)
+  instead of leaving the model's `TabWidth` floor unread: six tabs of 112 units fit the 984-unit strip (four in
+  an English UI take 562), and the strip's shape can no longer disagree with the floor the wrap is asked with.
+  The review of the same cycle found the tab clause and the code disagreeing, which is what that line fixes.
+- **The third rejected row, and the picker's own frame.** The row that failed was "the picker fits the page it
+  is drawn on": the earlier capture caught the palette row at the page's bottom edge with `Auto` below the fold.
+  With the declared widths the picker reads as one block — the preview, the hex field, the eight blocks and
+  `Auto` are all inside one viewport when the page is scrolled to it (`e1-prefs-noframe.png` in the batch's own
+  directory), and the row is one line (8 × 88 + 7 × 4 = 732 units of the page's 984).
+- **The pins.** `AColourBlockIsTheGamesOwnRowWithItsColourInside` (renamed from `…Tinted`) holds the fill, the
+  untinted frame and the call site, with three mutation rows; the sibling ticket owns the element's own width
+  write.
+- **Limits.** Whether eight blocks read as a palette and whether the fill's edge reads as the game's own border
+  at the player's canvas scale are the acceptance run's judgement. The sprite's own left border is ONE texel
+  (`1,2,1,3`), so the two units `FrameBorder` leaves clear show a thin dark seam along a block's left edge inside
+  the fill — visible as a hairline in the zoom `d8-palette-zoom.png`, and what the run's frames must judge.
+- **What the width change moves on the surfaces this cycle did not photograph.** A button-like element now takes
+  the width the rule declares instead of the width its caption group measured (its own 9 + 9 padding), so the
+  buttons of the Home, Players, Worlds and Network pages, the member card, the quick panel and the player context
+  menu are wider than they were. The batch that re-judges these tickets photographs those pages and the two
+  panels, because the change is on every page and only Admin and Preferences were captured in the fix cycle.
 
 ## Non-goals
 

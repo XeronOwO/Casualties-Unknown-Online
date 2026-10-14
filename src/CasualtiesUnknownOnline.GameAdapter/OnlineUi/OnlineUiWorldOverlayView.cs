@@ -101,7 +101,7 @@ internal sealed class OnlineUiWorldOverlayView
 	private readonly GameObject _root;
 	private readonly RectTransform _rect;
 	private readonly Canvas? _canvas;
-	private readonly OnlineUiControlView.Typography _typography;
+	private readonly OnlineUiControlTypography _typography;
 	private readonly TextMeshProUGUI _hudRtt;
 	private readonly TextMeshProUGUI _hudStatus;
 	private readonly List<Marker> _markers = [];
@@ -118,7 +118,7 @@ internal sealed class OnlineUiWorldOverlayView
 		GameObject root,
 		RectTransform rect,
 		Canvas? canvas,
-		OnlineUiControlView.Typography typography,
+		OnlineUiControlTypography typography,
 		TextMeshProUGUI hudRtt,
 		TextMeshProUGUI hudStatus)
 	{
@@ -391,7 +391,7 @@ internal sealed class OnlineUiWorldOverlayView
 		private float _labelSize = float.NaN;
 		private bool _glyphShown;
 
-		internal Marker(Transform parent, OnlineUiControlView.Typography typography)
+		internal Marker(Transform parent, OnlineUiControlTypography typography)
 		{
 			_glyph = CreateLabel("Marker Glyph", parent, typography, TextAlignmentOptions.Center);
 			_label = CreateLabel("Marker Label", parent, typography, TextAlignmentOptions.Center);
@@ -490,7 +490,7 @@ internal sealed class OnlineUiWorldOverlayView
 	private static TextMeshProUGUI CreateHudLabel(
 		string name,
 		Transform parent,
-		OnlineUiControlView.Typography typography,
+		OnlineUiControlTypography typography,
 		Vector2 anchoredPosition)
 	{
 		var label = CreateLabel(name, parent, typography, TextAlignmentOptions.MidlineLeft);
@@ -541,32 +541,21 @@ internal sealed class OnlineUiWorldOverlayView
 		_ => "*",
 	};
 
-	/// <summary>A label on the game's own font, at the size the game's row prefab implies for the style —
-	/// the same construction the window's and the panels' labels use.</summary>
+	/// <summary>A label on the game's own font, at the size the game's row prefab implies for the muted style —
+	/// the same construction the window's and the panels' labels use (<see cref="OnlineUiSurfaceParts"/>) — with
+	/// this overlay's own fit policy on top of it: one line, no auto-sizing, and overflow rather than a clip or
+	/// an ellipsis (see the class doc), and a marker that never swallows a click meant for the world.</summary>
 	private static TextMeshProUGUI CreateLabel(
 		string name,
 		Transform parent,
-		OnlineUiControlView.Typography typography,
+		OnlineUiControlTypography typography,
 		TextAlignmentOptions alignment)
 	{
-		var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-		go.transform.SetParent(parent, worldPositionStays: false);
-		var text = go.GetComponent<TextMeshProUGUI>();
+		var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);
 		text.alignment = alignment;
-		text.fontSize = typography.SizeOf(OnlineUiTextStyle.Muted);
-		text.fontStyle = OnlineUiControlView.Typography.WeightOf(OnlineUiTextStyle.Muted);
-		// The fit policy, stated rather than inherited: one line, no auto-sizing, and overflow instead of a
-		// clip or an ellipsis (see the class doc).
 		text.enableWordWrapping = false;
 		text.enableAutoSizing = false;
 		text.overflowMode = TextOverflowModes.Overflow;
-		// The overlay takes no input: a marker must never swallow a click meant for the world.
-		text.raycastTarget = false;
-		if (typography.Font != null)
-		{
-			text.font = typography.Font;
-		}
-
 		return text;
 	}
 

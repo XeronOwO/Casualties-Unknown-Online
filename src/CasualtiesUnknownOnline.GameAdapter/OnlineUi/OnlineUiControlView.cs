@@ -32,24 +32,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// </summary>
 internal sealed class OnlineUiControlView
 {
-	/// <summary>The game's own typography, handed to every label this surface builds: the font the game's
-	/// row labels use and the size they are set at.</summary>
-	internal readonly record struct Typography(TMP_FontAsset? Font, float Size)
-	{
-		/// <summary>The game's own sizes, as the IMGUI theme's four levels expressed them relative to the
-		/// body text.</summary>
-		internal float SizeOf(OnlineUiTextStyle style) => style switch
-		{
-			OnlineUiTextStyle.Title => Size + 4f,
-			OnlineUiTextStyle.Section => Size - 1f,
-			OnlineUiTextStyle.Muted => Size - 2f,
-			_ => Size,
-		};
-
-		internal static FontStyles WeightOf(OnlineUiTextStyle style) =>
-			style is OnlineUiTextStyle.Title or OnlineUiTextStyle.Section ? FontStyles.Bold : FontStyles.Normal;
-	}
-
 	/// <summary>The caption colour of the current choice (a tab, the transport switch) and of the others.</summary>
 	private static readonly Color SelectedCaption = new(0.85f, 0.72f, 0.38f, 1f);
 
@@ -66,7 +48,7 @@ internal sealed class OnlineUiControlView
 	private readonly RectTransform _rect;
 	private readonly LayoutElement _layout;
 	private readonly Action<OnlineUiIntent> _report;
-	private readonly Typography _typography;
+	private readonly OnlineUiControlTypography _typography;
 	private readonly Button? _button;
 
 	/// <summary>The image a colour block tints; only a <see cref="OnlineUiElementKind.ColorSwatch"/> has one.</summary>
@@ -86,6 +68,14 @@ internal sealed class OnlineUiControlView
 
 	/// <summary>The control the row carries on child 1, sized by CUO inside the row it belongs to.</summary>
 	private readonly RectTransform? _controlRect;
+
+	/// <summary>
+	/// The width the game's own prefab authored for that control, read ONCE when the view is built — the one
+	/// moment the prefab's own rect is still intact, because the row's layout group writes it from the first
+	/// pass on (<see cref="OnlineUiControlSizing.AuthoredChildWidth"/>). It is what a toggle and a slider are
+	/// sized by; the element root is never asked, because its own preferred width contains this control's.
+	/// </summary>
+	private readonly float _controlAuthoredWidth;
 
 	/// <summary>The graphic a selected button tints: the tab row's current page and the Home page's transport
 	/// switch read as chosen, not only as a differently coloured caption.</summary>
@@ -108,7 +98,7 @@ internal sealed class OnlineUiControlView
 		GameObject root,
 		RectTransform rect,
 		LayoutElement layout,
-		Typography typography,
+		OnlineUiControlTypography typography,
 		Action<OnlineUiIntent> report,
 		Button? button,
 		Image? swatch,
@@ -121,6 +111,7 @@ internal sealed class OnlineUiControlView
 		TextMeshProUGUI? valueText,
 		RectTransform? labelRect,
 		RectTransform? controlRect,
+		float controlAuthoredWidth,
 		Image? selectionGraphic)
 	{
 		_root = root;
@@ -139,6 +130,7 @@ internal sealed class OnlineUiControlView
 		_valueText = valueText;
 		_labelRect = labelRect;
 		_controlRect = controlRect;
+		_controlAuthoredWidth = controlAuthoredWidth;
 		_selectionGraphic = selectionGraphic;
 	}
 
@@ -161,7 +153,7 @@ internal sealed class OnlineUiControlView
 	internal static OnlineUiControlView Create(
 		OnlineUiElementModel element,
 		Transform parent,
-		Typography typography,
+		OnlineUiControlTypography typography,
 		Action<OnlineUiIntent> report)
 	{
 		var built = OnlineUiControlFactory.Build(element, parent, typography);
@@ -206,7 +198,7 @@ internal sealed class OnlineUiControlView
 			typography,
 			report,
 			button: button,
-			swatch: element.Kind == OnlineUiElementKind.ColorSwatch ? OnlineUiControlFactory.SwatchImageOn(root, button) : null,
+			swatch: element.Kind == OnlineUiElementKind.ColorSwatch ? OnlineUiControlFactory.SwatchFillOn(root, button) : null,
 			toggle: toggle,
 			dropdown: dropdown,
 			input: input,
@@ -216,6 +208,7 @@ internal sealed class OnlineUiControlView
 			valueText: element.Kind == OnlineUiElementKind.Slider && built.UsedPrefab ? OnlineUiControlFactory.ChildText(root.transform, 2) : null,
 			labelRect: !carriesNoControl && built.UsedPrefab ? caption?.rectTransform : null,
 			controlRect: controlRect,
+			controlAuthoredWidth: OnlineUiControlSizing.AuthoredChildWidth(controlRect),
 			selectionGraphic: button?.targetGraphic as Image)
 		{
 			MissedGamePrefab = built.MissedPrefab,
@@ -347,7 +340,7 @@ internal sealed class OnlineUiControlView
 					_caption.text = element.Text;
 					_caption.color = ToColor(element.Color);
 					_caption.fontSize = _typography.SizeOf(element.Style);
-					_caption.fontStyle = Typography.WeightOf(element.Style);
+					_caption.fontStyle = OnlineUiControlTypography.WeightOf(element.Style);
 				}
 
 				break;
@@ -475,8 +468,9 @@ internal sealed class OnlineUiControlView
 		}
 	}
 
-	/// <summary>The colour block's fill, written only when it changed: the game's own control keeps its
-	/// sprite, its 9-slice and its size, so the block reads as one of the game's rows.</summary>
+	/// <summary>The colour block's fill, written only when it changed. The fill sits INSIDE the game's own row
+	/// sprite, so the block keeps the game's art as its frame and shows the colour across its whole middle
+	/// (see <see cref="OnlineUiControlFactory.SwatchFillOn"/>).</summary>
 	private void ApplySwatchColor()
 	{
 		if (_swatch != null)
@@ -522,26 +516,19 @@ internal sealed class OnlineUiControlView
 	}
 
 	/// <summary>
-	/// The row's own parts, laid out inside it: a dropdown, a field, a slider and a toggle ARE one of the
-	/// game's own rows, so their inside is CUO's geometry rather than the game's own placement.
-	/// <paramref name="controlWidth"/> is the width this control takes on its line — already decided
-	/// (<see cref="OnlineUiControlSizing"/>), never measured from the control's own stretched content.
+	/// Lays this element out on the line the window wrapped it into: the rule is
+	/// <see cref="OnlineUiRowGeometry.LayOutRow"/>'s, and this hands it the parts of this element — its own
+	/// object, the layout element that carries its size, the label and the control the game's row shipped, and
+	/// the value text only a slider has.
 	/// </summary>
-	internal void LayOutRow(float controlWidth)
-	{
-		if (_controlRect is null)
-		{
-			return;
-		}
-
-		OnlineUiRowGeometry.LayOutControlRow(
+	internal void LayOutRow(float controlWidth) =>
+		OnlineUiRowGeometry.LayOutRow(
 			_root,
+			_layout,
 			_labelRect,
 			_controlRect,
 			controlWidth,
-			OnlineUiWindowLayout.ControlHeight,
 			_valueText != null ? _valueText.rectTransform : null);
-	}
 
 	/// <summary>
 	/// Hands this control's dropdown template to the window's popup layer: a <c>TMP_Dropdown</c> builds its
@@ -557,25 +544,14 @@ internal sealed class OnlineUiControlView
 	}
 
 	/// <summary>
-	/// The width this control takes on its line. It is a DECLARATION, never a measurement of the control's own
-	/// content: the model's hint is a floor, a caption's own text (which TMP measures from the text rather than
-	/// from the rect) raises it for the kinds whose width the game's row does not author, and the game's own
-	/// prefab answers for the rest. Content that stretches inside the box reports the box, which is the feedback
-	/// the acceptance pass of batch `20261001-k` caught growing without bound.
+	/// The width this control takes on its line. The rule is <see cref="OnlineUiControlSizing"/>'s, together
+	/// with every other width of this surface, so the wrap the window asks and the width the element is laid out
+	/// at cannot drift apart; what only this view knows is what it hands over — the caption the game's row
+	/// shipped, the game's own type size, and the width the game authored for this control, read once when the
+	/// view was built.
 	/// </summary>
-	internal float EffectiveWidth(OnlineUiElementModel element) => element.Kind switch
-	{
-		OnlineUiElementKind.Label => 0f,
-		OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch =>
-			OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidth + (2f * _typography.Size)),
-		OnlineUiElementKind.TextField or OnlineUiElementKind.Dropdown =>
-			OnlineUiControlBox.EffectiveWidth(OnlineUiControlSizing.WithMinimum(element.Width), 0f),
-		_ => OnlineUiControlBox.EffectiveWidth(element.Width, OnlineUiControlSizing.PrefabWidth(_rect)),
-	};
-
-	/// <summary>The width the control's own caption needs — 0 for a kind whose caption is not its content (a
-	/// colour block's caption is empty, and a field's row label is not the value it holds).</summary>
-	private float CaptionWidth => _caption != null ? OnlineUiControlSizing.CaptionWidth(_caption) : 0f;
+	internal float EffectiveWidth(OnlineUiElementModel element) =>
+		OnlineUiControlSizing.EffectiveWidth(element, _caption, _typography.Size, _controlAuthoredWidth);
 
 	private static bool SameOptions(TMP_Dropdown dropdown, IReadOnlyList<string> options)
 	{

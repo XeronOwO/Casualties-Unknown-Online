@@ -11,7 +11,7 @@
 - Related: `docs/en/reference/configuration.md` (`[HostRules]`, the twelve rules), `docs/decisions/active.md`
   210 (the admission seam, which stays the last word on anything a member submits),
   `todo/remote-backpack-access-policy.md` (the first consumer: `AllowRemoteInventoryTake` and the member-side
-  take affordance), `review/item-data-write-commands.md` (the second: the console write's rule and the flicker
+  take affordance), `done/item-data-write-commands.md` (the second: the console write's rule and the flicker
   this ticket removes), `docs/architecture/protocol.md` (world-entry facts and the in-session repair group)
 
 ## What is asked
@@ -42,7 +42,7 @@
 - **The console write this cycle added is the second instance of the same hole.** `AllowMemberItemDataWrite`
   is judged on the host at the admission seam, and the member's console applies the value and reports it
   before the verdict returns — so on a host whose rule is closed the operator watches the value appear and go
-  back (`review/item-data-write-commands.md`, Limits). The rule is not unknown because it cannot be known; it
+  back (`done/item-data-write-commands.md`, Limits). The rule is not unknown because it cannot be known; it
   is unknown because nothing carries it.
 
 ## The questions this stage owns

@@ -56,7 +56,7 @@ internal static class OnlineUiControlFactory
 	/// later, in the view.
 	/// </para>
 	/// </summary>
-	internal static Built Build(OnlineUiElementModel element, Transform parent, OnlineUiControlView.Typography typography)
+	internal static Built Build(OnlineUiElementModel element, Transform parent, OnlineUiControlTypography typography)
 	{
 		var prefabPath = element.Kind == OnlineUiElementKind.Label ? null : PrefabPathOf(element.Kind);
 		var prefab = prefabPath is { Length: > 0 } ? Resources.Load<GameObject>(prefabPath) : null;
@@ -113,7 +113,7 @@ internal static class OnlineUiControlFactory
 	/// The room the game's own row keeps between its edge and its caption, read from the prefab's own geometry
 	/// (the row's caption child sits inside it): the caption of a button CUO builds then lands where the game's
 	/// own screen would put it instead of touching the sprite's border. The fallback is the caption's own font
-	/// size — the same room <see cref="OnlineUiControlSizing.AuthoredWidth"/> adds to a measured caption, so the
+	/// size — the same room <see cref="OnlineUiControlSizing.CaptionWidth"/> adds to a measured caption, so the
 	/// box a tab is given and the room it leaves its text agree.
 	/// </summary>
 	private static float InnerPaddingOf(GameObject root, RectTransform rect, GameObject prefab)
@@ -167,7 +167,7 @@ internal static class OnlineUiControlFactory
 	/// </summary>
 	internal static void ReadRowTemplate(
 		Transform parent,
-		out OnlineUiControlView.Typography typography,
+		out OnlineUiControlTypography typography,
 		out Sprite? sprite,
 		out Image.Type imageType,
 		out float pixelsPerUnit)
@@ -180,7 +180,7 @@ internal static class OnlineUiControlFactory
 		var prefab = Resources.Load<GameObject>(ButtonRowPrefabPath);
 		if (prefab is null)
 		{
-			typography = new OnlineUiControlView.Typography(TMP_Settings.defaultFontAsset, fallbackSize);
+			typography = new OnlineUiControlTypography(TMP_Settings.defaultFontAsset, fallbackSize);
 			return;
 		}
 
@@ -190,7 +190,7 @@ internal static class OnlineUiControlFactory
 		var image = probe.GetComponent<Image>();
 		var font = label != null && label.font != null ? label.font : TMP_Settings.defaultFontAsset;
 		var size = label != null && label.fontSize > 0f ? label.fontSize : fallbackSize;
-		typography = new OnlineUiControlView.Typography(font, size);
+		typography = new OnlineUiControlTypography(font, size);
 		if (image != null)
 		{
 			sprite = image.sprite;
@@ -264,7 +264,7 @@ internal static class OnlineUiControlFactory
 	/// that still shows the element's text — clickable when the element is a button — so a prefab the game
 	/// moved or renamed degrades the look instead of leaving a blank row.
 	/// </summary>
-	private static GameObject CreatePlainObject(OnlineUiElementKind kind, Transform parent, OnlineUiControlView.Typography typography)
+	private static GameObject CreatePlainObject(OnlineUiElementKind kind, Transform parent, OnlineUiControlTypography typography)
 	{
 		var name = kind == OnlineUiElementKind.Label ? "CUO Online UI Label" : $"CUO Online UI {kind} (no game prefab)";
 		var root = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -300,20 +300,42 @@ internal static class OnlineUiControlFactory
 	};
 
 	/// <summary>
-	/// The image a colour block tints: the graphic the row's button actually shows (a uGUI button fades
-	/// <c>targetGraphic</c> for its own states, so that is the surface the player sees), the row's own
-	/// image when the button carries none, and a plain image when the fallback object has none either —
-	/// a prefab the game moved must still show the colour instead of a blank row.
+	/// The image a colour block's colour is laid on: a solid fill INSIDE the game's own row. The row's sprite
+	/// cannot carry the colour itself — read off the asset, its own body is opaque black (16x16, border
+	/// 1,2,1,3, every body texel <c>0,0,0,1</c>), so a colour written to the row's graphic shows as a coloured
+	/// edge around a black middle, which is the rejected acceptance row of batch `20261014-a` ("only the button
+	/// border colour, the middle transparent"). The block shows its colour the way the window's own frame does:
+	/// the game's sprite stays as the frame, the colour is a fill laid inside it.
+	///
+	/// <para>
+	/// The fill refuses the raycast: the row itself is what the player clicks (a block with no id reports
+	/// nothing), and a second graphic on top of it would answer the same click twice.
+	/// </para>
 	/// </summary>
-	internal static Image? SwatchImageOn(GameObject root, Button? button)
+	internal static Image SwatchFillOn(GameObject root, Button? button)
 	{
-		if (button != null && button.targetGraphic is Image target)
+		if (root.GetComponent<Image>() is { } border)
 		{
-			return target;
+			border.color = Color.white;
 		}
 
-		var image = root.GetComponent<Image>();
-		return image != null ? image : root.AddComponent<Image>();
+		var go = new GameObject("Swatch Fill", typeof(RectTransform), typeof(Image));
+		go.transform.SetParent(root.transform, worldPositionStays: false);
+		var rect = (RectTransform)go.transform;
+		rect.anchorMin = Vector2.zero;
+		rect.anchorMax = Vector2.one;
+		rect.pivot = new Vector2(0.5f, 0.5f);
+		rect.offsetMin = new Vector2(FrameBorder, FrameBorder);
+		rect.offsetMax = new Vector2(-FrameBorder, -FrameBorder);
+
+		// A block is one of the game's rows with a content group over its caption, and a fill is the block's
+		// own drawing rather than a caption: it is asked to stay out of that group.
+		var layout = go.AddComponent<LayoutElement>();
+		layout.ignoreLayout = true;
+
+		var fill = go.GetComponent<Image>();
+		fill.raycastTarget = false;
+		return fill;
 	}
 
 	/// <summary>

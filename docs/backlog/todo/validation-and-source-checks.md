@@ -12,7 +12,7 @@
   authority-declaration half is closed by S1a below; the console command's own path, the drop table and the
   state preconditions are what remains of it),
   `todo/health-simulation-and-host-authority.md` (the continuous-value half of the same conversation),
-  `review/item-data-write-commands.md` (its write verb is host-only today for exactly this reason: a command
+  `done/item-data-write-commands.md` (its write verb is host-only today for exactly this reason: a command
   write is byte-identical to a native use on the wire), `docs/decisions/active.md` 210 (the admission seam),
   `docs/evidence/sync-coverage-matrix.md` (a new wire kind owes it a row), `docs/architecture/current.md` §7.1
 
@@ -90,7 +90,7 @@
    | The way back from a refusal (S1b: `ItemDataWriteSettlement` + `WireCommand.RefusedKind`) | a refusal settles the value the writer already applied, and the answer names the report it judged | `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_WhenTheHostRuleIsClosed_IsRefusedAndTheValueGoesBack` — RED with the settle skipped (local 0.25, expected 0.5); `.WhenRefused_NeverBecameAPickupRollback`; `.ForAnIdTheHostNeverJudged_IsRefusedAndSettled` |
    | What S1b did NOT change | a console write's DOMAIN verdict is the native use's own (`UpdateItemStateCommand`), the host's own console never passes the seam, and the read verb stays open to everyone | `KernelWireMapper`'s two arms; `ItemDataCommands`' host branch; `CommandConsoleItemDataTests` green |
    | What did NOT change | the domain's own rules and the handler's revision re-stamp | `ItemDomainModule.DecideUpdate` checks existence, a terminal row and the revision only, and `ResolveCommandRevision` re-stamps the revision from the host's own record; `DecideSyncContainer` was left as it is, because the seam is where eligibility belongs |
-   | Not covered | the drop table (S2), the state preconditions (S3), and a `CommandRejected` frame arriving as a command KIND (pre-existing: the mapper's default arm threw the same way; `KernelProtocolService` answers it only on the guest's own payload-type branch) | the stages above; the write verb's own rows and limits are `review/item-data-write-commands.md` |
+   | Not covered | the drop table (S2), the state preconditions (S3), and a `CommandRejected` frame arriving as a command KIND (pre-existing: the mapper's default arm threw the same way; `KernelProtocolService` answers it only on the guest's own payload-type branch) | the stages above; the write verb's own rows and limits are `done/item-data-write-commands.md` |
 2. **S2 — the drop table.** A block or entity destruction report carries its drops; today the host registers
    them first-writer-wins and never checks them against the block's own table. The host re-derives the allowed
    set (kinds, counts, and for a random roll the probability window) and refuses what is outside it — the

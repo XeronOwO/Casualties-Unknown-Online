@@ -158,7 +158,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 		{ nameof(TheSurfaceCarriesTheWorldOverlay), "adapter/OnlineUiSurfaceHost.cs", "_worldOverlay?.Apply(frame.World);", "// the frame's world overlay is dropped", "a frame whose world overlay never reaches the surface" },
 		{ nameof(TheSurfaceCarriesTheWorldOverlay), "adapter/OnlineUiSurfaceHost.cs", "_worldOverlay = null;", "// the world overlay outlives the surface it was built on", "a world overlay leaked past the surface that owns it" },
 		// The art half: the game's typography, the boxes, and the fit and fallback policy.
-		{ nameof(TheOverlaysLabelsComeFromTheGamesOwnFont), "adapter/OnlineUiWorldOverlayView.cs", "OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography, out _, out _, out _);", "var typography = new OnlineUiControlView.Typography(null, 12f);", "a typography the game never handed over" },
+		{ nameof(TheOverlaysLabelsComeFromTheGamesOwnFont), "adapter/OnlineUiWorldOverlayView.cs", "OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography, out _, out _, out _);", "var typography = new OnlineUiControlTypography(null, 12f);", "a typography the game never handed over" },
 		{ nameof(TheOverlaysLabelsComeFromTheGamesOwnFont), "adapter/OnlineUiWorldOverlayView.cs", "item.Label(marker.OffScreenText, color, _typography.SizeOf(OnlineUiTextStyle.Muted));", "item.Label(marker.OffScreenText, color, 12f);", "a label size that is a constant instead of the game's own ladder" },
 		{ nameof(TheLabelsKeepTheirBoxesAndFallBackForAMissingMark), "adapter/OnlineUiWorldOverlayView.cs", "text.overflowMode = TextOverflowModes.Overflow;", "text.overflowMode = TextOverflowModes.Ellipsis;", "a name the player cannot finish reading" },
 		{ nameof(TheLabelsKeepTheirBoxesAndFallBackForAMissingMark), "adapter/OnlineUiWorldOverlayView.cs", "internal const float PingLabelOffsetY = 22f;", "internal const float PingLabelOffsetY = 0f;", "a ping label that sat on its own mark" },
@@ -170,7 +170,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 		{ nameof(ThePlacementIsTheRuntimesRuleInTheCanvasOwnUnits), "adapter/OnlineUiWorldOverlayView.cs", "item.Glyph(Drawable(OffScreenArrowText.Glyph(placement.Direction)), color, ArrowGlyphFontSize);", "item.Glyph(\"\\u25B2\", color, ArrowGlyphFontSize);", "an arrow that stopped asking the Runtime's own rule" },
 		{ nameof(ThePlacementIsTheRuntimesRuleInTheCanvasOwnUnits), "adapter/OnlineUiWorldOverlayView.cs", "internal const float ScreenEdgeMargin = 52f;", "internal const float ScreenEdgeMargin = 0f;", "a marker flush against the screen's edge" },
 		// The input half: nothing to hit, nothing reported, and the two world gestures still on the census.
-		{ nameof(TheOverlayTakesNoInput), "adapter/OnlineUiWorldOverlayView.cs", "text.raycastTarget = false;", "text.raycastTarget = true;", "a marker that swallows a click meant for the world" },
+		{ nameof(TheOverlayTakesNoInput), "adapter/OnlineUiWorldOverlayView.cs", "var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", "var text = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>(); text.raycastTarget = true;", "a marker label built by hand that swallows a click meant for the world" },
 		{ nameof(TheOverlayTakesNoInput), "adapter/OnlineUiWorldOverlayView.cs", "var root = new GameObject(LayerName, typeof(RectTransform));", "var root = new GameObject(LayerName, typeof(RectTransform), typeof(UnityEngine.UI.Button));", "an overlay layer that carries a control to click" },
 		{ nameof(TheOverlayTakesNoInput), "adapter/OnlineUiWorldOverlayView.cs", "var camera = Camera.main;", "var pointer = Input.mousePosition; var camera = Camera.main;", "a marker pass that polls the pointer" },
 		{ nameof(TheWorldInputPathsStillAskTheCensus), "plugin/OnlineUiOverlay.cs", "return _pointerCensus.BlocksWorldPing();", "return false;", "a middle-click ping that stops asking the census" },
@@ -253,7 +253,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 		var flat = Flatten(viewSource);
 
 		return flat.Contains("OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography, out _, out _, out _);", StringComparison.Ordinal)
-			&& flat.Contains("text.font = typography.Font;", StringComparison.Ordinal)
+			&& flat.Contains("var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", StringComparison.Ordinal)
 			&& flat.Contains("label.fontSize = typography.SizeOf(OnlineUiTextStyle.Muted);", StringComparison.Ordinal)
 			&& flat.Contains("item.Label(marker.OnScreenText, color, _typography.SizeOf(OnlineUiTextStyle.Default));", StringComparison.Ordinal)
 			&& flat.Contains("item.Label(marker.OffScreenText, color, _typography.SizeOf(OnlineUiTextStyle.Muted));", StringComparison.Ordinal);
@@ -317,7 +317,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 		var flat = Flatten(viewSource);
 
 		return flat.Contains("var root = new GameObject(LayerName, typeof(RectTransform));", StringComparison.Ordinal)
-			&& flat.Contains("text.raycastTarget = false;", StringComparison.Ordinal)
+			&& flat.Contains("var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", StringComparison.Ordinal)
 			&& !flat.Contains("OnlineUiIntent", StringComparison.Ordinal)
 			&& !flat.Contains("Image", StringComparison.Ordinal)
 			&& !flat.Contains("Graphic", StringComparison.Ordinal)

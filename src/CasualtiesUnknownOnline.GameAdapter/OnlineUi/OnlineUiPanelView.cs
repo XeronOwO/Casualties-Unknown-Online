@@ -73,7 +73,7 @@ internal sealed class OnlineUiPanelView
 	private readonly Canvas? _canvas;
 	private readonly RectTransform _titleBar;
 	private readonly TextMeshProUGUI _title;
-	private readonly OnlineUiControlView.Typography _typography;
+	private readonly OnlineUiControlTypography _typography;
 	private readonly List<OnlineUiWindowRowView> _rows = [];
 	private readonly HashSet<OnlineUiElementKind> _reportedMissingPrefabs = [];
 	private readonly HashSet<OnlineUiElementKind> _reportedPointerFixes = [];
@@ -97,7 +97,7 @@ internal sealed class OnlineUiPanelView
 		Canvas? canvas,
 		RectTransform titleBar,
 		TextMeshProUGUI title,
-		OnlineUiControlView.Typography typography)
+		OnlineUiControlTypography typography)
 	{
 		_log = log;
 		_report = report;
@@ -154,7 +154,7 @@ internal sealed class OnlineUiPanelView
 		fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 		fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-		var titleBar = CreateRect("Title Bar", root.transform, typeof(Image), typeof(LayoutElement));
+		var titleBar = OnlineUiSurfaceParts.CreateRect("Title Bar", root.transform, typeof(Image), typeof(LayoutElement));
 		var titleImage = titleBar.GetComponent<Image>();
 		titleImage.sprite = sprite;
 		titleImage.type = imageType;
@@ -165,8 +165,8 @@ internal sealed class OnlineUiPanelView
 		titleLayout.minHeight = TitleHeight;
 		titleLayout.preferredHeight = TitleHeight;
 
-		var title = CreateLabel("Title", titleBar, typography, OnlineUiTextStyle.Title);
-		Stretch(title.rectTransform, 4f, 4f, 0f, 0f);
+		var title = OnlineUiSurfaceParts.CreateLabel("Title", titleBar, typography, OnlineUiTextStyle.Title);
+		OnlineUiSurfaceParts.Stretch(title.rectTransform, 4f, 4f, 0f, 0f);
 		title.alignment = TextAlignmentOptions.MidlineLeft;
 
 		var view = new OnlineUiPanelView(
@@ -263,7 +263,7 @@ internal sealed class OnlineUiPanelView
 
 		if (closeId.Length == 0)
 		{
-			Stretch(_title.rectTransform, 4f, 4f, 0f, 0f);
+			OnlineUiSurfaceParts.Stretch(_title.rectTransform, 4f, 4f, 0f, 0f);
 			return;
 		}
 
@@ -278,7 +278,7 @@ internal sealed class OnlineUiPanelView
 		closeRect.pivot = new Vector2(1f, 0.5f);
 		closeRect.anchoredPosition = new Vector2(-2f, 0f);
 		closeRect.sizeDelta = new Vector2(CloseWidth, CloseHeight);
-		Stretch(_title.rectTransform, 4f, CloseWidth + 6f, 0f, 0f);
+		OnlineUiSurfaceParts.Stretch(_title.rectTransform, 4f, CloseWidth + 6f, 0f, 0f);
 	}
 
 	private void ApplyRows(IReadOnlyList<OnlineUiRowModel> rows)
@@ -511,46 +511,6 @@ internal sealed class OnlineUiPanelView
 		// The pivot IS the top-left corner, and a rect's local position is its pivot's — the anchors above
 		// only decide what the rect is positioned against when the parent changes size.
 		_rect.localPosition = new Vector3(bounds.xMin + corner.X, bounds.yMin + corner.Top, 0f);
-	}
-
-	private static RectTransform CreateRect(string name, Transform parent, params Type[] components)
-	{
-		var all = new Type[components.Length + 1];
-		all[0] = typeof(RectTransform);
-		Array.Copy(components, 0, all, 1, components.Length);
-		var go = new GameObject(name, all);
-		go.transform.SetParent(parent, worldPositionStays: false);
-		return (RectTransform)go.transform;
-	}
-
-	private static TextMeshProUGUI CreateLabel(
-		string name,
-		Transform parent,
-		OnlineUiControlView.Typography typography,
-		OnlineUiTextStyle style)
-	{
-		var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-		go.transform.SetParent(parent, worldPositionStays: false);
-		var text = go.GetComponent<TextMeshProUGUI>();
-		text.fontSize = typography.SizeOf(style);
-		text.fontStyle = OnlineUiControlView.Typography.WeightOf(style);
-		text.raycastTarget = false;
-		if (typography.Font != null)
-		{
-			text.font = typography.Font;
-		}
-
-		return text;
-	}
-
-	/// <summary>Stretches a rect inside its parent, with the given insets from each edge.</summary>
-	private static void Stretch(RectTransform rect, float left, float right, float top, float bottom)
-	{
-		rect.anchorMin = Vector2.zero;
-		rect.anchorMax = Vector2.one;
-		rect.pivot = new Vector2(0.5f, 0.5f);
-		rect.offsetMin = new Vector2(left, bottom);
-		rect.offsetMax = new Vector2(-right, -top);
 	}
 
 	/// <summary>The width the rows are wrapped against: the panel minus its own padding.</summary>

@@ -90,7 +90,7 @@ internal sealed class OnlineUiWindowView
 	private readonly RectTransform _tabRow;
 	private readonly RectTransform _content;
 	private readonly Action<OnlineUiIntent> _report;
-	private readonly OnlineUiControlView.Typography _typography;
+	private readonly OnlineUiControlTypography _typography;
 	private readonly OnlineUiDropdownPopup _popup;
 	private readonly List<OnlineUiWindowRowView> _rows = [];
 	private readonly List<OnlineUiControlView> _tabs = [];
@@ -110,7 +110,7 @@ internal sealed class OnlineUiWindowView
 		RectTransform tabRow,
 		RectTransform content,
 		Action<OnlineUiIntent> report,
-		OnlineUiControlView.Typography typography,
+		OnlineUiControlTypography typography,
 		OnlineUiDropdownPopup popup)
 	{
 		_log = log;
@@ -166,7 +166,7 @@ internal sealed class OnlineUiWindowView
 		// and not fall through to the world behind it.
 		panel.raycastTarget = true;
 
-		var titleBar = CreateRect("Title Bar", root.transform, typeof(Image), typeof(LayoutElement));
+		var titleBar = OnlineUiSurfaceParts.CreateRect("Title Bar", root.transform, typeof(Image), typeof(LayoutElement));
 		DeclareBandHeight(titleBar, TitleHeight);
 		var titleImage = titleBar.GetComponent<Image>();
 		titleImage.sprite = sprite;
@@ -176,8 +176,8 @@ internal sealed class OnlineUiWindowView
 		titleImage.raycastTarget = true;
 		titleBar.gameObject.AddComponent<OnlineUiWindowDragHandler>().Bind(rect);
 
-		var title = CreateLabel("Title", titleBar, typography, OnlineUiTextStyle.Title);
-		Stretch(title.rectTransform, left: 8f, right: CloseWidth + 12f, top: 0f, bottom: 0f);
+		var title = OnlineUiSurfaceParts.CreateLabel("Title", titleBar, typography, OnlineUiTextStyle.Title);
+		OnlineUiSurfaceParts.Stretch(title.rectTransform, left: 8f, right: CloseWidth + 12f, top: 0f, bottom: 0f);
 		title.alignment = TextAlignmentOptions.MidlineLeft;
 
 		var close = OnlineUiControlView.Create(
@@ -192,7 +192,7 @@ internal sealed class OnlineUiWindowView
 		closeRect.anchoredPosition = new Vector2(-4f, 0f);
 		closeRect.sizeDelta = new Vector2(CloseWidth, CloseHeight);
 
-		var tabRow = CreateRect("Tabs", root.transform, typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+		var tabRow = OnlineUiSurfaceParts.CreateRect("Tabs", root.transform, typeof(HorizontalLayoutGroup), typeof(LayoutElement));
 		DeclareBandHeight(tabRow, TabHeight);
 		var tabs = tabRow.GetComponent<HorizontalLayoutGroup>();
 		tabs.spacing = LineSpacing;
@@ -202,7 +202,7 @@ internal sealed class OnlineUiWindowView
 		tabs.childForceExpandWidth = false;
 		tabs.childForceExpandHeight = true;
 
-		var scroll = CreateRect("Scroll", root.transform, typeof(ScrollRect), typeof(LayoutElement));
+		var scroll = OnlineUiSurfaceParts.CreateRect("Scroll", root.transform, typeof(ScrollRect), typeof(LayoutElement));
 		var scrollLayout = scroll.GetComponent<LayoutElement>();
 
 		// The page is the band that takes what is left of the window: a flexible height, so the engine gives it
@@ -214,8 +214,8 @@ internal sealed class OnlineUiWindowView
 		scrollRect.movementType = ScrollRect.MovementType.Clamped;
 		scrollRect.scrollSensitivity = 30f;
 
-		var viewport = CreateRect("Viewport", scroll, typeof(Image), typeof(RectMask2D));
-		Stretch(viewport, 0f, 0f, 0f, 0f);
+		var viewport = OnlineUiSurfaceParts.CreateRect("Viewport", scroll, typeof(Image), typeof(RectMask2D));
+		OnlineUiSurfaceParts.Stretch(viewport, 0f, 0f, 0f, 0f);
 
 		// The viewport's own transparent image catches the wheel over empty space, where no row is under
 		// the pointer; the mask is what clips the rows to the viewport.
@@ -223,7 +223,7 @@ internal sealed class OnlineUiWindowView
 		viewportImage.color = new Color(0f, 0f, 0f, 0f);
 		viewportImage.raycastTarget = true;
 
-		var content = CreateRect("Content", viewport, typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+		var content = OnlineUiSurfaceParts.CreateRect("Content", viewport, typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
 		content.anchorMin = new Vector2(0f, 1f);
 		content.anchorMax = new Vector2(1f, 1f);
 		content.pivot = new Vector2(0.5f, 1f);
@@ -347,6 +347,12 @@ internal sealed class OnlineUiWindowView
 				? _tabs[index]
 				: Replace(_tabs, index, element, _tabRow);
 			view.Apply(element);
+
+			// A tab is an element that IS its own control, and the width its model declares is a FLOOR like every
+			// other width of this surface (`OnlineUiPageBuilder.TabWidth`: six of them on one line). It is written
+			// on the tab the same way a page's button gets it, so the strip's shape and the declared floor cannot
+			// disagree — the review of 2026-10-15 found them doing exactly that.
+			view.LayOutRow(view.EffectiveWidth(element));
 		}
 
 		DestroyFrom(_tabs, tabs.Count);
@@ -539,46 +545,6 @@ internal sealed class OnlineUiWindowView
 				line.transform.SetAsLastSibling();
 			}
 		}
-	}
-
-	private static RectTransform CreateRect(string name, Transform parent, params Type[] components)
-	{
-		var all = new Type[components.Length + 1];
-		all[0] = typeof(RectTransform);
-		Array.Copy(components, 0, all, 1, components.Length);
-		var go = new GameObject(name, all);
-		go.transform.SetParent(parent, worldPositionStays: false);
-		return (RectTransform)go.transform;
-	}
-
-	private static TextMeshProUGUI CreateLabel(
-		string name,
-		Transform parent,
-		OnlineUiControlView.Typography typography,
-		OnlineUiTextStyle style)
-	{
-		var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-		go.transform.SetParent(parent, worldPositionStays: false);
-		var text = go.GetComponent<TextMeshProUGUI>();
-		text.fontSize = typography.SizeOf(style);
-		text.fontStyle = OnlineUiControlView.Typography.WeightOf(style);
-		text.raycastTarget = false;
-		if (typography.Font != null)
-		{
-			text.font = typography.Font;
-		}
-
-		return text;
-	}
-
-	/// <summary>Stretches a rect inside its parent, with the given insets from each edge.</summary>
-	private static void Stretch(RectTransform rect, float left, float right, float top, float bottom)
-	{
-		rect.anchorMin = Vector2.zero;
-		rect.anchorMax = Vector2.one;
-		rect.pivot = new Vector2(0.5f, 0.5f);
-		rect.offsetMin = new Vector2(left, bottom);
-		rect.offsetMax = new Vector2(-right, -top);
 	}
 
 	/// <summary>Declares one band's own height for the shell's layout group: the engine places the band, this is

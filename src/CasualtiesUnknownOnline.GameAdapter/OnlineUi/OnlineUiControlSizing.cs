@@ -6,10 +6,12 @@ using UnityEngine.UI;
 namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// <summary>
 /// How wide a control of the Online UI window has to be (ticket online-ui-layout-and-input-detail-pass, S2,
-/// reworked by its own acceptance pass). Two things decide it: the width the MODEL declared, which is a floor
-/// and nothing more, and the intrinsic width of the control's own content — the size the game's own prefab
-/// was authored with for a button, a toggle, a slider and a field, and the caption TMP measured for a
-/// dropdown. The larger of the two is the control's width, and it is DECLARED to uGUI (a
+/// reworked by its own acceptance pass and again by the cycle of 2026-10-15). Two things decide it: the width
+/// the MODEL declared, which is a floor and nothing more, and the intrinsic width of the element's own content
+/// — the caption TMP measured (plus the room the game's own row keeps around its text) for a button and a
+/// colour block, the size the game's own prefab authored for the control a row carries (a toggle's checkbox, a
+/// slider, a field's box), a stretched control that declares none falling back to the layout's own minimum. The
+/// larger of the two is the element's width, and it is DECLARED to uGUI (a
 /// <see cref="LayoutElement.preferredWidth"/>) rather than left for the engine to measure.
 ///
 /// <para>
@@ -32,19 +34,44 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 internal static class OnlineUiControlSizing
 {
 	/// <summary>
-	/// The width the control takes in the row it is laid out in: the model's own hint, and above it whatever
-	/// the control's own content needs. A label is the exception — it takes what the row has left and counts
-	/// as nothing towards the wrap, so it reports 0 here. A field and a dropdown also fall back to the layout's
-	/// own minimum when neither the model nor the game's prefab declares a width, because a control the player
-	/// types into cannot be zero wide.
+	/// The width ONE element takes on its line — the rule the window's wrap is asked with and the width the
+	/// element is then laid out at, in one place. The model's hint is a FLOOR and above it the answer is the
+	/// element's own content: the caption TMP measured (plus the room the game's own row keeps around its text)
+	/// for a button and a colour block, the size the game authored for a control that came with one, the
+	/// layout's own minimum under the three kinds the player types, picks or drags in (a field, a dropdown, a
+	/// slider — a control the player operates cannot be zero wide). A label is the exception: it takes what its
+	/// row has left and counts as nothing towards the wrap, so it reports 0 here.
+	///
+	/// <para>
+	/// Nothing here measures a box a layout group has just written. A toggle and a slider are answered from
+	/// <paramref name="authoredControlWidth"/> — the width read off the CONTROL when the view was built
+	/// (<see cref="AuthoredChildWidth"/>) — because the element that CONTAINS a control reports the row's own
+	/// sum, which contains the control's declared width: that is how the Admin page's rule rows grew 7282 →
+	/// 30537 units inside a 984-unit page while their flexible label, whose minimum is zero, was squeezed to
+	/// one character per line (batch `20261015-a`).
+	/// </para>
 	/// </summary>
-	internal static float EffectiveWidth(OnlineUiElementModel element, float contentWidth) => element.Kind switch
-	{
-		OnlineUiElementKind.Label => 0f,
-		OnlineUiElementKind.TextField or OnlineUiElementKind.Dropdown =>
-			OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), contentWidth),
-		_ => OnlineUiControlBox.EffectiveWidth(element.Width, contentWidth),
-	};
+	internal static float EffectiveWidth(
+		OnlineUiElementModel element,
+		TMP_Text? caption,
+		float typographySize,
+		float authoredControlWidth) => element.Kind switch
+		{
+			OnlineUiElementKind.Label => 0f,
+			OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch =>
+				OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidthOrZero(caption) + (2f * typographySize)),
+			OnlineUiElementKind.TextField or OnlineUiElementKind.Dropdown =>
+				OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f),
+			OnlineUiElementKind.Toggle =>
+				OnlineUiControlBox.EffectiveWidth(element.Width, authoredControlWidth),
+			OnlineUiElementKind.Slider =>
+				OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), authoredControlWidth),
+			_ => 0f,
+		};
+
+	/// <summary>The width a caption needs, or 0 for a kind whose caption is not its content (a colour block's
+	/// caption is empty, and a field's row label is not the value it holds).</summary>
+	private static float CaptionWidthOrZero(TMP_Text? caption) => caption != null ? CaptionWidth(caption) : 0f;
 
 	/// <summary>
 	/// The intrinsic width of a control whose prefab is ALL that can be asked, for a kind whose own content is
@@ -55,6 +82,25 @@ internal static class OnlineUiControlSizing
 	/// </summary>
 	internal static float PrefabWidth(RectTransform rect) =>
 		rect.GetComponent<TMP_InputField>() != null ? 0f : LayoutUtility.GetPreferredSize(rect, 0);
+
+	/// <summary>
+	/// The width the game's own prefab authored for ONE of a row's children — the toggle's checkbox, a
+	/// dropdown's or a field's box — read from that child's own rect. It is a reading of the PREFAB, so it
+	/// belongs to the moment a view is built: the row's own layout group writes the child's rect from the
+	/// first pass on, and asking afterwards reads the box CUO itself just wrote (the feedback the acceptance
+	/// pass of batch `20261001-k` caught running away). <see cref="OnlineUiControlView"/> therefore takes this
+	/// once, when it creates the view, and keeps it.
+	///
+	/// <para>
+	/// A child the game anchored at a POINT carries its authored size in <c>sizeDelta</c>; one the game
+	/// stretched across its own row — the float row's slider — declares no width of its own and reports 0,
+	/// which leaves the model's floor as the whole answer.
+	/// </para>
+	/// </summary>
+	internal static float AuthoredChildWidth(RectTransform? child) =>
+		child != null && Mathf.Approximately(child.anchorMin.x, child.anchorMax.x) && child.rect.width > 0f
+			? child.rect.width
+			: 0f;
 
 	/// <summary>
 	/// The width one caption's own text needs, plus the room the game's own row keeps around its text: the

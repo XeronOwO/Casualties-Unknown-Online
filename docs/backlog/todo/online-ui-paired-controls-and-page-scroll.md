@@ -52,11 +52,38 @@ from:
 
 The user's summary: *"there are too many detail problems — fix them properly."*
 
-**This is the work order for the next cycle** (the four points are one cycle, not four): the page's content
-keeps clear of the bar's room; the paired row's control starts at the page's left margin; the slider shows ONE
-track with the filled fraction exactly over it; and the page's own label lines keep the same leading room every
-row's label keeps. Each is a geometry question with a reading above to judge it by, and the acceptance run for
-all four is the same recipe (`cuo-ui-dump`, whose `span` reading is the distance measure) plus one frame.
+**The user's question that fixes the DIRECTION** (2026-10-15, after the four points): *"the game already ships a
+slider control — why not reuse it?"* The answer, and it settles how points 2–3 are to be fixed:
+
+- The slider IS the game's own control and prefab: `OnlineUiControlFactory.PrefabPathOf` maps the kind to
+  `Special/GameSettingFloat`, the same row the game's own `SettingsMenu` builds and takes
+  `GetChild(1).GetComponent<Slider>()` from (the decompiled shape is recorded in
+  `docs/evidence/selfchecks/ui/online-ui-window-family-selfcheck.md`). Its drag behaviour, its sprites
+  (`uiBlockNano` for the rail, `whitesquare` for the knob) and its font are the game's, and S1 of this ticket
+  removed the rule that hid them, precisely because a slider's children ARE its reading.
+- What is NOT reused is that prefab's hand-authored INTERIOR: `OnlineUiSliderGeometry` re-places the rail, the
+  fill and the knob for the page's one compact height, and that re-cut is what the three look defects come out
+  of — the game's own `Background` is left standing while the part CUO tints and places as the rail is a
+  DIFFERENT object (the component's `targetGraphic` carries `whitesquare`, the visible node carries
+  `uiBlockNano`), the fill is pulled onto the whole control (`x` inset 10, `y` `0..1`) while the prefab's own
+  `Fill Area` sits at `y 0.25..0.75`, and the knob's place is the prefab's old anchors rather than the value.
+- **The direction: let the game's own interior proportions stand, and re-cut only the layer that has to be
+  re-cut for the compact row — never pull the parts themselves onto the whole control.** The same question must
+  be asked of the other kinds before the re-cut is trusted (a field's viewport, a dropdown's frame), because the
+  reason the re-cut exists at all is the height the game authored for (~3x this page's), and that reason is
+  about the ROW, not about each inner rectangle.
+- **Not established yet, and the first thing the next cycle checks**: whether the prefab's own interior survives
+  the compact 36-unit height untouched (its parts inside the row, nothing hanging out). If it does not, the
+  re-cut stays but must be derived from the prefab's own proportions rather than from CUO's full-span numbers.
+  The reading to check it with is the same dump (`rect`, `anchor` and `span` per node; the dump of batch
+  `.acceptance/20261015-d/`, `g3-admin-dump.json`, is a worked example of it).
+
+**This is the work order for the next cycle** (the four points are one cycle, not four, and the direction above
+decides how the slider's own two are done): the page's content keeps clear of the bar's room; the paired row's
+control starts at the page's left margin; the slider shows ONE rail with the filled fraction exactly over it,
+from the game's own interior proportions; and the page's own label lines keep the same leading room every row's
+label keeps. Each is a geometry question with a reading above to judge it by, and the acceptance run for all
+four is the same recipe (`cuo-ui-dump`, whose `span` reading is the distance measure) plus one frame.
 
 ## What the 2026-10-15 pass (batch `.acceptance/20261015-c/`) already reads
 

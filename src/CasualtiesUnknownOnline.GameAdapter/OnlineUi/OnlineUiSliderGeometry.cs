@@ -133,9 +133,13 @@ internal static class OnlineUiSliderGeometry
 	}
 
 	/// <summary>
-	/// The handle itself: the size the game's own prefab authored for it, centred on the value the slider
-	/// holds by the engine's own <c>Set</c>. A prefab that authored no width gets a square the height of
-	/// the box, so a handle is never a zero-width rect nobody can grab.
+	/// The handle itself: a square the height of the compact box, centred on the value the slider holds by the
+	/// engine's own <c>Set</c>. The game's own prefab authors its handle for a row three times this height, and
+	/// the WIDTH it carries there is not a size CUO may read back: the engine drives a handle by its ANCHORS as
+	/// the value moves, so its rect answers with the width of the box the row gave it, and reading that back
+	/// made the handle as wide as the whole control — a bar with no knob and no visible ends. The page showed
+	/// exactly that once the paired row's box became the page's own width (batch `20261015-d`: a 571.99-wide
+	/// handle inside a 571.99-wide slider), which is the reading this rule is written against.
 	/// </summary>
 	private static void PlaceHandle(RectTransform? handle)
 	{
@@ -144,10 +148,22 @@ internal static class OnlineUiSliderGeometry
 			return;
 		}
 
-		var width = handle.rect.width > 0f ? handle.rect.width : OnlineUiWindowLayout.ControlHeight;
-		handle.pivot = new Vector2(0.5f, 0.5f);
-		handle.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
-		handle.anchoredPosition = new Vector2(handle.anchoredPosition.x, 0f);
+		// Every write here is behind a comparison: this runs once per frame per slider, and a rect write marks
+		// the canvas for a rebuild whether or not the value changed.
+		if (handle.pivot != new Vector2(0.5f, 0.5f))
+		{
+			handle.pivot = new Vector2(0.5f, 0.5f);
+		}
+
+		if (!handle.rect.width.Equals(OnlineUiWindowLayout.ControlHeight))
+		{
+			handle.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, OnlineUiWindowLayout.ControlHeight);
+		}
+
+		if (!handle.anchoredPosition.y.Equals(0f))
+		{
+			handle.anchoredPosition = new Vector2(handle.anchoredPosition.x, 0f);
+		}
 	}
 
 	/// <summary>

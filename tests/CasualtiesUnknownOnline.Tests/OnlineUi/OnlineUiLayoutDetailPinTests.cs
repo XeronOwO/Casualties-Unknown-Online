@@ -284,6 +284,9 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& slider.Contains("PlaceContainer(slider.fillRect, control, controlWidth, insetsTheTrack: true);", StringComparison.Ordinal)
 			&& slider.Contains("PlaceContainer(slider.handleRect, control, controlWidth, insetsTheTrack: false);", StringComparison.Ordinal)
 			&& slider.Contains("Tint(slider);", StringComparison.Ordinal)
+			// The handle is a square knob, never the width of the box it sits in: the engine drives a handle by
+			// its ANCHORS, so its rect answers with the row's own width and reading that back made it a bar.
+			&& slider.Contains("handle.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, OnlineUiWindowLayout.ControlHeight);", StringComparison.Ordinal)
 			&& !slider.Contains("HidePrefabBoxArt", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.LayOutPairedRow(_root, _layout, _labelRect, _controlRect, controlWidth, columnWidth, prefabValue);", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.PrepareInternals(dropdown, input, toggle);", StringComparison.Ordinal);

@@ -1,7 +1,12 @@
 # Acceptance record — The Online UI's paired controls and its pages' scroll affordance
 
-- Ticket: `online-ui-paired-controls-and-page-scroll` — verdict: **moved to `done/`** (every row judged
-  from this run's own readings; the two judgements a person owns are listed as residuals).
+- Ticket: `online-ui-paired-controls-and-page-scroll` — verdict: **back to `todo/`** with
+  `- Status: Todo — Rejected (…)`. The geometry rows below pass on their readings, but the user read the
+  frame the run captured and rejected the LOOK: the page's content does not keep clear of the bar, the
+  paired row's control starts at the page's control column instead of the page's left margin, the slider
+  shows the game's own background box beside a fill that does not overlay it, and the page's own label
+  lines do not keep the room every row's label keeps. The four points and the reading each one comes from
+  are on the ticket (*The user's rejection*), which is the work order again.
 - Batch: `20261015-d` — tickets: this one; the run also re-reads the shell the layout pass left
   (`Tabs`, the page band, the one-line rule rows), which a later batch may reuse.
 - Commit: `ce9db539` · Deployed artifact: CasualtiesUnknownOnline.dll, ProductVersion
@@ -34,14 +39,13 @@ earlier batch's evidence.
 
 ## Residuals for the user
 
-1. **The value box's right 6 units sit under the page's scrollbar when the page overflows.**
-   `f5-admin-dump.json`: the value box ends at `486.00` and the page's bar spans `482.00..490.00`, so
-   4 units of the box are under the bar's track (a click there is the bar's jump, not the field). The
-   ticket's criterion asks for exactly those 6 units, so this is a consequence of it — whether page
-   content should keep clear of the bar is a taste call that belongs to the user.
-2. **Whether the slider now reads as one control with the value beside it** — `f6-admin.png` is the
-   frame to look at. The run reads it as one row (track, filled fraction, value at the margin); a
-   person's eye is the judge.
+Both were answered in the same evening, and both answers were rejections; the detail is on the ticket.
+
+1. **The value box's right 6 units sit under the page's scrollbar when the page overflows.** Rejected: the
+   content is to keep clear of the bar, "as normal front-end design does".
+2. **Whether the slider now reads as one control with the value beside it.** Rejected on the frame: the
+   slider's alignment, the game's background box around it and its fill's overlap are all wrong, and the name
+   line's own margin is still off.
 
 ## Limits
 

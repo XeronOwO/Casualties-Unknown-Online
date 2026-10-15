@@ -997,10 +997,10 @@ reversing/README.md | keep | index | -
 src/AGENTS.md | keep | loaded | -
 tests/AGENTS.md | keep | loaded | -
 tools/AGENTS.md | keep | loaded | -
-docs/backlog/done/online-ui-paired-controls-and-page-scroll.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/online-ui-paired-controls-and-page-scroll.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/20261015-a-scope.md | keep | claim | docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261015-a.md
 docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261015-a.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
 docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
 docs/evidence/acceptance/20261015-b-scope.md | keep | claim | docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md
 docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
-docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md | keep | claim | docs/backlog/done/online-ui-paired-controls-and-page-scroll.md
+docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md | keep | claim | docs/backlog/todo/online-ui-paired-controls-and-page-scroll.md

@@ -1,12 +1,16 @@
 # The Online UI's paired controls and its pages' scroll affordance
 
-- Status: Done — accepted in batch `.acceptance/20261015-d/`, artifact `0.1.0+ce9db539…`, record
-  `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md`. Every row of the reading
-  below was re-taken and passes; the two judgements a person owns (the value box's 4 units under the page's
-  scrollbar, and whether the slider reads as one control) are the record's residuals. History: S1 to S4 landed
-  in the suite, and the real-machine pass of 2026-10-15 (batch `.acceptance/20261015-c/`) found that the paired
-  row's second line did not stretch — the reading kept below, with its cause corrected by the same day's second
-  pass.
+- Status: Todo — **Rejected** (2026-10-15, the user's own reading of the frame the run captured). The batch
+  `.acceptance/20261015-d/` reading below was taken on artifact `0.1.0+ce9db539…` and the geometry rows pass,
+  but the user judged the RESULT on screen and rejected it: four detail defects are named in *The user's
+  rejection* below, with the reading each one is read from. Nothing was implemented against them in the cycle
+  that recorded this: the ticket is the work order.
+- History: S1 to S4 landed in the suite, and the real-machine pass of 2026-10-15 (batch
+  `.acceptance/20261015-c/`) found that the paired row's second line did not stretch — the reading kept below,
+  with its cause corrected by the same day's second pass. That cycle's fix (the row owns its line) is what the
+  `20261015-d` reading below measures and what the user is rejecting the LOOK of. The run's own record is
+  `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md`, and the reading to judge
+  the four points by is the same recipe plus one frame.
 - Priority: Medium-High
 - Category: Online UI / layout, presentation and input
 - Source: The user, 2026-10-14, in their own words: (1) "is there a scrollbar? the Admin page has a part that
@@ -20,6 +24,39 @@
   one compact control height and the row's own prefab art are its work), `done/online-ui-art-and-controls-overhaul.md`
   (the surface these controls are built on), `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`
   (the frames that show the two shapes the asks are about)
+
+## The user's rejection (2026-10-15, on the frame batch `.acceptance/20261015-d/` captured)
+
+The user read the frame the run captured (`f6-admin.png`, the Admin page of a hosted lobby; `f5-admin-dump.json`
+is the reading beside it) and rejected the look. Four points, in their own words, each with the reading it comes
+from:
+
+1. **"The content should keep clear of the scrollbar — that is what normal front-end design does."** Reading:
+   the value box ends at `486.00` while the page's bar spans `482.00..490.00`, so 4 units of the box sit under
+   the bar. The page's rows have to stop before the bar's room.
+2. **"The slider's alignment is wrong: its left end should reach the left boundary."** Reading: the slider spans
+   `-227.99..344.00`, i.e. it starts at the page's control COLUMN — where the toggle rows' checkboxes start
+   (`Toggle 32.79` at `-227.99..-195.20`) — and not at the page's left margin (`-486.00`, where every row's label
+   starts). The paired row's own label keeps that column for the row's control, which is what puts the slider
+   there.
+3. **"The background box is too big and looks wrong; the yellow rectangle in front and the background's full
+   rectangle do not overlap exactly."** Reading: `Slider/Background` — the game's own decoration, and NOT the
+   object the slider reads by (the component's own `targetGraphic` carries `whitesquare` while this node carries
+   `uiBlockNano`) — is `571.99x28.00` at the prefab's anchors (`0.00,0.25..1.00,0.75`), while the fill
+   `Slider/Fill` is `551.99x36.00` at `0.00,0.00..1.00,1.00`: two rectangles of different sizes and insets where
+   the player is meant to see one track with the filled fraction over it.
+4. **"The name '背负重量系数' still has a margin problem — it is not solved."** Reading: the name is a
+   `CUO Online UI Label` whose box is the page's own width (`span=-492.00..492.00`) with nothing inside it, so
+   its text starts at the page's edge, while every row's label starts `6.00` units inside it (`-486.00`). It is
+   the one line of the page whose text does not keep the page's own room.
+
+The user's summary: *"there are too many detail problems — fix them properly."*
+
+**This is the work order for the next cycle** (the four points are one cycle, not four): the page's content
+keeps clear of the bar's room; the paired row's control starts at the page's left margin; the slider shows ONE
+track with the filled fraction exactly over it; and the page's own label lines keep the same leading room every
+row's label keeps. Each is a geometry question with a reading above to judge it by, and the acceptance run for
+all four is the same recipe (`cuo-ui-dump`, whose `span` reading is the distance measure) plus one frame.
 
 ## What the 2026-10-15 pass (batch `.acceptance/20261015-c/`) already reads
 

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
-using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -64,7 +63,6 @@ internal sealed class OnlineUiPanelView
 
 	private static readonly Color TitleTint = new(0.07f, 0.09f, 0.12f, 0.98f);
 
-	private readonly ILogger _log;
 	private readonly Action<OnlineUiIntent> _report;
 	private readonly OnlineUiIntentKind _hoverEntered;
 	private readonly OnlineUiIntentKind _hoverLeft;
@@ -73,10 +71,9 @@ internal sealed class OnlineUiPanelView
 	private readonly Canvas? _canvas;
 	private readonly RectTransform _titleBar;
 	private readonly TextMeshProUGUI _title;
+	private readonly OnlineUiViewSource _views;
 	private readonly OnlineUiControlTypography _typography;
 	private readonly List<OnlineUiWindowRowView> _rows = [];
-	private readonly HashSet<OnlineUiElementKind> _reportedMissingPrefabs = [];
-	private readonly HashSet<OnlineUiElementKind> _reportedPointerFixes = [];
 
 	private OnlineUiControlView? _close;
 	private string _closeId = "\0";
@@ -99,7 +96,7 @@ internal sealed class OnlineUiPanelView
 		TextMeshProUGUI title,
 		OnlineUiControlTypography typography)
 	{
-		_log = log;
+		_views = new OnlineUiViewSource(log, "Online UI panel", typography, report);
 		_report = report;
 		_hoverEntered = hoverEntered;
 		_hoverLeft = hoverLeft;
@@ -319,7 +316,7 @@ internal sealed class OnlineUiPanelView
 		// Views first and the wrap after them: how wide a control is comes from its own content, so the
 		// model's width is only a floor and the lines are decided from what the controls actually take — the
 		// same rule the window applies, because this view IS the window's shell without the window.
-		_structureDirty |= SyncViews(row, elements);
+		_structureDirty |= _views.Sync(row.Elements, elements, _root.transform);
 
 		var widths = new float[elements.Count];
 		for (var index = 0; index < elements.Count; index++)
@@ -345,81 +342,6 @@ internal sealed class OnlineUiPanelView
 		}
 
 		_structureDirty |= row.DestroyElementsFrom(elements.Count);
-	}
-
-	/// <summary>
-	/// Keeps a row's views aligned with the model: a view whose kind and id still match is reused, a slot
-	/// whose element changed identity is rebuilt, and views the model dropped are destroyed. A fresh view is
-	/// created under the panel (it always has a parent); the wrap moves it onto its line right after.
-	/// </summary>
-	private bool SyncViews(OnlineUiWindowRowView row, IReadOnlyList<OnlineUiElementModel> elements)
-	{
-		var changed = false;
-		while (row.Elements.Count > elements.Count)
-		{
-			row.Elements[row.Elements.Count - 1].Destroy();
-			row.Elements.RemoveAt(row.Elements.Count - 1);
-			changed = true;
-		}
-
-		for (var index = 0; index < elements.Count; index++)
-		{
-			if (index >= row.Elements.Count)
-			{
-				row.Elements.Add(Replace(row.Elements, index, elements[index], _root.transform));
-				changed = true;
-				continue;
-			}
-
-			if (Matches(row.Elements[index], elements[index]))
-			{
-				continue;
-			}
-
-			row.Elements[index] = Replace(row.Elements, index, elements[index], _root.transform);
-			changed = true;
-		}
-
-		return changed;
-	}
-
-	/// <summary>Whether a live view can take the element over: same kind, and — for a control the model
-	/// names — the same id. A control that changed identity is rebuilt, because its click must land on the
-	/// action its id was registered under.</summary>
-	private static bool Matches(OnlineUiControlView view, OnlineUiElementModel element) =>
-		view.Kind == element.Kind
-		&& (element.Id.Length == 0 || string.Equals(view.Id, element.Id, StringComparison.Ordinal));
-
-	private OnlineUiControlView Replace(
-		List<OnlineUiControlView> views,
-		int index,
-		OnlineUiElementModel element,
-		Transform parent)
-	{
-		if (index < views.Count)
-		{
-			views[index].Destroy();
-			views.RemoveAt(index);
-		}
-
-		_structureDirty = true;
-		var view = OnlineUiControlView.Create(element, parent, _typography, _report);
-		if (view.MissedGamePrefab && _reportedMissingPrefabs.Add(element.Kind))
-		{
-			_log.LogWarning(
-				"Online UI panel: the game's own row prefab for {Kind} could not be loaded — that control falls back to a plain placeholder.",
-				element.Kind);
-		}
-
-		if (view.FixedPointerSurface && _reportedPointerFixes.Add(element.Kind))
-		{
-			_log.LogWarning(
-				"Online UI panel: the game's own row for {Kind} left its control without a pointer surface — CUO gave it one, because a box the player cannot click is not a control.",
-				element.Kind);
-		}
-
-		views.Insert(index, view);
-		return view;
 	}
 
 	/// <summary>Puts the lines back in model order, with the title bar before them. Unity appends a new object

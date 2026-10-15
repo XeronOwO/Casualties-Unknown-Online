@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
-using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -82,20 +81,16 @@ internal sealed class OnlineUiWindowView
 
 	private static readonly Color TitleTint = new(0.07f, 0.09f, 0.12f, 0.98f);
 
-	private readonly ILogger _log;
 	private readonly GameObject _root;
 	private readonly RectTransform _rect;
 	private readonly Canvas? _canvas;
 	private readonly TextMeshProUGUI _title;
 	private readonly RectTransform _tabRow;
 	private readonly RectTransform _content;
-	private readonly Action<OnlineUiIntent> _report;
-	private readonly OnlineUiControlTypography _typography;
+	private readonly OnlineUiViewSource _views;
 	private readonly OnlineUiDropdownPopup _popup;
 	private readonly List<OnlineUiWindowRowView> _rows = [];
 	private readonly List<OnlineUiControlView> _tabs = [];
-	private readonly HashSet<OnlineUiElementKind> _reportedMissingPrefabs = [];
-	private readonly HashSet<OnlineUiElementKind> _reportedPointerFixes = [];
 
 	private bool _hovered;
 	private bool _structureDirty;
@@ -113,15 +108,13 @@ internal sealed class OnlineUiWindowView
 		OnlineUiControlTypography typography,
 		OnlineUiDropdownPopup popup)
 	{
-		_log = log;
+		_views = new OnlineUiViewSource(log, "Online UI window", typography, report);
 		_root = root;
 		_rect = rect;
 		_canvas = canvas;
 		_title = title;
 		_tabRow = tabRow;
 		_content = content;
-		_report = report;
-		_typography = typography;
 		_popup = popup;
 	}
 
@@ -338,25 +331,66 @@ internal sealed class OnlineUiWindowView
 		_rect.sizeDelta = OnlineUiWindowPlacement.Fit(canvas, new Vector2(Width, Height));
 	}
 
+	/// <summary>
+	/// Applies the strip's tabs, and then shares the strip's own width among them. A tab is an element that IS
+	/// its own control, so the width its model declares is a FLOOR like every other width of this surface
+	/// (<see cref="OnlineUiPageBuilder.TabWidth"/>: six of them on one line) and above that floor it takes its
+	/// own caption — but the strip is a band of a fixed width, so the widths the tabs actually take are the
+	/// Runtime rule's answer (<see cref="OnlineUiTabLayout"/>) over the least each caption can be drawn at.
+	/// Handing every tab what it asked for is what measured the six English tabs at 1038.7 units inside a
+	/// 984-unit page, with the last one 55 units past the window's right edge (the user's report of 2026-10-14,
+	/// batch `20261015-a`).
+	/// </summary>
 	private void ApplyTabs(IReadOnlyList<OnlineUiElementModel> tabs)
 	{
+		// The strip's views are reconciled BEFORE their widths are read, because what a tab asks for is its
+		// caption at the size it now draws at.
+		_structureDirty |= _views.Sync(_tabs, tabs, _tabRow);
+
 		for (var index = 0; index < tabs.Count; index++)
 		{
-			var element = tabs[index];
-			var view = index < _tabs.Count && Matches(_tabs[index], element)
-				? _tabs[index]
-				: Replace(_tabs, index, element, _tabRow);
-			view.Apply(element);
-
-			// A tab is an element that IS its own control, and the width its model declares is a FLOOR like every
-			// other width of this surface (`OnlineUiPageBuilder.TabWidth`: six of them on one line). It is written
-			// on the tab the same way a page's button gets it, so the strip's shape and the declared floor cannot
-			// disagree — the review of 2026-10-15 found them doing exactly that.
-			view.LayOutRow(view.EffectiveWidth(element));
+			_tabs[index].Apply(tabs[index]);
 		}
 
-		DestroyFrom(_tabs, tabs.Count);
+		var natural = new float[tabs.Count];
+		var minimum = new float[tabs.Count];
+		for (var index = 0; index < tabs.Count; index++)
+		{
+			natural[index] = _tabs[index].EffectiveWidth(tabs[index]);
+			minimum[index] = _tabs[index].MinimumWidth(tabs[index]);
+		}
+
+		var widths = OnlineUiTabLayout.Widths(natural, minimum, TabStripWidth, LineSpacing);
+		for (var index = 0; index < tabs.Count; index++)
+		{
+			_tabs[index].LayOutRow(widths[index]);
+		}
 	}
+
+	/// <summary>
+	/// The width the tab strip has to share among its tabs: the window's own inner width, which is the band the
+	/// shell's vertical group has to give and cannot be moved by what it is given TO.
+	///
+	/// <para>
+	/// The band's own rect is NOT the source, and this is the one mistake the first cut of this rule made: the
+	/// band is a child of the shell's group with <c>childForceExpandWidth</c>, so its rect is the group's inner
+	/// width OR its own children's minimum, whichever is larger — and a tab's minimum is the width this very
+	/// rule just wrote on it (`OnlineUiRowGeometry.LayOutRow` writes <c>minWidth</c> and <c>preferredWidth</c>
+	/// together). A budget read off the band therefore equals exactly what the tabs already asked for and the
+	/// strip can never give anything up: the live reading is the proof, `Tabs rect=1038.7x36.0` in the English
+	/// dump where the six tabs sum to 1038.8, against `Title Bar rect=984.0x28.0` on the same shell (batch
+	/// `20261015-a`). That is the same self-measurement `OnlineUiControlSizing` records from batch `20261001-k`,
+	/// in a form that converges instead of running away.
+	/// </para>
+	///
+	/// <para>
+	/// The window's rect is the frame's own — the surface host and the canvas clamp write it, and no tab feeds
+	/// into it — so the budget follows a clamped window (a smaller canvas is a narrower strip) exactly as
+	/// intended. The declared content width stands in for a frame whose rect is still zero, before its first
+	/// layout pass.
+	/// </para>
+	/// </summary>
+	private float TabStripWidth => _rect.rect.width > 0f ? _rect.rect.width - (2f * Padding) : ContentWidth;
 
 	private void ApplyRows(IReadOnlyList<OnlineUiRowModel> rows)
 	{
@@ -396,7 +430,7 @@ internal sealed class OnlineUiWindowView
 		// The views come first, and the wrap comes after them: how wide a control is comes from its own
 		// content — the game's font at the game's size decides what a caption needs — so the model's width is
 		// only a floor and the lines are decided from what the controls actually take.
-		_structureDirty |= SyncViews(row, elements);
+		_structureDirty |= _views.Sync(row.Elements, elements, _content);
 
 		var widths = new float[elements.Count];
 		for (var index = 0; index < elements.Count; index++)
@@ -430,108 +464,6 @@ internal sealed class OnlineUiWindowView
 		}
 
 		_structureDirty |= row.DestroyElementsFrom(elements.Count);
-	}
-
-	/// <summary>
-	/// Keeps a row's views aligned with the model: a view whose kind and id still match is reused, a slot
-	/// whose element changed identity is rebuilt, and views the model dropped are destroyed. A fresh view is
-	/// created under the page (it always has a parent); the wrap moves it onto its line right after.
-	/// </summary>
-	private bool SyncViews(OnlineUiWindowRowView row, IReadOnlyList<OnlineUiElementModel> elements)
-	{
-		var changed = false;
-		while (row.Elements.Count > elements.Count)
-		{
-			row.Elements[row.Elements.Count - 1].Destroy();
-			row.Elements.RemoveAt(row.Elements.Count - 1);
-			changed = true;
-		}
-
-		for (var index = 0; index < elements.Count; index++)
-		{
-			if (index >= row.Elements.Count)
-			{
-				row.Elements.Add(CreateView(elements[index], _content));
-				changed = true;
-				continue;
-			}
-
-			if (Matches(row.Elements[index], elements[index]))
-			{
-				continue;
-			}
-
-			row.Elements[index].Destroy();
-			row.Elements[index] = CreateView(elements[index], _content);
-			changed = true;
-		}
-
-		return changed;
-	}
-
-	private OnlineUiControlView CreateView(OnlineUiElementModel element, Transform parent)
-	{
-		var view = OnlineUiControlView.Create(element, parent, _typography, _report);
-		if (view.MissedGamePrefab && _reportedMissingPrefabs.Add(element.Kind))
-		{
-			_log.LogWarning(
-				"Online UI window: the game's own row prefab for {Kind} could not be loaded — that control falls back to a plain placeholder.",
-				element.Kind);
-		}
-
-		if (view.FixedPointerSurface && _reportedPointerFixes.Add(element.Kind))
-		{
-			_log.LogWarning(
-				"Online UI window: the game's own row for {Kind} left its control without a pointer surface — CUO gave it one, because a box the player cannot click is not a control.",
-				element.Kind);
-		}
-
-		return view;
-	}
-
-	/// <summary>Whether a live view can take the element over: same kind, and — for a control the model
-	/// names — the same id. A control that changed identity is rebuilt, because its click must land on the
-	/// action its id was registered under.</summary>
-	private static bool Matches(OnlineUiControlView view, OnlineUiElementModel element) =>
-		view.Kind == element.Kind
-		&& (element.Id.Length == 0 || string.Equals(view.Id, element.Id, StringComparison.Ordinal));
-
-	/// <summary>
-	/// Builds one element's view, replacing whatever occupied its slot. Creation cannot fail: a control the
-	/// game no longer ships falls back to a placeholder inside the view itself, so the slot always holds a
-	/// view and the model's positions stay aligned with the list.
-	/// </summary>
-	private OnlineUiControlView Replace(
-		List<OnlineUiControlView> views,
-		int index,
-		OnlineUiElementModel element,
-		Transform parent)
-	{
-		if (index < views.Count)
-		{
-			views[index].Destroy();
-			views.RemoveAt(index);
-		}
-
-		_structureDirty = true;
-		var view = CreateView(element, parent);
-		views.Insert(index, view);
-		return view;
-	}
-
-	private static void DestroyFrom(List<OnlineUiControlView> views, int keep)
-	{
-		if (views.Count <= keep)
-		{
-			return;
-		}
-
-		for (var index = keep; index < views.Count; index++)
-		{
-			views[index].Destroy();
-		}
-
-		views.RemoveRange(keep, views.Count - keep);
 	}
 
 	/// <summary>Puts the lines back in model order. Unity appends a new object to the end of its parent, so

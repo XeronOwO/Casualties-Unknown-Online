@@ -41,4 +41,22 @@ public static class OnlineUiControlBox
 		var interior = controlWidth - (2f * padding);
 		return interior > 0f ? interior : 0f;
 	}
+
+	/// <summary>
+	/// The width a control that carries a caption takes: the text TMP measured for that caption plus the room
+	/// its row keeps around the text, over the model's floor. The caption's text is measured rather than its
+	/// box, so this is stable where a stretched child is not (the runaway of batch `20261001-k`).
+	///
+	/// <para>
+	/// The room is passed in, because it is not always the same room: a control on a page keeps one font size
+	/// on each side of its caption, and the least a control can be drawn at — a tab in a strip too narrow for
+	/// every tab, see <see cref="OnlineUiTabLayout"/> — keeps the room the control's own box keeps instead.
+	/// Adding it here rather than at the call site is what keeps it counted ONCE: the caller that both
+	/// measured the caption and added the room itself measured an English `Preferences` tab at 231.2 units
+	/// against the 191.2 its text needs, and that surplus is what pushed the English strip past the window
+	/// (the user's report of 2026-10-14, batch `20261015-a`).
+	/// </para>
+	/// </summary>
+	public static float CaptionedWidth(float modelFloor, float captionTextWidth, float room) =>
+		EffectiveWidth(modelFloor, captionTextWidth > 0f ? captionTextWidth + room : 0f);
 }

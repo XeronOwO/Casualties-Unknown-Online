@@ -338,7 +338,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		return flat.Contains("_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", StringComparison.Ordinal)
 			&& flat.Contains("aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiControlSizing.EffectiveWidth(element, _caption, _typography.Size, _controlAuthoredWidth);", StringComparison.Ordinal)
-			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidthOrZero(caption) + (2f * typographySize))", StringComparison.Ordinal)
+			&& sizing.Contains("OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize)", StringComparison.Ordinal)
 			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f)", StringComparison.Ordinal)
 			&& factory.Contains("AddContentGroup(root, InnerPaddingOf(root, rect, prefab));", StringComparison.Ordinal)
 			&& factory.Contains("group.childForceExpandWidth = false;", StringComparison.Ordinal)

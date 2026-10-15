@@ -4,9 +4,11 @@
   wide on a 984-unit page, because a tab takes its caption plus four times the font size — 138.6 / 172.1 / 173.8
   / 143.6 / 159.5 / 231.2 units in English against 130 each in Chinese, which fits). Rows 2 and 3 **pass** in
   batch `20261015-a` (record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`);
-  rows 8–10 stay `unproven` with the setups batch `20261001-k` named. What is left is code: the strip needs a
+  rows 8–10 stay `unproven` with the setups batch `20261001-k` named. What was left is code: the strip needed a
   distribution rule of its own (the tab row is a plain `HorizontalLayoutGroup` with `childForceExpandWidth =
-  false`, so it neither shrinks nor wraps — it overflows the window).
+  false`, so it neither shrinks nor wraps — it overflows the window). **That rule landed in the fifth pass
+  below** (`OnlineUiTabLayout`, with the room around a caption counted once), and the ticket waits on batch
+  `20261015-b`, which judges row 11's English half again against the deployed build.
   **Found 2026-10-14 by the user, after the batch**: this cycle routed the tabs through the width rule so the
   model's `TabWidth` floor would not go unread (the review's own finding), and the floor is not what decides a
   tab's width — the caption is, with the rule's padding counted twice. The live reading of the English page is
@@ -352,7 +354,9 @@ per line. The cycle that fixed it read the live geometry first (batch `20261015-
   either, so it takes the declared width as well — the placeholder path is written down in
   `OnlineUiRowGeometry.LayOutRow`'s doc rather than left implicit. The consequence on the surfaces no test can
   render — every button-like element of every page and panel is now as wide as the rule declares instead of as
-  wide as its caption group measured — is recorded with its acceptance plan on the sibling ticket.
+  wide as its caption group measured — is recorded with its acceptance plan on the sibling ticket. (The fifth
+  pass below corrects that sentence's word "declares": as this pass left the rule, it added the caption's room
+  TWICE, so a button-like element was 40 units wider than the declaration it was supposed to take.)
 - **The pins.** `AControlOfARowIsAsWideAsTheGameAuthoredIt` holds the capture and the rule (a mutation row
   restores `PrefabWidth(_rect)`, another removes the authored width from the rule);
   `AnElementThatIsItsOwnControlDeclaresItsWidth` holds the element's own width write;
@@ -373,6 +377,89 @@ per line. The cycle that fixed it read the live geometry first (batch `20261015-
   the acceptance run's judgement, and so is whether the rule rows now read as one column; the reading above is
   one host's window at one resolution, and this pass is the width the layout gives a control, not a re-cut of
   the Admin page's design.
+
+## Fifth pass (2026-10-15): the strip's own width rule
+
+The user read batch `20261015-a`'s English frames and asked whether the tab widths add up to more than the
+window. They do: the live reading is `Tabs rect=1038.7x36.0` against a page that is 984 wide, with the six
+English tabs 138.6 / 172.1 / 173.8 / 143.6 / 159.5 / 231.2 units (130 each in Chinese, which fits) and the last
+one ending 55 units past the page's right edge. Two causes put it there, and both are the previous cycle's own
+work:
+
+- **The room around a caption was counted TWICE on the element path.** `OnlineUiControlSizing.EffectiveWidth`
+  asked for `CaptionWidthOrZero(caption) + (2f * typographySize)` while `CaptionWidth` already returned the
+  text plus that same room: an English `Preferences` tab therefore measured 231.2 units against the 191.2 its
+  text needs, and every caption-sized button of every page carried the same surplus. The row path read the
+  same quantity the other way — `OnlineUiRowGeometry.CaptionWidthOf` calls `CaptionWidth` alone — so the two
+  paths disagreed about what a button is wide.
+- **Nothing made a strip fit.** The tab row is one `HorizontalLayoutGroup` with `childForceExpandWidth` false,
+  so it neither shrinks nor wraps: each tab took exactly what it asked for and the strip grew past its band.
+
+What landed:
+
+- **`OnlineUiControlBox.CaptionedWidth(modelFloor, captionTextWidth, room)`** is the ONE place a caption's room
+  is added, over the model's floor, and `room` is an argument because it is not always the same room: a page
+  control keeps one font size on each side of its caption, and the least a control can be drawn at keeps the
+  room the control's own box keeps. `OnlineUiControlSizing` now separates `CaptionTextWidth` (the text TMP
+  measured, no room), `CaptionWidth` (that text plus the room at the caption's own size — the row path's
+  reading, unchanged) and `EffectiveWidth` (the room passed once), and adds `MinimumWidth`, the same rule at
+  its other end.
+- **`OnlineUiTabLayout.Widths(natural, minimum, stripWidth, spacing)`** (Runtime, pure) decides what each tab
+  of a strip takes: a strip the tabs fit keeps every one at what it asked for; one they do not fit gives up the
+  excess in proportion to the room each tab still has above its own minimum, in one pass, so no tab goes under a
+  floor its model declared and the room is what is given up before any of a caption is; a strip whose minimums do
+  not fit either keeps them and stays wider than its band, because a narrower caption is the worse of the two
+  answers.
+- **`OnlineUiWindowView.ApplyTabs` allocates through that rule**, after every tab is applied and before any is
+  sized, over a budget of the WINDOW's own inner width (`TabStripWidth`: the frame's rect less its padding, with
+  the declared content width standing in before the frame's first layout pass). The band's own rect is
+  deliberately not the source, and the independent review of this round is what caught the first cut of the rule
+  reading exactly that: the band is a child of the shell's group with `childForceExpandWidth`, so its rect is
+  that group's inner width OR its own children's minimum, whichever is larger — and each tab's minimum is the
+  width this rule just wrote on it, so a budget read off the band equals precisely what was asked for, the rule
+  reports nothing to give up and the strip is as wide as its own content for ever. The live reading is the proof:
+  `Tabs rect=1038.7x36.0` where the six English tabs sum to 1038.8, against `Title Bar rect=984.0x28.0` on the
+  same shell (batch `20261015-a`). It is the self-measurement `OnlineUiControlSizing` records from batch
+  `20261001-k`, in the form that converges instead of running away.
+- **The two panels' and the window's view machinery is one type now.** The change's own first cut took
+  `OnlineUiWindowView.cs` to 609 lines, past the 600-line ceiling, and the page's row machinery could not be cut
+  out inside this cycle: what came out instead is the reconcile the window and the panel each carried a copy of —
+  `OnlineUiViewSource`, which builds one element's view, keeps a container's views aligned with the model (a view
+  whose kind and id still match is reused, the one whose element changed identity is rebuilt) and owns the
+  prefab's two reports (a kind whose row could not be loaded, a control the game left unclickable). The window
+  lands at 497 lines, the panel at 441, and `ThePanelsKeepTheWindowsRowMachinery` refuses a private copy growing
+  back.
+- **The numbers.** With the room counted once the six English tabs ask for 112 / 132.1 / 133.8 / 112 / 119.5 /
+  191.2 units — 800.6 plus the five 4-unit gaps, 820.6 against the 984 the page has, so at the shipped window
+  size nothing has to shrink and the rule only has work to do once the window is clamped narrower than that;
+  with the room counted twice they ask for 1038.8 — the run read `Tabs rect=1038.7x36.0`, the 0.1 being the
+  dump's own rounding of six tab widths — and the strip now shares its budget instead of running past it. The
+  Chinese tabs go from 130 to the 112 their model declares as a floor.
+- **The pins.** `OnlineUiControlWidthPinTests.ATabStripFitsItsOwnBand` holds the whole chain (the allocation
+  call, both width reads, the budget read off the window and the rejection of every read off the band, the
+  once-counted room, the minimum's own room and its value, and the plugin's `TabWidth` floor, which
+  `OnlineUiTabLayoutTests` repeats as a constant because the plugin is not referenced by the suite) with six
+  mutation rows — a strip that hands out what was asked for, a strip with no floor under any tab, the room
+  counted twice again, a budget read off the band, a floor with no room left for a caption, and the model's
+  floor moved. `OnlineUiTabLayoutTests` carries ten cases over the rule, the last of them the six live English
+  captions. The width pins' own anchors moved with the rule, and the two pins that pointed at the machinery the
+  extraction moved were re-pointed at `OnlineUiViewSource` in the same round.
+- **One consequence for the run to look at.** Every caption-sized control is now narrower, because that surplus
+  was the room counted twice: exactly 40 units where the caption decides the width, and less where the tab
+  model's own 112-unit floor takes over (both `Home` at 138.6 and `Admin` at 143.6 land on 112, so their change
+  is 26.6 and 31.6). A caption still keeps one font size on each side of itself, which is the room the rule
+  declares, and the frames are the place to see whether that reads as a control.
+- **Limits recorded with this pass.** The budget only ever bites when the window's inner width is narrower than
+  the tabs' own total — the shipped window is 984 against 820.6 — so the shrink path is exercised by a clamped
+  window (a small canvas) rather than by the shipped one, and it is the pure rule's tests, not the run, that
+  hold its behaviour. The least a tab is drawn at keeps `ControlInnerPadding` per side for its caption, and the
+  game's own row prefab keeps 9.05 per side (the prefab facts of batch `20261015-a`), so a tab sitting exactly
+  on its floor has about 1.9 units of slack in the caption's own box; a prefab whose caption box kept more than
+  that — the factory's own fallback is one font size per side — would leave the caption tight, which is the
+  reason the floor is a named room rather than zero.
+- **Structure.** `OnlineUiWindowView.cs` is 497 lines against the 600-line ceiling, after the shared view
+  machinery came out of it; the page's own row machinery is the next thing to cut if this file grows again, and
+  the paired-controls ticket (which re-cuts the same rows) is the pass that will need it.
 
 ## Non-goals
 

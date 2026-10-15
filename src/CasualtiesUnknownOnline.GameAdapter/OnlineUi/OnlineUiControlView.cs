@@ -553,6 +553,15 @@ internal sealed class OnlineUiControlView
 	internal float EffectiveWidth(OnlineUiElementModel element) =>
 		OnlineUiControlSizing.EffectiveWidth(element, _caption, _typography.Size, _controlAuthoredWidth);
 
+	/// <summary>
+	/// The least width this control can be given without cutting its caption — the width rule's own floor for
+	/// the element (<see cref="OnlineUiControlSizing.MinimumWidth"/>), read by the one caller that has to share
+	/// a fixed band among several controls: the window's tab strip, whose six English captions need more room
+	/// than the strip has (batch `20261015-a`).
+	/// </summary>
+	internal float MinimumWidth(OnlineUiElementModel element) =>
+		OnlineUiControlSizing.MinimumWidth(element, _caption);
+
 	private static bool SameOptions(TMP_Dropdown dropdown, IReadOnlyList<string> options)
 	{
 		if (dropdown.options.Count != options.Count)

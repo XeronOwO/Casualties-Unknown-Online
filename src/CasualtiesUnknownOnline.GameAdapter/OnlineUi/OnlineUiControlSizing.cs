@@ -28,11 +28,21 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// <para>
 /// The floor is still not a ceiling. A long caption, a translated game, a value the player typed into a field
 /// that sizes to its content: each of them reports MORE than the model's hint and widens the control, which is
-/// what keeps an English label from being cut inside a box sized for Chinese.
+/// what keeps an English label from being cut inside a box sized for Chinese. The room a caption keeps is added
+/// exactly ONCE (<see cref="OnlineUiControlBox.CaptionedWidth"/>) — a path that measured the caption and added
+/// the room on top of it measured six English tabs at 1038.7 units inside a 984-unit page, the user's report of
+/// 2026-10-14 — and <see cref="MinimumWidth"/> is the same rule at its other end: the least a control can be
+/// drawn at while still showing its caption whole.
 /// </para>
 /// </summary>
 internal static class OnlineUiControlSizing
 {
+	/// <summary>The room a caption keeps when its control is drawn as narrow as it can be: the room the control's
+	/// own box keeps between its edge and its content, rather than the room a row keeps around a control. A tab
+	/// of a strip too narrow for every caption gives this up before any of its own text does
+	/// (<see cref="OnlineUiTabLayout"/>), so the least a tab is drawn at still shows its whole caption.</summary>
+	private const float MinimumCaptionRoom = 2f * OnlineUiWindowLayout.ControlInnerPadding;
+
 	/// <summary>
 	/// The width ONE element takes on its line — the rule the window's wrap is asked with and the width the
 	/// element is then laid out at, in one place. The model's hint is a FLOOR and above it the answer is the
@@ -59,7 +69,7 @@ internal static class OnlineUiControlSizing
 		{
 			OnlineUiElementKind.Label => 0f,
 			OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch =>
-				OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidthOrZero(caption) + (2f * typographySize)),
+				OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize),
 			OnlineUiElementKind.TextField or OnlineUiElementKind.Dropdown =>
 				OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f),
 			OnlineUiElementKind.Toggle =>
@@ -69,9 +79,30 @@ internal static class OnlineUiControlSizing
 			_ => 0f,
 		};
 
+	/// <summary>
+	/// The least width the element can be given without cutting its caption: the same rule as
+	/// <see cref="EffectiveWidth"/> with the room the control's OWN BOX keeps between its edge and its content,
+	/// rather than the room a row keeps around a control. It is the floor a tab of a strip that cannot fit every
+	/// caption gives up its room down to (<see cref="OnlineUiTabLayout"/>).
+	///
+	/// <para>
+	/// Only a kind whose width IS its caption has room to give up; a toggle is the size the game authored for
+	/// its checkbox, a slider and a field are widths the player drags or types into, and none of them answers
+	/// here — a zero answer is what tells the strip's rule that this control cannot shrink at all.
+	/// </para>
+	/// </summary>
+	internal static float MinimumWidth(
+		OnlineUiElementModel element,
+		TMP_Text? caption) => element.Kind switch
+		{
+			OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch =>
+				OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), MinimumCaptionRoom),
+			_ => 0f,
+		};
+
 	/// <summary>The width a caption needs, or 0 for a kind whose caption is not its content (a colour block's
 	/// caption is empty, and a field's row label is not the value it holds).</summary>
-	private static float CaptionWidthOrZero(TMP_Text? caption) => caption != null ? CaptionWidth(caption) : 0f;
+	private static float CaptionTextWidthOrZero(TMP_Text? caption) => caption != null ? CaptionTextWidth(caption) : 0f;
 
 	/// <summary>
 	/// The intrinsic width of a control whose prefab is ALL that can be asked, for a kind whose own content is
@@ -103,12 +134,12 @@ internal static class OnlineUiControlSizing
 			: 0f;
 
 	/// <summary>
-	/// The width one caption's own text needs, plus the room the game's own row keeps around its text: the
-	/// caption is the ONE thing whose preferred size does not depend on the box it sits in (TMP measures the
-	/// text, not the rect), which is why a button's width is read from it — an English caption in a button sized
-	/// for a Chinese one is the user's report of 2026-10-01 (`Preferences` running into its border).
+	/// The width one caption's own TEXT needs, with no room counted around it. The caption is the ONE thing
+	/// whose preferred size does not depend on the box it sits in (TMP measures the text, not the rect), which is
+	/// why a button's width is read from it — an English caption in a button sized for a Chinese one is the
+	/// user's report of 2026-10-01 (`Preferences` running into its border).
 	/// </summary>
-	internal static float CaptionWidth(TMP_Text caption)
+	internal static float CaptionTextWidth(TMP_Text caption)
 	{
 		var values = caption.GetPreferredValues();
 		var text = caption.text;
@@ -126,10 +157,24 @@ internal static class OnlineUiControlSizing
 				}
 			}
 
-			return widest > 0f ? widest + (2f * caption.fontSize) : 0f;
+			return widest > 0f ? widest : 0f;
 		}
 
-		return values.x > 0f ? values.x + (2f * caption.fontSize) : 0f;
+		return values.x > 0f ? values.x : 0f;
+	}
+
+	/// <summary>
+	/// What a caption needs of its control's width: its own text plus the room the game's own row keeps around
+	/// that text, at the size the caption draws at. It is <see cref="OnlineUiRowGeometry"/>'s reading — the width
+	/// the game's own prefab declares for a control that IS a button — and the room is added HERE and nowhere
+	/// else: the element path adds its own room through <see cref="OnlineUiControlBox.CaptionedWidth"/>, and the
+	/// cycle that did both counted it twice, which is the 231.2-unit English `Preferences` tab of batch
+	/// `20261015-a` against the 191.2 its text needs.
+	/// </summary>
+	internal static float CaptionWidth(TMP_Text caption)
+	{
+		var text = CaptionTextWidth(caption);
+		return text > 0f ? text + (2f * caption.fontSize) : 0f;
 	}
 
 	/// <summary>

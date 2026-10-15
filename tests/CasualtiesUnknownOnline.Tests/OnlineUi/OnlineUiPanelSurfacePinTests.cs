@@ -44,7 +44,7 @@ public sealed class OnlineUiPanelSurfacePinTests
 	[Fact]
 	public void ThePanelsKeepTheWindowsRowMachinery() =>
 		Assert.True(
-			UsesTheSharedRowMachinery(AdapterPanelView()),
+			UsesTheSharedRowMachinery(AdapterPanelView(), Adapter("OnlineUiViewSource.cs")),
 			"a panel must render through the same control view and wrapping rule the pages use, or the migration grows a second row renderer that drifts from the first");
 
 	[Fact]
@@ -95,6 +95,8 @@ public sealed class OnlineUiPanelSurfacePinTests
 		{ nameof(TheSurfaceCarriesOnePanelViewForBoth), "adapter/OnlineUiSurfaceHost.cs", "ApplyPanel(_contextMenu, frame.ContextMenu);", "ApplyPanel(_quickPanel, frame.QuickPanel);", "a menu that is never applied" },
 		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiPanelView.cs", "var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);", "var lines = new int[widths.Length];", "a panel that wraps its rows by no rule" },
 		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiPanelView.cs", "_rows.Add(new OnlineUiWindowRowView(LineSpacing));", "_rows.Add(default!);", "a panel that builds its own rows instead of the shared row view" },
+		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiPanelView.cs", "_structureDirty |= _views.Sync(row.Elements, elements, _root.transform);", "_structureDirty |= true;", "a panel that keeps its row's views aligned with nothing" },
+		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiViewSource.cs", "OnlineUiControlView.Create(element, parent, _typography, _report);", "OnlineUiControlView.Create(element, parent, _typography, null);", "a shared view source that builds a control which can report nothing" },
 		{ nameof(EachPanelPollsItsOwnRectAndReportsTheCallersFact), "adapter/OnlineUiPanelView.cs", "&& RectTransformUtility.RectangleContainsScreenPoint(_rect, Input.mousePosition, camera);", "&& true;", "a pointer fact that never asks the pointer" },
 		{ nameof(EachPanelPollsItsOwnRectAndReportsTheCallersFact), "adapter/OnlineUiPanelView.cs", "intents.Enqueue(new OnlineUiIntent(hovered ? _hoverEntered : _hoverLeft));", "intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.LauncherHoverEntered));", "a panel that reports someone else's fact" },
 		{ nameof(TheSurfaceCoversTheGamesCanvas), "adapter/OnlineUiSurfaceHost.cs", "canvasRect.anchorMax = Vector2.one;", "canvasRect.anchorMax = Vector2.zero;", "a canvas that does not cover the game's" },
@@ -135,7 +137,9 @@ public sealed class OnlineUiPanelSurfacePinTests
 		nameof(TheQuickPanelBuildsAModelInsteadOfDrawing) => broken => BuildsAModel(broken, "return OnlineUiPanelModel.Docked("),
 		nameof(TheContextMenuBuildsAModelInsteadOfDrawing) => broken => BuildsAModel(broken, "return OnlineUiPanelModel.AtPoint("),
 		nameof(TheSurfaceCarriesOnePanelViewForBoth) => CarriesBothPanels,
-		nameof(ThePanelsKeepTheWindowsRowMachinery) => UsesTheSharedRowMachinery,
+		nameof(ThePanelsKeepTheWindowsRowMachinery) => broken => UsesTheSharedRowMachinery(
+			broken.Contains("class OnlineUiPanelView", StringComparison.Ordinal) ? broken : AdapterPanelView(),
+			broken.Contains("class OnlineUiViewSource", StringComparison.Ordinal) ? broken : Adapter("OnlineUiViewSource.cs")),
 		nameof(EachPanelPollsItsOwnRectAndReportsTheCallersFact) => PollsItsOwnRect,
 		nameof(TheSurfaceCoversTheGamesCanvas) => CoversTheGameCanvas,
 		nameof(ThePointAnchoredPanelIsPlacedByTheRuntimesRule) => PlacedByTheRuntimeRule,
@@ -174,8 +178,10 @@ public sealed class OnlineUiPanelSurfacePinTests
 	}
 
 	/// <summary>One panel view for two panels: the same control view, the same row view, the same wrapping
-	/// rule the window's pages use.</summary>
-	private static bool UsesTheSharedRowMachinery(string panelViewSource)
+	/// rule the window's pages use, and the same view source — the reconcile that reuses a control whose kind
+	/// and id still match, and the report a prefab's missing row earns, are the WINDOW's too, so a panel that
+	/// grew a copy of them fails here.</summary>
+	private static bool UsesTheSharedRowMachinery(string panelViewSource, string viewSource)
 	{
 		var flat = Flatten(panelViewSource);
 
@@ -183,7 +189,10 @@ public sealed class OnlineUiPanelSurfacePinTests
 			&& flat.Contains(
 				"var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);",
 				StringComparison.Ordinal)
-			&& flat.Contains("OnlineUiControlView.Create(element, parent, _typography, _report);", StringComparison.Ordinal);
+			&& flat.Contains("_structureDirty |= _views.Sync(row.Elements, elements, _root.transform);", StringComparison.Ordinal)
+			&& !flat.Contains("private OnlineUiControlView Replace(", StringComparison.Ordinal)
+			&& Flatten(viewSource).Contains("OnlineUiControlView.Create(element, parent, _typography, _report);", StringComparison.Ordinal)
+			&& Flatten(viewSource).Contains("view.FixedPointerSurface && _reportedPointerFixes.Add(element.Kind)", StringComparison.Ordinal);
 	}
 
 	/// <summary>The poll is the window's rule: the pointer against the panel's own rect, a FLIP reported with

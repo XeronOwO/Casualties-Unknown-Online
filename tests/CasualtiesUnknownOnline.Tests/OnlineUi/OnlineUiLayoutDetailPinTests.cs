@@ -82,7 +82,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 	[Fact]
 	public void AControlWithNoPointerSurfaceIsGivenOneAndReported() =>
 		Assert.True(
-			PointerSurfacesAreEnsured(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiRowGeometry.cs"), Adapter("OnlineUiWindowView.cs")),
+			PointerSurfacesAreEnsured(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiRowGeometry.cs"), Adapter("OnlineUiViewSource.cs")),
 			"uGUI hit-tests graphics: a field or a dropdown whose own box carries no raycast target is a box the player cannot click, which is the user's report — CUO gives it a surface and says so once per kind");
 
 	[Fact]
@@ -119,6 +119,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiDropdownPopup.cs", "template.SetParent(_layer, worldPositionStays: false);", "// the template stays inside the page", "a list instantiated inside the page's mask again" },
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiControlView.cs", "pointerFixed = OnlineUiRowGeometry.EnsurePointerSurface(control.gameObject);", "pointerFixed = false;", "a field left without a pointer surface" },
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiRowGeometry.cs", "graphic.raycastTarget = true;", "graphic.raycastTarget = false;", "a pointer surface that still refuses the raycast" },
+		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiViewSource.cs", "view.FixedPointerSurface && _reportedPointerFixes.Add(element.Kind)", "view.FixedPointerSurface", "a control the game left unclickable that nobody was told about" },
 		{ nameof(ASectionHeadingCarriesItsOwnRoom), "plugin/OnlineUiPageBuilder.cs", "_rows.Add(OnlineUiRowModel.Space(OnlineUiWindowLayout.SectionGap));", "// no room above a heading", "a heading with no room above it, which is the acceptance pass' own finding" },
 		{ nameof(ASectionHeadingCarriesItsOwnRoom), "adapter/OnlineUiWindowView.cs", "row.SetGap(0, model.Gap > 0f ? model.Gap : GapHeight);", "row.SetGap(0, GapHeight);", "a page that ignores the room its rows asked for" },
 		{ nameof(TheTabStripKeepsItsOwnHeight), "adapter/OnlineUiWindowView.cs", "element.flexibleHeight = 0f;", "element.flexibleHeight = 1f;", "a band that absorbs the window's leftover height — the tab strip grew to 333 units" },
@@ -167,9 +168,9 @@ public sealed class OnlineUiLayoutDetailPinTests
 			Is(broken, "internal sealed class OnlineUiDropdownPopup") ? broken : Adapter("OnlineUiDropdownPopup.cs"),
 			Adapter("OnlineUiControlView.cs")),
 		nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported) => broken => PointerSurfacesAreEnsured(
-			Is(broken, "internal static class OnlineUiRowGeometry") ? Adapter("OnlineUiControlView.cs") : broken,
+			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
 			Is(broken, "internal static class OnlineUiRowGeometry") ? broken : Adapter("OnlineUiRowGeometry.cs"),
-			Adapter("OnlineUiWindowView.cs")),
+			Is(broken, "internal sealed class OnlineUiViewSource") ? broken : Adapter("OnlineUiViewSource.cs")),
 		nameof(ASectionHeadingCarriesItsOwnRoom) => broken => TheHeadingOwnsItsSpacing(
 			Is(broken, "internal sealed class OnlineUiPageBuilder") ? broken : Plugin("OnlineUiPageBuilder.cs"),
 			Is(broken, "internal sealed class OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs")),

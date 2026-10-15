@@ -14,6 +14,13 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// cannot disagree.
 ///
 /// <para>
+/// The window's TAB STRIP is the same family one level up: a tab is an element whose width is its caption, the
+/// strip is a band of a fixed width, and six English captions need more than it has. <see cref="ATabStripFitsItsOwnBand"/>
+/// is where that half lives — a strip that hands every tab what it asked for is what ran the last tab past the
+/// window's right edge (batch `20261015-a`).
+/// </para>
+///
+/// <para>
 /// It is a class of its own because the family is one: every pin here answers "how wide is this element", while
 /// <see cref="OnlineUiLayoutDetailPinTests"/> answers where a page's parts sit and how they read. Both carry a
 /// mutation of the REAL source as each pin's negative sample, and both flatten a source before matching it, so
@@ -43,16 +50,30 @@ public sealed class OnlineUiControlWidthPinTests
 			TheOwnControlKeepsItsDeclaredWidth(Adapter("OnlineUiRowGeometry.cs")),
 			"a tab, a page button and a colour block ARE one of the game's rows, so no control is laid out inside them and the width their model declared is written on the element itself: without that write a colour block is as wide as its own caption group's padding, which is the rejected row of batch `20261014-a` (88 declared, 18 rendered)");
 
+	[Fact]
+	public void ATabStripFitsItsOwnBand() =>
+		Assert.True(
+			TheStripSharesItsOwnWidth(
+				Adapter("OnlineUiWindowView.cs"),
+				Adapter("OnlineUiControlSizing.cs"),
+				Plugin("OnlineUiPageBuilder.cs")),
+			"the tab strip is a band of a fixed width and a tab is as wide as its caption, so the widths the tabs take are the Runtime rule's answer over the least each caption can be drawn at, budgeted from the WINDOW's own inner width — a budget read off the band equals what the tabs already asked for, because the band is as wide as its children's minimums, and then nothing is ever given up and the strip runs past the window again; handing every tab what it asked for is what measured six English tabs at 1038.7 units against a 984-unit page (batch `20261015-a`)");
+
 	public static TheoryData<string, string, string, string, string> Mutations => new()
 	{
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidthOrZero(caption) + (2f * typographySize))", "element.Width;", "a button sized by the model's hint alone, which is what cut the English captions and ran `Preferences` into its border" },
+		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize)", "element.Width;", "a button sized by the model's hint alone, which is what cut the English captions and ran `Preferences` into its border" },
 		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "internal static float PrefabWidth(RectTransform rect)", "internal static float PrefabWidth(string unused)", "a prefab width nobody can read" },
 		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "widths[index] = view.EffectiveWidth(elements[index]);", "widths[index] = elements[index].Width;", "a wrap asked with the model's hints instead of the declared widths" },
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "view.LayOutRow(view.EffectiveWidth(element));", "// the tab keeps the width its own group measured,", "a tab strip whose declared floor is never read, which is the disagreement the cycle's own review found" },
 		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlView.cs", "OnlineUiControlSizing.AuthoredChildWidth(controlRect)", "OnlineUiControlSizing.PrefabWidth(_rect)", "a control sized from the element root that contains it — the width the row's own group just wrote" },
 		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlSizing.cs", "internal static float AuthoredChildWidth(RectTransform? child)", "internal static float AuthoredChildWidth(string unused)", "a prefab whose authored child width nobody can read" },
 		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.EffectiveWidth(element.Width, authoredControlWidth)", "OnlineUiControlBox.EffectiveWidth(element.Width, 0f)", "a toggle left at the model's floor with the size the game authored for it ignored" },
 		{ nameof(AnElementThatIsItsOwnControlDeclaresItsWidth), "adapter/OnlineUiRowGeometry.cs", "layout.preferredWidth = controlWidth;", "// the element keeps the width its own group measured,", "a colour block as wide as its own padding — 88 declared, 18 rendered" },
+		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiWindowView.cs", "OnlineUiTabLayout.Widths(natural, minimum, TabStripWidth, LineSpacing)", "natural", "a strip that gives every tab the width it asked for, which is the 1038.7 units of English tabs the user found inside a 984-unit page" },
+		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiWindowView.cs", "minimum[index] = _tabs[index].MinimumWidth(tabs[index]);", "minimum[index] = 0f;", "a strip with no floor under any tab, so the excess comes off the captions themselves" },
+		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize)", "OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 4f * typographySize)", "the room around a caption counted twice, which measured the English `Preferences` tab at 231.2 units and is what pushed the strip past the window" },
+		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiWindowView.cs", "_rect.rect.width > 0f ? _rect.rect.width - (2f * Padding) : ContentWidth", "_tabRow.rect.width > 0f ? _tabRow.rect.width : ContentWidth", "a strip budgeted from the band the tabs THEMSELVES size — the band is as wide as its children's minimums, each of which is the width the rule just wrote, so the budget equals what was asked for, nothing is ever given up and the rule never fires (the live reading is `Tabs rect=1038.7x36.0` against `Title Bar rect=984.0x28.0` on the same shell, batch `20261015-a`)" },
+		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiControlSizing.cs", "private const float MinimumCaptionRoom = 2f * OnlineUiWindowLayout.ControlInnerPadding;", "private const float MinimumCaptionRoom = 1f;", "a tab's floor with no room left for its caption, which is the caption cut the floor exists to prevent" },
+		{ nameof(ATabStripFitsItsOwnBand), "plugin/OnlineUiPageBuilder.cs", "internal const float TabWidth = 112f;", "internal const float TabWidth = 130f;", "a tab floor a strip is no longer sized against: `OnlineUiTabLayoutTests` repeats this constant, because the plugin is not referenced by the suite" },
 	};
 
 	/// <summary>
@@ -83,6 +104,10 @@ public sealed class OnlineUiControlWidthPinTests
 			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
 			Is(broken, "internal static class OnlineUiControlSizing") ? broken : Adapter("OnlineUiControlSizing.cs")),
 		nameof(AnElementThatIsItsOwnControlDeclaresItsWidth) => TheOwnControlKeepsItsDeclaredWidth,
+		nameof(ATabStripFitsItsOwnBand) => broken => TheStripSharesItsOwnWidth(
+			Is(broken, "internal sealed class OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs"),
+			Is(broken, "internal static class OnlineUiControlSizing") ? broken : Adapter("OnlineUiControlSizing.cs"),
+			Is(broken, "internal sealed class OnlineUiPageBuilder") ? broken : Plugin("OnlineUiPageBuilder.cs")),
 		_ => throw new InvalidOperationException($"no matcher is registered for the pin `{pin}`"),
 	};
 
@@ -104,12 +129,39 @@ public sealed class OnlineUiControlWidthPinTests
 			&& !flat.Contains("PrefabWidth(_rect", StringComparison.Ordinal)
 			&& sizing.Contains("internal static float EffectiveWidth(", StringComparison.Ordinal)
 			&& sizing.Contains("float authoredControlWidth) => element.Kind switch", StringComparison.Ordinal)
-			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(element.Width, CaptionWidthOrZero(caption) + (2f * typographySize))", StringComparison.Ordinal)
+			&& sizing.Contains("OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize)", StringComparison.Ordinal)
 			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f)", StringComparison.Ordinal)
 			&& sizing.Contains("internal static float PrefabWidth(RectTransform rect)", StringComparison.Ordinal)
 			&& sizing.Contains("internal static float CaptionWidth(TMP_Text caption)", StringComparison.Ordinal)
-			&& Flatten(windowSource).Contains("widths[index] = view.EffectiveWidth(elements[index]);", StringComparison.Ordinal)
-			&& Flatten(windowSource).Contains("view.LayOutRow(view.EffectiveWidth(element));", StringComparison.Ordinal);
+			&& Flatten(windowSource).Contains("widths[index] = view.EffectiveWidth(elements[index]);", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The tab strip shares ONE band of a fixed width: every tab asks for its caption plus the room a row keeps
+	/// around it, the strip asks the Runtime rule what each one actually takes, and a tab's floor is the least
+	/// its caption can be drawn at rather than nothing at all. Three things are pinned, because the defect needed
+	/// all three — a strip that hands out what was asked for, a caption whose room is counted twice (each of them
+	/// put the English strip past the window on its own), and a budget that cannot be moved by the tabs it is
+	/// shared among: the band's own rect is as wide as its children's minimums, so reading it there makes the
+	/// budget equal to the request and the rule never fires. The model's own floor is the fourth: the strip is
+	/// sized against the width a tab's model declares, which is what <c>OnlineUiTabLayoutTests</c> repeats as its
+	/// own constant, because the plugin is not referenced by this suite.
+	/// </summary>
+	private static bool TheStripSharesItsOwnWidth(string windowSource, string sizingSource, string pluginSource)
+	{
+		var flat = Flatten(windowSource);
+		var sizing = Flatten(sizingSource);
+
+		return flat.Contains("OnlineUiTabLayout.Widths(natural, minimum, TabStripWidth, LineSpacing)", StringComparison.Ordinal)
+			&& flat.Contains("natural[index] = _tabs[index].EffectiveWidth(tabs[index]);", StringComparison.Ordinal)
+			&& flat.Contains("minimum[index] = _tabs[index].MinimumWidth(tabs[index]);", StringComparison.Ordinal)
+			&& flat.Contains("_tabs[index].LayOutRow(widths[index]);", StringComparison.Ordinal)
+			&& flat.Contains("private float TabStripWidth => _rect.rect.width > 0f ? _rect.rect.width - (2f * Padding) : ContentWidth;", StringComparison.Ordinal)
+			&& !flat.Contains("_tabRow.rect.width", StringComparison.Ordinal)
+			&& Flatten(pluginSource).Contains("internal const float TabWidth = 112f;", StringComparison.Ordinal)
+			&& sizing.Contains("private const float MinimumCaptionRoom = 2f * OnlineUiWindowLayout.ControlInnerPadding;", StringComparison.Ordinal)
+			&& sizing.Contains("OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize)", StringComparison.Ordinal)
+			&& sizing.Contains("OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), MinimumCaptionRoom)", StringComparison.Ordinal);
 	}
 
 	/// <summary>

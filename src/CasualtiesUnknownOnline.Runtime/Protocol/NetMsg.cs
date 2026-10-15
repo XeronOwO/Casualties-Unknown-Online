@@ -345,4 +345,19 @@ public enum NetMsg : byte
 	// reaches its owner's own item.
 	PlayerItemActionOutcome = 143, // affected side → host: the item's own action ran on this client; the used item's post-action state
 
+	// Host rules reach the members (the census answers which: HostRuleCensus). The
+	// rules were local host configuration by decision, and a member's process held its
+	// OWN values under the same names — so its member list decided the take affordance
+	// from its own config, its console applied a write the host then refused (the value
+	// appeared and went back), and a carrier's own client read its own piggyback
+	// multiplier. The announcement carries the whole set ABSOLUTE: sent to a member the
+	// moment it is admitted, again in the world-entry group and the 60 s in-session
+	// repair group (a swallowed send converges on the repair), and broadcast to every
+	// member the instant the host flips a rule — the config file, the Admin page and the
+	// console all write through the same monitor, so one change is one announcement.
+	// It is an interception layer, never a verdict: a member refuses locally what the
+	// announced rules forbid, and the host checks the same thing behind it, because a
+	// member's belief can be stale, lost or forged.
+	HostRules = 144, // host → member: the host's host-rule values, absolute (admission, world entry, repair cycle, and every change while the session runs)
+
 }

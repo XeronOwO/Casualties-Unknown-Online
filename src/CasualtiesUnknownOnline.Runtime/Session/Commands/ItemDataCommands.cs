@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -38,10 +39,17 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// and the WRITE is judged by the HOST rather than by the console: a write is the
 /// holder's own report, so every client may type it, and the host's own rule decides
 /// whether a member's write lands (<c>HostRulesOptions.AllowMemberItemDataWrite</c>,
-/// off by default). The verdict does not block the command: the value is applied
-/// locally and reported first, and a refusal arrives as its own answer which puts the
-/// recorded state back and says so in the console — a member's console cannot be the
-/// gate, because only the host knows its own rule.
+/// off by default).
+///
+/// <para>
+/// A MEMBER's client refuses the verb before anything is applied when it holds the
+/// host's announced rules and they say the verb is closed
+/// (<see cref="AnnouncedHostRules.Forbids"/>): the write used to be applied locally and
+/// reported first, so on a host whose rule is closed the operator watched the value
+/// appear and go back. That refusal is an INTERCEPTION, never the verdict — it fires
+/// only on an announced rule, so a member whose belief is stale, lost or absent applies
+/// and reports as it always did and the host's own answer settles the record.
+/// </para>
 /// </summary>
 internal sealed class ItemDataCommands(
 	IKernelItemFacts items,
@@ -49,7 +57,8 @@ internal sealed class ItemDataCommands(
 	IEntitySyncControl entities,
 	ILocalItemAccess localItems,
 	IItemControl itemControl,
-	ILogger log)
+	ILogger log,
+	AnnouncedHostRules hostRules)
 {
 	private const string GetVerb = "get";
 
@@ -68,6 +77,7 @@ internal sealed class ItemDataCommands(
 	private readonly ILocalItemAccess _localItems = localItems;
 	private readonly IItemControl _itemControl = itemControl;
 	private readonly ILogger _log = log;
+	private readonly AnnouncedHostRules _hostRules = hostRules;
 
 	[ConsoleCommand("data", "Read or write one item's recorded state: condition, liquids, component fields and contents.", CommandPermission.Anyone, ItemDataQueryParser.Usage + " | " + ItemDataWriteParser.Usage, CommandArgumentKind.Text)]
 	internal string Data(IReadOnlyList<string> args)
@@ -218,6 +228,20 @@ internal sealed class ItemDataCommands(
 			return "No active session — a write reports into the session's record, so it needs one (a solo world keeps no item record for this verb to change).";
 		}
 
+		if (_session.Role == SessionRole.Guest && _hostRules.Forbids(HostRuleId.AllowMemberItemDataWrite))
+		{
+			// The host has announced that a member's item-data write does not land, so it
+			// is refused HERE — before the value is written into the local object and
+			// reported — instead of being applied, refused and put back. The branch is
+			// reachable only on an ANNOUNCED rule: with no announcement this client
+			// applies and reports as it always did and the host's answer settles it, so
+			// the interception can never be the reason a write the host would accept is
+			// refused.
+			_log.LogInformation("[Command] /data set refused locally: the host's announced rule {Rule}=false forbids a member's item-data write; nothing was applied here.",
+				HostRuleId.AllowMemberItemDataWrite);
+			return $"Refused locally: the host's rule {HostRuleId.AllowMemberItemDataWrite} is off, so a member's item-data write does not land (the host announces its rules to this client). Nothing was written here.";
+		}
+
 		if (!ItemDataWriteParser.TryParse(tail, out var write, out var error))
 		{
 			return error!;
@@ -253,10 +277,11 @@ internal sealed class ItemDataCommands(
 		{
 			// A MEMBER's write is the same act with one difference: the host judges it
 			// as a console write under its own rule, so the report travels under its own
-			// kind and the answer is provisional. The value is applied here either way —
-			// a member's console cannot be the gate, and the host is the only side that
-			// knows its rule — so a refusal arrives later, puts the recorded state back
-			// and prints its own line (ItemDataWriteSettlement, ItemDataWriteRefusal).
+			// kind and the answer is provisional. The value is applied here because the
+			// rule above did not refuse it — either the host has announced that the verb
+			// is open, or no announcement has arrived and this client does what it always
+			// did — and a refusal still arrives later, puts the recorded state back and
+			// prints its own line (ItemDataWriteSettlement, ItemDataWriteRefusal).
 			_itemControl.SendItemDataWrite(instanceId, local);
 			_log.LogInformation("[Command] /data set {Property} wrote #{InstanceId} ({Definition}): {Before} -> {After}; reported as a console write for the host's rule to judge.",
 				write.Property, instanceId, local.ItemId, before, after);

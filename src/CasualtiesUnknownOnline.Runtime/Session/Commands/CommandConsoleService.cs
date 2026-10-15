@@ -48,6 +48,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly WorldRestoreAudit _restoreAudit;
 	private readonly IStartingSupplyControl _startingSupplies;
 	private readonly ItemDataWriteSettlement _itemDataWriteSettlement;
+	private readonly AnnouncedHostRules _hostRules;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -66,7 +67,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IStartingSupplyControl startingSupplies,
 		ILocalItemAccess localItems,
 		IItemControl itemControl,
-		ItemDataWriteSettlement itemDataWriteSettlement)
+		ItemDataWriteSettlement itemDataWriteSettlement,
+		AnnouncedHostRules hostRules)
 	{
 		_chat = chat;
 		_session = session;
@@ -81,6 +83,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_restoreAudit = restoreAudit;
 		_startingSupplies = startingSupplies;
 		_itemDataWriteSettlement = itemDataWriteSettlement;
+		_hostRules = hostRules;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += ResetSessionState;
 		// The console is the player's surface for the save system's three answers: the
@@ -102,7 +105,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
-		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, entities, localItems, itemControl, log));
+		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, entities, localItems, itemControl, log, _hostRules));
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 

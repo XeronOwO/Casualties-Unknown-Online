@@ -105,6 +105,35 @@ public sealed class OnlineUiMemberProjectionTests
 		Assert.True(rows[1].CanRecruit);
 	}
 
+	/// <summary>
+	/// The recruit gesture follows the rule the host's own gate reads before it executes
+	/// a recruit (<c>RespawnPolicy.CanUseTraderRecruit</c>: trader revive enabled AND no
+	/// permadeath). With the announced rule closed, a member's card offers no button —
+	/// the same "do not offer what the rules forbid" rule the take affordance follows,
+	/// so the operator does not click into a refusal.
+	/// </summary>
+	[Theory]
+	[InlineData(false, false)] // trader revive switched off
+	[InlineData(true, true)] // permadeath, which overrides trader revive
+	public void TraderReviveForbidden_HidesTheRecruitAction(bool reviveFromTrader, bool permadeath)
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = false, Conscious = false })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			localInWorld: true,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
+			reviveFromTrader: reviveFromTrader,
+			permadeath: permadeath);
+
+		Assert.False(rows[1].CanRecruit);
+	}
+
 	[Fact]
 	public void RemoteInventoryTakeDisabled_HidesNonLocalTakeActions()
 	{
@@ -657,6 +686,8 @@ public sealed class OnlineUiMemberProjectionTests
 		Func<ulong, RemoteInventorySnapshot?>? getInventory = null,
 		IReadOnlyList<LocalHealItem>? healItems = null,
 		bool allowRemoteInventoryTake = true,
+		bool reviveFromTrader = true,
+		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
 		Func<ulong, string>? displayName = null,
 		Func<ulong, PlayerColorValue>? getColor = null)
@@ -676,6 +707,8 @@ public sealed class OnlineUiMemberProjectionTests
 			hasHealItem: hasHealItem,
 			healItems: healItems ?? [],
 			allowRemoteInventoryTake: allowRemoteInventoryTake,
+			reviveFromTrader: reviveFromTrader,
+			permadeath: permadeath,
 			hasLineOfSight: hasLineOfSight,
 			getColor: getColor);
 	}

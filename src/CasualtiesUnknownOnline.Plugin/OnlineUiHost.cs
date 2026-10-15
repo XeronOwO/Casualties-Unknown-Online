@@ -46,7 +46,7 @@ internal sealed class OnlineUiHost
 	private readonly PlayerInteractionService _playerInteraction;
 	private readonly IPlayerInteractionVisibility _interactionVisibility;
 	private readonly IHostBanService _hostBan;
-	private readonly IHostRules _hostRules;
+	private readonly HostRulesService _hostRules;
 	private readonly ICommandControl _commands;
 	private readonly ILocationPingControl _locationPings;
 	private readonly ITimeSource _time;
@@ -98,7 +98,7 @@ internal sealed class OnlineUiHost
 		_playerInteraction = services.GetRequiredService<PlayerInteractionService>();
 		_interactionVisibility = services.GetRequiredService<IPlayerInteractionVisibility>();
 		_hostBan = services.GetRequiredService<IHostBanService>();
-		_hostRules = services.GetRequiredService<IHostRules>();
+		_hostRules = services.GetRequiredService<HostRulesService>();
 		_commands = services.GetRequiredService<ICommandControl>();
 		_locationPings = services.GetRequiredService<ILocationPingControl>();
 		_time = services.GetRequiredService<ITimeSource>();

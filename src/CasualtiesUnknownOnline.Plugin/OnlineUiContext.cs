@@ -41,7 +41,9 @@ internal sealed class OnlineUiContext
 
 	internal IHostBanService HostBan = null!;
 
-	internal IHostRules HostRules = null!;
+	/// <summary>The host rules in force for this process — the host's own configuration on a
+	/// host, the host's announced set on a member.</summary>
+	internal HostRulesService HostRules = null!;
 
 	/// <summary>The in-game command/chat console surface (slash commands + chat send).</summary>
 	internal ICommandControl Commands = null!;

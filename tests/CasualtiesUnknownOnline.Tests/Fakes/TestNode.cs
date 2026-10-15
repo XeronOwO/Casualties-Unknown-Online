@@ -4,6 +4,7 @@ using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -143,7 +144,8 @@ internal sealed class TestNode : IDisposable
 	/// </summary>
 	internal static (TestNode Host, TestNode Guest) CreatePair(ulong hostId, ulong guestId, ulong lobbyId,
 		Action<IServiceCollection>? extraRegistrations = null,
-		string? modStateFile = null, string? hostBanFile = null)
+		string? modStateFile = null, string? hostBanFile = null,
+		NetMsg? swallowHostToGuest = null)
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
@@ -151,6 +153,14 @@ internal sealed class TestNode : IDisposable
 		var guestSteam = new FakeSteamService(guestId) { LobbyOwner = hostId, LobbyMembers = [hostId, guestId] };
 		var host = Create(hostId, network, hostSteam, clock, pumpFirstFrame: true, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
 		var guest = Create(guestId, network, guestSteam, clock, pumpFirstFrame: true, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
+		if (swallowHostToGuest is { } dropped)
+		{
+			// Armed BEFORE the guest joins the lobby: the handshake is driven by that edge,
+			// so a fault set afterwards would arrive after the frame it is meant to swallow
+			// (the one-message swallow the lazy Steam P2P session performs).
+			network.SetFaults(hostId, guestId, new LinkFaults { DropMessageId = dropped });
+		}
+
 		host.Steam.FireLobbyCreated(lobbyId);
 		host.Steam.LobbyMembers = [hostId, guestId]; // the guest joined the lobby
 		guest.Steam.FireLobbyEntered(lobbyId);

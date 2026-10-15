@@ -30,10 +30,22 @@ internal static class SessionComposition
 		services.AddSingleton<ISessionControl>(p => p.GetRequiredService<SessionService>());
 
 		// Minimal host-rules service: a stateless composition of the host-only
-		// flags and the revives/respawn flags. Registered before the handlers so
+		// flags and the revives/respawn flags, over the host's own configuration on a
+		// host and over the announced set on a member (the store is what the
+		// announcement handler writes). Registered before the handlers so
 		// HandshakeHandler can inject it for the late-join gate.
+		services.AddSingleton<AnnouncedHostRules>();
 		services.AddSingleton<HostRulesService>();
 		services.AddSingleton<IHostRules>(p => p.GetRequiredService<HostRulesService>());
+		// The announcing half: a member is told the host's rules the moment its
+		// handshake completes and again on every change while the session runs. It is
+		// resolved as a singleton so its subscriptions exist for the session's life —
+		// the world-entry fan-out takes the narrow port and constructs it with the
+		// packet plane — and it joins the pump because the CHANGE edge is the one whose
+		// thread is not its own to choose: the callback records, the frame sends.
+		services.AddSingleton<HostRulesAnnouncer>();
+		services.AddSingleton<IHostRulesAnnouncement>(p => p.GetRequiredService<HostRulesAnnouncer>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<HostRulesAnnouncer>());
 		// The admission seam's own question about a member's submission (which verb
 		// this host opens to members) is answered from those rules through the
 		// Application layer's port: the seam may not reference Runtime configuration

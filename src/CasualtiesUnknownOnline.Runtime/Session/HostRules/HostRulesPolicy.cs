@@ -3,8 +3,11 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 
 /// <summary>
-/// Pure host-rule decision surface, L0-testable without live services. There is
-/// no wire/network involvement: host rules are local host configuration.
+/// Pure host-rule decision surface, L0-testable without live services: the decisions
+/// the HOST takes on its own rules (who may join a running world, whether it continues
+/// to the next layer). The rules themselves are also announced to members
+/// (<c>HostRuleCensus</c>, <see cref="HostRulesAnnouncer"/>); what this class answers is
+/// the host-side verdict, which no announcement turns into a member-side one.
 /// </summary>
 internal static class HostRulesPolicy
 {

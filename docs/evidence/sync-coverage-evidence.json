@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1052,
+  "count": 1062,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5882,7 +5882,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "docs/evidence/sync-cadence-measurements.md",
-      "quote": "| One repair pass, measured in the simulation world | 2 438 bytes"
+      "quote": "| One repair pass, measured in the simulation world | 2 458 bytes"
     },
     {
       "cluster": "cadence-review",
@@ -5912,7 +5912,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
-      "quote": "Assert.Equal(2_438L, answerBytes);"
+      "quote": "Assert.Equal(2_458L, answerBytes);"
     },
     {
       "cluster": "cadence-review",
@@ -6315,6 +6315,66 @@
       "row": "I10",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemDataWriteSettlement.cs",
       "quote": "var restore = _localItems.WriteLocalItem(instanceId, recorded);"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRulesAnnouncer.cs",
+      "quote": "_session.MemberAdded += OnMemberAdded;"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRulesAnnouncer.cs",
+      "quote": "_hostRulesChanges = hostRulesOptions.OnChange((_, _) => OnRulesChanged());"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRulesAnnouncer.cs",
+      "quote": "_sender.Send(steamId, NetMsg.HostRules, msg);"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "// The rules are the one entry-group member that is NOT a world table: they are"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HostRulesHandler.cs",
+      "quote": "if (!ctx.HostRules.Apply(set))"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRulesService.cs",
+      "quote": "public HostRuleSet Current => _announced.Current"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRuleCensus.cs",
+      "quote": "public static Row Of(HostRuleId rule) => ById.TryGetValue(rule, out var row)"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataCommands.cs",
+      "quote": "_hostRules.Forbids(HostRuleId.AllowMemberItemDataWrite)"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/CarriagePatchBridge.cs",
+      "quote": "CarriedEncumbranceCalculator.ApplyMultiplier(full, domains.HostRules.PiggybackWeightMultiplier)"
+    },
+    {
+      "cluster": "host-rules",
+      "row": "H1",
+      "file": "src/CasualtiesUnknownOnline.Plugin/OnlineUiAdminDrawer.cs",
+      "quote": "foreach (var row in HostRuleCensus.MemberRows)"
     }
   ]
 }

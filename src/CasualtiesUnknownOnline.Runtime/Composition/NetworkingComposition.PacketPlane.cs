@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -74,7 +75,8 @@ internal static class NetworkingPacketPlaneComposition
 			p.GetRequiredService<IPlayerInteractionControl>(),
 			p.GetRequiredService<ITutorialClawControl>(),
 			p.GetRequiredService<IKernelProtocolControl>(),
-			p.GetRequiredService<ILayerAdvanceControl>()));
+			p.GetRequiredService<ILayerAdvanceControl>(),
+			p.GetRequiredService<AnnouncedHostRules>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 	}

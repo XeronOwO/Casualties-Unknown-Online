@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,18 +22,24 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// through the real console, the real kernel protocol and the production
 /// composition root (split from <see cref="CommandConsoleItemDataTests"/>, whose
 /// cases pin what a write does where the client itself is the authority, both
-/// because the member's route has its own two answers and because one class may
+/// because the member's route has its own answers and because one class may
 /// carry at most <c>TestClassSizeGateTests.MaxCasesPerClass</c> cases).
 ///
 /// <para>
-/// Three facts are pinned here, and the third is the reason the member route could
-/// not land before it: the host's rule admits the write and the host's own kernel
-/// records what the member reported; the rule's OFF posture refuses it by name; and
-/// a refused write leaves NO divergence — the value the member had already applied
-/// goes back to the session's recorded state, and the operator is told in the
-/// console. A fourth case pins the trap that sits beside it: the refusal must not
-/// reach the adapter's pickup/block-drop rollback, which would drop an item the
-/// member is holding.
+/// The host announces its rules to every member, so this class pins the three
+/// postures a member's console can be in. The announced rule is OPEN: the write is
+/// applied locally and reported, and the host's own kernel records it. The announced
+/// rule is CLOSED: the write is refused HERE, before the value is written into the
+/// local object — the operator used to watch it appear and go back, which is the
+/// flicker this branch removes. Nothing was announced: the member applies, reports and
+/// is settled by the host's own answer, exactly as it did before the rules were
+/// replicated — the local check is an interception, and with no announcement there is
+/// nothing to intercept on.
+/// </para>
+///
+/// <para>
+/// A fourth fact rides beside them: the refusal must not reach the adapter's
+/// pickup/block-drop rollback, which would drop an item the member is holding.
 /// </para>
 /// </summary>
 [Trait("Category", "Integration")]
@@ -63,21 +71,61 @@ public class CommandConsoleMemberItemDataTests
 	}
 
 	/// <summary>
-	/// The refusal half, and the whole reason S1b could not land on its own: with the
-	/// host's rule closed (its default), the write is applied locally and reported
-	/// like any other, the host refuses it by name, and this client puts the recorded
-	/// state back — so the two sides still agree afterwards. Both lines reach the
-	/// console, and the order between them is the operator's reading: the verb's own
-	/// line first, then the verdict a round trip later. This harness cannot show that
-	/// order — `FakeNetwork` delivers with no delay, so the verdict is processed
-	/// INSIDE the send call and its line lands before the handler's own — so the case
-	/// asserts presence, and the order is stated as production behaviour rather than
-	/// pinned here.
+	/// The refusal half, and the behaviour the rule announcement exists for: with the
+	/// host's rule closed AND announced, the write is refused on the member's own client
+	/// before anything is applied — the local object still holds the old value, nothing
+	/// was reported, and the host never had to refuse anything. Before the announcement
+	/// this same command applied the value, reported it, and put it back when the
+	/// verdict came: the operator watched it appear and go back.
 	/// </summary>
 	[Fact]
-	public void Set_OnAMembersConsole_WhenTheHostRuleIsClosed_IsRefusedAndTheValueGoesBack()
+	public void Set_OnAMembersConsole_WhenTheAnnouncedRuleIsClosed_IsRefusedBeforeAnythingIsApplied()
 	{
 		var (host, guest, local) = CreateSceneSession(ruleOpen: false);
+		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
+
+		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		Pump(host, guest);
+
+		Assert.Contains("Refused locally", answer);
+		Assert.Contains("AllowMemberItemDataWrite", answer);
+		Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
+		Assert.Equal(0.5f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+		Assert.Empty(RefusalLines(guest));
+	}
+
+	/// <summary>
+	/// The same command under an ANNOUNCED open rule: the local check is not a second
+	/// gate — it refuses only what the announced rule forbids, so a write the host allows
+	/// still lands, and it lands with the host's own kernel recording it.
+	/// </summary>
+	[Fact]
+	public void Set_OnAMembersConsole_WhenTheAnnouncedRuleIsOpen_IsAppliedAndReported()
+	{
+		var (host, guest, local) = CreateSceneSession(ruleOpen: true);
+		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
+
+		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		Pump(host, guest);
+
+		Assert.Contains("condition 0.5 -> 0.25", answer);
+		Assert.Equal(0.25f, local.Held(Backpack)!.Condition);
+		Assert.Equal(0.25f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+		Assert.Empty(RefusalLines(guest));
+	}
+
+	/// <summary>
+	/// A member that never received the set — a swallowed announcement, or a build
+	/// without the message — keeps the behaviour it had before the rules were replicated:
+	/// the value is applied and reported, the host refuses it by name, and this client
+	/// puts the recorded state back, so the two sides still agree. The local check is
+	/// skipped rather than guessed, because a member's own config under the same name is
+	/// not the host's rule.
+	/// </summary>
+	[Fact]
+	public void Set_OnAMembersConsole_WhenNothingWasAnnounced_IsSettledByTheHostsOwnRefusal()
+	{
+		var (host, guest, local) = CreateSceneSession(ruleOpen: false, announce: false);
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
 
 		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
@@ -137,17 +185,22 @@ public class CommandConsoleMemberItemDataTests
 		Assert.Contains("no judged item under that id", Assert.Single(RefusalLines(guest)));
 	}
 
-	/// <summary>Every console test runs against a scene of its own, and the host's own rule is what the case is about.</summary>
-	private static (TestNode Host, TestNode Guest, FakeLocalItemAccess Local) CreateSceneSession(bool ruleOpen)
+	/// <summary>Every console test runs against a scene of its own, and the host's own rule is what the case is about. <paramref name="announce"/> false is the member that never received the set — the announcement frame is SWALLOWED on the host→member link, the lazy peer session's own failure, so the case exercises the real absence rather than a silenced sender; the precondition is asserted here so no case can silently run under the other one.</summary>
+	private static (TestNode Host, TestNode Guest, FakeLocalItemAccess Local) CreateSceneSession(bool ruleOpen, bool announce = true)
 	{
 		var local = new FakeLocalItemAccess();
 		var rules = new MutableOptionsMonitor<HostRulesOptions>(
 			new HostRulesOptions { AllowMemberItemDataWrite = ruleOpen });
-		var (host, guest) = CreateSession(services =>
-		{
-			services.Replace(ServiceDescriptor.Singleton<ILocalItemAccess>(local));
-			services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules));
-		});
+		var (host, guest) = CreateSession(
+			services =>
+			{
+				services.Replace(ServiceDescriptor.Singleton<ILocalItemAccess>(local));
+				services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules));
+			},
+			swallowHostToGuest: announce ? null : NetMsg.HostRules);
+
+		var announced = guest.Services.GetRequiredService<AnnouncedHostRules>().Current;
+		Assert.Equal(announce, announced is not null);
 		return (host, guest, local);
 	}
 

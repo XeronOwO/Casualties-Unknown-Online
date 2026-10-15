@@ -32,6 +32,11 @@ public class CuoServiceOrderTests
 		"SteamTransport",
 		"IpDirectTransport",
 		"SessionService",
+		// The host-rule announcer joins the pump with the session policy it belongs to:
+		// its admission and world-entry edges send from the thread that raised them, and
+		// its CHANGE edge hands this frame a flag rather than sending from whichever
+		// thread wrote the config entry.
+		"HostRulesAnnouncer",
 		// Session-liveness watchdogs (send-stall drop/end, host silence): registered
 		// with the session, they read the traffic observer's receive stamps and the
 		// transport's stall edge, so they sit right after the session and before

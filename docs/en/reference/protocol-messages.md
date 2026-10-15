@@ -185,6 +185,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 33 | `PlayerLeave` | host → guest | a synced member left |
 | 110 | `WorldSnapshotComplete` | host → guest | the world-entry snapshot group is complete |
 | 111 / 112 | `Kicked` / `Banned` | host → guest | this member was kicked / banned |
+| 144 | `HostRules` | host → guest | the host's host-rule values, absolute: sent when the member's handshake completes, with the world-entry group and the 60 s repair group, and on every change while the session runs — a member refuses locally what the announced rules forbid, and the host checks the same thing behind it |
 | 1 / 2 | `Ping` / `Pong` | both | diagnostics |
 
 **Character state and presentation**

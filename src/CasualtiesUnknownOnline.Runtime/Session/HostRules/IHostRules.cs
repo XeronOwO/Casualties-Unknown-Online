@@ -3,12 +3,21 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 
 /// <summary>
-/// The read-only host-rules surface. Composed from
+/// The read-only host-rules surface in force for this process. Composed from
 /// <see cref="HostRulesOptions"/> (host-only new flags) and
 /// <see cref="RespawnOptions"/> (save/revive flags), so one small
 /// service owns the whole high-value host-rule field set without a 60-field
-/// KrokMP-style struct. Wire/network is not involved: host rules are local
-/// host configuration, not a protocol message.
+/// KrokMP-style struct.
+///
+/// <para>
+/// The values are the HOST's on both sides: a host reads its own configuration, and a
+/// member reads the set the host announced (<c>NetMsg.HostRules</c>), because the rules
+/// decide what a member's screen offers, what its console lets it do and what its own
+/// carried body weighs. The replication is not part of the wire contract of this
+/// interface — it is what makes the values this interface reports the ones in force —
+/// and a member that received no announcement reads its own configuration, which is the
+/// behaviour that existed before it (<see cref="HostRulesService"/>).
+/// </para>
 /// </summary>
 public interface IHostRules
 {

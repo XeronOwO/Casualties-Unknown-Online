@@ -35,6 +35,8 @@ public static class OnlineUiMemberProjection
 		bool hasHealItem,
 		IReadOnlyList<LocalHealItem> healItems,
 		bool allowRemoteInventoryTake = true,
+		bool reviveFromTrader = true,
+		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
 		Func<ulong, PlayerColorValue>? getColor = null)
 	{
@@ -119,11 +121,19 @@ public static class OnlineUiMemberProjection
 				&& !isAlreadyCarried
 				&& !isCarryingSomeone
 				&& !hasExistingCarry;
+			// The same two terms the host's own gate reads before it executes a recruit
+			// (RespawnPolicy.CanUseTraderRecruit, over RespawnOptions): a member's card
+			// offers the button only when the rules the host announced would let the
+			// recruit happen, so the operator does not click into a refusal. Both sides
+			// read the same rule surface — the host its own config, the member the
+			// announced set — and the host still decides.
 			var canRecruit = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
 				&& canSee
-				&& vitals is { Alive: false };
+				&& vitals is { Alive: false }
+				&& reviveFromTrader
+				&& !permadeath;
 			var takeable = canTake(inventory, vitals, isLocal, member, allowRemoteInventoryTake, canSee);
 			var canAdminMember = canAdmin && !isLocal && member is not null;
 

@@ -51,6 +51,7 @@ public class HostToGuestDirectionTests(DirectionProbe probe) : IClassFixture<Dir
 		NetMsg.RuntimeEntityRejected,
 		NetMsg.RunFacts,
 		NetMsg.ItemImpact,
+		NetMsg.HostRules,
 	};
 
 	[Theory]

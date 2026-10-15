@@ -1,6 +1,8 @@
 using System;
+using System.Globalization;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -49,18 +51,15 @@ internal static class OnlineUiAdminDrawer
 		}
 		else
 		{
-			BuildRule(ctx, page, "admin.rule_pvp", rules.PvpEnabled);
-			BuildRule(ctx, page, "admin.rule_auto_continue", rules.AutoContinue);
-			BuildRule(ctx, page, "admin.rule_allow_late_join", rules.AllowLateJoin);
-			BuildRule(ctx, page, "admin.rule_allow_remote_inventory_take", rules.AllowRemoteInventoryTake);
-			BuildRule(ctx, page, "admin.rule_allow_member_item_data_write", rules.AllowMemberItemDataWrite);
-			BuildRule(ctx, page, "admin.rule_widen_run_settings", rules.WidenRunSettings);
-			BuildNumberRule(ctx, page, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier);
-			BuildParityRule(ctx, page, "admin.rule_native_binding_parity", rules.NativeBindingParity);
-			BuildRule(ctx, page, "admin.rule_save_inventory", rules.SaveInventory);
-			BuildRule(ctx, page, "admin.rule_revive_trader", rules.ReviveFromTrader);
-			BuildRule(ctx, page, "admin.rule_revive_next_level", rules.ReviveOnNextLevel);
-			BuildRule(ctx, page, "admin.rule_permadeath", rules.Permadeath);
+			// The member's read-only summary walks the CENSUS, not a second list: a rule
+			// the census marks host-only is not announced, so a hardcoded list here would
+			// quietly render this client's own config value under the host's rule name —
+			// the lie this ticket removed. The values come from HostRulesService, which is
+			// the host's announced set on a member.
+			foreach (var row in HostRuleCensus.MemberRows)
+			{
+				page.Label($"{ctx.T(row.LabelKey)}: {ReadOnlyValue(ctx, rules.Current, row)}");
+			}
 		}
 
 		page.Section(ctx.T("admin.ban_list"));
@@ -85,20 +84,21 @@ internal static class OnlineUiAdminDrawer
 		}
 	}
 
-	/// <summary>The guest's read-only rule line: the name in the body colour and the state word in the
+	/// <summary>The member's read-only rule line: the name in the body colour and the state word in the
 	/// state's own colour — the two-tone line the IMGUI page drew.</summary>
-	private static void BuildRule(OnlineUiContext ctx, OnlineUiPageBuilder page, string labelKey, bool value)
+	private static string ReadOnlyValue(OnlineUiContext ctx, HostRuleSet set, HostRuleCensus.Row row) => row.Kind switch
+	{
+		HostRuleKind.Number => set.Number(row.Id).ToString("F2", CultureInfo.InvariantCulture),
+		HostRuleKind.Parity => ParityLabels(ctx)[(int)set.Parity(row.Id)],
+		_ => TwoTone(ctx, set.Boolean(row.Id)),
+	};
+
+	private static string TwoTone(OnlineUiContext ctx, bool value)
 	{
 		var text = ctx.T(value ? "admin.rule_enabled" : "admin.rule_disabled");
 		var color = value ? OnlineUiTheme.Positive : OnlineUiTheme.Muted;
-		page.Label($"{ctx.T(labelKey)}: <color=#{ColorUtility.ToHtmlStringRGBA(color)}>{text}</color>");
+		return $"<color=#{ColorUtility.ToHtmlStringRGBA(color)}>{text}</color>";
 	}
-
-	private static void BuildNumberRule(OnlineUiContext ctx, OnlineUiPageBuilder page, string labelKey, float value) =>
-		page.Label($"{ctx.T(labelKey)}: {value:F2}");
-
-	private static void BuildParityRule(OnlineUiContext ctx, OnlineUiPageBuilder page, string labelKey, NativeBindingParity value) =>
-		page.Label($"{ctx.T(labelKey)}: {ParityLabels(ctx)[(int)value]}");
 
 	/// <summary>The host's rule row: the game's own checkbox row, the rule's name as its label.</summary>
 	private static void BuildEditableRule(

@@ -52,6 +52,8 @@ internal static class OnlineUiMemberListDrawer
 			hasHealItem: ctx.HasHealItem?.Invoke() ?? false,
 			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],
 			allowRemoteInventoryTake: ctx.HostRules.AllowRemoteInventoryTake,
+			reviveFromTrader: ctx.HostRules.ReviveFromTrader,
+			permadeath: ctx.HostRules.Permadeath,
 			hasLineOfSight: ctx.Visibility is null
 				? null
 				: id => ctx.Visibility!.HasLineOfSight(ctx.Session.LocalSteamId, id),

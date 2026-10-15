@@ -21,9 +21,9 @@ internal static class CommandConsoleTestSession
 
 	internal const ulong LobbyId = 9001;
 
-	internal static (TestNode Host, TestNode Guest) CreateSession(Action<IServiceCollection>? extraRegistrations = null)
+	internal static (TestNode Host, TestNode Guest) CreateSession(Action<IServiceCollection>? extraRegistrations = null, NetMsg? swallowHostToGuest = null)
 	{
-		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations);
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations, swallowHostToGuest: swallowHostToGuest);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 		return (host, guest);

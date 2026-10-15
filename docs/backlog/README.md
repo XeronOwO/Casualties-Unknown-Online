@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Host rules reach the members, and both sides check](todo/host-rules-replication.md) — **Medium-High** — rules a member acts on, announced and event-synced.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
@@ -86,6 +85,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [Host rules reach the members, and both sides check](review/host-rules-replication.md) — **Medium-High** — the census, the announcement, the local check.
 - [Paired controls and page scroll](review/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — four look defects pass; the frame awaits an eye.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the strip fits; the rows left need setups.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.

@@ -49,7 +49,9 @@ in [Logs](logs.md).
 
 ## `[Respawn]`
 
-Host-authoritative revive and respawn rules; they are read at decision time.
+Host-authoritative revive and respawn rules; they are read at decision time. They are part of the
+rule set the host announces to its members — see `[HostRules]` below — because a member's Admin page
+shows the same surface.
 
 | Key | Default | What it does |
 |---|---|---|
@@ -63,15 +65,27 @@ Host-authoritative revive and respawn rules; they are read at decision time.
 
 The host-rule surface that is not already owned by `[Respawn]`. Read at decision time.
 
+**The values reach the members.** A member's client acts on them — the member list's take
+affordance, its own console's item-data write, the encumbrance its body gains while it carries
+someone, and the read-only Admin summary — so the host announces the whole set (absolute, one field
+per rule the census marks member-known) to a member the moment its handshake completes, again with
+the world-entry group and the 60 s in-session repair group, and on every change while the session
+runs. The rules stay the host's: a member refuses locally only what the announced set forbids, and
+the host checks the same thing behind it, so a stale, lost or forged belief is never the reason
+something is allowed. A member that received no announcement reads its own entries and skips the
+local check — the behaviour of a build without the announcement, never a guess at the host's.
+The `Host-only` prefix below says the rule is the host's to set and enforce, NOT that its value
+stays on the host: those are exactly the rows a member's client reads.
+
 | Key | Default | Allowed | What it does |
 |---|---|---|---|
 | `PvpEnabled` | `false` | | Reserved host-rule surface for a future PVP damage domain; no gameplay effect yet. |
 | `AutoContinue` | `false` | | Reserved host-rule surface for automatic next-layer continuation; not wired yet. |
 | `AllowLateJoin` | `true` | | True = a brand-new player may join the host's already-running world. |
-| `AllowRemoteInventoryTake` | `true` | | True = other players may take carried items from a remote player's inventory (unconscious/dead loot remains the default rule; false disables cross-player inventory take entirely). |
-| `AllowMemberItemDataWrite` | `false` | | Host-only: true = a member may run the item-data write verbs (`/data set` and the verbs that follow it) on an item it may report on — its own carried, installed or contained item, or world content, the same items a native use may report. The host admits the report and records it like any other item fact. False = the write is refused by name and the member's client puts back the value it had already applied. |
+| `AllowRemoteInventoryTake` | `true` | | True = other players may take carried items from a remote player's inventory (unconscious/dead loot remains the default rule; false disables cross-player inventory take entirely). Also decides whether a member's own member list offers the take buttons. |
+| `AllowMemberItemDataWrite` | `false` | | Host-only: true = a member may run the item-data write verbs (`/data set` and the verbs that follow it) on an item it may report on — its own carried, installed or contained item, or world content, the same items a native use may report. The host admits the report and records it like any other item fact. False = the write is refused by name; a member holding the announced set is refused on its own client BEFORE anything is applied, and one that received no announcement applies, reports and puts the value back when the host's refusal arrives. |
 | `WidenRunSettings` | `true` | | Host-only: widen the native custom run-settings sliders in co-op so the run can be tuned for the actual lobby size. Values still ride the existing world-start params. |
-| `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | Host-only: the fraction of a carried rider's full encumbrance added to the carrier while a carry relation is active. `0` disables the movement penalty. |
+| `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | Host-only: the fraction of a carried rider's full encumbrance added to the carrier while a carry relation is active. `0` disables the movement penalty. Read by the carrying player's own client, so a member carrying someone uses the host's value. |
 | `NativeBindingParity` | `warn` | `allow`, `warn`, `require` | Host-only: how a member's declared [native binding](glossary.md) is judged when it differs from the host's own for a mod both sides list. `allow` = no check; `warn` = admit and record the mismatch in the host's log; `require` = refuse the member. |
 
 ## `[Save]`

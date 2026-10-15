@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -22,7 +23,8 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
 	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
 	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw,
-	IKernelProtocolControl kernelProtocol, ILayerAdvanceControl layerAdvance) :
+	IKernelProtocolControl kernelProtocol, ILayerAdvanceControl layerAdvance,
+	AnnouncedHostRules hostRules) :
 	IWorldHandlerContext,
 	IWorldKernelHandlerContext,
 	IWorldSessionHandlerContext,
@@ -41,6 +43,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	IWorldTimeHandlerContext,
 	ILayerAdvanceHandlerContext,
 	IKernelProtocolContext,
+	IHostRulesHandlerContext,
 	IEmptyHandlerContext
 {
 	public ISessionControl Session { get; } = session;
@@ -76,4 +79,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The Phase C kernel-envelope control surface.</summary>
 	public IKernelProtocolControl KernelProtocol { get; } = kernelProtocol;
+
+	/// <summary>The host rules as this client last received them (member side; the announcement handler is its only writer).</summary>
+	public AnnouncedHostRules HostRules { get; } = hostRules;
 }

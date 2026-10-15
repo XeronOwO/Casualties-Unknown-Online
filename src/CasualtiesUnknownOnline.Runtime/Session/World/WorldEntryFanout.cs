@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 using CasualtiesUnknownOnline.Application.Kernel;
@@ -41,6 +42,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// than layer-relative positions, and an unlock only ever adds — a set that
 /// outlives the layer it was read in still asks for nothing but writes the
 /// receiver already holds.
+///
+/// The host-rule announcement rides both groups for the same reason: it is session
+/// policy rather than a world table, and it is what the member's own client checks its
+/// gestures against — so the entry group carries it for the member that never entered a
+/// world (its Admin page is readable from the menu) and the repair group carries it for
+/// the member whose admission announcement was swallowed.
 /// </summary>
 public sealed class WorldEntryFanout(
 	IWorldControl world,
@@ -49,6 +56,7 @@ public sealed class WorldEntryFanout(
 	IEntitySyncControl entities,
 	ICraftControl craft,
 	IKernelProtocolControl kernelProtocol,
+	IHostRulesAnnouncement hostRules,
 	ILogger<WorldEntryFanout> log,
 	ILiveTrapLayoutSource? liveLayout = null)
 {
@@ -58,6 +66,7 @@ public sealed class WorldEntryFanout(
 	private readonly IEntitySyncControl _entities = entities;
 	private readonly ICraftControl _craft = craft;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
+	private readonly IHostRulesAnnouncement _hostRules = hostRules;
 	private readonly ILogger<WorldEntryFanout> _log = log;
 	private readonly ILiveTrapLayoutSource? _liveLayout = liveLayout;
 
@@ -71,6 +80,13 @@ public sealed class WorldEntryFanout(
 		_log.LogInformation("Sending world-entry snapshot group to {Peer}.", steamId);
 
 		RefreshTrapLayout();
+
+		// The host rules ride FIRST and are deliberately NOT generation-stamped: they
+		// are session policy rather than a layer-relative table, and they are what the
+		// member's own client checks its gestures against — the console write it would
+		// otherwise apply and have to put back, and the take affordance its member list
+		// offers. Nothing below depends on them, and a repeat costs one small message.
+		_hostRules.Announce(steamId);
 
 		// The kernel checkpoint goes FIRST because it is what carries the run
 		// baseline (RunEpoch + LayerIndex) to this member, and every absolute
@@ -121,6 +137,11 @@ public sealed class WorldEntryFanout(
 		_log.LogInformation("Sending the in-session repair group to {Peer}.", steamId);
 
 		RefreshTrapLayout();
+
+		// The rules are the one entry-group member that is NOT a world table: they are
+		// re-announced here so a member whose admission announcement the peer session
+		// swallowed converges on the repair cycle like every other absolute fact.
+		_hostRules.Announce(steamId);
 
 		// Same rule as the entry group: the run-baseline carrier first, then the
 		// generation-stamped absolute tables it is compared against.

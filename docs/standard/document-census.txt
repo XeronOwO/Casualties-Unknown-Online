@@ -224,6 +224,7 @@ docs/backlog/review/guest-frame-rate-lower-than-host.md | keep | index | docs/ba
 docs/backlog/review/guest-remote-pose-head-orientation-desync.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-report-fallback-first-resend.md | keep | index | docs/backlog/README.md
 docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md | keep | index | docs/backlog/README.md
+docs/backlog/review/host-rules-replication.md | keep | index | docs/backlog/README.md
 docs/backlog/review/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
 docs/backlog/review/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-data-read-commands.md | keep | index | docs/backlog/README.md
@@ -286,7 +287,6 @@ docs/backlog/review/delivery-checklist-gate-census.md | keep | index | docs/back
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-item-to-another-player.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/host-rules-replication.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/heal-command-limb-and-hollow-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/id-carriers-can-disagree-about-placement.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/item-and-entity-data-commands.md | keep | index | docs/backlog/README.md

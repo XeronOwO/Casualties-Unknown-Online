@@ -1,6 +1,8 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Tests.Fakes;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
@@ -81,7 +83,8 @@ public class HostRulesPolicyTests
 				ReviveOnNextLevel = false,
 				RespawnKeepInventory = false,
 				RespawnKeepSkills = false,
-			}));
+			}),
+			new AnnouncedHostRules(new FakeSessionControl(), NullLogger<AnnouncedHostRules>.Instance));
 
 		Assert.True(service.PvpEnabled);
 		Assert.True(service.AutoContinue);
@@ -101,7 +104,8 @@ public class HostRulesPolicyTests
 	{
 		var hostRules = new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowLateJoin = true });
 		var service = new HostRulesService(hostRules,
-			new MutableOptionsMonitor<RespawnOptions>(new RespawnOptions()));
+			new MutableOptionsMonitor<RespawnOptions>(new RespawnOptions()),
+			new AnnouncedHostRules(new FakeSessionControl(), NullLogger<AnnouncedHostRules>.Instance));
 		Assert.True(service.AllowLateJoin);
 		Assert.True(service.AllowRemoteInventoryTake);
 

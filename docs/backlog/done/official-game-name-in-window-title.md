@@ -6,7 +6,7 @@
 - Category: Localization / Online UI
 - Source: User correction (2026-09-27): the game's official Chinese name is 未知伤亡, not the reversed
   伤亡未知 the Online UI's window title read.
-- Related: `todo/online-ui-layout-and-input-detail-pass.md` (the window the string is read on),
+- Related: `review/online-ui-layout-and-input-detail-pass.md` (the window the string is read on),
   `docs/standard/terminology.txt`
 
 ## Problem

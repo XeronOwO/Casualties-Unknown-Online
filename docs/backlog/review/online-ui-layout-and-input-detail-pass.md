@@ -1,14 +1,14 @@
 # The Online UI's layout and input detail pass
 
-- Status: Todo — Rejected (row 11's no-regression half fails in the ENGLISH UI: the tab strip is 1038.7 units
-  wide on a 984-unit page, because a tab takes its caption plus four times the font size — 138.6 / 172.1 / 173.8
-  / 143.6 / 159.5 / 231.2 units in English against 130 each in Chinese, which fits). Rows 2 and 3 **pass** in
+- Status: Review — code-complete since the fifth pass below, and batch `20261015-b` judged the row that kept it
+  rejected: in the ENGLISH UI the strip reads `Tabs rect=984.0x36.0` with the six tabs at 112 / 132.1 / 133.8 /
+  112 / 119.5 / 191.2 units — 820.6 plus the five 4-unit gaps against the page's 984 — and in Chinese 112 each,
+  both read live on the deployed build (record
+  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md`). Rows 2 and 3 **pass** in
   batch `20261015-a` (record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`);
-  rows 8–10 stay `unproven` with the setups batch `20261001-k` named. What was left is code: the strip needed a
-  distribution rule of its own (the tab row is a plain `HorizontalLayoutGroup` with `childForceExpandWidth =
-  false`, so it neither shrinks nor wraps — it overflows the window). **That rule landed in the fifth pass
-  below** (`OnlineUiTabLayout`, with the room around a caption counted once), and the ticket waits on batch
-  `20261015-b`, which judges row 11's English half again against the deployed build.
+  rows 8–10 stay `unproven` with the setups batch `20261001-k` named, and row 11's window half — the quick panel,
+  the context menu and the overlays — still needs a session.
+  **That rule landed in the fifth pass below** (`OnlineUiTabLayout`, with the room around a caption counted once).
   **Found 2026-10-14 by the user, after the batch**: this cycle routed the tabs through the width rule so the
   model's `TabWidth` floor would not go unread (the review's own finding), and the floor is not what decides a
   tab's width — the caption is, with the rule's padding counted twice. The live reading of the English page is

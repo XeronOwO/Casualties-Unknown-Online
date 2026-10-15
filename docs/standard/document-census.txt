@@ -242,7 +242,7 @@ docs/backlog/review/mod-defined-wire-packets.md | keep | index | docs/backlog/RE
 docs/backlog/review/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-native-binding-handshake-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-art-and-controls-overhaul.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
+docs/backlog/review/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
@@ -524,9 +524,9 @@ docs/evidence/acceptance/normative-style-unit-test-gates-20260927.md | keep | cl
 docs/evidence/acceptance/official-game-name-in-window-title-20261001.md | keep | claim | docs/backlog/done/official-game-name-in-window-title.md
 docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261001.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
 docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261014-a.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001-k.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001-k.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
 docs/evidence/acceptance/online-ui-panels-request-alpha-blend-false-20261001.md | keep | claim | docs/backlog/done/online-ui-panels-request-alpha-blend-false.md
 docs/evidence/acceptance/partial-damage-delta-report-overlap-20261003-f.md | keep | claim | docs/backlog/done/partial-damage-delta-report-overlap.md
 docs/evidence/acceptance/patch-bridge-domain-ports-20260927.md | keep | claim | docs/backlog/done/patch-bridge-domain-ports.md
@@ -1000,4 +1000,6 @@ tools/AGENTS.md | keep | loaded | -
 docs/backlog/todo/online-ui-paired-controls-and-page-scroll.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/20261015-a-scope.md | keep | claim | docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261015-a.md
 docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261015-a.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/20261015-b-scope.md | keep | claim | docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md

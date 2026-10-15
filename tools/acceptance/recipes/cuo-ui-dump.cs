@@ -52,6 +52,9 @@
 		if (rect != null) {
 			sb.Append(",\"rect\":\"").Append(num(rect.rect.width)).Append("x").Append(num(rect.rect.height)).Append("\"");
 			sb.Append(",\"pos\":\"").Append(num(rect.anchoredPosition.x)).Append(",").Append(num(rect.anchoredPosition.y)).Append("\"");
+			sb.Append(",\"anchor\":\"").Append(num(rect.anchorMin.x)).Append(",").Append(num(rect.anchorMin.y))
+				.Append("..").Append(num(rect.anchorMax.x)).Append(",").Append(num(rect.anchorMax.y))
+				.Append(" pivot ").Append(num(rect.pivot.x)).Append(",").Append(num(rect.pivot.y)).Append("\"");
 			rect.GetWorldCorners(corners);
 			var bottomLeft = window.InverseTransformPoint(corners[0]);
 			var topRight = window.InverseTransformPoint(corners[2]);

@@ -75,6 +75,10 @@ internal sealed class OnlineUiPanelView
 	private readonly OnlineUiControlTypography _typography;
 	private readonly List<OnlineUiWindowRowView> _rows = [];
 
+	/// <summary>The width each element of a row was laid out at, kept per row so the panel's column pass can
+	/// lay every element out again without measuring anything twice.</summary>
+	private readonly List<float[]> _widths = [];
+
 	private OnlineUiControlView? _close;
 	private string _closeId = "\0";
 	private string _titleText = "\0";
@@ -284,6 +288,7 @@ internal sealed class OnlineUiPanelView
 		{
 			_rows[_rows.Count - 1].Destroy();
 			_rows.RemoveAt(_rows.Count - 1);
+			_widths.RemoveAt(_widths.Count - 1);
 			_structureDirty = true;
 		}
 
@@ -292,14 +297,36 @@ internal sealed class OnlineUiPanelView
 			if (index >= _rows.Count)
 			{
 				_rows.Add(new OnlineUiWindowRowView(LineSpacing));
+				_widths.Add([]);
 				_structureDirty = true;
 			}
 
-			ApplyRow(_rows[index], rows[index]);
+			ApplyRow(index, _rows[index], rows[index]);
+		}
+
+		var column = OnlineUiWindowRowView.ColumnWidthOf(rows, NameWidth, ContentWidth);
+		for (var index = 0; index < rows.Count; index++)
+		{
+			_rows[index].AlignToColumn(rows[index].Elements, _widths[index], column);
 		}
 	}
 
-	private void ApplyRow(OnlineUiWindowRowView row, OnlineUiRowModel model)
+	/// <summary>
+	/// The width one element's NAME needs on this surface: the view this panel already holds for it, measured
+	/// on its label (<see cref="OnlineUiControlView.NameWidthOf"/>) — the same reading the window's pages take,
+	/// so a control lines up the same way wherever it is drawn.
+	/// </summary>
+	private float NameWidth(int rowIndex, int index, OnlineUiElementModel element) =>
+		rowIndex < _rows.Count && index < _rows[rowIndex].Elements.Count
+			? _rows[rowIndex].Elements[index].NameWidthOf(element)
+			: 0f;
+
+	/// <summary>
+	/// One model row on the panel, at its own index in the panel's list: the views, the wrap the model's own
+	/// breaks and the fit together produce, and every element placed on the line it landed on. The widths it
+	/// computed are kept for the column pass above, which runs once every row has its own.
+	/// </summary>
+	private void ApplyRow(int rowIndex, OnlineUiWindowRowView row, OnlineUiRowModel model)
 	{
 		var elements = model.Elements;
 		if (elements.Count == 0)
@@ -310,6 +337,7 @@ internal sealed class OnlineUiPanelView
 			_structureDirty |= row.EnsureLines(_root.transform, 1);
 			row.SetGap(0, model.Gap > 0f ? model.Gap : GapHeight);
 			_structureDirty |= row.DestroyElementsFrom(0);
+			_widths[rowIndex] = [];
 			return;
 		}
 
@@ -319,14 +347,17 @@ internal sealed class OnlineUiPanelView
 		_structureDirty |= _views.Sync(row.Elements, elements, _root.transform);
 
 		var widths = new float[elements.Count];
+		var breaks = new bool[elements.Count];
 		for (var index = 0; index < elements.Count; index++)
 		{
 			var view = row.Elements[index];
 			view.Apply(elements[index], aloneOnItsLine: elements.Count == 1);
 			widths[index] = view.EffectiveWidth(elements[index]);
+			breaks[index] = elements[index].NewLine;
 		}
 
-		var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);
+		var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);
+		_widths[rowIndex] = widths;
 		var lineCount = lines[lines.Length - 1] + 1;
 		_structureDirty |= row.EnsureLines(_root.transform, lineCount);
 		for (var index = 0; index < lineCount; index++)
@@ -338,7 +369,7 @@ internal sealed class OnlineUiPanelView
 		{
 			var view = row.Elements[index];
 			view.SetParent(row.Lines[lines[index]].transform);
-			view.LayOutRow(widths[index]);
+			view.LayOutRow(elements[index], widths[index], columnWidth: 0f);
 		}
 
 		_structureDirty |= row.DestroyElementsFrom(elements.Count);

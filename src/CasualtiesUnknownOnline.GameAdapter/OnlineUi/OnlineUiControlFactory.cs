@@ -295,6 +295,7 @@ internal static class OnlineUiControlFactory
 		OnlineUiElementKind.Toggle => "Special/GameSettingBool",
 		OnlineUiElementKind.Dropdown => "Special/GameSettingDropdown",
 		OnlineUiElementKind.TextField => "Special/GameSettingInt",
+		OnlineUiElementKind.NumberField => "Special/GameSettingInt",
 		OnlineUiElementKind.Slider => "Special/GameSettingFloat",
 		_ => "",
 	};

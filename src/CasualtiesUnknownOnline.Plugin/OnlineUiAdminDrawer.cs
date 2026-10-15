@@ -20,8 +20,6 @@ namespace CasualtiesUnknownOnline;
 /// </summary>
 internal static class OnlineUiAdminDrawer
 {
-	private const float NumberRuleWidth = 120f;
-
 	internal static void Build(OnlineUiContext ctx, OnlineUiPageBuilder page)
 	{
 		var session = ctx.Session;
@@ -111,7 +109,9 @@ internal static class OnlineUiAdminDrawer
 		Action<bool> setter) =>
 		page.Toggle(labelKey, ctx.T(labelKey), value, setter);
 
-	/// <summary>The host's numeric rule row: the game's own slider row with the value beside it.</summary>
+	/// <summary>The host's numeric rule row (ticket online-ui-paired-controls-and-page-scroll): the game's own
+	/// slider with an editable value beside it, both bound to the one rule — the name on its own line above
+	/// them. The number reads to two places, which is the precision the rule itself is stored at.</summary>
 	private static void BuildEditableNumberRule(
 		OnlineUiContext ctx,
 		OnlineUiPageBuilder page,
@@ -120,7 +120,7 @@ internal static class OnlineUiAdminDrawer
 		Action<float> setter,
 		float min,
 		float max) =>
-		page.Slider(labelKey, ctx.T(labelKey), value, min, max, $"{value:F2}", setter, width: NumberRuleWidth);
+		page.NumberRule(labelKey, ctx.T(labelKey), value, min, max, setter, format: value => $"{value:F2}");
 
 	/// <summary>The three-way native-binding parity rule as the game's own dropdown row: a small closed
 	/// set the player opens, tracks and picks from — the control the IMGUI toolbar only pretended to be.</summary>

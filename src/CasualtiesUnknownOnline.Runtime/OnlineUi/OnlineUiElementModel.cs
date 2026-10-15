@@ -30,9 +30,20 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// <item><description><see cref="OnlineUiElementKind.Slider"/> — <c>Id</c>, <c>Text</c> (the row's
 /// label), <c>Number</c>, <c>Minimum</c>, <c>Maximum</c>, <c>Value</c> (the formatted value shown beside
 /// the slider), <c>Width</c>.</description></item>
+/// <item><description><see cref="OnlineUiElementKind.NumberField"/> — <c>Id</c>, <c>Value</c> (the number
+/// as it reads), <c>Number</c>, <c>Minimum</c>, <c>Maximum</c> (the range a typed value is judged
+/// against), <c>Width</c>.</description></item>
 /// <item><description><see cref="OnlineUiElementKind.ColorSwatch"/> — <c>Id</c> (EMPTY = a preview that
 /// reports nothing), <c>Color</c> (the block's own fill), <c>Width</c>.</description></item>
 /// </list>
+///
+/// <para>
+/// <see cref="NewLine"/> is the one field that is not about a kind: it says the element starts the line
+/// BELOW the one its predecessor is on, which is how a paired control is written — its name on the first
+/// line, its slider and its value together on the second (ticket
+/// online-ui-paired-controls-and-page-scroll, S3). It is a FLOOR on the wrap rather than a replacement
+/// for it: an element that does not fit its line wraps whether or not it asked to.
+/// </para>
 ///
 /// <para>
 /// <see cref="Width"/> is a FLOOR in the canvas units the window is laid out in, not a pixel size and not a
@@ -59,7 +70,8 @@ public readonly record struct OnlineUiElementModel(
 	bool Flag,
 	int OptionIndex,
 	int MaxLength,
-	IReadOnlyList<string>? Options)
+	IReadOnlyList<string>? Options,
+	bool NewLine = false)
 {
 	/// <summary>A line of text. <paramref name="width"/> 0 lets the label take the row's remaining width.</summary>
 	public static OnlineUiElementModel Label(
@@ -229,4 +241,51 @@ public readonly record struct OnlineUiElementModel(
 			OptionIndex: -1,
 			MaxLength: 0,
 			Options: null);
+
+	/// <summary>
+	/// A numeric field: the same number its slider holds, typed rather than dragged. It carries the
+	/// element's own id, so what the player commits comes back as that id and the caller writes the one
+	/// value both directions read (ticket online-ui-paired-controls-and-page-scroll, S2).
+	/// </summary>
+	public static OnlineUiElementModel NumberField(
+		string id,
+		string value,
+		float number,
+		float minimum,
+		float maximum,
+		float width = 0f,
+		int maxLength = 0,
+		bool newLine = false) =>
+		new(
+			OnlineUiElementKind.NumberField,
+			Id: id,
+			Text: "",
+			Style: OnlineUiTextStyle.Default,
+			Color: null,
+			Width: width,
+			Selected: false,
+			Value: value,
+			Number: number,
+			Minimum: minimum,
+			Maximum: maximum,
+			Flag: false,
+			OptionIndex: -1,
+			MaxLength: maxLength,
+			Options: null,
+			NewLine: newLine);
+
+	/// <summary>
+	/// The row of a PAIRED control (ticket online-ui-paired-controls-and-page-scroll, S3): the name on its
+	/// own line and the control on the line below it, side by side with whatever belongs to it — a slider
+	/// with its value. It is one row rather than two so the two lines cannot be split by anything a later
+	/// drawer inserts between them, and <paramref name="control"/> is marked <see cref="NewLine"/> here
+	/// rather than at every call site.
+	/// </summary>
+	public static OnlineUiRowModel Paired(string name, OnlineUiElementModel control, params OnlineUiElementModel[] beside) =>
+		new(
+			[
+				Label(name),
+				control with { NewLine = true },
+				.. beside,
+			]);
 }

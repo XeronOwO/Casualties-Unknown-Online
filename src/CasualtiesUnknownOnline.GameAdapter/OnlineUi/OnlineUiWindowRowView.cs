@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -6,21 +8,30 @@ using Object = UnityEngine.Object;
 namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 
 /// <summary>
-/// One model row's controls on the Online UI window's surface (ticket
-/// online-ui-art-and-controls-overhaul, S2b): the line containers the row wrapped into, and the element
-/// views in model order — the two are crossed by the wrap, which is why they are kept apart here rather
-/// than in the window.
+/// One model row's controls on a CUO surface (ticket online-ui-art-and-controls-overhaul, S2b): the line
+/// containers the row wrapped into, and the element views in model order — the two are crossed by the wrap,
+/// which is why they are kept apart here rather than in the window.
 ///
 /// <para>
 /// The row owns nothing but its objects: which line an element lands on comes from the Runtime's wrapping
-/// rule, what each element shows comes from the model, and the window above reconciles both frame by
+/// rule, what each element shows comes from the model, and the surface above reconciles both frame by
 /// frame. Making the row have exactly <paramref name="count"/> lines reports whether that changed
-/// anything, which is the window's signal to put its lines back in model order (Unity appends a new
+/// anything, which is the surface's signal to put its lines back in model order (Unity appends a new
 /// object to the end of its parent).
+/// </para>
+///
+/// <para>
+/// The page's own control COLUMN is here too (<see cref="ColumnWidthOf"/> and
+/// <see cref="AlignToColumn"/>), because it is the same kind of fact as the row's lines: a shape the whole
+/// page shares and the surface writes back onto each of its rows. The window and the two panels carry it
+/// through this one place so a control cannot line up on one surface and not on its sibling.
 /// </para>
 /// </summary>
 internal sealed class OnlineUiWindowRowView
 {
+	/// <summary>How much of a surface's width a name column may take.</summary>
+	private const float ColumnShare = 0.8f;
+
 	private readonly float _lineSpacing;
 
 	internal OnlineUiWindowRowView(float lineSpacing)
@@ -70,6 +81,65 @@ internal sealed class OnlineUiWindowRowView
 		if (!element.preferredHeight.Equals(height))
 		{
 			element.preferredHeight = height;
+		}
+	}
+
+	/// <summary>
+	/// The width a surface's control column takes (ticket online-ui-paired-controls-and-page-scroll, S3): the
+	/// widest name any of its table rows carries, so every control below that column starts at the same place
+	/// however long the names above it are. A PAIRED row's own name does not count — it is on a line of its
+	/// own and takes the whole width — and a page with nothing to align answers 0, which leaves every row the
+	/// flexible label it had.
+	///
+	/// <para>
+	/// It is read from the element MODELS rather than from what the views drew, and every name is measured by
+	/// the view that was built for that element (<paramref name="nameWidth"/> is handed the row, the element
+	/// and its index) — never off a box a layout group has written, which is the feedback this surface removes
+	/// everywhere else.
+	/// </para>
+	/// </summary>
+	internal static float ColumnWidthOf(
+		IReadOnlyList<OnlineUiRowModel> rows,
+		Func<int, int, OnlineUiElementModel, float> nameWidth,
+		float contentWidth)
+	{
+		var widest = 0f;
+		for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+		{
+			var elements = rows[rowIndex].Elements;
+			for (var index = 0; index < elements.Count; index++)
+			{
+				if (elements[index].NewLine)
+				{
+					continue;
+				}
+
+				widest = Mathf.Max(widest, nameWidth(rowIndex, index, elements[index]));
+			}
+		}
+
+		// The column never eats the room a control needs: names that want more than four fifths of the width
+		// keep their controls whole and wrap instead, which is the worse-looking but readable end of the
+		// trade.
+		return Mathf.Min(widest, contentWidth * ColumnShare);
+	}
+
+	/// <summary>Gives every element of this row the page's own control column: the width its NAME keeps, so the
+	/// controls of the page line up however long the names are (ticket
+	/// online-ui-paired-controls-and-page-scroll, S3). It is a second pass over the elements — the surface
+	/// measures the whole page's names first, because a row cannot know what the rows below it carry — with
+	/// each element's width and model handed back in, so nothing is measured twice.
+	/// </summary>
+	internal void AlignToColumn(IReadOnlyList<OnlineUiElementModel> elements, float[] widths, float columnWidth)
+	{
+		if (columnWidth <= 0f)
+		{
+			return;
+		}
+
+		for (var index = 0; index < Elements.Count && index < elements.Count; index++)
+		{
+			Elements[index].LayOutRow(elements[index], widths[index], columnWidth);
 		}
 	}
 

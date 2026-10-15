@@ -398,6 +398,7 @@ internal sealed class OnlineUiHost
 				case OnlineUiIntentKind.ControlSelected:
 				case OnlineUiIntentKind.ControlChanged:
 				case OnlineUiIntentKind.ControlEdited:
+				case OnlineUiIntentKind.ControlCommitted:
 					ApplyControlIntent(intent);
 					break;
 			}

@@ -68,6 +68,7 @@ public sealed class OnlineUiControlWidthPinTests
 		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlSizing.cs", "internal static float AuthoredChildWidth(RectTransform? child)", "internal static float AuthoredChildWidth(string unused)", "a prefab whose authored child width nobody can read" },
 		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.EffectiveWidth(element.Width, authoredControlWidth)", "OnlineUiControlBox.EffectiveWidth(element.Width, 0f)", "a toggle left at the model's floor with the size the game authored for it ignored" },
 		{ nameof(AnElementThatIsItsOwnControlDeclaresItsWidth), "adapter/OnlineUiRowGeometry.cs", "layout.preferredWidth = controlWidth;", "// the element keeps the width its own group measured,", "a colour block as wide as its own padding — 88 declared, 18 rendered" },
+		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiWindowView.cs", "_tabs[index].LayOutRow(tabs[index], widths[index], columnWidth: 0f);", "_tabs[index].LayOutRow(tabs[index], _tabs[index].EffectiveWidth(tabs[index]), columnWidth: 0f);", "a strip that lays every tab out at the width it asked for instead of the width the Runtime rule gave it" },
 		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiWindowView.cs", "OnlineUiTabLayout.Widths(natural, minimum, TabStripWidth, LineSpacing)", "natural", "a strip that gives every tab the width it asked for, which is the 1038.7 units of English tabs the user found inside a 984-unit page" },
 		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiWindowView.cs", "minimum[index] = _tabs[index].MinimumWidth(tabs[index]);", "minimum[index] = 0f;", "a strip with no floor under any tab, so the excess comes off the captions themselves" },
 		{ nameof(ATabStripFitsItsOwnBand), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize)", "OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 4f * typographySize)", "the room around a caption counted twice, which measured the English `Preferences` tab at 231.2 units and is what pushed the strip past the window" },
@@ -155,7 +156,7 @@ public sealed class OnlineUiControlWidthPinTests
 		return flat.Contains("OnlineUiTabLayout.Widths(natural, minimum, TabStripWidth, LineSpacing)", StringComparison.Ordinal)
 			&& flat.Contains("natural[index] = _tabs[index].EffectiveWidth(tabs[index]);", StringComparison.Ordinal)
 			&& flat.Contains("minimum[index] = _tabs[index].MinimumWidth(tabs[index]);", StringComparison.Ordinal)
-			&& flat.Contains("_tabs[index].LayOutRow(widths[index]);", StringComparison.Ordinal)
+			&& flat.Contains("_tabs[index].LayOutRow(tabs[index], widths[index], columnWidth: 0f);", StringComparison.Ordinal)
 			&& flat.Contains("private float TabStripWidth => _rect.rect.width > 0f ? _rect.rect.width - (2f * Padding) : ContentWidth;", StringComparison.Ordinal)
 			&& !flat.Contains("_tabRow.rect.width", StringComparison.Ordinal)
 			&& Flatten(pluginSource).Contains("internal const float TabWidth = 112f;", StringComparison.Ordinal)

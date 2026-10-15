@@ -69,4 +69,45 @@ public sealed class OnlineUiRowLayoutTests
 				$"line {index} jumped from {lines[index - 1]} to {lines[index]}");
 		}
 	}
+
+	/// <summary>A control the model puts on its own line starts the line BELOW its name, whether or not it
+	/// would have fitted: that is the paired control of a page — the name above, the slider and its value
+	/// below (ticket online-ui-paired-controls-and-page-scroll, S3).</summary>
+	[Fact]
+	public void AMarkedElementStartsTheLineBelow()
+	{
+		// The label takes no width, so the fit alone would keep all three on one line.
+		Assert.Equal([0, 1, 1], OnlineUiRowLayout.LineOf([0f, 200f, 40f], [false, true, false], 600f));
+		Assert.Equal([0, 1, 1], OnlineUiRowLayout.LineOf([0f, 200f, 40f], [false, true, false], 600f, spacing: 4f));
+	}
+
+	/// <summary>The mark is a FLOOR on the wrap, not a replacement for it: an element sent to its own line
+	/// that is still too wide for it wraps again, exactly as an unmarked over-wide element does.</summary>
+	[Fact]
+	public void AMarkedElementThatDoesNotFitWrapsAgain() =>
+		// 0, then a 700-wide control against a 400-wide content: its own line, and the 300 beside it wraps.
+		Assert.Equal([0, 1, 2], OnlineUiRowLayout.LineOf([0f, 700f, 300f], [false, true, false], 400f, spacing: 4f));
+
+	/// <summary>A mark on the FIRST element of a row changes nothing: there is no line above it to leave, and
+	/// the answers have to stay a run of line indices that never skips a number (line 1 would be a line no
+	/// element is on).</summary>
+	[Fact]
+	public void AMarkOnTheFirstElementChangesNothing() =>
+		Assert.Equal([0, 0], OnlineUiRowLayout.LineOf([0f, 40f], [true, false], 600f));
+
+	/// <summary>An element the fit already sent to a line of its own keeps that line: the mark never pulls an
+	/// element back up onto the line above.</summary>
+	[Fact]
+	public void AMarkedElementKeepsTheLineTheFitGaveIt() =>
+		// The second element cannot fit beside the first, so it is already on line 1; its mark asks for line
+		// 1 as well and must not push it to 2.
+		Assert.Equal([0, 1], OnlineUiRowLayout.LineOf([300f, 300f], [false, true], 400f));
+
+	/// <summary>Without marks the two answers are the same rule: the overload that takes them is the plain
+	/// one plus the model's own breaks.</summary>
+	[Fact]
+	public void NoMarksGiveTheSameAnswerAsThePlainRule() =>
+		Assert.Equal(
+			OnlineUiRowLayout.LineOf([180f, 180f, 180f, 180f, 180f], 400f),
+			OnlineUiRowLayout.LineOf([180f, 180f, 180f, 180f, 180f], [false, false, false, false, false], 400f));
 }

@@ -89,8 +89,13 @@ internal sealed class OnlineUiWindowView
 	private readonly RectTransform _content;
 	private readonly OnlineUiViewSource _views;
 	private readonly OnlineUiDropdownPopup _popup;
+	private readonly OnlineUiPageScrollbar _scrollbar;
 	private readonly List<OnlineUiWindowRowView> _rows = [];
 	private readonly List<OnlineUiControlView> _tabs = [];
+
+	/// <summary>The width each element of a row was laid out at, kept per row so the page's column pass can
+	/// lay every element out again without measuring anything twice.</summary>
+	private readonly List<float[]> _widths = [];
 
 	private bool _hovered;
 	private bool _structureDirty;
@@ -106,7 +111,8 @@ internal sealed class OnlineUiWindowView
 		RectTransform content,
 		Action<OnlineUiIntent> report,
 		OnlineUiControlTypography typography,
-		OnlineUiDropdownPopup popup)
+		OnlineUiDropdownPopup popup,
+		OnlineUiPageScrollbar scrollbar)
 	{
 		_views = new OnlineUiViewSource(log, "Online UI window", typography, report);
 		_root = root;
@@ -116,6 +122,7 @@ internal sealed class OnlineUiWindowView
 		_tabRow = tabRow;
 		_content = content;
 		_popup = popup;
+		_scrollbar = scrollbar;
 	}
 
 	/// <summary>Builds the window under CUO's canvas. It starts hidden: a frame that carries a window model
@@ -210,6 +217,11 @@ internal sealed class OnlineUiWindowView
 		var viewport = OnlineUiSurfaceParts.CreateRect("Viewport", scroll, typeof(Image), typeof(RectMask2D));
 		OnlineUiSurfaceParts.Stretch(viewport, 0f, 0f, 0f, 0f);
 
+		// The bar rides the PAGE's own band, beside the viewport rather than inside it: the mask clips what
+		// is scrolled, and the one thing that must not scroll away is the bar that says how much is left
+		// (ticket online-ui-paired-controls-and-page-scroll, S4).
+		var scrollbar = OnlineUiPageScrollbar.Create(scroll, sprite, imageType, pixelsPerUnit);
+
 		// The viewport's own transparent image catches the wheel over empty space, where no row is under
 		// the pointer; the mask is what clips the rows to the viewport.
 		var viewportImage = viewport.GetComponent<Image>();
@@ -252,7 +264,8 @@ internal sealed class OnlineUiWindowView
 			content,
 			report,
 			typography,
-			popup);
+			popup,
+			scrollbar);
 		view.SetVisible(false);
 		return view;
 	}
@@ -279,6 +292,7 @@ internal sealed class OnlineUiWindowView
 		ApplyTabs(model.Tabs);
 		ApplyRows(model.Rows);
 		_popup.Normalise();
+		_scrollbar.Apply();
 		FitToCanvasIfItChanged();
 
 		if (_structureDirty)
@@ -363,7 +377,7 @@ internal sealed class OnlineUiWindowView
 		var widths = OnlineUiTabLayout.Widths(natural, minimum, TabStripWidth, LineSpacing);
 		for (var index = 0; index < tabs.Count; index++)
 		{
-			_tabs[index].LayOutRow(widths[index]);
+			_tabs[index].LayOutRow(tabs[index], widths[index], columnWidth: 0f);
 		}
 	}
 
@@ -392,12 +406,19 @@ internal sealed class OnlineUiWindowView
 	/// </summary>
 	private float TabStripWidth => _rect.rect.width > 0f ? _rect.rect.width - (2f * Padding) : ContentWidth;
 
+	/// <summary>
+	/// Applies the page's rows, one row at a time. The control column they share is decided AFTER the models
+	/// are applied and from what the views now show — a name is the one width of this surface that does not
+	/// depend on the box it is drawn in — and it is written back in one extra pass, so the alignment cannot
+	/// feed itself the way a rule that measured a group's own output would.
+	/// </summary>
 	private void ApplyRows(IReadOnlyList<OnlineUiRowModel> rows)
 	{
 		while (_rows.Count > rows.Count)
 		{
 			_rows[_rows.Count - 1].Destroy();
 			_rows.RemoveAt(_rows.Count - 1);
+			_widths.RemoveAt(_widths.Count - 1);
 			_structureDirty = true;
 		}
 
@@ -406,14 +427,38 @@ internal sealed class OnlineUiWindowView
 			if (index >= _rows.Count)
 			{
 				_rows.Add(new OnlineUiWindowRowView(LineSpacing));
+				_widths.Add([]);
 				_structureDirty = true;
 			}
 
-			ApplyRow(_rows[index], rows[index]);
+			ApplyRow(index, _rows[index], rows[index]);
+		}
+
+		var column = OnlineUiWindowRowView.ColumnWidthOf(rows, NameWidth, ContentWidth);
+		for (var index = 0; index < rows.Count; index++)
+		{
+			_rows[index].AlignToColumn(rows[index].Elements, _widths[index], column);
 		}
 	}
 
-	private void ApplyRow(OnlineUiWindowRowView row, OnlineUiRowModel model)
+	/// <summary>
+	/// The width one element's NAME needs on this surface: the view the row already holds for it — built
+	/// before this runs, so it carries the game's own font and the text the model put there — measured on its
+	/// label (<see cref="OnlineUiControlView.NameWidthOf"/>). Nothing is built and no box is asked, so the
+	/// column cannot be read back out of the layout it is about to write.
+	/// </summary>
+	private float NameWidth(int rowIndex, int index, OnlineUiElementModel element) =>
+		rowIndex < _rows.Count && index < _rows[rowIndex].Elements.Count
+			? _rows[rowIndex].Elements[index].NameWidthOf(element)
+			: 0f;
+
+	/// <summary>
+	/// One model row on the surface, at its own index in the page: the views, the wrap (the fit and the
+	/// model's own breaks together — <see cref="OnlineUiRowLayout.LineOf(IReadOnlyList{float}, IReadOnlyList{bool}, float, float)"/>),
+	/// the lines that wrap produced, and every element placed on the line it landed on. The widths it
+	/// computed are kept for the page's column pass, which runs once every row of the page has its own.
+	/// </summary>
+	private void ApplyRow(int rowIndex, OnlineUiWindowRowView row, OnlineUiRowModel model)
 	{
 		var elements = model.Elements;
 		if (elements.Count == 0)
@@ -424,6 +469,7 @@ internal sealed class OnlineUiWindowView
 			_structureDirty |= row.EnsureLines(_content, 1);
 			row.SetGap(0, model.Gap > 0f ? model.Gap : GapHeight);
 			_structureDirty |= row.DestroyElementsFrom(0);
+			_widths[rowIndex] = [];
 			return;
 		}
 
@@ -433,14 +479,17 @@ internal sealed class OnlineUiWindowView
 		_structureDirty |= _views.Sync(row.Elements, elements, _content);
 
 		var widths = new float[elements.Count];
+		var breaks = new bool[elements.Count];
 		for (var index = 0; index < elements.Count; index++)
 		{
 			var view = row.Elements[index];
 			view.Apply(elements[index], aloneOnItsLine: elements.Count == 1);
 			widths[index] = view.EffectiveWidth(elements[index]);
+			breaks[index] = elements[index].NewLine;
 		}
 
-		var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);
+		var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);
+		_widths[rowIndex] = widths;
 		var lineCount = lines[lines.Length - 1] + 1;
 		_structureDirty |= row.EnsureLines(_content, lineCount);
 		for (var index = 0; index < lineCount; index++)
@@ -456,8 +505,9 @@ internal sealed class OnlineUiWindowView
 			// A row that carries its own label and control (a dropdown, a field, a slider, a toggle) is laid
 			// out by CUO inside: the game's own placement belongs to the game's own screen. The width it takes
 			// on its line is the one just computed — the width CUO declared, never a measurement of the
-			// control's own stretched content.
-			view.LayOutRow(widths[index]);
+			// control's own stretched content. A paired element is stacked instead, and takes the column when
+			// the page's own pass runs.
+			view.LayOutRow(elements[index], widths[index], columnWidth: 0f);
 
 			// An open dropdown's list is an overlay, and the window owns the layer it has to live on.
 			view.AdoptPopup(_popup);

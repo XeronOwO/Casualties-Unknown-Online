@@ -15,6 +15,16 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// fits and starts a new line when it does not; an element wider than the whole content width still gets
 /// a line of its own rather than looping.
 /// </para>
+///
+/// <para>
+/// An element the model marks <see cref="OnlineUiElementModel.NewLine"/> starts the line BELOW the one
+/// its predecessor is on whether or not it would have fitted, which is the shape a paired control is
+/// written in: its name on the first line, its slider and its value together on the second (ticket
+/// online-ui-paired-controls-and-page-scroll, S3). The mark is a floor on the wrap, never a replacement
+/// for it — a marked element too wide for the line it was sent to wraps again — and a mark on the FIRST
+/// element of a row changes nothing, because there is no line above it to leave and the answers have to
+/// stay a run of line indices that never skips a number.
+/// </para>
 /// </summary>
 public static class OnlineUiRowLayout
 {
@@ -51,6 +61,37 @@ public static class OnlineUiRowLayout
 			}
 
 			lines[index] = line;
+		}
+
+		return lines;
+	}
+
+	/// <summary>
+	/// The same rule, with the model's own breaks: an element whose <paramref name="newLine"/> is set starts
+	/// the line below the one before it. That is the whole difference — the fit decides every other line —
+	/// and it lives here rather than in the adapter for the reason the rest of the rule does.
+	///
+	/// <para>
+	/// A break on an element the fit ALREADY sent to a line of its own changes nothing (it is on the line
+	/// below its predecessor either way), and every element after a break moves down with it: the answer has
+	/// to stay a run of indices that never skips a number, so the lines the fit produced are shifted by the
+	/// breaks that came before them rather than written one at a time.
+	/// </para>
+	/// </summary>
+	public static int[] LineOf(IReadOnlyList<float> widths, IReadOnlyList<bool> newLine, float contentWidth, float spacing = 0f)
+	{
+		var fitted = LineOf(widths, contentWidth, spacing);
+		var lines = new int[fitted.Length];
+		var shift = 0;
+		for (var index = 0; index < fitted.Length; index++)
+		{
+			var previous = index > 0 ? lines[index - 1] : -1;
+			if (index > 0 && index < newLine.Count && newLine[index] && fitted[index] + shift <= previous)
+			{
+				shift++;
+			}
+
+			lines[index] = fitted[index] + shift;
 		}
 
 		return lines;

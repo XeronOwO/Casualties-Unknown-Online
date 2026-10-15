@@ -93,7 +93,8 @@ public sealed class OnlineUiPanelSurfacePinTests
 		{ nameof(TheContextMenuBuildsAModelInsteadOfDrawing), "plugin/OnlineUiPlayerContextMenu.cs", "return OnlineUiPanelModel.AtPoint(", "GUI.Label(new Rect(0f, 0f, 1f, 1f), \"menu\");\n\t\treturn null;\n\t\t//", "a context menu drawn in IMGUI again" },
 		{ nameof(TheSurfaceCarriesOnePanelViewForBoth), "adapter/OnlineUiSurfaceHost.cs", "QuickPanelName,", "RootName,", "a second panel that is never built" },
 		{ nameof(TheSurfaceCarriesOnePanelViewForBoth), "adapter/OnlineUiSurfaceHost.cs", "ApplyPanel(_contextMenu, frame.ContextMenu);", "ApplyPanel(_quickPanel, frame.QuickPanel);", "a menu that is never applied" },
-		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiPanelView.cs", "var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);", "var lines = new int[widths.Length];", "a panel that wraps its rows by no rule" },
+		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiPanelView.cs", "var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);", "var lines = new int[widths.Length];", "a panel that wraps its rows by no rule" },
+		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiPanelView.cs", "OnlineUiWindowRowView.ColumnWidthOf(rows, NameWidth, ContentWidth)", "0f", "a panel whose controls do not line up in the page's own column" },
 		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiPanelView.cs", "_rows.Add(new OnlineUiWindowRowView(LineSpacing));", "_rows.Add(default!);", "a panel that builds its own rows instead of the shared row view" },
 		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiPanelView.cs", "_structureDirty |= _views.Sync(row.Elements, elements, _root.transform);", "_structureDirty |= true;", "a panel that keeps its row's views aligned with nothing" },
 		{ nameof(ThePanelsKeepTheWindowsRowMachinery), "adapter/OnlineUiViewSource.cs", "OnlineUiControlView.Create(element, parent, _typography, _report);", "OnlineUiControlView.Create(element, parent, _typography, null);", "a shared view source that builds a control which can report nothing" },
@@ -178,17 +179,19 @@ public sealed class OnlineUiPanelSurfacePinTests
 	}
 
 	/// <summary>One panel view for two panels: the same control view, the same row view, the same wrapping
-	/// rule the window's pages use, and the same view source — the reconcile that reuses a control whose kind
-	/// and id still match, and the report a prefab's missing row earns, are the WINDOW's too, so a panel that
-	/// grew a copy of them fails here.</summary>
+	/// rule the window's pages use — the model's own breaks included, so a paired control is two lines in a
+	/// panel exactly as it is on a page — and the same view source: the reconcile that reuses a control whose
+	/// kind and id still match, and the report a prefab's missing row earns, are the WINDOW's too, so a panel
+	/// that grew a copy of them fails here.</summary>
 	private static bool UsesTheSharedRowMachinery(string panelViewSource, string viewSource)
 	{
 		var flat = Flatten(panelViewSource);
 
 		return flat.Contains("_rows.Add(new OnlineUiWindowRowView(LineSpacing));", StringComparison.Ordinal)
 			&& flat.Contains(
-				"var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);",
+				"var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);",
 				StringComparison.Ordinal)
+			&& flat.Contains("OnlineUiWindowRowView.ColumnWidthOf(rows, NameWidth, ContentWidth)", StringComparison.Ordinal)
 			&& flat.Contains("_structureDirty |= _views.Sync(row.Elements, elements, _root.transform);", StringComparison.Ordinal)
 			&& !flat.Contains("private OnlineUiControlView Replace(", StringComparison.Ordinal)
 			&& Flatten(viewSource).Contains("OnlineUiControlView.Create(element, parent, _typography, _report);", StringComparison.Ordinal)

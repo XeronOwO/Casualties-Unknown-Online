@@ -32,6 +32,14 @@ public enum OnlineUiElementKind
 	/// <summary>A slider over a continuous range, with its value shown beside it.</summary>
 	Slider,
 
+	/// <summary>A numeric field of its own (ticket online-ui-paired-controls-and-page-scroll, S2): the
+	/// player types a number rather than dragging the slider that shows the same value, and the two are
+	/// bound through the model. It carries <c>Id</c>, <c>Value</c> (the number as it now reads),
+	/// <c>Number</c>, <c>Minimum</c> and <c>Maximum</c> (the range a typed value is judged against) and
+	/// <c>Width</c>. A slider row spells it out beside its slider, where `Text` — the caption the other
+	/// kinds carry — is EMPTY: a lone field row names itself nowhere.</summary>
+	NumberField,
+
 	/// <summary>A block of one colour (ticket online-ui-art-and-controls-overhaul, S3): the colour
 	/// picker's swatch. With an id it is a control the player clicks to choose that colour; with no id it
 	/// is the plain preview of the colour the player carries now, which reports nothing.</summary>

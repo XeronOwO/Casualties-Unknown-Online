@@ -56,19 +56,19 @@ public sealed class OnlineUiWindowSurfacePinTests
 	[Fact]
 	public void AControlIsWrittenOnlyWhereItChanged() =>
 		Assert.True(
-			WritesOnlyChanges(Adapter("OnlineUiControlView.cs")),
+			WritesOnlyChanges(Adapter("OnlineUiControlFields.cs"), Adapter("OnlineUiControlView.cs")),
 			"a steady window must not dirty the canvas every frame: text, selected state and layout are each written only when they differ");
 
 	[Fact]
 	public void ATextFieldIsNotOverwrittenWhileThePlayerTypes() =>
 		Assert.True(
-			LeavesAFocusedFieldAlone(Adapter("OnlineUiControlView.cs")),
+			LeavesAFocusedFieldAlone(Adapter("OnlineUiControlFields.cs")),
 			"the model carries the value the plugin holds; writing it into a focused field would fight the caret and lose keystrokes");
 
 	[Fact]
 	public void EveryInteractiveControlReportsItsOwnId() =>
 		Assert.True(
-			ReportsTheCurrentId(Adapter("OnlineUiControlView.cs")),
+			ReportsTheCurrentId(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiControlFields.cs")),
 			"a control reports the id it holds NOW, not the one it was built with: a row is reused when a page or a roster changes, and a stale id would fire another member's action — and a model that gives a control no id (the colour picker's preview block) must report nothing at all");
 
 	[Fact]
@@ -129,10 +129,11 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel), "adapter/OnlineUiSurfaceHost.cs", "_window.SetVisible(frame.Window is not null);", "_window.SetVisible(true);", "a window that never closes" },
 		{ nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel), "adapter/OnlineUiSurfaceHost.cs", "_window.PollPointer(_intents);", "// poll removed", "a window whose pointer fact never reaches the plugin" },
 		{ nameof(TheWindowHangsOnTheSameCanvasAsTheLauncher), "adapter/OnlineUiSurfaceHost.cs", "_window = OnlineUiWindowView.Create(root.transform, _log, _intents.Enqueue);", "_window = null;", "a window that is never built on CUO's canvas" },
-		{ nameof(TheRowsAreWrappedByTheRuntimesOwnRule), "adapter/OnlineUiWindowView.cs", "OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing)", "new int[widths.Length]", "rows wrapped by no rule at all" },
-		{ nameof(AControlIsWrittenOnlyWhereItChanged), "adapter/OnlineUiControlView.cs", "if (kindChanged || _text != element.Text)", "if (true)", "a control rewritten every frame" },
-		{ nameof(ATextFieldIsNotOverwrittenWhileThePlayerTypes), "adapter/OnlineUiControlView.cs", "if (!input.isFocused && _value != element.Value)", "if (_value != element.Value)", "a field that overwrites the caret while the player types" },
+		{ nameof(TheRowsAreWrappedByTheRuntimesOwnRule), "adapter/OnlineUiWindowView.cs", "var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);", "new int[widths.Length]", "rows wrapped by no rule at all" },
+		{ nameof(AControlIsWrittenOnlyWhereItChanged), "adapter/OnlineUiControlFields.cs", "if (kindChanged || _text != element.Text)", "if (true)", "a control rewritten every frame" },
+		{ nameof(ATextFieldIsNotOverwrittenWhileThePlayerTypes), "adapter/OnlineUiControlFields.cs", "if (!input.isFocused && _value != element.Value)", "if (_value != element.Value)", "a field that overwrites the caret while the player types" },
 		{ nameof(EveryInteractiveControlReportsItsOwnId), "adapter/OnlineUiControlView.cs", "OnlineUiIntentKind.ControlToggled, _id, Flag: value", "OnlineUiIntentKind.ControlToggled, \"\", Flag: value", "a toggle whose click cannot be attributed" },
+		{ nameof(EveryInteractiveControlReportsItsOwnId), "adapter/OnlineUiControlView.cs", "OnlineUiIntentKind.ControlCommitted, _id, Text: text", "OnlineUiIntentKind.ControlCommitted, \"\", Text: text", "a committed number whose field cannot be attributed" },
 		{ nameof(ThePointerFactIsPolledFromTheWindowsRect), "adapter/OnlineUiWindowView.cs", "RectTransformUtility.RectangleContainsScreenPoint(_rect, Input.mousePosition, camera)", "true", "a pointer fact that never asks the pointer" },
 		{ nameof(TheWindowStopsTheWorldBehindItFromBeingClicked), "adapter/OnlineUiWindowView.cs", "panel.raycastTarget = true;", "panel.raycastTarget = false;", "a frame that lets clicks fall through to the world" },
 		{ nameof(TheTitleBarDragsTheWindow), "adapter/OnlineUiWindowDragHandler.cs", "_target.anchoredPosition += eventData.delta / scale;", "_target.anchoredPosition += Vector2.zero;", "a title bar that does not drag" },
@@ -175,9 +176,15 @@ public sealed class OnlineUiWindowSurfacePinTests
 		nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel) => TheFrameDrivesVisibility,
 		nameof(TheWindowHangsOnTheSameCanvasAsTheLauncher) => CreatedUnderCuosCanvas,
 		nameof(TheRowsAreWrappedByTheRuntimesOwnRule) => WrappedByTheRuntimeRule,
-		nameof(AControlIsWrittenOnlyWhereItChanged) => WritesOnlyChanges,
+		// The value writes moved to the fields type (ticket online-ui-paired-controls-and-page-scroll); the
+		// layout comparison stayed with the view. A broken source is routed by the type it declares.
+		nameof(AControlIsWrittenOnlyWhereItChanged) => broken => WritesOnlyChanges(
+			Is(broken, "internal sealed class OnlineUiControlFields") ? broken : Adapter("OnlineUiControlFields.cs"),
+			Adapter("OnlineUiControlView.cs")),
 		nameof(ATextFieldIsNotOverwrittenWhileThePlayerTypes) => LeavesAFocusedFieldAlone,
-		nameof(EveryInteractiveControlReportsItsOwnId) => ReportsTheCurrentId,
+		nameof(EveryInteractiveControlReportsItsOwnId) => broken => ReportsTheCurrentId(
+			Is(broken, "internal sealed class OnlineUiControlFields") ? Adapter("OnlineUiControlView.cs") : broken,
+			Is(broken, "internal sealed class OnlineUiControlFields") ? broken : Adapter("OnlineUiControlFields.cs")),
 		nameof(ThePointerFactIsPolledFromTheWindowsRect) => PollsTheWindowsRect,
 		nameof(TheWindowStopsTheWorldBehindItFromBeingClicked) => TheFrameSwallowsThePointer,
 		nameof(TheTitleBarDragsTheWindow) => broken => TheTitleBarDrags(Adapter("OnlineUiWindowView.cs"), broken),
@@ -222,39 +229,44 @@ public sealed class OnlineUiWindowSurfacePinTests
 			StringComparison.Ordinal);
 
 	/// <summary>The wrap is the Runtime's rule, against the content width the window declares.</summary>
+	/// <summary>The wrap is the Runtime's rule — the fit and the model's own breaks together — against the
+	/// content width the window declares.</summary>
 	private static bool WrappedByTheRuntimeRule(string windowSource)
 	{
 		var flat = Flatten(windowSource);
 
 		return flat.Contains("internal const float ContentWidth = Width - (2f * Padding);", StringComparison.Ordinal)
-			&& flat.Contains("var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);", StringComparison.Ordinal);
+			&& flat.Contains("var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);", StringComparison.Ordinal);
 	}
 
 	/// <summary>Every write of a control's own state is behind a comparison: a steady frame must not dirty the
 	/// layout. The width is the exception the rework introduced — it is written by the row's geometry every
 	/// frame, and the comparison is on the LayoutElement there.</summary>
-	private static bool WritesOnlyChanges(string controlSource)
+	private static bool WritesOnlyChanges(string fieldsSource, string viewSource)
 	{
-		var flat = Flatten(controlSource);
+		var fields = Flatten(fieldsSource);
 
-		return flat.Contains("if (kindChanged || _text != element.Text)", StringComparison.Ordinal)
-			&& flat.Contains("if (kindChanged || _selected != element.Selected)", StringComparison.Ordinal)
-			&& flat.Contains("if (!_layout.flexibleWidth.Equals(flexible))", StringComparison.Ordinal);
+		return fields.Contains("if (kindChanged || _text != element.Text)", StringComparison.Ordinal)
+			&& fields.Contains("if (kindChanged || _selected != element.Selected)", StringComparison.Ordinal)
+			&& Flatten(viewSource).Contains("if (!_layout.flexibleWidth.Equals(flexible))", StringComparison.Ordinal);
 	}
 
-	private static bool LeavesAFocusedFieldAlone(string controlSource)
+	private static bool LeavesAFocusedFieldAlone(string fieldsSource)
 	{
-		var flat = Flatten(controlSource);
+		var flat = Flatten(fieldsSource);
 
 		return flat.Contains("if (!input.isFocused && _value != element.Value)", StringComparison.Ordinal)
 			&& flat.Contains("input.SetTextWithoutNotify(element.Value);", StringComparison.Ordinal);
 	}
 
 	/// <summary>Every listener reports the view's CURRENT id and the value the control now holds, and a
-	/// control whose element carries no id reports nothing: there is no action it could belong to.</summary>
-	private static bool ReportsTheCurrentId(string controlSource)
+	/// control whose element carries no id reports nothing: there is no action it could belong to. The two
+	/// doors a value comes through — the drag (the view's own slider listener) and the typed commit (the
+	/// fields type) — both carry the id the element holds NOW.</summary>
+	private static bool ReportsTheCurrentId(string controlSource, string fieldsSource)
 	{
 		var flat = Flatten(controlSource);
+		var fields = Flatten(fieldsSource);
 
 		return flat.Contains("if (_id.Length > 0)", StringComparison.Ordinal)
 			&& flat.Contains(
@@ -271,7 +283,11 @@ public sealed class OnlineUiWindowSurfacePinTests
 				StringComparison.Ordinal)
 			&& flat.Contains(
 				"_report(new OnlineUiIntent(OnlineUiIntentKind.ControlEdited, _id, Text: text)));",
-				StringComparison.Ordinal);
+				StringComparison.Ordinal)
+			&& flat.Contains(
+				"_report(new OnlineUiIntent(OnlineUiIntentKind.ControlCommitted, _id, Text: text));",
+				StringComparison.Ordinal)
+			&& fields.Contains("internal void ReturnToModel()", StringComparison.Ordinal);
 	}
 
 	private static bool PollsTheWindowsRect(string windowSource)

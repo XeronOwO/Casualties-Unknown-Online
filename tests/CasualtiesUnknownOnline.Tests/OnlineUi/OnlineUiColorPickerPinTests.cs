@@ -65,7 +65,10 @@ public sealed class OnlineUiColorPickerPinTests
 	[Fact]
 	public void AColourBlockIsTheGamesOwnRowWithItsColourInside() =>
 		Assert.True(
-			TheBlockIsTheGamesRow(Adapter("OnlineUiControlFactory.cs"), Adapter("OnlineUiControlView.cs")),
+			TheBlockIsTheGamesRow(
+				Adapter("OnlineUiControlFactory.cs"),
+				Adapter("OnlineUiControlView.cs"),
+				Adapter("OnlineUiControlFields.cs")),
 			"a colour block is the game's own button row with the colour laid INSIDE it: the sprite's own body is opaque black (16x16, border 1,2,1,3, body 0,0,0,1 — read off the asset itself in batch `20261015-a`), so a colour laid over the sprite shows as a coloured edge around a black middle, which is the rejected row of batch `20261014-a` (\"only the button border colour, the middle transparent\"). A hand-built rectangle is still the gap this overhaul exists to close");
 
 	[Fact]
@@ -97,6 +100,7 @@ public sealed class OnlineUiColorPickerPinTests
 		{ nameof(AColourBlockIsTheGamesOwnRowWithItsColourInside), "adapter/OnlineUiControlFactory.cs", "OnlineUiElementKind.ColorSwatch => ButtonRowPrefabPath,", "OnlineUiElementKind.ColorSwatch => \"Special/GameSettingNonexistent\",", "a block with no game prefab behind it" },
 		{ nameof(AColourBlockIsTheGamesOwnRowWithItsColourInside), "adapter/OnlineUiControlView.cs", "OnlineUiControlFactory.SwatchFillOn(root, button)", "OnlineUiControlFactory.SwatchImageOn(root, button)", "a colour laid over the game's own sprite again — the coloured edge around a black middle the acceptance pass rejected" },
 		{ nameof(AColourBlockIsTheGamesOwnRowWithItsColourInside), "adapter/OnlineUiControlFactory.cs", "border.color = Color.white;", "border.color = Color.clear;", "a block whose own frame is painted away instead of keeping the game's art" },
+		{ nameof(AColourBlockIsTheGamesOwnRowWithItsColourInside), "adapter/OnlineUiControlFields.cs", "_swatch.color = ToColor(_color);", "_swatch.color = Color.white;", "a block that keeps the game's own sprite tint instead of showing the colour the player carries" },
 		{ nameof(AnElementWithNoIdReportsNothing), "adapter/OnlineUiControlView.cs", "if (_id.Length > 0)", "if (true)", "a preview block whose click is reported as a control" },
 		{ nameof(TheColourEditDoesNotOutliveTheWindow), "plugin/OnlineUiWindow.cs", "_state.PlayerColorInput = null;", "// the half-typed text is kept", "an edit that survives the window it was typed in" },
 		{ nameof(EveryColourTagCarriesAllFourChannels), "plugin/OnlineUiMemberListDrawer.cs", "var colorHex = ColorUtility.ToHtmlStringRGBA(", "var colorHex = ColorUtility.ToHtmlStringRGB(", "a list that drops the alpha a translucent marker carries" },
@@ -129,7 +133,10 @@ public sealed class OnlineUiColorPickerPinTests
 		nameof(AutoIsTheAbsentColour) => AutoClearsTheColour,
 		nameof(TheLiveSwatchShowsTheColourThePlayerCarries) => PreviewsTheCarriedColour,
 		nameof(TheFieldMirrorsTheColourThePlayerCarries) => MirrorsTheCarriedColour,
-		nameof(AColourBlockIsTheGamesOwnRowWithItsColourInside) => broken => TheBlockIsTheGamesRow(broken, Adapter("OnlineUiControlView.cs")),
+		nameof(AColourBlockIsTheGamesOwnRowWithItsColourInside) => broken => TheBlockIsTheGamesRow(
+			broken.Contains("internal static class OnlineUiControlFactory", StringComparison.Ordinal) ? broken : Adapter("OnlineUiControlFactory.cs"),
+			broken.Contains("internal sealed class OnlineUiControlFields", StringComparison.Ordinal) ? Adapter("OnlineUiControlView.cs") : broken,
+			broken.Contains("internal sealed class OnlineUiControlFields", StringComparison.Ordinal) ? broken : Adapter("OnlineUiControlFields.cs")),
 		nameof(AnElementWithNoIdReportsNothing) => SilentWithoutAnId,
 		nameof(TheColourEditDoesNotOutliveTheWindow) => broken => TheEditDiesWithTheWindow(broken, Plugin("OnlineUiWindowState.cs")),
 		nameof(EveryColourTagCarriesAllFourChannels) => broken => EveryTagKeepsTheAlpha(broken, Plugin("OnlineUiHomeDrawer.cs")),
@@ -202,11 +209,13 @@ public sealed class OnlineUiColorPickerPinTests
 	}
 
 	/// <summary>A block is the game's own button row, and its colour is a FILL laid inside that row's sprite:
-	/// the sprite keeps the game's own frame, and the block reports nothing through the fill.</summary>
-	private static bool TheBlockIsTheGamesRow(string factorySource, string controlSource)
+	/// the sprite keeps the game's own frame, and the block reports nothing through the fill. The half that
+	/// writes the colour lives with every other value write (<c>OnlineUiControlFields</c>).</summary>
+	private static bool TheBlockIsTheGamesRow(string factorySource, string controlSource, string fieldsSource)
 	{
 		var factory = Flatten(factorySource);
 		var control = Flatten(controlSource);
+		var fields = Flatten(fieldsSource);
 
 		return factory.Contains("OnlineUiElementKind.ColorSwatch => ButtonRowPrefabPath,", StringComparison.Ordinal)
 			&& factory.Contains("internal static Image SwatchFillOn(GameObject root, Button? button)", StringComparison.Ordinal)
@@ -214,7 +223,7 @@ public sealed class OnlineUiColorPickerPinTests
 			&& factory.Contains("border.color = Color.white;", StringComparison.Ordinal)
 			&& factory.Contains("fill.raycastTarget = false;", StringComparison.Ordinal)
 			&& control.Contains("swatch: element.Kind == OnlineUiElementKind.ColorSwatch ? OnlineUiControlFactory.SwatchFillOn(root, button) : null,", StringComparison.Ordinal)
-			&& control.Contains("_swatch.color = ToColor(_color);", StringComparison.Ordinal);
+			&& fields.Contains("_swatch.color = ToColor(_color);", StringComparison.Ordinal);
 	}
 
 	/// <summary>The button's listener reports its CURRENT id, and only when it has one.</summary>

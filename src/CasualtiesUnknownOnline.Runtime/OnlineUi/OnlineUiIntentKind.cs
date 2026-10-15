@@ -52,4 +52,14 @@ public enum OnlineUiIntentKind
 
 	/// <summary>A text field's contents changed; <see cref="OnlineUiIntent.Text"/> is what it now holds.</summary>
 	ControlEdited,
+
+	/// <summary>
+	/// A numeric field was COMMITTED — the player pressed Enter or left the field — rather than changed on
+	/// every keystroke (<see cref="ControlEdited"/> is the other shape). <see cref="OnlineUiIntent.Text"/>
+	/// is the text as it now stands, and nothing is decided here: a value that is not a number, or one
+	/// outside the field's own range, is the caller's to refuse, which is what keeps a half-typed
+	/// <c>-</c> or <c>0.</c> from being read as a value the player meant (ticket
+	/// online-ui-paired-controls-and-page-scroll, S2).
+	/// </summary>
+	ControlCommitted,
 }

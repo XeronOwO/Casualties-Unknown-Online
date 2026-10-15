@@ -220,6 +220,48 @@ internal sealed class OnlineUiPageBuilder
 	}
 
 	/// <summary>
+	/// A paired numeric rule (ticket online-ui-paired-controls-and-page-scroll, S2 and S3): the rule's name
+	/// on its own line, and below it the game's own slider with an editable field beside it. The two halves
+	/// report SEPARATE ids — the slider as a moved value, the field as a committed text — so each has exactly
+	/// one action and the value they share has exactly one writer.
+	///
+	/// <para>
+	/// The field's text is the number's own reading (<paramref name="format"/>), which is what keeps the
+	/// field, the slider and the value the caller holds from being three spellings of one thing, and it
+	/// defaults to <see cref="OnlineUiNumberField.Format"/>. A committed value that is not a number, or one
+	/// outside the range, is REFUSED: <paramref name="changed"/> is not called, nothing is committed, and the
+	/// field shows the model's own value again on the next frame.
+	/// </para>
+	/// </summary>
+	internal void NumberRule(
+		string id,
+		string label,
+		float value,
+		float minimum,
+		float maximum,
+		Action<float> changed,
+		float fieldWidth = 0f,
+		Func<float, string>? format = null)
+	{
+		var read = format ?? OnlineUiNumberField.Format;
+		var key = Key(id);
+		var fieldKey = $"{key}.field";
+		_actions[key] = intent => changed(intent.Number);
+		_actions[fieldKey] = intent =>
+		{
+			if (OnlineUiNumberField.Parse(intent.Text, minimum, maximum) is { } number)
+			{
+				changed(number);
+			}
+		};
+
+		_rows.Add(OnlineUiElementModel.Paired(
+			label,
+			OnlineUiElementModel.Slider(key, label: "", value, minimum, maximum, read(value)),
+			OnlineUiElementModel.NumberField(fieldKey, read(value), value, minimum, maximum, fieldWidth)));
+	}
+
+	/// <summary>
 	/// One control's id as this builder's surface carries it: the caller's id, namespaced. An EMPTY id stays
 	/// empty — the model's "this element is no control at all" (the colour picker's preview block) — because
 	/// prefixing it would turn nothing into a control the surface reports.

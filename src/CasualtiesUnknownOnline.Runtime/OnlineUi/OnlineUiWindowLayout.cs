@@ -62,9 +62,6 @@ public static class OnlineUiWindowLayout
 	/// — so a floor nobody declared is this, not zero.</summary>
 	public const float MinimumControlWidth = 120f;
 
-	/// <summary>The width a slider's formatted value keeps at the end of its row.</summary>
-	public const float SliderValueWidth = 56f;
-
 	/// <summary>
 	/// The colour a control that holds a value — a dropdown, a text field — is filled with, as the four channels
 	/// the Runtime can carry (it references no engine type; the adapter turns them into the engine's own colour).

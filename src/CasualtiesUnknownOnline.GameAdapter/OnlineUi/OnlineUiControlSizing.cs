@@ -70,7 +70,7 @@ internal static class OnlineUiControlSizing
 			OnlineUiElementKind.Label => 0f,
 			OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch =>
 				OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize),
-			OnlineUiElementKind.TextField or OnlineUiElementKind.Dropdown =>
+			OnlineUiElementKind.TextField or OnlineUiElementKind.Dropdown or OnlineUiElementKind.NumberField =>
 				OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f),
 			OnlineUiElementKind.Toggle =>
 				OnlineUiControlBox.EffectiveWidth(element.Width, authoredControlWidth),
@@ -186,12 +186,12 @@ internal static class OnlineUiControlSizing
 		width > 0f ? width : OnlineUiWindowLayout.MinimumControlWidth;
 
 	/// <summary>Whether the element takes the whole row it is on: a label with no width of its own takes what
-	/// is left, and the four kinds built on one of the game's own rows (a label with a control) are a row in
+	/// is left, and the kinds built on one of the game's own rows (a label with a control) are a row in
 	/// themselves.</summary>
 	internal static bool FillsTheRow(OnlineUiElementModel element) => element.Kind switch
 	{
 		OnlineUiElementKind.Label => element.Width <= 0f,
-		OnlineUiElementKind.Toggle or OnlineUiElementKind.Dropdown or OnlineUiElementKind.TextField or OnlineUiElementKind.Slider => true,
+		OnlineUiElementKind.Toggle or OnlineUiElementKind.Dropdown or OnlineUiElementKind.TextField or OnlineUiElementKind.NumberField or OnlineUiElementKind.Slider => true,
 		_ => false,
 	};
 }

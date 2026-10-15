@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using TMPro;
 using UnityEngine;
@@ -32,18 +31,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// </summary>
 internal sealed class OnlineUiControlView
 {
-	/// <summary>The caption colour of the current choice (a tab, the transport switch) and of the others.</summary>
-	private static readonly Color SelectedCaption = new(0.85f, 0.72f, 0.38f, 1f);
-
-	private static readonly Color UnselectedCaption = new(0.92f, 0.93f, 0.94f, 1f);
-
-	/// <summary>The game's own sprite colour for a button that is not the current choice: untinted.</summary>
-	private static readonly Color UnselectedFill = Color.white;
-
-	/// <summary>A warm wash over the game's own sprite for the current choice, so the open page and the
-	/// transport the session uses are visible at a glance and not only in the caption.</summary>
-	private static readonly Color SelectedFill = new(1f, 0.86f, 0.6f, 1f);
-
 	private readonly GameObject _root;
 	private readonly RectTransform _rect;
 	private readonly LayoutElement _layout;
@@ -51,12 +38,20 @@ internal sealed class OnlineUiControlView
 	private readonly OnlineUiControlTypography _typography;
 	private readonly Button? _button;
 
-	/// <summary>The image a colour block tints; only a <see cref="OnlineUiElementKind.ColorSwatch"/> has one.</summary>
-	private readonly Image? _swatch;
+	/// <summary>What this element's own value is written with: the caption, the selected wash and the value of
+	/// every kind the player can set (<see cref="OnlineUiControlFields"/>, which also keeps the state each of
+	/// those writes compares against).</summary>
+	private readonly OnlineUiControlFields _fields;
 
+	/// <summary>The controls this view WIRES and lends to other layers rather than writes: the checkbox and the
+	/// slider report their own gestures, the dropdown's template rides the window's popup layer, and the
+	/// caption is what the width rule measures. What each of them SHOWS belongs to
+	/// <see cref="OnlineUiControlFields"/>.</summary>
 	private readonly Toggle? _toggle;
+
 	private readonly TMP_Dropdown? _dropdown;
 	private readonly TMP_InputField? _input;
+	private readonly TMP_InputField? _numberInput;
 	private readonly Slider? _slider;
 	private readonly TextMeshProUGUI? _caption;
 	private readonly TextMeshProUGUI? _rowLabel;
@@ -77,22 +72,8 @@ internal sealed class OnlineUiControlView
 	/// </summary>
 	private readonly float _controlAuthoredWidth;
 
-	/// <summary>The graphic a selected button tints: the tab row's current page and the Home page's transport
-	/// switch read as chosen, not only as a differently coloured caption.</summary>
-	private readonly Image? _selectionGraphic;
-
 	private OnlineUiElementKind _kind;
 	private string _id = "";
-	private string _text = "\0";
-	private string _value = "\0";
-	private bool _selected;
-	private bool _flag;
-	private float _number = float.NaN;
-	private float _minimum = float.NaN;
-	private float _maximum = float.NaN;
-	private int _index = -1;
-	private int _optionCount = -1;
-	private OnlineUiNativeRgba? _color;
 
 	private OnlineUiControlView(
 		GameObject root,
@@ -105,6 +86,7 @@ internal sealed class OnlineUiControlView
 		Toggle? toggle,
 		TMP_Dropdown? dropdown,
 		TMP_InputField? input,
+		TMP_InputField? numberInput,
 		Slider? slider,
 		TextMeshProUGUI? caption,
 		TextMeshProUGUI? rowLabel,
@@ -117,13 +99,13 @@ internal sealed class OnlineUiControlView
 		_root = root;
 		_rect = rect;
 		_layout = layout;
-		_typography = typography;
 		_report = report;
+		_typography = typography;
 		_button = button;
-		_swatch = swatch;
 		_toggle = toggle;
 		_dropdown = dropdown;
 		_input = input;
+		_numberInput = numberInput;
 		_slider = slider;
 		_caption = caption;
 		_rowLabel = rowLabel;
@@ -131,7 +113,18 @@ internal sealed class OnlineUiControlView
 		_labelRect = labelRect;
 		_controlRect = controlRect;
 		_controlAuthoredWidth = controlAuthoredWidth;
-		_selectionGraphic = selectionGraphic;
+		_fields = new OnlineUiControlFields(
+			typography,
+			caption,
+			rowLabel,
+			valueText,
+			selectionGraphic,
+			swatch,
+			toggle,
+			dropdown,
+			input,
+			numberInput,
+			slider);
 	}
 
 	internal OnlineUiElementKind Kind => _kind;
@@ -171,6 +164,7 @@ internal sealed class OnlineUiControlView
 		var toggle = control != null ? control.GetComponent<Toggle>() : null;
 		var dropdown = control != null ? control.GetComponent<TMP_Dropdown>() : null;
 		var input = control != null ? control.GetComponent<TMP_InputField>() : null;
+		var numberInput = element.Kind == OnlineUiElementKind.NumberField ? input : null;
 		var slider = control != null ? control.GetComponent<Slider>() : null;
 
 		// The game places a row's children by hand for its own screen, so an instantiated row keeps those
@@ -186,7 +180,7 @@ internal sealed class OnlineUiControlView
 		// A field or a dropdown is clicked on its own box; when the game's prefab leaves that box without a
 		// graphic that accepts the raycast, the player has a control that shows text and answers nothing.
 		var pointerFixed = false;
-		if (control != null && element.Kind is OnlineUiElementKind.Dropdown or OnlineUiElementKind.TextField)
+		if (control != null && element.Kind is OnlineUiElementKind.Dropdown or OnlineUiElementKind.TextField or OnlineUiElementKind.NumberField)
 		{
 			pointerFixed = OnlineUiRowGeometry.EnsurePointerSurface(control.gameObject);
 		}
@@ -201,7 +195,8 @@ internal sealed class OnlineUiControlView
 			swatch: element.Kind == OnlineUiElementKind.ColorSwatch ? OnlineUiControlFactory.SwatchFillOn(root, button) : null,
 			toggle: toggle,
 			dropdown: dropdown,
-			input: input,
+			input: element.Kind == OnlineUiElementKind.TextField ? input : null,
+			numberInput: numberInput,
 			slider: slider,
 			caption: caption,
 			rowLabel: element.Kind == OnlineUiElementKind.Label ? null : caption,
@@ -232,49 +227,7 @@ internal sealed class OnlineUiControlView
 		_kind = element.Kind;
 		_id = element.Id;
 
-		if (kindChanged || _text != element.Text)
-		{
-			_text = element.Text;
-			ApplyText(element);
-		}
-
-		if (kindChanged || _selected != element.Selected)
-		{
-			_selected = element.Selected;
-			ApplySelected(element);
-		}
-
-		switch (element.Kind)
-		{
-			case OnlineUiElementKind.Toggle:
-				if (kindChanged || _flag != element.Flag)
-				{
-					_flag = element.Flag;
-					// WithoutNotify: the model is the one source of the value, and echoing it back would
-					// report the element's own state as a player action.
-					_toggle?.SetIsOnWithoutNotify(element.Flag);
-				}
-
-				break;
-			case OnlineUiElementKind.Dropdown:
-				ApplyDropdown(element, kindChanged);
-				break;
-			case OnlineUiElementKind.TextField:
-				ApplyTextField(element, kindChanged);
-				break;
-			case OnlineUiElementKind.Slider:
-				ApplySlider(element, kindChanged);
-				break;
-			case OnlineUiElementKind.ColorSwatch:
-				if (kindChanged || _color != element.Color)
-				{
-					_color = element.Color;
-					ApplySwatchColor();
-				}
-
-				break;
-		}
-
+		_fields.Apply(element, kindChanged);
 		ApplyLayout(element, aloneOnItsLine);
 	}
 
@@ -328,156 +281,36 @@ internal sealed class OnlineUiControlView
 			_input.onValueChanged.AddListener(text =>
 				_report(new OnlineUiIntent(OnlineUiIntentKind.ControlEdited, _id, Text: text)));
 		}
+
+		if (_numberInput != null)
+		{
+			// A number is COMMITTED rather than announced at every keystroke: while the player is typing,
+			// `-`, `0.` and `0.8` are all "not a number yet", and half of one is not a value anybody meant
+			// (the hex field's own rule). The text as it stands is what the caller judges.
+			_numberInput.onEndEdit.AddListener(CommitNumber);
+			_numberInput.onDeselect.AddListener(_ => ReturnToModel());
+		}
 	}
 
-	private void ApplyText(OnlineUiElementModel element)
+	/// <summary>
+	/// Hands one numeric field's contents back as a commit, but only when it holds something: uGUI raises
+	/// the same event for a focused field's Enter that it raises for a lost focus, and an empty event would
+	/// report the element's own state as a player action.
+	/// </summary>
+	private void CommitNumber(string text)
 	{
-		switch (element.Kind)
+		if (text.Length > 0)
 		{
-			case OnlineUiElementKind.Label:
-				if (_caption != null)
-				{
-					_caption.text = element.Text;
-					_caption.color = ToColor(element.Color);
-					_caption.fontSize = _typography.SizeOf(element.Style);
-					_caption.fontStyle = OnlineUiControlTypography.WeightOf(element.Style);
-				}
-
-				break;
-			case OnlineUiElementKind.Button:
-				if (_caption != null)
-				{
-					_caption.text = element.Text;
-				}
-
-				break;
-			default:
-				if (_rowLabel != null)
-				{
-					_rowLabel.text = element.Text;
-				}
-
-				break;
+			_report(new OnlineUiIntent(OnlineUiIntentKind.ControlCommitted, _id, Text: text));
 		}
 	}
 
-	private void ApplySelected(OnlineUiElementModel element)
-	{
-		if (_caption == null || _button == null)
-		{
-			return;
-		}
-
-		_caption.color = element.Selected ? SelectedCaption : UnselectedCaption;
-
-		// A coloured caption alone is a thin signal for "this is the page you are on": the game's own sprite
-		// takes a wash on the current choice too (the tab row and the transport switch both mark one). A
-		// colour block's graphic IS its colour, so it is left alone.
-		if (_selectionGraphic != null && _selectionGraphic != _swatch)
-		{
-			_selectionGraphic.color = element.Selected ? SelectedFill : UnselectedFill;
-		}
-	}
-
-	private void ApplyDropdown(OnlineUiElementModel element, bool kindChanged)
-	{
-		if (_dropdown is not { } dropdown)
-		{
-			return;
-		}
-
-		var options = element.Options;
-		var count = options?.Count ?? 0;
-		if (kindChanged || options is null || count != _optionCount || !SameOptions(dropdown, options))
-		{
-			dropdown.ClearOptions();
-			var data = new List<TMP_Dropdown.OptionData>(count);
-			for (var index = 0; index < count; index++)
-			{
-				data.Add(new TMP_Dropdown.OptionData(options![index]));
-			}
-
-			if (data.Count > 0)
-			{
-				dropdown.AddOptions(data);
-			}
-
-			_optionCount = count;
-			_index = element.OptionIndex;
-			dropdown.SetValueWithoutNotify(element.OptionIndex);
-			return;
-		}
-
-		if (_index != element.OptionIndex)
-		{
-			_index = element.OptionIndex;
-			dropdown.SetValueWithoutNotify(element.OptionIndex);
-		}
-	}
-
-	private void ApplyTextField(OnlineUiElementModel element, bool kindChanged)
-	{
-		if (_input is not { } input)
-		{
-			return;
-		}
-
-		if (kindChanged)
-		{
-			// The game's only reachable input field is the integer row's; a field that carries text rather
-			// than a number says so, and the field is a plain TMP_InputField either way.
-			input.contentType = TMP_InputField.ContentType.Standard;
-			input.lineType = TMP_InputField.LineType.SingleLine;
-			input.characterLimit = element.MaxLength;
-		}
-
-		// Never while the player is typing: the model carries the value the plugin holds, and writing it
-		// into a focused field would fight the caret.
-		if (!input.isFocused && _value != element.Value)
-		{
-			_value = element.Value;
-			input.SetTextWithoutNotify(element.Value);
-		}
-	}
-
-	private void ApplySlider(OnlineUiElementModel element, bool kindChanged)
-	{
-		if (_slider is not { } slider)
-		{
-			return;
-		}
-
-		if (kindChanged || !_minimum.Equals(element.Minimum) || !_maximum.Equals(element.Maximum))
-		{
-			_minimum = element.Minimum;
-			_maximum = element.Maximum;
-			slider.minValue = element.Minimum;
-			slider.maxValue = element.Maximum;
-		}
-
-		if (kindChanged || !_number.Equals(element.Number))
-		{
-			_number = element.Number;
-			slider.SetValueWithoutNotify(element.Number);
-		}
-
-		if (_valueText != null && (kindChanged || _value != element.Value))
-		{
-			_value = element.Value;
-			_valueText.text = element.Value;
-		}
-	}
-
-	/// <summary>The colour block's fill, written only when it changed. The fill sits INSIDE the game's own row
-	/// sprite, so the block keeps the game's art as its frame and shows the colour across its whole middle
-	/// (see <see cref="OnlineUiControlFactory.SwatchFillOn"/>).</summary>
-	private void ApplySwatchColor()
-	{
-		if (_swatch != null)
-		{
-			_swatch.color = ToColor(_color);
-		}
-	}
+	/// <summary>
+	/// Puts the field back to the number the model holds when the player leaves it without committing:
+	/// nothing was decided, so nothing stays on screen that the model does not say — a value refused for
+	/// being out of range or not a number is visibly gone rather than silently kept as text.
+	/// </summary>
+	private void ReturnToModel() => _fields.ReturnToModel();
 
 	/// <summary>
 	/// The layout half of one element, holding no size of its own: the width is declared beside this — from the
@@ -518,17 +351,34 @@ internal sealed class OnlineUiControlView
 	/// <summary>
 	/// Lays this element out on the line the window wrapped it into: the rule is
 	/// <see cref="OnlineUiRowGeometry.LayOutRow"/>'s, and this hands it the parts of this element — its own
-	/// object, the layout element that carries its size, the label and the control the game's row shipped, and
-	/// the value text only a slider has.
+	/// object, the layout element that carries its size, and the label and the control the game's row
+	/// shipped. The formatted value a slider's row prefab carries is NOT part of it any more: it is the
+	/// numeric field beside the track, laid out with the slider (<see cref="OnlineUiSliderGeometry"/>).
+	///
+	/// <para>
+	/// A PAIRED element (<see cref="OnlineUiElementModel.NewLine"/>) is stacked instead of placed side by
+	/// side: its name takes the row's first line and its control the line below, which is the shape the user
+	/// asked for on 2026-10-15 (ticket online-ui-paired-controls-and-page-scroll, S3).
+	/// </para>
 	/// </summary>
-	internal void LayOutRow(float controlWidth) =>
+	internal void LayOutRow(OnlineUiElementModel element, float controlWidth, float columnWidth)
+	{
+		var prefabValue = _valueText != null ? _valueText.rectTransform : null;
+		if (element.NewLine)
+		{
+			OnlineUiRowGeometry.LayOutPairedRow(_root, _layout, _labelRect, _controlRect, controlWidth, prefabValue);
+			return;
+		}
+
 		OnlineUiRowGeometry.LayOutRow(
 			_root,
 			_layout,
 			_labelRect,
 			_controlRect,
 			controlWidth,
-			_valueText != null ? _valueText.rectTransform : null);
+			columnWidth,
+			prefabValue);
+	}
 
 	/// <summary>
 	/// Hands this control's dropdown template to the window's popup layer: a <c>TMP_Dropdown</c> builds its
@@ -562,24 +412,25 @@ internal sealed class OnlineUiControlView
 	internal float MinimumWidth(OnlineUiElementModel element) =>
 		OnlineUiControlSizing.MinimumWidth(element, _caption);
 
-	private static bool SameOptions(TMP_Dropdown dropdown, IReadOnlyList<string> options)
+	/// <summary>
+	/// The width this element's NAME needs, for the page's own control column (ticket
+	/// online-ui-paired-controls-and-page-scroll, S3): the game's own font measured on the row's label, or 0
+	/// where this view carries none. An element whose game prefab could not be loaded has no label either,
+	/// which is the same 0 — a column measured from what a placeholder drew would be a column measured from a
+	/// fallback.
+	/// </summary>
+	internal float NameWidthOf(OnlineUiElementModel element)
 	{
-		if (dropdown.options.Count != options.Count)
+		if (element.Kind is OnlineUiElementKind.Label or OnlineUiElementKind.Button or OnlineUiElementKind.ColorSwatch
+			|| _rowLabel is not { } label
+			|| label.text.Length == 0)
 		{
-			return false;
+			return 0f;
 		}
 
-		for (var index = 0; index < options.Count; index++)
-		{
-			if (!string.Equals(dropdown.options[index].text, options[index], StringComparison.Ordinal))
-			{
-				return false;
-			}
-		}
-
-		return true;
+		return OnlineUiControlSizing.CaptionTextWidth(label);
 	}
 
-	private static Color ToColor(OnlineUiNativeRgba? color) =>
-		color is { } value ? new Color(value.R, value.G, value.B, value.A) : UnselectedCaption;
+	/// <summary>Whether this element carries the name-plus-control pair the page's column aligns.</summary>
+	internal bool HasNameAndControl => _rowLabel != null && _controlRect != null;
 }

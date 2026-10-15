@@ -25,6 +25,12 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// element of a row changes nothing, because there is no line above it to leave and the answers have to
 /// stay a run of line indices that never skips a number.
 /// </para>
+///
+/// <para>
+/// A marked element does not only start a line: it HOLDS it, and the elements the fit puts beside it on
+/// that line are its own (<see cref="LineOwners"/>). That is what makes a paired control one row rather
+/// than a control that happens to be preceded by its name.
+/// </para>
 /// </summary>
 public static class OnlineUiRowLayout
 {
@@ -95,5 +101,44 @@ public static class OnlineUiRowLayout
 		}
 
 		return lines;
+	}
+
+	/// <summary>
+	/// The element that OWNS each element's line, or <c>-1</c> for a line nothing owns: a control the model
+	/// sent to a line of its own — the paired shape <see cref="OnlineUiElementModel.Paired"/> writes — owns
+	/// that line, and every element the fit put beside it on the same line belongs to it. It is the second
+	/// half of the break rule above: that one says where a paired control's line starts, this says what is on
+	/// it.
+	///
+	/// <para>
+	/// The adapter reads it to lay those elements out INSIDE the row they belong to rather than beside it,
+	/// which is what gives the row the page's own width instead of the width its own content happens to need
+	/// (ticket online-ui-paired-controls-and-page-scroll; the acceptance reading of batch `20261015-c` is a
+	/// paired row 132 units wide inside a 984-unit page, with the value field bound to its slider — a row of
+	/// its own, 390 units wide — drawn from 268 units past that box). An element that landed on a line the FIT
+	/// produced owns nothing — such a line is the wrap's, not a control's — and a mark on the first element of a
+	/// row owns that row's first line, exactly as the break rule lets it.
+	/// </para>
+	/// </summary>
+	public static int[] LineOwners(IReadOnlyList<bool> newLine, IReadOnlyList<int> lines)
+	{
+		var owners = new int[lines.Count];
+		var owner = -1;
+		for (var index = 0; index < lines.Count; index++)
+		{
+			if (index > 0 && lines[index] != lines[index - 1])
+			{
+				owner = -1;
+			}
+
+			if (index < newLine.Count && newLine[index])
+			{
+				owner = index;
+			}
+
+			owners[index] = owner;
+		}
+
+		return owners;
 	}
 }

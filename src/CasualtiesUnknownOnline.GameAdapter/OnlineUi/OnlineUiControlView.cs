@@ -141,6 +141,16 @@ internal sealed class OnlineUiControlView
 	/// had to give it one: the window reports it once per kind, because a box nobody can click is a defect.</summary>
 	internal bool FixedPointerSurface { get; private init; }
 
+	/// <summary>
+	/// Whether this element's own box is the LINE the model sent its control to (ticket
+	/// online-ui-paired-controls-and-page-scroll, S3): true for a paired element whose prefab carries the
+	/// control it names. The surface asks this before it lays the elements the model put beside the control
+	/// out, because those belong INSIDE this row — that is what makes the row the page's own width and puts
+	/// the value field bound to the slider at the row's trailing edge. False for a paired element whose
+	/// prefab could not be loaded: the placeholder has no control to hold anything beside.
+	/// </summary>
+	internal bool OwnsItsLine { get; private set; }
+
 	/// <summary>Builds the view for one element under <paramref name="parent"/> on the object
 	/// <see cref="OnlineUiControlFactory"/> produces for its kind, and finds the parts this view drives.</summary>
 	internal static OnlineUiControlView Create(
@@ -321,11 +331,13 @@ internal sealed class OnlineUiControlView
 	/// </summary>
 	private void ApplyLayout(OnlineUiElementModel element, bool aloneOnItsLine)
 	{
-		// A label always takes what its line has left; one of the game's own rows takes the line only when it is
-		// ALONE on it. Sharing a line, a field or a dropdown keeps its own size instead of splitting the
-		// surplus with the label beside it — which is what the controls' own floors are for.
+		// A label always takes what its line has left; so does the element that is the only one on its line, and
+		// the control of a PAIRED row — its line is its own whether or not the model put anything beside it, and
+		// what it did put there is laid out inside this row (S3). Sharing a line, a field or a dropdown keeps its
+		// own size instead of splitting the surplus with the label beside it — which is what the controls' own
+		// floors are for.
 		var flexible = element.Kind == OnlineUiElementKind.Label
-			|| (aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;
+			|| ((aloneOnItsLine || element.NewLine) && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;
 		if (!_layout.flexibleWidth.Equals(flexible))
 		{
 			_layout.flexibleWidth = flexible;
@@ -356,17 +368,23 @@ internal sealed class OnlineUiControlView
 	/// numeric field beside the track, laid out with the slider (<see cref="OnlineUiSliderGeometry"/>).
 	///
 	/// <para>
-	/// A PAIRED element (<see cref="OnlineUiElementModel.NewLine"/>) is stacked instead of placed side by
-	/// side: its name takes the row's first line and its control the line below, which is the shape the user
-	/// asked for on 2026-10-15 (ticket online-ui-paired-controls-and-page-scroll, S3).
+	/// A PAIRED element (<see cref="OnlineUiElementModel.NewLine"/>) owns the line the model sent its control
+	/// to instead of sharing one: its box is that line's whole width and the elements the model put beside the
+	/// control are laid out inside it, which is the shape the user asked for on 2026-10-15 (ticket
+	/// online-ui-paired-controls-and-page-scroll, S3). <see cref="OwnsItsLine"/> is this frame's answer to
+	/// whether that holds, and the surface asks it before it places those elements.
 	/// </para>
 	/// </summary>
 	internal void LayOutRow(OnlineUiElementModel element, float controlWidth, float columnWidth)
 	{
 		var prefabValue = _valueText != null ? _valueText.rectTransform : null;
+
+		// A row whose prefab carries no control holds nothing beside it — it is the placeholder a moved prefab
+		// leaves — so the answer follows the control the geometry is handed, in the same breath.
+		OwnsItsLine = element.NewLine && _controlRect != null;
 		if (element.NewLine)
 		{
-			OnlineUiRowGeometry.LayOutPairedRow(_root, _layout, _labelRect, _controlRect, controlWidth, prefabValue);
+			OnlineUiRowGeometry.LayOutPairedRow(_root, _layout, _labelRect, _controlRect, controlWidth, columnWidth, prefabValue);
 			return;
 		}
 

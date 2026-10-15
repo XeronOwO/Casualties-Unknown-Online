@@ -3,7 +3,8 @@
 - Status: Todo — S1 to S4 are implemented and green in the suite; a real-machine pass on 2026-10-15
   (batch `.acceptance/20261015-c/`) found the paired row's second line does not stretch, and the user
   reported the same thing from the screen ("your paired control has no margin"). This section is that
-  reading, kept so the next cycle starts from it instead of from the code.
+  reading, kept so the next cycle starts from it instead of from the code — with its CAUSE corrected by the
+  same day's second pass, which is what landed the fix: see *The cause, re-read* below.
 - Priority: Medium-High
 - Category: Online UI / layout, presentation and input
 - Source: The user, 2026-10-14, in their own words: (1) "is there a scrollbar? the Admin page has a part that
@@ -32,17 +33,47 @@ Artifact `0.1.0+c496e4c9…` on the real machine, one client, the Admin page of 
 | **The paired row's widths** | the row's own box is 132 wide inside a 984-wide page, and the field is placed at `x=324` INSIDE that 132-wide box, i.e. drawn outside its row — on screen it reads as two floating widgets and is exactly the "no margin" the user reported | **the defect** |
 | The bar of the control column | a name is 120 wide and the widgets start at 260 (the test's own default) — but not for the paired row, whose box ignores the column | **the defect** |
 
-The cause is read, not guessed: the forced `LayoutRebuilder.ForceRebuildLayoutImmediate(_content)` in
-`OnlineUiWindowView.Apply` runs only on the frame a row is BUILT, and the sizes this pass writes are
-`LayoutElement` values — uGUI tracks those with a `LayoutElement`-driven dirty flag, so on later frames the
-row's group keeps the widths the elements were built at. `flexW=0` and `flexW=1` sit on different lines of
-the SAME row (the label keeps the flexible width the paired layout gives it, the control does not get any),
-which is what a group that never recalculated looks like. The window's column pass cannot fix it either: it
-lays the elements out again with the same per-element widths.
+The cause is read, not guessed, and the first reading of it was WRONG — refuted by the same day's second
+pass, whose fix is what this ticket now waits to have judged:
 
-The next cycle's work: give the row's own group the recalc it needs (a rebuild per row's group, or a
-`LayoutElement` write that marks the group dirty), then re-read this table — the row's box should become the
-page's own width and the field should sit inside it, 6 units from the right edge.
+- **What the first reading blamed**: the forced `LayoutRebuilder.ForceRebuildLayoutImmediate(_content)` in
+  `OnlineUiWindowView.Apply`, on the theory that uGUI does not track `LayoutElement` writes. **Refuted**:
+  `LayoutElement` marks its own layout dirty whenever a value it holds changes (the engine's own IL —
+  `SetPropertyUtility.SetStruct` → `LayoutElement.SetDirty` → `LayoutRebuilder.MarkLayoutForRebuild`, and
+  the batch's own dump proves the engine took `LayoutElement` writes without any forced rebuild, because the
+  column pass's 250-unit label widths are in the reading). The forced rebuild re-measured exactly the numbers
+  it was handed; it was removed from both surfaces.
+- **The real cause**: the row declared no width of its own. `OnlineUiControlView.ApplyLayout` wrote
+  `flexibleWidth = 0` — the value field shared the row's line, so the row was never "alone" on it — and the
+  row's own group then answered the line's group with the width of the control inside it
+  (`6 + 120 + 6 = 132`, the number in the table above). `flexW=0` and `flexW=1` sat on different lines of the
+  same row because the LABEL was the only flexible thing in the row's own group, and the row's
+  `LayoutElement` overrode it with a rigid zero.
+- **What the fix is**: the row now OWNS the line the model sent its control to. The Runtime's
+  `OnlineUiRowLayout.LineOwners` names the holder of each line, both surfaces lay the elements the model put
+  BESIDE the control out INSIDE the owning row, the row's own `LayoutElement` is flexible, its control takes
+  what the line has left (so the control stays in the page's control column and stretches), and the value
+  field closes at the row's trailing edge — its own 6-unit room inside that box is the page's margin there.
+
+**The reading this table is re-taken with**: the row's box is the page's own width (984.00) and the value box
+(`.../GameSettingInt(Clone)/Input`) ends 6 units inside the page's right edge. The dump recipe now reports a
+`span` per node — its box in the WINDOW's own units — so that distance is read directly instead of being
+recomposed from two nodes' local `rect`/`pos`.
+
+## Readings of the new shape the judging pass has to know (before it re-takes the table)
+
+- **The page's scrollbar track overlaps the value box by 4 units when the page overflows.** The track spans
+  the outermost 10 units of the page band (8 wide, inset 2) and is drawn as a sibling ABOVE the viewport, so
+  a value box 6 units inside the page's right edge sits under it: a click on those 4 units is the scrollbar's
+  jump, not the field. The criterion above asks for exactly 6, so the overlap is a consequence of it — the
+  question of whether page content should keep clear of the bar is open, and belongs to the user.
+- **A paired row's own minimum width is `282 + 2 × columnWidth`**: the row's label and the value field's own
+  label both keep the page's column. A page whose name column exceeded 351 units would push the value past
+  the page's right edge; the Admin page's is ~250, so this is unreachable today and is written down rather
+  than guarded.
+- **The panels' copy of the shape cannot be judged on screen yet**: no panel drawer uses `NumberRule`, so
+  `OnlineUiPanelView`'s half of the fix (it asks the same `ParentOf`/`Owners` rule) is aligned by
+  construction and has no acceptance row.
 
 ## The gap, with the code fact behind each ask
 

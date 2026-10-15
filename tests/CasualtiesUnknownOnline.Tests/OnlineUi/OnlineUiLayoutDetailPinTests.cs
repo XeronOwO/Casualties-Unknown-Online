@@ -266,11 +266,11 @@ public sealed class OnlineUiLayoutDetailPinTests
 		var slider = Flatten(sliderSource);
 		var flat = Flatten(controlSource);
 
-		return geometry.Contains("ConfigureGroup<HorizontalLayoutGroup>(", StringComparison.Ordinal)
-			&& geometry.Contains("added = row.AddComponent<T>();", StringComparison.Ordinal)
+		return geometry.Contains("private static HorizontalLayoutGroup ConfigureGroup(HorizontalLayoutGroup? group, GameObject row, int trailingRoom)", StringComparison.Ordinal)
+			&& geometry.Contains("added = row.AddComponent<HorizontalLayoutGroup>();", StringComparison.Ordinal)
 			&& geometry.Contains("flexibleWidth: columnWidth > 0f ? 0f : 1f,", StringComparison.Ordinal)
 			&& geometry.Contains("var width = Mathf.Max(controlFloor, DeclaredWidthOf(control));", StringComparison.Ordinal)
-			&& geometry.Contains("LayOut(control, flexibleWidth: 0f, width: width, height: height);", StringComparison.Ordinal)
+			&& geometry.Contains("LayOut(control, flexibleWidth: ownsItsLine ? 1f : 0f, width: width, height: height);", StringComparison.Ordinal)
 			&& geometry.Contains("LayOutInterior(control, width, prefabValue);", StringComparison.Ordinal)
 			&& geometry.Contains("internal static void LayOutRow(", StringComparison.Ordinal)
 			&& geometry.Contains("OnlineUiSliderGeometry.LayOut(slider, control, controlWidth, prefabValue);", StringComparison.Ordinal)
@@ -285,7 +285,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& slider.Contains("PlaceContainer(slider.handleRect, control, controlWidth, insetsTheTrack: false);", StringComparison.Ordinal)
 			&& slider.Contains("Tint(slider);", StringComparison.Ordinal)
 			&& !slider.Contains("HidePrefabBoxArt", StringComparison.Ordinal)
-			&& flat.Contains("OnlineUiRowGeometry.LayOutPairedRow(_root, _layout, _labelRect, _controlRect, controlWidth, prefabValue);", StringComparison.Ordinal)
+			&& flat.Contains("OnlineUiRowGeometry.LayOutPairedRow(_root, _layout, _labelRect, _controlRect, controlWidth, columnWidth, prefabValue);", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.PrepareInternals(dropdown, input, toggle);", StringComparison.Ordinal);
 	}
 

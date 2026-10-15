@@ -110,4 +110,42 @@ public sealed class OnlineUiRowLayoutTests
 		Assert.Equal(
 			OnlineUiRowLayout.LineOf([180f, 180f, 180f, 180f, 180f], 400f),
 			OnlineUiRowLayout.LineOf([180f, 180f, 180f, 180f, 180f], [false, false, false, false, false], 400f));
+
+	/// <summary>
+	/// The line a paired control was sent to is ITS line: the name above owns nothing, the control owns the
+	/// line it opens and everything the fit puts beside it on that line belongs to it — that is the row the
+	/// adapter lays those elements out inside (ticket online-ui-paired-controls-and-page-scroll, S3).
+	/// </summary>
+	[Fact]
+	public void APairedControlOwnsTheLineItOpens()
+	{
+		var lines = OnlineUiRowLayout.LineOf([0f, 200f, 40f], [false, true, false], 600f);
+
+		Assert.Equal([-1, 1, 1], OnlineUiRowLayout.LineOwners([false, true, false], lines));
+	}
+
+	/// <summary>A line the FIT produced owns nothing: only a control the model sent to a line of its own holds
+	/// one, so a wrapped line's elements are laid out on the line itself.</summary>
+	[Fact]
+	public void ALineTheFitProducedOwnsNothing()
+	{
+		// 600 wide of content: the third element wraps, so line 1 is the fit's own.
+		var lines = OnlineUiRowLayout.LineOf([300f, 300f, 300f], 600f);
+
+		Assert.Equal([0, 1], [lines[0], lines[2]]);
+		Assert.Equal([-1, -1, -1], OnlineUiRowLayout.LineOwners([false, false, false], lines));
+	}
+
+	/// <summary>A mark on the element that already opens a line owns it, and an element the fit pushed to the
+	/// NEXT line after a paired row starts a line of its own that nothing holds: the ownership never reaches
+	/// past the line it was given.</summary>
+	[Fact]
+	public void TheOwnershipStopsAtTheLineItWasGiven()
+	{
+		// 0, then a 700-wide control on its own line, then a 300-wide one that wraps again.
+		var lines = OnlineUiRowLayout.LineOf([0f, 700f, 300f], [false, true, false], 400f, spacing: 4f);
+
+		Assert.Equal([0, 1, 2], lines);
+		Assert.Equal([-1, 1, -1], OnlineUiRowLayout.LineOwners([false, true, false], lines));
+	}
 }

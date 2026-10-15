@@ -45,6 +45,10 @@ internal sealed class OnlineUiWindowRowView
 	/// <summary>The row's element views, in model order.</summary>
 	internal List<OnlineUiControlView> Elements { get; } = [];
 
+	/// <summary>Which element OWNS each element's line, as the surface's last pass read it
+	/// (<see cref="OnlineUiRowLayout.LineOwners"/>); empty before the first pass.</summary>
+	internal IReadOnlyList<int> Owners { get; set; } = [];
+
 	internal bool EnsureLines(Transform parent, int count)
 	{
 		var changed = false;
@@ -129,6 +133,13 @@ internal sealed class OnlineUiWindowRowView
 	/// online-ui-paired-controls-and-page-scroll, S3). It is a second pass over the elements — the surface
 	/// measures the whole page's names first, because a row cannot know what the rows below it carry — with
 	/// each element's width and model handed back in, so nothing is measured twice.
+	///
+	/// <para>
+	/// The elements a paired row HOLDS keep none of that column: the column lines the page's own rows up, while
+	/// what closes a paired row is its value, sitting at that row's trailing edge. Handing it the column would
+	/// push it a name's width off the page's edge and leave the control it mirrors stranded at the far end of a
+	/// hole — the reading its own pass already produced (<c>columnWidth: 0f</c>) is what stands.
+	/// </para>
 	/// </summary>
 	internal void AlignToColumn(IReadOnlyList<OnlineUiElementModel> elements, float[] widths, float columnWidth)
 	{
@@ -139,8 +150,39 @@ internal sealed class OnlineUiWindowRowView
 
 		for (var index = 0; index < Elements.Count && index < elements.Count; index++)
 		{
+			if (index < Owners.Count && Owners[index] >= 0 && Owners[index] != index)
+			{
+				continue;
+			}
+
 			Elements[index].LayOutRow(elements[index], widths[index], columnWidth);
 		}
+	}
+
+	/// <summary>
+	/// What the element at <paramref name="index"/> is laid out UNDER: the line the wrap gave it, or the row
+	/// that owns that line. An element the model sent to a line of its own owns it
+	/// (<see cref="OnlineUiRowLayout.LineOwners"/>), and the elements the fit put beside it are laid out INSIDE
+	/// its box — which is what makes that row the page's own width and puts the value field beside its slider
+	/// at the row's trailing edge (ticket online-ui-paired-controls-and-page-scroll; the acceptance reading of
+	/// batch `20261015-c` is a paired row 132 units wide inside a 984-unit page, its value field a row of its
+	/// own drawn 268 units past that box).
+	///
+	/// <para>
+	/// The owner lays its own box out FIRST — the surface walks a row's elements in model order — so the answer
+	/// is this frame's rather than the last one's, and a row that cannot hold anything (a placeholder for a
+	/// moved prefab) answers false and leaves its line-mates where they were.
+	/// </para>
+	/// </summary>
+	internal Transform ParentOf(int index, int line, IReadOnlyList<int> owners)
+	{
+		var owner = index < owners.Count ? owners[index] : -1;
+		if (owner >= 0 && owner != index && owner < Elements.Count && Elements[owner].OwnsItsLine)
+		{
+			return Elements[owner].Root.transform;
+		}
+
+		return Lines[line].transform;
 	}
 
 	internal bool DestroyElementsFrom(int keep)

@@ -28,6 +28,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// Everything here is idempotent: it is written for a view that is applied frame after frame, and a part the
 /// prefab does not carry (a field with no viewport, a row with a single child) is simply skipped.
 /// </para>
+///
+/// <para>
+/// A row has two SHAPES and both end in the same body: <see cref="LayOutRow"/> for the row that shares its
+/// line, and <see cref="LayOutPairedRow"/> for the one the model sent its control to a line of its own — the
+/// row then IS that line, and the elements beside the control are laid out inside it.
+/// </para>
 /// </summary>
 internal static class OnlineUiRowGeometry
 {
@@ -137,59 +143,66 @@ internal static class OnlineUiRowGeometry
 			return;
 		}
 
-		LayOutControlRow(root, label, control, controlWidth, OnlineUiWindowLayout.ControlHeight, columnWidth, prefabValue);
+		LayOutControlRow(root, label, control, controlWidth, OnlineUiWindowLayout.ControlHeight, columnWidth, prefabValue, ownsItsLine: false);
 	}
 
 	/// <summary>
-	/// Lays a paired control out (ticket online-ui-paired-controls-and-page-scroll, S3): the name on the
-	/// line the row opens on, and the control it names — a slider — on the line below it, where the row's
-	/// own name takes none of the width the control needs. It is the same group as
-	/// <see cref="LayOutControlRow"/> with the two children stacked; a row whose prefab carries no control
-	/// is left to that method, which is what a placeholder for a moved prefab is.
+	/// Lays a PAIRED control out (ticket online-ui-paired-controls-and-page-scroll, S3): the model sent this
+	/// control to a line of its own (<see cref="OnlineUiElementModel.NewLine"/>), so its row IS that line — the
+	/// row's box takes the line's whole width and the elements the model put BESIDE the control are laid out
+	/// inside it (the surface asks <see cref="OnlineUiControlView.OwnsItsLine"/> and parents them here). The
+	/// name is an element of its own on the line above, which is what
+	/// <see cref="OnlineUiElementModel.Paired"/> writes.
+	///
+	/// <para>
+	/// What differs from <see cref="LayOutRow"/> is where the row's room goes. A row that owns its line keeps
+	/// it at the LEADING edge only, because the element that closes the line is a row of the game's own — the
+	/// value field a numeric rule is bound to — and the room inside THAT is the page's margin there: the same
+	/// six units the control on its left keeps from the page's other edge. Keeping the room at both ends is
+	/// what the acceptance reading of batch `20261015-c` caught the hard way: the row's box was 132 units wide
+	/// inside a 984-unit page, because the row declared no width of its own and the engine answered with the
+	/// width of the control inside it — and the field beside it, a row of its own 390 units wide, was drawn
+	/// from 268 units PAST that box, which is what the user saw as two widgets floating with no margin.
+	/// </para>
+	///
+	/// <para>
+	/// The control's own parts are placed at the width the model declared — the least width it can have —
+	/// because the box the line gives it is not known until the engine has laid the line out, and a slider's
+	/// parts are anchored to the box rather than measured from it: the one number that reads that width (the
+	/// room its track keeps clear) answers the same at the floor and above it.
+	/// </para>
 	/// </summary>
-	internal static void LayOutPairedRow(GameObject root, LayoutElement layout, RectTransform? label, RectTransform? control, float controlWidth, RectTransform? prefabValue = null)
+	internal static void LayOutPairedRow(GameObject root, LayoutElement layout, RectTransform? label, RectTransform? control, float controlWidth, float columnWidth, RectTransform? prefabValue = null)
 	{
 		if (control is null)
 		{
-			LayOutRow(root, layout, label, control, controlWidth, columnWidth: 0f, prefabValue);
+			// A row whose prefab carries no control cannot hold the elements beside it — it is the placeholder
+			// a moved prefab leaves — so it takes the side-by-side shape instead.
+			LayOutRow(root, layout, label, control, controlWidth, columnWidth, prefabValue);
 			return;
 		}
 
-		var row = (RectTransform)root.transform;
-		ConfigureGroup<VerticalLayoutGroup>(
-			row.GetComponent<VerticalLayoutGroup>(),
-			root,
-			TextAnchor.UpperLeft,
-			forceExpandHeight: false);
-
-		// A paired row's own prefab frame goes for the same reason a side-by-side row's does: the page shows
-		// the box CUO draws around the control, not the game's decoration around the whole line.
-		OnlineUiBoxGeometry.HidePrefabBoxArt(row);
-
-		if (label != null)
-		{
-			// The name on the first line is a LABEL in the full sense: it wraps rather than being cut, and TMP
-			// (the layout element that knows its own wrapped text) decides the height it takes.
-			LayOut(label, flexibleWidth: 1f, width: -1f, height: -1f);
-		}
-
-		if (control != null)
-		{
-			var width = Mathf.Max(controlWidth, DeclaredWidthOf(control));
-			LayOut(control, flexibleWidth: 0f, width: width, height: OnlineUiWindowLayout.ControlHeight);
-			LayOutInterior(control, width, prefabValue);
-		}
+		LayOutControlRow(root, label, control, controlWidth, OnlineUiWindowLayout.ControlHeight, columnWidth, prefabValue, ownsItsLine: true);
 	}
 
 	/// <summary>
 	/// Lays a row's own label and control out inside the rect the window's layout gives the row: one
-	/// horizontal group on the row, the label flexible, the control at the width its model declared. The
-	/// group REPLACES whatever placement the prefab authored, which is the point — the prefab's own screen
-	/// is not this window.
+	/// horizontal group on the row, the label in the page's control column (or flexible without one), and the
+	/// control at the width its model declared. The group REPLACES whatever placement the prefab authored,
+	/// which is the point — the prefab's own screen is not this window.
 	///
 	/// <para>
-	/// A slider's formatted value is NOT a third child of this group any more: it is a field the player
-	/// types into, laid out by <see cref="OnlineUiSliderGeometry"/> beside the track it mirrors (ticket
+	/// <paramref name="ownsItsLine"/> is the shape the paired control takes: the row holds the whole line its
+	/// control was sent to, so its control takes what that line has left (the elements beside it are what
+	/// closes the line) and the row keeps the page's room at its leading edge only. The row's own
+	/// <see cref="LayoutElement"/> is made flexible beside this, by the view that owns it
+	/// (<see cref="OnlineUiControlView.ApplyLayout"/>): the two together are what make the row the page's
+	/// width rather than the width of its own content.
+	/// </para>
+	///
+	/// <para>
+	/// A slider's formatted value is NOT a third child of this group any more: it is a field the player types
+	/// into, laid out by <see cref="OnlineUiSliderGeometry"/> beside the track it mirrors (ticket
 	/// online-ui-paired-controls-and-page-scroll, S2).
 	/// </para>
 	/// </summary>
@@ -200,13 +213,13 @@ internal static class OnlineUiRowGeometry
 		float controlFloor,
 		float height,
 		float columnWidth,
-		RectTransform? prefabValue)
+		RectTransform? prefabValue,
+		bool ownsItsLine)
 	{
-		ConfigureGroup<HorizontalLayoutGroup>(
+		ConfigureGroup(
 			row.GetComponent<HorizontalLayoutGroup>(),
 			row,
-			TextAnchor.MiddleLeft,
-			forceExpandHeight: false);
+			trailingRoom: ownsItsLine ? 0 : (int)RowPadding);
 
 		// The row's OWN art is the game's screen decoration: a grey frame it draws around every row of its own
 		// full-width settings screen, which reads on a page as a box around every row (the user's report of
@@ -232,32 +245,39 @@ internal static class OnlineUiRowGeometry
 		{
 			// The control's width is DECLARED rather than measured: the model's floor and what the game's own
 			// prefab is authored with (OnlineUiControlSizing), written straight into the element the group reads
-			// — never asked of the control's own content, which reports the box it was just given.
+			// — never asked of the control's own content, which reports the box it was just given. On a line the
+			// row OWNS it is that width and then what the line has left, so the value beside the control is what
+			// closes the row.
 			var width = Mathf.Max(controlFloor, DeclaredWidthOf(control));
-			LayOut(control, flexibleWidth: 0f, width: width, height: height);
+			LayOut(control, flexibleWidth: ownsItsLine ? 1f : 0f, width: width, height: height);
 			LayOutInterior(control, width, prefabValue);
 		}
 	}
 
 	/// <summary>
-	/// The group one of a page's rows carries: a horizontal group for the side-by-side shape and a vertical
-	/// one for the paired shape, both with the same spacing and the same page's own room at the edges. Any
-	/// group the game's own prefab brought for its own screen goes first — CUO's row is not that screen —
-	/// and a group of the right kind already in place is reused rather than rebuilt, because this runs once
-	/// per frame per element.
+	/// The group one of a page's rows carries: one horizontal group, the page's own room at the leading edge,
+	/// the page's gap between the parts. Any group the game's own prefab brought for its own screen goes first
+	/// — CUO's row is not that screen — and a group already in place is reused rather than rebuilt, because
+	/// this runs once per frame per element.
+	///
+	/// <para>
+	/// Every write here is behind a comparison, because uGUI marks a layout dirty whenever one of these
+	/// properties CHANGES — and a <see cref="RectOffset"/> compares by reference, so writing a fresh one every
+	/// frame would have the engine re-lay the whole page out every frame (the independent review of this
+	/// cycle proved it from the engine's own IL).
+	/// </para>
+	///
+	/// <para>
+	/// <paramref name="trailingRoom"/> is zero for a row that owns its line: what closes that line is an
+	/// element with room of its own inside it, and the page's margin there is that element's — see
+	/// <see cref="LayOutPairedRow"/>.
+	/// </para>
 	/// </summary>
-	private static T ConfigureGroup<T>(LayoutGroup? group, GameObject row, TextAnchor alignment, bool forceExpandHeight)
-		where T : HorizontalOrVerticalLayoutGroup
+	private static HorizontalLayoutGroup ConfigureGroup(HorizontalLayoutGroup? group, GameObject row, int trailingRoom)
 	{
-		if (group is T existing)
+		if (group is { } existing)
 		{
-			existing.spacing = RowGap;
-			existing.padding = new RectOffset((int)RowPadding, (int)RowPadding, 0, 0);
-			existing.childAlignment = alignment;
-			existing.childControlWidth = true;
-			existing.childControlHeight = true;
-			existing.childForceExpandWidth = false;
-			existing.childForceExpandHeight = forceExpandHeight;
+			SetGroup(existing, trailingRoom);
 			return existing;
 		}
 
@@ -268,15 +288,49 @@ internal static class OnlineUiRowGeometry
 			Object.Destroy(other);
 		}
 
-		var added = row.AddComponent<T>();
-		added.spacing = RowGap;
-		added.padding = new RectOffset((int)RowPadding, (int)RowPadding, 0, 0);
-		added.childAlignment = alignment;
-		added.childControlWidth = true;
-		added.childControlHeight = true;
-		added.childForceExpandWidth = false;
-		added.childForceExpandHeight = forceExpandHeight;
+		var added = row.AddComponent<HorizontalLayoutGroup>();
+		SetGroup(added, trailingRoom);
 		return added;
+	}
+
+	/// <summary>Writes a row's own group: one line of parts, the label beside the control, nothing stretched
+	/// across the row's height.</summary>
+	private static void SetGroup(HorizontalLayoutGroup group, int trailingRoom)
+	{
+		if (!group.spacing.Equals(RowGap))
+		{
+			group.spacing = RowGap;
+		}
+
+		if (group.padding.left != (int)RowPadding || group.padding.right != trailingRoom)
+		{
+			group.padding = new RectOffset((int)RowPadding, trailingRoom, 0, 0);
+		}
+
+		if (group.childAlignment != TextAnchor.MiddleLeft)
+		{
+			group.childAlignment = TextAnchor.MiddleLeft;
+		}
+
+		if (!group.childControlWidth)
+		{
+			group.childControlWidth = true;
+		}
+
+		if (!group.childControlHeight)
+		{
+			group.childControlHeight = true;
+		}
+
+		if (group.childForceExpandWidth)
+		{
+			group.childForceExpandWidth = false;
+		}
+
+		if (group.childForceExpandHeight)
+		{
+			group.childForceExpandHeight = false;
+		}
 	}
 
 	/// <summary>

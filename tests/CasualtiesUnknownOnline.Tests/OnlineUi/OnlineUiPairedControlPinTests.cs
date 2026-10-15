@@ -51,6 +51,28 @@ public sealed class OnlineUiPairedControlPinTests
 			"the rows that stay on one line put their controls in the page's own column, measured from the models' names rather than from the boxes the layout just wrote, and a panel shares it so a control lines up wherever it is drawn");
 
 	[Fact]
+	public void APairedRowOwnsTheLineItsControlWasSentTo() =>
+		Assert.True(
+			PairedRowOwnsItsLine(
+				Runtime("OnlineUiRowLayout.cs"),
+				Adapter("OnlineUiRowGeometry.cs"),
+				Adapter("OnlineUiControlView.cs"),
+				Adapter("OnlineUiWindowRowView.cs"),
+				Adapter("OnlineUiWindowView.cs"),
+				Adapter("OnlineUiPanelView.cs")),
+			"the row the model sent its control to takes that line WHOLE — the Runtime's own rule says which element holds a line, the row's box is flexible and its control takes what the line has left, and the elements the model put beside the control are laid out INSIDE that row: the acceptance reading of batch `20261015-c` is a paired row 132 units wide inside a 984-unit page with its value field drawn outside it");
+
+	[Fact]
+	public void ARowsWidthIsDeclaredRatherThanRebuilt() =>
+		Assert.True(
+			WidthsAreDeclaredNotRebuilt(
+				Adapter("OnlineUiWindowView.cs"),
+				Adapter("OnlineUiPanelView.cs"),
+				Adapter("OnlineUiControlView.cs"),
+				Adapter("OnlineUiRowGeometry.cs")),
+			"a row's width is DECLARED to the engine — the row that owns its line is flexible, the label keeps the page's column — so no pass forces the page's layout to be rebuilt for the rows to take their width: the rebuild the last cycle added re-measured the very numbers that were wrong, and every write left is behind a comparison, or the engine would re-lay the page out every frame");
+
+	[Fact]
 	public void APageThatDoesNotFitSaysSo() =>
 		Assert.True(
 			ThePageCarriesItsBar(
@@ -65,8 +87,20 @@ public sealed class OnlineUiPairedControlPinTests
 		{ nameof(APairedControlCarriesItsNameOnItsOwnLine), "runtime/OnlineUiRowLayout.cs", "if (index > 0 && index < newLine.Count && newLine[index] && fitted[index] + shift <= previous)", "if (false)", "a wrap that ignores the model's own breaks, which is the one-line row the user rejected" },
 		{ nameof(APairedControlCarriesItsNameOnItsOwnLine), "runtime/OnlineUiRowLayout.cs", "lines[index] = fitted[index] + shift;", "lines[index] = fitted[index];", "a break that moves its own element down but leaves every element after it behind, so a row's lines collide" },
 		{ nameof(APairedControlCarriesItsNameOnItsOwnLine), "adapter/OnlineUiWindowView.cs", "var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);", "var lines = OnlineUiRowLayout.LineOf(widths, ContentWidth, LineSpacing);", "a page that wraps by the fit alone, which puts the name and its control back on one line" },
-		{ nameof(APairedControlCarriesItsNameOnItsOwnLine), "adapter/OnlineUiRowGeometry.cs", "ConfigureGroup<VerticalLayoutGroup>(", "ConfigureGroup<HorizontalLayoutGroup>(", "a paired row stacked sideways, so the name and the control share one line again" },
+		{ nameof(APairedControlCarriesItsNameOnItsOwnLine), "adapter/OnlineUiRowGeometry.cs", "LayOutControlRow(root, label, control, controlWidth, OnlineUiWindowLayout.ControlHeight, columnWidth, prefabValue, ownsItsLine: true);", "LayOutControlRow(root, label, control, controlWidth, OnlineUiWindowLayout.ControlHeight, columnWidth, prefabValue, ownsItsLine: false);", "a paired row shaped as one that only shares its line" },
 		{ nameof(APairedControlCarriesItsNameOnItsOwnLine), "plugin/OnlineUiPageBuilder.cs", "_rows.Add(OnlineUiElementModel.Paired(", "_rows.Add(OnlineUiRowModel.Of(", "a numeric rule that goes back to the one-line row shape" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "runtime/OnlineUiRowLayout.cs", "owners[index] = owner;", "owners[index] = -1;", "a rule that names no owner, so a paired row's value field goes back to floating on the line" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiRowGeometry.cs", "trailingRoom: ownsItsLine ? 0 : (int)RowPadding);", "trailingRoom: (int)RowPadding);", "a paired row keeping the page's room at its trailing edge as well, which stops its value box six units short of the page's edge" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiRowGeometry.cs", "LayOut(control, flexibleWidth: ownsItsLine ? 1f : 0f, width: width, height: height);", "LayOut(control, flexibleWidth: 0f, width: width, height: height);", "a control that keeps its own width on a line it owns, so the value beside it never reaches the page's edge" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiControlView.cs", "OwnsItsLine = element.NewLine && _controlRect != null;", "OwnsItsLine = false;", "a paired row that never holds the elements beside its control" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiControlView.cs", "|| ((aloneOnItsLine || element.NewLine) && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;", "|| (aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;", "a paired row that keeps the width of its own content instead of taking its line" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiWindowRowView.cs", "return Elements[owner].Root.transform;", "return Lines[line].transform;", "a row view that lays a paired row's value field out beside it rather than inside it" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiWindowRowView.cs", "if (index < Owners.Count && Owners[index] >= 0 && Owners[index] != index)", "if (false)", "a column pass that hands the page's own column to the value a paired row holds, which pushes that value a name's width off the page's edge and strands the control it mirrors" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiWindowView.cs", "view.SetParent(row.ParentOf(index, lines[index], owners));", "view.SetParent(row.Lines[lines[index]].transform);", "the window putting every element back on the line, which is the reading of batch `20261015-c`" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiPanelView.cs", "view.SetParent(row.ParentOf(index, lines[index], owners));", "view.SetParent(row.Lines[lines[index]].transform);", "a panel that keeps the window's fix away from its own rows" },
+		{ nameof(ARowsWidthIsDeclaredRatherThanRebuilt), "adapter/OnlineUiWindowView.cs", "_structureDirty = false;", "LayoutRebuilder.ForceRebuildLayoutImmediate(_content);", "the forced rebuild the last cycle added, which re-measures the very numbers that were wrong" },
+		{ nameof(ARowsWidthIsDeclaredRatherThanRebuilt), "adapter/OnlineUiPanelView.cs", "LayoutRebuilder.ForceRebuildLayoutImmediate(_rect);", "// the panel reads its own height without one", "a panel whose placement reads a height no layout has written" },
+		{ nameof(ARowsWidthIsDeclaredRatherThanRebuilt), "adapter/OnlineUiControlView.cs", "if (!_layout.flexibleWidth.Equals(flexible))", "if (true)", "a width written every frame, which dirties the layout of a steady page" },
 		{ nameof(ThePagesControlsShareOneColumn), "adapter/OnlineUiWindowRowView.cs", "widest = Mathf.Max(widest, nameWidth(rowIndex, index, elements[index]));", "widest = 0f;", "a page with no column at all, so every control sits against its own label's end" },
 		{ nameof(ThePagesControlsShareOneColumn), "adapter/OnlineUiWindowRowView.cs", "widest = Mathf.Max(widest, nameWidth(rowIndex, index, elements[index]));", "widest = Mathf.Max(widest, elements[index].Width);", "a column measured from the model's own floor instead of the name it draws" },
 		{ nameof(ThePagesControlsShareOneColumn), "adapter/OnlineUiWindowRowView.cs", "Elements[index].LayOutRow(elements[index], widths[index], columnWidth);", "Elements[index].LayOutRow(elements[index], widths[index], 0f);", "a pass that measures the column and then lays nothing out at it" },
@@ -119,6 +153,18 @@ public sealed class OnlineUiPairedControlPinTests
 			Is(file, "OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs"),
 			Is(file, "OnlineUiPanelView") ? broken : Adapter("OnlineUiPanelView.cs"),
 			Is(file, "OnlineUiRowGeometry") ? broken : Adapter("OnlineUiRowGeometry.cs")),
+		nameof(APairedRowOwnsTheLineItsControlWasSentTo) => broken => PairedRowOwnsItsLine(
+			Is(file, "OnlineUiRowLayout") ? broken : Runtime("OnlineUiRowLayout.cs"),
+			Is(file, "OnlineUiRowGeometry") ? broken : Adapter("OnlineUiRowGeometry.cs"),
+			Is(file, "OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
+			Is(file, "OnlineUiWindowRowView") ? broken : Adapter("OnlineUiWindowRowView.cs"),
+			Is(file, "OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs"),
+			Is(file, "OnlineUiPanelView") ? broken : Adapter("OnlineUiPanelView.cs")),
+		nameof(ARowsWidthIsDeclaredRatherThanRebuilt) => broken => WidthsAreDeclaredNotRebuilt(
+			Is(file, "OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs"),
+			Is(file, "OnlineUiPanelView") ? broken : Adapter("OnlineUiPanelView.cs"),
+			Is(file, "OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
+			Is(file, "OnlineUiRowGeometry") ? broken : Adapter("OnlineUiRowGeometry.cs")),
 		nameof(APageThatDoesNotFitSaysSo) => broken => ThePageCarriesItsBar(
 			Is(file, "OnlineUiPageScroll") ? broken : Runtime("OnlineUiPageScroll.cs"),
 			Is(file, "OnlineUiPageScrollbar") ? broken : Adapter("OnlineUiPageScrollbar.cs"),
@@ -130,9 +176,10 @@ public sealed class OnlineUiPairedControlPinTests
 	private static bool Is(string file, string name) => file.Contains(name, StringComparison.Ordinal);
 
 	/// <summary>
-	/// The two-line shape, from the model that asks for it to the group that stacks it: the factory that
-	/// writes a paired row marks its control, the Runtime's wrap turns that mark into a line of its own, and
-	/// the adapter places the name and the control in a VERTICAL group rather than side by side.
+	/// The two-line shape, from the model that asks for it to the row that holds it: the factory that writes a
+	/// paired row marks its control, the Runtime's wrap turns that mark into a line of its own, and the adapter
+	/// gives that whole line to the row — the name is an element of its own on the line above it, and the row
+	/// is the line below.
 	/// </summary>
 	private static bool PairedIsTwoLines(string modelSource, string layoutSource, string windowSource, string geometrySource, string builderSource)
 	{
@@ -149,9 +196,85 @@ public sealed class OnlineUiPairedControlPinTests
 			&& layout.Contains("lines[index] = fitted[index] + shift;", StringComparison.Ordinal)
 			&& window.Contains("var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);", StringComparison.Ordinal)
 			&& window.Contains("breaks[index] = elements[index].NewLine;", StringComparison.Ordinal)
-			&& geometry.Contains("internal static void LayOutPairedRow(GameObject root, LayoutElement layout, RectTransform? label, RectTransform? control, float controlWidth, RectTransform? prefabValue = null)", StringComparison.Ordinal)
-			&& geometry.Contains("ConfigureGroup<VerticalLayoutGroup>(", StringComparison.Ordinal)
+			&& geometry.Contains("internal static void LayOutPairedRow(GameObject root, LayoutElement layout, RectTransform? label, RectTransform? control, float controlWidth, float columnWidth, RectTransform? prefabValue = null)", StringComparison.Ordinal)
+			&& geometry.Contains("LayOutControlRow(root, label, control, controlWidth, OnlineUiWindowLayout.ControlHeight, columnWidth, prefabValue, ownsItsLine: true);", StringComparison.Ordinal)
 			&& builder.Contains("_rows.Add(OnlineUiElementModel.Paired(", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A row that owns the line its control was sent to, end to end: the Runtime's rule says which element
+	/// HOLDS a line, the geometry makes that row's box take the line and its control take what the line has
+	/// left, the control view declares the flexible width and answers whether it can hold anything at all, the
+	/// row view answers where an element is laid out, and BOTH surfaces ask it — a fix that lands on the window
+	/// and not on its panel is the drift this file exists to stop.
+	/// </summary>
+	private static bool PairedRowOwnsItsLine(
+		string layoutSource,
+		string geometrySource,
+		string controlSource,
+		string rowSource,
+		string windowSource,
+		string panelSource)
+	{
+		var layout = Flatten(layoutSource);
+		var geometry = Flatten(geometrySource);
+		var control = Flatten(controlSource);
+		var row = Flatten(rowSource);
+		var window = Flatten(windowSource);
+		var panel = Flatten(panelSource);
+
+		return layout.Contains("public static int[] LineOwners(IReadOnlyList<bool> newLine, IReadOnlyList<int> lines)", StringComparison.Ordinal)
+			&& layout.Contains("owners[index] = owner;", StringComparison.Ordinal)
+			&& geometry.Contains("private static void LayOutControlRow(", StringComparison.Ordinal)
+			&& geometry.Contains("GameObject row, RectTransform? label, RectTransform? control, float controlFloor, float height, float columnWidth, RectTransform? prefabValue, bool ownsItsLine)", StringComparison.Ordinal)
+			&& geometry.Contains("trailingRoom: ownsItsLine ? 0 : (int)RowPadding);", StringComparison.Ordinal)
+			&& geometry.Contains("LayOut(control, flexibleWidth: ownsItsLine ? 1f : 0f, width: width, height: height);", StringComparison.Ordinal)
+			&& control.Contains("internal bool OwnsItsLine { get; private set; }", StringComparison.Ordinal)
+			&& control.Contains("OwnsItsLine = element.NewLine && _controlRect != null;", StringComparison.Ordinal)
+			&& control.Contains("|| ((aloneOnItsLine || element.NewLine) && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;", StringComparison.Ordinal)
+			&& row.Contains("internal Transform ParentOf(int index, int line, IReadOnlyList<int> owners)", StringComparison.Ordinal)
+			&& row.Contains("return Elements[owner].Root.transform;", StringComparison.Ordinal)
+			&& row.Contains("internal IReadOnlyList<int> Owners { get; set; } = [];", StringComparison.Ordinal)
+			&& row.Contains("if (index < Owners.Count && Owners[index] >= 0 && Owners[index] != index)", StringComparison.Ordinal)
+			&& window.Contains("var owners = OnlineUiRowLayout.LineOwners(breaks, lines);", StringComparison.Ordinal)
+			&& window.Contains("row.Owners = owners;", StringComparison.Ordinal)
+			&& window.Contains("view.SetParent(row.ParentOf(index, lines[index], owners));", StringComparison.Ordinal)
+			&& panel.Contains("var owners = OnlineUiRowLayout.LineOwners(breaks, lines);", StringComparison.Ordinal)
+			&& panel.Contains("row.Owners = owners;", StringComparison.Ordinal)
+			&& panel.Contains("view.SetParent(row.ParentOf(index, lines[index], owners));", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The width a row takes on its line is DECLARED to the engine rather than discovered by a rebuild: the
+	/// window's page forces no rebuild at all, the panel keeps exactly the one its point-anchored placement
+	/// needs (it reads its own height there), and the one width a view writes is written behind a comparison,
+	/// so a steady frame dirties nothing.
+	/// </summary>
+	private static bool WidthsAreDeclaredNotRebuilt(string windowSource, string panelSource, string controlSource, string geometrySource)
+	{
+		var window = Flatten(windowSource);
+		var panel = Flatten(panelSource);
+
+		return !window.Contains("LayoutRebuilder.ForceRebuildLayoutImmediate(_content)", StringComparison.Ordinal)
+			&& window.Contains("_structureDirty = false;", StringComparison.Ordinal)
+			&& Count(panel, "LayoutRebuilder.ForceRebuildLayoutImmediate") == 1
+			&& panel.Contains("private void PlaceAtPoint()", StringComparison.Ordinal)
+			&& Flatten(controlSource).Contains("if (!_layout.flexibleWidth.Equals(flexible))", StringComparison.Ordinal)
+			// A RectOffset compares by reference, so an unguarded write of one would mark the page's layout
+			// dirty every frame: the engine's own IL is what the review of this cycle read that off.
+			&& Flatten(geometrySource).Contains("if (group.padding.left != (int)RowPadding || group.padding.right != trailingRoom)", StringComparison.Ordinal);
+	}
+
+	/// <summary>How many times one anchor appears in a flattened source.</summary>
+	private static int Count(string source, string needle)
+	{
+		var count = 0;
+		for (var at = source.IndexOf(needle, StringComparison.Ordinal); at >= 0; at = source.IndexOf(needle, at + needle.Length, StringComparison.Ordinal))
+		{
+			count++;
+		}
+
+		return count;
 	}
 
 	/// <summary>

@@ -210,12 +210,12 @@ internal sealed class OnlineUiPanelView
 		ApplyRows(model.Rows);
 		if (_structureDirty)
 		{
+			// Only the ORDER is repaired here, for the same reason the window's page repairs nothing else:
+			// every size a row's group reads is declared to it as a LayoutElement value, which uGUI marks its
+			// own layout dirty for. The one rebuild this panel needs is in PlaceAtPoint, where the panel's own
+			// height is read.
 			_structureDirty = false;
 			Reorder();
-
-			// The same forced pass the window's pages take, for the same reason: the rows' groups have to
-			// re-measure the sizes this frame wrote, or every element keeps the width it was built at.
-			LayoutRebuilder.ForceRebuildLayoutImmediate(_rect);
 		}
 
 		ApplyAnchor(model);
@@ -361,6 +361,8 @@ internal sealed class OnlineUiPanelView
 		}
 
 		var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);
+		var owners = OnlineUiRowLayout.LineOwners(breaks, lines);
+		row.Owners = owners;
 		_widths[rowIndex] = widths;
 		var lineCount = lines[lines.Length - 1] + 1;
 		_structureDirty |= row.EnsureLines(_root.transform, lineCount);
@@ -372,7 +374,10 @@ internal sealed class OnlineUiPanelView
 		for (var index = 0; index < elements.Count; index++)
 		{
 			var view = row.Elements[index];
-			view.SetParent(row.Lines[lines[index]].transform);
+
+			// The same answer the window asks for: the line the wrap gave this element, or the paired row that
+			// owns it — the elements beside a paired control are laid out inside it.
+			view.SetParent(row.ParentOf(index, lines[index], owners));
 
 			// "Alone on its line" is the LINE's own fact: a paired control puts one element on its first line
 			// and two on its second, and only the element with its line to itself takes what that line has

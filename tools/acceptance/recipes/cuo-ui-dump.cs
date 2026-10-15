@@ -2,14 +2,24 @@
 // args: none
 // serves: online-ui-paired-controls-and-page-scroll (S1-S4)
 // returns: ok, and one entry per RectTransform under the CUO Online UI window: its path, rect, active flag,
-//          LayoutElement, Image (sprite, type, colour, raycast), TMP text, Button, Toggle, InputField and
-//          Slider — where a slider reports the game's own background, filled fraction and handle with their
-//          rects, and an InputField its text, focus and content type.
+//          span (its box in the WINDOW's own units, left..right x bottom..top), LayoutElement, Image (sprite,
+//          type, colour, raycast), TMP text, Button, Toggle, InputField and Slider — where a slider reports
+//          the game's own background, filled fraction and handle with their rects, and an InputField its
+//          text, focus and content type.
 //
 // It reads what the user judges on screen as numbers: a colour alpha of 0 is the hidden prefab art, a
 // handle of 0x0 is a slider nobody can grab, and the page's own bar is the node named
 // "CUO Online UI Scrollbar" with its active flag. Numbers are written with the invariant culture, so the
 // answer is JSON a reader can parse on any machine.
+//
+// `span` is the reading the geometry of a page is JUDGED in: `rect` and `pos` are local to each node's own
+// parent (a size and an anchored position), so a box's distance to the page's edge cannot be read off them
+// alone (the paired row of ticket online-ui-paired-controls-and-page-scroll is exactly that: a row whose box
+// should be the page's own width with the value box six units inside the page's right edge). The window's
+// centre is 0,0 and the page inside it is inset by the shell's own padding, so at the window's DEFAULT
+// 1000 x 700 the page's edges are -492.00 and 492.00 and a control six units inside the right one ends at
+// 486.00 — but a canvas too small clamps the window, so read the page's own edges off the `Content` node's
+// span rather than assuming those numbers.
 ((System.Func<string>)(() => {
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var num = new System.Func<float, string>((value) => value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
@@ -23,6 +33,7 @@
 
 	var sb = new System.Text.StringBuilder();
 	sb.Append("{\"ok\":true,\"nodes\":[");
+	var corners = new UnityEngine.Vector3[4];
 	var nodes = new System.Collections.Generic.List<UnityEngine.Transform>();
 	var paths = new System.Collections.Generic.List<string>();
 	nodes.Add(window);
@@ -41,6 +52,11 @@
 		if (rect != null) {
 			sb.Append(",\"rect\":\"").Append(num(rect.rect.width)).Append("x").Append(num(rect.rect.height)).Append("\"");
 			sb.Append(",\"pos\":\"").Append(num(rect.anchoredPosition.x)).Append(",").Append(num(rect.anchoredPosition.y)).Append("\"");
+			rect.GetWorldCorners(corners);
+			var bottomLeft = window.InverseTransformPoint(corners[0]);
+			var topRight = window.InverseTransformPoint(corners[2]);
+			sb.Append(",\"span\":\"").Append(num(bottomLeft.x)).Append("..").Append(num(topRight.x))
+				.Append(" x ").Append(num(bottomLeft.y)).Append("..").Append(num(topRight.y)).Append("\"");
 		}
 		var le = t.GetComponent<UnityEngine.UI.LayoutElement>();
 		if (le != null) {

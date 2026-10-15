@@ -297,16 +297,13 @@ internal sealed class OnlineUiWindowView
 
 		if (_structureDirty)
 		{
+			// Only the ORDER is repaired here. Every size a row's group reads is DECLARED to it as a
+			// LayoutElement value, and uGUI marks its own layout dirty when one of those changes, so no pass
+			// forces a rebuild of the page: the one this used to run re-measured the very numbers that were
+			// wrong (the acceptance reading of batch `20261015-c`: a paired row 132 units wide inside a
+			// 984-unit page).
 			_structureDirty = false;
 			Reorder();
-
-			// The wrap put the elements on lines, and a line's own group has to be told to re-measure them:
-			// this pass writes a LayoutElement's sizes rather than a rect the engine tracks, so the group would
-			// otherwise keep every element at the width it was BUILT at and the line would never share itself
-			// out (the acceptance reading of batch `20261015-c`: a slider left 120 wide inside a 972-wide line,
-			// with the page's column beside it). One forced pass per structural change places them for the
-			// frame that is about to be drawn.
-			LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
 		}
 	}
 
@@ -497,6 +494,8 @@ internal sealed class OnlineUiWindowView
 		}
 
 		var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);
+		var owners = OnlineUiRowLayout.LineOwners(breaks, lines);
+		row.Owners = owners;
 		_widths[rowIndex] = widths;
 		var lineCount = lines[lines.Length - 1] + 1;
 		_structureDirty |= row.EnsureLines(_content, lineCount);
@@ -508,7 +507,11 @@ internal sealed class OnlineUiWindowView
 		for (var index = 0; index < elements.Count; index++)
 		{
 			var view = row.Elements[index];
-			view.SetParent(row.Lines[lines[index]].transform);
+
+			// Where an element belongs is the row view's answer: the line the wrap gave it, or the paired row
+			// that owns that line — the elements beside a paired control are laid out INSIDE it, which is what
+			// makes that row the page's width and its value field close at the page's edge.
+			view.SetParent(row.ParentOf(index, lines[index], owners));
 
 			// "Alone on its line" is the LINE's own fact, not the row's: a paired control puts one element on
 			// the first line and two on the second, and only the element that has its line to itself may take
@@ -520,8 +523,8 @@ internal sealed class OnlineUiWindowView
 			// A row that carries its own label and control (a dropdown, a field, a slider, a toggle) is laid
 			// out by CUO inside: the game's own placement belongs to the game's own screen. The width it takes
 			// on its line is the one just computed — the width CUO declared, never a measurement of the
-			// control's own stretched content. A paired element is stacked instead, and takes the column when
-			// the page's own pass runs.
+			// control's own stretched content. A paired row owns its line and takes the column when the
+			// page's own pass runs.
 			view.LayOutRow(elements[index], widths[index], columnWidth: 0f);
 
 			// An open dropdown's list is an overlay, and the window owns the layer it has to live on.

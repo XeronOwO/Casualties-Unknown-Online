@@ -138,7 +138,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(TheWindowStopsTheWorldBehindItFromBeingClicked), "adapter/OnlineUiWindowView.cs", "panel.raycastTarget = true;", "panel.raycastTarget = false;", "a frame that lets clicks fall through to the world" },
 		{ nameof(TheTitleBarDragsTheWindow), "adapter/OnlineUiWindowDragHandler.cs", "_target.anchoredPosition += eventData.delta / scale;", "_target.anchoredPosition += Vector2.zero;", "a title bar that does not drag" },
 		{ nameof(ThePluginDispatchesEveryIntentKind), "plugin/OnlineUiHost.cs", "case OnlineUiIntentKind.ControlEdited:", "case OnlineUiIntentKind.ControlInvoked:", "an intent kind the plugin silently drops" },
-		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlView.cs", "aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", "OnlineUiControlSizing.FillsTheRow(element)", "a control that takes the whole line even when it shares one" },
+		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlView.cs", "(aloneOnItsLine || element.NewLine) && OnlineUiControlSizing.FillsTheRow(element)", "OnlineUiControlSizing.FillsTheRow(element)", "a control that takes the whole line even when it shares one" },
 		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlFactory.cs", "group.childForceExpandWidth = false;", "group.childForceExpandWidth = true;", "a content group that stretches its caption instead of measuring it" },
 		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f)", "OnlineUiControlBox.EffectiveWidth(element.Width, 0f)", "a field with no floor under it, which a model that declares no width would size at zero" },
 		{ nameof(AnIntentForAControlTheWindowNoLongerOffersIsDropped), "plugin/OnlineUiOverlay.cs", "if (!_actions.TryGetValue(intent.ControlId, out var action))", "if (false)", "an intent applied without checking that its control still exists" },
@@ -352,7 +352,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		var factory = Flatten(factorySource);
 
 		return flat.Contains("_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", StringComparison.Ordinal)
-			&& flat.Contains("aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)", StringComparison.Ordinal)
+			&& flat.Contains("(aloneOnItsLine || element.NewLine) && OnlineUiControlSizing.FillsTheRow(element)", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiControlSizing.EffectiveWidth(element, _caption, _typography.Size, _controlAuthoredWidth);", StringComparison.Ordinal)
 			&& sizing.Contains("OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize)", StringComparison.Ordinal)
 			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f)", StringComparison.Ordinal)

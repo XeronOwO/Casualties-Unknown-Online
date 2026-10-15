@@ -66,15 +66,23 @@ internal static class OnlineUiSliderGeometry
 	internal static void LayOut(Slider slider, RectTransform control, float controlWidth, RectTransform? prefabValue)
 	{
 		// A page's row is one compact height and the engine places these from the rect the row gave them, so
-		// the sizes are written straight onto each part; the two pivots are centred because the engine's own
-		// `Set` positions a handle by its pivot, and a prefab authored with a corner pivot would drag the
-		// handle out of the box as soon as the value moved.
+		// the sizes are written straight onto each part; the pivots are centred because the engine's own `Set`
+		// positions a handle by its pivot, and a prefab authored with a corner pivot would drag the handle out
+		// of the box as soon as the value moved.
 		slider.direction = Slider.Direction.LeftToRight;
 		slider.useGUILayout = false;
 
 		PlaceTrack(slider.targetGraphic);
 		PlaceContainer(slider.fillRect, control, controlWidth, insetsTheTrack: true);
-		PlaceContainer(slider.handleRect, control, controlWidth, insetsTheTrack: false);
+
+		// The handle's own CONTAINER is what CUO places, never the handle: a slider drives its handle by the
+		// handle's ANCHORS inside the container the game's own prefab put it in, and both that container and
+		// those anchors belong to the engine. Stretching the handle's own rect onto the control (what this did
+		// before) throws the anchors away: the knob then spans the whole control and reads as its track, and
+		// once its size is corrected it parks in the middle of the line whatever the value is (batch
+		// `20261015-d` read both: a 571.99-wide handle inside a 571.99-wide slider, then a 36-unit knob centred
+		// at the slider's own midpoint with the value at a quarter of it).
+		PlaceContainer(HandleContainerOf(slider), control, controlWidth, insetsTheTrack: false);
 		PlaceHandle(slider.handleRect);
 		Tint(slider);
 
@@ -83,6 +91,16 @@ internal static class OnlineUiSliderGeometry
 			prefabValue.gameObject.SetActive(false);
 		}
 	}
+
+	/// <summary>
+	/// The rect the engine moves the handle inside — the game's own container for it — or null when the handle
+	/// is a child of the control itself: such a prefab has no container, and the handle's place is then the
+	/// control's own rect.
+	/// </summary>
+	private static RectTransform? HandleContainerOf(Slider slider) =>
+		slider.handleRect != null && slider.handleRect.parent is RectTransform parent && parent != slider.transform
+			? parent
+			: null;
 
 	/// <summary>
 	/// The bar itself: the width of the control less the room the handle slides in, at the height the game
@@ -133,13 +151,11 @@ internal static class OnlineUiSliderGeometry
 	}
 
 	/// <summary>
-	/// The handle itself: a square the height of the compact box, centred on the value the slider holds by the
-	/// engine's own <c>Set</c>. The game's own prefab authors its handle for a row three times this height, and
-	/// the WIDTH it carries there is not a size CUO may read back: the engine drives a handle by its ANCHORS as
-	/// the value moves, so its rect answers with the width of the box the row gave it, and reading that back
-	/// made the handle as wide as the whole control — a bar with no knob and no visible ends. The page showed
-	/// exactly that once the paired row's box became the page's own width (batch `20261015-d`: a 571.99-wide
-	/// handle inside a 571.99-wide slider), which is the reading this rule is written against.
+	/// The knob itself: a square the height of the compact box, standing where the ENGINE put it. Its place is
+	/// the anchors a slider drives as the value moves, so CUO writes the SIZE and the pivot only — writing the
+	/// rect's position or its anchors here is what parked the knob in the middle of the line. The width is
+	/// written as <c>sizeDelta</c> rather than with <c>SetSizeWithCurrentAnchors</c>, which re-places a
+	/// point-anchored rect as a side effect and is the other half of that defect.
 	/// </summary>
 	private static void PlaceHandle(RectTransform? handle)
 	{
@@ -149,15 +165,15 @@ internal static class OnlineUiSliderGeometry
 		}
 
 		// Every write here is behind a comparison: this runs once per frame per slider, and a rect write marks
-		// the canvas for a rebuild whether or not the value changed.
+		// the canvas for a rebuild whether or not anything changed.
 		if (handle.pivot != new Vector2(0.5f, 0.5f))
 		{
 			handle.pivot = new Vector2(0.5f, 0.5f);
 		}
 
-		if (!handle.rect.width.Equals(OnlineUiWindowLayout.ControlHeight))
+		if (!handle.sizeDelta.x.Equals(OnlineUiWindowLayout.ControlHeight))
 		{
-			handle.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, OnlineUiWindowLayout.ControlHeight);
+			handle.sizeDelta = new Vector2(OnlineUiWindowLayout.ControlHeight, handle.sizeDelta.y);
 		}
 
 		if (!handle.anchoredPosition.y.Equals(0f))

@@ -117,7 +117,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiRowGeometry.cs", "OnlineUiSliderGeometry.LayOut(slider, control, controlWidth, prefabValue);", "OnlineUiBoxGeometry.LayOutInterior(control, controlWidth);", "a slider sent down the box rule, which hides the track, the fill and the handle it is read by" },
 		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "PlaceTrack(slider.targetGraphic);", "OnlineUiBoxGeometry.HidePrefabBoxArt(slider.targetGraphic.rectTransform);", "a slider whose track keeps the prefab's hidden art — the invisible track the user reported" },
 		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "PlaceContainer(slider.fillRect, control, controlWidth, insetsTheTrack: true);", "// the filled fraction is left where the prefab put it", "a slider whose filled fraction is never placed on the compact box" },
-		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "PlaceContainer(slider.handleRect, control, controlWidth, insetsTheTrack: false);", "// the handle is left where the prefab put it", "a slider with no handle placed inside its box" },
+		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "PlaceContainer(HandleContainerOf(slider), control, controlWidth, insetsTheTrack: false);", "PlaceContainer(slider.handleRect, control, controlWidth, insetsTheTrack: false);", "a slider whose HANDLE is stretched onto the control, which detaches it from the container the engine moves it in: a knob as wide as the row, or parked in the middle of it" },
 		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "Tint(slider);", "// the slider keeps whatever colours the prefab carried", "a slider drawn in the prefab's own colours instead of the page's" },
 		{ nameof(TheRowsOwnPrefabArtDoesNotDraw), "adapter/OnlineUiRowGeometry.cs", "OnlineUiBoxGeometry.HidePrefabBoxArt((RectTransform)row.transform);", "// the game's own row frame stays", "the grey frame the game draws around every row of its own screen, left on a page" },
 		{ nameof(TheRowsOwnPrefabArtDoesNotDraw), "adapter/OnlineUiRowGeometry.cs", "OnlineUiBoxGeometry.HidePrefabBoxArt((RectTransform)row.transform);", "OnlineUiBoxGeometry.HidePrefabBoxArt((RectTransform)control.transform);", "a row that hides its CONTROL's box instead of its own decoration" },
@@ -282,11 +282,15 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& slider.Contains("internal static void LayOut(Slider slider, RectTransform control, float controlWidth, RectTransform? prefabValue)", StringComparison.Ordinal)
 			&& slider.Contains("PlaceTrack(slider.targetGraphic);", StringComparison.Ordinal)
 			&& slider.Contains("PlaceContainer(slider.fillRect, control, controlWidth, insetsTheTrack: true);", StringComparison.Ordinal)
-			&& slider.Contains("PlaceContainer(slider.handleRect, control, controlWidth, insetsTheTrack: false);", StringComparison.Ordinal)
+			// The handle's CONTAINER is placed, never the handle: the engine drives a handle by its anchors
+			// inside that container, and stretching the handle's own rect onto the control throws them away.
+			&& slider.Contains("PlaceContainer(HandleContainerOf(slider), control, controlWidth, insetsTheTrack: false);", StringComparison.Ordinal)
+			&& slider.Contains("private static RectTransform? HandleContainerOf(Slider slider) =>", StringComparison.Ordinal)
 			&& slider.Contains("Tint(slider);", StringComparison.Ordinal)
-			// The handle is a square knob, never the width of the box it sits in: the engine drives a handle by
-			// its ANCHORS, so its rect answers with the row's own width and reading that back made it a bar.
-			&& slider.Contains("handle.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, OnlineUiWindowLayout.ControlHeight);", StringComparison.Ordinal)
+			// The knob is a square the height of the control, and its place stays the engine's: the size is
+			// written as sizeDelta, because SetSizeWithCurrentAnchors re-places a point-anchored rect.
+			&& slider.Contains("handle.sizeDelta = new Vector2(OnlineUiWindowLayout.ControlHeight, handle.sizeDelta.y);", StringComparison.Ordinal)
+			&& !slider.Contains("SetSizeWithCurrentAnchors", StringComparison.Ordinal)
 			&& !slider.Contains("HidePrefabBoxArt", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.LayOutPairedRow(_root, _layout, _labelRect, _controlRect, controlWidth, columnWidth, prefabValue);", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.PrepareInternals(dropdown, input, toggle);", StringComparison.Ordinal);

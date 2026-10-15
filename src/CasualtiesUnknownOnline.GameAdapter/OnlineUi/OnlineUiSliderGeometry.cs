@@ -34,18 +34,23 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// So the game's own boxes stand, and the engine drives them: the filled fraction inside the prefab's own
 /// <c>Fill Area</c>, the knob inside the box the engine slides it in. The ONE thing re-cut here is that box,
 /// because it decides TWO numbers at once — where the knob's centre travels, and how tall the knob is (the
-/// engine stretches the handle across its container and the prefab adds its own nine units on top: the frame
-/// of batch `20261015-d` renders a 36-unit container as a 45-unit knob). A travel box this surface writes is
-/// therefore also the number that says how tall the knob reads, and the compact row is what that box has to
-/// be; the box the game's own row would resolve to is unread — the prefab ASSET still carries it, which is
-/// what <c>tools/acceptance/recipes/cuo-ui-prefab.cs</c> reads and the acceptance run judges.
+/// engine stretches the handle across its container, and the prefab adds its own size to that: the frame of
+/// batch `20261015-d` renders a 36-unit container as a 45-unit knob). The reading behind the shape is the
+/// prefab ASSET's own (`tools/acceptance/recipes/cuo-ui-prefab.cs`, batch `20261015-e`): the game's row is
+/// <c>1058.20x80.18</c> with the slider a <c>962.45x20.00</c> band inside it, so the game's own knob is one
+/// RAIL-height square (<c>20.00x20.00</c> on a rail of the same height) with a travel inset by half of it.
+/// This page gives a control the whole compact row instead of a band of it, so the knob is that row's own
+/// height and the travel follows the knob's width — the one dimension this surface chooses and the prefab
+/// cannot have authored for.
 /// </para>
 ///
 /// <para>
-/// What the fraction's own box lands on is the same kind of reading: it is the game's <c>Fill Area</c> plus
-/// whatever size the prefab adds to it, and only the asset can say what that is. Everything here is
-/// idempotent — it runs once per frame per control — and every RECT write is behind a comparison, because a
-/// rect write marks the canvas for a rebuild whether or not anything changed.
+/// What the fraction lands on is the same reading: the prefab's <c>Fill</c> is anchored at a point with no
+/// height of its own (<c>sizeDelta 10,0</c>), so the engine's driven anchors make it exactly the
+/// <c>Fill Area</c>'s height — the rail's — and the batch's own dump reads it there
+/// (<c>Fill Area/Fill 223.33x28.00</c> against the rail's <c>820.00x28.00</c>). Everything here is idempotent
+/// — it runs once per frame per control — and every RECT write is behind a comparison, because a rect write
+/// marks the canvas for a rebuild whether or not anything changed.
 /// </para>
 /// </summary>
 internal static class OnlineUiSliderGeometry
@@ -104,17 +109,19 @@ internal static class OnlineUiSliderGeometry
 	/// <summary>
 	/// The one layer of the prefab this surface re-cuts: the box the engine slides the knob in. A slider drives
 	/// its handle by the handle's ANCHORS inside that box, so the box decides both where the knob's centre
-	/// travels and how tall the knob renders — the prefab's own box is authored against the game's own row, and
-	/// the batch `20261015-d` reading of what that produces in this one is a <c>607.99x9.00</c> handle
-	/// stretched across the whole control, a knob taller than the row it lives in.
+	/// travels and how tall the knob renders — and the prefab's own box is authored for its own row: its
+	/// <c>Handle Slide Area</c> is <c>942.45x20.00</c> inside an <c>80.18</c>-unit row, with a <c>20.00</c>-wide
+	/// handle and a travel inset by half of that. What CUO read in this page before this rule existed is a
+	/// <c>607.99x9.00</c> handle stretched across the whole control, i.e. a knob taller than the row it lives in.
 	///
 	/// <para>
 	/// It takes the control's own box, less half a knob at each end: the knob's centre then travels from half a
 	/// knob inside the rail's left end to half a knob inside its right, so a value at either end of the range
-	/// leaves the knob ON the rail rather than hanging off the page — which is also why the room follows the
-	/// knob's width, a number THIS surface chooses and the prefab cannot have authored for. The knob's HEIGHT
-	/// comes from this box rather than from its own rect, because the engine stretches the handle across the
-	/// container: the size written here is a width and a zero.
+	/// leaves the knob ON the rail rather than hanging off the page. The room therefore follows the knob's
+	/// width — the one dimension THIS surface chooses, because this page gives a control the whole compact row
+	/// rather than the band of a taller one the prefab authored for. The knob's HEIGHT comes from this box
+	/// rather than from its own rect, because the engine stretches the handle across the container: the size
+	/// written here is a width and a zero.
 	/// </para>
 	///
 	/// <para>

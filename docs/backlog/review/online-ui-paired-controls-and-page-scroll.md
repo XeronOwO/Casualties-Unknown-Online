@@ -1,16 +1,16 @@
 # The Online UI's paired controls and its pages' scroll affordance
 
-- Status: Todo — **Rejected** (2026-10-15, the user's own reading of the frame the run captured). The batch
-  `.acceptance/20261015-d/` reading below was taken on artifact `0.1.0+ce9db539…` and the geometry rows pass,
-  but the user judged the RESULT on screen and rejected it: four detail defects are named in *The user's
-  rejection* below, with the reading each one is read from. Nothing was implemented against them in the cycle
-  that recorded this: the ticket is the work order.
-- History: S1 to S4 landed in the suite, and the real-machine pass of 2026-10-15 (batch
-  `.acceptance/20261015-c/`) found that the paired row's second line did not stretch — the reading kept below,
-  with its cause corrected by the same day's second pass. That cycle's fix (the row owns its line) is what the
-  `20261015-d` reading below measures and what the user is rejecting the LOOK of. The run's own record is
-  `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md`, and the reading to judge
-  the four points by is the same recipe plus one frame.
+- Status: Review — the four points of *The user's rejection* below are **implemented and pass on batch
+  `.acceptance/20261015-e/`'s own readings** (artifact `0.1.0+6dad2d41…`; the reading is the section
+  *The reading of the fix* below, and the run's record is
+  `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-e.md`). The ticket is in
+  `review/` because the rejected LOOK is the user's own call: the frame those rows are judged from is
+  `a7-admin.png` in that batch.
+- History: S1 to S4 landed in the suite, and two real-machine passes re-read them. Batch `.acceptance/20261015-c/`
+  found the paired row's second line did not stretch (its reading is kept below); the fix that followed — the
+  row owns its line — is what batch `.acceptance/20261015-d/` measured and what the user rejected the LOOK of
+  (that run's record is `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md`);
+  the four points of that rejection, and the reuse direction that settles the slider's two, are below.
 - Priority: Medium-High
 - Category: Online UI / layout, presentation and input
 - Source: The user, 2026-10-14, in their own words: (1) "is there a scrollbar? the Admin page has a part that
@@ -78,12 +78,39 @@ slider control — why not reuse it?"* The answer, and it settles how points 2�
   The reading to check it with is the same dump (`rect`, `anchor` and `span` per node; the dump of batch
   `.acceptance/20261015-d/`, `g3-admin-dump.json`, is a worked example of it).
 
-**This is the work order for the next cycle** (the four points are one cycle, not four, and the direction above
-decides how the slider's own two are done): the page's content keeps clear of the bar's room; the paired row's
-control starts at the page's left margin; the slider shows ONE rail with the filled fraction exactly over it,
-from the game's own interior proportions; and the page's own label lines keep the same leading room every row's
-label keeps. Each is a geometry question with a reading above to judge it by, and the acceptance run for all
-four is the same recipe (`cuo-ui-dump`, whose `span` reading is the distance measure) plus one frame.
+**This was the work order for the cycle that landed it** (the four points are one cycle, not four, and the
+direction above decides how the slider's own two are done). What that cycle did, point by point, and what the
+next reader should judge it by, is *The reading of the fix* below.
+
+## The reading of the fix (batch `.acceptance/20261015-e/`, artifact `0.1.0+6dad2d41…`, one client, the same page)
+
+The four points of *The user's rejection* above, judged on this batch's own readings —
+`a5-admin-dump.json` (recipe `cuo-ui-dump`), `a6-prefab.json` (recipe `cuo-ui-prefab`, added by this cycle)
+and `a7-admin.png` (the frame):
+
+| # | The point | Reading | Verdict |
+|---|---|---|---|
+| 1 | The page's content keeps clear of the bar | `Viewport` and `Content` read `span=-492.00..482.00`, the bar `8.00x596.00 span=482.00..490.00`, and the value box `span=356.00..476.00` — six units clear of where the track begins | **fixed** (was `486.00`, four units under the track) |
+| 2 | The slider starts at the page's left margin | `Line/GameSettingFloat(Clone)/Slider` reads `820.00x36.00 span=-486.00..334.00` — the x every row's label starts at (`Label span=-486.00..-235.99`); the row's own empty label is `active=False` | **fixed** (was `-227.99`, the page's control column) |
+| 3 | One rail with the filled fraction exactly over it | `Slider/Background 820.00x28.00` (grey) and `Slider/Fill Area/Fill 223.33x28.00` (the page's warm tone) are the SAME 28 units, the fill inside the prefab's own `Fill Area` with its anchors driven to the value, and the knob `Handle 36.00x36.00` standing at that value; the frame draws the fraction's two lines and the rail's two lines on the same pixel rows | **fixed** (was a fill 36 units tall stretched over the whole control, over a 28-unit rail, with a knob rendering 45 units tall) |
+| 4 | The name keeps the rows' room | the frame: the paired row's name, the section heading and every row's label start at the same pixel column (`316`) | **fixed** (the name started at the page's own edge, four units left of the labels) |
+| 5 | The interior the game authored — the direction's "first thing the next cycle checks" | `Special/GameSettingFloat` is `1058.20x80.18`; the slider is a `962.45x20.00` band inside it; its `Fill Area 942.45x20.00` is the rail's own height; its `Fill` is point-anchored with no height of its own (`sizeDelta 10,00`); its `Handle Slide Area 942.45x20.00` carries a `20.00`-wide handle | **answered**: the interior's proportions stand and nothing of them hangs out of its row, and the game's own knob is one RAIL-height square whose travel is inset by half of it — so what a compact row has to re-cut is the knob's travel, and the knob's own width is this page's choice |
+
+What the fix does NOT change, and the readings that say so: the toggle, dropdown, field and tab rows
+(`Label 250.01`, `Toggle 32.79` at the page's column, `Tabs 984.00x36.00` with six `112.00` tabs), the
+shell's bands and the bar's own geometry (`8.00x596.00`, its handle `8.00x555.28`).
+
+Three consequences written down rather than hidden:
+
+- **A page's rows are 974 units wide now, not 984** — the row of *The re-taken reading (batch
+  `.acceptance/20261015-d/`)` above says "the row's box IS the page's width (984.00)"; that row is
+  **superseded** by the user's first point. The page's BAND is still 984 and the content gives up the bar's
+  10 units of it: the next reader judges a row's box against `Viewport`'s span, not `Scroll`'s.
+- **A slider's draggable area is the game's own rail and knob** (28 and 36 units tall) rather than the
+  36-unit-tall fill strip the previous cut stretched across the left of the row.
+- **The bar's own room is reserved whether or not the bar is drawn**, so a page that fits carries the same
+  empty 10-unit gutter. Deliberate: taking it only while the bar is up would make the wrapping that decides
+  whether a page overflows depend on its own answer.
 
 ## What the 2026-10-15 pass (batch `.acceptance/20261015-c/`) already reads
 
@@ -149,8 +176,10 @@ the fill's is), the panels' half of the shape (no drawer reaches it), and a pair
 - **The page's scrollbar track overlaps the value box by 4 units when the page overflows.** The track spans
   the outermost 10 units of the page band (8 wide, inset 2) and is drawn as a sibling ABOVE the viewport, so
   a value box 6 units inside the page's right edge sits under it: a click on those 4 units is the scrollbar's
-  jump, not the field. The criterion above asks for exactly 6, so the overlap is a consequence of it — the
-  question of whether page content should keep clear of the bar is open, and belongs to the user.
+  jump, not the field. The criterion above asks for exactly 6, so the overlap is a consequence of it.
+  **Decided by the user the same evening**: the content is to keep clear of the bar, "as normal front-end
+  design does" — and the reading of the fix above is that it now does, at the cost of the page's rows being
+  the band less the bar's room.
 - **A paired row's own minimum width is `282 + 2 × columnWidth`**: the row's label and the value field's own
   label both keep the page's column. A page whose name column exceeded 351 units would push the value past
   the page's right edge; the Admin page's is ~250, so this is unreachable today and is written down rather

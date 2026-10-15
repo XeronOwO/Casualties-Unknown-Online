@@ -1,10 +1,12 @@
 # The Online UI's paired controls and its pages' scroll affordance
 
-- Status: Todo — S1 to S4 are implemented and green in the suite; a real-machine pass on 2026-10-15
-  (batch `.acceptance/20261015-c/`) found the paired row's second line does not stretch, and the user
-  reported the same thing from the screen ("your paired control has no margin"). This section is that
-  reading, kept so the next cycle starts from it instead of from the code — with its CAUSE corrected by the
-  same day's second pass, which is what landed the fix: see *The cause, re-read* below.
+- Status: Done — accepted in batch `.acceptance/20261015-d/`, artifact `0.1.0+ce9db539…`, record
+  `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md`. Every row of the reading
+  below was re-taken and passes; the two judgements a person owns (the value box's 4 units under the page's
+  scrollbar, and whether the slider reads as one control) are the record's residuals. History: S1 to S4 landed
+  in the suite, and the real-machine pass of 2026-10-15 (batch `.acceptance/20261015-c/`) found that the paired
+  row's second line did not stretch — the reading kept below, with its cause corrected by the same day's second
+  pass.
 - Priority: Medium-High
 - Category: Online UI / layout, presentation and input
 - Source: The user, 2026-10-14, in their own words: (1) "is there a scrollbar? the Admin page has a part that
@@ -59,6 +61,24 @@ pass, whose fix is what this ticket now waits to have judged:
 (`.../GameSettingInt(Clone)/Input`) ends 6 units inside the page's right edge. The dump recipe now reports a
 `span` per node — its box in the WINDOW's own units — so that distance is read directly instead of being
 recomposed from two nodes' local `rect`/`pos`.
+
+## The re-taken reading (batch `.acceptance/20261015-d/`, artifact `0.1.0+ce9db539…`, one client, the same page)
+
+| What | Reading | Verdict |
+|---|---|---|
+| **The paired row's width** | `Line/GameSettingFloat(Clone)` `rect=984.00x36.00 span=-492.00..492.00` against the page's own `Content span=-492.00..492.00` — the row's box IS the page's width (was `132.00`) | **fixed** |
+| **The value box's margin** | `GameSettingFloat(Clone)/GameSettingInt(Clone)/Input` `span=366.00..486.00`: the value box ends exactly 6 units inside the page's right edge (`492.00`), with the field's own row flush at that edge (`352.00..492.00`) | **fixed** |
+| **The control column** | the row's own label keeps the column (`250.01`, `-486.00..-235.99`) and the slider starts at `-227.99` — the column the toggle rows' controls start at | **fixed** |
+| The slider's own reading | `Slider 571.99x36.00` (the control column to the value box), `Background 571.99x28.00` grey at alpha 1, the fill in the page's warm tone, the handle a light element; the frame `f6-admin.png` shows the track's thin line with both ends inside the page and the fraction filled to the value | S1 holds, with the handle's own rect a limit the record names |
+| The value beside the slider | `GameSettingInt(Clone)/Input` with `text=0.80`, the game's own field, its own box | S2 holds |
+| The paired row | the name is an element of its own (`984.00x28.00`) on one `Line` and the row that carries the control (and the value, inside it) is on the next | S3 holds |
+| The bar on a page that does not fit | the same as the first reading (`Content 644.00` against `Viewport 600.00`, the bar `8.00x596.00` with its handle `8.00x555.28`) | S4 holds |
+| No regression | `Tabs 984.00x36.00` with six `112.00` tabs inside the window; the one-line rule rows read their old widths (`Label 250.01`, `Toggle 32.79`) | holds |
+
+What the run could not settle is in the record's *Limits*: the handle's own rect (`607.99x9.00` on the
+prefab's untouched anchors — the engine's own place for a slider's handle is not driven in this page, while
+the fill's is), the panels' half of the shape (no drawer reaches it), and a paired row's own minimum width
+(`282 + 2 × columnWidth`).
 
 ## Readings of the new shape the judging pass has to know (before it re-takes the table)
 

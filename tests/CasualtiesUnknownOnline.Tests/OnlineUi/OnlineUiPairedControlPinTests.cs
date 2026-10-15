@@ -23,7 +23,9 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// Every pin carries a mutation of the REAL source as its negative sample, and the anchors are matched after
 /// comment-stripping and whitespace flattening, so indentation, line endings and a comment that merely names
 /// an API cannot decide a result. What no pin here can see is a rendering: whether the two lines read as one
-/// control on screen is the acceptance run's.
+/// control on screen is the acceptance run's. The page's own BAR — whether one is needed, how much room it
+/// takes on the band and how the content keeps clear of it — is <see cref="OnlineUiPageScrollPinTests"/>'
+/// family, and what a slider's inside IS is <see cref="OnlineUiSliderInteriorPinTests"/>'.
 /// </para>
 /// </summary>
 public sealed class OnlineUiPairedControlPinTests
@@ -72,15 +74,6 @@ public sealed class OnlineUiPairedControlPinTests
 				Adapter("OnlineUiRowGeometry.cs")),
 			"a row's width is DECLARED to the engine — the row that owns its line is flexible, the label keeps the page's column — so no pass forces the page's layout to be rebuilt for the rows to take their width: the rebuild the last cycle added re-measured the very numbers that were wrong, and every write left is behind a comparison, or the engine would re-lay the page out every frame");
 
-	[Fact]
-	public void APageThatDoesNotFitSaysSo() =>
-		Assert.True(
-			ThePageCarriesItsBar(
-				Runtime("OnlineUiPageScroll.cs"),
-				Adapter("OnlineUiPageScrollbar.cs"),
-				Adapter("OnlineUiWindowView.cs")),
-			"a page whose content runs past what is shown carries a bar that says how much more there is and where the player stands — the user's own report of 2026-10-14 (\"is there a scrollbar? … I don't see one on the right\") — and a page that FITS keeps none");
-
 	public static TheoryData<string, string, string, string, string> Mutations => new()
 	{
 		{ nameof(APairedControlCarriesItsNameOnItsOwnLine), "runtime/OnlineUiElementModel.cs", "control with { NewLine = true },", "control,", "a paired row whose two halves never ask for their own lines" },
@@ -91,6 +84,8 @@ public sealed class OnlineUiPairedControlPinTests
 		{ nameof(APairedControlCarriesItsNameOnItsOwnLine), "plugin/OnlineUiPageBuilder.cs", "_rows.Add(OnlineUiElementModel.Paired(", "_rows.Add(OnlineUiRowModel.Of(", "a numeric rule that goes back to the one-line row shape" },
 		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "runtime/OnlineUiRowLayout.cs", "owners[index] = owner;", "owners[index] = -1;", "a rule that names no owner, so a paired row's value field goes back to floating on the line" },
 		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiRowGeometry.cs", "trailingRoom: ownsItsLine ? 0 : (int)RowPadding);", "trailingRoom: (int)RowPadding);", "a paired row keeping the page's room at its trailing edge as well, which stops its value box six units short of the page's edge" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiRowGeometry.cs", "SetPartOfTheRow(label, partOfIt: false);", "SetPartOfTheRow(label, partOfIt: true);", "a paired row whose own empty label keeps the page's column, which is what held the slider at the column's edge instead of the page's own margin" },
+		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiRowGeometry.cs", "if (ownsItsLine)", "if (false)", "a paired row's label laid out as a name, taking a column of the row the control beside it should have started in" },
 		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiRowGeometry.cs", "LayOut(control, flexibleWidth: ownsItsLine ? 1f : 0f, width: width, height: height);", "LayOut(control, flexibleWidth: 0f, width: width, height: height);", "a control that keeps its own width on a line it owns, so the value beside it never reaches the page's edge" },
 		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiControlView.cs", "OwnsItsLine = element.NewLine && _controlRect != null;", "OwnsItsLine = false;", "a paired row that never holds the elements beside its control" },
 		{ nameof(APairedRowOwnsTheLineItsControlWasSentTo), "adapter/OnlineUiControlView.cs", "|| ((aloneOnItsLine || element.NewLine) && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;", "|| (aloneOnItsLine && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;", "a paired row that keeps the width of its own content instead of taking its line" },
@@ -109,15 +104,6 @@ public sealed class OnlineUiPairedControlPinTests
 		{ nameof(ThePagesControlsShareOneColumn), "adapter/OnlineUiControlView.cs", "return OnlineUiControlSizing.CaptionTextWidth(label);", "return 0f;", "a column measured from nothing, which leaves every control where its own label ended" },
 		{ nameof(ThePagesControlsShareOneColumn), "adapter/OnlineUiPanelView.cs", "OnlineUiWindowRowView.ColumnWidthOf(rows, NameWidth, ContentWidth)", "0f", "a panel whose controls do not line up with the pages' own column" },
 		{ nameof(ThePagesControlsShareOneColumn), "adapter/OnlineUiRowGeometry.cs", "width: columnWidth > 0f ? columnWidth : -1f,", "width: -1f,", "a row that ignores the page's column and keeps its label flexible" },
-		{ nameof(APageThatDoesNotFitSaysSo), "runtime/OnlineUiPageScroll.cs", "if (viewportHeight <= 0f || contentHeight <= viewportHeight + FitsTolerance)", "if (viewportHeight <= 0f)", "a bar drawn over every page, including the ones that fit — a control that can never move" },
-		{ nameof(APageThatDoesNotFitSaysSo), "runtime/OnlineUiPageScroll.cs", "var fraction = Clamp(viewportHeight / contentHeight, MinimumFraction, 1f);", "var fraction = 1f;", "a handle that fills the whole track however long the page is, so it cannot say where the player stands" },
-		{ nameof(APageThatDoesNotFitSaysSo), "runtime/OnlineUiPageScroll.cs", "private const float MinimumFraction = 0.05f;", "private const float MinimumFraction = 0f;", "a handle of zero height on a very long page — a bar nobody can see or grab" },
-		{ nameof(APageThatDoesNotFitSaysSo), "runtime/OnlineUiPageScroll.cs", "return new OnlineUiScrollHandle(fraction, offset);", "return new OnlineUiScrollHandle(fraction, 0f);", "a handle pinned to the top of the track while the page scrolls under it" },
-		{ nameof(APageThatDoesNotFitSaysSo), "runtime/OnlineUiPageScroll.cs", "public static float PositionFor(float offset) => Clamp(1f - offset, 0f, 1f);", "public static float PositionFor(float offset) => 1f;", "a click on the track that always asks for the top of the page" },
-		{ nameof(APageThatDoesNotFitSaysSo), "adapter/OnlineUiPageScrollbar.cs", "SetShown(needed);", "SetShown(true);", "a bar that is shown whether or not the page overflows" },
-		{ nameof(APageThatDoesNotFitSaysSo), "adapter/OnlineUiPageScrollbar.cs", "var height = Mathf.Max(1f, track * handle.Fraction);", "var height = track;", "a handle as tall as the track, which says nothing about how much of the page is shown" },
-		{ nameof(APageThatDoesNotFitSaysSo), "adapter/OnlineUiPageScrollbar.cs", "_handle.anchoredPosition = new Vector2(0f, -offset);", "_handle.anchoredPosition = Vector2.zero;", "a handle that never moves as the page is scrolled" },
-		{ nameof(APageThatDoesNotFitSaysSo), "adapter/OnlineUiWindowView.cs", "_scrollbar.Apply();", "// the page reports no position", "a window that never applies the bar it built" },
 	};
 
 	/// <summary>
@@ -165,10 +151,6 @@ public sealed class OnlineUiPairedControlPinTests
 			Is(file, "OnlineUiPanelView") ? broken : Adapter("OnlineUiPanelView.cs"),
 			Is(file, "OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
 			Is(file, "OnlineUiRowGeometry") ? broken : Adapter("OnlineUiRowGeometry.cs")),
-		nameof(APageThatDoesNotFitSaysSo) => broken => ThePageCarriesItsBar(
-			Is(file, "OnlineUiPageScroll") ? broken : Runtime("OnlineUiPageScroll.cs"),
-			Is(file, "OnlineUiPageScrollbar") ? broken : Adapter("OnlineUiPageScrollbar.cs"),
-			Is(file, "OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs")),
 		_ => throw new InvalidOperationException($"no matcher is registered for the pin `{pin}`"),
 	};
 
@@ -229,6 +211,13 @@ public sealed class OnlineUiPairedControlPinTests
 			&& geometry.Contains("GameObject row, RectTransform? label, RectTransform? control, float controlFloor, float height, float columnWidth, RectTransform? prefabValue, bool ownsItsLine)", StringComparison.Ordinal)
 			&& geometry.Contains("trailingRoom: ownsItsLine ? 0 : (int)RowPadding);", StringComparison.Ordinal)
 			&& geometry.Contains("LayOut(control, flexibleWidth: ownsItsLine ? 1f : 0f, width: width, height: height);", StringComparison.Ordinal)
+			// A row that owns its line carries no NAME of its own: the model put the name on the line above, so
+			// the label the game's own row prefab ships sits out of the row and the control starts at the
+			// page's own margin instead of after a column of empty space (the user's second point of
+			// 2026-10-15).
+			&& geometry.Contains("private static void SetPartOfTheRow(RectTransform part, bool partOfIt)", StringComparison.Ordinal)
+			&& geometry.Contains("if (ownsItsLine)", StringComparison.Ordinal)
+			&& geometry.Contains("SetPartOfTheRow(label, partOfIt: false);", StringComparison.Ordinal)
 			&& control.Contains("internal bool OwnsItsLine { get; private set; }", StringComparison.Ordinal)
 			&& control.Contains("OwnsItsLine = element.NewLine && _controlRect != null;", StringComparison.Ordinal)
 			&& control.Contains("|| ((aloneOnItsLine || element.NewLine) && OnlineUiControlSizing.FillsTheRow(element)) ? 1f : 0f;", StringComparison.Ordinal)
@@ -297,31 +286,6 @@ public sealed class OnlineUiPairedControlPinTests
 			&& Flatten(windowSource).Contains("OnlineUiWindowRowView.ColumnWidthOf(rows, NameWidth, ContentWidth)", StringComparison.Ordinal)
 			&& Flatten(panelSource).Contains("OnlineUiWindowRowView.ColumnWidthOf(rows, NameWidth, ContentWidth)", StringComparison.Ordinal)
 			&& geometry.Contains("width: columnWidth > 0f ? columnWidth : -1f,", StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// The page's own bar: the rule says whether one is needed and where its handle stands, the bar draws it
-	/// on the page's band (a sibling of the viewport, so the mask cannot clip it), hides itself on a page that
-	/// fits, and the window applies it every frame it is up.
-	/// </summary>
-	private static bool ThePageCarriesItsBar(string scrollSource, string barSource, string windowSource)
-	{
-		var scroll = Flatten(scrollSource);
-		var bar = Flatten(barSource);
-
-		return scroll.Contains("public static OnlineUiScrollHandle For(float viewportHeight, float contentHeight, float position)", StringComparison.Ordinal)
-			&& scroll.Contains("if (viewportHeight <= 0f || contentHeight <= viewportHeight + FitsTolerance)", StringComparison.Ordinal)
-			&& scroll.Contains("var fraction = Clamp(viewportHeight / contentHeight, MinimumFraction, 1f);", StringComparison.Ordinal)
-			&& scroll.Contains("private const float MinimumFraction = 0.05f;", StringComparison.Ordinal)
-			&& scroll.Contains("public static float PositionFor(float offset) => Clamp(1f - offset, 0f, 1f);", StringComparison.Ordinal)
-			&& scroll.Contains("return new OnlineUiScrollHandle(fraction, offset);", StringComparison.Ordinal)
-			&& bar.Contains("internal static OnlineUiPageScrollbar Create(RectTransform page, Sprite? sprite, Image.Type imageType, float pixelsPerUnit)", StringComparison.Ordinal)
-			&& bar.Contains("var handle = OnlineUiPageScroll.For(viewport, content, _scroll.verticalNormalizedPosition);", StringComparison.Ordinal)
-			&& bar.Contains("SetShown(needed);", StringComparison.Ordinal)
-			&& bar.Contains("var height = Mathf.Max(1f, track * handle.Fraction);", StringComparison.Ordinal)
-			&& bar.Contains("_handle.anchoredPosition = new Vector2(0f, -offset);", StringComparison.Ordinal)
-			&& Flatten(windowSource).Contains("var scrollbar = OnlineUiPageScrollbar.Create(scroll, sprite, imageType, pixelsPerUnit);", StringComparison.Ordinal)
-			&& Flatten(windowSource).Contains("_scrollbar.Apply();", StringComparison.Ordinal);
 	}
 
 	private static string Read(string file)

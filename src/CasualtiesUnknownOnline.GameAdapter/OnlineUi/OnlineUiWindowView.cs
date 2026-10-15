@@ -71,9 +71,12 @@ internal sealed class OnlineUiWindowView
 
 	internal const string CloseCaption = "×";
 
-	/// <summary>The content width the rows are wrapped against: the window minus its padding, which is also
-	/// the viewport's width (the scroll has no scrollbar of its own).</summary>
-	internal const float ContentWidth = Width - (2f * Padding);
+	/// <summary>The content width the rows are wrapped against: the window minus its padding and minus the room
+	/// the page's bar takes at its trailing edge (<see cref="OnlineUiPageScroll.GutterWidth"/>), which is also
+	/// the viewport's own width. The room is kept whether or not the bar is drawn, so the wrapping that decides
+	/// whether a page overflows cannot change with the answer (the user's first point of 2026-10-15: the value
+	/// box ended 4 units under the bar).</summary>
+	internal const float ContentWidth = Width - (2f * Padding) - OnlineUiPageScroll.GutterWidth;
 
 	/// <summary>The window's own frame tint, applied to the game's sprite so the panel keeps the game's
 	/// shape and CUO's dark surface.</summary>
@@ -215,7 +218,11 @@ internal sealed class OnlineUiWindowView
 		scrollRect.scrollSensitivity = 30f;
 
 		var viewport = OnlineUiSurfaceParts.CreateRect("Viewport", scroll, typeof(Image), typeof(RectMask2D));
-		OnlineUiSurfaceParts.Stretch(viewport, 0f, 0f, 0f, 0f);
+
+		// The page's rows keep clear of the bar's own room, exactly as a page's content does in any browser:
+		// the viewport ends where the bar's room begins, so no row is drawn under the track and a click on the
+		// bar is never a click the control under it also answers (the user's first point of 2026-10-15).
+		OnlineUiSurfaceParts.Stretch(viewport, 0f, OnlineUiPageScroll.GutterWidth, 0f, 0f);
 
 		// The bar rides the PAGE's own band, beside the viewport rather than inside it: the mask clips what
 		// is scrolled, and the one thing that must not scroll away is the bar that says how much is left
@@ -407,6 +414,12 @@ internal sealed class OnlineUiWindowView
 	/// into it — so the budget follows a clamped window (a smaller canvas is a narrower strip) exactly as
 	/// intended. The declared content width stands in for a frame whose rect is still zero, before its first
 	/// layout pass.
+	/// </para>
+	///
+	/// <para>
+	/// The strip spans the shell's whole inner band while the PAGE is narrower by the bar's room
+	/// (<see cref="ContentWidth"/>): the bar rides the page's own band, under the strip, so the strip's right
+	/// edge is the one place a tab may reach without meeting it.
 	/// </para>
 	/// </summary>
 	private float TabStripWidth => _rect.rect.width > 0f ? _rect.rect.width - (2f * Padding) : ContentWidth;

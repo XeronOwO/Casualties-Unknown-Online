@@ -20,22 +20,25 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// <para>
 /// The bar is a sibling of the page's VIEWPORT rather than of its content, so it does not scroll away with
 /// what it describes, and it is hidden outright when the page fits: the wheel and the drag are the same
-/// scroll view's, and the bar only ever reports the position it was asked to show. What it does with a drag
-/// or a click is <see cref="OnlineUiPageScrollDrag"/> and <see cref="OnlineUiPageScrollClick"/>, one file
-/// each because one type is one file.
+/// scroll view's, and the bar only ever reports the position it was asked to show. The page's content keeps
+/// the bar's own room clear (<see cref="OnlineUiPageScroll.GutterWidth"/> is the viewport's own inset), which
+/// is what stops a row from being drawn under the track. What it does with a drag or a click is
+/// <see cref="OnlineUiPageScrollDrag"/> and <see cref="OnlineUiPageScrollClick"/>, one file each because one
+/// type is one file.
 /// </para>
 /// </summary>
 internal sealed class OnlineUiPageScrollbar
 {
-	/// <summary>The bar's width: narrower than a control's own edge so it reads as a margin note rather than
-	/// as another control, and wide enough for a pointer to land on.</summary>
-	internal const float Width = 8f;
-
-	/// <summary>The room the bar keeps from the frame's own edge.</summary>
-	internal const float Inset = 2f;
-
 	/// <summary>The bar's object name in the scene, so a log line or a dump can be tied to it.</summary>
 	internal const string RootName = "CUO Online UI Scrollbar";
+
+	/// <summary>The bar's own width and the room it keeps from the band's edge: the page's measurements, so the
+	/// room the page's content gives up for it (<see cref="OnlineUiPageScroll.GutterWidth"/>) and the box drawn
+	/// in that room cannot drift apart.</summary>
+	private const float Width = OnlineUiPageScroll.TrackWidth;
+
+	/// <inheritdoc cref="Width"/>
+	private const float Inset = OnlineUiPageScroll.TrackInset;
 
 	private readonly RectTransform _root;
 	private readonly RectTransform _handle;

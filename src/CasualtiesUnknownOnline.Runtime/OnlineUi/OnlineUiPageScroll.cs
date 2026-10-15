@@ -26,6 +26,29 @@ public static class OnlineUiPageScroll
 	/// nothing to scroll" — a fraction of 1 is a handle as tall as the track it stands on.</summary>
 	public static OnlineUiScrollHandle Single => new(1f, 0f);
 
+	/// <summary>The bar's own width: the track its handle slides on, drawn at the page band's trailing edge. It
+	/// is narrower than a control's own edge so a page reads it as a margin note rather than as another control,
+	/// and wide enough for a pointer to land on and drag.</summary>
+	public const float TrackWidth = 8f;
+
+	/// <summary>The room the bar keeps from the band's own trailing edge, so it does not touch the frame.</summary>
+	public const float TrackInset = 2f;
+
+	/// <summary>
+	/// The room the bar takes on a page's band, which the page's CONTENT keeps clear of: the bar occupies the
+	/// outermost <see cref="TrackInset"/> plus <see cref="TrackWidth"/> units of the band, so a row's box stops
+	/// this far inside the band instead of running under it (the user's first point of 2026-10-15: "the content
+	/// should keep clear of the scrollbar — that is what normal front-end design does").
+	///
+	/// <para>
+	/// The room is kept whether or not the bar is DRAWN, and that is the point rather than an oversight: how
+	/// tall a page is depends on the width its rows are wrapped in, so a page that took the room only while its
+	/// bar was up would wrap narrower the moment it overflowed, and the wrapping that decided the bar was needed
+	/// would itself change with it. A page that fits leaves the room empty.
+	/// </para>
+	/// </summary>
+	public const float GutterWidth = TrackInset + TrackWidth;
+
 	/// <summary>
 	/// The handle for one page: the fraction of the track it fills is the fraction of the content the viewport
 	/// shows, and its place along the track is the fraction the page is scrolled by. A viewport that shows

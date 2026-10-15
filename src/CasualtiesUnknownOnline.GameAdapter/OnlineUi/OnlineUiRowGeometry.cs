@@ -53,10 +53,11 @@ internal static class OnlineUiRowGeometry
 		// A slider is the one control of this surface whose own children ARE its reading rather than boxes
 		// CUO collapses: the game draws its track, the fraction it fills and its handle there, and the rule
 		// that hides a prefab's decoration would delete exactly what the user asked to see (ticket
-		// online-ui-paired-controls-and-page-scroll, S1).
+		// online-ui-paired-controls-and-page-scroll, S1). Its own geometry is the game's, so it is handed
+		// nothing of this row's numbers — what it re-cuts is the knob's travel, not the box it draws in.
 		if (control.GetComponent<Slider>() is { } slider)
 		{
-			OnlineUiSliderGeometry.LayOut(slider, control, controlWidth, prefabValue);
+			OnlineUiSliderGeometry.LayOut(slider, prefabValue);
 			return;
 		}
 
@@ -171,6 +172,14 @@ internal static class OnlineUiRowGeometry
 	/// parts are anchored to the box rather than measured from it: the one number that reads that width (the
 	/// room its track keeps clear) answers the same at the floor and above it.
 	/// </para>
+	///
+	/// <para>
+	/// A row that owns its line carries no name of its own: the label the game's row prefab ships is taken
+	/// out of the row's group (<see cref="SetPartOfTheRow"/>), because the model put the name on the line
+	/// above — which is what lets the control start at the page's own margin instead of after a column of
+	/// empty space (the user's second point of 2026-10-15: the slider's left end reached the page's control
+	/// column and not the page's edge).
+	/// </para>
 	/// </summary>
 	internal static void LayOutPairedRow(GameObject root, LayoutElement layout, RectTransform? label, RectTransform? control, float controlWidth, float columnWidth, RectTransform? prefabValue = null)
 	{
@@ -232,13 +241,27 @@ internal static class OnlineUiRowGeometry
 
 		if (label != null)
 		{
-			// A row's name keeps the page's own control column when the page asked for one, so the controls
-			// below it line up; without one it is flexible, which is what the side-by-side rows always were.
-			LayOut(
-				label,
-				flexibleWidth: columnWidth > 0f ? 0f : 1f,
-				width: columnWidth > 0f ? columnWidth : -1f,
-				height: height);
+			// The row's own label is a NAME only where the model put the name on this row. A row that OWNS its
+			// line carries no name at all: the model put it on the line above (OnlineUiElementModel.Paired), so
+			// its own label is out of the group entirely — and that is what lets the control start at the
+			// page's own margin instead of after a column of empty space (the user's second point of
+			// 2026-10-15: the slider's left end reached the page's control column rather than the page's edge).
+			if (ownsItsLine)
+			{
+				SetPartOfTheRow(label, partOfIt: false);
+			}
+			else
+			{
+				SetPartOfTheRow(label, partOfIt: true);
+
+				// A row's name keeps the page's own control column when the page asked for one, so the controls
+				// below it line up; without one it is flexible, which is what the side-by-side rows always were.
+				LayOut(
+					label,
+					flexibleWidth: columnWidth > 0f ? 0f : 1f,
+					width: columnWidth > 0f ? columnWidth : -1f,
+					height: height);
+			}
 		}
 
 		if (control != null)
@@ -330,6 +353,33 @@ internal static class OnlineUiRowGeometry
 		if (group.childForceExpandHeight)
 		{
 			group.childForceExpandHeight = false;
+		}
+	}
+
+	/// <summary>
+	/// Takes one part of a row in or out of the row's own group. An INACTIVE object leaves a layout group's
+	/// children altogether — uGUI walks the active ones when it collects them — so a part that is out of the
+	/// row takes neither a width of its own nor the group's spacing, which is what makes the control beside it
+	/// start at the row's own leading edge.
+	///
+	/// <para>
+	/// It is a visibility write rather than a width of zero because the row's prefab label is a TEXT: a part
+	/// left in the group with the element's own text in it would draw over the control it sits beside, and the
+	/// paired shape is exactly the case where the name is somewhere else.
+	/// </para>
+	///
+	/// <para>
+	/// The paired shape may take the label out because the element it belongs to carries no name of its own:
+	/// <see cref="OnlineUiElementModel.Paired"/> writes the name as a line of its own, and the caller that
+	/// builds the row leaves the control's text empty. A future paired element that filled that text would
+	/// have its name silently hidden here — the element would need a line of its own for it instead.
+	/// </para>
+	/// </summary>
+	private static void SetPartOfTheRow(RectTransform part, bool partOfIt)
+	{
+		if (part.gameObject.activeSelf != partOfIt)
+		{
+			part.gameObject.SetActive(partOfIt);
 		}
 	}
 

@@ -83,6 +83,23 @@ public sealed class OnlineUiPageScrollTests
 		Assert.Equal(0.5f, OnlineUiPageScroll.PositionFor(0.5f));
 	}
 
+	/// <summary>
+	/// The room the bar takes on the page's band is the room the page's CONTENT keeps clear of, and the two are
+	/// one number: the bar is drawn inside the outermost units of the band, so the content stops where the track
+	/// begins and no row is drawn under it (the user's first point of 2026-10-15: the value box ended at 486.00
+	/// while the bar's track spanned 482.00..490.00, i.e. four units of the box sat under the bar).
+	/// </summary>
+	[Fact]
+	public void TheBarTakesTheRoomTheContentKeepsClearOf()
+	{
+		Assert.Equal(OnlineUiPageScroll.TrackInset + OnlineUiPageScroll.TrackWidth, OnlineUiPageScroll.GutterWidth);
+		Assert.True(OnlineUiPageScroll.TrackWidth > 0f, "a bar of no width is a bar nobody can see or grab");
+		Assert.True(OnlineUiPageScroll.TrackInset >= 0f, "the bar must stay inside the band it rides");
+		Assert.True(
+			OnlineUiPageScroll.GutterWidth >= OnlineUiPageScroll.TrackWidth,
+			"the content must clear the whole track, so the room the bar keeps from the band's edge is room the content does not get either");
+	}
+
 	/// <summary>The track's offset and the page's position are one rule read both ways: a click where the
 	/// handle stands asks for the position the handle was drawn for.</summary>
 	[Fact]

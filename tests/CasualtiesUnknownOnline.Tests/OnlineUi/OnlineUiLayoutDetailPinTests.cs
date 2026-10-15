@@ -19,10 +19,10 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// 2026-10-14 that belong to THIS family: a row's own prefab art does not draw
 /// (<see cref="TheRowsOwnPrefabArtDoesNotDraw"/>), and the surfaces build their parts in one place
 /// (<see cref="TheSurfacesBuildTheirPartsInOnePlace"/>). How WIDE an element is — the rule, the control's
-/// authored size and the element that is its own control — is <see cref="OnlineUiControlWidthPinTests"/>, one
-/// family per class. What these pins cannot see is a rendering: whether the game's prefabs behave under CUO's
-/// geometry, whether a popup lands where the player expects and whether the result reads as this game are the
-/// acceptance run's.
+/// authored size and the element that is its own control — is <see cref="OnlineUiControlWidthPinTests"/>, and
+/// what a slider's inside IS is <see cref="OnlineUiSliderInteriorPinTests"/>: one family per class. What these
+/// pins cannot see is a rendering: whether the game's prefabs behave under CUO's geometry, whether a popup
+/// lands where the player expects and whether the result reads as this game are the acceptance run's.
 /// </para>
 /// </summary>
 public sealed class OnlineUiLayoutDetailPinTests
@@ -46,6 +46,12 @@ public sealed class OnlineUiLayoutDetailPinTests
 			"a label's height is its own wrapped text (TMP is the layout element that knows it) over a one-line floor: a fixed one-line height is what made a two-line hint paint over the row below it");
 
 	[Fact]
+	public void APagesOwnTextKeepsTheRowsRoom() =>
+		Assert.True(
+			PageTextKeepsTheRowsRoom(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiRowGeometry.cs")),
+			"a label that is a line of its own — the name above a paired control — starts where the labels of the rows start, and not at the page's own edge: the room is a MARGIN on the text, because the box IS the line the label was wrapped onto (the user's fourth point of 2026-10-15)");
+
+	[Fact]
 	public void TheFrameKeepsTheGamesOwnBorder() =>
 		Assert.True(
 			TheFrameShowsTheGamesBorder(Adapter("OnlineUiWindowView.cs"), Adapter("OnlineUiControlFactory.cs"), Adapter("OnlineUiPanelView.cs")),
@@ -57,8 +63,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 			TheRowInsideIsLaidOutByCuo(
 				Adapter("OnlineUiControlView.cs"),
 				Adapter("OnlineUiRowGeometry.cs"),
-				Adapter("OnlineUiBoxGeometry.cs"),
-				Adapter("OnlineUiSliderGeometry.cs")),
+				Adapter("OnlineUiBoxGeometry.cs")),
 			"the game places its rows' children by hand for its own screen: a row instantiated into this window must have its label and its control laid out by CUO, and a control's own insides stretched onto the box CUO sizes");
 
 	[Fact]
@@ -107,18 +112,18 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(ThePageStartsBelowTheTabStrip), "adapter/OnlineUiWindowView.cs", "DeclareBandHeight(tabRow, TabHeight);", "// the tab strip declares no height of its own", "a tab strip the engine cannot size" },
 		{ nameof(EveryControlOfAPageIsTheSameCompactHeight), "adapter/OnlineUiControlView.cs", "_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;", "_layout.preferredHeight = _rect.sizeDelta.y;", "a control that takes the game's own authored height" },
 		{ nameof(ALabelIsAsTallAsItsWrappedText), "adapter/OnlineUiControlView.cs", "_layout.preferredHeight = -1f;", "_layout.preferredHeight = _typography.Size + OnlineUiControlFactory.LabelHeightPadding;", "a label pinned to one line while its text wraps" },
+		{ nameof(APagesOwnTextKeepsTheRowsRoom), "adapter/OnlineUiControlView.cs", "ApplyRowRoomToText(_caption);", "// the label keeps the page's own edge", "a name that is a line of its own, starting at the page's edge while every row's label starts inside it" },
+		{ nameof(APagesOwnTextKeepsTheRowsRoom), "adapter/OnlineUiControlView.cs", "text.margin = new Vector4(OnlineUiRowGeometry.RowPadding, margin.y, margin.z, margin.w);", "text.margin = new Vector4(margin.x, margin.y, margin.z, margin.w);", "a margin written back with no room of its own in it" },
+		{ nameof(APagesOwnTextKeepsTheRowsRoom), "adapter/OnlineUiControlView.cs", "if (!margin.x.Equals(OnlineUiRowGeometry.RowPadding))", "if (true)", "a margin written every frame, which redraws every label of a steady page" },
 		{ nameof(TheFrameKeepsTheGamesOwnBorder), "adapter/OnlineUiControlFactory.cs", "border.color = Color.white;", "border.color = fill;", "a frame that tints the game's border away" },
 		{ nameof(TheFrameKeepsTheGamesOwnBorder), "adapter/OnlineUiWindowView.cs", "OnlineUiControlFactory.MakeFrame(root, sprite, imageType, pixelsPerUnit, PanelTint);", "// the frame is tinted by hand", "a frame that never lays the fill inside the border" },
 		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiControlView.cs", "OnlineUiRowGeometry.PrepareInternals(dropdown, input, toggle);", "// the game's own row places its own children", "a row left at the rects the game's own settings screen authored for a screen three times this height" },
 		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiRowGeometry.cs", "var width = Mathf.Max(controlFloor, DeclaredWidthOf(control));", "var width = controlFloor;", "a control left at the model's floor with the game's own authored width ignored" },
 		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiRowGeometry.cs", "LayOutInterior(control, width, prefabValue);", "// the control's insides are never placed", "a control whose own text area, caret and caption are left where the game's own screen put them" },
-		// The slider's own reading: its parts are the control's MEANING, so hiding them is the user's report of
-		// 2026-10-14 and placing them is the fix.
-		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiRowGeometry.cs", "OnlineUiSliderGeometry.LayOut(slider, control, controlWidth, prefabValue);", "OnlineUiBoxGeometry.LayOutInterior(control, controlWidth);", "a slider sent down the box rule, which hides the track, the fill and the handle it is read by" },
-		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "PlaceTrack(slider.targetGraphic);", "OnlineUiBoxGeometry.HidePrefabBoxArt(slider.targetGraphic.rectTransform);", "a slider whose track keeps the prefab's hidden art — the invisible track the user reported" },
-		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "PlaceContainer(slider.fillRect, control, controlWidth, insetsTheTrack: true);", "// the filled fraction is left where the prefab put it", "a slider whose filled fraction is never placed on the compact box" },
-		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "PlaceContainer(HandleContainerOf(slider), control, controlWidth, insetsTheTrack: false);", "PlaceContainer(slider.handleRect, control, controlWidth, insetsTheTrack: false);", "a slider whose HANDLE is stretched onto the control, which detaches it from the container the engine moves it in: a knob as wide as the row, or parked in the middle of it" },
-		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiSliderGeometry.cs", "Tint(slider);", "// the slider keeps whatever colours the prefab carried", "a slider drawn in the prefab's own colours instead of the page's" },
+		// A slider is the one control whose own children ARE its reading, and it is handed to its own rule
+		// rather than down the box rule; what that rule then does with the parts — the game's own rail and
+		// filled fraction kept, the knob's travel re-cut — is OnlineUiSliderInteriorPinTests' family.
+		{ nameof(TheRowsInsideIsCuosGeometry), "adapter/OnlineUiRowGeometry.cs", "OnlineUiSliderGeometry.LayOut(slider, prefabValue);", "OnlineUiBoxGeometry.LayOutInterior(control, controlWidth);", "a slider sent down the box rule, which hides the track, the fill and the handle it is read by" },
 		{ nameof(TheRowsOwnPrefabArtDoesNotDraw), "adapter/OnlineUiRowGeometry.cs", "OnlineUiBoxGeometry.HidePrefabBoxArt((RectTransform)row.transform);", "// the game's own row frame stays", "the grey frame the game draws around every row of its own screen, left on a page" },
 		{ nameof(TheRowsOwnPrefabArtDoesNotDraw), "adapter/OnlineUiRowGeometry.cs", "OnlineUiBoxGeometry.HidePrefabBoxArt((RectTransform)row.transform);", "OnlineUiBoxGeometry.HidePrefabBoxArt((RectTransform)control.transform);", "a row that hides its CONTROL's box instead of its own decoration" },
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiSurfaceParts.cs", "internal static void Stretch(RectTransform rect, float left, float right, float top, float bottom)", "private static void Stretch(RectTransform rect, float left, float right, float top, float bottom)", "a shared construction part nothing outside its own file can reach" },
@@ -161,6 +166,9 @@ public sealed class OnlineUiLayoutDetailPinTests
 		nameof(ThePageStartsBelowTheTabStrip) => TheShellUsesTheRuntimeLayout,
 		nameof(EveryControlOfAPageIsTheSameCompactHeight) => OneControlHeight,
 		nameof(ALabelIsAsTallAsItsWrappedText) => LabelsGrowWithTheirText,
+		nameof(APagesOwnTextKeepsTheRowsRoom) => broken => PageTextKeepsTheRowsRoom(
+			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
+			Adapter("OnlineUiRowGeometry.cs")),
 		nameof(TheFrameKeepsTheGamesOwnBorder) => broken => TheFrameShowsTheGamesBorder(
 			Is(broken, "internal static Image MakeFrame") ? Adapter("OnlineUiWindowView.cs") : broken,
 			Is(broken, "internal static Image MakeFrame") ? broken : Adapter("OnlineUiControlFactory.cs"),
@@ -168,8 +176,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 		nameof(TheRowsInsideIsCuosGeometry) => broken => TheRowInsideIsLaidOutByCuo(
 			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
 			Is(broken, "internal static class OnlineUiRowGeometry") ? broken : Adapter("OnlineUiRowGeometry.cs"),
-			Is(broken, "internal static class OnlineUiBoxGeometry") ? broken : Adapter("OnlineUiBoxGeometry.cs"),
-			Is(broken, "internal static class OnlineUiSliderGeometry") ? broken : Adapter("OnlineUiSliderGeometry.cs")),
+			Is(broken, "internal static class OnlineUiBoxGeometry") ? broken : Adapter("OnlineUiBoxGeometry.cs")),
 		nameof(TheRowsOwnPrefabArtDoesNotDraw) => TheRowsOwnArtIsHidden,
 		// The wrap and the model's own breaks are the paired-control ticket's business:
 		// OnlineUiPairedControlPinTests holds that rule and the mutation rows that pin it.
@@ -236,6 +243,24 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& flat.Contains("_layout.minHeight = _typography.Size + OnlineUiControlFactory.LabelHeightPadding;", StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A page's own line of text keeps the room every row's label keeps from its row's edge: the room is the
+	/// row's own (<see cref="OnlineUiRowGeometry.RowPadding"/>, declared by the type that owns a row's geometry)
+	/// and it is written as a text MARGIN — the label's box is the line the wrap gave it, so a width written
+	/// instead would move the label off that line.
+	/// </summary>
+	private static bool PageTextKeepsTheRowsRoom(string controlSource, string geometrySource)
+	{
+		var flat = Flatten(controlSource);
+		var geometry = Flatten(geometrySource);
+
+		return geometry.Contains("internal const float RowPadding = 6f;", StringComparison.Ordinal)
+			&& flat.Contains("ApplyRowRoomToText(_caption);", StringComparison.Ordinal)
+			&& flat.Contains("private static void ApplyRowRoomToText(TMP_Text? text)", StringComparison.Ordinal)
+			&& flat.Contains("if (!margin.x.Equals(OnlineUiRowGeometry.RowPadding))", StringComparison.Ordinal)
+			&& flat.Contains("text.margin = new Vector4(OnlineUiRowGeometry.RowPadding, margin.y, margin.z, margin.w);", StringComparison.Ordinal);
+	}
+
 	/// <summary>The frame shows the game's border: the sprite stays untinted on the frame's own image and the
 	/// dark surface is a fill inside it.</summary>
 	private static bool TheFrameShowsTheGamesBorder(string windowSource, string factorySource, string panelSource)
@@ -255,15 +280,13 @@ public sealed class OnlineUiLayoutDetailPinTests
 
 	/// <summary>The row's own label and control are placed by CUO's group at the width CUO declares, and the
 	/// control's insides are laid out one rect at a time — never measured from content that stretches inside the
-	/// box. Which of the two inside-rules runs is the control's own: a box
-	/// (<see cref="OnlineUiBoxGeometry"/>) or a slider's reading (<see cref="OnlineUiSliderGeometry"/>), and a
-	/// slider keeps the game's own track, fill and handle rather than having them hidden with the prefab's
-	/// decoration (ticket online-ui-paired-controls-and-page-scroll, S1).</summary>
-	private static bool TheRowInsideIsLaidOutByCuo(string controlSource, string geometrySource, string boxSource, string sliderSource)
+	/// box. Which of the two inside-rules runs is the control's own: a box (<see cref="OnlineUiBoxGeometry"/>)
+	/// or a slider's own reading, whose parts are the GAME'S (<see cref="OnlineUiSliderInteriorPinTests"/> holds
+	/// that family).</summary>
+	private static bool TheRowInsideIsLaidOutByCuo(string controlSource, string geometrySource, string boxSource)
 	{
 		var geometry = Flatten(geometrySource);
 		var box = Flatten(boxSource);
-		var slider = Flatten(sliderSource);
 		var flat = Flatten(controlSource);
 
 		return geometry.Contains("private static HorizontalLayoutGroup ConfigureGroup(HorizontalLayoutGroup? group, GameObject row, int trailingRoom)", StringComparison.Ordinal)
@@ -273,25 +296,11 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& geometry.Contains("LayOut(control, flexibleWidth: ownsItsLine ? 1f : 0f, width: width, height: height);", StringComparison.Ordinal)
 			&& geometry.Contains("LayOutInterior(control, width, prefabValue);", StringComparison.Ordinal)
 			&& geometry.Contains("internal static void LayOutRow(", StringComparison.Ordinal)
-			&& geometry.Contains("OnlineUiSliderGeometry.LayOut(slider, control, controlWidth, prefabValue);", StringComparison.Ordinal)
+			&& geometry.Contains("OnlineUiSliderGeometry.LayOut(slider, prefabValue);", StringComparison.Ordinal)
 			&& geometry.Contains("OnlineUiBoxGeometry.LayOutInterior(control, controlWidth);", StringComparison.Ordinal)
 			&& box.Contains("private static void StretchInside(RectTransform child, float left, float right)", StringComparison.Ordinal)
 			&& box.Contains("private static bool IsContainer(RectTransform child) =>", StringComparison.Ordinal)
 			&& box.Contains("HidePrefabBoxArt(child);", StringComparison.Ordinal)
-			// A slider's own parts are PLACED, never hidden: hiding them is the defect S1 undoes.
-			&& slider.Contains("internal static void LayOut(Slider slider, RectTransform control, float controlWidth, RectTransform? prefabValue)", StringComparison.Ordinal)
-			&& slider.Contains("PlaceTrack(slider.targetGraphic);", StringComparison.Ordinal)
-			&& slider.Contains("PlaceContainer(slider.fillRect, control, controlWidth, insetsTheTrack: true);", StringComparison.Ordinal)
-			// The handle's CONTAINER is placed, never the handle: the engine drives a handle by its anchors
-			// inside that container, and stretching the handle's own rect onto the control throws them away.
-			&& slider.Contains("PlaceContainer(HandleContainerOf(slider), control, controlWidth, insetsTheTrack: false);", StringComparison.Ordinal)
-			&& slider.Contains("private static RectTransform? HandleContainerOf(Slider slider) =>", StringComparison.Ordinal)
-			&& slider.Contains("Tint(slider);", StringComparison.Ordinal)
-			// The knob is a square the height of the control, and its place stays the engine's: the size is
-			// written as sizeDelta, because SetSizeWithCurrentAnchors re-places a point-anchored rect.
-			&& slider.Contains("handle.sizeDelta = new Vector2(OnlineUiWindowLayout.ControlHeight, handle.sizeDelta.y);", StringComparison.Ordinal)
-			&& !slider.Contains("SetSizeWithCurrentAnchors", StringComparison.Ordinal)
-			&& !slider.Contains("HidePrefabBoxArt", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.LayOutPairedRow(_root, _layout, _labelRect, _controlRect, controlWidth, columnWidth, prefabValue);", StringComparison.Ordinal)
 			&& flat.Contains("OnlineUiRowGeometry.PrepareInternals(dropdown, input, toggle);", StringComparison.Ordinal);
 	}

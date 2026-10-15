@@ -348,6 +348,7 @@ internal sealed class OnlineUiControlView
 			// A label's height is its own wrapped text, and TMP is the layout element that knows it: the
 			// LayoutElement keeps only a one-line floor. The fixed one-line height this used to be is what
 			// made a hint that wrapped paint over the row below it.
+			ApplyRowRoomToText(_caption);
 			_layout.preferredHeight = -1f;
 			_layout.minHeight = _typography.Size + OnlineUiControlFactory.LabelHeightPadding;
 			return;
@@ -357,6 +358,33 @@ internal sealed class OnlineUiControlView
 		{
 			_layout.preferredHeight = OnlineUiWindowLayout.ControlHeight;
 			_layout.minHeight = OnlineUiWindowLayout.ControlHeight;
+		}
+	}
+
+	/// <summary>
+	/// Gives a page's own line of text the room every row's label keeps from its row's own edge
+	/// (<see cref="OnlineUiRowGeometry.RowPadding"/>): a name that is an element of its own — the line above a
+	/// paired control — then starts where the labels of the rows start, and not at the page's own edge (the
+	/// user's fourth point of 2026-10-15).
+	///
+	/// <para>
+	/// The room is a MARGIN on the text rather than a narrower box, because the box IS the line the label was
+	/// wrapped onto: a width written instead would move the label off its own line, and a group that wrote one
+	/// would fight the wrap that produced that line. The write is guarded because TMP re-draws its text when
+	/// the margin changes, and this runs once per frame per label.
+	/// </para>
+	/// </summary>
+	private static void ApplyRowRoomToText(TMP_Text? text)
+	{
+		if (text is null)
+		{
+			return;
+		}
+
+		var margin = text.margin;
+		if (!margin.x.Equals(OnlineUiRowGeometry.RowPadding))
+		{
+			text.margin = new Vector4(OnlineUiRowGeometry.RowPadding, margin.y, margin.z, margin.w);
 		}
 	}
 

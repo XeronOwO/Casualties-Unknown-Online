@@ -120,7 +120,12 @@ public static class OnlineUiWindowLayout
 	/// <summary>The page's top edge: the tab strip's bottom edge plus the page's own gap from the tabs.</summary>
 	public const float PageTop = TabBottom + TabGap;
 
-	/// <summary>The width a page's rows are laid out in: the frame minus its padding on both sides.</summary>
+	/// <summary>The frame's inner band: the width the title bar, the tab strip and the page's own band share,
+	/// which is the frame minus its padding on both sides. It is NOT the width a page's rows are wrapped at —
+	/// the page's bar rides that band and takes its own room out of the content's half of it
+	/// (<c>OnlineUiPageScroll.GutterWidth</c>, declared for the rows by the adapter's own
+	/// <c>OnlineUiWindowView.ContentWidth</c>) — and it is the width a label is born with when it has no box
+	/// yet.</summary>
 	public const float ContentWidth = Width - (2f * Padding);
 
 	/// <summary>How much room a page has: the frame minus the padding at the bottom and the page's top edge.

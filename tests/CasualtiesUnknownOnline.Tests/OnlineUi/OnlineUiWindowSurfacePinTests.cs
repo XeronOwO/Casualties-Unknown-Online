@@ -228,14 +228,14 @@ public sealed class OnlineUiWindowSurfacePinTests
 			"_window = OnlineUiWindowView.Create(root.transform, _log, _intents.Enqueue);",
 			StringComparison.Ordinal);
 
-	/// <summary>The wrap is the Runtime's rule, against the content width the window declares.</summary>
 	/// <summary>The wrap is the Runtime's rule — the fit and the model's own breaks together — against the
-	/// content width the window declares.</summary>
+	/// content width the window declares: the band less the frame's padding and less the room the page's bar
+	/// takes, because that room is not the rows' to lay out in.</summary>
 	private static bool WrappedByTheRuntimeRule(string windowSource)
 	{
 		var flat = Flatten(windowSource);
 
-		return flat.Contains("internal const float ContentWidth = Width - (2f * Padding);", StringComparison.Ordinal)
+		return flat.Contains("internal const float ContentWidth = Width - (2f * Padding) - OnlineUiPageScroll.GutterWidth;", StringComparison.Ordinal)
 			&& flat.Contains("var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);", StringComparison.Ordinal);
 	}
 

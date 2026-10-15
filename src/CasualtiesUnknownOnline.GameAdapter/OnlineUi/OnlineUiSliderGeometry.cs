@@ -7,84 +7,83 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 
 /// <summary>
 /// The inside of one slider of a page (ticket online-ui-paired-controls-and-page-scroll, S1): the game's own
-/// track, the fraction of it the value fills and the handle the player drags, all of it placed on the compact
-/// box a page gives a control and tinted from the page's own palette.
+/// track, the fraction of it the value fills and the handle the player drags, and the rule that the game's own
+/// interior is left where the game put it.
 ///
 /// <para>
 /// It exists because the row's own geometry treats every child of a control as a box CUO collapses — the
 /// game's decoration is hidden so that one control shows exactly one box, which is right for a field's white
 /// frame and a dropdown's border and WRONG here: a slider's children ARE its reading. The user's report of
 /// 2026-10-14 is the result of hiding them ("the slider's middle has no thin line, so you cannot see where
-/// its ends are"), so a slider's children are placed instead of hidden and keep their own drawing.
+/// its ends are"), so a slider's children are kept and tinted instead of hidden.
 /// </para>
 ///
 /// <para>
-/// The parts come from the Slider component itself (<c>fillRect</c>, <c>handleRect</c>,
-/// <c>targetGraphic</c>) rather than from the names the game's hierarchy happens to use, so a prefab that
-/// renames a child still works; a slider whose parts the game left unassigned simply shows its track. The
-/// track's thickness and the value field's width live in <see cref="OnlineUiWindowLayout"/> with the rest of
-/// the surface's measurements, and everything here is idempotent — it runs once per frame per control.
+/// What this type does NOT do is re-cut them. The first cut re-placed the rail, the fill and the handle onto
+/// the compact box the row gives a control, and the acceptance reading of batch `20261015-d` is what that
+/// produced: a fill <c>551.99x36.00</c> stretched over the whole control — the frame draws it 36 units tall —
+/// inside a rail that resolves to <c>571.99x28.00</c> in the same row, which is the user's "the yellow
+/// rectangle in front and the background's full rectangle do not overlap exactly" (2026-10-15). The same
+/// dump is what shows WHY: this prefab's <c>Slider.targetGraphic</c> carries <c>whitesquare</c> with the
+/// handle's own <c>0.92,0.93,0.94</c>, i.e. it IS the handle — the rail is the sibling named
+/// <c>Background</c> — so the pass that "placed the track" was placing and tinting the knob, while the engine
+/// drove the same rect from the value.
+/// </para>
+///
+/// <para>
+/// So the game's own boxes stand, and the engine drives them: the filled fraction inside the prefab's own
+/// <c>Fill Area</c>, the knob inside the box the engine slides it in. The ONE thing re-cut here is that box,
+/// because it decides TWO numbers at once — where the knob's centre travels, and how tall the knob is (the
+/// engine stretches the handle across its container and the prefab adds its own nine units on top: the frame
+/// of batch `20261015-d` renders a 36-unit container as a 45-unit knob). A travel box this surface writes is
+/// therefore also the number that says how tall the knob reads, and the compact row is what that box has to
+/// be; the box the game's own row would resolve to is unread — the prefab ASSET still carries it, which is
+/// what <c>tools/acceptance/recipes/cuo-ui-prefab.cs</c> reads and the acceptance run judges.
+/// </para>
+///
+/// <para>
+/// What the fraction's own box lands on is the same kind of reading: it is the game's <c>Fill Area</c> plus
+/// whatever size the prefab adds to it, and only the asset can say what that is. Everything here is
+/// idempotent — it runs once per frame per control — and every RECT write is behind a comparison, because a
+/// rect write marks the canvas for a rebuild whether or not anything changed.
 /// </para>
 /// </summary>
 internal static class OnlineUiSliderGeometry
 {
-	/// <summary>The track: the bar the whole range is drawn on, at the panel's own value fill so the control
-	/// still reads as one box of the same family as the fields beside it. The track's THICKNESS is whatever
-	/// the game's own prefab authored for it — the game draws a line across a row three times this one's
-	/// height, and the ratio is what keeps it a line here (measured: 10 units of a 80-unit row, i.e. an
-	/// eighth).</summary>
-	private static readonly Color TrackColor = new(
-		OnlineUiWindowLayout.ControlFillR,
-		OnlineUiWindowLayout.ControlFillG,
-		OnlineUiWindowLayout.ControlFillB,
-		1f);
+	/// <summary>The knob's own width: the height of one control, so the knob of a slider reads as a square of
+	/// the same size as the checkbox beside it in the page's own column.</summary>
+	private const float KnobWidth = OnlineUiWindowLayout.ControlHeight;
 
 	/// <summary>The fraction the value fills: the tab row's own warm tone, so the current value is visible at
 	/// a glance and not only as a number.</summary>
 	private static readonly Color FillColor = new(0.85f, 0.72f, 0.38f, 1f);
 
-	/// <summary>The handle: the light tone the page's captions use, so the thing the player drags reads as
+	/// <summary>The knob: the light tone the page's captions use, so the thing the player drags reads as
 	/// theirs to drag.</summary>
 	private static readonly Color HandleColor = new(0.92f, 0.93f, 0.94f, 1f);
 
-	/// <summary>The room the track keeps from the control's own edge. The handle slides inside it, which is
-	/// what stops the handle from being half outside the box at either end of the range.</summary>
-	private const float TrackInset = OnlineUiBoxGeometry.InnerPadding;
-
 	/// <summary>
-	/// Places one slider's own parts on the box its row gave it. The control keeps the ONE box CUO draws
-	/// (<see cref="OnlineUiRowGeometry"/> applies it) and the game's track, fill and handle are placed inside
-	/// that box from the slider's own component, never by measuring what a layout group just wrote.
+	/// Prepares one slider of a page: the parts the game drew stay where the game put them and take the page's
+	/// own colours, the knob's travel is re-cut for the compact row, and the defunct formatted value the
+	/// prefab carries beside its slider is hidden.
 	///
 	/// <para>
-	/// <paramref name="prefabValue"/> is the formatted reading the game's own row prefab carries beside its
-	/// slider — the defunct label the user's report replaced with an editable field. It is HIDDEN rather than
-	/// placed: leaving it visible would put the same value on screen twice, once of them stale, and its own
-	/// rect overlaps the track because the prefab authored it for a screen three times this height.
+	/// <paramref name="prefabValue"/> is that formatted reading — the label the user's report replaced with an
+	/// editable field. It is HIDDEN rather than placed: leaving it visible would put the same value on screen
+	/// twice, one of them stale, and its own rect sits exactly where this row's value field is drawn (batch
+	/// `20261015-d` reads the label at <c>412.44..485.96</c> in the same row as the field's
+	/// <c>366.00..486.00</c>).
 	/// </para>
 	/// </summary>
-	internal static void LayOut(Slider slider, RectTransform control, float controlWidth, RectTransform? prefabValue)
+	internal static void LayOut(Slider slider, RectTransform? prefabValue)
 	{
-		// A page's row is one compact height and the engine places these from the rect the row gave them, so
-		// the sizes are written straight onto each part; the pivots are centred because the engine's own `Set`
-		// positions a handle by its pivot, and a prefab authored with a corner pivot would drag the handle out
-		// of the box as soon as the value moved.
+		// The engine places the rail's fraction and the knob from the value, so CUO writes only what the engine
+		// cannot: the direction, the travel the knob is placed in, and the colours of the two parts it draws.
 		slider.direction = Slider.Direction.LeftToRight;
 		slider.useGUILayout = false;
 
-		PlaceTrack(slider.targetGraphic);
-		PlaceContainer(slider.fillRect, control, controlWidth, insetsTheTrack: true);
-
-		// The handle's own CONTAINER is what CUO places, never the handle: a slider drives its handle by the
-		// handle's ANCHORS inside the container the game's own prefab put it in, and both that container and
-		// those anchors belong to the engine. Stretching the handle's own rect onto the control (what this did
-		// before) throws the anchors away: the knob then spans the whole control and reads as its track, and
-		// once its size is corrected it parks in the middle of the line whatever the value is (batch
-		// `20261015-d` read both: a 571.99-wide handle inside a 571.99-wide slider, then a 36-unit knob centred
-		// at the slider's own midpoint with the value at a quarter of it).
-		PlaceContainer(HandleContainerOf(slider), control, controlWidth, insetsTheTrack: false);
-		PlaceHandle(slider.handleRect);
 		Tint(slider);
+		PlaceKnobTravel(slider);
 
 		if (prefabValue != null)
 		{
@@ -103,77 +102,93 @@ internal static class OnlineUiSliderGeometry
 			: null;
 
 	/// <summary>
-	/// The bar itself: the width of the control less the room the handle slides in, at the height the game
-	/// authored for it, centred in the box. A target graphic that is not an image (a slider drawing its
-	/// track with something else) keeps whatever it is — this only writes the rect.
+	/// The one layer of the prefab this surface re-cuts: the box the engine slides the knob in. A slider drives
+	/// its handle by the handle's ANCHORS inside that box, so the box decides both where the knob's centre
+	/// travels and how tall the knob renders — the prefab's own box is authored against the game's own row, and
+	/// the batch `20261015-d` reading of what that produces in this one is a <c>607.99x9.00</c> handle
+	/// stretched across the whole control, a knob taller than the row it lives in.
+	///
+	/// <para>
+	/// It takes the control's own box, less half a knob at each end: the knob's centre then travels from half a
+	/// knob inside the rail's left end to half a knob inside its right, so a value at either end of the range
+	/// leaves the knob ON the rail rather than hanging off the page — which is also why the room follows the
+	/// knob's width, a number THIS surface chooses and the prefab cannot have authored for. The knob's HEIGHT
+	/// comes from this box rather than from its own rect, because the engine stretches the handle across the
+	/// container: the size written here is a width and a zero.
+	/// </para>
+	///
+	/// <para>
+	/// A prefab whose handle is a child of the control has box and knob in one object and the engine drives
+	/// neither, so there the game's own place stands exactly as the rail's and the fill's do, and nothing but
+	/// the knob's pivot is levelled.
+	/// </para>
 	/// </summary>
-	private static void PlaceTrack(Graphic? track)
+	private static void PlaceKnobTravel(Slider slider)
 	{
-		if (track is null)
-		{
-			return;
-		}
-
-		var rect = track.rectTransform;
-		var authored = rect.rect.height;
-		var height = authored > 0f && authored < OnlineUiWindowLayout.ControlHeight
-			? authored
-			: OnlineUiWindowLayout.ControlHeight * 0.25f;
-		rect.anchorMin = new Vector2(0f, 0.5f);
-		rect.anchorMax = new Vector2(1f, 0.5f);
-		rect.pivot = new Vector2(0.5f, 0.5f);
-		rect.offsetMin = new Vector2(TrackInset, -height * 0.5f);
-		rect.offsetMax = new Vector2(-TrackInset, height * 0.5f);
-	}
-
-	/// <summary>
-	/// One of the slider's two containers — the area its fill is drawn in, and the area its handle slides
-	/// along. Both run the width of the track and the full height of the box, so the fill and the handle
-	/// stand on the same line; <paramref name="insetsTheTrack"/> is the fill's own inset, because the
-	/// engine draws the filled fraction between the handle's two end positions rather than under the room
-	/// the handle keeps.
-	/// </summary>
-	private static void PlaceContainer(RectTransform? container, RectTransform control, float controlWidth, bool insetsTheTrack)
-	{
+		var handle = slider.handleRect;
+		var container = HandleContainerOf(slider);
 		if (container is null)
 		{
+			CentreTheKnob(handle);
 			return;
 		}
 
+		// A group or a fitter left on the box the knob slides in would fight the anchors the engine writes
+		// from the value, which is why the one box CUO writes is also the one it clears of drivers.
 		DropLayoutDrivers(container);
-		container.SetParent(control, worldPositionStays: false);
-		container.anchorMin = new Vector2(0f, 0f);
-		container.anchorMax = new Vector2(1f, 1f);
-		container.pivot = new Vector2(0.5f, 0.5f);
-		var inset = insetsTheTrack ? Mathf.Min(TrackInset, Mathf.Max(0f, controlWidth * 0.25f)) : 0f;
-		container.offsetMin = new Vector2(inset, 0f);
-		container.offsetMax = new Vector2(-inset, 0f);
+
+		if (container.anchorMin != Vector2.zero)
+		{
+			container.anchorMin = Vector2.zero;
+		}
+
+		if (container.anchorMax != Vector2.one)
+		{
+			container.anchorMax = Vector2.one;
+		}
+
+		if (container.pivot != new Vector2(0.5f, 0.5f))
+		{
+			container.pivot = new Vector2(0.5f, 0.5f);
+		}
+
+		var room = KnobWidth * 0.5f;
+		var left = new Vector2(room, 0f);
+		var right = new Vector2(-room, 0f);
+		if (container.offsetMin != left)
+		{
+			container.offsetMin = left;
+		}
+
+		if (container.offsetMax != right)
+		{
+			container.offsetMax = right;
+		}
+
+		if (handle is not null && handle.sizeDelta != new Vector2(KnobWidth, 0f))
+		{
+			handle.sizeDelta = new Vector2(KnobWidth, 0f);
+		}
+
+		CentreTheKnob(handle);
 	}
 
 	/// <summary>
-	/// The knob itself: a square the height of the compact box, standing where the ENGINE put it. Its place is
-	/// the anchors a slider drives as the value moves, so CUO writes the SIZE and the pivot only — writing the
-	/// rect's position or its anchors here is what parked the knob in the middle of the line. The width is
-	/// written as <c>sizeDelta</c> rather than with <c>SetSizeWithCurrentAnchors</c>, which re-places a
-	/// point-anchored rect as a side effect and is the other half of that defect.
+	/// Puts a knob's pivot at its own centre: the engine places a handle by its pivot, and a prefab authored
+	/// with a corner pivot would drag the knob out of the box as soon as the value moved. The anchored
+	/// position is levelled for the same reason — the engine drives the handle's ANCHORS, never its offset
+	/// from them — and every write here is behind a comparison.
 	/// </summary>
-	private static void PlaceHandle(RectTransform? handle)
+	private static void CentreTheKnob(RectTransform? handle)
 	{
 		if (handle is null)
 		{
 			return;
 		}
 
-		// Every write here is behind a comparison: this runs once per frame per slider, and a rect write marks
-		// the canvas for a rebuild whether or not anything changed.
 		if (handle.pivot != new Vector2(0.5f, 0.5f))
 		{
 			handle.pivot = new Vector2(0.5f, 0.5f);
-		}
-
-		if (!handle.sizeDelta.x.Equals(OnlineUiWindowLayout.ControlHeight))
-		{
-			handle.sizeDelta = new Vector2(OnlineUiWindowLayout.ControlHeight, handle.sizeDelta.y);
 		}
 
 		if (!handle.anchoredPosition.y.Equals(0f))
@@ -183,30 +198,33 @@ internal static class OnlineUiSliderGeometry
 	}
 
 	/// <summary>
-	/// Gives the track, the filled fraction and the handle the page's own colours. Their drawing is NOT
-	/// hidden (that is the defect this type exists to undo) and their raycast is left alone: the slider
-	/// itself is what the player drags, and the parts are its own drawing.
+	/// Gives the filled fraction and the knob the page's own colours. The RAIL keeps the game's own: it is the
+	/// one part of the control that draws the range the player chooses from, it is authored as a frame whose
+	/// middle is the page's own surface (the frame of batch `20261015-d` draws its grey edges and nothing
+	/// between them), and a fill in the dark tone a control of this page carries would draw over the very line
+	/// the user asked to see.
+	///
+	/// <para>
+	/// The knob is coloured from <c>handleRect</c> and never from <c>targetGraphic</c>: in this prefab they are
+	/// the same object (the dump of batch `20261015-d` reads <c>bgSprite: whitesquare</c> beside the handle's
+	/// own sprite), so a "track" colour written there is a colour written to the knob.
+	/// </para>
 	/// </summary>
 	private static void Tint(Slider slider)
 	{
-		if (slider.targetGraphic is { } track)
-		{
-			track.color = TrackColor;
-		}
-
-		if (slider.fillRect != null && slider.fillRect.GetComponent<Graphic>() is { } fill)
+		if (slider.fillRect != null && slider.fillRect.GetComponent<Graphic>() is { } fill && fill.color != FillColor)
 		{
 			fill.color = FillColor;
 		}
 
-		if (slider.handleRect != null && slider.handleRect.GetComponent<Graphic>() is { } handle)
+		if (slider.handleRect != null && slider.handleRect.GetComponent<Graphic>() is { } handle && handle.color != HandleColor)
 		{
 			handle.color = HandleColor;
 		}
 	}
 
 	/// <summary>
-	/// Takes the layout drivers off a slider's own container: a layout group asked to size it measures the
+	/// Takes the layout drivers off the box the knob slides in: a layout group asked to size it measures the
 	/// rect the engine has just written from the value, which is the feedback the row's geometry removes
 	/// everywhere else.
 	/// </summary>

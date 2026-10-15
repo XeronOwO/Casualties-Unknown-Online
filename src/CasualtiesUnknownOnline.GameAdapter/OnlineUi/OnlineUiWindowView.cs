@@ -299,6 +299,14 @@ internal sealed class OnlineUiWindowView
 		{
 			_structureDirty = false;
 			Reorder();
+
+			// The wrap put the elements on lines, and a line's own group has to be told to re-measure them:
+			// this pass writes a LayoutElement's sizes rather than a rect the engine tracks, so the group would
+			// otherwise keep every element at the width it was BUILT at and the line would never share itself
+			// out (the acceptance reading of batch `20261015-c`: a slider left 120 wide inside a 972-wide line,
+			// with the page's column beside it). One forced pass per structural change places them for the
+			// frame that is about to be drawn.
+			LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
 		}
 	}
 
@@ -475,16 +483,16 @@ internal sealed class OnlineUiWindowView
 
 		// The views come first, and the wrap comes after them: how wide a control is comes from its own
 		// content — the game's font at the game's size decides what a caption needs — so the model's width is
-		// only a floor and the lines are decided from what the controls actually take.
+		// only a floor and the lines are decided from what the controls actually take. The model is applied
+		// before the widths are read because a name is one of the things read here (the page's column).
 		_structureDirty |= _views.Sync(row.Elements, elements, _content);
 
 		var widths = new float[elements.Count];
 		var breaks = new bool[elements.Count];
 		for (var index = 0; index < elements.Count; index++)
 		{
-			var view = row.Elements[index];
-			view.Apply(elements[index], aloneOnItsLine: elements.Count == 1);
-			widths[index] = view.EffectiveWidth(elements[index]);
+			row.Elements[index].Apply(elements[index], aloneOnItsLine: false);
+			widths[index] = row.Elements[index].EffectiveWidth(elements[index]);
 			breaks[index] = elements[index].NewLine;
 		}
 
@@ -502,6 +510,13 @@ internal sealed class OnlineUiWindowView
 			var view = row.Elements[index];
 			view.SetParent(row.Lines[lines[index]].transform);
 
+			// "Alone on its line" is the LINE's own fact, not the row's: a paired control puts one element on
+			// the first line and two on the second, and only the element that has its line to itself may take
+			// what that line has left. The model is applied a second time with the answer, because the flag is
+			// what decides whether a control stretches.
+			var alone = AloneOnItsLine(lines, index);
+			view.Apply(elements[index], alone);
+
 			// A row that carries its own label and control (a dropdown, a field, a slider, a toggle) is laid
 			// out by CUO inside: the game's own placement belongs to the game's own screen. The width it takes
 			// on its line is the one just computed — the width CUO declared, never a measurement of the
@@ -514,6 +529,23 @@ internal sealed class OnlineUiWindowView
 		}
 
 		_structureDirty |= row.DestroyElementsFrom(elements.Count);
+	}
+
+	/// <summary>Whether the element at <paramref name="index"/> has its line to itself — the fact that lets a
+	/// control take what its line has left instead of keeping the size its content asked for. It is the
+	/// surface's own rule for a line of a page, so the panel asks the window for it rather than growing a
+	/// second copy.</summary>
+	internal static bool AloneOnItsLine(int[] lines, int index)
+	{
+		for (var other = 0; other < lines.Length; other++)
+		{
+			if (other != index && lines[other] == lines[index])
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>Puts the lines back in model order. Unity appends a new object to the end of its parent, so

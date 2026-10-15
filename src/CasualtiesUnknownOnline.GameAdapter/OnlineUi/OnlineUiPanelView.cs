@@ -212,6 +212,10 @@ internal sealed class OnlineUiPanelView
 		{
 			_structureDirty = false;
 			Reorder();
+
+			// The same forced pass the window's pages take, for the same reason: the rows' groups have to
+			// re-measure the sizes this frame wrote, or every element keeps the width it was built at.
+			LayoutRebuilder.ForceRebuildLayoutImmediate(_rect);
 		}
 
 		ApplyAnchor(model);
@@ -343,16 +347,16 @@ internal sealed class OnlineUiPanelView
 
 		// Views first and the wrap after them: how wide a control is comes from its own content, so the
 		// model's width is only a floor and the lines are decided from what the controls actually take — the
-		// same rule the window applies, because this view IS the window's shell without the window.
+		// same rule the window applies, because this view IS the window's shell without the window. The model
+		// is applied before the widths are read because a name is one of the things read here.
 		_structureDirty |= _views.Sync(row.Elements, elements, _root.transform);
 
 		var widths = new float[elements.Count];
 		var breaks = new bool[elements.Count];
 		for (var index = 0; index < elements.Count; index++)
 		{
-			var view = row.Elements[index];
-			view.Apply(elements[index], aloneOnItsLine: elements.Count == 1);
-			widths[index] = view.EffectiveWidth(elements[index]);
+			row.Elements[index].Apply(elements[index], aloneOnItsLine: false);
+			widths[index] = row.Elements[index].EffectiveWidth(elements[index]);
 			breaks[index] = elements[index].NewLine;
 		}
 
@@ -369,6 +373,11 @@ internal sealed class OnlineUiPanelView
 		{
 			var view = row.Elements[index];
 			view.SetParent(row.Lines[lines[index]].transform);
+
+			// "Alone on its line" is the LINE's own fact: a paired control puts one element on its first line
+			// and two on its second, and only the element with its line to itself takes what that line has
+			// left.
+			view.Apply(elements[index], OnlineUiWindowView.AloneOnItsLine(lines, index));
 			view.LayOutRow(elements[index], widths[index], columnWidth: 0f);
 		}
 

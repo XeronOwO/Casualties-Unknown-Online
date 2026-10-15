@@ -63,7 +63,8 @@ public sealed class OnlineUiControlWidthPinTests
 	{
 		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.CaptionedWidth(element.Width, CaptionTextWidthOrZero(caption), 2f * typographySize)", "element.Width;", "a button sized by the model's hint alone, which is what cut the English captions and ran `Preferences` into its border" },
 		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiControlSizing.cs", "internal static float PrefabWidth(RectTransform rect)", "internal static float PrefabWidth(string unused)", "a prefab width nobody can read" },
-		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "widths[index] = view.EffectiveWidth(elements[index]);", "widths[index] = elements[index].Width;", "a wrap asked with the model's hints instead of the declared widths" },
+		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "widths[index] = row.Elements[index].EffectiveWidth(elements[index]);", "widths[index] = elements[index].Width;", "a wrap asked with the model's hints instead of the declared widths" },
+		{ nameof(AControlTakesWhateverItsOwnContentNeeds), "adapter/OnlineUiWindowView.cs", "view.LayOutRow(elements[index], widths[index], columnWidth: 0f);", "view.LayOutRow(elements[index], elements[index].Width, columnWidth: 0f);", "an element laid out at the model's hint while the wrap was decided from the declared width" },
 		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlView.cs", "OnlineUiControlSizing.AuthoredChildWidth(controlRect)", "OnlineUiControlSizing.PrefabWidth(_rect)", "a control sized from the element root that contains it — the width the row's own group just wrote" },
 		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlSizing.cs", "internal static float AuthoredChildWidth(RectTransform? child)", "internal static float AuthoredChildWidth(string unused)", "a prefab whose authored child width nobody can read" },
 		{ nameof(AControlOfARowIsAsWideAsTheGameAuthoredIt), "adapter/OnlineUiControlSizing.cs", "OnlineUiControlBox.EffectiveWidth(element.Width, authoredControlWidth)", "OnlineUiControlBox.EffectiveWidth(element.Width, 0f)", "a toggle left at the model's floor with the size the game authored for it ignored" },
@@ -134,7 +135,8 @@ public sealed class OnlineUiControlWidthPinTests
 			&& sizing.Contains("OnlineUiControlBox.EffectiveWidth(WithMinimum(element.Width), 0f)", StringComparison.Ordinal)
 			&& sizing.Contains("internal static float PrefabWidth(RectTransform rect)", StringComparison.Ordinal)
 			&& sizing.Contains("internal static float CaptionWidth(TMP_Text caption)", StringComparison.Ordinal)
-			&& Flatten(windowSource).Contains("widths[index] = view.EffectiveWidth(elements[index]);", StringComparison.Ordinal);
+			&& Flatten(windowSource).Contains("widths[index] = row.Elements[index].EffectiveWidth(elements[index]);", StringComparison.Ordinal)
+			&& Flatten(windowSource).Contains("view.LayOutRow(elements[index], widths[index], columnWidth: 0f);", StringComparison.Ordinal);
 	}
 
 	/// <summary>

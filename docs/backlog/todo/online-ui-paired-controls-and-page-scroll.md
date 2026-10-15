@@ -1,6 +1,9 @@
 # The Online UI's paired controls and its pages' scroll affordance
 
-- Status: Todo — the user's report of 2026-10-14, in three asks, taken while the fixed window was on screen.
+- Status: Todo — S1 to S4 are implemented and green in the suite; a real-machine pass on 2026-10-15
+  (batch `.acceptance/20261015-c/`) found the paired row's second line does not stretch, and the user
+  reported the same thing from the screen ("your paired control has no margin"). This section is that
+  reading, kept so the next cycle starts from it instead of from the code.
 - Priority: Medium-High
 - Category: Online UI / layout, presentation and input
 - Source: The user, 2026-10-14, in their own words: (1) "is there a scrollbar? the Admin page has a part that
@@ -14,6 +17,32 @@
   one compact control height and the row's own prefab art are its work), `done/online-ui-art-and-controls-overhaul.md`
   (the surface these controls are built on), `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`
   (the frames that show the two shapes the asks are about)
+
+## What the 2026-10-15 pass (batch `.acceptance/20261015-c/`) already reads
+
+Artifact `0.1.0+c496e4c9…` on the real machine, one client, the Admin page of a hosted lobby. The dump
+(`dump-admin-4.json`, recipe `tools/acceptance/recipes/cuo-ui-dump.cs`) is the reading:
+
+| What | Reading | Verdict |
+|---|---|---|
+| The bar on a page that does not fit | `Window/Scroll/CUO Online UI Scrollbar rect=8.0x596.0`, its handle `8.0x555.3`, both active; the content is 644 against a 600 viewport | S4 works |
+| The slider's own reading | every control's `background` is `whitesquare α=1`, i.e. no prefab frame is drawn; the fill is the page's warm tone and the handle is the light tone, both placed on the compact box | S1 works |
+| The value beside the slider | `GameSettingInt(Clone)/Input` with `text=0.80`, the game's own field, its own box and caret | S2 present |
+| The paired row | the name is a line of its own (`Line` 984x28) and the slider and the field are on the NEXT line together | S3 works |
+| **The paired row's widths** | the row's own box is 132 wide inside a 984-wide page, and the field is placed at `x=324` INSIDE that 132-wide box, i.e. drawn outside its row — on screen it reads as two floating widgets and is exactly the "no margin" the user reported | **the defect** |
+| The bar of the control column | a name is 120 wide and the widgets start at 260 (the test's own default) — but not for the paired row, whose box ignores the column | **the defect** |
+
+The cause is read, not guessed: the forced `LayoutRebuilder.ForceRebuildLayoutImmediate(_content)` in
+`OnlineUiWindowView.Apply` runs only on the frame a row is BUILT, and the sizes this pass writes are
+`LayoutElement` values — uGUI tracks those with a `LayoutElement`-driven dirty flag, so on later frames the
+row's group keeps the widths the elements were built at. `flexW=0` and `flexW=1` sit on different lines of
+the SAME row (the label keeps the flexible width the paired layout gives it, the control does not get any),
+which is what a group that never recalculated looks like. The window's column pass cannot fix it either: it
+lays the elements out again with the same per-element widths.
+
+The next cycle's work: give the row's own group the recalc it needs (a rebuild per row's group, or a
+`LayoutElement` write that marks the group dirty), then re-read this table — the row's box should become the
+page's own width and the field should sit inside it, 6 units from the right edge.
 
 ## The gap, with the code fact behind each ask
 

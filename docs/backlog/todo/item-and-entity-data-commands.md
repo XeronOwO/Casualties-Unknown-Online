@@ -183,5 +183,13 @@ three values with no way to attribute them), and a bare `/data` never mentioned 
   while its own "no property at all" refusal quoted the right one. The verb's usage is now passed into the shared
   parse, and the case that asserted the set line asserts the merge line instead (and asserts the set line is
   absent), so the fix is pinned by the very test that caught it.
+**A real two-client run judged what it could (2026-10-18)**: the record is
+`docs/evidence/acceptance/item-data-write-verbs-20261018.md`. The host side passed every row it reached —
+a merge landing both named properties and reading back, a refused merge leaving the earlier property
+unlanded (the atomicity claim, observed), and a bounded property refused by name with the REMOVE grammar.
+The member side did not run: the sandboxed Steam had not initialised (`steamInit: false`), so the member
+never entered the world and nothing about a member's write was observed. That record names the three rows
+still owed and the preflight row that would turn this failure into a named refusal.
+
 - **Since then:** the duplicated `<summary>` on the write method is deleted. Two nits remain unfixed and are
   recorded rather than forgotten: `WroteMany` takes two index-aligned lists, and it assumes a non-empty one.

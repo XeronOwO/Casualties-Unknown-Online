@@ -1,6 +1,6 @@
 # The off-screen arrow's label escapes the screen edge
 
-- Status: Todo
+- Status: Review — implemented and gated; the per-edge frames are what is left.
 - Priority: Low
 - Category: Online UI / world overlay
 - Source: the user's 2026-10-07 backlog request — on the host's view, a member off the right edge is marked by
@@ -44,3 +44,32 @@ top and bottom edges, where the label has less room than the arrow itself.
 
 - Not a redesign of the indicator: arrow, name and distance stay as they are.
 - Not a name-truncation policy for the UI in general; only the marker label's placement is in scope.
+## Implemented (2026-10-17) — awaiting the frames
+
+- **Item 1, a measured box.** `OffScreenLabelGeometry.Place(...)` is the Runtime rule the ticket asks for (pure,
+  unit-tested without the game, beside `OffScreenArrowGeometry`), and the three call sites now MEASURE their own
+  text (`Marker.LabelTextWidth()` → `OnlineUiControlSizing.CaptionTextWidth`, the same engine-side
+  `GetPreferredValues` the window family already uses for a caption that ran into its border). The first cut
+  handed the rule the old fixed-width constants, which would have left the reported overflow in place for any
+  name past ~15 characters; the review caught it before the commit.
+- **Item 2, the chosen overflow behaviour.** When a label is wider than the room the screen has, the rule pins
+  it to the canvas's centre on that axis, so the overflow is shared by both edges instead of landing on one,
+  and the caller writes ONE warning naming the label's width and the canvas's width. Truncating is deliberately
+  not the answer here: this overlay's own fit policy is overflow rather than a clip or an ellipsis, because a
+  name the player cannot finish reading is worse than one that spills.
+- **Item 3, the on-screen nameplate.** The same rule, horizontally. Its vertical axis is deliberately NOT
+  clamped: the box above a head cannot leave the top of the screen while the head itself is inside the guarded
+  rectangle, and clamping it moved a nameplate down onto its own head (found in review, before the commit).
+- **Item 4 is what a run still owes**, which is why this ticket moves to `review/` rather than `done/`: frames
+  per edge with a long name plus a three-digit distance, captured per client window, and the corner case (a
+  member exactly at a corner is two clamps at once). No frame has been taken yet.
+
+## Limits this cycle names
+
+- The bottom edge is not symmetric with the other three: the arrow's own box legitimately spills past the margin
+  line (its CENTRE is pinned there), so its label goes ABOVE it rather than further out. A frame per edge is
+  what confirms the reading; the arithmetic is in the rule's and the call site's own comments.
+- One rule serves three labels whose HEIGHTS are still the game's own fixed rows; only the widths are measured.
+- The view was 633 lines after the first cut and its construction helpers moved out to
+  `OnlineUiWorldOverlayParts` (580 + 70). It is still the largest file in that folder, and the next addition
+  there should plan a split rather than spend the last 20 lines.

@@ -77,7 +77,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 	[Fact]
 	public void TheOverlaysLabelsComeFromTheGamesOwnFont() =>
 		Assert.True(
-			LabelsComeFromTheGame(Adapter("OnlineUiWorldOverlayView.cs")),
+			LabelsComeFromTheGame(Adapter("OnlineUiWorldOverlayView.cs") + Adapter("OnlineUiWorldOverlayParts.cs")),
 			"every label on the overlay — the names, the pings, the readout — must take the game's own font asset and its size ladder, which is the art ask S6 exists for");
 
 	[Fact]
@@ -89,7 +89,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 	[Fact]
 	public void TheOverlayTakesNoInput() =>
 		Assert.True(
-			TakesNoInput(Adapter("OnlineUiWorldOverlayView.cs")),
+			TakesNoInput(Adapter("OnlineUiWorldOverlayView.cs") + Adapter("OnlineUiWorldOverlayParts.cs")),
 			"a marker is a label over the world and must never answer the pointer: the layer carries no graphic, every label refuses the raycast, the view builds no interactive component and reports nothing back — the mutation rows add a Button to the layer and a pointer poll to the pass, which the text-absence check this pin used to be would have missed");
 
 	/// <summary>
@@ -112,8 +112,8 @@ public sealed class OnlineUiWorldOverlayPinTests
 	[Fact]
 	public void TheLabelsKeepTheirBoxesAndFallBackForAMissingMark() =>
 		Assert.True(
-			LabelsKeepTheirBoxes(Adapter("OnlineUiWorldOverlayView.cs")),
-			"the label boxes are the IMGUI rects in canvas units (180x24 above a head, 160x20 under an arrow, 140x20 under a ping at 22 below it, 220x20 for the readout), the fit policy is stated as one line with overflow rather than a clip, and every mark goes through the font check that falls back to ASCII");
+			LabelsKeepTheirBoxes(Adapter("OnlineUiWorldOverlayView.cs") + Adapter("OnlineUiWorldOverlayParts.cs")),
+			"the label boxes are in canvas units (a nameplate above a head, a measured box under an arrow and under a ping at 22 below it, 220x20 for the readout), the fit policy is stated as one line with overflow rather than a clip, and every mark goes through the font check that falls back to ASCII");
 
 	[Fact]
 	public void TheOverlayDrawsBehindCuosOwnPanels() =>
@@ -160,7 +160,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 		// The art half: the game's typography, the boxes, and the fit and fallback policy.
 		{ nameof(TheOverlaysLabelsComeFromTheGamesOwnFont), "adapter/OnlineUiWorldOverlayView.cs", "OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography, out _, out _, out _);", "var typography = new OnlineUiControlTypography(null, 12f);", "a typography the game never handed over" },
 		{ nameof(TheOverlaysLabelsComeFromTheGamesOwnFont), "adapter/OnlineUiWorldOverlayView.cs", "item.Label(marker.OffScreenText, color, _typography.SizeOf(OnlineUiTextStyle.Muted));", "item.Label(marker.OffScreenText, color, 12f);", "a label size that is a constant instead of the game's own ladder" },
-		{ nameof(TheLabelsKeepTheirBoxesAndFallBackForAMissingMark), "adapter/OnlineUiWorldOverlayView.cs", "text.overflowMode = TextOverflowModes.Overflow;", "text.overflowMode = TextOverflowModes.Ellipsis;", "a name the player cannot finish reading" },
+		{ nameof(TheLabelsKeepTheirBoxesAndFallBackForAMissingMark), "adapter/OnlineUiWorldOverlayParts.cs", "text.overflowMode = TextOverflowModes.Overflow;", "text.overflowMode = TextOverflowModes.Ellipsis;", "a name the player cannot finish reading" },
 		{ nameof(TheLabelsKeepTheirBoxesAndFallBackForAMissingMark), "adapter/OnlineUiWorldOverlayView.cs", "internal const float PingLabelOffsetY = 22f;", "internal const float PingLabelOffsetY = 0f;", "a ping label that sat on its own mark" },
 		{ nameof(TheLabelsKeepTheirBoxesAndFallBackForAMissingMark), "adapter/OnlineUiWorldOverlayView.cs", "OffScreenArrowText.Up => \"^\",", "OffScreenArrowText.Up => \"\\u25B2\",", "a fallback that falls back to the glyph the font cannot draw" },
 		// The geometry half: the Runtime's rules, asked in the canvas's own units.
@@ -170,7 +170,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 		{ nameof(ThePlacementIsTheRuntimesRuleInTheCanvasOwnUnits), "adapter/OnlineUiWorldOverlayView.cs", "item.Glyph(Drawable(OffScreenArrowText.Glyph(placement.Direction)), color, ArrowGlyphFontSize);", "item.Glyph(\"\\u25B2\", color, ArrowGlyphFontSize);", "an arrow that stopped asking the Runtime's own rule" },
 		{ nameof(ThePlacementIsTheRuntimesRuleInTheCanvasOwnUnits), "adapter/OnlineUiWorldOverlayView.cs", "internal const float ScreenEdgeMargin = 52f;", "internal const float ScreenEdgeMargin = 0f;", "a marker flush against the screen's edge" },
 		// The input half: nothing to hit, nothing reported, and the two world gestures still on the census.
-		{ nameof(TheOverlayTakesNoInput), "adapter/OnlineUiWorldOverlayView.cs", "var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", "var text = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>(); text.raycastTarget = true;", "a marker label built by hand that swallows a click meant for the world" },
+		{ nameof(TheOverlayTakesNoInput), "adapter/OnlineUiWorldOverlayParts.cs", "var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", "var text = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>(); text.raycastTarget = true;", "a marker label built by hand that swallows a click meant for the world" },
 		{ nameof(TheOverlayTakesNoInput), "adapter/OnlineUiWorldOverlayView.cs", "var root = new GameObject(LayerName, typeof(RectTransform));", "var root = new GameObject(LayerName, typeof(RectTransform), typeof(UnityEngine.UI.Button));", "an overlay layer that carries a control to click" },
 		{ nameof(TheOverlayTakesNoInput), "adapter/OnlineUiWorldOverlayView.cs", "var camera = Camera.main;", "var pointer = Input.mousePosition; var camera = Camera.main;", "a marker pass that polls the pointer" },
 		{ nameof(TheWorldInputPathsStillAskTheCensus), "plugin/OnlineUiOverlay.cs", "return _pointerCensus.BlocksWorldPing();", "return false;", "a middle-click ping that stops asking the census" },
@@ -291,9 +291,13 @@ public sealed class OnlineUiWorldOverlayPinTests
 	{
 		var flat = Flatten(viewSource);
 
-		return flat.Contains("internal const float ArrowLabelWidth = 160f;", StringComparison.Ordinal)
+		// The arrow's and the ping's boxes are MEASURED at the call site (the ticket's item 1) while the
+		// heights and the readout's rows stay the game's own fixed ones: what is held here is that the width
+		// the clamp is asked about is the text's own and that the rect the label is placed in is that box.
+		return flat.Contains("var labelWidth = item.LabelTextWidth();", StringComparison.Ordinal)
+			&& flat.Contains("item.PlaceLabel(new Vector2(label.X, label.Y), new Vector2(labelWidth, labelHeight), bounds);", StringComparison.Ordinal)
+			&& flat.Contains("var pingWidth = item.LabelTextWidth();", StringComparison.Ordinal)
 			&& flat.Contains("internal const float ArrowLabelHeight = 20f;", StringComparison.Ordinal)
-			&& flat.Contains("internal const float PingLabelWidth = 140f;", StringComparison.Ordinal)
 			&& flat.Contains("internal const float PingLabelHeight = 20f;", StringComparison.Ordinal)
 			&& flat.Contains("internal const float PingLabelOffsetY = 22f;", StringComparison.Ordinal)
 			&& flat.Contains("internal const float HudWidth = 220f;", StringComparison.Ordinal)

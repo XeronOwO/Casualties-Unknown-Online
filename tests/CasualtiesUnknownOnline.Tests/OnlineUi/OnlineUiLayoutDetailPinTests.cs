@@ -79,7 +79,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 				Adapter("OnlineUiSurfaceParts.cs"),
 				Adapter("OnlineUiWindowView.cs"),
 				Adapter("OnlineUiPanelView.cs"),
-				Adapter("OnlineUiWorldOverlayView.cs")),
+				Adapter("OnlineUiWorldOverlayView.cs") + Adapter("OnlineUiWorldOverlayParts.cs")),
 			"the window and the two panels each carried their own copy of the same three construction helpers, byte for byte (the cycle of 2026-10-15 found them): one place builds them, so a fix cannot land on one surface and miss its sibling");
 
 	[Fact]
@@ -130,7 +130,7 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiSurfaceParts.cs", "text.raycastTarget = false;", "text.raycastTarget = true;", "the one label construction, with every surface's label answering the pointer" },
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiSurfaceParts.cs", "text.font = typography.Font;", "// the game's own font is not applied", "a label construction that leaves the game's own font unapplied" },
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiWindowView.cs", "private static void DeclareBandHeight(RectTransform band, float height)", "private static void Stretch(RectTransform rect, float left, float right, float top, float bottom) { } private static void DeclareBandHeight(RectTransform band, float height)", "a surface that grows its own copy of a shared part again, which is how the window and the panels drifted apart" },
-		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiWorldOverlayView.cs", "var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", "var text = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();", "a label built by hand beside the one construction the surfaces share" },
+		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiWorldOverlayParts.cs", "var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", "var text = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();", "a label built by hand beside the one construction the surfaces share" },
 		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiWindowView.cs", "var popup = OnlineUiDropdownPopup.Create(rect, OnlineUiSurfaceHost.SortingOrder);", "var popup = null!;", "a window with no popup layer for its dropdowns" },
 		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiDropdownPopup.cs", "template.SetParent(_layer, worldPositionStays: false);", "// the template stays inside the page", "a list instantiated inside the page's mask again" },
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiControlView.cs", "pointerFixed = OnlineUiRowGeometry.EnsurePointerSurface(control.gameObject);", "pointerFixed = false;", "a field left without a pointer surface" },
@@ -184,7 +184,11 @@ public sealed class OnlineUiLayoutDetailPinTests
 			Is(broken, "internal static class OnlineUiSurfaceParts") ? broken : Adapter("OnlineUiSurfaceParts.cs"),
 			Is(broken, "internal sealed class OnlineUiWindowView") ? broken : Adapter("OnlineUiWindowView.cs"),
 			Is(broken, "internal sealed class OnlineUiPanelView") ? broken : Adapter("OnlineUiPanelView.cs"),
-			Is(broken, "internal sealed class OnlineUiWorldOverlayView") ? broken : Adapter("OnlineUiWorldOverlayView.cs")),
+			Is(broken, "internal static class OnlineUiWorldOverlayParts")
+				? Adapter("OnlineUiWorldOverlayView.cs") + broken
+				: Is(broken, "internal sealed class OnlineUiWorldOverlayView")
+					? broken + Adapter("OnlineUiWorldOverlayParts.cs")
+					: Adapter("OnlineUiWorldOverlayView.cs") + Adapter("OnlineUiWorldOverlayParts.cs")),
 		nameof(AnOpenDropdownListRidesTheWindowsPopupLayer) => broken => ThePopupLayerCarriesTheLists(
 			Is(broken, "internal sealed class OnlineUiDropdownPopup") ? Adapter("OnlineUiWindowView.cs") : broken,
 			Is(broken, "internal sealed class OnlineUiDropdownPopup") ? broken : Adapter("OnlineUiDropdownPopup.cs"),

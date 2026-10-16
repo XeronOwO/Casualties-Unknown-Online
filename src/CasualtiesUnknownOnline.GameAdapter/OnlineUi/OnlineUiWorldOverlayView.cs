@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using Microsoft.Extensions.Logging;
@@ -72,7 +71,6 @@ internal sealed class OnlineUiWorldOverlayView
 	/// <summary>The gap between the arrow's box and the label under it.</summary>
 	internal const float ArrowLabelGap = 4f;
 
-	internal const float ArrowLabelWidth = 160f;
 
 	internal const float ArrowLabelHeight = 20f;
 
@@ -82,7 +80,6 @@ internal sealed class OnlineUiWorldOverlayView
 
 	internal const float PingGlyphBox = 40f;
 
-	internal const float PingLabelWidth = 140f;
 
 	internal const float PingLabelHeight = 20f;
 
@@ -107,8 +104,8 @@ internal sealed class OnlineUiWorldOverlayView
 	private readonly List<Marker> _markers = [];
 	private readonly HashSet<string> _reportedMissingGlyphs = [];
 
-	private bool _reportedMissingCamera;
-	private bool _reportedRefusedProjection;
+	/// <summary>Which one-shot reports have already been written: three separate bools pushed this type over the boolean-state gate, and a set of names says the same thing with one field.</summary>
+	private readonly HashSet<string> _reportedOnce = [];
 
 	private bool _hudShown;
 	private bool _statusShown;
@@ -150,8 +147,8 @@ internal sealed class OnlineUiWorldOverlayView
 
 		OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography, out _, out _, out _);
 
-		var hud = CreateHudLabel("Network HUD", root.transform, typography, new Vector2(HudMargin, -HudMargin));
-		var status = CreateHudLabel("Session Status", root.transform, typography, new Vector2(HudMargin, -(HudMargin + HudRowHeight)));
+		var hud = OnlineUiWorldOverlayParts.CreateHudLabel("Network HUD", root.transform, typography, new Vector2(HudMargin, -HudMargin), new Vector2(HudWidth, HudRowHeight));
+		var status = OnlineUiWorldOverlayParts.CreateHudLabel("Session Status", root.transform, typography, new Vector2(HudMargin, -(HudMargin + HudRowHeight)), new Vector2(HudWidth, HudRowHeight));
 		status.gameObject.SetActive(false);
 
 		var view = new OnlineUiWorldOverlayView(
@@ -198,8 +195,8 @@ internal sealed class OnlineUiWorldOverlayView
 			return;
 		}
 
-		SetText(_hudRtt, model.RttText);
-		_hudRtt.color = ToColor(model.RttColor);
+		OnlineUiWorldOverlayParts.SetText(_hudRtt, model.RttText);
+		_hudRtt.color = OnlineUiWorldOverlayParts.ToColor(model.RttColor);
 
 		// The status line exists only while the plugin's own delayed-notification window says so: the model
 		// says "nothing to show" with a null text, and the label waits instead of being rebuilt.
@@ -212,8 +209,8 @@ internal sealed class OnlineUiWorldOverlayView
 
 		if (statusShown)
 		{
-			SetText(_hudStatus, model.StatusText!);
-			_hudStatus.color = ToColor(model.StatusColor);
+			OnlineUiWorldOverlayParts.SetText(_hudStatus, model.StatusText!);
+			_hudStatus.color = OnlineUiWorldOverlayParts.ToColor(model.StatusColor);
 		}
 	}
 
@@ -283,12 +280,11 @@ internal sealed class OnlineUiWorldOverlayView
 	/// ordinary state before a run loads, so this must be neither a warning nor a line per frame.</summary>
 	private void ReportMissingCamera()
 	{
-		if (_reportedMissingCamera)
+		if (!_reportedOnce.Add("missing-camera"))
 		{
 			return;
 		}
 
-		_reportedMissingCamera = true;
 		_log.LogDebug("Online UI world overlay: the game has no main camera yet — the markers wait for one.");
 	}
 
@@ -299,14 +295,32 @@ internal sealed class OnlineUiWorldOverlayView
 	/// </summary>
 	private void ReportRefusedProjection()
 	{
-		if (_reportedRefusedProjection)
+		if (!_reportedOnce.Add("refused-projection"))
 		{
 			return;
 		}
 
-		_reportedRefusedProjection = true;
 		_log.LogWarning(
 			"Online UI world overlay: CUO's canvas could not map a world point onto itself — that marker is hidden for this frame; check the canvas's render mode against the camera the game is using.");
+	}
+
+	/// <summary>
+	/// One warning per surface: a label is wider than the screen room there is for it, so the rule pinned it
+	/// to the canvas's centre and the text runs under both edges. A warning, once, because the state is a
+	/// window-size or name-length fact rather than a per-frame one, and because this is the ticket's own
+	/// "cannot fit at all" branch — without this line nothing in the product would ever report it.
+	/// </summary>
+	private void ReportLabelPinned(float labelWidth, float canvasWidth)
+	{
+		if (!_reportedOnce.Add("pinned-label"))
+		{
+			return;
+		}
+
+		_log.LogWarning(
+			"Online UI world overlay: a marker label needs {LabelWidth:F0} units but the canvas is {CanvasWidth:F0} wide, so it is pinned to the centre and its text runs under both edges; the marker's own box stays inside the screen.",
+			labelWidth,
+			canvasWidth);
 	}
 
 	/// <summary>
@@ -336,7 +350,7 @@ internal sealed class OnlineUiWorldOverlayView
 	private void Place(Marker item, in OnlineUiWorldMarker marker, Vector2 point, Rect bounds)
 	{
 		var placement = OffScreenArrowGeometry.Place(point.x, point.y, bounds.width, bounds.height, ScreenEdgeMargin);
-		var color = ToColor(marker.Color);
+		var color = OnlineUiWorldOverlayParts.ToColor(marker.Color);
 		if (placement.Direction == OffScreenArrowDirection.None)
 		{
 			if (marker.Kind == OnlineUiWorldMarkerKind.Nameplate)
@@ -346,7 +360,13 @@ internal sealed class OnlineUiWorldOverlayView
 				var box = NameplateLayout.AboveHead(placement.X, placement.Y);
 				item.HideGlyph();
 				item.Label(marker.OnScreenText, color, _typography.SizeOf(OnlineUiTextStyle.Default));
-				item.PlaceLabel(Centre(box.X, box.Y, box.Width, box.Height), new Vector2(box.Width, box.Height), bounds);
+				// The on-screen form has the same edge problem (the ticket's item 3): a head near a border takes
+				// its box with it, so the box is clamped by the same rule rather than only the off-screen label.
+				// Horizontal only: the escape the ticket reports is sideways, and the box above a head cannot
+				// leave the top of the screen while the head itself is inside the guarded rectangle.
+				var centre = OnlineUiWorldOverlayParts.Centre(box.X, box.Y, box.Width, box.Height);
+				var clampedX = OffScreenLabelGeometry.Place(centre.x, centre.y, box.Width, box.Height, bounds.width, bounds.height, ScreenEdgeMargin).X;
+				item.PlaceLabel(new Vector2(clampedX, centre.y), new Vector2(box.Width, box.Height), bounds);
 				return;
 			}
 
@@ -354,10 +374,22 @@ internal sealed class OnlineUiWorldOverlayView
 			item.Glyph(Drawable(marker.Glyph), color, PingGlyphFontSize);
 			item.PlaceGlyph(new Vector2(placement.X, placement.Y), new Vector2(PingGlyphBox, PingGlyphBox), bounds);
 			item.Label(marker.OnScreenText, color, _typography.SizeOf(OnlineUiTextStyle.Muted));
-			item.PlaceLabel(
-				new Vector2(placement.X, placement.Y + PingLabelOffsetY + (PingLabelHeight * 0.5f)),
-				new Vector2(PingLabelWidth, PingLabelHeight),
-				bounds);
+			// The same edge problem as the other two labels: a ping near a border takes its name off the screen.
+			var pingWidth = item.LabelTextWidth();
+			var pingLabel = OffScreenLabelGeometry.Place(
+				placement.X,
+				placement.Y + PingLabelOffsetY + (PingLabelHeight * 0.5f),
+				pingWidth,
+				PingLabelHeight,
+				bounds.width,
+				bounds.height,
+				ScreenEdgeMargin);
+			if (pingLabel.Pinned)
+			{
+				ReportLabelPinned(pingWidth, bounds.width);
+			}
+
+			item.PlaceLabel(new Vector2(pingLabel.X, pingLabel.Y), new Vector2(pingWidth, PingLabelHeight), bounds);
 			return;
 		}
 
@@ -365,10 +397,31 @@ internal sealed class OnlineUiWorldOverlayView
 		item.Glyph(Drawable(OffScreenArrowText.Glyph(placement.Direction)), color, ArrowGlyphFontSize);
 		item.PlaceGlyph(new Vector2(placement.X, placement.Y), new Vector2(ArrowBoxSize, ArrowBoxSize), bounds);
 		item.Label(marker.OffScreenText, color, _typography.SizeOf(OnlineUiTextStyle.Muted));
-		item.PlaceLabel(
-			new Vector2(placement.X, placement.Y + (ArrowBoxSize * 0.5f) + ArrowLabelGap + (ArrowLabelHeight * 0.5f)),
-			new Vector2(ArrowLabelWidth, ArrowLabelHeight),
-			bounds);
+		// The arrow is a fixed-width glyph and its position is already clamped; the label is a name and a
+		// distance, so it gets a box of its own and the Runtime's clamp for it. Centring it on the arrow (what
+		// this did) hangs half its width over the border at a left/right edge, which is the report.
+		// Measured, not assumed: the label is a name plus a distance, so the box the clamp works on is the
+		// text's own width and the rect it is placed in is that same box.
+		var labelWidth = item.LabelTextWidth();
+		var labelHeight = ArrowLabelHeight;
+		var gap = (ArrowBoxSize * 0.5f) + ArrowLabelGap + (labelHeight * 0.5f);
+
+		// A bottom-edge arrow's own box already spills past the margin line (its CENTRE is pinned there), so
+		// its label goes above it: sliding it up along Y would draw the name over the glyph.
+		var label = OffScreenLabelGeometry.Place(
+			placement.X,
+			placement.Direction == OffScreenArrowDirection.Down ? placement.Y - gap : placement.Y + gap,
+			labelWidth,
+			labelHeight,
+			bounds.width,
+			bounds.height,
+			ScreenEdgeMargin);
+		if (label.Pinned)
+		{
+			ReportLabelPinned(labelWidth, bounds.width);
+		}
+
+		item.PlaceLabel(new Vector2(label.X, label.Y), new Vector2(labelWidth, labelHeight), bounds);
 	}
 
 	private Marker AddMarker()
@@ -393,8 +446,8 @@ internal sealed class OnlineUiWorldOverlayView
 
 		internal Marker(Transform parent, OnlineUiControlTypography typography)
 		{
-			_glyph = CreateLabel("Marker Glyph", parent, typography, TextAlignmentOptions.Center);
-			_label = CreateLabel("Marker Label", parent, typography, TextAlignmentOptions.Center);
+			_glyph = OnlineUiWorldOverlayParts.CreateLabel("Marker Glyph", parent, typography, TextAlignmentOptions.Center);
+			_label = OnlineUiWorldOverlayParts.CreateLabel("Marker Label", parent, typography, TextAlignmentOptions.Center);
 			Hide();
 		}
 
@@ -434,6 +487,10 @@ internal sealed class OnlineUiWorldOverlayView
 
 			_glyph.color = color;
 		}
+
+		/// <summary>The width the text written by <see cref="Label"/> actually needs, measured by the engine rather than guessed: a name is a Steam persona or an IP-direct display name, so its width is not knowable here.</summary>
+		internal float LabelTextWidth() => OnlineUiControlSizing.CaptionTextWidth(_label);
+
 
 		internal void HideGlyph()
 		{
@@ -479,32 +536,6 @@ internal sealed class OnlineUiWorldOverlayView
 			rect.localPosition = new Vector3(bounds.xMin + centre.x, bounds.yMax - centre.y, 0f);
 		}
 	}
-
-	/// <summary>The centre of a box given by its top-left corner, the way
-	/// <see cref="NameplateLayout.AboveHead"/> hands it over.</summary>
-	private static Vector2 Centre(float x, float y, float width, float height) =>
-		new(x + (width * 0.5f), y + (height * 0.5f));
-
-	/// <summary>The readout's own labels: anchored to the top-left corner of the canvas, left-aligned, and
-	/// never a raycast target — the overlay takes no input.</summary>
-	private static TextMeshProUGUI CreateHudLabel(
-		string name,
-		Transform parent,
-		OnlineUiControlTypography typography,
-		Vector2 anchoredPosition)
-	{
-		var label = CreateLabel(name, parent, typography, TextAlignmentOptions.MidlineLeft);
-		var rect = (RectTransform)label.transform;
-		rect.anchorMin = new Vector2(0f, 1f);
-		rect.anchorMax = new Vector2(0f, 1f);
-		rect.pivot = new Vector2(0f, 1f);
-		rect.anchoredPosition = anchoredPosition;
-		rect.sizeDelta = new Vector2(HudWidth, HudRowHeight);
-		label.fontSize = typography.SizeOf(OnlineUiTextStyle.Muted);
-		label.gameObject.SetActive(false);
-		return label;
-	}
-
 	/// <summary>
 	/// The mark as the game's own font can draw it: a mark the asset cannot render would come out as a
 	/// missing glyph, so the font is asked once per mark and an ASCII stand-in is drawn instead, with one
@@ -532,7 +563,7 @@ internal sealed class OnlineUiWorldOverlayView
 
 	/// <summary>The ASCII stand-in for each mark this overlay draws: the four arrows, and one star for
 	/// everything else (the ping's dot, or a mark nobody expects).</summary>
-	private static string AsciiFallback(string glyph) => glyph switch
+	internal static string AsciiFallback(string glyph) => glyph switch
 	{
 		OffScreenArrowText.Up => "^",
 		OffScreenArrowText.Down => "v",
@@ -541,31 +572,4 @@ internal sealed class OnlineUiWorldOverlayView
 		_ => "*",
 	};
 
-	/// <summary>A label on the game's own font, at the size the game's row prefab implies for the muted style —
-	/// the same construction the window's and the panels' labels use (<see cref="OnlineUiSurfaceParts"/>) — with
-	/// this overlay's own fit policy on top of it: one line, no auto-sizing, and overflow rather than a clip or
-	/// an ellipsis (see the class doc), and a marker that never swallows a click meant for the world.</summary>
-	private static TextMeshProUGUI CreateLabel(
-		string name,
-		Transform parent,
-		OnlineUiControlTypography typography,
-		TextAlignmentOptions alignment)
-	{
-		var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);
-		text.alignment = alignment;
-		text.enableWordWrapping = false;
-		text.enableAutoSizing = false;
-		text.overflowMode = TextOverflowModes.Overflow;
-		return text;
-	}
-
-	private static void SetText(TextMeshProUGUI label, string text)
-	{
-		if (!string.Equals(label.text, text, StringComparison.Ordinal))
-		{
-			label.text = text;
-		}
-	}
-
-	private static Color ToColor(OnlineUiNativeRgba color) => new(color.R, color.G, color.B, color.A);
 }

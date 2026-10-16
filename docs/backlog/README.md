@@ -77,13 +77,13 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Descent ambience parity](todo/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [Single-file package for the core plugin](todo/single-file-plugin-package.md) — **Low-Medium** — extensions stay separate.
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
-- [The off-screen arrow's label escapes the edge](todo/offscreen-arrow-label-clipping.md) — **Low** — all four edges.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [A dead player can watch the run by spectating a teammate](todo/dead-player-spectating.md) — **Medium** — follow a teammate; free-fly if allowed.
 ### In progress
 
 ### Review
+- [The off-screen arrow's label escapes the screen edge](review/offscreen-arrow-label-clipping.md) — **Low** — awaiting the frames.
 - [Paired controls and page scroll](review/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — four look defects pass; the frame awaits an eye.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the strip fits; the rows left need setups.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.

@@ -60,6 +60,9 @@ internal sealed class ItemDataCommands(
 	ILogger log,
 	AnnouncedHostRules hostRules)
 {
+	/// <summary>The verb list a caller reads before it knows which usage line it needs: an operator typing a bare <c>/data</c> has to learn that merge and remove exist.</summary>
+	private const string Verbs = "/data get | /data set | /data merge | /data remove";
+
 	private const string GetVerb = "get";
 
 	private const string SetVerb = "set";
@@ -79,28 +82,42 @@ internal sealed class ItemDataCommands(
 	private readonly ILogger _log = log;
 	private readonly AnnouncedHostRules _hostRules = hostRules;
 
-	[ConsoleCommand("data", "Read or write one item's recorded state: condition, liquids, component fields and contents.", CommandPermission.Anyone, ItemDataQueryParser.Usage + " | " + ItemDataWriteParser.Usage, CommandArgumentKind.Text)]
+	[ConsoleCommand("data", "Read or write one item's recorded state: condition, liquids, component fields and contents.", CommandPermission.Anyone, Verbs + " | " + ItemDataQueryParser.Usage + " | " + ItemDataWriteParser.Usage, CommandArgumentKind.Text)]
 	internal string Data(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
 		{
-			return $"Usage: {ItemDataQueryParser.Usage} | {ItemDataWriteParser.Usage}";
+			return $"Usage: {ItemDataQueryParser.Usage} | {ItemDataWriteParser.Usage} | {ItemDataWriteParser.MergeUsage} | {ItemDataWriteParser.RemoveUsage}";
 		}
 
 		var verb = args[1].ToLowerInvariant();
 		if (verb == SetVerb)
 		{
-			return Write(Tail(args, 2));
+			var writeTokens = Tail(args, 2);
+			return ItemDataWriteParser.TryParse(writeTokens, out var one, out var setError)
+				? Write(SetVerb, [one])
+				: setError!;
 		}
 
-		if (verb is MergeVerb or RemoveVerb)
+		if (verb == MergeVerb)
 		{
-			return $"/data {verb} is not implemented yet — /data set is the write verb that landed. Usage: {ItemDataWriteParser.Usage}";
+			var writeTokens = Tail(args, 2);
+			return ItemDataWriteParser.TryParseMany(writeTokens, out var many, out var mergeError)
+				? Write(MergeVerb, many)
+				: mergeError!;
+		}
+
+		if (verb == RemoveVerb)
+		{
+			var writeTokens = Tail(args, 2);
+			return ItemDataWriteParser.TryParseRemove(writeTokens, out var clearing, out var removeError)
+				? Write(RemoveVerb, clearing)
+				: removeError!;
 		}
 
 		if (!string.Equals(args[1], GetVerb, StringComparison.OrdinalIgnoreCase))
 		{
-			return $"Unknown /data verb '{args[1]}'. Usage: {ItemDataQueryParser.Usage} | {ItemDataWriteParser.Usage}";
+			return $"Unknown /data verb '{args[1]}'. The verbs are {Verbs}. Usage: {ItemDataQueryParser.Usage} | {ItemDataWriteParser.Usage} | {ItemDataWriteParser.MergeUsage} | {ItemDataWriteParser.RemoveUsage}";
 		}
 
 		var tail = Tail(args, 2);
@@ -217,14 +234,21 @@ internal sealed class ItemDataCommands(
 	/// a write that silently did nothing would leave the operator believing a value
 	/// had landed.
 	/// </summary>
-	private string Write(IReadOnlyList<string> tail)
+	/// <summary>
+	/// The write path every write verb shares: the checks that must pass once, the ONE
+	/// item the command names, then each property applied to the in-memory capture
+	/// before a single commit. Applying every property first is what makes a merge and
+	/// a remove atomic — a property that cannot be applied refuses the whole command
+	/// and nothing is written — so the loop must not commit per property.
+	/// </summary>
+	private string Write(string verb, IReadOnlyList<ItemDataWrite> writes)
 	{
 		if (!_session.SessionActive)
 		{
 			// The report the write ends with is session-scoped (both routes are guarded on
 			// an active session), so without one the local object would change and the
 			// record would not — a silent divergence the answer must not call "reported".
-			_log.LogWarning("[Command] /data write refused: no active session ({Role}).", _session.Role);
+			_log.LogWarning("[Command] /data {Verb} refused: no active session ({Role}).", verb, _session.Role);
 			return "No active session — a write reports into the session's record, so it needs one (a solo world keeps no item record for this verb to change).";
 		}
 
@@ -237,20 +261,15 @@ internal sealed class ItemDataCommands(
 			// applies and reports as it always did and the host's answer settles it, so
 			// the interception can never be the reason a write the host would accept is
 			// refused.
-			_log.LogInformation("[Command] /data set refused locally: the host's announced rule {Rule}=false forbids a member's item-data write; nothing was applied here.",
-				HostRuleId.AllowMemberItemDataWrite);
+			_log.LogInformation("[Command] /data {Verb} refused locally: the host's announced rule {Rule}=false forbids a member's item-data write; nothing was applied here.",
+				verb, HostRuleId.AllowMemberItemDataWrite);
 			return $"Refused locally: the host's rule {HostRuleId.AllowMemberItemDataWrite} is off, so a member's item-data write does not land (the host announces its rules to this client). Nothing was written here.";
 		}
 
-		if (!ItemDataWriteParser.TryParse(tail, out var write, out var error))
-		{
-			return error!;
-		}
-
 		var all = new List<ItemState>(_items.QueryItems().Values);
-		if (!TryResolveWriteTarget(write.Target, all, out var instanceId, out var refusal))
+		if (!TryResolveWriteTarget(writes[0].Target, all, out var instanceId, out var refusal))
 		{
-			_log.LogWarning("[Command] /data set refused: {Reason}", refusal);
+			_log.LogWarning("[Command] /data {Verb} refused: {Reason}", verb, refusal);
 			return refusal!;
 		}
 
@@ -260,16 +279,27 @@ internal sealed class ItemDataCommands(
 			return RefuseNotHeld(instanceId);
 		}
 
-		if (!ItemDataWriteValues.TryApply(local, write, out var before, out var after, out var valueError))
+		var changes = new List<string>(writes.Count);
+		var described = new List<string>(writes.Count);
+		foreach (var write in writes)
 		{
-			_log.LogWarning("[Command] /data set {Property} on #{InstanceId} refused: {Reason}", write.Property, instanceId, valueError);
-			return valueError!;
+			if (!ItemDataWriteValues.TryApply(local, write, out var before, out var after, out var valueError))
+			{
+				_log.LogWarning("[Command] /data {Verb} {Property} on #{InstanceId} refused: {Reason}",
+					verb, write.Property, instanceId, valueError);
+				return valueError!;
+			}
+
+			// Two lists on purpose: the answer line names each property itself, while the LOG needs the
+			// name inline — a merge whose log read only the values could not be attributed afterwards.
+			changes.Add($"{before} -> {after}");
+			described.Add($"{write.Property.ToString().ToLowerInvariant()} {before} -> {after}");
 		}
 
 		var result = _localItems.WriteLocalItem(instanceId, local);
 		if (result != LocalItemWriteResult.Applied)
 		{
-			_log.LogWarning("[Command] /data set {Property} on #{InstanceId} refused by the local scene: {Result}.", write.Property, instanceId, result);
+			_log.LogWarning("[Command] /data {Verb} on #{InstanceId} refused by the local scene: {Result}.", verb, instanceId, result);
 			return RefuseWrite(result, instanceId);
 		}
 
@@ -277,21 +307,21 @@ internal sealed class ItemDataCommands(
 		{
 			// A MEMBER's write is the same act with one difference: the host judges it
 			// as a console write under its own rule, so the report travels under its own
-			// kind and the answer is provisional. The value is applied here because the
-			// rule above did not refuse it — either the host has announced that the verb
+			// kind and the answer is provisional. The values are applied here because the
+			// rule above did not refuse them — either the host has announced that the verb
 			// is open, or no announcement has arrived and this client does what it always
 			// did — and a refusal still arrives later, puts the recorded state back and
 			// prints its own line (ItemDataWriteSettlement, ItemDataWriteRefusal).
 			_itemControl.SendItemDataWrite(instanceId, local);
-			_log.LogInformation("[Command] /data set {Property} wrote #{InstanceId} ({Definition}): {Before} -> {After}; reported as a console write for the host's rule to judge.",
-				write.Property, instanceId, local.ItemId, before, after);
-			return ItemDataRenderer.WroteAwaitingHost(local, write, before, after);
+			_log.LogInformation("[Command] /data {Verb} wrote #{InstanceId} ({Definition}): {Changes}; reported as a console write for the host's rule to judge.",
+				verb, instanceId, local.ItemId, string.Join("; ", described));
+			return ItemDataRenderer.WroteMany(local, writes, changes, awaitingHost: true);
 		}
 
 		Report(instanceId, local);
-		_log.LogInformation("[Command] /data set {Property} wrote #{InstanceId} ({Definition}): {Before} -> {After}; reported as this client's own item state.",
-			write.Property, instanceId, local.ItemId, before, after);
-		return ItemDataRenderer.Wrote(local, write, before, after);
+		_log.LogInformation("[Command] /data {Verb} wrote #{InstanceId} ({Definition}): {Changes}; reported as this client's own item state.",
+			verb, instanceId, local.ItemId, string.Join("; ", described));
+		return ItemDataRenderer.WroteMany(local, writes, changes, awaitingHost: false);
 	}
 
 	/// <summary>

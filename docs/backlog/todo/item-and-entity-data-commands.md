@@ -147,3 +147,38 @@ give gesture ticket found) and Stage D's `spawn` (which owes the late-joiner ans
 - Not a cheating surface by default: the permission story is part of the work, and it is the host's call who
   may run the family.
 - Not a raw memory editor: only properties the game's own data model carries are in scope.
+## `merge` and `remove` landed (2026-10-17)
+
+Both verbs are real now, built on the design recorded above: `merge` takes ONE target and one or more
+property/value pairs, `remove` takes one target and one or more properties with no value (a liquid goes to zero
+millilitres, a component field returns to its kind's own zero, and a bounded property is refused by name). The
+write path is shared, so all three verbs pass the same session check, the same announced-rule interception and
+the same one-item resolution, and a command commits once — which is what makes a merge atomic rather than
+half-applied.
+
+**An adversarial review of the frozen change ran and found no blocker: 2 major, 8 minor, 5 nits.** The two
+majors were both about evidence rather than behaviour, and one of them was the kind that flatters a change:
+the two single-property answer renderers had been kept "so the verbs that already ship print what they printed
+before", but by then nothing in `src/` called either of them — they were dead code, and the tests asserting
+their EXACT text were defending a method no operator could reach. The exact-text cases now point at the live
+renderer and the dead pair is deleted. Fixed with it: the success log had lost the property name (a merge logged
+three values with no way to attribute them), and a bare `/data` never mentioned the two new verbs existed.
+
+**What the review could not get from this change, and this ticket still owes:**
+
+- **Neither new verb has a console-level case.** The parser and the value layer are pinned, but no test runs
+  `/data merge …` or `/data remove …` through the console, so the shared guards, the single commit and the
+  multi-property answer line are unobserved. The console suite is at 36 of its 40-case cap, so two cases fit.
+- **The atomicity claim has no test at all.** It is stated in a comment and verified by reading only; a test
+  that applies one property successfully, fails the next, and then asserts the scene and the record are
+  untouched would close it. It has to be a console-level case: at the value layer the capture is mutated in
+  memory by design, so that layer cannot observe whether anything was committed.
+- **`set`'s answer changed for malformed input.** Parsing now happens before the session and announced-rule
+  checks, so a malformed `/data set` with no session (or from a member under a closed rule) is answered with
+  the usage line instead of the session/rule sentence. The new order is arguably better — a static error is
+  more specific — but it is a real change to a shipped verb's answer and no test observes it.
+- **`merge`'s property-level refusals quote the SET usage line**, because the property parse is shared and its
+  messages interpolate the set grammar. Its own "no property at all" refusal quotes the merge grammar, so the
+  two are inconsistent; the shared vocabulary is right, the printed grammar line is not.
+- Unfixed and named: the duplicated `<summary>` left on the write method, and two nits about `WroteMany`
+  taking two index-aligned lists and assuming a non-empty one.

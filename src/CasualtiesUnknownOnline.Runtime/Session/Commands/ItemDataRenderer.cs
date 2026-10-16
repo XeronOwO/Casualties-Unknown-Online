@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -158,37 +159,44 @@ internal static class ItemDataRenderer
 		_ => "?",
 	};
 
-	/// <summary>
-	/// One write's answer: the item it landed on, the property, and the value the
-	/// property moved from and to — the two values formatted by the SAME helpers the
-	/// read half prints its rows with, so what an operator wrote reads back in the
-	/// words they read it in. A condition written to zero carries the one consequence
-	/// the operator has to know about: the item's OWN rule destroys what reaches zero,
-	/// so the item may be gone a moment after this line (the verb does not refuse the
-	/// value — zero is a state the game itself produces).
-	/// </summary>
-	internal static string Wrote(CharacterItemMsg item, ItemDataWrite write, string before, string after) =>
-		$"#{item.InstanceId} {item.ItemId}: {Property(write)} {before} -> {after} — written and reported as this client's own item state."
-		+ (write.Property == ItemDataProperty.Condition && write.Number == 0f
-			? " At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now."
-			: "");
-
-	/// <summary>
-	/// A MEMBER's write answer: the same line, plus the one thing the operator has to
-	/// know about it. The value IS written and IS reported — that half is identical to
-	/// the host's own write above — but the host judges the report as a console write
-	/// and its rule may refuse it, so the answer says the verdict is still out and
-	/// where the refusal will appear. Without that sentence a member would read
-	/// "written" and take it for a fact the host had accepted.
-	/// </summary>
-	internal static string WroteAwaitingHost(CharacterItemMsg item, ItemDataWrite write, string before, string after) =>
-		$"#{item.InstanceId} {item.ItemId}: {Property(write)} {before} -> {after} — written here and reported to the host, which judges a member's write by its own rule; a refusal puts the old value back and says so in this console."
-		+ (write.Property == ItemDataProperty.Condition && write.Number == 0f
-			? " At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now."
-			: "");
-
 	/// <summary>A number, in the form every line of this verb prints one.</summary>
 	internal static string NumberValue(float value) => Number(value);
+
+	/// <summary>
+	/// One write COMMAND's answer when it changed more than one property — the same
+	/// line as <see cref="Wrote"/>, with one "property before -> after" clause per
+	/// property in the order the operator named them. Kept beside the single-property
+	/// pair rather than replacing them so the verbs an operator already uses print
+	/// exactly what they printed before, and so a merge or a remove cannot silently
+	/// reword the answer of a verb that did not change.
+	/// </summary>
+	internal static string WroteMany(CharacterItemMsg item, IReadOnlyList<ItemDataWrite> writes, IReadOnlyList<string> changes, bool awaitingHost)
+	{
+		var builder = new StringBuilder();
+		builder.Append('#').Append(item.InstanceId).Append(' ').Append(item.ItemId).Append(": ");
+		for (var i = 0; i < writes.Count; i++)
+		{
+			if (i > 0)
+			{
+				builder.Append("; ");
+			}
+
+			builder.Append(Property(writes[i])).Append(' ').Append(changes[i]);
+		}
+
+		builder.Append(awaitingHost
+			? " — written here and reported to the host, which judges a member's write by its own rule; a refusal puts the old value back and says so in this console."
+			: " — written and reported as this client's own item state.");
+
+		// The same one consequence the single-property answer carries: an item whose
+		// condition reaches zero may be destroyed by its own rule a moment later.
+		if (writes.Any(write => !write.Clear && write.Property == ItemDataProperty.Condition && write.Number == 0f))
+		{
+			builder.Append(" At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now.");
+		}
+
+		return builder.ToString();
+	}
 
 	/// <summary>The item's own favourite flag in this verb's words for it (the read half's "yes"/"no").</summary>
 	internal static string YesNoValue(bool value) => value ? "yes" : "no";

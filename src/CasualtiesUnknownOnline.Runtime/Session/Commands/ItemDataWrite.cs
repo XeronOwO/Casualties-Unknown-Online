@@ -21,6 +21,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// carries — and a value that does not parse as that kind is refused there, by
 /// name.
 /// </para>
+///
+/// <para>
+/// <see cref="Clear"/> is what the <c>remove</c> verb sets: the property is asked to
+/// go back to having no value rather than to take one. Only a property that HAS an
+/// absent state can honour it — a liquid goes to zero millilitres and a component
+/// field returns to its kind's own default — while a property that is a value with a
+/// range has nothing to remove and is refused by name. The two verbs share this
+/// record rather than growing a second one so that the apply step, the refusal
+/// wording and the answer line all stay in one place.
+/// </para>
 /// </summary>
 internal sealed record ItemDataWrite(
 	ItemDataQuery Target,
@@ -29,4 +39,5 @@ internal sealed record ItemDataWrite(
 	bool Flag,
 	string Name,
 	string Component,
-	string Text);
+	string Text,
+	bool Clear = false);

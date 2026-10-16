@@ -148,7 +148,7 @@ public class ItemDataRendererTests
 		var item = new CharacterItemMsg { InstanceId = 4101, ItemId = "backpack" };
 		Assert.True(ItemDataWriteParser.TryParse(["slot", "1", "condition", "0.25"], out var write, out _));
 
-		var text = ItemDataRenderer.Wrote(item, write, "0.5", "0.25");
+		var text = ItemDataRenderer.WroteMany(item, [write], ["0.5 -> 0.25"], awaitingHost: false);
 
 		Assert.Equal("#4101 backpack: condition 0.5 -> 0.25 — written and reported as this client's own item state.", text);
 	}
@@ -163,7 +163,7 @@ public class ItemDataRendererTests
 		var item = new CharacterItemMsg { InstanceId = 4101, ItemId = "backpack" };
 		Assert.True(ItemDataWriteParser.TryParse($"id 4101 {writeText}".Split(' '), out var write, out _));
 
-		Assert.StartsWith($"#4101 backpack: {label} ", ItemDataRenderer.Wrote(item, write, "before", "after"));
+		Assert.StartsWith($"#4101 backpack: {label} ", ItemDataRenderer.WroteMany(item, [write], ["before -> after"], awaitingHost: false));
 	}
 
 	/// <summary>The write half formats the LOCAL capture's own field shape — the kind the capture tagged the field with, which is what the write read the value as.</summary>
@@ -189,7 +189,7 @@ public class ItemDataRendererTests
 		var item = new CharacterItemMsg { InstanceId = 4101, ItemId = "backpack" };
 		Assert.True(ItemDataWriteParser.TryParse(["slot", "1", "condition", "0"], out var write, out _));
 
-		Assert.Contains("may destroy it", ItemDataRenderer.Wrote(item, write, "0.5", "0"));
+		Assert.Contains("may destroy it", ItemDataRenderer.WroteMany(item, [write], ["0.5 -> 0"], awaitingHost: false));
 	}
 
 	private static ItemState Item(ulong instanceId, ItemLocation location, ItemData? data = null) =>

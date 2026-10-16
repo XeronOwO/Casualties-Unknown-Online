@@ -35,6 +35,16 @@ internal static class ItemDataWriteValues
 		after = "";
 		error = null;
 
+		if (write.Clear)
+		{
+			return write.Property switch
+			{
+				ItemDataProperty.Liquid => ClearLiquid(item, write, out before, out after, out error),
+				ItemDataProperty.Component => ClearComponent(item, write, out before, out after, out error),
+				_ => RefuseNoAbsentState(write.Property, out before, out after, out error),
+			};
+		}
+
 		return write.Property switch
 		{
 			ItemDataProperty.Condition => ApplyCondition(item, write, out before, out after, out error),
@@ -42,6 +52,102 @@ internal static class ItemDataWriteValues
 			ItemDataProperty.Liquid => ApplyLiquid(item, write, out before, out after, out error),
 			_ => ApplyComponent(item, write, out before, out after, out error),
 		};
+	}
+
+	/// <summary>
+	/// The <c>remove</c> verb against a property that is a VALUE with a range rather
+	/// than a thing that can be absent. Refused by name with what the verb does
+	/// accept, because the alternative — quietly writing the range's floor — would
+	/// mean something different for a battery than for a condition, which is the
+	/// operator's call and not the verb's.
+	/// </summary>
+	private static bool RefuseNoAbsentState(ItemDataProperty property, out string before, out string after, out string? error)
+	{
+		before = "";
+		after = "";
+		error = $"'{property.ToString().ToLowerInvariant()}' has no absent state to remove — it is a value with a range, so give it one with the set verb instead. /data remove accepts liquid and component.";
+		return false;
+	}
+
+	/// <summary>Removing a liquid empties that stack; the container stays, which is what the capture can express.</summary>
+	private static bool ClearLiquid(CharacterItemMsg item, ItemDataWrite write, out string before, out string after, out string? error)
+	{
+		before = "";
+		after = "";
+		var stack = item.Liquids.FirstOrDefault(liquid => string.Equals(liquid.LiquidId, write.Name, StringComparison.Ordinal));
+		if (stack is null)
+		{
+			error = $"#{item.InstanceId} carries no '{write.Name}' — its liquids are: {Liquids(item)} (an item with no liquid container reads the same way).";
+			return false;
+		}
+
+		before = $"{ItemDataRenderer.NumberValue(stack.Amount)} ml";
+		stack.Amount = 0f;
+		after = $"{ItemDataRenderer.NumberValue(stack.Amount)} ml";
+		error = null;
+		return true;
+	}
+
+	/// <summary>
+	/// Removing a component field returns it to the default its OWN kind has, which is
+	/// the value a freshly added component carries — the field stays in the capture
+	/// because the game's own component still has it.
+	/// </summary>
+	private static bool ClearComponent(CharacterItemMsg item, ItemDataWrite write, out string before, out string after, out string? error)
+	{
+		before = "";
+		after = "";
+		var component = item.Components.FirstOrDefault(state => string.Equals(state.TypeName, write.Component, StringComparison.Ordinal));
+		if (component is null)
+		{
+			error = $"#{item.InstanceId} has no component '{write.Component}' — it carries: {Components(item)}.";
+			return false;
+		}
+
+		var field = component.Fields.FirstOrDefault(candidate => string.Equals(candidate.Name, write.Name, StringComparison.Ordinal));
+		if (field is null)
+		{
+			error = $"Component '{write.Component}' has no field '{write.Name}' — it carries: {Fields(component)}.";
+			return false;
+		}
+
+		before = ItemDataRenderer.FieldValue(field);
+		if (!TryResetField(field))
+		{
+			error = $"A {KindLabel(field.Kind)} field has no value this build can reset {write.Component}.{write.Name} to.";
+			before = "";
+			return false;
+		}
+
+		after = ItemDataRenderer.FieldValue(field);
+		error = null;
+		return true;
+	}
+
+	/// <summary>The zero value of the field's own kind. A kind the capture never stores refuses, like the write path does.</summary>
+	private static bool TryResetField(ComponentFieldMsg field)
+	{
+		switch (field.Kind)
+		{
+			case SaveableFieldKind.Float:
+				field.FloatValue = 0f;
+				return true;
+			case SaveableFieldKind.Int:
+			case SaveableFieldKind.Enum:
+				field.IntValue = 0;
+				return true;
+			case SaveableFieldKind.Bool:
+				field.BoolValue = false;
+				return true;
+			case SaveableFieldKind.String:
+				field.StringValue = "";
+				return true;
+			case SaveableFieldKind.StringList:
+				field.StringList = [];
+				return true;
+			default:
+				return false;
+		}
 	}
 
 	/// <summary>

@@ -186,13 +186,13 @@ public class CommandConsoleItemDataTests
 	}
 
 	[Fact]
-	public void Data_WithAWriteVerbThatHasNotLanded_SaysWhichOneDid()
+	public void Data_WithAWriteVerbThatDoesNotExist_SaysWhatTheVerbsAre()
 	{
 		var (host, _) = CreateSession();
 
-		var answer = Run(host, "/data merge id 4101 condition 0.5");
+		var answer = Run(host, "/data frobnicate id 4101 condition 0.5");
 
-		Assert.Contains("/data merge is not implemented yet", answer);
+		Assert.Contains("Unknown /data verb 'frobnicate'", answer);
 		Assert.Contains("/data set", answer);
 	}
 

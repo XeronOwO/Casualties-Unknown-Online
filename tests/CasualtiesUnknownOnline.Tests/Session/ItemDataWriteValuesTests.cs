@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -164,6 +165,74 @@ public class ItemDataWriteValuesTests
 		Assert.Contains("float charge", applied.Error);
 	}
 
+	[Fact]
+	public void Remove_LiquidEmptiesThatStackAndLeavesTheOtherAlone()
+	{
+		var item = Item();
+
+		var applied = ApplyRemove(item, "slot 0 liquid water");
+
+		Assert.True(applied.Ok, applied.Error);
+		Assert.Equal("250 ml", applied.Before);
+		Assert.Equal("0 ml", applied.After);
+		Assert.Equal(0f, item.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
+
+		// Removing one liquid is not emptying the container: the other stack is untouched.
+		Assert.Equal(10f, item.Liquids.Single(liquid => liquid.LiquidId == "oil").Amount);
+	}
+
+	[Fact]
+	public void Remove_ComponentField_ResetsTheValueItsOwnKindDefaultsTo()
+	{
+		var item = Item();
+
+		// Every kind the capture can hold, reset in one command: the field stays in the
+		// capture (the game's own component still has it) and takes its kind's zero value.
+		var applied = ApplyRemove(item, "slot 0 component BatteryItem charge component BatteryItem mode component BatteryItem on component BatteryItem label component BatteryItem tags component BatteryItem state");
+
+		Assert.True(applied.Ok, applied.Error);
+		var fields = item.Components.Single().Fields;
+		Assert.Equal(0f, fields.Single(field => field.Name == "charge").FloatValue);
+		Assert.Equal(0, fields.Single(field => field.Name == "mode").IntValue);
+		Assert.False(fields.Single(field => field.Name == "on").BoolValue);
+		Assert.Equal("", fields.Single(field => field.Name == "label").StringValue);
+		Assert.Empty(fields.Single(field => field.Name == "tags").StringList);
+		Assert.Equal(0, fields.Single(field => field.Name == "state").IntValue);
+	}
+
+	[Fact]
+	public void Remove_OfAPropertyWithNoAbsentState_IsRefusedAndChangesNothing()
+	{
+		var item = Item();
+
+		// The removal of a bounded property is refused by the PARSER, and this pins that specific message:
+		// the value layer carries a twin of it that no input can reach, so an assertion matching only the
+		// shared phrase would pass whichever of the two had produced it.
+		var condition = ApplyRemove(item, "slot 0 condition");
+		Assert.False(condition.Ok);
+		Assert.Contains("no absent state to remove", condition.Error);
+		Assert.Contains("Usage: /data remove", condition.Error);
+		Assert.Equal(1f, item.Condition);
+
+		var favourited = ApplyRemove(item, "slot 0 favourited");
+		Assert.False(favourited.Ok);
+		Assert.Contains("Usage: /data remove", favourited.Error);
+		Assert.False(item.Favourited);
+	}
+
+	[Fact]
+	public void Remove_OfALiquidTheItemDoesNotCarry_IsRefusedNamingWhatItHas()
+	{
+		var item = Item();
+
+		var applied = ApplyRemove(item, "slot 0 liquid petrol");
+
+		Assert.False(applied.Ok);
+		Assert.Contains("carries no 'petrol'", applied.Error);
+		Assert.Contains("water", applied.Error);
+		Assert.Equal(250f, item.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
+	}
+
 	/// <summary>Parses the real grammar and applies it — the two halves are pinned together, not separately.</summary>
 	private static (bool Ok, string Before, string After, string? Error) Apply(CharacterItemMsg item, string line) =>
 		ItemDataWriteParser.TryParse(line.Split(' '), out var write, out var parseError)
@@ -171,6 +240,27 @@ public class ItemDataWriteValuesTests
 				? (true, before, after, error)
 				: (false, before, after, error)
 			: (false, "", "", parseError);
+
+	/// <summary>The same, through the remove grammar: the properties that verb accepts carry no value of their own.</summary>
+	private static (bool Ok, string Before, string After, string? Error) ApplyRemove(CharacterItemMsg item, string line) =>
+		ItemDataWriteParser.TryParseRemove(line.Split(' '), out var writes, out var parseError)
+			? ApplyAll(item, writes)
+			: (false, "", "", parseError);
+
+	private static (bool Ok, string Before, string After, string? Error) ApplyAll(CharacterItemMsg item, IReadOnlyList<ItemDataWrite> writes)
+	{
+		var before = "";
+		var after = "";
+		foreach (var write in writes)
+		{
+			if (!ItemDataWriteValues.TryApply(item, write, out before, out after, out var error))
+			{
+				return (false, before, after, error);
+			}
+		}
+
+		return (true, before, after, null);
+	}
 
 	private static CharacterItemMsg Item() => new()
 	{

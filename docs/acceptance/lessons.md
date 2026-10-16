@@ -512,3 +512,7 @@ A layout rule that asks a CONTAINER for the size of the control inside it is ask
 ## 2026-10-15 — A budget read from the container it is shared among agrees with itself
 
 A strip that SHARES a fixed band among its tabs was budgeted from the band's own rect, and the band is as wide as its children's minimums — each of which the sharing rule had just written — so the budget equalled what was asked for, nothing was ever given up and the strip stayed exactly as wide as its own content for ever (`Tabs rect=1038.7x36.0` against a shell of `984.0` in one frame, batch `20261015-a`); a self-measurement does not have to diverge to be wrong, and a fixed point that agrees with itself looks settled in every reading a probe can take, which is why this run reads the container's own width BESIDE the band's and exercises the share by narrowing the window (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md`).
+
+## 2026-10-16 — "None here" from a probe grid is a claim about the GRID
+
+Before a row is recorded as "this world has none of X", read the population over the whole loaded scene, because a probe that covers the cells around a body measures those cells and nothing else: batch `20261016-c` counted 1365 `requireGround` buildings where the previous batch's 5×4 grid had concluded there were none, and both its record and its ticket repeated that conclusion until a census replaced it — `tools/acceptance/recipes/building-support-census.cs`, `docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`.

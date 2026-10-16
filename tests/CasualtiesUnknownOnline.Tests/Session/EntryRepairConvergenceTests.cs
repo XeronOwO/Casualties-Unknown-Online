@@ -83,7 +83,7 @@ public class EntryRepairConvergenceTests
 			"the state must precede the completion marker, or the window would close on a marker whose tables never came");
 		Assert.True(requested.Count == 1 && requested[0] == w.G1.SteamId,
 			$"the repair must raise ISessionControl.EntryRepairRequested for the re-asserting member exactly once, got {requested.Count}");
-		Assert.Equal(2_460L, answerBytes); // the pass size docs/evidence/sync-cadence-measurements.md records — this assertion is what makes that number reproducible (one host-rule field wider than it was: HostRulesMsg gained RadiationLineStopsAboveTheFloor)
+		Assert.Equal(2_462L, answerBytes); // the pass size docs/evidence/sync-cadence-measurements.md records — this assertion is what makes that number reproducible (one host-rule field wider than it was: HostRulesMsg gained RadiationLineStopsAboveTheFloor)
 	}
 
 	[Fact]

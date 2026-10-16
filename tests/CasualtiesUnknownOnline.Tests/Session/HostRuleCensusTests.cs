@@ -152,7 +152,10 @@ public class HostRuleCensusTests
 		ReviveFromTrader: false,
 		ReviveOnNextLevel: false,
 		Permadeath: true,
-		RadiationLineStopsAboveTheFloor: false);
+		RadiationLineStopsAboveTheFloor: false,
+		SpectatorFreeFly: false,
+		SpectateWhileUnconscious: true,
+		SpectateWhileWaitingToJoin: true);
 
 	private static IReadOnlyList<PropertyInfo> Properties<T>() =>
 		[.. typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(property => property.GetIndexParameters().Length == 0)];

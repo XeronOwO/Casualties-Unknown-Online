@@ -148,7 +148,10 @@ public class HostRuleAnnouncementTests
 			ReviveFromTrader: false,
 			ReviveOnNextLevel: false,
 			Permadeath: true,
-			RadiationLineStopsAboveTheFloor: false));
+			RadiationLineStopsAboveTheFloor: false,
+			SpectatorFreeFly: false,
+			SpectateWhileUnconscious: true,
+			SpectateWhileWaitingToJoin: true));
 
 		Assert.False(service.AllowMemberItemDataWrite);
 		Assert.Equal(0.25f, service.PiggybackWeightMultiplier);
@@ -184,7 +187,10 @@ public class HostRuleAnnouncementTests
 		ReviveFromTrader: true,
 		ReviveOnNextLevel: true,
 		Permadeath: false,
-		RadiationLineStopsAboveTheFloor: false);
+		RadiationLineStopsAboveTheFloor: false,
+		SpectatorFreeFly: false,
+		SpectateWhileUnconscious: true,
+		SpectateWhileWaitingToJoin: true);
 
 	private static HostRulesService Service(HostRulesOptions hostRules, RespawnOptions respawn, AnnouncedHostRules? announced = null) =>
 		new(new MutableOptionsMonitor<HostRulesOptions>(hostRules), new MutableOptionsMonitor<RespawnOptions>(respawn), announced ?? New());

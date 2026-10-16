@@ -48,9 +48,9 @@ worst case at 10 s stays in the low KB/s against the profile's 1 MB/s budget.
 | First repair after the entry edge | the member's first repeat ≈ 5 000 ms after the edge |
 | Repairs for an entry whose window closed on BOTH control facts | 0 |
 | Repairs for an entry whose gate release is held (nothing swallowed) | ≤ 3 inside the gate's 30 s force-start (≤ 4 over the ~36 s the test runs) — the host cannot tell that window from a swallowed one, so it is answered and bounded (`EntryRepairConvergenceTests.HeldGate_PaysBoundedRepairsWithoutASwallow`) |
-| One repair pass, measured in the simulation world | 2 460 bytes (`EntryRepairConvergenceTests.SwallowedEntryGroup_IsHealedByTheRepeatAnswer` asserts exactly this number, so it is reproducible and a change in the pass's cost fails loudly) |
+| One repair pass, measured in the simulation world | 2 462 bytes (`EntryRepairConvergenceTests.SwallowedEntryGroup_IsHealedByTheRepeatAnswer` asserts exactly this number, so it is reproducible and a change in the pass's cost fails loudly) |
 
-The 2 460-byte figure (2 458 before the host-rule message gained a field) is the whole answer to the swallowed entry group in
+The 2 460-byte figure (2 458 before the host-rule message gained its first field, 2 460 after it, 2 462 after the three spectator rules — the two of those whose value differs from the wire format's own default are the only ones written, which is why three fields cost two bytes) is the whole answer to the swallowed entry group in
 `EntryRepairConvergenceTests.SwallowedEntryGroup_IsHealedByTheRepeatAnswer` — the absolute
 in-session tables (kernel checkpoint, block state, block damage, trap layout, enemy snapshot,
 runtime entities, recipe unlocks, roster) plus the host's rule announcement, the start-gate answer

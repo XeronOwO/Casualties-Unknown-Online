@@ -62,6 +62,9 @@ public static class HostRuleCensus
 		new(HostRuleId.ReviveOnNextLevel, Audience.Members, HostRuleKind.Boolean, "admin.rule_revive_next_level"),
 		new(HostRuleId.Permadeath, Audience.Members, HostRuleKind.Boolean, "admin.rule_permadeath"),
 		new(HostRuleId.RadiationLineStopsAboveTheFloor, Audience.Members, HostRuleKind.Boolean, "admin.rule_radiation_line_floor"),
+		new(HostRuleId.SpectatorFreeFly, Audience.Members, HostRuleKind.Boolean, "admin.rule_spectator_free_fly"),
+		new(HostRuleId.SpectateWhileUnconscious, Audience.Members, HostRuleKind.Boolean, "admin.rule_spectate_while_unconscious"),
+		new(HostRuleId.SpectateWhileWaitingToJoin, Audience.Members, HostRuleKind.Boolean, "admin.rule_spectate_while_waiting_to_join"),
 	];
 
 	/// <summary>The rows a MEMBER's client renders and acts on — the set the announcement carries.</summary>

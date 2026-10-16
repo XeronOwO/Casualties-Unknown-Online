@@ -37,7 +37,10 @@ public readonly record struct HostRuleSet(
 	bool ReviveFromTrader,
 	bool ReviveOnNextLevel,
 	bool Permadeath,
-	bool RadiationLineStopsAboveTheFloor)
+	bool RadiationLineStopsAboveTheFloor,
+	bool SpectatorFreeFly,
+	bool SpectateWhileUnconscious,
+	bool SpectateWhileWaitingToJoin)
 {
 	/// <summary>Reads one process's own rule surface as a set (the host's own values, and a member's before anything is announced).</summary>
 	public static HostRuleSet From(IHostRules rules) => new(
@@ -53,7 +56,10 @@ public readonly record struct HostRuleSet(
 		rules.ReviveFromTrader,
 		rules.ReviveOnNextLevel,
 		rules.Permadeath,
-		rules.RadiationLineStopsAboveTheFloor);
+		rules.RadiationLineStopsAboveTheFloor,
+		rules.SpectatorFreeFly,
+		rules.SpectateWhileUnconscious,
+		rules.SpectateWhileWaitingToJoin);
 
 	/// <summary>The set the two config sections compose into — the mapping <see cref="IHostRules"/> itself declares (the respawn rules come from <see cref="RespawnOptions"/>, under the names the rule surface uses).</summary>
 	public static HostRuleSet FromOptions(HostRulesOptions hostRules, RespawnOptions respawn) => new(
@@ -69,7 +75,10 @@ public readonly record struct HostRuleSet(
 		respawn.ReviveFromTrader,
 		respawn.ReviveOnNextLevel,
 		respawn.Permadeath,
-		hostRules.RadiationLineStopsAboveTheFloor);
+		hostRules.RadiationLineStopsAboveTheFloor,
+		hostRules.SpectatorFreeFly,
+		hostRules.SpectateWhileUnconscious,
+		hostRules.SpectateWhileWaitingToJoin);
 
 	/// <summary>
 	/// The value of one flag rule, by id. Throws for a rule that is not a flag: a
@@ -89,6 +98,9 @@ public readonly record struct HostRuleSet(
 		HostRuleId.ReviveOnNextLevel => ReviveOnNextLevel,
 		HostRuleId.Permadeath => Permadeath,
 		HostRuleId.RadiationLineStopsAboveTheFloor => RadiationLineStopsAboveTheFloor,
+		HostRuleId.SpectatorFreeFly => SpectatorFreeFly,
+		HostRuleId.SpectateWhileUnconscious => SpectateWhileUnconscious,
+		HostRuleId.SpectateWhileWaitingToJoin => SpectateWhileWaitingToJoin,
 		_ => throw new ArgumentOutOfRangeException(nameof(rule), rule, "host rule is not a flag"),
 	};
 

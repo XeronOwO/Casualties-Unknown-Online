@@ -59,4 +59,13 @@ public interface IHostRules
 
 	/// <summary>Host-only: the radiation line stops a margin above the layer floor and stays there, so the bottom of a layer is livable and a group can share supplies and rest. On by default.</summary>
 	bool RadiationLineStopsAboveTheFloor { get; }
+
+	/// <summary>Host-only: A spectating player may free-fly the camera instead of only following a teammate. On by default, aligned with the reference mod: a free camera can scout the layer ahead, so it is a group decision rather than one client's rendering choice.</summary>
+	bool SpectatorFreeFly { get; }
+
+	/// <summary>Host-only: An UNCONSCIOUS player may spectate. Off by default: in this project's model an unconscious body is still its owner's to act on, so this changes a live player's client rather than a dead one's.</summary>
+	bool SpectateWhileUnconscious { get; }
+
+	/// <summary>Host-only: A client that has not entered the world yet may spectate. Off by default: that is the late-join case, and it is a separate promise about what a not-yet-in-world client may see.</summary>
+	bool SpectateWhileWaitingToJoin { get; }
 }

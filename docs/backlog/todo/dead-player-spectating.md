@@ -106,3 +106,21 @@ it starts:
 - Not a change to what a dead player may *do*: a spectator places no ping, performs no action and drives no
   possession, which is the clause `review/middle-click-location-marker.md` recorded for the dead case and
   this ticket keeps.
+## Step 1 landed (2026-10-17): the three host rules
+
+`SpectatorFreeFly` (on), `SpectateWhileUnconscious` (off) and `SpectateWhileWaitingToJoin` (off) now exist end
+to end — id, census row, rule set, the rules message's fields 14-16, the option, the service property, an
+Admin-page row each, the console's own write verb, both language labels, both configuration pages, the config
+entries inside the monitor's watched set, the plugin editor's own setters, and the tests' rule-set
+constructions. A session decides once and every client reads the same answer, which is required work 1.
+
+**Nothing reads them yet**, and that is deliberate: no camera follows anyone, so this step changes no
+behaviour at all. Required work 2-5 are what make the switches mean something, and they are the next session's
+work: the follow target and the free camera, the member-list chooser plus the rule that a followed teammate who
+dies, leaves the layer or disconnects moves the camera on, the three exits (trader revive, next-layer respawn,
+menu-return cut) each clearing the follow target, and the two-client verification.
+
+**One measured number moved and the reason is worth keeping**: the rules message's entry pass grew 2458 → 2460
+→ 2462 bytes across this cycle's two rule additions, and only TWO of these three fields are on the wire — a
+value equal to the wire format's own default is not written, so three booleans cost two bytes. The assertion in
+`EntryRepairConvergenceTests` and both evidence documents moved with it.

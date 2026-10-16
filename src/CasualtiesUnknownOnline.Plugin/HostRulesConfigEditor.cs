@@ -28,6 +28,9 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _keepInventory;
 	private readonly ConfigEntry<bool> _keepSkills;
 	private readonly ConfigEntry<bool> _radiationLineStopsAboveTheFloor;
+	private readonly ConfigEntry<bool> _spectatorFreeFly;
+	private readonly ConfigEntry<bool> _spectateWhileUnconscious;
+	private readonly ConfigEntry<bool> _spectateWhileWaitingToJoin;
 
 	internal HostRulesConfigEditor(
 		ConfigFile config,
@@ -44,7 +47,10 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> reviveOnNextLevel,
 		ConfigEntry<bool> keepInventory,
 		ConfigEntry<bool> keepSkills,
-		ConfigEntry<bool> radiationLineStopsAboveTheFloor)
+		ConfigEntry<bool> radiationLineStopsAboveTheFloor,
+		ConfigEntry<bool> spectatorFreeFly,
+		ConfigEntry<bool> spectateWhileUnconscious,
+		ConfigEntry<bool> spectateWhileWaitingToJoin)
 	{
 		_config = config;
 		_pvp = pvp;
@@ -61,6 +67,9 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_keepInventory = keepInventory;
 		_keepSkills = keepSkills;
 		_radiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor;
+		_spectatorFreeFly = spectatorFreeFly;
+		_spectateWhileUnconscious = spectateWhileUnconscious;
+		_spectateWhileWaitingToJoin = spectateWhileWaitingToJoin;
 	}
 
 	internal void SetPvpEnabled(bool value) => Set(_pvp, value);
@@ -90,6 +99,12 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	internal void SetKeepSkills(bool value) => Set(_keepSkills, value);
 
 	internal void SetRadiationLineStopsAboveTheFloor(bool value) => Set(_radiationLineStopsAboveTheFloor, value);
+
+	internal void SetSpectatorFreeFly(bool value) => Set(_spectatorFreeFly, value);
+
+	internal void SetSpectateWhileUnconscious(bool value) => Set(_spectateWhileUnconscious, value);
+
+	internal void SetSpectateWhileWaitingToJoin(bool value) => Set(_spectateWhileWaitingToJoin, value);
 
 	public bool TrySet(string property, string value, out string? error)
 	{

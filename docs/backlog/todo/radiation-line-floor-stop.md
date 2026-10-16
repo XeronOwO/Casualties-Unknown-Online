@@ -54,3 +54,31 @@ drives that value host-side while the straggler path accelerates the descent tow
 - Not a new hazard: the line keeps every effect it has today, only its final position changes.
 - Not a per-player setting: this is host-side world state, so it belongs on the host's rules and must not be
   a local toggle that desyncs the line.
+## Attribution done (2026-10-17, before any implementation)
+
+Read: `reversing/Assembly-CSharp/Assembly-CSharp/RadiationLine.cs` (the whole type), KrokMP's
+`RadiationLineUpdatePatch`, and CUO's own `RadiationLineSync`.
+
+1. **The native line has NO floor stop, and this ticket's own description of today's behaviour is wrong.**
+   Its whole update is `this.timeGone += Time.deltaTime * (this.body.conscious ? 1f : 0.2f) * 1.5f;` followed by
+   `base.transform.position = Vector3.up * this.world.halfHeight + Vector3.down * this.timeGone + Vector3.down *
+   Mathf.Sin(this.timeGone * 0.66f) * 3f;` — `timeGone` is the only input and NOTHING caps it, so the line
+   passes the layer's floor and keeps descending. So "the line keeps descending until it reaches the floor" is
+   not the native behaviour; the clamp is a NEW upper bound rather than a restored one, and the switch has to
+   be described that way or a reader will look for the native rule it replaces. KrokMP's bound is
+   `WorldGeneration.world.height - 8U`, and because the position is `halfHeight - timeGone` (plus the wave), a
+   cap of `height - margin` parks the line `margin` world units above the floor — which is the behaviour the
+   user asked to align with.
+2. **`timeGone` is the only thing to clamp, and clamping it changes nothing but the final height.** The
+   damage, the eye effect and the irradiate intensity are all computed from `body.position.y -
+   line.position.y` AFTER the position is set, so every one of those rules survives untouched; they simply
+   stop getting worse once the line stops.
+3. **Both sides must clamp, and they can do it independently — no new wire field.** `RadiationLineSync`'s own
+   note says a guest keeps running its local `RadiationLine.Update` between the host's 5 Hz broadcasts, so a
+   host-only clamp would be outrun locally. The position formula is PURE (no roll, no per-client input), so the
+   same rule value applied on both sides converges; the host's rule surface already reaches every member, which
+   is what makes the value the same everywhere including a late joiner.
+4. **Still open, and it decides what the switch must say**: whether the layer's end or any other progression
+   step is keyed to "the line reached the floor". `RadiationLine` answers no part of it — it carries no floor
+   logic and no completion hook — so that reading belongs to the layer progression (`WorldGeneration` and
+   whatever ends a layer), and it is the next step before the switch's own consequences can be stated.

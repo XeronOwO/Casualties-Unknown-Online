@@ -84,6 +84,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [A dead player can watch the run by spectating a teammate](todo/dead-player-spectating.md) — **Medium** — follow a teammate; free-fly if allowed.
 - [The body census should name a carried item's own instance id](todo/item-census-own-instance-id.md) — **Low-Medium** — the id a write target asks for.
+- [A break log line names the wrong shape](todo/block-break-log-names-the-wrong-shape.md) — **Low** — "no air write" on the path every break takes.
 ### In progress
 
 ### Review

@@ -67,6 +67,17 @@ surfaces still key a write on the payload's own identity:
 - **`NetMsg.RecipeUnlock` (77)** — `RecipeUnlockReceived?.Invoke(recipeIndex);` applies and the handler then
   relays, with no range check against the host's own recipe table (the SNAPSHOT path does check it:
   `if (!known.Add(index)) { continue; }` behind `CaptureUnlockedRecipes()`).
+- **`NetMsg.BlockPlaced` — an air write, the break carrier's cell (found by batch `20261016-c`)** — the census
+  row's own bound (`the generation stamp + the first-writer cell rule`) covers the layer and the cell's state,
+  never the REPORTER: `WorldEventSync.OnRemoteBlockPlaced` reads the host's own cell
+  (`standingBlock = WorldGeneration.world.GetBlock(pos)`), compares it with the claimed write and applies, with
+  no comparison against the sender's own body anywhere on the path — so a member naming any cell of the current
+  layer has that block broken there. The anchor the host already holds is the member's own body position; what
+  has to be settled BEFORE a check is whether every legitimate writer stays inside a reach (`Body.Attack`'s
+  melee write is the native call site, but a quake breaks a whole region and an environment write is nobody's
+  gesture) or whether the anchor has to be the cell's own cause instead. Live reading: `20261016-c` had the
+  member break a cell 122 blocks from its own cell as that run read the body, and the host applied the break and
+  judged its drops (`docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`).
 
 ## C. A claim with no anchor (a design decision, not a check)
 

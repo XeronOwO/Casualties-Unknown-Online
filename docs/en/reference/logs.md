@@ -31,7 +31,7 @@ each step is [How a world is saved](../internals/save-archive.md) and
 `BepInEx/logs/latest.log` writes one line per entry:
 
 ```text
-[2026-09-23 14:05:31.482] [INF] [CasualtiesUnknownOnline.Plugin] Plugin CasualtiesUnknownOnline is loaded!
+[Info   :Casualties Unknown: Online] [CasualtiesUnknownOnline.Plugin] Plugin CasualtiesUnknownOnline is loaded - build 0.1.0+<commit>.
 ```
 
 - The level codes are `TRC`, `DBG`, `INF`, `WRN`, `ERR` and `CRT`.

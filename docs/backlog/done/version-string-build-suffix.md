@@ -1,6 +1,6 @@
 # The version a player and a log reader sees should carry the build's commit
 
-- Status: Review — implemented and gated; the three surfaces themselves await the run.
+- Status: Done — the three surfaces name the same commit on the machine (`docs/evidence/acceptance/build-stamp-surfaces-20261017-e.md`), and a build from a dirty tree marks itself.
 - Priority: Low
 - Category: Diagnostics / release hygiene
 - Source: the user's 2026-10-07 backlog request — the version number should carry the commit-hash build

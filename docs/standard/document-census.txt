@@ -23,7 +23,7 @@ CLAUDE.md | keep | loaded | -
 docs/acceptance/AGENTS.md | keep | loaded | -
 docs/acceptance/dependencies.md | keep | spec | docs/acceptance/lessons.md
 docs/acceptance/lessons.md | keep | spec | docs/acceptance/AGENTS.md
-docs/acceptance/workflow.md | keep | spec | docs/backlog/review/version-string-build-suffix.md
+docs/acceptance/workflow.md | keep | spec | docs/backlog/done/version-string-build-suffix.md
 docs/AGENTS.md | keep | loaded | -
 docs/architecture/current.md | keep | spec | docs/architecture/domains.md
 docs/architecture/domains.md | keep | spec | docs/architecture/current.md
@@ -314,7 +314,7 @@ docs/backlog/todo/member-report-bounds.md | keep | index | docs/backlog/README.m
 docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/single-file-plugin-package.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md
-docs/backlog/review/version-string-build-suffix.md | keep | index | docs/backlog/README.md
+docs/backlog/done/version-string-build-suffix.md | keep | index | docs/backlog/README.md
 docs/backlog/watchlist/architecture-watchlist.md | keep | index | docs/backlog/README.md
 docs/contracts/README.md | keep | spec | docs/en/contributing/documentation-standard.md
 docs/decisions/active.md | keep | spec | AGENTS.md
@@ -412,6 +412,7 @@ docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-x.md | k
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-y.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-b.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-c.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
+docs/evidence/acceptance/build-stamp-surfaces-20261017-e.md | keep | claim | docs/backlog/done/version-string-build-suffix.md
 docs/evidence/acceptance/block-break-log-shape-20261017-d.md | keep | claim | docs/backlog/done/block-break-log-names-the-wrong-shape.md
 docs/evidence/acceptance/call-context-scope-leak-20261012-b.md | keep | claim | docs/evidence/acceptance/mod-item-with-no-declared-tags-throws-20261012-b.md
 docs/evidence/acceptance/carried-inventory-registration-re-report-20260927.md | keep | claim | docs/backlog/done/carried-inventory-registration-re-report.md

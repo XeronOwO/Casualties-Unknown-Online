@@ -23,7 +23,7 @@
 `BepInEx/logs/latest.log` 每条记录一行：
 
 ```text
-[2026-09-23 14:05:31.482] [INF] [CasualtiesUnknownOnline.Plugin] Plugin CasualtiesUnknownOnline is loaded!
+[Info   :Casualties Unknown: Online] [CasualtiesUnknownOnline.Plugin] Plugin CasualtiesUnknownOnline is loaded - build 0.1.0+<commit>.
 ```
 
 - 级别码是 `TRC`、`DBG`、`INF`、`WRN`、`ERR` 与 `CRT`。

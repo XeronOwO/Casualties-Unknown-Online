@@ -86,7 +86,8 @@ accepted-creation path unchanged or needs its own admission, including what a la
    **Landed 2026-10-14:** `/data set` over condition, favourited, one liquid stack and one component field, on
    the item THIS client holds, plus the port (`ILocalItemAccess`) and the report route that makes the row the
    game's own — `done/item-data-write-commands.md` carries its rows and its limits.
-   **Still open in this stage:** `merge` and `remove`; the cursor target (which owns the id-less
+   **Landed with them 2026-10-17:** `merge` and `remove` (the landing section below carries what they do and
+   what they still owe). **Still open in this stage:** the cursor target (which owns the id-less
    generation-time ground item question); and the first gap above — the host's own untouched carried items
    still have no id and no row, so no verb can name them until the host registers its carried inventory at the
    generation-finished edge the way a member's client does (a cross-player change: those ids ride the 1 Hz

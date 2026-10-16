@@ -1,6 +1,6 @@
 # Acceptance record — the body census's own instance id
 
-- Ticket: `docs/backlog/todo/item-census-own-instance-id.md` — required work 1 and 2 are DONE and required
+- Ticket: `docs/backlog/done/item-census-own-instance-id.md` — required work 1 and 2 are DONE and required
   work 3 is read on the machine in its two-client form. The ticket stays in `todo/` for the one thing the
   reading leaves it: what a row should say when an item genuinely has no id yet, and which of the two
   carriers a scenario should act on.

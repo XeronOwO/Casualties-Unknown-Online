@@ -1,6 +1,6 @@
 # The body census should name a carried item's own instance id
 
-- Status: Todo
+- Status: Done — the recipe, its header and this ticket's own premise are corrected, and the two-client reading is `docs/evidence/acceptance/item-census-instance-id-20261017-c.md`.
 - Priority: Low-Medium
 - Category: Acceptance tooling / recipes
 - Source: found by the agent-run acceptance of `done/host-rules-replication.md` (batch `20261016-a`,

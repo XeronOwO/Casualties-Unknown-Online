@@ -56,7 +56,7 @@ nothing here waits on an eye.
   item reads `0` there while its CUO id lives on `ItemInstanceId`. Rows 2/3's "nothing was applied" and
   "the recorded value is back" halves are therefore read from the write's own before-value and from the
   log's settle line rather than from a census; the gap is filed as its own ticket,
-  `todo/item-census-own-instance-id.md`.
+  `done/item-census-own-instance-id.md`.
 - **Row 7 has no frame.** The run meant to add one (run 5) had its sandbox client come up with no main
   window while the box's own process list went empty, so `capture-window.ps1` had nothing to capture for
   the guest; the run 4 reading above is the client's own control set, which is the same registration the

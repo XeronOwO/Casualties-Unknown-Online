@@ -292,7 +292,7 @@ docs/backlog/todo/give-item-to-another-player.md | keep | index | docs/backlog/R
 docs/backlog/todo/heal-command-limb-and-hollow-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/id-carriers-can-disagree-about-placement.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/item-and-entity-data-commands.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/item-census-own-instance-id.md | keep | index | docs/backlog/README.md
+docs/backlog/done/item-census-own-instance-id.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/health-simulation-and-host-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/validation-and-source-checks.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
@@ -540,7 +540,7 @@ docs/evidence/acceptance/projection-failure-auto-recovery-20260927.md | keep | c
 docs/evidence/acceptance/protocol-frame-validation-20260927.md | keep | claim | docs/backlog/done/protocol-frame-validation.md
 docs/evidence/acceptance/readme-language-pair-20261012-c.md | keep | claim | docs/backlog/done/readme-language-pair.md
 docs/evidence/acceptance/recipe-args-crlf-gate-20261002.md | keep | claim | docs/backlog/done/recipe-args-crlf-gate.md
-docs/evidence/acceptance/item-census-instance-id-20261017-c.md | keep | claim | docs/backlog/todo/item-census-own-instance-id.md
+docs/evidence/acceptance/item-census-instance-id-20261017-c.md | keep | claim | docs/backlog/done/item-census-own-instance-id.md
 docs/evidence/acceptance/recipe-unlock-bound-20261017-b.md | keep | claim | docs/backlog/todo/member-report-bounds.md
 docs/evidence/acceptance/recipe-unlock-fallback-20261003-e.md | keep | claim | docs/backlog/review/recipe-unlock-fallback.md
 docs/evidence/acceptance/reenter-baseline-adoption-20261002-m.md | keep | claim | docs/backlog/done/reenter-baseline-adoption.md

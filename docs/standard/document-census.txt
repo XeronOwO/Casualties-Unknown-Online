@@ -280,7 +280,7 @@ docs/backlog/review/turret-stray-fire-after-reload.md | keep | index | docs/back
 docs/backlog/review/unhooked-damage-block-callers.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unhooked-item-and-body-sound-families.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unified-remote-display-projection-rework.md | keep | index | docs/backlog/README.md
-docs/backlog/review/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
+docs/backlog/done/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/container-content-event-gap-on-repick.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
@@ -412,6 +412,7 @@ docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-x.md | k
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-y.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-b.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-c.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
+docs/evidence/acceptance/block-break-log-shape-20261017-d.md | keep | claim | docs/backlog/done/block-break-log-names-the-wrong-shape.md
 docs/evidence/acceptance/call-context-scope-leak-20261012-b.md | keep | claim | docs/evidence/acceptance/mod-item-with-no-declared-tags-throws-20261012-b.md
 docs/evidence/acceptance/carried-inventory-registration-re-report-20260927.md | keep | claim | docs/backlog/done/carried-inventory-registration-re-report.md
 docs/evidence/acceptance/carried-inventory-registration-re-report-20260930.md | keep | claim | docs/backlog/done/carried-inventory-registration-re-report.md

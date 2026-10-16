@@ -1,6 +1,6 @@
 # A block-break log line names the lost-air-write shape on every accepted break
 
-- Status: Review — the line now carries the judgement; its wording awaits a run (nothing has seen the new sentence yet). Found by batch `20261016-c` run 2 while reading the S2b captured-rows half; what it distorts
+- Status: Done — read on the machine in batch `20261017-d` (`docs/evidence/acceptance/block-break-log-shape-20261017-d.md`): the headline names the `Fresh` shape and agrees with the applier's line. Found by batch `20261016-c` run 2 while reading the S2b captured-rows half; what it distorts
   is not the bound but the diagnosis of which shape ran.
 - Priority: Low
 - Category: Diagnostics / world

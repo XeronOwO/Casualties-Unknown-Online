@@ -88,7 +88,7 @@ described above:
   index must be one entry of THIS host's table (`CraftSyncService.MayApplyReportedUnlock`, pinned by
   `RecipeUnlockBackfillTests`); an index it has no recipe for is refused by name — nothing applied here,
   nothing relayed — while the host's own unlock, every guest-side apply and a read that FAILED keep the
-  behaviour they had.
+  behaviour they had. The machine reading is `docs/evidence/acceptance/recipe-unlock-bound-20261017-b.md` (batch `20261017-b`, three clients): the refusal names the sender, the index and the table's own 132 entries, and a real index still unlocks in the same session.
 - **`NetMsg.BlockPlaced` — an air write, the break carrier's cell (found by batch `20261016-c`)** — the census
   row's own bound (`the generation stamp + the first-writer cell rule`) covers the layer and the cell's state,
   never the REPORTER: `WorldEventSync.OnRemoteBlockPlaced` reads the host's own cell

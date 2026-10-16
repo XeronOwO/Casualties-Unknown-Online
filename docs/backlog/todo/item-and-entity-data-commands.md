@@ -111,6 +111,36 @@ accepted-creation path unchanged or needs its own admission, including what a la
    closed (`done/host-rules-replication.md`): a member holding the announced rule is refused on its own
    client before anything is applied, and the verbs that follow `/data set` inherit it.
 
+## Stage B's remaining two verbs — the design, settled by reading the landed one (2026-10-17)
+
+`ItemDataCommands` already carries the constants `MergeVerb` and `RemoveVerb` and answers both with "not implemented
+yet", so the two verbs are additive work on a path that exists rather than a new surface. What the reading settled:
+
+- **`merge` is `set` with more than one property.** The landed `Write` does five things before the value is applied
+  — session check, the host's announced rule, target parse, target resolution, the local item — and `merge` needs
+  all five once, not per property. The target is therefore named once and the properties follow:
+  `merge [<selector>] slot <n> | id <n> — condition <n> favourited <yes|no> liquid <liquidId> <ml> component
+  <TypeName> <field> <value>` reads the properties until the tokens run out. The parser needs a repeat of its own
+  body rather than a new grammar, and its refusal messages stay the ones an operator already reads.
+- **`merge` is atomic for free, and that is worth keeping.** `ItemDataWriteValues.TryApply` mutates the in-memory
+  local item and `WriteLocalItem` commits it once, so applying several properties before that one commit means a
+  property that cannot be applied refuses the whole merge rather than leaving half of it applied. A per-property
+  commit would be the wrong shape here and should not be introduced to make the loop simpler.
+- **`remove` only means something for a property that HAS a default.** Clearing a battery, emptying a container's
+  liquid and resetting a component field are all "remove"; `condition` and `favourited` are bounded values with no
+  absent state, so `remove condition` has no meaning to execute. The rule that follows the family's own habit: the
+  verbs that can be removed are `liquid` (zero millilitres) and `component <TypeName> <field>` (the field's
+  default), and anything else is refused BY NAME with what the verb does accept, rather than being turned into
+  "set it to zero" — which would silently mean something different for a condition than for a battery.
+- **The permission story is inherited, not rebuilt.** All three verbs are one wire kind (`ItemDataWrite`) under
+  `HostRules.AllowMemberItemDataWrite`, judged at the admission seam, refused on the member's own client when the
+  announced rule forbids it. The ticket's own line is that "a new verb does not need a new gate, and it must not
+  grow one", so `merge` and `remove` ride the landed rule and add no flag.
+
+**What is left after the two verbs**, unchanged from the stage text above: the cursor target and the host's own
+id-less carried items (both named as their own work), Stage C's `give` (which faces the same missing carrier the
+give gesture ticket found) and Stage D's `spawn` (which owes the late-joiner answer first).
+
 ## Non-goals
 
 - Not a scripting language or a command language design: the family is property-level.

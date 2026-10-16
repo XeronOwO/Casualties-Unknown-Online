@@ -68,7 +68,7 @@ described above:
   table was the only check, so a report could move ANOTHER member's scene state and have the host send
   that member the whole entry fanout. NOW: on the host the claim must name the sender, and the fallback is
   deleted rather than kept as a second path.
-## B. A number the host could derive, taken from the report (one row closed 2026-10-17)
+## B. A number the host could derive, taken from the report (one row closed, one re-judged — 2026-10-17)
 
 - **`NetMsg.BuildingEntityDamaged` (51)** — the only check is that an entity stands at the position;
   `entity.health -= damage;` takes the magnitude as reported, so one report destroys any building. The
@@ -81,7 +81,16 @@ described above:
 - **`NetMsg.TraderAction` (73)** — the trader is re-located from the reported position and the stock side is
   re-derived (`TradeStockMachine.TryPurchase` / `.TryGiveItem`), but the item id, the price, the reputation
   offsets and the flags ride the payload. The host holds the trader's own state, so the action can be
-  re-priced host-side instead of trusted.
+  re-priced host-side instead of trusted. RE-JUDGED 2026-10-17 — this row belongs with section C, not
+  here, and the reading is the decompiled tree: the PURCHASE half is bound already (the host prices its own
+  stock entry, `TradeExecutor.ExecutePurchase`), while the GIVE half's number is
+  `min(item.Stats.GetValue(item), MAX_VALUE_GIVEN - totalValueGiven)` (`TraderScript.cs`, `GiveItem`) and
+  `ItemInfo.GetValue` reads the INSTANCE — `item.condition`, a magazine's `rounds/maxRounds`, a
+  container's liquid `stack` — so a type id cannot reproduce it. The anchor this row needs is the item
+  INSTANCE's identity (or its state) and the wire carries only the type id; the cap half is already
+  aligned (`TradeStockMachine.TryGiveItem` clamps to the remaining headroom, as the game does). The
+  reputation chain and the flags are the acting player's OWN body state, which the message documents as
+  computed there, so they are not this row's business either.
 - **`NetMsg.RecipeUnlock` (77)** — `RecipeUnlockReceived?.Invoke(recipeIndex);` applies and the handler then
   relays, with no range check against the host's own recipe table (the SNAPSHOT path's `known` set answers a
   different question — whether the host had already LEARNED the index, never whether its table HAS one).

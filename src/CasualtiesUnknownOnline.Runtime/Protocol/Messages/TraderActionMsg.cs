@@ -27,7 +27,14 @@ public sealed class TraderActionMsg
 	[ProtoMember(3)]
 	public string ItemId { get; set; } = "";
 
-	/// <summary>GiveItem: the item's value (Item.GetItem(id).value — deterministic, both sides derive the same).</summary>
+	/// <summary>
+	/// GiveItem: the credit the acting side's own giveaway produced. The game's <c>TraderScript.GiveItem</c>
+	/// adds <c>min(item.Stats.GetValue(item), MAX_VALUE_GIVEN - totalValueGiven)</c>, and
+	/// <c>ItemInfo.GetValue</c> reads the item INSTANCE — its <c>condition</c>, a magazine's remaining
+	/// <c>rounds/maxRounds</c> and a container's liquid <c>stack</c> — so this number is NOT derivable from
+	/// <see cref="ItemId"/> alone (an earlier comment here said it was: the census row carries the
+	/// corrected reading and the anchor this row would need — the item instance's identity).
+	/// </summary>
 	[ProtoMember(4)]
 	public int ItemValue { get; set; }
 

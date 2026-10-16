@@ -127,3 +127,22 @@ no decision: the receiver's native rules refuse it, with the native feedback and
 - A new intent kind with a client half on both sides is the largest shape this family has, so it carries the
   whole acceptance table above: six rows, three clients, including the local control (row 5) that proves the
   same release onto the giver's OWN backpack still runs the native move.
+## The protocol half, surveyed and measured (2026-10-17 — do this first next time)
+
+Both facts this ticket's first step needs were checked against the tree, and both came out cheap:
+
+- **The number is free**: `RemoteInventoryIntentKind` runs 1..15 and then jumps straight to `GiveToTrader = 17`,
+  so **16** is the next free one and no existing value moves.
+- **The operands already exist, and the mirror reads correctly**: `RemoteInventoryIntentMsg` already carries
+  `OwnerSteamId`, `ItemInstanceId`, `TargetContainerInstanceId`, `TargetSlotIndex` and `TargetBodySteamId`.
+  The two halves of one custody transfer read the first and the last from opposite sides — for `TransferToBody`
+  the owner is the one being taken FROM and the destination body is the requester's own; for the new kind the
+  owner is the REQUESTER giving their own item away and the destination body is the other player's. So the
+  change needs no new field, only the two doc comments that currently describe the take-direction only.
+- **The protocol number does not move** (decision 241): the pre-release baseline stays frozen and the change
+  rides this ticket's own commit.
+
+**Why it is not in the tree yet**: a new enum member with no reader is a dead mechanism by this project's own
+rule ("a mechanism needs a named consumer"), and a scan cannot see the difference — the whole suite and every
+gate stayed green with the member added and nothing dispatching it. The new kind, its host half and its
+receiving-client half have to land together, so the first commit of this ticket carries all three.

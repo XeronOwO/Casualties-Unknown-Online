@@ -54,7 +54,7 @@ drives that value host-side while the straggler path accelerates the descent tow
 - Not a new hazard: the line keeps every effect it has today, only its final position changes.
 - Not a per-player setting: this is host-side world state, so it belongs on the host's rules and must not be
   a local toggle that desyncs the line.
-## Attribution done (2026-10-17, before any implementation)
+## Attribution done (2026-10-17, before any implementation) — required work 1 is complete
 
 Read: `reversing/Assembly-CSharp/Assembly-CSharp/RadiationLine.cs` (the whole type), KrokMP's
 `RadiationLineUpdatePatch`, and CUO's own `RadiationLineSync`.
@@ -78,7 +78,14 @@ Read: `reversing/Assembly-CSharp/Assembly-CSharp/RadiationLine.cs` (the whole ty
    host-only clamp would be outrun locally. The position formula is PURE (no roll, no per-client input), so the
    same rule value applied on both sides converges; the host's rule surface already reaches every member, which
    is what makes the value the same everywhere including a late joiner.
-4. **Still open, and it decides what the switch must say**: whether the layer's end or any other progression
-   step is keyed to "the line reached the floor". `RadiationLine` answers no part of it — it carries no floor
-   logic and no completion hook — so that reading belongs to the layer progression (`WorldGeneration` and
-   whatever ends a layer), and it is the next step before the switch's own consequences can be stated.
+4. **ANSWERED: nothing about layer progression reads the line's position, so the switch moves one hazard
+   boundary and nothing else.** The line is ARMED by the layer's own clock, not by a depth —
+   `WorldGeneration.Update` runs `if (this.layerTimeSpent > this.maxTimePerLayer && !RadiationLine.line.active
+   && this.biomeOverride == WorldGeneration.OverrideSceneType.None) { RadiationLine.line.Activate(); }` — and a
+   layer ENDS through `FinishWorldGeneration` / `InstantiateWorld`, each of which simply calls
+   `RadiationLine.line.Deactivate()`. The only readers of the line's depth are the HUD's depth marker
+   (`PlayerCamera`: `this.radDepthLine.anchoredPosition = new Vector2(0f, -(WorldGeneration.world.RadlineLayerDepthUnits() / WorldGeneration.world.height) * this.depthLine.parent.GetComponent<RectTransform>().rect.size.y);`)
+   and the total-depth statistic (`RadlineLayerDepthMeters() + (float)this.totalTraveled`). So the clamp
+   freezes the line's share of that statistic at the clamped depth and moves the hazard boundary, and it
+   neither gates nor delays the end of a layer. Both readers read the SAME native value through the same pure
+   formula, so they agree on every side for free — which is also why the clamp needs no new wire field.

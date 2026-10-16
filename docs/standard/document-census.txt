@@ -287,7 +287,7 @@ docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/ba
 docs/backlog/todo/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/review/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
+docs/backlog/review/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-item-to-another-player.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/heal-command-limb-and-hollow-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/id-carriers-can-disagree-about-placement.md | keep | index | docs/backlog/README.md

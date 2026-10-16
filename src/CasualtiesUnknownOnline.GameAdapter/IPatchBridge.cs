@@ -300,6 +300,7 @@ internal interface IPatchBridge
 	/// <summary>True when this side is the session host (earthquake authority, host-only drops).</summary>
 	bool IsHostMode { get; }
 
+
 	/// <summary>
 	/// The highest the radiation line's own descent may reach on this client, or null when this client should
 	/// leave the game's uncapped descent alone. Only the HOST answers with a value: a member's line follows the

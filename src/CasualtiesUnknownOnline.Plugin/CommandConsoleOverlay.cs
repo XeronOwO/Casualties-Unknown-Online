@@ -29,6 +29,9 @@ internal sealed class CommandConsoleOverlay
 	private Vector2 _suggestionScroll;
 	private int _lastLineCount = -1;
 	private bool _focusPending;
+
+	/// <summary>Which key opened the surface: the same key-down is still the current IMGUI event on the first frame, and it must be swallowed rather than typed (or, for the Return that opened it, submitted as an empty line).</summary>
+	private KeyCode _focusOpener = KeyCode.Slash;
 	private IMECompositionMode _previousImeMode = IMECompositionMode.Auto;
 
 	internal CommandConsoleOverlay(ConsoleInputSession session)
@@ -38,13 +41,19 @@ internal sealed class CommandConsoleOverlay
 
 	internal bool IsOpen => _session.IsOpen;
 
-	internal void Open()
+	/// <summary>
+	/// Open the input. <paramref name="plainChat"/> opens it EMPTY as ordinary chat instead of pre-filling the
+	/// command prefix; the opener is remembered so the very key-down that opened it is swallowed on the first
+	/// OnGUI frame rather than typed (or, for Return, submitted as an empty line).
+	/// </summary>
+	internal void Open(bool plainChat = false)
 	{
 		_previousImeMode = Input.imeCompositionMode;
 		Input.imeCompositionMode = IMECompositionMode.On;
-		_session.Open();
+		_session.Open(plainChat);
 		_ime.Clear();
 		_focusPending = true;
+		_focusOpener = plainChat ? KeyCode.Return : KeyCode.Slash;
 	}
 
 	internal void Close()
@@ -125,12 +134,15 @@ internal sealed class CommandConsoleOverlay
 			return;
 		}
 
-		// The slash that opened the console in Plugin.Update is still the
-		// current IMGUI event on this first OnGUI frame; swallow it so the
-		// custom input does not receive a second '/'.
-		if (_focusPending && evt.keyCode == KeyCode.Slash)
+		// The key that opened the console is still the current IMGUI event on this first OnGUI frame; swallow it so
+		// the custom input does not receive a second '/' — and so the Return that opened plain chat does not also
+		// SUBMIT the empty line it just created. KeypadEnter counts as the same opener.
+		if (_focusPending
+			&& (evt.keyCode == _focusOpener
+				|| (_focusOpener == KeyCode.Return && evt.keyCode == KeyCode.KeypadEnter)))
 		{
 			_focusPending = false;
+			Plugin.Logger.LogInfo($"Command console opened by {_focusOpener}; swallowing that key so it is not typed or submitted.");
 			evt.Use();
 			return;
 		}

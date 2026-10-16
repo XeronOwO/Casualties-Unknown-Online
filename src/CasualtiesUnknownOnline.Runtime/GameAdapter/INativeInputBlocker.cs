@@ -31,4 +31,13 @@ public interface INativeInputBlocker
 	/// surface fully modal.
 	/// </summary>
 	void SetOnlineUiEscapeSurfaceVisible(bool visible);
+
+	/// <summary>
+	/// True while a text field the GAME owns holds the keyboard. The Enter opener has to ask before it claims the
+	/// key, and this is the only place it can: the game's own in-world console executes a command on Enter while
+	/// its field is focused, its settings menu binds whichever key the player presses, and its crafting panel
+	/// suppresses its own hotkey while the recipe filter is focused. The plugin references no game assembly, so
+	/// the reading rides this seam rather than a direct type reference.
+	/// </summary>
+	bool IsTheGamesOwnTextInputFocused { get; }
 }

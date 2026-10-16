@@ -1,4 +1,8 @@
 {
+  "CasualtiesUnknownOnline.GameAdapter.GameAdapter": {
+    "Lines": 602,
+    "BoolFlags": 5
+  },
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
     "Lines": 608,
     "BoolFlags": 4

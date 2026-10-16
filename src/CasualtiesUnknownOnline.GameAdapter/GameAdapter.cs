@@ -360,6 +360,8 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	void INativeInputBlocker.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
 
+	bool INativeInputBlocker.IsTheGamesOwnTextInputFocused => OnlineUiKeyboardFacts.IsATextFieldFocused();
+
 	void INativeInputBlocker.SetOnlineUiEscapeSurfaceVisible(bool visible) =>
 		_domains.MenuInput.SetNonModalEscapeSurfaceVisible(visible);
 

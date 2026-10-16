@@ -209,12 +209,26 @@ internal sealed class OnlineUiHost
 	/// </summary>
 	internal void Update()
 	{
-		// `/` opens the standalone command console directly in game. While it is
-		// open the same modal guard blocks background UI and game input so the
-		// input box stays the only interactive surface.
-		if (!_onlineUi.IsCommandConsoleOpen && Input.GetKeyDown(KeyCode.Slash))
+		// `/` opens the standalone command console directly in game, pre-filled with its command prefix; Enter
+		// opens the SAME surface with an empty field, which is ordinary chat. Both are claimed only while no CUO
+		// surface is up: the Online UI window and the quick panel carry input fields of their own, and claiming
+		// Enter there would submit THEIR line instead of opening chat. A text field the GAME owns cannot be asked
+		// from this layer (only the adapter may touch the game's UI types), so that case is named in the ticket
+		// rather than guessed at here.
+		if (!_onlineUi.IsCommandConsoleOpen
+			&& !_onlineUi.IsWindowVisible
+			&& !_onlineUi.IsQuickPanelVisible
+			&& _inputBlocker?.IsTheGamesOwnTextInputFocused != true)
 		{
-			_onlineUi.OpenCommandConsole();
+			if (Input.GetKeyDown(KeyCode.Slash))
+			{
+				_onlineUi.OpenCommandConsole();
+			}
+			else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+			{
+				_log.LogInformation("CUO console opened as plain chat: the player pressed Enter with no CUO surface up.");
+				_onlineUi.OpenCommandConsole(plainChat: true);
+			}
 		}
 
 		_locationPingInput.TryHandle();

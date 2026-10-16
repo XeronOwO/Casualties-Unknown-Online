@@ -22,6 +22,20 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void Open_AsPlainChat_LeavesTheFieldEmpty()
+	{
+		// The other opener: Enter is ordinary chat, so the field starts empty. It is the same surface, and a line
+		// that happens to begin with the prefix is still a command — the mode decides what is typed FOR the
+		// player, never what the input can do.
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+
+		session.Open(plainChat: true);
+
+		Assert.True(session.IsOpen);
+		Assert.Equal(string.Empty, session.Input);
+	}
+
+	[Fact]
 	public void LiveSuggestions_ReturnsCurrentCompletionWithoutTab()
 	{
 		var session = CreateSession(

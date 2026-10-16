@@ -180,8 +180,8 @@ internal sealed class OnlineUiOverlay
 
 	internal bool IsCommandConsoleOpen => _commandOverlay.IsOpen;
 
-	/// <summary>Opens the standalone command console and closes every other CUO surface so the input state is modal.</summary>
-	internal void OpenCommandConsole()
+	/// <summary>Opens the standalone command console and closes every other CUO surface so the input state is modal. <paramref name="plainChat"/> is the Enter opener: the same surface with an empty field.</summary>
+	internal void OpenCommandConsole(bool plainChat = false)
 	{
 		if (_commandOverlay.IsOpen)
 		{
@@ -190,7 +190,7 @@ internal sealed class OnlineUiOverlay
 
 		_window.State.Visible = false;
 		_quickPanel.Close();
-		_commandOverlay.Open();
+		_commandOverlay.Open(plainChat);
 	}
 
 	/// <summary>Programmatic close (ESC, X button, or a remote-open path); the modal guard sees it on the next frame's adapter call.</summary>

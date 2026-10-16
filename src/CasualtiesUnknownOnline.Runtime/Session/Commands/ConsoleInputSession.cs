@@ -60,7 +60,12 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 	public bool CanRedo => _editHistory.CanRedo;
 
-	public void Open()
+	/// <summary>
+	/// Open the input. <paramref name="plainChat"/> opens it EMPTY for ordinary chat instead of pre-filling the
+	/// command prefix, which is the only difference between the two openers: a line that begins with the prefix
+	/// is still a command, so the mode decides what is typed FOR the player, never what the surface can do.
+	/// </summary>
+	public void Open(bool plainChat = false)
 	{
 		if (_open)
 		{
@@ -68,7 +73,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_open = true;
-		_editor.SetInput(OpenPrefix);
+		_editor.SetInput(plainChat ? string.Empty : OpenPrefix);
 		_historyIndex = -1;
 		_draft = "";
 		ClearUndoRedo();

@@ -48,6 +48,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool IsHostMode => domains.Session.Role == SessionRole.Host && domains.Session.SessionActive;
 
+
 	/// <inheritdoc />
 	public float? RadiationLineCeiling
 	{

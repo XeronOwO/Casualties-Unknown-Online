@@ -70,6 +70,9 @@ internal sealed class OnlineUiHost
 	// frame per update and reads back as intents. Optional like every adapter port — without one the
 	// Online UI is simply unreachable from the game's UI.
 	private readonly IOnlineUiSurface? _surface;
+
+	/// <summary>The spectator camera, when an adapter is attached: its absence is the same no-game-to-point-at answer the other optional ports give.</summary>
+	private readonly ISpectatorControl? _spectator;
 	private readonly OnlineUiLauncherFade _launcherFade = new();
 
 	// This frame's context, assembled once in Update and read again by the IMGUI pass (OnGUI runs after
@@ -120,6 +123,7 @@ internal sealed class OnlineUiHost
 		_worldLibrary = services.GetService<IWorldLibrary>();
 		_gateState = services.GetService<IStartGateState>();
 		_surface = services.GetService<IOnlineUiSurface>();
+		_spectator = services.GetService<ISpectatorControl>();
 		_nativeFacts = new OnlineUiNativeFactsProbe(
 			services.GetRequiredService<ILogger<OnlineUiNativeFactsProbe>>(),
 			services.GetService<IOnlineUiNativeFactsQuery>());
@@ -145,7 +149,8 @@ internal sealed class OnlineUiHost
 			services.GetService<IRemoteInventoryPresentation>(),
 			services.GetService<IRemoteMedicalPresentation>(),
 			services.GetService<ITraderRecruitRequest>(),
-			services.GetService<ILocalHealItemQuery>());
+			services.GetService<ILocalHealItemQuery>(),
+			_spectator);
 		_ipActions = new IpDirectActions(
 			_router,
 			ipSteam,
@@ -185,6 +190,9 @@ internal sealed class OnlineUiHost
 			CarryOnBackRemote = uiActions.CarryOnBackRemoteFromUi,
 			DropCarried = uiActions.DropCarryFromUi,
 			HealRemote = uiActions.HealRemoteFromUi,
+			WatchMember = uiActions.WatchMemberFromUi,
+			StopWatching = uiActions.StopWatchingFromUi,
+
 			HasHealItem = uiActions.HasLocalHealItem,
 			HealWithItem = uiActions.HealWithItemFromUi,
 			GetLocalHealItems = uiActions.GetLocalHealItems,
@@ -270,6 +278,9 @@ internal sealed class OnlineUiHost
 		_nativeFacts.Update(_time.NowMs);
 
 		_onlineUi.IpDirectActive = _router.IsIpDirectActive;
+		// The watched member is the CAMERA's answer, refreshed every frame like the IP-direct fact above: the
+		// camera gives a watch up by itself, and a copy taken once would keep offering a stop that stops nothing.
+		_onlineUi.WatchingSteamId = _spectator?.WatchingSteamId ?? 0;
 		if (_ipActions.LastError is not null)
 		{
 			_lobby.LastError = _ipActions.LastError;
@@ -346,6 +357,9 @@ internal sealed class OnlineUiHost
 		CarryOnBackRemote = _onlineUi.CarryOnBackRemote,
 		DropCarried = _onlineUi.DropCarried,
 		HealRemote = _onlineUi.HealRemote,
+		WatchMember = _onlineUi.WatchMember,
+		StopWatching = _onlineUi.StopWatching,
+		WatchingSteamId = _onlineUi.WatchingSteamId,
 		HealWithItem = _onlineUi.HealWithItem,
 		PushRemote = _onlineUi.PushRemote,
 		RecruitPlayer = _onlineUi.RecruitPlayer,

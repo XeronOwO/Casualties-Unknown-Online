@@ -19,6 +19,13 @@ public interface ISpectatorControl
 	bool IsWatching { get; }
 
 	/// <summary>
+	/// The member this client is following, or 0. Published so a surface can mark the watched row and offer its
+	/// way out WITHOUT keeping a copy: the camera gives a watch up on its own when the followed member dies,
+	/// leaves the layer or drops, and a second answer would keep offering a stop that stops nothing.
+	/// </summary>
+	ulong WatchingSteamId { get; }
+
+	/// <summary>
 	/// Follow the member with this SteamId. False when there is nothing to watch: the local character is not in
 	/// a state that may watch (alive, or unconscious with the rule off), or that member has no body here to
 	/// follow. A false answer changes nothing — the caller reports it rather than the view moving anyway.

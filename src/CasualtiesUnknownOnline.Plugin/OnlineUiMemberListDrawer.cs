@@ -38,7 +38,7 @@ internal static class OnlineUiMemberListDrawer
 			: ctx.Steam.GetLobbyMembers();
 		var lobbyOwner = ctx.IpDirectActive ? ctx.Session.HostSteamId : ctx.Steam.GetLobbyOwner();
 		return OnlineUiMemberProjection.Build(
-			localSteamId: ctx.Steam.LocalSteamId,
+			localSteamId: ctx.Session.LocalSteamId,
 			lobbyOwner: lobbyOwner,
 			lobbyMembers: lobbyMembers,
 			members: ctx.Session.Members,
@@ -50,6 +50,12 @@ internal static class OnlineUiMemberListDrawer
 			canAdmin: ctx.Session.Role == SessionRole.Host && ctx.Session.SessionActive,
 			localInWorld: ctx.Session.LocalInWorld,
 			hasHealItem: ctx.HasHealItem?.Invoke() ?? false,
+			// The same two terms the camera itself reads (SpectatorCameraService.MayWatch): dead, or unconscious
+			// while the host's rule allows it. A card that offered the button on one term and not the other
+			// would be a second copy of the rule, which is how this one drifted from it.
+			localMayWatch: !ctx.Entities.LocalPlayer.Alive
+				|| (ctx.HostRules.SpectateWhileUnconscious && !ctx.Entities.LocalPlayer.Conscious),
+			watchingSteamId: ctx.WatchingSteamId,
 			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],
 			allowRemoteInventoryTake: ctx.HostRules.AllowRemoteInventoryTake,
 			reviveFromTrader: ctx.HostRules.ReviveFromTrader,
@@ -164,6 +170,17 @@ internal static class OnlineUiMemberListDrawer
 	{
 		var steamId = row.SteamId;
 		var actions = new List<OnlineUiMemberAction>(12);
+		// Watching is this client's own camera, so it is offered on the member it would follow and on nobody
+		// while this client is still alive: CanSpectate is the projection's answer, not a second rule here.
+		if (row.IsWatched)
+		{
+			actions.Add(new OnlineUiMemberAction($"member.watch.stop.{steamId:X}", ctx.T("member.watch.stop"), 90f, () => ctx.StopWatching?.Invoke()));
+		}
+		else if (row.CanSpectate)
+		{
+			actions.Add(new OnlineUiMemberAction($"member.watch.{steamId:X}", ctx.T("member.watch"), 70f, () => ctx.WatchMember?.Invoke(steamId)));
+		}
+
 		if (row.CanCarry)
 		{
 			actions.Add(new OnlineUiMemberAction($"member.carry.{steamId:X}", ctx.T("member.carry"), 70f, () => ctx.CarryRemote?.Invoke(steamId)));

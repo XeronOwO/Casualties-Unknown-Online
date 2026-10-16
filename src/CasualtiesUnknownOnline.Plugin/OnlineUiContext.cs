@@ -119,6 +119,15 @@ internal sealed class OnlineUiContext
 
 	internal Func<ulong, bool>? KickMember;
 
+	/// <summary>Starts watching a member's body (the death-screen chooser). False when this client may not watch or the member has no body here.</summary>
+	internal Func<ulong, bool>? WatchMember;
+
+	/// <summary>Stops watching and returns to the game's death screen.</summary>
+	internal Func<bool>? StopWatching;
+
+	/// <summary>The member this client is watching right now, or 0. The member list renders it as the stop button.</summary>
+	internal ulong WatchingSteamId;
+
 	internal Func<ulong, bool>? BanMember;
 
 	internal Func<ulong, bool>? UnbanMember;

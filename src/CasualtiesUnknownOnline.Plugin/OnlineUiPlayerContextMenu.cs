@@ -278,6 +278,17 @@ internal sealed class OnlineUiPlayerContextMenu
 		if (row.CanHeal)
 		{
 			actions.Add(new MenuAction(ctx.T("member.heal"), () => ctx.HealRemote?.Invoke(row.SteamId)));
+
+			// The member list is not the only card a dead player can reach: the in-world right-click menu is
+			// built here, and a watch with no way to start it from the body being watched is the same gap.
+			if (row.IsWatched)
+			{
+				actions.Add(new MenuAction(ctx.T("member.watch.stop"), () => ctx.StopWatching?.Invoke()));
+			}
+			else if (row.CanSpectate)
+			{
+				actions.Add(new MenuAction(ctx.T("member.watch"), () => ctx.WatchMember?.Invoke(row.SteamId)));
+			}
 		}
 
 		if (row.CanPush)

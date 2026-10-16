@@ -57,7 +57,7 @@ internal sealed class SpectatorCameraService(
 
 	private ulong _watchingSteamId;
 
-	/// <summary>Whether this client's camera is currently carrying CUO''s follow state. Released only after it was taken: the free-camera field has a second owner in the game itself.</summary>
+	/// <summary>Whether this client's camera is currently carrying CUO's follow state. Released only after it was taken: the free-camera field has a second owner in the game itself.</summary>
 	private bool _touchedCamera;
 
 	/// <summary>Whether this client asked for the free camera. The RULE decides whether it may have it; this is the player's own choice inside that.</summary>
@@ -65,6 +65,9 @@ internal sealed class SpectatorCameraService(
 
 	/// <inheritdoc />
 	public bool IsWatching => _watchingSteamId != 0;
+
+	/// <inheritdoc />
+	public ulong WatchingSteamId => _watchingSteamId;
 
 	/// <inheritdoc />
 	public bool TryWatch(ulong steamId)

@@ -84,6 +84,12 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Heal on an in-world remote player.</summary>
 	internal Func<ulong, bool>? HealRemote;
 
+	internal Func<ulong, bool>? WatchMember;
+
+	internal Func<bool>? StopWatching;
+
+	internal ulong WatchingSteamId;
+
 	/// <summary>Read-only UI check: does the local body currently carry a heal-profile medical item?</summary>
 	internal Func<bool>? HasHealItem;
 

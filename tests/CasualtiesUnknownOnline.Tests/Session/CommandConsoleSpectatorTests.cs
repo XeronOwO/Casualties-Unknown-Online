@@ -110,6 +110,8 @@ public class CommandConsoleSpectatorTests
 	{
 		public bool IsWatching { get; set; }
 
+		public ulong WatchingSteamId { get; set; }
+
 		public bool RefusesWatch { get; init; }
 
 		public bool RefusesFreeFly { get; init; }

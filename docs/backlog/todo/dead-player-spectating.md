@@ -156,9 +156,11 @@ Seven unit cases cover the half that is testable without the game: the command's
 
 ## Limits this cycle names
 
-- **The member-list chooser is not built.** Required work 3 names two choosers and this cycle built the keyboard
-  one; the Online UI's member list is still the natural place for the other, and the target-cycle row of required
-  work 5 has no mechanism to exercise until it exists. The only way out of the watch is the command.
+- **The member-list chooser now exists beside the console**, and the two read ONE rule: a member card offers the
+  button on the same two terms the camera itself reads (a dead character, or an unconscious one while the host's
+  rule allows it), and the row being watched carries the way out. What the card cannot know is whether the
+  target's body exists on THIS client — that fact is adapter-only — so a click can still be refused, and the
+  card, unlike the console, has nowhere to say so.
 - **The camera half has no test and no runtime reading.** Everything touching `PlayerCamera`, the clone renderer
   or the local body needs a running client. The judgement itself (local liveness, the session flag, the three
   rules, the member's published liveness) is pure enough to be extracted into the Runtime and unit-tested; the
@@ -173,3 +175,25 @@ Seven unit cases cover the half that is testable without the game: the command's
   are screen-only and unverified.
 - **The free-fly rule is read from the announced rules**, so between a host's change and its arrival a member
   still reads its own configuration.
+## Step 3's other half landed (2026-10-17): the member list is a chooser now
+
+The card that already carries every other member action carries this one too: a "Watch" button on a member this
+client may follow, and a "Stop watching" on the row being followed. The rule is the CAMERA's rule, read through
+the same two terms (dead, or unconscious while the host's rule allows it), so the list and the console cannot
+disagree about who may watch. The id being watched is published by the camera itself rather than remembered by
+the UI, because the camera gives a watch up on its own when the followed member dies, leaves the layer or drops —
+a second copy would have kept offering a stop that stops nothing.
+
+**A second adversarial review ran against the frozen tree before the commit and found 1 blocker, 3 major, 4 minor
+and 4 nits.** The blocker was exactly that second copy: the watched id was read into the context once, when the
+plugin was constructed, so the stop button could never render and the row was never marked — the feature's whole
+exit was unreachable. It is fixed by publishing the id from the port and refreshing it every frame, the way the
+IP-direct fact beside it already was. The majors: the two answers could disagree (fixed with the published id),
+the button ignored the host's unconscious rule and offered itself where the camera would refuse silently (fixed
+by reading the camera's own terms, and by letting the console remain the surface that reports a refusal), and the
+roster's local id came from a different key space than the roster itself in IP-direct sessions (fixed by taking
+it from the session). Five unit cases now pin the projection's two new facts.
+
+Still open and named rather than assumed: the target's body being present on this client is an adapter-only fact
+the card cannot mirror, the right-click menu builds its own action list and now carries the same two entries,
+and the whole of it still needs the two-client run of required work 5.

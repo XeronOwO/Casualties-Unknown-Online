@@ -89,6 +89,12 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when this member's cached vitals show a dead body.</summary>
 	public bool IsDead { get; init; }
 
+	/// <summary>Whether THIS client may start watching this member: its own character is dead (or the host's rules let an unconscious one watch), the member is somebody else, and their body is in the world here.</summary>
+	public bool CanSpectate { get; init; }
+
+	/// <summary>Whether this member is the one this client is watching right now.</summary>
+	public bool IsWatched { get; init; }
+
 	/// <summary>True when this member is alive but unconscious.</summary>
 	public bool IsUnconscious { get; init; }
 

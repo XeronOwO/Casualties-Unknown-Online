@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 
 namespace CasualtiesUnknownOnline;
 
@@ -18,7 +19,8 @@ internal sealed class OnlineUiActions(
 	IRemoteInventoryPresentation? remoteInventory,
 	IRemoteMedicalPresentation? remoteMedical,
 	ITraderRecruitRequest? traderRecruit,
-	ILocalHealItemQuery? localHealItems)
+	ILocalHealItemQuery? localHealItems,
+	ISpectatorControl? spectator)
 {
 	private readonly SessionService _session = session;
 	private readonly IHostBanService _hostBan = hostBan;
@@ -27,6 +29,26 @@ internal sealed class OnlineUiActions(
 	private readonly IRemoteMedicalPresentation? _remoteMedical = remoteMedical;
 	private readonly ITraderRecruitRequest? _traderRecruit = traderRecruit;
 	private readonly ILocalHealItemQuery? _localHealItems = localHealItems;
+	private readonly ISpectatorControl? _spectator = spectator;
+
+	/// <summary>The member this client is following, straight from the camera — the one owner of that fact.</summary>
+	public ulong WatchingSteamId => _spectator?.WatchingSteamId ?? 0;
+
+	public bool WatchMemberFromUi(ulong targetSteamId) =>
+		_spectator is { } spectator && spectator.TryWatch(targetSteamId);
+
+	public bool StopWatchingFromUi()
+	{
+		if (_spectator is not { } spectator || !spectator.IsWatching)
+		{
+			// The camera's own StopWatching is a no-op when nothing is watched, so answering "true" here would
+			// be the one forwarder in this file whose answer carries no information.
+			return false;
+		}
+
+		spectator.StopWatching();
+		return true;
+	}
 
 	public bool TakeItemFromRemote(ulong ownerSteamId, ulong itemInstanceId)
 	{

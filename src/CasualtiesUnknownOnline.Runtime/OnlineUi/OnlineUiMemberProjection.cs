@@ -38,7 +38,9 @@ public static class OnlineUiMemberProjection
 		bool reviveFromTrader = true,
 		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
-		Func<ulong, PlayerColorValue>? getColor = null)
+		Func<ulong, PlayerColorValue>? getColor = null,
+		bool localMayWatch = false,
+		ulong watchingSteamId = 0)
 	{
 		var memberMap = members.ToDictionary(m => m.SteamId, m => m);
 		var rows = new List<OnlineUiMemberRow>();
@@ -170,6 +172,8 @@ public static class OnlineUiMemberProjection
 				IsBanned = hostBan?.IsBanned(memberId) ?? false,
 				CanViewMedical = canViewMedical,
 				IsDead = vitals is not null && !vitals.Alive,
+				IsWatched = memberId == watchingSteamId,
+				CanSpectate = localMayWatch && !isLocal && member is { InWorld: true } && (vitals is null || vitals.Alive),
 				IsUnconscious = vitals is not null && vitals.Alive && !vitals.Conscious,
 				IsCarryingSomeone = isCarryingSomeone,
 				IsCarried = isAlreadyCarried,

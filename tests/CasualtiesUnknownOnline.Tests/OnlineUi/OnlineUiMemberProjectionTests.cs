@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -674,6 +675,81 @@ public sealed class OnlineUiMemberProjectionTests
 		Assert.False(menuRows[1].CanViewMedical);
 	}
 
+	[Fact]
+	public void WatchingIsOfferedOnlyWhereTheCameraWouldAllowIt()
+	{
+		// The button's rule is the camera's rule: dead (or unconscious with the host's rule), somebody else, and
+		// a member whose body is here and alive. The projection computes that answer once, for every surface.
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Local, true, true), Presence(Remote, true, true)],
+			interaction: null,
+			localInWorld: true,
+			localMayWatch: true);
+
+		Assert.False(rows.Single(r => r.SteamId == Local).CanSpectate);
+		Assert.True(rows.Single(r => r.SteamId == Remote).CanSpectate);
+	}
+
+	[Fact]
+	public void WatchingIsNotOfferedWhileThisClientIsStillAlive()
+	{
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Local, true, true), Presence(Remote, true, true)],
+			interaction: null,
+			localInWorld: true,
+			localMayWatch: false);
+
+		Assert.False(rows.Single(r => r.SteamId == Remote).CanSpectate);
+	}
+
+	[Fact]
+	public void TheWatchedRowIsTheOnlyOneMarked()
+	{
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Local, true, true), Presence(Remote, true, true)],
+			interaction: null,
+			localInWorld: true,
+			localMayWatch: true,
+			watchingSteamId: Remote);
+
+		Assert.True(rows.Single(r => r.SteamId == Remote).IsWatched);
+		Assert.False(rows.Single(r => r.SteamId == Local).IsWatched);
+	}
+
+	[Fact]
+	public void NothingIsMarkedWhenNothingIsBeingWatched()
+	{
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Local, true, true), Presence(Remote, true, true)],
+			interaction: null,
+			localInWorld: true,
+			localMayWatch: true);
+
+		Assert.DoesNotContain(rows, r => r.IsWatched);
+	}
+
+	[Fact]
+	public void ADeadMemberIsNotOfferedAsAWatchTarget()
+	{
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Local, true, true), Presence(Remote, true, true)],
+			interaction: null,
+			localInWorld: true,
+			localMayWatch: true,
+			getVitals: id => id == Remote ? DeadVitals() : null);
+
+		Assert.False(rows.Single(r => r.SteamId == Remote).CanSpectate);
+	}
+
+	/// <summary>The vitals of a member whose brain is gone: what the wire publishes for a dead teammate.</summary>
+	private static RemoteVitalsSnapshot DeadVitals() =>
+		RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = false, Conscious = false })!;
+
 	private static IReadOnlyList<OnlineUiMemberRow> Build(
 		IReadOnlyList<ulong> lobbyMembers,
 		IReadOnlyList<MemberPresenceTable.MemberPresence> members,
@@ -690,7 +766,9 @@ public sealed class OnlineUiMemberProjectionTests
 		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
 		Func<ulong, string>? displayName = null,
-		Func<ulong, PlayerColorValue>? getColor = null)
+		Func<ulong, PlayerColorValue>? getColor = null,
+		bool localMayWatch = false,
+		ulong watchingSteamId = 0)
 	{
 		return OnlineUiMemberProjection.Build(
 			Local,
@@ -710,7 +788,9 @@ public sealed class OnlineUiMemberProjectionTests
 			reviveFromTrader: reviveFromTrader,
 			permadeath: permadeath,
 			hasLineOfSight: hasLineOfSight,
-			getColor: getColor);
+			getColor: getColor,
+			localMayWatch: localMayWatch,
+			watchingSteamId: watchingSteamId);
 	}
 
 	private static MemberPresenceTable.MemberPresence Presence(ulong steamId, bool handshaken, bool inWorld) =>

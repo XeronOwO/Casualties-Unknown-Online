@@ -2,7 +2,9 @@
 
 - Status: Todo — the user promoted this on 2026-10-14 (it was `future/strict-validation-anti-cheat.md`,
   deferred); the old ticket stays as the inventory behind it. S1a and S1b landed 2026-10-14 and S2a
-  landed 2026-10-16; S2b (the entity death drops) and S3 (the state preconditions) are the open stages.
+  landed 2026-10-16 **and its acceptance rows are read for the block family**
+  (`docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md`: rows 1, 2 and 6's new half, on a
+  deployed artifact); S2b (the entity death drops) and S3 (the state preconditions) are the open stages.
 - Priority: Medium-High
 - Category: Security / report validation / host rules
 - Source: the user's 2026-10-14 request: no advanced anti-cheat, but BASIC checks from the game's own
@@ -230,22 +232,23 @@ Where the rows stand after S1a, S1b and S2a: row 3 is answered on both halves �
 refused by name, and a member's console write is refused unless the host's `AllowMemberItemDataWrite` rule
 grants the verb, with the refusal answered and the writer settling its own local value back. Row 4 is answered
 by the eligibility rule, which reads a carried, installed OR contained row, and by the container sync's own
-parent and children. Row 1 is answered for a BLOCK break by S2a (a drop outside the destroyed block's table is
-refused by name while the rest of the set is relayed, and the breaker destroys only that drop), and row 2 is its
-other half — the table's own edges are accepted, which is what `BlockDropBoundPolicyTests` and the real table's
-`GameBlockDropTableTests` pin before any run. Both rows still owe the batch read, and the ENTITY death drops
-(S2b) are outside their reach until that stage lands. Row 5 is the creation-before-operation invariant that
-already runs above the seam. Row 6 is the batch, and it has TWO halves to read rather than one: the authority
-half refuses only kinds no member sender emits (kept true by `WireCommandSenderAuthorityGateTests`), and the
-eligibility half refuses only report shapes a member's own client cannot produce — each sender of those kinds
-sits behind a proxy guard (`ItemUseSync`'s standing-item branch, `ItemSlotSync`'s `RemoteCloneRender` check,
-`GunStateSync`, `ContainerItemSync`), so an unmodified client meets no new refusal while a modified one does.
-S1b adds a third half to that read: with the host's rule closed, a member's `/data set` IS refused, so the
-batch must read it as the family intends — a refused write that says so and settles back, never a silent
-divergence — and the row asserts it on the operator's own console and on the host's own kernel row. S2a adds a
-fourth: an unmodified client's break must keep every drop it rolled, so row 6 also reads that no bound refusal
-appears in an ordinary session, and the bound's own line names the block, the table and the drops it refused if
-one ever does.
+parent and children. Rows 1 and 2 are READ on the machine for a BLOCK break
+(`docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md`): a drop the block's own table cannot
+account for is refused by name on the host, nothing of it is registered or relayed, the breaker is answered
+and destroys its local copy; a table-legal drop — including the game's own roll, and an authored window's own
+edge — is accepted; one table row accounts for exactly one drop; and the run's ordinary breaks produced no
+refusal line at all. The ENTITY death drops (S2b) stay outside those rows until that stage lands. Row 5 is the
+creation-before-operation invariant that already runs above the seam. Row 6 is the batch, and it has TWO halves
+to read rather than one: the authority half refuses only kinds no member sender emits (kept true by
+`WireCommandSenderAuthorityGateTests`), and the eligibility half refuses only report shapes a member's own
+client cannot produce — each sender of those kinds sits behind a proxy guard (`ItemUseSync`'s standing-item
+branch, `ItemSlotSync`'s `RemoteCloneRender` check, `GunStateSync`, `ContainerItemSync`), so an unmodified
+client meets no new refusal while a modified one does. S1b adds a third half to that read: with the host's rule
+closed, a member's `/data set` IS refused, so the batch must read it as the family intends — a refused write
+that says so and settles back, never a silent divergence — and the row asserts it on the operator's own
+console and on the host's own kernel row. S2a adds a fourth, and the 2026-10-16 run read it: an unmodified
+client's break must keep every drop it rolled, so row 6 also reads that no bound refusal appears in an ordinary
+session, and when one does appear the bound's own line names the block, the table and the drops it refused.
 
 **Read on the real machine 2026-10-14, batch `20261014-a`**
 (`docs/evidence/acceptance/validation-and-source-checks-20261014-a.md`): rows 3 and 4 pass in full — a

@@ -1,14 +1,16 @@
 // recipe: block-drop-forge
-// args: dx=n dy=n item=s condition=n count=n
+// args: dx=n dy=n absolute=n item=s condition=n count=n
 // serves: validation-and-source-checks S2a rows 1-2 (a destruction report's drops are bounded)
 // returns: ok, cellX, cellY, blockHere, item, condition, count, role, sessionActive, error, detail
 //
-// Reports ONE break of the cell dx/dy away from the local body through the product's own senders: the air
-// write first — the shape the host records the destroyed block from — and then the drops-carrying break
-// report with HAND-BUILT drops (one definition id at one condition, repeated `count` times), which is the
-// report a modified client can send and no CUO gesture emits. The game's own roll is deliberately NOT run
-// (that is `block-break-at`): this recipe isolates the bound, so the reported drop is exactly what the
-// caller names and the host has to decide it from its own record of the cell.
+// Reports ONE break of the cell dx/dy away from the local body (or, with absolute=1, of the ABSOLUTE cell
+// dx,dy) through the product's own senders: the air write first — the shape the host records the destroyed
+// block from — and then the drops-carrying break report with HAND-BUILT drops (one definition id at one
+// condition, repeated `count` times), which is the report a modified client can send and no CUO gesture
+// emits. The game's own roll is deliberately NOT run (that is `block-break-at`): this recipe isolates the
+// bound, so the reported drop is exactly what the caller names and the host has to decide it from its own
+// record of the cell. The relative form is unusable while the body is still falling (the offset resolves to
+// a different cell every read), which is what the absolute form is for.
 ((System.Func<string>)(() => {
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var services = CasualtiesUnknownOnline.Runtime.CuoBootstrap.Services;
@@ -21,17 +23,21 @@
 	if (gameWorld == null || body == null) { return "{\"ok\":false,\"error\":\"no-world-or-body\"}"; }
 	var dx = (int)({{n:dx}});
 	var dy = (int)({{n:dy}});
+	var absolute = (int)({{n:absolute}});
 	var itemId = {{s:item}};
 	var condition = (float)({{n:condition}});
 	var count = (int)({{n:count}});
-	var origin = gameWorld.WorldToBlockPos(body.transform.position);
-	var cell = new Vector2Int(origin.x + dx, origin.y + dy);
+	var origin = absolute != 0 ? new Vector2Int(dx, dy) : gameWorld.WorldToBlockPos(body.transform.position) + new Vector2Int(dx, dy);
+	var cell = origin;
 	var blockHere = (int)gameWorld.GetBlock(cell);
 	world.SendBlockPlacedReport(cell.x, cell.y, 0, true);
 	var drops = new System.Collections.Generic.List<CasualtiesUnknownOnline.Runtime.Protocol.Messages.BlockDropEntryMsg>();
 	for (var i = 0; i < count; i++) {
 		var drop = new CasualtiesUnknownOnline.Runtime.Protocol.Messages.BlockDropEntryMsg();
-		drop.ItemId = 900000000000UL + (ulong)i;
+		// One instance id per CELL and index, never one per recipe: two calls that name the same id would
+		// make a later refusal answer the earlier accepted drop (the breaker destroys the copy that id
+		// names), which is a run artifact rather than a reading.
+		drop.ItemId = 900000000000UL + ((ulong)(cell.x & 0xFFFF) * 65536UL) + (ulong)(cell.y & 0xFFFF) * 16UL + (ulong)i;
 		drop.Item = new CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterItemMsg();
 		drop.Item.InstanceId = drop.ItemId;
 		drop.Item.ItemId = itemId;

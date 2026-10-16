@@ -228,13 +228,6 @@ internal sealed class ItemDataCommands(
 	// ===== Write =====
 
 	/// <summary>
-	/// One write, end to end: parse, resolve ONE item, check the value against the
-	/// item's own local state, write it there, report it as this client's own fact,
-	/// and answer with the two values. Every branch that refuses does so by name —
-	/// a write that silently did nothing would leave the operator believing a value
-	/// had landed.
-	/// </summary>
-	/// <summary>
 	/// The write path every write verb shares: the checks that must pass once, the ONE
 	/// item the command names, then each property applied to the in-memory capture
 	/// before a single commit. Applying every property first is what makes a merge and

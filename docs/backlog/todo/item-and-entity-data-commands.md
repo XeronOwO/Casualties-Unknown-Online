@@ -172,12 +172,16 @@ three values with no way to attribute them), and a bare `/data` never mentioned 
   property is legal and whose second is not leaves the record untouched, which is the case a per-property commit
   would fail. The assertions read the kernel row rather than the local object, because the report happens after
   the commit — so the row is what proves nothing landed.
-- **`set`'s answer changed for malformed input.** Parsing now happens before the session and announced-rule
-  checks, so a malformed `/data set` with no session (or from a member under a closed rule) is answered with
-  the usage line instead of the session/rule sentence. The new order is arguably better — a static error is
-  more specific — but it is a real change to a shipped verb's answer and no test observes it.
-- **`merge`'s property-level refusals quote the SET usage line**, because the property parse is shared and its
-  messages interpolate the set grammar. Its own "no property at all" refusal quotes the merge grammar, so the
-  two are inconsistent; the shared vocabulary is right, the printed grammar line is not.
-- Unfixed and named: the duplicated `<summary>` left on the write method, and two nits about `WroteMany`
-  taking two index-aligned lists and assuming a non-empty one.
+- **`set`'s answer changed for malformed input, and it is now pinned.** Parsing happens before the session and
+  announced-rule checks, so a malformed `/data set` with no session (or from a member under a closed rule) is
+  answered with the usage line instead of the session/rule sentence. The new order is better — a static error is
+  more specific than a state complaint about a line that could never have run — and the existing parser case
+  `AnythingElse_IsRefusedWithTheUsage("slot 0")` already observes it, so a later reorder has to be deliberate
+  rather than incidental. Recorded here because it is a shipped verb's printed answer.
+- **`merge`'s refusals now quote the merge grammar** (third commit, same day). The property parse is shared, so
+  its messages interpolated the set usage line — telling a merge operator to write a shape merge does not accept,
+  while its own "no property at all" refusal quoted the right one. The verb's usage is now passed into the shared
+  parse, and the case that asserted the set line asserts the merge line instead (and asserts the set line is
+  absent), so the fix is pinned by the very test that caught it.
+- **Since then:** the duplicated `<summary>` on the write method is deleted. Two nits remain unfixed and are
+  recorded rather than forgotten: `WroteMany` takes two index-aligned lists, and it assumes a non-empty one.

@@ -59,7 +59,7 @@ internal static class ItemDataWriteParser
 			return Refuse($"Usage: {Usage}", out error);
 		}
 
-		if (!TryParseProperty(tokens, next, target, clear: false, exact: true, out var property, out _, out error))
+		if (!TryParseProperty(tokens, next, target, clear: false, exact: true, usage: Usage, out var property, out _, out error))
 		{
 			return false;
 		}
@@ -90,7 +90,7 @@ internal static class ItemDataWriteParser
 		var parsed = new List<ItemDataWrite>();
 		while (next < tokens.Count)
 		{
-			if (!TryParseProperty(tokens, next, target, clear: false, exact: false, out var property, out next, out error))
+			if (!TryParseProperty(tokens, next, target, clear: false, exact: false, usage: MergeUsage, out var property, out next, out error))
 			{
 				return false;
 			}
@@ -141,7 +141,7 @@ internal static class ItemDataWriteParser
 	/// index after what it consumed, which is what makes the merge loop possible
 	/// without a second copy of this grammar.
 	/// </summary>
-	private static bool TryParseProperty(IReadOnlyList<string> tokens, int next, ItemDataQuery target, bool clear, bool exact, out ItemDataWrite write, out int consumed, out string? error)
+	private static bool TryParseProperty(IReadOnlyList<string> tokens, int next, ItemDataQuery target, bool clear, bool exact, string usage, out ItemDataWrite write, out int consumed, out string? error)
 	{
 		write = Empty();
 		consumed = next;
@@ -152,7 +152,7 @@ internal static class ItemDataWriteParser
 		{
 			if (!Enough(rest, 1, exact) || !TryParseNumber(tokens[next + 1], out var condition))
 			{
-				return RefuseNumber(tokens, next, rest, out error);
+				return RefuseNumber(tokens, next, rest, usage, out error);
 			}
 
 			write = new ItemDataWrite(target, ItemDataProperty.Condition, condition, false, "", "", "", clear);
@@ -164,7 +164,7 @@ internal static class ItemDataWriteParser
 		{
 			if (!Enough(rest, 1, exact) || !TryParseFlag(tokens[next + 1], out var favourited))
 			{
-				return RefuseFlag(tokens, next, rest, out error);
+				return RefuseFlag(tokens, next, rest, usage, out error);
 			}
 
 			write = new ItemDataWrite(target, ItemDataProperty.Favourited, 0f, favourited, "", "", "", clear);
@@ -176,7 +176,7 @@ internal static class ItemDataWriteParser
 		{
 			if (!Enough(rest, 2, exact) || !TryParseNumber(tokens[next + 2], out var millilitres))
 			{
-				return RefuseNumber(tokens, next, rest, out error);
+				return RefuseNumber(tokens, next, rest, usage, out error);
 			}
 
 			write = new ItemDataWrite(target, ItemDataProperty.Liquid, millilitres, false, tokens[next + 1], "", "", clear);
@@ -188,7 +188,7 @@ internal static class ItemDataWriteParser
 		{
 			if (!Enough(rest, 3, exact))
 			{
-				return Refuse($"Usage: {Usage}", out error);
+				return Refuse($"Usage: {usage}", out error);
 			}
 
 			write = new ItemDataWrite(target, ItemDataProperty.Component, 0f, false, tokens[next + 2], tokens[next + 1], tokens[next + 3], clear);
@@ -196,7 +196,7 @@ internal static class ItemDataWriteParser
 			return true;
 		}
 
-		return Refuse($"'{property}' is not a property to write — write condition, favourited, liquid or component. Usage: {Usage}", out error);
+		return Refuse($"'{property}' is not a property to write — write condition, favourited, liquid or component. Usage: {usage}", out error);
 	}
 
 	/// <summary>
@@ -279,25 +279,30 @@ internal static class ItemDataWriteParser
 		return false;
 	}
 
-	private static bool RefuseNumber(IReadOnlyList<string> tokens, int next, int rest, out string? error)
+	/// <summary>
+	/// The refusal for a property whose value does not parse. It quotes the grammar of the VERB that asked,
+	/// because the property vocabulary is shared: a merge that answered with the set usage would tell the operator
+	/// to write a shape the merge verb does not accept.
+	/// </summary>
+	private static bool RefuseNumber(IReadOnlyList<string> tokens, int next, int rest, string usage, out string? error)
 	{
 		if (rest >= 1 && !TryParseNumber(tokens[next + 1], out _))
 		{
-			return Refuse($"'{tokens[next + 1]}' is not a number. Usage: {Usage}", out error);
+			return Refuse($"'{tokens[next + 1]}' is not a number. Usage: {usage}", out error);
 		}
 
 		if (rest >= 2 && !TryParseNumber(tokens[next + 2], out _))
 		{
-			return Refuse($"'{tokens[next + 2]}' is not a number of millilitres. Usage: {Usage}", out error);
+			return Refuse($"'{tokens[next + 2]}' is not a number of millilitres. Usage: {usage}", out error);
 		}
 
-		return Refuse($"Usage: {Usage}", out error);
+		return Refuse($"Usage: {usage}", out error);
 	}
 
-	private static bool RefuseFlag(IReadOnlyList<string> tokens, int next, int rest, out string? error) =>
+	private static bool RefuseFlag(IReadOnlyList<string> tokens, int next, int rest, string usage, out string? error) =>
 		rest >= 1
-			? Refuse($"'{tokens[next + 1]}' is not a yes/no value — write true, false, yes or no. Usage: {Usage}", out error)
-			: Refuse($"Usage: {Usage}", out error);
+			? Refuse($"'{tokens[next + 1]}' is not a yes/no value — write true, false, yes or no. Usage: {usage}", out error)
+			: Refuse($"Usage: {usage}", out error);
 
 	/// <summary>
 	/// Whether enough tokens are left for this property. The set verb is EXACT — a

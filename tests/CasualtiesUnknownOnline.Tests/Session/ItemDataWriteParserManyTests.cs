@@ -51,8 +51,11 @@ public class ItemDataWriteParserManyTests
 	[Fact]
 	public void Merge_RefusesAPropertyMissingItsValue()
 	{
+		// The refusal quotes the MERGE grammar, not the set grammar: the property vocabulary is shared, so a
+		// merge answering with the set usage would tell the operator to write a shape merge does not accept.
 		Assert.False(ItemDataWriteParser.TryParseMany(["slot", "1", "condition"], out _, out var error));
-		Assert.Contains("Usage: /data set", error);
+		Assert.Contains("Usage: /data merge", error);
+		Assert.DoesNotContain("Usage: /data set", error);
 	}
 
 	[Fact]

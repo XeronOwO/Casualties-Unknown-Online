@@ -197,8 +197,22 @@
    fourth judge case, `..._ALegitimateSet_ComesBackWholeWithNoAnswer`, stays green, which is what makes the
    count six and not seven); with the guaranteed-roll loop disabled, exactly ONE goes red
    (`TheGuaranteedRolls_AreOneRowEach_OverEveryNamedCategorysPool`) and the other 28 stay green.
-   **Limits S2b carries.** Two, and both are the same missing fact — the drop does not name the support
-   cell it came from — seen from the two sides of the report.
+   **What this stage's batch must read (OWED as of the commit; the record is
+   `docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`).** Three rows, plus the probe
+   shape they need — written here so the run does not re-derive it. (0) The map may carry NO `requireGround`
+   building at all (the game registers `CheckSeating` only for those, so the population is knowable but not
+   assumed): the batch asks that first, with a census over the loaded scene. (1) If the map HAS one: break
+   its support block from the sandboxed member and read the host's `[BuildingSupport] captured N drop
+   row(s)` line (the capture ran), the ordinary building drop being registered and relayed, and no refusal
+   line anywhere. (2) If the map has none, the batch CREATES the case rather than skipping it:
+   `building-template-inject.cs` injects a custom building template whose declaration sets `RequireGround`
+   and `DropOnDestroy`, and a placed instance gives both peers the same population. (3) Either way, one
+   FORGED row from the member's own send path (the `block-drop-forge.cs` shape, extended to carry a
+   `TrapDropEntryMsg`): a building drop at a cell where this host marked nothing must come back refused by
+   name, with nothing registered and nothing relayed, and the breaker's local copy destroyed. Row 6's half
+   is the same run's ordinary session: no bound refusal at all.
+   **Limits S2b carries.** Two, and both are the same missing fact — the drop does not name the support cell
+   it came from — seen from the two sides of the report.
 
    - **The reporter's side pairs a drop with a break by TIME, not by identity.** The pending-break machine
      holds ONE break (`BlockBreakPendingState.EnterBreak` overwrites it) and `TryAddBuildingDrop` folds

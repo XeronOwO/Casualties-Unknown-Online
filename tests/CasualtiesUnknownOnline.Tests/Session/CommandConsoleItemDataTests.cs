@@ -555,6 +555,61 @@ public class CommandConsoleItemDataTests
 		Assert.NotNull(entities.GetRemotePlayer(SecondGuest));
 	}
 
+	[Fact]
+	public void Merge_ChangesEveryPropertyItNames()
+	{
+		var (host, _, local) = CreateSceneSession();
+		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.8f, withState: true));
+
+		var answer = Run(host, $"/data merge id {Backpack} condition 0.5 favourited yes");
+
+		// The answer names each property in the order the operator wrote them, and both landed.
+		Assert.Contains("condition 0.8 -> 0.5", answer);
+		Assert.Contains("favourited no -> yes", answer);
+		Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
+		Assert.Equal(0.5f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+		Assert.True(local.Held(Backpack)!.Favourited);
+	}
+
+	[Fact]
+	public void Merge_WithAPropertyThatCannotBeApplied_WritesNoneOfThem()
+	{
+		// The atomicity the single commit buys: the condition is legal and the liquid is not on the
+		// item, so the whole command refuses and the first property does not land on its own. A
+		// per-property commit would pass the merge's happy path and fail here.
+		var (host, _, local) = CreateSceneSession();
+		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.8f, withState: true));
+
+		var answer = Run(host, $"/data merge id {Backpack} condition 0.5 liquid petrol 100");
+
+		Assert.Contains("carries no 'petrol'", answer);
+		Assert.Equal(0.8f, local.Held(Backpack)!.Condition);
+		Assert.Equal(0.8f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
+		Assert.Equal(250f, local.Held(Backpack)!.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
+	}
+
+	[Fact]
+	public void Remove_ClearsALiquidAndResetsAComponentField()
+	{
+		var (host, _, local) = CreateSceneSession();
+		Hold(host, local, Item(Backpack, "backpack", slot: 1, withState: true));
+
+		var answer = Run(host, $"/data remove id {Backpack} liquid water component BatteryItem charge");
+
+		Assert.Contains("250 ml -> 0 ml", answer);
+		Assert.Contains("0.75 -> 0", answer);
+
+		// The container stays and the field stays: removing gives each back its absent value rather
+		// than taking the property off the item.
+		var held = local.Held(Backpack)!;
+		Assert.Equal(0f, held.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
+		Assert.Equal(0f, held.Components.Single().Fields.Single(field => field.Name == "charge").FloatValue);
+
+		var recorded = Kernel(host).FindItem(Backpack)!.Value.Data;
+		Assert.Equal(0f, recorded.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
+		Assert.Equal(0f, recorded.Components.Single().Fields.Single(field => field.Name == "charge").FloatValue);
+	}
+
 	private static ItemKernelAuthority Kernel(TestNode node) =>
 		node.Services.GetRequiredService<ItemKernelAuthority>();
 

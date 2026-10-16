@@ -167,13 +167,11 @@ three values with no way to attribute them), and a bare `/data` never mentioned 
 
 **What the review could not get from this change, and this ticket still owes:**
 
-- **Neither new verb has a console-level case.** The parser and the value layer are pinned, but no test runs
-  `/data merge …` or `/data remove …` through the console, so the shared guards, the single commit and the
-  multi-property answer line are unobserved. The console suite is at 36 of its 40-case cap, so two cases fit.
-- **The atomicity claim has no test at all.** It is stated in a comment and verified by reading only; a test
-  that applies one property successfully, fails the next, and then asserts the scene and the record are
-  untouched would close it. It has to be a console-level case: at the value layer the capture is mutated in
-  memory by design, so that layer cannot observe whether anything was committed.
+- **Both of the review's evidence gaps are closed (second commit, same day).** `/data merge` and `/data remove`
+  now run through the real console, and one of the three cases is the atomicity proof: a merge whose first
+  property is legal and whose second is not leaves the record untouched, which is the case a per-property commit
+  would fail. The assertions read the kernel row rather than the local object, because the report happens after
+  the commit — so the row is what proves nothing landed.
 - **`set`'s answer changed for malformed input.** Parsing now happens before the session and announced-rule
   checks, so a malformed `/data set` with no session (or from a member under a closed rule) is answered with
   the usage line instead of the session/rule sentence. The new order is arguably better — a static error is

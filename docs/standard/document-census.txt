@@ -307,7 +307,7 @@ docs/backlog/todo/offscreen-arrow-label-clipping.md | keep | index | docs/backlo
 docs/backlog/todo/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/player-music-sync-playback.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md | keep | index | docs/backlog/README.md
-docs/backlog/review/radiation-line-floor-stop.md | keep | index | docs/backlog/README.md
+docs/backlog/done/radiation-line-floor-stop.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/member-report-bounds.md | keep | index | docs/backlog/README.md
@@ -412,6 +412,7 @@ docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-x.md | k
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261001-y.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-b.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
 docs/evidence/acceptance/block-damage-table-capacity-alignment-20261002-c.md | keep | claim | docs/backlog/done/block-damage-table-capacity-alignment.md
+docs/evidence/acceptance/radiation-line-floor-stop-20261017-g.md | keep | claim | docs/backlog/done/radiation-line-floor-stop.md
 docs/evidence/acceptance/build-stamp-surfaces-20261017-e.md | keep | claim | docs/backlog/done/version-string-build-suffix.md
 docs/evidence/acceptance/block-break-log-shape-20261017-d.md | keep | claim | docs/backlog/done/block-break-log-names-the-wrong-shape.md
 docs/evidence/acceptance/call-context-scope-leak-20261012-b.md | keep | claim | docs/evidence/acceptance/mod-item-with-no-declared-tags-throws-20261012-b.md

@@ -1,6 +1,6 @@
 # The radiation line should stop above the layer floor, leaving a shared margin
 
-- Status: Review — implemented and gated; the run that reads the parked height on three clients is what is left.
+- Status: Done — the parked height is read on the machine (`docs/evidence/acceptance/radiation-line-floor-stop-20261017-g.md`), and the switch flips inside a live session through the host's own console.
 - Priority: Medium
 - Category: World hazard / layer progression / host rules
 - Source: the user's 2026-10-07 backlog request — KrokMP's radiation line does not descend all the way to

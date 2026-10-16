@@ -84,7 +84,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [The radiation line stops above the layer floor](review/radiation-line-floor-stop.md) — **Medium** — a host switch, awaiting the run.
 - [Paired controls and page scroll](review/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — four look defects pass; the frame awaits an eye.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the strip fits; the rows left need setups.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
@@ -185,6 +184,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [The radiation line stops above the layer floor](done/radiation-line-floor-stop.md) — **Medium** — a host switch, default on.
 - [The version shows the build's commit](done/version-string-build-suffix.md) — **Low** — the log, the UI and the tools.
 - [A break log line names the wrong shape](done/block-break-log-names-the-wrong-shape.md) — **Low** — it names the shape it judged.
 - [The body census should name a carried item's own instance id](done/item-census-own-instance-id.md) — **Low-Medium** — the id a write target asks for.

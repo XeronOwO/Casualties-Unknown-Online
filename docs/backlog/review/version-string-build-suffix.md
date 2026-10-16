@@ -1,6 +1,6 @@
 # The version a player and a log reader sees should carry the build's commit
 
-- Status: Todo
+- Status: Review — implemented and gated; the three surfaces themselves await the run.
 - Priority: Low
 - Category: Diagnostics / release hygiene
 - Source: the user's 2026-10-07 backlog request — the version number should carry the commit-hash build
@@ -38,3 +38,22 @@
 - Not a versioning scheme change: no new numbering policy, no semver bump rules — the existing
   `0.1.0+<sha>` shape is what gets surfaced.
 - Not a crash-report or telemetry feature: it is a string in two places.
+## What landed (2026-10-17)
+
+- **One reader**: `src/CasualtiesUnknownOnline.Runtime/Diagnostics/BuildIdentity.cs` reads
+  `AssemblyInformationalVersionAttribute` and offers the two forms. The startup line and every archive take
+  the whole stamp; the Home row takes `Short` (`ShortRevisionLength = 7`), which keeps EVERY marker the stamp
+  carries — the review caught the first version dropping `-dirty`, which would have made the one surface a
+  player reads unable to tell a dirty build from a clean one.
+- **The dirty marker is real**: the SDK already stamps `+<SourceRevisionId>` from git, so a build from a tree
+  with uncommitted work carried a sha that did not describe it. A target under `src/` appends `-dirty` to that
+  same value. Its exit code decides rather than its captured output (`ConsoleToMSBuild` collects stderr, so a
+  missing or refusing git would otherwise mark a clean checkout), and untracked sources COUNT — a file the
+  build compiles but HEAD does not have is exactly the case the marker exists for.
+- **The gate that declared its own blind spot now reads it**: `GameAssemblyReferenceGateTests` documented that
+  an imported `Directory.Build.props` was outside its scan "and the tree carries no such file today". This
+  change adds one, so the gate reads the convention files wherever they sit and its declaration (and
+  `docs/architecture/guards.md`) says so.
+- **Required work 4 is open**: the run that reads the three surfaces (startup line, Home row, and
+  `verify-deploy.ps1`'s output naming the same commit) is the next batch, which is why this ticket is in
+  `review/`. What the run must also settle: the Home row's placement is judged from a captured frame.

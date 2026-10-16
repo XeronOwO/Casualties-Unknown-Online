@@ -168,9 +168,10 @@ built DLL was the measurement that made the rule true: its assembly references c
 `Assembly-CSharp`.
 
 Scope of that scan, stated rather than implied: the gate reads each solution project's OWN project
-file. A reference that arrives through an imported `Directory.Build.props` / `Directory.Build.targets`
-or any `<Import>`ed props/targets file is outside it (the tree carries no such file today; if one ever
-appears, the reader has to follow the MSBuild import closure).
+  file. A reference that arrives through any `<Import>`ed props/targets file is outside it, EXCEPT the
+  convention files the gate reads on purpose (`Directory.Build.props` / `Directory.Build.targets`, wherever
+  they sit — this tree carries one under `src/`); if any other import ever appears, the reader has to follow
+  the full MSBuild import closure).
 
 Patch-bridge port addendum:
 `PatchBridgePortShapeGateTests` freezes the Harmony patch seam the same way the adapter addendum

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
@@ -26,8 +27,8 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// Scope, stated rather than implied: the scan reads each solution project's OWN
 /// project file. A reference that arrives through an imported
 /// <c>Directory.Build.props</c> / <c>Directory.Build.targets</c> or any
-/// <c>&lt;Import&gt;</c>ed props/targets file is outside it — the tree carries no such file
-/// today, and following the MSBuild import closure is the fix if one appears.
+/// <c>&lt;Import&gt;</c>ed props/targets file is outside it, EXCEPT the convention files, which
+/// the gate reads on purpose (this tree carries one under <c>src/</c>); any other import would still be outside it, and following the full MSBuild import closure is the fix if one ever appears.
 /// </para>
 /// </para>
 /// </summary>
@@ -95,6 +96,28 @@ public class GameAssemblyReferenceGateTests
 		Assert.Equal(expected, GameAssemblyReferences(XDocument.Parse(projectXml)).Count);
 
 	/// <summary>The game-assembly references one project csproj declares, in declaration order.</summary>
+	[Fact]
+	public void AConventionBuildFile_BindsNoGameAssemblyAnywhereInTheTree()
+	{
+		// MSBuild imports these into every project beneath them, so a reference placed in one reaches projects
+		// whose own project file says nothing — the exact shape the project-file scan cannot see. `reversing/`
+		// is a reference tree this repository does not build, and build output carries no source of imports.
+		var files = Directory
+			.EnumerateFiles(RepositoryPaths.Root, "Directory.Build.*", SearchOption.AllDirectories)
+			.Where(path => !path.Contains($"{Path.DirectorySeparatorChar}reversing{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+			.Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+			.Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+			.ToArray();
+
+		Assert.NotEmpty(files);
+		var offenders = files
+			.Select(path => (Path: path, Count: GameAssemblyReferences(path).Count))
+			.Where(entry => entry.Count > 0)
+			.Select(entry => $"{Path.GetRelativePath(RepositoryPaths.Root, entry.Path)} binds {entry.Count} game assembly reference(s)")
+			.ToArray();
+
+		Assert.True(offenders.Length == 0, string.Join(Environment.NewLine, offenders));
+	}
 	private static IReadOnlyList<string> GameAssemblyReferences(string projectPath) =>
 		GameAssemblyReferences(XDocument.Load(projectPath));
 

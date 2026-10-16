@@ -80,12 +80,12 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
 - [The off-screen arrow's label escapes the edge](todo/offscreen-arrow-label-clipping.md) — **Low** — all four edges.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
-- [The version shows the build's commit](todo/version-string-build-suffix.md) — **Low** — in the log and the UI.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [A dead player can watch the run by spectating a teammate](todo/dead-player-spectating.md) — **Medium** — follow a teammate; free-fly if allowed.
 ### In progress
 
 ### Review
+- [The version shows the build's commit](review/version-string-build-suffix.md) — **Low** — in the log, the UI and the tools.
 - [Paired controls and page scroll](review/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — four look defects pass; the frame awaits an eye.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the strip fits; the rows left need setups.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.

@@ -1,0 +1,43 @@
+<Project>
+
+  <!--
+    The release story is "one build, one artifact, and the artifact names the commit it came from"
+    (tools/verify-deploy.ps1, docs/acceptance/workflow.md). The SDK stamps `<version>+<SourceRevisionId>`
+    from git on its own, and that revision is HEAD's commit - which describes the content being built only
+    while the tree is clean. A build from a tree with uncommitted work therefore used to carry a sha that
+    does not describe it, and a player's screenshot or a support log would name a commit that never had this
+    code.
+
+    This target keeps the stamp honest rather than composing a second one: the SDK's own value gains a
+    `-dirty` marker, which BuildIdentity then shows on every surface (the startup line and the archive whole,
+    the Home row shortened but with the marker kept), and which verify-deploy.ps1 prints beside the hash it
+    compares.
+
+    It sits after the source-control target that sets SourceRevisionId and runs from the repository root, so
+    every project under src/ answers the same question about the same tree.
+
+    Two details are deliberate. Untracked files COUNT: a source file that is not committed is content this
+    build has and HEAD does not, which is precisely the case the marker exists for (build output is ignored
+    by .gitignore, so it never appears here). And the EXIT CODE decides, not the capture: ConsoleToMSBuild
+    collects stderr as well as stdout, so a git that is missing from PATH or refuses to run would otherwise
+    mark a clean checkout dirty - and a marker that appears for any reason other than the tree is worse than
+    no marker at all.
+  -->
+  <Target Name="MarkADirtyTreeInTheRevisionStamp"
+          AfterTargets="InitializeSourceControlInformation"
+          Condition="'$(SourceRevisionId)' != '' and '$(DirtyTreeChecked)' != 'true'">
+    <Exec Command="git status --porcelain"
+          WorkingDirectory="$(MSBuildThisFileDirectory).."
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" ItemName="_UncommittedLines" />
+      <Output TaskParameter="ExitCode" PropertyName="_GitStatusExitCode" />
+    </Exec>
+    <PropertyGroup>
+      <DirtyTreeChecked>true</DirtyTreeChecked>
+      <SourceRevisionId Condition="'$(_GitStatusExitCode)' == '0' and '@(_UncommittedLines)' != ''">$(SourceRevisionId)-dirty</SourceRevisionId>
+    </PropertyGroup>
+  </Target>
+
+</Project>

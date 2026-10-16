@@ -139,7 +139,7 @@ The full lookup — the shape of a line, what to search for and the triage order
 - `dotnet build` reports 0 warnings and 0 errors (warnings are errors here).
 - `dotnet test` exits `0` **and its summary names both assemblies**: the gate project's few hundred
   cases and the test project's thousands. The exit code on its own is not the signal — see Traps.
-- `verify-deploy.ps1` exits `0` and its `ProductVersion` ends in the sha of the commit you built.
+- `verify-deploy.ps1` exits `0` and its `ProductVersion` ends in the sha of the commit you built — with `-dirty` after it when the tree you built from had uncommitted work, which an acceptance run must never carry (the marker is what makes the identity honest rather than merely present).
 
 ## Related reading
 

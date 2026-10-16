@@ -5,6 +5,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
+using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Networking;
@@ -175,7 +176,7 @@ public class Plugin : BaseUnityPlugin
 				RunLifecycle(service, "Start", s => s.Start());
 			}
 
-			_log.LogInformation("Plugin {PluginGuid} is loaded!", MyPluginInfo.PLUGIN_GUID);
+			_log.LogInformation("Plugin {PluginGuid} is loaded — build {Build}.", MyPluginInfo.PLUGIN_GUID, BuildIdentity.Of(typeof(Plugin).Assembly));
 			if (_capabilityQuery is not null)
 			{
 				_log.LogInformation("Game Adapter: {Report}", _capabilityQuery.CapabilityReport);

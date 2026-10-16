@@ -115,7 +115,7 @@ powershell -ExecutionPolicy Bypass -File tools/verify-deploy.ps1 -GameDir "<game
 - `dotnet build` 报 0 警告 0 错误（这里警告就是错误）。
 - `dotnet test` 退出码为 `0`，**且摘要里两个程序集都在**：门禁工程的几百个用例，以及测试工程的几千个。
   只看退出码不算数——见「常见坑」。
-- `verify-deploy.ps1` 退出码为 `0`，并且它打印的 `ProductVersion` 以你这次构建的提交 sha 结尾。
+- `verify-deploy.ps1` 退出码为 `0`，并且它打印的 `ProductVersion` 以你这次构建的提交 sha 结尾；构建时工作区若有未提交改动，末尾会多一个 `-dirty`——验收用的构建不允许带它（有这个标记，产物标识才诚实，而不只是"有个标识"）。
 
 ## 相关阅读
 

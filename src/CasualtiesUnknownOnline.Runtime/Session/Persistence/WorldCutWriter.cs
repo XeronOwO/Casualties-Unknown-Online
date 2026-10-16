@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Reflection;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -327,5 +327,5 @@ internal sealed class WorldCutWriter(
 	}
 
 	private static string CuoBuild =>
-		typeof(WorldCutWriter).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
+		BuildIdentity.Of(typeof(WorldCutWriter).Assembly);
 }

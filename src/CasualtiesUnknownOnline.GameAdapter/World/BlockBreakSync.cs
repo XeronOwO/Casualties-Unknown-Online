@@ -422,7 +422,7 @@ internal sealed class BlockBreakSync(
 				Verdict.Fresh => "accepted",
 				Verdict.LostAirWrite => "accepted as this generation's lost air write",
 				Verdict.Repeat => "re-accepted (repeat report)",
-			_ => "judged " + verdict,
+				_ => "judged " + verdict,
 			},
 			drops?.Count ?? 0, buildingDrops?.Count ?? 0);
 	}

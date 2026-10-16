@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.Session;
 using UnityEngine;
 
@@ -79,6 +80,10 @@ internal static class OnlineUiHomeDrawer
 		{
 			page.Muted(ctx.F("home.last_rtt", $"{session.LastRttMs:F1}"));
 		}
+
+		// The build this client IS, in the form a player can read off a screenshot and quote: the startup
+		// line and every archive carry the whole stamp, this row carries the short one.
+		page.Muted(ctx.F("home.build", BuildIdentity.Short(BuildIdentity.Of(typeof(OnlineUiHomeDrawer).Assembly))));
 
 		if (ctx.IpDirectActive || steam.CurrentLobbyId != 0)
 		{

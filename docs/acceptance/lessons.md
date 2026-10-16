@@ -25,14 +25,6 @@ carrier with a backticked path so the reader can open it, and cite the run's own
 is what the reader needs. A narrative entry (a Symptom/Cause story) is refused by
 `AcceptanceLessonsGateTests`, which holds every entry to one line.
 
-## 2026-09-27 — The preflight matched nothing on its first run (PowerShell 5.1 code pages)
-
-A committed acceptance script matches only ASCII literals and reads what it parses with an explicit `-Encoding UTF8`; never depend on how the host guesses its own code page — `tools/acceptance/preflight.ps1`, the local-facts contract in `dependencies.md`.
-
-## 2026-09-27 — An interrupted test run leaves a testhost that reddens the next one
-
-A full-suite red that is a file lock (`MSB3026`/`MSB3027`, `testhost.net48`) is an environment finding: stop the `testhost*` processes this run started, then re-run before suspecting the product.
-
 ## 2026-09-27 — In-process control is the driver this machine allows
 
 Session setups are driven inside the client's own process through the evaluator; OS-level keyboard and mouse are never used, and a state the in-process route cannot reach is a setup gap to record, not a licence to reach for them — the `input` row of `dependencies.md`, workflow §5.
@@ -520,3 +512,6 @@ Before a row is recorded as "this world has none of X", read the population over
 ## 2026-10-17 — A recipe's type names and field names are read from the tree, never guessed
 
 Four runs of batch `20261017-a` produced nothing but `eval 'recipe:member-identity-forge' failed: (1,1): InteractiveHost` — the evaluator's Mono REPL names no line and no symbol, so each wrong guess cost a whole three-client session: the recipe had put `IKernelProtocolControl` under `Runtime.Session.Items` (it lives in `Application.Kernel`) and `EnemyEffectKind` under `Runtime.Protocol.Messages` (it lives in `Runtime.Protocol`), and then read the pickup id from a field the host's record does not spell that way (`container-read mode=host` writes `"id"`, not `"instanceId"`). A recipe is compiled against the loaded assemblies with no editor and no diagnostics, so every type, member and JSON field a NEW recipe names is opened in the tree first (`src/**` for the type, an existing recipe's own answer for the field), and a recipe that must read one number is written as the smallest thing that returns it (`tools/acceptance/recipes/member-id.cs`) and read on the machine before it grows branches.
+## 2026-10-17 — A recipe's `// args:` line is a requirement list, and a cell's state belongs to the host
+
+`drive-in-process.ps1` REFUSES a recipe call that omits any parameter its `// args:` line declares — `block-drop-forge`'s optional-looking `absolute`, `building`, `airwrite`, `item2` and `condition2` are all required — and it says so as exit 64 in the DRIVER log while the batch log shows only `ok=missing`; and a probe that needs a cell HOLDING a block cannot find one by probing offsets around the member (eight `block-read` calls all answered `block=0`, and the reading was reached only because the absolute cell the forged break landed on happened to hold block 14). A cell's state is the host's own fact, so ask the host; a setup step that failed is a reason to stop rather than to continue, because a batch that reached its setup by accident cannot say what it proved.

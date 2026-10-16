@@ -1,8 +1,13 @@
 # Host rules reach the members, and both sides check them
 
-- Status: Review — the mechanism, its census gate and the two-node cases landed; the agent-run acceptance
-  judges the five rows below in this cycle's batch. Recorded 2026-10-14 at the user's direction when the
-  member console write closed (S1b of `todo/validation-and-source-checks.md`).
+- Status: Done — the mechanism, its census gate and the two-node cases landed 2026-10-14, recorded at the
+  user's direction when the member console write closed (S1b of `todo/validation-and-source-checks.md`).
+  **Accepted 2026-10-16 in batch `20261016-a`**
+  (`docs/evidence/acceptance/host-rules-replication-20261016.md`): every row of the table below passes —
+  the announcement at admission, in a world and on the live change edge; the member's local refusal with
+  nothing applied; the same verb forced past the local check and refused by the host; the session-end drop
+  and the member's own rules when it hosts its own lobby; and the recruit affordance following the
+  announced rule.
 - Priority: Medium-High
 - Category: Session policy / host rules / client-side checks
 - Source: the user's 2026-10-14 instruction, in their words: the rules have to reach the members; KrokMP lets

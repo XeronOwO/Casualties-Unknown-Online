@@ -39,7 +39,7 @@
    surface, so transferring an item to the opener's own inventory is allowed for a conscious remote owner as
    long as `AllowRemoteInventoryTake` is enabled; the Online UI's unconscious-only take rules are not applied
    to this dedicated gesture."
-4. **Host rules ARE replicated to guests now** (`review/host-rules-replication.md`): the host announces the
+4. **Host rules ARE replicated to guests now** (`done/host-rules-replication.md`): the host announces the
    whole rule set at a member's admission, with the world-entry and 60 s repair groups, and on every change
    while the session runs, and `HostRulesService` answers a member with the host's values. So a guest's UI no
    longer has to decide from its own local value: the member card's take affordance already follows the
@@ -76,7 +76,7 @@
    items out. Recommended: the whole family — an open view on a forbidden owner can still shuffle and drop
    their items, which is exactly what the option is meant to prevent.
 3. How a guest learns the host's policy — ANSWERED for the replication half by
-   `review/host-rules-replication.md` (announced at admission, re-sent with the entry and repair groups, and
+   `done/host-rules-replication.md` (announced at admission, re-sent with the entry and repair groups, and
    broadcast on every change), so the open question left here is the presentation one: does the Online UI hide
    the button or show it disabled with the reason, and does the new enumerated rule gate the OPEN as well as
    every intent and the take.

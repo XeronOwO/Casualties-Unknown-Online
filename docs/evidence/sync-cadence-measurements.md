@@ -56,7 +56,7 @@ in-session tables (kernel checkpoint, block state, block damage, trap layout, en
 runtime entities, recipe unlocks, roster) plus the host's rule announcement, the start-gate answer
 and the completion marker. The rule announcement is the one member of the group that is not a
 world table: it is what a member's own client checks its gestures against, so it converged here
-like the tables do (`review/host-rules-replication.md`, +20 bytes of the pass — the absolute rule set
+like the tables do (`done/host-rules-replication.md`, +20 bytes of the pass — the absolute rule set
 in one frame). The simulation world is deliberately minimal; the dominant term in a real session is
 the kernel checkpoint, which the traffic baseline pins (< 24 KB for 600 items).
 

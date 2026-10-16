@@ -82,10 +82,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The version shows the build's commit](todo/version-string-build-suffix.md) — **Low** — in the log and the UI.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [A dead player can watch the run by spectating a teammate](todo/dead-player-spectating.md) — **Medium** — follow a teammate; free-fly if allowed.
+- [The body census should name a carried item's own instance id](todo/item-census-own-instance-id.md) — **Low-Medium** — the id a write target asks for.
 ### In progress
 
 ### Review
-- [Host rules reach the members, and both sides check](review/host-rules-replication.md) — **Medium-High** — the census, the announcement, the local check.
 - [Paired controls and page scroll](review/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — four look defects pass; the frame awaits an eye.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the strip fits; the rows left need setups.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
@@ -187,6 +187,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Host rules reach the members, and both sides check](done/host-rules-replication.md) — **Medium-High** — accepted; the announcement and the two-sided check.
 - [Online UI art and controls are placeholders](done/online-ui-art-and-controls-overhaul.md) — **High** — accepted; the blocks read and size as declared.
 - [The item data write verb](done/item-data-write-commands.md) — **Medium-High** — `/data set` for the holder; a member's write is the host's rule.
 - [Crafting-quality labels for mod content](done/mod-crafting-quality-labels.md) — **High** — accepted; the item surface plus a load-time reference check.

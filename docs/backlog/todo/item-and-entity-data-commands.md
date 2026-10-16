@@ -108,7 +108,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
    (`done/item-data-write-commands.md`). Every later write verb rides the same kind and the same rule — a
    new verb does not need a new gate, and it must not grow one. What the rule could not do when this was
    written — reach the member BEFORE the write, so a closed rule was a value that appeared and went back — is
-   closed (`review/host-rules-replication.md`): a member holding the announced rule is refused on its own
+   closed (`done/host-rules-replication.md`): a member holding the announced rule is refused on its own
    client before anything is applied, and the verbs that follow `/data set` inherit it.
 
 ## Non-goals

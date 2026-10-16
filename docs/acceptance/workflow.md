@@ -114,6 +114,13 @@ collected while its scenario is up.
   never guessed from the two participant views.
 - Both join through the game's own Online UI (host creates the lobby, guest joins with the lobby id).
   The native UI is the only lobby surface CUO has; the run reuses it.
+- **The lobby join is not the session.** The join's own answer reads `role: Guest` while the member's
+  session is still inactive — no handshake has completed, the host has no member yet, and a host-only
+  console verb is refused in that state ("Permission denied: this command is host-only", the host's own
+  role arriving only with `create-lobby`). Anything a row reads on the join's answer is a reading of
+  nothing: the batch takes `create-lobby` before anything that needs the host role, and gives the session
+  its own bounded wait — the member's own session/announcement reading is what says it exists — before the
+  first row's step.
 - Probes and actuation use the in-process evaluator at `hotrepl-host-url` / `hotrepl-guest-url`:
   reading live state, forcing a setup, or asserting that a message was handled. The committed driver
   helper `tools/acceptance/drive-in-process.ps1` carries the scenario vocabulary — `state`,

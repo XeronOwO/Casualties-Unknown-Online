@@ -92,7 +92,7 @@ register is routed from `README.md` beside it and from `docs/evidence/verificati
 | session/host-ban-selfcheck.md | Other | current | — |
 | session/host-close-room-safe-exit-selfcheck.md | Other | current | — |
 | session/host-kick-selfcheck.md | Other | current | — |
-| session/host-rules-selfcheck.md | Other | current | its "No wire/protocol change. Host rules are local host configuration only." line is superseded by decision 263 — the rules are announced to the members, which is `docs/backlog/review/host-rules-replication.md`; the service surface, the late-join gate and the pure policy this sheet records still hold |
+| session/host-rules-selfcheck.md | Other | current | its "No wire/protocol change. Host rules are local host configuration only." line is superseded by decision 263 — the rules are announced to the members, which is `docs/backlog/done/host-rules-replication.md`; the service surface, the late-join gate and the pure policy this sheet records still hold |
 | protocol/hot-path-latency-instrumentation-selfcheck.md | Other | current | — |
 | ui/i18n-framework-selfcheck.md | Other | current | — |
 | protocol/ip-direct-selfcheck.md | Other | current | — |

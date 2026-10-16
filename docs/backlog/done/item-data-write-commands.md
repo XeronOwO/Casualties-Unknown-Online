@@ -12,7 +12,7 @@
 - Related: `review/item-data-read-commands.md` (the read half, and the property survey this verb writes
   through), `todo/item-and-entity-data-commands.md` (the family's remaining stages),
   `todo/validation-and-source-checks.md` (S1b: the console write's own wire kind, the host's rule and the
-  refusal's way back), `review/host-rules-replication.md` (landed later: the member's console is told the
+  refusal's way back), `done/host-rules-replication.md` (landed later: the member's console is told the
   rule before it writes), `review/in-game-command-console-interactive.md` (the console the verb lands in),
   `docs/architecture/domains.md` (the item kernel domain), `docs/contracts/item-features-matrix.csv`
 
@@ -137,7 +137,7 @@ is boxed back in.
 | The target grammar | the read parser exposes a prefix form; the read verb's own behaviour is unchanged | `ItemDataQueryParserTests` (25 cases) still green, and the write parser's target cases run through the same function |
 | A member's write route | the report travels under `WireCommandKind.ItemDataWrite` so the host judges the VERB, not the state (S1b) | `ItemActionSyncTests`; end to end `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_IsReportedAndTheHostRecordsIt` (the host's own kernel row moves) |
 | The host's rule for the verb | new flag `HostRulesOptions.AllowMemberItemDataWrite` (off), read at the admission seam through the Application-declared `IMemberCommandRules` port | `KernelCommandGatewayTests.ConsoleVerbWithTheHostRuleClosed_IsRefusedAndAnswered` (RED with the rule check disabled; its open-rule control stayed green, which is what makes the rule the difference) / `.ConsoleVerbWithTheHostRuleOpen_IsAdmitted`; the end-to-end pair `CommandAdmissionIntegrationTests.AConsoleWriteFromAMember_IsRefusedByTheHostRuleAndAnswered` (RED with the rule check disabled) / `.CommitsWhenTheHostRuleIsOpen` |
-| The way back from a refusal | the seam answers this kind and `WireCommand.RefusedKind` names the judged report; the member's client settles the recorded state back (`ItemDataWriteSettlement`) and the console prints it | `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_WhenNothingWasAnnounced_IsSettledByTheHostsOwnRefusal` — RED with the settle skipped (local 0.25, expected 0.5); the case was called `..._WhenTheHostRuleIsClosed_IsRefusedAndTheValueGoesBack` until `review/host-rules-replication.md` landed the member-side pre-check, whose announced set is what changes the posture — and `KernelItemReportEligibilityTests.ConsoleWriteForAnotherMembersItem_IsAnsweredRatherThanIgnored` (RED with the answer narrowed to the native shape) |
+| The way back from a refusal | the seam answers this kind and `WireCommand.RefusedKind` names the judged report; the member's client settles the recorded state back (`ItemDataWriteSettlement`) and the console prints it | `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_WhenNothingWasAnnounced_IsSettledByTheHostsOwnRefusal` — RED with the settle skipped (local 0.25, expected 0.5); the case was called `..._WhenTheHostRuleIsClosed_IsRefusedAndTheValueGoesBack` until `done/host-rules-replication.md` landed the member-side pre-check, whose announced set is what changes the posture — and `KernelItemReportEligibilityTests.ConsoleWriteForAnotherMembersItem_IsAnsweredRatherThanIgnored` (RED with the answer narrowed to the native shape) |
 | The refusal keeps its own family | a refused console write never becomes the pickup/block-drop rejection the adapter rolls back | `Set_OnAMembersConsole_WhenRefused_NeverBecameAPickupRollback` asserts the item control's rejection event stayed silent, and the member's local value went back rather than the item leaving its hands |
 | The re-report window (found by the independent review, fixed in the same commit) | the console write is re-reported like the other member actions whose local half already happened, and a refusal closes the newest report OF THE KIND it names | `GuestCommandReconciliationTests.SwallowedConsoleWrite_IsReReportedAndTheHostCommitsIt` (RED with the kind absent from the re-reportable set: an empty window where `[ItemDataWrite]` was expected) and `.RefusalClosesOnlyTheKindItNames` (RED with the item-scoped pop restored: an empty window where `[ItemPickup]` was expected) |
 
@@ -198,7 +198,7 @@ One two-client session, host and guest both in a world:
   whose rule is closed, the item briefly reads the value the member typed. The alternative (the member's
   console refusing what the host would accept, or promising what it may refuse) would put a rule this side
   does not hold in front of the operator. Removing it the honest way means telling the member the rule —
-  `review/host-rules-replication.md`, recorded at the user's direction when this stage closed, which also
+  `done/host-rules-replication.md`, recorded at the user's direction when this stage closed, which also
   owns the mid-session change (an event, not just a world-entry fact) and the both-sides check the user
   asked for; it landed afterwards, so the flicker this paragraph describes is closed for a member that
   holds the announced rules.

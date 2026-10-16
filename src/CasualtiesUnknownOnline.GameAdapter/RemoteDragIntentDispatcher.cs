@@ -3,6 +3,8 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 
+using CasualtiesUnknownOnline.GameAdapter.Items;
+
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
@@ -30,22 +32,48 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 			dragItem != null ? dragItem.id : "null"); // Unity object — ==
 
 	/// <summary>
-	/// A release of this client's OWN item onto another player's displayed inventory:
-	/// the native container branch would have loaded the item into that player's
-	/// display proxy and left it to the clone rebuild (the reported loss), and a body
-	/// slot of the clone would have driven the native slot sequence against the LOCAL
-	/// body with the clone's own slot index. No intent of the vocabulary can name
-	/// either, so the release is cancelled before the native body runs and one line
-	/// names both ends: the item, what the pointer was on, and the owner that target
-	/// belongs to — resolved by the caller, never inferred here (the caller's rule is
-	/// the target item's own marker, or the displayed player when the marker carries
-	/// none, the same fallback the release window opens its bracket with).
+	/// A release of this client's OWN item onto another player's displayed inventory. When it can be classified it
+	/// becomes the give-direction intent — the mirror of the take direction, where the item's owner is the ACTOR
+	/// and the destination body is the other player — and when it cannot, the release keeps its refusal and the line
+	/// that names why, which is what the acceptance table reads.
+	///
+	/// <para>
+	/// Both branches exist because the native body must not run either way: the container branch would load THIS
+	/// client's item into the other player's display proxy and leave it to the clone rebuild (the reported loss),
+	/// and a body slot of the clone would have driven the native slot sequence against the LOCAL body with the
+	/// clone's own slot index.
+	/// </para>
 	/// </summary>
-	internal void ReportLocalReleaseOntoProxy(Item? dragItem, ulong targetOwnerSteamId, string target) =>
-		domains.Log.LogWarning("[RemoteIntent] refused the release of this client's own item {Item} onto {Target} (owner {Owner}): an item of this client cannot be moved into another player's inventory — the drag is cancelled before the native body can act on the displayed inventory, and the item stays where it is.",
-			dragItem != null ? dragItem.id : "null", // Unity object — ==
-			target,
-			targetOwnerSteamId);
+	internal void ReportLocalReleaseOntoProxy(Item? dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex)
+	{
+		var local = domains.Session.LocalSteamId;
+
+		// The giver's own identity comes from the item's OWN component, never from the display-proxy marker: this
+		// branch exists precisely because the dragged item is not a proxy. An item with no identity cannot be named
+		// on the wire, and 0 is this family's own "unbound, never operable" answer.
+		var itemId = dragItem != null ? OperationTrace.IdOf(dragItem) : 0; // Unity object — ==
+		if (itemId == 0 || targetOwnerSteamId == 0 || targetOwnerSteamId == local)
+		{
+			domains.Log.LogWarning("[RemoteIntent] refused the release of this client's own item {Item} onto {Target} (owner {Owner}): it cannot be named to that player — the drag is cancelled before the native body can act on the displayed inventory, and the item stays where it is.",
+				dragItem != null ? dragItem.id : "null", // Unity object — ==
+				target,
+				targetOwnerSteamId);
+			return;
+		}
+
+		// The two destinations are mutually exclusive operands: a pointer on an item means "into that container",
+		// and a pointer on a ring slot means "onto that body slot".
+		var intent = new RemoteDragIntent
+		{
+			Kind = RemoteInventoryIntentKind.GiveToBody,
+			ItemInstanceId = itemId,
+			TargetBodySteamId = targetOwnerSteamId,
+			TargetSlotIndex = targetSlotIndex,
+			TargetContainerInstanceId = targetItemInstanceId,
+		};
+
+		Send(intent, local);
+	}
 
 	internal void ReportGestureNotCarried(string gesture) =>
 		domains.Log.LogInformation("[RemoteIntent] refused {Gesture} — that intent arrives in a later stage; no proxy was mutated.", gesture);
@@ -107,12 +135,19 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 		}
 	}
 
-	private void Send(RemoteDragIntent intent, RemoteDragOutcome outcome)
+	private void Send(RemoteDragIntent intent, RemoteDragOutcome outcome) => Send(intent, outcome.OwnerSteamId);
+
+	/// <summary>
+	/// One intent on the wire, from its owner. The window carries the owner for the drag-classified intents, and
+	/// the release seam passes its own for the give direction — where the item belongs to the ACTOR rather than to
+	/// the player the gesture pointed at.
+	/// </summary>
+	private void Send(RemoteDragIntent intent, ulong ownerSteamId)
 	{
 		var msg = new RemoteInventoryIntentMsg
 		{
 			Kind = intent.Kind,
-			OwnerSteamId = outcome.OwnerSteamId,
+			OwnerSteamId = ownerSteamId,
 			ItemInstanceId = intent.ItemInstanceId,
 			TargetContainerInstanceId = intent.TargetContainerInstanceId,
 			TargetSlotIndex = intent.TargetSlotIndex,

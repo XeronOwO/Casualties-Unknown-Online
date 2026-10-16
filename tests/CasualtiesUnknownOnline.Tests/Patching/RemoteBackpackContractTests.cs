@@ -75,12 +75,21 @@ public class RemoteBackpackContractTests
 
 		var ontoProxy = remoteBridge.GetMethod("ReportLocalReleaseOntoProxy");
 		Assert.NotNull(ontoProxy);
+
+		// It either classifies the release as a give-direction intent or keeps the refusal line. It answers nothing:
+		// the caller clears the drag either way, because the native body must not run on a display proxy at all, so
+		// a return value would have no reader — and a mechanism without one is a guess.
 		Assert.Equal(typeof(void), ontoProxy!.ReturnType);
 		var ontoProxyParameters = ontoProxy.GetParameters();
-		Assert.Equal(3, ontoProxyParameters.Length);
+		Assert.Equal(5, ontoProxyParameters.Length);
 		Assert.Equal("Item", ontoProxyParameters[0].ParameterType.Name);
 		Assert.Equal(typeof(ulong), ontoProxyParameters[1].ParameterType);
 		Assert.Equal(typeof(string), ontoProxyParameters[2].ParameterType);
+
+		// The two destinations a give-direction intent can name: the item shown where the pointer landed, and the
+		// ring slot it hit. Exactly one of them is set, and the caller resolves both from what the pointer was on.
+		Assert.Equal(typeof(ulong), ontoProxyParameters[3].ParameterType);
+		Assert.Equal(typeof(int), ontoProxyParameters[4].ParameterType);
 
 		var notCarried = remoteBridge.GetMethod("ReportRemoteGestureNotCarried");
 		Assert.NotNull(notCarried);

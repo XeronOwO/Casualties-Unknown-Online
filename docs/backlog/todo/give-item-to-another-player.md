@@ -176,3 +176,41 @@ Everything the classification half needs was located, and one gap was found. In 
    branch in `RemoteIntentApplier`), because a new kind with no dispatcher is a dead mechanism no gate can see.
 
 **A note the first survey got wrong, corrected above**: the giver's item id was recorded as an open question. It is not — the tracing helper already answers it, and the answer's zero case is the refusal this family already makes. The remaining work is written in the four steps above.
+## The implementation landed (2026-10-17), reviewed, and what it still owes
+
+The intent is real end to end now: `GiveToBody = 16` is the mirror of `TransferToBody = 7`, the release seam
+classifies instead of refusing, and the host runs the SAME custody core with the two ends swapped — so the two
+halves of one hand-over cannot drift apart about who owns the item.
+
+**An adversarial review of the frozen change set found the kind was DEAD and my own test was agreeing with it.**
+The host's entry guard assumed `owner != requester`, which is the take direction's rule; the give direction
+sends exactly `owner == requester` by construction, so every give was refused before its own case ran and the
+host half never executed. The test that "proved the branch was reached" passed for the same reason — it would
+have passed with no case at all. Both are fixed: the guard is scoped by direction (keeping the rule it exists
+for — a client may not claim an item it does not carry), the destination body is checked in world separately
+because it is a different player from the requester, and the mirrored host-half case is back and GREEN, which
+is the evidence the first attempt could not produce.
+
+Also fixed from the same review: the new `bool` on the seam had no reader (the caller clears the drag either
+way, so it is `void` again — a return value nothing reads is a guess), a stale summary was left stacked on the
+new one, and the intent's own doc claimed a receiving-side native rule that this path does not run.
+
+**What it still owes, and why the ticket stays in `todo/`:**
+
+- **The container half is not implemented.** A release onto an ITEM shown in the receiver's inventory names that
+  container, and the host refuses it by name because the mirrored core takes a body slot. The user's own answer
+  covers both targets of the displayed backpack, so this is a scope cut of a user-visible behaviour and is
+  recorded as one.
+- **A refusal after the send is invisible to the giver.** The actor's client writes a positive line and nothing
+  else; every later refusal — the policy, the worn item, the destination not being in world — lands on the
+  HOST's log, and nothing on the wire answers a refusal. Acceptance row 3 reads the actor's screen, so it needs
+  a status line on that side before it can pass.
+- **The receivers' own rules never decide anything.** The host computes both snapshots and the receiver applies
+  the fact through a path whose placement bypasses the native pickup checks, so "the receiving client's slot,
+  weight and tag rules decide whether it fits" — which the ticket's design states and the new kind's doc
+  repeated — is not what happens. Acceptance row 4 is unreachable as written.
+- **The wire message's own member docs and the vocabulary page are stale** (`TargetBodySteamId` still says
+  "the requester's own SteamId", `docs/architecture/remote-inventory-native-parity.md` §3.3 has no row for this
+  kind and still says the hole at 16 was deliberate).
+- **Every acceptance row is unrun**; the table needs three clients, and rows 1–4 and 6 need the two gaps above
+  closed first.

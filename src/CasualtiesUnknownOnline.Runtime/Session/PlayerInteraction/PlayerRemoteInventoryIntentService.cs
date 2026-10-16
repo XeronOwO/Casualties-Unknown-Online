@@ -84,7 +84,14 @@ internal sealed class PlayerRemoteInventoryIntentService(
 		}
 
 		var owner = msg.OwnerSteamId;
-		if (owner == 0 || owner == requester || msg.ItemInstanceId == 0)
+
+		// Whether the owner is the player being operated ON or the player DOING the operating is a property of the
+		// direction, not of the family: every kind here operates on another player's inventory, except GiveToBody,
+		// where the sender gives their OWN item away and the destination body names the other player. Scoping the
+		// guard by direction rather than dropping it keeps the rule it exists for — a client may not name itself as
+		// the owner of an item it does not carry — while letting the mirror direction through.
+		var ownerIsTheSender = msg.Kind == RemoteInventoryIntentKind.GiveToBody;
+		if (owner == 0 || msg.ItemInstanceId == 0 || (!ownerIsTheSender && owner == requester))
 		{
 			_log.LogWarning("[RemoteIntent] refused {Kind}: invalid owner/requester/item ({Owner}/{Requester}/{Item}).",
 				msg.Kind, owner, requester, msg.ItemInstanceId);
@@ -98,9 +105,14 @@ internal sealed class PlayerRemoteInventoryIntentService(
 			return;
 		}
 
-		if (!_characters.IsInWorld(owner) || !_characters.IsInWorld(requester))
+		// Both ends of the move have to be in the world: for the take direction that is the item's owner and the
+		// requester, and for the give direction it is the sender and the DESTINATION body — which is a different
+		// player from the requester, so it is checked separately rather than assumed.
+		if (!_characters.IsInWorld(owner) || !_characters.IsInWorld(requester)
+			|| (ownerIsTheSender && !_characters.IsInWorld(msg.TargetBodySteamId)))
 		{
-			_log.LogWarning("[RemoteIntent] refused {Kind}: {Owner} or {Requester} is not in-world.", msg.Kind, owner, requester);
+			_log.LogWarning("[RemoteIntent] refused {Kind}: {Owner}, {Requester} or the destination body {Body} is not in-world.",
+				msg.Kind, owner, requester, msg.TargetBodySteamId);
 			return;
 		}
 
@@ -171,6 +183,13 @@ internal sealed class PlayerRemoteInventoryIntentService(
 			// consumes the owner's item for the requester's own body.
 			case RemoteInventoryIntentKind.TransferToBody:
 				_take.HandleRemoteBackpackTransferToBody(requester, owner, msg.ItemInstanceId, msg.TargetSlotIndex);
+				break;
+
+			// The same custody transfer read the other way round: the item belongs to the REQUESTER, who is giving
+			// it away, and the destination body is the other player's. It runs the identical host path with the two
+			// ends swapped, so both directions of one hand-over agree about custody by construction.
+			case RemoteInventoryIntentKind.GiveToBody:
+				_take.HandleRemoteGiveToBody(requester, msg.TargetBodySteamId, msg.ItemInstanceId, msg.TargetSlotIndex);
 				break;
 			case RemoteInventoryIntentKind.ApplyToLimb:
 				_itemUse.HandleRemoteHeldItemUse(requester, owner, msg.ItemInstanceId, msg.TargetLimbIndex, msg.Amount);
@@ -261,6 +280,33 @@ internal sealed class PlayerRemoteInventoryIntentService(
 					return false;
 				}
 
+				refusal = string.Empty;
+				return true;
+			case RemoteInventoryIntentKind.GiveToBody:
+				// The same hand-over read the other way round: the owner IS the requester (checked above, where the
+				// item must be one of the owner's carried items) and the destination is the OTHER player. A
+				// destination equal to the requester is a hand-over to oneself, refused here observably, the same
+				// way the take direction refuses a third body.
+				if (msg.TargetBodySteamId == 0 || msg.TargetBodySteamId == requester)
+				{
+					refusal = $"destination body {msg.TargetBodySteamId} is the requester {requester} itself.";
+					return false;
+				}
+
+				// A ring slot names the destination directly. A container does not: putting an item INTO a container
+				// the other player carries is a different move from putting it on their body, and the host path this
+				// direction mirrors takes a body slot. Refused by name rather than landing it somewhere the player
+				// did not point at.
+				if (msg.TargetSlotIndex < 0)
+				{
+					refusal = msg.TargetContainerInstanceId != 0
+						? $"a container destination (item {msg.TargetContainerInstanceId}) is not carried yet: only a body slot can be named."
+						: "no destination: neither a body slot nor a container was named.";
+					return false;
+				}
+
+				// Whether that slot exists at all is the host path's own check (HandleTakeCore refuses an
+				// out-of-range destination), so it is not repeated here.
 				refusal = string.Empty;
 				return true;
 			case RemoteInventoryIntentKind.ApplyToLimb:

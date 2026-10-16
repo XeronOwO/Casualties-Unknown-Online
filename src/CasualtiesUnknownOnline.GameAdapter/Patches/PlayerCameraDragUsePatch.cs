@@ -68,7 +68,7 @@ internal static class PlayerCameraDragUsePatch
 				var proxyTarget = ResolveDisplayProxyTarget(__instance, uiCasts);
 				if (proxyTarget is { } target)
 				{
-					bridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description);
+					bridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description, target.TargetItemInstanceId, target.TargetSlotIndex);
 					ClearDrag(__instance);
 				}
 			}
@@ -148,7 +148,7 @@ internal static class PlayerCameraDragUsePatch
 				var item = button.GetItem();
 				if (item != null && RemoteDragProxyQuery.IsProxy(item)) // Unity objects — ==
 				{
-					return new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy item {item.id}");
+					return new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy item {item.id}", TargetItemInstanceId: RemoteDragProxyQuery.InstanceId(item));
 				}
 
 				if (button.isBody && RemoteBackpackView.IsOpen)
@@ -156,7 +156,7 @@ internal static class PlayerCameraDragUsePatch
 					// A body slot the ring reads from the clone: the item shown there
 					// is a proxy (handled above), and an EMPTY one still names the
 					// clone's slot index, which is what the native body would act on.
-					return new DisplayProxyTarget(RemoteBackpackView.FocusedSteamId, "a slot of the displayed inventory");
+					return new DisplayProxyTarget(RemoteBackpackView.FocusedSteamId, $"slot {button.slot} of the displayed inventory", TargetSlotIndex: button.slot);
 				}
 			}
 
@@ -166,7 +166,7 @@ internal static class PlayerCameraDragUsePatch
 				var containerItem = camera.currentContainer.GetComponent<Item>();
 				if (containerItem != null && RemoteDragProxyQuery.IsProxy(containerItem)) // Unity objects — ==
 				{
-					return new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(containerItem), $"display proxy container {containerItem.id}");
+					return new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(containerItem), $"display proxy container {containerItem.id}", TargetItemInstanceId: RemoteDragProxyQuery.InstanceId(containerItem));
 				}
 			}
 		}
@@ -175,7 +175,17 @@ internal static class PlayerCameraDragUsePatch
 	}
 
 	/// <summary>The player whose display proxy a local release pointed at, and what the pointer was on.</summary>
-	private readonly record struct DisplayProxyTarget(ulong OwnerSteamId, string Description);
+	/// <summary>
+	/// The player whose display proxy a local release pointed at, what the pointer was on, and the operands a
+	/// give-direction intent needs: the item shown there (0 for a body slot), and the slot index of the ring that
+	/// was hit (-1 when the pointer was on a container). The description stays for the refusal line, which names
+	/// both ends whether or not the release turned out to be classifiable.
+	/// </summary>
+	private readonly record struct DisplayProxyTarget(
+		ulong OwnerSteamId,
+		string Description,
+		ulong TargetItemInstanceId = 0,
+		int TargetSlotIndex = -1);
 
 	/// <summary>
 	/// The native release outcomes that are deliberately nothing, so a release

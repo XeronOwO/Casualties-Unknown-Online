@@ -139,6 +139,62 @@ public class RemoteIntentRequestTests
 	}
 
 	[Fact]
+	public void Guest_GiveToBody_MovesOwnItemToTheHostsNamedSlot()
+	{
+		// The mirror of TransferToBody: here the item belongs to the REQUESTER, who is giving it away, and the
+		// destination body is the other player's. One host core runs both directions with the two ends swapped, so
+		// the two halves of a hand-over cannot drift apart about custody.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = HostId,
+				TargetSlotIndex = 2,
+			});
+
+		var transfer = TransferResult(received);
+		Assert.Equal(GuestId, transfer.FromSteamId);
+		Assert.Equal(HostId, transfer.ToSteamId);
+		Assert.Equal(42UL, transfer.Item!.InstanceId);
+		Assert.Equal(2, transfer.Item.SlotIndex);
+		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void GiveToBody_ToItself_IsRefusedAndNothingMoves()
+	{
+		// The core refuses a transfer whose two ends are the same body, and the give direction reaches that check		// the same way the take direction does — so a client cannot hand an item to itself and duplicate it.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = GuestId,
+				TargetSlotIndex = 1,
+			});
+
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
 	public void Guest_TransferToBody_MovesConsciousHostItemToTheNamedSlot()
 	{
 		var (host, guest, received) = CreateSession();

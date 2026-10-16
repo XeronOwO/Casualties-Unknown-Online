@@ -96,6 +96,16 @@ internal sealed class PlayerInventoryTakeService(
 	public void HandleRemoteBackpackTransferToBody(ulong requester, ulong owner, ulong itemId, int targetSlot) =>
 		HandleTakeCore(requester, owner, itemId, allowConsciousSource: true, requestedSlot: targetSlot);
 
+	/// <summary>
+	/// Host-only native-intent half of <c>GiveToBody</c> — the same custody transfer as
+	/// <see cref="HandleRemoteBackpackTransferToBody"/> with the two ends swapped: the item belongs to the player who
+	/// is giving it away, and it lands on the other player's body, in the slot their release named. Running the one
+	/// core the other direction is what makes the two halves agree about custody rather than merely resemble each
+	/// other.
+	/// </summary>
+	public void HandleRemoteGiveToBody(ulong giver, ulong receiver, ulong itemId, int targetSlot) =>
+		HandleTakeCore(sender: receiver, owner: giver, itemId, allowConsciousSource: true, requestedSlot: targetSlot);
+
 	private void HandleTakeCore(
 		ulong sender,
 		ulong owner,

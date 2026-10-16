@@ -24,8 +24,16 @@ internal interface IRemoteBackpackPatchBridge
 	/// native body runs — reported, never a silent no-op, and never a native operation
 	/// on another player's inventory. <paramref name="targetOwnerSteamId"/> is resolved
 	/// by the caller and is printed as it was resolved.
+	///
+	/// <para>
+	/// It either becomes a give-direction intent or keeps the refusal line; it answers nothing, because the caller
+	/// clears the drag either way — the native body must not run on a display proxy at all, so a return value would
+	/// have no reader. <paramref name="targetItemInstanceId"/> is the item shown where the pointer landed (0 for a
+	/// body slot) and <paramref name="targetSlotIndex"/> is the ring slot that was hit (-1 when the pointer was on a
+	/// container); exactly one of the two is set.
+	/// </para>
 	/// </summary>
-	void ReportLocalReleaseOntoProxy(Item dragItem, ulong targetOwnerSteamId, string target);
+	void ReportLocalReleaseOntoProxy(Item dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex);
 
 	/// <summary>
 	/// One closed release bracket: log the native calls this stage could not
